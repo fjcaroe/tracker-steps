@@ -1,0 +1,738 @@
+/* src/pages/StatsPage.scss */
+
+/* Variables simples (ajusta a tu tema si ya tienes) */
+:root {
+  --sp-1: 6px;
+  --sp-2: 10px;
+  --sp-3: 14px;
+  --sp-4: 18px;
+
+  --radius: 12px;
+
+  --bg: #0b1220;
+  --panel: rgba(255, 255, 255, 0.06);
+  --panel-2: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.68);
+  --muted-2: rgba(255, 255, 255, 0.55);
+
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+}
+
+/* Card base (si ya tienes .card en tu app, esto lo complementa, no lo rompe) */
+.card {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card-header {
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.03)
+  );
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.2px;
+  margin-bottom: 4px;
+}
+
+.card-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  max-width: 92ch;
+}
+
+/* Mensajes */
+.tracker-error {
+  margin: var(--sp-3) var(--sp-4) 0;
+  padding: var(--sp-3);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 90, 90, 0.35);
+  background: rgba(255, 90, 90, 0.12);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.sessions-loading,
+.sessions-empty {
+  padding: var(--sp-3);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+
+/* Panel filtros */
+.stats-filters {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  outline: none;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: rgba(120, 170, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(120, 170, 255, 0.18);
+}
+
+.form-select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.75) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.75) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 16px,
+    calc(100% - 12px) 16px;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* Títulos de sección */
+.stats-summary-title {
+  margin-top: var(--sp-4);
+  margin-bottom: var(--sp-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.2px;
+}
+
+/* KPIs / resumen */
+.session-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+@media (max-width: 980px) {
+  .session-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.session-stat {
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.session-stat__label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.session-stat__value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* Barras (charts) */
+.stats-bar-chart {
+  display: grid;
+  gap: 10px;
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stats-bar-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.2fr) 2fr minmax(86px, 0.6fr);
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .stats-bar-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+.stats-bar-label {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stats-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.stats-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(120, 170, 255, 0.9), rgba(160, 120, 255, 0.9));
+  min-width: 6px;
+}
+
+.stats-bar-value {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* Tablas */
+.stats-table-wrapper {
+  margin-top: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: auto;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stats-table {
+  width: 100%;
+  min-width: 860px; /* asegura scroll horizontal cuando corresponde */
+  border-collapse: collapse;
+}
+
+.stats-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15, 25, 45, 0.92);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.stats-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.stats-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Chips conductores */
+.cc-driver-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: var(--sp-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text);
+  font-size: 12px;
+}
+
+
+/* FIX: opciones del <select> invisibles (texto blanco sobre fondo blanco) */
+.form-select {
+  color: #111 !important;          /* texto visible en el control */
+  background-color: #fff !important; /* fondo blanco */
+  border-color: rgba(0,0,0,.18) !important;
+}
+
+/* Lo más importante: las opciones del dropdown */
+.form-select option {
+  color: #111 !important;
+  background: #fff !important;
+}
+
+/* También para el input date, para que quede consistente */
+.form-input {
+  color: #111 !important;
+  background-color: #fff !important;
+  border-color: rgba(0,0,0,.18) !important;
+}
+
+/* Placeholder visual (si aplicara a inputs) */
+.form-input::placeholder {
+  color: rgba(0,0,0,.45);
+}
+
+
+.stats-alerts-panel {
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.stats-alerts-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.stats-alerts-panel__meta {
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+.stats-alerts-chips, .stats-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip--alert {
+  border: 1px solid rgba(255, 99, 99, 0.35);
+}
+
+.stats-row--alert {
+  background: rgba(255, 99, 99, 0.08);
+}
+
+.stats-table--compact td, .stats-table--compact th {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.muted {
+  opacity: 0.75;
+  font-size: 0.85rem;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+
+
+
+/* Zebra + hover profesional */
+.stats-table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.stats-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* separadores de columna sutiles (opcional, pero ayuda lectura) */
+.stats-table thead th + th,
+.stats-table tbody td + td {
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* tabla compacta: un poco más densa, uniforme */
+.stats-table--compact th,
+.stats-table--compact td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Si tienes columnas numéricas con style inline textAlign:right, perfecto.
+   Si quieres reforzarlo por clase, deja esto preparado: */
+.td-num {
+  text-align: right;
+}
+
+/* Estado pill (si lo usas en la tabla nueva) */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.status-pill--open {
+  border-color: rgba(255, 200, 90, 0.35);
+  background: rgba(255, 200, 90, 0.12);
+}
+
+.status-pill--closed {
+  border-color: rgba(120, 255, 170, 0.28);
+  background: rgba(120, 255, 170, 0.10);
+}
+
+/* =========================================
+   Layout tipo dashboard: tabla manda
+   - izquierda scrollea si es necesario
+   - derecha (tabla) ocupa altura útil
+   ========================================= */
+.stats-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.stats-page .card-header {
+  flex: 0 0 auto;
+}
+
+.stats-page .stats-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* panel izquierdo scrollea, panel derecho se queda fijo */
+.stats-page .stats-layout > div:first-child {
+  min-height: 0;
+  overflow: auto;
+  padding-bottom: var(--sp-3);
+}
+
+.stats-page .stats-layout > div:last-child {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* tabla principal usa todo el alto disponible */
+.stats-page .stats-table-wrapper--main {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none; /* clave: que no quede limitada por dvh fijo */
+}
+
+/* tablas secundarias no se comen toda la pantalla */
+.stats-page .stats-table-wrapper:not(.stats-table-wrapper--main) {
+  max-height: min(34dvh, 420px);
+}
+
+/* =========================================
+   Filtros compactos (menos alto = más tabla)
+   ========================================= */
+:root {
+  --control-h: 34px;
+  --control-fs: 12.5px;
+}
+
+/* 2 columnas en escritorio para ahorrar altura */
+.stats-filters {
+  padding: var(--sp-2);
+  gap: var(--sp-2);
+  grid-template-columns: 1fr 1fr;
+}
+
+/* en mobile vuelve a 1 columna */
+@media (max-width: 980px) {
+  .stats-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-field {
+  gap: 4px;
+}
+
+.form-label {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+/* controles más bajos */
+.form-input,
+.form-select {
+  height: var(--control-h);
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: var(--control-fs);
+}
+
+/* =========================================
+   KPIs más compactos (sin perder legibilidad)
+   ========================================= */
+.stats-summary-title {
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+}
+
+.session-stats {
+  gap: var(--sp-2);
+  margin-top: 8px;
+}
+
+.session-stat {
+  padding: var(--sp-2);
+}
+
+.session-stat__label {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.session-stat__value {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* =========================================
+   Panel de alertas más compacto
+   ========================================= */
+.stats-alerts-panel {
+  padding: var(--sp-2);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stats-alerts-panel__header {
+  margin-bottom: 6px;
+}
+
+.stats-alerts-panel__meta {
+  font-size: 12px;
+}
+
+.stats-flags .chip,
+.stats-alerts-chips .chip {
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11.5px;
+}
+:root {
+  --stats-left-width: 100px; /* bájalo a 280 si quieres aún más tabla */
+}
+
+.stats-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, var(--stats-left-width)) minmax(0, 1fr);
+  gap: var(--sp-3);
+  align-items: stretch;
+  min-height: 0;
+}
+
+@media (max-width: 980px) {
+  .stats-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel izquierdo: scroll propio (no empuja la tabla) */
+.stats-left {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px; /* evita “corte” del scrollbar */
+}
+
+/* Panel derecho: estructura tipo dashboard para que la tabla mande */
+.stats-right {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ===============================
+   OVERRIDES FINALES (DEJAR AL FINAL)
+   - Panel izquierdo más angosto
+   - Tabla con más protagonismo
+   - Sin min-width inválidos
+   =============================== */
+
+:root {
+  /* ancho objetivo del panel izquierdo */
+  --stats-left-width: 240px; /* prueba 220px–280px */
+}
+
+/* Normaliza tipografía del módulo */
+.stats-page {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  color-scheme: dark; /* mejora selects/date en Chrome/Edge */
+}
+
+/* El card se comporta como “pantalla” */
+.stats-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.stats-page .card-header {
+  flex: 0 0 auto;
+}
+
+/* Layout principal: izquierda angosta + derecha flexible */
+.stats-page .stats-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+
+  display: grid;
+  grid-template-columns: minmax(220px, var(--stats-left-width)) minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  align-items: stretch;
+}
+
+@media (max-width: 980px) {
+  .stats-page .stats-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Panel izquierdo: scroll propio, no empuja a la tabla */
+.stats-page .stats-left {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+
+  /* permite “container query” para filtros */
+  container-type: inline-size;
+}
+
+/* Panel derecho: estructura tipo dashboard, tabla manda */
+.stats-page .stats-right {
+  min-width: 0;   /* CLAVE: NO forzar ancho */
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tabla principal ocupa todo el alto disponible */
+.stats-page .stats-table-wrapper--main {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 10px;
+}
+
+/* Tablas secundarias: no se comen la pantalla */
+.stats-page .stats-table-wrapper:not(.stats-table-wrapper--main) {
+  max-height: min(34dvh, 420px);
+}
+
+/* ===============================
+   FILTROS: no deben forzar ancho
+   - 1 columna cuando el panel es angosto
+   - 2 columnas solo si hay espacio real
+   =============================== */
+
+.stats-page .stats-filters {
+  padding: var(--sp-2);
+  gap: var(--sp-2);
+  grid-template-columns: 1fr; /* default: angosto */
+}
+
+/* Si el panel izquierdo tiene buen ancho, recién ahí 2 columnas */
+@container (min-width: 340px) {
+  .stats-page .stats-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Controles más compactos (menos alto) */
+:root {
+  --control-h: 34px;
+  --control-fs: 12.5px;
+}
+
+.stats-page .form-label {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.stats-page .form-input,
+.stats-page .form-select {
+  height: var(--control-h);
+  padding: 0 10px;
+  font-size: var(--control-fs);
+}
+
+/* Ajusta el “caret” del select al nuevo alto */
+.stats-page .form-select {
+  background-position:
+    calc(100% - 18px) 13px,
+    calc(100% - 12px) 13px;
+}
+
+/* IMPORTANTÍSIMO:
+   Si estabas forzando a blanco con !important, aquí lo devolvemos a tu tema oscuro */
+.stats-page .form-select,
+.stats-page .form-input {
+  color: var(--text) !important;
+  background: rgba(0, 0, 0, 0.18) !important;
+  border-color: var(--border) !important;
+}
+
+/* Fallback por si Windows pinta el dropdown blanco */
+.stats-page .form-select option {
+  color: #111;
+  background: #fff;
+}
+
+.entity-table tr.is-selected {
+  outline: 2px solid rgba(0, 0, 0, 0.25);
+}
