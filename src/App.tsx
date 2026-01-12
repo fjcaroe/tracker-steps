@@ -86,6 +86,40 @@ function AuthedApp() {
   const [selectedLiveSessionId, setSelectedLiveSessionId] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldPolygon[]>([]);
 
+  type LivePoint = { lat: number; lon: number; ts: string };
+
+const [selectedLivePoints, setSelectedLivePoints] = useState<LivePoint[]>([]);
+
+useEffect(() => {
+  if (!selectedLiveSessionId) {
+    setSelectedLivePoints([]);
+    return;
+  }
+
+  let mounted = true;
+
+  const loadPoints = async () => {
+    try {
+      // 👇 AJUSTA el endpoint al tuyo real
+      const pts = await apiJson<LivePoint[]>(
+        `/sessions/${selectedLiveSessionId}/points`
+      );
+      if (mounted) setSelectedLivePoints(pts);
+    } catch {
+      if (mounted) setSelectedLivePoints([]);
+    }
+  };
+
+
+  loadPoints();
+  const id = window.setInterval(loadPoints, 5000);
+
+  return () => {
+    mounted = false;
+    window.clearInterval(id);
+  };
+}, [selectedLiveSessionId]);
+
    useEffect(() => {
     setApiAuthToken(token ?? null);
   }, [token]);
@@ -260,12 +294,13 @@ function AuthedApp() {
                 </div>
               </div>
             </div>
+<TrackerMap
+  activeSessions={activeSessions}
+  selectedSessionId={selectedLiveSessionId}
+  fields={fields}
+  selectedPoints={selectedLivePoints}   // ✅ nuevo
+/>
 
-            <TrackerMap
-              activeSessions={activeSessions}
-              selectedSessionId={selectedLiveSessionId}
-              fields={fields}
-            />
           </section>
         </main>
       )}

@@ -35,6 +35,7 @@ type SessionPoint = {
   lon: number;
   speed_mps?: number | null;
 };
+type LivePoint = { lat: number; lon: number; ts?: string };
 
 type TrackerMapProps = {
   /** Polígonos de los campos (ambos modos) */
@@ -46,11 +47,9 @@ type TrackerMapProps = {
 
   /** Modo detalle de sesión (SessionsPage) */
   points?: TrackPoint[];
+  selectedPoints?: LivePoint[];
 };
 
-const apiBaseUrl =
-  ((import.meta.env.VITE_API_BASE_URL as string | undefined) ||
-    "http://localhost:8000").replace(/\/+$/, "");
 
 const mapContainerStyle: CSSProperties = {
   width: "100%",
@@ -70,6 +69,7 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   activeSessions,
   selectedSessionId,
   points,
+  selectedPoints,
 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -173,6 +173,18 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
     mapRef.setZoom(18);
   }, [mapRef, isLoaded, selectedSessionId, hasLiveMode, sessionPoints]);
 
+
+    useEffect(() => {
+    if (!mapRef || !isLoaded) return;
+    if (!selectedPoints || selectedPoints.length === 0) return;
+
+    // en tu caso usamos el primero
+    const sp = selectedPoints[0];
+    mapRef.panTo({ lat: sp.lat, lng: sp.lon });
+    mapRef.setZoom(19);
+  }, [mapRef, isLoaded, selectedPoints]);
+
+  
   if (loadError) {
     return (
       <div className="fields-map-loading">
@@ -284,18 +296,14 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
           }}
         />
       )}
-
-      {!hasLiveMode && points && points.length > 0 && (
+  {selectedPoints && selectedPoints.length > 0 && (
         <Marker
-          position={{
-            lat: points[points.length - 1].lat,
-            lng: points[points.length - 1].lon,
-          }}
+          position={{ lat: selectedPoints[0].lat, lng: selectedPoints[0].lon }}
           icon={{
             path: google.maps.SymbolPath.CIRCLE,
-            scale: 7,
-            strokeColor: "#f97316",
-            strokeWeight: 2,
+            scale: 10,
+            strokeColor: "#ef4444",
+            strokeWeight: 3,
             fillColor: "#ffffff",
             fillOpacity: 1,
           }}
