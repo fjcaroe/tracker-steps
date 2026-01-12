@@ -180,9 +180,6 @@ function computeSessionStats(
   return { distanceKm, distanceMeters, durationMinutes, durationHours, avgSpeedKmh };
 }
 
-function eff(s: SessionSummary) {
-  return s.effort_factor != null && Number.isFinite(s.effort_factor) ? Number(s.effort_factor) : 1;
-}
 
 // ====== Export helpers ======
 function downloadBlob(filename: string, blob: Blob) {
