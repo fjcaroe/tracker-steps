@@ -1,14 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/LoginPage.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuthWeb } from "../services/AuthContext";
 
 export default function LoginPage() {
   const { login } = useAuthWeb();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+
+  const canSubmit = useMemo(() => {
+    return username.trim().length > 0 && password.length > 0 && !loading;
+  }, [username, password, loading]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +27,7 @@ export default function LoginPage() {
       const msg =
         e?.detail?.detail ||
         e?.message ||
-        "No se pudo iniciar sesión";
+        "No se pudo iniciar sesión. Verifica tus credenciales.";
       setErr(String(msg));
     } finally {
       setLoading(false);
@@ -28,37 +35,104 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="app-shell" style={{ padding: 24, maxWidth: 420, margin: "0 auto" }}>
-      <h2 style={{ marginBottom: 8 }}>Tracker Steps</h2>
-      <p style={{ opacity: 0.8, marginTop: 0 }}>Ingresa con tus credenciales.</p>
+    <div className="login-page">
+      <div className="login-bg" aria-hidden="true" />
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 10, marginTop: 16 }}>
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Usuario"
-          autoComplete="username"
-          style={{ padding: 12, borderRadius: 10 }}
-        />
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Contraseña"
-          type="password"
-          autoComplete="current-password"
-          style={{ padding: 12, borderRadius: 10 }}
-        />
-
-        {err && (
-          <div style={{ padding: 12, borderRadius: 10, border: "1px solid #ef4444" }}>
-            {err}
+      <div className="login-wrap">
+        <div className="login-card card">
+          <div className="login-header">
+            <div className="login-brand">
+              <div className="login-mark" aria-hidden="true">
+                TS
+              </div>
+              <div className="login-brand-text">
+                <div className="login-title">Tracker Steps</div>
+                <div className="login-subtitle">
+                  Accede a monitoreo en vivo, rutas y sesiones históricas
+                </div>
+              </div>
+            </div>
           </div>
-        )}
 
-        <button type="submit" disabled={loading} className="app-nav-button">
-          {loading ? "Ingresando..." : "Ingresar"}
-        </button>
-      </form>
+          <form className="login-form" onSubmit={onSubmit}>
+            <label className="login-label" htmlFor="username">
+              Usuario
+            </label>
+            <div className="login-field">
+              <input
+                id="username"
+                className="login-input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ej: fernando.caro"
+                autoComplete="username"
+                inputMode="text"
+                spellCheck={false}
+              />
+            </div>
+
+            <label className="login-label" htmlFor="password">
+              Contraseña
+            </label>
+            <div className="login-field login-field--with-action">
+              <input
+                id="password"
+                className="login-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                type={showPw ? "text" : "password"}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="login-field-action"
+                onClick={() => setShowPw((v) => !v)}
+                aria-label={showPw ? "Ocultar contraseña" : "Mostrar contraseña"}
+                title={showPw ? "Ocultar" : "Mostrar"}
+              >
+                {showPw ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
+
+            {err && (
+              <div className="login-alert" role="alert">
+                <div className="login-alert__title">No se pudo iniciar sesión</div>
+                <div className="login-alert__msg">{err}</div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="login-submit app-nav-button"
+              disabled={!canSubmit}
+            >
+              {loading ? (
+                <span className="login-submit__loading">
+                  <span className="login-spinner" aria-hidden="true" />
+                  Ingresando…
+                </span>
+              ) : (
+                "Ingresar"
+              )}
+            </button>
+
+            <div className="login-footer">
+              <div className="login-footnote">
+                Si tienes problemas de acceso, valida tu usuario y contraseña con el
+                administrador.
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div className="login-meta">
+          <div className="login-meta-chip">
+            Seguridad: sesión protegida por token
+          </div>
+          <div className="login-meta-chip">Ambiente: Web</div>
+        </div>
+      </div>
     </div>
   );
 }
