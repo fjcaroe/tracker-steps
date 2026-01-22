@@ -28,7 +28,7 @@ type TrackerControlProps = {
   formatNumber: (n: number | null | undefined, decimals?: number) => string;
   activeSessions: ActiveSession[];
   selectedSessionId: string | null;
-  onToggleSession: (id: string) => void;
+  onToggleSession: (id: string | null) => void;
 };
 
 function toRad(deg: number): number {

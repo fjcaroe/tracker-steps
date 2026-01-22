@@ -1669,3 +1669,486 @@ textarea.form-input {
 .form-input::placeholder {
   color: rgba(0,0,0,.45);
 }
+
+.tracker-map-shell {
+  position: relative;
+}
+
+.tracker-map-fullscreen-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(15, 23, 42, 0.75);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tracker-map-scrubber {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 5;
+
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #fff;
+  backdrop-filter: blur(6px);
+
+  display: grid;
+  gap: 8px;
+}
+
+.tracker-map-scrubber__label {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.tracker-map-scrubber__hint {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.tracker-map-scrubber__range {
+  width: 100%;
+  height: 34px; /* hace más fácil el toque */
+  cursor: pointer;
+  touch-action: pan-x;
+}
+
+.tracker-map-scrubber__days {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tracker-map-scrubber__daybtn {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tracker-map-scrubber__daybtn.is-active {
+  background: rgba(249, 115, 22, 0.85);
+  border-color: rgba(249, 115, 22, 0.9);
+}
+
+.tracker-map-shell { position: relative; }
+
+.tracker-map-scrubber{
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 50; /* clave */
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #fff;
+}
+
+.tracker-map-scrubber__days{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding: 6px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tracker-map-scrubber__daybtn{
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tracker-map-scrubber__daybtn.is-active{
+  background: rgba(249,115,22,0.85);
+  border-color: rgba(249,115,22,0.95);
+}
+
+.tracker-map-scrubber__range{
+  width: 100%;
+}
+
+.tracker-map-scrubber{ position:absolute; left:12px; right:12px; bottom:12px; z-index:50; }
+.tracker-map-fullscreen-btn{ position:absolute; top:12px; right:12px; z-index:60; }
+
+
+/* ===============================
+   LIVE LAYOUT (TrackerControl + Map)
+   =============================== */
+
+/* 1) Grid principal (2 columnas estables) */
+.app-layout--live {
+  display: grid !important;
+  grid-template-columns: 460px minmax(0, 1fr) !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+@media (max-width: 1100px) {
+  .app-layout--live {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 2) Cards consistentes */
+.card {
+  border-radius: 16px !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06) !important;
+  overflow: hidden !important;
+  background: #fff !important;
+}
+
+.card-header {
+  padding: 16px 18px !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+}
+
+.card-title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+.card-subtitle {
+  margin-top: 6px !important;
+  color: rgba(15, 23, 42, 0.72) !important;
+  line-height: 1.35 !important;
+}
+
+/* ===============================
+   TrackerControl (izquierda)
+   =============================== */
+
+.live-config-grid--single {
+  padding: 14px 14px 10px !important;
+}
+
+.live-active-sessions {
+  background: rgba(15, 23, 42, 0.02) !important;
+  border: 1px solid rgba(15, 23, 42, 0.06) !important;
+  border-radius: 14px !important;
+  padding: 12px !important;
+}
+
+.live-active-header {
+  display: grid !important;
+  gap: 10px !important;
+  margin-bottom: 10px !important;
+}
+
+.live-active-title {
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+.live-active-filters {
+  display: grid !important;
+  grid-template-columns: 1fr 160px !important;
+  gap: 10px !important;
+}
+
+@media (max-width: 1100px) {
+  .live-active-filters {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.form-input.live-active-search,
+.form-select.live-active-cc-filter {
+  height: 38px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(15, 23, 42, 0.14) !important;
+  background: #fff !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  outline: none !important;
+}
+
+.form-input.live-active-search:focus,
+.form-select.live-active-cc-filter:focus {
+  border-color: rgba(37, 99, 235, 0.55) !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
+}
+
+.live-active-list {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.live-active-item {
+  border-radius: 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.10) !important;
+  background: #fff !important;
+  padding: 12px !important;
+  cursor: pointer !important;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease !important;
+}
+
+.live-active-item:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.08) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.live-active-item--selected {
+  border-color: rgba(249, 115, 22, 0.75) !important;
+  box-shadow: 0 10px 26px rgba(249, 115, 22, 0.12) !important;
+  background: rgba(249, 115, 22, 0.06) !important;
+}
+
+.live-active-main {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-bottom: 6px !important;
+}
+
+.live-active-machine {
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+.live-active-badge {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  padding: 4px 10px !important;
+  border-radius: 999px !important;
+  background: rgba(37, 99, 235, 0.10) !important;
+  color: rgb(37, 99, 235) !important;
+  border: 1px solid rgba(37, 99, 235, 0.18) !important;
+}
+
+.live-active-item--selected .live-active-badge {
+  background: rgba(249, 115, 22, 0.12) !important;
+  color: rgb(249, 115, 22) !important;
+  border-color: rgba(249, 115, 22, 0.22) !important;
+}
+
+.live-active-meta,
+.live-active-meta2 {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  color: rgba(15, 23, 42, 0.75) !important;
+  font-size: 12px !important;
+}
+
+/* panel inferior de puntos */
+.live-points-panel {
+  margin: 12px 14px 14px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  overflow: hidden !important;
+}
+
+.live-points-header {
+  padding: 10px 12px !important;
+  background: rgba(15, 23, 42, 0.03) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+}
+
+.live-points-list {
+  max-height: 220px !important;
+  overflow: auto !important;
+}
+
+/* ===============================
+   TrackerMap (derecha)
+   =============================== */
+
+.card--map-live {
+  position: relative !important;
+}
+
+/* Contenedor del mapa */
+.tracker-map-shell {
+  position: relative !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: #0b1220 !important;
+}
+
+/* Fullscreen modifica padding/overlay */
+.tracker-map-shell--fullscreen {
+  border-radius: 0 !important;
+}
+
+/* Toolbar flotante superior (botones) */
+.tracker-map-scrubber__toprow {
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  right: 12px !important;
+  z-index: 50 !important;
+
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  padding: 10px !important;
+  border-radius: 14px !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28) !important;
+}
+
+/* Botón fullscreen a la derecha, mismo look */
+.tracker-map-fullscreen-btn {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 60 !important;
+
+  height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: rgba(15, 23, 42, 0.78) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+}
+
+.tracker-map-fullscreen-btn:hover {
+  background: rgba(15, 23, 42, 0.88) !important;
+}
+
+/* Botones modo (En vivo/Actualizar) */
+.tracker-map-scrubber__modebtn {
+  height: 40px !important;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+.tracker-map-scrubber__modebtn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+.tracker-map-scrubber__modebtn.is-active {
+  background: rgba(249, 115, 22, 0.22) !important;
+  border-color: rgba(249, 115, 22, 0.35) !important;
+}
+
+/* Scrubber inferior */
+.tracker-map-scrubber {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  z-index: 50 !important;
+
+  padding: 12px !important;
+  border-radius: 16px !important;
+  background: rgba(15, 23, 42, 0.80) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.30) !important;
+
+  max-width: 720px !important;
+  margin: 0 auto !important;
+}
+
+.tracker-map-scrubber__label {
+  color: rgba(255, 255, 255, 0.90) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  margin-bottom: 10px !important;
+}
+
+/* Días: scroll horizontal limpio */
+.tracker-map-scrubber__days {
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  padding-bottom: 6px !important;
+  margin-bottom: 10px !important;
+  scrollbar-width: none !important;
+}
+.tracker-map-scrubber__days::-webkit-scrollbar {
+  display: none !important;
+}
+
+.tracker-map-scrubber__daybtn {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-weight: 800 !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+  border-radius: 999px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+.tracker-map-scrubber__daybtn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+.tracker-map-scrubber__daybtn.is-active {
+  background: rgba(249, 115, 22, 0.25) !important;
+  border-color: rgba(249, 115, 22, 0.40) !important;
+  color: #fff !important;
+}
+
+/* Range */
+.tracker-map-scrubber__range {
+  width: 100% !important;
+  margin: 6px 0 8px !important;
+  height: 24px !important;
+  accent-color: rgb(37, 99, 235) !important;
+}
+
+.tracker-map-scrubber__hint {
+  color: rgba(255, 255, 255, 0.70) !important;
+  font-size: 12px !important;
+}
+
+/* Ajustes para que el mapa no quede “tapado” visualmente por overlays */
+.card--map-live .gm-style {
+  border-radius: 16px !important;
+}
+
+/* En fullscreen, que overlays respiren mejor */
+.tracker-map-shell--fullscreen .tracker-map-scrubber {
+  max-width: 860px !important;
+}

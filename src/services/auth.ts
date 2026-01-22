@@ -14,7 +14,6 @@ export type TokenOut = {
 export async function login(username: string, password: string): Promise<TokenOut> {
   const data = await apiJson<TokenOut>("/auth/login", {
     method: "POST",
-    auth: false,
     body: JSON.stringify({ username, password }),
   });
 
