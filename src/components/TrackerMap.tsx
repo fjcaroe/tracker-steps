@@ -37,6 +37,7 @@ type SessionPoint = {
   lon: number;
   speed_mps?: number | null;
 };
+type LivePoint = { lat: number; lon: number; ts?: string };
 
 type TrackerMapProps = {
   /** Polígonos de los campos (ambos modos) */
@@ -48,6 +49,7 @@ type TrackerMapProps = {
 
   /** Modo detalle de sesión (SessionsPage) */
   points?: TrackPoint[];
+  selectedPoints?: LivePoint[];
 };
 
 
@@ -69,6 +71,7 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   activeSessions,
   selectedSessionId,
   points,
+  selectedPoints,
 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -428,6 +431,18 @@ useEffect(() => {
     mapRef.setZoom(18);
   }, [mapRef, isLoaded, selectedSessionId, hasLiveMode, sessionPoints]);
 
+
+    useEffect(() => {
+    if (!mapRef || !isLoaded) return;
+    if (!selectedPoints || selectedPoints.length === 0) return;
+
+    // en tu caso usamos el primero
+    const sp = selectedPoints[0];
+    mapRef.panTo({ lat: sp.lat, lng: sp.lon });
+    mapRef.setZoom(19);
+  }, [mapRef, isLoaded, selectedPoints]);
+
+  
   if (loadError) {
     return (
       <div className="fields-map-loading">

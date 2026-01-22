@@ -1669,6 +1669,11 @@ textarea.form-input {
 .form-input::placeholder {
   color: rgba(0,0,0,.45);
 }
+.session-points-row--selected {
+  outline: 2px solid rgba(249, 115, 22, 0.9);
+  outline-offset: -2px;
+  background: rgba(249, 115, 22, 0.08);
+}
 
 .tracker-map-shell {
   position: relative;

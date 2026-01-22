@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import TrackerMap from "../components/TrackerMap";
 import type { TrackPoint } from "../types";
+
 import { apiJson } from "../services/http";
 import { useAuthWeb } from "../services/AuthContext";
 type SessionSummary = {
@@ -345,6 +346,7 @@ const SessionsPage = () => {
   const [pointsLoading, setPointsLoading] = useState(false);
   const [pointsError, setPointsError] = useState<string | null>(null);
   const [stats, setStats] = useState<SessionStats | null>(null);
+  const [selectedPointId, setSelectedPointId] = useState<number | null>(null);
 
 
   const [fieldStats, setFieldStats] = useState<FieldStat[]>([]);
@@ -406,6 +408,8 @@ const handleSelectSession = async (session: SessionSummary) => {
   setFieldTransitions([]);
   setPointsError(null);
   setPointsLoading(true);
+  setSelectedPointId(null);
+
 
   try {
     const data = await apiJson<HistoricalPoint[]>(`/sessions/${session.id}/points`);
@@ -482,6 +486,14 @@ const handleSelectSession = async (session: SessionSummary) => {
       };
     });
   }, [points, fields]);
+
+    const selectedPoint = useMemo(() => {
+    if (selectedPointId == null) return null;
+    const p = pointsWithDelta.find((x) => x.id === selectedPointId);
+    if (!p) return null;
+    return { lat: p.lat, lon: p.lon, ts: p.ts };
+  }, [selectedPointId, pointsWithDelta]);
+
 
   // máquina asociada a la sesión
   const selectedMachine: Machine | null = useMemo(() => {
@@ -684,7 +696,11 @@ const handleSelectSession = async (session: SessionSummary) => {
               <>
                 {/* Mapa con el trazo histórico */}
                 <div style={{ marginBottom: 12 }}>
-                  <TrackerMap points={mapPoints} fields={fields} />
+                  <TrackerMap
+                    points={mapPoints}
+                    fields={fields}
+                    selectedPoints={selectedPoint ? [selectedPoint] : []}
+                  />
                 </div>
 
                 {/* Stats principales de la sesión */}
@@ -884,13 +900,17 @@ const handleSelectSession = async (session: SessionSummary) => {
                       <tbody>
                         {pointsWithDelta.map((p, idx) => (
                           <tr
-                            key={p.id}
-                            className={
-                              p.fieldChanged
-                                ? "session-points-row session-points-row--field-change"
-                                : "session-points-row"
-                            }
-                          >
+                              key={p.id}
+                              className={
+                                (p.fieldChanged
+                                  ? "session-points-row session-points-row--field-change"
+                                  : "session-points-row") +
+                                (selectedPointId === p.id ? " session-points-row--selected" : "")
+                              }
+                              onClick={() => setSelectedPointId(p.id)}
+                              style={{ cursor: "pointer" }}
+                            >
+
                             <td>{idx + 1}</td>
                             <td>{formatTime(p.ts)}</td>
                             <td>{p.lat.toFixed(5)}</td>

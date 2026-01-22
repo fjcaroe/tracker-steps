@@ -11,7 +11,7 @@ import FieldsPage from "./pages/FieldsPage";
 import RoutesPage from "./pages/RoutesPage";
 import UserViewPage from "./pages/UserViewPage";
 import StatsPage from "./pages/StatsPage";
-
+import ChartsStatsPage from "./pages/ChartsStatsPage";
 import { useTracker, type TrackerMode } from "./hooks/useTracker";
 import LoginPage from "./pages/LoginPage";
 import { useAuthWeb } from "./services/AuthContext";
@@ -43,7 +43,8 @@ type View =
   | "costCenters"
   | "fields"
   | "userView"
-  | "stats";
+  | "stats"
+  | "chartsStats";
 
 function formatTime(ts: number) {
   const d = new Date(ts);
@@ -86,7 +87,41 @@ function AuthedApp() {
   const [selectedLiveSessionId, setSelectedLiveSessionId] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldPolygon[]>([]);
 
-   useEffect(() => {
+  type LivePoint = { lat: number; lon: number; ts: string };
+
+  const [selectedLivePoints, setSelectedLivePoints] = useState<LivePoint[]>([]);
+
+  useEffect(() => {
+    if (!selectedLiveSessionId) {
+      setSelectedLivePoints([]);
+      return;
+    }
+
+    let mounted = true;
+
+    const loadPoints = async () => {
+      try {
+        // 👇 AJUSTA el endpoint al tuyo real
+        const pts = await apiJson<LivePoint[]>(
+          `/sessions/${selectedLiveSessionId}/points`
+        );
+        if (mounted) setSelectedLivePoints(pts);
+      } catch {
+        if (mounted) setSelectedLivePoints([]);
+      }
+    };
+
+
+    loadPoints();
+    const id = window.setInterval(loadPoints, 5000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(id);
+    };
+  }, [selectedLiveSessionId]);
+
+  useEffect(() => {
     setApiAuthToken(token ?? null);
   }, [token]);
 
@@ -206,6 +241,14 @@ function AuthedApp() {
           >
             Estadísticas
           </button>
+
+          <button
+            type="button"
+            className={`app-nav-button ${view === "chartsStats" ? "active" : ""}`}
+            onClick={() => setView("chartsStats")}
+          >
+            Gráficos
+          </button>
         </div>
 
         <div className="app-nav-secondary">
@@ -213,7 +256,7 @@ function AuthedApp() {
           <select
             className="app-nav-select"
             value={
-              ["sessions", "drivers", "machines", "costCenters", "fields"].includes(view)
+              ["sessions", "drivers", "machines", "costCenters", "fields", "chartsStats"].includes(view)
                 ? view
                 : ""
             }
@@ -228,6 +271,7 @@ function AuthedApp() {
             <option value="machines">Máquinas</option>
             <option value="costCenters">Centros de costo</option>
             <option value="fields">Campos / Polígonos</option>
+            <option value="chartsStats">Dashboards (Gráficos)</option>
           </select>
         </div>
       </nav>
@@ -260,12 +304,13 @@ function AuthedApp() {
                 </div>
               </div>
             </div>
-
             <TrackerMap
               activeSessions={activeSessions}
               selectedSessionId={selectedLiveSessionId}
               fields={fields}
+              selectedPoints={selectedLivePoints}   // ✅ nuevo
             />
+
           </section>
         </main>
       )}
@@ -282,6 +327,11 @@ function AuthedApp() {
         </main>
       )}
 
+      {view === "chartsStats" && (
+        <main className="app-layout app-layout--single">
+          <ChartsStatsPage />
+        </main>
+      )}
       {view === "routes" && (
         <main className="app-layout app-layout--single">
           <RoutesPage />
