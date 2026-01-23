@@ -374,10 +374,10 @@ const FieldsPage = () => {
         {/* Panel izquierdo: control */}
         <div className="fields-sidebar">
           <div className="fields-section">
-            <div className="fields-section-title">Nuevo campo</div>
+            <div className="fields-section-title">Nuevo Sector</div>
 
             <div className="form-field">
-              <label className="form-label">Nombre del campo</label>
+              <label className="form-label">Nombre del Sector</label>
               <input
                 className="form-input"
                 value={fieldName}
@@ -479,7 +479,7 @@ const FieldsPage = () => {
 
           <div className="fields-section">
             <div className="fields-section-title">
-              Campos existentes ({fields.length})
+              Cuarteles existentes ({fields.length})
             </div>
 
             {fields.length === 0 ? (

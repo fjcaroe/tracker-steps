@@ -149,16 +149,6 @@ const scrubPoints = useMemo(() => {
   return selectedTrack.filter((p) => dayKeyFromT(p.t) === selectedDayKey);
 }, [selectedTrack, selectedDayKey]);
 
-const polylineTracks = useMemo(() => {
-  const MAX_SELECTED = 2000;
-
-  const out: Record<string, TrackT[]> = {};
-  for (const [id, pts] of Object.entries(sessionPoints)) {
-    if (!pts?.length) continue;
-    out[id] = id === selectedSessionId ? decimate(pts, MAX_SELECTED) : pts;
-  }
-  return out;
-}, [sessionPoints, selectedSessionId]);
 
 
   // --- Día seleccionado para scrub (key YYYY-MM-DD en America/Santiago)

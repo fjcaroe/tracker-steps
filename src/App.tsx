@@ -294,7 +294,7 @@ useEffect(() => {
             className={`app-nav-button ${view === "live" ? "active" : ""}`}
             onClick={() => setView("live")}
           >
-            Seguimiento en vivo
+            Seguimiento
           </button>
 
           <button

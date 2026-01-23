@@ -239,7 +239,7 @@ return (
   <section className="card">
     <div className="card-header">
       <div>
-        <div className="card-title">Seguimiento en vivo</div>
+        <div className="card-title">Seguimiento</div>
         <div className="card-subtitle">
           Monitorea en tiempo real las máquinas activas. Filtra por centro de
           costo o chofer y toca un vehículo para enfocarlo en el mapa.
@@ -268,7 +268,89 @@ return (
         ⚠️ {error}
       </div>
     )}
+   {/* SOLO flota en tiempo real: usamos todo el ancho para la lista */}
+    <div className="live-config-grid live-config-grid--single">
+      <div className="live-config-column">
+        <div className="live-active-sessions">
+          <div className="live-active-header">
+            <div className="live-active-title">
+              Vehículos en circulación ({filteredActiveSessions.length})
+            </div>
 
+            <div className="live-active-filters">
+              <input
+                type="search"
+                className="form-input live-active-search"
+                placeholder="Filtrar por máquina, chofer o centro…"
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+              />
+              <select
+                className="form-select live-active-cc-filter"
+                value={filterCostCenterId}
+                onChange={(e) => setFilterCostCenterId(e.target.value)}
+              >
+                <option value="">Todos los centros</option>
+                {costCenters.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {filteredActiveSessions.length === 0 ? (
+            <div className="live-active-empty">
+              No hay máquinas con sesiones abiertas que coincidan con el filtro.
+            </div>
+          ) : (
+            <ul className="live-active-list">
+              {filteredActiveSessions.map((s) => {
+                const isSelected = selectedSessionId === s.id;
+                return (
+                  <li
+                    key={s.id}
+                    className={
+                      "live-active-item" +
+                      (isSelected ? " live-active-item--selected" : "")
+                    }
+                    onClick={() => onToggleSession(s.id)}
+                  >
+                    <div className="live-active-main">
+                      <span className="live-active-machine">
+                        {s.machine_name || `Máquina #${s.machine_id}`}
+                      </span>
+                      <span className="live-active-badge">{s.points_count} pts</span>
+                    </div>
+
+                    <div className="live-active-meta">
+                      <span>{s.driver_name || "Chofer no asignado"}</span>
+                      <span>
+                        {s.cost_center_name || "Centro de costo no asignado"}
+                      </span>
+                    </div>
+
+                    <div className="live-active-meta2">
+                      Inicio:{" "}
+                      {new Date(s.started_at).toLocaleTimeString("es-CL", {
+                        hour12: false,
+                      })}
+                    </div>
+
+                    {isSelected && (
+                      <div className="live-active-selected-hint">
+                        Enfocado en el mapa
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
     {/* Controles de visualización (anti-maraña) */}
   <div className="live-toolbar">
   <div className="live-toolbar__row">
@@ -468,89 +550,7 @@ return (
       </div>
     </div>
 
-    {/* SOLO flota en tiempo real: usamos todo el ancho para la lista */}
-    <div className="live-config-grid live-config-grid--single">
-      <div className="live-config-column">
-        <div className="live-active-sessions">
-          <div className="live-active-header">
-            <div className="live-active-title">
-              Vehículos en circulación ({filteredActiveSessions.length})
-            </div>
-
-            <div className="live-active-filters">
-              <input
-                type="search"
-                className="form-input live-active-search"
-                placeholder="Filtrar por máquina, chofer o centro…"
-                value={filterSearch}
-                onChange={(e) => setFilterSearch(e.target.value)}
-              />
-              <select
-                className="form-select live-active-cc-filter"
-                value={filterCostCenterId}
-                onChange={(e) => setFilterCostCenterId(e.target.value)}
-              >
-                <option value="">Todos los centros</option>
-                {costCenters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {filteredActiveSessions.length === 0 ? (
-            <div className="live-active-empty">
-              No hay máquinas con sesiones abiertas que coincidan con el filtro.
-            </div>
-          ) : (
-            <ul className="live-active-list">
-              {filteredActiveSessions.map((s) => {
-                const isSelected = selectedSessionId === s.id;
-                return (
-                  <li
-                    key={s.id}
-                    className={
-                      "live-active-item" +
-                      (isSelected ? " live-active-item--selected" : "")
-                    }
-                    onClick={() => onToggleSession(s.id)}
-                  >
-                    <div className="live-active-main">
-                      <span className="live-active-machine">
-                        {s.machine_name || `Máquina #${s.machine_id}`}
-                      </span>
-                      <span className="live-active-badge">{s.points_count} pts</span>
-                    </div>
-
-                    <div className="live-active-meta">
-                      <span>{s.driver_name || "Chofer no asignado"}</span>
-                      <span>
-                        {s.cost_center_name || "Centro de costo no asignado"}
-                      </span>
-                    </div>
-
-                    <div className="live-active-meta2">
-                      Inicio:{" "}
-                      {new Date(s.started_at).toLocaleTimeString("es-CL", {
-                        hour12: false,
-                      })}
-                    </div>
-
-                    {isSelected && (
-                      <div className="live-active-selected-hint">
-                        Enfocado en el mapa
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
+ 
 
     {/* Lista de puntos en vivo (solo de esta unidad, para debug fino) */}
     <div className="live-points-panel">
