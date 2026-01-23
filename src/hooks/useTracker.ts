@@ -85,7 +85,7 @@ export function useTracker(mode: TrackerMode = "machine") {
               lat: latitude,
               lon: longitude,
               accuracy: accuracy ?? undefined,
-              speed: speed ?? undefined,
+              speed_mps: speed ?? undefined,
             };
 
             setPoints((prev) => [...prev, point]);
@@ -99,7 +99,7 @@ export function useTracker(mode: TrackerMode = "machine") {
                   lat: point.lat,
                   lon: point.lon,
                   accuracy_m: point.accuracy ?? null,
-                  speed_mps: point.speed ?? null,
+                  speed_mps: point.speed_mps ?? null,
                   extra: { mode },
                 },
               ])

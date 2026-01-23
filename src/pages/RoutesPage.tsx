@@ -340,7 +340,7 @@ const RoutesPage = () => {
           ? findFieldForPoint({ lat: last.lat, lon: last.lon })
           : null;
       const lastSpeedKmh =
-        last && last.speed != null ? last.speed * 3.6 : 0;
+        last && last.speed_mps != null ? last.speed_mps * 3.6 : 0;
 
       return {
         totalDistanceM: 0,
@@ -413,8 +413,8 @@ const RoutesPage = () => {
         : null;
 
     // si viene velocidad del GPS, la usamos
-    if (last && last.speed != null) {
-      currentSpeed = last.speed * 3.6;
+    if (last && last.speed_mps != null) {
+      currentSpeed = last.speed_mps * 3.6;
     }
 
     const avgKmh =

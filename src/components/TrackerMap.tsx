@@ -30,14 +30,7 @@ type ActiveSession = {
   points_count: number;
 };
 
-type SessionPoint = {
-  id: number;
-  ts: string;
-  lat: number;
-  lon: number;
-  speed_mps?: number | null;
-};
-type LivePoint = { lat: number; lon: number; ts?: string };
+
 
 type TrackerMapProps = {
   /** Polígonos de los campos (ambos modos) */
@@ -46,10 +39,13 @@ type TrackerMapProps = {
   /** Modo LIVE: flota completa */
   activeSessions?: ActiveSession[];
   selectedSessionId?: string | null;
-
+  liveAutoRefresh?: boolean;
   /** Modo detalle de sesión (SessionsPage) */
   points?: TrackPoint[];
-  selectedPoints?: LivePoint[];
+  selectedPoints?: TrackPoint[];
+  followSelected?: boolean;         
+  showOnlySelectedTrack?: boolean;  
+  onUserInteract?: () => void;    
 };
 
 
@@ -72,7 +68,10 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   selectedSessionId,
   points,
   selectedPoints,
+  followSelected = true,
+
 }) => {
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string,
@@ -80,10 +79,26 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   });
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
-  type SessionPointT = SessionPoint & { t: number }; // t = timestamp en ms
+    type SessionPoint = {
+    id: number;
+    ts: string;
+    lat: number;
+    lon: number;
+    speed_mps?: number | null;
+  };
 
-  const cacheRef = useRef<Record<string, { points: SessionPointT[]; fetchedAt: number }>>({});
-  const [sessionPoints, setSessionPoints] = useState<Record<string, SessionPointT[]>>({});
+  type TrackT = {
+    id: number;
+    lat: number;
+    lon: number;
+    t: number;                 // epoch ms
+    speed_mps?: number | null; // opcional, si quieres mostrar velocidad
+  };
+
+
+  const cacheRef = useRef<Record<string, { points: TrackT[]; fetchedAt: number }>>({});
+  const [sessionPoints, setSessionPoints] = useState<Record<string, TrackT[]>>({});
+
 
   const hasLiveMode = !!(activeSessions && activeSessions.length > 0);
 
@@ -94,31 +109,57 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   const [scrubTs, setScrubTs] = useState<number | null>(null);
 
   const SCRUB_HOURS = 24; // puedes parametrizarlo si quieres
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState<number>(4); // 1x, 2x, 4x, 8x, etc.
+  const playRafRef = useRef<number | null>(null);
+  const lastFrameRef = useRef<number | null>(null);
 
   // track seleccionado (LIVE)
-  const selectedTrack = useMemo(() => {
+
+  const selectedTrack: TrackT[] = useMemo(() => {
     if (!hasLiveMode || !selectedSessionId) return [];
-    return sessionPoints[selectedSessionId] ?? [];
-  }, [hasLiveMode, selectedSessionId, sessionPoints]);
+
+    // Preferimos SIEMPRE lo que viene desde App (rango + maxPoints)
+    if (selectedPoints && selectedPoints.length) {
+      return selectedPoints
+        .map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, t: p.timestamp }))
+        .sort((a, b) => a.t - b.t);
+    }
+
+    // fallback: si por alguna razón no viene, usa sessionPoints
+    const fallback = sessionPoints[selectedSessionId] || [];
+    return fallback;
+  }, [hasLiveMode, selectedSessionId, selectedPoints, sessionPoints]);
 
 
-  const scrubPoints = useMemo(() => {
-    if (!selectedTrack.length) return [];
-    if (!selectedDayKey) return selectedTrack;
-    return selectedTrack.filter((p) => dayKeyFromT(p.t) === selectedDayKey);
-  }, [selectedTrack, selectedDayKey]);
+
+useEffect(() => {
+  setIsPlaying(false);
+}, [selectedDayKey]);
+
+const onScrubChange = (v: number) => {
+  setIsPlaying(false);
+  setScrubTs(v);
+};
+
+
+const scrubPoints = useMemo(() => {
+  if (!selectedTrack.length) return [];
+  if (!selectedDayKey) return selectedTrack;
+  return selectedTrack.filter((p) => dayKeyFromT(p.t) === selectedDayKey);
+}, [selectedTrack, selectedDayKey]);
 
 const polylineTracks = useMemo(() => {
-  const MAX_SELECTED = 2000; // ajusta: 1500-4000 según fluidez
+  const MAX_SELECTED = 2000;
 
-  // Para cada sesión: si es la seleccionada, decima fuerte; si no, deja tal cual (ya es tail de flota)
-  const out: Record<string, SessionPointT[]> = {};
+  const out: Record<string, TrackT[]> = {};
   for (const [id, pts] of Object.entries(sessionPoints)) {
     if (!pts?.length) continue;
     out[id] = id === selectedSessionId ? decimate(pts, MAX_SELECTED) : pts;
   }
   return out;
 }, [sessionPoints, selectedSessionId]);
+
 
   // --- Día seleccionado para scrub (key YYYY-MM-DD en America/Santiago)
 
@@ -127,11 +168,19 @@ const polylineTracks = useMemo(() => {
   function dayKeyFromT(t: number) {
     return new Date(t).toLocaleDateString("sv-SE", { timeZone: "America/Santiago" });
   }
-function normalize(json: SessionPoint[]): SessionPointT[] {
-  return json
-    .map((p) => ({ ...p, t: new Date(p.ts).getTime() }))
-    .sort((a, b) => a.t - b.t);
-}
+  function normalize(json: SessionPoint[]): TrackT[] {
+    return json
+      .map((p) => ({
+        id: p.id,
+        lat: p.lat,
+        lon: p.lon,
+        t: new Date(p.ts).getTime(),
+        speed_mps: p.speed_mps ?? null,
+      }))
+      .sort((a, b) => a.t - b.t);
+  }
+
+
 const forceReloadRef = useRef<((id: string) => void) | null>(null);
 
 const FULL_LIMIT = 40000;   // histórico: máximo de puntos que aceptas guardar
@@ -163,83 +212,80 @@ async function loadSessionPoints(id: string, mode: "historical" | "live") {
 }
 
 
-  type DayOption = {
-    key: string;        // YYYY-MM-DD
-    label: string;      // "mié 22 ene" (ej)
-    minTs: number;      // ms
-    maxTs: number;      // ms
-    count: number;
-  };
+  type DayOption = { key: string; label: string; minTs: number; maxTs: number; count: number };
 
-  // Construye días disponibles desde el track seleccionado
-  const dayOptions: DayOption[] = useMemo(() => {
-    if (!selectedTrack.length) return [];
-    const acc = new Map<string, DayOption>();
+const dayOptions: DayOption[] = useMemo(() => {
+  if (!selectedTrack.length) return [];
+  const acc = new Map<string, DayOption>();
 
-    for (const p of selectedTrack) {
-      const key = dayKeyFromT(p.t);
-      const existing = acc.get(key);
+  for (const p of selectedTrack) {
+    const key = dayKeyFromT(p.t);
+    const existing = acc.get(key);
 
-      if (!existing) {
-        const label = new Intl.DateTimeFormat("es-CL", {
-          weekday: "short",
-          day: "2-digit",
-          month: "short",
-          timeZone: "America/Santiago",
-        }).format(new Date(p.t));
+    if (!existing) {
+      const label = new Intl.DateTimeFormat("es-CL", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        timeZone: "America/Santiago",
+      }).format(new Date(p.t));
 
-        acc.set(key, { key, label, minTs: p.t, maxTs: p.t, count: 1 });
-      } else {
-        existing.minTs = Math.min(existing.minTs, p.t);
-        existing.maxTs = Math.max(existing.maxTs, p.t);
-        existing.count += 1;
-      }
+      acc.set(key, { key, label, minTs: p.t, maxTs: p.t, count: 1 });
+    } else {
+      existing.minTs = Math.min(existing.minTs, p.t);
+      existing.maxTs = Math.max(existing.maxTs, p.t);
+      existing.count += 1;
     }
+  }
 
-    return Array.from(acc.values()).sort((a, b) => (a.key < b.key ? 1 : -1));
-  }, [selectedTrack]);
+  return Array.from(acc.values()).sort((a, b) => (a.key < b.key ? 1 : -1));
+}, [selectedTrack]);
+
+
+useEffect(() => {
+  if (!dayOptions.length) {
+    if (selectedDayKey !== null) setSelectedDayKey(null);
+    return;
+  }
+  if (!selectedDayKey) setSelectedDayKey(dayOptions[0].key);
+}, [dayOptions, selectedDayKey]);
 
   const scrubMinMax = useMemo(() => {
-    if (!scrubPoints.length) return null;
-      const min = scrubPoints[0].t;
-      const max = scrubPoints[scrubPoints.length - 1].t;
-    return { min, max };
-  }, [scrubPoints]);
+  if (!scrubPoints.length) return null;
+  return { min: scrubPoints[0].t, max: scrubPoints[scrubPoints.length - 1].t };
+}, [scrubPoints]);  
 
-  function findNearestPointByTs(points: SessionPointT[], targetTs: number): SessionPointT | null {
+ function findNearestPointByTs(points: TrackT[], targetTs: number): TrackT | null {
   if (!points.length) return null;
 
   let lo = 0;
   let hi = points.length - 1;
 
-  const getTs = (i: number) => points[i].t;
-
   while (lo < hi) {
     const mid = Math.floor((lo + hi) / 2);
-    if (getTs(mid) < targetTs) lo = mid + 1;
+    if (points[mid].t < targetTs) lo = mid + 1;
     else hi = mid;
   }
 
   const idx = lo;
   const prevIdx = Math.max(0, idx - 1);
 
-  const t1 = getTs(prevIdx);
-  const t2 = getTs(idx);
+  const t1 = points[prevIdx].t;
+  const t2 = points[idx].t;
 
   return Math.abs(t1 - targetTs) <= Math.abs(t2 - targetTs)
     ? points[prevIdx]
     : points[idx];
 }
 
+const scrubPoint = useMemo(() => {
+  if (!isFullscreen) return null;
+  if (!selectedSessionId) return null;
+  if (!scrubPoints.length) return null;
+  if (scrubTs == null) return scrubPoints[scrubPoints.length - 1];
+  return findNearestPointByTs(scrubPoints, scrubTs);
+}, [isFullscreen, selectedSessionId, scrubPoints, scrubTs]);
 
-  const scrubPoint = useMemo(() => {
-    if (!isFullscreen) return null;              // solo en fullscreen
-    if (!selectedSessionId) return null;         // requiere selección
-    if (!scrubPoints.length) return null;        // requiere datos
-    if (scrubTs == null) return scrubPoints[scrubPoints.length - 1]; // default: último
-
-    return findNearestPointByTs(scrubPoints, scrubTs);
-  }, [isFullscreen, selectedSessionId, scrubPoints, scrubTs]);
 
   useEffect(() => {
   forceReloadRef.current = (id: string) => {
@@ -249,6 +295,43 @@ async function loadSessionPoints(id: string, mode: "historical" | "live") {
   };
 }, [isRealtime]);
 
+useEffect(() => {
+  if (!isFullscreen) { setIsPlaying(false); return; }
+  if (!isPlaying) return;
+  if (!scrubMinMax) return;
+
+  lastFrameRef.current = null;
+
+  const tick = (now: number) => {
+    if (!isPlaying) return;
+    if (!scrubMinMax) return;
+
+    if (lastFrameRef.current == null) lastFrameRef.current = now;
+    const dt = now - lastFrameRef.current; // ms reales
+    lastFrameRef.current = now;
+
+    setScrubTs((prev) => {
+      const cur = prev ?? scrubMinMax.min;
+      const next = cur + dt * playbackRate; // 1x = tiempo real, 4x = 4 veces más rápido
+
+      if (next >= scrubMinMax.max) {
+        // llega al final
+        setIsPlaying(false);
+        return scrubMinMax.max;
+      }
+      return next;
+    });
+
+    playRafRef.current = requestAnimationFrame(tick);
+  };
+
+  playRafRef.current = requestAnimationFrame(tick);
+
+  return () => {
+    if (playRafRef.current) cancelAnimationFrame(playRafRef.current);
+    playRafRef.current = null;
+  };
+}, [isPlaying, playbackRate, isFullscreen, scrubMinMax]);
 
 useEffect(() => {
   if (!selectedSessionId) return;
@@ -282,14 +365,6 @@ useEffect(() => {
   };
 }, [selectedSessionId, isRealtime]);
 
-
-useEffect(() => {
-  if (!dayOptions.length) {
-    if (selectedDayKey !== null) setSelectedDayKey(null);
-    return;
-  }
-  if (!selectedDayKey) setSelectedDayKey(dayOptions[0].key);
-}, [dayOptions, selectedDayKey]);
 
   useEffect(() => {
     if (!selectedDayKey) return;
@@ -366,7 +441,7 @@ useEffect(() => {
     }
   };
 
-
+const lastFollowTsRef = useRef<number | null>(null);
 const panRafRef = useRef<number | null>(null);
 
 useEffect(() => {
@@ -391,7 +466,7 @@ useEffect(() => {
     setScrubTs(scrubMinMax.max);
   }, [isFullscreen, scrubMinMax]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!mapRef || !isLoaded) return;
 
     // Modo LIVE, sin sesión seleccionada: ajustar a toda la flota
@@ -417,6 +492,39 @@ useEffect(() => {
       mapRef.fitBounds(bounds);
     }
   }, [mapRef, isLoaded, hasLiveMode, selectedSessionId, sessionPoints, points]);
+
+  // Centrar cuando selecciono una sesión en LIVE
+  useEffect(() => {
+    if (!mapRef || !isLoaded || !hasLiveMode) return;
+    if (!selectedSessionId) return;
+    if (!followSelected) return;
+
+    // Preferimos los puntos filtrados del seleccionado (vienen desde App)
+    const track =
+    (selectedPoints && selectedPoints.length > 0)
+      ? selectedPoints
+      : (sessionPoints[selectedSessionId] || []);
+
+
+    if (!track.length) return;
+
+    const last = track[track.length - 1];
+
+    // TrackPoint: timestamp number / SessionPoint: ts string
+    const lastTs =
+      typeof (last as any).timestamp === "number"
+        ? (last as any).timestamp
+        : new Date((last as any).ts).getTime();
+
+    // Solo seguir si llegó un punto nuevo
+    if (lastFollowTsRef.current != null && lastTs <= lastFollowTsRef.current) {
+      return;
+    }
+    lastFollowTsRef.current = lastTs;
+
+    mapRef.panTo({ lat: (last as any).lat, lng: (last as any).lon });
+    mapRef.setZoom(18);
+  }, [mapRef, isLoaded, hasLiveMode, selectedSessionId, followSelected, selectedPoints, sessionPoints]);
 
   // Centrar cuando selecciono una sesión en LIVE
   useEffect(() => {
@@ -470,6 +578,7 @@ useEffect(() => {
       >
         {isFullscreen ? "Salir" : "Pantalla completa"}
       </button>
+      {isFullscreen && (
     <div className="tracker-map-scrubber__toprow">
   <button
     type="button"
@@ -491,9 +600,9 @@ useEffect(() => {
     Actualizar
   </button>
 </div>
-
+)}
       {/* Scrubber SOLO en LIVE + sesión seleccionada + fullscreen */}
-      {hasLiveMode && selectedSessionId && scrubMinMax && (
+      {isFullscreen && hasLiveMode && selectedSessionId && scrubMinMax && (
         <div className="tracker-map-scrubber">
           <div className="tracker-map-scrubber__label">
             Tiempo:{" "}
@@ -505,24 +614,7 @@ useEffect(() => {
               })}
             </strong>
           </div>
-          {dayOptions.length > 0 && (
-            <div className="tracker-map-scrubber__days">
-              {dayOptions.slice(0, 7).map((d) => ( // limita a 7 si quieres; o quita el slice
-                <button
-                  key={d.key}
-                  type="button"
-                  className={
-                    "tracker-map-scrubber__daybtn" +
-                    (selectedDayKey === d.key ? " is-active" : "")
-                  }
-                  onClick={() => setSelectedDayKey(d.key)}
-                  title={`${d.key} · ${d.count} puntos`}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          )}
+   
 
           <input
             type="range"
@@ -531,7 +623,8 @@ useEffect(() => {
             max={scrubMinMax.max}
             step={1000} // 1 segundo; puedes subir a 5000 si quieres más fluido
             value={scrubTs ?? scrubMinMax.max}
-            onChange={(e) => setScrubTs(Number(e.target.value))}
+            onChange={(e) => onScrubChange(Number(e.target.value))}
+
           />
 
           <div className="tracker-map-scrubber__hint">
@@ -667,6 +760,80 @@ useEffect(() => {
           />
         )}
       </GoogleMap>
+{isFullscreen && hasLiveMode && selectedSessionId && scrubMinMax && (
+  <div className="tracker-map-playback">
+    <button
+      type="button"
+      className="tracker-map-playback__btn"
+      onClick={() => setIsPlaying((v) => !v)}
+      disabled={!scrubPoints.length}
+      title="Reproducir/Pausar"
+    >
+      {isPlaying ? "Pausar" : "Play"}
+    </button>
+
+    <select
+      className="tracker-map-playback__select"
+      value={playbackRate}
+      onChange={(e) => setPlaybackRate(Number(e.target.value))}
+      title="Velocidad"
+    >
+      <option value={0.5}>0.5x</option>
+      <option value={1}>1x</option>
+      <option value={2}>2x</option>
+      <option value={4}>4x</option>
+      <option value={8}>8x</option>
+      <option value={16}>16x</option>
+    </select>
+
+    <button
+      type="button"
+      className="tracker-map-playback__btn"
+      onClick={() => {
+        setIsPlaying(false);
+        setScrubTs(scrubMinMax.min);
+      }}
+      title="Reiniciar"
+    >
+      Reiniciar
+    </button>
+  </div>
+)}
+
+      {/* Debajo del mapa: selector de días (NO tapa el mapa) */}
+{isFullscreen && hasLiveMode && selectedSessionId && dayOptions.length > 0 && (
+  <div className="tracker-map-days-panel">
+    <div className="tracker-map-days-panel__row">
+      <div className="tracker-map-days-panel__label">Día</div>
+
+      <select
+        className="tracker-map-days-panel__select"
+        value={selectedDayKey ?? ""}
+        onChange={(e) => {
+          const v = e.target.value;
+          setSelectedDayKey(v || null);
+        }}
+      >
+        {dayOptions.map((d) => (
+          <option key={d.key} value={d.key}>
+            {d.label} ({d.count})
+          </option>
+        ))}
+      </select>
+
+      <div className="tracker-map-days-panel__meta">
+        {scrubMinMax ? (
+          <>
+            {new Date(scrubMinMax.min).toLocaleString("es-CL", { hour12: false })}{" "}
+            —{" "}
+            {new Date(scrubMinMax.max).toLocaleString("es-CL", { hour12: false })}
+          </>
+        ) : null}
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 

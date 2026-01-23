@@ -18,8 +18,8 @@ const TrackPointsList = ({ points, formatTime, formatNumber }: Props) => {
             <li key={p.id} className="points-list__item">
               <strong>{formatTime(p.timestamp)}</strong>{" "}
               · lat {formatNumber(p.lat)}, lon {formatNumber(p.lon)}{" "}
-              {p.speed != null && !Number.isNaN(p.speed) && (
-                <> · {(p.speed * 3.6).toFixed(1)} km/h</>
+              {p.speed_mps != null && !Number.isNaN(p.speed_mps) && (
+                <> · {(p.speed_mps * 3.6).toFixed(1)} km/h</>
               )}
             </li>
           ))}

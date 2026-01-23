@@ -2376,3 +2376,57 @@ textarea.form-input {
   background: rgba(255, 255, 255, 0.7) !important;
   backdrop-filter: blur(8px) !important;
 }
+.tracker-map-playback {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #e5e7eb;
+}
+
+.tracker-map-playback__btn,
+.tracker-map-playback__select {
+  height: 34px;
+}
+
+
+.tracker-map-days-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.tracker-map-days-panel__row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tracker-map-days-panel__select {
+  min-width: 220px;
+}
+
+
+.tracker-map-days-panel__select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.18);
+}
+
+.tracker-map-days-panel__meta {
+  color: #334155;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

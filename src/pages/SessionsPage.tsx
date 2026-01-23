@@ -128,7 +128,7 @@ function isPointInPolygon(
     const intersect =
       yi > point.lat !== yj > point.lat &&
       point.lon <
-        ((xj - xi) * (point.lat - yi)) / (yj - yi + 1e-12) + xi;
+      ((xj - xi) * (point.lat - yi)) / (yj - yi + 1e-12) + xi;
 
     if (intersect) inside = !inside;
   }
@@ -286,7 +286,7 @@ function formatDurationHHMM(minutes: number): string {
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
 
-  return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
 
@@ -354,80 +354,80 @@ const SessionsPage = () => {
     FieldTransitionRow[]
   >([]);
 
-  
+
   // carga inicial: sesiones + campos + máquinas
-useEffect(() => {
-  const fetchData = async () => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [sessionsData, fieldsData, machinesData] = await Promise.all([
+          // ✅ recomendado (requiere auth)
+          apiJson<SessionSummary[]>("/sessions_recent?limit=50"),
+
+          // (aunque sean públicos, no pasa nada con enviar Bearer)
+          apiJson<FieldPolygon[]>("/fields"),
+          apiJson<Machine[]>("/machines"),
+        ]);
+
+        setSessions(sessionsData);
+        setFields(fieldsData);
+        setMachines(machinesData);
+
+      } catch (e: any) {
+        console.error(e);
+
+        // ✅ si tu apiJson lanza Error con “401”
+        const msg = String(e?.message || "");
+
+        if (msg.includes("401")) {
+          logout();
+          return;
+        }
+
+        if (msg.includes("403")) {
+          setError("No tienes permisos para ver sesiones globales (admin).");
+          return;
+        }
+
+        setError(e?.message || "No se pudieron cargar las sesiones.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token, logout]);
+
+  const handleSelectSession = async (session: SessionSummary) => {
+    setSelectedSession(session);
+    setPoints([]);
+    setStats(null);
+    setFieldStats([]);
+    setFieldTransitions([]);
+    setPointsError(null);
+    setPointsLoading(true);
+    setSelectedPointId(null);
+
+
     try {
-      setLoading(true);
-      setError(null);
-
-      const [sessionsData, fieldsData, machinesData] = await Promise.all([
-        // ✅ recomendado (requiere auth)
-        apiJson<SessionSummary[]>("/sessions_recent?limit=50"),
-
-        // (aunque sean públicos, no pasa nada con enviar Bearer)
-        apiJson<FieldPolygon[]>("/fields"),
-        apiJson<Machine[]>("/machines"),
-      ]);
-
-      setSessions(sessionsData);
-      setFields(fieldsData);
-      setMachines(machinesData);
-
+      const data = await apiJson<HistoricalPoint[]>(`/sessions/${session.id}/points`);
+      setPoints(data);
+      setStats(computeStats(data));
     } catch (e: any) {
       console.error(e);
 
-      // ✅ si tu apiJson lanza Error con “401”
-     const msg = String(e?.message || "");
+      if (String(e?.message || "").includes("401")) {
+        logout();
+        return;
+      }
 
-    if (msg.includes("401")) {
-      logout();
-      return;
-    }
-
-    if (msg.includes("403")) {
-      setError("No tienes permisos para ver sesiones globales (admin).");
-      return;
-    }
-
-      setError(e?.message || "No se pudieron cargar las sesiones.");
+      setPointsError(e?.message || "No se pudieron cargar los puntos de la sesión.");
     } finally {
-      setLoading(false);
+      setPointsLoading(false);
     }
   };
-
-  fetchData();
-}, [token, logout]);
-
-const handleSelectSession = async (session: SessionSummary) => {
-  setSelectedSession(session);
-  setPoints([]);
-  setStats(null);
-  setFieldStats([]);
-  setFieldTransitions([]);
-  setPointsError(null);
-  setPointsLoading(true);
-  setSelectedPointId(null);
-
-
-  try {
-    const data = await apiJson<HistoricalPoint[]>(`/sessions/${session.id}/points`);
-    setPoints(data);
-    setStats(computeStats(data));
-  } catch (e: any) {
-    console.error(e);
-
-    if (String(e?.message || "").includes("401")) {
-      logout();
-      return;
-    }
-
-    setPointsError(e?.message || "No se pudieron cargar los puntos de la sesión.");
-  } finally {
-    setPointsLoading(false);
-  }
-};
 
 
   // recalcular resumen por campo y transiciones cuando cambian puntos o campos
@@ -487,13 +487,23 @@ const handleSelectSession = async (session: SessionSummary) => {
     });
   }, [points, fields]);
 
-    const selectedPoint = useMemo(() => {
+  const selectedPoint = useMemo(() => {
     if (selectedPointId == null) return null;
     const p = pointsWithDelta.find((x) => x.id === selectedPointId);
     if (!p) return null;
-    return { lat: p.lat, lon: p.lon, ts: p.ts };
+    return { id: p.id, lat: p.lat, lon: p.lon, ts: p.ts };
   }, [selectedPointId, pointsWithDelta]);
 
+
+
+  const selectedPointTrack: TrackPoint | null = selectedPoint
+    ? {
+      id: selectedPoint.id ?? -1,
+      lat: selectedPoint.lat,
+      lon: selectedPoint.lon,
+      timestamp: new Date(selectedPoint.ts).getTime(),
+    }
+    : null;
 
   // máquina asociada a la sesión
   const selectedMachine: Machine | null = useMemo(() => {
@@ -517,15 +527,15 @@ const handleSelectSession = async (session: SessionSummary) => {
     let expectedByHour: number | null = null;
     let maxLitrosUsados: number | null = null;
 
-      if (consLpkm != null && distanceKm != null) {
-        expectedByKm = distanceKm * consLpkm;
-      }
+    if (consLpkm != null && distanceKm != null) {
+      expectedByKm = distanceKm * consLpkm;
+    }
 
-      if (consLph != null && durationHours != null) {
-        expectedByHour = durationHours * consLph;
-      }
+    if (consLph != null && durationHours != null) {
+      expectedByHour = durationHours * consLph;
+    }
 
-      maxLitrosUsados = Math.max(expectedByKm ?? 0, expectedByHour ?? 0);
+    maxLitrosUsados = Math.max(expectedByKm ?? 0, expectedByHour ?? 0);
 
 
     return {
@@ -673,8 +683,8 @@ const handleSelectSession = async (session: SessionSummary) => {
                       {" · "}
                       {selectedMachine.fuel_consumption_lpkm != null
                         ? `${selectedMachine.fuel_consumption_lpkm.toFixed(
-                            3
-                          )} L/km`
+                          3
+                        )} L/km`
                         : "—"}
                     </span>
                   </div>
@@ -699,7 +709,7 @@ const handleSelectSession = async (session: SessionSummary) => {
                   <TrackerMap
                     points={mapPoints}
                     fields={fields}
-                    selectedPoints={selectedPoint ? [selectedPoint] : []}
+                    selectedPoints={selectedPointTrack ? [selectedPointTrack] : []}
                   />
                 </div>
 
@@ -716,12 +726,12 @@ const handleSelectSession = async (session: SessionSummary) => {
                         </div>
                       </div>
                       <div className="session-stat">
-                      <div className="session-stat__label">Duración</div>
-                    <div className="session-stat__value">
-                        {stats.durationMinutes != null
-                          ? formatDurationHHMM(stats.durationMinutes)
-                          : "—"}
-                      </div>
+                        <div className="session-stat__label">Duración</div>
+                        <div className="session-stat__value">
+                          {stats.durationMinutes != null
+                            ? formatDurationHHMM(stats.durationMinutes)
+                            : "—"}
+                        </div>
 
 
                       </div>
@@ -749,7 +759,7 @@ const handleSelectSession = async (session: SessionSummary) => {
                         className="session-stats"
                         style={{ marginTop: 8 }}
                       >
-                               <div className="session-stat">
+                        <div className="session-stat">
                           <div className="session-stat__label">
                             Consumo estimado (por km)
                           </div>
@@ -761,15 +771,15 @@ const handleSelectSession = async (session: SessionSummary) => {
 
                         </div>
 
-                            <div className="session-stat">
+                        <div className="session-stat">
                           <div className="session-stat__label">
                             Consumo estimado (por hrs)
                           </div>
                           <div className="session-stat__value">
                             {fuelComparison.expectedByHour != null
                               ? `${fuelComparison.expectedByHour.toFixed(
-                                  3
-                                )} L`
+                                3
+                              )} L`
                               : "—"}
                           </div>
                         </div>
@@ -783,17 +793,17 @@ const handleSelectSession = async (session: SessionSummary) => {
                               : "—"}
                           </div>
                         </div>
-                 
-                    
+
+
                         <div className="session-stat">
                           <div className="session-stat__label">
                             Uso estanque (máx.)
                           </div>
-                            <div className="session-stat__value">
-    {fuelComparison.maxLitrosUsados != null
-      ? `${fuelComparison.maxLitrosUsados.toFixed(3)} L`
-      : "—"}
-  </div>
+                          <div className="session-stat__value">
+                            {fuelComparison.maxLitrosUsados != null
+                              ? `${fuelComparison.maxLitrosUsados.toFixed(3)} L`
+                              : "—"}
+                          </div>
 
                         </div>
                       </div>
@@ -900,16 +910,16 @@ const handleSelectSession = async (session: SessionSummary) => {
                       <tbody>
                         {pointsWithDelta.map((p, idx) => (
                           <tr
-                              key={p.id}
-                              className={
-                                (p.fieldChanged
-                                  ? "session-points-row session-points-row--field-change"
-                                  : "session-points-row") +
-                                (selectedPointId === p.id ? " session-points-row--selected" : "")
-                              }
-                              onClick={() => setSelectedPointId(p.id)}
-                              style={{ cursor: "pointer" }}
-                            >
+                            key={p.id}
+                            className={
+                              (p.fieldChanged
+                                ? "session-points-row session-points-row--field-change"
+                                : "session-points-row") +
+                              (selectedPointId === p.id ? " session-points-row--selected" : "")
+                            }
+                            onClick={() => setSelectedPointId(p.id)}
+                            style={{ cursor: "pointer" }}
+                          >
 
                             <td>{idx + 1}</td>
                             <td>{formatTime(p.ts)}</td>

@@ -16,6 +16,8 @@ import { useTracker, type TrackerMode } from "./hooks/useTracker";
 import LoginPage from "./pages/LoginPage";
 import { useAuthWeb } from "./services/AuthContext";
 import { apiJson, setApiAuthToken } from "./services/http";
+import type { ApiLivePoint, TrackPoint } from "./types";
+import { normalizeLivePoints } from "./utils/normalizePoints";
 
 type ActiveSession = {
   id: string;
@@ -86,40 +88,109 @@ function AuthedApp() {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [selectedLiveSessionId, setSelectedLiveSessionId] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldPolygon[]>([]);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [timeWindowMinutes, setTimeWindowMinutes] = useState<number>(60); // 60 min default
+  const [maxPoints, setMaxPoints] = useState<number>(1000);
+  const [followSelected, setFollowSelected] = useState<boolean>(true);
+  const [showOnlySelectedTrack, setShowOnlySelectedTrack] = useState<boolean>(true);
+  const [selectedLivePoints, setSelectedLivePoints] = useState<TrackPoint[]>([]);
+  const [liveAutoRefresh, setLiveAutoRefresh] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  const refreshNow = () => setRefreshNonce((n) => n + 1);
 
-  type LivePoint = { lat: number; lon: number; ts: string };
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
-  const [selectedLivePoints, setSelectedLivePoints] = useState<LivePoint[]>([]);
+useEffect(() => {
+  if (!selectedLiveSessionId) {
+    setSelectedLivePoints([]);
+    return;
+  }
 
-  useEffect(() => {
-    if (!selectedLiveSessionId) {
-      setSelectedLivePoints([]);
-      return;
+  let mounted = true;
+
+  const loadPoints = async () => {
+    try {
+      const now = Date.now();
+
+      // 1) si el usuario eligió rango, úsalo; si no, usa ventana de tiempo
+      const fromTs = dateFrom
+        ? new Date(dateFrom).getTime()
+        : now - timeWindowMinutes * 60_000;
+
+      const toTs = dateTo ? new Date(dateTo).getTime() : now;
+
+      // 2) query params al backend
+      const qs = new URLSearchParams();
+      qs.set("from_ts", String(fromTs));
+      qs.set("to_ts", String(toTs));
+      qs.set("limit", String(maxPoints * 5)); // trae más y luego downsample
+
+      const apiPts = await apiJson<ApiLivePoint[]>(
+        `/sessions/${selectedLiveSessionId}/points?${qs.toString()}`
+      );
+
+      const norm = normalizeLivePoints(apiPts);
+
+      // 3) (opcional) si prefieres igual filtrar en front por seguridad
+      const windowed = norm.filter((p: { timestamp: number; }) => p.timestamp >= fromTs && p.timestamp <= toTs);
+
+      const sliced =
+        windowed.length > maxPoints ? downsampleStride(windowed, maxPoints) : windowed;
+
+      if (mounted) setSelectedLivePoints(sliced);
+    } catch {
+      if (mounted) setSelectedLivePoints([]);
     }
+  };
 
-    let mounted = true;
+  // carga inicial / manual / cambios de rango
+  void loadPoints();
 
-    const loadPoints = async () => {
-      try {
-        // 👇 AJUSTA el endpoint al tuyo real
-        const pts = await apiJson<LivePoint[]>(
-          `/sessions/${selectedLiveSessionId}/points`
-        );
-        if (mounted) setSelectedLivePoints(pts);
-      } catch {
-        if (mounted) setSelectedLivePoints([]);
-      }
-    };
+  // 🔴 CLAVE: si NO está "En tiempo real", NO hacemos polling
+  if (!liveAutoRefresh) return () => { mounted = false; };
+
+  const id = window.setInterval(loadPoints, 5000);
+  return () => {
+    mounted = false;
+    window.clearInterval(id);
+  };
+}, [
+  selectedLiveSessionId,
+  timeWindowMinutes,
+  maxPoints,
+  liveAutoRefresh,  // ✅
+  refreshNonce,     // ✅
+  dateFrom,         // ✅
+  dateTo,           // ✅
+]);
 
 
-    loadPoints();
-    const id = window.setInterval(loadPoints, 5000);
 
-    return () => {
-      mounted = false;
-      window.clearInterval(id);
-    };
-  }, [selectedLiveSessionId]);
+function downsampleStride<T>(arr: T[], max: number): T[] {
+  if (arr.length <= max) return arr;
+  const step = Math.ceil(arr.length / max);
+  const out: T[] = [];
+  for (let i = 0; i < arr.length; i += step) out.push(arr[i]);
+  return out;
+}
+
+useEffect(() => {
+  if (!isMapFullscreen) return;
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape") setIsMapFullscreen(false);
+  };
+
+  window.addEventListener("keydown", onKeyDown);
+  document.body.style.overflow = "hidden";
+
+  return () => {
+    window.removeEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "";
+  };
+}, [isMapFullscreen]);
+
 
   useEffect(() => {
     setApiAuthToken(token ?? null);
@@ -293,25 +364,51 @@ function AuthedApp() {
             onToggleSession={(id: string | null) =>
               setSelectedLiveSessionId((prev) => (prev === id ? null : id))
             }
+            timeWindowMinutes={timeWindowMinutes}
+            onTimeWindowMinutesChange={setTimeWindowMinutes}
+            maxPoints={maxPoints}
+            onMaxPointsChange={setMaxPoints}
+            followSelected={followSelected}
+            onFollowSelectedChange={setFollowSelected}
+            showOnlySelectedTrack={showOnlySelectedTrack}
+            onShowOnlySelectedTrackChange={setShowOnlySelectedTrack}
+            liveAutoRefresh={liveAutoRefresh}
+            onLiveAutoRefreshChange={setLiveAutoRefresh}
+            onRefreshNow={refreshNow}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            selectedPoints={selectedLivePoints}
           />
 
-          <section className="card card--map-live">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Mapa en tiempo real</div>
-                <div className="card-subtitle">
-                  Recorridos de todas las máquinas activas, con polígonos de campos.
-                </div>
-              </div>
-            </div>
-            <TrackerMap
-              activeSessions={activeSessions}
-              selectedSessionId={selectedLiveSessionId}
-              fields={fields}
-              selectedPoints={selectedLivePoints}   // ✅ nuevo
-            />
+         <section className={`card card--map-live ${isMapFullscreen ? "is-fullscreen" : ""}`}>
+  <div className="card-header card-header--with-actions">
+    <div>
+      <div className="card-title">Mapa en tiempo real</div>
+      <div className="card-subtitle">
+        Recorridos de todas las máquinas activas, con polígonos de campos.
+      </div>
+    </div>
 
-          </section>
+
+  </div>
+
+  <div className="map-container">
+    <TrackerMap
+      activeSessions={activeSessions}
+      selectedSessionId={selectedLiveSessionId}
+      fields={fields}
+      selectedPoints={selectedLivePoints} 
+      followSelected={followSelected} 
+      showOnlySelectedTrack={showOnlySelectedTrack} 
+      onUserInteract={() => setFollowSelected(false)} 
+      liveAutoRefresh={liveAutoRefresh}
+
+    />
+  </div>
+</section>
+
         </main>
       )}
 

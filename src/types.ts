@@ -5,9 +5,20 @@ export type TrackPoint = {
   lat: number;
   lon: number;
   accuracy?: number | null;
-  speed?: number | null;
+  speed_mps?: number | null;
+  extra?: any;
+
 };
 
+export type ApiLivePoint = {
+  id: number;
+  ts: string; 
+  lat: number;
+  lon: number;
+  speed_mps?: number | null;
+  accuracy_m?: number | null;
+  extra?: any;
+};
 export type SessionId = string;
 
 export type SessionSummary = {
