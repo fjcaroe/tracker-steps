@@ -804,202 +804,25 @@ const CostCentersPage = () => {
   return (
     <section className="card entity-page">
       {/* Header */}
-      <div className="card-header">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-          <div>
-            <div className="card-title">Centros de costo</div>
-            <div className="card-subtitle">
-              Administración completa: Centro de costo, relación con Fundo/Sector (SDP) y catálogos de especie/variedad.
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <button type="button" className="form-button-primary" disabled={loading} onClick={() => void loadAll()}>
-              {loading ? "Cargando..." : "Refrescar"}
-            </button>
-          </div>
+      <div className="card-header cc-header">
+      <div className="cc-header__text">
+        <div className="card-title">Centros de costo</div>
+        <div className="card-subtitle">
+          Administración completa: Centro de costo, relación con Fundo/Sector (SDP) y catálogos de especie/variedad.
         </div>
       </div>
+    </div>
 
-      {/* Global error */}
-      {error && <div className="tracker-error">⚠️ {error}</div>}
-
-      {/* ========== COST CENTER FORM ========== */}
-      <div style={{ marginTop: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ fontWeight: 600 }}>
-            {editingCostCenterId == null ? "Crear centro de costo" : `Editando centro de costo #${editingCostCenterId}`}
-          </div>
-          {editingCostCenterId != null && (
-            <button type="button" className="form-button-primary" onClick={resetCostCenterForm} disabled={saving}>
-              Cancelar edición
-            </button>
-          )}
-        </div>
-
-        <form className="form-grid" onSubmit={handleSubmitCostCenter} style={{ marginTop: 10 }}>
-          <div className="form-field">
-            <label className="form-label">Nombre centro de costo *</label>
-            <input
-              className="form-input"
-              value={ccName}
-              onChange={(e) => setCcName(e.target.value)}
-              placeholder="Ej: Cuartel 12 - Norte"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">ID externo (Odoo / ERP)</label>
-            <input
-              className="form-input"
-              value={ccExternalId}
-              onChange={(e) => setCcExternalId(e.target.value)}
-              placeholder="Código en Odoo u otro sistema"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Hectáreas (opcional)</label>
-            <input
-              className="form-input"
-              value={ccHectares}
-              onChange={(e) => setCcHectares(e.target.value)}
-              placeholder="Ej: 42.5"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Fundo (para filtrar sectores)</label>
-            <select
-              className="form-input"
-              value={ccFundoId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCcFundoId(next);
-
-                // si el sector actual no pertenece, lo limpiamos
-                if (ccSectorId) {
-                  const sid = Number(ccSectorId);
-                  const s = sectorById.get(sid);
-                  if (s && next && String(s.fundo_id) !== next) setCcSectorId("");
-                  if (!next) setCcSectorId("");
-                }
-              }}
-            >
-              <option value="">— (sin fundo) —</option>
-              {fundos.map((f) => (
-                <option key={f.id} value={String(f.id)}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Sector (SDP)</label>
-            <select
-              className="form-input"
-              value={ccSectorId}
-              onChange={(e) => setCcSectorId(e.target.value)}
-            >
-              <option value="">— (sin sector) —</option>
-              {sectorsFilteredForCc.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.name}
-                  {s.sdp_code ? ` (SDP: ${s.sdp_code})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Hileras (opcional)</label>
-            <input
-              className="form-input"
-              value={ccRowCount}
-              onChange={(e) => setCcRowCount(e.target.value)}
-              placeholder="Ej: 80"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Plantas (opcional)</label>
-            <input
-              className="form-input"
-              value={ccPlantCount}
-              onChange={(e) => setCcPlantCount(e.target.value)}
-              placeholder="Ej: 12000"
-            />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Especie (opcional)</label>
-            <select
-              className="form-input"
-              value={ccSpeciesId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCcSpeciesId(next);
-                // si cambió especie, filtrar variedades seleccionadas a las válidas
-                if (next) {
-                  const spId = Number(next);
-                  setCcVarietyIds((prev) => prev.filter((id) => varietyById.get(id)?.species_id === spId));
-                }
-              }}
-            >
-              <option value="">— (sin especie) —</option>
-              {species.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field" style={{ gridColumn: "1 / -1" }}>
-            <label className="form-label">Variedades (multi selección, opcional)</label>
-            <select
-              className="form-input"
-              multiple
-              value={ccVarietyIds.map(String)}
-              onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
-                setCcVarietyIds(selected);
-              }}
-              style={{ minHeight: 110 }}
-            >
-              {varietiesFilteredForCc.map((v) => (
-                <option key={v.id} value={String(v.id)}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-            <div className="card-subtitle" style={{ marginTop: 6 }}>
-              Si seleccionas variedades, se validará coherencia con la especie. Si no eliges especie, se derivará desde la variedad.
-            </div>
-          </div>
-
-          {saveError && <div className="tracker-error">⚠️ {saveError}</div>}
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="submit" className="form-button-primary" disabled={saving}>
-              {saving ? "Guardando..." : editingCostCenterId == null ? "Agregar centro de costo" : "Guardar cambios"}
-            </button>
-
-            {editingCostCenterId == null && (
-              <button type="button" className="form-button-primary" disabled={saving} onClick={resetCostCenterForm}>
-                Limpiar
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+    {/* Global error */}
+    {error && <div className="tracker-error">⚠️ {error}</div>}
 
       {/* ========== COST CENTER TABLE ========== */}
-      <div style={{ marginTop: 18 }}>
-        <div style={{ fontWeight: 600, marginBottom: 10 }}>Listado</div>
+       <div className="cc-section cc-section--table">
+      <div className="cc-section__top">
+        <div className="cc-section__title">Listado</div>
+      </div>
 
-        <div className="entity-table-wrapper">
+        <div className="entity-table-wrapper cc-table-full">
           {loading ? (
             <div className="sessions-loading">Cargando…</div>
           ) : costCenters.length === 0 ? (
@@ -1170,6 +993,180 @@ const CostCentersPage = () => {
           )}
         </div>
       </div>
+
+
+    {/* ========== COST CENTER FORM ========== */}
+    <div className="cc-section">
+      <div className="cc-section__top">
+        <div className="cc-section__title">
+          {editingCostCenterId == null ? "Crear centro de costo" : `Editando centro de costo #${editingCostCenterId}`}
+        </div>
+
+        {editingCostCenterId != null && (
+          <button type="button" className="form-button-primary" onClick={resetCostCenterForm} disabled={saving}>
+            Cancelar edición
+          </button>
+        )}
+      </div>
+
+        <form className="form-grid" onSubmit={handleSubmitCostCenter} style={{ marginTop: 10 }}>
+          <div className="form-field">
+            <label className="form-label">Nombre centro de costo *</label>
+            <input
+              className="form-input"
+              value={ccName}
+              onChange={(e) => setCcName(e.target.value)}
+              placeholder="Ej: Cuartel 12 - Norte"
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">ID externo (Odoo / ERP)</label>
+            <input
+              className="form-input"
+              value={ccExternalId}
+              onChange={(e) => setCcExternalId(e.target.value)}
+              placeholder="Código en Odoo u otro sistema"
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Hectáreas (opcional)</label>
+            <input
+              className="form-input"
+              value={ccHectares}
+              onChange={(e) => setCcHectares(e.target.value)}
+              placeholder="Ej: 42.5"
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Fundo (para filtrar sectores)</label>
+            <select
+              className="form-input"
+              value={ccFundoId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCcFundoId(next);
+
+                // si el sector actual no pertenece, lo limpiamos
+                if (ccSectorId) {
+                  const sid = Number(ccSectorId);
+                  const s = sectorById.get(sid);
+                  if (s && next && String(s.fundo_id) !== next) setCcSectorId("");
+                  if (!next) setCcSectorId("");
+                }
+              }}
+            >
+              <option value="">— (sin fundo) —</option>
+              {fundos.map((f) => (
+                <option key={f.id} value={String(f.id)}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Sector (SDP)</label>
+            <select
+              className="form-input"
+              value={ccSectorId}
+              onChange={(e) => setCcSectorId(e.target.value)}
+            >
+              <option value="">— (sin sector) —</option>
+              {sectorsFilteredForCc.map((s) => (
+                <option key={s.id} value={String(s.id)}>
+                  {s.name}
+                  {s.sdp_code ? ` (SDP: ${s.sdp_code})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Hileras (opcional)</label>
+            <input
+              className="form-input"
+              value={ccRowCount}
+              onChange={(e) => setCcRowCount(e.target.value)}
+              placeholder="Ej: 80"
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Plantas (opcional)</label>
+            <input
+              className="form-input"
+              value={ccPlantCount}
+              onChange={(e) => setCcPlantCount(e.target.value)}
+              placeholder="Ej: 12000"
+            />
+          </div>
+
+          <div className="form-field">
+            <label className="form-label">Especie (opcional)</label>
+            <select
+              className="form-input"
+              value={ccSpeciesId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCcSpeciesId(next);
+                // si cambió especie, filtrar variedades seleccionadas a las válidas
+                if (next) {
+                  const spId = Number(next);
+                  setCcVarietyIds((prev) => prev.filter((id) => varietyById.get(id)?.species_id === spId));
+                }
+              }}
+            >
+              <option value="">— (sin especie) —</option>
+              {species.map((s) => (
+                <option key={s.id} value={String(s.id)}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-field" style={{ gridColumn: "1 / -1" }}>
+            <label className="form-label">Variedades (multi selección, opcional)</label>
+            <select
+              className="form-input"
+              multiple
+              value={ccVarietyIds.map(String)}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions).map((o) => Number(o.value));
+                setCcVarietyIds(selected);
+              }}
+              style={{ minHeight: 110 }}
+            >
+              {varietiesFilteredForCc.map((v) => (
+                <option key={v.id} value={String(v.id)}>
+                  {v.name}
+                </option>
+              ))}
+            </select>
+            <div className="card-subtitle" style={{ marginTop: 6 }}>
+              Si seleccionas variedades, se validará coherencia con la especie. Si no eliges especie, se derivará desde la variedad.
+            </div>
+          </div>
+
+          {saveError && <div className="tracker-error">⚠️ {saveError}</div>}
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="submit" className="form-button-primary" disabled={saving}>
+              {saving ? "Guardando..." : editingCostCenterId == null ? "Agregar centro de costo" : "Guardar cambios"}
+            </button>
+
+            {editingCostCenterId == null && (
+              <button type="button" className="form-button-primary" disabled={saving} onClick={resetCostCenterForm}>
+                Limpiar
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
 
       {/* ========== CATALOGS (same tab) ========== */}
       <div style={{ marginTop: 22 }}>
