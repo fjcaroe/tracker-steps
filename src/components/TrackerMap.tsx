@@ -69,7 +69,7 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   points,
   selectedPoints,
   followSelected = true,
-
+  showOnlySelectedTrack = false,
 }) => {
 
   const { isLoaded, loadError } = useJsApiLoader({
@@ -666,54 +666,74 @@ useEffect(() => {
         })}
 
         {/* LIVE polylines */}
-        {hasLiveMode &&
-          activeSessions!.map((s) => {
-            const track = polylineTracks[s.id] || [];
-            if (track.length < 2) return null;
+        {/* LIVE polylines */}
+{hasLiveMode &&
+  activeSessions!.map((s) => {
+    const isSelected = selectedSessionId === s.id;
 
-            const path = track.map((p) => ({ lat: p.lat, lng: p.lon }));
+    // Si está activo "solo seleccionado", oculta los demás
+    if (showOnlySelectedTrack && selectedSessionId && !isSelected) return null;
 
-            const isSelected = selectedSessionId === s.id;
-            const dimOthers = !!selectedSessionId && !isSelected;
+    // Para el seleccionado: usa selectedTrack (prioriza selectedPoints)
+    // Para el resto: usa sessionPoints
+    const base = isSelected ? selectedTrack : (sessionPoints[s.id] || []);
 
-            return (
-              <Polyline
-                key={`line-${s.id}`}
-                path={path}
-                options={{
-                  strokeColor: isSelected ? "#f97316" : "#38bdf8",
-                  strokeOpacity: dimOthers ? 0.25 : 0.9,
-                  strokeWeight: isSelected ? 5 : 3,
-                }}
-              />
-            );
-          })}
+    // (opcional) decimar el seleccionado si viene enorme
+    const track = isSelected ? decimate(base, 2000) : base;
+
+    if (track.length < 2) return null;
+
+    const path = track.map((p) => ({ lat: p.lat, lng: p.lon }));
+    const dimOthers = !!selectedSessionId && !isSelected;
+          console.log("poly", s.id, {
+            isSelected,
+            selectedTrack: selectedTrack.length,
+            sessionPts: (sessionPoints[s.id] || []).length,
+          });
+    return (
+      <Polyline
+        key={`line-${s.id}`}
+        path={path}
+        options={{
+          strokeColor: isSelected ? "#f97316" : "#38bdf8",
+          strokeOpacity: dimOthers ? 0.25 : 0.9,
+          strokeWeight: isSelected ? 5 : 3,
+        }}
+      />
+    );
+  })}
+
 
         {/* LIVE markers por sesión */}
-        {hasLiveMode &&
-          activeSessions!.map((s) => {
-            const track = sessionPoints[s.id] || [];
-            if (!track.length) return null;
+       {/* LIVE markers por sesión */}
+{hasLiveMode &&
+  activeSessions!.map((s) => {
+    const isSelected = selectedSessionId === s.id;
 
-            const last = track[track.length - 1];
-            const isSelected = selectedSessionId === s.id;
-            const dimOthers = !!selectedSessionId && !isSelected;
+    if (showOnlySelectedTrack && selectedSessionId && !isSelected) return null;
 
-            return (
-              <Marker
-                key={`marker-${s.id}`}
-                position={{ lat: last.lat, lng: last.lon }}
-                icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: isSelected ? 8 : 6,
-                  strokeColor: isSelected ? "#f97316" : "#0f172a",
-                  strokeWeight: isSelected ? 3 : 2,
-                  fillColor: isSelected ? "#ffffff" : "#e5e7eb",
-                  fillOpacity: dimOthers ? 0.6 : 1,
-                }}
-              />
-            );
-          })}
+    const track = isSelected ? selectedTrack : (sessionPoints[s.id] || []);
+    if (!track.length) return null;
+
+    const last = track[track.length - 1];
+    const dimOthers = !!selectedSessionId && !isSelected;
+
+    return (
+      <Marker
+        key={`marker-${s.id}`}
+        position={{ lat: last.lat, lng: last.lon }}
+        icon={{
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: isSelected ? 8 : 6,
+          strokeColor: isSelected ? "#f97316" : "#0f172a",
+          strokeWeight: isSelected ? 3 : 2,
+          fillColor: isSelected ? "#ffffff" : "#e5e7eb",
+          fillOpacity: dimOthers ? 0.6 : 1,
+        }}
+      />
+    );
+  })}
+
 
         {/* Marker del scrubber (solo fullscreen + sesión seleccionada) */}
         {hasLiveMode && selectedSessionId && isFullscreen && scrubPoint && (
