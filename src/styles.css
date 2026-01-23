@@ -2667,3 +2667,111 @@ textarea.form-input {
   margin: 0 auto;
   padding: 0;            /* evita desplazamientos raros */
 }
+.machine-picker {
+  position: relative;
+  width: 100%;
+}
+
+/* Dropdown */
+.machine-suggestions {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+
+  /* FIX: antes estaba mal */
+  background: #ffffff;                 /* fondo sólido */
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* hace que el texto no “se pegue” a los bordes visualmente */
+  padding: 4px;
+}
+
+/* Item */
+.machine-suggestion-item {
+  width: 100%;
+  text-align: left;
+
+  padding: 10px 12px;
+  background: #ffffff;                 /* item con fondo (no transparente) */
+  border: 0;
+  border-radius: 8px;
+
+  cursor: pointer;
+  color: #111827;                      /* gris oscuro */
+  font-size: 0.92rem;
+  line-height: 1.2;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.machine-suggestion-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.machine-suggestion-item:focus,
+.machine-suggestion-item:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.45); /* azul suave */
+  outline-offset: 2px;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+/* Separador visual si quieres “líneas” entre items */
+.machine-suggestion-item + .machine-suggestion-item {
+  margin-top: 4px;
+}
+
+/* Seleccionados */
+.machine-selected-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.machine-selected-label {
+  font-weight: 600;
+  color: #111827;
+}
+
+.machine-selected-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.machine-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  font-size: 0.85rem;
+  color: #111827;
+}
+
+.machine-chip-remove {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: rgba(17, 24, 39, 0.75);
+}
+
+.machine-chip-remove:hover {
+  color: #111827;
+}

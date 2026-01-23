@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // src/components/TrackerControl.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState, useMemo } from "react";
+import {  useState, useMemo } from "react";
 import type { TrackPoint } from "../types";
 
-type CostCenter = { id: number; name: string };
 
 export type ActiveSession = {
   id: string;
@@ -72,10 +71,6 @@ function haversineMeters(
   return R * c;
 }
 
-const apiBaseUrl =
-  ((import.meta.env.VITE_API_BASE_URL as string | undefined) ||
-    "http://localhost:8000").replace(/\/+$/, "");
-
 const TrackerControl: React.FC<TrackerControlProps> = ({
   isTracking: _isTracking, // no lo usamos, pero lo dejamos para compat TS
   error,
@@ -105,23 +100,83 @@ const TrackerControl: React.FC<TrackerControlProps> = ({
   onDateToChange,
   selectedPoints,
 }) => {
-  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
-  const [filterSearch, setFilterSearch] = useState<string>("");
-  const [filterCostCenterId, setFilterCostCenterId] = useState<string>("");
 
-  // Cargar centros de costo para el filtro
-  useEffect(() => {
-    const loadCostCenters = async () => {
-      try {
-        const ccRes = await fetch(`${apiBaseUrl}/cost_centers`);
-        if (ccRes.ok) setCostCenters(await ccRes.json());
-      } catch (err) {
-        console.error("Error cargando centros de costo", err);
+   const [machineQuery, setMachineQuery] = useState<string>("");
+  const [driverQuery, setDriverQuery] = useState<string>(""); // opcional: para filtrar por chofer
+  const [selectedMachineIds, setSelectedMachineIds] = useState<number[]>([]);
+  const [machineDropdownOpen, setMachineDropdownOpen] = useState<boolean>(false);
+
+
+ const activeMachineOptions = useMemo(() => {
+    const map = new Map<number, { machine_id: number; label: string }>();
+
+    for (const s of activeSessions) {
+      const label = s.machine_name?.trim() || `Máquina #${s.machine_id}`;
+      if (!map.has(s.machine_id)) {
+        map.set(s.machine_id, { machine_id: s.machine_id, label });
       }
-    };
+    }
 
-    loadCostCenters();
-  }, []);
+    return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, "es"));
+  }, [activeSessions]);
+
+     const addMachineToSelection = (machineId: number) => {
+  setSelectedMachineIds((prev) => (prev.includes(machineId) ? prev : [...prev, machineId]));
+  setMachineQuery("");
+  setMachineDropdownOpen(false);
+
+  const sess = activeSessions
+    .filter((s) => s.machine_id === machineId)
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0];
+
+  if (sess) onToggleSession(sess.id);
+};
+
+
+const removeMachineFromSelection = (machineId: number) => {
+  setSelectedMachineIds((prev) => {
+    const next = prev.filter((id) => id !== machineId);
+
+    // Si la sesión enfocada pertenece a la máquina removida, mover foco a otra (o limpiar)
+    if (selectedSessionId) {
+      const selectedSess = activeSessions.find((s) => s.id === selectedSessionId);
+      if (selectedSess?.machine_id === machineId) {
+        const fallbackMachineId = next[next.length - 1]; // última seleccionada
+        if (fallbackMachineId != null) {
+          const fallbackSess = activeSessions
+            .filter((s) => s.machine_id === fallbackMachineId)
+            .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0];
+
+          onToggleSession(fallbackSess ? fallbackSess.id : null);
+        } else {
+          onToggleSession(null);
+        }
+      }
+    }
+
+    return next;
+  });
+};
+
+
+const clearMachineSelection = () => {
+  setSelectedMachineIds([]);
+  onToggleSession(null);
+};
+
+
+  const machineSuggestions = useMemo(() => {
+    const q = machineQuery.trim().toLowerCase();
+    const notSelected = activeMachineOptions.filter((m) => !selectedMachineIds.includes(m.machine_id));
+
+    if (!q) return notSelected.slice(0, 12);
+
+    return notSelected
+      .filter((m) => m.label.toLowerCase().includes(q) || String(m.machine_id).includes(q))
+      .slice(0, 12);
+  }, [machineQuery, activeMachineOptions, selectedMachineIds]);
+
+
 
   function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -205,33 +260,31 @@ const clearRange = () => {
       : 0;
 
   // ---- filtro de sesiones activas (flota completa) ----
-  const filteredActiveSessions = useMemo(() => {
-    const q = filterSearch.trim().toLowerCase();
+const filteredActiveSessions = useMemo(() => {
+  // Si no hay máquinas seleccionadas, NO mostramos lista
+  if (selectedMachineIds.length === 0) return [];
 
-    return activeSessions.filter((s) => {
-      // filtro por centro de costo (select)
-      if (filterCostCenterId && s.cost_center_name) {
-        const cc = costCenters.find(
-          (c) => c.id === Number(filterCostCenterId)
-        );
-        if (cc && s.cost_center_name !== cc.name) {
-          return false;
-        }
-      }
+  const dq = driverQuery.trim().toLowerCase();
 
-      if (!q) return true;
+  return activeSessions.filter((s) => {
+    if (!selectedMachineIds.includes(s.machine_id)) return false;
 
-      const haystack = [
-        s.machine_name || `Máquina #${s.machine_id}`,
-        s.driver_name || "",
-        s.cost_center_name || "",
-      ]
-        .join(" ")
-        .toLowerCase();
+    if (dq) {
+      const driver = (s.driver_name || "").toLowerCase();
+      if (!driver.includes(dq)) return false;
+    }
 
-      return haystack.includes(q);
-    });
-  }, [activeSessions, filterSearch, filterCostCenterId, costCenters]);
+    return true;
+  });
+}, [activeSessions, selectedMachineIds, driverQuery]);
+
+   const visitedCostCenters = useMemo(() => {
+    const names = (effectivePoints ?? [])
+      .map((p: any) => (p?.cost_center_name ? String(p.cost_center_name) : ""))
+      .filter(Boolean);
+
+    return Array.from(new Set(names));
+  }, [effectivePoints]);
 
   const hasActive = filteredActiveSessions.length > 0;
 
@@ -240,10 +293,10 @@ return (
     <div className="card-header">
       <div>
         <div className="card-title">Seguimiento</div>
-        <div className="card-subtitle">
-          Monitorea en tiempo real las máquinas activas. Filtra por centro de
-          costo o chofer y toca un vehículo para enfocarlo en el mapa.
-        </div>
+       <div className="card-subtitle">
+  Monitorea en tiempo real las máquinas activas. Selecciona una o varias máquinas para filtrar y toca un vehículo para enfocarlo en el mapa.
+</div>
+
       </div>
       <div className="tracker-status">
         <div
@@ -277,46 +330,111 @@ return (
               Vehículos en circulación ({filteredActiveSessions.length})
             </div>
 
-            <div className="live-active-filters">
-              <input
-                type="search"
-                className="form-input live-active-search"
-                placeholder="Filtrar por máquina, chofer o centro…"
-                value={filterSearch}
-                onChange={(e) => setFilterSearch(e.target.value)}
-              />
-              <select
-                className="form-select live-active-cc-filter"
-                value={filterCostCenterId}
-                onChange={(e) => setFilterCostCenterId(e.target.value)}
-              >
-                <option value="">Todos los centros</option>
-                {costCenters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+           <div className="live-active-filters">
+  {/* Selector de máquinas activas (autocomplete) */}
+  <div className="machine-picker">
+    <input
+      type="search"
+      className="form-input live-active-search"
+      placeholder="Buscar máquina activa y presiona Enter para agregar…"
+      value={machineQuery}
+      onChange={(e) => {
+        setMachineQuery(e.target.value);
+        setMachineDropdownOpen(true);
+      }}
+      onFocus={() => setMachineDropdownOpen(true)}
+      onBlur={() => {
+        // pequeño delay para permitir click en sugerencia
+        window.setTimeout(() => setMachineDropdownOpen(false), 120);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          // si hay una sola sugerencia, agréguela
+          if (machineSuggestions.length === 1) addMachineToSelection(machineSuggestions[0].machine_id);
+        }
+      }}
+    />
+
+    {machineDropdownOpen && machineSuggestions.length > 0 && (
+      <div className="machine-suggestions">
+        {machineSuggestions.map((m) => (
+          <button
+            key={m.machine_id}
+            type="button"
+            className="machine-suggestion-item"
+            onMouseDown={(ev) => ev.preventDefault()}
+            onClick={() => addMachineToSelection(m.machine_id)}
+            title="Agregar a filtros"
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* Filtro opcional por chofer (mantiene utilidad sin ensuciar el selector) */}
+  <input
+    type="search"
+    className="form-input live-active-search"
+    placeholder="Filtrar por chofer (opcional)…"
+    value={driverQuery}
+    onChange={(e) => setDriverQuery(e.target.value)}
+  />
+</div>
+
+{/* Chips de máquinas seleccionadas */}
+{selectedMachineIds.length > 0 && (
+  <div className="machine-selected-row">
+    <div className="machine-selected-label">Seleccionadas:</div>
+
+    <div className="machine-selected-chips">
+      {selectedMachineIds.map((id) => {
+        const label = activeMachineOptions.find((x) => x.machine_id === id)?.label || `Máquina #${id}`;
+        return (
+          <span key={id} className="machine-chip">
+            {label}
+            <button
+              type="button"
+              className="machine-chip-remove"
+              onClick={() => removeMachineFromSelection(id)}
+              aria-label={`Quitar ${label}`}
+              title="Quitar"
+            >
+              ×
+            </button>
+          </span>
+        );
+      })}
+
+      <button type="button" className="app-nav-button" onClick={clearMachineSelection}>
+        Limpiar selección
+      </button>
+    </div>
+  </div>
+)}
+
           </div>
 
-          {filteredActiveSessions.length === 0 ? (
-            <div className="live-active-empty">
-              No hay máquinas con sesiones abiertas que coincidan con el filtro.
-            </div>
-          ) : (
-            <ul className="live-active-list">
-              {filteredActiveSessions.map((s) => {
-                const isSelected = selectedSessionId === s.id;
-                return (
-                  <li
-                    key={s.id}
-                    className={
-                      "live-active-item" +
-                      (isSelected ? " live-active-item--selected" : "")
-                    }
-                    onClick={() => onToggleSession(s.id)}
-                  >
+         {selectedMachineIds.length === 0 ? (
+  <div className="live-active-empty">
+    Selecciona una máquina en el buscador para ver su estado en vivo.
+  </div>
+) : filteredActiveSessions.length === 0 ? (
+  <div className="live-active-empty">
+    No hay máquinas en circulación que coincidan con tu selección/filtro.
+  </div>
+) : (
+  <ul className="live-active-list">
+    {filteredActiveSessions.map((s) => {
+      const isSelected = selectedSessionId === s.id;
+      return (
+        <li
+          key={s.id}
+          className={"live-active-item" + (isSelected ? " live-active-item--selected" : "")}
+          onClick={() => onToggleSession(s.id)}
+        >
                     <div className="live-active-main">
                       <span className="live-active-machine">
                         {s.machine_name || `Máquina #${s.machine_id}`}
@@ -399,6 +517,14 @@ return (
         Limpiar rango
       </button>
     </div>
+{selectedSessionId && (
+  <div className="live-selected-cc-card">
+    <div className="live-selected-cc-title">Centros de costo recorridos (sesión seleccionada)</div>
+    <div className="live-selected-cc-body">
+      {visitedCostCenters.length > 0 ? visitedCostCenters.join(" · ") : "—"}
+    </div>
+  </div>
+)}
 
 
   <div className="live-toolbar__grid">
