@@ -993,7 +993,7 @@ const CostCentersPage = () => {
           )}
         </div>
       </div>
-
++
 
     {/* ========== COST CENTER FORM ========== */}
     <div className="cc-section">
@@ -1170,7 +1170,6 @@ const CostCentersPage = () => {
 
       {/* ========== CATALOGS (same tab) ========== */}
       <div style={{ marginTop: 22 }}>
-        <details>
           <summary style={{ cursor: "pointer", fontWeight: 700 }}>Catálogos (Fundo / Sector / Especie / Variedad)</summary>
 
           <div style={{ marginTop: 14, display: "grid", gap: 18 }}>
@@ -1550,7 +1549,6 @@ const CostCentersPage = () => {
             </div>
 
           </div>
-        </details>
       </div>
     </section>
   );
