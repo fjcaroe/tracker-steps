@@ -90,7 +90,6 @@ function AuthedApp() {
   const [fields, setFields] = useState<FieldPolygon[]>([]);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [timeWindowMinutes, setTimeWindowMinutes] = useState<number>(60); // 60 min default
-  const [maxPoints, setMaxPoints] = useState<number>(1000);
   const [followSelected, setFollowSelected] = useState<boolean>(true);
   const [showOnlySelectedTrack, setShowOnlySelectedTrack] = useState<boolean>(true);
   const [selectedLivePoints, setSelectedLivePoints] = useState<TrackPoint[]>([]);
@@ -100,6 +99,33 @@ function AuthedApp() {
 
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
+
+  type TrackApiItem = {
+  ts: string;            // ISO
+  lat: number;
+  lon: number;
+  speed_mps?: number | null;
+  n: number;
+};
+
+type TrackApiResponse = {
+  items: TrackApiItem[];
+  next_cursor?: string | null;
+  resolution: "raw" | "10s" | "1m";
+};
+
+function pickResolution(rangeMs: number): "raw" | "10s" | "1m" {
+  const min15 = 15 * 60_000;
+  const h48 = 48 * 60 * 60_000;
+
+  if (rangeMs <= min15) return "raw";
+  if (rangeMs <= h48) return "10s";
+  return "1m";
+}
+
+
+const MAX_DRAW_POINTS_NORMAL = 8000;
+const MAX_DRAW_POINTS_FULLSCREEN = 20000;
 
 useEffect(() => {
   if (!selectedLiveSessionId) {
@@ -113,41 +139,57 @@ useEffect(() => {
     try {
       const now = Date.now();
 
-      // 1) si el usuario eligió rango, úsalo; si no, usa ventana de tiempo
-      const fromTs = dateFrom
+      // 1) rango (preferencia: dateFrom/dateTo; fallback ventana)
+      const fromMs = dateFrom
         ? new Date(dateFrom).getTime()
         : now - timeWindowMinutes * 60_000;
 
-      const toTs = dateTo ? new Date(dateTo).getTime() : now;
+      const toMs = dateTo ? new Date(dateTo).getTime() : now;
 
-      // 2) query params al backend
+      const fromIso = new Date(fromMs).toISOString();
+      const toIso = new Date(toMs).toISOString();
+
+      const rangeMs = toMs - fromMs;
+      const resolution = pickResolution(rangeMs);
+
+      // 2) llamada al endpoint downsampleado
       const qs = new URLSearchParams();
-      qs.set("from_ts", String(fromTs));
-      qs.set("to_ts", String(toTs));
-      qs.set("limit", String(maxPoints * 5)); // trae más y luego downsample
+      qs.set("from", fromIso);
+      qs.set("to", toIso);
+      qs.set("resolution", resolution);
+      qs.set("limit", "20000");
 
-      const apiPts = await apiJson<ApiLivePoint[]>(
-        `/sessions/${selectedLiveSessionId}/points?${qs.toString()}`
+      const resp = await apiJson<TrackApiResponse>(
+        `/sessions/${selectedLiveSessionId}/track?${qs.toString()}`
       );
 
-      const norm = normalizeLivePoints(apiPts);
+      // 3) normalizar a TrackPoint[]
+      const norm: TrackPoint[] = (resp.items || [])
+        .map((it, idx) => {
+          const t = new Date(it.ts).getTime();
+          return {
+            id: Number.isFinite(t) ? (t * 100 + idx) : idx,
+            timestamp: t,
+            lat: it.lat,
+            lon: it.lon,
+            speed: it.speed_mps ?? null,
+          };
+        })
+        .sort((a, b) => a.timestamp - b.timestamp);
 
-      // 3) (opcional) si prefieres igual filtrar en front por seguridad
-      const windowed = norm.filter((p: { timestamp: number; }) => p.timestamp >= fromTs && p.timestamp <= toTs);
+      const cap = isMapFullscreen ? MAX_DRAW_POINTS_FULLSCREEN : MAX_DRAW_POINTS_NORMAL;
 
-      const sliced =
-        windowed.length > maxPoints ? downsampleStride(windowed, maxPoints) : windowed;
+        const sliced =
+          norm.length > cap ? downsampleStride(norm, cap) : norm;
 
-      if (mounted) setSelectedLivePoints(sliced);
+        if (mounted) setSelectedLivePoints(sliced);
     } catch {
       if (mounted) setSelectedLivePoints([]);
     }
   };
 
-  // carga inicial / manual / cambios de rango
   void loadPoints();
 
-  // 🔴 CLAVE: si NO está "En tiempo real", NO hacemos polling
   if (!liveAutoRefresh) return () => { mounted = false; };
 
   const id = window.setInterval(loadPoints, 5000);
@@ -158,11 +200,10 @@ useEffect(() => {
 }, [
   selectedLiveSessionId,
   timeWindowMinutes,
-  maxPoints,
-  liveAutoRefresh,  // ✅
-  refreshNonce,     // ✅
-  dateFrom,         // ✅
-  dateTo,           // ✅
+  liveAutoRefresh,
+  refreshNonce,
+  dateFrom,
+  dateTo,
 ]);
 
 
@@ -366,8 +407,6 @@ useEffect(() => {
             }
             timeWindowMinutes={timeWindowMinutes}
             onTimeWindowMinutesChange={setTimeWindowMinutes}
-            maxPoints={maxPoints}
-            onMaxPointsChange={setMaxPoints}
             followSelected={followSelected}
             onFollowSelectedChange={setFollowSelected}
             showOnlySelectedTrack={showOnlySelectedTrack}

@@ -30,6 +30,19 @@ type ActiveSession = {
   points_count: number;
 };
 
+type TrackApiItem = {
+  ts: string;
+  lat: number;
+  lon: number;
+  speed_mps?: number | null;
+  n?: number;
+};
+
+type TrackApiResp = {
+  items: TrackApiItem[];
+  next_cursor?: string | null;
+  resolution: string;
+};
 
 
 type TrackerMapProps = {
@@ -132,6 +145,20 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   }, [hasLiveMode, selectedSessionId, selectedPoints, sessionPoints]);
 
 
+function normalizeTrack(resp: TrackApiResp): TrackT[] {
+  return resp.items.map((p, idx) => {
+    const t = new Date(p.ts).getTime();
+    return {
+      id: t + idx,
+      lat: p.lat,
+      lon: p.lon,
+      t,
+      speed_mps: p.speed_mps ?? null,
+    };
+  }).sort((a, b) => a.t - b.t);
+}
+
+function iso(ms: number) { return new Date(ms).toISOString(); }
 
 useEffect(() => {
   setIsPlaying(false);
@@ -187,17 +214,54 @@ function decimate<T>(arr: T[], maxPoints: number): T[] {
 }
 
 
-async function loadSessionPoints(id: string, mode: "historical" | "live") {
-  const json = await apiJson<SessionPoint[]>(`/sessions/${id}/points`);
-  let pts = normalize(json);
+const LIVE_WINDOW_MIN = 30;
 
-  if (mode === "live") {
-    pts = pts.slice(-LIVE_LIMIT);
+type CacheEntry = {
+  points: TrackT[];
+  fetchedAt: number;
+  cursor?: string | null;
+};
+
+const cacheRef2 = useRef<Record<string, CacheEntry>>({});
+
+async function loadSessionPoints(id: string, mode: "historical" | "live") {
+  const now = Date.now();
+
+  const from =
+    mode === "historical"
+      ? now - SCRUB_HOURS * 3600_000
+      : now - LIVE_WINDOW_MIN * 60_000;
+
+  const resolution = mode === "historical" ? "10s" : "raw";
+  const limit = mode === "historical" ? 20000 : 5000;
+
+  const cached = cacheRef2.current[id];
+  const cursor = mode === "live" ? cached?.cursor : null;
+
+  const qs = new URLSearchParams({
+    from: iso(from),
+    to: iso(now),
+    resolution,
+    limit: String(limit),
+  });
+  if (cursor) qs.set("cursor", cursor);
+
+  const resp = await apiJson<TrackApiResp>(`/sessions/${id}/track?${qs.toString()}`);
+  const fresh = normalizeTrack(resp);
+
+  let merged: TrackT[];
+  if (mode === "live" && cursor && cached?.points?.length) {
+    // append incremental
+    merged = [...cached.points, ...fresh];
+    merged.sort((a, b) => a.t - b.t);
   } else {
-    pts = pts.slice(-FULL_LIMIT);
+    merged = fresh;
   }
 
-  cacheRef.current[id] = { points: pts, fetchedAt: Date.now() };
+  // recortes memoria (tus límites)
+  const pts = mode === "live" ? merged.slice(-LIVE_LIMIT) : merged.slice(-FULL_LIMIT);
+
+  cacheRef2.current[id] = { points: pts, fetchedAt: Date.now(), cursor: resp.next_cursor ?? cursor ?? null };
   setSessionPoints((prev) => ({ ...prev, [id]: pts }));
 }
 
@@ -375,23 +439,25 @@ useEffect(() => {
   const now = Date.now();
   const ids = activeSessions.map((s) => s.id);
 
-  const fetchFleetTail = async (id: string) => {
-    try {
-      const cached = cacheRef.current[id];
-      if (cached && now - cached.fetchedAt < TTL_FLEET_MS) return;
+ const TAIL_POINTS_FLEET = 80;
 
-      const json = await apiJson<SessionPoint[]>(`/sessions/${id}/points`);
-      const pts = normalize(json).slice(-TAIL_POINTS_FLEET);
+const fetchFleetTail = async (id: string) => {
+  const now = Date.now();
+  const from = now - 10 * 60_000; // últimos 10 min
 
-      cacheRef.current[id] = { points: pts, fetchedAt: Date.now() };
+  const qs = new URLSearchParams({
+    from: iso(from),
+    to: iso(now),
+    resolution: "raw",
+    limit: "800",
+  });
 
-      if (!cancelled) {
-        setSessionPoints((prev) => ({ ...prev, [id]: pts }));
-      }
-    } catch (e) {
-      console.error("Error cargando cola de flota", id, e);
-    }
-  };
+  const resp = await apiJson<TrackApiResp>(`/sessions/${id}/track?${qs.toString()}`);
+  const pts = normalizeTrack(resp).slice(-TAIL_POINTS_FLEET);
+
+  cacheRef2.current[id] = { points: pts, fetchedAt: Date.now(), cursor: null };
+  setSessionPoints((prev) => ({ ...prev, [id]: pts }));
+};
 
   // para no saturar, limita concurrencia si hay muchas sesiones (simple: Promise.all está OK si son pocas)
   Promise.all(ids.map(fetchFleetTail));
@@ -668,8 +734,13 @@ useEffect(() => {
     // Para el resto: usa sessionPoints
     const base = isSelected ? selectedTrack : (sessionPoints[s.id] || []);
 
-    // (opcional) decimar el seleccionado si viene enorme
-    const track = isSelected ? decimate(base, 2000) : base;
+    // Si el seleccionado viene desde App (selectedPoints), ya viene acotado.
+    // Solo decimamos si es gigantesco (fallbacks / históricos).
+    const SELECTED_CAP = 15000;
+    const track =
+      isSelected
+        ? (base.length > SELECTED_CAP ? decimate(base, SELECTED_CAP) : base)
+        : base;
 
     if (track.length < 2) return null;
 

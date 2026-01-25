@@ -30,8 +30,7 @@ type TrackerControlProps = {
   onToggleSession: (id: string | null) => void; 
   timeWindowMinutes: number;
   onTimeWindowMinutesChange: (v: number) => void;
-  maxPoints: number;
-  onMaxPointsChange: (v: number) => void;
+
   followSelected: boolean;
   onFollowSelectedChange: (v: boolean) => void;
   showOnlySelectedTrack: boolean;
@@ -85,8 +84,6 @@ const TrackerControl: React.FC<TrackerControlProps> = ({
   onToggleSession,
   timeWindowMinutes,
   onTimeWindowMinutesChange,
-  maxPoints,
-  onMaxPointsChange,
   followSelected,
   onFollowSelectedChange,
   showOnlySelectedTrack,
@@ -226,10 +223,11 @@ const applyPreset = (
   }
 
   const mins =
-    preset === "1h" ? 60 :
-    preset === "6h" ? 360 :
-    preset === "24h" ? 1440 :
-    10080; // "168h" = 7 días
+  preset === "1h" ? 60 :
+  preset === "6h" ? 360 :
+  preset === "24h" ? 1440 :
+  preset === "168h" ? 10080 :
+  60;
 
   const from = new Date(now.getTime() - mins * 60_000);
   onDateFromChange(toDatetimeLocalValue(from));
@@ -564,23 +562,10 @@ return (
         <option value={60}>Últ. 1 hora</option>
         <option value={360}>Últ. 6 horas</option>
         <option value={1440}>Últ. 24 horas</option>
-        <option value={1080}>Últ. 7 días</option>
+        <option value={10080}>Últ. 7 días</option>
       </select>
     </div>
 
-    <div className="form-field">
-      <div className="form-label">Máximo de puntos</div>
-      <select
-        className="form-select"
-        value={maxPoints}
-        onChange={(e) => onMaxPointsChange(Number(e.target.value))}
-      >
-        <option value={2000}>2000</option>
-        <option value={5000}>5000</option>
-        <option value={10000}>10000</option>
-        <option value={15000}>15000</option>
-      </select>
-    </div>
   </div>
 
   <div className="live-toolbar__toggles">
@@ -613,67 +598,6 @@ return (
 </div>
 
 
-      <div className="live-visual-row" style={{ display: "grid", gap: 8 }}>
-        
-        <div className="form-field">
-          
-          <div className="form-label">Ventana de tiempo</div>
-          <select
-            className="form-select"
-            value={timeWindowMinutes}
-            onChange={(e) => onTimeWindowMinutesChange(Number(e.target.value))}
-          >
-            <option value={2000}>2000</option>
-            <option value={5000}>5000</option>
-            <option value={10000}>10000</option>
-            <option value={15000}>15000</option>
-          </select>
-        </div>
-
-        <div className="form-field">
-          <div className="form-label">Máximo de puntos</div>
-          <select
-            className="form-select"
-            value={maxPoints}
-            onChange={(e) => onMaxPointsChange(Number(e.target.value))}
-          >
-              <option value={2000}>2000</option>
-              <option value={5000}>5000</option>
-              <option value={10000}>10000</option>
-              <option value={15000}>15000</option>
-          </select>
-        </div>
-      </div>
-
-      <div
-        className="live-visual-toggles"
-        style={{
-          display: "flex",
-          gap: 12,
-          flexWrap: "wrap",
-          marginTop: 8,
-          fontSize: "0.8rem",
-          color: "#374151",
-        }}
-      >
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={followSelected}
-            onChange={(e) => onFollowSelectedChange(e.target.checked)}
-          />
-          Seguir seleccionado
-        </label>
-
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <input
-            type="checkbox"
-            checked={showOnlySelectedTrack}
-            onChange={(e) => onShowOnlySelectedTrackChange(e.target.checked)}
-          />
-          Mostrar solo seleccionado
-        </label>
-      </div>
     </div>
 
  
