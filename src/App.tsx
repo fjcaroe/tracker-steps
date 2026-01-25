@@ -16,8 +16,8 @@ import { useTracker, type TrackerMode } from "./hooks/useTracker";
 import LoginPage from "./pages/LoginPage";
 import { useAuthWeb } from "./services/AuthContext";
 import { apiJson, setApiAuthToken } from "./services/http";
-import type { ApiLivePoint, TrackPoint } from "./types";
-import { normalizeLivePoints } from "./utils/normalizePoints";
+import type {  TrackPoint } from "./types";
+
 
 type ActiveSession = {
   id: string;

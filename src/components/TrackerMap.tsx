@@ -92,13 +92,13 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   });
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
-    type SessionPoint = {
-    id: number;
-    ts: string;
-    lat: number;
-    lon: number;
-    speed_mps?: number | null;
-  };
+  //   type SessionPoint = {
+  //   id: number;
+  //   ts: string;
+  //   lat: number;
+  //   lon: number;
+  //   speed_mps?: number | null;
+  // };
 
   type TrackT = {
     id: number;
@@ -184,17 +184,6 @@ const scrubPoints = useMemo(() => {
   // Key estable tipo 2026-01-22 (sv-SE entrega YYYY-MM-DD)
   function dayKeyFromT(t: number) {
     return new Date(t).toLocaleDateString("sv-SE", { timeZone: "America/Santiago" });
-  }
-  function normalize(json: SessionPoint[]): TrackT[] {
-    return json
-      .map((p) => ({
-        id: p.id,
-        lat: p.lat,
-        lon: p.lon,
-        t: new Date(p.ts).getTime(),
-        speed_mps: p.speed_mps ?? null,
-      }))
-      .sort((a, b) => a.t - b.t);
   }
 
 
@@ -429,14 +418,12 @@ useEffect(() => {
 
   // cargar puntos de todas las sesiones activas (solo LIVE)
 
-const TAIL_POINTS_FLEET = 80;
-const TTL_FLEET_MS = 180_000;
+
 
 useEffect(() => {
   if (!activeSessions?.length) return;
 
-  let cancelled = false;
-  const now = Date.now();
+
   const ids = activeSessions.map((s) => s.id);
 
  const TAIL_POINTS_FLEET = 80;
@@ -462,9 +449,6 @@ const fetchFleetTail = async (id: string) => {
   // para no saturar, limita concurrencia si hay muchas sesiones (simple: Promise.all está OK si son pocas)
   Promise.all(ids.map(fetchFleetTail));
 
-  return () => {
-    cancelled = true;
-  };
 }, [activeSessions]);
 
 
@@ -734,13 +718,13 @@ useEffect(() => {
     // Para el resto: usa sessionPoints
     const base = isSelected ? selectedTrack : (sessionPoints[s.id] || []);
 
-    // Si el seleccionado viene desde App (selectedPoints), ya viene acotado.
-    // Solo decimamos si es gigantesco (fallbacks / históricos).
-    const SELECTED_CAP = 15000;
-    const track =
-      isSelected
-        ? (base.length > SELECTED_CAP ? decimate(base, SELECTED_CAP) : base)
-        : base;
+  // Si el seleccionado viene desde App (selectedPoints), ya viene acotado.
+  // Solo decimamos si es gigantesco (fallbacks / históricos).
+  const SELECTED_CAP = 15000;
+  const track =
+    isSelected
+      ? (base.length > SELECTED_CAP ? decimate(base, SELECTED_CAP) : base)
+      : base;
 
     if (track.length < 2) return null;
 
