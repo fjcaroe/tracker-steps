@@ -46,39 +46,13 @@ type TrackerControlProps = {
   selectedPoints: TrackPoint[]; 
 };
 
-function toRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
 
-function haversineMeters(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371000; // metros
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
 
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(dLon / 2) ** 2;
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
 
 const TrackerControl: React.FC<TrackerControlProps> = ({
   isTracking: _isTracking, // no lo usamos, pero lo dejamos para compat TS
   error,
   points,
-  totalPoints,
-  durationMinutes,
-  sessionId,
-  formatTime,
-  formatNumber,
   activeSessions,
   selectedSessionId,
   onToggleSession,
@@ -240,22 +214,7 @@ const clearRange = () => {
   onDateToChange("");
 };
 
-  // ---- stats básicos de esta unidad (para el pie) ----
-  const totalDistanceM = useMemo(() => {
-    if (!effectivePoints || effectivePoints.length < 2) return 0;
-    let dist = 0;
-    for (let i = 1; i < effectivePoints.length; i++) {
-      const p1 = effectivePoints[i - 1];
-      const p2 = effectivePoints[i];
-      dist += haversineMeters(p1.lat, p1.lon, p2.lat, p2.lon);
-    }
-    return dist;
-  }, [effectivePoints]);
 
-  const avgSpeedKmh =
-    durationMinutes && durationMinutes > 0
-      ? (totalDistanceM / 1000) / (durationMinutes / 60)
-      : 0;
 
   // ---- filtro de sesiones activas (flota completa) ----
 const filteredActiveSessions = useMemo(() => {
