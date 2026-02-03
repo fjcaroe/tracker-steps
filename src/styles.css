@@ -37,18 +37,20 @@ body {
 
 /* Shell principal */
 
-.app-shell {
-  width: 100%;
-  margin: 24px;
-  padding: 20px 22px;
-  border-radius: var(--radius-xl);
-  background: var(--color-card-bg);
-  box-shadow: var(--shadow-soft);
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.app-shell:has(.fields-page) {
+  margin: 0;
+  padding: 12px;
+  border-radius: 0;
+  min-height: 100vh;
+  height: 100vh;
 }
 
+/* La página de campos ocupa el alto completo del shell */
+.fields-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 /* Header */
 
 .app-header {
@@ -285,12 +287,19 @@ body {
 }
 
 @media (max-width: 768px) {
-  .app-shell {
+  .app-shell.app-shell--wide {
     margin: 12px;
     padding: 16px;
   }
 }
-
+.app-shell.app-shell--wide {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+  border-radius: 0;
+  min-height: 100vh;
+}
 
 /* Nav de vistas (live / sessions) */
 .app-nav {
@@ -1346,11 +1355,6 @@ textarea.form-input {
 }
 
 
-.app-layout--live {
-  display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1.5fr);
-  gap: 1rem;
-}
 
 @media (max-width: 900px) {
   .app-layout--live {
@@ -1804,13 +1808,7 @@ textarea.form-input {
    LIVE LAYOUT (TrackerControl + Map)
    =============================== */
 
-/* 1) Grid principal (2 columnas estables) */
-.app-layout--live {
-  display: grid !important;
-  grid-template-columns: 460px minmax(0, 1fr) !important;
-  gap: 18px !important;
-  align-items: start !important;
-}
+
 
 @media (max-width: 1100px) {
   .app-layout--live {
@@ -2774,4 +2772,85 @@ textarea.form-input {
 
 .machine-chip-remove:hover {
   color: #111827;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* =========================
+   LIVE: layout vertical + ancho
+   ========================= */
+
+.app-shell--wide {
+  max-width: none;      /* si tu app-shell está limitado */
+  width: 100%;
+  padding: 0 14px;      /* margen interno */
+}
+
+/* La vista live pasa a stack */
+.app-layout--live {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px;
+  align-items: stretch;
+}
+/* asegurar full width de las cards dentro del live */
+.app-layout--live > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* mapa bien grande */
+.card--map-live .map-container {
+  width: 100%;
+  height: clamp(520px, 70vh, 980px);
+}
+
+/* si tu map-container no trae altura en algunos casos, fuerza */
+.card--map-live .map-container > * {
+  height: 100%;
+}
+
+/* En pantallas grandes, todavía más protagonista */
+@media (min-width: 1100px) {
+  .card--map-live .map-container {
+    height: clamp(640px, 74vh, 1050px);
+  }
+}
+
+.tracker-control {
+  width: 100%;
+}
+
+/* filtros arriba con mejor uso de ancho */
+.tracker-control .live-active-filters {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .tracker-control .live-active-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* zona de fecha/ventana en grilla más ancha */
+.tracker-control .live-toolbar__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .tracker-control .live-toolbar__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* que el panel no quede apretado */
+.tracker-control .live-toolbar {
+  margin-top: 12px;
 }

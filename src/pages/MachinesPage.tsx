@@ -1,5 +1,8 @@
+// src/pages/MachinesPage.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
+
+type FuelUnit = "lph" | "kmpl";
 
 type Machine = {
   id: number;
@@ -8,8 +11,11 @@ type Machine = {
   description?: string | null;
   cost_center_id?: number | null;
   tank_capacity_liters?: number | null;
+
+  fuel_consumption_unit?: FuelUnit | null;
   fuel_consumption_lph?: number | null;
-  fuel_consumption_lpkm?: number | null;
+  fuel_efficiency_kmpl?: number | null;
+
   default_activity_id?: number | null;
   default_labor_id?: number | null;
 };
@@ -25,97 +31,85 @@ type Labor = {
   target_speed_kmh?: number | null;
 };
 
-
 const apiBaseUrl =
-  ((import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8000")
-    .replace(/\/+$/, "");
+  ((import.meta.env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8000").replace(/\/+$/, "");
+
+// ✅ robusto: soporta 204 o body vacío (útil para DELETE si algún día devuelves 204)
+async function safeFetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, init);
+  const text = await res.text();
+
+  if (!res.ok) {
+    throw new Error(`Error ${res.status}: ${text}`);
+  }
+
+  if (!text) return undefined as unknown as T;
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // por si el backend devuelve texto plano
+    return text as unknown as T;
+  }
+}
 
 const MachinesPage = () => {
   // tablas
   const [machines, setMachines] = useState<Machine[]>([]);
   const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [labors, setLabors] = useState<Labor[]>([]);
-  const [laborsByActivity, setLaborsByActivity] = useState<Labor[]>([]);
-  const [newLaborEffortFactor, setNewLaborEffortFactor] = useState("");
-  const [newLaborTargetSpeed, setNewLaborTargetSpeed] = useState("");
-// edición actividades
-const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
-const isEditingActivity = editingActivityId !== null;
-
-// edición labores
-const [editingLaborId, setEditingLaborId] = useState<number | null>(null);
-const isEditingLabor = editingLaborId !== null;
+  const [laborsAll, setLaborsAll] = useState<Labor[]>([]);
 
   // estados generales
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // form máquina
-  const [name, setName] = useState("");
-  const [plate, setPlate] = useState("");
-  const [description, setDescription] = useState("");
-  const [costCenterId, setCostCenterId] = useState<string>("");
-
-  const [tankCapacity, setTankCapacity] = useState<string>("");
-  const [fuelPerHour, setFuelPerHour] = useState<string>("");
-  const [fuelPerKm, setFuelPerKm] = useState<string>("");
-
-  const [defaultActivityId, setDefaultActivityId] = useState<string>("");
-  const [defaultLaborId, setDefaultLaborId] = useState<string>("");
-
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // selección + edición inline
+  const [selectedMachineId, setSelectedMachineId] = useState<number | null>(null);
   const [editingMachineId, setEditingMachineId] = useState<number | null>(null);
-  const isEditing = editingMachineId !== null;
+  const [isInlineEditing, setIsInlineEditing] = useState(false);
 
-  // maestros: crear actividad/labor
-  const [newActivityName, setNewActivityName] = useState("");
-  const [newActivityCode, setNewActivityCode] = useState("");
-  const [newLaborName, setNewLaborName] = useState("");
-  const [newLaborCode, setNewLaborCode] = useState("");
-  const [newLaborActivityId, setNewLaborActivityId] = useState<string>("");
-const resetActivityForm = () => {
-  setNewActivityName("");
-  setNewActivityCode("");
-  setEditingActivityId(null);
-};
+  // edición inline fields
+  const [mName, setMName] = useState("");
+  const [mPlate, setMPlate] = useState("");
+  const [mDescription, setMDescription] = useState("");
+  const [mCostCenterId, setMCostCenterId] = useState<string>("");
+  const [mTankCapacity, setMTankCapacity] = useState<string>("");
 
-const resetLaborForm = () => {
-  setNewLaborActivityId("");
-  setNewLaborName("");
-  setNewLaborCode("");
-  setNewLaborEffortFactor("");
-  setNewLaborTargetSpeed("");
-  setEditingLaborId(null);
-};
-const handleSelectActivity = (a: Activity) => {
-  setEditingActivityId(a.id);
-  setNewActivityName(a.name || "");
-  setNewActivityCode(a.code || "");
-};
+  const [mFuelUnit, setMFuelUnit] = useState<FuelUnit>("lph");
+  const [mFuelPerHour, setMFuelPerHour] = useState<string>("");
+  const [mFuelKmPerLt, setMFuelKmPerLt] = useState<string>("");
 
-const handleSelectLabor = (l: Labor) => {
-  setEditingLaborId(l.id);
-  setNewLaborActivityId(String(l.activity_id));
-  setNewLaborName(l.name || "");
-  setNewLaborCode(l.code || "");
-  setNewLaborEffortFactor(l.effort_factor != null ? String(l.effort_factor) : "");
-  setNewLaborTargetSpeed(l.target_speed_kmh != null ? String(l.target_speed_kmh) : "");
-};
+  const [mDefaultActivityId, setMDefaultActivityId] = useState<string>("");
+  const [mDefaultLaborId, setMDefaultLaborId] = useState<string>("");
 
-  // filtros en panel de labores
-  const [filterLaborsActivityId, setFilterLaborsActivityId] = useState<string>("");
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // new row (create)
+  const [newName, setNewName] = useState("");
+  const [newPlate, setNewPlate] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newCostCenterId, setNewCostCenterId] = useState<string>("");
+  const [newTankCapacity, setNewTankCapacity] = useState<string>("");
+
+  const [newFuelUnit, setNewFuelUnit] = useState<FuelUnit>("lph");
+  const [newFuelPerHour, setNewFuelPerHour] = useState<string>("");
+  const [newFuelKmPerLt, setNewFuelKmPerLt] = useState<string>("");
+
+  const [newDefaultActivityId, setNewDefaultActivityId] = useState<string>("");
+  const [newDefaultLaborId, setNewDefaultLaborId] = useState<string>("");
+
+  const [newRowError, setNewRowError] = useState<string | null>(null);
 
   // ---------- loaders ----------
   const loadMachines = async () => {
-    setLoading(true);
-    setError(null);
     try {
-      const res = await fetch(`${apiBaseUrl}/machines`);
-      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-      setMachines(await res.json());
+      setLoading(true);
+      setError(null);
+      setMachines(await safeFetchJson<Machine[]>(`${apiBaseUrl}/machines`));
     } catch (e: any) {
       console.error(e);
       setError(e?.message || "No se pudieron cargar las máquinas.");
@@ -126,8 +120,7 @@ const handleSelectLabor = (l: Labor) => {
 
   const loadCostCenters = async () => {
     try {
-      const res = await fetch(`${apiBaseUrl}/cost_centers`);
-      if (res.ok) setCostCenters(await res.json());
+      setCostCenters(await safeFetchJson<CostCenter[]>(`${apiBaseUrl}/cost_centers`));
     } catch (e) {
       console.error("Error cargando centros de costo", e);
     }
@@ -135,109 +128,52 @@ const handleSelectLabor = (l: Labor) => {
 
   const loadActivities = async () => {
     try {
-      const res = await fetch(`${apiBaseUrl}/activities`);
-      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-      setActivities(await res.json());
+      setActivities(await safeFetchJson<Activity[]>(`${apiBaseUrl}/activities`));
     } catch (e) {
       console.error("Error cargando actividades", e);
     }
   };
 
-  const loadLabors = async (activityId?: number) => {
+  const loadLaborsAll = async () => {
     try {
-      const url = activityId
-        ? `${apiBaseUrl}/labors?activity_id=${activityId}`
-        : `${apiBaseUrl}/labors`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
-      const data: Labor[] = await res.json();
-      if (activityId) {
-        setLaborsByActivity(data);
-      } else {
-        setLabors(data);
-      }
+      setLaborsAll(await safeFetchJson<Labor[]>(`${apiBaseUrl}/labors`));
     } catch (e) {
       console.error("Error cargando labores", e);
     }
   };
 
-  const refreshLabors = async () => {
-  // mantén “labors” (todas) actualizado para getLaborName()
-  await loadLabors();
-  if (filterLaborsActivityId) {
-    await loadLabors(Number(filterLaborsActivityId)); // laborsByActivity
-  }
-};
-
-
   useEffect(() => {
     void loadMachines();
     void loadCostCenters();
     void loadActivities();
-    void loadLabors(); // todas (para panel de maestros)
+    void loadLaborsAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // cuando cambia la actividad por defecto del formulario de máquina,
-  // cargamos labores dependientes para ese select
-  useEffect(() => {
-    if (!defaultActivityId) {
-      setLaborsByActivity([]);
-      setDefaultLaborId("");
-      return;
-    }
-    void loadLabors(Number(defaultActivityId));
-    setDefaultLaborId("");
-  }, [defaultActivityId]);
+  // ---------- maps/helpers ----------
+  const costCenterById = useMemo(() => new Map(costCenters.map((c) => [c.id, c])), [costCenters]);
+  const activityById = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities]);
+  const laborById = useMemo(() => new Map(laborsAll.map((l) => [l.id, l])), [laborsAll]);
 
-  // filtro del panel de labores
-  useEffect(() => {
-    if (!filterLaborsActivityId) {
-      // mostrar todas
-      void loadLabors();
-    } else {
-      void loadLabors(Number(filterLaborsActivityId));
-    }
-  }, [filterLaborsActivityId]);
+  const selectedMachine = useMemo(
+    () => machines.find((m) => m.id === selectedMachineId) ?? null,
+    [machines, selectedMachineId]
+  );
 
-  // ---------- helpers ----------
-  const resetForm = () => {
-    setName("");
-    setPlate("");
-    setDescription("");
-    setCostCenterId("");
-    setTankCapacity("");
-    setFuelPerHour("");
-    setFuelPerKm("");
-    setDefaultActivityId("");
-    setDefaultLaborId("");
-    setEditingMachineId(null);
-    setSaveError(null);
-    setSaveSuccess(null);
-  };
+  useEffect(() => {
+    // si el seleccionado ya no existe, limpiar selección/edición
+    if (selectedMachineId != null && !machines.some((m) => m.id === selectedMachineId)) {
+      setSelectedMachineId(null);
+      setEditingMachineId(null);
+      setIsInlineEditing(false);
+      setSaveError(null);
+    }
+  }, [machines, selectedMachineId]);
 
   const parseNumberOrNull = (value: string): number | null => {
     if (!value.trim()) return null;
     const parsed = parseFloat(value.replace(",", "."));
-    if (Number.isNaN(parsed)) return null;
-    return parsed;
-  };
-
-  const getCostCenterName = (id?: number | null) => {
-    if (!id) return "—";
-    const cc = costCenters.find((c) => c.id === id);
-    return cc ? cc.name : `ID ${id}`;
-  };
-
-  const getActivityName = (id?: number | null) => {
-    if (!id) return "—";
-    const a = activities.find((x) => x.id === id);
-    return a ? a.name : `ID ${id}`;
-  };
-
-  const getLaborName = (id?: number | null) => {
-    if (!id) return "—";
-    const l = labors.find((x) => x.id === id);
-    return l ? l.name : `ID ${id}`;
+    return Number.isNaN(parsed) ? null : parsed;
   };
 
   const formatNumber = (n?: number | null, decs = 2) => {
@@ -245,481 +181,595 @@ const handleSelectLabor = (l: Labor) => {
     return n.toFixed(decs).replace(".", ",");
   };
 
-  // ---------- submit máquina ----------
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const getCostCenterName = (id?: number | null) => {
+    if (!id) return "—";
+    return costCenterById.get(id)?.name || `ID ${id}`;
+  };
 
-    if (!name.trim()) {
-      setSaveError("El nombre de la máquina es obligatorio.");
-      setSaveSuccess(null);
+  const getActivityName = (id?: number | null) => {
+    if (!id) return "—";
+    return activityById.get(id)?.name || `ID ${id}`;
+  };
+
+  const getLaborName = (id?: number | null) => {
+    if (!id) return "—";
+    return laborById.get(id)?.name || `ID ${id}`;
+  };
+
+  const resetEdit = () => {
+    setEditingMachineId(null);
+    setIsInlineEditing(false);
+    setMName("");
+    setMPlate("");
+    setMDescription("");
+    setMCostCenterId("");
+    setMTankCapacity("");
+    setMFuelUnit("lph");
+    setMFuelPerHour("");
+    setMFuelKmPerLt("");
+    setMDefaultActivityId("");
+    setMDefaultLaborId("");
+    setSaveError(null);
+  };
+
+  const resetNewRow = () => {
+    setNewName("");
+    setNewPlate("");
+    setNewDescription("");
+    setNewCostCenterId("");
+    setNewTankCapacity("");
+    setNewFuelUnit("lph");
+    setNewFuelPerHour("");
+    setNewFuelKmPerLt("");
+    setNewDefaultActivityId("");
+    setNewDefaultLaborId("");
+    setNewRowError(null);
+  };
+
+  const onSelectRow = (m: Machine) => {
+    if (selectedMachineId === m.id) return; // evita cortar edición al clickear inputs
+    setSelectedMachineId(m.id);
+    setIsInlineEditing(false);
+    setEditingMachineId(null);
+    setSaveError(null);
+  };
+
+  const startEditMachine = (m: Machine) => {
+    setSelectedMachineId(m.id);
+    setEditingMachineId(m.id);
+    setIsInlineEditing(true);
+    setSaveError(null);
+
+    setMName(m.name ?? "");
+    setMPlate(m.plate ?? "");
+    setMDescription(m.description ?? "");
+    setMCostCenterId(m.cost_center_id != null ? String(m.cost_center_id) : "");
+    setMTankCapacity(m.tank_capacity_liters != null ? String(m.tank_capacity_liters) : "");
+
+    const unit = (m.fuel_consumption_unit as FuelUnit) || "lph";
+    setMFuelUnit(unit);
+    setMFuelPerHour(unit === "lph" && m.fuel_consumption_lph != null ? String(m.fuel_consumption_lph) : "");
+    setMFuelKmPerLt(unit === "kmpl" && m.fuel_efficiency_kmpl != null ? String(m.fuel_efficiency_kmpl) : "");
+
+    setMDefaultActivityId(m.default_activity_id != null ? String(m.default_activity_id) : "");
+    setMDefaultLaborId(m.default_labor_id != null ? String(m.default_labor_id) : "");
+  };
+
+  const laborsForEdit = useMemo(() => {
+    const aId = mDefaultActivityId ? Number(mDefaultActivityId) : null;
+    if (!aId) return [];
+    return laborsAll.filter((l) => l.activity_id === aId);
+  }, [mDefaultActivityId, laborsAll]);
+
+  const laborsForNew = useMemo(() => {
+    const aId = newDefaultActivityId ? Number(newDefaultActivityId) : null;
+    if (!aId) return [];
+    return laborsAll.filter((l) => l.activity_id === aId);
+  }, [newDefaultActivityId, laborsAll]);
+
+  // ---------- validate/build bodies ----------
+  const buildBodyFromEdit = () => {
+    if (!mName.trim()) return { ok: false as const, error: "El nombre de la máquina es obligatorio." };
+
+    const tank = parseNumberOrNull(mTankCapacity);
+    if (mTankCapacity.trim() && tank == null) return { ok: false as const, error: "Capacidad de estanque inválida." };
+
+    const lph = mFuelUnit === "lph" ? parseNumberOrNull(mFuelPerHour) : null;
+    if (mFuelUnit === "lph" && mFuelPerHour.trim() && lph == null) return { ok: false as const, error: "Consumo (L/h) inválido." };
+
+    const kmpl = mFuelUnit === "kmpl" ? parseNumberOrNull(mFuelKmPerLt) : null;
+    if (mFuelUnit === "kmpl" && mFuelKmPerLt.trim() && kmpl == null) return { ok: false as const, error: "Rendimiento (km/L) inválido." };
+
+    const body: any = {
+      name: mName.trim(),
+      plate: mPlate.trim() || null,
+      description: mDescription.trim() || null,
+      cost_center_id: mCostCenterId ? Number(mCostCenterId) : null,
+      tank_capacity_liters: tank,
+
+      fuel_consumption_unit: mFuelUnit,
+      fuel_consumption_lph: mFuelUnit === "lph" ? lph : null,
+      fuel_efficiency_kmpl: mFuelUnit === "kmpl" ? kmpl : null,
+
+      default_activity_id: mDefaultActivityId ? Number(mDefaultActivityId) : null,
+      default_labor_id: mDefaultLaborId ? Number(mDefaultLaborId) : null,
+    };
+
+    return { ok: true as const, body };
+  };
+
+  const buildBodyFromNew = () => {
+    if (!newName.trim()) return { ok: false as const, error: "El nombre de la máquina es obligatorio." };
+
+    const tank = parseNumberOrNull(newTankCapacity);
+    if (newTankCapacity.trim() && tank == null) return { ok: false as const, error: "Capacidad de estanque inválida." };
+
+    const lph = newFuelUnit === "lph" ? parseNumberOrNull(newFuelPerHour) : null;
+    if (newFuelUnit === "lph" && newFuelPerHour.trim() && lph == null) return { ok: false as const, error: "Consumo (L/h) inválido." };
+
+    const kmpl = newFuelUnit === "kmpl" ? parseNumberOrNull(newFuelKmPerLt) : null;
+    if (newFuelUnit === "kmpl" && newFuelKmPerLt.trim() && kmpl == null) return { ok: false as const, error: "Rendimiento (km/L) inválido." };
+
+    const body: any = {
+      name: newName.trim(),
+      plate: newPlate.trim() || null,
+      description: newDescription.trim() || null,
+      cost_center_id: newCostCenterId ? Number(newCostCenterId) : null,
+      tank_capacity_liters: tank,
+
+      fuel_consumption_unit: newFuelUnit,
+      fuel_consumption_lph: newFuelUnit === "lph" ? lph : null,
+      fuel_efficiency_kmpl: newFuelUnit === "kmpl" ? kmpl : null,
+
+      default_activity_id: newDefaultActivityId ? Number(newDefaultActivityId) : null,
+      default_labor_id: newDefaultLaborId ? Number(newDefaultLaborId) : null,
+    };
+
+    return { ok: true as const, body };
+  };
+
+  // ---------- actions ----------
+  const saveInlineMachine = async () => {
+    if (editingMachineId == null) {
+      setSaveError("No hay máquina en edición.");
+      return;
+    }
+
+    const v = buildBodyFromEdit();
+    if (!v.ok) {
+      setSaveError(v.error);
       return;
     }
 
     try {
       setSaving(true);
       setSaveError(null);
-      setSaveSuccess(null);
+      setError(null);
 
-      const body: any = {
-        name: name.trim(),
-        plate: plate.trim() || null,
-        description: description.trim() || null,
-        cost_center_id: costCenterId ? Number(costCenterId) : null,
-        tank_capacity_liters: parseNumberOrNull(tankCapacity),
-        fuel_consumption_lph: parseNumberOrNull(fuelPerHour),
-        fuel_consumption_lpkm: parseNumberOrNull(fuelPerKm),
-        default_activity_id: defaultActivityId ? Number(defaultActivityId) : null,
-        default_labor_id: defaultLaborId ? Number(defaultLaborId) : null,
-      };
-
-      let url = `${apiBaseUrl}/machines`;
-      let method: "POST" | "PUT" = "POST";
-      if (isEditing && editingMachineId !== null) {
-        url = `${apiBaseUrl}/machines/${editingMachineId}`;
-        method = "PUT";
-      }
-
-      const res = await fetch(url, {
-        method,
+      await safeFetchJson(`${apiBaseUrl}/machines/${editingMachineId}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(v.body),
       });
-      if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
 
-      setSaveSuccess(isEditing ? "Máquina actualizada correctamente." : "Máquina creada correctamente.");
+      resetEdit();
       await loadMachines();
-      resetForm();
     } catch (e: any) {
       console.error(e);
       setSaveError(e?.message || "No se pudo guardar la máquina.");
-      setSaveSuccess(null);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEditClick = (m: Machine) => {
-    setEditingMachineId(m.id);
-    setName(m.name || "");
-    setPlate(m.plate || "");
-    setDescription(m.description || "");
-    setCostCenterId(m.cost_center_id ? String(m.cost_center_id) : "");
-    setTankCapacity(m.tank_capacity_liters != null ? String(m.tank_capacity_liters) : "");
-    setFuelPerHour(m.fuel_consumption_lph != null ? String(m.fuel_consumption_lph) : "");
-    setFuelPerKm(m.fuel_consumption_lpkm != null ? String(m.fuel_consumption_lpkm) : "");
-    setDefaultActivityId(m.default_activity_id ? String(m.default_activity_id) : "");
-    setDefaultLaborId(m.default_labor_id ? String(m.default_labor_id) : "");
-    setSaveError(null);
-    setSaveSuccess(null);
+  const createNewMachineFromRow = async () => {
+    const v = buildBodyFromNew();
+    if (!v.ok) {
+      setNewRowError(v.error);
+      return;
+    }
 
-    // cargar labores dependientes si había actividad por defecto
-    if (m.default_activity_id) void loadLabors(Number(m.default_activity_id));
+    try {
+      setSaving(true);
+      setNewRowError(null);
+      setError(null);
+
+      await safeFetchJson(`${apiBaseUrl}/machines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(v.body),
+      });
+
+      resetNewRow();
+      await loadMachines();
+    } catch (e: any) {
+      console.error(e);
+      setNewRowError(e?.message || "No se pudo crear la máquina.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // ---------- crear actividad ----------
-const handleUpsertActivity = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!newActivityName.trim()) return;
+  // ✅ DELETE /machines/{id}
+  const deleteSelectedMachine = async () => {
+    if (!selectedMachine) return;
 
-  const body = {
-    name: newActivityName.trim(),
-    code: newActivityCode.trim() || null,
+    const ok = window.confirm(`¿Eliminar la máquina #${selectedMachine.id} (${selectedMachine.name})?`);
+    if (!ok) return;
+
+    try {
+      setDeleting(true);
+      setError(null);
+      setSaveError(null);
+
+      await safeFetchJson(`${apiBaseUrl}/machines/${selectedMachine.id}`, {
+        method: "DELETE",
+      });
+
+      // limpiar selección/edición
+      resetEdit();
+      setSelectedMachineId(null);
+
+      await loadMachines();
+    } catch (e: any) {
+      console.error(e);
+      // tu backend devuelve 409 si hay relaciones, lo mostramos tal cual
+      setError(e?.message || "No se pudo eliminar la máquina.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const url = isEditingActivity
-    ? `${apiBaseUrl}/activities/${editingActivityId}`
-    : `${apiBaseUrl}/activities`;
-
-  const method: "POST" | "PUT" = isEditingActivity ? "PUT" : "POST";
-
-  const res = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    alert(`Error guardando actividad: ${await res.text()}`);
-    return;
-  }
-
-  await loadActivities();
-  resetActivityForm();
-};
-
-  // ---------- crear labor ----------
-const handleUpsertLabor = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!newLaborName.trim() || !newLaborActivityId) return;
-
-  const body = {
-    activity_id: Number(newLaborActivityId),
-    name: newLaborName.trim(),
-    code: newLaborCode.trim() || null,
-    effort_factor: parseNumberOrNull(newLaborEffortFactor),
-    target_speed_kmh: parseNumberOrNull(newLaborTargetSpeed),
-  };
-
-  const url = isEditingLabor
-    ? `${apiBaseUrl}/labors/${editingLaborId}`
-    : `${apiBaseUrl}/labors`;
-
-  const method: "POST" | "PUT" = isEditingLabor ? "PUT" : "POST";
-
-  const res = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    alert(`Error guardando labor: ${await res.text()}`);
-    return;
-  }
-
-  await refreshLabors();
-  resetLaborForm();
-};
-
+  const canAddNew = Boolean(newName.trim());
 
   return (
     <section className="card entity-page">
-      {/* ============ FORM MÁQUINA ============ */}
-      <div>
-        <div className="card-header">
-          <div>
-            <div className="card-title">
-              Máquinas {isEditing && <span>(editando #{editingMachineId})</span>}
-            </div>
-            <div className="card-subtitle">
-              Registro de tractores/equipos. Define capacidad de estanque, consumos y
-              actividad/labor por defecto para prellenar el inicio de recorridos.
-            </div>
-          </div>
+      <div className="card-header">
+        <div>
+          <div className="card-title">Máquinas</div>
+          <div className="card-subtitle">Registro de tractores/equipos. Edita inline y agrega en la última fila.</div>
         </div>
-
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <div className="form-field">
-            <label className="form-label">Nombre máquina *</label>
-            <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Tractor New Holland #1" />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Patente / Código interno</label>
-            <input className="form-input" value={plate} onChange={(e) => setPlate(e.target.value)} placeholder="Ej: XX-1234 o MCH-001" />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Centro de costo asociado</label>
-            <select className="form-select" value={costCenterId} onChange={(e) => setCostCenterId(e.target.value)}>
-              <option value="">Sin centro de costo</option>
-              {costCenters.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Capacidad / consumos */}
-          <div className="form-field">
-            <label className="form-label">Capacidad estanque (L)</label>
-            <input className="form-input" type="number" min={0} step="0.1" value={tankCapacity} onChange={(e) => setTankCapacity(e.target.value)} placeholder="Ej: 120" />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Consumo promedio (L/h)</label>
-            <input className="form-input" type="number" min={0} step="0.1" value={fuelPerHour} onChange={(e) => setFuelPerHour(e.target.value)} placeholder="Ej: 9.5" />
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Consumo promedio (L/km)</label>
-            <input className="form-input" type="number" min={0} step="0.01" value={fuelPerKm} onChange={(e) => setFuelPerKm(e.target.value)} placeholder="Ej: 0.40" />
-          </div>
-
-          {/* Actividad/Labor por defecto */}
-          <div className="form-field">
-            <label className="form-label">Actividad por defecto</label>
-            <select className="form-select" value={defaultActivityId} onChange={(e) => setDefaultActivityId(e.target.value)}>
-              <option value="">—</option>
-              {activities.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Labor por defecto</label>
-            <select className="form-select" value={defaultLaborId} onChange={(e) => setDefaultLaborId(e.target.value)} disabled={!defaultActivityId}>
-              <option value="">{defaultActivityId ? "Selecciona…" : "—"}</option>
-              {laborsByActivity.map((l) => (
-                <option key={l.id} value={l.id}>{l.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label className="form-label">Descripción</label>
-            <textarea className="form-input" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notas (modelo, implementos, etc.)" />
-          </div>
-
-          {saveError && <div className="tracker-error">⚠️ {saveError}</div>}
-          {saveSuccess && <div className="tracker-success" style={{ marginTop: 4 }}>✅ {saveSuccess}</div>}
-
-          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-            <button type="submit" className="form-button-primary" disabled={saving}>
-              {saving ? "Guardando..." : isEditing ? "Guardar cambios" : "Agregar máquina"}
-            </button>
-            {isEditing && (
-              <button type="button" className="form-button-ghost" onClick={resetForm} disabled={saving}>
-                Cancelar edición
-              </button>
-            )}
-          </div>
-        </form>
       </div>
 
-      {/* ============ TABLA MÁQUINAS ============ */}
-      <div>
-        {error && <div className="tracker-error">⚠️ {error}</div>}
-        <div className="entity-table-wrapper">
-          {loading ? (
-            <div className="sessions-loading">Cargando máquinas…</div>
-          ) : machines.length === 0 ? (
-            <div className="sessions-empty">No hay máquinas registradas.</div>
-          ) : (
-            <table className="entity-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Patente / Código</th>
-                  <th>Centro de costo</th>
-                  <th>Estanque (L)</th>
-                  <th>Consumo (L/h)</th>
-                  <th>Consumo (L/km)</th>
-                  <th>Actividad def.</th>
-                  <th>Labor def.</th>
+      {error && <div className="tracker-error">⚠️ {error}</div>}
 
-                  <th style={{ width: 1 }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {machines.map((m) => (
-                  <tr key={m.id}>
-                    <td>{m.id}</td>
-                    <td>{m.name}</td>
-                    <td>{m.plate || "—"}</td>
-                    <td>{getCostCenterName(m.cost_center_id)}</td>
-                    <td>{formatNumber(m.tank_capacity_liters)}</td>
-                    <td>{formatNumber(m.fuel_consumption_lph)}</td>
-                    <td>{formatNumber(m.fuel_consumption_lpkm, 3)}</td>
-                    <td>{getActivityName(m.default_activity_id)}</td>
+      <div className="entity-table-wrapper">
+        {loading ? (
+          <div className="sessions-loading">Cargando máquinas…</div>
+        ) : machines.length === 0 ? (
+          <div className="sessions-empty">No hay máquinas registradas. Agrega la primera en la última fila.</div>
+        ) : (
+          <table className="entity-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Patente / Código</th>
+                <th>Centro de costo</th>
+                <th>Estanque (L)</th>
+                <th>Medida</th>
+                <th>Consumo</th>
+                <th>Actividad def.</th>
+                <th>Labor def.</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
 
-                    <td>{getLaborName(m.default_labor_id)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="form-button-secondary"
-                        style={{ padding: "4px 10px", fontSize: "0.78rem" }}
-                        onClick={() => handleEditClick(m)}
-                      >
-                        Editar
+            <tbody>
+              {machines.map((m) => {
+                const isSelected = selectedMachineId === m.id;
+                const isEditingThisRow = isInlineEditing && editingMachineId === m.id && isSelected;
+                const unit = (m.fuel_consumption_unit || "lph") as FuelUnit;
+
+                return (
+                  <Fragment key={m.id}>
+                    <tr
+                      onClick={() => onSelectRow(m)}
+                      style={{ cursor: "pointer", background: isSelected ? "rgba(0,0,0,0.04)" : undefined }}
+                      title="Click para seleccionar"
+                    >
+                      <td>{m.id}</td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <input className="form-input" value={mName} onChange={(e) => setMName(e.target.value)} placeholder="Nombre máquina" />
+                        ) : (
+                          m.name
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <input className="form-input" value={mPlate} onChange={(e) => setMPlate(e.target.value)} placeholder="Patente / Código" />
+                        ) : (
+                          m.plate || "—"
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <select className="form-select" value={mCostCenterId} onChange={(e) => setMCostCenterId(e.target.value)}>
+                            <option value="">Sin centro de costo</option>
+                            {costCenters.map((c) => (
+                              <option key={c.id} value={String(c.id)}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          getCostCenterName(m.cost_center_id)
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <input
+                            className="form-input"
+                            type="number"
+                            min={0}
+                            step="0.1"
+                            value={mTankCapacity}
+                            onChange={(e) => setMTankCapacity(e.target.value)}
+                            placeholder="Ej: 220"
+                          />
+                        ) : (
+                          formatNumber(m.tank_capacity_liters)
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <select
+                            className="form-select"
+                            value={mFuelUnit}
+                            onChange={(e) => {
+                              const next = e.target.value as FuelUnit;
+                              setMFuelUnit(next);
+                              if (next === "lph") setMFuelKmPerLt("");
+                              else setMFuelPerHour("");
+                            }}
+                          >
+                            <option value="lph">L/h</option>
+                            <option value="kmpl">km/L</option>
+                          </select>
+                        ) : (
+                          unit === "kmpl" ? "km/L" : "L/h"
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          mFuelUnit === "lph" ? (
+                            <input
+                              className="form-input"
+                              type="number"
+                              min={0}
+                              step="0.1"
+                              value={mFuelPerHour}
+                              onChange={(e) => setMFuelPerHour(e.target.value)}
+                              placeholder="Ej: 12.5"
+                            />
+                          ) : (
+                            <input
+                              className="form-input"
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={mFuelKmPerLt}
+                              onChange={(e) => setMFuelKmPerLt(e.target.value)}
+                              placeholder="Ej: 3.25"
+                            />
+                          )
+                        ) : unit === "kmpl" ? (
+                          formatNumber(m.fuel_efficiency_kmpl, 3)
+                        ) : (
+                          formatNumber(m.fuel_consumption_lph)
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <select
+                            className="form-select"
+                            value={mDefaultActivityId}
+                            onChange={(e) => {
+                              const next = e.target.value;
+                              setMDefaultActivityId(next);
+                              setMDefaultLaborId("");
+                            }}
+                          >
+                            <option value="">—</option>
+                            {activities.map((a) => (
+                              <option key={a.id} value={String(a.id)}>
+                                {a.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          getActivityName(m.default_activity_id)
+                        )}
+                      </td>
+
+                      <td>
+                        {isEditingThisRow ? (
+                          <select
+                            className="form-select"
+                            value={mDefaultLaborId}
+                            onChange={(e) => setMDefaultLaborId(e.target.value)}
+                            disabled={!mDefaultActivityId}
+                          >
+                            <option value="">{mDefaultActivityId ? "Selecciona…" : "—"}</option>
+                            {laborsForEdit.map((l) => (
+                              <option key={l.id} value={String(l.id)}>
+                                {l.name}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          getLaborName(m.default_labor_id)
+                        )}
+                      </td>
+
+                      <td style={{ minWidth: 220 }}>
+                        {isEditingThisRow ? (
+                          <input className="form-input" value={mDescription} onChange={(e) => setMDescription(e.target.value)} placeholder="Descripción" />
+                        ) : (
+                          m.description || "—"
+                        )}
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
+
+              {/* ===== NEW ROW (inline create) ===== */}
+              <tr style={{ background: "rgba(0,0,0,0.02)" }}>
+                <td style={{ fontWeight: 700 }}>+</td>
+
+                <td>
+                  <input className="form-input" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nueva máquina" />
+                </td>
+
+                <td>
+                  <input className="form-input" value={newPlate} onChange={(e) => setNewPlate(e.target.value)} placeholder="Patente / Código" />
+                </td>
+
+                <td>
+                  <select className="form-select" value={newCostCenterId} onChange={(e) => setNewCostCenterId(e.target.value)}>
+                    <option value="">Sin centro de costo</option>
+                    {costCenters.map((c) => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+
+                <td>
+                  <input className="form-input" type="number" min={0} step="0.1" value={newTankCapacity} onChange={(e) => setNewTankCapacity(e.target.value)} placeholder="Ej: 220" />
+                </td>
+
+                <td>
+                  <select
+                    className="form-select"
+                    value={newFuelUnit}
+                    onChange={(e) => {
+                      const next = e.target.value as FuelUnit;
+                      setNewFuelUnit(next);
+                      if (next === "lph") setNewFuelKmPerLt("");
+                      else setNewFuelPerHour("");
+                    }}
+                  >
+                    <option value="lph">L/h</option>
+                    <option value="kmpl">km/L</option>
+                  </select>
+                </td>
+
+                <td>
+                  {newFuelUnit === "lph" ? (
+                    <input className="form-input" type="number" min={0} step="0.1" value={newFuelPerHour} onChange={(e) => setNewFuelPerHour(e.target.value)} placeholder="Ej: 12.5" />
+                  ) : (
+                    <input className="form-input" type="number" min={0} step="0.01" value={newFuelKmPerLt} onChange={(e) => setNewFuelKmPerLt(e.target.value)} placeholder="Ej: 3.25" />
+                  )}
+                </td>
+
+                <td>
+                  <select
+                    className="form-select"
+                    value={newDefaultActivityId}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setNewDefaultActivityId(next);
+                      setNewDefaultLaborId("");
+                    }}
+                  >
+                    <option value="">—</option>
+                    {activities.map((a) => (
+                      <option key={a.id} value={String(a.id)}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+
+                <td>
+                  <select className="form-select" value={newDefaultLaborId} onChange={(e) => setNewDefaultLaborId(e.target.value)} disabled={!newDefaultActivityId}>
+                    <option value="">{newDefaultActivityId ? "Selecciona…" : "—"}</option>
+                    {laborsForNew.map((l) => (
+                      <option key={l.id} value={String(l.id)}>
+                        {l.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+
+                <td>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <input className="form-input" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Descripción" />
+
+                    {canAddNew && (
+                      <button type="button" className="form-button-primary" onClick={() => void createNewMachineFromRow()} disabled={saving || deleting}>
+                        {saving ? "Agregando..." : "Agregar"}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* ===== Buttons below table (selected-based) ===== */}
+      <div style={{ marginTop: 10 }}>
+        <div className="card-subtitle" style={{ marginBottom: 8 }}>
+          {selectedMachine ? (
+            <>
+              Seleccionado: <b>#{selectedMachine.id}</b> — {selectedMachine.name}
+            </>
+          ) : (
+            "Selecciona una máquina para editar."
+          )}
+        </div>
+
+        {saveError && <div className="tracker-error">⚠️ {saveError}</div>}
+        {newRowError && <div className="tracker-error">⚠️ {newRowError}</div>}
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {!isInlineEditing ? (
+            <>
+              <button
+                type="button"
+                className="form-button-primary"
+                disabled={!selectedMachine || saving || deleting}
+                onClick={() => selectedMachine && startEditMachine(selectedMachine)}
+              >
+                Editar
+              </button>
+
+              <button
+                type="button"
+                className="form-button-secondary"
+                disabled={!selectedMachine || saving || deleting}
+                onClick={() => void deleteSelectedMachine()}
+                title="Eliminar máquina"
+              >
+                {deleting ? "Eliminando..." : "Eliminar"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className="form-button-primary" onClick={() => void saveInlineMachine()} disabled={saving || deleting}>
+                {saving ? "Guardando..." : "Guardar cambios"}
+              </button>
+
+              <button type="button" className="form-button-primary" onClick={resetEdit} disabled={saving || deleting}>
+                Cancelar
+              </button>
+            </>
           )}
         </div>
       </div>
-
-      {/* ============ MAESTRO: ACTIVIDADES ============ */}
-      <section className="card" style={{ marginTop: 16 }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">Actividades</div>
-            <div className="card-subtitle">Catálogo de actividades (padre de las labores).</div>
-          </div>
-        </div>
-
-        <form className="form-grid" onSubmit={handleUpsertActivity}>
-          <div className="form-field">
-            <label className="form-label">Nombre *</label>
-            <input className="form-input" value={newActivityName} onChange={(e) => setNewActivityName(e.target.value)} placeholder="Ej: Cosecha" />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Código</label>
-            <input className="form-input" value={newActivityCode} onChange={(e) => setNewActivityCode(e.target.value)} placeholder="Opcional" />
-          </div>
-          <div>
-            <button type="submit" className="form-button-primary">
-  {isEditingActivity ? "Guardar cambios" : "Agregar actividad"}
-</button>
-
-{isEditingActivity && (
-  <button type="button" className="form-button-ghost" onClick={resetActivityForm}>
-    Cancelar edición
-  </button>
-)}
-
-          </div>
-        </form>
-
-        <div className="entity-table-wrapper">
-          {activities.length === 0 ? (
-            <div className="sessions-empty">Sin actividades.</div>
-          ) : (
-            <table className="entity-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Código</th>
-                </tr>
-              </thead>
-   <tbody>
-  {activities.map((a) => (
-    <tr
-      key={a.id}
-      onClick={() => handleSelectActivity(a)}
-      style={{ cursor: "pointer" }}
-      className={editingActivityId === a.id ? "is-selected" : ""}
-      title="Click para editar"
-    >
-      <td>{a.id}</td>
-      <td>{a.name}</td>
-      <td>{a.code || "—"}</td>
-    </tr>
-  ))}
-</tbody>
-
-            </table>
-          )}
-        </div>
-      </section>
-
-      {/* ============ MAESTRO: LABORES ============ */}
-      <section className="card" style={{ marginTop: 16 }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">Labores</div>
-            <div className="card-subtitle">
-              Catálogo de labores (hijas de una actividad). Usa el filtro por actividad para listar.
-            </div>
-          </div>
-        </div>
-
-        {/* crear labor */}
-        <form className="form-grid" onSubmit={handleUpsertLabor}>
-          <div className="form-field">
-            <label className="form-label">Actividad *</label>
-            <select className="form-select" value={newLaborActivityId} onChange={(e) => setNewLaborActivityId(e.target.value)}>
-              <option value="">Selecciona…</option>
-              {activities.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-field">
-            <label className="form-label">Nombre labor *</label>
-            <input className="form-input" value={newLaborName} onChange={(e) => setNewLaborName(e.target.value)} placeholder="Ej: Cosecha Manzana Fuji" />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Código</label>
-            <input className="form-input" value={newLaborCode} onChange={(e) => setNewLaborCode(e.target.value)} placeholder="Opcional" />
-          </div>
-          <div className="form-field">
-  <label className="form-label">Factor de esfuerzo</label>
-  <input
-    className="form-input"
-    type="number"
-    min={0}
-    step="0.01"
-    value={newLaborEffortFactor}
-    onChange={(e) => setNewLaborEffortFactor(e.target.value)}
-    placeholder="Ej: 1.30"
-  />
-</div>
-
-<div className="form-field">
-  <label className="form-label">Velocidad objetivo (km/h)</label>
-  <input
-    className="form-input"
-    type="number"
-    min={0}
-    step="0.1"
-    value={newLaborTargetSpeed}
-    onChange={(e) => setNewLaborTargetSpeed(e.target.value)}
-    placeholder="Ej: 6.0"
-  />
-</div>
-
-          <div>
-           <button type="submit" className="form-button-primary">
-  {isEditingLabor ? "Guardar cambios" : "Agregar labor"}
-</button>
-
-{isEditingLabor && (
-  <button type="button" className="form-button-ghost" onClick={resetLaborForm}>
-    Cancelar edición
-  </button>
-)}
-
-          </div>
-        </form>
-
-        {/* filtro y tabla */}
-        <div className="form-grid" style={{ marginTop: 8 }}>
-          <div className="form-field">
-            <label className="form-label">Filtrar por actividad</label>
-            <select className="form-select" value={filterLaborsActivityId} onChange={(e) => setFilterLaborsActivityId(e.target.value)}>
-              <option value="">Todas</option>
-              {activities.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="entity-table-wrapper">
-          {(filterLaborsActivityId ? laborsByActivity : labors).length === 0 ? (
-            <div className="sessions-empty">Sin labores para el criterio.</div>
-          ) : (
-            <table className="entity-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Actividad</th>
-                  <th>Labor</th>
-                  <th>Código</th>
-                  <th>Factor</th>
-<th>Vel. objetivo</th>
-
-                </tr>
-              </thead>
-    <tbody>
-  {(filterLaborsActivityId ? laborsByActivity : labors).map((l) => (
-    <tr
-      key={l.id}
-      onClick={() => handleSelectLabor(l)}
-      style={{ cursor: "pointer" }}
-      className={editingLaborId === l.id ? "is-selected" : ""}
-      title="Click para editar"
-    >
-      <td>{l.id}</td>
-      <td>{getActivityName(l.activity_id)}</td>
-      <td>{l.name}</td>
-      <td>{l.code || "—"}</td>
-      <td>{l.effort_factor != null ? String(l.effort_factor).replace(".", ",") : "—"}</td>
-      <td>{l.target_speed_kmh != null ? String(l.target_speed_kmh).replace(".", ",") : "—"}</td>
-    </tr>
-  ))}
-</tbody>
-
-            </table>
-          )}
-        </div>
-      </section>
     </section>
   );
 };

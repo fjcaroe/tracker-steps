@@ -1,0 +1,171 @@
+.tracker-map-shell {
+  position: relative;
+  width: 100%;
+}
+
+/* ✅ el canvas del mapa ahora se controla por CSS */
+.tracker-map-canvas {
+  width: 100%;
+  height: 60vh;
+  min-height: 360px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* ✅ mobile: mapa mucho más grande (antes quedaba “enano”) */
+@media (max-width: 768px) {
+  .tracker-map-canvas {
+    height: 72vh;
+    min-height: 280px;
+    border-radius: 12px;
+  }
+}
+
+/* ✅ fullscreen real/pseudo */
+.tracker-map-shell--fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999;
+  background: #000;
+}
+
+.tracker-map-shell--fullscreen .tracker-map-canvas {
+  height: 100dvh;
+  min-height: 100dvh;
+  border-radius: 0;
+}
+
+/* fullscreen button */
+.tracker-map-fullscreen-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 768px) {
+  .tracker-map-fullscreen-btn {
+    top: calc(env(safe-area-inset-top) + 8px);
+    right: 8px;
+    padding: 10px 12px;
+  }
+}
+
+/* HUD bottom */
+.tracker-map-hud {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 3;
+  pointer-events: none; /* deja que el mapa reciba gestos */
+}
+
+.tracker-map-hud__panel {
+  pointer-events: auto; /* y solo los controles capturan clicks */
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 16px;
+  padding: 10px;
+  backdrop-filter: blur(10px);
+  display: grid;
+  gap: 8px;
+}
+
+.tracker-map-hud__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.tracker-map-hud__row--day {
+  margin-top: 2px;
+}
+
+.hud-spacer {
+  flex: 1;
+}
+
+.hud-btn {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.35);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.hud-btn.is-active {
+  border-color: rgba(249, 115, 22, 0.55);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15) inset;
+}
+
+.hud-select {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.35);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.hud-select--grow {
+  flex: 1;
+}
+
+.hud-label {
+  color: rgba(226, 232, 240, 0.9);
+  font-weight: 800;
+  font-size: 0.85rem;
+  width: 44px;
+}
+
+.tracker-map-hud__time {
+  color: rgba(226, 232, 240, 0.95);
+  font-size: 0.9rem;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.hud-range {
+  width: 100%;
+  height: 30px; /* más fácil en touch */
+  accent-color: #f97316;
+}
+
+.tracker-map-hud__hint {
+  color: rgba(203, 213, 225, 0.85);
+  font-size: 0.8rem;
+}
+
+
+/* Asegura overlay arriba del mapa SI O SI */
+.tracker-map-fullscreen-btn {
+  z-index: 200000 !important;
+}
+
+.tracker-map-hud {
+  z-index: 200000 !important;
+}
+
+/* En fullscreen: overlays fixed para no “perderse” por stacking contexts */
+.tracker-map-shell--fullscreen .tracker-map-fullscreen-btn {
+  position: fixed !important;
+  top: calc(env(safe-area-inset-top) + 8px) !important;
+  right: 8px !important;
+}
+
+.tracker-map-shell--fullscreen .tracker-map-hud {
+  position: fixed !important;
+  left: 10px !important;
+  right: 10px !important;
+  bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+}

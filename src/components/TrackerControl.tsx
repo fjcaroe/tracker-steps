@@ -287,7 +287,7 @@ const filteredActiveSessions = useMemo(() => {
   const hasActive = filteredActiveSessions.length > 0;
 
 return (
-  <section className="card">
+  <section className="card tracker-control">
     <div className="card-header">
       <div>
         <div className="card-title">Seguimiento</div>

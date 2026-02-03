@@ -4,20 +4,16 @@ import AppHeader from "./components/AppHeader";
 import TrackerControl from "./components/TrackerControl";
 import TrackerMap from "./components/TrackerMap";
 import SessionsPage from "./pages/SessionsPage";
-import DriversPage from "./pages/DriversPage";
-import MachinesPage from "./pages/MachinesPage";
-import CostCentersPage from "./pages/CostCentersPage";
-import FieldsPage from "./pages/FieldsPage";
 import RoutesPage from "./pages/RoutesPage";
 import UserViewPage from "./pages/UserViewPage";
 import StatsPage from "./pages/StatsPage";
 import ChartsStatsPage from "./pages/ChartsStatsPage";
+import MastersPage, { type MastersView } from "./pages/MastersPage";
 import { useTracker, type TrackerMode } from "./hooks/useTracker";
 import LoginPage from "./pages/LoginPage";
 import { useAuthWeb } from "./services/AuthContext";
 import { apiJson, setApiAuthToken } from "./services/http";
-import type {  TrackPoint } from "./types";
-
+import type { TrackPoint } from "./types";
 
 type ActiveSession = {
   id: string;
@@ -40,13 +36,10 @@ type View =
   | "live"
   | "routes"
   | "sessions"
-  | "drivers"
-  | "machines"
-  | "costCenters"
-  | "fields"
   | "userView"
   | "stats"
-  | "chartsStats";
+  | "chartsStats"
+  | "masters";
 
 function formatTime(ts: number) {
   const d = new Date(ts);
@@ -56,6 +49,24 @@ function formatTime(ts: number) {
 function formatNumber(n: number | null | undefined, decimals = 5) {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
   return n.toFixed(decimals);
+}
+function toRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(dLon / 2) ** 2;
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 /**
@@ -84,6 +95,10 @@ function AuthedApp() {
   const { token, logout, user } = useAuthWeb();
 
   const [view, setView] = useState<View>("userView");
+
+  // 👇 sub-vista interna para Maestros
+  const [mastersView, setMastersView] = useState<MastersView>("drivers");
+
   const [mode] = useState<TrackerMode>("machine");
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
   const [selectedLiveSessionId, setSelectedLiveSessionId] = useState<string | null>(null);
@@ -96,142 +111,144 @@ function AuthedApp() {
   const [liveAutoRefresh, setLiveAutoRefresh] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const refreshNow = () => setRefreshNonce((n) => n + 1);
-
+  const [trackLoadError, setTrackLoadError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
 
   type TrackApiItem = {
-  ts: string;            // ISO
-  lat: number;
-  lon: number;
-  speed_mps?: number | null;
-  n: number;
-};
+    ts: string; // ISO
+    lat: number;
+    lon: number;
+    speed_mps?: number | null;
+    n: number;
+  };
 
-type TrackApiResponse = {
-  items: TrackApiItem[];
-  next_cursor?: string | null;
-  resolution: "raw" | "10s" | "1m";
-};
+  type TrackApiResponse = {
+    items: TrackApiItem[];
+    next_cursor?: string | null;
+    resolution: "raw" | "10s" | "1m";
+  };
 
-function pickResolution(rangeMs: number): "raw" | "10s" | "1m" {
-  const min15 = 15 * 60_000;
-  const h48 = 48 * 60 * 60_000;
+  function pickResolution(rangeMs: number): "raw" | "10s" | "1m" {
+    const min15 = 15 * 60_000;
+    const h48 = 48 * 60 * 60_000;
 
-  if (rangeMs <= min15) return "raw";
-  if (rangeMs <= h48) return "10s";
-  return "1m";
-}
-
-
-const MAX_DRAW_POINTS_NORMAL = 8000;
-const MAX_DRAW_POINTS_FULLSCREEN = 20000;
-
-useEffect(() => {
-  if (!selectedLiveSessionId) {
-    setSelectedLivePoints([]);
-    return;
+    if (rangeMs <= min15) return "raw";
+    if (rangeMs <= h48) return "10s";
+    return "1m";
   }
 
-  let mounted = true;
+  const MAX_DRAW_POINTS_NORMAL = 8000;
+  const MAX_DRAW_POINTS_FULLSCREEN = 20000;
 
-  const loadPoints = async () => {
-    try {
-      const now = Date.now();
+  useEffect(() => {
+    if (!selectedLiveSessionId) {
+      setSelectedLivePoints([]);
+      return;
+    }
 
-      // 1) rango (preferencia: dateFrom/dateTo; fallback ventana)
-      const fromMs = dateFrom
-        ? new Date(dateFrom).getTime()
-        : now - timeWindowMinutes * 60_000;
+    let mounted = true;
 
-      const toMs = dateTo ? new Date(dateTo).getTime() : now;
+    const loadPoints = async () => {
+      try {
+        setTrackLoadError(null);
 
-      const fromIso = new Date(fromMs).toISOString();
-      const toIso = new Date(toMs).toISOString();
+        const now = Date.now();
+        const fromMs = dateFrom ? new Date(dateFrom).getTime() : now - timeWindowMinutes * 60_000;
+        const toMs = dateTo ? new Date(dateTo).getTime() : now;
 
-      const rangeMs = toMs - fromMs;
-      const resolution = pickResolution(rangeMs);
+        const fromIso = new Date(fromMs).toISOString();
+        const toIso = new Date(toMs).toISOString();
 
-      // 2) llamada al endpoint downsampleado
-      const qs = new URLSearchParams();
-      qs.set("from", fromIso);
-      qs.set("to", toIso);
-      qs.set("resolution", resolution);
-      qs.set("limit", "20000");
+        const rangeMs = toMs - fromMs;
+        const resolution = pickResolution(rangeMs);
 
-      const resp = await apiJson<TrackApiResponse>(
-        `/sessions/${selectedLiveSessionId}/track?${qs.toString()}`
-      );
+        const qs = new URLSearchParams();
+        qs.set("from", fromIso);
+        qs.set("to", toIso);
+        qs.set("resolution", resolution);
+        qs.set("limit", "20000");
 
-      // 3) normalizar a TrackPoint[]
-      const norm: TrackPoint[] = (resp.items || [])
-        .map((it, idx) => {
-          const t = new Date(it.ts).getTime();
-          return {
-            id: Number.isFinite(t) ? (t * 100 + idx) : idx,
-            timestamp: t,
-            lat: it.lat,
-            lon: it.lon,
-            speed: it.speed_mps ?? null,
-          };
-        })
-        .sort((a, b) => a.timestamp - b.timestamp);
+        const resp = await apiJson<TrackApiResponse>(
+          `/sessions/${selectedLiveSessionId}/track?${qs.toString()}`
+        );
 
-      const cap = isMapFullscreen ? MAX_DRAW_POINTS_FULLSCREEN : MAX_DRAW_POINTS_NORMAL;
+        const norm: TrackPoint[] = (resp.items || [])
+          .map((it, idx) => {
+            const t = new Date(it.ts).getTime();
+            return {
+              id: Number.isFinite(t) ? t * 100 + idx : idx,
+              timestamp: t,
+              lat: it.lat,
+              lon: it.lon,
+              speed: it.speed_mps ?? null,
+            };
+          })
+          .sort((a, b) => a.timestamp - b.timestamp);
 
-        const sliced =
-          norm.length > cap ? downsampleStride(norm, cap) : norm;
+        const cap = isMapFullscreen ? MAX_DRAW_POINTS_FULLSCREEN : MAX_DRAW_POINTS_NORMAL;
+        const sliced = norm.length > cap ? downsampleStride(norm, cap) : norm;
 
         if (mounted) setSelectedLivePoints(sliced);
-    } catch {
-      if (mounted) setSelectedLivePoints([]);
-    }
-  };
 
-  void loadPoints();
-
-  if (!liveAutoRefresh) return () => { mounted = false; };
-
-  const id = window.setInterval(loadPoints, 5000);
-  return () => {
-    mounted = false;
-    window.clearInterval(id);
-  };
-}, [
-  selectedLiveSessionId,
-  timeWindowMinutes,
-  liveAutoRefresh,
-  refreshNonce,
-  dateFrom,
-  dateTo,
-]);
+        // 🔎 si no hay puntos, avisa (esto explica el “no se inmuta”)
+        if (mounted && sliced.length === 0) {
+          setTrackLoadError(
+            "La sesión no tiene puntos en el rango actual. Prueba 'Últ. 24h' o 'Últ. 7 días'."
+          );
+        }
+      } catch (err: any) {
+        console.error("Error cargando track", err);
+        if (mounted) {
+          setSelectedLivePoints([]);
+          setTrackLoadError(err?.message || "Error cargando track (ver consola).");
+        }
+      }
+    };
 
 
+    void loadPoints();
 
-function downsampleStride<T>(arr: T[], max: number): T[] {
-  if (arr.length <= max) return arr;
-  const step = Math.ceil(arr.length / max);
-  const out: T[] = [];
-  for (let i = 0; i < arr.length; i += step) out.push(arr[i]);
-  return out;
-}
+    if (!liveAutoRefresh) return () => { mounted = false; };
 
-useEffect(() => {
-  if (!isMapFullscreen) return;
+    const id = window.setInterval(loadPoints, 5000);
+    return () => {
+      mounted = false;
+      window.clearInterval(id);
+    };
+  }, [
+    selectedLiveSessionId,
+    timeWindowMinutes,
+    liveAutoRefresh,
+    refreshNonce,
+    dateFrom,
+    dateTo,
+    isMapFullscreen,
+  ]);
 
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Escape") setIsMapFullscreen(false);
-  };
+  function downsampleStride<T>(arr: T[], max: number): T[] {
+    if (arr.length <= max) return arr;
+    const step = Math.ceil(arr.length / max);
+    const out: T[] = [];
+    for (let i = 0; i < arr.length; i += step) out.push(arr[i]);
+    return out;
+  }
 
-  window.addEventListener("keydown", onKeyDown);
-  document.body.style.overflow = "hidden";
+  useEffect(() => {
+    if (!isMapFullscreen) return;
 
-  return () => {
-    window.removeEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "";
-  };
-}, [isMapFullscreen]);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMapFullscreen(false);
+    };
 
+    window.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [isMapFullscreen]);
 
   useEffect(() => {
     setApiAuthToken(token ?? null);
@@ -301,7 +318,7 @@ useEffect(() => {
   } = useTracker(mode);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${view === "live" ? "app-shell--wide" : ""}`}>
       <AppHeader />
 
       <div
@@ -361,17 +378,23 @@ useEffect(() => {
           >
             Gráficos
           </button>
+
+          {/* ✅ NUEVO: Maestros al lado de Gráficos */}
+          <button
+            type="button"
+            className={`app-nav-button ${view === "masters" ? "active" : ""}`}
+            onClick={() => setView("masters")}
+          >
+            Maestros
+          </button>
         </div>
 
         <div className="app-nav-secondary">
           <label className="app-nav-secondary-label">Administración</label>
+          {/* ✅ Se deja solo Sesiones históricas aquí (los maestros ya no van en este dropdown) */}
           <select
             className="app-nav-select"
-            value={
-              ["sessions", "drivers", "machines", "costCenters", "fields", "chartsStats"].includes(view)
-                ? view
-                : ""
-            }
+            value={view === "sessions" ? "sessions" : ""}
             onChange={(e) => {
               const next = e.target.value as View;
               if (next) setView(next);
@@ -379,11 +402,6 @@ useEffect(() => {
           >
             <option value="">Seleccionar módulo…</option>
             <option value="sessions">Sesiones históricas</option>
-            <option value="drivers">Choferes</option>
-            <option value="machines">Máquinas</option>
-            <option value="costCenters">Centros de costo</option>
-            <option value="fields">Campos / Polígonos</option>
-            <option value="chartsStats">Dashboards (Gráficos)</option>
           </select>
         </div>
       </nav>
@@ -402,9 +420,10 @@ useEffect(() => {
             formatNumber={formatNumber}
             activeSessions={activeSessions}
             selectedSessionId={selectedLiveSessionId}
-            onToggleSession={(id: string | null) =>
-              setSelectedLiveSessionId((prev) => (prev === id ? null : id))
-            }
+            onToggleSession={(id: string | null) => {
+              setSelectedLiveSessionId(id);
+              if (id) setFollowSelected(true);
+            }}
             timeWindowMinutes={timeWindowMinutes}
             onTimeWindowMinutesChange={setTimeWindowMinutes}
             followSelected={followSelected}
@@ -421,35 +440,130 @@ useEffect(() => {
             selectedPoints={selectedLivePoints}
           />
 
-         <section className={`card card--map-live ${isMapFullscreen ? "is-fullscreen" : ""}`}>
-  <div className="card-header card-header--with-actions">
-    <div>
-      <div className="card-title">Mapa en tiempo real</div>
-      <div className="card-subtitle">
-        Recorridos de todas las máquinas activas, con polígonos de campos.
-      </div>
-    </div>
+          <section className={`card card--map-live ${isMapFullscreen ? "is-fullscreen" : ""}`}>
+            <div className="card-header card-header--with-actions">
+              <div>
+                <div className="card-title">Mapa en tiempo real</div>
+                <div className="card-subtitle">
+                  Recorridos de todas las máquinas activas, con polígonos de campos.
+                </div>
+              </div>
+            </div>
+            {trackLoadError && (
+              <div className="tracker-error" style={{ margin: "8px 14px 0" }}>
+                ⚠️ {trackLoadError}
+              </div>
+            )}
+            <div className="map-container">
+              <TrackerMap
+                key={`${selectedLiveSessionId ?? "all"}-${showOnlySelectedTrack ? "solo" : "all"}`}
 
+                activeSessions={activeSessions}
+                selectedSessionId={selectedLiveSessionId}
+                fields={fields}
+                selectedPoints={selectedLivePoints}
+                followSelected={followSelected}
+                showOnlySelectedTrack={showOnlySelectedTrack}
+                onUserInteract={() => setFollowSelected(false)}
+              />
+            </div>
+          </section>
 
-  </div>
+          {/* ✅ Panel de puntos: debajo del mapa */}
+          <section className="card live-points-card">
+            {(() => {
+              const hasSelected = Boolean(selectedLiveSessionId);
+              const effectivePoints = hasSelected ? (selectedLivePoints ?? []) : (points ?? []);
 
-  <div className="map-container">
-    <TrackerMap
-      activeSessions={activeSessions}
-      selectedSessionId={selectedLiveSessionId}
-      fields={fields}
-      selectedPoints={selectedLivePoints} 
-      followSelected={followSelected} 
-      showOnlySelectedTrack={showOnlySelectedTrack} 
-      onUserInteract={() => setFollowSelected(false)} 
-      liveAutoRefresh={liveAutoRefresh}
+              const totalDistanceM = (() => {
+                if (effectivePoints.length < 2) return 0;
+                let dist = 0;
+                for (let i = 1; i < effectivePoints.length; i++) {
+                  const p1 = effectivePoints[i - 1];
+                  const p2 = effectivePoints[i];
+                  dist += haversineMeters(p1.lat, p1.lon, p2.lat, p2.lon);
+                }
+                return dist;
+              })();
 
-    />
-  </div>
-</section>
+              const avgSpeedKmh =
+                durationMinutes && durationMinutes > 0
+                  ? (totalDistanceM / 1000) / (durationMinutes / 60)
+                  : 0;
 
+              return (
+                <>
+                  <div className="card-header">
+                    <div>
+                      <div className="card-title">Puntos recientes</div>
+                      <div className="card-subtitle">
+                        {hasSelected ? "De la sesión seleccionada." : "De la sesión local (debug)."}
+                      </div>
+                    </div>
+
+                    <div className="live-points-counter">
+                      {effectivePoints.length} en total · mostrando últimos{" "}
+                      {Math.min(effectivePoints.length, 50)}
+                    </div>
+                  </div>
+
+                  <div className="live-points-panel">
+                    <div className="live-points-list">
+                      <ul>
+                        {effectivePoints.length === 0 && (
+                          <li className="live-points-empty">No hay puntos para mostrar.</li>
+                        )}
+
+                        {effectivePoints
+                          .slice(-50)
+                          .slice()
+                          .reverse()
+                          .map((p: any) => {
+                            const speedMps = (p.speed ?? p.speed_mps) as number | null | undefined;
+
+                            return (
+                              <li key={p.id} className="live-points-item">
+                                <span className="live-points-time">{formatTime(p.timestamp)}</span>
+                                <span className="live-points-coords">
+                                  lat {formatNumber(p.lat)}, lon {formatNumber(p.lon)}
+                                </span>
+
+                                {speedMps != null && Number.isFinite(speedMps) && (
+                                  <span className="live-points-speed">
+                                    {(speedMps * 3.6).toFixed(1)} km/h
+                                  </span>
+                                )}
+                              </li>
+                            );
+                          })}
+                      </ul>
+                    </div>
+
+                    {(sessionId || selectedLiveSessionId) && (
+                      <div className="live-points-footer">
+                        <span>
+                          {hasSelected ? (
+                            <>
+                              Sesión seleccionada: <strong>{selectedLiveSessionId}</strong>
+                            </>
+                          ) : (
+                            <>
+                              Sesión local: <strong>{sessionId}</strong>
+                            </>
+                          )}{" "}
+                          · {totalPoints ?? points.length} pts · {(totalDistanceM / 1000).toFixed(2)} km ·{" "}
+                          {avgSpeedKmh ? `${avgSpeedKmh.toFixed(1)} km/h` : "—"} prom.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
+          </section>
         </main>
       )}
+
 
       {view === "userView" && (
         <main className="app-layout app-layout--single">
@@ -468,6 +582,13 @@ useEffect(() => {
           <ChartsStatsPage />
         </main>
       )}
+
+      {view === "masters" && (
+        <main className="app-layout app-layout--single">
+          <MastersPage value={mastersView} onChange={setMastersView} />
+        </main>
+      )}
+
       {view === "routes" && (
         <main className="app-layout app-layout--single">
           <RoutesPage />
@@ -477,30 +598,6 @@ useEffect(() => {
       {view === "sessions" && (
         <main className="app-layout app-layout--single">
           <SessionsPage />
-        </main>
-      )}
-
-      {view === "drivers" && (
-        <main className="app-layout app-layout--single">
-          <DriversPage />
-        </main>
-      )}
-
-      {view === "machines" && (
-        <main className="app-layout app-layout--single">
-          <MachinesPage />
-        </main>
-      )}
-
-      {view === "costCenters" && (
-        <main className="app-layout app-layout--single">
-          <CostCentersPage />
-        </main>
-      )}
-
-      {view === "fields" && (
-        <main className="app-layout app-layout--single">
-          <FieldsPage />
         </main>
       )}
     </div>
