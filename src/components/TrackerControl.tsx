@@ -602,53 +602,7 @@ return (
 
  
 
-    {/* Lista de puntos en vivo (solo de esta unidad, para debug fino) */}
-    <div className="live-points-panel">
-      <div className="live-points-header">
-        Puntos recientes de esta unidad
-        <span className="live-points-counter">
-          {points.length} en total · mostrando últimos {Math.min(points.length, 50)}
-        </span>
-      </div>
 
-      <div className="live-points-list">
-        <ul>
-          {points.length === 0 && (
-            <li className="live-points-empty">Esta unidad no tiene puntos recientes.</li>
-          )}
-
-          {effectivePoints
-            .slice(-50)
-            .slice()
-            .reverse()
-            .map((p) => (
-              <li key={p.id} className="live-points-item">
-                <span className="live-points-time">{formatTime(p.timestamp)}</span>
-                <span className="live-points-coords">
-                  lat {formatNumber(p.lat)}, lon {formatNumber(p.lon)}
-                </span>
-                {p.speed_mps != null && !Number.isNaN(p.speed_mps) && (
-                  <span className="live-points-speed">
-                    {(p.speed_mps * 3.6).toFixed(1)} km/h
-                  </span>
-                )}
-              </li>
-            ))}
-        </ul>
-      </div>
-
-      {/* mini resumen al pie (no ocupa otra columna) */}
-      {sessionId && (
-        <div className="live-points-footer">
-          <span>
-            Sesión local: <strong>{sessionId}</strong> ·{" "}
-            {totalPoints ?? points.length} pts ·{" "}
-            {(totalDistanceM / 1000).toFixed(2)} km ·{" "}
-            {avgSpeedKmh ? `${avgSpeedKmh.toFixed(1)} km/h` : "—"} prom.
-          </span>
-        </div>
-      )}
-    </div>
   </section>
 );
 
