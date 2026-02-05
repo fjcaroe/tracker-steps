@@ -50,7 +50,7 @@ type TrackerControlProps = {
 
 
 const TrackerControl: React.FC<TrackerControlProps> = ({
-  isTracking: _isTracking, // no lo usamos, pero lo dejamos para compat TS
+  isTracking: _isTracking, 
   error,
   points,
   activeSessions,
