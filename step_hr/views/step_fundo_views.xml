@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_fundo_form" model="ir.ui.view">
+        <field name="name">step.fundo.form</field>
+        <field name="model">step.fundo</field>
+        <field name="arch" type="xml">
+            <form string="Fundo">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="DIRECCIÓN">
+                            <field name="sector_id"/>
+                            <field name="street"/>
+                            <field name="street2"/>
+                            <field name="city_id"/>
+                            <field name="city"/>
+                            <field name="state_id"/>
+                            <field name="zip_code"/>
+                            <field name="country_id"/>
+                        </group>
+                        <group string="Datos">
+                            <field name="date"/>
+                            <field name="schedule_id"/>
+                            <field name="company_id"/>
+                            <field name="partner_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Códigos Identificación">
+                            <field name="fundo_code"/>
+                            <field name="csg_code"/>
+                            <field name="sdp_code"/>
+                            <field name="ggn_code"/>
+                        </group>
+                        <group string="Uso del Suelo">
+                            <field name="hec_total"/>
+                            <field name="hec_disp"/>
+                            <field name="hec_plant"/>
+                            <field name="hec_otro"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='map' string="Mapa">
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_fundo_list" model="ir.ui.view">
+        <field name="name">step.fundo.list</field>
+        <field name="model">step.fundo</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="fundo_code" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="hec_total" optional="show"/>
+                <field name="hec_disp" optional="show"/>
+                <field name="hec_plant" optional="show"/>
+                <field name="hec_plant" optional="show"/>
+                <field name="hec_otro" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_fundo" model="ir.actions.act_window">
+        <field name="name">Fundo</field>
+        <field name="res_model">step.fundo</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

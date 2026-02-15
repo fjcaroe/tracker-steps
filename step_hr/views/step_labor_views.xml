@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_labor_form" model="ir.ui.view">
+        <field name="name">step.labor.form</field>
+        <field name="model">step.labor</field>
+        <field name="arch" type="xml">
+            <form string="Labores">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="cod_labor"/>
+                            <field name="uom_id"/>
+                            <field name="grupo_labor"/>
+                            <field name="es_trabajador"/>
+                            <field name="es_maquina"/>
+                            <field name="uom_trato"/>
+                            <field name="product_id" domain="[('is_labor', '=', True)]"/>
+                            <field name="met_costeo"/>
+                        </group>
+                        <group>
+                            <field name="actividad_id"/>
+                            <field name="partner_id"/>
+                            <field name="date"/>
+                            <field name="company_id"/>
+                            <field name="date_init"/>
+                            <field name="date_end"/>
+                            <field name="qa"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='details' string="Detalles">
+                            <field name="labor_line">
+                                <list editable="bottom">
+                                    <field name="labor_id" column_invisible="True"/>
+                                    <field name="name" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_labor_list" model="ir.ui.view">
+        <field name="name">step.labor.list</field>
+        <field name="model">step.labor</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="cod_labor" optional="show"/>
+                <field name="uom_id" optional="show"/>
+                <field name="grupo_labor" optional="show"/>
+                <field name="es_trabajador" optional="hide"/>
+                <field name="es_maquina" optional="show"/>
+                <field name="product_id" optional="show"/>
+                <field name="met_costeo" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="date_init" optional="show"/>
+                <field name="date_end" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_labor" model="ir.actions.act_window">
+        <field name="name">Labores</field>
+        <field name="res_model">step.labor</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

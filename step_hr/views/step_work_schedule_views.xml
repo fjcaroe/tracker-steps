@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_work_schedule_form" model="ir.ui.view">
+        <field name="name">step.work.schedule.form</field>
+        <field name="model">step.work.schedule</field>
+        <field name="arch" type="xml">
+            <form string="Horarios de Trabajo">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1" placeholder="Ej. 44 horas.."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="lunes"/>
+                            <field name="martes"/>
+                            <field name="miercoles"/>
+                            <field name="jueves"/>
+                        </group>
+                        <group>
+                            <field name="viernes"/>
+                            <field name="sabado"/>
+                            <field name="domingo"/>
+                        </group>
+                    </group>
+                    <group col="4" class="mt-2 mt-md-0">
+                        <group class="oe_subtotal_footer" colspan="2">
+                            <field name="total"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_work_schedule_list" model="ir.ui.view">
+        <field name="name">step.work.schedule.list</field>
+        <field name="model">step.work.schedule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="lunes" optional="show"/>
+                <field name="martes" optional="show"/>
+                <field name="miercoles" optional="show"/>
+                <field name="jueves" optional="show"/>
+                <field name="viernes" optional="show"/>
+                <field name="sabado" optional="show"/>
+                <field name="domingo" optional="show"/>
+                <field name="total" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_work_schedule" model="ir.actions.act_window">
+        <field name="name">Horarios de Trabajo</field>
+        <field name="res_model">step.work.schedule</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+    <record id="action_step_work_schedule" model="ir.actions.act_window">
+        <field name="name">Horarios de Trabajo</field>
+        <field name="res_model">step.work.schedule</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

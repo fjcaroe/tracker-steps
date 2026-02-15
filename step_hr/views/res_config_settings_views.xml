@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+
+    <record id="res_config_settings_view_form_step_hr" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.step.hr</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="75"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="step_hr" string="Labores y Tareas" name="step_hr">
+                    <block title="Configuración Contable Contratista" name="step_hr_contable">
+                        <setting id="step_id_journal" title="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras" help="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras">
+                            <field name="step_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                        <setting id="three_way_matching" title="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización." help="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización. ">
+                            <field name="step_document_type_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                    </block>
+                    <block title="Configuración Contable Cosecha" name="step_hr_contable">
+                        <setting id="step_cosecha_journal_id" title="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras" help="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras">
+                            <field name="step_cosecha_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                        <setting id="step_cosecha_document_type_id" title="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización." help="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización. ">
+                            <field name="step_cosecha_document_type_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                    </block>
+                    <block title="Configuración Contable Movilización" name="step_hr_contable">
+                        <setting id="step_movi_journal_id" title="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras" help="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras">
+                            <field name="step_movi_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                        <setting id="step_movi_document_type_id" title="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización." help="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización. ">
+                            <field name="step_movi_document_type_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                    </block>
+                    <block title="Configuración Contable Propia" name="step_hr_contable">
+                        <setting id="step_propio_journal" title="Diario transitorio donde se hara el asiento contable diario de las tareas propias realizadas" help="Cuenta transitoria donde se hara el asiento contable diario de las tareas propias realizadas">
+                            <field name="propio_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_step_hr_configuration" model="ir.actions.act_window">
+        <field name="name">Configuración</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module' : 'step_hr', 'bin_size': False}</field>
+    </record>
+
+    <menuitem id="menu_step_hr_general_settings" name="Configuración" parent="step_hr.menu_step_hr_config"
+        sequence="0" action="step_hr.action_step_hr_configuration" groups="base.group_system"/>
+
+</odoo>

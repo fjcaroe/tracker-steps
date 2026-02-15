@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_tarja_cost_form" model="ir.ui.view">
+        <field name="name">step.tarja.cost.form</field>
+        <field name="model">step.tarja.cost</field>
+        <field name="arch" type="xml">
+            <form string="Tareas">
+                <header>
+                    <button name="action_in" string="Cambiar a Ingresado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'auto'"/>
+                    <button name="action_auto" string="Autorizado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'in'"/>
+                    <button name="action_conta" string="Contabilizado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'auto'"/>
+                    <button name="action_pag" string="Pagado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'conta'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="tarja_type" widget="radio"/>
+                            <field name="partner_id"/>
+                            <field name="folio"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="fundo_id"/>
+                            <field name="super_id"/>
+                            <field name="auto_id"/>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <field name="note"/>
+                    <notebook colspan="4">
+                        <page name='tarja_cost_line' string="Detalles">
+                            <field name="tarja_cost_line">
+                                <list editable="bottom">
+                                    <field name="tarja_cost_id" column_invisible="True"/>
+                                    <field name="employee_id" optional="show"/>
+                                    <field name="cost_id" optional="show"/>
+                                    <field name="labor_id" optional="show"/>
+                                    <field name="uom_id" optional="show"/>
+                                    <field name="quantity" optional="show" sum="quantity"/>
+                                    <field name="hrs" optional="show" sum="hrs"/>
+                                    <field name="hrs_extra" optional="show" sum="hrs_extra"/>
+                                    <field name="hrs_total" optional="show" sum="hrs_total"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_tarja_cost_list" model="ir.ui.view">
+        <field name="name">step.tarja.cost.list</field>
+        <field name="model">step.tarja.cost</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="tarja_type" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="folio" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="employee_id" optional="show"/>
+                <field name="fundo_id" optional="show"/>
+                <field name="super_id" optional="show"/>
+                <field name="auto_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_tarja_costo" model="ir.actions.act_window">
+        <field name="name">Costeo de Tarjas</field>
+        <field name="res_model">step.tarja.cost</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+</odoo>

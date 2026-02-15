@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+
+
+<!--    Menu principal-->
+    <menuitem id="menu_step_hr_root"
+              name="Actividades"
+              sequence="10" web_icon="step_hr,static/src/images/lyt.png"/>
+
+
+<!--    Planificacion de tareas-->
+<!--    <menuitem name="Planificar Tareas"-->
+<!--              id="step_plan_tasks"-->
+<!--              action="project.action_server_view_my_task"-->
+<!--              parent="step_hr.menu_step_hr_root"-->
+<!--              sequence="1"/>-->
+
+
+<!--    Personal Propio-->
+    <menuitem id="menu_step_hr_main"
+              name="Personal Propio"
+              parent="step_hr.menu_step_hr_root"
+              sequence="20"/>
+    <menuitem id="menu_hr_salary_custom"
+              name="Crear Cuadrilla"
+              action="step_hr.action_hr_salary_custom"
+              parent="step_hr.menu_step_hr_main"
+              sequence="10"/>
+    <menuitem id="menu_hr_pricelist_custom"
+              name="Tarifas Empleado"
+              action="step_hr.step_product_pricelist_action_propio"
+              parent="step_hr.menu_step_hr_main"
+              sequence="20"/>
+    <menuitem
+            id="menu_step_tarja"
+            name="Registro Tareas"
+            action="step_hr.action_step_tarja"
+            parent="step_hr.menu_step_hr_main"
+            sequence="30"/>
+    <menuitem
+            id="menu_step_tarja_cost"
+            name="Costeo de Tarjas"
+            action="step_hr.action_step_tarja_costo"
+            parent="step_hr.menu_step_hr_main"
+            sequence="40"/>
+    <menuitem id="menu_acount_propio"
+              name="Contabilización Personal Propio"
+              action="step_hr.action_move_journal_step_propio"
+              parent="step_hr.menu_step_hr_main"
+              sequence="50"/>
+
+
+<!--    Contratista-->
+    <menuitem id="menu_step_hr_main_contra"
+              name="Contratista"
+              parent="step_hr.menu_step_hr_root"
+              sequence="30"/>
+    <menuitem id="menu_hr_salary_contratista"
+              name="Cuadrilla Contratista"
+              action="step_hr.action_hr_salary_custom_contra"
+              parent="step_hr.menu_step_hr_main_contra"
+              sequence="10"/>
+    <menuitem id="menu_hr_pricelist_contra"
+              name="Tarifa Contratista"
+              action="step_hr.step_product_pricelist_action_contratista"
+              parent="step_hr.menu_step_hr_main_contra"
+              sequence="20"/>
+    <menuitem id="menu_step_tarja_contra"
+              name="Registro Tareas Contratistas"
+              action="step_hr.action_step_tarja_contratista"
+              parent="step_hr.menu_step_hr_main_contra"
+              sequence="30"/>
+    <menuitem id="menu_step_tarja_costo_contra"
+              name="Costeo Contratistas"
+              action="step_hr.action_step_tarja_cost_contratista"
+              parent="step_hr.menu_step_hr_main_contra"
+              sequence="40"/>
+    <menuitem id="menu_acount_contra"
+              name="Proforma Contratista"
+              action="step_hr.action_step_move_in_invoice"
+              parent="step_hr.menu_step_hr_main_contra"
+              sequence="50"/>
+
+
+<!--    Movilización-->
+    <menuitem id="menu_step_moviliza"
+              name="Movilización"
+              parent="step_hr.menu_step_hr_root"
+              sequence="40"/>
+    <menuitem id="menu_step_tracker"
+              name="Step Tracker"
+              action="step_hr.action_step_tracker"
+              parent="step_hr.menu_step_moviliza"
+              sequence="10"/>
+    <menuitem id="menu_step_movi_tarifa"
+              name="Tarifas Movilización"
+              action="step_hr.step_product_pricelist_action_movi"
+              parent="step_hr.menu_step_moviliza"
+              sequence="20"/>
+    <menuitem id="menu_step_movi_registry"
+              name="Registro Movilización"
+              action="step_hr.action_step_movi_registry"
+              parent="step_hr.menu_step_moviliza"
+              sequence="30"/>
+    <menuitem id="menu_step_movi_registry_costo"
+              name="Costeo Movilización"
+              action="step_hr.action_step_movi_registry_costeo"
+              parent="step_hr.menu_step_moviliza"
+              sequence="40"/>
+    <menuitem id="menu_acount_movi"
+              name="Contabilización Movilización"
+              action="step_hr.action_step_movi_in_invoice"
+              parent="step_hr.menu_step_moviliza"
+              sequence="50"/>
+
+
+<!--    Cosecha-->
+<!--    <menuitem id="menu_step_cosecha_main"-->
+<!--              name="Cosecha"-->
+<!--              parent="step_hr.menu_step_hr_root"-->
+<!--              sequence="50"/>-->
+<!--    <menuitem id="menu_step_cosecha_propio"-->
+<!--              name="Propio"-->
+<!--              parent="step_hr.menu_step_cosecha_main"-->
+<!--              sequence="10"/>-->
+<!--    <menuitem id="menu_hr_pricelist_propio"-->
+<!--              name="Tarifa Propio Cosecha"-->
+<!--              action="step_hr.step_pricelist_action_propio_cosecha"-->
+<!--              parent="step_hr.menu_step_cosecha_propio"-->
+<!--              sequence="10"/>-->
+<!--    <menuitem id="menu_step_cosecha_pro"-->
+<!--              name="Registro de Cosecha Propio"-->
+<!--              action="step_hr.action_step_cosecha_registry"-->
+<!--              parent="step_hr.menu_step_cosecha_propio"-->
+<!--              sequence="20"/>-->
+<!--    <menuitem id="menu_step_cosecha_registry_costo_pro"-->
+<!--              name="Costeo Cosecha Propia"-->
+<!--              action="step_hr.action_step_cosecha_costo_pro"-->
+<!--              parent="step_hr.menu_step_cosecha_propio"-->
+<!--              sequence="30"/>-->
+<!--    <menuitem id="menu_acount_cosecha"-->
+<!--              name="Contabilización Cosecha"-->
+<!--              action="step_hr.step_action_move_journal_propio"-->
+<!--              parent="step_hr.menu_step_cosecha_propio"-->
+<!--              sequence="40"/>-->
+<!--    <menuitem id="menu_step_cosecha_contratista"-->
+<!--              name="Contratista"-->
+<!--              parent="step_hr.menu_step_cosecha_main"-->
+<!--              sequence="20"/>-->
+<!--    <menuitem id="menu_cosecha_pricelist_contratista"-->
+<!--              name="Tarifa Contratista"-->
+<!--              action="step_hr.step_pricelist_action_contratista_cosecha"-->
+<!--              parent="step_hr.menu_step_cosecha_contratista"-->
+<!--              sequence="10"/>-->
+<!--    <menuitem id="menu_step_cosecha_registry"-->
+<!--              name="Registro de Cosecha Contratista"-->
+<!--              action="step_hr.action_step_cosecha_registry_contra"-->
+<!--              parent="step_hr.menu_step_cosecha_contratista"-->
+<!--              sequence="20"/>-->
+<!--    <menuitem id="menu_step_cosecha_registry_contra"-->
+<!--              name="Costeo Cosecha Contratista"-->
+<!--              action="step_hr.action_step_cosecha_registry_costo"-->
+<!--              parent="step_hr.menu_step_cosecha_contratista"-->
+<!--              sequence="30"/>-->
+<!--    <menuitem id="menu_acount_cosecha_contra"-->
+<!--              name="ProForma Cosecha"-->
+<!--              action="step_hr.step_action_move_journal_contra"-->
+<!--              parent="step_hr.menu_step_cosecha_contratista"-->
+<!--              sequence="40"/>-->
+<!--    <menuitem id="menu_step_cosecha_ubicacion"-->
+<!--              name="Ubicación de Operación"-->
+<!--              action="step_hr.action_step_cosecha_ubicacion"-->
+<!--              parent="step_hr.menu_step_cosecha_main"-->
+<!--              sequence="30"/>-->
+<!--    <menuitem id="menu_step_cosecha_recepcion"-->
+<!--              name="Recepción de Cosecha"-->
+<!--              action="step_hr.step_action_picking_tree_incoming"-->
+<!--              parent="step_hr.menu_step_cosecha_main"-->
+<!--              sequence="40"/>-->
+<!--    <menuitem id="menu_step_cosecha_proceso"-->
+<!--              name="Procesos de Cosecha"-->
+<!--              action="step_hr.action_step_cosecha_proceso"-->
+<!--              parent="step_hr.menu_step_cosecha_main"-->
+<!--              sequence="50"/>-->
+
+<!--    Informes-->
+    <menuitem id="menu_step_informe_main"
+              name="Informes"
+              parent="step_hr.menu_step_hr_root"
+              sequence="50"/>
+    <menuitem id="menu_hr_salary_custom_line"
+              name="Informes de Cuadrillas Propias"
+              parent="step_hr.menu_step_informe_main"
+              action="step_hr.action_view_hr_salary_custom_line"
+              sequence="30"/>
+    <menuitem id="menu_hr_salary_contract_line"
+              name="Informes de Cuadrillas Contratistas"
+              parent="step_hr.menu_step_informe_main"
+              action="step_hr.action_view_hr_salary_contract_line"
+              sequence="40"/>
+    <menuitem id="menu_step_tarja_line"
+              name="Informes de Tareas Propias"
+              parent="step_hr.menu_step_informe_main"
+              action="step_hr.action_view_step_tarja_line"
+              sequence="50"/>
+    <menuitem id="menu_step_tarja_cost_line"
+              name="Informes de Tareas Contratistas"
+              parent="step_hr.menu_step_informe_main"
+              action="step_hr.action_view_step_tarja_cost_line"
+              sequence="60"/>
+    <menuitem id="menu_step_movi_line"
+              name="Análisis de Registro Movilizacion"
+              parent="step_hr.menu_step_informe_main"
+              action="step_hr.action_view_step_movi_line"
+              sequence="70"/>
+    <menuitem id="menu_step_movi_cost"
+              name="Análisis de Costeo Movilizacion"
+              parent="step_hr.menu_step_informe_main"
+              action="step_hr.action_view_step_movi_cost"
+              sequence="80"/>
+
+<!--    Maestros-->
+    <menuitem id="step_maestros"
+              name="Maestros"
+              parent="step_hr.menu_step_hr_root"
+              sequence="60"/>
+    <menuitem id="menu_hr_employee_step"
+              name="Empleados"
+              parent="step_hr.step_maestros"
+              action="hr.open_view_employee_list_my"
+              sequence="10"/>
+    <menuitem id="menu_product_step"
+              name="Productos / Labores"
+              action="step_hr.step_product_template_action"
+              parent="step_hr.step_maestros"
+              sequence="20"/>
+    <menuitem id="menu_vehicle_step"
+              name="Vehículo"
+              action="fleet.fleet_vehicle_action"
+              parent="step_hr.step_maestros"
+              sequence="30"/>
+    <!--              action="step_hr.step_fleet_vehicle_action"-->
+    <menuitem id="menu_prove_movi"
+              name="Proveedor Movilización"
+              action="step_hr.action_partner_supplier_form_step"
+              parent="step_hr.step_maestros"
+              sequence="40"/>
+    <menuitem id="menu_contratista"
+              name="Contratistas"
+              action="step_hr.action_partner_contratista_form_step"
+              parent="step_hr.step_maestros"
+              sequence="50"/>
+
+<!--    Historial-->
+    <menuitem id="step_history"
+              name="Historial"
+              parent="step_hr.menu_step_hr_root"
+              sequence="70" groups="step_hr.permin_step_history"/>
+    <menuitem id="menu_history_step"
+              name="Historico"
+              parent="step_hr.step_history"
+              action="step_hr.action_step_history"
+              sequence="10"/>
+
+<!--    Configuración-->
+    <menuitem id="menu_step_hr_config"
+              name="Configuración"
+              parent="step_hr.menu_step_hr_root"
+              sequence="99"/>
+    <menuitem id="menu_step_empleado_config"
+              name="Empleado"
+              parent="step_hr.menu_step_hr_config"
+              sequence="10"/>
+    <menuitem id="menu_hr_job_custom"
+              name="Puestos de Trabajos"
+              action="hr.action_hr_job"
+              parent="step_hr.menu_step_empleado_config"
+              sequence="10"/>
+    <menuitem id="menu_hr_entry_custom"
+              name="Tipo de entrada de trabajo"
+              action="hr_work_entry.hr_work_entry_type_action"
+              parent="step_hr.menu_step_empleado_config"
+              sequence="20"/>
+<!--    <menuitem id="menu_step_work_schedule"-->
+<!--              name="Horarios de Trabajo"-->
+<!--              action="step_hr.action_step_work_schedule"-->
+<!--              parent="step_hr.menu_step_empleado_config"-->
+<!--              sequence="30"/>-->
+    <menuitem id="menu_step_haber_costeo"
+              name="Haberes de costeo sueldo"
+              action="step_hr.action_step_haber_costeo"
+              parent="step_hr.menu_step_empleado_config"
+              sequence="40"/>
+    <menuitem id="menu_hr_movi"
+              name="Movilización"
+              action="step_hr.action_hr_salary_custom"
+              parent="step_hr.menu_step_hr_config"
+              sequence="20"/>
+    <menuitem id="menu_hr_route"
+              name="Recorrido"
+              action="step_hr.action_hr_route"
+              parent="step_hr.menu_hr_movi"
+              sequence="10"/>
+    <menuitem id="menu_parametro_gnl"
+              name="Parámetros Generales"
+              parent="step_hr.menu_step_hr_config"
+              sequence="30"/>
+    <menuitem id="menu_step_temporada"
+              name="Temporada"
+              action="step_hr.action_step_temporada"
+              parent="step_hr.menu_parametro_gnl"
+              sequence="10"/>
+    <menuitem id="menu_step_fundo"
+              name="Fundo"
+              action="step_hr.action_step_fundo"
+              parent="step_hr.menu_parametro_gnl"
+              sequence="20"/>
+    <menuitem id="menu_step_especie"
+              name="Especie"
+              action="step_hr.action_step_especie"
+              parent="step_hr.menu_parametro_gnl"
+              sequence="30"/>
+    <menuitem id="menu_step_grupo_variedad"
+              name="Grupo Variedad"
+              action="step_hr.action_step_grupo_variedad"
+              parent="step_hr.menu_parametro_gnl"
+              sequence="40"/>
+    <menuitem id="menu_step_variedad"
+              name="Variedad"
+              action="step_hr.action_step_variedad"
+              parent="step_hr.menu_parametro_gnl"
+              sequence="50"/>
+    <menuitem id="menu_step_centro_costo"
+              name="Centro de Costo"
+              action="step_hr.action_step_centro_costo_analytic"
+              parent="step_hr.menu_parametro_gnl"
+              sequence="60"/>
+<!--    <menuitem id="menu_step_res_sector"-->
+<!--              name="Sector"-->
+<!--              action="step_hr.action_res_sector"-->
+<!--              parent="step_hr.menu_parametro_gnl"-->
+<!--              sequence="70"-->
+<!--        />-->
+<!--    <menuitem id="menu_step_actividad"-->
+<!--              name="Actividades"-->
+<!--              action="step_hr.action_step_actividad"-->
+<!--              parent="step_hr.menu_parametro_gnl"-->
+<!--              sequence="80"/>-->
+<!--    <menuitem id="menu_step_labor"-->
+<!--              name="Labores"-->
+<!--              action="step_hr.action_step_labor"-->
+<!--              parent="step_hr.menu_parametro_gnl"-->
+<!--              sequence="90"/>-->
+</odoo>

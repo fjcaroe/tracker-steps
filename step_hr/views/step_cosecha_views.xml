@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_cosecha_form" model="ir.ui.view">
+        <field name="name">step.cosecha.ubicacion.form</field>
+        <field name="model">step.cosecha.ubicacion</field>
+        <field name="arch" type="xml">
+            <form string="Ubicación de Operación">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="fundo_id"/>
+                            <field name="type_ubicacion"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='details' string="Detalles">
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_ubicacion_list" model="ir.ui.view">
+        <field name="name">step.cosecha.ubicacion.list</field>
+        <field name="model">step.cosecha.ubicacion</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="fundo_id" optional="show"/>
+                <field name="type_ubicacion" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_cosecha_ubicacion" model="ir.actions.act_window">
+        <field name="name">Ubicación de Operación</field>
+        <field name="res_model">step.cosecha.ubicacion</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+
+</odoo>

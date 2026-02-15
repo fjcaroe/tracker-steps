@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="step_view_res_partner_form">
+        <field name="name">step.res.partner.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='function']" position="before">
+                <field name="is_productor"/>
+            </xpath>
+            <xpath expr="//page[@name='sales_purchases']" position="before">
+                <page name='productor' string="Productor" invisible="is_productor == False">
+                    <group>
+                        <group string="Productor">
+                            <field name="cod_fundo"/>
+                            <field name="cod_csg"/>
+                            <field name="cod_ggn"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+            <xpath expr="//page[@name='sales_purchases']" position="after">
+                <page name='agri' string="Agricola">
+                    <group>
+                        <group string="Negocio Agrícola">
+                            <field name="step_export"/>
+                            <field name="step_contra"/>
+                            <field name="productor_name"/>
+                        </group>
+                        <group string="Tranporte">
+                            <field name="step_carga"/>
+                            <field name="step_trans_person"/>
+                            <field name="step_chofer"/>
+                            <field name="transpor_id" invisible="step_chofer == False"/>
+                        </group>
+                    </group>
+                </page>
+                <page name='map' string="Mapa">
+                    <map res_partner="partner_id" hide_address="1" js_class="stock_map">
+                        <maker-popup>
+                            <field name="contact_address_complete" string="address"/>
+                        </maker-popup>
+                    </map>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_partner_supplier_form_step" model="ir.actions.act_window">
+        <field name="name">Proveedor Movilizacion</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">['|', '|', ('step_trans_person', '=', True),('step_carga','=',True),('step_chofer','=',True)]</field>
+        <field name="context">{'res_partner_search_mode': 'supplier', 'default_is_company': True}</field>
+        <field name="filter" eval="True"/>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+            Create a new vendor in your address book
+          </p><p>
+            Odoo helps you easily track all activities related to a vendor.
+          </p>
+        </field>
+    </record>
+    <record id="action_partner_contratista_form_step" model="ir.actions.act_window">
+        <field name="name">Contratistas</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('step_contra', '=', True)]</field>
+        <field name="context">{'res_partner_search_mode': 'supplier', 'default_is_company': True}</field>
+        <field name="filter" eval="True"/>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+            Create a new vendor in your address book
+          </p><p>
+            Odoo helps you easily track all activities related to a vendor.
+          </p>
+        </field>
+    </record>
+
+</odoo>

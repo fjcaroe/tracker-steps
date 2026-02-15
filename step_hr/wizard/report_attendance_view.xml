@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+        <record id="report_step_hrs_wizard_form" model="ir.ui.view">
+            <field name="name">report.step.hrs.wizard.form</field>
+            <field name="model">report.step.hrs.wizard</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group invisible="file_name">
+                        <group>
+                            <field name="employee_ids" widget="many2many_tags" invisible="all_employees"/>
+                            <field name="all_employees"/>
+                        </group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                        </group>
+                    </group>
+                    <group string="Resultado" invisible="not file_name">
+                        <field name="file_name" invisible="1"/>
+                        <field name="file" filename="file_name" readonly="1"/>
+                    </group>
+                    <footer>
+                        <button string="Generar" name="generate_report" type="object" class="oe_highlight" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn btn-secondary" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="report_step_hrs_wizard_action" model="ir.actions.act_window">
+            <field name="name">Labores por trabajador Propio</field>
+            <field name="res_model">report.step.hrs.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+        <menuitem id="menu_report_step_hrs_wizard" parent="step_hr.menu_step_informe_main" sequence="2" action="step_hr.report_step_hrs_wizard_action" name="Labores por trabajador Propio"/>
+</odoo>

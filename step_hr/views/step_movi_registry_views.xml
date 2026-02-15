@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_movi_registry_form" model="ir.ui.view">
+        <field name="name">step.movi.registry.form</field>
+        <field name="model">step.movi.registry</field>
+        <field name="arch" type="xml">
+            <form string="Registro Movilización">
+                <header>
+                    <button name="action_in" string="Cambiar a Ingresado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'apro'"/>
+                    <button name="action_apro" string="Aprobado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'in'"/>
+                    <button name="action_costeo" string="A Costeo"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'apro'"/>
+                    <button name="action_conta" string="Contabilizar"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'costo'"/>
+                    <button name="action_to_costeo" string="Devolver a Aprobado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'costo'"/>
+                    <button name="action_pag" string="Pagado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'conta'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="0" readonly="1" force_save="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="recorrido_id"/>
+                            <field name="partner_id" domain="[('step_trans_person', '=', True)]"/>
+                            <field name="vehicle_id" domain="[('driver_id', '=', False)]"/>
+                            <field name="chofer_id" domain="[('transpor_id', '=', partner_id)]"/>
+                        </group>
+                        <group>
+                            <field name="fundo_id"/>
+                            <field name="responsable_id"/>
+                            <field name="pricelist_id" domain="[('moviliza', '=', True), ('partner_id', '=', partner_id)]"/>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <field name="note"/>
+                    <notebook colspan="4">
+                        <page name='detail_custom' string="Registro">
+                            <field name="movi_line">
+                                <list editable="bottom">
+                                    <field name="movi_id" column_invisible="True"/>
+                                    <field name="employee_id" optional="show" domain="[('is_movi', '=', True)]" options="{'no_create': True}"/>
+                                    <field name="cod_nip" optional="show"/>
+                                    <field name="operacion"/>
+                                    <field name="hr_in" optional="show"/>
+                                    <field name="hr_out" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='movi_cost_line' string="Costos" invisible="state not in ['costo','cont']">
+                            <field name="movi_cost_line" readonly="1" force_save="1">
+                                <list editable="bottom">
+                                    <field name="movi_id" column_invisible="True"/>
+                                    <field name="employee_id" optional="show" domain="[('is_movi', '=', True)]" options="{'no_create': True}"/>
+                                    <field name="cod_nip" optional="show"/>
+                                    <field name="cost_id" optional="hide"/>
+                                    <field name="labor_id" optional="hide"/>
+                                    <field name="recorrido_ent" optional="show"/>
+                                    <field name="recorrido_sal" optional="show"/>
+                                    <field name="cost_in" optional="show" sum="cost_in"/>
+                                    <field name="cost_out" optional="show" sum="cost_out"/>
+                                    <field name="cost_total" optional="show" sum="cost_total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='movi_cont_line' string="Contabilización" invisible="state not in ['costo','cont']">
+                            <group string="Contabilización">
+                                <field name="invoice_id" readonly="1" force_save="1"/>
+                            </group>
+<!--                            <field name="movi_cont_line">-->
+<!--                                <list editable="bottom">-->
+<!--                                    <field name="movi_id" column_invisible="True"/>-->
+<!--                                    <field name="employee_id" optional="show" domain="[('is_movi', '=', True)]" options="{'no_create': True}"/>-->
+<!--                                    <field name="cod_nip" optional="show"/>-->
+<!--                                    <field name="cost_id" optional="show"/>-->
+<!--                                    <field name="labor_id" optional="show"/>-->
+<!--                                    <field name="hrs_total" optional="show"/>-->
+<!--                                    <field name="hrs_porcen" optional="show"/>-->
+<!--                                    <field name="dist_movi" optional="show"/>-->
+<!--                                </list>-->
+<!--                            </field>-->
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_movi_registry_list" model="ir.ui.view">
+        <field name="name">step.movi.registry.list</field>
+        <field name="model">step.movi.registry</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="recorrido_id" optional="show"/>
+                <field name="vehicle_id" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="pricelist_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_movi_registry" model="ir.actions.act_window">
+        <field name="name">Registro Movilización</field>
+        <field name="res_model">step.movi.registry</field>
+        <field name="view_mode">list,form,kanban</field>
+    </record>
+
+    <record id="action_step_movi_registry_costeo" model="ir.actions.act_window">
+        <field name="name">Costeo Movilización</field>
+        <field name="res_model">step.movi.registry</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[('state', 'in', ['costo'])]</field>
+    </record>
+</odoo>

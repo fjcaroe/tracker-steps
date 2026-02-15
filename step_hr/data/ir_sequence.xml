@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <data noupdate="0">
+
+        <!-- Sequences for cuadrillas-->
+       <record id="seq_cuadrilla_propia" model="ir.sequence">
+            <field name="name">Step secuencia propia</field>
+            <field name="code">cuadrilla_propia_seq</field>
+            <field name="prefix">CP</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+         <record id="seq_cuadrilla_contratista" model="ir.sequence">
+            <field name="name">Step secuencia contratista</field>
+            <field name="code">cuadrilla_contratista_seq</field>
+            <field name="prefix">CC</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequences for Registro de tareas-->
+       <record id="seq_registro_propia" model="ir.sequence">
+            <field name="name">Step secuencia Registro propia</field>
+            <field name="code">registro_propia_seq</field>
+            <field name="prefix">OT</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+         <record id="seq_registro_contratista" model="ir.sequence">
+            <field name="name">Step secuencia contratista</field>
+            <field name="code">registro_contratista_seq</field>
+            <field name="prefix">OC</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+        <!-- Sequences for Ordenes de Trabajo-->
+       <record id="seq_otrabajo_propia" model="ir.sequence">
+            <field name="name">Step secuencia trabajo propia</field>
+            <field name="code">step_trabajo_seq</field>
+            <field name="prefix">OT</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+<!--        Movilizacion-->
+
+         <record id="seq_step_moviliza" model="ir.sequence">
+            <field name="name">Step secuencia Movilizacion</field>
+            <field name="code">step_moviliza_seq</field>
+            <field name="prefix">MV</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

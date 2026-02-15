@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2026 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_hr_salary_custom_line_pivot" model="ir.ui.view">
+        <field name="name">hr.salary.custom.line.pivot</field>
+        <field name="model">hr.salary.custom.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de Cuadrillas Propias" sample="1">
+                <field name="fundo_id" type="col"/>
+                <field name="date" interval="month" type="row"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_hr_salary_custom_line_graph" model="ir.ui.view">
+        <field name="name">hr.salary.custom.line.graph</field>
+        <field name="model">hr.salary.custom.line</field>
+        <field name="arch" type="xml">
+            <graph string="Análisis de Cuadrillas Propias" sample="1">
+                <field name="fundo_id"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_hr_salary_custom_line_list" model="ir.ui.view">
+        <field name="name">hr.salary.custom.line.list</field>
+        <field name="model">hr.salary.custom.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="parent_name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="employee_id" optional="show"/>
+                <field name="folio" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="employee_id" optional="show"/>
+                <field name="hours" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_salary_custom_line_search" model="ir.ui.view">
+            <field name="name">hr.salary.custom.line.search</field>
+            <field name="model">hr.salary.custom.line</field>
+            <field eval="3" name="priority"/>
+            <field name="arch" type="xml">
+                <search string="Cuadrillas">
+                    <field name="parent_name" filter_domain="[('parent_name', 'ilike', self)]"/>
+                    <field name="partner_id" filter_domain="[('partner_id', 'ilike', self)]"/>
+                    <field name="fundo_id" filter_domain="[('fundo_id', 'ilike', self)]"/>
+                    <filter string="Nuevo" name="draft" domain="[('state','=','draft')]"/>
+                    <filter string="En progreso" name="progress" domain="[('state','in',('progress'))]"/>
+                    <filter string="Listo" name="done" domain="[('state','=','done')]"/>
+                    <filter string="Fecha" name="today" date="date"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Contratista" name="partner_id" domain="[]"  context="{'group_by': 'partner_id'}"/>
+                        <filter string="Fundo" name="groupby_fundo_id" domain="[]"  context="{'group_by': 'fundo_id'}"/>
+                        <filter string="Responsable" name="groupby_responsable_id" domain="[]" context="{'group_by': 'responsable_id'}"/>
+                        <filter string="Trabajador" name="groupby_employee_id" domain="[]" context="{'group_by': 'employee_id'}" groups="stock.group_stock_multi_locations"/>
+                        <filter string="Estado" name="status" domain="[]" context="{'group_by': 'state'}"/>
+                        <filter string="Fecha" name="groupby_date" domain="[]" context="{'group_by': 'date'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+    <record id="action_view_hr_salary_custom_line" model="ir.actions.act_window">
+        <field name="name">Informes de Cuadrillas Propias</field>
+        <field name="res_model">hr.salary.custom.line</field>
+        <field name="view_mode">pivot,graph,list,kanban</field>
+        <field name="search_view_id" ref="step_hr.view_hr_salary_custom_line_search"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_cosecha_registry_form" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.form</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="arch" type="xml">
+            <form string="Registro Cosecha">
+                <header>
+                    <button name="action_in" string="Cambiar a Ingresado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'apro'"/>
+                    <button name="action_apro" string="Aprobado"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'in'"/>
+                    <button name="action_costeo" string="A Costeo"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'apro'"/>
+                    <button name="action_conta" string="Contabilizar"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'costo'"/>
+                    <button name="recibir_cosecha" string="Recibir Cosecha"
+                            type="object" class="oe_highlight"
+                            confirm="Esta Seguro de Recibir toda la cosecha registrada?"
+                            invisible="state != 'cont' or type_tarea == 'propio' or cos_recibida == True"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1" readonly="name != False" force_save="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" invisible="type_tarea == 'propio'" domain="[('step_contra', '=', True)]"/>
+                            <field name="type_tarea" widget="radio" readonly="1" force_save="1"/>
+                            <field name="salary_id" invisible="type_tarea == 'contratista'" domain="[('group_type', '!=', 'contratista'), ('state', '=', 'progress')]"/>
+                            <field name="salary_id_contrac" invisible="type_tarea == 'propio'" domain="[('group_type', '!=', 'propio'), ('state', '=', 'progress'), ('partner_id', '=', partner_id)]"/>
+                            <field name="labor_id" domain="[('is_labor', '=', True)]"/>
+                            <field name="super_id"/>
+                            <field name="cost_id"/>
+                            <field name="cuartel_id"/>
+                            <field name="variedad_id"/>
+                            <field name="type_cosecha"/>
+                            <field name="packaging_ids"/>
+                            <field name="product_id" domain="[('is_fruta', '=', True)]"/>
+                            <field name="product_uom_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="folio"/>
+                            <field name="responsable_id"/>
+                            <field name="fundo_id"/>
+                            <field name="pricelist_id" domain="[('group_type', '=', type_tarea),('cosecha', '=', True),('partner_id', '=', partner_id)]"/>
+                            <field name="especie_id"/>
+                            <field name="grupo_variedad_id_domain" widget="many2many_tags"/>
+                            <field name="qty_pasada"/>
+                            <field name="cosecha_ubi_id"/>
+                            <field name="company_id"/>
+                            <field name="cos_recibida" invisible="cos_recibida == False"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='movi_registry' string="Registro" invisible="type_tarea == 'contratista'">
+                            <field name="registry_line">
+                                <list editable="bottom">
+                                    <field name="registry_id" column_invisible="True"/>
+                                    <field name="employee_id" optional="show"/>
+                                    <field name="cost_id_domain" optional="show" widget="many2many_tags" column_invisible="True"/>
+                                    <field name="cost_id" optional="show" column_invisible="True"/>  <!--domain="[('id', 'in', cost_id_domain)]"-->
+                                    <field name="labor_id" optional="show" column_invisible="True"/>
+                                    <field name="uom_id" optional="show" column_invisible="True"/>
+                                    <field name="quantity" optional="show" sum="quantity"/>
+                                    <field name="hrs" optional="show" sum="hrs"/>
+                                    <field name="hrs_extra" optional="show" sum="hrs_extra"/>
+                                    <field name="hrs_total" optional="show" sum="hrs_total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='movi_line' string="Costo" invisible="type_tarea == 'contratista'">
+                            <field name="registry_line">
+                                <list editable="bottom">
+                                    <field name="registry_id" column_invisible="True"/>
+                                    <field name="employee_id" optional="show"/>
+                                    <field name="contract_id" optional="show"/>
+                                    <field name="cost_id_domain" optional="show" widget="many2many_tags" column_invisible="True"/>
+                                    <field name="cost_id" optional="show" column_invisible="True"/> <!--domain="[('id', 'in', cost_id_domain)]"-->
+                                    <field name="labor_id" optional="show" column_invisible="True"/>
+                                    <field name="uom_id" optional="show" column_invisible="True"/>
+                                    <field name="quantity" optional="show" sum="quantity"/>
+                                    <field name="hrs" optional="show" sum="hrs"/>
+                                    <field name="hrs_extra" optional="show" sum="hrs_extra"/>
+                                    <field name="hrs_total" optional="show" sum="hrs_total"/>
+                                    <field name="cant_minima" optional="show" sum="cant_minima"/>
+                                    <field name="tarifa" optional="show" sum="tarifa"/>
+                                    <field name="total_trato" optional="show" sum="total_trato"/>
+                                    <field name="sueldo_base" optional="show" sum="sueldo_base"/>
+                                    <field name="valor_hrs_extra" optional="show" sum="valor_hrs_extra"/>
+                                    <field name="variable_trato" optional="show" sum="variable_trato"/>
+                                    <field name="sem_corrida" optional="show" sum="sem_corrida"/>
+                                    <field name="sab_dom" optional="show" sum="sab_dom"/>
+                                    <field name="gratifica" optional="show" sum="gratifica"/>
+                                    <field name="cost_sueldo" optional="show" sum="cost_sueldo"/>
+                                    <field name="seguro" optional="show" sum="seguro"/>
+                                    <field name="feriado" optional="show" sum="feriado"/>
+                                    <field name="ias" optional="show" sum="ias"/>
+                                    <field name="cost_empresa" optional="show" sum="cost_empresa"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='movi_cost_line' string="Detalles" invisible="type_tarea == 'propio'">
+                            <field name="registry_tarja_line" create="0">
+                                <list editable="bottom">
+                                    <field name="registry_id" column_invisible="True"/>
+                                    <field name="employee_id_domain" optional="show" widget="many2many_tags" column_invisible="True"/>
+                                    <field name="employee_id" optional="show" domain="[('id', 'in', employee_id_domain)]"/>
+                                    <field name="cost_id_domain" optional="show" widget="many2many_tags" column_invisible="True"/>
+                                    <field name="cost_id" optional="show" domain="[('id', 'in', cost_id_domain)]" column_invisible="True"/>
+                                    <field name="labor_id" optional="show" column_invisible="True"/>
+                                    <field name="uom_id" optional="show" column_invisible="True"/>
+                                    <field name="quantity" optional="show" sum="quantity"/>
+                                    <field name="hrs" optional="show" sum="hrs"/>
+                                    <field name="cant_minima" optional="show" sum="cant_minima"/>
+                                    <field name="tarifa" optional="show" sum="tarifa"/>
+                                    <field name="trato_total" optional="show" sum="trato_total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='Conta' string="Contabilización" invisible="state not in ['costo','cont']">
+                            <group string="Contabilización">
+                                <field name="invoice_id" readonly="1" force_save="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_registry_list" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.list</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="type_tarea" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="salary_id" optional="show"/>
+                <field name="especie_id" optional="show"/>
+                <field name="grupo_variedad_id" optional="show"/>
+                <field name="cost_id" optional="show"/>
+                <field name="cuartel_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_cosecha_registry" model="ir.actions.act_window">
+        <field name="name">Registro Cosecha</field>
+        <field name="res_model">step.cosecha.registry</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('type_tarea', 'in', ['propio'])]</field>
+        <field name="context">{'step_default_propio':1}</field>
+    </record>
+
+    <record id="action_step_cosecha_registry_contra" model="ir.actions.act_window">
+        <field name="name">Registro Cosecha</field>
+        <field name="res_model">step.cosecha.registry</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('type_tarea', 'in', ['contratista'])]</field>
+        <field name="context">{'step_default_contratista':1}</field>
+    </record>
+
+    <record id="action_step_cosecha_registry_costo" model="ir.actions.act_window">
+        <field name="name">Costeo Cosecha Contratista</field>
+        <field name="res_model">step.cosecha.registry</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('type_tarea', 'in', ['contratista'])]</field>
+        <field name="context">{'step_default_contratista':1}</field>
+    </record>
+
+    <record id="action_step_cosecha_costo_pro" model="ir.actions.act_window">
+        <field name="name">Costeo Cosecha Propio</field>
+        <field name="res_model">step.cosecha.registry</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('type_tarea', 'in', ['propio'])]</field>
+        <field name="context">{'step_default_propio':1}</field>
+    </record>
+
+    <record id="step_action_picking_tree_incoming" model="ir.actions.act_window">
+        <field name="name">Recepción de Cosecha</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,kanban,form,calendar,activity</field>
+        <field name="domain">[('cosecha', '=', True)]</field>
+        <field name="context">{'contact_display': 'partner_address', 'restricted_picking_type_code': 'incoming', 'search_default_reception': 1}</field>
+        <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+    </record>
+
+    <!-- account.move (Journal Entry) -->
+
+    <record id="step_action_move_journal_propio" model="ir.actions.act_window">
+        <field name="name">Contabilización Cosecha</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,kanban,form,activity</field>
+        <field name="view_id" ref="account.view_move_tree"/>
+        <field name="search_view_id" ref="account.view_account_move_filter"/>
+        <field name="domain">[('propio', '=', True)]</field>
+        <field name="context">{'default_move_type': 'entry'}</field>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+            Create a journal entry
+          </p><p>
+            A journal entry consists of several journal items, each of
+            which is either a debit or a credit transaction.
+          </p>
+        </field>
+    </record>
+
+    <record id="step_action_move_journal_contra" model="ir.actions.act_window">
+        <field name="name">ProForma Cosecha</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,kanban,form,activity</field>
+        <field name="view_id" ref="account.view_move_tree"/>
+        <field name="search_view_id" ref="account.view_account_move_filter"/>
+        <field name="domain">[('contra', '=', True)]</field>
+        <field name="context">{'default_move_type': 'entry'}</field>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+            Create a journal entry
+          </p><p>
+            A journal entry consists of several journal items, each of
+            which is either a debit or a credit transaction.
+          </p>
+        </field>
+    </record>
+
+
+</odoo>

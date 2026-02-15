@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_tracker_form" model="ir.ui.view">
+        <field name="name">step.tracker.form</field>
+        <field name="model">step.tracker</field>
+        <field name="arch" type="xml">
+            <form string="Step Tracker">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <field name="note"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_list" model="ir.ui.view">
+        <field name="name">step.tracker.list</field>
+        <field name="model">step.tracker</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_tracker" model="ir.actions.act_window">
+        <field name="name">Step Tracker</field>
+        <field name="res_model">step.tracker</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

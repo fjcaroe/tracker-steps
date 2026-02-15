@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_temporada_form" model="ir.ui.view">
+        <field name="name">step.temporada.form</field>
+        <field name="model">step.temporada</field>
+        <field name="arch" type="xml">
+            <form string="Temporada">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="start_date"/>
+                            <field name="end_date"/>
+                        </group>
+                        <group>
+                            <field name="company_id"/>
+                            <field name="plan_id"/>
+                            <field name="cost_id"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_temporada_list" model="ir.ui.view">
+        <field name="name">step.temporada.list</field>
+        <field name="model">step.temporada</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="code" optional="show"/>
+                <field name="start_date" optional="show"/>
+                <field name="end_date" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="plan_id" optional="show"/>
+                <field name="cost_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_temporada" model="ir.actions.act_window">
+        <field name="name">Temporada</field>
+        <field name="res_model">step.temporada</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

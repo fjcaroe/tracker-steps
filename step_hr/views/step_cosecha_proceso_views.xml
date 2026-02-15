@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_cosecha_proceso_form" model="ir.ui.view">
+        <field name="name">step.cosecha.proceso.form</field>
+        <field name="model">step.cosecha.proceso</field>
+        <field name="arch" type="xml">
+            <form string="Proceso de Cosecha">
+                <header>
+                    <button name="action_draft" string="Cambiar a Borrador"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado a borrador"
+                            invisible="state == 'draft'"/>
+                    <button name="action_progress" string="En Proceso"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado en proceso"
+                            invisible="state == 'progress'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="super_id"/>
+                            <field name="cosecha_ubi_id"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='proceso_line' string="Detalles">
+                            <field name="proceso_line">
+                                <list editable="bottom">
+                                    <field name="proceso_id" column_invisible="True"/>
+                                    <field name="name" optional="show"/>
+                                    <field name="pro_cosecha" optional="show"/>
+                                    <field name="num_tarja" optional="show"/>
+                                    <field name="date_tarja_init" optional="show"/>
+                                    <field name="date_tarja_end" optional="show"/>
+                                    <field name="temp" optional="show"/>
+                                    <field name="calidad" optional="show"/>
+                                    <field name="comment" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_proceso_list" model="ir.ui.view">
+        <field name="name">step.cosecha.proceso.list</field>
+        <field name="model">step.cosecha.proceso</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="super_id" optional="show"/>
+                <field name="cosecha_ubi_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_cosecha_proceso" model="ir.actions.act_window">
+        <field name="name">Procesos de Cosecha</field>
+        <field name="res_model">step.cosecha.proceso</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+
+</odoo>

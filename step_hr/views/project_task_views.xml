@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="step_project_task_view_inherit" model="ir.ui.view">
+        <field name="name">project.task.form.inherit</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_ids']" position="before">
+                <field name="num_op"/>
+                <field name="grupo_variedad_id"/>
+                <field name="variedad_id"/>
+                <field name="cost_id"/>
+            </xpath>
+        </field>
+    </record>
+<!--    <record id="step_pricelist_items_view_inherit" model="ir.ui.view">-->
+<!--        <field name="name">step.pricelist.item.form.inherit</field>-->
+<!--        <field name="model">product.pricelist.item</field>-->
+<!--        <field name="inherit_id" ref="product.product_pricelist_item_form_view"/>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <xpath expr="//field[@name='product_tmpl_id']" position="after">-->
+<!--                <field name="labor_id"/>-->
+<!--            </xpath>-->
+<!--            <xpath expr="//field[@name='min_quantity']" position="after">-->
+<!--                <field name="can_std"/>-->
+<!--                <field name="can_max"/>-->
+<!--                <field name="tarifa_trato"/>-->
+<!--                <field name="uom_id"/>-->
+<!--                <field name="uom_trato"/>-->
+<!--            </xpath>-->
+<!--        </field>-->
+<!--    </record>-->
+</odoo>

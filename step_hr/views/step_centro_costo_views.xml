@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+<!--    <record id="view_step_centro_costo_form" model="ir.ui.view">-->
+<!--        <field name="name">step.centro.costo.form</field>-->
+<!--        <field name="model">step.centro.costo</field>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <form string="Centro de Costo">-->
+<!--                <sheet>-->
+<!--                    <div class="oe_title">-->
+<!--                        <h1>-->
+<!--                            <field name="name" required="1"/>-->
+<!--                        </h1>-->
+<!--                    </div>-->
+<!--                    <group>-->
+<!--                        <group>-->
+<!--                            <field name="cod_costo"/>-->
+<!--                            <field name="type_costo"/>-->
+<!--                            <field name="etapa_costo"/>-->
+<!--                            <field name="fundo_id"/>-->
+<!--                            <field name="plan_id"/>-->
+<!--                            <field name="cost_id"/>-->
+<!--                            <field name="maquina_id" invisible="type_costo != 'maquinaria'"/>-->
+<!--                        </group>-->
+<!--                        <group>-->
+<!--                            <field name="date"/>-->
+<!--                            <field name="responsable_id"/>-->
+<!--                            <field name="partner_id"/>-->
+<!--                            <field name="date_init"/>-->
+<!--                            <field name="company_id"/>-->
+<!--                            <field name="tipo_fruta"/>-->
+<!--                        </group>-->
+<!--                    </group>-->
+<!--                    <field name="note"/>-->
+<!--                    <notebook colspan="4">-->
+<!--                        <page name='rendimiento_line' string="Rendimientos">-->
+<!--                            <field name="rendimiento_line">-->
+<!--                                <list editable="bottom">-->
+<!--                                    <field name="centro_id" column_invisible="True"/>-->
+<!--                                    <field name="name" optional="show"/>-->
+<!--                                    <field name="labor_id" optional="show"/>-->
+<!--                                    <field name="uom_id" optional="show"/>-->
+<!--                                    <field name="uom_trato" optional="show"/>-->
+<!--                                    <field name="redim_std" optional="show"/>-->
+<!--                                </list>-->
+<!--                            </field>-->
+<!--                        </page>-->
+<!--                        <page name='datos' string="Datos Agricolas">-->
+<!--                            <group>-->
+<!--                                <group>-->
+<!--                                    <field name="id_cost"/>-->
+<!--                                    <field name="account_id"/>-->
+<!--                                    <field name="especie_id"/>-->
+<!--                                    <field name="grupo_variedad_id"/>-->
+<!--                                    <field name="variedad_id"/>-->
+<!--                                    <field name="date_plant"/>-->
+<!--                                    <field name="date_prod"/>-->
+<!--                                    <field name="date_prodtivos"/>-->
+<!--                                </group>-->
+<!--                                <group>-->
+<!--                                    <field name="has_cost"/>-->
+<!--                                    <field name="plant_cost"/>-->
+<!--                                    <field name="date_init_co"/>-->
+<!--                                    <field name="date_end_co"/>-->
+<!--                                </group>-->
+<!--                            </group>-->
+<!--                        </page>-->
+<!--                        <page name='cuartel_line' string="Cuarteles">-->
+<!--                            <field name="cuartel_line">-->
+<!--                                <list editable="bottom">-->
+<!--                                    <field name="name" optional="show"/>-->
+<!--                                    <field name="centro_id" optional="show" readonly="True" force_save="1"/>-->
+<!--                                    <field name="has_cuartel" optional="show"/>-->
+<!--                                    <field name="plant_cuartel" optional="show"/>-->
+<!--                                    <field name="hilera_cuartel" optional="show"/>-->
+<!--                                    <field name="dis_plant" optional="show"/>-->
+<!--                                    <field name="clon" optional="show"/>-->
+<!--                                    <field name="conduc" optional="show"/>-->
+<!--                                    <field name="patron" optional="show"/>-->
+<!--                                </list>-->
+<!--                            </field>-->
+<!--                        </page>-->
+<!--                        <page name='hilera_line' string="Hileras">-->
+<!--                            <field name="hilera_line">-->
+<!--                                <list editable="bottom">-->
+<!--                                    <field name="name" optional="show"/>-->
+<!--                                    <field name="centro_id" readonly="1" force_save="1"/>-->
+<!--                                    <field name="cuartel_id" domain="[('centro_id', '=', centro_id)]"/>-->
+<!--                                    <field name="plat_hilera" optional="show"/>-->
+<!--                                    <field name="mtrs_hilera" optional="show"/>-->
+<!--                                </list>-->
+<!--                            </field>-->
+<!--                        </page>-->
+<!--                        <page name='map' string="Mapa">-->
+<!--                        </page>-->
+<!--                    </notebook>-->
+<!--                </sheet>-->
+<!--            </form>-->
+<!--        </field>-->
+<!--    </record>-->
+
+<!--    <record id="view_step_centro_costo_list" model="ir.ui.view">-->
+<!--        <field name="name">step.centro.costo.list</field>-->
+<!--        <field name="model">step.centro.costo</field>-->
+<!--        <field name="arch" type="xml">-->
+<!--            <list>-->
+<!--                <field name="name" optional="show"/>-->
+<!--                <field name="cod_costo" optional="show"/>-->
+<!--                <field name="type_costo" optional="show"/>-->
+<!--                <field name="etapa_costo" optional="show"/>-->
+<!--                <field name="fundo_id" optional="show"/>-->
+<!--                <field name="plan_id" optional="show"/>-->
+<!--                <field name="cost_id" optional="show"/>-->
+<!--                <field name="maquina_id" optional="show"/>-->
+<!--                <field name="tipo_fruta" optional="show"/>-->
+<!--            </list>-->
+<!--        </field>-->
+<!--    </record>-->
+
+    <record id="step_view_account_analytic_account_form" model="ir.ui.view">
+            <field name="name">analytic.analytic.account.form</field>
+            <field name="model">account.analytic.account</field>
+            <field name="arch" type="xml">
+                <form string="jamie form">
+                    <sheet string="Analytic Account">
+                        <div class="oe_title">
+                            <label for="name"/>
+                            <h1>
+                                <field name="name" class="oe_inline" placeholder="e.g. Project XYZ"/>
+                            </h1>
+                        </div>
+                        <div name="project"/>
+                        <group name="main">
+                            <group>
+                                <field name="active" invisible="1"/>
+                                <field name="partner_id"/>
+                                <field name="code"/>
+                                <field name="type_costo"/>
+                                <field name="etapa_costo"/>
+                                <field name="fundo_id"/>
+<!--                                <field name="plan_id"/>-->
+                                <field name="maquina_id" invisible="type_costo != 'maquinaria'"/>
+                            </group>
+                            <group>
+                                <field name="plan_id" options="{'no_quick_create': True}"/>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="currency_id" options="{'no_create': True}" groups="base.group_multi_currency"/>
+                                <field name="date"/>
+                                <field name="responsable_id"/>
+                                <field name="date_init"/>
+                                <field name="tipo_fruta"/>
+                            </group>
+                        </group>
+                        <notebook colspan="4">
+                            <page name='rendimiento_line' string="Rendimientos">
+                                <field name="rendimiento_line">
+                                    <list editable="bottom">
+                                        <field name="centro_id" column_invisible="True"/>
+                                        <field name="name" optional="show"/>
+                                        <field name="labor_id" optional="show"/>
+                                        <field name="uom_id" optional="show"/>
+                                        <field name="uom_trato" optional="show"/>
+                                        <field name="redim_std" optional="show"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page name='datos' string="Datos Agricolas">
+                                <group>
+                                    <group>
+                                        <field name="id_cost"/>
+                                        <field name="especie_id"/>
+                                        <field name="grupo_variedad_id"/>
+                                        <field name="variedad_id"/>
+                                        <field name="date_plant"/>
+                                        <field name="date_prod"/>
+                                        <field name="date_prodtivos"/>
+                                    </group>
+                                    <group>
+                                        <field name="has_cost"/>
+                                        <field name="plant_cost"/>
+                                        <field name="date_init_co"/>
+                                        <field name="date_end_co"/>
+                                    </group>
+                                </group>
+                            </page>
+                            <page name='cuartel_line' string="Cuarteles">
+                                <field name="cuartel_line">
+                                    <list editable="bottom">
+                                        <field name="name" optional="show"/>
+                                        <field name="centro_id" optional="show" readonly="True" force_save="1"/>
+                                        <field name="has_cuartel" optional="show"/>
+                                        <field name="plant_cuartel" optional="show"/>
+                                        <field name="hilera_cuartel" optional="show"/>
+                                        <field name="dis_plant" optional="show"/>
+                                        <field name="clon" optional="show"/>
+                                        <field name="conduc" optional="show"/>
+                                        <field name="patron" optional="show"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page name='hilera_line' string="Hileras">
+                                <field name="hilera_line">
+                                    <list editable="bottom">
+                                        <field name="name" optional="show"/>
+                                        <field name="centro_id" readonly="1" force_save="1"/>
+                                        <field name="cuartel_id" domain="[('centro_id', '=', centro_id)]"/>
+                                        <field name="plat_hilera" optional="show"/>
+                                        <field name="mtrs_hilera" optional="show"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page name='map' string="Mapa">
+                            </page>
+                        </notebook>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <record id="step_view_account_analytic_account_list" model="ir.ui.view">
+            <field name="name">account.analytic.account.list</field>
+            <field name="model">account.analytic.account</field>
+            <field eval="8" name="priority"/>
+            <field name="arch" type="xml">
+                <list string="jamie" multi_edit="1">
+                    <field name="company_id" column_invisible="True"/>
+                    <field name="currency_id" column_invisible="True"/>
+                    <field name="name" string="Name"/>
+                    <field name="code"/>
+                    <field name="partner_id"/>
+                    <field name="plan_id"/>
+                    <field name="active" column_invisible="True"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="debit" sum="Debit" column_invisible="True"/>
+                    <field name="credit" sum="Credit" column_invisible="True"/>
+                    <field name="balance" sum="Balance"/>
+                </list>
+            </field>
+        </record>
+
+    <record id="action_step_centro_costo" model="ir.actions.act_window">
+        <field name="name">Centro de Costo</field>
+        <field name="res_model">step.centro.costo</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record model="ir.actions.act_window" id="action_step_centro_costo_analytic">
+        <field name="name">Centro de Costo</field>
+        <field name="res_model">account.analytic.account</field>
+        <field name="domain">[]</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('step_hr.step_view_account_analytic_account_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('step_hr.step_view_account_analytic_account_form')})]"/>
+    </record>
+
+
+</odoo>

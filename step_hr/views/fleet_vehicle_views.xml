@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="step_view_fleet_vehicle_form">
+        <field name="name">step.fleet.vehicle.form</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='next_assignation_date']" position="after">
+                <field name="cost_id"/>
+                <field name="analytic_id"/>
+            </xpath>
+            <xpath expr="//page[@name='page_model']" position="inside">
+                <group>
+                    <group string="Pasajeros">
+                        <field name="step_min_pass"/>
+                        <field name="step_max_pass"/>
+                    </group>
+                    <group string="Capacidad de carga">
+                        <field name="step_tonelada"/>
+                        <field name="step_mtrs_cub"/>
+                        <field name="step_litros"/>
+                        <field name="step_cant_pallet"/>
+                        <field name="step_cant_bins"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="modalidad de carga">
+                        <field name="mod_carga"/>
+                    </group>
+                </group>
+            </xpath>
+            <xpath expr="//page[@name='note']" position="after">
+                <page name='cost_hrs' string="Costo Hora">
+                    <group>
+                        <group string="Combustible">
+                            <field name="step_product_id"/>
+                            <field name="step_litros_hrmq"/>
+                            <field name="step_cost_unid"/>
+                            <field name="step_cost_hrs"/>
+                        </group>
+                        <group string="Consumos mensuales">
+                            <field name="step_man_hrs"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Proporción mensual (provisión)">
+                            <field name="step_propo_hrmq"/>
+                        </group>
+                        <group string="Resumen por hora máquina">
+                            <field name="step_total_hrs_mes"/>
+                            <field name="step_cost_hrmq_standar"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id='step_fleet_vehicle_action' model='ir.actions.act_window'>
+        <field name="name">Vehículo</field>
+        <field name="res_model">fleet.vehicle</field>
+        <field name="view_mode">list,form,kanban,pivot,activity</field>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+            Ready to manage your fleet more efficiently?
+          </p><p>
+            Let's create your first vehicle.
+          </p>
+        </field>
+    </record>
+</odoo>

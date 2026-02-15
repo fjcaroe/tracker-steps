@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_res_sector_form" model="ir.ui.view">
+        <field name="name">res.sector.form</field>
+        <field name="model">res.sector</field>
+        <field name="arch" type="xml">
+            <form string="Sector">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="city_id"/>
+                        <field name="state_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_res_sector_list" model="ir.ui.view">
+        <field name="name">res.sector.list</field>
+        <field name="model">res.sector</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="state_id" optional="show"/>
+                <field name="city_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_res_sector" model="ir.actions.act_window">
+        <field name="name">Sector</field>
+        <field name="res_model">res.sector</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

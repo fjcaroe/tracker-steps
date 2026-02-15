@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_hr_salary_custom_form" model="ir.ui.view">
+        <field name="name">hr.salary.custom.form</field>
+        <field name="model">hr.salary.custom</field>
+        <field name="arch" type="xml">
+            <form string="Cuadrilla">
+                <header>
+                    <button name="action_draft" string="Cambiar a Borrador"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado a borrador"
+                            invisible="state == 'draft'"/>
+                    <button name="action_progress" string="En Proceso"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado en proceso"
+                            invisible="state == 'progress'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id" invisible="1"/> <!--invisible="group_type == 'propio'"  domain="[('step_contra', '=', True)]"-->
+                            <field name="group_type" widget="radio" readonly="1" force_save="1"/>
+                            <field name="date"/>
+                            <field name="fundo_id"/>
+                            <field name="employee_id" invisible="group_type == 'contratista'"/>
+                            <field name="date_init"/>
+                            <field name="date_to"/>
+                        </group>
+                        <group>
+                            <field name="folio"/>
+                            <field name="responsable_id" domain="[('user_id', '!=', False)]"/>
+                            <field name="company_id"/>
+                            <field name="payslip_run_id" invisible="1"/>
+                            <field name="struct_id" invisible="1"/>
+                            <field name="work_entry_type_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='salary_custom' string="Lineas Sueldos Variables" invisible="group_type == 'contratista'">
+                            <field name="salary_line">
+                                <list editable="bottom">
+                                    <field name="salary_id" column_invisible="True"/>
+                                    <field name="employee_id" optional="show" domain="[('is_propio', '=', True)]"/>
+                                    <field name="cod_nip" optional="show"/>
+                                    <field name="contract_id" optional="show" column_invisible="True"/>
+                                    <field name="hours" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='contract_line' string="Lineas Sueldos Variables" invisible="group_type == 'propio'">
+                            <field name="contract_line">
+                                <list editable="bottom">
+                                    <field name="salary_id" column_invisible="True"/>
+                                    <field name="partner_id" optional="show"/>
+                                    <field name="employee_id" domain="[('is_contratista', '=', True)]" optional="show" options="{'no_create': True}"/> <!--domain="[('id', 'in', employee_id_domain)]"  -->
+                                    <field name="employee_id_domain" optional="show" widget="many2many_tags" column_invisible="True"/>
+                                    <field name="cod_nip" optional="show"/>
+                                    <field name="hours" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_salary_custom_list" model="ir.ui.view">
+        <field name="name">hr.salary.custom.list</field>
+        <field name="model">hr.salary.custom</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="group_type" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="employee_id" optional="show"/>
+                <field name="folio" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="work_entry_type_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hr_salary_custom" model="ir.actions.act_window">
+        <field name="name">Sueldo Variable</field>
+        <field name="res_model">hr.salary.custom</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[('group_type', '=', 'propio')]</field>
+        <field name="context">{'step_default_propio':1}</field>
+    </record>
+
+    <record id="action_hr_salary_custom_contra" model="ir.actions.act_window">
+        <field name="name">Cuadrilla Contratista</field>
+        <field name="res_model">hr.salary.custom</field>
+        <field name="view_mode">list,form,kanban</field>
+        <field name="domain">[('group_type', '=', 'contratista')]</field>
+        <field name="context">{'step_default_contratista':1}</field>
+    </record>
+
+</odoo>

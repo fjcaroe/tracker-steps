@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="step_view_product_template_form">
+        <field name="name">step.product.template.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='general_information']" position="after">
+                <page name='agricola' string="Agrícola">
+                    <group>
+                        <group>
+                            <field name="is_fruta"/>
+                            <field name="is_labor"/>
+                            <field name="actividad_id" domain="[('plan_id.name', '=', 'Actividad')]" invisible="is_labor == False"/>
+                        </group>
+                        <group>
+                            <field name="is_movi"/>
+                            <field name="is_flete"/>
+                            <field name="cosecha"/>
+                        </group>
+                    </group>
+                </page>
+                <page name='step_actividades' string="Actividades" invisible="is_labor == False">
+                    <group string="Actividades">
+                        <group>
+                            <field name="cod_labor"/>
+                            <field name="uom_trato"/>
+                            <field name="grupo_labor" invisible="is_labor == False"/>
+                            <field name="qa" invisible="is_labor == False"/>
+                            <field name="date" invisible="is_labor == False"/>
+                        </group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="met_costeo"/>
+                            <field name="es_trabajador"/>
+                            <field name="es_maquina"/>
+                            <field name="date_init"/>
+                            <field name="date_end"/>
+                        </group>
+                    </group>
+                </page>
+                <page name='bpa' string="BPA">
+                    <group>
+                        <group>
+                            <field name="is_bpa"/>
+                            <field name="step_ingrediente"/>
+                            <field name="dia_carencia"/>
+                            <field name="hrs_reingreso"/>
+                            <field name="step_toxi"/>
+                        </group>
+                        <group>
+                            <field name="step_class"/>
+                            <field name="step_objetivo"/>
+                            <field name="step_equi"/>
+                            <field name="step_epp"/>
+                            <field name="step_proteje"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="step_product_template_action" model="ir.actions.act_window">
+        <field name="name">Productos / Labores</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form,activity</field>
+        <field name="view_id" ref="product.product_template_kanban_view"/>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+        <field name="domain">[('is_labor', '=', True)]</field>
+        <field name="context">{"search_default_filter_is_labor":1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear un nuevo producto / Labor
+            </p><p>
+                Debe definir un producto para todo lo que vende o compra, ya sea un producto
+                Productos o Labores.
+            </p>
+        </field>
+    </record>
+
+</odoo>

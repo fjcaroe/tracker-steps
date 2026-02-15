@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="step_view_hr_contract_form">
+        <field name="name">step.hr.contract.form</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='other']" position="after">
+                <page name='cost_empre' string="Costo Empresa">
+                    <group>
+                        <group string="Haberes mensuales">
+                            <field name="sueldo_base"/>
+                            <field name="grati"/>
+                            <field name="otro_impo"/>
+                            <field name="total_impo"/>
+                            <field name="otro_no_imp"/>
+                            <field name="valor_extra"/>
+                            <field name="valor_max_extra"/>
+                        </group>
+                        <group col="3" string="Seguros y provisiones">
+                            <field name="step_sis"/>
+                            <field name="step_sis_factor" nolabel="1"/>
+                            <field name="step_seguro"/>
+                            <field name="step_seguro_factor" nolabel="1"/>
+                            <field name="aport_patronal"/>
+                            <field name="aport_patronal_factor" nolabel="1"/>
+                            <field name="fer_propor"/>
+                            <field name="fer_propor_factor" nolabel="1"/>
+                            <field name="step_ias"/>
+                            <field name="step_ias_factor" nolabel="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Costos">
+                            <field name="total_cost"/>
+                            <field name="cost_dia"/>
+                            <field name="cost_hora"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

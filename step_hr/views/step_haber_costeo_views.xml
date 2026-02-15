@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_haber_costeo_form" model="ir.ui.view">
+        <field name="name">step.haber.costeo.form</field>
+        <field name="model">step.haber.costeo</field>
+        <field name="arch" type="xml">
+            <form string="Haberes de costeo sueldo">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="type"/>
+                            <field name="debe_account_id"/>
+                            <field name="haber_account_id"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="company_id"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_haber_costeo_list" model="ir.ui.view">
+        <field name="name">step.haber.costeo.list</field>
+        <field name="model">step.haber.costeo</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="type" optional="show"/>
+                <field name="debe_account_id" optional="show"/>
+                <field name="haber_account_id" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="active" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_haber_costeo" model="ir.actions.act_window">
+        <field name="name">Haberes de costeo sueldo</field>
+        <field name="res_model">step.haber.costeo</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

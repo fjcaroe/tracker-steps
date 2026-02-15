@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_hr_route_form" model="ir.ui.view">
+        <field name="name">hr.route.form</field>
+        <field name="model">hr.route</field>
+        <field name="arch" type="xml">
+            <form string="Recorrido">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="cod_recorrido"/>
+                            <field name="km_recorrido"/>
+                            <field name="travel_type"/>
+                            <field name="time_recorrido" widget="timesheet_uom"/>
+                            <field name="product_id" domain="[('is_movi', '=', True)]"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="desde"/>
+                            <field name="hasta"/>
+                        </group>
+                    </group>
+                    <field name="route_note"/>
+                    <notebook colspan="4">
+                        <page name='route_line' string="Lineas Paradas">
+                            <field name="route_line">
+                                <list editable="bottom">
+                                    <field name="route_id" column_invisible="True"/>
+                                    <field name="name" optional="show"/>
+                                    <field name="stop_kms" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_route_list" model="ir.ui.view">
+        <field name="name">hr.route.list</field>
+        <field name="model">hr.route</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="cod_recorrido" optional="show"/>
+                <field name="km_recorrido" optional="show"/>
+                <field name="travel_type" optional="show"/>
+                <field name="time_recorrido" optional="show"/>
+                <field name="product_id" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="desde" optional="show"/>
+                <field name="hasta" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hr_route" model="ir.actions.act_window">
+        <field name="name">Recorrido</field>
+        <field name="res_model">hr.route</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
