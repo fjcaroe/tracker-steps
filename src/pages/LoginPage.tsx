@@ -39,7 +39,7 @@ export default function LoginPage() {
       <div className="login-bg" aria-hidden="true" />
 
       <div className="login-wrap">
-        <div className="login-card card">
+        <div className="login-card">
           <div className="login-header">
             <div className="login-brand">
               <div className="login-mark" aria-hidden="true">
@@ -104,7 +104,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              className="login-submit app-nav-button"
+              className="login-submit button button--primary"
               disabled={!canSubmit}
             >
               {loading ? (
