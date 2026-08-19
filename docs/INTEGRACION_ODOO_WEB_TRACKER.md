@@ -103,7 +103,14 @@ ambiente de pruebas y revisar el log.
    `addons_path` del servidor y `-u step_hr`, o desde
    *Ajustes → Apps → Actualizar*).
 2. Ir a **Ajustes → Labores y Tareas → Web Tracker** y completar:
-   - URL de la API (el backend, **no** `stepsapp.cl/web_tracker/`).
+   - URL de la API: **`https://stepsapp.cl/tracker-steps`** (confirmado
+     directamente en `/etc/nginx/sites-available/stepsapp` del servidor:
+     `location ^~ /tracker-steps/ { rewrite ^/tracker-steps/(.*)$ /$1 break;
+     proxy_pass http://127.0.0.1:8000; }` — coincide con
+     `VITE_API_BASE_URL` del frontend en producción). **No** usar
+     `stepsapp.cl/web_tracker/`, que es el sitio estático, ni
+     `stepsapp.cl/api/steps-truck/`, que es un backend distinto (puerto
+     9000, otra app).
    - Usuario y contraseña de una cuenta de servicio en Web Tracker
      (recomendado crear una cuenta dedicada de solo-lectura, no reusar la
      de un operador).
@@ -131,7 +138,11 @@ ambiente de pruebas y revisar el log.
   consistente con esa convención).
 - Paginar `/sessions_recent` si el volumen supera el límite fijo actual
   (`SESSIONS_PAGE_SIZE = 500` en `step_tracker_sync.py`).
-- Este documento y el módulo se hicieron sin acceso al backend FastAPI real
-  ni a un Odoo corriendo: falta probarlo contra el servidor
-  (`gcloud compute ssh --zone "us-central1-c" "odoo-new" --project "stepsconsulting"`)
-  antes de darlo por terminado.
+- El 2026-08-19 se confirmó por SSH la URL real de la API
+  (`https://stepsapp.cl/tracker-steps`, ver más arriba) y que el servidor
+  tiene Odoo corriendo en el mismo host (proxy `/` → `:8069`), pero **no
+  se instaló ni probó el módulo `step_hr` contra ese Odoo real** — falta
+  copiarlo al `addons_path` que use esa instancia, actualizarlo
+  (`-u step_hr` o desde Apps) y correr "Sincronizar ahora" con una cuenta
+  de servicio real para validar el contrato de datos de
+  `/machines`, `/drivers`, `/fields` y `/sessions_recent`.
