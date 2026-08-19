@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/LoginPage.tsx
 import React, { useMemo, useState } from "react";
-import { useAuthWeb } from "../services/AuthContext";
+import { useAuthWeb } from "../services/useAuthWeb";
 
 export default function LoginPage() {
   const { login } = useAuthWeb();

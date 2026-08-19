@@ -42,7 +42,7 @@ export function setToken(token: string | null) {
   }
 }
 
-function buildHeaders(init?: HeadersInit, body?: any) {
+function buildHeaders(init?: HeadersInit, body?: BodyInit | null) {
   const h = new Headers(init || {});
 
   const t = authToken ?? getToken();

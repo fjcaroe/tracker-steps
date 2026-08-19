@@ -1,19 +1,9 @@
 // src/services/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { getToken, setToken, apiJson } from "./http";
 import type { CostCenterOut, UserOut } from "./auth";
 import { login as loginApi, logout as logoutApi } from "./auth";
-
-type AuthState = {
-  token: string | null;
-  user: UserOut | null;
-  costCenters: CostCenterOut[];
-  isReady: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
-};
-
-const Ctx = createContext<AuthState | null>(null);
+import { AuthContext, type AuthState } from "./useAuthWeb";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setTokenState] = useState<string | null>(getToken());
@@ -37,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const ccs = await apiJson<CostCenterOut[]>("/auth/me/cost_centers");
         setUser(me);
         setCostCenters(ccs);
-      } catch (e: any) {
+      } catch {
         // Si falló (401 típico), limpiamos
         setToken(null);
         setTokenState(null);
@@ -68,11 +58,5 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
   }), [token, user, costCenters, isReady]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
-}
-
-export function useAuthWeb() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useAuthWeb must be used within AuthProvider");
-  return v;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

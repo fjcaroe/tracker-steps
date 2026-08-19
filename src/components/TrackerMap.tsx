@@ -1,6 +1,6 @@
 // src/components/TrackerMap.tsx
 import { useEffect, useState, useMemo, useRef, Fragment } from "react";
-import { GoogleMap, Polyline, Polygon, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { GoogleMap, OverlayView, OverlayViewF, Polyline, Polygon, useJsApiLoader } from "@react-google-maps/api";
 import { MAPS_LIBRARIES, MAPS_LOADER_ID } from "../mapsConfig";
 import type { TrackPoint } from "../types";
 import { apiJson } from "../services/http";
@@ -54,6 +54,7 @@ type TrackerMapProps = {
 
   // ✅ para mobile/UX: cuando el usuario toca/arrastra el mapa, deja de seguir
   onUserInteract?: () => void;
+  onSelectSession?: (id: string) => void;
 };
 
 const defaultCenter: google.maps.LatLngLiteral = { lat: -33.45, lng: -70.65 };
@@ -69,12 +70,9 @@ function useMediaQuery(query: string) {
     const mql = window.matchMedia(query);
     const onChange = () => setMatches(mql.matches);
     onChange();
-    // Safari old
-    if ((mql as any).addEventListener) (mql as any).addEventListener("change", onChange);
-    else (mql as any).addListener(onChange);
+    mql.addEventListener("change", onChange);
     return () => {
-      if ((mql as any).removeEventListener) (mql as any).removeEventListener("change", onChange);
-      else (mql as any).removeListener(onChange);
+      mql.removeEventListener("change", onChange);
     };
   }, [query]);
 
@@ -154,31 +152,42 @@ function interpByTime(points: TrackT[], targetTs: number): TrackT | null {
   };
 }
 
-function interpByIndex(points: TrackT[], pos: number): TrackT | null {
-  if (!points.length) return null;
-  const max = points.length - 1;
-  if (pos <= 0) return points[0];
-  if (pos >= max) return points[max];
-
-  const i = Math.floor(pos);
-  const f = pos - i;
-  const a = points[i];
-  const b = points[i + 1];
-
-  return {
-    id: a.id,
-    t: a.t + (b.t - a.t) * f,
-    lat: a.lat + (b.lat - a.lat) * f,
-    lon: a.lon + (b.lon - a.lon) * f,
-    speed_mps: a.speed_mps ?? null,
-  };
-}
-
-
 const SCRUB_HOURS = 24;
 const LIVE_WINDOW_MIN = 30;
 const FULL_LIMIT = 120000;
 const LIVE_LIMIT = 2000;
+
+const operationalMapStyles: google.maps.MapTypeStyle[] = [
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#b5c4bb" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#e9eee9" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#d5ddd7" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#b9d9dc" }] },
+];
+
+function VehicleMarker({ session, selected, dimmed, onClick }: { session: ActiveSession; selected: boolean; dimmed: boolean; onClick?: () => void }) {
+  return (
+    <button
+      type="button"
+      className={`vehicle-map-marker ${selected ? "is-selected" : ""} ${dimmed ? "is-dimmed" : ""}`}
+      onClick={onClick}
+      title={`${session.machine_name || `Máquina #${session.machine_id}`} · ${session.driver_name || "Sin chofer"}`}
+      aria-label={`Enfocar ${session.machine_name || `máquina ${session.machine_id}`}`}
+    >
+      <span className="vehicle-map-marker__pulse" />
+      <span className="vehicle-map-marker__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7zM6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" /></svg>
+      </span>
+      <span className="vehicle-map-marker__label">{session.machine_name || `#${session.machine_id}`}</span>
+    </button>
+  );
+}
+
+function TrackPointMarker({ kind }: { kind: "start" | "current" }) {
+  return <span className={`track-point-marker track-point-marker--${kind}`}>{kind === "start" ? "Inicio" : "Ahora"}</span>;
+}
 
 
 
@@ -191,6 +200,7 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
   followSelected = true,
   showOnlySelectedTrack = false,
   onUserInteract,
+  onSelectSession,
 }) => {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -241,23 +251,10 @@ const TrackerMap: React.FC<TrackerMapProps> = ({
 
     const fallback = sessionPoints[selectedSessionId] || [];
     return fallback;
-  }, [hasLiveMode, selectedSessionId, selectedPoints, sessionPoints]);
+  }, [hasLiveMode, selectedSessionId, selectedPoints, sessionPoints, RENDER_CAP]);
 
   // ---- día options (para el selector) ----
   type DayOption = { key: string; label: string; minTs: number; maxTs: number; count: number };
-  const [renderNonce, setRenderNonce] = useState(0);
-
-const usingSelectedPoints = !!(selectedPoints?.length);
-
-// firma del filtro SOLO cuando estás usando selectedPoints (o sea, viene del App)
-const filterSig = useMemo(() => {
-  if (!usingSelectedPoints) return "server";
-  if (!selectedTrack.length) return "empty";
-  const first = selectedTrack[0].t;
-  const last = selectedTrack[selectedTrack.length - 1].t;
-  return `${first}-${last}-${selectedTrack.length}`;
-}, [usingSelectedPoints, selectedTrack]);
-
   const dayOptions: DayOption[] = useMemo(() => {
     if (!selectedTrack.length) return [];
     const acc = new Map<string, DayOption>();
@@ -285,82 +282,34 @@ const filterSig = useMemo(() => {
     return Array.from(acc.values()).sort((a, b) => (a.key < b.key ? 1 : -1));
   }, [selectedTrack]);
 
-useEffect(() => {
-  // cambia sesión o cambia el filtro => resetea todo
-  setIsPlaying(false);
-  playPosRef.current = 0;
-  setPlayedIdx(0);
-  lastFollowTsRef.current = null;
-
-  setScrubTs(null);
-  setSelectedDayKey(null);
-
-  // limpia cache de la sesión seleccionada (evita mezcla/solape)
-  if (selectedSessionId) {
-    delete cacheRef.current[selectedSessionId];
-    setSessionPoints((prev) => {
-      const copy = { ...prev };
-      delete copy[selectedSessionId];
-      return copy;
-    });
-  }
-
-  // fuerza remount de overlays (evita overlays pegados)
-  setRenderNonce((n) => n + 1);
-}, [selectedSessionId, filterSig]);
-
-  useEffect(() => {
-    if (!dayOptions.length) {
-      if (selectedDayKey !== null) setSelectedDayKey(null);
-      return;
-    }
-    if (!selectedDayKey) setSelectedDayKey(dayOptions[0].key);
-  }, [dayOptions, selectedDayKey]);
+  const effectiveDayKey = selectedDayKey && dayOptions.some((day) => day.key === selectedDayKey)
+    ? selectedDayKey
+    : dayOptions[0]?.key ?? null;
 
   // ---- scrub points (filtrados por día si aplica) ----
   const scrubPoints = useMemo(() => {
     if (!selectedTrack.length) return [];
-    if (!selectedDayKey) return selectedTrack;
-    return selectedTrack.filter((p) => dayKeyFromT(p.t) === selectedDayKey);
-  }, [selectedTrack, selectedDayKey]);
+    if (!effectiveDayKey) return selectedTrack;
+    return selectedTrack.filter((p) => dayKeyFromT(p.t) === effectiveDayKey);
+  }, [selectedTrack, effectiveDayKey]);
 
   const scrubPointsRaw = useMemo(() => {
   if (!selectedTrack.length) return [];
-  if (!selectedDayKey) return selectedTrack;
-  return selectedTrack.filter((p) => dayKeyFromT(p.t) === selectedDayKey);
-}, [selectedTrack, selectedDayKey]);
+  if (!effectiveDayKey) return selectedTrack;
+  return selectedTrack.filter((p) => dayKeyFromT(p.t) === effectiveDayKey);
+}, [selectedTrack, effectiveDayKey]);
 
 const scrubPointsRender = useMemo(() => {
 
   const CAP = PLAYED_CAP;
   return scrubPointsRaw.length > CAP ? decimate(scrubPointsRaw, CAP) : scrubPointsRaw;
-}, [scrubPointsRaw]);
+}, [scrubPointsRaw, PLAYED_CAP]);
 
 
 const scrubMinMax = useMemo(() => {
   if (!scrubPointsRaw.length) return null;
   return { min: scrubPointsRaw[0].t, max: scrubPointsRaw[scrubPointsRaw.length - 1].t };
 }, [scrubPointsRaw]);
-
-  // al entrar a fullscreen, inicializa scrub al último punto
-  useEffect(() => {
-    if (!isFs) return;
-    if (!scrubMinMax) return;
-    setScrubTs(scrubMinMax.max);
-  }, [isFs, scrubMinMax]);
-
-  // cambia día => pausa
-  useEffect(() => {
-    setIsPlaying(false);
-  }, [selectedDayKey]);
-
-  // si cambia selectedDayKey => mover scrub al final del día
-  useEffect(() => {
-    if (!selectedDayKey) return;
-    const opt = dayOptions.find((d) => d.key === selectedDayKey);
-    if (!opt) return;
-    setScrubTs(opt.maxTs);
-  }, [selectedDayKey, dayOptions]);
 
   const onScrubChange = (v: number) => {
     setIsPlaying(false);
@@ -376,11 +325,9 @@ const scrubPoint = useMemo<TrackT | null>(() => {
   if (!selectedSessionId) return null;
   if (!scrubPointsRaw.length) return null;
 
-  if (isPlaying) return interpByIndex(scrubPointsRaw, playPosRef.current);
-
   const t = scrubTs ?? scrubPointsRaw[scrubPointsRaw.length - 1].t;
   return interpByTime(scrubPointsRaw, t);
-}, [isFs, selectedSessionId, scrubPointsRaw, scrubTs, isPlaying]);
+}, [isFs, selectedSessionId, scrubPointsRaw, scrubTs]);
 
 
 
@@ -393,7 +340,7 @@ const scrubPoint = useMemo<TrackT | null>(() => {
 }, []);
 
 useEffect(() => {
-  if (!isFs) { setIsPlaying(false); return; }
+  if (!isFs) return;
   if (!isPlaying) return;
   if (!scrubMinMax || scrubPointsRaw.length < 2) return;
 
@@ -581,7 +528,9 @@ function idxFromTs(points: TrackT[], ts: number) {
   // ---- fullscreen handling ----
   useEffect(() => {
     const onFsChange = () => {
-      setIsNativeFullscreen(!!document.fullscreenElement);
+      const active = !!document.fullscreenElement;
+      setIsNativeFullscreen(active);
+      if (!active) setIsPlaying(false);
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
@@ -617,6 +566,7 @@ function idxFromTs(points: TrackT[], ts: number) {
     // si estamos en pseudo, salimos
     if (isPseudoFullscreen) {
       setIsPseudoFullscreen(false);
+      setIsPlaying(false);
       return;
     }
 
@@ -632,22 +582,19 @@ function idxFromTs(points: TrackT[], ts: number) {
 
     // intentar native fullscreen; si falla (iOS Safari), usar pseudo
     try {
-      const req = (el as any).requestFullscreen;
-      if (typeof req === "function") {
-        // navigationUI hide no siempre existe, pero si está, mejor
-        await (el as any).requestFullscreen?.({ navigationUI: "hide" });
-      } else {
-        setIsPseudoFullscreen(true);
+      if (scrubMinMax) {
+        setScrubTs(scrubMinMax.max);
+        setPlayedIdx(scrubPointsRaw.length ? scrubPointsRaw.length - 1 : 0);
+        playPosRef.current = scrubPointsRaw.length ? scrubPointsRaw.length - 1 : 0;
       }
-    } catch (e) {
+      await el.requestFullscreen({ navigationUI: "hide" });
+    } catch {
       setIsPseudoFullscreen(true);
     }
   };
 
   // ---- centrado / bounds ----
   const mapCenter: google.maps.LatLngLiteral = useMemo(() => defaultCenter, []);
-
-  const lastFollowTsRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!mapRef || !isLoaded) return;
@@ -677,9 +624,6 @@ useEffect(() => {
   if (!selectedTrack.length) return;
   const last = selectedTrack[selectedTrack.length - 1];
 
-  if (lastFollowTsRef.current != null && last.t <= lastFollowTsRef.current) return;
-  lastFollowTsRef.current = last.t;
-
   mapRef.panTo({ lat: last.lat, lng: last.lon });
 
   const z = mapRef.getZoom() ?? 0;
@@ -704,7 +648,7 @@ useEffect(() => {
   return () => {
     if (panRafRef.current) cancelAnimationFrame(panRafRef.current);
   };
-}, [isFs, mapRef, isLoaded, scrubPoint?.t]); // 👈 clave
+}, [isFs, mapRef, isLoaded, scrubPoint]);
 
 
 
@@ -722,11 +666,11 @@ const playedPointsRender = useMemo(() => {
   const idx = Math.min(Math.max(0, playedIdx), scrubPointsRaw.length - 1);
   let slice = scrubPointsRaw.slice(0, idx + 1);
 
-  const cur = interpByIndex(scrubPointsRaw, playPosRef.current);
+  const cur = interpByTime(scrubPointsRaw, scrubTs ?? scrubPointsRaw[idx].t);
   if (cur) slice = [...slice, cur];
 
   return slice.length > PLAYED_CAP ? decimate(slice, PLAYED_CAP) : slice;
-}, [isFs, scrubPointsRaw, playedIdx]);
+}, [isFs, scrubPointsRaw, playedIdx, PLAYED_CAP, scrubTs]);
 
 const selectedPathPlayed = useMemo(
   () => playedPointsRender.map((p) => ({ lat: p.lat, lng: p.lon })),
@@ -759,7 +703,7 @@ const selectedPathPlayed = useMemo(
         onClick={toggleFullscreen}
         title={isFs ? "Salir de pantalla completa" : "Pantalla completa"}
       >
-        {isFs ? "Salir" : "Pantalla completa"}
+        {isFs ? "Cerrar vista" : "Ampliar mapa"}
       </button>
 
       <GoogleMap
@@ -768,11 +712,14 @@ const selectedPathPlayed = useMemo(
         zoom={14}
         mapContainerClassName={isFs ? "tracker-map-canvas tracker-map-canvas--fullscreen" : "tracker-map-canvas"}
         options={{
-          mapTypeId: "hybrid",
+          mapTypeId: "roadmap",
+          styles: operationalMapStyles,
           streetViewControl: false,
           fullscreenControl: false,
           mapTypeControl: false,
           clickableIcons: false,
+          gestureHandling: "greedy",
+          zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_CENTER },
         }}
         onDragStart={() => onUserInteract?.()}
         onClick={() => onUserInteract?.()}
@@ -814,15 +761,15 @@ const selectedPathPlayed = useMemo(
             // ✅ en fullscreen + seleccionado: dibuja “completo tenue” + “reproducido”
           if (isFs && isSelected && selectedPathFull.length > 1) {
   return (
-    <Fragment key={`sel-${s.id}-${renderNonce}`}>
+    <Fragment key={`sel-${s.id}`}>
       <Polyline
         path={selectedPathFull}
-        options={{ strokeColor: "#94a3b8", strokeOpacity: 0.45, strokeWeight: 4 }}
+        options={{ strokeColor: "#6f847b", strokeOpacity: 0.36, strokeWeight: 5 }}
       />
       {selectedPathPlayed.length > 1 && (
         <Polyline
           path={selectedPathPlayed}
-          options={{ strokeColor: "#f97316", strokeOpacity: 0.95, strokeWeight: 6 }}
+          options={{ strokeColor: "#d94835", strokeOpacity: 0.96, strokeWeight: 6 }}
         />
       )}
     </Fragment>
@@ -833,10 +780,10 @@ const selectedPathPlayed = useMemo(
             const path = track.map((p) => ({ lat: p.lat, lng: p.lon }));
             return (
               <Polyline
-                key={`line-${s.id}-${renderNonce}`}
+                key={`line-${s.id}`}
                 path={path}
                 options={{
-                  strokeColor: isSelected ? "#f97316" : "#38bdf8",
+                  strokeColor: isSelected ? "#d94835" : "#167d69",
                   strokeOpacity: dimOthers ? 0.25 : 0.9,
                   strokeWeight: isSelected ? 5 : 3,
                 }}
@@ -860,18 +807,13 @@ const selectedPathPlayed = useMemo(
             const dimOthers = !!selectedSessionId && !isSelected;
 
             return (
-              <Marker
+              <OverlayViewF
                 key={`marker-${s.id}`}
                 position={{ lat: last.lat, lng: last.lon }}
-                icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: isSelected ? 8 : 6,
-                  strokeColor: isSelected ? "#f97316" : "#0f172a",
-                  strokeWeight: isSelected ? 3 : 2,
-                  fillColor: isSelected ? "#ffffff" : "#e5e7eb",
-                  fillOpacity: dimOthers ? 0.6 : 1,
-                }}
-              />
+                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              >
+                <VehicleMarker session={s} selected={isSelected} dimmed={dimOthers} onClick={() => onSelectSession?.(s.id)} />
+              </OverlayViewF>
             );
           })}
 
@@ -881,40 +823,25 @@ const selectedPathPlayed = useMemo(
           <Polyline
             path={points.map((p) => ({ lat: p.lat, lng: p.lon }))}
             options={{
-              strokeColor: "#f97316",
+              strokeColor: "#d94835",
               strokeOpacity: 0.95,
-              strokeWeight: 4,
+              strokeWeight: 5,
             }}
           />
         )}
         {!hasLiveMode && points && points.length > 0 && (
-          <Marker
+          <OverlayViewF
             position={{ lat: points[points.length - 1].lat, lng: points[points.length - 1].lon }}
-            icon={{
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 7,
-              strokeColor: "#f97316",
-              strokeWeight: 2,
-              fillColor: "#ffffff",
-              fillOpacity: 1,
-            }}
-          />
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          ><TrackPointMarker kind="current" /></OverlayViewF>
         )}
 
         {isFs && selectedSessionId && scrubPoint && (
-  <Marker
+  <OverlayViewF
     key={`scrub-marker-${selectedSessionId}`}
     position={{ lat: scrubPoint.lat, lng: scrubPoint.lon }}
-    icon={{
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 9,
-      strokeColor: "#f97316",
-      strokeWeight: 3,
-      fillColor: "#ffffff",
-      fillOpacity: 1,
-    }}
-    zIndex={999}
-  />
+    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+  ><TrackPointMarker kind="current" /></OverlayViewF>
 )}
 
       </GoogleMap>
@@ -1001,8 +928,14 @@ const selectedPathPlayed = useMemo(
                 <div className="hud-label">Día</div>
                 <select
                   className="hud-select hud-select--grow"
-                  value={selectedDayKey ?? ""}
-                  onChange={(e) => setSelectedDayKey(e.target.value || null)}
+                  value={effectiveDayKey ?? ""}
+                  onChange={(e) => {
+                    const nextKey = e.target.value || null;
+                    setIsPlaying(false);
+                    setSelectedDayKey(nextKey);
+                    const nextDay = dayOptions.find((day) => day.key === nextKey);
+                    if (nextDay) setScrubTs(nextDay.maxTs);
+                  }}
                 >
                   {dayOptions.map((d) => (
                     <option key={d.key} value={d.key}>

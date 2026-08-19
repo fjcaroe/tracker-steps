@@ -5,7 +5,7 @@ import TrackerMap from "../components/TrackerMap";
 import type { TrackPoint } from "../types";
 
 import { apiJson } from "../services/http";
-import { useAuthWeb } from "../services/AuthContext";
+import { useAuthWeb } from "../services/useAuthWeb";
 type SessionSummary = {
   id: string;
   machine_id: number;

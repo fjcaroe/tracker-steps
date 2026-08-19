@@ -167,6 +167,9 @@ function startOfDay(d: Date) {
 }
 
 const hasCustomRange = Boolean(dateFrom || dateTo);
+const selectedSession = selectedSessionId
+  ? activeSessions.find((session) => session.id === selectedSessionId) ?? null
+  : null;
 
 const effectivePoints = useMemo(() => {
   // En LIVE, si hay sesión seleccionada, queremos ver lo filtrado del backend
@@ -214,6 +217,12 @@ const clearRange = () => {
   onDateToChange("");
 };
 
+const showFullSession = () => {
+  if (!selectedSession) return;
+  onDateFromChange(toDatetimeLocalValue(new Date(selectedSession.started_at)));
+  onDateToChange("");
+};
+
 
 
   // ---- filtro de sesiones activas (flota completa) ----
@@ -251,7 +260,7 @@ return (
       <div>
         <div className="card-title">Seguimiento</div>
        <div className="card-subtitle">
-  Monitorea en tiempo real las máquinas activas. Selecciona una o varias máquinas para filtrar y toca un vehículo para enfocarlo en el mapa.
+  Revisa sesiones abiertas, recorridos históricos y actividad reciente. Selecciona una máquina para enfocarla en el mapa.
 </div>
 
       </div>
@@ -263,8 +272,9 @@ return (
         <div className="tracker-status-text">
           {hasActive ? (
             <span className="tracker-status-main">
-              {filteredActiveSessions.length} vehículo
-              {filteredActiveSessions.length > 1 ? "s" : ""} en seguimiento
+              {filteredActiveSessions.length === 1
+                ? "1 sesión en seguimiento"
+                : `${filteredActiveSessions.length} sesiones en seguimiento`}
             </span>
           ) : (
             <span className="tracker-status-main">Sin máquinas en seguimiento</span>
@@ -284,7 +294,7 @@ return (
         <div className="live-active-sessions">
           <div className="live-active-header">
             <div className="live-active-title">
-              Vehículos en circulación ({filteredActiveSessions.length})
+              Sesiones disponibles ({filteredActiveSessions.length})
             </div>
 
            <div className="live-active-filters">
@@ -376,11 +386,11 @@ return (
 
          {selectedMachineIds.length === 0 ? (
   <div className="live-active-empty">
-    Selecciona una máquina en el buscador para ver su estado en vivo.
+    Selecciona una máquina en el buscador para revisar sus sesiones abiertas.
   </div>
 ) : filteredActiveSessions.length === 0 ? (
   <div className="live-active-empty">
-    No hay máquinas en circulación que coincidan con tu selección/filtro.
+    No hay sesiones que coincidan con tu selección o filtro.
   </div>
 ) : (
   <ul className="live-active-list">
@@ -408,7 +418,9 @@ return (
 
                     <div className="live-active-meta2">
                       Inicio:{" "}
-                      {new Date(s.started_at).toLocaleTimeString("es-CL", {
+                      {new Date(s.started_at).toLocaleString("es-CL", {
+                        dateStyle: "short",
+                        timeStyle: "short",
                         hour12: false,
                       })}
                     </div>
@@ -457,6 +469,15 @@ return (
       </button>
       <button type="button" className="app-nav-button" onClick={() => applyPreset("168h")}>
         Últ. 7 días
+      </button>
+      <button
+        type="button"
+        className="app-nav-button"
+        onClick={showFullSession}
+        disabled={!selectedSession}
+        title="Muestra el recorrido desde el inicio de la sesión seleccionada"
+      >
+        Sesión completa
       </button>
       <button type="button" className="app-nav-button" onClick={() => applyPreset("today")}>
         Hoy

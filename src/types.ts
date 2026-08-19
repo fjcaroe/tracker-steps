@@ -6,7 +6,7 @@ export type TrackPoint = {
   lon: number;
   accuracy?: number | null;
   speed_mps?: number | null;
-  extra?: any;
+  extra?: Record<string, unknown>;
 
 };
 
@@ -17,7 +17,7 @@ export type ApiLivePoint = {
   lon: number;
   speed_mps?: number | null;
   accuracy_m?: number | null;
-  extra?: any;
+  extra?: Record<string, unknown>;
 };
 export type SessionId = string;
 

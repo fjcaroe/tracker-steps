@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useState } from "react";
 import { apiJson } from "../services/http";
-import { useAuthWeb } from "../services/AuthContext";
+import { useAuthWeb } from "../services/useAuthWeb";
 import "./StatsPage.scss";
 
 // ====== Tipos ======
