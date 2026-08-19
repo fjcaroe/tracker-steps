@@ -27,6 +27,13 @@ access_step_tarja_cost,access.step.tarja.cost,model_step_tarja_cost,base.group_u
 access_step_tarja_cost_line,access.step.tarja.cost.line,model_step_tarja_cost_line,base.group_user,1,1,1,1
 access_step_rendimiento_line,access.step.rendimiento.line,model_step_rendimiento_line,base.group_user,1,1,1,1
 access_step_tracker,access.step.tracker,model_step_tracker,base.group_user,1,1,1,1
+access_step_tracker_machine,access.step.tracker.machine,model_step_tracker_machine,base.group_user,1,1,0,0
+access_step_tracker_driver,access.step.tracker.driver,model_step_tracker_driver,base.group_user,1,1,0,0
+access_step_tracker_field,access.step.tracker.field,model_step_tracker_field,base.group_user,1,1,0,0
+access_step_tracker_session,access.step.tracker.session,model_step_tracker_session,base.group_user,1,1,0,0
+access_step_tracker_work_order,access.step.tracker.work_order,model_step_tracker_work_order,base.group_user,1,1,0,0
+access_step_tracker_sync_log,access.step.tracker.sync.log,model_step_tracker_sync_log,base.group_user,1,0,0,0
+access_step_tracker_sync_log_system,access.step.tracker.sync.log.system,model_step_tracker_sync_log,base.group_system,1,1,1,1
 access_step_movi_registry,access.step.movi.registry,model_step_movi_registry,base.group_user,1,1,1,1
 access_step_movi_registry_line,access.step.movi.registry.line,model_step_movi_registry_line,base.group_user,1,1,1,1
 access_step_work_schedule,access.step.work.schedule,model_step_work_schedule,base.group_user,1,1,1,1

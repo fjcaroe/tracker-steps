@@ -42,6 +42,21 @@
                             <field name="propio_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
                         </setting>
                     </block>
+                    <block title="Web Tracker" name="step_hr_tracker">
+                        <setting id="step_tracker_base_url" title="URL del backend de Web Tracker (no la URL del sitio web_tracker/)" help="Ej: https://stepsapp.cl/tracker-api">
+                            <field name="step_tracker_base_url" class="o_light_label" placeholder="https://stepsapp.cl/tracker-api"/>
+                        </setting>
+                        <setting id="step_tracker_credentials" title="Cuenta de servicio con la que Odoo se autentica contra Web Tracker">
+                            <field name="step_tracker_username" class="o_light_label" placeholder="Usuario de servicio"/>
+                            <field name="step_tracker_password" class="o_light_label" password="True" placeholder="Contraseña"/>
+                        </setting>
+                        <setting id="step_tracker_sync_enabled" title="Activa el ciclo automático (ir.cron) que sincroniza máquinas, conductores, predios y sesiones recientes">
+                            <field name="step_tracker_sync_enabled"/>
+                        </setting>
+                        <setting id="step_tracker_sync_now" title="Ejecuta una sincronización inmediata para probar la conexión">
+                            <button name="action_step_tracker_sync_now" type="object" string="Sincronizar ahora" class="btn-secondary"/>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

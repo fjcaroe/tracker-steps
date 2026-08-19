@@ -24,6 +24,15 @@ class ResCompany(models.Model):
     step_feriado = fields.Float(string='Feriado', default=0.05833, digits=(2, 5))
     step_ias = fields.Float(string='IAS', default=0.0833, digits=(2, 4))
 
+    # Integración Web Tracker (monitoreo GPS de maquinaria agrícola)
+    step_tracker_base_url = fields.Char(
+        string='URL API Web Tracker',
+        help='URL del backend de Web Tracker, sin barra final. '
+             'Ej: https://stepsapp.cl/tracker-api (NO la URL del sitio web_tracker/).')
+    step_tracker_username = fields.Char(string='Usuario de servicio Web Tracker')
+    step_tracker_password = fields.Char(string='Contraseña de servicio Web Tracker')
+    step_tracker_sync_enabled = fields.Boolean(string='Sincronización automática activa', default=False)
+
     @api.onchange('gratifica')
     def onchange_gratifica(self):
         self.ensure_one()

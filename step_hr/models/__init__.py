@@ -38,6 +38,7 @@ from . import product_template
 from . import res_partner
 from . import fleet_vehicle
 from . import step_tracker
+from . import step_tracker_sync
 from . import step_movi_registry
 from . import step_movi_registry_line
 # from . import step_cosecha_registry

@@ -20,10 +20,14 @@
                 'sale',
                 'sale_management',
                 'fleet'],
+    'external_dependencies': {
+        'python': ['requests'],
+    },
     'data': [
         'security/ir.model.access.csv',
         'security/history_security.xml',
         'data/ir_sequence.xml',
+        'data/step_tracker_cron.xml',
         'views/res_company_views.xml',
         'views/hr_payslip_views.xml',
         'views/hr_salary_custom_views.xml',
@@ -50,6 +54,7 @@
         'views/res_partner_views.xml',
         'views/fleet_vehicle_views.xml',
         'views/step_tracker_views.xml',
+        'views/step_tracker_sync_views.xml',
         'views/step_movi_registry_views.xml',
         # 'views/step_cosecha_registry_views.xml',
         # 'views/step_cosecha_recepcion_views.xml',
