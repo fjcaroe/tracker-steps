@@ -33,7 +33,9 @@ export type DemoSession = {
   machine: string;
   driver: string;
   field: string;
+  labor: string;
   startedAt: string;
+  startedAtIso: string;
   durationHours: number;
   distanceKm: number;
   coveredHa: number;
@@ -41,6 +43,13 @@ export type DemoSession = {
   avgSpeedKmh: number;
   status: "active" | "completed" | "paused";
 };
+
+function isoAt(daysAgo: number, hour: number, minute: number): string {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString();
+}
 
 const METERS_PER_LAT = 111_320;
 
@@ -156,12 +165,12 @@ export function getDemoVehicles(elapsedSeconds: number, speedMultiplier = 1): De
 }
 
 export const DEMO_SESSIONS: DemoSession[] = [
-  { id: "DS-2401", machine: "Tractor 01", driver: "Operador Demo A", field: "Lote Norte A", startedAt: "Hoy, 07:42", durationHours: 4.8, distanceKm: 23.4, coveredHa: 11.8, fuelLiters: 31.2, avgSpeedKmh: 8.1, status: "active" },
-  { id: "DS-2402", machine: "Tractor 02", driver: "Operador Demo B", field: "Lote Canal 4", startedAt: "Hoy, 08:06", durationHours: 4.3, distanceKm: 19.1, coveredHa: 8.5, fuelLiters: 27.8, avgSpeedKmh: 6.9, status: "active" },
-  { id: "DS-2399", machine: "Pulverizador 03", driver: "Operador Demo C", field: "Cuartel Estación", startedAt: "Hoy, 06:55", durationHours: 5.6, distanceKm: 27.8, coveredHa: 13.2, fuelLiters: 38.6, avgSpeedKmh: 9.8, status: "active" },
-  { id: "DS-2398", machine: "Tractor 04", driver: "Operador Demo D", field: "Lote Sur 2", startedAt: "Hoy, 07:21", durationHours: 5.1, distanceKm: 24.7, coveredHa: 12.1, fuelLiters: 34.5, avgSpeedKmh: 7.4, status: "active" },
-  { id: "DS-2397", machine: "Tractor 01", driver: "Operador Demo A", field: "Lote Canal 4", startedAt: "Ayer, 13:10", durationHours: 3.7, distanceKm: 16.9, coveredHa: 7.6, fuelLiters: 24.1, avgSpeedKmh: 7.8, status: "completed" },
-  { id: "DS-2396", machine: "Tractor 04", driver: "Operador Demo D", field: "Lote Norte A", startedAt: "Ayer, 08:14", durationHours: 6.2, distanceKm: 31.5, coveredHa: 15.4, fuelLiters: 42.7, avgSpeedKmh: 7.2, status: "completed" },
+  { id: "DS-2401", machine: "Tractor 01", driver: "Operador Demo A", field: "Lote Norte A", labor: "Poda de formación", startedAt: "Hoy, 07:42", startedAtIso: isoAt(0, 7, 42), durationHours: 4.8, distanceKm: 23.4, coveredHa: 11.8, fuelLiters: 31.2, avgSpeedKmh: 8.1, status: "active" },
+  { id: "DS-2402", machine: "Tractor 02", driver: "Operador Demo B", field: "Lote Canal 4", labor: "Riego por goteo", startedAt: "Hoy, 08:06", startedAtIso: isoAt(0, 8, 6), durationHours: 4.3, distanceKm: 19.1, coveredHa: 8.5, fuelLiters: 27.8, avgSpeedKmh: 6.9, status: "active" },
+  { id: "DS-2399", machine: "Pulverizador 03", driver: "Operador Demo C", field: "Cuartel Estación", labor: "Aplicación fitosanitaria", startedAt: "Hoy, 06:55", startedAtIso: isoAt(0, 6, 55), durationHours: 5.6, distanceKm: 27.8, coveredHa: 13.2, fuelLiters: 38.6, avgSpeedKmh: 9.8, status: "active" },
+  { id: "DS-2398", machine: "Tractor 04", driver: "Operador Demo D", field: "Lote Sur 2", labor: "Rastraje", startedAt: "Hoy, 07:21", startedAtIso: isoAt(0, 7, 21), durationHours: 5.1, distanceKm: 24.7, coveredHa: 12.1, fuelLiters: 34.5, avgSpeedKmh: 7.4, status: "active" },
+  { id: "DS-2397", machine: "Tractor 01", driver: "Operador Demo A", field: "Lote Canal 4", labor: "Fertilización", startedAt: "Ayer, 13:10", startedAtIso: isoAt(1, 13, 10), durationHours: 3.7, distanceKm: 16.9, coveredHa: 7.6, fuelLiters: 24.1, avgSpeedKmh: 7.8, status: "completed" },
+  { id: "DS-2396", machine: "Tractor 04", driver: "Operador Demo D", field: "Lote Norte A", labor: "Cosecha mecanizada", startedAt: "Ayer, 08:14", startedAtIso: isoAt(1, 8, 14), durationHours: 6.2, distanceKm: 31.5, coveredHa: 15.4, fuelLiters: 42.7, avgSpeedKmh: 7.2, status: "completed" },
 ];
 
 export const DEMO_DAILY = [

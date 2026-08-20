@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import OperationsMap from "../components/OperationsMap";
 import {
   DEMO_EVENTS,
@@ -27,7 +27,12 @@ type ApiSession = {
   ended_at?: string | null;
   status: "open" | "closed";
   points_count: number;
+  labor_id?: number | null;
+  total_distance_m?: number | null;
+  avg_speed_kmh?: number | null;
 };
+
+type ApiLabor = { id: number; name: string };
 
 type RealData = {
   machines: ApiEntity[];
@@ -38,6 +43,41 @@ type RealData = {
 };
 
 const emptyRealData: RealData = { machines: [], drivers: [], costCenters: [], fields: [], sessions: [] };
+
+// Fila normalizada para el historial: la misma tabla sirve tanto para sesiones demo como reales.
+type HistoryRow = {
+  id: string;
+  startedAtLabel: string;
+  startedAtIso: string;
+  machine: string;
+  driver: string;
+  field: string;
+  labor: string;
+  durationHours: number | null;
+  distanceKm: number | null;
+  coveredHa: number | null;
+  fuelLiters: number | null;
+  statusTone: "active" | "completed" | "paused";
+  statusText: string;
+};
+
+function formatSessionDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" });
+}
+
+// Día calendario en hora LOCAL (America/Santiago), no UTC: a las 21:00 en Chile
+// (UTC-4) el día en UTC ya es "mañana", así que rebanar el ISO a lo bruto
+// desalinea "hoy" con las sesiones recién creadas.
+function localDateKey(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function number(value: number, digits = 1) {
   return value.toLocaleString("es-CL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -117,8 +157,15 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const [roadRouteStatus, setRoadRouteStatus] = useState<string | null>(null);
   const [historyQuery, setHistoryQuery] = useState("");
   const [historyStatus, setHistoryStatus] = useState<"all" | DemoSession["status"]>("all");
+  const todayIso = useMemo(() => localDateKey(new Date().toISOString()), []);
+  const [historyDateFrom, setHistoryDateFrom] = useState(todayIso);
+  const [historyDateTo, setHistoryDateTo] = useState(todayIso);
   const [realData, setRealData] = useState<RealData>(emptyRealData);
   const [realStatus, setRealStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [realSessions, setRealSessions] = useState<ApiSession[]>([]);
+  const [laborsById, setLaborsById] = useState<Record<number, string>>({});
+  const [realHistoryStatus, setRealHistoryStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const realHistoryRequestedRef = useRef(false);
 
   useEffect(() => {
     if (!running || !demoMode) return;
@@ -159,14 +206,66 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     return () => { active = false; };
   }, []);
 
+  // Historial real (sesiones + labores): solo se pide cuando el usuario mira Historial fuera del modo demo.
+  useEffect(() => {
+    // Carga única (guardada por ref, no por estado) para que el doble-render de
+    // React.StrictMode en desarrollo no descarte la respuesta de la primera llamada.
+    if (view !== "sessions" || demoMode || realHistoryRequestedRef.current) return;
+    realHistoryRequestedRef.current = true;
+    const load = async () => {
+      setRealHistoryStatus("loading");
+      try {
+        const [sessionsData, laborsData] = await Promise.all([
+          apiJson<ApiSession[]>("/sessions_recent?limit=300"),
+          apiJson<ApiLabor[]>("/labors"),
+        ]);
+        setRealSessions(sessionsData);
+        setLaborsById(Object.fromEntries(laborsData.map((l) => [l.id, l.name])));
+        setRealHistoryStatus("ready");
+      } catch {
+        setRealHistoryStatus("error");
+        realHistoryRequestedRef.current = false;
+      }
+    };
+    void load();
+  }, [view, demoMode]);
+
   const vehicles = useMemo(() => getDemoVehicles(elapsedSeconds, speed), [elapsedSeconds, speed]);
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const selectedField = DEMO_FIELDS.find((field) => field.id === selectedVehicle?.fieldId) ?? DEMO_FIELDS[0];
   const sessions = DEMO_SESSIONS;
-  const filteredSessions = sessions.filter((session) => {
+
+  const historyRows: HistoryRow[] = useMemo(() => {
+    if (demoMode) {
+      return DEMO_SESSIONS.map((s) => ({
+        id: s.id, startedAtLabel: s.startedAt, startedAtIso: s.startedAtIso, machine: s.machine, driver: s.driver,
+        field: s.field, labor: s.labor, durationHours: s.durationHours, distanceKm: s.distanceKm, coveredHa: s.coveredHa,
+        fuelLiters: s.fuelLiters, statusTone: s.status, statusText: statusLabel(s.status),
+      }));
+    }
+    return realSessions.map((s) => {
+      const start = new Date(s.started_at).getTime();
+      const end = s.ended_at ? new Date(s.ended_at).getTime() : null;
+      const durationHours = end && !Number.isNaN(start) ? (end - start) / 3_600_000 : null;
+      const distanceKm = s.total_distance_m != null ? s.total_distance_m / 1000 : null;
+      return {
+        id: s.id, startedAtLabel: formatSessionDateTime(s.started_at), startedAtIso: s.started_at,
+        machine: s.machine_name || `Máquina #${s.machine_id}`, driver: s.driver_name || "—",
+        field: s.cost_center_name || "—", labor: (s.labor_id != null && laborsById[s.labor_id]) || "—",
+        durationHours, distanceKm, coveredHa: null, fuelLiters: null,
+        statusTone: s.status === "open" ? "active" : "completed",
+        statusText: s.status === "open" ? "En curso" : "Completada",
+      };
+    });
+  }, [demoMode, realSessions, laborsById]);
+
+  const filteredSessions = historyRows.filter((row) => {
     const query = historyQuery.trim().toLowerCase();
-    const matchesQuery = !query || `${session.id} ${session.machine} ${session.driver} ${session.field}`.toLowerCase().includes(query);
-    return matchesQuery && (historyStatus === "all" || session.status === historyStatus);
+    const matchesQuery = !query || `${row.id} ${row.machine} ${row.driver} ${row.field} ${row.labor}`.toLowerCase().includes(query);
+    const matchesStatus = historyStatus === "all" || row.statusTone === historyStatus;
+    const dayIso = localDateKey(row.startedAtIso);
+    const matchesDate = (!historyDateFrom || dayIso >= historyDateFrom) && (!historyDateTo || dayIso <= historyDateTo);
+    return matchesQuery && matchesStatus && matchesDate;
   });
 
   const control = (
@@ -183,7 +282,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     );
   }
 
-  if (!demoMode) {
+  if (!demoMode && view !== "sessions") {
     return (
       <main className="ops-workspace">
         {control}
@@ -267,5 +366,18 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     return <main className="ops-workspace">{control}<div className="ops-master-grid">{masterCards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button">Administrar</button></article>)}</div><div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría</span><h2>Predios y pasadas registradas</h2></header><div className="ops-field-catalog">{DEMO_FIELDS.map((field) => <article key={field.id}><i style={{ background: field.color }}/><span><b>{field.name}</b><small>{field.crop} · {field.costCenter}</small></span><em>{field.areaHa} ha</em><strong>{Math.floor(field.workPath.length / 2)} pasadas</strong></article>)}</div></section><section className="ops-panel"><header><span className="section-kicker">Salud de datos</span><h2>Controles de calidad</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Polígonos cerrados</b><small>4 de 4 geometrías válidas</small></span></li><li><i className="is-ok">✓</i><span><b>Pasadas contenidas</b><small>Sin puntos fuera del lote</small></span></li><li><i className="is-ok">✓</i><span><b>GPS ordenado</b><small>Timestamps crecientes</small></span></li><li><i className="is-warning">!</i><span><b>Sesiones reales antiguas</b><small>4 pendientes de cierre administrativo</small></span></li></ul></section></div></main>;
   }
 
-  return <main className="ops-workspace">{control}<section className="ops-history-toolbar"><div><span className="section-kicker">Trazabilidad</span><h2>Historial de sesiones</h2></div><input type="search" aria-label="Buscar por máquina, operador o lote" placeholder="Buscar máquina, operador o lote…" value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)}/><select aria-label="Filtrar por estado" value={historyStatus} onChange={(event) => setHistoryStatus(event.target.value as typeof historyStatus)}><option value="all">Todos los estados</option><option value="active">En curso</option><option value="completed">Completadas</option><option value="paused">Pausadas</option></select></section><section className="ops-panel ops-session-table"><div className="ops-session-table__head"><span>Sesión</span><span>Máquina / operador</span><span>Lote</span><span>Duración</span><span>Distancia</span><span>Superficie</span><span>Consumo</span><span>Estado</span></div>{filteredSessions.map((session) => <button type="button" key={session.id}><span><b>{session.id}</b><small>{session.startedAt}</small></span><span><b>{session.machine}</b><small>{session.driver}</small></span><span>{session.field}</span><span>{number(session.durationHours)} h</span><span>{number(session.distanceKm)} km</span><span>{number(session.coveredHa)} ha</span><span>{number(session.fuelLiters)} L</span><span><em className={`ops-status is-${session.status}`}>{statusLabel(session.status)}</em></span></button>)}{filteredSessions.length === 0 && <div className="ops-empty">No hay sesiones que coincidan con los filtros.</div>}</section></main>;
+  const showingRealHistory = !demoMode;
+  return <main className="ops-workspace">{control}<section className="ops-history-toolbar"><div><span className="section-kicker">Trazabilidad</span><h2>Historial de sesiones</h2>{showingRealHistory && <p>Datos reales de Tracker · no incluye el laboratorio demo.</p>}</div>
+    <label className="ops-history-daterange"><span>Desde</span><input type="date" aria-label="Desde" value={historyDateFrom} onChange={(event) => setHistoryDateFrom(event.target.value)} max={historyDateTo || undefined} /></label>
+    <label className="ops-history-daterange"><span>Hasta</span><input type="date" aria-label="Hasta" value={historyDateTo} onChange={(event) => setHistoryDateTo(event.target.value)} min={historyDateFrom || undefined} /></label>
+    <input type="search" aria-label="Buscar por máquina, operador, lote o labor" placeholder="Buscar máquina, operador, lote o labor…" value={historyQuery} onChange={(event) => setHistoryQuery(event.target.value)}/>
+    <select aria-label="Filtrar por estado" value={historyStatus} onChange={(event) => setHistoryStatus(event.target.value as typeof historyStatus)}><option value="all">Todos los estados</option><option value="active">En curso</option><option value="completed">Completadas</option><option value="paused">Pausadas</option></select>
+  </section>
+  {showingRealHistory && realHistoryStatus === "error" && <div className="ops-map-notice">No se pudo cargar el historial real. Intenta nuevamente.</div>}
+  <section className="ops-panel ops-session-table">
+    <div className="ops-session-table__head"><span>Sesión</span><span>Máquina / operador</span><span>Lote</span><span>Labor</span><span>Duración</span><span>Distancia</span><span>Superficie</span><span>Estado</span></div>
+    {showingRealHistory && realHistoryStatus === "loading" && <div className="ops-empty">Cargando historial…</div>}
+    {(!showingRealHistory || realHistoryStatus !== "loading") && filteredSessions.map((row) => <button type="button" key={row.id}><span><b>{row.id}</b><small>{row.startedAtLabel}</small></span><span><b>{row.machine}</b><small>{row.driver}</small></span><span>{row.field}</span><span>{row.labor}</span><span>{row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</span><span>{row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</span><span>{row.coveredHa != null ? `${number(row.coveredHa)} ha` : "—"}</span><span><em className={`ops-status is-${row.statusTone}`}>{row.statusText}</em></span></button>)}
+    {(!showingRealHistory || realHistoryStatus === "ready") && filteredSessions.length === 0 && <div className="ops-empty">No hay sesiones que coincidan con los filtros.</div>}
+  </section></main>;
 }
