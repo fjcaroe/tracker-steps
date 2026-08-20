@@ -12,6 +12,8 @@ from app.models.cost_centers import CostCenter
 from app.models.fields import Field
 from app.models.machines import Machine
 from app.schemas.work_orders import WorkOrderCreate, WorkOrderOut, WorkOrderUpdate
+from app.core.security import assert_cost_center_access, allowed_cost_center_ids, get_current_user
+from app.models.users import User
 
 router = APIRouter(prefix="", tags=["work_orders"])
 
@@ -42,8 +44,13 @@ def _validate_work_order_relations(payload: WorkOrderCreate, db: Session) -> Non
 
 
 @router.post("/work_orders", response_model=WorkOrderOut)
-def create_work_order(payload: WorkOrderCreate, db: Session = Depends(get_db)):
+def create_work_order(
+    payload: WorkOrderCreate,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
     _validate_work_order_relations(payload, db)
+    assert_cost_center_access(db, current, payload.cost_center_id)
 
     wo = WorkOrder(
         code=payload.code,
@@ -70,8 +77,18 @@ def create_work_order(payload: WorkOrderCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/work_orders", response_model=List[WorkOrderOut])
-def list_work_orders(date: datetime | None = None, season: str | None = None, db: Session = Depends(get_db)):
+def list_work_orders(
+    date: datetime | None = None,
+    season: str | None = None,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
     q = db.query(WorkOrder)
+    if not current.is_admin:
+        ids = allowed_cost_center_ids(db, current.id)
+        if not ids:
+            return []
+        q = q.filter(WorkOrder.cost_center_id.in_(ids))
     if date is not None:
         q = q.filter(func.date(WorkOrder.work_date) == func.date(date))
     if season is not None:
@@ -80,12 +97,20 @@ def list_work_orders(date: datetime | None = None, season: str | None = None, db
 
 
 @router.put("/work_orders/{work_order_id}", response_model=WorkOrderOut)
-def update_work_order(work_order_id: int, payload: WorkOrderUpdate, db: Session = Depends(get_db)):
+def update_work_order(
+    work_order_id: int,
+    payload: WorkOrderUpdate,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
     wo = db.get(WorkOrder, work_order_id)
     if not wo:
         raise HTTPException(status_code=404, detail="Parte de trabajo no encontrado.")
+    assert_cost_center_access(db, current, wo.cost_center_id)
 
     data = payload.model_dump(exclude_unset=True)
+    if "cost_center_id" in data:
+        assert_cost_center_access(db, current, data["cost_center_id"])
     if data.get("implement_id") is not None:
         implement = db.get(Implement, data["implement_id"])
         if not implement or not implement.is_active:

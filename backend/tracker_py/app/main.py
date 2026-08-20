@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.security import get_current_user, require_admin_for_master_write
 
 from app.routers.health import router as health_router
 from app.routers.auth import router as auth_router
@@ -26,19 +27,23 @@ app = FastAPI(title="Tracker Steps API")
 
 app.include_router(health_router)
 app.include_router(auth_router)
-app.include_router(activities_router)
-app.include_router(labors_router)
-app.include_router(implements_router)
-app.include_router(work_orders_router)
-app.include_router(machines_router)
-app.include_router(drivers_router)
-app.include_router(cost_centers_router)
-app.include_router(regions_router)
-app.include_router(communes_router)
-app.include_router(fundos_router)
-app.include_router(sectors_router)
-app.include_router(species_router)
-app.include_router(varieties_router)
-app.include_router(fields_router)
+# Los catálogos y la operación productiva nunca deben quedar expuestos sin sesión.
+# El control por centro de costo se aplica además en los recursos transaccionales.
+protected = [Depends(get_current_user)]
+protected_master = [Depends(require_admin_for_master_write)]
+app.include_router(activities_router, dependencies=protected_master)
+app.include_router(labors_router, dependencies=protected_master)
+app.include_router(implements_router, dependencies=protected_master)
+app.include_router(work_orders_router, dependencies=protected)
+app.include_router(machines_router, dependencies=protected_master)
+app.include_router(drivers_router, dependencies=protected_master)
+app.include_router(cost_centers_router, dependencies=protected_master)
+app.include_router(regions_router, dependencies=protected_master)
+app.include_router(communes_router, dependencies=protected_master)
+app.include_router(fundos_router, dependencies=protected_master)
+app.include_router(sectors_router, dependencies=protected_master)
+app.include_router(species_router, dependencies=protected_master)
+app.include_router(varieties_router, dependencies=protected_master)
+app.include_router(fields_router, dependencies=protected_master)
 app.include_router(sessions_router)
-app.include_router(lots_router)
+app.include_router(lots_router, dependencies=protected)

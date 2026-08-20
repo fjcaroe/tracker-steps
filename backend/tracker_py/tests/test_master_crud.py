@@ -40,11 +40,20 @@ app.include_router(activities_router)
 app.include_router(labors_router)
 app.dependency_overrides[get_db] = override_db
 client = TestClient(app)
+production_client = TestClient(production_app)
 
 
 def setup_function():
     Base.metadata.drop_all(engine, tables=[Labor.__table__, Activity.__table__, Driver.__table__, Implement.__table__])
     Base.metadata.create_all(engine, tables=[Activity.__table__, Labor.__table__, Driver.__table__, Implement.__table__])
+
+
+def test_production_catalogs_require_authentication():
+    assert production_client.get("/drivers").status_code == 401
+
+
+def test_health_remains_public():
+    assert production_client.get("/health").status_code == 200
 
 
 def test_openapi_exposes_full_master_contract():

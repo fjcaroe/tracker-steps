@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import OperationsMap from "../components/OperationsMap";
 import SessionPlaybackModal from "../components/SessionPlaybackModal";
+import RealSessionPlaybackModal from "../components/RealSessionPlaybackModal";
 import MastersAdminModal, { type MasterKind } from "../components/MastersAdminModal";
 import { DEMO_MASTER_CATALOGS, type DemoCatalogItem } from "../demo/catalogs";
 import {
@@ -16,6 +17,7 @@ import { apiJson } from "../services/http";
 import "./OperationsWorkspace.css";
 
 const AnalyticsCharts = lazy(() => import("./AnalyticsCharts"));
+const RealAnalyticsCharts = lazy(() => import("./RealAnalyticsCharts"));
 const RegistrationPage = lazy(() => import("./RegistrationPage"));
 const ManualEntryPage = lazy(() => import("./ManualEntryPage"));
 
@@ -36,6 +38,9 @@ type ApiSession = {
   labor_id?: number | null;
   total_distance_m?: number | null;
   avg_speed_kmh?: number | null;
+  duration_hours?: number | null;
+  effective_hours?: number | null;
+  estimated_fuel_liters?: number | null;
 };
 
 type ApiLabor = { id: number; name: string };
@@ -337,18 +342,40 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     return realSessions.map((s) => {
       const start = new Date(s.started_at).getTime();
       const end = s.ended_at ? new Date(s.ended_at).getTime() : null;
-      const durationHours = end && !Number.isNaN(start) ? (end - start) / 3_600_000 : null;
+      const durationHours = s.duration_hours ?? (end && !Number.isNaN(start) ? (end - start) / 3_600_000 : null);
       const distanceKm = s.total_distance_m != null ? s.total_distance_m / 1000 : null;
       return {
         id: s.id, startedAtLabel: formatSessionDateTime(s.started_at), startedAtIso: s.started_at,
         machine: s.machine_name || `Máquina #${s.machine_id}`, driver: s.driver_name || "—",
         field: s.cost_center_name || "—", labor: (s.labor_id != null && laborsById[s.labor_id]) || "—",
-        durationHours, distanceKm, coveredHa: null, fuelLiters: null,
+        durationHours, distanceKm, coveredHa: null, fuelLiters: s.estimated_fuel_liters ?? null,
         statusTone: s.status === "open" ? "active" : "completed",
         statusText: s.status === "open" ? "En curso" : "Completada",
       };
     });
   }, [demoMode, realSessions, laborsById]);
+
+  const realAnalyticsSessions = useMemo(() => {
+    const laborNames = Object.fromEntries(realData.labors.map((labor) => [labor.id, labor.name]));
+    return realData.sessions.map((session) => {
+      const start = new Date(session.started_at).getTime();
+      const end = session.ended_at ? new Date(session.ended_at).getTime() : start;
+      return {
+        id: session.id,
+        machine: session.machine_name || `Máquina #${session.machine_id}`,
+        driver: session.driver_name || "Sin operador",
+        location: session.cost_center_name || "Sin centro de costo",
+        labor: session.labor_id != null ? laborNames[session.labor_id] || `Labor #${session.labor_id}` : "Sin labor",
+        startedAt: session.started_at,
+        status: session.status,
+        hours: Math.max(0, session.effective_hours ?? session.duration_hours ?? ((end - start) / 3_600_000)),
+        distanceKm: Math.max(0, (session.total_distance_m ?? 0) / 1000),
+        fuelLiters: Math.max(0, session.estimated_fuel_liters ?? 0),
+        avgSpeedKmh: Math.max(0, session.avg_speed_kmh ?? 0),
+        points: Math.max(0, session.points_count ?? 0),
+      };
+    });
+  }, [realData.labors, realData.sessions]);
 
   const filteredSessions = useMemo(() => historyRows.filter((row) => {
     const query = historyQuery.trim().toLowerCase();
@@ -404,7 +431,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     );
   }
 
-  if (!demoMode && view !== "sessions" && view !== "masters") {
+  if (!demoMode && view !== "sessions" && view !== "masters" && view !== "chartsStats") {
     return (
       <main className="ops-workspace">
         {control}
@@ -556,7 +583,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "chartsStats") {
-    return <main className="ops-workspace">{control}<Suspense fallback={<div className="view-loader"><span className="view-loader__spinner"/>Cargando analítica…</div>}><AnalyticsCharts vehicles={allVehicles} sessions={sessions} regionId={selectedRegionId} regionName={currentRegion.name}/></Suspense></main>;
+    return <main className="ops-workspace">{control}<Suspense fallback={<div className="view-loader"><span className="view-loader__spinner"/>Cargando analítica…</div>}>{demoMode ? <AnalyticsCharts vehicles={allVehicles} sessions={sessions} regionId={selectedRegionId} regionName={currentRegion.name}/> : <RealAnalyticsCharts sessions={realAnalyticsSessions}/>}</Suspense></main>;
   }
 
   if (view === "masters") {
@@ -620,22 +647,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   {!demoMode && openSessionId && (() => {
     const row = historyRows.find((item) => item.id === openSessionId);
     if (!row) return null;
-    return (
-      <div className="ops-modal-backdrop" role="dialog" aria-modal="true" aria-label={`Detalle de la sesión ${row.id}`} onClick={() => setOpenSessionId(null)}>
-        <div className="ops-modal" onClick={(event) => event.stopPropagation()}>
-          <h2>Sesión {row.id}</h2>
-          <p>{row.machine} · {row.driver} · {row.field}</p>
-          <div className="ops-modal__body">
-            <div>Labor: {row.labor}</div>
-            <div>Duración: {row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</div>
-            <div>Distancia: {row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</div>
-            <div>Estado: {row.statusText}</div>
-          </div>
-          <p className="ops-map-hint">La reproducción de ruta punto a punto todavía no está disponible para sesiones reales: falta un endpoint de backend que exponga los puntos GPS de la sesión (hoy solo se puede escribir con /sessions/&#123;id&#125;/points, no leer).</p>
-          <div className="ops-modal__actions"><button type="button" className="ops-action" onClick={() => setOpenSessionId(null)}>Cerrar</button></div>
-        </div>
-      </div>
-    );
+    return <RealSessionPlaybackModal key={row.id} session={{ id: row.id, machine: row.machine, driver: row.driver, field: row.field, labor: row.labor, durationHours: row.durationHours, distanceKm: row.distanceKm }} onClose={() => setOpenSessionId(null)}/>;
   })()}
   </main>;
 }

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List
 
 import bcrypt
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -63,3 +63,21 @@ def get_user_cost_centers(db: Session, user_id: int) -> List[CostCenter]:
 
 def allowed_cost_center_ids(db: Session, user_id: int) -> list[int]:
     return [cc.id for cc in get_user_cost_centers(db, user_id)]
+
+
+def assert_cost_center_access(db: Session, user: User, cost_center_id: int | None) -> None:
+    """Impide que un usuario opere información fuera de sus centros asignados."""
+    if user.is_admin:
+        return
+    if cost_center_id is None or cost_center_id not in set(allowed_cost_center_ids(db, user.id)):
+        raise HTTPException(status_code=403, detail="Centro de costo no autorizado")
+
+
+def require_admin_for_master_write(
+    request: Request,
+    current: User = Depends(get_current_user),
+) -> User:
+    """Permite consultar maestros a usuarios activos y limita su edición a administradores."""
+    if request.method not in {"GET", "HEAD", "OPTIONS"} and not current.is_admin:
+        raise HTTPException(status_code=403, detail="Se requiere perfil administrador para modificar maestros")
+    return current

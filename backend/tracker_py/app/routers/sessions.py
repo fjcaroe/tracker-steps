@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from sqlalchemy import distinct
 from app.db.session import get_db
-from app.core.security import get_current_user, allowed_cost_center_ids
+from app.core.security import get_current_user, allowed_cost_center_ids, assert_cost_center_access
 from app.core.utils import haversine_m, _f, duration_hours, estimate_fuel_liters
 from app.models.users import User
 from app.models.enums import TrackingStatus
@@ -56,6 +56,7 @@ def start_session(
 
     started_at = payload.started_at or datetime.utcnow()
     cc_id = payload.cost_center_id or (work_order.cost_center_id if work_order else None) or machine.cost_center_id
+    assert_cost_center_access(db, current, cc_id)
 
     session_obj = TrackingSession(
         machine_id=payload.machine_id,
@@ -261,10 +262,16 @@ def sessions_days(
     ]
 
 @router.post("/sessions/{session_id:uuid}/close", response_model=TrackingSessionOut)
-def close_session(session_id: uuid.UUID, ended_at: Optional[datetime] = None, db: Session = Depends(get_db)):
+def close_session(
+    session_id: uuid.UUID,
+    ended_at: Optional[datetime] = None,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
     session_obj = db.query(TrackingSession).get(session_id)
     if not session_obj:
         raise HTTPException(status_code=404, detail="Session not found")
+    _assert_session_allowed(db, current, session_obj)
 
     if session_obj.status == TrackingStatus.closed:
         return session_obj
@@ -378,10 +385,12 @@ def add_points(
     session_id: uuid.UUID,
     payload: PointsBatchIn,
     db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
 ):
     session = db.query(TrackingSession).get(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
+    _assert_session_allowed(db, current, session)
 
     if session.status != "open":
         raise HTTPException(
@@ -745,8 +754,11 @@ def my_sessions(
 
 
 @router.get("/sessions_active", response_model=List[SessionSummaryOut])
-def list_active_sessions(db: Session = Depends(get_db)):
-    rows = (
+def list_active_sessions(
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    q = (
         db.query(
             TrackingSession,
             Machine.name.label("machine_name"),
@@ -758,9 +770,13 @@ def list_active_sessions(db: Session = Depends(get_db)):
         .outerjoin(Driver, TrackingSession.driver_id == Driver.id)
         .outerjoin(CostCenter, TrackingSession.cost_center_id == CostCenter.id)
         .filter(TrackingSession.status == TrackingStatus.open)
-        .order_by(TrackingSession.started_at.desc())
-        .all()
     )
+    if not current.is_admin:
+        allowed_ids = allowed_cost_center_ids(db, current.id)
+        if not allowed_ids:
+            return []
+        q = q.filter(TrackingSession.cost_center_id.in_(allowed_ids))
+    rows = q.order_by(TrackingSession.started_at.desc()).all()
 
     return [
         SessionSummaryOut(
