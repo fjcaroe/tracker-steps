@@ -239,7 +239,9 @@ function buildDemoSessions(): DemoSession[] {
   const sessions: DemoSession[] = [];
   let counter = 2450;
 
-  for (let daysAgo = 0; daysAgo < 6; daysAgo += 1) {
+  // Dos ventanas completas de 30 días permiten que la Analítica avanzada
+  // demuestre variaciones reales entre período actual y período anterior.
+  for (let daysAgo = 0; daysAgo < 62; daysAgo += 1) {
     vehicleSeeds.forEach((seed, vIndex) => {
       // no todas las máquinas trabajan todos los días
       if (rand() < 0.22) return;
