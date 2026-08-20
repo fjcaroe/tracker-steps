@@ -20,6 +20,8 @@ type OperationsMapProps = {
   onRoadRouteStatus?: (message: string | null) => void;
   compact?: boolean;
   depot: GeoPoint;
+  followVehicle: boolean;
+  onUserInteracted?: () => void;
 };
 
 const containerStyle: CSSProperties = { width: "100%", height: "100%" };
@@ -50,6 +52,8 @@ export default function OperationsMap({
   onRoadRouteStatus,
   compact = false,
   depot,
+  followVehicle,
+  onUserInteracted,
 }: OperationsMapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -83,17 +87,20 @@ export default function OperationsMap({
     fitScenario(instance);
   }, [fitScenario]);
 
-  // Re-encuadra toda la flota de la región al cambiar de región (fieldBounds cambia)
-  // o al limpiar la selección de vehículo.
+  // Re-encuadra toda la flota solo cuando cambia el conjunto de predios (cambio de
+  // región), nunca al seleccionar/deseleccionar un vehículo: deseleccionar no debe
+  // tirar abajo el zoom/encuadre que el usuario armó para revisar una ruta.
   useEffect(() => {
     if (!map) return;
-    if (!selectedVehicleId) fitScenario(map);
-  }, [map, fieldBounds, selectedVehicleId, fitScenario]);
+    fitScenario(map);
+  }, [map, fieldBounds, fitScenario]);
 
+  // Solo persigue al vehículo si hay selección Y "Seguir vehículo" está activo.
+  // Se apaga solo si el usuario arrastra o hace zoom manualmente (ver onDragStart).
   useEffect(() => {
-    if (!map || selectedLat == null || selectedLon == null || !selectedVehicleId) return;
+    if (!map || !followVehicle || selectedLat == null || selectedLon == null || !selectedVehicleId) return;
     map.panTo({ lat: selectedLat, lng: selectedLon });
-  }, [map, selectedLat, selectedLon, selectedVehicleId]);
+  }, [map, selectedLat, selectedLon, selectedVehicleId, followVehicle]);
 
   useEffect(() => {
     if (!showRoadRoute || !isLoaded || !selectedField) {
@@ -130,6 +137,7 @@ export default function OperationsMap({
       zoom={14}
       onLoad={handleLoad}
       onClick={() => onSelectVehicle(null)}
+      onDragStart={onUserInteracted}
       options={{
         mapTypeId: "satellite",
         disableDefaultUI: true,

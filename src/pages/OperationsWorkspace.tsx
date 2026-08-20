@@ -180,6 +180,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [selectedRegionId, setSelectedRegionId] = useState<string>(REGIONS[0].id);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [followVehicle, setFollowVehicle] = useState(true);
   const [showRows, setShowRows] = useState(true);
   const [showRoadRoute, setShowRoadRoute] = useState(false);
   const [roadRouteStatus, setRoadRouteStatus] = useState<string | null>(null);
@@ -191,6 +192,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const todayIso = useMemo(() => localDateKey(new Date().toISOString()), []);
   const [historyDateFrom, setHistoryDateFrom] = useState(todayIso);
   const [historyDateTo, setHistoryDateTo] = useState(todayIso);
+  const [openMasterCard, setOpenMasterCard] = useState<string | null>(null);
   const [realData, setRealData] = useState<RealData>(emptyRealData);
   const [realStatus, setRealStatus] = useState<"loading" | "ready" | "error">("loading");
   const [realSessions, setRealSessions] = useState<ApiSession[]>([]);
@@ -277,6 +279,13 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     setFleetStatusFilter("all");
   };
 
+  // Seleccionar un vehículo nuevo siempre reactiva "seguir vehículo"; deseleccionar
+  // no toca el encuadre del mapa (eso lo maneja OperationsMap por su cuenta).
+  const selectVehicle = (id: string | null) => {
+    setSelectedVehicleId(id);
+    if (id) setFollowVehicle(true);
+  };
+
   const filteredFleet = useMemo(() => vehicles.filter((vehicle) => {
     const query = fleetQuery.trim().toLowerCase();
     const matchesQuery = !query || `${vehicle.name} ${vehicle.driver} ${vehicle.plate}`.toLowerCase().includes(query);
@@ -342,7 +351,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     );
   }
 
-  if (!demoMode && view !== "sessions") {
+  if (!demoMode && view !== "sessions" && view !== "masters") {
     return (
       <main className="ops-workspace">
         {control}
@@ -369,14 +378,22 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
           <p>{selectedVehicle && selectedField ? `${selectedVehicle.driver} · ${selectedField.crop}` : `${vehicles.length} vehículos en esta ubicación · ninguno seleccionado`}</p>
         </div>
         <div className="ops-layer-controls">
-          {selectedVehicleId && <button type="button" onClick={() => setSelectedVehicleId(null)}>Toda la flota</button>}
+          {selectedVehicleId && (
+            <button type="button" className={followVehicle ? "is-active" : ""} onClick={() => setFollowVehicle(!followVehicle)} title="Si lo apagas, el mapa deja de recentrarse en el vehículo aunque siga seleccionado (útil para revisar su ruta con calma)">
+              {followVehicle ? "Siguiendo vehículo" : "Seguimiento pausado"}
+            </button>
+          )}
+          {selectedVehicleId && <button type="button" onClick={() => selectVehicle(null)}>Toda la flota</button>}
           <button type="button" className={showRows ? "is-active" : ""} onClick={() => setShowRows(!showRows)}>Pasadas</button>
           <button type="button" className={showRoadRoute ? "is-active" : ""} disabled={!selectedField} title={!selectedField ? "Selecciona un vehículo para calcular su ruta" : undefined} onClick={() => { const next = !showRoadRoute; setShowRoadRoute(next); if (!next) setRoadRouteStatus(null); }}>Ruta por caminos</button>
         </div>
       </header>
+      {selectedVehicleId && !showRoadRoute && (
+        <p className="ops-map-hint">Tip: usa "Ruta por caminos" para ver cómo llegó desde el depósito, y apaga "Siguiendo vehículo" si quieres mirar el recorrido sin que la cámara se mueva.</p>
+      )}
       {roadRouteStatus && <div className="ops-map-notice" role="status" aria-live="polite">{roadRouteStatus}</div>}
       <div className="ops-map-frame">
-        <OperationsMap fields={regionFields} vehicles={vehicles} selectedVehicleId={selectedVehicleId} onSelectVehicle={setSelectedVehicleId} showRows={showRows} showRoadRoute={showRoadRoute} onRoadRouteStatus={setRoadRouteStatus} compact={compact} depot={currentRegion.depot} />
+        <OperationsMap fields={regionFields} vehicles={vehicles} selectedVehicleId={selectedVehicleId} onSelectVehicle={selectVehicle} showRows={showRows} showRoadRoute={showRoadRoute} onRoadRouteStatus={setRoadRouteStatus} compact={compact} depot={currentRegion.depot} followVehicle={followVehicle} onUserInteracted={() => setFollowVehicle(false)} />
       </div>
       <footer><span><i className="ops-dot is-lime" /> Pasadas dentro del lote</span><span><i className="ops-line-sample" /> Caminos calculados por Google</span><b>Dataset demostrativo</b></footer>
     </section>
@@ -406,7 +423,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
                 {attention.map(({ vehicle, reason }) => {
                   const region = REGIONS.find((r) => r.id === vehicle.regionId);
                   return (
-                    <button type="button" key={vehicle.id} onClick={() => { if (region) handleRegionChange(region.id); setSelectedVehicleId(vehicle.id); }}>
+                    <button type="button" key={vehicle.id} onClick={() => { if (region) handleRegionChange(region.id); selectVehicle(vehicle.id); }}>
                       <i className="ops-dot is-warning" />
                       <span><b>{vehicle.name}</b><small>{vehicle.driver} · {region?.name}</small></span>
                       <em>{reason}</em>
@@ -437,7 +454,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
           </section>
         </div>
         <div className="ops-lower-grid">
-          <section className="ops-panel"><header><span className="section-kicker">Flota · {currentRegion.name}</span><h2>Actividad por máquina</h2></header><div className="ops-fleet-rows">{vehicles.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => setSelectedVehicleId(selectedVehicleId === vehicle.id ? null : vehicle.id)}><i className="ops-vehicle-avatar">T</i><span><b>{vehicle.name}</b><small>{DEMO_FIELDS.find((field) => field.id === vehicle.fieldId)?.name}</small></span><em>{vehicle.speedKmh.toFixed(1)} km/h</em><strong>{vehicle.coveredHa.toFixed(1)} ha</strong></button>)}</div></section>
+          <section className="ops-panel"><header><span className="section-kicker">Flota · {currentRegion.name}</span><h2>Actividad por máquina</h2></header><div className="ops-fleet-rows">{vehicles.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => selectVehicle(selectedVehicleId === vehicle.id ? null : vehicle.id)}><i className="ops-vehicle-avatar">T</i><span><b>{vehicle.name}</b><small>{DEMO_FIELDS.find((field) => field.id === vehicle.fieldId)?.name}</small></span><em>{vehicle.speedKmh.toFixed(1)} km/h</em><strong>{vehicle.coveredHa.toFixed(1)} ha</strong></button>)}</div></section>
           <section className="ops-panel"><header><span className="section-kicker">Eventos</span><h2>Actividad reciente</h2></header><ol className="ops-event-list">{DEMO_EVENTS.map((event) => <li key={`${event.time}-${event.title}`}><time>{event.time}</time><i className={`is-${event.tone}`} /><span><b>{event.title}</b><small>{event.detail}</small></span></li>)}</ol></section>
         </div>
       </main>
@@ -460,8 +477,8 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
                 {FLEET_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
-            {selectedVehicleId && <button type="button" className="ops-fleet-clear" onClick={() => setSelectedVehicleId(null)}>✕ Quitar selección · ver toda la flota</button>}
-            {filteredFleet.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => setSelectedVehicleId(selectedVehicleId === vehicle.id ? null : vehicle.id)} aria-pressed={selectedVehicleId === vehicle.id}><span className="ops-vehicle-avatar">T</span><span><b>{vehicle.name}</b><small>{vehicle.driver}</small></span><em><i className="ops-dot is-green" /> {vehicleStatusLabel(vehicle.status)}</em></button>)}
+            {selectedVehicleId && <button type="button" className="ops-fleet-clear" onClick={() => selectVehicle(null)}>✕ Quitar selección · ver toda la flota</button>}
+            {filteredFleet.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => selectVehicle(selectedVehicleId === vehicle.id ? null : vehicle.id)} aria-pressed={selectedVehicleId === vehicle.id}><span className="ops-vehicle-avatar">T</span><span><b>{vehicle.name}</b><small>{vehicle.driver}</small></span><em><i className="ops-dot is-green" /> {vehicleStatusLabel(vehicle.status)}</em></button>)}
             {filteredFleet.length === 0 && <div className="ops-empty">Ninguna máquina coincide con el filtro.</div>}
           </aside>
           {mapCard(false)}
@@ -490,8 +507,34 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "masters") {
-    const masterCards = [{ label: "Máquinas", value: demoMode ? allVehicles.length : realData.machines.length, detail: `${REGIONS.length} ubicaciones`, icon: "T" },{ label: "Conductores", value: demoMode ? new Set(allVehicles.map((v) => v.driver)).size : realData.drivers.length, detail: "licencias al día", icon: "C" },{ label: "Centros de costo", value: demoMode ? new Set(DEMO_FIELDS.map((f) => f.costCenter)).size : realData.costCenters.length, detail: "estructura activa", icon: "$" },{ label: "Polígonos", value: demoMode ? DEMO_FIELDS.length : realData.fields.length, detail: "geometría validada", icon: "P" }];
-    return <main className="ops-workspace">{control}<div className="ops-master-grid">{masterCards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button">Administrar</button></article>)}</div><div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · toda la empresa</span><h2>Predios y pasadas registradas</h2></header><div className="ops-field-catalog">{DEMO_FIELDS.map((field) => <article key={field.id}><i style={{ background: field.color }}/><span><b>{field.name}</b><small>{field.crop} · {REGIONS.find((r) => r.id === field.regionId)?.name}</small></span><em>{field.areaHa} ha</em><strong>{Math.floor(field.workPath.length / 2)} pasadas</strong></article>)}</div></section><section className="ops-panel"><header><span className="section-kicker">Salud de datos</span><h2>Controles de calidad</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Polígonos cerrados</b><small>{DEMO_FIELDS.length} de {DEMO_FIELDS.length} geometrías válidas</small></span></li><li><i className="is-ok">✓</i><span><b>Pasadas contenidas</b><small>Sin puntos fuera del lote</small></span></li><li><i className="is-ok">✓</i><span><b>GPS ordenado</b><small>Timestamps crecientes</small></span></li><li><i className="is-warning">!</i><span><b>Sesiones reales antiguas</b><small>4 pendientes de cierre administrativo</small></span></li></ul></section></div></main>;
+    const masterCards = [
+      { key: "machines", label: "Máquinas", value: demoMode ? allVehicles.length : realData.machines.length, detail: `${REGIONS.length} ubicaciones`, icon: "T", items: demoMode ? allVehicles.map((v) => v.name) : realData.machines.map((m) => m.name) },
+      { key: "drivers", label: "Conductores", value: demoMode ? new Set(allVehicles.map((v) => v.driver)).size : realData.drivers.length, detail: "licencias al día", icon: "C", items: demoMode ? Array.from(new Set(allVehicles.map((v) => v.driver))) : realData.drivers.map((d) => d.name) },
+      { key: "costCenters", label: "Centros de costo", value: demoMode ? new Set(DEMO_FIELDS.map((f) => f.costCenter)).size : realData.costCenters.length, detail: "estructura activa", icon: "$", items: demoMode ? Array.from(new Set(DEMO_FIELDS.map((f) => f.costCenter))) : realData.costCenters.map((c) => c.name) },
+      { key: "fields", label: "Polígonos", value: demoMode ? DEMO_FIELDS.length : realData.fields.length, detail: "geometría validada", icon: "P", items: demoMode ? DEMO_FIELDS.map((f) => f.name) : realData.fields.map((f) => f.name) },
+    ];
+    const activeMasterCard = masterCards.find((card) => card.key === openMasterCard) ?? null;
+    return <main className="ops-workspace">{control}<div className="ops-master-grid">{masterCards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button" onClick={() => setOpenMasterCard(card.key)}>Administrar</button></article>)}</div>
+      {demoMode ? (
+        <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · toda la empresa</span><h2>Predios y pasadas registradas</h2></header><div className="ops-field-catalog">{DEMO_FIELDS.map((field) => <article key={field.id}><i style={{ background: field.color }}/><span><b>{field.name}</b><small>{field.crop} · {REGIONS.find((r) => r.id === field.regionId)?.name}</small></span><em>{field.areaHa} ha</em><strong>{Math.floor(field.workPath.length / 2)} pasadas</strong></article>)}</div></section><section className="ops-panel"><header><span className="section-kicker">Salud de datos</span><h2>Controles de calidad</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Polígonos cerrados</b><small>{DEMO_FIELDS.length} de {DEMO_FIELDS.length} geometrías válidas</small></span></li><li><i className="is-ok">✓</i><span><b>Pasadas contenidas</b><small>Sin puntos fuera del lote</small></span></li><li><i className="is-ok">✓</i><span><b>GPS ordenado</b><small>Timestamps crecientes</small></span></li><li><i className="is-warning">!</i><span><b>Sesiones reales antiguas</b><small>4 pendientes de cierre administrativo</small></span></li></ul></section></div>
+      ) : (
+        <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · toda la empresa</span><h2>Predios registrados</h2></header><div className="ops-field-catalog">{realData.fields.map((field) => <article key={field.id}><i style={{ background: field.color ?? "#2f7d5c" }}/><span><b>{field.name}</b></span><em>{field.polygon?.length ?? 0} puntos</em></article>)}{realData.fields.length === 0 && <div className="ops-empty">{realStatus === "loading" ? "Cargando polígonos…" : "Sin polígonos sincronizados aún."}</div>}</div></section></div>
+      )}
+      {activeMasterCard && (
+        <div className="ops-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setOpenMasterCard(null)}>
+          <div className="ops-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>{activeMasterCard.label}</h2>
+            <p>{activeMasterCard.items.length} registrados</p>
+            <div className="ops-modal__body">
+              {activeMasterCard.items.length === 0
+                ? <span>Sin datos disponibles.</span>
+                : activeMasterCard.items.map((name, index) => <div key={`${name}-${index}`}>{name}</div>)}
+            </div>
+            <div className="ops-modal__actions"><button type="button" className="ops-action" onClick={() => setOpenMasterCard(null)}>Cerrar</button></div>
+          </div>
+        </div>
+      )}
+    </main>;
   }
 
   const showingRealHistory = !demoMode;
