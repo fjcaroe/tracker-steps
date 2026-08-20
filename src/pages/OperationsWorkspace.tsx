@@ -365,6 +365,8 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     return realData.sessions.map((session) => {
       const start = new Date(session.started_at).getTime();
       const end = session.ended_at ? new Date(session.ended_at).getTime() : start;
+      const rawHours = Math.max(0, session.effective_hours ?? session.duration_hours ?? ((end - start) / 3_600_000));
+      const stale = session.status === "open" && rawHours > 24;
       return {
         id: session.id,
         machine: session.machine_name || `Máquina #${session.machine_id}`,
@@ -373,11 +375,12 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
         labor: session.labor_id != null ? laborNames[session.labor_id] || `Labor #${session.labor_id}` : "Sin labor",
         startedAt: session.started_at,
         status: session.status,
-        hours: Math.max(0, session.effective_hours ?? session.duration_hours ?? ((end - start) / 3_600_000)),
+        hours: stale ? 0 : rawHours,
         distanceKm: Math.max(0, (session.total_distance_m ?? 0) / 1000),
-        fuelLiters: Math.max(0, session.estimated_fuel_liters ?? 0),
+        fuelLiters: stale ? 0 : Math.max(0, session.estimated_fuel_liters ?? 0),
         avgSpeedKmh: Math.max(0, session.avg_speed_kmh ?? 0),
         points: Math.max(0, session.points_count ?? 0),
+        stale,
       };
     });
   }, [realData.labors, realData.sessions]);
@@ -389,6 +392,8 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
       ...machine,
       sessions: machineSessions.length,
       openSessions: machineSessions.filter((session) => session.status === "open").length,
+      activeSessions: machineSessions.filter((session) => session.status === "open" && !session.stale).length,
+      staleSessions: machineSessions.filter((session) => session.status === "open" && session.stale).length,
       hours: machineSessions.reduce((sum, session) => sum + session.hours, 0),
       distanceKm: machineSessions.reduce((sum, session) => sum + session.distanceKm, 0),
       fuelLiters: machineSessions.reduce((sum, session) => sum + session.fuelLiters, 0),
@@ -404,7 +409,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
 
   const realLiveVehicles = useMemo(() => realMachineMetrics.flatMap((machine) => {
     const session = machine.latest;
-    if (!session || session.status !== "open" || session.last_lat == null || session.last_lon == null) return [];
+    if (!session || session.status !== "open" || (session.duration_hours ?? 0) > 24 || session.last_lat == null || session.last_lon == null) return [];
     return [{
       id: String(machine.id), name: machine.name, plate: machine.plate || "Sin patente", driver: session.driver_name || "Sin operador",
       fieldId: "", regionId: "real", status: "working" as const, progress: 0, speedKmh: Math.max(0, (session.last_speed_mps ?? 0) * 3.6),
@@ -417,6 +422,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const realTotals = useMemo(() => ({
     sessions: realAnalyticsSessions.length,
     open: realAnalyticsSessions.filter((session) => session.status === "open").length,
+    active: realAnalyticsSessions.filter((session) => session.status === "open" && !session.stale).length,
     hours: realAnalyticsSessions.reduce((sum, session) => sum + session.hours, 0),
     distanceKm: realAnalyticsSessions.reduce((sum, session) => sum + session.distanceKm, 0),
     fuelLiters: realAnalyticsSessions.reduce((sum, session) => sum + session.fuelLiters, 0),
@@ -429,6 +435,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     const classified = realData.sessions.filter((session) => session.cost_center_name && session.labor_id != null).length / realData.sessions.length * 100;
     return { score: Math.round((closure + gps + classified) / 3), closure: Math.round(closure), gps: Math.round(gps), classified: Math.round(classified) };
   }, [realData.sessions]);
+  const staleOpenSessions = realAnalyticsSessions.filter((session) => session.status === "open" && session.stale).length;
 
   const filteredSessions = useMemo(() => historyRows.filter((row) => {
     const query = historyQuery.trim().toLowerCase();
@@ -487,8 +494,8 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   if (!demoMode && view === "userView") {
     const latest = realAnalyticsSessions.slice(0, 6);
     return <main className="ops-workspace">{control}
-      <section className="ops-kpi-grid"><article><span>Máquinas registradas</span><strong>{realData.machines.length}</strong><small>{realTotals.open} sesiones abiertas</small></article><article><span>Horas productivas</span><strong>{number(realTotals.hours)} <em>h</em></strong><small>{realTotals.sessions} sesiones consultadas</small></article><article><span>Distancia GPS</span><strong>{number(realTotals.distanceKm)} <em>km</em></strong><small>{realTotals.points.toLocaleString("es-CL")} puntos GPS</small></article><article><span>Combustible estimado</span><strong>{number(realTotals.fuelLiters)} <em>L</em></strong><small>calculado según máquina y labor</small></article></section>
-      <div className="ops-summary-grid"><section className="ops-panel"><header><span className="section-kicker">Actividad productiva</span><h2>Sesiones recientes</h2><p>Información real visible para los centros de costo asignados al usuario.</p></header><div className="ops-fleet-rows">{latest.map((session) => <div className="ops-real-session-row" key={session.id}><i className={`ops-dot ${session.status === "open" ? "is-green" : ""}`}/><span><b>{session.machine}</b><small>{session.driver} · {session.location}</small></span><em>{number(session.hours)} h</em><strong>{session.status === "open" ? "En curso" : "Cerrada"}</strong></div>)}{!latest.length && <div className="ops-empty">Todavía no hay sesiones productivas visibles.</div>}</div></section>
+      <section className="ops-kpi-grid"><article><span>Máquinas registradas</span><strong>{realData.machines.length}</strong><small>{realTotals.open} sesiones abiertas · {staleOpenSessions} antiguas</small></article><article><span>Horas productivas</span><strong>{number(realTotals.hours)} <em>h</em></strong><small>excluye sesiones abiertas por más de 24 h</small></article><article><span>Distancia GPS</span><strong>{number(realTotals.distanceKm)} <em>km</em></strong><small>{realTotals.points.toLocaleString("es-CL")} puntos GPS</small></article><article><span>Combustible estimado</span><strong>{number(realTotals.fuelLiters)} <em>L</em></strong><small>calculado según máquina y labor</small></article></section>
+      <div className="ops-summary-grid"><section className="ops-panel"><header><span className="section-kicker">Actividad productiva</span><h2>Sesiones recientes</h2><p>Información real visible para los centros de costo asignados al usuario.</p></header><div className="ops-fleet-rows">{latest.map((session) => <div className="ops-real-session-row" key={session.id}><i className={`ops-dot ${session.status === "open" && !session.stale ? "is-green" : ""}`}/><span><b>{session.machine}</b><small>{session.driver} · {session.location}</small></span><em>{session.stale ? "Revisar" : `${number(session.hours)} h`}</em><strong>{session.stale ? "Pendiente cierre" : session.status === "open" ? "En curso" : "Cerrada"}</strong></div>)}{!latest.length && <div className="ops-empty">Todavía no hay sesiones productivas visibles.</div>}</div></section>
       <section className="ops-side-card"><header><span className="section-kicker">Calidad operacional</span><h2>Preparación de los datos</h2></header><div className="ops-progress-ring" style={{ "--progress": `${realQuality.score}%` } as React.CSSProperties}><strong>{realQuality.score}%</strong><span>integridad promedio</span></div><div className="ops-progress-list"><div><span>Sesiones cerradas</span><b>{realQuality.closure}%</b><i><em style={{ width: `${realQuality.closure}%` }}/></i></div><div><span>Sesiones con GPS</span><b>{realQuality.gps}%</b><i><em style={{ width: `${realQuality.gps}%` }}/></i></div><div><span>Labor y centro asignados</span><b>{realQuality.classified}%</b><i><em style={{ width: `${realQuality.classified}%` }}/></i></div></div></section></div>
       <p className={`ops-source-state is-${realStatus}`}>{realStatus === "ready" ? "API productiva sincronizada" : realStatus === "loading" ? "Sincronizando API…" : "No fue posible sincronizar la API."}</p>
     </main>;
@@ -497,8 +504,8 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   if (!demoMode && view === "live") {
     const selectedRealMachine = selectedVehicleId ? realMachineMetrics.find((machine) => String(machine.id) === selectedVehicleId) : null;
     return <main className="ops-workspace">{control}
-      <section className="ops-kpi-grid"><article><span>Sesiones en curso</span><strong>{realTotals.open}</strong><small><i className="ops-dot is-green"/>operación productiva</small></article><article><span>Máquinas con posición</span><strong>{realLiveVehicles.length}</strong><small>último punto GPS disponible</small></article><article><span>Polígonos cargados</span><strong>{realMapFields.length}</strong><small>predios con geometría válida</small></article><article><span>Puntos GPS</span><strong>{realTotals.points.toLocaleString("es-CL")}</strong><small>en las sesiones consultadas</small></article></section>
-      <div className="ops-live-layout"><aside className="ops-fleet-panel"><header><span className="section-kicker">Flota productiva</span><h2>{realMachineMetrics.length} máquinas visibles</h2></header>{realMachineMetrics.map((machine) => <button type="button" key={machine.id} className={selectedVehicleId === String(machine.id) ? "is-selected" : ""} onClick={() => setSelectedVehicleId(selectedVehicleId === String(machine.id) ? null : String(machine.id))}><span className="ops-vehicle-avatar">T</span><span><b>{machine.name}</b><small>{machine.plate || "Sin patente"}</small></span><em><i className={`ops-dot ${machine.openSessions ? "is-green" : ""}`}/> {machine.openSessions ? "En operación" : "Sin sesión abierta"}</em></button>)}{!realMachineMetrics.length && <div className="ops-empty">No hay máquinas disponibles.</div>}</aside>
+      <section className="ops-kpi-grid"><article><span>Sesiones en curso</span><strong>{realTotals.active}</strong><small><i className="ops-dot is-green"/>abiertas durante las últimas 24 h</small></article><article><span>Máquinas con posición</span><strong>{realLiveVehicles.length}</strong><small>último punto GPS disponible</small></article><article><span>Polígonos cargados</span><strong>{realMapFields.length}</strong><small>predios con geometría válida</small></article><article><span>Puntos GPS</span><strong>{realTotals.points.toLocaleString("es-CL")}</strong><small>en las sesiones consultadas</small></article></section>
+      <div className="ops-live-layout"><aside className="ops-fleet-panel"><header><span className="section-kicker">Flota productiva</span><h2>{realMachineMetrics.length} máquinas visibles</h2></header>{realMachineMetrics.map((machine) => <button type="button" key={machine.id} className={selectedVehicleId === String(machine.id) ? "is-selected" : ""} onClick={() => setSelectedVehicleId(selectedVehicleId === String(machine.id) ? null : String(machine.id))}><span className="ops-vehicle-avatar">T</span><span><b>{machine.name}</b><small>{machine.plate || "Sin patente"}</small></span><em><i className={`ops-dot ${machine.activeSessions ? "is-green" : ""}`}/> {machine.activeSessions ? "En operación" : machine.staleSessions ? "Cierre pendiente" : "Sin sesión abierta"}</em></button>)}{!realMachineMetrics.length && <div className="ops-empty">No hay máquinas disponibles.</div>}</aside>
       <section className="ops-map-card"><header><div><span className="section-kicker">Cartografía productiva</span><h2>{selectedRealMachine?.name || "Operación en terreno"}</h2><p>{realLiveVehicles.length ? "Posiciones reportadas por sesiones abiertas." : "No hay sesiones abiertas con posición GPS; se muestran los polígonos disponibles."}</p></div></header><div className="ops-map-frame"><OperationsMap fields={realMapFields} vehicles={realLiveVehicles} selectedVehicleId={selectedVehicleId} onSelectVehicle={setSelectedVehicleId} showRows={false} showRoadRoute={false} compact={false} depot={realDepot} followVehicle={followVehicle} onUserInteracted={() => setFollowVehicle(false)}/></div><footer><span><i className="ops-dot is-lime"/> Posición de la última telemetría</span><b>Datos reales</b></footer></section></div>
       <section className="ops-telemetry-strip"><article><span>Máquina seleccionada</span><b>{selectedRealMachine?.name || "Toda la flota"}</b></article><article><span>Horas acumuladas</span><b>{number(selectedRealMachine?.hours ?? realTotals.hours)} h</b></article><article><span>Distancia acumulada</span><b>{number(selectedRealMachine?.distanceKm ?? realTotals.distanceKm)} km</b></article><article><span>Combustible estimado</span><b>{number(selectedRealMachine?.fuelLiters ?? realTotals.fuelLiters)} L</b></article><article><span>Sesiones</span><b>{selectedRealMachine?.sessions ?? realTotals.sessions}</b></article></section>
     </main>;
@@ -506,7 +513,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
 
   if (!demoMode && view === "routes") {
     const maxHours = Math.max(...realMachineMetrics.map((machine) => machine.hours), 1);
-    return <main className="ops-workspace">{control}<section className="ops-panel ops-table-panel"><header><div><span className="section-kicker">Acumulados productivos</span><h2>Odómetro y utilización reales</h2><p>La distancia corresponde a sesiones GPS y las horas a duración efectiva calculada por la API.</p></div></header><div className="ops-machine-metrics">{realMachineMetrics.map((machine) => <article key={machine.id}><div><span className="ops-vehicle-avatar">T</span><span><b>{machine.name}</b><small>{machine.plate || "Sin patente"}</small></span><em>{machine.openSessions ? "En operación" : `${machine.sessions} sesiones`}</em></div><dl><div><dt>Odómetro GPS</dt><dd>{number(machine.distanceKm)} km</dd></div><div><dt>Horas registradas</dt><dd>{number(machine.hours)} h</dd></div><div><dt>Combustible</dt><dd>{number(machine.fuelLiters)} L</dd></div><div><dt>Puntos GPS</dt><dd>{machine.points.toLocaleString("es-CL")}</dd></div></dl><span className="ops-meter"><i style={{ width: `${machine.hours / maxHours * 100}%` }}/></span></article>)}{!realMachineMetrics.length && <div className="ops-empty">No hay máquinas productivas visibles.</div>}</div></section></main>;
+    return <main className="ops-workspace">{control}<section className="ops-panel ops-table-panel"><header><div><span className="section-kicker">Acumulados productivos</span><h2>Odómetro y utilización reales</h2><p>La distancia corresponde a sesiones GPS; las horas excluyen sesiones abiertas por más de 24 horas.</p></div></header><div className="ops-machine-metrics">{realMachineMetrics.map((machine) => <article key={machine.id}><div><span className="ops-vehicle-avatar">T</span><span><b>{machine.name}</b><small>{machine.plate || "Sin patente"}</small></span><em>{machine.activeSessions ? "En operación" : machine.staleSessions ? "Cierre pendiente" : `${machine.sessions} sesiones`}</em></div><dl><div><dt>Odómetro GPS</dt><dd>{number(machine.distanceKm)} km</dd></div><div><dt>Horas registradas</dt><dd>{number(machine.hours)} h</dd></div><div><dt>Combustible</dt><dd>{number(machine.fuelLiters)} L</dd></div><div><dt>Puntos GPS</dt><dd>{machine.points.toLocaleString("es-CL")}</dd></div></dl><span className="ops-meter"><i style={{ width: `${machine.hours / maxHours * 100}%` }}/></span></article>)}{!realMachineMetrics.length && <div className="ops-empty">No hay máquinas productivas visibles.</div>}</div></section></main>;
   }
 
   if (!demoMode && view === "stats") {
