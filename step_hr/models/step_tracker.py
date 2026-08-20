@@ -212,35 +212,91 @@ class StepTrackerWorkOrder(models.Model):
 
     @api.model
     def get_dashboard_data(self, days=30):
-        """Return a compact, company-aware snapshot for the Odoo dashboard."""
+        """Return an analytical, company-aware snapshot for the Odoo dashboard."""
         try:
             days = int(days)
         except (TypeError, ValueError):
             days = 30
         days = min(max(days, 1), 3650)
         company = self.env.company
-        cutoff = fields.Datetime.now() - relativedelta(days=days)
+        now = fields.Datetime.now()
+        cutoff = now - relativedelta(days=days)
+        previous_cutoff = cutoff - relativedelta(days=days)
         session_domain = [
             ('company_id', '=', company.id),
             ('started_at', '>=', cutoff),
+        ]
+        previous_session_domain = [
+            ('company_id', '=', company.id),
+            ('started_at', '>=', previous_cutoff),
+            ('started_at', '<', cutoff),
         ]
         work_order_domain = [
             ('company_id', '=', company.id),
             ('work_date', '>=', cutoff.date()),
         ]
+        previous_work_order_domain = [
+            ('company_id', '=', company.id),
+            ('work_date', '>=', previous_cutoff.date()),
+            ('work_date', '<', cutoff.date()),
+        ]
 
         session_model = self.env['step.tracker.session']
-        session_totals = session_model.read_group(
-            session_domain,
-            ['total_distance_km:sum', 'duration_hours:sum'],
-            [],
-        )[0]
         work_order_model = self.env['step.tracker.work_order']
-        work_order_totals = work_order_model.read_group(
-            work_order_domain,
-            ['fuel_refill_liters:sum'],
-            [],
-        )[0]
+
+        def session_summary(domain):
+            totals = session_model.read_group(
+                domain,
+                ['total_distance_km:sum', 'duration_hours:sum'],
+                [],
+            )[0]
+            sessions = session_model.search_count(domain)
+            closed = session_model.search_count(domain + [('status', '=', 'closed')])
+            with_gps = session_model.search_count(domain + [('points_count', '>', 0)])
+            classified = session_model.search_count(domain + [
+                ('machine_id', '!=', False), ('analytic_account_id', '!=', False),
+            ])
+            distance = totals.get('total_distance_km', 0.0) or 0.0
+            hours = totals.get('duration_hours', 0.0) or 0.0
+            return {
+                'sessions': sessions,
+                'open_sessions': sessions - closed,
+                'distance_km': round(distance, 1),
+                'hours': round(hours, 1),
+                'km_per_hour': round(distance / hours, 2) if hours else 0.0,
+                'closure_pct': round(closed / sessions * 100) if sessions else 0,
+                'gps_pct': round(with_gps / sessions * 100) if sessions else 0,
+                'classified_pct': round(classified / sessions * 100) if sessions else 0,
+            }
+
+        def work_order_summary(domain):
+            totals = work_order_model.read_group(domain, ['fuel_refill_liters:sum'], [])[0]
+            return {
+                'work_orders': work_order_model.search_count(domain),
+                'fuel_refill_liters': round(totals.get('fuel_refill_liters', 0.0) or 0.0, 1),
+            }
+
+        current = {**session_summary(session_domain), **work_order_summary(work_order_domain)}
+        previous = {
+            **session_summary(previous_session_domain),
+            **work_order_summary(previous_work_order_domain),
+        }
+
+        def variation(current_value, previous_value, inverse=False):
+            if not previous_value:
+                return {'value': False, 'tone': 'neutral', 'label': _('Sin base comparable')}
+            value = round((current_value - previous_value) / abs(previous_value) * 100)
+            positive = value <= 0 if inverse else value >= 0
+            return {
+                'value': value,
+                'tone': 'good' if positive else 'bad',
+                'label': _('%s%% vs. período anterior') % (('%+d' % value),),
+            }
+
+        comparisons = {
+            key: variation(current[key], previous[key], inverse=key == 'fuel_refill_liters')
+            for key in ('sessions', 'hours', 'distance_km', 'work_orders', 'fuel_refill_liters', 'closure_pct')
+        }
 
         machine_groups = session_model.read_group(
             session_domain,
@@ -249,6 +305,15 @@ class StepTrackerWorkOrder(models.Model):
             orderby='total_distance_km desc',
             limit=6,
         )
+        previous_machine_groups = session_model.read_group(
+            previous_session_domain,
+            ['machine_id', 'total_distance_km:sum', 'duration_hours:sum'],
+            ['machine_id'],
+        )
+        previous_by_machine = {
+            group['machine_id'][0]: group
+            for group in previous_machine_groups if group.get('machine_id')
+        }
         top_machines = []
         # Sesiones recién iniciadas o importadas pueden tener distancia 0.
         # Mantener un denominador mínimo evita romper todo el tablero mientras
@@ -259,13 +324,59 @@ class StepTrackerWorkOrder(models.Model):
         ])
         for group in machine_groups:
             machine_value = group.get('machine_id')
+            machine_key = machine_value[0] if machine_value else False
+            previous_group = previous_by_machine.get(machine_key, {})
+            distance = group.get('total_distance_km', 0.0) or 0.0
+            previous_distance = previous_group.get('total_distance_km', 0.0) or 0.0
             top_machines.append({
-                'id': machine_value[0] if machine_value else False,
+                'id': machine_key,
                 'name': machine_value[1] if machine_value else _('Sin máquina'),
-                'distance_km': round(group.get('total_distance_km', 0.0) or 0.0, 1),
+                'distance_km': round(distance, 1),
                 'hours': round(group.get('duration_hours', 0.0) or 0.0, 1),
-                'share': round((group.get('total_distance_km', 0.0) or 0.0) / maximum_distance * 100),
+                'previous_distance_km': round(previous_distance, 1),
+                'variation': variation(distance, previous_distance),
+                'share': round(distance / maximum_distance * 100),
             })
+
+        quality = {
+            'closure_pct': current['closure_pct'],
+            'gps_pct': current['gps_pct'],
+            'classified_pct': current['classified_pct'],
+        }
+        quality['score'] = round(sum(quality.values()) / 3)
+
+        opportunity_rules = [
+            {
+                'key': 'open', 'tone': 'medium', 'title': _('Sesiones abiertas'),
+                'detail': _('Conviene confirmar si siguen activas o cerrar el registro.'),
+                'domain': session_domain + [('status', '=', 'open')],
+            },
+            {
+                'key': 'gps', 'tone': 'high', 'title': _('Sesiones sin GPS'),
+                'detail': _('No permiten auditar distancia ni recorrido.'),
+                'domain': session_domain + [('points_count', '=', 0)],
+            },
+            {
+                'key': 'duration', 'tone': 'medium', 'title': _('Cerradas sin duración'),
+                'detail': _('Revise las fechas de inicio y término sincronizadas.'),
+                'domain': session_domain + [('status', '=', 'closed'), ('duration_hours', '<=', 0)],
+            },
+            {
+                'key': 'classification', 'tone': 'info', 'title': _('Sin centro de costo'),
+                'detail': _('Vincule el predio con una cuenta analítica de Odoo.'),
+                'domain': session_domain + [('analytic_account_id', '=', False)],
+            },
+        ]
+        opportunities = []
+        for rule in opportunity_rules:
+            count = session_model.search_count(rule['domain'])
+            if count:
+                client_domain = [
+                    [field_name, operator,
+                     fields.Datetime.to_string(value) if field_name == 'started_at' else value]
+                    for field_name, operator, value in rule['domain']
+                ]
+                opportunities.append({**rule, 'count': count, 'domain': client_domain})
 
         recent_sessions = []
         for session in session_model.search(session_domain, order='started_at desc', limit=6):
@@ -289,12 +400,7 @@ class StepTrackerWorkOrder(models.Model):
             'period_days': days,
             'company_name': company.name,
             'kpis': {
-                'sessions': session_model.search_count(session_domain),
-                'open_sessions': session_model.search_count(session_domain + [('status', '=', 'open')]),
-                'distance_km': round(session_totals.get('total_distance_km', 0.0) or 0.0, 1),
-                'hours': round(session_totals.get('duration_hours', 0.0) or 0.0, 1),
-                'work_orders': work_order_model.search_count(work_order_domain),
-                'fuel_refill_liters': round(work_order_totals.get('fuel_refill_liters', 0.0) or 0.0, 1),
+                **current,
                 'machines': self.env['step.tracker.machine'].search_count([
                     ('company_id', '=', company.id), ('active', '=', True),
                 ]),
@@ -302,6 +408,10 @@ class StepTrackerWorkOrder(models.Model):
                     ('company_id', '=', company.id), ('active', '=', True),
                 ]),
             },
+            'previous': previous,
+            'comparisons': comparisons,
+            'quality': quality,
+            'opportunities': opportunities,
             'top_machines': top_machines,
             'recent_sessions': recent_sessions,
             'latest_sync': {

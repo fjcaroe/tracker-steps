@@ -172,13 +172,12 @@ con `Ctrl+F5`.
   plano si el estándar de seguridad de la empresa lo exige (el resto del
   módulo `step_hr` tampoco cifra secretos, así que por ahora se mantuvo
   consistente con esa convención).
-- Paginar `/sessions_recent` si el volumen supera el límite fijo actual
-  (`SESSIONS_PAGE_SIZE = 500` en `step_tracker_sync.py`).
-- El 2026-08-19 se confirmó por SSH la URL real de la API
-  (`https://stepsapp.cl/tracker-steps`, ver más arriba) y que el servidor
-  tiene Odoo corriendo en el mismo host (proxy `/` → `:8069`), pero **no
-  se instaló ni probó esta versión de `step_hr` contra ese Odoo real** — falta
-  copiarlo al `addons_path` que use esa instancia, actualizarlo
-  (`-u step_hr` o desde Apps) y correr "Sincronizar ahora" con una cuenta
-  de servicio real para validar el contrato de datos de
-  `/machines`, `/drivers`, `/fields` y `/sessions_recent`.
+- Si la operación supera 5.000 sesiones sincronizadas, migrar desde el límite
+  amplio de `/sessions_recent` a paginación incremental por fecha o cursor.
+- El 2026-08-20 se instaló y validó `step_hr` en la base productiva
+  `karo_consultorias`, con Project y Nómina activos. La compañía tiene una
+  cuenta de servicio configurada, el cron está activo y las sincronizaciones
+  periódicas terminan en estado correcto.
+- El tablero Odoo incorpora comparación contra el período anterior, calidad
+  de cierre/GPS/clasificación y control por excepción. Web Tracker conserva
+  el análisis cartográfico y el detalle de recorridos.

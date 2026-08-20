@@ -38,34 +38,61 @@
                 </div>
 
                 <div class="o_steps_tracker_kpis">
-                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_session')">
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openSessions()">
                         <span>Sesiones</span><strong t-esc="formatNumber(state.data.kpis.sessions)"/>
-                        <small><t t-esc="state.data.kpis.open_sessions"/> abiertas</small>
+                        <small t-att-class="'o_steps_tracker_delta is-' + state.data.comparisons.sessions.tone"><t t-esc="deltaIcon(state.data.comparisons.sessions)"/> <t t-esc="state.data.comparisons.sessions.label"/></small>
                     </button>
                     <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_session_analysis')">
-                        <span>Distancia</span><strong><t t-esc="formatNumber(state.data.kpis.distance_km, 1)"/> km</strong>
-                        <small><t t-esc="formatNumber(state.data.kpis.hours, 1)"/> horas registradas</small>
+                        <span>Horas registradas</span><strong><t t-esc="formatNumber(state.data.kpis.hours, 1)"/> h</strong>
+                        <small t-att-class="'o_steps_tracker_delta is-' + state.data.comparisons.hours.tone"><t t-esc="deltaIcon(state.data.comparisons.hours)"/> <t t-esc="state.data.comparisons.hours.label"/></small>
+                    </button>
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_session_analysis')">
+                        <span>Distancia GPS</span><strong><t t-esc="formatNumber(state.data.kpis.distance_km, 1)"/> km</strong>
+                        <small t-att-class="'o_steps_tracker_delta is-' + state.data.comparisons.distance_km.tone"><t t-esc="deltaIcon(state.data.comparisons.distance_km)"/> <t t-esc="state.data.comparisons.distance_km.label"/></small>
                     </button>
                     <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_work_order')">
                         <span>Partes diarios</span><strong t-esc="formatNumber(state.data.kpis.work_orders)"/>
-                        <small><t t-esc="formatNumber(state.data.kpis.fuel_refill_liters, 1)"/> L recargados</small>
+                        <small t-att-class="'o_steps_tracker_delta is-' + state.data.comparisons.work_orders.tone"><t t-esc="deltaIcon(state.data.comparisons.work_orders)"/> <t t-esc="state.data.comparisons.work_orders.label"/></small>
                     </button>
-                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_machine')">
-                        <span>Flota vinculable</span><strong t-esc="formatNumber(state.data.kpis.machines)"/>
-                        <small><t t-esc="state.data.kpis.drivers"/> conductores activos</small>
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openSessions([['status', '=', 'open']])">
+                        <span>Cierre de sesiones</span><strong><t t-esc="formatNumber(state.data.kpis.closure_pct)"/>%</strong>
+                        <small t-att-class="'o_steps_tracker_delta is-' + state.data.comparisons.closure_pct.tone"><t t-esc="deltaIcon(state.data.comparisons.closure_pct)"/> <t t-esc="state.data.comparisons.closure_pct.label"/></small>
                     </button>
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_work_order')">
+                        <span>Combustible recargado</span><strong><t t-esc="formatNumber(state.data.kpis.fuel_refill_liters, 1)"/> L</strong>
+                        <small t-att-class="'o_steps_tracker_delta is-' + state.data.comparisons.fuel_refill_liters.tone"><t t-esc="deltaIcon(state.data.comparisons.fuel_refill_liters)"/> <t t-esc="state.data.comparisons.fuel_refill_liters.label"/></small>
+                    </button>
+                </div>
+
+                <div class="o_steps_tracker_intelligence">
+                    <section class="o_steps_tracker_quality">
+                        <div class="o_steps_tracker_score"><span>CALIDAD DEL PERÍODO</span><strong><t t-esc="state.data.quality.score"/><small>/100</small></strong><p>Combina cierre, respaldo GPS y clasificación contable.</p></div>
+                        <div class="o_steps_tracker_quality_bars">
+                            <div><span>Cierre de sesiones</span><i><u t-att-style="'width:' + state.data.quality.closure_pct + '%'"/></i><b><t t-esc="state.data.quality.closure_pct"/>%</b></div>
+                            <div><span>Cobertura GPS</span><i><u t-att-style="'width:' + state.data.quality.gps_pct + '%'"/></i><b><t t-esc="state.data.quality.gps_pct"/>%</b></div>
+                            <div><span>Clasificación</span><i><u t-att-style="'width:' + state.data.quality.classified_pct + '%'"/></i><b><t t-esc="state.data.quality.classified_pct"/>%</b></div>
+                        </div>
+                    </section>
+                    <section class="o_steps_tracker_opportunities">
+                        <div class="o_steps_tracker_panel_header"><div><span>CONTROL POR EXCEPCIÓN</span><h2>Oportunidades para revisar</h2></div></div>
+                        <button t-foreach="state.data.opportunities" t-as="item" t-key="item.key" t-on-click="() => this.openSessions(item.domain)">
+                            <i t-att-class="'is-' + item.tone"/><span><strong t-esc="item.title"/><small t-esc="item.detail"/></span><b t-esc="item.count"/>
+                        </button>
+                        <div t-if="!state.data.opportunities.length" class="o_steps_tracker_empty">No hay excepciones con las reglas actuales.</div>
+                    </section>
                 </div>
 
                 <div class="o_steps_tracker_grid">
                     <section class="o_steps_tracker_panel">
                         <div class="o_steps_tracker_panel_header">
-                            <div><span>RENDIMIENTO</span><h2>Máquinas con mayor recorrido</h2></div>
+                            <div><span>RENDIMIENTO COMPARADO</span><h2>Máquinas con mayor recorrido</h2></div>
                             <button class="btn btn-link" t-on-click="() => this.openAction('step_hr.action_step_tracker_session_analysis')">Ver reporte</button>
                         </div>
                         <div t-if="state.data.top_machines.length" class="o_steps_tracker_ranking">
                             <div t-foreach="state.data.top_machines" t-as="machine" t-key="machine.id || machine.name" class="o_steps_tracker_rank">
                                 <div class="o_steps_tracker_rank_label">
                                     <strong t-esc="machine.name"/><span><t t-esc="formatNumber(machine.distance_km, 1)"/> km · <t t-esc="formatNumber(machine.hours, 1)"/> h</span>
+                                    <small t-att-class="'o_steps_tracker_delta is-' + machine.variation.tone"><t t-esc="deltaIcon(machine.variation)"/> <t t-esc="machine.variation.label"/></small>
                                 </div>
                                 <div class="o_steps_tracker_bar"><i t-att-style="'width:' + machine.share + '%'"/></div>
                             </div>
@@ -76,7 +103,7 @@
                     <section class="o_steps_tracker_panel">
                         <div class="o_steps_tracker_panel_header">
                             <div><span>ACTIVIDAD RECIENTE</span><h2>Últimas sesiones</h2></div>
-                            <button class="btn btn-link" t-on-click="() => this.openAction('step_hr.action_step_tracker_session')">Ver todas</button>
+                            <button class="btn btn-link" t-on-click="() => this.openSessions()">Ver todas</button>
                         </div>
                         <div t-if="state.data.recent_sessions.length" class="o_steps_tracker_sessions">
                             <button t-foreach="state.data.recent_sessions" t-as="session" t-key="session.id"

@@ -44,6 +44,17 @@ export class StepsTrackerDashboard extends Component {
         return this.action.doAction(xmlId, { additionalContext: { tracker_dashboard_domain: domain } });
     }
 
+    openSessions(domain = []) {
+        return this.action.doAction({
+            name: "Sesiones Web Tracker",
+            type: "ir.actions.act_window",
+            res_model: "step.tracker.session",
+            views: [[false, "list"], [false, "form"]],
+            domain,
+            target: "current",
+        });
+    }
+
     openSession(sessionId) {
         return this.action.doAction({
             type: "ir.actions.act_window",
@@ -75,6 +86,13 @@ export class StepsTrackerDashboard extends Component {
             hour: "2-digit",
             minute: "2-digit",
         }).format(new Date(`${value.replace(" ", "T")}Z`));
+    }
+
+    deltaIcon(comparison) {
+        if (!comparison || comparison.value === false) {
+            return "";
+        }
+        return comparison.value >= 0 ? "▲" : "▼";
     }
 }
 

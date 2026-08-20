@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - requests siempre está en el venv de O
     requests = None
 
 DEFAULT_TIMEOUT = 20
-SESSIONS_PAGE_SIZE = 500
+SESSIONS_SYNC_LIMIT = 5000
 REQUIRED_CAPABILITIES = {
     'odoo_sync_v1',
     'master_drivers_crud',
@@ -337,7 +337,7 @@ class StepTrackerSync(models.AbstractModel):
 
     @api.model
     def _sync_sessions(self, company, base_url):
-        data = self._get_json(company, base_url, '/sessions_recent', params={'limit': SESSIONS_PAGE_SIZE})
+        data = self._get_json(company, base_url, '/sessions_recent', params={'limit': SESSIONS_SYNC_LIMIT})
         MachineLink = self.env['step.tracker.machine'].sudo()
         DriverLink = self.env['step.tracker.driver'].sudo()
         FieldLink = self.env['step.tracker.field'].sudo()
