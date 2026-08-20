@@ -12,7 +12,8 @@
     'author': "jamie.escalante7@gmail.com",
     'website': "",
     'category': 'HR',
-    'version': '18.0',
+    'version': '18.0.1.0.0',
+    'license': 'LGPL-3',
 
     'depends': ['base',
                 'hr_holidays_gantt',
@@ -22,6 +23,7 @@
                 'hr_work_entry_contract_enterprise',
                 'sale',
                 'sale_management',
+                'project',
                 'fleet'],
     'external_dependencies': {
         'python': ['requests'],
