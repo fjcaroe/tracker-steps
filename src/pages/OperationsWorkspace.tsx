@@ -4,8 +4,10 @@ import {
   DEMO_EVENTS,
   DEMO_FIELDS,
   DEMO_SESSIONS,
+  REGIONS,
   getDemoVehicles,
   type DemoSession,
+  type DemoVehicle,
 } from "../demo/scenario";
 import { apiJson } from "../services/http";
 import "./OperationsWorkspace.css";
@@ -89,6 +91,22 @@ function statusLabel(status: DemoSession["status"]) {
   return "Completada";
 }
 
+function vehicleStatusLabel(status: DemoVehicle["status"]) {
+  if (status === "working") return "Trabajando";
+  if (status === "turning") return "Girando";
+  if (status === "returning") return "Regresando";
+  return "Detenido";
+}
+
+const HISTORY_PAGE_SIZE = 10;
+const FLEET_STATUS_OPTIONS: { value: "all" | DemoVehicle["status"]; label: string }[] = [
+  { value: "all", label: "Todos los estados" },
+  { value: "working", label: "Trabajando" },
+  { value: "turning", label: "Girando" },
+  { value: "paused", label: "Detenidos" },
+  { value: "returning", label: "Regresando" },
+];
+
 function DemoControl({
   demoMode,
   onDemoModeChange,
@@ -96,6 +114,8 @@ function DemoControl({
   onRunningChange,
   speed,
   onSpeedChange,
+  regionId,
+  onRegionChange,
 }: {
   demoMode: boolean;
   onDemoModeChange: (value: boolean) => void;
@@ -103,6 +123,8 @@ function DemoControl({
   onRunningChange: (value: boolean) => void;
   speed: number;
   onSpeedChange: (value: number) => void;
+  regionId: string;
+  onRegionChange: (value: string) => void;
 }) {
   return (
     <section className={`demo-console ${demoMode ? "is-active" : ""}`} aria-label="Laboratorio de demostración">
@@ -117,6 +139,11 @@ function DemoControl({
       </label>
       {demoMode && (
         <>
+          <label className="demo-region" aria-label="Ubicación / fundo">
+            <select value={regionId} onChange={(event) => onRegionChange(event.target.value)}>
+              {REGIONS.map((region) => <option key={region.id} value={region.id}>{region.name}</option>)}
+            </select>
+          </label>
           <button type="button" className="ops-action ops-action--dark" onClick={() => onRunningChange(!running)}>{running ? "Pausar" : "Iniciar"}</button>
           <label className="demo-speed">Velocidad
             <select value={speed} onChange={(event) => onSpeedChange(Number(event.target.value))}>
@@ -151,12 +178,16 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const [running, setRunning] = useState(true);
   const [speed, setSpeed] = useState(1);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>("demo-01");
+  const [selectedRegionId, setSelectedRegionId] = useState<string>(REGIONS[0].id);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [showRows, setShowRows] = useState(true);
   const [showRoadRoute, setShowRoadRoute] = useState(false);
   const [roadRouteStatus, setRoadRouteStatus] = useState<string | null>(null);
+  const [fleetQuery, setFleetQuery] = useState("");
+  const [fleetStatusFilter, setFleetStatusFilter] = useState<"all" | DemoVehicle["status"]>("all");
   const [historyQuery, setHistoryQuery] = useState("");
   const [historyStatus, setHistoryStatus] = useState<"all" | DemoSession["status"]>("all");
+  const [historyPage, setHistoryPage] = useState(1);
   const todayIso = useMemo(() => localDateKey(new Date().toISOString()), []);
   const [historyDateFrom, setHistoryDateFrom] = useState(todayIso);
   const [historyDateTo, setHistoryDateTo] = useState(todayIso);
@@ -230,10 +261,28 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     void load();
   }, [view, demoMode]);
 
-  const vehicles = useMemo(() => getDemoVehicles(elapsedSeconds, speed), [elapsedSeconds, speed]);
-  const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
-  const selectedField = DEMO_FIELDS.find((field) => field.id === selectedVehicle?.fieldId) ?? DEMO_FIELDS[0];
+  const allVehicles = useMemo(() => getDemoVehicles(elapsedSeconds, speed), [elapsedSeconds, speed]);
+  const currentRegion = REGIONS.find((region) => region.id === selectedRegionId) ?? REGIONS[0];
+  const regionFields = useMemo(() => DEMO_FIELDS.filter((field) => field.regionId === selectedRegionId), [selectedRegionId]);
+  const vehicles = useMemo(() => allVehicles.filter((vehicle) => vehicle.regionId === selectedRegionId), [allVehicles, selectedRegionId]);
+  // Sin selección = toda la flota de la región, sin centrar el mapa en ninguna máquina en particular.
+  const selectedVehicle = selectedVehicleId ? allVehicles.find((vehicle) => vehicle.id === selectedVehicleId) : undefined;
+  const selectedField = selectedVehicle ? DEMO_FIELDS.find((field) => field.id === selectedVehicle.fieldId) : undefined;
   const sessions = DEMO_SESSIONS;
+
+  const handleRegionChange = (nextRegionId: string) => {
+    setSelectedRegionId(nextRegionId);
+    setSelectedVehicleId(null);
+    setFleetQuery("");
+    setFleetStatusFilter("all");
+  };
+
+  const filteredFleet = useMemo(() => vehicles.filter((vehicle) => {
+    const query = fleetQuery.trim().toLowerCase();
+    const matchesQuery = !query || `${vehicle.name} ${vehicle.driver} ${vehicle.plate}`.toLowerCase().includes(query);
+    const matchesStatus = fleetStatusFilter === "all" || vehicle.status === fleetStatusFilter;
+    return matchesQuery && matchesStatus;
+  }), [vehicles, fleetQuery, fleetStatusFilter]);
 
   const historyRows: HistoryRow[] = useMemo(() => {
     if (demoMode) {
@@ -259,17 +308,28 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     });
   }, [demoMode, realSessions, laborsById]);
 
-  const filteredSessions = historyRows.filter((row) => {
+  const filteredSessions = useMemo(() => historyRows.filter((row) => {
     const query = historyQuery.trim().toLowerCase();
     const matchesQuery = !query || `${row.id} ${row.machine} ${row.driver} ${row.field} ${row.labor}`.toLowerCase().includes(query);
     const matchesStatus = historyStatus === "all" || row.statusTone === historyStatus;
     const dayIso = localDateKey(row.startedAtIso);
     const matchesDate = (!historyDateFrom || dayIso >= historyDateFrom) && (!historyDateTo || dayIso <= historyDateTo);
     return matchesQuery && matchesStatus && matchesDate;
-  });
+  }), [historyRows, historyQuery, historyStatus, historyDateFrom, historyDateTo]);
+
+  const historyPageCount = Math.max(1, Math.ceil(filteredSessions.length / HISTORY_PAGE_SIZE));
+  const clampedHistoryPage = Math.min(historyPage, historyPageCount);
+  const pagedSessions = filteredSessions.slice((clampedHistoryPage - 1) * HISTORY_PAGE_SIZE, clampedHistoryPage * HISTORY_PAGE_SIZE);
+
+  const historyFilterKey = `${historyQuery}|${historyStatus}|${historyDateFrom}|${historyDateTo}|${demoMode}`;
+  const [prevHistoryFilterKey, setPrevHistoryFilterKey] = useState(historyFilterKey);
+  if (prevHistoryFilterKey !== historyFilterKey) {
+    setPrevHistoryFilterKey(historyFilterKey);
+    if (historyPage !== 1) setHistoryPage(1);
+  }
 
   const control = (
-    <DemoControl demoMode={demoMode} onDemoModeChange={setDemoMode} running={running} onRunningChange={setRunning} speed={speed} onSpeedChange={setSpeed} />
+    <DemoControl demoMode={demoMode} onDemoModeChange={setDemoMode} running={running} onRunningChange={setRunning} speed={speed} onSpeedChange={setSpeed} regionId={selectedRegionId} onRegionChange={handleRegionChange} />
   );
 
   if (view === "registro") {
@@ -303,35 +363,81 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const mapCard = (compact = false) => (
     <section className={`ops-map-card ${compact ? "is-compact" : ""}`}>
       <header>
-        <div><span className="section-kicker">Cartografía operacional</span><h2>{selectedField.name}</h2><p>{selectedVehicle.driver} · {selectedField.crop}</p></div>
+        <div>
+          <span className="section-kicker">Cartografía operacional · {currentRegion.name}</span>
+          <h2>{selectedVehicle && selectedField ? selectedField.name : "Toda la flota"}</h2>
+          <p>{selectedVehicle && selectedField ? `${selectedVehicle.driver} · ${selectedField.crop}` : `${vehicles.length} vehículos en esta ubicación · ninguno seleccionado`}</p>
+        </div>
         <div className="ops-layer-controls">
+          {selectedVehicleId && <button type="button" onClick={() => setSelectedVehicleId(null)}>Toda la flota</button>}
           <button type="button" className={showRows ? "is-active" : ""} onClick={() => setShowRows(!showRows)}>Pasadas</button>
-          <button type="button" className={showRoadRoute ? "is-active" : ""} onClick={() => { const next = !showRoadRoute; setShowRoadRoute(next); if (!next) setRoadRouteStatus(null); }}>Ruta por caminos</button>
+          <button type="button" className={showRoadRoute ? "is-active" : ""} disabled={!selectedField} title={!selectedField ? "Selecciona un vehículo para calcular su ruta" : undefined} onClick={() => { const next = !showRoadRoute; setShowRoadRoute(next); if (!next) setRoadRouteStatus(null); }}>Ruta por caminos</button>
         </div>
       </header>
       {roadRouteStatus && <div className="ops-map-notice" role="status" aria-live="polite">{roadRouteStatus}</div>}
       <div className="ops-map-frame">
-        <OperationsMap fields={DEMO_FIELDS} vehicles={vehicles} selectedVehicleId={selectedVehicleId} onSelectVehicle={setSelectedVehicleId} showRows={showRows} showRoadRoute={showRoadRoute} onRoadRouteStatus={setRoadRouteStatus} compact={compact} />
+        <OperationsMap fields={regionFields} vehicles={vehicles} selectedVehicleId={selectedVehicleId} onSelectVehicle={setSelectedVehicleId} showRows={showRows} showRoadRoute={showRoadRoute} onRoadRouteStatus={setRoadRouteStatus} compact={compact} depot={currentRegion.depot} />
       </div>
       <footer><span><i className="ops-dot is-lime" /> Pasadas dentro del lote</span><span><i className="ops-line-sample" /> Caminos calculados por Google</span><b>Dataset demostrativo</b></footer>
     </section>
   );
 
   if (view === "userView") {
-    const fieldProgress = [62, 71, 80, 89];
+    const fieldProgress = regionFields.map((_, index) => 58 + ((index * 11) % 35));
     const completion = Math.round(fieldProgress.reduce((sum, value) => sum + value, 0) / fieldProgress.length);
     return (
       <main className="ops-workspace">
-        {control}<KpiGrid sessions={sessions} fields={DEMO_FIELDS} />
+        {control}
+        <p className="ops-view-intro">Lectura ejecutiva de toda la operación (las {REGIONS.length} ubicaciones). El mapa y la flota de abajo muestran solo <b>{currentRegion.name}</b>; cambia de ubicación arriba para ver otro fundo.</p>
+        <KpiGrid sessions={sessions} fields={DEMO_FIELDS} />
+        {(() => {
+          const attention = allVehicles
+            .filter((v) => v.fuelPct < 35 || v.status === "paused" || v.status === "returning")
+            .map((v) => ({
+              vehicle: v,
+              reason: v.fuelPct < 35 ? `Combustible bajo · ${v.fuelPct.toFixed(0)}%` : v.status === "paused" ? "Detenida" : "Regresando a base",
+            }))
+            .slice(0, 5);
+          if (attention.length === 0) return null;
+          return (
+            <section className="ops-attention-panel" aria-label="Atención requerida">
+              <header><span className="section-kicker">Atención requerida</span><h2>{attention.length} máquina{attention.length === 1 ? "" : "s"} para revisar hoy, en toda la empresa</h2></header>
+              <div className="ops-attention-list">
+                {attention.map(({ vehicle, reason }) => {
+                  const region = REGIONS.find((r) => r.id === vehicle.regionId);
+                  return (
+                    <button type="button" key={vehicle.id} onClick={() => { if (region) handleRegionChange(region.id); setSelectedVehicleId(vehicle.id); }}>
+                      <i className="ops-dot is-warning" />
+                      <span><b>{vehicle.name}</b><small>{vehicle.driver} · {region?.name}</small></span>
+                      <em>{reason}</em>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+        <section className="ops-region-strip" aria-label="Ubicaciones de la empresa">
+          {REGIONS.map((region) => {
+            const regionVehicleCount = allVehicles.filter((v) => v.regionId === region.id).length;
+            const regionFieldCount = DEMO_FIELDS.filter((f) => f.regionId === region.id).length;
+            return (
+              <button type="button" key={region.id} className={region.id === selectedRegionId ? "is-active" : ""} onClick={() => handleRegionChange(region.id)}>
+                <b>{region.name}</b>
+                <span>{regionVehicleCount} máquinas · {regionFieldCount} predios</span>
+              </button>
+            );
+          })}
+        </section>
         <div className="ops-summary-grid">
           {mapCard(true)}
           <section className="ops-side-card"><header><span className="section-kicker">Jornada</span><h2>Avance operacional</h2></header>
             <div className="ops-progress-ring" style={{ "--progress": `${Math.min(100, completion)}%` } as React.CSSProperties}><strong>{completion}%</strong><span>cobertura planificada</span></div>
-            <div className="ops-progress-list">{DEMO_FIELDS.map((field, index) => <div key={field.id}><span>{field.name}</span><b>{fieldProgress[index]}%</b><i><em style={{ width: `${fieldProgress[index]}%` }} /></i></div>)}</div>
+            <div className="ops-progress-list">{regionFields.map((field, index) => <div key={field.id}><span>{field.name}</span><b>{fieldProgress[index]}%</b><i><em style={{ width: `${fieldProgress[index]}%` }} /></i></div>)}</div>
           </section>
         </div>
         <div className="ops-lower-grid">
-          <section className="ops-panel"><header><span className="section-kicker">Flota</span><h2>Actividad por máquina</h2></header><div className="ops-fleet-rows">{vehicles.map((vehicle) => <button key={vehicle.id} type="button" onClick={() => { setSelectedVehicleId(vehicle.id); }}><i className="ops-vehicle-avatar">T</i><span><b>{vehicle.name}</b><small>{DEMO_FIELDS.find((field) => field.id === vehicle.fieldId)?.name}</small></span><em>{vehicle.speedKmh.toFixed(1)} km/h</em><strong>{vehicle.coveredHa.toFixed(1)} ha</strong></button>)}</div></section>
+          <section className="ops-panel"><header><span className="section-kicker">Flota · {currentRegion.name}</span><h2>Actividad por máquina</h2></header><div className="ops-fleet-rows">{vehicles.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => setSelectedVehicleId(selectedVehicleId === vehicle.id ? null : vehicle.id)}><i className="ops-vehicle-avatar">T</i><span><b>{vehicle.name}</b><small>{DEMO_FIELDS.find((field) => field.id === vehicle.fieldId)?.name}</small></span><em>{vehicle.speedKmh.toFixed(1)} km/h</em><strong>{vehicle.coveredHa.toFixed(1)} ha</strong></button>)}</div></section>
           <section className="ops-panel"><header><span className="section-kicker">Eventos</span><h2>Actividad reciente</h2></header><ol className="ops-event-list">{DEMO_EVENTS.map((event) => <li key={`${event.time}-${event.title}`}><time>{event.time}</time><i className={`is-${event.tone}`} /><span><b>{event.title}</b><small>{event.detail}</small></span></li>)}</ol></section>
         </div>
       </main>
@@ -339,16 +445,38 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "live") {
+    const fleetAvgSpeed = vehicles.length ? vehicles.reduce((sum, v) => sum + v.speedKmh, 0) / vehicles.length : 0;
+    const fleetAvgFuel = vehicles.length ? vehicles.reduce((sum, v) => sum + v.fuelPct, 0) / vehicles.length : 0;
+    const fleetTotalHa = vehicles.reduce((sum, v) => sum + v.coveredHa, 0);
+    const workingCount = vehicles.filter((v) => v.status === "working").length;
     return (
       <main className="ops-workspace">{control}<KpiGrid sessions={sessions} fields={DEMO_FIELDS} />
-        <div className="ops-live-layout"><aside className="ops-fleet-panel"><header><span className="section-kicker">Flota demo</span><h2>4 máquinas en terreno</h2></header>{vehicles.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => setSelectedVehicleId(vehicle.id)}><span className="ops-vehicle-avatar">T</span><span><b>{vehicle.name}</b><small>{vehicle.driver}</small></span><em><i className="ops-dot is-green" /> {vehicle.status === "turning" ? "Girando" : "Trabajando"}</em></button>)}</aside>{mapCard(false)}</div>
-        <section className="ops-telemetry-strip"><article><span>Velocidad</span><b>{selectedVehicle.speedKmh.toFixed(1)} km/h</b></article><article><span>Combustible</span><b>{selectedVehicle.fuelPct.toFixed(0)}%</b></article><article><span>Horómetro</span><b>{number(selectedVehicle.engineHours)} h</b></article><article><span>Cobertura</span><b>{number(selectedVehicle.coveredHa)} ha</b></article><article><span>Progreso lote</span><b>{Math.round(selectedVehicle.progress * 100)}%</b></article></section>
+        <div className="ops-live-layout">
+          <aside className="ops-fleet-panel">
+            <header><span className="section-kicker">Flota · {currentRegion.name}</span><h2>{vehicles.length} máquinas en terreno</h2></header>
+            <div className="ops-fleet-filters">
+              <input type="search" aria-label="Buscar en la flota" placeholder="Buscar máquina, operador o patente…" value={fleetQuery} onChange={(event) => setFleetQuery(event.target.value)} />
+              <select aria-label="Filtrar por estado" value={fleetStatusFilter} onChange={(event) => setFleetStatusFilter(event.target.value as typeof fleetStatusFilter)}>
+                {FLEET_STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </div>
+            {selectedVehicleId && <button type="button" className="ops-fleet-clear" onClick={() => setSelectedVehicleId(null)}>✕ Quitar selección · ver toda la flota</button>}
+            {filteredFleet.map((vehicle) => <button key={vehicle.id} type="button" className={selectedVehicleId === vehicle.id ? "is-selected" : ""} onClick={() => setSelectedVehicleId(selectedVehicleId === vehicle.id ? null : vehicle.id)} aria-pressed={selectedVehicleId === vehicle.id}><span className="ops-vehicle-avatar">T</span><span><b>{vehicle.name}</b><small>{vehicle.driver}</small></span><em><i className="ops-dot is-green" /> {vehicleStatusLabel(vehicle.status)}</em></button>)}
+            {filteredFleet.length === 0 && <div className="ops-empty">Ninguna máquina coincide con el filtro.</div>}
+          </aside>
+          {mapCard(false)}
+        </div>
+        {selectedVehicle ? (
+          <section className="ops-telemetry-strip"><article><span>Velocidad</span><b>{selectedVehicle.speedKmh.toFixed(1)} km/h</b></article><article><span>Combustible</span><b>{selectedVehicle.fuelPct.toFixed(0)}%</b></article><article><span>Horómetro</span><b>{number(selectedVehicle.engineHours)} h</b></article><article><span>Cobertura</span><b>{number(selectedVehicle.coveredHa)} ha</b></article><article><span>Progreso lote</span><b>{Math.round(selectedVehicle.progress * 100)}%</b></article></section>
+        ) : (
+          <section className="ops-telemetry-strip"><article><span>Velocidad media</span><b>{fleetAvgSpeed.toFixed(1)} km/h</b></article><article><span>Combustible medio</span><b>{fleetAvgFuel.toFixed(0)}%</b></article><article><span>Trabajando</span><b>{workingCount} / {vehicles.length}</b></article><article><span>Cobertura total</span><b>{number(fleetTotalHa)} ha</b></article><article><span>Selección</span><b>Toda la flota</b></article></section>
+        )}
       </main>
     );
   }
 
   if (view === "routes") {
-    return <main className="ops-workspace">{control}<section className="ops-panel ops-table-panel"><header><div><span className="section-kicker">Rendimiento acumulado</span><h2>Odómetro y utilización</h2><p>La distancia se suma sobre puntos GPS ordenados; no se usa la diagonal entre inicio y fin.</p></div><button className="ops-action">Exportar resumen</button></header><div className="ops-machine-metrics">{vehicles.map((vehicle, index) => <article key={vehicle.id}><div><span className="ops-vehicle-avatar">T</span><span><b>{vehicle.name}</b><small>{vehicle.plate}</small></span><em>{88 - index * 4}% disponibilidad</em></div><dl><div><dt>Odómetro jornada</dt><dd>{number(vehicle.distanceKm)} km</dd></div><div><dt>Horómetro</dt><dd>{number(vehicle.engineHours)} h</dd></div><div><dt>Superficie</dt><dd>{number(vehicle.coveredHa)} ha</dd></div><div><dt>Rendimiento</dt><dd>{number(vehicle.coveredHa / (4.2 + index * .35), 2)} ha/h</dd></div></dl><span className="ops-meter"><i style={{ width: `${72 + index * 6}%` }} /></span></article>)}</div></section>{mapCard(true)}</main>;
+    return <main className="ops-workspace">{control}<section className="ops-panel ops-table-panel"><header><div><span className="section-kicker">Rendimiento acumulado · {currentRegion.name}</span><h2>Odómetro y utilización</h2><p>La distancia se suma sobre puntos GPS ordenados; no se usa la diagonal entre inicio y fin.</p></div><button className="ops-action">Exportar resumen</button></header><div className="ops-machine-metrics">{vehicles.map((vehicle, index) => <article key={vehicle.id}><div><span className="ops-vehicle-avatar">T</span><span><b>{vehicle.name}</b><small>{vehicle.plate}</small></span><em>{88 - index * 4}% disponibilidad</em></div><dl><div><dt>Odómetro jornada</dt><dd>{number(vehicle.distanceKm)} km</dd></div><div><dt>Horómetro</dt><dd>{number(vehicle.engineHours)} h</dd></div><div><dt>Superficie</dt><dd>{number(vehicle.coveredHa)} ha</dd></div><div><dt>Rendimiento</dt><dd>{number(vehicle.coveredHa / (4.2 + index * .35), 2)} ha/h</dd></div></dl><span className="ops-meter"><i style={{ width: `${72 + index * 6}%` }} /></span></article>)}</div></section>{mapCard(true)}</main>;
   }
 
   if (view === "stats") {
@@ -362,8 +490,8 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "masters") {
-    const masterCards = [{ label: "Máquinas", value: demoMode ? 4 : realData.machines.length, detail: "4 operativas", icon: "T" },{ label: "Conductores", value: demoMode ? 4 : realData.drivers.length, detail: "licencias al día", icon: "C" },{ label: "Centros de costo", value: demoMode ? 2 : realData.costCenters.length, detail: "estructura activa", icon: "$" },{ label: "Polígonos", value: demoMode ? DEMO_FIELDS.length : realData.fields.length, detail: "geometría validada", icon: "P" }];
-    return <main className="ops-workspace">{control}<div className="ops-master-grid">{masterCards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button">Administrar</button></article>)}</div><div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría</span><h2>Predios y pasadas registradas</h2></header><div className="ops-field-catalog">{DEMO_FIELDS.map((field) => <article key={field.id}><i style={{ background: field.color }}/><span><b>{field.name}</b><small>{field.crop} · {field.costCenter}</small></span><em>{field.areaHa} ha</em><strong>{Math.floor(field.workPath.length / 2)} pasadas</strong></article>)}</div></section><section className="ops-panel"><header><span className="section-kicker">Salud de datos</span><h2>Controles de calidad</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Polígonos cerrados</b><small>4 de 4 geometrías válidas</small></span></li><li><i className="is-ok">✓</i><span><b>Pasadas contenidas</b><small>Sin puntos fuera del lote</small></span></li><li><i className="is-ok">✓</i><span><b>GPS ordenado</b><small>Timestamps crecientes</small></span></li><li><i className="is-warning">!</i><span><b>Sesiones reales antiguas</b><small>4 pendientes de cierre administrativo</small></span></li></ul></section></div></main>;
+    const masterCards = [{ label: "Máquinas", value: demoMode ? allVehicles.length : realData.machines.length, detail: `${REGIONS.length} ubicaciones`, icon: "T" },{ label: "Conductores", value: demoMode ? new Set(allVehicles.map((v) => v.driver)).size : realData.drivers.length, detail: "licencias al día", icon: "C" },{ label: "Centros de costo", value: demoMode ? new Set(DEMO_FIELDS.map((f) => f.costCenter)).size : realData.costCenters.length, detail: "estructura activa", icon: "$" },{ label: "Polígonos", value: demoMode ? DEMO_FIELDS.length : realData.fields.length, detail: "geometría validada", icon: "P" }];
+    return <main className="ops-workspace">{control}<div className="ops-master-grid">{masterCards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button">Administrar</button></article>)}</div><div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · toda la empresa</span><h2>Predios y pasadas registradas</h2></header><div className="ops-field-catalog">{DEMO_FIELDS.map((field) => <article key={field.id}><i style={{ background: field.color }}/><span><b>{field.name}</b><small>{field.crop} · {REGIONS.find((r) => r.id === field.regionId)?.name}</small></span><em>{field.areaHa} ha</em><strong>{Math.floor(field.workPath.length / 2)} pasadas</strong></article>)}</div></section><section className="ops-panel"><header><span className="section-kicker">Salud de datos</span><h2>Controles de calidad</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Polígonos cerrados</b><small>{DEMO_FIELDS.length} de {DEMO_FIELDS.length} geometrías válidas</small></span></li><li><i className="is-ok">✓</i><span><b>Pasadas contenidas</b><small>Sin puntos fuera del lote</small></span></li><li><i className="is-ok">✓</i><span><b>GPS ordenado</b><small>Timestamps crecientes</small></span></li><li><i className="is-warning">!</i><span><b>Sesiones reales antiguas</b><small>4 pendientes de cierre administrativo</small></span></li></ul></section></div></main>;
   }
 
   const showingRealHistory = !demoMode;
@@ -377,7 +505,17 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   <section className="ops-panel ops-session-table">
     <div className="ops-session-table__head"><span>Sesión</span><span>Máquina / operador</span><span>Lote</span><span>Labor</span><span>Duración</span><span>Distancia</span><span>Superficie</span><span>Estado</span></div>
     {showingRealHistory && realHistoryStatus === "loading" && <div className="ops-empty">Cargando historial…</div>}
-    {(!showingRealHistory || realHistoryStatus !== "loading") && filteredSessions.map((row) => <button type="button" key={row.id}><span><b>{row.id}</b><small>{row.startedAtLabel}</small></span><span><b>{row.machine}</b><small>{row.driver}</small></span><span>{row.field}</span><span>{row.labor}</span><span>{row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</span><span>{row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</span><span>{row.coveredHa != null ? `${number(row.coveredHa)} ha` : "—"}</span><span><em className={`ops-status is-${row.statusTone}`}>{row.statusText}</em></span></button>)}
+    {(!showingRealHistory || realHistoryStatus !== "loading") && pagedSessions.map((row) => <button type="button" key={row.id}><span><b>{row.id}</b><small>{row.startedAtLabel}</small></span><span><b>{row.machine}</b><small>{row.driver}</small></span><span>{row.field}</span><span>{row.labor}</span><span>{row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</span><span>{row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</span><span>{row.coveredHa != null ? `${number(row.coveredHa)} ha` : "—"}</span><span><em className={`ops-status is-${row.statusTone}`}>{row.statusText}</em></span></button>)}
     {(!showingRealHistory || realHistoryStatus === "ready") && filteredSessions.length === 0 && <div className="ops-empty">No hay sesiones que coincidan con los filtros.</div>}
-  </section></main>;
+  </section>
+  {filteredSessions.length > 0 && (
+    <nav className="ops-pagination" aria-label="Paginación del historial">
+      <span>{filteredSessions.length} sesiones · página {clampedHistoryPage} de {historyPageCount}</span>
+      <div>
+        <button type="button" disabled={clampedHistoryPage <= 1} onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}>‹ Anterior</button>
+        <button type="button" disabled={clampedHistoryPage >= historyPageCount} onClick={() => setHistoryPage((p) => Math.min(historyPageCount, p + 1))}>Siguiente ›</button>
+      </div>
+    </nav>
+  )}
+  </main>;
 }

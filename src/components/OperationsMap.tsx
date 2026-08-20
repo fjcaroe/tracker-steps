@@ -14,16 +14,15 @@ type OperationsMapProps = {
   fields: DemoField[];
   vehicles: DemoVehicle[];
   selectedVehicleId: string | null;
-  onSelectVehicle: (id: string) => void;
+  onSelectVehicle: (id: string | null) => void;
   showRows: boolean;
   showRoadRoute: boolean;
   onRoadRouteStatus?: (message: string | null) => void;
   compact?: boolean;
+  depot: GeoPoint;
 };
 
 const containerStyle: CSSProperties = { width: "100%", height: "100%" };
-const defaultCenter = { lat: -35.746, lng: -71.597 };
-const depot = { lat: -35.7596, lng: -71.6033 };
 
 function toMapPoint(point: GeoPoint): google.maps.LatLngLiteral {
   return { lat: point.lat, lng: point.lon };
@@ -50,6 +49,7 @@ export default function OperationsMap({
   showRoadRoute,
   onRoadRouteStatus,
   compact = false,
+  depot,
 }: OperationsMapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -59,10 +59,12 @@ export default function OperationsMap({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
 
-  const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0] ?? null;
-  const selectedField = fields.find((field) => field.id === selectedVehicle?.fieldId) ?? fields[0] ?? null;
+  // Sin selección = toda la flota de la región actual, sin centrar en ninguna máquina.
+  const selectedVehicle = selectedVehicleId ? vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null : null;
+  const selectedField = selectedVehicle ? fields.find((field) => field.id === selectedVehicle.fieldId) ?? null : null;
   const selectedLat = selectedVehicle?.position.lat;
   const selectedLon = selectedVehicle?.position.lon;
+  const depotPoint = useMemo(() => toMapPoint(depot), [depot]);
 
   const fieldBounds = useMemo(
     () => fields.flatMap((field) => field.polygon).map(toMapPoint),
@@ -81,6 +83,13 @@ export default function OperationsMap({
     fitScenario(instance);
   }, [fitScenario]);
 
+  // Re-encuadra toda la flota de la región al cambiar de región (fieldBounds cambia)
+  // o al limpiar la selección de vehículo.
+  useEffect(() => {
+    if (!map) return;
+    if (!selectedVehicleId) fitScenario(map);
+  }, [map, fieldBounds, selectedVehicleId, fitScenario]);
+
   useEffect(() => {
     if (!map || selectedLat == null || selectedLon == null || !selectedVehicleId) return;
     map.panTo({ lat: selectedLat, lng: selectedLon });
@@ -96,7 +105,7 @@ export default function OperationsMap({
     const destination = toMapPoint(selectedField.polygon[0]);
     const service = new google.maps.DirectionsService();
     service.route(
-      { origin: depot, destination, travelMode: google.maps.TravelMode.DRIVING },
+      { origin: depotPoint, destination, travelMode: google.maps.TravelMode.DRIVING },
       (result, status) => {
         if (!active) return;
         if (status === google.maps.DirectionsStatus.OK && result) {
@@ -109,7 +118,7 @@ export default function OperationsMap({
       },
     );
     return () => { active = false; };
-  }, [isLoaded, onRoadRouteStatus, selectedField, showRoadRoute]);
+  }, [isLoaded, onRoadRouteStatus, selectedField, showRoadRoute, depotPoint]);
 
   if (loadError) return <div className="ops-map-state">Google Maps no pudo cargar. La lista operacional sigue disponible.</div>;
   if (!isLoaded) return <div className="ops-map-state"><span className="view-loader__spinner" /> Cargando cartografía…</div>;
@@ -117,9 +126,10 @@ export default function OperationsMap({
   return (
     <GoogleMap
       mapContainerStyle={containerStyle}
-      center={defaultCenter}
+      center={depotPoint}
       zoom={14}
       onLoad={handleLoad}
+      onClick={() => onSelectVehicle(null)}
       options={{
         mapTypeId: "satellite",
         disableDefaultUI: true,
@@ -161,7 +171,13 @@ export default function OperationsMap({
 
       {vehicles.map((vehicle) => (
         <OverlayViewF key={vehicle.id} position={toMapPoint(vehicle.position)} mapPaneName="overlayMouseTarget">
-          <button type="button" className="ops-map-vehicle-button" onClick={() => onSelectVehicle(vehicle.id)} aria-label={`Enfocar ${vehicle.name}`}>
+          <button
+            type="button"
+            className="ops-map-vehicle-button"
+            onClick={(event) => { event.stopPropagation(); onSelectVehicle(selectedVehicleId === vehicle.id ? null : vehicle.id); }}
+            aria-label={selectedVehicleId === vehicle.id ? `Quitar foco de ${vehicle.name}` : `Enfocar ${vehicle.name}`}
+            aria-pressed={selectedVehicleId === vehicle.id}
+          >
             <TractorMarker vehicle={vehicle} selected={selectedVehicleId === vehicle.id} />
           </button>
         </OverlayViewF>

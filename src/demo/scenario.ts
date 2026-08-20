@@ -1,10 +1,13 @@
 export type GeoPoint = { lat: number; lon: number };
 
+export type DemoRegion = { id: string; name: string; depot: GeoPoint };
+
 export type DemoField = {
   id: string;
   name: string;
   crop: string;
   costCenter: string;
+  regionId: string;
   color: string;
   areaHa: number;
   polygon: GeoPoint[];
@@ -17,6 +20,7 @@ export type DemoVehicle = {
   plate: string;
   driver: string;
   fieldId: string;
+  regionId: string;
   status: "working" | "turning" | "paused" | "returning";
   progress: number;
   speedKmh: number;
@@ -33,6 +37,7 @@ export type DemoSession = {
   machine: string;
   driver: string;
   field: string;
+  regionId: string;
   labor: string;
   startedAt: string;
   startedAtIso: string;
@@ -70,6 +75,7 @@ function createField(
   name: string,
   crop: string,
   costCenter: string,
+  regionId: string,
   center: GeoPoint,
   widthM: number,
   heightM: number,
@@ -103,6 +109,7 @@ function createField(
     name,
     crop,
     costCenter,
+    regionId,
     color,
     areaHa: Number(((widthM * heightM) / 10_000).toFixed(1)),
     polygon: corners,
@@ -110,12 +117,31 @@ function createField(
   };
 }
 
-export const DEMO_FIELDS: DemoField[] = [
-  createField("north", "Lote Norte A", "Avellano europeo", "Fundo San Javier", { lat: -35.7369, lon: -71.5967 }, 440, 270, 12, "#2f9e72"),
-  createField("canal", "Lote Canal 4", "Arándano", "Fundo San Javier", { lat: -35.7423, lon: -71.5898 }, 340, 230, -8, "#4c8ad6"),
-  createField("station", "Cuartel Estación", "Cerezo", "Panimávida", { lat: -35.7502, lon: -71.6041 }, 390, 250, 21, "#d94835"),
-  createField("south", "Lote Sur 2", "Nogal", "Panimávida", { lat: -35.7551, lon: -71.5936 }, 470, 300, -16, "#8a68cc"),
+// Una empresa agrícola con predios en tres zonas reales de Chile, bien
+// separadas entre sí (evita que el mapa quede absurdamente alejado al
+// intentar encuadrar todo el país a la vez: cada región se filtra por
+// separado, como en Samsara/Geotab con "sitios").
+export const REGIONS: DemoRegion[] = [
+  { id: "linares", name: "Linares (Región del Maule)", depot: { lat: -35.7596, lon: -71.6033 } },
+  { id: "sanfernando", name: "San Fernando (O'Higgins)", depot: { lat: -34.5875, lon: -70.988 } },
+  { id: "losangeles", name: "Los Ángeles (Biobío)", depot: { lat: -37.4693, lon: -72.3535 } },
 ];
+
+export const DEMO_FIELDS: DemoField[] = [
+  createField("north", "Lote Norte A", "Avellano europeo", "Fundo San Javier", "linares", { lat: -35.7369, lon: -71.5967 }, 440, 270, 12, "#2f9e72"),
+  createField("canal", "Lote Canal 4", "Arándano", "Fundo San Javier", "linares", { lat: -35.7423, lon: -71.5898 }, 340, 230, -8, "#4c8ad6"),
+  createField("station", "Cuartel Estación", "Cerezo", "Panimávida", "linares", { lat: -35.7502, lon: -71.6041 }, 390, 250, 21, "#d94835"),
+  createField("south", "Lote Sur 2", "Nogal", "Panimávida", "linares", { lat: -35.7551, lon: -71.5936 }, 470, 300, -16, "#8a68cc"),
+
+  createField("sf-vina", "Cuartel Viña Alta", "Vid vinífera", "Fundo Santa Rosa", "sanfernando", { lat: -34.5798, lon: -70.9782 }, 400, 260, 8, "#a5459c"),
+  createField("sf-ciruelo", "Lote Ciruelo Sur", "Ciruelo", "Fundo Santa Rosa", "sanfernando", { lat: -34.5941, lon: -70.9946 }, 350, 220, -14, "#e0a52c"),
+  createField("sf-palto", "Cuartel Palto 2", "Palto", "Fundo Los Perales", "sanfernando", { lat: -34.601, lon: -70.9701 }, 320, 240, 25, "#2f9e72"),
+
+  createField("la-trigo", "Potrero Trigo Norte", "Trigo", "Fundo El Boldo", "losangeles", { lat: -37.4589, lon: -72.3421 }, 520, 340, -6, "#c79a2b"),
+  createField("la-raps", "Lote Raps 3", "Raps", "Fundo El Boldo", "losangeles", { lat: -37.4761, lon: -72.3652 }, 410, 260, 18, "#4c8ad6"),
+  createField("la-pino", "Cuartel Forestal 1", "Pino radiata", "Fundo Los Ñipas", "losangeles", { lat: -37.4832, lon: -72.3389 }, 460, 300, -22, "#3d7a4f"),
+];
+
 function interpolatePath(path: GeoPoint[], progress: number) {
   const safe = ((progress % 1) + 1) % 1;
   const scaled = safe * (path.length - 1);
@@ -131,11 +157,27 @@ function interpolatePath(path: GeoPoint[], progress: number) {
   return { position, bearing };
 }
 
+const DRIVER_NAMES = [
+  "Fernanda Rojas", "Matías Soto", "Camila Muñoz", "Ignacio Pérez", "Valentina Torres",
+  "Cristóbal Reyes", "Javiera Contreras", "Benjamín Castro", "Antonia Vargas", "Diego Fuentes",
+  "Josefa Espinoza", "Tomás Herrera",
+];
+
 const vehicleSeeds = [
-  { id: "demo-01", name: "Tractor 01", plate: "DEMO-01", driver: "Operador Demo A", fieldId: "north", offset: 0.07, speed: 8.4 },
-  { id: "demo-02", name: "Tractor 02", plate: "DEMO-02", driver: "Operador Demo B", fieldId: "canal", offset: 0.31, speed: 6.8 },
-  { id: "demo-03", name: "Pulverizador 03", plate: "DEMO-03", driver: "Operador Demo C", fieldId: "station", offset: 0.54, speed: 10.2 },
-  { id: "demo-04", name: "Tractor 04", plate: "DEMO-04", driver: "Operador Demo D", fieldId: "south", offset: 0.76, speed: 7.5 },
+  { id: "demo-01", name: "Tractor 01", plate: "LNRS-01", fieldId: "north", offset: 0.07, speed: 8.4 },
+  { id: "demo-02", name: "Tractor 02", plate: "LNRS-02", fieldId: "canal", offset: 0.31, speed: 6.8 },
+  { id: "demo-03", name: "Pulverizador 03", plate: "LNRS-03", fieldId: "station", offset: 0.54, speed: 10.2 },
+  { id: "demo-04", name: "Tractor 04", plate: "LNRS-04", fieldId: "south", offset: 0.76, speed: 7.5 },
+
+  { id: "demo-05", name: "Tractor 05", plate: "SNFD-01", fieldId: "sf-vina", offset: 0.18, speed: 7.1 },
+  { id: "demo-06", name: "Cosechadora 06", plate: "SNFD-02", fieldId: "sf-ciruelo", offset: 0.42, speed: 5.9 },
+  { id: "demo-07", name: "Tractor 07", plate: "SNFD-03", fieldId: "sf-palto", offset: 0.63, speed: 8.9 },
+
+  { id: "demo-08", name: "Tractor 08", plate: "LSAN-01", fieldId: "la-trigo", offset: 0.11, speed: 11.4 },
+  { id: "demo-09", name: "Cosechadora 09", plate: "LSAN-02", fieldId: "la-trigo", offset: 0.48, speed: 9.6 },
+  { id: "demo-10", name: "Tractor 10", plate: "LSAN-03", fieldId: "la-raps", offset: 0.29, speed: 8.2 },
+  { id: "demo-11", name: "Forwarder 11", plate: "LSAN-04", fieldId: "la-pino", offset: 0.66, speed: 6.3 },
+  { id: "demo-12", name: "Tractor 12", plate: "LSAN-05", fieldId: "la-pino", offset: 0.88, speed: 7.8 },
 ];
 
 export function getDemoVehicles(elapsedSeconds: number, speedMultiplier = 1): DemoVehicle[] {
@@ -149,29 +191,83 @@ export function getDemoVehicles(elapsedSeconds: number, speedMultiplier = 1): De
       id: seed.id,
       name: seed.name,
       plate: seed.plate,
-      driver: seed.driver,
+      driver: DRIVER_NAMES[index % DRIVER_NAMES.length],
       fieldId: seed.fieldId,
+      regionId: field.regionId,
       status: isTurning ? "turning" : "working",
       progress,
       speedKmh: isTurning ? 3.1 : seed.speed + Math.sin(elapsedSeconds / 13 + index) * 0.7,
-      fuelPct: Math.max(28, 88 - index * 9 - elapsedSeconds * 0.002),
-      engineHours: 1240 + index * 318 + elapsedSeconds / 3600,
+      fuelPct: Math.max(28, 88 - index * 6 - elapsedSeconds * 0.0015),
+      engineHours: 1240 + index * 214 + elapsedSeconds / 3600,
       distanceKm,
-      coveredHa: 4.2 + index * 2.1 + elapsedSeconds * 0.00045 * speedMultiplier,
+      coveredHa: 4.2 + index * 1.6 + elapsedSeconds * 0.00045 * speedMultiplier,
       position,
       bearing,
     };
   });
 }
 
-export const DEMO_SESSIONS: DemoSession[] = [
-  { id: "DS-2401", machine: "Tractor 01", driver: "Operador Demo A", field: "Lote Norte A", labor: "Poda de formación", startedAt: "Hoy, 07:42", startedAtIso: isoAt(0, 7, 42), durationHours: 4.8, distanceKm: 23.4, coveredHa: 11.8, fuelLiters: 31.2, avgSpeedKmh: 8.1, status: "active" },
-  { id: "DS-2402", machine: "Tractor 02", driver: "Operador Demo B", field: "Lote Canal 4", labor: "Riego por goteo", startedAt: "Hoy, 08:06", startedAtIso: isoAt(0, 8, 6), durationHours: 4.3, distanceKm: 19.1, coveredHa: 8.5, fuelLiters: 27.8, avgSpeedKmh: 6.9, status: "active" },
-  { id: "DS-2399", machine: "Pulverizador 03", driver: "Operador Demo C", field: "Cuartel Estación", labor: "Aplicación fitosanitaria", startedAt: "Hoy, 06:55", startedAtIso: isoAt(0, 6, 55), durationHours: 5.6, distanceKm: 27.8, coveredHa: 13.2, fuelLiters: 38.6, avgSpeedKmh: 9.8, status: "active" },
-  { id: "DS-2398", machine: "Tractor 04", driver: "Operador Demo D", field: "Lote Sur 2", labor: "Rastraje", startedAt: "Hoy, 07:21", startedAtIso: isoAt(0, 7, 21), durationHours: 5.1, distanceKm: 24.7, coveredHa: 12.1, fuelLiters: 34.5, avgSpeedKmh: 7.4, status: "active" },
-  { id: "DS-2397", machine: "Tractor 01", driver: "Operador Demo A", field: "Lote Canal 4", labor: "Fertilización", startedAt: "Ayer, 13:10", startedAtIso: isoAt(1, 13, 10), durationHours: 3.7, distanceKm: 16.9, coveredHa: 7.6, fuelLiters: 24.1, avgSpeedKmh: 7.8, status: "completed" },
-  { id: "DS-2396", machine: "Tractor 04", driver: "Operador Demo D", field: "Lote Norte A", labor: "Cosecha mecanizada", startedAt: "Ayer, 08:14", startedAtIso: isoAt(1, 8, 14), durationHours: 6.2, distanceKm: 31.5, coveredHa: 15.4, fuelLiters: 42.7, avgSpeedKmh: 7.2, status: "completed" },
+const LABORS = [
+  "Poda de formación", "Riego por goteo", "Aplicación fitosanitaria", "Rastraje", "Fertilización",
+  "Cosecha mecanizada", "Raleo", "Control de malezas", "Subsolado", "Deshierbe", "Volteo forestal", "Transporte interno",
 ];
+
+function seededRandom(seed: number): () => number {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+// Historial extenso (varios días, todas las regiones) para poder probar filtros
+// y paginación con volumen realista, no solo un puñado de filas.
+function buildDemoSessions(): DemoSession[] {
+  const rand = seededRandom(20260819);
+  const sessions: DemoSession[] = [];
+  let counter = 2450;
+
+  for (let daysAgo = 0; daysAgo < 6; daysAgo += 1) {
+    vehicleSeeds.forEach((seed, vIndex) => {
+      // no todas las máquinas trabajan todos los días
+      if (rand() < 0.22) return;
+      const field = DEMO_FIELDS.find((f) => f.id === seed.fieldId) ?? DEMO_FIELDS[0];
+      const tripsToday = daysAgo === 0 ? 1 : rand() < 0.35 ? 2 : 1;
+
+      for (let trip = 0; trip < tripsToday; trip += 1) {
+        const hour = 6 + Math.floor(rand() * 10) + trip * 5;
+        const minute = Math.floor(rand() * 60);
+        const durationHours = Number((2.5 + rand() * 4.5).toFixed(1));
+        const distanceKm = Number((8 + rand() * 26).toFixed(1));
+        const coveredHa = Number((3 + rand() * 12).toFixed(1));
+        const fuelLiters = Number((durationHours * (4 + rand() * 3)).toFixed(1));
+        const isToday = daysAgo === 0;
+        const status: DemoSession["status"] = isToday && trip === tripsToday - 1 && rand() < 0.6 ? "active" : "completed";
+        counter += 1;
+        sessions.push({
+          id: `DS-${counter}`,
+          machine: seed.name,
+          driver: DRIVER_NAMES[vIndex % DRIVER_NAMES.length],
+          field: field.name,
+          regionId: field.regionId,
+          labor: LABORS[Math.floor(rand() * LABORS.length)],
+          startedAt: isToday ? `Hoy, ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` : `Hace ${daysAgo}d, ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+          startedAtIso: isoAt(daysAgo, Math.min(hour, 23), minute),
+          durationHours,
+          distanceKm,
+          coveredHa,
+          fuelLiters,
+          avgSpeedKmh: Number((distanceKm / durationHours).toFixed(1)),
+          status,
+        });
+      }
+    });
+  }
+
+  return sessions.sort((a, b) => (a.startedAtIso < b.startedAtIso ? 1 : -1));
+}
+
+export const DEMO_SESSIONS: DemoSession[] = buildDemoSessions();
 
 export const DEMO_DAILY = [
   { day: "Lun", hectares: 31.4, distance: 72, fuel: 94, efficiency: 82 },
