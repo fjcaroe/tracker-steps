@@ -8,26 +8,36 @@
         <field name="name">step.history.cosecha.form</field>
         <field name="model">step.history.cosecha</field>
         <field name="arch" type="xml">
-            <form string="Historico">
+            <form string="Histórico de Cosecha" class="o_cosecha_history_form">
                 <sheet>
+                    <div class="o_cosecha_record_intro">
+                        <div class="o_cosecha_record_icon"><i class="fa fa-history" title="Histórico"/></div>
+                        <div>
+                            <span>CONSULTA HISTÓRICA</span>
+                            <strong>Trazabilidad de campañas anteriores</strong>
+                            <small>Revise la ubicación, variedad y producción informada en cada registro.</small>
+                        </div>
+                    </div>
                     <div class="oe_title">
+                        <label for="name" string="Registro"/>
                         <h1>
-                            <field name="name" required="1"/>
+                            <field name="name" required="1" placeholder="Identificación del registro"/>
                         </h1>
                     </div>
-                    <group>
-                        <group>
+                    <group class="o_cosecha_master_sections">
+                        <group string="Ubicación y cultivo">
                             <field name="fundo"/>
                             <field name="especie"/>
                             <field name="variedad"/>
                             <field name="centro_costo"/>
-                        </group>
-                        <group>
                             <field name="cuartel"/>
+                        </group>
+                        <group string="Producción">
                             <field name="fecha"/>
                             <field name="type_cosecha"/>
                             <field name="envase"/>
                             <field name="kilos"/>
+                            <field name="kilos_numeric" readonly="1"/>
                         </group>
                     </group>
                 </sheet>
@@ -40,7 +50,7 @@
         <field name="name">step.history.cosecha.list</field>
         <field name="model">step.history.cosecha</field>
         <field name="arch" type="xml">
-            <list>
+            <list class="o_cosecha_history_list" default_order="fecha desc">
                 <field name="name" optional="show"/>
                 <field name="fundo" optional="show"/>
                 <field name="especie" optional="show"/>
@@ -50,14 +60,68 @@
                 <field name="fecha" optional="show"/>
                 <field name="type_cosecha" optional="show"/>
                 <field name="envase" optional="show"/>
-                <field name="kilos" optional="show"/>
+                <field name="kilos" optional="hide"/>
+                <field name="kilos_numeric" optional="show" sum="Total kilos"/>
             </list>
         </field>
     </record>
 
+    <record id="view_step_history_cosecha_graph" model="ir.ui.view">
+        <field name="name">step.history.cosecha.graph</field>
+        <field name="model">step.history.cosecha</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <graph string="Producción histórica por fundo" type="bar">
+                <field name="fundo"/>
+                <field name="kilos_numeric" type="measure"/>
+                <field name="envase" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_history_cosecha_pivot" model="ir.ui.view">
+        <field name="name">step.history.cosecha.pivot</field>
+        <field name="model">step.history.cosecha</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis histórico de cosecha">
+                <field name="fundo" type="row"/>
+                <field name="especie" type="row"/>
+                <field name="variedad" type="row"/>
+                <field name="fecha" interval="month" type="col"/>
+                <field name="kilos_numeric" type="measure"/>
+                <field name="envase" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_step_history_cosecha_search" model="ir.ui.view">
+        <field name="name">step.history.cosecha.search</field>
+        <field name="model">step.history.cosecha</field>
+        <field name="arch" type="xml">
+            <search string="Buscar histórico de cosecha">
+                <field name="name"/>
+                <field name="fundo"/>
+                <field name="especie"/>
+                <field name="variedad"/>
+                <field name="cuartel"/>
+                <field name="fecha"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_fundo" string="Fundo" context="{'group_by': 'fundo'}"/>
+                    <filter name="group_especie" string="Especie" context="{'group_by': 'especie'}"/>
+                    <filter name="group_variedad" string="Variedad" context="{'group_by': 'variedad'}"/>
+                    <filter name="group_fecha" string="Mes" context="{'group_by': 'fecha:month'}"/>
+                    <filter name="group_tipo" string="Tipo de cosecha" context="{'group_by': 'type_cosecha'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_step_history_cosecha" model="ir.actions.act_window">
-        <field name="name">Historico</field>
+        <field name="name">Histórico de Cosecha</field>
         <field name="res_model">step.history.cosecha</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">graph,pivot,list,form</field>
+        <field name="search_view_id" ref="view_step_history_cosecha_search"/>
     </record>
 </odoo>

@@ -44,3 +44,7 @@ class StepCosechaRecepcion(models.Model):
     def action_progress(self):
         for movi in self:
             movi.write({'state': 'progress'})
+
+    def action_done(self):
+        for movi in self:
+            movi.write({'state': 'done'})

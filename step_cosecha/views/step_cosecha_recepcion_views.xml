@@ -8,7 +8,7 @@
         <field name="name">step.cosecha.recepcion.form</field>
         <field name="model">step.cosecha.recepcion</field>
         <field name="arch" type="xml">
-            <form string="Recepción Cosecha">
+            <form string="Recepción Cosecha" class="o_cosecha_reception_form">
                 <header>
                     <button name="action_draft" string="Cambiar a Borrador"
                             type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado a borrador"
@@ -16,28 +16,41 @@
                     <button name="action_progress" string="En Proceso"
                             type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado en proceso"
                             invisible="state == 'progress'"/>
+                    <button name="action_done" string="Marcar listo"
+                            type="object" class="btn-primary" invisible="state == 'done'"/>
                     <field name="state" widget="statusbar" nolabel="1" readonly="1" />
                 </header>
                 <sheet>
+                    <div class="o_cosecha_record_intro">
+                        <div class="o_cosecha_record_icon"><i class="fa fa-inbox" title="Recepción"/></div>
+                        <div>
+                            <span>FLUJO DE RECEPCIÓN</span>
+                            <strong>Ingreso y control de la cosecha recibida</strong>
+                            <small>Registre quién entrega, las fechas y el responsable del proceso.</small>
+                        </div>
+                    </div>
                     <div class="oe_title">
+                        <label for="name" string="Recepción"/>
                         <h1>
-                            <field name="name" required="1"/>
+                            <field name="name" required="1" placeholder="Ej.: Recepción Fundo El Sauce"/>
                         </h1>
                     </div>
-                    <group>
-                        <group>
+                    <group class="o_cosecha_master_sections">
+                        <group string="Contacto">
                             <field name="contact_id"/>
                             <field name="phone"/>
                             <field name="email"/>
+                        </group>
+                        <group string="Recepción">
                             <field name="date"/>
                             <field name="dates"/>
-                        </group>
-                        <group>
                             <field name="responsable_id"/>
                             <field name="company_id"/>
                         </group>
                     </group>
-                    <field name="note"/>
+                    <group string="Observaciones">
+                        <field name="note" nolabel="1" placeholder="Agregue indicaciones o comentarios relevantes para esta recepción..."/>
+                    </group>
                     <notebook colspan="4">
                         <page name='recep_line' string="Detalles">
                             <field name="recep_line">
@@ -48,6 +61,7 @@
                         </page>
                     </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -56,7 +70,8 @@
         <field name="name">step.cosecha.recepcion.list</field>
         <field name="model">step.cosecha.recepcion</field>
         <field name="arch" type="xml">
-            <list>
+            <list class="o_cosecha_master_list" default_order="date desc"
+                  decoration-success="state == 'done'" decoration-info="state == 'progress'">
                 <field name="name" optional="show"/>
                 <field name="contact_id" optional="show"/>
                 <field name="phone" optional="show"/>
@@ -64,7 +79,39 @@
                 <field name="date" optional="show"/>
                 <field name="responsable_id" optional="show"/>
                 <field name="company_id" optional="show"/>
+                <field name="state" widget="badge" optional="show"
+                       decoration-success="state == 'done'" decoration-info="state == 'progress'"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_recepcion_kanban" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.kanban</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <kanban class="o_cosecha_reception_kanban" default_group_by="state" sample="1">
+                <field name="name"/>
+                <field name="contact_id"/>
+                <field name="date"/>
+                <field name="responsable_id"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_cosecha_process_card">
+                            <div class="o_cosecha_card_topline">
+                                <span><i class="fa fa-calendar-o me-1" title="Fecha"/><field name="date"/></span>
+                                <field name="state" widget="label_selection"/>
+                            </div>
+                            <strong class="o_cosecha_card_title"><field name="name"/></strong>
+                            <div class="o_cosecha_card_details">
+                                <span><i class="fa fa-truck" title="Contacto"/><field name="contact_id"/></span>
+                                <span><i class="fa fa-user" title="Responsable"/><field name="responsable_id"/></span>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
 

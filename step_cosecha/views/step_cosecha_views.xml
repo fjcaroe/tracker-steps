@@ -8,28 +8,27 @@
         <field name="name">step.cosecha.ubicacion.form</field>
         <field name="model">step.cosecha.ubicacion</field>
         <field name="arch" type="xml">
-            <form string="Ubicación de Operación">
+            <form string="Ubicación de Operación" class="o_cosecha_master_form">
                 <sheet>
+                    <div class="o_cosecha_record_intro"><i class="fa fa-map-marker" title="Ubicación"/><div><span>MAESTRO OPERATIVO</span><strong>Ubicación de operación</strong><small>Identifique ramadas, centros de acopio y cuarteles para mantener la trazabilidad de cada movimiento.</small></div></div>
                     <div class="oe_title">
+                        <label for="name" string="Nombre de la ubicación"/>
                         <h1>
-                            <field name="name" required="1"/>
+                            <field name="name" required="1" placeholder="Ej.: Acopio central"/>
                         </h1>
                     </div>
-                    <group>
-                        <group>
+                    <group class="o_cosecha_master_sections">
+                        <group string="Ubicación">
                             <field name="fundo_id"/>
                             <field name="type_ubicacion"/>
                         </group>
-                        <group>
+                        <group string="Administración">
                             <field name="responsable_id"/>
                             <field name="company_id"/>
                         </group>
                     </group>
-                    <notebook colspan="4">
-                        <page name='details' string="Detalles">
-                        </page>
-                    </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -38,7 +37,7 @@
         <field name="name">step.cosecha.ubicacion.list</field>
         <field name="model">step.cosecha.ubicacion</field>
         <field name="arch" type="xml">
-            <list>
+            <list class="o_cosecha_master_list" default_order="fundo_id,name">
                 <field name="name" optional="show"/>
                 <field name="fundo_id" optional="show"/>
                 <field name="type_ubicacion" optional="show"/>
@@ -48,10 +47,27 @@
         </field>
     </record>
 
+    <record id="view_step_cosecha_ubicacion_kanban" model="ir.ui.view">
+        <field name="name">step.cosecha.ubicacion.kanban</field>
+        <field name="model">step.cosecha.ubicacion</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <kanban class="o_cosecha_master_kanban" default_group_by="type_ubicacion">
+                <field name="name"/><field name="fundo_id"/><field name="type_ubicacion"/><field name="responsable_id"/><field name="company_id"/>
+                <templates><t t-name="card">
+                    <div class="o_cosecha_master_card">
+                        <div class="o_cosecha_master_card__icon"><i class="fa fa-map-marker" title="Ubicación"/></div>
+                        <div class="o_cosecha_master_card__body"><small><field name="type_ubicacion"/></small><h3><field name="name"/></h3><p><i class="fa fa-leaf" title="Fundo"/> <field name="fundo_id"/></p><p><i class="fa fa-user" title="Responsable"/> <field name="responsable_id"/></p></div>
+                    </div>
+                </t></templates>
+            </kanban>
+        </field>
+    </record>
+
     <record id="action_step_cosecha_ubicacion" model="ir.actions.act_window">
         <field name="name">Ubicación de Operación</field>
         <field name="res_model">step.cosecha.ubicacion</field>
-        <field name="view_mode">list,form,kanban</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
 
 

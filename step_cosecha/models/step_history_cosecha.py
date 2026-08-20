@@ -19,3 +19,17 @@ class StepHistory(models.Model):
     type_cosecha = fields.Char(string='Tipo Cosecha', required=False)
     envase = fields.Float(string='Envases', required=False)
     kilos = fields.Char(string='Kilos', required=False)
+    kilos_numeric = fields.Float(
+        string='Kilos analíticos', compute='_compute_kilos_numeric', store=True
+    )
+
+    @api.depends('kilos')
+    def _compute_kilos_numeric(self):
+        for record in self:
+            raw_value = str(record.kilos or '').strip().replace(' ', '')
+            if ',' in raw_value:
+                raw_value = raw_value.replace('.', '').replace(',', '.')
+            try:
+                record.kilos_numeric = float(raw_value or 0.0)
+            except (TypeError, ValueError):
+                record.kilos_numeric = 0.0
