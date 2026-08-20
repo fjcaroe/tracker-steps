@@ -3,6 +3,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, Pie,
 
 export type RealAnalyticsSession = {
   id: string;
+  machineId: number;
   machine: string;
   driver: string;
   location: string;

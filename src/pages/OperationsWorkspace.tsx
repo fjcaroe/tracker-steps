@@ -369,6 +369,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
       const stale = session.status === "open" && rawHours > 24;
       return {
         id: session.id,
+        machineId: session.machine_id,
         machine: session.machine_name || `Máquina #${session.machine_id}`,
         driver: session.driver_name || "Sin operador",
         location: session.cost_center_name || "Sin centro de costo",
@@ -386,7 +387,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }, [realData.labors, realData.sessions]);
 
   const realMachineMetrics = useMemo(() => realData.machines.map((machine) => {
-    const machineSessions = realAnalyticsSessions.filter((session) => session.machine === machine.name);
+    const machineSessions = realAnalyticsSessions.filter((session) => session.machineId === machine.id);
     const latest = [...realData.sessions].filter((session) => session.machine_id === machine.id).sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
     return {
       ...machine,
