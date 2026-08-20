@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Planning -->
+    <record id="view_planificar_cosecha_form_layout" model="ir.ui.view">
+        <field name="name">x.planificar.cosecha.form.harvest.layout</field>
+        <field name="model">x_planificar_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_80098c29-1006-44aa-8a4c-30fac8c0dc54"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--plan" separator=" "/></xpath>
+            <xpath expr="//form/sheet/*[1]" position="before">
+                <div class="o_cosecha_record_intro"><i class="fa fa-calendar-check-o"/><div><span>PLANIFICACIÓN AGRÍCOLA</span><strong>Plan de cosecha</strong><small>Defina el cuartel, las fechas, el rendimiento y los recursos estimados antes de comenzar la temporada.</small></div></div>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_planificar_cosecha_list_layout" model="ir.ui.view">
+        <field name="name">x.planificar.cosecha.list.harvest.layout</field>
+        <field name="model">x_planificar_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_list_view_fo_c47f8905-401b-419e-a88e-c7f402332d8c"/>
+        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--plan" separator=" "/></xpath></field>
+    </record>
+
+    <record id="view_pronostico_cosecha_form_layout" model="ir.ui.view">
+        <field name="name">x.pronostico.cosecha.form.harvest.layout</field>
+        <field name="model">x_pronostico_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_b9b3aceb-e2c6-4c98-a69d-9d8422630fbc"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--forecast" separator=" "/></xpath>
+            <xpath expr="//form/sheet/*[1]" position="before">
+                <div class="o_cosecha_record_intro"><i class="fa fa-line-chart"/><div><span>PROYECCIÓN DE TEMPORADA</span><strong>Pronóstico de cosecha</strong><small>Compare períodos y kilos pronosticados para anticipar dotación, envases y capacidad operacional.</small></div></div>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_pronostico_cosecha_list_layout" model="ir.ui.view">
+        <field name="name">x.pronostico.cosecha.list.harvest.layout</field>
+        <field name="model">x_pronostico_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_list_view_fo_edd255db-0b72-4b41-918b-5827388797fb"/>
+        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--forecast" separator=" "/></xpath></field>
+    </record>
+
+    <!-- Harvest registry -->
+    <record id="view_registro_cosecha_form_layout" model="ir.ui.view">
+        <field name="name">x.registro.cosecha.form.harvest.layout</field>
+        <field name="model">x_registro_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_83525bc5-eb7e-4082-badd-14af9286f12e"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--registry" separator=" "/></xpath>
+            <xpath expr="//form/sheet/*[1]" position="before">
+                <div class="o_cosecha_record_intro"><i class="fa fa-leaf"/><div><span>OPERACIÓN EN TERRENO</span><strong>Registro de cosecha</strong><small>Centralice folio, ubicación, cuadrilla, producción y horas en una ficha operativa fácil de revisar.</small></div></div>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_registro_cosecha_list_layout" model="ir.ui.view">
+        <field name="name">x.registro.cosecha.list.harvest.layout</field>
+        <field name="model">x_registro_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_list_view_fo_d7a782cd-c9ee-47f1-803e-6b803545f836"/>
+        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--registry" separator=" "/></xpath></field>
+    </record>
+
+    <!-- A real analytical workspace replaces the empty Studio report model. -->
+    <record id="view_registro_cosecha_graph_report" model="ir.ui.view">
+        <field name="name">x.registro.cosecha.graph.report</field>
+        <field name="model">x_registro_cosecha</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <graph string="Producción de cosecha" type="bar" sample="1">
+                <field name="x_studio_fundo"/>
+                <field name="x_studio_kilos_cosechados" type="measure"/>
+                <field name="x_studio_cantidad_embalaje" type="measure"/>
+            </graph>
+        </field>
+    </record>
+    <record id="view_registro_cosecha_pivot_report" model="ir.ui.view">
+        <field name="name">x.registro.cosecha.pivot.report</field>
+        <field name="model">x_registro_cosecha</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de cosecha" sample="1">
+                <field name="x_studio_fundo" type="row"/>
+                <field name="x_studio_especie" type="row"/>
+                <field name="x_studio_fecha_1" type="col" interval="month"/>
+                <field name="x_studio_kilos_cosechados" type="measure"/>
+                <field name="x_studio_cantidad_embalaje" type="measure"/>
+                <field name="x_studio_dotacin" type="measure"/>
+                <field name="x_studio_total_horas" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="view_registro_cosecha_search_report" model="ir.ui.view">
+        <field name="name">x.registro.cosecha.search.report</field>
+        <field name="model">x_registro_cosecha</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <search string="Analizar cosecha">
+                <field name="x_name"/>
+                <field name="x_studio_fundo"/>
+                <field name="x_studio_especie"/>
+                <field name="x_studio_variedad"/>
+                <field name="x_studio_supervisor"/>
+                <field name="x_studio_temporada"/>
+                <separator/>
+                <filter name="group_fundo" string="Fundo" context="{'group_by': 'x_studio_fundo'}"/>
+                <filter name="group_especie" string="Especie" context="{'group_by': 'x_studio_especie'}"/>
+                <filter name="group_month" string="Mes" context="{'group_by': 'x_studio_fecha_1:month'}"/>
+            </search>
+        </field>
+    </record>
+    <record id="studio_customization.informes_de_cosecha_f1db1e5b-6b7f-42ed-8c2f-a36363d1354c" model="ir.actions.act_window">
+        <field name="name">Informes de Cosecha</field>
+        <field name="res_model">x_registro_cosecha</field>
+        <field name="view_mode">graph,pivot,list,form</field>
+        <field name="search_view_id" ref="view_registro_cosecha_search_report"/>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Registre cosechas para comenzar a analizar la producción.</p></field>
+    </record>
+
+    <!-- Post-harvest forms and lists -->
+    <record id="view_control_temperatura_form_layout" model="ir.ui.view">
+        <field name="name">x.control.temperatura.form.harvest.layout</field><field name="model">x_control_de_temperatu</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_cde3f21c-2db6-444a-8bec-ae1ad5d54efd"/>
+        <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--post" separator=" "/></xpath><xpath expr="//form/sheet/*[1]" position="before"><div class="o_cosecha_record_intro"><i class="fa fa-thermometer-half"/><div><span>CADENA DE FRÍO</span><strong>Control de temperatura</strong><small>Registre responsables, proceso y mediciones para asegurar la conservación de la fruta.</small></div></div></xpath></field>
+    </record>
+    <record id="view_control_temperatura_list_layout" model="ir.ui.view"><field name="name">x.control.temperatura.list.harvest.layout</field><field name="model">x_control_de_temperatu</field><field name="inherit_id" ref="studio_customization.default_list_view_fo_dd07c65b-c145-4700-8d1c-0dae1ef45b99"/><field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--post" separator=" "/></xpath></field></record>
+
+    <record id="view_traslado_cosecha_form_layout" model="ir.ui.view">
+        <field name="name">x.traslado.cosecha.form.harvest.layout</field><field name="model">x_traslado_cosecha</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_d0147fa1-91e8-4c83-a4fe-4c1744b31548"/>
+        <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--post" separator=" "/></xpath><xpath expr="//form/sheet/*[1]" position="before"><div class="o_cosecha_record_intro"><i class="fa fa-truck"/><div><span>TRAZABILIDAD LOGÍSTICA</span><strong>Traslado de cosecha</strong><small>Controle vehículo, conductor, origen, destino y contenido de cada movimiento.</small></div></div></xpath></field>
+    </record>
+    <record id="view_traslado_cosecha_list_layout" model="ir.ui.view"><field name="name">x.traslado.cosecha.list.harvest.layout</field><field name="model">x_traslado_cosecha</field><field name="inherit_id" ref="studio_customization.default_list_view_fo_3798c80c-6b73-42a2-839d-dcee0e379f36"/><field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--post" separator=" "/></xpath></field></record>
+
+    <record id="view_control_calidad_form_layout" model="ir.ui.view">
+        <field name="name">x.control.calidad.form.harvest.layout</field><field name="model">x_control_de_calidad_c</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_4227cc41-7011-4273-bbeb-287f615c4dd4"/>
+        <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--post" separator=" "/></xpath><xpath expr="//form/sheet/*[1]" position="before"><div class="o_cosecha_record_intro"><i class="fa fa-check-circle"/><div><span>ASEGURAMIENTO DE CALIDAD</span><strong>Control de calidad</strong><small>Documente inspecciones, ubicación y responsables de cada lote revisado.</small></div></div></xpath></field>
+    </record>
+    <record id="view_control_calidad_list_layout" model="ir.ui.view"><field name="name">x.control.calidad.list.harvest.layout</field><field name="model">x_control_de_calidad_c</field><field name="inherit_id" ref="studio_customization.default_list_view_fo_929a9b0e-d39b-4c14-a573-93b15ae3e332"/><field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--post" separator=" "/></xpath></field></record>
+
+    <record id="view_fumigacion_form_layout" model="ir.ui.view">
+        <field name="name">x.fumigacion.form.harvest.layout</field><field name="model">x_fumigacion</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_a36e62a0-dbbe-42cd-8425-7a1388559dfa"/>
+        <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--post" separator=" "/></xpath><xpath expr="//form/sheet/*[1]" position="before"><div class="o_cosecha_record_intro"><i class="fa fa-shield"/><div><span>TRATAMIENTO POST COSECHA</span><strong>Fumigación</strong><small>Registre proceso, ubicación, responsables y detalle del tratamiento aplicado.</small></div></div></xpath></field>
+    </record>
+    <record id="view_fumigacion_list_layout" model="ir.ui.view"><field name="name">x.fumigacion.list.harvest.layout</field><field name="model">x_fumigacion</field><field name="inherit_id" ref="studio_customization.default_list_view_fo_f1e733bb-524b-481e-b3bd-8253843c05ac"/><field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--post" separator=" "/></xpath></field></record>
+
+    <record id="view_recepcion_acopio_form_layout" model="ir.ui.view">
+        <field name="name">x.recepcion.acopio.form.harvest.layout</field><field name="model">x_recepcion_en_acopio</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_de1b2819-a010-4835-866d-c154fea0b933"/>
+        <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--post" separator=" "/></xpath><xpath expr="//form/sheet/*[1]" position="before"><div class="o_cosecha_record_intro"><i class="fa fa-cubes"/><div><span>INGRESO A CENTRO DE ACOPIO</span><strong>Recepción en acopio</strong><small>Vincule el traslado y deje trazabilidad del ingreso, ubicación y responsables.</small></div></div></xpath></field>
+    </record>
+    <record id="view_recepcion_acopio_list_layout" model="ir.ui.view"><field name="name">x.recepcion.acopio.list.harvest.layout</field><field name="model">x_recepcion_en_acopio</field><field name="inherit_id" ref="studio_customization.default_list_view_fo_68cbd7a1-12bd-4ec0-b660-15109231564e"/><field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--post" separator=" "/></xpath></field></record>
+
+    <record id="view_repaletizado_form_layout" model="ir.ui.view">
+        <field name="name">x.repaletizado.form.harvest.layout</field><field name="model">x_repaletizado</field>
+        <field name="inherit_id" ref="studio_customization.default_form_view_fo_c9903e19-9161-41d2-8b52-ebe13718b7e1"/>
+        <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--post" separator=" "/></xpath><xpath expr="//form/sheet/*[1]" position="before"><div class="o_cosecha_record_intro"><i class="fa fa-exchange"/><div><span>ACONDICIONAMIENTO</span><strong>Repaletizado</strong><small>Organice y documente los cambios de pallet requeridos antes del despacho.</small></div></div></xpath></field>
+    </record>
+    <record id="view_repaletizado_list_layout" model="ir.ui.view"><field name="name">x.repaletizado.list.harvest.layout</field><field name="model">x_repaletizado</field><field name="inherit_id" ref="studio_customization.default_list_view_fo_cedc396f-8add-4589-a704-0385966b3120"/><field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--post" separator=" "/></xpath></field></record>
+</odoo>
