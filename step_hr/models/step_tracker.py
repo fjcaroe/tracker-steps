@@ -250,9 +250,13 @@ class StepTrackerWorkOrder(models.Model):
             limit=6,
         )
         top_machines = []
-        maximum_distance = max(
-            [group.get('total_distance_km', 0.0) or 0.0 for group in machine_groups] or [1.0]
-        )
+        # Sesiones recién iniciadas o importadas pueden tener distancia 0.
+        # Mantener un denominador mínimo evita romper todo el tablero mientras
+        # todavía no existen recorridos medibles.
+        maximum_distance = max([
+            1.0,
+            *[group.get('total_distance_km', 0.0) or 0.0 for group in machine_groups],
+        ])
         for group in machine_groups:
             machine_value = group.get('machine_id')
             top_machines.append({
