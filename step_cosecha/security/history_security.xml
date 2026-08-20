@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2026 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+	<!-- ONLY READ ASSIGN GROUP -->
+	<data>
+		 <record id="permin_step_history_cosecha" model="res.groups">
+            <field name="name">Permitir Historial en Cosecha</field>
+        </record>
+	</data>
+</odoo>

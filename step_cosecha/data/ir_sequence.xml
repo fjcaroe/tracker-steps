@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <data noupdate="0">
+
+<!--        Cosecha-->
+
+         <record id="seq_step_cosecha_propio" model="ir.sequence">
+            <field name="name">Step secuencia Cosecha Propia</field>
+            <field name="code">step_cosecha_pro_seq</field>
+            <field name="prefix">OP</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+         <record id="seq_step_cosecha_contra" model="ir.sequence">
+            <field name="name">Step secuencia Cosecha Contratista</field>
+            <field name="code">step_cosecha_contra_seq</field>
+            <field name="prefix">OC</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

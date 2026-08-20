@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+        <record id="report_step_hrs_wizard_form" model="ir.ui.view">
+            <field name="name">report.step.hrs.wizard.form</field>
+            <field name="model">report.step.hrs.wizard</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group invisible="file_name">
+                        <field name="mes_select"/>
+                        <field name="anio_select"/>
+                    </group>
+                    <group string="Resultado" invisible="not file_name">
+                        <field name="file_name" invisible="1"/>
+                        <field name="file" filename="file_name" readonly="1"/>
+                    </group>
+                    <footer>
+                        <button string="Generar" name="generate_report" type="object" class="oe_highlight" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn btn-secondary" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="report_step_hrs_wizard_action" model="ir.actions.act_window">
+            <field name="name">Informe de asistencias y de horas trabajadas</field>
+            <field name="res_model">report.step.hrs.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <menuitem id="menu_report_buda_sale_wizard" parent="report_buda.menu_report_tribu" sequence="2" action="report_buda.report_buda_sale_wizard_action" name="14.1 Registro de Ventas"/>
+<!--        <menuitem id="menu_report_buda_purchase_wizard" name="8.1 Registro de Compras" parent="report_buda.menu_report_tribu"-->
+<!--                  action="action_account_config" sequence="0"/>-->
+</odoo>

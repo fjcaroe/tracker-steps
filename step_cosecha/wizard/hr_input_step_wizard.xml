@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="step_payslip_wizard_form" model="ir.ui.view">
+        <field name="name">step.payslip.wizard.form</field>
+        <field name="model">hr.input.step.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="struct_id" options="{'no_create':True, 'no_open':True}"/>
+                        <field name="payslip_run_id" options="{'no_create':True, 'no_open':True}"/>
+                        <field name="input_type_id" options="{'no_create':True, 'no_open':True}"/>
+                        <field name="value_amount"/>
+                    </group>
+                    <group>
+                        <field name="user_ids" widget="many2many_tags" options="{'no_create':True, 'no_open':True}"/>
+                    </group>
+                </group>
+                <footer>
+                    <button string="Generar" name="import_button" type="object" class="oe_highlight" data-hotkey="q"/>
+                    <button string="Cancelar" class="btn btn-secondary" special="cancel" data-hotkey="x"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="step_payslip_wizard_action" model="ir.actions.act_window">
+        <field name="name">Otras Entradas y Descuentos Masivos</field>
+        <field name="res_model">hr.input.step.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="step_hr.step_payslip_wizard_form"/>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem
+        id="menu_step_payslip_wizard"
+        name="Otras Entradas y Descuentos Masivos"
+        action="step_payslip_wizard_action"
+        parent="hr_work_entry_contract_enterprise.menu_hr_payroll_work_entries_root"
+        sequence="85"/>
+
+</odoo>

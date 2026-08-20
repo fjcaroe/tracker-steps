@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_cosecha_ubicacion,access.step.cosecha.ubicacion,model_step_cosecha_ubicacion,base.group_user,1,1,1,1
+access_step_cosecha_registry,access.step.cosecha.registry,model_step_cosecha_registry,base.group_user,1,1,1,1
+access_step_cosecha_registry_line,access.step.cosecha.registry.line,model_step_cosecha_registry_line,base.group_user,1,1,1,1
+access_step_cosecha_recepcion,access.step.cosecha.recepcion,model_step_cosecha_recepcion,base.group_user,1,1,1,1
+access_step_cosecha_recepcion_line,access.step.cosecha.recepcion.line,model_step_cosecha_recepcion_line,base.group_user,1,1,1,1
+access_step_cosecha_proceso,access.step.cosecha.proceso,model_step_cosecha_proceso,base.group_user,1,1,1,1
+access_step_cosecha_proceso_line,access.step.cosecha.proceso.line,model_step_cosecha_proceso_line,base.group_user,1,1,1,1
+access_step_cosecha_tarja_line,access.step.cosecha.tarja.line,model_step_cosecha_tarja_line,base.group_user,1,1,1,1
+access_step_cosecha_tarja_registry_line,access.step.cosecha.tarja.registry.line,model_step_cosecha_tarja_registry_line,base.group_user,1,1,1,1
+access_step_history_cosecha,access.step.history.cosecha,model_step_history_cosecha,base.group_user,1,1,1,1

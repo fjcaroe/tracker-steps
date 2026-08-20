@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+
+
+<!--    Menu principal-->
+    <menuitem id="menu_step_cosecha_root"
+              name="Cosecha"
+              action="step_cosecha.action_step_cosecha_dashboard"
+              sequence="10" web_icon="step_cosecha,static/src/images/lyt.png"/>
+
+    <menuitem id="menu_step_cosecha_dashboard"
+              name="Inicio"
+              action="step_cosecha.action_step_cosecha_dashboard"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="1"/>
+
+<!--    Planificacion-->
+    <menuitem id="menu_step_cosecha_main_cosecha_plan"
+              name="Planificar Cosecha"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="10"/>
+    <menuitem id="menu_step_cosecha_main_planifi"
+              name="Planificar"
+              parent="step_cosecha.menu_step_cosecha_main_cosecha_plan"
+              sequence="10"/>
+
+<!--    Cosecha Propia-->
+    <menuitem id="menu_step_cosecha_main"
+              name="Cosecha Propia"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="20"/>
+    <menuitem id="menu_cosecha_salary_custom"
+              name="Crear Cuadrilla Propia"
+              action="step_hr.action_hr_salary_custom"
+              parent="step_cosecha.menu_step_cosecha_main"
+              sequence="10"/>
+    <menuitem id="menu_cosecha_pricelist_propio"
+              name="Tarifa Propio Cosecha"
+              action="step_cosecha.step_pricelist_action_propio_cosecha"
+              parent="step_cosecha.menu_step_cosecha_main"
+              sequence="10"/>
+    <menuitem id="menu_step_cosecha_pro"
+              name="Registro de Cosecha Propio"
+              action="step_cosecha.action_step_cosecha_registry"
+              parent="step_cosecha.menu_step_cosecha_main"
+              sequence="20"/>
+    <menuitem id="menu_step_cosecha_registry_costo_pro"
+              name="Costeo Cosecha Propia"
+              action="step_cosecha.action_step_cosecha_costo_pro"
+              parent="step_cosecha.menu_step_cosecha_main"
+              sequence="30"/>
+    <menuitem id="menu_acount_cosecha"
+              name="Contabilización Cosecha"
+              action="step_cosecha.step_action_move_journal_propio"
+              parent="step_cosecha.menu_step_cosecha_main"
+              sequence="40"/>
+
+    <!--    Cosecha Contratista-->
+    <menuitem id="menu_step_cosecha_main_contra"
+              name="Cosecha Contratista"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="30"/>
+    <menuitem id="menu_cosecha_salary_contratista"
+              name="Cuadrilla Contratista"
+              action="step_hr.action_hr_salary_custom_contra"
+              parent="step_cosecha.menu_step_cosecha_main_contra"
+              sequence="10"/>
+    <menuitem id="menu_cosecha_pricelist_contratista"
+              name="Tarifa Contratista"
+              action="step_cosecha.step_pricelist_action_contratista_cosecha"
+              parent="step_cosecha.menu_step_cosecha_main_contra"
+              sequence="20"/>
+    <menuitem id="menu_step_cosecha_registry"
+              name="Registro de Cosecha Contratista"
+              action="step_cosecha.action_step_cosecha_registry_contra"
+              parent="step_cosecha.menu_step_cosecha_main_contra"
+              sequence="30"/>
+    <menuitem id="menu_step_cosecha_registry_contra"
+              name="Costeo Cosecha Contratista"
+              action="step_cosecha.action_step_cosecha_registry_costo"
+              parent="step_cosecha.menu_step_cosecha_main_contra"
+              sequence="40"/>
+    <menuitem id="menu_acount_cosecha_contra"
+              name="ProForma Cosecha"
+              action="step_cosecha.step_action_move_journal_contra"
+              parent="step_cosecha.menu_step_cosecha_main_contra"
+              sequence="50"/>
+
+
+    <!--   Recepcion Cosecha-->
+    <menuitem id="menu_step_cosecha_recepcion"
+              name="Recepción de Cosecha"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="40"/>
+    <menuitem id="menu_step_cosecha_recep"
+              name="Recepción de Cosecha"
+              action="step_cosecha.step_action_picking_tree_incoming"
+              parent="step_cosecha.menu_step_cosecha_recepcion"
+              sequence="10"/>
+
+<!--    Maestros-->
+    <menuitem id="step_maestros_cosecha"
+              name="Maestros"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="60"/>
+    <menuitem id="menu_cosecha_employee_step"
+              name="Empleados"
+              parent="step_cosecha.step_maestros_cosecha"
+              action="hr.open_view_employee_list_my"
+              sequence="10"/>
+    <menuitem id="menu_product_step_cosecha"
+              name="Productos / Labores"
+              action="step_hr.step_product_template_action"
+              parent="step_cosecha.step_maestros_cosecha"
+              sequence="20"/>
+
+<!--    Historial-->
+    <menuitem id="step_history_cosecha"
+              name="Historial"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="70" groups="step_cosecha.permin_step_history_cosecha"/>
+    <menuitem id="menu_history_step_cosecha"
+              name="Historico de Cosecha"
+              parent="step_cosecha.step_history_cosecha"
+              action="step_cosecha.action_step_history_cosecha"
+              sequence="10"/>
+
+<!--    Configuración-->
+    <menuitem id="menu_step_cosecha_config"
+              name="Configuración"
+              parent="step_cosecha.menu_step_cosecha_root"
+              sequence="99"/>
+    <menuitem id="menu_step_cosecha_ubicacion"
+              name="Ubicación de Operación"
+              action="step_cosecha.action_step_cosecha_ubicacion"
+              parent="step_cosecha.menu_step_cosecha_config"
+              sequence="60"/>
+    <menuitem id="menu_step_cosecha_proceso"
+              name="Procesos de Cosecha"
+              action="step_cosecha.action_step_cosecha_proceso"
+              parent="step_cosecha.menu_step_cosecha_config"
+              sequence="50"/>
+    <menuitem id="menu_parametro_gnl_cosecha"
+          name="Parámetros Generales"
+          parent="step_cosecha.menu_step_cosecha_config"
+          sequence="30"/>
+    <menuitem id="menu_step_temporada_cosecha"
+              name="Temporada"
+              action="step_hr.action_step_temporada"
+              parent="step_cosecha.menu_parametro_gnl_cosecha"
+              sequence="10"/>
+    <menuitem id="menu_step_fundo_cosecha"
+              name="Fundo"
+              action="step_hr.action_step_fundo"
+              parent="step_cosecha.menu_parametro_gnl_cosecha"
+              sequence="20"/>
+    <menuitem id="menu_step_especie_cosecha"
+              name="Especie"
+              action="step_hr.action_step_especie"
+              parent="step_cosecha.menu_parametro_gnl_cosecha"
+              sequence="30"/>
+<!--    <menuitem id="menu_step_empleado_config"-->
+<!--              name="Empleado"-->
+<!--              parent="step_cosecha.menu_step_cosecha_config"-->
+<!--              sequence="10"/>-->
+<!--    <menuitem id="menu_cosecha_job_custom"-->
+<!--              name="Puestos de Trabajos"-->
+<!--              action="hr.action_hr_job"-->
+<!--              parent="step_cosecha.menu_step_empleado_config"-->
+<!--              sequence="10"/>-->
+<!--    <menuitem id="menu_cosecha_entry_custom"-->
+<!--              name="Tipo de entrada de trabajo"-->
+<!--              action="hr_work_entry.hr_work_entry_type_action"-->
+<!--              parent="step_cosecha.menu_step_empleado_config"-->
+<!--              sequence="20"/>-->
+<!--    <menuitem id="menu_step_haber_costeo"-->
+<!--              name="Haberes de costeo sueldo"-->
+<!--              action="step_cosecha.action_step_haber_costeo"-->
+<!--              parent="step_cosecha.menu_step_empleado_config"-->
+<!--              sequence="40"/>-->
+<!--&lt;!&ndash;    <menuitem id="menu_hr_movi"&ndash;&gt;-->
+<!--&lt;!&ndash;              name="Movilización"&ndash;&gt;-->
+<!--&lt;!&ndash;              action="step_cosecha.action_hr_salary_custom"&ndash;&gt;-->
+<!--&lt;!&ndash;              parent="step_cosecha.menu_step_hr_config"&ndash;&gt;-->
+<!--&lt;!&ndash;              sequence="20"/>&ndash;&gt;-->
+<!--&lt;!&ndash;    <menuitem id="menu_hr_route"&ndash;&gt;-->
+<!--&lt;!&ndash;              name="Recorrido"&ndash;&gt;-->
+<!--&lt;!&ndash;              action="step_cosecha.action_hr_route"&ndash;&gt;-->
+<!--&lt;!&ndash;              parent="step_cosecha.menu_hr_movi"&ndash;&gt;-->
+<!--&lt;!&ndash;              sequence="10"/>&ndash;&gt;-->
+
+<!--    <menuitem id="menu_step_grupo_variedad"-->
+<!--              name="Grupo Variedad"-->
+<!--              action="step_cosecha.action_step_grupo_variedad"-->
+<!--              parent="step_cosecha.menu_parametro_gnl"-->
+<!--              sequence="40"/>-->
+<!--    <menuitem id="menu_step_variedad"-->
+<!--              name="Variedad"-->
+<!--              action="step_cosecha.action_step_variedad"-->
+<!--              parent="step_cosecha.menu_parametro_gnl"-->
+<!--              sequence="50"/>-->
+<!--    <menuitem id="menu_step_centro_costo"-->
+<!--              name="Centro de Costo"-->
+<!--              action="step_cosecha.action_step_centro_costo_analytic"-->
+<!--              parent="step_cosecha.menu_parametro_gnl"-->
+<!--              sequence="60"/>-->
+<!--    <menuitem id="menu_step_res_sector"-->
+<!--              name="Sector"-->
+<!--              action="step_hr.action_res_sector"-->
+<!--              parent="step_hr.menu_parametro_gnl"-->
+<!--              sequence="70"-->
+<!--        />-->
+<!--    <menuitem id="menu_step_actividad"-->
+<!--              name="Actividades"-->
+<!--              action="step_cosecha.action_step_actividad"-->
+<!--              parent="step_cosecha.menu_parametro_gnl"-->
+<!--              sequence="80"/>-->
+<!--    <menuitem id="menu_step_labor"-->
+<!--              name="Labores"-->
+<!--              action="step_hr.action_step_labor"-->
+<!--              parent="step_hr.menu_parametro_gnl"-->
+<!--              sequence="90"/>-->
+</odoo>

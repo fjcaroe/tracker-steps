@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_cosecha_recepcion_form" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.form</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="arch" type="xml">
+            <form string="Recepción Cosecha">
+                <header>
+                    <button name="action_draft" string="Cambiar a Borrador"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado a borrador"
+                            invisible="state == 'draft'"/>
+                    <button name="action_progress" string="En Proceso"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado en proceso"
+                            invisible="state == 'progress'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="contact_id"/>
+                            <field name="phone"/>
+                            <field name="email"/>
+                            <field name="date"/>
+                            <field name="dates"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <field name="note"/>
+                    <notebook colspan="4">
+                        <page name='recep_line' string="Detalles">
+                            <field name="recep_line">
+                                <list editable="bottom">
+                                    <field name="recep_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_recepcion_list" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.list</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="contact_id" optional="show"/>
+                <field name="phone" optional="show"/>
+                <field name="email" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_cosecha_recepcion" model="ir.actions.act_window">
+        <field name="name">Recepción Cosecha</field>
+        <field name="res_model">step.cosecha.recepcion</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+
+</odoo>

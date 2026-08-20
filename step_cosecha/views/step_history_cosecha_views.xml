@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2026 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_history_cosecha_form" model="ir.ui.view">
+        <field name="name">step.history.cosecha.form</field>
+        <field name="model">step.history.cosecha</field>
+        <field name="arch" type="xml">
+            <form string="Historico">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="fundo"/>
+                            <field name="especie"/>
+                            <field name="variedad"/>
+                            <field name="centro_costo"/>
+                        </group>
+                        <group>
+                            <field name="cuartel"/>
+                            <field name="fecha"/>
+                            <field name="type_cosecha"/>
+                            <field name="envase"/>
+                            <field name="kilos"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter reload_on_post="True"/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_history_cosecha_list" model="ir.ui.view">
+        <field name="name">step.history.cosecha.list</field>
+        <field name="model">step.history.cosecha</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="fundo" optional="show"/>
+                <field name="especie" optional="show"/>
+                <field name="variedad" optional="show"/>
+                <field name="centro_costo" optional="hide"/>
+                <field name="cuartel" optional="show"/>
+                <field name="fecha" optional="show"/>
+                <field name="type_cosecha" optional="show"/>
+                <field name="envase" optional="show"/>
+                <field name="kilos" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_history_cosecha" model="ir.actions.act_window">
+        <field name="name">Historico</field>
+        <field name="res_model">step.history.cosecha</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

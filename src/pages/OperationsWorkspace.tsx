@@ -20,8 +20,9 @@ const AnalyticsCharts = lazy(() => import("./AnalyticsCharts"));
 const RealAnalyticsCharts = lazy(() => import("./RealAnalyticsCharts"));
 const RegistrationPage = lazy(() => import("./RegistrationPage"));
 const ManualEntryPage = lazy(() => import("./ManualEntryPage"));
+const HarvestPage = lazy(() => import("./HarvestPage"));
 
-export type OperationsView = "live" | "routes" | "sessions" | "userView" | "stats" | "chartsStats" | "masters" | "registro" | "manual";
+export type OperationsView = "live" | "routes" | "sessions" | "userView" | "stats" | "chartsStats" | "masters" | "registro" | "manual" | "harvest";
 
 type ApiEntity = { id: number; name: string };
 type ApiMachine = ApiEntity & { plate?: string | null; cost_center_id?: number | null; tank_capacity_liters?: number | null };
@@ -520,6 +521,16 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
         {control}
         <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner" />Cargando ingreso manual…</div>}>
           <ManualEntryPage demoMode={demoMode} />
+        </Suspense>
+      </main>
+    );
+  }
+
+  if (view === "harvest") {
+    return (
+      <main className="ops-workspace">
+        <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner" />Cargando Cosecha…</div>}>
+          <HarvestPage />
         </Suspense>
       </main>
     );
