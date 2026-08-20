@@ -38,7 +38,10 @@ class WorkOrderOut(BaseModel):
     code: str
     work_date: date
     season: str
-    machine_id: int
+    # Los partes históricos creados antes de incorporar el maestro de
+    # maquinaria no tienen máquina asociada. Las altas nuevas sí la exigen en
+    # WorkOrderCreate, pero el contrato de lectura debe conservar esos datos.
+    machine_id: int | None
     activity_id: int
     labor_id: int
     cost_center_id: int | None

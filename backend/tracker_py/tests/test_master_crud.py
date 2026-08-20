@@ -74,6 +74,7 @@ def test_work_order_output_contract_includes_machine_and_final_fuel():
     assert "machine_id" in schema["properties"]
     assert "fuel_tank_end_liters" in schema["properties"]
     assert "machine_id" in schema["required"]
+    assert {"type": "null"} in schema["properties"]["machine_id"]["anyOf"]
 
 
 def test_driver_can_be_created_edited_and_soft_deleted():
