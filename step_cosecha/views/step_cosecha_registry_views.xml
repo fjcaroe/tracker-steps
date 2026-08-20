@@ -30,7 +30,7 @@
                 </header>
                 <sheet>
                     <div class="o_cosecha_form_intro">
-                        <span class="fa fa-leaf"/>
+                        <span class="fa fa-leaf" title="Cosecha"/>
                         <div><strong>Registro operativo de cosecha</strong><small>Complete la identificación y luego revise las personas, cantidades y costos en las pestañas inferiores.</small></div>
                     </div>
                     <div class="oe_title">
