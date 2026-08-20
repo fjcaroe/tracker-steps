@@ -185,6 +185,7 @@
     <record id="view_step_cosecha_registry_kanban" model="ir.ui.view">
         <field name="name">step.cosecha.registry.kanban</field>
         <field name="model">step.cosecha.registry</field>
+        <field name="priority">5</field>
         <field name="arch" type="xml">
             <kanban class="o_cosecha_registry_kanban" default_group_by="state" default_order="date desc">
                 <field name="name"/>
