@@ -16,7 +16,7 @@
               name="Inicio"
               action="step_cosecha.action_step_cosecha_dashboard"
               parent="step_cosecha.menu_step_cosecha_root"
-              sequence="1"/>
+              sequence="0"/>
 
 <!--    Planificacion-->
     <menuitem id="menu_step_cosecha_main_cosecha_plan"
@@ -30,7 +30,7 @@
 
 <!--    Cosecha Propia-->
     <menuitem id="menu_step_cosecha_main"
-              name="Cosecha Propia"
+              name="Cosecha propia"
               parent="step_cosecha.menu_step_cosecha_root"
               sequence="20"/>
     <menuitem id="menu_cosecha_salary_custom"
@@ -61,7 +61,7 @@
 
     <!--    Cosecha Contratista-->
     <menuitem id="menu_step_cosecha_main_contra"
-              name="Cosecha Contratista"
+              name="Contratistas"
               parent="step_cosecha.menu_step_cosecha_root"
               sequence="30"/>
     <menuitem id="menu_cosecha_salary_contratista"
@@ -93,7 +93,7 @@
 
     <!--   Recepcion Cosecha-->
     <menuitem id="menu_step_cosecha_recepcion"
-              name="Recepción de Cosecha"
+              name="Recepción"
               parent="step_cosecha.menu_step_cosecha_root"
               sequence="40"/>
     <menuitem id="menu_step_cosecha_recep"

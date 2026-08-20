@@ -6,6 +6,157 @@
     --harvest-ink: #173029;
     min-height: 100%; padding: 22px; overflow: auto; color: var(--harvest-ink); background: #f3f6f2;
 }
+
+// Navigation shell for the Harvest app. The :has selector keeps the theme
+// isolated from the rest of Odoo while also covering menus created in Studio.
+body:has(.o_menu_brand[data-menu-xmlid="step_cosecha.menu_step_cosecha_root"]) {
+    --cosecha-nav-bg: #103d33;
+    --cosecha-nav-bg-soft: #1c5a4b;
+    --cosecha-nav-accent: #d8ff62;
+
+    .o_main_navbar {
+        min-height: 54px;
+        padding: 6px 12px;
+        border: 0;
+        border-bottom: 1px solid rgba(216, 255, 98, .22);
+        color: #fff;
+        background:
+            radial-gradient(circle at 72% -120%, rgba(216, 255, 98, .2), transparent 34%),
+            linear-gradient(110deg, #0e352d, var(--cosecha-nav-bg) 48%, var(--cosecha-nav-bg-soft));
+        box-shadow: 0 5px 18px rgba(8, 36, 29, .18);
+    }
+
+    .o_navbar_apps_menu > .dropdown > button,
+    .o_navbar_apps_menu > button {
+        width: 38px;
+        height: 38px;
+        margin-right: 5px;
+        border: 1px solid rgba(255, 255, 255, .15);
+        border-radius: 11px;
+        color: var(--cosecha-nav-accent);
+        background: rgba(255, 255, 255, .08);
+    }
+
+    .o_menu_brand {
+        display: inline-flex !important;
+        align-items: center;
+        min-height: 38px;
+        margin-right: 7px;
+        padding: 0 13px !important;
+        border-radius: 11px;
+        color: #fff !important;
+        background: rgba(255, 255, 255, .1);
+        font-size: 15px;
+        font-weight: 850;
+        letter-spacing: -.01em;
+
+        &::before {
+            content: "\f06c";
+            margin-right: 8px;
+            color: var(--cosecha-nav-accent);
+            font-family: FontAwesome;
+            font-size: 13px;
+        }
+    }
+
+    .o_menu_sections {
+        align-items: center;
+        gap: 2px;
+
+        .o_nav_entry,
+        .o-dropdown > button {
+            display: inline-flex;
+            align-items: center;
+            min-height: 36px;
+            padding: 0 9px !important;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            color: rgba(255, 255, 255, .82) !important;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 650;
+            line-height: 1;
+            white-space: nowrap;
+            transition: color .15s ease, background .15s ease, border-color .15s ease;
+
+            &::before {
+                margin-right: 6px;
+                color: rgba(216, 255, 98, .82);
+                font-family: FontAwesome;
+                font-size: 11px;
+                font-weight: 400;
+            }
+
+            &:hover,
+            &:focus,
+            &[aria-expanded="true"] {
+                border-color: rgba(216, 255, 98, .25);
+                color: #fff !important;
+                background: rgba(255, 255, 255, .1);
+            }
+        }
+
+        [data-menu-xmlid="step_cosecha.menu_step_cosecha_dashboard"]::before { content: "\f015"; }
+        [data-menu-xmlid^="studio_customization.cosecha_planificacio_"]::before { content: "\f073"; }
+        [data-menu-xmlid^="studio_customization.cosecha_cosecha_"]::before { content: "\f06c"; }
+        [data-menu-xmlid^="studio_customization.cosecha_post_cosecha_"]::before { content: "\f1b8"; }
+        [data-menu-xmlid="step_cosecha.menu_step_cosecha_main"]::before { content: "\f007"; }
+        [data-menu-xmlid="step_cosecha.menu_step_cosecha_main_contra"]::before { content: "\f0c0"; }
+        [data-menu-xmlid="step_cosecha.menu_step_cosecha_recepcion"]::before { content: "\f1b3"; }
+        [data-menu-xmlid="step_cosecha.step_maestros_cosecha"]::before { content: "\f02d"; }
+        [data-menu-xmlid="step_cosecha.step_history_cosecha"]::before { content: "\f1da"; }
+        [data-menu-xmlid="step_cosecha.menu_step_cosecha_config"]::before { content: "\f013"; }
+        .o_menu_sections_more button::before { content: "\f141"; margin: 0; }
+        .o_menu_sections_more button i { display: none; }
+    }
+
+    .o_menu_systray {
+        align-items: center;
+        gap: 1px;
+
+        > * > button,
+        > button,
+        .o-dropdown > button {
+            min-height: 36px;
+            border-radius: 9px;
+            color: rgba(255, 255, 255, .88) !important;
+
+            &:hover { background: rgba(255, 255, 255, .1) !important; }
+        }
+    }
+
+    // Dropdowns are rendered in a portal, so scope them through the active app.
+    .o_popover:has(.dropdown-item[data-menu-xmlid^="step_cosecha."]),
+    .o_popover:has(.dropdown-item[data-menu-xmlid^="studio_customization.cosecha_"]) {
+        overflow: hidden;
+        padding: 7px;
+        border: 1px solid #dce7e1;
+        border-radius: 14px;
+        box-shadow: 0 16px 42px rgba(11, 48, 39, .18);
+
+        .dropdown-item {
+            margin: 1px 0;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            border-radius: 8px;
+            color: #24453c;
+
+            &:hover,
+            &:focus {
+                color: #123c33;
+                background: #edf6f1;
+            }
+        }
+
+        .dropdown-header {
+            color: #2f8068;
+            font-size: 10px;
+            font-weight: 850;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+    }
+}
 .o_cosecha_hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 25px 29px; border-radius: 22px; color: #fff; background: radial-gradient(circle at 85% 15%, rgba(216,255,98,.22), transparent 26%), linear-gradient(120deg,#103d33,#1d6554 70%,#2f8068); box-shadow: 0 16px 40px rgba(16,63,53,.18); }
 .o_cosecha_hero>div:first-child>span,.o_cosecha_panel>header span { color: var(--harvest-orange); font-size: 10px; font-weight: 850; letter-spacing: .12em; }
 .o_cosecha_hero>div:first-child>span { color: var(--harvest-lime); }
