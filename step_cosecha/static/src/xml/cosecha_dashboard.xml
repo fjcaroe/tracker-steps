@@ -7,6 +7,7 @@
                 <div class="o_cosecha_hero_actions">
                     <div class="btn-group" role="group" aria-label="Período">
                         <button t-foreach="[7, 30, 90]" t-as="days" t-key="days" type="button" t-att-class="'btn ' + (state.days === days ? 'btn-light' : 'btn-outline-light')" t-on-click="() => this.loadDashboard(days)"><t t-esc="days"/> días</button>
+                        <button type="button" t-att-class="'btn ' + (state.days === 0 ? 'btn-light' : 'btn-outline-light')" t-on-click="() => this.loadDashboard(0)"><i class="fa fa-history me-1"/> Todo</button>
                     </div>
                     <button type="button" class="btn btn-light" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><i class="fa fa-plus me-1"/> Nueva cosecha propia</button>
                     <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry_contra')"><i class="fa fa-handshake-o me-1"/> Nueva contratista</button>
@@ -16,7 +17,7 @@
             <div t-if="state.loading" class="o_cosecha_loading"><i class="fa fa-spinner fa-spin"/> Preparando la información…</div>
             <t t-elif="state.data">
                 <section class="o_cosecha_kpis">
-                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><span>Registros del período</span><strong t-esc="formatNumber(state.data.kpis.records)"/><small><t t-esc="state.data.types.propio"/> propios · <t t-esc="state.data.types.contratista"/> contratistas</small></button>
+                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><span t-esc="state.days === 0 ? 'Registros históricos' : 'Registros del período'"/><strong t-esc="formatNumber(state.data.kpis.records)"/><small><t t-esc="state.data.types.propio"/> propios · <t t-esc="state.data.types.contratista"/> contratistas</small></button>
                     <article><span>Kilos registrados</span><strong><t t-esc="formatNumber(state.data.kpis.kilos, 1)"/> kg</strong><small>Según tarjas del período</small></article>
                     <article><span>Cajas registradas</span><strong t-esc="formatNumber(state.data.kpis.boxes, 1)"/><small>Trazabilidad de envases</small></article>
                     <button t-on-click="() => this.openAction('step_cosecha.step_action_picking_tree_incoming')"><span>Recepciones</span><strong t-esc="formatNumber(state.data.receptions)"/><small><t t-esc="state.data.kpis.pending_receipt"/> pendientes por recibir</small></button>
@@ -32,7 +33,7 @@
 
                 <div class="o_cosecha_grid">
                     <section class="o_cosecha_panel">
-                        <header><div><span>ACTIVIDAD RECIENTE</span><h2>Últimos registros de cosecha</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')">Ver todos</button></header>
+                        <header><div><span t-esc="state.data.period_label.toUpperCase()"/><h2>Últimos registros de cosecha</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')">Ver todos</button></header>
                         <div t-if="state.data.recent.length" class="o_cosecha_recent">
                             <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRegistry(row.id)">
                                 <i t-att-class="'is-' + row.state"/><span><b t-esc="row.name"/><small><t t-esc="row.fundo"/> · <t t-esc="row.type_label"/></small></span><em><t t-esc="formatNumber(row.kilos, 1)"/> kg</em><strong t-att-class="'is-' + row.state" t-esc="row.state_label"/><time t-esc="formatDate(row.date)"/>

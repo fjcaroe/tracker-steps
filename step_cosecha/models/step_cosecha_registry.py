@@ -139,9 +139,13 @@ class StepCosechaRegistry(models.Model):
     @api.model
     def get_dashboard_data(self, days=30):
         """Entrega una lectura ejecutiva sin alterar el flujo transaccional."""
-        days = max(7, min(int(days or 30), 365))
-        date_from = fields.Datetime.now() - timedelta(days=days)
-        period_domain = [('date', '>=', fields.Datetime.to_string(date_from))]
+        days = int(30 if days is None else days)
+        if days == 0:
+            period_domain = []
+        else:
+            days = max(7, min(days, 365))
+            date_from = fields.Datetime.now() - timedelta(days=days)
+            period_domain = [('date', '>=', fields.Datetime.to_string(date_from))]
 
         totals = self.read_group(
             period_domain,
@@ -162,6 +166,7 @@ class StepCosechaRegistry(models.Model):
         return {
             'company_name': self.env.company.display_name,
             'days': days,
+            'period_label': 'Todo el histórico' if days == 0 else f'Últimos {days} días',
             'kpis': {
                 'records': self.search_count(period_domain),
                 'kilos': totals.get('tarja_kg', 0.0) or 0.0,

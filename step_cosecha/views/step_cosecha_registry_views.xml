@@ -30,46 +30,55 @@
                 </header>
                 <sheet>
                     <div class="o_cosecha_form_intro">
-                        <span class="fa fa-leaf" title="Cosecha"/>
-                        <div><strong>Registro operativo de cosecha</strong><small>Complete la identificación y luego revise las personas, cantidades y costos en las pestañas inferiores.</small></div>
+                        <span class="o_cosecha_form_intro__icon"><i class="fa fa-leaf" title="Cosecha"/></span>
+                        <div><strong>Registro operativo de cosecha</strong><small>Identifique la jornada, ubique el cuartel y registre la producción. Los costos y la contabilización permanecen en las pestañas inferiores.</small></div>
                     </div>
-                    <div class="oe_title">
+                    <div class="oe_title o_cosecha_form_title">
+                        <label for="name" string="Registro"/>
                         <h1>
                             <field name="name" required="1" readonly="name != False" force_save="1"/>
                         </h1>
+                        <div class="o_cosecha_form_title__meta">
+                            <field name="type_tarea" widget="badge" readonly="1" force_save="1" nolabel="1"/>
+                            <field name="date" nolabel="1"/>
+                        </div>
                     </div>
-                    <group>
-                        <group string="Operación y producto">
-                            <field name="partner_id" invisible="type_tarea == 'propio'" domain="[('step_contra', '=', True)]"/>
-                            <field name="type_tarea" widget="radio" readonly="1" force_save="1"/>
-                            <field name="salary_id" invisible="type_tarea == 'contratista'" domain="[('group_type', '!=', 'contratista'), ('state', '=', 'progress')]"/>
-                            <field name="salary_id_contrac" invisible="type_tarea == 'propio'" domain="[('group_type', '!=', 'propio'), ('state', '=', 'progress'), ('partner_id', '=', partner_id)]"/>
-                            <field name="labor_id" domain="[('is_labor', '=', True)]"/>
-                            <field name="super_id"/>
-                            <field name="cost_id"/>
-                            <field name="cuartel_id"/>
-                            <field name="variedad_id"/>
-                            <field name="type_cosecha"/>
-                            <field name="packaging_ids"/>
-                            <field name="product_id" domain="[('is_fruta', '=', True)]"/>
-                            <field name="product_uom_id"/>
-                        </group>
-                        <group string="Trazabilidad y ubicación">
-                            <field name="date"/>
+                    <group class="o_cosecha_form_sections">
+                        <group string="Identificación de la jornada">
                             <field name="folio"/>
                             <field name="responsable_id"/>
+                            <field name="super_id"/>
+                            <field name="partner_id" invisible="type_tarea == 'propio'" domain="[('step_contra', '=', True)]"/>
+                            <field name="salary_id" invisible="type_tarea == 'contratista'" domain="[('group_type', '!=', 'contratista'), ('state', '=', 'progress')]"/>
+                            <field name="salary_id_contrac" invisible="type_tarea == 'propio'" domain="[('group_type', '!=', 'propio'), ('state', '=', 'progress'), ('partner_id', '=', partner_id)]"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Ubicación y labor">
                             <field name="fundo_id"/>
+                            <field name="cost_id"/>
+                            <field name="cuartel_id"/>
+                            <field name="cosecha_ubi_id"/>
+                            <field name="labor_id" domain="[('is_labor', '=', True)]"/>
                             <field name="pricelist_id" domain="[('group_type', '=', type_tarea),('cosecha', '=', True),('partner_id', '=', partner_id)]"/>
+                        </group>
+                    </group>
+                    <group class="o_cosecha_form_sections">
+                        <group string="Producto cosechado">
                             <field name="especie_id"/>
                             <field name="grupo_variedad_id_domain" widget="many2many_tags"/>
-                            <field name="qty_pasada"/>
-                            <field name="cosecha_ubi_id"/>
+                            <field name="variedad_id"/>
+                            <field name="type_cosecha"/>
+                            <field name="product_id" domain="[('is_fruta', '=', True)]"/>
+                            <field name="product_uom_id"/>
+                            <field name="packaging_ids"/>
+                        </group>
+                        <group string="Tarja y producción" class="o_cosecha_quantity_group">
                             <field name="tarja"/>
                             <field name="date_tarja"/>
+                            <field name="qty_pasada"/>
                             <field name="tarja_cajas"/>
                             <field name="tarja_kg"/>
                             <field name="cos_recibida" invisible="cos_recibida == False"/>
-                            <field name="company_id"/>
                         </group>
                     </group>
                     <notebook colspan="4">
@@ -145,6 +154,7 @@
                         </page>
                     </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -153,7 +163,7 @@
         <field name="name">step.cosecha.registry.list</field>
         <field name="model">step.cosecha.registry</field>
         <field name="arch" type="xml">
-            <list decoration-info="state == 'in'" decoration-warning="state == 'apro'" decoration-primary="state == 'costo'" decoration-success="state == 'cont'">
+            <list class="o_cosecha_registry_list" default_order="date desc" decoration-info="state == 'in'" decoration-warning="state == 'apro'" decoration-primary="state == 'costo'" decoration-success="state == 'cont'">
                 <field name="name" optional="show"/>
                 <field name="date" optional="show"/>
                 <field name="type_tarea" optional="show"/>
@@ -169,6 +179,53 @@
                 <field name="state" widget="badge" optional="show"/>
                 <field name="company_id" optional="hide"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_registry_kanban" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.kanban</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="arch" type="xml">
+            <kanban class="o_cosecha_registry_kanban" default_group_by="state" default_order="date desc">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="type_tarea"/>
+                <field name="partner_id"/>
+                <field name="salary_id"/>
+                <field name="fundo_id"/>
+                <field name="especie_id"/>
+                <field name="cuartel_id"/>
+                <field name="tarja_kg"/>
+                <field name="tarja_cajas"/>
+                <field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_cosecha_kanban_card">
+                            <div class="o_cosecha_kanban_card__top">
+                                <span t-att-class="'o_cosecha_kanban_state is-' + record.state.raw_value">
+                                    <t t-esc="record.state.value"/>
+                                </span>
+                                <time><field name="date" widget="date"/></time>
+                            </div>
+                            <h3><field name="name"/></h3>
+                            <p class="o_cosecha_kanban_type">
+                                <i t-att-class="record.type_tarea.raw_value === 'contratista' ? 'fa fa-handshake-o' : 'fa fa-users'" title="Tipo de cosecha"/>
+                                <field name="type_tarea"/>
+                                <t t-if="record.partner_id.raw_value"> · <field name="partner_id"/></t>
+                            </p>
+                            <div class="o_cosecha_kanban_location">
+                                <span><i class="fa fa-map-marker" title="Fundo"/><b>Fundo</b><field name="fundo_id"/></span>
+                                <span><i class="fa fa-leaf" title="Especie"/><b>Especie</b><field name="especie_id"/></span>
+                                <span><i class="fa fa-th-large" title="Cuartel"/><b>Cuartel</b><field name="cuartel_id"/></span>
+                            </div>
+                            <div class="o_cosecha_kanban_totals">
+                                <span><b><t t-esc="record.tarja_kg.value || '0,00'"/></b><small>kg registrados</small></span>
+                                <span><b><t t-esc="record.tarja_cajas.value || '0,00'"/></b><small>cajas</small></span>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
 
@@ -201,7 +258,7 @@
     <record id="action_step_cosecha_registry" model="ir.actions.act_window">
         <field name="name">Registro Cosecha</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">list,form,kanban</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
         <field name="domain">[('type_tarea', 'in', ['propio'])]</field>
         <field name="context">{'step_default_propio':1}</field>
@@ -210,7 +267,7 @@
     <record id="action_step_cosecha_registry_contra" model="ir.actions.act_window">
         <field name="name">Registro Cosecha</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">list,form,kanban</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
         <field name="domain">[('type_tarea', 'in', ['contratista'])]</field>
         <field name="context">{'step_default_contratista':1}</field>
@@ -219,7 +276,7 @@
     <record id="action_step_cosecha_registry_costo" model="ir.actions.act_window">
         <field name="name">Costeo Cosecha Contratista</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
         <field name="domain">[('type_tarea', 'in', ['contratista'])]</field>
         <field name="context">{'step_default_contratista':1}</field>
@@ -228,7 +285,7 @@
     <record id="action_step_cosecha_costo_pro" model="ir.actions.act_window">
         <field name="name">Costeo Cosecha Propio</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
         <field name="domain">[('type_tarea', 'in', ['propio'])]</field>
         <field name="context">{'step_default_propio':1}</field>
