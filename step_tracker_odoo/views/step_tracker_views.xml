@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2026 Steps Consulting
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+
+  Vistas de solo lectura para los datos espejados desde Web Tracker
+  (ver models/step_tracker.py y models/step_tracker_sync.py).
+-->
+<odoo>
+
+    <!-- Sesiones (recorridos GPS) -->
+    <record id="view_step_tracker_session_list" model="ir.ui.view">
+        <field name="name">step.tracker.session.list</field>
+        <field name="model">step.tracker.session</field>
+        <field name="arch" type="xml">
+            <list default_order="started_at desc" create="0" edit="0">
+                <field name="started_at"/>
+                <field name="machine_id"/>
+                <field name="driver_id"/>
+                <field name="analytic_account_id"/>
+                <field name="duration_hours" widget="float_time"/>
+                <field name="total_distance_km" sum="Distancia"/>
+                <field name="avg_speed_kmh"/>
+                <field name="status" widget="badge" decoration-success="status == 'closed'" decoration-info="status == 'open'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_session_search" model="ir.ui.view">
+        <field name="name">step.tracker.session.search</field>
+        <field name="model">step.tracker.session</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="machine_id"/>
+                <field name="driver_id"/>
+                <field name="analytic_account_id"/>
+                <filter name="open" string="Abiertas" domain="[('status', '=', 'open')]"/>
+                <filter name="closed" string="Cerradas" domain="[('status', '=', 'closed')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_machine" string="Máquina" context="{'group_by': 'machine_id'}"/>
+                    <filter name="group_cost_center" string="Centro de costo" context="{'group_by': 'analytic_account_id'}"/>
+                    <filter name="group_status" string="Estado" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_session_form" model="ir.ui.view">
+        <field name="name">step.tracker.session.form</field>
+        <field name="model">step.tracker.session</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="tracker_id"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="machine_id"/>
+                            <field name="driver_id"/>
+                            <field name="analytic_account_id"/>
+                            <field name="status"/>
+                        </group>
+                        <group>
+                            <field name="started_at"/>
+                            <field name="ended_at"/>
+                            <field name="duration_hours" widget="float_time"/>
+                            <field name="total_distance_km"/>
+                            <field name="avg_speed_kmh"/>
+                            <field name="points_count"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_session" model="ir.actions.act_window">
+        <field name="name">Sesiones Web Tracker</field>
+        <field name="res_model">step.tracker.session</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_step_tracker_session_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Aún no hay sesiones sincronizadas desde Web Tracker.
+            </p>
+            <p>
+                Configura la conexión en Ajustes &gt; Labores y Tareas &gt; Web Tracker
+                y sincroniza manualmente o espera al próximo ciclo automático.
+            </p>
+        </field>
+    </record>
+
+    <!-- Máquinas -->
+    <record id="view_step_tracker_machine_list" model="ir.ui.view">
+        <field name="name">step.tracker.machine.list</field>
+        <field name="model">step.tracker.machine</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="1">
+                <field name="name"/>
+                <field name="plate"/>
+                <field name="vehicle_id"/>
+                <field name="active"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_machine_form" model="ir.ui.view">
+        <field name="name">step.tracker.machine.form</field>
+        <field name="model">step.tracker.machine</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="plate" readonly="1"/>
+                            <field name="active" readonly="1"/>
+                            <field name="vehicle_id" help="Vincula esta máquina con su ficha real de flota en Odoo."/>
+                        </group>
+                        <group>
+                            <field name="tank_capacity_liters" readonly="1"/>
+                            <field name="fuel_consumption_lph" readonly="1"/>
+                            <field name="fuel_consumption_lpkm" readonly="1"/>
+                            <field name="last_sync" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_machine" model="ir.actions.act_window">
+        <field name="name">Máquinas Web Tracker</field>
+        <field name="res_model">step.tracker.machine</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Conductores -->
+    <record id="view_step_tracker_driver_list" model="ir.ui.view">
+        <field name="name">step.tracker.driver.list</field>
+        <field name="model">step.tracker.driver</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="1">
+                <field name="name"/>
+                <field name="rut"/>
+                <field name="employee_id"/>
+                <field name="active"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_driver_form" model="ir.ui.view">
+        <field name="name">step.tracker.driver.form</field>
+        <field name="model">step.tracker.driver</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group string="Datos sincronizados">
+                            <field name="rut" readonly="1"/>
+                            <field name="active" readonly="1"/>
+                            <field name="last_sync" readonly="1"/>
+                        </group>
+                        <group string="Integración con Odoo">
+                            <field name="employee_id" help="Vincula este conductor con su ficha en Empleados."/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_driver" model="ir.actions.act_window">
+        <field name="name">Conductores Web Tracker</field>
+        <field name="res_model">step.tracker.driver</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Predios -->
+    <record id="view_step_tracker_field_list" model="ir.ui.view">
+        <field name="name">step.tracker.field.list</field>
+        <field name="model">step.tracker.field</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="1">
+                <field name="name"/>
+                <field name="analytic_account_id"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_field_form" model="ir.ui.view">
+        <field name="name">step.tracker.field.form</field>
+        <field name="model">step.tracker.field</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group string="Datos sincronizados">
+                            <field name="color" readonly="1"/>
+                            <field name="cost_center_tracker_id" readonly="1"/>
+                            <field name="last_sync" readonly="1"/>
+                        </group>
+                        <group string="Integración con Odoo">
+                            <field name="analytic_account_id" help="Vincula el predio con su centro de costo analítico."/>
+                        </group>
+                    </group>
+                    <group string="Geometría disponible en Web Tracker">
+                        <field name="polygon_json" readonly="1" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_field" model="ir.actions.act_window">
+        <field name="name">Predios Web Tracker</field>
+        <field name="res_model">step.tracker.field</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Actividades, labores e implementos -->
+    <record id="view_step_tracker_activity_list" model="ir.ui.view">
+        <field name="name">step.tracker.activity.list</field>
+        <field name="model">step.tracker.activity</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="active"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_tracker_activity_form" model="ir.ui.view">
+        <field name="name">step.tracker.activity.form</field>
+        <field name="model">step.tracker.activity</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0"><sheet>
+                <div class="oe_title"><h1><field name="name"/></h1></div>
+                <group><field name="code"/><field name="active"/><field name="last_sync"/></group>
+            </sheet></form>
+        </field>
+    </record>
+    <record id="action_step_tracker_activity" model="ir.actions.act_window">
+        <field name="name">Actividades Web Tracker</field>
+        <field name="res_model">step.tracker.activity</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_step_tracker_labor_list" model="ir.ui.view">
+        <field name="name">step.tracker.labor.list</field>
+        <field name="model">step.tracker.labor</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="activity_id"/>
+                <field name="code"/>
+                <field name="effort_factor"/>
+                <field name="target_speed_kmh"/>
+                <field name="active"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_tracker_labor_form" model="ir.ui.view">
+        <field name="name">step.tracker.labor.form</field>
+        <field name="model">step.tracker.labor</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0"><sheet>
+                <div class="oe_title"><h1><field name="name"/></h1></div>
+                <group>
+                    <group><field name="activity_id"/><field name="code"/><field name="active"/></group>
+                    <group><field name="effort_factor"/><field name="target_speed_kmh"/><field name="last_sync"/></group>
+                </group>
+            </sheet></form>
+        </field>
+    </record>
+    <record id="action_step_tracker_labor" model="ir.actions.act_window">
+        <field name="name">Labores Web Tracker</field>
+        <field name="res_model">step.tracker.labor</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_step_tracker_implement_list" model="ir.ui.view">
+        <field name="name">step.tracker.implement.list</field>
+        <field name="model">step.tracker.implement</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="name"/>
+                <field name="active"/>
+                <field name="last_sync"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_tracker_implement_form" model="ir.ui.view">
+        <field name="name">step.tracker.implement.form</field>
+        <field name="model">step.tracker.implement</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0"><sheet>
+                <div class="oe_title"><h1><field name="name"/></h1></div>
+                <group><field name="active"/><field name="last_sync"/></group>
+            </sheet></form>
+        </field>
+    </record>
+    <record id="action_step_tracker_implement" model="ir.actions.act_window">
+        <field name="name">Implementos Web Tracker</field>
+        <field name="res_model">step.tracker.implement</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Partes ingresados desde Web Tracker -->
+    <record id="view_step_tracker_work_order_list" model="ir.ui.view">
+        <field name="name">step.tracker.work.order.list</field>
+        <field name="model">step.tracker.work_order</field>
+        <field name="arch" type="xml">
+            <list default_order="work_date desc" create="0" edit="0" delete="0">
+                <field name="work_date"/>
+                <field name="code"/>
+                <field name="machine_id"/>
+                <field name="activity_id"/>
+                <field name="labor_id"/>
+                <field name="implement_id" optional="show"/>
+                <field name="field_id" optional="show"/>
+                <field name="season" optional="hide"/>
+                <field name="hourmeter_initial" optional="hide"/>
+                <field name="hourmeter_final" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_tracker_work_order_form" model="ir.ui.view">
+        <field name="name">step.tracker.work.order.form</field>
+        <field name="model">step.tracker.work_order</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0">
+                <sheet>
+                    <div class="oe_title"><h1><field name="code"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="work_date"/>
+                            <field name="season"/>
+                            <field name="machine_id"/>
+                            <field name="field_id"/>
+                            <field name="analytic_account_id"/>
+                        </group>
+                        <group>
+                            <field name="activity_id"/>
+                            <field name="labor_id"/>
+                            <field name="implement_id"/>
+                            <field name="hourmeter_initial"/>
+                            <field name="hourmeter_final"/>
+                        </group>
+                    </group>
+                    <group string="Combustible">
+                        <field name="fuel_tank_start_liters"/>
+                        <field name="fuel_refill_liters"/>
+                        <field name="fuel_tank_end_liters"/>
+                    </group>
+                    <field name="notes"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_tracker_work_order" model="ir.actions.act_window">
+        <field name="name">Partes Web Tracker</field>
+        <field name="res_model">step.tracker.work_order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Registro de sincronización -->
+    <record id="view_step_tracker_sync_log_list" model="ir.ui.view">
+        <field name="name">step.tracker.sync.log.list</field>
+        <field name="model">step.tracker.sync.log</field>
+        <field name="arch" type="xml">
+            <list default_order="started_at desc" create="0" edit="0" delete="0">
+                <field name="started_at"/>
+                <field name="finished_at"/>
+                <field name="status" widget="badge" decoration-success="status == 'ok'" decoration-warning="status == 'partial'" decoration-danger="status == 'error'"/>
+                <field name="machines_synced"/>
+                <field name="drivers_synced"/>
+                <field name="activities_synced"/>
+                <field name="labors_synced"/>
+                <field name="implements_synced"/>
+                <field name="fields_synced"/>
+                <field name="sessions_synced"/>
+                <field name="work_orders_synced"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_sync_log_form" model="ir.ui.view">
+        <field name="name">step.tracker.sync.log.form</field>
+        <field name="model">step.tracker.sync.log</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0">
+                <sheet>
+                    <group>
+                        <field name="started_at"/>
+                        <field name="finished_at"/>
+                        <field name="status"/>
+                    </group>
+                    <field name="message"/>
+                    <group string="Registros procesados">
+                        <field name="machines_synced"/>
+                        <field name="drivers_synced"/>
+                        <field name="activities_synced"/>
+                        <field name="labors_synced"/>
+                        <field name="implements_synced"/>
+                        <field name="fields_synced"/>
+                        <field name="sessions_synced"/>
+                        <field name="work_orders_synced"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_sync_log" model="ir.actions.act_window">
+        <field name="name">Sincronizaciones Web Tracker</field>
+        <field name="res_model">step.tracker.sync.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Aplicación Odoo y reportes nativos -->
+    <record id="action_step_tracker_dashboard" model="ir.actions.client">
+        <field name="name">Steps Tracker</field>
+        <field name="tag">step_tracker_odoo.tracker_dashboard</field>
+    </record>
+
+    <record id="view_step_tracker_session_graph" model="ir.ui.view">
+        <field name="name">step.tracker.session.graph</field>
+        <field name="model">step.tracker.session</field>
+        <field name="arch" type="xml">
+            <graph string="Distancia y horas por máquina" type="bar">
+                <field name="machine_id"/>
+                <field name="total_distance_km" type="measure"/>
+                <field name="duration_hours" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_session_pivot" model="ir.ui.view">
+        <field name="name">step.tracker.session.pivot</field>
+        <field name="model">step.tracker.session</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de sesiones">
+                <field name="machine_id" type="row"/>
+                <field name="driver_id" type="row"/>
+                <field name="started_at" type="col" interval="month"/>
+                <field name="total_distance_km" type="measure"/>
+                <field name="duration_hours" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_session_analysis" model="ir.actions.act_window">
+        <field name="name">Análisis de sesiones</field>
+        <field name="res_model">step.tracker.session</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="search_view_id" ref="view_step_tracker_session_search"/>
+    </record>
+
+    <record id="view_step_tracker_work_order_graph" model="ir.ui.view">
+        <field name="name">step.tracker.work.order.graph</field>
+        <field name="model">step.tracker.work_order</field>
+        <field name="arch" type="xml">
+            <graph string="Partes y combustible" type="bar">
+                <field name="machine_id"/>
+                <field name="fuel_refill_liters" type="measure"/>
+                <field name="hourmeter_final" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_work_order_pivot" model="ir.ui.view">
+        <field name="name">step.tracker.work.order.pivot</field>
+        <field name="model">step.tracker.work_order</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de partes">
+                <field name="machine_id" type="row"/>
+                <field name="activity_id" type="row"/>
+                <field name="labor_id" type="row"/>
+                <field name="work_date" type="col" interval="month"/>
+                <field name="fuel_refill_liters" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_work_order_analysis" model="ir.actions.act_window">
+        <field name="name">Análisis de partes</field>
+        <field name="res_model">step.tracker.work_order</field>
+        <field name="view_mode">graph,pivot,list</field>
+    </record>
+
+    <record id="action_step_tracker_open_web" model="ir.actions.act_url">
+        <field name="name">Abrir Web Tracker</field>
+        <field name="url">/web_tracker/</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Menú -->
+    <menuitem id="menu_step_tracker_gps_root"
+              name="Steps Tracker"
+              action="action_step_tracker_dashboard"
+              sequence="12"
+              web_icon="step_tracker_odoo,static/description/icon.png"/>
+    <!-- El registro ya existía bajo Actividades: al actualizar, limpiar el
+         parent garantiza que pase a ser una aplicación de primer nivel. -->
+    <record id="menu_step_tracker_gps_root" model="ir.ui.menu">
+        <field name="parent_id" eval="False"/>
+    </record>
+    <menuitem id="menu_step_tracker_dashboard"
+              name="Resumen"
+              action="action_step_tracker_dashboard"
+              parent="menu_step_tracker_gps_root"
+              sequence="1"/>
+    <menuitem id="menu_step_tracker_operation"
+              name="Operación"
+              parent="menu_step_tracker_gps_root"
+              sequence="10"/>
+    <menuitem id="menu_step_tracker_gps_sessions"
+              name="Sesiones"
+              action="action_step_tracker_session"
+              parent="menu_step_tracker_operation"
+              sequence="10"/>
+    <menuitem id="menu_step_tracker_gps_work_orders"
+              name="Partes diarios"
+              action="action_step_tracker_work_order"
+              parent="menu_step_tracker_operation"
+              sequence="20"/>
+    <menuitem id="menu_step_tracker_reports"
+              name="Reportes"
+              parent="menu_step_tracker_gps_root"
+              sequence="20"/>
+    <menuitem id="menu_step_tracker_session_analysis"
+              name="Sesiones por máquina"
+              action="action_step_tracker_session_analysis"
+              parent="menu_step_tracker_reports"
+              sequence="10"/>
+    <menuitem id="menu_step_tracker_work_order_analysis"
+              name="Partes y combustible"
+              action="action_step_tracker_work_order_analysis"
+              parent="menu_step_tracker_reports"
+              sequence="20"/>
+    <menuitem id="menu_step_tracker_masters"
+              name="Maestros"
+              parent="menu_step_tracker_gps_root"
+              sequence="30"/>
+    <menuitem id="menu_step_tracker_gps_machines"
+              name="Máquinas"
+              action="action_step_tracker_machine"
+              parent="menu_step_tracker_masters"
+              sequence="20"/>
+    <menuitem id="menu_step_tracker_gps_drivers"
+              name="Conductores"
+              action="action_step_tracker_driver"
+              parent="menu_step_tracker_masters"
+              sequence="30"/>
+    <menuitem id="menu_step_tracker_gps_fields"
+              name="Predios"
+              action="action_step_tracker_field"
+              parent="menu_step_tracker_masters"
+              sequence="40"/>
+    <menuitem id="menu_step_tracker_gps_activities"
+              name="Actividades"
+              action="action_step_tracker_activity"
+              parent="menu_step_tracker_masters"
+              sequence="41"/>
+    <menuitem id="menu_step_tracker_gps_labors"
+              name="Labores"
+              action="action_step_tracker_labor"
+              parent="menu_step_tracker_masters"
+              sequence="42"/>
+    <menuitem id="menu_step_tracker_gps_implements"
+              name="Implementos"
+              action="action_step_tracker_implement"
+              parent="menu_step_tracker_masters"
+              sequence="43"/>
+    <menuitem id="menu_step_tracker_open_web"
+              name="Abrir mapa Web Tracker"
+              action="action_step_tracker_open_web"
+              parent="menu_step_tracker_gps_root"
+              sequence="40"/>
+    <menuitem id="menu_step_tracker_integration"
+              name="Integración"
+              parent="menu_step_tracker_gps_root"
+              sequence="50"
+              groups="base.group_system"/>
+    <menuitem id="menu_step_tracker_gps_sync_log"
+              name="Sincronizaciones"
+              action="action_step_tracker_sync_log"
+              parent="menu_step_tracker_integration"
+              sequence="50"
+              groups="base.group_system"/>
+    <menuitem id="menu_step_tracker_gps_settings"
+              name="Configuración"
+              action="step_tracker_odoo.action_step_tracker_configuration"
+              parent="menu_step_tracker_integration"
+              sequence="60"
+              groups="base.group_system"/>
+
+</odoo>
