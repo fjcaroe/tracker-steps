@@ -106,3 +106,46 @@
 .ops-session-table>button>span:nth-child(7)::before{content:"Consumo";order:-1;color:var(--ops-muted);font-size:.58rem;font-weight:750;text-transform:uppercase;letter-spacing:.05em}
 }
 @media(max-width:430px){.ops-kpi-grid{grid-template-columns:1fr 1fr}.ops-kpi-grid article{padding:13px}.ops-kpi-grid strong{font-size:1.25rem}.ops-fleet-panel{grid-template-columns:1fr}.ops-master-grid{grid-template-columns:1fr}.ops-real-stats{grid-template-columns:1fr 1fr}.demo-console .ops-action{flex:1}}
+
+/* ===== Registro de operación (pantalla de captura real) ===== */
+.ops-register-layout{display:grid;grid-template-columns:400px minmax(0,1fr);gap:14px;align-items:start}
+.ops-register-panel{max-height:none;padding-bottom:18px}
+.ops-register-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:14px 18px 4px}
+.ops-register-stats div{padding:12px;border:1px solid var(--ops-border);border-radius:13px;background:#f8faf7}
+.ops-register-stats span{display:block;color:var(--ops-muted);font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.ops-register-stats b{display:block;margin-top:5px;color:var(--ops-ink);font-size:.9rem}
+.ops-register-form,.ops-register-tracking{display:grid;gap:11px;padding:14px 18px 4px}
+.ops-register-field{display:grid;gap:5px}
+.ops-register-field>span{color:var(--ops-muted);font-size:.66rem;font-weight:800;letter-spacing:.02em}
+.ops-register-field select,.ops-register-field input[type="number"]{min-height:44px;padding:0 12px;border:1px solid var(--ops-border);border-radius:11px;color:var(--ops-ink);background:#fff;font-size:.78rem}
+.ops-register-field select:focus,.ops-register-field input:focus{border-color:var(--ops-brand-2);box-shadow:0 0 0 3px rgba(27,103,86,.1)}
+.ops-register-tank{display:grid;gap:8px}
+.ops-register-tank input[type="range"]{width:100%;height:36px;accent-color:var(--ops-brand-2)}
+.ops-register-tank__row{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:center}
+.ops-register-tank__meta{color:var(--ops-muted);font-size:.7rem}
+.ops-register-tank__meta b{color:var(--ops-ink)}
+.ops-register-tank__meta small{display:block;margin-top:3px}
+.ops-register-submit{width:100%;justify-content:center;margin-top:4px}
+.ops-register-status{display:flex;align-items:center;gap:8px;color:var(--ops-muted);font-size:.72rem;font-weight:700}
+.ops-register-status .ops-dot{background:#9aa79f}
+.ops-register-alert{padding:11px 13px;border-radius:12px;font-size:.74rem;line-height:1.45}
+.ops-register-alert.is-error{color:#9e3f32;background:rgba(217,72,53,.08);border:1px solid rgba(217,72,53,.22)}
+.ops-register-alert.is-success{color:#156647;background:#e1f5eb;border:1px solid rgba(21,102,71,.2)}
+.ops-register-tracking>b{padding:0 18px;color:var(--ops-ink);font-size:.86rem}
+.ops-register-tracking__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:0 18px}
+.ops-register-tracking__grid div{padding:12px;border:1px solid var(--ops-border);border-radius:13px;background:#f8faf7}
+.ops-register-tracking__grid span{display:block;color:var(--ops-muted);font-size:.6rem;font-weight:800;text-transform:uppercase}
+.ops-register-tracking__grid b{display:block;margin-top:5px;font-size:.86rem}
+.ops-register-tracking .ops-register-submit,.ops-register-tracking .ops-register-alert{margin-left:18px;margin-right:18px;width:calc(100% - 36px)}
+.ops-register-map .ops-map-frame{height:640px}
+.ops-register-error-card{padding:24px}
+
+.ops-modal-backdrop{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;background:rgba(11,32,27,.5);backdrop-filter:blur(3px)}
+.ops-modal{width:100%;max-width:440px;padding:24px;border-radius:20px;background:#fff;box-shadow:0 30px 80px rgba(8,31,25,.32)}
+.ops-modal h2{margin:0 0 5px;color:var(--ops-ink);font-size:1.05rem}
+.ops-modal>p{margin:0 0 16px;color:var(--ops-muted);font-size:.76rem}
+.ops-modal__body{display:grid;gap:12px}
+.ops-modal__actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+
+@media(max-width:1100px){.ops-register-layout{grid-template-columns:1fr}.ops-register-map .ops-map-frame{height:52vh;min-height:400px}}
+@media(max-width:760px){.ops-register-stats,.ops-register-tracking__grid{grid-template-columns:1fr 1fr}.ops-register-tank__row{grid-template-columns:1fr}}

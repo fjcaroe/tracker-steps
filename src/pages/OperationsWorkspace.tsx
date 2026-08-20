@@ -11,8 +11,9 @@ import { apiJson } from "../services/http";
 import "./OperationsWorkspace.css";
 
 const AnalyticsCharts = lazy(() => import("./AnalyticsCharts"));
+const RegistrationPage = lazy(() => import("./RegistrationPage"));
 
-export type OperationsView = "live" | "routes" | "sessions" | "userView" | "stats" | "chartsStats" | "masters";
+export type OperationsView = "live" | "routes" | "sessions" | "userView" | "stats" | "chartsStats" | "masters" | "registro";
 
 type ApiEntity = { id: number; name: string };
 type ApiField = ApiEntity & { color?: string | null; polygon?: { lat: number; lon: number }[] };
@@ -171,6 +172,16 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const control = (
     <DemoControl demoMode={demoMode} onDemoModeChange={setDemoMode} running={running} onRunningChange={setRunning} speed={speed} onSpeedChange={setSpeed} />
   );
+
+  if (view === "registro") {
+    return (
+      <main className="ops-workspace">
+        <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner" />Cargando registro…</div>}>
+          <RegistrationPage />
+        </Suspense>
+      </main>
+    );
+  }
 
   if (!demoMode) {
     return (
