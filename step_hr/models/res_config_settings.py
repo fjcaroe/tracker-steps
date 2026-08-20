@@ -35,10 +35,14 @@ class ResConfigSettings(models.TransientModel):
         counts = self.env['step.tracker.sync'].run_sync()
         message = _(
             'Sincronizado: %(machines)s máquinas, %(drivers)s conductores, '
-            '%(fields)s predios, %(sessions)s sesiones, %(work_orders)s partes.'
+            '%(activities)s actividades, %(labors)s labores, %(implements)s implementos, '
+            '%(fields)s predios, %(sessions)s sesiones y %(work_orders)s partes.'
         ) % {
             'machines': counts['machines'],
             'drivers': counts['drivers'],
+            'activities': counts['activities'],
+            'labors': counts['labors'],
+            'implements': counts['implements'],
             'fields': counts['fields'],
             'sessions': counts['sessions'],
             'work_orders': counts['work_orders'],

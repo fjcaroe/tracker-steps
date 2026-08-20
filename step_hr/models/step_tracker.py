@@ -1,6 +1,8 @@
 # © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
 # -*- coding: utf-8 -*-
 
+from dateutil.relativedelta import relativedelta
+
 from odoo import api, Command, fields, models, _
 
 class StepTracker(models.Model):
@@ -64,6 +66,63 @@ class StepTrackerDriver(models.Model):
     _sql_constraints = [
         ('tracker_id_company_uniq', 'unique(tracker_id, company_id)',
          'Este conductor ya está sincronizado para esta empresa.'),
+    ]
+
+
+class StepTrackerActivity(models.Model):
+    _name = 'step.tracker.activity'
+    _description = 'Actividad de Web Tracker (sincronizada)'
+    _order = 'name'
+
+    tracker_id = fields.Integer(string='ID en Web Tracker', required=True, index=True)
+    name = fields.Char(string='Nombre', required=True)
+    code = fields.Char(string='Código')
+    active = fields.Boolean(string='Activa en Web Tracker', default=True)
+    last_sync = fields.Datetime(string='Última sincronización')
+    company_id = fields.Many2one('res.company', string='Empresa', default=lambda self: self.env.company)
+
+    _sql_constraints = [
+        ('tracker_id_company_uniq', 'unique(tracker_id, company_id)',
+         'Esta actividad ya está sincronizada para esta empresa.'),
+    ]
+
+
+class StepTrackerLabor(models.Model):
+    _name = 'step.tracker.labor'
+    _description = 'Labor de Web Tracker (sincronizada)'
+    _order = 'name'
+
+    tracker_id = fields.Integer(string='ID en Web Tracker', required=True, index=True)
+    name = fields.Char(string='Nombre', required=True)
+    code = fields.Char(string='Código')
+    activity_id = fields.Many2one('step.tracker.activity', string='Actividad')
+    activity_tracker_id = fields.Integer(string='ID actividad en Tracker')
+    effort_factor = fields.Float(string='Factor de esfuerzo')
+    target_speed_kmh = fields.Float(string='Velocidad objetivo (km/h)')
+    active = fields.Boolean(string='Activa en Web Tracker', default=True)
+    last_sync = fields.Datetime(string='Última sincronización')
+    company_id = fields.Many2one('res.company', string='Empresa', default=lambda self: self.env.company)
+
+    _sql_constraints = [
+        ('tracker_id_company_uniq', 'unique(tracker_id, company_id)',
+         'Esta labor ya está sincronizada para esta empresa.'),
+    ]
+
+
+class StepTrackerImplement(models.Model):
+    _name = 'step.tracker.implement'
+    _description = 'Implemento de Web Tracker (sincronizado)'
+    _order = 'name'
+
+    tracker_id = fields.Integer(string='ID en Web Tracker', required=True, index=True)
+    name = fields.Char(string='Nombre', required=True)
+    active = fields.Boolean(string='Activo en Web Tracker', default=True)
+    last_sync = fields.Datetime(string='Última sincronización')
+    company_id = fields.Many2one('res.company', string='Empresa', default=lambda self: self.env.company)
+
+    _sql_constraints = [
+        ('tracker_id_company_uniq', 'unique(tracker_id, company_id)',
+         'Este implemento ya está sincronizado para esta empresa.'),
     ]
 
 
@@ -131,8 +190,14 @@ class StepTrackerWorkOrder(models.Model):
     tracker_id = fields.Integer(string='ID en Web Tracker', required=True, index=True)
     code = fields.Char(string='Código')
     work_date = fields.Date(string='Fecha')
+    season = fields.Char(string='Temporada')
     machine_id = fields.Many2one('step.tracker.machine', string='Máquina')
+    activity_id = fields.Many2one('step.tracker.activity', string='Actividad')
+    labor_id = fields.Many2one('step.tracker.labor', string='Labor')
+    implement_id = fields.Many2one('step.tracker.implement', string='Implemento')
+    field_id = fields.Many2one('step.tracker.field', string='Predio')
     analytic_account_id = fields.Many2one('account.analytic.account', string='Centro de costo')
+    notes = fields.Text(string='Observaciones')
     hourmeter_initial = fields.Float(string='Horómetro inicial')
     hourmeter_final = fields.Float(string='Horómetro final')
     fuel_tank_start_liters = fields.Float(string='Estanque inicial (L)')
@@ -144,3 +209,100 @@ class StepTrackerWorkOrder(models.Model):
         ('tracker_id_company_uniq', 'unique(tracker_id, company_id)',
          'Este parte ya está sincronizado para esta empresa.'),
     ]
+
+    @api.model
+    def get_dashboard_data(self, days=30):
+        """Return a compact, company-aware snapshot for the Odoo dashboard."""
+        try:
+            days = int(days)
+        except (TypeError, ValueError):
+            days = 30
+        days = min(max(days, 1), 3650)
+        company = self.env.company
+        cutoff = fields.Datetime.now() - relativedelta(days=days)
+        session_domain = [
+            ('company_id', '=', company.id),
+            ('started_at', '>=', cutoff),
+        ]
+        work_order_domain = [
+            ('company_id', '=', company.id),
+            ('work_date', '>=', cutoff.date()),
+        ]
+
+        session_model = self.env['step.tracker.session']
+        session_totals = session_model.read_group(
+            session_domain,
+            ['total_distance_km:sum', 'duration_hours:sum'],
+            [],
+        )[0]
+        work_order_model = self.env['step.tracker.work_order']
+        work_order_totals = work_order_model.read_group(
+            work_order_domain,
+            ['fuel_refill_liters:sum'],
+            [],
+        )[0]
+
+        machine_groups = session_model.read_group(
+            session_domain,
+            ['machine_id', 'total_distance_km:sum', 'duration_hours:sum'],
+            ['machine_id'],
+            orderby='total_distance_km desc',
+            limit=6,
+        )
+        top_machines = []
+        maximum_distance = max(
+            [group.get('total_distance_km', 0.0) or 0.0 for group in machine_groups] or [1.0]
+        )
+        for group in machine_groups:
+            machine_value = group.get('machine_id')
+            top_machines.append({
+                'id': machine_value[0] if machine_value else False,
+                'name': machine_value[1] if machine_value else _('Sin máquina'),
+                'distance_km': round(group.get('total_distance_km', 0.0) or 0.0, 1),
+                'hours': round(group.get('duration_hours', 0.0) or 0.0, 1),
+                'share': round((group.get('total_distance_km', 0.0) or 0.0) / maximum_distance * 100),
+            })
+
+        recent_sessions = []
+        for session in session_model.search(session_domain, order='started_at desc', limit=6):
+            recent_sessions.append({
+                'id': session.id,
+                'tracker_id': session.tracker_id,
+                'machine': session.machine_id.name or _('Sin máquina'),
+                'driver': session.driver_id.name or _('Sin conductor'),
+                'started_at': fields.Datetime.to_string(session.started_at),
+                'distance_km': round(session.total_distance_km or 0.0, 1),
+                'status': session.status,
+                'status_label': dict(session._fields['status'].selection).get(session.status, session.status),
+            })
+
+        latest_sync = self.env['step.tracker.sync.log'].search(
+            [('company_id', '=', company.id)],
+            order='started_at desc',
+            limit=1,
+        )
+        return {
+            'period_days': days,
+            'company_name': company.name,
+            'kpis': {
+                'sessions': session_model.search_count(session_domain),
+                'open_sessions': session_model.search_count(session_domain + [('status', '=', 'open')]),
+                'distance_km': round(session_totals.get('total_distance_km', 0.0) or 0.0, 1),
+                'hours': round(session_totals.get('duration_hours', 0.0) or 0.0, 1),
+                'work_orders': work_order_model.search_count(work_order_domain),
+                'fuel_refill_liters': round(work_order_totals.get('fuel_refill_liters', 0.0) or 0.0, 1),
+                'machines': self.env['step.tracker.machine'].search_count([
+                    ('company_id', '=', company.id), ('active', '=', True),
+                ]),
+                'drivers': self.env['step.tracker.driver'].search_count([
+                    ('company_id', '=', company.id), ('active', '=', True),
+                ]),
+            },
+            'top_machines': top_machines,
+            'recent_sessions': recent_sessions,
+            'latest_sync': {
+                'status': latest_sync.status,
+                'started_at': fields.Datetime.to_string(latest_sync.started_at) if latest_sync else False,
+                'message': latest_sync.message or '',
+            } if latest_sync else False,
+        }

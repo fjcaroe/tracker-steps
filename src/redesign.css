@@ -246,8 +246,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .app-shell--redesign { display: block; padding-bottom: 74px; }
   .app-sidebar { position: fixed; inset: auto 0 0; width: 100%; height: 70px; padding: 7px 10px calc(7px + env(safe-area-inset-bottom)); background: rgba(11,45,38,.96); backdrop-filter: blur(18px); }
   .app-brand, .app-sidebar__label, .app-sidebar__footer { display: none; }
-  .app-sidebar__nav { grid-template-columns: repeat(7, minmax(48px,1fr)); gap: 3px; height: 100%; }
-  .app-sidebar__item { min-height: 52px; gap: 2px; flex-direction: column; justify-content: center; padding: 4px 2px; border-radius: 10px; font-size: .58rem; }
+  .app-sidebar__nav { display: flex; min-width: max-content; gap: 3px; height: 100%; scroll-snap-type: x proximity; }
+  .app-sidebar__item { width: 72px; min-width: 72px; min-height: 52px; gap: 2px; flex-direction: column; justify-content: center; padding: 4px 2px; border-radius: 10px; font-size: .58rem; scroll-snap-align: center; }
   .app-sidebar__item > span:not(.app-sidebar__badge) { display: block; }
   .app-sidebar__item .app-icon { width: 18px; height: 18px; }
   .app-sidebar__badge { top: 1px; right: calc(50% - 22px); }

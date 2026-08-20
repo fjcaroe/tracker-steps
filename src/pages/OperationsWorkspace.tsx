@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import OperationsMap from "../components/OperationsMap";
+import SessionPlaybackModal from "../components/SessionPlaybackModal";
+import MastersAdminModal, { type MasterKind } from "../components/MastersAdminModal";
 import {
   DEMO_EVENTS,
   DEMO_FIELDS,
@@ -14,8 +16,9 @@ import "./OperationsWorkspace.css";
 
 const AnalyticsCharts = lazy(() => import("./AnalyticsCharts"));
 const RegistrationPage = lazy(() => import("./RegistrationPage"));
+const ManualEntryPage = lazy(() => import("./ManualEntryPage"));
 
-export type OperationsView = "live" | "routes" | "sessions" | "userView" | "stats" | "chartsStats" | "masters" | "registro";
+export type OperationsView = "live" | "routes" | "sessions" | "userView" | "stats" | "chartsStats" | "masters" | "registro" | "manual";
 
 type ApiEntity = { id: number; name: string };
 type ApiField = ApiEntity & { color?: string | null; polygon?: { lat: number; lon: number }[] };
@@ -42,9 +45,18 @@ type RealData = {
   costCenters: ApiEntity[];
   fields: ApiField[];
   sessions: ApiSession[];
+  activities: ApiEntity[];
+  labors: ApiEntity[];
+  implements: ApiEntity[];
+  species: ApiEntity[];
+  varieties: ApiEntity[];
+  regions: ApiEntity[];
+  communes: ApiEntity[];
+  fundos: ApiEntity[];
+  sectors: ApiEntity[];
 };
 
-const emptyRealData: RealData = { machines: [], drivers: [], costCenters: [], fields: [], sessions: [] };
+const emptyRealData: RealData = { machines: [], drivers: [], costCenters: [], fields: [], sessions: [], activities: [], labors: [], implements: [], species: [], varieties: [], regions: [], communes: [], fundos: [], sectors: [] };
 
 // Fila normalizada para el historial: la misma tabla sirve tanto para sesiones demo como reales.
 type HistoryRow = {
@@ -192,8 +204,10 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const todayIso = useMemo(() => localDateKey(new Date().toISOString()), []);
   const [historyDateFrom, setHistoryDateFrom] = useState(todayIso);
   const [historyDateTo, setHistoryDateTo] = useState(todayIso);
-  const [openMasterCard, setOpenMasterCard] = useState<string | null>(null);
+  const [openMasterCard, setOpenMasterCard] = useState<MasterKind | null>(null);
+  const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [realData, setRealData] = useState<RealData>(emptyRealData);
+  const [realDataVersion, setRealDataVersion] = useState(0);
   const [realStatus, setRealStatus] = useState<"loading" | "ready" | "error">("loading");
   const [realSessions, setRealSessions] = useState<ApiSession[]>([]);
   const [laborsById, setLaborsById] = useState<Record<number, string>>({});
@@ -207,37 +221,27 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }, [demoMode, running]);
 
   useEffect(() => {
-    if (!showRoadRoute) return;
-    const id = window.setTimeout(() => {
-      setRoadRouteStatus((current) => current === "Calculando ruta por caminos…"
-        ? "Google Directions no respondió. La capa de pasadas agrícolas continúa disponible."
-        : current);
-    }, 8000);
-    return () => window.clearTimeout(id);
-  }, [showRoadRoute]);
-
-  useEffect(() => {
     let active = true;
     const load = async () => {
       setRealStatus("loading");
       try {
-        const [machines, drivers, costCenters, fields, sessions] = await Promise.all([
-          apiJson<ApiEntity[]>("/machines"),
-          apiJson<ApiEntity[]>("/drivers"),
-          apiJson<ApiEntity[]>("/cost_centers"),
-          apiJson<ApiField[]>("/fields"),
-          apiJson<ApiSession[]>("/sessions"),
+        const requests = await Promise.allSettled([
+          apiJson<ApiEntity[]>("/machines"), apiJson<ApiEntity[]>("/drivers"), apiJson<ApiEntity[]>("/cost_centers"), apiJson<ApiField[]>("/fields"),
+          apiJson<ApiSession[]>("/sessions_recent?limit=100"), apiJson<ApiEntity[]>("/activities"), apiJson<ApiEntity[]>("/labors"), apiJson<ApiEntity[]>("/implements"),
+          apiJson<ApiEntity[]>("/species"), apiJson<ApiEntity[]>("/varieties"), apiJson<ApiEntity[]>("/regions"), apiJson<ApiEntity[]>("/communes"),
+          apiJson<ApiEntity[]>("/fundos"), apiJson<ApiEntity[]>("/sectors"),
         ]);
         if (!active) return;
-        setRealData({ machines, drivers, costCenters, fields, sessions });
-        setRealStatus("ready");
+        const value = <T,>(index: number): T[] => requests[index].status === "fulfilled" && Array.isArray(requests[index].value) ? requests[index].value as T[] : [];
+        setRealData({ machines: value(0), drivers: value(1), costCenters: value(2), fields: value<ApiField>(3), sessions: value<ApiSession>(4), activities: value(5), labors: value(6), implements: value(7), species: value(8), varieties: value(9), regions: value(10), communes: value(11), fundos: value(12), sectors: value(13) });
+        setRealStatus(requests.slice(0, 4).some((result) => result.status === "fulfilled") ? "ready" : "error");
       } catch {
         if (active) setRealStatus("error");
       }
     };
     void load();
     return () => { active = false; };
-  }, []);
+  }, [realDataVersion]);
 
   // Historial real (sesiones + labores): solo se pide cuando el usuario mira Historial fuera del modo demo.
   useEffect(() => {
@@ -337,6 +341,15 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     if (historyPage !== 1) setHistoryPage(1);
   }
 
+  // Cerrar el detalle de sesión al salir de Historial o cambiar de fuente de
+  // datos evita mostrar reproducción de una sesión que ya no aplica.
+  const sessionModalScopeKey = `${view}|${demoMode}`;
+  const [prevSessionModalScopeKey, setPrevSessionModalScopeKey] = useState(sessionModalScopeKey);
+  if (prevSessionModalScopeKey !== sessionModalScopeKey) {
+    setPrevSessionModalScopeKey(sessionModalScopeKey);
+    if (openSessionId !== null) setOpenSessionId(null);
+  }
+
   const control = (
     <DemoControl demoMode={demoMode} onDemoModeChange={setDemoMode} running={running} onRunningChange={setRunning} speed={speed} onSpeedChange={setSpeed} regionId={selectedRegionId} onRegionChange={handleRegionChange} />
   );
@@ -348,6 +361,14 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
           <RegistrationPage />
         </Suspense>
       </main>
+    );
+  }
+
+  if (view === "manual") {
+    return (
+      <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner" />Cargando ingreso manual…</div>}>
+        <ManualEntryPage />
+      </Suspense>
     );
   }
 
@@ -395,7 +416,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
       <div className="ops-map-frame">
         <OperationsMap fields={regionFields} vehicles={vehicles} selectedVehicleId={selectedVehicleId} onSelectVehicle={selectVehicle} showRows={showRows} showRoadRoute={showRoadRoute} onRoadRouteStatus={setRoadRouteStatus} compact={compact} depot={currentRegion.depot} followVehicle={followVehicle} onUserInteracted={() => setFollowVehicle(false)} />
       </div>
-      <footer><span><i className="ops-dot is-lime" /> Pasadas dentro del lote</span><span><i className="ops-line-sample" /> Caminos calculados por Google</span><b>Dataset demostrativo</b></footer>
+      <footer><span><i className="ops-dot is-lime" /> Pasadas dentro del lote</span><span><i className="ops-line-sample" /> Caminos: OpenStreetMap vía OSRM</span><b>Dataset demostrativo</b></footer>
     </section>
   );
 
@@ -503,37 +524,34 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "chartsStats") {
-    return <main className="ops-workspace">{control}<Suspense fallback={<div className="view-loader"><span className="view-loader__spinner"/>Cargando analítica…</div>}><AnalyticsCharts vehicles={vehicles}/></Suspense></main>;
+    return <main className="ops-workspace">{control}<Suspense fallback={<div className="view-loader"><span className="view-loader__spinner"/>Cargando analítica…</div>}><AnalyticsCharts vehicles={allVehicles} sessions={sessions} regionId={selectedRegionId} regionName={currentRegion.name}/></Suspense></main>;
   }
 
   if (view === "masters") {
-    const masterCards = [
-      { key: "machines", label: "Máquinas", value: demoMode ? allVehicles.length : realData.machines.length, detail: `${REGIONS.length} ubicaciones`, icon: "T", items: demoMode ? allVehicles.map((v) => v.name) : realData.machines.map((m) => m.name) },
-      { key: "drivers", label: "Conductores", value: demoMode ? new Set(allVehicles.map((v) => v.driver)).size : realData.drivers.length, detail: "licencias al día", icon: "C", items: demoMode ? Array.from(new Set(allVehicles.map((v) => v.driver))) : realData.drivers.map((d) => d.name) },
-      { key: "costCenters", label: "Centros de costo", value: demoMode ? new Set(DEMO_FIELDS.map((f) => f.costCenter)).size : realData.costCenters.length, detail: "estructura activa", icon: "$", items: demoMode ? Array.from(new Set(DEMO_FIELDS.map((f) => f.costCenter))) : realData.costCenters.map((c) => c.name) },
-      { key: "fields", label: "Polígonos", value: demoMode ? DEMO_FIELDS.length : realData.fields.length, detail: "geometría validada", icon: "P", items: demoMode ? DEMO_FIELDS.map((f) => f.name) : realData.fields.map((f) => f.name) },
+    const masterGroups: { title: string; description: string; cards: { key: MasterKind; label: string; value: number; detail: string; icon: string }[] }[] = [
+      { title: "Operación", description: "Recursos y clasificaciones utilizados en los partes de trabajo.", cards: [
+        { key: "machines", label: "Máquinas", value: realData.machines.length, detail: "consumo y asignaciones", icon: "M" },
+        { key: "drivers", label: "Conductores", value: realData.drivers.length, detail: "alta, edición y desactivación", icon: "C" },
+        { key: "activities", label: "Actividades", value: realData.activities.length, detail: "categorías operacionales", icon: "A" },
+        { key: "labors", label: "Labores", value: realData.labors.length, detail: "esfuerzo y velocidad objetivo", icon: "L" },
+        { key: "implements", label: "Implementos", value: realData.implements.length, detail: "alta, edición y desactivación", icon: "I" },
+      ] },
+      { title: "Estructura agrícola", description: "Clasificación productiva, especies y variedades.", cards: [
+        { key: "costCenters", label: "Centros de costo", value: realData.costCenters.length, detail: "superficie, hileras y plantas", icon: "$" },
+        { key: "species", label: "Especies", value: realData.species.length, detail: "catálogo de cultivos", icon: "E" },
+        { key: "varieties", label: "Variedades", value: realData.varieties.length, detail: "asociadas a especies", icon: "V" },
+      ] },
+      { title: "Territorio", description: "Jerarquía geográfica y delimitación visual de predios.", cards: [
+        { key: "regions", label: "Regiones", value: realData.regions.length, detail: "división territorial", icon: "R" },
+        { key: "communes", label: "Comunas", value: realData.communes.length, detail: "asociadas a regiones", icon: "C" },
+        { key: "fundos", label: "Fundos", value: realData.fundos.length, detail: "dirección y superficie", icon: "F" },
+        { key: "sectors", label: "Sectores", value: realData.sectors.length, detail: "subdivisiones de fundos", icon: "S" },
+        { key: "fields", label: "Predios y polígonos", value: realData.fields.length, detail: "editor visual sobre mapa", icon: "P" },
+      ] },
     ];
-    const activeMasterCard = masterCards.find((card) => card.key === openMasterCard) ?? null;
-    return <main className="ops-workspace">{control}<div className="ops-master-grid">{masterCards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button" onClick={() => setOpenMasterCard(card.key)}>Administrar</button></article>)}</div>
-      {demoMode ? (
-        <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · toda la empresa</span><h2>Predios y pasadas registradas</h2></header><div className="ops-field-catalog">{DEMO_FIELDS.map((field) => <article key={field.id}><i style={{ background: field.color }}/><span><b>{field.name}</b><small>{field.crop} · {REGIONS.find((r) => r.id === field.regionId)?.name}</small></span><em>{field.areaHa} ha</em><strong>{Math.floor(field.workPath.length / 2)} pasadas</strong></article>)}</div></section><section className="ops-panel"><header><span className="section-kicker">Salud de datos</span><h2>Controles de calidad</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Polígonos cerrados</b><small>{DEMO_FIELDS.length} de {DEMO_FIELDS.length} geometrías válidas</small></span></li><li><i className="is-ok">✓</i><span><b>Pasadas contenidas</b><small>Sin puntos fuera del lote</small></span></li><li><i className="is-ok">✓</i><span><b>GPS ordenado</b><small>Timestamps crecientes</small></span></li><li><i className="is-warning">!</i><span><b>Sesiones reales antiguas</b><small>4 pendientes de cierre administrativo</small></span></li></ul></section></div>
-      ) : (
-        <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · toda la empresa</span><h2>Predios registrados</h2></header><div className="ops-field-catalog">{realData.fields.map((field) => <article key={field.id}><i style={{ background: field.color ?? "#2f7d5c" }}/><span><b>{field.name}</b></span><em>{field.polygon?.length ?? 0} puntos</em></article>)}{realData.fields.length === 0 && <div className="ops-empty">{realStatus === "loading" ? "Cargando polígonos…" : "Sin polígonos sincronizados aún."}</div>}</div></section></div>
-      )}
-      {activeMasterCard && (
-        <div className="ops-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setOpenMasterCard(null)}>
-          <div className="ops-modal" onClick={(event) => event.stopPropagation()}>
-            <h2>{activeMasterCard.label}</h2>
-            <p>{activeMasterCard.items.length} registrados</p>
-            <div className="ops-modal__body">
-              {activeMasterCard.items.length === 0
-                ? <span>Sin datos disponibles.</span>
-                : activeMasterCard.items.map((name, index) => <div key={`${name}-${index}`}>{name}</div>)}
-            </div>
-            <div className="ops-modal__actions"><button type="button" className="ops-action" onClick={() => setOpenMasterCard(null)}>Cerrar</button></div>
-          </div>
-        </div>
-      )}
+    return <main className="ops-workspace"><section className="ops-map-notice"><b>Administración productiva.</b> Aquí se muestran y modifican datos reales de Tracker; cada maestro se carga de forma independiente para que un endpoint con problemas no oculte los demás.</section>{masterGroups.map((group) => <section className="ops-master-section" key={group.title}><header><div><span className="section-kicker">Maestros</span><h2>{group.title}</h2><p>{group.description}</p></div></header><div className="ops-master-grid">{group.cards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{realStatus === "loading" ? "…" : card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button" onClick={() => setOpenMasterCard(card.key)}>Administrar</button></article>)}</div></section>)}
+      <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · datos reales</span><h2>Predios registrados</h2><p>{realData.fields.length} polígonos cargados desde Tracker.</p></header><div className="ops-field-catalog">{realData.fields.map((field) => <button type="button" key={field.id} onClick={() => setOpenMasterCard("fields")}><i style={{ background: field.color ?? "#2f7d5c" }}/><span><b>{field.name}</b><small>Seleccione para abrir el editor de polígonos</small></span><em>{field.polygon?.length ?? 0} vértices</em></button>)}{realData.fields.length === 0 && <div className="ops-empty">{realStatus === "loading" ? "Cargando polígonos…" : "No fue posible cargar los polígonos. Use Administrar para reintentar."}</div>}</div></section><section className="ops-panel"><header><span className="section-kicker">Cobertura funcional</span><h2>Contratos disponibles</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Administración completa</b><small>Operación, estructura agrícola y territorio</small></span></li><li><i className="is-ok">✓</i><span><b>Historial protegido</b><small>Conductores, actividades, labores e implementos se desactivan sin romper partes anteriores</small></span></li><li><i className="is-ok">✓</i><span><b>Editor cartográfico</b><small>Polígonos satelitales con vértices arrastrables</small></span></li></ul></section></div>
+      {openMasterCard && <MastersAdminModal kind={openMasterCard} onClose={() => setOpenMasterCard(null)} onChanged={() => setRealDataVersion((version) => version + 1)} />}
     </main>;
   }
 
@@ -548,7 +566,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   <section className="ops-panel ops-session-table">
     <div className="ops-session-table__head"><span>Sesión</span><span>Máquina / operador</span><span>Lote</span><span>Labor</span><span>Duración</span><span>Distancia</span><span>Superficie</span><span>Estado</span></div>
     {showingRealHistory && realHistoryStatus === "loading" && <div className="ops-empty">Cargando historial…</div>}
-    {(!showingRealHistory || realHistoryStatus !== "loading") && pagedSessions.map((row) => <button type="button" key={row.id}><span><b>{row.id}</b><small>{row.startedAtLabel}</small></span><span><b>{row.machine}</b><small>{row.driver}</small></span><span>{row.field}</span><span>{row.labor}</span><span>{row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</span><span>{row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</span><span>{row.coveredHa != null ? `${number(row.coveredHa)} ha` : "—"}</span><span><em className={`ops-status is-${row.statusTone}`}>{row.statusText}</em></span></button>)}
+    {(!showingRealHistory || realHistoryStatus !== "loading") && pagedSessions.map((row) => <button type="button" key={row.id} aria-haspopup="dialog" onClick={() => setOpenSessionId(row.id)}><span><b>{row.id}</b><small>{row.startedAtLabel}</small></span><span><b>{row.machine}</b><small>{row.driver}</small></span><span>{row.field}</span><span>{row.labor}</span><span>{row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</span><span>{row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</span><span>{row.coveredHa != null ? `${number(row.coveredHa)} ha` : "—"}</span><span><em className={`ops-status is-${row.statusTone}`}>{row.statusText}</em></span></button>)}
     {(!showingRealHistory || realHistoryStatus === "ready") && filteredSessions.length === 0 && <div className="ops-empty">No hay sesiones que coincidan con los filtros.</div>}
   </section>
   {filteredSessions.length > 0 && (
@@ -560,5 +578,29 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
       </div>
     </nav>
   )}
+  {demoMode && openSessionId && (() => {
+    const session = DEMO_SESSIONS.find((item) => item.id === openSessionId);
+    return session ? <SessionPlaybackModal key={session.id} session={session} onClose={() => setOpenSessionId(null)} /> : null;
+  })()}
+  {!demoMode && openSessionId && (() => {
+    const row = historyRows.find((item) => item.id === openSessionId);
+    if (!row) return null;
+    return (
+      <div className="ops-modal-backdrop" role="dialog" aria-modal="true" aria-label={`Detalle de la sesión ${row.id}`} onClick={() => setOpenSessionId(null)}>
+        <div className="ops-modal" onClick={(event) => event.stopPropagation()}>
+          <h2>Sesión {row.id}</h2>
+          <p>{row.machine} · {row.driver} · {row.field}</p>
+          <div className="ops-modal__body">
+            <div>Labor: {row.labor}</div>
+            <div>Duración: {row.durationHours != null ? `${number(row.durationHours)} h` : "—"}</div>
+            <div>Distancia: {row.distanceKm != null ? `${number(row.distanceKm)} km` : "—"}</div>
+            <div>Estado: {row.statusText}</div>
+          </div>
+          <p className="ops-map-hint">La reproducción de ruta punto a punto todavía no está disponible para sesiones reales: falta un endpoint de backend que exponga los puntos GPS de la sesión (hoy solo se puede escribir con /sessions/&#123;id&#125;/points, no leer).</p>
+          <div className="ops-modal__actions"><button type="button" className="ops-action" onClick={() => setOpenSessionId(null)}>Cerrar</button></div>
+        </div>
+      </div>
+    );
+  })()}
   </main>;
 }

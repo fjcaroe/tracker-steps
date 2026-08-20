@@ -20,7 +20,6 @@ access_step_actividad,access.step.actividad,model_step_actividad,base.group_user
 access_step_actividad_line,access.step.actividad.line,model_step_actividad_line,base.group_user,1,1,1,1
 access_step_centro_costo,access.step.centro.costo,model_step_centro_costo,base.group_user,1,1,1,1
 access_step_cuartel_line,access.step.cuartel.line,model_step_cuartel_line,base.group_user,1,1,1,1
-access_step_hilera_line,access.step.hilera.line,model_step_hilera_line,base.group_user,1,1,1,1
 access_step_tarja,access.step.tarja,model_step_tarja,base.group_user,1,1,1,1
 access_step_tarja_line,access.step.tarja.line,model_step_tarja_line,base.group_user,1,1,1,1
 access_step_tarja_cost,access.step.tarja.cost,model_step_tarja_cost,base.group_user,1,1,1,1
@@ -29,6 +28,9 @@ access_step_rendimiento_line,access.step.rendimiento.line,model_step_rendimiento
 access_step_tracker,access.step.tracker,model_step_tracker,base.group_user,1,1,1,1
 access_step_tracker_machine,access.step.tracker.machine,model_step_tracker_machine,base.group_user,1,1,0,0
 access_step_tracker_driver,access.step.tracker.driver,model_step_tracker_driver,base.group_user,1,1,0,0
+access_step_tracker_activity,access.step.tracker.activity,model_step_tracker_activity,base.group_user,1,0,0,0
+access_step_tracker_labor,access.step.tracker.labor,model_step_tracker_labor,base.group_user,1,0,0,0
+access_step_tracker_implement,access.step.tracker.implement,model_step_tracker_implement,base.group_user,1,0,0,0
 access_step_tracker_field,access.step.tracker.field,model_step_tracker_field,base.group_user,1,1,0,0
 access_step_tracker_session,access.step.tracker.session,model_step_tracker_session,base.group_user,1,1,0,0
 access_step_tracker_work_order,access.step.tracker.work_order,model_step_tracker_work_order,base.group_user,1,1,0,0

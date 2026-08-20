@@ -39,7 +39,8 @@ centro de costo) y quien necesite el mapa/reproducción entre a Web Tracker.
 ## Qué se implementó
 
 - **Modelos espejo** (solo lectura para usuarios, sin alta manual):
-  `step.tracker.machine`, `step.tracker.driver`, `step.tracker.field`,
+  `step.tracker.machine`, `step.tracker.driver`, `step.tracker.activity`,
+  `step.tracker.labor`, `step.tracker.implement`, `step.tracker.field`,
   `step.tracker.session`, `step.tracker.work_order`.
 - **Vínculos opcionales** hacia los modelos reales de Odoo, para no duplicar
   maestros: `step.tracker.machine.vehicle_id → fleet.vehicle`,
@@ -81,21 +82,31 @@ revisado antes de borrarlo):
 | GET | `/fields` | predios/polígonos |
 | GET | `/sessions_recent?limit=N` | sesiones recientes (usado para `_sync_sessions`) |
 
-**No confirmado:** `GET /work_orders` (listado). El frontend solo usa
-`POST /work_orders` y `PUT /work_orders/{id}` para crear/cerrar un parte
-desde el celular del operador; nunca lista partes. `_sync_work_orders()`
-intenta ese endpoint de forma defensiva (si no existe o devuelve otro
-formato, se registra un aviso en el log de sincronización y el resto de la
-sincronización sigue igual). **Antes de confiar en los datos de
-`step.tracker.work_order`, hay que confirmar ese endpoint con quien
-mantiene el backend FastAPI de Web Tracker** (o revisar su documentación
-OpenAPI en `/docs` si está expuesta).
+Los mantenedores web requieren además que la API desplegada junto con Odoo en
+GCP conserve estos contratos:
 
-No tengo acceso en este repo al código fuente del backend FastAPI (solo al
-frontend y al dump SQL), así que el contrato exacto de campos de cada
-endpoint se infirió de cómo los consume el frontend. Antes de activar la
-sincronización en producción, conviene probar "Sincronizar ahora" contra un
-ambiente de pruebas y revisar el log.
+| Recurso | Contratos administrativos requeridos |
+|---|---|
+| Conductores | `GET/POST /drivers`, `PATCH/DELETE /drivers/{id}` |
+| Actividades | `GET/POST /activities`, `PUT/DELETE /activities/{id}` |
+| Labores | `GET/POST /labors`, `PUT/DELETE /labors/{id}` |
+| Implementos | `GET/POST /implements`, `PATCH/DELETE /implements/{id}` |
+
+Los `DELETE` de esos cuatro recursos son desactivaciones lógicas: no borran las
+referencias que Odoo o Tracker necesitan para mostrar información histórica.
+La vigencia del release puede comprobarse con `GET /health/capabilities`; debe
+informar al menos `odoo_sync_v1` y las capacidades `master_*_crud` usadas por
+los mantenedores.
+
+`GET /work_orders`, `POST /work_orders` y `PUT /work_orders/{id}` están
+versionados en el backend. Desde el release 2026.08.20 el listado devuelve
+`machine_id` y `fuel_tank_end_liters`, de modo que el ingreso manual y el espejo
+de Odoo pueden reconstruir el parte completo.
+
+Desde el 2026-08-20 el código fuente del backend FastAPI productivo está
+versionado en `backend/tracker_py/`. Los contratos pueden verificarse mediante
+sus pruebas y el OpenAPI generado. Antes de activar la sincronización en
+producción se debe ejecutar "Sincronizar ahora" y revisar el log de Odoo.
 
 ## Cómo activarlo
 
@@ -115,20 +126,45 @@ ambiente de pruebas y revisar el log.
      (recomendado crear una cuenta dedicada de solo-lectura, no reusar la
      de un operador).
 3. Presionar **Sincronizar ahora** y revisar el mensaje / el log en
-   **Web Tracker → Sincronizaciones**.
+   **Steps Tracker → Integración → Sincronizaciones**.
 4. Si todo se ve bien, activar el interruptor "Sincronización automática" y
    activar el cron `ir_cron_step_tracker_sync` (queda inactivo por
    instalación, a propósito).
-5. En **Web Tracker → Máquinas/Conductores/Predios**, vincular manualmente
+5. En **Steps Tracker → Maestros → Máquinas/Conductores/Predios**, vincular manualmente
    cada registro espejo con su ficha real en Odoo (`fleet.vehicle`,
    `hr.employee`, `account.analytic.account`) para que las sesiones
    filtren correctamente por centro de costo real.
 
-## Qué falta / próximos pasos
+## Aplicación nativa en Odoo
 
-- Confirmar el contrato real de `/work_orders` (o pedir que se agregue un
-  endpoint de listado si no existe) antes de mostrar horómetro/combustible
-  en Odoo con confianza.
+Al actualizar `step_hr`, el selector principal de `https://stepsapp.cl/odoo`
+muestra una aplicación de primer nivel llamada **Steps Tracker**. No reemplaza
+el frontend cartográfico: presenta en Odoo la copia sincronizada y mantiene los
+vínculos con los módulos que ya usa la empresa.
+
+- **Resumen:** tablero ejecutivo de 7, 30 o 90 días con sesiones, distancia,
+  horas, partes, combustible, máquinas, conductores y estado del último sync.
+- **Operación:** sesiones GPS y partes diarios en listas y formularios nativos.
+- **Reportes:** gráficos y tablas dinámicas de sesiones, máquinas, labores y
+  combustible, con exportación estándar de Odoo.
+- **Maestros:** máquinas, conductores, predios, actividades, labores e
+  implementos sincronizados.
+- **Integración:** logs y configuración, visible para administradores.
+- **Abrir mapa Web Tracker:** abre `/web_tracker/` en otra pestaña cuando se
+  necesita mapa, reproducción o edición de polígonos.
+
+Los enlaces funcionales son:
+
+- máquina Tracker → `fleet.vehicle` de **Flota**;
+- conductor Tracker → `hr.employee` de **Empleados**;
+- predio o parte Tracker → `account.analytic.account` de **Contabilidad**.
+
+El tablero está implementado como una acción cliente OWL de Odoo 18 y sus
+recursos se declaran en `web.assets_backend`. Tras `-u step_hr`, si el navegador
+conserva recursos anteriores, cerrar sesión, volver a entrar y recargar una vez
+con `Ctrl+F5`.
+
+## Qué falta / próximos pasos
 - Decidir si conviene mostrar el mapa embebido en Odoo (`iframe` a Web
   Tracker con la sesión seleccionada) en vez de solo datos tabulares — hoy
   la vista de sesión no trae mapa.
@@ -141,7 +177,7 @@ ambiente de pruebas y revisar el log.
 - El 2026-08-19 se confirmó por SSH la URL real de la API
   (`https://stepsapp.cl/tracker-steps`, ver más arriba) y que el servidor
   tiene Odoo corriendo en el mismo host (proxy `/` → `:8069`), pero **no
-  se instaló ni probó el módulo `step_hr` contra ese Odoo real** — falta
+  se instaló ni probó esta versión de `step_hr` contra ese Odoo real** — falta
   copiarlo al `addons_path` que use esa instancia, actualizarlo
   (`-u step_hr` o desde Apps) y correr "Sincronizar ahora" con una cuenta
   de servicio real para validar el contrato de datos de

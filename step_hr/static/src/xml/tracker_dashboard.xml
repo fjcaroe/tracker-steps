@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_hr.StepsTrackerDashboard">
+        <div class="o_steps_tracker_dashboard">
+            <div class="o_steps_tracker_hero">
+                <div>
+                    <span class="o_steps_tracker_eyebrow">CENTRO DE OPERACIONES</span>
+                    <h1>Steps Tracker en Odoo</h1>
+                    <p t-if="state.data">Información de <strong t-esc="state.data.company_name"/> para revisar operación, flota y partes sin salir de Odoo.</p>
+                </div>
+                <div class="o_steps_tracker_hero_actions">
+                    <div class="btn-group" role="group" aria-label="Período del tablero">
+                        <button t-foreach="[7, 30, 90]" t-as="days" t-key="days"
+                                type="button"
+                                t-att-class="'btn ' + (state.days === days ? 'btn-light' : 'btn-outline-light')"
+                                t-on-click="() => this.loadDashboard(days)">
+                            <t t-esc="days"/> días
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-light" t-on-click="openWebTracker">
+                        <i class="fa fa-map-marker me-1"/> Abrir mapa
+                    </button>
+                </div>
+            </div>
+
+            <div t-if="state.loading" class="o_steps_tracker_loading">
+                <i class="fa fa-spinner fa-spin"/> Preparando el tablero…
+            </div>
+
+            <t t-elif="state.data">
+                <div class="o_steps_tracker_sync" t-att-class="state.data.latest_sync &amp;&amp; state.data.latest_sync.status === 'error' ? 'is-error' : ''">
+                    <i class="fa fa-refresh"/>
+                    <t t-if="state.data.latest_sync">
+                        Última sincronización: <strong t-esc="formatDate(state.data.latest_sync.started_at)"/> ·
+                        <span t-esc="state.data.latest_sync.status"/>
+                    </t>
+                    <t t-else="">Aún no existen sincronizaciones registradas.</t>
+                </div>
+
+                <div class="o_steps_tracker_kpis">
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_session')">
+                        <span>Sesiones</span><strong t-esc="formatNumber(state.data.kpis.sessions)"/>
+                        <small><t t-esc="state.data.kpis.open_sessions"/> abiertas</small>
+                    </button>
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_session_analysis')">
+                        <span>Distancia</span><strong><t t-esc="formatNumber(state.data.kpis.distance_km, 1)"/> km</strong>
+                        <small><t t-esc="formatNumber(state.data.kpis.hours, 1)"/> horas registradas</small>
+                    </button>
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_work_order')">
+                        <span>Partes diarios</span><strong t-esc="formatNumber(state.data.kpis.work_orders)"/>
+                        <small><t t-esc="formatNumber(state.data.kpis.fuel_refill_liters, 1)"/> L recargados</small>
+                    </button>
+                    <button class="o_steps_tracker_kpi" t-on-click="() => this.openAction('step_hr.action_step_tracker_machine')">
+                        <span>Flota vinculable</span><strong t-esc="formatNumber(state.data.kpis.machines)"/>
+                        <small><t t-esc="state.data.kpis.drivers"/> conductores activos</small>
+                    </button>
+                </div>
+
+                <div class="o_steps_tracker_grid">
+                    <section class="o_steps_tracker_panel">
+                        <div class="o_steps_tracker_panel_header">
+                            <div><span>RENDIMIENTO</span><h2>Máquinas con mayor recorrido</h2></div>
+                            <button class="btn btn-link" t-on-click="() => this.openAction('step_hr.action_step_tracker_session_analysis')">Ver reporte</button>
+                        </div>
+                        <div t-if="state.data.top_machines.length" class="o_steps_tracker_ranking">
+                            <div t-foreach="state.data.top_machines" t-as="machine" t-key="machine.id || machine.name" class="o_steps_tracker_rank">
+                                <div class="o_steps_tracker_rank_label">
+                                    <strong t-esc="machine.name"/><span><t t-esc="formatNumber(machine.distance_km, 1)"/> km · <t t-esc="formatNumber(machine.hours, 1)"/> h</span>
+                                </div>
+                                <div class="o_steps_tracker_bar"><i t-att-style="'width:' + machine.share + '%'"/></div>
+                            </div>
+                        </div>
+                        <div t-else="" class="o_steps_tracker_empty">No hay sesiones en este período.</div>
+                    </section>
+
+                    <section class="o_steps_tracker_panel">
+                        <div class="o_steps_tracker_panel_header">
+                            <div><span>ACTIVIDAD RECIENTE</span><h2>Últimas sesiones</h2></div>
+                            <button class="btn btn-link" t-on-click="() => this.openAction('step_hr.action_step_tracker_session')">Ver todas</button>
+                        </div>
+                        <div t-if="state.data.recent_sessions.length" class="o_steps_tracker_sessions">
+                            <button t-foreach="state.data.recent_sessions" t-as="session" t-key="session.id"
+                                    class="o_steps_tracker_session" t-on-click="() => this.openSession(session.id)">
+                                <span class="o_steps_tracker_machine"><strong t-esc="session.machine"/><small t-esc="session.driver"/></span>
+                                <span><t t-esc="formatNumber(session.distance_km, 1)"/> km</span>
+                                <span t-att-class="'badge ' + (session.status === 'closed' ? 'text-bg-success' : 'text-bg-info')" t-esc="session.status_label"/>
+                            </button>
+                        </div>
+                        <div t-else="" class="o_steps_tracker_empty">No hay sesiones sincronizadas en este período.</div>
+                    </section>
+                </div>
+
+                <section class="o_steps_tracker_shortcuts">
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tracker_machine')"><i class="fa fa-truck"/><span>Máquinas<small>Vincular con Flota</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tracker_driver')"><i class="fa fa-users"/><span>Conductores<small>Vincular con Empleados</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tracker_field')"><i class="fa fa-map"/><span>Predios<small>Vincular centros de costo</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tracker_work_order_analysis')"><i class="fa fa-bar-chart"/><span>Analizar partes<small>Labor y combustible</small></span></button>
+                </section>
+            </t>
+        </div>
+    </t>
+</templates>

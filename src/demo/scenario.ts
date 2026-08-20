@@ -37,6 +37,7 @@ export type DemoSession = {
   machine: string;
   driver: string;
   field: string;
+  fieldId: string;
   regionId: string;
   labor: string;
   startedAt: string;
@@ -47,6 +48,17 @@ export type DemoSession = {
   fuelLiters: number;
   avgSpeedKmh: number;
   status: "active" | "completed" | "paused";
+};
+
+// Punto de reproducción de una sesión: posición y velocidad en un instante
+// dado (segundos desde el inicio de la sesión), para el motor de reproducción
+// del historial. No es telemetría real: se deriva del trazado del lote.
+export type DemoTrackPoint = {
+  atSeconds: number;
+  lat: number;
+  lon: number;
+  speedKmh: number;
+  headingDeg: number;
 };
 
 function isoAt(daysAgo: number, hour: number, minute: number): string {
@@ -249,6 +261,7 @@ function buildDemoSessions(): DemoSession[] {
           machine: seed.name,
           driver: DRIVER_NAMES[vIndex % DRIVER_NAMES.length],
           field: field.name,
+          fieldId: field.id,
           regionId: field.regionId,
           labor: LABORS[Math.floor(rand() * LABORS.length)],
           startedAt: isToday ? `Hoy, ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` : `Hace ${daysAgo}d, ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
@@ -278,6 +291,108 @@ export const DEMO_DAILY = [
   { day: "Sáb", hectares: 46.1, distance: 98, fuel: 119, efficiency: 93 },
   { day: "Hoy", hectares: 45.6, distance: 95, fuel: 114, efficiency: 92 },
 ];
+
+// ---------------------------------------------------------------------------
+// Reproducción de sesión histórica: dado que el dataset demo no guarda un GPS
+// punto a punto (ver docs/MEJORAS_Y_PROXIMOS_PASOS_WEB_TRACKER.md, pendiente
+// de un generador con motor de ruteo real), el track se deriva de forma
+// determinista a partir de las pasadas del lote (workPath) y de la semilla de
+// la sesión: misma sesión → mismo recorrido siempre.
+
+function haversineM(a: GeoPoint, b: GeoPoint): number {
+  const R = 6_371_000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLon = ((b.lon - a.lon) * Math.PI) / 180;
+  const la1 = (a.lat * Math.PI) / 180;
+  const la2 = (b.lat * Math.PI) / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function cumulativeLengths(path: GeoPoint[]): number[] {
+  const cum = [0];
+  for (let i = 1; i < path.length; i += 1) cum.push(cum[i - 1] + haversineM(path[i - 1], path[i]));
+  return cum;
+}
+
+// Ubica un punto a `distanceM` recorridos sobre `path` (repitiendo el
+// recorrido en bucle, igual que getDemoVehicles). El heading sale del
+// segmento efectivo, nunca al azar.
+function pointAtDistance(path: GeoPoint[], cum: number[], totalLen: number, distanceM: number) {
+  const d = totalLen > 0 ? ((distanceM % totalLen) + totalLen) % totalLen : 0;
+  let lo = 0;
+  let hi = cum.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (cum[mid] <= d) lo = mid; else hi = mid;
+  }
+  const segLen = cum[hi] - cum[lo] || 1;
+  const t = (d - cum[lo]) / segLen;
+  const a = path[lo];
+  const b = path[hi];
+  const headingDeg = (Math.atan2(b.lon - a.lon, b.lat - a.lat) * 180) / Math.PI;
+  return { lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t, headingDeg };
+}
+
+function hashString(value: string): number {
+  let h = 0;
+  for (let i = 0; i < value.length; i += 1) h = (h * 31 + value.charCodeAt(i)) >>> 0;
+  return h || 1;
+}
+
+// Velocidad en el instante t: rampa de arranque/frenado, oscilación de
+// pasada/giro y, en sesiones largas, una parada breve (ver brief: "paradas
+// breves, detenciones operacionales").
+function buildSpeedProfile(session: DemoSession, durationS: number, rand: () => number) {
+  const hasStop = durationS > 2.5 * 3600 && rand() < 0.6;
+  const stopStart = hasStop ? durationS * (0.35 + rand() * 0.3) : null;
+  const stopLen = hasStop ? 180 + rand() * 300 : 0;
+  return (t: number) => {
+    if (stopStart != null && t >= stopStart && t <= stopStart + stopLen) return 0;
+    const ramp = Math.min(1, t / 60) * Math.min(1, (durationS - t) / 60);
+    const wobble = 1 + Math.sin(t / 95) * 0.12 + Math.sin(t / 37 + 1) * 0.05;
+    return Math.max(0.6, session.avgSpeedKmh * wobble * (0.35 + 0.65 * ramp));
+  };
+}
+
+const trackCache = new Map<string, DemoTrackPoint[]>();
+
+// Genera (y cachea) la reproducción punto a punto de una sesión demo. Misma
+// sesión siempre produce el mismo track: pausar/reanudar/saltar en el timeline
+// nunca produce posiciones distintas para el mismo instante.
+export function buildSessionTrack(session: DemoSession): DemoTrackPoint[] {
+  const cached = trackCache.get(session.id);
+  if (cached) return cached;
+
+  const field = DEMO_FIELDS.find((item) => item.id === session.fieldId) ?? DEMO_FIELDS[0];
+  const path = field.workPath;
+  const cum = cumulativeLengths(path);
+  const totalLen = cum[cum.length - 1] || 1;
+  const durationS = Math.max(60, Math.round(session.durationHours * 3600));
+  const sampleInterval = Math.max(10, Math.ceil(durationS / 400));
+  const rand = seededRandom(hashString(session.id));
+  const speedAt = buildSpeedProfile(session, durationS, rand);
+
+  const points: DemoTrackPoint[] = [];
+  let distanceSoFar = 0;
+  let lastT = 0;
+  for (let t = 0; t <= durationS; t += sampleInterval) {
+    const speedKmh = speedAt(t);
+    distanceSoFar += (speedKmh / 3.6) * (t - lastT);
+    lastT = t;
+    const { lat, lon, headingDeg } = pointAtDistance(path, cum, totalLen, distanceSoFar);
+    points.push({ atSeconds: t, lat, lon, speedKmh, headingDeg });
+  }
+  if (points[points.length - 1].atSeconds !== durationS) {
+    const speedKmh = speedAt(durationS);
+    distanceSoFar += (speedKmh / 3.6) * (durationS - lastT);
+    const { lat, lon, headingDeg } = pointAtDistance(path, cum, totalLen, distanceSoFar);
+    points.push({ atSeconds: durationS, lat, lon, speedKmh, headingDeg });
+  }
+
+  trackCache.set(session.id, points);
+  return points;
+}
 
 export const DEMO_EVENTS = [
   { time: "12:41", title: "Pasada completada", detail: "Tractor 01 · Lote Norte A", tone: "success" },

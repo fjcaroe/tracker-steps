@@ -1,0 +1,113 @@
+.o_steps_tracker_dashboard {
+    --steps-green: #103f35;
+    --steps-green-2: #2f8068;
+    --steps-lime: #d8ff62;
+    --steps-red: #d94835;
+    --steps-ink: #183029;
+    min-height: 100%;
+    padding: 24px;
+    color: var(--steps-ink);
+    background: #f2f5f1;
+    overflow: auto;
+}
+
+.o_steps_tracker_hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 32px;
+    border-radius: 22px;
+    color: white;
+    background: linear-gradient(120deg, var(--steps-green), #18594a 72%, #2f8068);
+    box-shadow: 0 16px 38px rgba(16, 63, 53, .18);
+
+    h1 { margin: 4px 0 6px; font-size: 30px; font-weight: 800; }
+    p { margin: 0; color: rgba(255,255,255,.78); }
+}
+
+.o_steps_tracker_eyebrow,
+.o_steps_tracker_panel_header span {
+    color: var(--steps-red);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+.o_steps_tracker_hero .o_steps_tracker_eyebrow { color: var(--steps-lime); }
+.o_steps_tracker_hero_actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.o_steps_tracker_loading, .o_steps_tracker_empty { padding: 36px; text-align: center; color: #73827d; }
+
+.o_steps_tracker_sync {
+    margin: 16px 0;
+    padding: 10px 14px;
+    border: 1px solid #dce5df;
+    border-radius: 12px;
+    background: white;
+    color: #60716b;
+    &.is-error { border-color: #efb8ae; color: #a43222; background: #fff3f0; }
+    i { margin-right: 7px; }
+}
+
+.o_steps_tracker_kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+}
+.o_steps_tracker_kpi {
+    padding: 18px 20px;
+    border: 1px solid #dce5df;
+    border-radius: 16px;
+    text-align: left;
+    background: white;
+    transition: transform .15s ease, box-shadow .15s ease;
+    &:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(16,63,53,.09); }
+    span { display: block; color: #687a74; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    strong { display: block; margin: 5px 0 2px; color: var(--steps-green); font-size: 27px; line-height: 1.1; }
+    small { color: #71817c; }
+}
+
+.o_steps_tracker_grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+.o_steps_tracker_panel {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #dce5df;
+    border-radius: 18px;
+    background: white;
+}
+.o_steps_tracker_panel_header {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px;
+    h2 { margin: 3px 0 0; font-size: 18px; font-weight: 750; }
+    .btn-link { color: var(--steps-green-2); text-decoration: none; }
+}
+.o_steps_tracker_rank { display: grid; grid-template-columns: minmax(130px, 190px) 1fr; gap: 14px; align-items: center; margin: 14px 0; }
+.o_steps_tracker_rank_label { display: flex; flex-direction: column; small, span { color: #71817c; font-size: 12px; } }
+.o_steps_tracker_bar { height: 12px; border-radius: 99px; background: #edf1ee; overflow: hidden; i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--steps-green-2), var(--steps-lime)); } }
+.o_steps_tracker_sessions { display: grid; gap: 7px; }
+.o_steps_tracker_session {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px;
+    width: 100%; padding: 10px 4px; border: 0; border-bottom: 1px solid #edf1ee; text-align: left; background: transparent;
+    &:hover { color: var(--steps-green-2); }
+}
+.o_steps_tracker_machine { display: flex; min-width: 0; flex-direction: column; strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } small { color: #71817c; } }
+
+.o_steps_tracker_shortcuts {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px;
+    button { display: flex; align-items: center; gap: 13px; padding: 15px 17px; border: 1px solid #dce5df; border-radius: 15px; text-align: left; background: white; }
+    button:hover { border-color: #97b6aa; box-shadow: 0 8px 20px rgba(16,63,53,.07); }
+    i { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: var(--steps-green); background: var(--steps-lime); }
+    span { display: flex; flex-direction: column; font-weight: 700; }
+    small { color: #71817c; font-weight: 400; }
+}
+
+@media (max-width: 1100px) {
+    .o_steps_tracker_kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .o_steps_tracker_grid { grid-template-columns: 1fr; }
+    .o_steps_tracker_shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+    .o_steps_tracker_dashboard { padding: 12px; }
+    .o_steps_tracker_hero { align-items: flex-start; flex-direction: column; padding: 22px; }
+    .o_steps_tracker_kpis, .o_steps_tracker_shortcuts { grid-template-columns: 1fr; }
+    .o_steps_tracker_rank { grid-template-columns: 1fr; gap: 5px; }
+}

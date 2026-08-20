@@ -8,17 +8,15 @@ comparte base de datos con Odoo, así que en vez de conectarnos directo a su
 Postgres, hacemos *pull* periódico contra su API REST y guardamos una copia
 local liviana en los modelos step.tracker.* (ver step_tracker.py).
 
-Endpoints confirmados contra el código fuente del frontend de Web Tracker
-(src/services/trackerApi.ts, src/pages/OperationsWorkspace.tsx y el antiguo
-StatsPage.tsx): POST /auth/login, GET /auth/me, GET /machines, GET /drivers,
-GET /cost_centers, GET /fields, GET /sessions_recent?limit=N.
+Endpoints confirmados contra el backend versionado en backend/tracker_py y el
+frontend de Web Tracker: POST /auth/login, GET /auth/me, GET /machines,
+GET /drivers, GET /cost_centers, GET /fields, GET /sessions_recent?limit=N.
+GET /health/capabilities identifica el release y los contratos administrativos
+disponibles antes de actualizar este módulo en GCP.
 
-GET /work_orders (listado) NO está confirmado — el frontend solo usa POST
-/work_orders y PUT /work_orders/{id} para crear/cerrar partes desde el
-celular del operador, nunca para listarlos. _sync_work_orders() intenta ese
-endpoint de forma defensiva y sigue sin romper el resto de la sincronización
-si no existe; hay que confirmarlo con quien mantiene el backend FastAPI
-antes de confiar en esos datos.
+GET /work_orders (listado) y sus contratos de alta/edición están versionados
+en backend/tracker_py. WorkOrderOut incluye machine_id y todas las lecturas de
+combustible desde el release 2026.08.20.
 """
 
 import json
@@ -37,6 +35,15 @@ except ImportError:  # pragma: no cover - requests siempre está en el venv de O
 
 DEFAULT_TIMEOUT = 20
 SESSIONS_PAGE_SIZE = 500
+REQUIRED_CAPABILITIES = {
+    'odoo_sync_v1',
+    'master_drivers_crud',
+    'master_activities_crud',
+    'master_labors_crud',
+    'master_implements_crud',
+    'master_fields_polygon_crud',
+    'work_orders_manual_crud',
+}
 
 
 class StepTrackerSyncLog(models.Model):
@@ -52,6 +59,9 @@ class StepTrackerSyncLog(models.Model):
     message = fields.Text(string='Detalle / error')
     machines_synced = fields.Integer(string='Máquinas')
     drivers_synced = fields.Integer(string='Conductores')
+    activities_synced = fields.Integer(string='Actividades')
+    labors_synced = fields.Integer(string='Labores')
+    implements_synced = fields.Integer(string='Implementos')
     fields_synced = fields.Integer(string='Predios')
     sessions_synced = fields.Integer(string='Sesiones')
     work_orders_synced = fields.Integer(string='Partes')
@@ -129,6 +139,24 @@ class StepTrackerSync(models.AbstractModel):
         resp.raise_for_status()
         return resp.json()
 
+    @api.model
+    def _check_api_compatibility(self, base_url):
+        if requests is None:
+            raise UserError(_('El paquete Python "requests" no está disponible en este servidor de Odoo.'))
+        resp = requests.get(f'{base_url}/health/capabilities', timeout=DEFAULT_TIMEOUT)
+        if resp.status_code == 404:
+            raise UserError(_(
+                'La API de Web Tracker está desactualizada: no publica '
+                '/health/capabilities. Despliega primero el backend requerido.'
+            ))
+        resp.raise_for_status()
+        advertised = set(resp.json().get('capabilities') or [])
+        missing = sorted(REQUIRED_CAPABILITIES - advertised)
+        if missing:
+            raise UserError(_(
+                'La API de Web Tracker no tiene todas las capacidades requeridas: %s'
+            ) % ', '.join(missing))
+
     # ------------------------------------------------------------------
     # Punto de entrada (botón "Sincronizar ahora" y cron)
     # ------------------------------------------------------------------
@@ -136,36 +164,51 @@ class StepTrackerSync(models.AbstractModel):
     def run_sync(self, raise_on_error=True):
         company, base_url = self._get_company_config()
         log = self.env['step.tracker.sync.log'].sudo().create({'company_id': company.id})
-        counts = {'machines': 0, 'drivers': 0, 'fields': 0, 'sessions': 0, 'work_orders': 0}
+        counts = {
+            'machines': 0, 'drivers': 0, 'activities': 0, 'labors': 0,
+            'implements': 0, 'fields': 0, 'sessions': 0, 'work_orders': 0,
+        }
         errors = []
 
-        for key, method in (
+        try:
+            self._check_api_compatibility(base_url)
+        except Exception as exc:  # noqa: BLE001
+            log.write({
+                'finished_at': fields.Datetime.now(),
+                'status': 'error',
+                'message': str(exc),
+            })
+            if raise_on_error:
+                raise UserError(_('La API de Web Tracker no es compatible:\n%s') % exc) from exc
+            return counts
+
+        sync_methods = (
             ('machines', self._sync_machines),
             ('drivers', self._sync_drivers),
+            ('activities', self._sync_activities),
+            ('labors', self._sync_labors),
+            ('implements', self._sync_implements),
             ('fields', self._sync_fields),
             ('sessions', self._sync_sessions),
-        ):
+            ('work_orders', self._sync_work_orders),
+        )
+        for key, method in sync_methods:
             try:
                 counts[key] = method(company, base_url)
             except Exception as exc:  # noqa: BLE001 - errores de red/API no deben tumbar todo el cron
                 _logger.exception('step.tracker.sync: falló %s', key)
                 errors.append(f'{key}: {exc}')
 
-        # /work_orders (listado) no está confirmado contra el backend real: se intenta
-        # aparte y nunca hace fallar la sincronización de maestros/sesiones.
-        try:
-            counts['work_orders'] = self._sync_work_orders(company, base_url)
-        except Exception as exc:  # noqa: BLE001
-            _logger.warning('step.tracker.sync: /work_orders no disponible o con otro formato: %s', exc)
-            errors.append(f'work_orders (no confirmado): {exc}')
-
-        status = 'ok' if not errors else ('error' if len(errors) == 5 else 'partial')
+        status = 'ok' if not errors else ('error' if len(errors) == len(sync_methods) else 'partial')
         log.write({
             'finished_at': fields.Datetime.now(),
             'status': status,
             'message': '\n'.join(errors) or False,
             'machines_synced': counts['machines'],
             'drivers_synced': counts['drivers'],
+            'activities_synced': counts['activities'],
+            'labors_synced': counts['labors'],
+            'implements_synced': counts['implements'],
             'fields_synced': counts['fields'],
             'sessions_synced': counts['sessions'],
             'work_orders_synced': counts['work_orders'],
@@ -233,6 +276,52 @@ class StepTrackerSync(models.AbstractModel):
         return len(data)
 
     @api.model
+    def _sync_activities(self, company, base_url):
+        data = self._get_json(company, base_url, '/activities', params={'include_inactive': True})
+        now = fields.Datetime.now()
+        for item in data:
+            self._upsert('step.tracker.activity', company, item['id'], {
+                'name': item.get('name') or _('Actividad %s') % item['id'],
+                'code': item.get('code'),
+                'active': item.get('is_active', True),
+                'last_sync': now,
+            })
+        return len(data)
+
+    @api.model
+    def _sync_labors(self, company, base_url):
+        data = self._get_json(company, base_url, '/labors', params={'include_inactive': True})
+        ActivityLink = self.env['step.tracker.activity'].sudo()
+        now = fields.Datetime.now()
+        for item in data:
+            activity = ActivityLink.search([
+                ('tracker_id', '=', item.get('activity_id')), ('company_id', '=', company.id),
+            ], limit=1)
+            self._upsert('step.tracker.labor', company, item['id'], {
+                'name': item.get('name') or _('Labor %s') % item['id'],
+                'code': item.get('code'),
+                'activity_id': activity.id if activity else False,
+                'activity_tracker_id': item.get('activity_id') or 0,
+                'effort_factor': item.get('effort_factor') or 0.0,
+                'target_speed_kmh': item.get('target_speed_kmh') or 0.0,
+                'active': item.get('is_active', True),
+                'last_sync': now,
+            })
+        return len(data)
+
+    @api.model
+    def _sync_implements(self, company, base_url):
+        data = self._get_json(company, base_url, '/implements', params={'include_inactive': True})
+        now = fields.Datetime.now()
+        for item in data:
+            self._upsert('step.tracker.implement', company, item['id'], {
+                'name': item.get('name') or _('Implemento %s') % item['id'],
+                'active': item.get('is_active', True),
+                'last_sync': now,
+            })
+        return len(data)
+
+    @api.model
     def _sync_fields(self, company, base_url):
         data = self._get_json(company, base_url, '/fields')
         now = fields.Datetime.now()
@@ -250,12 +339,23 @@ class StepTrackerSync(models.AbstractModel):
     def _sync_sessions(self, company, base_url):
         data = self._get_json(company, base_url, '/sessions_recent', params={'limit': SESSIONS_PAGE_SIZE})
         MachineLink = self.env['step.tracker.machine'].sudo()
+        DriverLink = self.env['step.tracker.driver'].sudo()
+        FieldLink = self.env['step.tracker.field'].sudo()
         for item in data:
             machine = MachineLink.search([
                 ('tracker_id', '=', item.get('machine_id')), ('company_id', '=', company.id),
             ], limit=1)
+            driver = DriverLink.search([
+                ('tracker_id', '=', item.get('driver_id')), ('company_id', '=', company.id),
+            ], limit=1)
+            field = FieldLink.search([
+                ('cost_center_tracker_id', '=', item.get('cost_center_id')),
+                ('company_id', '=', company.id),
+            ], limit=1)
             self._upsert('step.tracker.session', company, str(item['id']), {
                 'machine_id': machine.id if machine else False,
+                'driver_id': driver.id if driver else False,
+                'analytic_account_id': field.analytic_account_id.id if field and field.analytic_account_id else False,
                 'started_at': self._parse_dt(item.get('started_at')),
                 'ended_at': self._parse_dt(item.get('ended_at')),
                 'status': item.get('status') or 'open',
@@ -270,14 +370,37 @@ class StepTrackerSync(models.AbstractModel):
     def _sync_work_orders(self, company, base_url):
         data = self._get_json(company, base_url, '/work_orders')
         MachineLink = self.env['step.tracker.machine'].sudo()
+        ActivityLink = self.env['step.tracker.activity'].sudo()
+        LaborLink = self.env['step.tracker.labor'].sudo()
+        ImplementLink = self.env['step.tracker.implement'].sudo()
+        FieldLink = self.env['step.tracker.field'].sudo()
         for item in data:
             machine = MachineLink.search([
                 ('tracker_id', '=', item.get('machine_id')), ('company_id', '=', company.id),
             ], limit=1)
+            activity = ActivityLink.search([
+                ('tracker_id', '=', item.get('activity_id')), ('company_id', '=', company.id),
+            ], limit=1)
+            labor = LaborLink.search([
+                ('tracker_id', '=', item.get('labor_id')), ('company_id', '=', company.id),
+            ], limit=1)
+            implement = ImplementLink.search([
+                ('tracker_id', '=', item.get('implement_id')), ('company_id', '=', company.id),
+            ], limit=1)
+            field = FieldLink.search([
+                ('tracker_id', '=', item.get('field_id')), ('company_id', '=', company.id),
+            ], limit=1)
             self._upsert('step.tracker.work_order', company, item['id'], {
                 'code': item.get('code'),
                 'work_date': item.get('work_date'),
+                'season': item.get('season'),
                 'machine_id': machine.id if machine else False,
+                'activity_id': activity.id if activity else False,
+                'labor_id': labor.id if labor else False,
+                'implement_id': implement.id if implement else False,
+                'field_id': field.id if field else False,
+                'analytic_account_id': field.analytic_account_id.id if field and field.analytic_account_id else False,
+                'notes': item.get('notes'),
                 'hourmeter_initial': item.get('hourmeter_initial') or 0.0,
                 'hourmeter_final': item.get('hourmeter_final') or 0.0,
                 'fuel_tank_start_liters': item.get('fuel_tank_start_liters') or 0.0,

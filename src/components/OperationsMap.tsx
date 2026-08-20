@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
-  DirectionsRenderer,
   GoogleMap,
   OverlayViewF,
   PolygonF,
@@ -8,6 +7,7 @@ import {
   useJsApiLoader,
 } from "@react-google-maps/api";
 import { MAPS_LIBRARIES, MAPS_LOADER_ID } from "../mapsConfig";
+import { getRoadRoute } from "../demo/roadRoutes";
 import type { DemoField, DemoVehicle, GeoPoint } from "../demo/scenario";
 
 type OperationsMapProps = {
@@ -61,7 +61,6 @@ export default function OperationsMap({
     libraries: MAPS_LIBRARIES,
   });
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
 
   // Sin selección = toda la flota de la región actual, sin centrar en ninguna máquina.
   const selectedVehicle = selectedVehicleId ? vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? null : null;
@@ -102,30 +101,20 @@ export default function OperationsMap({
     map.panTo({ lat: selectedLat, lng: selectedLon });
   }, [map, selectedLat, selectedLon, selectedVehicleId, followVehicle]);
 
-  useEffect(() => {
-    if (!showRoadRoute || !isLoaded || !selectedField) {
-      return;
-    }
+  // La ruta por caminos ya no se calcula en vivo: viene de un fixture
+  // pregenerado con OSRM/OpenStreetMap (ver scripts/generate-road-routes.mjs),
+  // así que no depende de que la Directions API esté habilitada para la clave
+  // de Maps ni de la disponibilidad de un servicio externo en cada vista.
+  const roadRoute = selectedField ? getRoadRoute(selectedField.id) : undefined;
 
-    let active = true;
-    onRoadRouteStatus?.("Calculando ruta por caminos…");
-    const destination = toMapPoint(selectedField.polygon[0]);
-    const service = new google.maps.DirectionsService();
-    service.route(
-      { origin: depotPoint, destination, travelMode: google.maps.TravelMode.DRIVING },
-      (result, status) => {
-        if (!active) return;
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          setDirections(result);
-          onRoadRouteStatus?.("Ruta por caminos calculada con Google Directions");
-        } else {
-          setDirections(null);
-          onRoadRouteStatus?.(`Directions no disponible (${status}). Revisa que la API esté habilitada para esta clave.`);
-        }
-      },
-    );
-    return () => { active = false; };
-  }, [isLoaded, onRoadRouteStatus, selectedField, showRoadRoute, depotPoint]);
+  useEffect(() => {
+    if (!showRoadRoute || !selectedField) return;
+    if (roadRoute) {
+      onRoadRouteStatus?.(`Ruta por caminos: ${(roadRoute.distanceM / 1000).toFixed(1)} km · datos OpenStreetMap vía OSRM`);
+    } else {
+      onRoadRouteStatus?.("Todavía no hay ruta por caminos generada para este predio (ejecuta \"npm run generate:road-routes\").");
+    }
+  }, [showRoadRoute, selectedField, roadRoute, onRoadRouteStatus]);
 
   if (loadError) return <div className="ops-map-state">Google Maps no pudo cargar. La lista operacional sigue disponible.</div>;
   if (!isLoaded) return <div className="ops-map-state"><span className="view-loader__spinner" /> Cargando cartografía…</div>;
@@ -170,10 +159,10 @@ export default function OperationsMap({
         />
       ))}
 
-      {showRoadRoute && directions && (
-        <DirectionsRenderer
-          directions={directions}
-          options={{ suppressMarkers: false, preserveViewport: true, polylineOptions: { strokeColor: "#d8ff62", strokeWeight: 5, strokeOpacity: 0.95 } }}
+      {showRoadRoute && roadRoute && (
+        <PolylineF
+          path={roadRoute.geometry.map(toMapPoint)}
+          options={{ strokeColor: "#d8ff62", strokeWeight: 5, strokeOpacity: 0.95 }}
         />
       )}
 

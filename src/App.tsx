@@ -5,11 +5,12 @@ import type { OperationsView } from "./pages/OperationsWorkspace";
 
 const OperationsWorkspace = lazy(() => import("./pages/OperationsWorkspace"));
 
-type IconName = "overview" | "register" | "live" | "route" | "stats" | "chart" | "masters" | "history" | "logout";
+type IconName = "overview" | "register" | "manual" | "live" | "route" | "stats" | "chart" | "masters" | "history" | "logout";
 
 const iconPaths: Record<IconName, ReactNode> = {
   overview: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
   register: <><path d="M12 5v14M5 12h14"/></>,
+  manual: <><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5M8 13h8M8 17h5"/></>,
   live: <><path d="M3 12h3l2-5 4 10 3-7 2 2h4"/><circle cx="12" cy="12" r="9"/></>,
   route: <><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h3a4 4 0 0 0 4-4V9a4 4 0 0 1 3-4"/></>,
   stats: <><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></>,
@@ -22,6 +23,7 @@ const iconPaths: Record<IconName, ReactNode> = {
 const viewMeta: Record<OperationsView, { eyebrow: string; title: string; description: string }> = {
   userView: { eyebrow: "Centro de operaciones", title: "Resumen de jornada", description: "Una lectura ejecutiva del avance, la flota y los eventos recientes." },
   registro: { eyebrow: "Datos reales", title: "Registro de operación", description: "Máquina, labor, horómetro y combustible al iniciar y finalizar un recorrido." },
+  manual: { eyebrow: "Administración asistida", title: "Ingreso manual", description: "Revise datos anteriores y agregue registros con un formulario simple, grande y paso a paso." },
   live: { eyebrow: "Flota en terreno", title: "Monitoreo operacional", description: "Vehículos en movimiento, pasadas agrícolas y telemetría sobre el mapa." },
   routes: { eyebrow: "Rendimiento de flota", title: "Odómetro y utilización", description: "Distancia, horómetro, superficie y rendimiento calculados por máquina." },
   stats: { eyebrow: "Información operacional", title: "Indicadores de jornada", description: "Métricas ponderadas, comparaciones y explicación de cada cálculo." },
@@ -33,6 +35,7 @@ const viewMeta: Record<OperationsView, { eyebrow: string; title: string; descrip
 const navItems: { id: OperationsView; label: string; icon: IconName }[] = [
   { id: "userView", label: "Resumen", icon: "overview" },
   { id: "registro", label: "Registro", icon: "register" },
+  { id: "manual", label: "Ingreso manual", icon: "manual" },
   { id: "live", label: "Monitoreo", icon: "live" },
   { id: "routes", label: "Odómetro", icon: "route" },
   { id: "stats", label: "Indicadores", icon: "stats" },

@@ -1,9 +1,12 @@
 # © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
 # -*- coding: utf-8 -*-
 {
-    'name': "Step Actividades",
-    'summary': "",
-    'description': """ Crea un campo de Alcance liquido con el monto a pagar en todos los recibos de nomina
+    'name': "Steps Operaciones y Tracker",
+    'summary': "Operación agrícola, personal, flota y seguimiento de maquinaria",
+    'description': """
+        Integra la operación agrícola y forestal de Steps con Odoo.
+        Incluye actividades, personal, partes diarios y una aplicación nativa
+        para consultar la información sincronizada desde Web Tracker.
     """,
 
     'author': "jamie.escalante7@gmail.com",
@@ -75,4 +78,12 @@
         'wizard/report_by_process_view.xml',
     ],
     'demo': [],
+    'assets': {
+        'web.assets_backend': [
+            'step_hr/static/src/js/tracker_dashboard.js',
+            'step_hr/static/src/xml/tracker_dashboard.xml',
+            'step_hr/static/src/scss/tracker_dashboard.scss',
+        ],
+    },
+    'application': True,
 }

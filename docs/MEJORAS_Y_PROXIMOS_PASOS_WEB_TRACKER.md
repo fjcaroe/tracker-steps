@@ -66,8 +66,8 @@ Al 19 de agosto de 2026, los días completamente transcurridos del mes son del 1
 
 ### Alcance mínimo
 
-- Entre 5 y 8 vehículos ficticios, con colores e identificadores estables.
-- Al menos 3 jornadas con actividad variada y un total mínimo de 30 viajes.
+- Entre 20 y 40 vehículos ficticios, con colores e identificadores estables.
+- Al menos 30 jornadas con actividad variada y un total mínimo de 300 viajes.
 - Un área geográfica coherente con el negocio. Si se reutiliza el dominio urbano de `webTransporte`, usar Santiago u otra ciudad justificada; si se simula operación agrícola, separar claramente caminos públicos, caminos interiores y polígonos de predios.
 - Orígenes y destinos plausibles: base, taller, centro de distribución, predios o puntos operacionales.
 - Viajes simultáneos para comprobar la vista de flota completa.

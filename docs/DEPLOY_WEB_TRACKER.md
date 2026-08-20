@@ -28,6 +28,19 @@ Esto requiere que quien lo ejecute tenga `gcloud` autenticado con una cuenta
 con acceso al proyecto `stepsconsulting` (el usuario del proyecto es
 `fernandocaro1198@gmail.com`).
 
+## Componentes que forman una entrega completa
+
+Una versión puede incluir tres componentes independientes en la misma instancia:
+
+1. Frontend estático en `/var/www/web_tracker/`.
+2. API FastAPI en `/opt/fernando_odoo18/apis/backend/tracker_py`, servicio
+   `tracker-steps-api.service` y proxy público `/tracker-steps/`.
+3. Módulo Odoo `step_hr` en el `addons_path` de la instancia Odoo.
+
+Si el frontend empieza a consumir endpoints nuevos, se despliega primero la API,
+se verifica su OpenAPI y recién después se publica el frontend. Odoo se actualiza
+al final para que sus sincronizaciones nunca apunten a contratos inexistentes.
+
 ## Paso a paso para desplegar el frontend
 
 **Importante:** `.env` y `.env.production` **no están en git** (se sacaron el
@@ -60,6 +73,63 @@ sudo nginx -t
 sudo systemctl reload nginx   # no restart: no corta otras webs del mismo nginx
 rm -rf /tmp/tracker-steps-deploy
 ```
+
+## Paso a paso para desplegar el backend
+
+El código productivo de FastAPI no tenía repositorio propio y fue incorporado en
+`backend/tracker_py/`. Su `.env` continúa viviendo únicamente en el servidor.
+
+Antes de reemplazar archivos, crear un respaldo recuperable y aplicar las
+migraciones SQL. Para esta versión:
+
+```bash
+set -e
+release=/tmp/tracker-steps-deploy/backend/tracker_py
+target=/opt/fernando_odoo18/apis/backend/tracker_py
+backup=/opt/fernando_odoo18/backups/tracker_py-$(date +%Y%m%d-%H%M%S)
+
+sudo mkdir -p "$(dirname "$backup")"
+sudo cp -a "$target" "$backup"
+
+# La instalación histórica usaba un secreto JWT incorporado en el código.
+# Genérelo una sola vez en .env antes de instalar la versión segura.
+if ! sudo grep -q '^JWT_SECRET=' "$target/.env"; then
+  jwt_secret="$(openssl rand -hex 32)"
+  printf '\nJWT_SECRET=%s\n' "$jwt_secret" | sudo tee -a "$target/.env" >/dev/null
+  unset jwt_secret
+fi
+sudo chmod 600 "$target/.env"
+
+# Conserva .env y .venv del servidor; actualiza solo fuentes versionadas.
+sudo rsync -a --delete \
+  --exclude '.env' --exclude '.venv' --exclude '__pycache__' \
+  "$release/" "$target/"
+sudo chown -R fernandocaro1198_gmail_com "$target"
+
+sudo -u postgres psql -d tracker_steps -v ON_ERROR_STOP=1 \
+  -f "$target/migrations/20260820_master_crud.sql"
+
+sudo systemctl restart tracker-steps-api.service
+sudo systemctl is-active --quiet tracker-steps-api.service
+curl --fail --silent http://127.0.0.1:8000/health
+curl --fail --silent http://127.0.0.1:8000/health/capabilities
+```
+
+La primera rotación de `JWT_SECRET` invalida los tokens emitidos previamente;
+los usuarios solo deben volver a iniciar sesión. Nunca imprimir, copiar al repo
+ni enviar ese valor en logs.
+
+Antes de publicar el frontend, verificar que `/openapi.json` exponga:
+
+- `PATCH` y `DELETE /drivers/{driver_id}`.
+- `DELETE /activities/{activity_id}`.
+- `DELETE /labors/{labor_id}`.
+- `PATCH` y `DELETE /implements/{implement_id}`.
+- `GET /drivers`, `/activities`, `/labors` e `/implements`, con soporte para
+  `include_inactive=true`.
+
+Para rollback, restaurar el respaldo de código y reiniciar el servicio. La nueva
+columna `implements.is_active` es compatible hacia atrás y no necesita eliminarse.
 
 ### Por qué así y no simplemente "hacer pull en el servidor"
 
@@ -98,13 +168,26 @@ nombres de archivo llevan un hash que cambia en cada build):
   `/opt/fernando_odoo18/apis/tracker-steps/.env(.production)` por SSH — no
   hay "subir" por git para esto.
 
-## Lo que este flujo NO hace todavía
+## Actualización del módulo Odoo
 
-- **No toca el módulo Odoo (`step_hr`)**: su integración con Web Tracker está
-  programada (ver `docs/INTEGRACION_ODOO_WEB_TRACKER.md`) pero no instalada
-  ni probada contra el Odoo real de este servidor. Instalar un módulo Odoo es
-  un proceso aparte (copiarlo al `addons_path` que use esa instancia,
-  `-u step_hr` o Apps → Actualizar) — no lo mezclar con este flujo.
+- La integración está en `step_hr` y se despliega después de comprobar API y
+  frontend. Copiarla al `addons_path`, respaldar previamente el módulo instalado
+  y ejecutar la actualización `-u step_hr` con la misma configuración de Odoo
+  usada por el servicio real.
+- Verificar luego **Ajustes → Labores y Tareas → Web Tracker → Sincronizar ahora**
+  y revisar el log de sincronización.
+- Confirmar que en `https://stepsapp.cl/odoo` aparezca **Steps Tracker** como
+  aplicación de primer nivel. Abrir su **Resumen**, alternar 7/30/90 días y
+  comprobar las acciones de Sesiones, Partes y Reportes.
+- Verificar que los recursos `tracker_dashboard.js`, `tracker_dashboard.xml` y
+  `tracker_dashboard.scss` estén incluidos en `web.assets_backend`. Si Odoo
+  conserva el bundle anterior, regenerar assets mediante la actualización del
+  módulo y hacer una recarga completa del navegador; no editar adjuntos de
+  assets directamente en la base de datos.
+- No reiniciar Odoo junto con FastAPI: son servicios separados y deben validarse
+  individualmente.
+
+## Lo que este flujo NO hace todavía
 - **No hace rollback automático.** Si un deploy rompe algo, el fix es hacer
   `git revert`/checkout del commit bueno y repetir el mismo proceso.
 

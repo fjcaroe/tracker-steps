@@ -24,3 +24,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python / backend local state
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+backend/tracker_py/.env
+.tmp_manual/
