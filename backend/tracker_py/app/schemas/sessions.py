@@ -92,3 +92,7 @@ class SessionSummaryOut(BaseModel):
 
     effective_hours: Optional[float] = None
     estimated_fuel_liters: Optional[float] = None
+    last_point_ts: Optional[datetime] = None
+    last_lat: Optional[float] = None
+    last_lon: Optional[float] = None
+    last_speed_mps: Optional[float] = None

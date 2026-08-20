@@ -187,6 +187,10 @@ def search_sessions(
                 duration_hours=dur_h,
                 effective_hours=eff_h,
                 estimated_fuel_liters=est_fuel,
+                last_point_ts=s.last_point_ts,
+                last_lat=_f(s.last_lat),
+                last_lon=_f(s.last_lon),
+                last_speed_mps=_f(s.last_speed_mps),
             )
         )
     return out
@@ -748,6 +752,10 @@ def my_sessions(
             ended_at=s.ended_at,
             status=s.status,
             points_count=int(points_count or 0),
+            last_point_ts=s.last_point_ts,
+            last_lat=_f(s.last_lat),
+            last_lon=_f(s.last_lon),
+            last_speed_mps=_f(s.last_speed_mps),
         )
         for (s, machine_name, driver_name, cost_center_name, points_count) in rows
     ]
@@ -789,6 +797,10 @@ def list_active_sessions(
             ended_at=s.ended_at,
             status=s.status,
             points_count=int(points_count or 0),
+            last_point_ts=s.last_point_ts,
+            last_lat=_f(s.last_lat),
+            last_lon=_f(s.last_lon),
+            last_speed_mps=_f(s.last_speed_mps),
         )
         for (s, machine_name, driver_name, cost_center_name, points_count) in rows
     ]
@@ -918,6 +930,10 @@ def list_recent_sessions(
                 duration_hours=dur_h,
                 effective_hours=eff_h,
                 estimated_fuel_liters=est_fuel,
+                last_point_ts=s.last_point_ts,
+                last_lat=_f(s.last_lat),
+                last_lon=_f(s.last_lon),
+                last_speed_mps=_f(s.last_speed_mps),
             )
         )
     return out
