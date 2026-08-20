@@ -77,7 +77,7 @@ def search_sessions(
     # rango: inclusive en from, exclusive en to (patrón típico)
     date_from: datetime = Query(..., alias="from"),
     date_to: datetime = Query(..., alias="to"),
-    limit: int = 200,
+    limit: int = Query(200, ge=1, le=5000),
     status: Optional[str] = Query(None),
     cost_center_id: int | None = None,
     machine_id: int | None = None,

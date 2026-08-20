@@ -50,6 +50,32 @@ type ApiSession = {
 
 type ApiLabor = { id: number; name: string };
 
+function normalizeAnalyticsSessions(sessions: ApiSession[], labors: ApiEntity[]) {
+  const laborNames = Object.fromEntries(labors.map((labor) => [labor.id, labor.name]));
+  return sessions.map((session) => {
+    const start = new Date(session.started_at).getTime();
+    const end = session.ended_at ? new Date(session.ended_at).getTime() : Date.now();
+    const rawHours = Math.max(0, session.effective_hours ?? session.duration_hours ?? ((end - start) / 3_600_000));
+    const stale = session.status === "open" && rawHours > 24;
+    return {
+      id: session.id,
+      machineId: session.machine_id,
+      machine: session.machine_name || `Máquina #${session.machine_id}`,
+      driver: session.driver_name || "Sin operador",
+      location: session.cost_center_name || "Sin centro de costo",
+      labor: session.labor_id != null ? laborNames[session.labor_id] || `Labor #${session.labor_id}` : "Sin labor",
+      startedAt: session.started_at,
+      status: session.status,
+      hours: stale ? 0 : rawHours,
+      distanceKm: Math.max(0, (session.total_distance_m ?? 0) / 1000),
+      fuelLiters: stale ? 0 : Math.max(0, session.estimated_fuel_liters ?? 0),
+      avgSpeedKmh: Math.max(0, session.avg_speed_kmh ?? 0),
+      points: Math.max(0, session.points_count ?? 0),
+      stale,
+    };
+  });
+}
+
 type RealData = {
   machines: ApiMachine[];
   drivers: ApiEntity[];
@@ -252,6 +278,9 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const [laborsById, setLaborsById] = useState<Record<number, string>>({});
   const [realHistoryStatus, setRealHistoryStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const realHistoryRequestedRef = useRef(false);
+  const [analyticsHistory, setAnalyticsHistory] = useState<ApiSession[]>([]);
+  const [analyticsHistoryStatus, setAnalyticsHistoryStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const analyticsHistoryRequestedRef = useRef(false);
 
   useEffect(() => {
     if (!running || !demoMode) return;
@@ -301,6 +330,27 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
       } catch {
         setRealHistoryStatus("error");
         realHistoryRequestedRef.current = false;
+      }
+    };
+    void load();
+  }, [view, demoMode]);
+
+  // Analítica real usa un histórico amplio. La consulta es diferida para no
+  // penalizar el tablero operativo ni el mapa cuando el usuario no la necesita.
+  useEffect(() => {
+    if (view !== "chartsStats" || demoMode || analyticsHistoryRequestedRef.current) return;
+    analyticsHistoryRequestedRef.current = true;
+    const load = async () => {
+      setAnalyticsHistoryStatus("loading");
+      try {
+        const dateTo = new Date(Date.now() + 86_400_000).toISOString();
+        const query = new URLSearchParams({ from: "2018-01-01T00:00:00.000Z", to: dateTo, limit: "5000" });
+        const data = await apiJson<ApiSession[]>(`/sessions/search?${query.toString()}`);
+        setAnalyticsHistory(data);
+        setAnalyticsHistoryStatus("ready");
+      } catch {
+        setAnalyticsHistoryStatus("error");
+        analyticsHistoryRequestedRef.current = false;
       }
     };
     void load();
@@ -360,31 +410,14 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
     });
   }, [demoMode, realSessions, laborsById]);
 
-  const realAnalyticsSessions = useMemo(() => {
-    const laborNames = Object.fromEntries(realData.labors.map((labor) => [labor.id, labor.name]));
-    return realData.sessions.map((session) => {
-      const start = new Date(session.started_at).getTime();
-      const end = session.ended_at ? new Date(session.ended_at).getTime() : start;
-      const rawHours = Math.max(0, session.effective_hours ?? session.duration_hours ?? ((end - start) / 3_600_000));
-      const stale = session.status === "open" && rawHours > 24;
-      return {
-        id: session.id,
-        machineId: session.machine_id,
-        machine: session.machine_name || `Máquina #${session.machine_id}`,
-        driver: session.driver_name || "Sin operador",
-        location: session.cost_center_name || "Sin centro de costo",
-        labor: session.labor_id != null ? laborNames[session.labor_id] || `Labor #${session.labor_id}` : "Sin labor",
-        startedAt: session.started_at,
-        status: session.status,
-        hours: stale ? 0 : rawHours,
-        distanceKm: Math.max(0, (session.total_distance_m ?? 0) / 1000),
-        fuelLiters: stale ? 0 : Math.max(0, session.estimated_fuel_liters ?? 0),
-        avgSpeedKmh: Math.max(0, session.avg_speed_kmh ?? 0),
-        points: Math.max(0, session.points_count ?? 0),
-        stale,
-      };
-    });
-  }, [realData.labors, realData.sessions]);
+  const realAnalyticsSessions = useMemo(
+    () => normalizeAnalyticsSessions(realData.sessions, realData.labors),
+    [realData.labors, realData.sessions],
+  );
+  const fullRealAnalyticsSessions = useMemo(
+    () => normalizeAnalyticsSessions(analyticsHistoryStatus === "ready" ? analyticsHistory : realData.sessions, realData.labors),
+    [analyticsHistory, analyticsHistoryStatus, realData.labors, realData.sessions],
+  );
 
   const realMachineMetrics = useMemo(() => realData.machines.map((machine) => {
     const machineSessions = realAnalyticsSessions.filter((session) => session.machineId === machine.id);
@@ -658,7 +691,25 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "chartsStats") {
-    return <main className="ops-workspace">{control}<Suspense fallback={<div className="view-loader"><span className="view-loader__spinner"/>Cargando analítica…</div>}>{demoMode ? <AnalyticsCharts vehicles={allVehicles} sessions={sessions} regionId={selectedRegionId} regionName={currentRegion.name}/> : <RealAnalyticsCharts sessions={realAnalyticsSessions}/>}</Suspense></main>;
+    return <main className="ops-workspace">{control}
+      {!demoMode && analyticsHistoryStatus === "loading" && <div className="ops-map-notice"><b>Cargando histórico completo.</b> Mientras tanto se muestran las sesiones más recientes.</div>}
+      {!demoMode && analyticsHistoryStatus === "error" && <div className="ops-map-notice"><b>No se pudo ampliar el histórico.</b> La analítica sigue disponible con las sesiones recientes y puede reintentarse al volver a esta vista.</div>}
+      <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner"/>Cargando analítica…</div>}>
+        {demoMode
+          ? <AnalyticsCharts vehicles={allVehicles} sessions={sessions} regionId={selectedRegionId} regionName={currentRegion.name} onOpenSession={setOpenSessionId}/>
+          : <RealAnalyticsCharts sessions={fullRealAnalyticsSessions} onOpenSession={setOpenSessionId}/>
+        }
+      </Suspense>
+      {demoMode && openSessionId && (() => {
+        const session = DEMO_SESSIONS.find((item) => item.id === openSessionId);
+        return session ? <SessionPlaybackModal key={session.id} session={session} onClose={() => setOpenSessionId(null)} /> : null;
+      })()}
+      {!demoMode && openSessionId && (() => {
+        const session = fullRealAnalyticsSessions.find((item) => item.id === openSessionId);
+        if (!session) return null;
+        return <RealSessionPlaybackModal key={session.id} session={{ id: session.id, machine: session.machine, driver: session.driver, field: session.location, labor: session.labor, durationHours: session.hours, distanceKm: session.distanceKm }} onClose={() => setOpenSessionId(null)}/>;
+      })()}
+    </main>;
   }
 
   if (view === "masters") {
