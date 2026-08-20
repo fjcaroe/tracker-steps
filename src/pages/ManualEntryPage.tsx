@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { DEMO_MASTER_CATALOGS, DEMO_WORK_ORDERS } from "../demo/catalogs";
 import { apiFetch, apiJson } from "../services/http";
 import "./ManualEntryPage.css";
 
@@ -96,7 +97,7 @@ function generatedCode(date: string) {
   return `MAN-${date.replaceAll("-", "")}-${clock}${String(now.getMilliseconds()).padStart(3, "0")}`;
 }
 
-export default function ManualEntryPage() {
+export default function ManualEntryPage({ demoMode }: { demoMode: boolean }) {
   const [catalogs, setCatalogs] = useState<Catalogs>(emptyCatalogs);
   const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [draft, setDraft] = useState<Draft>(blankDraft);
@@ -111,6 +112,22 @@ export default function ManualEntryPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setDraft(blankDraft());
+    setEditingId(null);
+    setReviewing(false);
+    if (demoMode) {
+      setCatalogs({
+        machines: DEMO_MASTER_CATALOGS.machines,
+        activities: DEMO_MASTER_CATALOGS.activities,
+        labors: DEMO_MASTER_CATALOGS.labors as Labor[],
+        costCenters: DEMO_MASTER_CATALOGS.costCenters,
+        fields: DEMO_MASTER_CATALOGS.fields,
+        implements: DEMO_MASTER_CATALOGS.implements,
+      });
+      setOrders(DEMO_WORK_ORDERS.map((order) => ({ ...order })));
+      setLoading(false);
+      return;
+    }
     try {
       const [machines, activities, labors, costCenters, fields, implementsList, workOrders] = await Promise.all([
         apiJson<CatalogItem[]>("/machines"), apiJson<CatalogItem[]>("/activities"), apiJson<Labor[]>("/labors"),
@@ -124,7 +141,7 @@ export default function ManualEntryPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [demoMode]);
 
   useEffect(() => { void loadData(); }, [loadData]);
 
@@ -181,7 +198,25 @@ export default function ManualEntryPage() {
         fuel_tank_start_liters: optionalNumber(draft.fuelTankStart), fuel_refill_liters: optionalNumber(draft.fuelRefill),
         fuel_tank_end_liters: optionalNumber(draft.fuelTankEnd), notes: draft.notes.trim() || null,
       };
-      if (editingId != null) {
+      if (demoMode && editingId != null) {
+        setOrders((current) => current.map((order) => order.id === editingId ? { ...order, ...common } : order));
+        setMessage("El registro fue actualizado dentro del Laboratorio demo. Producción no fue modificada.");
+      } else if (demoMode) {
+        const nextId = Math.max(90_000, ...orders.map((order) => order.id)) + 1;
+        setOrders((current) => [{
+          id: nextId,
+          code: generatedCode(draft.workDate).replace("MAN-", "DEMO-"),
+          work_date: draft.workDate,
+          season: draft.season.trim(),
+          machine_id: Number(draft.machineId),
+          activity_id: Number(draft.activityId),
+          labor_id: Number(draft.laborId),
+          cost_center_id: idOrNull(draft.costCenterId),
+          field_id: idOrNull(draft.fieldId),
+          ...common,
+        }, ...current]);
+        setMessage("Registro agregado al Laboratorio demo. Se descartará al recargar y nunca se enviará a producción.");
+      } else if (editingId != null) {
         await apiFetch(`/work_orders/${editingId}`, { method: "PUT", body: JSON.stringify(common) });
         setMessage("El parte de trabajo fue actualizado correctamente.");
       } else {
@@ -193,7 +228,7 @@ export default function ManualEntryPage() {
         setMessage("El parte de trabajo fue guardado en Tracker y ya está disponible para los demás usuarios.");
       }
       resetForm();
-      await loadData();
+      if (!demoMode) await loadData();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo guardar. Revise los datos e intente nuevamente.");
     } finally {
@@ -228,7 +263,8 @@ export default function ManualEntryPage() {
 
   const locked = editingId != null;
   return <main className="manual-page">
-    <section className="manual-intro"><span className="manual-intro__number">1</span><div><h2>Complete los datos con calma</h2><p>Los campos obligatorios están marcados. Antes de guardar verá un resumen completo para revisar.</p></div><div className="manual-intro__status"><b>{orders.length}</b><span>partes disponibles</span></div></section>
+    <section className={`manual-source ${demoMode ? "is-demo" : "is-real"}`}><b>{demoMode ? "Laboratorio demo" : "Datos reales de Tracker"}</b><span>{demoMode ? "Puede practicar con todos los maestros sintéticos. Nada de esta pantalla se escribe en producción." : "Los cambios confirmados se guardan en la operación productiva y se sincronizan con Odoo."}</span></section>
+    <section className="manual-intro"><span className="manual-intro__number">1</span><div><h2>Complete los datos con calma</h2><p>Los campos obligatorios están marcados. Antes de guardar verá un resumen completo para revisar.</p></div><div className="manual-intro__status"><b>{orders.length}</b><span>{demoMode ? "partes de práctica" : "partes disponibles"}</span></div></section>
     <div className="manual-layout">
       <form className="manual-card manual-form" onSubmit={requestReview} noValidate>
         <header><div><span>Paso 1 de 2</span><h2>{locked ? `Editar parte ${editingId}` : "Nuevo ingreso manual"}</h2><p>{locked ? "Por seguridad, al editar solo se cambian lecturas, implemento y observaciones." : "Este registro quedará guardado centralmente como parte de trabajo."}</p></div></header>
@@ -253,7 +289,7 @@ export default function ManualEntryPage() {
         </div></fieldset>
         <div className="manual-actions"><button type="submit" className="manual-button is-primary" disabled={saving}>{saving ? "Guardando…" : "Revisar antes de guardar →"}</button>{locked && <button type="button" className="manual-button" onClick={resetForm}>Cancelar edición</button>}</div>
       </form>
-      <aside className="manual-card manual-guide"><span className="manual-intro__number">2</span><h2>Luego revise y confirme</h2><p>Nada se guarda al presionar “Revisar”. Podrá volver y corregir cualquier dato.</p><ul><li>Use la fecha del documento original.</li><li>Deje vacío cualquier valor que desconozca.</li><li>Revise especialmente máquina, actividad y labor.</li></ul><div className="manual-storage-note"><b>Registro centralizado</b><p>Al confirmar, el parte se guarda en Tracker y queda disponible para los demás usuarios autorizados. No se mezcla con las sesiones GPS.</p></div></aside>
+      <aside className="manual-card manual-guide"><span className="manual-intro__number">2</span><h2>Luego revise y confirme</h2><p>Nada se guarda al presionar “Revisar”. Podrá volver y corregir cualquier dato.</p><ul><li>Use la fecha del documento original.</li><li>Deje vacío cualquier valor que desconozca.</li><li>Revise especialmente máquina, actividad y labor.</li></ul><div className="manual-storage-note"><b>{demoMode ? "Práctica segura" : "Registro centralizado"}</b><p>{demoMode ? "Puede crear y editar ejemplos libremente. Al recargar se restauran los datos originales del laboratorio." : "Al confirmar, el parte se guarda en Tracker y queda disponible para los demás usuarios autorizados. No se mezcla con las sesiones GPS."}</p></div></aside>
     </div>
 
     {reviewing && <div className="manual-review-backdrop" role="dialog" aria-modal="true" aria-labelledby="manual-review-title"><section className="manual-review"><header><span>Último paso</span><h2 id="manual-review-title">Revise el parte de trabajo</h2><p>Confirme que la información coincida con el documento original.</p></header><dl>

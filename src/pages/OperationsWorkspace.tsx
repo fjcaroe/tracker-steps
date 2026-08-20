@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import OperationsMap from "../components/OperationsMap";
 import SessionPlaybackModal from "../components/SessionPlaybackModal";
 import MastersAdminModal, { type MasterKind } from "../components/MastersAdminModal";
+import { DEMO_MASTER_CATALOGS, type DemoCatalogItem } from "../demo/catalogs";
 import {
   DEMO_EVENTS,
   DEMO_FIELDS,
@@ -168,6 +169,33 @@ function DemoControl({
   );
 }
 
+const DEMO_MASTER_TITLES: Record<MasterKind, string> = {
+  machines: "Máquinas", drivers: "Conductores", activities: "Actividades", labors: "Labores", implements: "Implementos",
+  costCenters: "Centros de costo", species: "Especies", varieties: "Variedades", regions: "Regiones", communes: "Comunas",
+  fundos: "Fundos", sectors: "Sectores", fields: "Predios y polígonos",
+};
+
+function demoItemDetail(item: DemoCatalogItem) {
+  if (item.plate) return String(item.plate);
+  if (item.crop) return `${item.crop}${item.hectares ? ` · ${item.hectares} ha` : ""}`;
+  if (item.code) return `Código ${item.code}`;
+  if (item.hectares) return `${item.hectares} ha`;
+  return "Dato sintético para práctica";
+}
+
+function DemoMastersModal({ kind, onClose }: { kind: MasterKind; onClose: () => void }) {
+  const items = DEMO_MASTER_CATALOGS[kind];
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+  return <div className="master-admin-backdrop" role="dialog" aria-modal="true" aria-labelledby="demo-master-title"><section className="master-admin demo-master-modal">
+    <header className="master-admin__head"><div><span className="section-kicker">Laboratorio demo · solo lectura</span><h2 id="demo-master-title">{DEMO_MASTER_TITLES[kind]}</h2><p>Estos registros permiten recorrer y explicar la aplicación sin modificar información productiva.</p></div><button type="button" className="master-admin__close" onClick={onClose} aria-label="Cerrar">×</button></header>
+    <div className="demo-master-modal__body">{items.map((item) => <article key={item.id}><i>{String(item.name).slice(0, 1).toUpperCase()}</i><span><b>{item.name}</b><small>{demoItemDetail(item)}</small></span><em>Demo</em></article>)}</div>
+  </section></div>;
+}
+
 function KpiGrid({ sessions, fields }: { sessions: DemoSession[]; fields: typeof DEMO_FIELDS }) {
   const totalDistance = sessions.reduce((sum, session) => sum + session.distanceKm, 0);
   const totalHours = sessions.reduce((sum, session) => sum + session.durationHours, 0);
@@ -205,6 +233,7 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   const [historyDateFrom, setHistoryDateFrom] = useState(todayIso);
   const [historyDateTo, setHistoryDateTo] = useState(todayIso);
   const [openMasterCard, setOpenMasterCard] = useState<MasterKind | null>(null);
+  const [openDemoMasterCard, setOpenDemoMasterCard] = useState<MasterKind | null>(null);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [realData, setRealData] = useState<RealData>(emptyRealData);
   const [realDataVersion, setRealDataVersion] = useState(0);
@@ -366,9 +395,12 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
 
   if (view === "manual") {
     return (
-      <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner" />Cargando ingreso manual…</div>}>
-        <ManualEntryPage />
-      </Suspense>
+      <main className="ops-workspace">
+        {control}
+        <Suspense fallback={<div className="view-loader"><span className="view-loader__spinner" />Cargando ingreso manual…</div>}>
+          <ManualEntryPage demoMode={demoMode} />
+        </Suspense>
+      </main>
     );
   }
 
@@ -528,30 +560,33 @@ export default function OperationsWorkspace({ view }: { view: OperationsView }) 
   }
 
   if (view === "masters") {
+    const masterSource = demoMode ? DEMO_MASTER_CATALOGS : realData;
+    const displayedFields = masterSource.fields as ApiField[];
     const masterGroups: { title: string; description: string; cards: { key: MasterKind; label: string; value: number; detail: string; icon: string }[] }[] = [
       { title: "Operación", description: "Recursos y clasificaciones utilizados en los partes de trabajo.", cards: [
-        { key: "machines", label: "Máquinas", value: realData.machines.length, detail: "consumo y asignaciones", icon: "M" },
-        { key: "drivers", label: "Conductores", value: realData.drivers.length, detail: "alta, edición y desactivación", icon: "C" },
-        { key: "activities", label: "Actividades", value: realData.activities.length, detail: "categorías operacionales", icon: "A" },
-        { key: "labors", label: "Labores", value: realData.labors.length, detail: "esfuerzo y velocidad objetivo", icon: "L" },
-        { key: "implements", label: "Implementos", value: realData.implements.length, detail: "alta, edición y desactivación", icon: "I" },
+        { key: "machines", label: "Máquinas", value: masterSource.machines.length, detail: "consumo y asignaciones", icon: "M" },
+        { key: "drivers", label: "Conductores", value: masterSource.drivers.length, detail: "alta, edición y desactivación", icon: "C" },
+        { key: "activities", label: "Actividades", value: masterSource.activities.length, detail: "categorías operacionales", icon: "A" },
+        { key: "labors", label: "Labores", value: masterSource.labors.length, detail: "esfuerzo y velocidad objetivo", icon: "L" },
+        { key: "implements", label: "Implementos", value: masterSource.implements.length, detail: "alta, edición y desactivación", icon: "I" },
       ] },
       { title: "Estructura agrícola", description: "Clasificación productiva, especies y variedades.", cards: [
-        { key: "costCenters", label: "Centros de costo", value: realData.costCenters.length, detail: "superficie, hileras y plantas", icon: "$" },
-        { key: "species", label: "Especies", value: realData.species.length, detail: "catálogo de cultivos", icon: "E" },
-        { key: "varieties", label: "Variedades", value: realData.varieties.length, detail: "asociadas a especies", icon: "V" },
+        { key: "costCenters", label: "Centros de costo", value: masterSource.costCenters.length, detail: "superficie, hileras y plantas", icon: "$" },
+        { key: "species", label: "Especies", value: masterSource.species.length, detail: "catálogo de cultivos", icon: "E" },
+        { key: "varieties", label: "Variedades", value: masterSource.varieties.length, detail: "asociadas a especies", icon: "V" },
       ] },
       { title: "Territorio", description: "Jerarquía geográfica y delimitación visual de predios.", cards: [
-        { key: "regions", label: "Regiones", value: realData.regions.length, detail: "división territorial", icon: "R" },
-        { key: "communes", label: "Comunas", value: realData.communes.length, detail: "asociadas a regiones", icon: "C" },
-        { key: "fundos", label: "Fundos", value: realData.fundos.length, detail: "dirección y superficie", icon: "F" },
-        { key: "sectors", label: "Sectores", value: realData.sectors.length, detail: "subdivisiones de fundos", icon: "S" },
-        { key: "fields", label: "Predios y polígonos", value: realData.fields.length, detail: "editor visual sobre mapa", icon: "P" },
+        { key: "regions", label: "Regiones", value: masterSource.regions.length, detail: "división territorial", icon: "R" },
+        { key: "communes", label: "Comunas", value: masterSource.communes.length, detail: "asociadas a regiones", icon: "C" },
+        { key: "fundos", label: "Fundos", value: masterSource.fundos.length, detail: "dirección y superficie", icon: "F" },
+        { key: "sectors", label: "Sectores", value: masterSource.sectors.length, detail: "subdivisiones de fundos", icon: "S" },
+        { key: "fields", label: "Predios y polígonos", value: displayedFields.length, detail: "editor visual sobre mapa", icon: "P" },
       ] },
     ];
-    return <main className="ops-workspace"><section className="ops-map-notice"><b>Administración productiva.</b> Aquí se muestran y modifican datos reales de Tracker; cada maestro se carga de forma independiente para que un endpoint con problemas no oculte los demás.</section>{masterGroups.map((group) => <section className="ops-master-section" key={group.title}><header><div><span className="section-kicker">Maestros</span><h2>{group.title}</h2><p>{group.description}</p></div></header><div className="ops-master-grid">{group.cards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{realStatus === "loading" ? "…" : card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button" onClick={() => setOpenMasterCard(card.key)}>Administrar</button></article>)}</div></section>)}
-      <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · datos reales</span><h2>Predios registrados</h2><p>{realData.fields.length} polígonos cargados desde Tracker.</p></header><div className="ops-field-catalog">{realData.fields.map((field) => <button type="button" key={field.id} onClick={() => setOpenMasterCard("fields")}><i style={{ background: field.color ?? "#2f7d5c" }}/><span><b>{field.name}</b><small>Seleccione para abrir el editor de polígonos</small></span><em>{field.polygon?.length ?? 0} vértices</em></button>)}{realData.fields.length === 0 && <div className="ops-empty">{realStatus === "loading" ? "Cargando polígonos…" : "No fue posible cargar los polígonos. Use Administrar para reintentar."}</div>}</div></section><section className="ops-panel"><header><span className="section-kicker">Cobertura funcional</span><h2>Contratos disponibles</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>Administración completa</b><small>Operación, estructura agrícola y territorio</small></span></li><li><i className="is-ok">✓</i><span><b>Historial protegido</b><small>Conductores, actividades, labores e implementos se desactivan sin romper partes anteriores</small></span></li><li><i className="is-ok">✓</i><span><b>Editor cartográfico</b><small>Polígonos satelitales con vértices arrastrables</small></span></li></ul></section></div>
-      {openMasterCard && <MastersAdminModal kind={openMasterCard} onClose={() => setOpenMasterCard(null)} onChanged={() => setRealDataVersion((version) => version + 1)} />}
+    return <main className="ops-workspace">{control}<section className="ops-map-notice"><b>{demoMode ? "Maestros del Laboratorio demo." : "Administración productiva."}</b> {demoMode ? "Puede revisar el catálogo sintético completo; está protegido contra escritura." : "Aquí se muestran y modifican datos reales de Tracker; cada maestro se carga de forma independiente para que un endpoint con problemas no oculte los demás."}</section>{masterGroups.map((group) => <section className="ops-master-section" key={group.title}><header><div><span className="section-kicker">Maestros</span><h2>{group.title}</h2><p>{group.description}</p></div></header><div className="ops-master-grid">{group.cards.map((card) => <article key={card.label}><span>{card.icon}</span><div><b>{!demoMode && realStatus === "loading" ? "…" : card.value}</b><h3>{card.label}</h3><p>{card.detail}</p></div><button type="button" onClick={() => demoMode ? setOpenDemoMasterCard(card.key) : setOpenMasterCard(card.key)}>{demoMode ? "Ver registros" : "Administrar"}</button></article>)}</div></section>)}
+      <div className="ops-catalog-grid"><section className="ops-panel"><header><span className="section-kicker">Geometría · {demoMode ? "laboratorio" : "datos reales"}</span><h2>Predios registrados</h2><p>{displayedFields.length} polígonos {demoMode ? "disponibles para demostración" : "cargados desde Tracker"}.</p></header><div className="ops-field-catalog">{displayedFields.map((field) => <button type="button" key={field.id} onClick={() => demoMode ? setOpenDemoMasterCard("fields") : setOpenMasterCard("fields")}><i style={{ background: field.color ?? "#2f7d5c" }}/><span><b>{field.name}</b><small>{demoMode ? "Seleccione para revisar el catálogo demo" : "Seleccione para abrir el editor de polígonos"}</small></span><em>{field.polygon?.length ?? 0} vértices</em></button>)}{displayedFields.length === 0 && <div className="ops-empty">{realStatus === "loading" ? "Cargando polígonos…" : "No fue posible cargar los polígonos. Use Administrar para reintentar."}</div>}</div></section><section className="ops-panel"><header><span className="section-kicker">Cobertura funcional</span><h2>Contratos disponibles</h2></header><ul className="ops-health-list"><li><i className="is-ok">✓</i><span><b>{demoMode ? "Catálogo demostrativo completo" : "Administración completa"}</b><small>Operación, estructura agrícola y territorio</small></span></li><li><i className="is-ok">✓</i><span><b>Historial protegido</b><small>Conductores, actividades, labores e implementos se desactivan sin romper partes anteriores</small></span></li><li><i className="is-ok">✓</i><span><b>Editor cartográfico</b><small>Polígonos satelitales con vértices arrastrables</small></span></li></ul></section></div>
+      {!demoMode && openMasterCard && <MastersAdminModal kind={openMasterCard} onClose={() => setOpenMasterCard(null)} onChanged={() => setRealDataVersion((version) => version + 1)} />}
+      {demoMode && openDemoMasterCard && <DemoMastersModal kind={openDemoMasterCard} onClose={() => setOpenDemoMasterCard(null)} />}
     </main>;
   }
 
