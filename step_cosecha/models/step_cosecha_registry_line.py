@@ -12,65 +12,106 @@ class StepCosechaRegistryLine(models.Model):
     _name = 'step.cosecha.registry.line'
     _rec_name = 'employee_id'
 
-    @api.depends('hrs', 'hrs_extra', 'quantity', 'tarifa')
+    @api.depends(
+        'hrs', 'hrs_extra', 'quantity', 'tarifa', 'labor_id', 'contract_id',
+        'registry_id.date', 'registry_id.fundo_id', 'registry_id.especie_id',
+        'registry_id.grupo_variedad_id', 'registry_id.pricelist_id',
+    )
     def _compute_total_hrs(self):
-        eta_list = []
-        hora_extra = 0
         for move in self:
-            if move.tarja_id.state not in ['conta']:
-                move.cost_id_domain = self.env['account.analytic.account'].search(
-                    [('fundo_id', '=', move.registry_id.fundo_id.id),
-                     ('especie_id', '=', move.registry_id.especie_id.id),
-                     ('grupo_variedad_id', '=',
-                      move.registry_id.grupo_variedad_id.id)]).ids
-                if move.registry_id.pricelist_id:
-                    for item in move.registry_id.pricelist_id.item_ids:
-                        if move.labor_id == item.product_tmpl_id:
-                            move.cant_minima = item.min_quantity
-                            move.tarifa = item.fixed_price
-                            move.uom_id = item.uom_id.id
-                move.hrs_total = float(move.hrs) + float(move.hrs_extra)
-                if move.tarifa > 0:
-                    move.total_trato = float(move.quantity) * float(move.tarifa)
-                hoy = date.today()
-                ultimo_de_mes = calendar.monthrange(move.date.year, move.date.month)[1]
-                dia_semana = str(hoy.weekday())
-                hour_count = 0
-                for atten in move.contract_id.resource_calendar_id.attendance_ids:
-                    if atten.dayofweek == dia_semana and atten.day_period not in ['lunch']:
-                        hour_count += atten.hour_to - atten.hour_from
-                # horas = move.contract_id.resource_calendar_id.hours_per_day
-                horas = (sum(x.hour_to - x.hour_from) for x in move.contract_id.resource_calendar_id.attendance_ids if
-                         x.dayofweek == dia_semana and atten.day_period not in ['lunch'])
-                # move.sueldo_base = ((float(move.contract_id.sueldo_base) / 30) / 8) * float(move.hrs)
-                move.sueldo_base = ((float(move.contract_id.sueldo_base) / int(ultimo_de_mes)) / hour_count) * float(move.hrs)
-                if move.hrs_extra > 0:
-                    move.valor_hrs_extra = round(0.00777777 * float(move.contract_id.sueldo_base) * float(move.hrs_extra))
-                else:
-                    move.valor_hrs_extra = 0
-                if move.total_trato > 0:
-                    move.variable_trato = float(move.total_trato) - float(move.sueldo_base)
-                    if move.variable_trato < 0:
-                        move.variable_trato = 0
-                    if move.registry_id.company_id.sema_corrida_legal:
-                        move.sem_corrida = float(move.variable_trato) /  int(move.tarja_id.company_id.sema_corrida) #5
-                    else:
-                        move.sem_corrida = 0
-                    if move.sem_corrida < 0:
-                        move.sem_corrida = 0
-                move.sab_dom = ((((float(move.contract_id.sueldo_base) / 20) * 2) / 5) / 8) * float(move.hrs)
-                if move.registry_id.company_id.gratificacion_legal:
-                    move.gratifica = (float(move.sueldo_base) + float(move.valor_hrs_extra) + float(
-                        move.variable_trato) + float(move.sem_corrida) + float(move.sab_dom)) *  float(move.registry_id.company_id.gratifica) #0.25
-                else:
-                    move.gratifica = 0
-                move.cost_sueldo = (
-                        float(move.sueldo_base) + float(move.valor_hrs_extra) + float(move.variable_trato) + float(
-                    move.sem_corrida) + float(move.sab_dom) + float(move.gratifica))
-                move.seguro = float(move.cost_sueldo) * move.registry_id.company_id.step_seguro  # 0.07
-                move.feriado = float(move.cost_sueldo) * move.registry_id.company_id.step_feriado  # 0.05833
-                move.ias = float(move.cost_sueldo) * move.registry_id.company_id.step_ias  # 0.0833
-                move.cost_empresa = float(move.cost_sueldo) + float(move.seguro) + float(move.feriado) + float(move.ias)
+            registry = move.registry_id
+            company = registry.company_id
+
+            # Every computed field must receive a value, even on old or partially
+            # imported records.  The former implementation was copied from the
+            # Tarjas model and referenced ``tarja_id`` and ``move.date``, neither
+            # of which exists on a harvest registry line.
+            move.cost_id_domain = self.env['account.analytic.account']
+            move.hrs_total = float(move.hrs or 0.0) + float(move.hrs_extra or 0.0)
+            move.total_trato = 0.0
+            move.valor_hrs_extra = 0.0
+            move.variable_trato = 0.0
+            move.sem_corrida = 0.0
+            move.sab_dom = 0.0
+            move.gratifica = 0.0
+            move.cost_sueldo = 0.0
+            move.seguro = 0.0
+            move.feriado = 0.0
+            move.ias = 0.0
+            move.cost_empresa = 0.0
+
+            if not registry:
+                continue
+
+            move.cost_id_domain = self.env['account.analytic.account'].search([
+                ('fundo_id', '=', registry.fundo_id.id),
+                ('especie_id', '=', registry.especie_id.id),
+                ('grupo_variedad_id', '=', registry.grupo_variedad_id.id),
+            ])
+
+            if registry.pricelist_id:
+                item = registry.pricelist_id.item_ids.filtered(
+                    lambda price: price.product_tmpl_id == move.labor_id
+                )[:1]
+                if item:
+                    move.cant_minima = item.min_quantity
+                    move.tarifa = item.fixed_price
+                    move.uom_id = item.uom_id
+
+            move.total_trato = float(move.quantity or 0.0) * float(move.tarifa or 0.0)
+
+            contract = move.contract_id
+            calendar_id = contract.resource_calendar_id if contract else False
+            registry_date = fields.Datetime.to_datetime(registry.date) if registry.date else False
+            base_salary = float(contract.sueldo_base or 0.0) if contract else 0.0
+            salary_cost = float(move.sueldo_base or 0.0)
+
+            if registry_date and calendar_id and base_salary:
+                day_of_week = str(registry_date.weekday())
+                scheduled_hours = sum(
+                    attendance.hour_to - attendance.hour_from
+                    for attendance in calendar_id.attendance_ids
+                    if attendance.dayofweek == day_of_week
+                    and attendance.day_period != 'lunch'
+                )
+                if scheduled_hours > 0:
+                    month_days = calendar.monthrange(
+                        registry_date.year, registry_date.month
+                    )[1]
+                    salary_cost = (
+                        (base_salary / month_days) / scheduled_hours
+                    ) * float(move.hrs or 0.0)
+                    move.sueldo_base = salary_cost
+
+            if base_salary and move.hrs_extra:
+                move.valor_hrs_extra = round(
+                    0.00777777 * base_salary * float(move.hrs_extra)
+                )
+
+            move.variable_trato = max(move.total_trato - salary_cost, 0.0)
+            sema_corrida = float(company.sema_corrida or 0.0)
+            if company.sema_corrida_legal and sema_corrida > 0:
+                move.sem_corrida = move.variable_trato / sema_corrida
+
+            if base_salary:
+                move.sab_dom = (
+                    (((base_salary / 20) * 2) / 5) / 8
+                ) * float(move.hrs or 0.0)
+
+            subtotal = (
+                salary_cost + move.valor_hrs_extra + move.variable_trato
+                + move.sem_corrida + move.sab_dom
+            )
+            if company.gratificacion_legal:
+                move.gratifica = subtotal * float(company.gratifica or 0.0)
+
+            move.cost_sueldo = subtotal + move.gratifica
+            move.seguro = move.cost_sueldo * float(company.step_seguro or 0.0)
+            move.feriado = move.cost_sueldo * float(company.step_feriado or 0.0)
+            move.ias = move.cost_sueldo * float(company.step_ias or 0.0)
+            move.cost_empresa = (
+                move.cost_sueldo + move.seguro + move.feriado + move.ias
+            )
 
     employee_id = fields.Many2one('hr.employee', 'Empleado')
     contract_id = fields.Many2one(
