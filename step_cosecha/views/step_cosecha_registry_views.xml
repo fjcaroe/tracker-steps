@@ -252,7 +252,7 @@
                 <filter name="state_cont" string="Contabilizados" domain="[('state','=','cont')]"/>
                 <separator/>
                 <filter name="pending_receipt" string="Pendientes de recepción" domain="[('type_tarea','=','contratista'),('state','=','cont'),('cos_recibida','=',False)]"/>
-                <filter name="this_month" string="Este mes" date="date" default_period="this_month"/>
+                <filter name="this_month" string="Este mes" date="date" default_period="month"/>
                 <group expand="0" string="Agrupar por">
                     <filter name="group_state" string="Estado" context="{'group_by':'state'}"/>
                     <filter name="group_type" string="Tipo" context="{'group_by':'type_tarea'}"/>
