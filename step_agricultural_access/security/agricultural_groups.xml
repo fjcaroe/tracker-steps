@@ -59,6 +59,70 @@
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
+    <!-- Functional permissions inside each agricultural application. -->
+    <record id="category_activities" model="ir.module.category"><field name="name">Actividades</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">20</field></record>
+    <record id="group_activities_own_staff" model="res.groups"><field name="name">Personal propio</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+    <record id="group_activities_contractors" model="res.groups"><field name="name">Contratistas</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+    <record id="group_activities_transport" model="res.groups"><field name="name">Movilización</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+    <record id="group_activities_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+    <record id="group_activities_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+    <record id="group_activities_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+
+    <record id="category_tracker" model="ir.module.category"><field name="name">Steps Tracker</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">30</field></record>
+    <record id="group_tracker_operation" model="res.groups"><field name="name">Operación</field><field name="category_id" ref="category_tracker"/><field name="implied_ids" eval="[(4, ref('group_app_tracker'))]"/></record>
+    <record id="group_tracker_reports" model="res.groups"><field name="name">Reportes</field><field name="category_id" ref="category_tracker"/><field name="implied_ids" eval="[(4, ref('group_app_tracker'))]"/></record>
+    <record id="group_tracker_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_tracker"/><field name="implied_ids" eval="[(4, ref('group_app_tracker'))]"/></record>
+    <record id="group_tracker_web_map" model="res.groups"><field name="name">Mapa Web Tracker</field><field name="category_id" ref="category_tracker"/><field name="implied_ids" eval="[(4, ref('group_app_tracker'))]"/></record>
+    <record id="group_tracker_integration" model="res.groups"><field name="name">Integración</field><field name="category_id" ref="category_tracker"/><field name="implied_ids" eval="[(4, ref('group_app_tracker'))]"/></record>
+
+    <record id="category_machinery" model="ir.module.category"><field name="name">Maquinaria</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">40</field></record>
+    <record id="group_machinery_operation" model="res.groups"><field name="name">Maquinaria</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
+    <record id="group_machinery_auto_costs" model="res.groups"><field name="name">Costos Auto</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
+    <record id="group_machinery_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
+    <record id="group_machinery_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
+    <record id="group_machinery_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
+
+    <record id="category_harvest" model="ir.module.category"><field name="name">Cosecha</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">50</field></record>
+    <record id="group_harvest_planning" model="res.groups"><field name="name">Planificación</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_harvest" model="res.groups"><field name="name">Cosecha</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_post_harvest" model="res.groups"><field name="name">Post cosecha</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_own" model="res.groups"><field name="name">Cosecha propia</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_contractors" model="res.groups"><field name="name">Contratistas</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_reception" model="res.groups"><field name="name">Recepción</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+    <record id="group_harvest_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_harvest"/><field name="implied_ids" eval="[(4, ref('group_app_harvest'))]"/></record>
+
+    <record id="category_bpa" model="ir.module.category"><field name="name">BPA y Riego</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">60</field></record>
+    <record id="group_bpa_bpa" model="res.groups"><field name="name">BPA</field><field name="category_id" ref="category_bpa"/><field name="implied_ids" eval="[(4, ref('group_app_bpa_irrigation'))]"/></record>
+    <record id="group_bpa_irrigation" model="res.groups"><field name="name">Riego y Fertilización</field><field name="category_id" ref="category_bpa"/><field name="implied_ids" eval="[(4, ref('group_app_bpa_irrigation'))]"/></record>
+    <record id="group_bpa_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_bpa"/><field name="implied_ids" eval="[(4, ref('group_app_bpa_irrigation'))]"/></record>
+    <record id="group_bpa_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_bpa"/><field name="implied_ids" eval="[(4, ref('group_app_bpa_irrigation'))]"/></record>
+    <record id="group_bpa_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_bpa"/><field name="implied_ids" eval="[(4, ref('group_app_bpa_irrigation'))]"/></record>
+
+    <record id="category_quality" model="ir.module.category"><field name="name">QA-Inspecciones</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">70</field></record>
+    <record id="group_quality_quality" model="res.groups"><field name="name">Calidad</field><field name="category_id" ref="category_quality"/><field name="implied_ids" eval="[(4, ref('group_app_quality'))]"/></record>
+    <record id="group_quality_inspections" model="res.groups"><field name="name">Inspecciones</field><field name="category_id" ref="category_quality"/><field name="implied_ids" eval="[(4, ref('group_app_quality'))]"/></record>
+    <record id="group_quality_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_quality"/><field name="implied_ids" eval="[(4, ref('group_app_quality'))]"/></record>
+
+    <record id="category_labor" model="ir.module.category"><field name="name">Protección Laboral</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">80</field></record>
+    <record id="group_labor_karin" model="res.groups"><field name="name">Ley Karin (confidencial)</field><field name="category_id" ref="category_labor"/><field name="implied_ids" eval="[(4, ref('group_app_labor_protection')), (4, ref('step_labor_protection.group_labor_confidential'))]"/></record>
+    <record id="group_labor_courses" model="res.groups"><field name="name">Cursos</field><field name="category_id" ref="category_labor"/><field name="implied_ids" eval="[(4, ref('group_app_labor_protection'))]"/></record>
+    <record id="group_labor_epp" model="res.groups"><field name="name">EPP</field><field name="category_id" ref="category_labor"/><field name="implied_ids" eval="[(4, ref('group_app_labor_protection'))]"/></record>
+    <record id="group_labor_risks" model="res.groups"><field name="name">Riesgos</field><field name="category_id" ref="category_labor"/><field name="implied_ids" eval="[(4, ref('group_app_labor_protection'))]"/></record>
+    <record id="group_labor_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_labor"/><field name="implied_ids" eval="[(4, ref('group_app_labor_protection'))]"/></record>
+
+    <record id="category_management" model="ir.module.category"><field name="name">Gestión y Costos</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">90</field></record>
+    <record id="group_management_budget" model="res.groups"><field name="name">Presupuesto Operacional</field><field name="category_id" ref="category_management"/><field name="implied_ids" eval="[(4, ref('group_app_management_costs'))]"/></record>
+    <record id="group_management_planning" model="res.groups"><field name="name">Planificación</field><field name="category_id" ref="category_management"/><field name="implied_ids" eval="[(4, ref('group_app_management_costs'))]"/></record>
+    <record id="group_management_control" model="res.groups"><field name="name">Control de costos</field><field name="category_id" ref="category_management"/><field name="implied_ids" eval="[(4, ref('group_app_management_costs'))]"/></record>
+    <record id="group_management_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_management"/><field name="implied_ids" eval="[(4, ref('group_app_management_costs')), (4, ref('step_management_costs.group_management_manager'))]"/></record>
+
+    <record id="category_freight" model="ir.module.category"><field name="name">Fletes</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">100</field></record>
+    <record id="group_freight_operation" model="res.groups"><field name="name">Fletes</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
+    <record id="group_freight_control" model="res.groups"><field name="name">Control de fletes</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
+    <record id="group_freight_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
+    <record id="group_freight_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
+
     <record id="base.group_system" model="res.groups">
         <field name="implied_ids" eval="[
             (4, ref('step_agricultural_access.group_app_activities')),
@@ -69,7 +133,52 @@
             (4, ref('step_agricultural_access.group_app_quality')),
             (4, ref('step_agricultural_access.group_app_labor_protection')),
             (4, ref('step_agricultural_access.group_app_management_costs')),
-            (4, ref('step_agricultural_access.group_app_freight'))
+            (4, ref('step_agricultural_access.group_app_freight')),
+            (4, ref('step_agricultural_access.group_activities_own_staff')),
+            (4, ref('step_agricultural_access.group_activities_contractors')),
+            (4, ref('step_agricultural_access.group_activities_transport')),
+            (4, ref('step_agricultural_access.group_activities_reports')),
+            (4, ref('step_agricultural_access.group_activities_masters')),
+            (4, ref('step_agricultural_access.group_activities_configuration')),
+            (4, ref('step_agricultural_access.group_tracker_operation')),
+            (4, ref('step_agricultural_access.group_tracker_reports')),
+            (4, ref('step_agricultural_access.group_tracker_masters')),
+            (4, ref('step_agricultural_access.group_tracker_web_map')),
+            (4, ref('step_agricultural_access.group_tracker_integration')),
+            (4, ref('step_agricultural_access.group_machinery_operation')),
+            (4, ref('step_agricultural_access.group_machinery_auto_costs')),
+            (4, ref('step_agricultural_access.group_machinery_masters')),
+            (4, ref('step_agricultural_access.group_machinery_reports')),
+            (4, ref('step_agricultural_access.group_machinery_configuration')),
+            (4, ref('step_agricultural_access.group_harvest_planning')),
+            (4, ref('step_agricultural_access.group_harvest_harvest')),
+            (4, ref('step_agricultural_access.group_harvest_post_harvest')),
+            (4, ref('step_agricultural_access.group_harvest_own')),
+            (4, ref('step_agricultural_access.group_harvest_contractors')),
+            (4, ref('step_agricultural_access.group_harvest_reception')),
+            (4, ref('step_agricultural_access.group_harvest_masters')),
+            (4, ref('step_agricultural_access.group_harvest_configuration')),
+            (4, ref('step_agricultural_access.group_bpa_bpa')),
+            (4, ref('step_agricultural_access.group_bpa_irrigation')),
+            (4, ref('step_agricultural_access.group_bpa_reports')),
+            (4, ref('step_agricultural_access.group_bpa_masters')),
+            (4, ref('step_agricultural_access.group_bpa_configuration')),
+            (4, ref('step_agricultural_access.group_quality_quality')),
+            (4, ref('step_agricultural_access.group_quality_inspections')),
+            (4, ref('step_agricultural_access.group_quality_configuration')),
+            (4, ref('step_agricultural_access.group_labor_karin')),
+            (4, ref('step_agricultural_access.group_labor_courses')),
+            (4, ref('step_agricultural_access.group_labor_epp')),
+            (4, ref('step_agricultural_access.group_labor_risks')),
+            (4, ref('step_agricultural_access.group_labor_configuration')),
+            (4, ref('step_agricultural_access.group_management_budget')),
+            (4, ref('step_agricultural_access.group_management_planning')),
+            (4, ref('step_agricultural_access.group_management_control')),
+            (4, ref('step_agricultural_access.group_management_masters')),
+            (4, ref('step_agricultural_access.group_freight_operation')),
+            (4, ref('step_agricultural_access.group_freight_control')),
+            (4, ref('step_agricultural_access.group_freight_reports')),
+            (4, ref('step_agricultural_access.group_freight_configuration'))
         ]"/>
     </record>
 
