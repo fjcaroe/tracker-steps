@@ -4,7 +4,7 @@
     --activities-lime: #d8ff62;
     --activities-coral: #e65b45;
     --activities-ink: #183029;
-    min-height: 100%; padding: 24px; overflow: auto; color: var(--activities-ink); background: #f2f5f1;
+    height: 100%; min-height: 0; padding: 24px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; color: var(--activities-ink); background: #f2f5f1;
 }
 .o_step_activities_hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 32px; border-radius: 24px; color: #fff; background: radial-gradient(circle at 85% 0, rgba(216,255,98,.2), transparent 30%), linear-gradient(120deg, #0d352d, #18594a 68%, #2f8068); box-shadow: 0 18px 42px rgba(16,63,53,.2); }
 .o_step_activities_hero_copy { span { color: var(--activities-lime); font-size: 11px; font-weight: 800; letter-spacing: .13em; } h1 { margin: 4px 0 6px; font-size: 32px; font-weight: 800; } p { margin: 0; color: rgba(255,255,255,.78); } }
