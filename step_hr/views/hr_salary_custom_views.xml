@@ -103,7 +103,7 @@
                 <templates>
                     <t t-name="card">
                         <div class="o_step_salary_card">
-                            <div class="o_step_salary_card_top"><span t-att-class="'is-' + record.group_type.raw_value"><i t-att-class="record.group_type.raw_value === 'contratista' ? 'fa fa-handshake-o' : 'fa fa-users'"/> <field name="group_type"/></span><time><field name="date" widget="date"/></time></div>
+                            <div class="o_step_salary_card_top"><span t-att-class="'is-' + record.group_type.raw_value"><i t-att-class="record.group_type.raw_value === 'contratista' ? 'fa fa-handshake-o' : 'fa fa-users'" title="Tipo de cuadrilla"/> <field name="group_type"/></span><time><field name="date" widget="date"/></time></div>
                             <h3><field name="name"/></h3>
                             <p><i class="fa fa-map-marker" title="Fundo"/> <field name="fundo_id"/></p>
                             <div class="o_step_salary_card_meta"><span><small>Supervisor / responsable</small><strong><t t-esc="record.employee_id.value || record.responsable_id.value || 'Sin asignar'"/></strong></span><span t-if="record.partner_id.raw_value"><small>Contratista</small><strong><field name="partner_id"/></strong></span></div>
