@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="step_hr.menu_step_hr_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_activities')])]"/>
+    </record>
+    <record id="step_hr.menu_step_tracker_gps_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_tracker')])]"/>
+    </record>
+    <record id="step_machinery.menu_step_machinery_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_machinery')])]"/>
+    </record>
+    <record id="step_cosecha.menu_step_cosecha_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_harvest')])]"/>
+    </record>
+    <record id="studio_customization.bpa_y_riego_3e945603-e8bf-4cdc-93fc-cce511c0d7cb" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_bpa_irrigation')])]"/>
+    </record>
+    <record id="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_quality')])]"/>
+    </record>
+    <record id="studio_customization.proteccion_laboral_d71afde5-f451-47c8-a269-25311654bc7f" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_labor_protection')])]"/>
+    </record>
+    <record id="step_management_costs.menu_management_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_management_costs')])]"/>
+    </record>
+    <record id="studio_customization.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_freight')])]"/>
+    </record>
+</odoo>
