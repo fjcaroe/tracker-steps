@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Internal inspections -->
+    <record id="view_internal_inspection_list_step_qa" model="ir.ui.view">
+        <field name="name">x.inspecciones.interna.list.step.qa</field>
+        <field name="model">x_inspecciones_interna</field>
+        <field name="arch" type="xml">
+            <list string="Inspecciones internas" class="o_step_qa_list"
+                  decoration-info="x_studio_selection_field_6l2_1jhuo823d == 'status2'"
+                  decoration-success="x_studio_selection_field_6l2_1jhuo823d == 'status3'">
+                <field name="x_name" string="Folio" optional="show"/>
+                <field name="x_studio_selection_field_6l2_1jhuo823d" string="Estado" widget="badge" optional="show"
+                       decoration-muted="x_studio_selection_field_6l2_1jhuo823d == 'status1'"
+                       decoration-info="x_studio_selection_field_6l2_1jhuo823d == 'status2'"
+                       decoration-success="x_studio_selection_field_6l2_1jhuo823d == 'status3'"/>
+                <field name="x_studio_fecha" string="Fecha registro" optional="show"/>
+                <field name="x_studio_fecha_a_ejecutar" string="Fecha ejecución" optional="show"/>
+                <field name="x_studio_fundo" optional="show"/>
+                <field name="x_studio_sector_riego" optional="show"/>
+                <field name="x_studio_centro_costos" optional="show"/>
+                <field name="x_studio_responsable" optional="show"/>
+                <field name="x_studio_asignado_a" optional="show"/>
+                <field name="x_studio_instruccin" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_internal_inspection_form_step_qa" model="ir.ui.view">
+        <field name="name">x.inspecciones.interna.form.step.qa</field>
+        <field name="model">x_inspecciones_interna</field>
+        <field name="arch" type="xml">
+            <form string="Inspección interna" class="o_step_qa_studio_form">
+                <header>
+                    <field name="x_studio_selection_field_6l2_1jhuo823d" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <field name="x_active" invisible="1"/>
+                    <widget name="web_ribbon" title="Archivada" bg_color="text-bg-danger" invisible="x_active"/>
+                    <div class="o_step_qa_record_intro">
+                        <i class="fa fa-clipboard" title="Inspección interna"/>
+                        <div><span>INSPECCIÓN EN TERRENO</span><strong>Ficha de inspección interna</strong><small>Planifique, asigne, documente hallazgos y apruebe la ejecución.</small></div>
+                    </div>
+                    <div class="oe_title"><label for="x_name" string="Folio"/><h1><field name="x_name" readonly="1" force_save="1" placeholder="Nuevo"/></h1></div>
+                    <group>
+                        <group string="Ubicación">
+                            <field name="x_studio_fundo"/>
+                            <field name="x_studio_sector_riego" options="{'create_name_field': 'x_name'}"/>
+                            <field name="x_studio_centro_costos" domain="[('plan_id', 'in', [3])]"/>
+                        </group>
+                        <group string="Planificación">
+                            <field name="x_studio_fecha"/>
+                            <field name="x_studio_fecha_a_ejecutar"/>
+                            <field name="x_studio_responsable" domain="[('user_id', '!=', False)]"/>
+                            <field name="x_studio_asignado_a"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Instrucciones" name="instructions"><group><field name="x_studio_instruccin" placeholder="Indique qué se debe revisar y el criterio esperado."/></group></page>
+                        <page string="Lista de revisión" name="checklist">
+                            <field name="x_studio_one2many_field_3nh_1jhunj486" nolabel="1">
+                                <list editable="bottom"><field name="x_studio_sequence" widget="handle"/><field name="x_name" string="Ítem de inspección" required="1"/></list>
+                            </field>
+                        </page>
+                        <page string="Observaciones" name="observations"><group><field name="x_studio_observaciones" placeholder="Registre hallazgos, desviaciones y acuerdos."/></group></page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_internal_inspection_kanban_step_qa" model="ir.ui.view">
+        <field name="name">x.inspecciones.interna.kanban.step.qa</field><field name="model">x_inspecciones_interna</field>
+        <field name="arch" type="xml"><kanban string="Inspecciones internas" default_group_by="x_studio_selection_field_6l2_1jhuo823d" class="o_kanban_small_column">
+            <field name="x_name"/><field name="x_studio_selection_field_6l2_1jhuo823d"/><field name="x_studio_fundo"/><field name="x_studio_sector_riego"/><field name="x_studio_fecha_a_ejecutar"/><field name="x_studio_asignado_a"/>
+            <templates><t t-name="card"><div class="d-flex justify-content-between align-items-start gap-2"><strong class="fs-6"><field name="x_name"/></strong><field name="x_studio_selection_field_6l2_1jhuo823d" widget="badge"/></div><div class="text-muted mt-2"><i class="fa fa-map-marker me-1" title="Ubicación"/><field name="x_studio_fundo"/><t t-if="record.x_studio_sector_riego.raw_value"> · <field name="x_studio_sector_riego"/></t></div><div class="d-flex justify-content-between mt-3 small"><span><i class="fa fa-user me-1" title="Responsable"/><field name="x_studio_asignado_a"/></span><span><i class="fa fa-calendar me-1" title="Fecha"/><field name="x_studio_fecha_a_ejecutar"/></span></div></t></templates>
+        </kanban></field>
+    </record>
+
+    <record id="view_internal_inspection_calendar_step_qa" model="ir.ui.view">
+        <field name="name">x.inspecciones.interna.calendar.step.qa</field><field name="model">x_inspecciones_interna</field>
+        <field name="arch" type="xml"><calendar string="Calendario de inspecciones" date_start="x_studio_fecha_a_ejecutar" color="x_studio_responsable" mode="month" event_open_popup="true"><field name="x_name"/><field name="x_studio_selection_field_6l2_1jhuo823d"/><field name="x_studio_fundo"/><field name="x_studio_asignado_a"/></calendar></field>
+    </record>
+
+    <record id="view_internal_inspection_search_step_qa" model="ir.ui.view">
+        <field name="name">x.inspecciones.interna.search.step.qa</field><field name="model">x_inspecciones_interna</field>
+        <field name="arch" type="xml"><search string="Buscar inspecciones internas"><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_sector_riego"/><field name="x_studio_responsable"/><field name="x_studio_asignado_a"/><field name="x_studio_centro_costos"/><separator/><filter name="created" string="Creadas" domain="[('x_studio_selection_field_6l2_1jhuo823d','=','status1')]"/><filter name="executed" string="Ejecutadas" domain="[('x_studio_selection_field_6l2_1jhuo823d','=','status2')]"/><filter name="approved" string="Aprobadas" domain="[('x_studio_selection_field_6l2_1jhuo823d','=','status3')]"/><filter name="execution_date" string="Fecha de ejecución" date="x_studio_fecha_a_ejecutar"/><group expand="0" string="Agrupar por"><filter name="group_state" string="Estado" context="{'group_by':'x_studio_selection_field_6l2_1jhuo823d'}"/><filter name="group_farm" string="Fundo" context="{'group_by':'x_studio_fundo'}"/><filter name="group_responsible" string="Responsable" context="{'group_by':'x_studio_responsable'}"/><filter name="group_month" string="Mes" context="{'group_by':'x_studio_fecha_a_ejecutar:month'}"/></group></search></field>
+    </record>
+
+    <record id="studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2" model="ir.actions.act_window">
+        <field name="name">Inspecciones internas</field><field name="view_mode">kanban,list,calendar,form</field><field name="search_view_id" ref="step_qa.view_internal_inspection_search_step_qa"/>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Planifique la primera inspección interna.</p><p>Asigne un responsable, fecha, ubicación y lista de revisión para dejar evidencia de la ejecución.</p></field>
+    </record>
+    <record id="action_view_internal_inspection_kanban_step_qa" model="ir.actions.act_window.view"><field name="sequence">10</field><field name="view_mode">kanban</field><field name="view_id" ref="step_qa.view_internal_inspection_kanban_step_qa"/><field name="act_window_id" ref="studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2"/></record>
+    <record id="action_view_internal_inspection_list_step_qa" model="ir.actions.act_window.view"><field name="sequence">20</field><field name="view_mode">list</field><field name="view_id" ref="step_qa.view_internal_inspection_list_step_qa"/><field name="act_window_id" ref="studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2"/></record>
+    <record id="action_view_internal_inspection_calendar_step_qa" model="ir.actions.act_window.view"><field name="sequence">30</field><field name="view_mode">calendar</field><field name="view_id" ref="step_qa.view_internal_inspection_calendar_step_qa"/><field name="act_window_id" ref="studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2"/></record>
+    <record id="action_view_internal_inspection_form_step_qa" model="ir.actions.act_window.view"><field name="sequence">40</field><field name="view_mode">form</field><field name="view_id" ref="step_qa.view_internal_inspection_form_step_qa"/><field name="act_window_id" ref="studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2"/></record>
+
+    <!-- External advisory inspections -->
+    <record id="view_external_advisor_list_step_qa" model="ir.ui.view">
+        <field name="name">x.asesor.externo.list.step.qa</field><field name="model">x_asesor_externo</field>
+        <field name="arch" type="xml"><list string="Asesorías externas" class="o_step_qa_list" decoration-info="x_studio_selection_field_9fu_1jhjpstuu == 'status2'" decoration-success="x_studio_selection_field_9fu_1jhjpstuu in ('status3', 'Revisada asesor')"><field name="x_name" string="Folio" optional="show"/><field name="x_studio_selection_field_9fu_1jhjpstuu" string="Estado" widget="badge" optional="show"/><field name="x_studio_fecha" optional="show"/><field name="x_studio_fecha_a_ejecutar" string="Fecha ejecución" optional="show"/><field name="x_studio_fundo" optional="show"/><field name="x_studio_especie" optional="show"/><field name="x_studio_actividad" optional="show"/><field name="x_studio_nombre_asesor" string="Asesor" optional="show"/><field name="x_studio_responsable_de_ejecutar" string="Responsable" optional="show"/><field name="x_studio_aprobador" optional="show"/><field name="x_studio_centro_costo" optional="hide"/></list></field>
+    </record>
+
+    <record id="view_external_advisor_form_step_qa" model="ir.ui.view">
+        <field name="name">x.asesor.externo.form.step.qa</field><field name="model">x_asesor_externo</field>
+        <field name="arch" type="xml"><form string="Asesoría externa" class="o_step_qa_studio_form"><header><field name="x_studio_selection_field_9fu_1jhjpstuu" widget="statusbar" options="{'clickable':'1'}"/></header><sheet><field name="x_active" invisible="1"/><widget name="web_ribbon" title="Archivada" bg_color="text-bg-danger" invisible="x_active"/><div class="o_step_qa_record_intro"><i class="fa fa-user-md" title="Asesoría externa"/><div><span>APOYO ESPECIALISTA</span><strong>Asesoría e inspección externa</strong><small>Coordine la recomendación técnica, ejecución en terreno y aprobación final.</small></div></div><div class="oe_title"><label for="x_name" string="Folio"/><h1><field name="x_name" placeholder="Nuevo"/></h1></div><group><group string="Antecedentes"><field name="x_studio_fecha"/><field name="x_studio_fundo"/><field name="x_studio_especie"/><field name="x_studio_actividad"/><field name="x_studio_centro_costo"/></group><group string="Responsables"><field name="x_studio_nombre_asesor"/><field name="x_studio_fecha_a_ejecutar"/><field name="x_studio_responsable_de_ejecutar"/><field name="x_studio_aprobador"/></group></group><notebook><page string="Recomendación" name="recommendation"><group><field name="x_studio_descripcin" placeholder="Describa el objetivo y recomendación de la asesoría."/></group></page><page string="Plan de trabajo" name="workplan"><field name="x_studio_one2many_field_5gf_1jhjpujpp" nolabel="1"><list editable="bottom"><field name="x_studio_sequence" widget="handle"/><field name="x_studio_labor_tarea"/><field name="x_studio_sustancia_activa"/><field name="x_studio_producto_agrcola"/><field name="x_studio_dosis_por_ha"/><field name="x_name" string="Resultado esperado"/></list></field></page></notebook></sheet><chatter/></form></field>
+    </record>
+
+    <record id="view_external_advisor_kanban_step_qa" model="ir.ui.view">
+        <field name="name">x.asesor.externo.kanban.step.qa</field><field name="model">x_asesor_externo</field><field name="arch" type="xml"><kanban string="Asesorías externas" default_group_by="x_studio_selection_field_9fu_1jhjpstuu" class="o_kanban_small_column"><field name="x_name"/><field name="x_studio_selection_field_9fu_1jhjpstuu"/><field name="x_studio_fundo"/><field name="x_studio_fecha_a_ejecutar"/><field name="x_studio_nombre_asesor"/><field name="x_studio_responsable_de_ejecutar"/><templates><t t-name="card"><div class="d-flex justify-content-between align-items-start gap-2"><strong class="fs-6"><field name="x_name"/></strong><field name="x_studio_selection_field_9fu_1jhjpstuu" widget="badge"/></div><div class="text-muted mt-2"><i class="fa fa-map-marker me-1" title="Ubicación"/><field name="x_studio_fundo"/></div><div class="mt-2"><i class="fa fa-user-md me-1" title="Asesor"/><field name="x_studio_nombre_asesor"/></div><div class="d-flex justify-content-between mt-3 small"><span><i class="fa fa-user me-1" title="Responsable"/><field name="x_studio_responsable_de_ejecutar"/></span><span><i class="fa fa-calendar me-1" title="Fecha"/><field name="x_studio_fecha_a_ejecutar"/></span></div></t></templates></kanban></field>
+    </record>
+
+    <record id="view_external_advisor_calendar_step_qa" model="ir.ui.view"><field name="name">x.asesor.externo.calendar.step.qa</field><field name="model">x_asesor_externo</field><field name="arch" type="xml"><calendar string="Calendario de asesorías" date_start="x_studio_fecha_a_ejecutar" color="x_studio_nombre_asesor" mode="month" event_open_popup="true"><field name="x_name"/><field name="x_studio_selection_field_9fu_1jhjpstuu"/><field name="x_studio_fundo"/><field name="x_studio_nombre_asesor"/><field name="x_studio_responsable_de_ejecutar"/></calendar></field></record>
+
+    <record id="view_external_advisor_search_step_qa" model="ir.ui.view"><field name="name">x.asesor.externo.search.step.qa</field><field name="model">x_asesor_externo</field><field name="arch" type="xml"><search string="Buscar asesorías externas"><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_especie"/><field name="x_studio_actividad"/><field name="x_studio_nombre_asesor"/><field name="x_studio_responsable_de_ejecutar"/><field name="x_studio_aprobador"/><separator/><filter name="created" string="Creadas" domain="[('x_studio_selection_field_9fu_1jhjpstuu','=','status1')]"/><filter name="executed" string="Ejecutadas" domain="[('x_studio_selection_field_9fu_1jhjpstuu','=','status2')]"/><filter name="approved" string="Aprobadas" domain="[('x_studio_selection_field_9fu_1jhjpstuu','in',['status3','Revisada asesor'])]"/><filter name="execution_date" string="Fecha de ejecución" date="x_studio_fecha_a_ejecutar"/><group expand="0" string="Agrupar por"><filter name="group_state" string="Estado" context="{'group_by':'x_studio_selection_field_9fu_1jhjpstuu'}"/><filter name="group_farm" string="Fundo" context="{'group_by':'x_studio_fundo'}"/><filter name="group_advisor" string="Asesor" context="{'group_by':'x_studio_nombre_asesor'}"/><filter name="group_month" string="Mes" context="{'group_by':'x_studio_fecha_a_ejecutar:month'}"/></group></search></field></record>
+
+    <record id="studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f" model="ir.actions.act_window"><field name="name">Asesorías externas</field><field name="view_mode">kanban,list,calendar,form</field><field name="search_view_id" ref="step_qa.view_external_advisor_search_step_qa"/><field name="help" type="html"><p class="o_view_nocontent_smiling_face">Registre la primera asesoría externa.</p><p>Documente la recomendación técnica, sus responsables y el plan de ejecución.</p></field></record>
+    <record id="action_view_external_advisor_kanban_step_qa" model="ir.actions.act_window.view"><field name="sequence">10</field><field name="view_mode">kanban</field><field name="view_id" ref="step_qa.view_external_advisor_kanban_step_qa"/><field name="act_window_id" ref="studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f"/></record>
+    <record id="action_view_external_advisor_list_step_qa" model="ir.actions.act_window.view"><field name="sequence">20</field><field name="view_mode">list</field><field name="view_id" ref="step_qa.view_external_advisor_list_step_qa"/><field name="act_window_id" ref="studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f"/></record>
+    <record id="action_view_external_advisor_calendar_step_qa" model="ir.actions.act_window.view"><field name="sequence">30</field><field name="view_mode">calendar</field><field name="view_id" ref="step_qa.view_external_advisor_calendar_step_qa"/><field name="act_window_id" ref="studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f"/></record>
+    <record id="action_view_external_advisor_form_step_qa" model="ir.actions.act_window.view"><field name="sequence">40</field><field name="view_mode">form</field><field name="view_id" ref="step_qa.view_external_advisor_form_step_qa"/><field name="act_window_id" ref="studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f"/></record>
+</odoo>

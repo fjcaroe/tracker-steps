@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_qa.Dashboard">
+        <main class="o_step_qa_dashboard">
+            <div t-if="state.loading" class="o_step_qa_loading">
+                <i class="fa fa-circle-o-notch fa-spin"/> Cargando centro de calidad…
+            </div>
+
+            <div t-elif="state.error" class="o_step_qa_error">
+                <i class="fa fa-exclamation-triangle"/>
+                <strong t-esc="state.error"/>
+                <button class="btn btn-primary" t-on-click="() => this.loadDashboard()">Reintentar</button>
+            </div>
+
+            <t t-else="">
+                <section class="o_step_qa_hero">
+                    <div>
+                        <span class="o_step_qa_eyebrow">ASEGURAMIENTO AGRÍCOLA</span>
+                        <h1>Centro de Calidad</h1>
+                        <p>Controles, inspecciones y alertas en una sola vista para actuar a tiempo.</p>
+                    </div>
+                    <div class="o_step_qa_period" role="group" aria-label="Período">
+                        <button t-att-class="state.days === 30 ? 'active' : ''" t-on-click="() => this.loadDashboard(30)">30 días</button>
+                        <button t-att-class="state.days === 90 ? 'active' : ''" t-on-click="() => this.loadDashboard(90)">90 días</button>
+                        <button t-att-class="state.days === 365 ? 'active' : ''" t-on-click="() => this.loadDashboard(365)">1 año</button>
+                        <button t-att-class="state.days === 0 ? 'active' : ''" t-on-click="() => this.loadDashboard(0)"><i class="fa fa-history"/> Todo</button>
+                    </div>
+                </section>
+
+                <section class="o_step_qa_actions">
+                    <button class="btn btn-primary" t-on-click="() => this.openAction('studio_customization.control_de_qa_b172c94c-5a8d-48d6-8779-b0ca0e1b0d8a')">
+                        <i class="fa fa-check-square-o"/> Controles de calidad
+                    </button>
+                    <button class="btn btn-outline-primary" t-on-click="() => this.openAction('studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2')">
+                        <i class="fa fa-clipboard"/> Nueva inspección
+                    </button>
+                    <button class="btn btn-outline-primary" t-on-click="() => this.openAction('studio_customization.alertas_de_calidad_460e6a18-5379-4351-9b36-fcb6bc0f8240')">
+                        <i class="fa fa-exclamation-circle"/> Revisar alertas
+                    </button>
+                </section>
+
+                <section class="o_step_qa_kpis">
+                    <button class="o_step_qa_kpi o_step_qa_kpi--main" t-on-click="() => this.openAction('studio_customization.control_de_qa_b172c94c-5a8d-48d6-8779-b0ca0e1b0d8a')">
+                        <span>Controles registrados</span>
+                        <strong t-esc="formatNumber(state.data.checks.total)"/>
+                        <small><b t-esc="formatNumber(state.data.checks.pending)"/> pendientes</small>
+                    </button>
+                    <article class="o_step_qa_kpi o_step_qa_kpi--success">
+                        <span>Aprobación</span>
+                        <strong><t t-esc="formatNumber(state.data.checks.pass_rate, 1)"/>%</strong>
+                        <small><b t-esc="formatNumber(state.data.checks.passed)"/> aprobados</small>
+                    </article>
+                    <article class="o_step_qa_kpi o_step_qa_kpi--danger">
+                        <span>Controles rechazados</span>
+                        <strong t-esc="formatNumber(state.data.checks.failed)"/>
+                        <small>Requieren revisión</small>
+                    </article>
+                    <button class="o_step_qa_kpi o_step_qa_kpi--warning" t-on-click="() => this.openAction('studio_customization.alertas_de_calidad_460e6a18-5379-4351-9b36-fcb6bc0f8240')">
+                        <span>Alertas abiertas</span>
+                        <strong t-esc="formatNumber(state.data.open_alerts)"/>
+                        <small><b t-esc="formatNumber(state.data.critical_alerts)"/> críticas</small>
+                    </button>
+                    <button class="o_step_qa_kpi" t-on-click="() => this.openAction('studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2')">
+                        <span>Inspecciones internas</span>
+                        <strong t-esc="formatNumber(state.data.inspections.total)"/>
+                        <small><b t-esc="formatNumber(state.data.inspections.overdue)"/> vencidas</small>
+                    </button>
+                    <button class="o_step_qa_kpi" t-on-click="() => this.openAction('studio_customization.puntos_de_control_d607ccb0-74c4-46ba-84e7-7b7d8fa7c6b8')">
+                        <span>Puntos de control</span>
+                        <strong t-esc="formatNumber(state.data.active_points)"/>
+                        <small><b t-esc="formatNumber(state.data.teams)"/> equipos QA</small>
+                    </button>
+                </section>
+
+                <section class="o_step_qa_workspace">
+                    <div class="o_step_qa_panel o_step_qa_panel--wide">
+                        <header>
+                            <div><span>TRAZABILIDAD</span><h2>Controles recientes</h2></div>
+                            <button t-on-click="() => this.openAction('studio_customization.control_de_qa_b172c94c-5a8d-48d6-8779-b0ca0e1b0d8a')">Ver todos</button>
+                        </header>
+                        <div t-if="!state.data.recent_checks.length" class="o_step_qa_empty">No hay controles en este período.</div>
+                        <button t-foreach="state.data.recent_checks" t-as="check" t-key="check.id" class="o_step_qa_row" t-on-click="() => this.openRecord('quality.check', check.id)">
+                            <span t-attf-class="o_step_qa_state o_step_qa_state--{{ check.state }}" t-esc="stateLabel(check.state)"/>
+                            <span class="o_step_qa_row_main"><strong t-esc="check.title"/><small><t t-esc="check.product"/> · <t t-esc="check.team"/></small></span>
+                            <time t-esc="formatDate(check.date)"/>
+                        </button>
+                    </div>
+
+                    <aside class="o_step_qa_panel">
+                        <header><div><span>ATENCIÓN</span><h2>Alertas abiertas</h2></div></header>
+                        <div t-if="!state.data.recent_alerts.length" class="o_step_qa_empty o_step_qa_empty--success"><i class="fa fa-check-circle"/> Sin alertas abiertas.</div>
+                        <button t-foreach="state.data.recent_alerts" t-as="alert" t-key="alert.id" class="o_step_qa_alert" t-on-click="() => this.openRecord('quality.alert', alert.id)">
+                            <i t-att-class="Number(alert.priority) >= 3 ? 'fa fa-exclamation-circle text-danger' : 'fa fa-exclamation-triangle text-warning'"/>
+                            <span><strong t-esc="alert.title"/><small><t t-esc="alert.stage"/> · <t t-esc="alert.responsible"/></small></span>
+                        </button>
+                    </aside>
+
+                    <div class="o_step_qa_panel o_step_qa_panel--wide">
+                        <header>
+                            <div><span>TERRENO</span><h2>Inspecciones internas</h2></div>
+                            <button t-on-click="() => this.openAction('studio_customization.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2')">Abrir módulo</button>
+                        </header>
+                        <div t-if="!state.data.inspections.recent.length" class="o_step_qa_empty">Aún no hay inspecciones registradas.</div>
+                        <button t-foreach="state.data.inspections.recent" t-as="inspection" t-key="inspection.id" class="o_step_qa_row" t-on-click="() => this.openRecord('x_inspecciones_interna', inspection.id)">
+                            <span t-attf-class="o_step_qa_state o_step_qa_state--{{ inspection.state }}" t-esc="stateLabel(inspection.state)"/>
+                            <span class="o_step_qa_row_main"><strong t-esc="inspection.name"/><small><t t-esc="inspection.farm"/> · <t t-esc="inspection.responsible"/></small></span>
+                            <time t-esc="formatDate(inspection.date)"/>
+                        </button>
+                    </div>
+
+                    <aside class="o_step_qa_panel o_step_qa_shortcuts">
+                        <header><div><span>ACCESOS RÁPIDOS</span><h2>Administración QA</h2></div></header>
+                        <button t-on-click="() => this.openAction('studio_customization.puntos_de_control_d607ccb0-74c4-46ba-84e7-7b7d8fa7c6b8')"><i class="fa fa-crosshairs"/><span><strong>Puntos de control</strong><small>Definir qué y cuándo revisar</small></span></button>
+                        <button t-on-click="() => this.openAction('studio_customization.equipo_de_alertas_qa_7ba3c107-1e6a-4cbd-ae6d-cfafb976e614')"><i class="fa fa-users"/><span><strong>Equipos QA</strong><small>Responsables y alertas</small></span></button>
+                        <button t-on-click="() => this.openAction('studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f')"><i class="fa fa-user-md"/><span><strong>Asesorías externas</strong><small><t t-esc="formatNumber(state.data.advisors.pending)"/> pendientes</small></span></button>
+                    </aside>
+                </section>
+            </t>
+        </main>
+    </t>
+</templates>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Existing Studio records keep their old es_CL value unless explicitly updated in that language. -->
+    <record id="studio_customization.control_de_qa_b172c94c-5a8d-48d6-8779-b0ca0e1b0d8a" model="ir.actions.act_window" context="{'lang': 'es_CL'}"><field name="name">Controles de calidad</field></record>
+    <record id="studio_customization.equipo_de_alertas_qa_7ba3c107-1e6a-4cbd-ae6d-cfafb976e614" model="ir.actions.act_window" context="{'lang': 'es_CL'}"><field name="name">Equipos de calidad</field></record>
+    <record id="studio_customization.asesor_externo_79ae2b5a-8e06-4bf5-81d5-66da18c2b90f" model="ir.actions.act_window" context="{'lang': 'es_CL'}"><field name="name">Asesorías externas</field></record>
+
+    <record id="studio_customization.qa_inspecciones_qa_p_1329b29f-841c-4d28-a232-4ddac5da2a1a" model="ir.ui.menu" context="{'lang': 'es_CL'}"><field name="name">Calidad</field></record>
+    <record id="studio_customization.qa_inspecciones_cont_e5a98440-bc2d-4f08-964d-75513d54e14a" model="ir.ui.menu" context="{'lang': 'es_CL'}"><field name="name">Controles de calidad</field></record>
+    <record id="studio_customization.qa_inspecciones_equi_9eec98c8-a402-4fe5-971a-20181ee53b63" model="ir.ui.menu" context="{'lang': 'es_CL'}"><field name="name">Equipos de calidad</field></record>
+    <record id="studio_customization.qa_inspecciones_ases_b2fe5ab3-8004-4c97-9929-ef87dea966af" model="ir.ui.menu" context="{'lang': 'es_CL'}"><field name="name">Asesorías externas</field></record>
+    <record id="studio_customization.qa_inspecciones_conf_fce57426-cb59-4771-bc18-188965a025db" model="ir.ui.menu" context="{'lang': 'es_CL'}"><field name="name">Configuración</field></record>
+</odoo>

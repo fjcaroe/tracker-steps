@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994" model="ir.ui.menu">
+        <field name="name">QA-Inspecciones</field>
+        <field name="action" ref="step_qa.action_step_qa_dashboard"/>
+    </record>
+
+    <menuitem id="menu_step_qa_dashboard"
+              name="Inicio"
+              action="step_qa.action_step_qa_dashboard"
+              parent="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994"
+              sequence="0"/>
+
+    <record id="studio_customization.qa_inspecciones_qa_p_1329b29f-841c-4d28-a232-4ddac5da2a1a" model="ir.ui.menu"><field name="name">Calidad</field><field name="sequence">10</field></record>
+    <record id="studio_customization.qa_inspecciones_punt_75a22f25-dd83-4256-8585-1b174e7db808" model="ir.ui.menu"><field name="name">Puntos de control</field><field name="sequence">10</field></record>
+    <record id="studio_customization.qa_inspecciones_cont_e5a98440-bc2d-4f08-964d-75513d54e14a" model="ir.ui.menu"><field name="name">Controles de calidad</field><field name="sequence">20</field></record>
+    <record id="studio_customization.qa_inspecciones_aler_0724ff00-c483-4e5f-9b25-43e949f2e7c4" model="ir.ui.menu"><field name="name">Alertas de calidad</field><field name="sequence">30</field></record>
+    <record id="studio_customization.qa_inspecciones_equi_9eec98c8-a402-4fe5-971a-20181ee53b63" model="ir.ui.menu"><field name="name">Equipos de calidad</field><field name="sequence">40</field></record>
+
+    <record id="studio_customization.qa_inspecciones_insp_4ee5cf46-97bc-4f66-9f42-5bde67504ef3" model="ir.ui.menu"><field name="name">Inspecciones</field><field name="sequence">20</field></record>
+    <record id="studio_customization.qa_inspecciones_insp_bfb6593f-e08c-467a-b3f0-8e3f2efe0ac1" model="ir.ui.menu"><field name="name">Inspecciones internas</field><field name="sequence">10</field></record>
+    <record id="studio_customization.qa_inspecciones_ases_b2fe5ab3-8004-4c97-9929-ef87dea966af" model="ir.ui.menu"><field name="name">Asesorías externas</field><field name="sequence">20</field></record>
+
+    <record id="studio_customization.qa_inspecciones_conf_fce57426-cb59-4771-bc18-188965a025db" model="ir.ui.menu"><field name="name">Configuración</field><field name="sequence">90</field></record>
+</odoo>
