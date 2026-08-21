@@ -22,7 +22,6 @@
                 'web',
                 'stock',
                 'purchase',
-                'studio_customization',
                 'step_hr',
                 'hr_payroll',
                 'hr_work_entry_contract_enterprise',
