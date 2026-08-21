@@ -11,7 +11,7 @@ export class StepActivitiesDashboard extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
-        this.state = useState({ loading: true, days: 30, data: null, error: null });
+        this.state = useState({ loading: true, days: 0, data: null, error: null });
         onWillStart(() => this.loadDashboard());
     }
 

@@ -80,7 +80,13 @@ class HrSalaryCustomActivitiesDashboard(models.Model):
         fundo_groups = sorted(fundo_groups, key=lambda group: group["__count"], reverse=True)[:5]
         max_fundo = max((group["__count"] for group in fundo_groups), default=1)
 
-        month_start = fields.Date.today().replace(day=1)
+        latest_salary = self.search(
+            [("company_id", "=", self.env.company.id), ("date", "!=", False)],
+            order="date desc, id desc",
+            limit=1,
+        )
+        trend_anchor = latest_salary.date if days == 0 and latest_salary else fields.Date.today()
+        month_start = trend_anchor.replace(day=1)
         trend = []
         for offset in range(5, -1, -1):
             start = month_start - relativedelta(months=offset)
