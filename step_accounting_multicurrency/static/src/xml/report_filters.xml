@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-inherit="account_reports.AccountReportFiltersCustomizable" t-inherit-mode="extension">
+        <xpath expr="//div[@id='filter_rounding_unit']" position="before">
+            <t t-if="controller.options.step_presentation_currencies?.length">
+                <div id="filter_step_presentation_currency" class="o_step_currency_filter">
+                    <Dropdown>
+                        <button class="btn btn-secondary">
+                            <i class="fa fa-exchange me-1"/>
+                            <span>Monedas: </span>
+                            <t t-out="stepPresentationCurrencyLabel"/>
+                        </button>
+                        <t t-set-slot="content">
+                            <div class="o_step_currency_filter_title">Monedas de presentación</div>
+                            <div class="o_step_currency_filter_company">
+                                <i class="fa fa-lock me-2"/>
+                                <span t-out="controller.options.step_company_currency.name"/>
+                                <small>Moneda contable base</small>
+                            </div>
+                            <div role="separator" class="dropdown-divider"/>
+                            <t t-foreach="controller.options.step_presentation_currencies" t-as="currency" t-key="currency.id">
+                                <DropdownItem
+                                    class="{ 'selected': currency.selected }"
+                                    onSelected="() => this.stepTogglePresentationCurrency(currency.id)"
+                                >
+                                    <i t-att-class="currency.selected ? 'fa fa-check-square-o me-2' : 'fa fa-square-o me-2'"/>
+                                    <span t-out="currency.name"/>
+                                    <small class="ms-2 text-muted" t-out="currency.symbol"/>
+                                </DropdownItem>
+                            </t>
+                        </t>
+                    </Dropdown>
+                </div>
+            </t>
+        </xpath>
+    </t>
+</templates>
