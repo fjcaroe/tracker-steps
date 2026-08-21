@@ -11,7 +11,7 @@
     'author': "jamie.escalante7@gmail.com",
     'website': "",
     'category': 'Operations/Agriculture',
-    'version': '18.0.1.5.1',
+    'version': '18.0.1.5.2',
     'license': 'LGPL-3',
 
     'depends': ['base',

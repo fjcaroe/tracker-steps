@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ir_cron_step_phyto_refresh" model="ir.cron">
+        <field name="name">Fitosanitario: recalcular carencia y reingreso por cuartel</field>
+        <field name="model_id" ref="model_step_phyto_restriction"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_refresh()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="True"/>
+        <field name="user_id" ref="base.user_root"/>
+    </record>
+</odoo>

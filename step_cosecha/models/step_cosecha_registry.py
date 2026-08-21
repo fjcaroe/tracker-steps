@@ -3,6 +3,7 @@
 
 import base64
 from odoo import api, fields, models, tools, SUPERUSER_ID, _, Command
+from odoo.exceptions import UserError
 from datetime import datetime, timedelta
 
 

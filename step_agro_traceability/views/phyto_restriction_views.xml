@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_step_phyto_restriction_list" model="ir.ui.view">
+        <field name="name">step.phyto.restriction.list</field>
+        <field name="model">step.phyto.restriction</field>
+        <field name="arch" type="xml">
+            <list string="Carencia y reingreso" create="false"
+                  decoration-danger="status == 'carencia'"
+                  decoration-warning="status == 'reingreso'"
+                  decoration-muted="status == 'clear'">
+                <header>
+                    <button name="action_refresh_all" type="object"
+                            string="Recalcular desde BPA" class="btn-secondary"
+                            help="Vuelve a leer las aplicaciones fitosanitarias y actualiza las restricciones."/>
+                </header>
+                <field name="cuartel_id"/>
+                <field name="centro_id" optional="show"/>
+                <field name="fundo_id" optional="show"/>
+                <field name="date_application"/>
+                <field name="product_ids" widget="many2many_tags" optional="show"/>
+                <field name="substances" optional="hide"/>
+                <field name="carencia_days"/>
+                <field name="harvest_allowed_from"/>
+                <field name="days_to_harvest"/>
+                <field name="reingreso_hours" optional="hide"/>
+                <field name="reentry_allowed_from" optional="hide"/>
+                <field name="status" widget="badge"
+                       decoration-danger="status == 'carencia'"
+                       decoration-warning="status == 'reingreso'"
+                       decoration-success="status == 'clear'"/>
+                <field name="application_ref" optional="hide"/>
+                <field name="carencia_criterion" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_phyto_restriction_form" model="ir.ui.view">
+        <field name="name">step.phyto.restriction.form</field>
+        <field name="model">step.phyto.restriction</field>
+        <field name="arch" type="xml">
+            <form string="Restricción fitosanitaria" create="false" edit="false">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="cuartel_id" readonly="1"/></h1>
+                        <field name="status" widget="badge" nolabel="1"
+                               decoration-danger="status == 'carencia'"
+                               decoration-warning="status == 'reingreso'"
+                               decoration-success="status == 'clear'"/>
+                    </div>
+                    <group>
+                        <group string="Origen">
+                            <field name="application_ref"/>
+                            <field name="date_application"/>
+                            <field name="fundo_id"/>
+                            <field name="centro_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Restricción">
+                            <field name="carencia_days"/>
+                            <field name="carencia_criterion"/>
+                            <field name="harvest_allowed_from"/>
+                            <field name="days_to_harvest"/>
+                            <field name="reingreso_hours"/>
+                            <field name="reentry_allowed_from"/>
+                        </group>
+                    </group>
+                    <group string="Productos aplicados">
+                        <field name="product_ids" widget="many2many_tags" nolabel="1"/>
+                        <field name="substances"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_phyto_restriction_search" model="ir.ui.view">
+        <field name="name">step.phyto.restriction.search</field>
+        <field name="model">step.phyto.restriction</field>
+        <field name="arch" type="xml">
+            <search string="Carencia y reingreso">
+                <field name="cuartel_id"/>
+                <field name="fundo_id"/>
+                <field name="product_ids"/>
+                <field name="application_ref"/>
+                <filter name="filter_blocked" string="En carencia hoy"
+                        domain="[('harvest_blocked', '=', True)]"/>
+                <filter name="filter_clear" string="Liberados"
+                        domain="[('harvest_blocked', '=', False)]"/>
+                <separator/>
+                <filter name="filter_recent" string="Aplicadas últimos 30 días"
+                        domain="[('date_application', '&gt;=', (context_today() - datetime.timedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_cuartel" string="Cuartel" context="{'group_by': 'cuartel_id'}"/>
+                    <filter name="group_fundo" string="Fundo" context="{'group_by': 'fundo_id'}"/>
+                    <filter name="group_centro" string="Centro de costo" context="{'group_by': 'centro_id'}"/>
+                    <filter name="group_date" string="Fecha de aplicación" context="{'group_by': 'date_application:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_step_phyto_restriction_pivot" model="ir.ui.view">
+        <field name="name">step.phyto.restriction.pivot</field>
+        <field name="model">step.phyto.restriction</field>
+        <field name="arch" type="xml">
+            <pivot string="Carencia por cuartel">
+                <field name="fundo_id" type="row"/>
+                <field name="cuartel_id" type="row"/>
+                <field name="date_application" interval="month" type="col"/>
+                <field name="carencia_days" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_step_phyto_restriction" model="ir.actions.act_window">
+        <field name="name">Carencia y reingreso</field>
+        <field name="res_model">step.phyto.restriction</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="search_view_id" ref="view_step_phyto_restriction_search"/>
+        <field name="context">{'search_default_filter_blocked': 1, 'search_default_group_fundo': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay restricciones vigentes</p>
+            <p>
+                Las restricciones se calculan solas a partir de las aplicaciones
+                fitosanitarias registradas en BPA y de los días de carencia y horas
+                de reingreso del maestro de productos.
+            </p>
+            <p>
+                Registre una aplicación foliar indicando el producto y el cuartel
+                intervenido y aquí aparecerá hasta cuándo ese cuartel no puede
+                cosecharse.
+            </p>
+        </field>
+    </record>
+
+    <record id="action_step_phyto_restriction_all" model="ir.actions.act_window">
+        <field name="name">Historial fitosanitario por cuartel</field>
+        <field name="res_model">step.phyto.restriction</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="search_view_id" ref="view_step_phyto_restriction_search"/>
+        <field name="context">{'search_default_group_cuartel': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin aplicaciones registradas</p>
+            <p>Cada aplicación foliar con producto y cuartel deja aquí su trazabilidad.</p>
+        </field>
+    </record>
+
+    <record id="action_step_phyto_refresh" model="ir.actions.server">
+        <field name="name">Recalcular carencia y reingreso</field>
+        <field name="model_id" ref="model_step_phyto_restriction"/>
+        <field name="binding_model_id" ref="model_step_phyto_restriction"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = model.action_refresh_all()</field>
+    </record>
+
+</odoo>

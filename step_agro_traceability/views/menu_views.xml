@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        La restricción se consulta desde los dos lados del proceso: quien la
+        genera (BPA) y quien la sufre (Cosecha).
+    -->
+
+    <menuitem id="menu_step_phyto_restriction_bpa"
+              name="Carencia y reingreso"
+              action="step_agro_traceability.action_step_phyto_restriction"
+              parent="studio_customization.bpa_y_riego_bpa_7eabb6b7-f7de-42e2-a329-0afcdb45e4bc"
+              groups="step_agricultural_access.group_bpa_bpa"
+              sequence="35"/>
+
+    <menuitem id="menu_step_phyto_restriction_bpa_history"
+              name="Historial fitosanitario por cuartel"
+              action="step_agro_traceability.action_step_phyto_restriction_all"
+              parent="studio_customization.bpa_y_riego_informes_daeb0fba-26f1-4cc9-8599-176c10f0c1ea"
+              groups="step_agricultural_access.group_bpa_reports"
+              sequence="35"/>
+
+    <menuitem id="menu_step_phyto_restriction_harvest"
+              name="Carencia por cuartel"
+              action="step_agro_traceability.action_step_phyto_restriction"
+              parent="step_cosecha.menu_step_cosecha_main_cosecha_plan"
+              groups="step_agricultural_access.group_harvest_planning"
+              sequence="35"/>
+
+</odoo>

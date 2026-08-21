@@ -1,0 +1,18 @@
+.o_step_phyto_banner {
+    display: flex;
+    align-items: center;
+    margin: 0 0 8px 0;
+    border-radius: 6px;
+
+    .o_step_phyto_banner__text {
+        font-weight: 500;
+    }
+
+    // El banner es informativo: no debe verse como un campo editable.
+    input, span {
+        background: transparent;
+        border: 0;
+        padding: 0;
+        width: auto;
+    }
+}

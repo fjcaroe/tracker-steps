@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_step_cosecha_registry_form_phyto" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.form.phyto</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="inherit_id" ref="step_cosecha.view_step_cosecha_registry_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-danger o_step_phyto_banner" role="alert"
+                     invisible="step_phyto_status != 'carencia'">
+                    <i class="fa fa-ban me-2" title="Carencia vigente"/>
+                    <field name="step_phyto_message" nolabel="1" readonly="1" class="o_step_phyto_banner__text"/>
+                    <button name="action_open_phyto_restrictions" type="object"
+                            string="Ver aplicaciones" class="btn btn-link p-0 ms-2"/>
+                </div>
+                <div class="alert alert-warning o_step_phyto_banner" role="alert"
+                     invisible="step_phyto_status != 'clear' or not step_phyto_reentry_active">
+                    <i class="fa fa-exclamation-triangle me-2" title="Reingreso vigente"/>
+                    <field name="step_phyto_message" nolabel="1" readonly="1" class="o_step_phyto_banner__text"/>
+                    <button name="action_open_phyto_restrictions" type="object"
+                            string="Ver aplicaciones" class="btn btn-link p-0 ms-2"/>
+                </div>
+            </xpath>
+
+            <xpath expr="//field[@name='cuartel_id']" position="after">
+                <field name="step_phyto_status" widget="badge"
+                       decoration-danger="step_phyto_status == 'carencia'"
+                       decoration-success="step_phyto_status == 'clear'"
+                       decoration-muted="step_phyto_status == 'unknown'"
+                       readonly="1"/>
+                <field name="step_phyto_allowed_from" readonly="1"
+                       invisible="step_phyto_status != 'carencia'"/>
+                <field name="step_phyto_reentry_active" invisible="1"/>
+                <field name="step_phyto_restriction_ids" invisible="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_registry_list_phyto" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.list.phyto</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="inherit_id" ref="step_cosecha.view_step_cosecha_registry_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="step_phyto_status" widget="badge" optional="show"
+                       decoration-danger="step_phyto_status == 'carencia'"
+                       decoration-success="step_phyto_status == 'clear'"
+                       decoration-muted="step_phyto_status == 'unknown'"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

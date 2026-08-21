@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_phyto_restriction_harvest,step.phyto.restriction.harvest,model_step_phyto_restriction,step_agricultural_access.group_app_harvest,1,0,0,0
+access_step_phyto_restriction_bpa_read,step.phyto.restriction.bpa.read,model_step_phyto_restriction,step_agricultural_access.group_app_bpa_irrigation,1,0,0,0
+access_step_phyto_restriction_bpa_write,step.phyto.restriction.bpa.write,model_step_phyto_restriction,step_agricultural_access.group_bpa_bpa,1,1,1,1
+access_step_phyto_restriction_system,step.phyto.restriction.system,model_step_phyto_restriction,base.group_system,1,1,1,1
