@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_hr.ActivitiesDashboard">
+        <main class="o_step_activities_dashboard">
+            <header class="o_step_activities_hero">
+                <div class="o_step_activities_hero_copy">
+                    <span>OPERATIONS · GESTIÓN DE PERSONAS</span>
+                    <h1>Actividades</h1>
+                    <p t-if="state.data">Cuadrillas, tareas, sueldo variable y movilización de <strong t-esc="state.data.company_name"/> en una sola vista.</p>
+                </div>
+                <div class="o_step_activities_hero_actions">
+                    <div class="btn-group" role="group" aria-label="Período">
+                        <button t-foreach="[7, 30, 90]" t-as="days" t-key="days" type="button" t-att-class="'btn ' + (state.days === days ? 'btn-light' : 'btn-outline-light')" t-on-click="() => this.loadDashboard(days)"><t t-esc="days"/> días</button>
+                        <button type="button" t-att-class="'btn ' + (state.days === 0 ? 'btn-light' : 'btn-outline-light')" t-on-click="() => this.loadDashboard(0)"><i class="fa fa-history me-1"/> Todo</button>
+                    </div>
+                    <button class="btn btn-light" t-on-click="() => this.openAction('step_hr.action_hr_salary_custom')"><i class="fa fa-plus me-1"/> Nueva cuadrilla</button>
+                    <button class="btn btn-outline-light" t-on-click="() => this.openAction('step_hr.action_view_hr_salary_custom_line')"><i class="fa fa-line-chart me-1"/> Analizar sueldo variable</button>
+                </div>
+            </header>
+
+            <div t-if="state.loading" class="o_step_activities_loading"><i class="fa fa-spinner fa-spin me-2"/>Preparando la operación…</div>
+            <div t-elif="state.error" class="o_step_activities_empty"><i class="fa fa-exclamation-circle me-1"/><t t-esc="state.error"/><button class="btn btn-primary ms-2" t-on-click="() => this.loadDashboard()">Reintentar</button></div>
+            <t t-elif="state.data">
+                <section class="o_step_activities_kpis">
+                    <button t-on-click="() => this.openAction('step_hr.action_hr_salary_custom')"><span>Cuadrillas</span><strong t-esc="formatNumber(state.data.kpis.crews)"/><small><t t-esc="state.data.types.propio"/> propias · <t t-esc="state.data.types.contratista"/> contratistas</small></button>
+                    <article><span>Personas movilizadas</span><strong t-esc="formatNumber(state.data.kpis.workers)"/><small>Trabajadores únicos del período</small></article>
+                    <article><span>Horas informadas</span><strong><t t-esc="formatNumber(state.data.kpis.hours, 1)"/> h</strong><small>Propias y contratistas</small></article>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tarja')"><span>Tareas registradas</span><strong t-esc="formatNumber(state.data.kpis.tasks)"/><small><t t-esc="state.data.tarja_types.propio"/> propias · <t t-esc="state.data.tarja_types.contratista"/> contratistas</small></button>
+                    <article class="is-accent"><span>Sueldo variable</span><strong t-esc="formatCurrency(state.data.kpis.variable_pay)"/><small>Tratos informados en tarjas</small></article>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_movi_registry')"><span>Movilizaciones</span><strong t-esc="formatNumber(state.data.kpis.mobilizations)"/><small>Registros del período</small></button>
+                </section>
+
+                <section class="o_step_activities_flow">
+                    <div><i>1</i><span><b>Nuevas</b><small t-esc="state.data.states.draft"/></span></div><em/><div><i>2</i><span><b>En progreso</b><small t-esc="state.data.states.progress"/></span></div><em/><div><i>3</i><span><b>Listas</b><small t-esc="state.data.states.done"/></span></div>
+                    <aside><span t-esc="state.data.period_label"/><strong><t t-esc="formatCurrency(state.data.kpis.company_cost)"/> costo empresa</strong></aside>
+                </section>
+
+                <div class="o_step_activities_grid">
+                    <section class="o_step_activities_panel o_step_activities_trend">
+                        <header><div><span>SUELDO VARIABLE</span><h2>Horas informadas por mes</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_hr.action_view_hr_salary_custom_line')">Abrir informe</button></header>
+                        <div class="o_step_activities_chart">
+                            <div t-foreach="state.data.trend" t-as="month" t-key="month.label" class="o_step_activities_chart_item">
+                                <strong><t t-esc="formatNumber(month.hours, 1)"/>h</strong><div><i t-att-style="'height:' + barHeight(month.percent) + '%'"/></div><span t-esc="month.label"/><small><t t-esc="month.records"/> cuadrillas</small>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="o_step_activities_panel">
+                        <header><div><span>DISTRIBUCIÓN</span><h2>Cuadrillas por fundo</h2></div></header>
+                        <div t-if="state.data.fundos.length" class="o_step_activities_fundos">
+                            <div t-foreach="state.data.fundos" t-as="fundo" t-key="fundo.id"><span><b t-esc="fundo.name"/><small><t t-esc="fundo.count"/> cuadrillas</small></span><i><u t-att-style="'width:' + fundo.percent + '%'"/></i></div>
+                        </div>
+                        <div t-else="" class="o_step_activities_empty">Aún no hay cuadrillas asociadas a fundos.</div>
+                    </section>
+                </div>
+
+                <section class="o_step_activities_panel o_step_activities_recent_panel">
+                    <header><div><span>ACTIVIDAD RECIENTE</span><h2>Últimas cuadrillas</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_hr.action_hr_salary_custom')">Ver todas</button></header>
+                    <div t-if="state.data.recent.length" class="o_step_activities_recent">
+                        <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openCrew(row.id)">
+                            <i t-att-class="'is-' + row.state"/><span><b t-esc="row.name"/><small><t t-esc="row.fundo"/> · <t t-esc="row.supervisor"/></small></span><em><t t-esc="row.workers"/> personas</em><strong t-att-class="'is-' + row.type" t-esc="row.type_label"/><u t-att-class="'is-' + row.state" t-esc="row.state_label"/><time t-esc="formatDate(row.date)"/>
+                        </button>
+                    </div>
+                    <div t-else="" class="o_step_activities_empty">No hay cuadrillas registradas en este período.</div>
+                </section>
+
+                <section class="o_step_activities_shortcuts">
+                    <button t-on-click="() => this.openAction('step_hr.action_hr_salary_custom')"><i class="fa fa-users"/><span>Personal propio<small>Cuadrillas y sueldo variable</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_hr_salary_custom_contra')"><i class="fa fa-handshake-o"/><span>Contratistas<small>Cuadrillas, tarifas y costeo</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tarja')"><i class="fa fa-tasks"/><span>Registro de tareas<small>Tarjas y avance operativo</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_tracker_dashboard')"><i class="fa fa-map-marker"/><span>Step Tracker<small>Maquinaria y sesiones</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_step_movi_registry')"><i class="fa fa-bus"/><span>Movilización<small>Rutas, vehículos y costos</small></span></button>
+                    <button t-on-click="() => this.openAction('step_hr.action_view_step_tarja_line')"><i class="fa fa-bar-chart"/><span>Informes operativos<small>Detalle, gráfico y pivote</small></span></button>
+                </section>
+            </t>
+        </main>
+    </t>
+</templates>

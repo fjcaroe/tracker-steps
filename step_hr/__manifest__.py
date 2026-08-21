@@ -11,8 +11,8 @@
 
     'author': "jamie.escalante7@gmail.com",
     'website': "",
-    'category': 'HR',
-    'version': '18.0.1.1.0',
+    'category': 'Operations',
+    'version': '18.0.1.2.0',
     'license': 'LGPL-3',
 
     'depends': ['base',
@@ -33,6 +33,7 @@
         'security/history_security.xml',
         'data/ir_sequence.xml',
         'data/step_tracker_cron.xml',
+        'views/activities_dashboard_views.xml',
         'views/res_company_views.xml',
         'views/hr_payslip_views.xml',
         'views/hr_salary_custom_views.xml',
@@ -85,6 +86,9 @@
             'step_hr/static/src/js/tracker_dashboard.js',
             'step_hr/static/src/xml/tracker_dashboard.xml',
             'step_hr/static/src/scss/tracker_dashboard.scss',
+            'step_hr/static/src/js/activities_dashboard.js',
+            'step_hr/static/src/xml/activities_dashboard.xml',
+            'step_hr/static/src/scss/activities_dashboard.scss',
         ],
     },
     'application': True,

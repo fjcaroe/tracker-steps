@@ -3,6 +3,7 @@
     <record id="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994" model="ir.ui.menu">
         <field name="name">QA-Inspecciones</field>
         <field name="action" ref="step_qa.action_step_qa_dashboard"/>
+        <field name="web_icon">step_qa,static/description/icon.png</field>
     </record>
 
     <menuitem id="menu_step_qa_dashboard"

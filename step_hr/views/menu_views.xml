@@ -9,7 +9,14 @@
 <!--    Menu principal-->
     <menuitem id="menu_step_hr_root"
               name="Actividades"
-              sequence="10" web_icon="step_hr,static/src/images/lyt.png"/>
+              action="step_hr.action_step_activities_dashboard"
+              sequence="10" web_icon="step_hr,static/description/icon.png"/>
+
+    <menuitem id="menu_step_activities_dashboard"
+              name="Inicio"
+              action="step_hr.action_step_activities_dashboard"
+              parent="step_hr.menu_step_hr_root"
+              sequence="0"/>
 
 
 <!--    Planificacion de tareas-->

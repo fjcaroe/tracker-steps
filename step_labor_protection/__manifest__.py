@@ -1,9 +1,9 @@
 {
     "name": "Steps - Protección Laboral",
     "summary": "Prevención, Ley Karin, EPP, capacitación y accidentes laborales",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "author": "Steps Consulting",
-    "category": "Human Resources/Health and Safety",
+    "category": "Operations/Health and Safety",
     "license": "LGPL-3",
     "depends": ["base", "mail", "web", "hr", "step_hr"],
     "data": [
@@ -26,4 +26,3 @@
     "application": True,
     "installable": True,
 }
-

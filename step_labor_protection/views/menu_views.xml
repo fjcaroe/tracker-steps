@@ -3,6 +3,7 @@
     <record id="studio_customization.proteccion_laboral_d71afde5-f451-47c8-a269-25311654bc7f" model="ir.ui.menu">
         <field name="name">Protección Laboral</field>
         <field name="action" ref="step_labor_protection.action_labor_dashboard"/>
+        <field name="web_icon">step_labor_protection,static/description/icon.png</field>
     </record>
 
     <menuitem id="menu_labor_home" name="Inicio" action="step_labor_protection.action_labor_dashboard"
@@ -37,4 +38,3 @@
     <record id="studio_customization.proteccion_laboral_e_5b57cd54-7091-4946-8282-86e82c0751a9" model="ir.ui.menu"><field name="name">EPP</field><field name="sequence">30</field></record>
     <record id="studio_customization.proteccion_laboral_r_6cedcd92-2a4e-405e-b215-f8549ea44ef5" model="ir.ui.menu"><field name="name">Accidentes y riesgos</field><field name="sequence">40</field></record>
 </odoo>
-

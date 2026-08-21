@@ -3,6 +3,7 @@
 
 from . import hr_payslip
 from . import hr_salary_custom
+from . import activities_dashboard
 from . import hr_salary_custom_line
 from . import hr_salary_contract_line
 from . import hr_route

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_step_activities_dashboard" model="ir.actions.client">
+        <field name="name">Actividades</field>
+        <field name="tag">step_hr.activities_dashboard</field>
+    </record>
+</odoo>

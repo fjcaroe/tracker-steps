@@ -1,0 +1,49 @@
+.o_step_activities_dashboard {
+    --activities-green: #103f35;
+    --activities-green-2: #2f8068;
+    --activities-lime: #d8ff62;
+    --activities-coral: #e65b45;
+    --activities-ink: #183029;
+    min-height: 100%; padding: 24px; overflow: auto; color: var(--activities-ink); background: #f2f5f1;
+}
+.o_step_activities_hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 28px 32px; border-radius: 24px; color: #fff; background: radial-gradient(circle at 85% 0, rgba(216,255,98,.2), transparent 30%), linear-gradient(120deg, #0d352d, #18594a 68%, #2f8068); box-shadow: 0 18px 42px rgba(16,63,53,.2); }
+.o_step_activities_hero_copy { span { color: var(--activities-lime); font-size: 11px; font-weight: 800; letter-spacing: .13em; } h1 { margin: 4px 0 6px; font-size: 32px; font-weight: 800; } p { margin: 0; color: rgba(255,255,255,.78); } }
+.o_step_activities_hero_actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; flex-wrap: wrap; }
+.o_step_activities_loading, .o_step_activities_empty { padding: 34px; text-align: center; color: #72817c; }
+.o_step_activities_kpis { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 13px; margin: 16px 0; }
+.o_step_activities_kpis > * { min-width: 0; padding: 17px; border: 1px solid #dce5df; border-radius: 17px; text-align: left; color: inherit; background: #fff; box-shadow: 0 4px 15px rgba(16,63,53,.035); transition: transform .15s, box-shadow .15s; }
+.o_step_activities_kpis > button:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(16,63,53,.1); }
+.o_step_activities_kpis span { display: block; color: #6a7b75; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.o_step_activities_kpis strong { display: block; overflow: hidden; margin: 6px 0 4px; color: var(--activities-green); font-size: 25px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+.o_step_activities_kpis small { color: #73827d; }
+.o_step_activities_kpis .is-accent { border-color: #c8e75f; background: linear-gradient(145deg, #f7ffd9, #fff); }
+.o_step_activities_flow { display: flex; align-items: center; gap: 10px; padding: 13px 18px; margin-bottom: 16px; border-radius: 16px; color: #fff; background: var(--activities-green); }
+.o_step_activities_flow > div { display: flex; align-items: center; gap: 9px; min-width: 120px; i { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; color: var(--activities-green); font-style: normal; font-weight: 800; background: var(--activities-lime); } span { display: flex; flex-direction: column; } small { color: rgba(255,255,255,.65); } }
+.o_step_activities_flow > em { flex: 1; height: 1px; background: rgba(255,255,255,.2); }
+.o_step_activities_flow > aside { display: flex; flex-direction: column; margin-left: auto; padding-left: 18px; border-left: 1px solid rgba(255,255,255,.2); text-align: right; span { color: var(--activities-lime); font-size: 10px; font-weight: 800; text-transform: uppercase; } }
+.o_step_activities_grid { display: grid; grid-template-columns: 1.35fr .65fr; gap: 16px; margin-bottom: 16px; }
+.o_step_activities_panel { min-width: 0; padding: 20px; border: 1px solid #dce5df; border-radius: 19px; background: #fff; }
+.o_step_activities_panel > header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 16px; span { color: var(--activities-coral); font-size: 10px; font-weight: 800; letter-spacing: .12em; } h2 { margin: 3px 0 0; font-size: 18px; font-weight: 750; } .btn-link { color: var(--activities-green-2); text-decoration: none; } }
+.o_step_activities_chart { display: grid; grid-template-columns: repeat(6,1fr); align-items: end; gap: 14px; height: 210px; padding-top: 10px; }
+.o_step_activities_chart_item { display: grid; grid-template-rows: 18px 1fr 18px 18px; height: 100%; text-align: center; strong { color: #52645e; font-size: 11px; } > div { display: flex; align-items: end; justify-content: center; height: 100%; border-bottom: 1px solid #dce5df; } i { display: block; width: min(38px,70%); min-height: 7px; border-radius: 9px 9px 2px 2px; background: linear-gradient(180deg, var(--activities-lime), var(--activities-green-2)); } span { margin-top: 5px; font-size: 11px; font-weight: 800; } small { color: #82908b; font-size: 10px; } }
+.o_step_activities_fundos { display: grid; gap: 17px; }
+.o_step_activities_fundos > div { display: grid; gap: 7px; span { display: flex; align-items: center; justify-content: space-between; gap: 12px; } small { color: #7b8984; } > i { height: 9px; overflow: hidden; border-radius: 99px; background: #edf1ee; } u { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,var(--activities-green-2),var(--activities-lime)); text-decoration: none; } }
+.o_step_activities_recent_panel { margin-bottom: 16px; }
+.o_step_activities_recent { display: grid; }
+.o_step_activities_recent > button { display: grid; grid-template-columns: 8px minmax(180px,1fr) 90px 95px 90px 70px; align-items: center; gap: 12px; width: 100%; padding: 11px 4px; border: 0; border-top: 1px solid #edf1ee; color: inherit; text-align: left; background: transparent; > i { width: 8px; height: 8px; border-radius: 50%; background: #d89c33; &.is-done { background: #2f8068; } &.is-progress { background: #e65b45; } } > span { display: flex; min-width: 0; flex-direction: column; b,small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } small { color: #74847e; } } > em { color: #52645e; font-style: normal; } > strong, > u { padding: 4px 8px; border-radius: 99px; text-align: center; font-size: 10px; text-decoration: none; background: #edf1ee; } > strong.is-propio { color: #176048; background: #e1f3ec; } > strong.is-contratista { color: #8b4c13; background: #fff0d8; } > u.is-done { color: #176048; background: #e1f3ec; } > u.is-progress { color: #a43b2c; background: #ffebe7; } time { color: #788781; text-align: right; } }
+.o_step_activities_recent > button:hover { color: var(--activities-green-2); background: #f8faf8; }
+.o_step_activities_shortcuts { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; }
+.o_step_activities_shortcuts button { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 15px; border: 1px solid #dce5df; border-radius: 16px; color: inherit; text-align: left; background: #fff; i { display: grid; flex: 0 0 auto; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: var(--activities-green); background: var(--activities-lime); } span { display: flex; min-width: 0; flex-direction: column; font-weight: 700; } small { color: #73827d; font-weight: 400; } }
+.o_step_activities_shortcuts button:hover { border-color: #97b6aa; box-shadow: 0 8px 20px rgba(16,63,53,.07); }
+@media (max-width: 1250px) { .o_step_activities_kpis { grid-template-columns: repeat(3,1fr); } .o_step_activities_shortcuts { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 900px) { .o_step_activities_grid { grid-template-columns: 1fr; } .o_step_activities_recent > button { grid-template-columns: 8px minmax(150px,1fr) 80px 80px; > strong, > em { display: none; } } .o_step_activities_flow > aside { display: none; } }
+@media (max-width: 700px) { .o_step_activities_dashboard { padding: 12px; } .o_step_activities_hero { align-items: flex-start; flex-direction: column; padding: 22px; } .o_step_activities_kpis, .o_step_activities_shortcuts { grid-template-columns: repeat(2,1fr); } .o_step_activities_flow > em { display: none; } .o_step_activities_flow { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 480px) { .o_step_activities_kpis, .o_step_activities_shortcuts { grid-template-columns: 1fr; } }
+
+.o_step_salary_kanban .o_kanban_record { border: 0; background: transparent; box-shadow: none; }
+.o_step_salary_card { position: relative; min-height: 190px; padding: 18px; overflow: hidden; border: 1px solid #dce5df; border-radius: 17px; color: #183029; background: #fff; box-shadow: 0 7px 22px rgba(16,63,53,.07); }
+.o_step_salary_card_top { display: flex; justify-content: space-between; gap: 12px; color: #71817c; font-size: 11px; > span { padding: 5px 9px; border-radius: 99px; color: #176048; font-weight: 750; background: #e1f3ec; &.is-contratista { color: #8b4c13; background: #fff0d8; } } }
+.o_step_salary_card h3 { margin: 15px 0 6px; color: #103f35; font-size: 18px; font-weight: 800; }
+.o_step_salary_card > p { color: #61736d; i { color: #e65b45; } }
+.o_step_salary_card_meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding-top: 10px; border-top: 1px solid #edf1ee; span { display: flex; min-width: 0; flex-direction: column; } small { color: #82908b; font-size: 10px; text-transform: uppercase; } strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+.o_step_salary_card_state { position: absolute; right: 0; bottom: 0; left: 0; padding: 6px 18px; color: #85620c; font-size: 11px; font-weight: 750; text-align: right; background: #fff5d7; &.is-progress { color: #a43b2c; background: #ffebe7; } &.is-done { color: #176048; background: #e1f3ec; } }

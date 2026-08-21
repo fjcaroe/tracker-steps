@@ -92,10 +92,33 @@
         </field>
     </record>
 
+    <record id="view_hr_salary_custom_kanban" model="ir.ui.view">
+        <field name="name">hr.salary.custom.kanban</field>
+        <field name="model">hr.salary.custom</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <kanban class="o_step_salary_kanban" default_group_by="state" default_order="date desc">
+                <field name="name"/><field name="date"/><field name="group_type"/><field name="fundo_id"/>
+                <field name="employee_id"/><field name="responsable_id"/><field name="partner_id"/><field name="state"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="o_step_salary_card">
+                            <div class="o_step_salary_card_top"><span t-att-class="'is-' + record.group_type.raw_value"><i t-att-class="record.group_type.raw_value === 'contratista' ? 'fa fa-handshake-o' : 'fa fa-users'"/> <field name="group_type"/></span><time><field name="date" widget="date"/></time></div>
+                            <h3><field name="name"/></h3>
+                            <p><i class="fa fa-map-marker" title="Fundo"/> <field name="fundo_id"/></p>
+                            <div class="o_step_salary_card_meta"><span><small>Supervisor / responsable</small><strong><t t-esc="record.employee_id.value || record.responsable_id.value || 'Sin asignar'"/></strong></span><span t-if="record.partner_id.raw_value"><small>Contratista</small><strong><field name="partner_id"/></strong></span></div>
+                            <div t-att-class="'o_step_salary_card_state is-' + record.state.raw_value"><field name="state"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <record id="action_hr_salary_custom" model="ir.actions.act_window">
         <field name="name">Sueldo Variable</field>
         <field name="res_model">hr.salary.custom</field>
-        <field name="view_mode">list,form,kanban</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('group_type', '=', 'propio')]</field>
         <field name="context">{'step_default_propio':1}</field>
     </record>
@@ -103,7 +126,7 @@
     <record id="action_hr_salary_custom_contra" model="ir.actions.act_window">
         <field name="name">Cuadrilla Contratista</field>
         <field name="res_model">hr.salary.custom</field>
-        <field name="view_mode">list,form,kanban</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('group_type', '=', 'contratista')]</field>
         <field name="context">{'step_default_contratista':1}</field>
     </record>

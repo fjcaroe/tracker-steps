@@ -10,7 +10,7 @@
     <menuitem id="menu_step_cosecha_root"
               name="Cosecha"
               action="step_cosecha.action_step_cosecha_dashboard"
-              sequence="10" web_icon="step_cosecha,static/src/images/lyt.png"/>
+              sequence="10" web_icon="step_cosecha,static/description/icon.png"/>
 
     <menuitem id="menu_step_cosecha_dashboard"
               name="Inicio"

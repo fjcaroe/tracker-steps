@@ -3,6 +3,7 @@
     <record id="studio_customization.bpa_y_riego_3e945603-e8bf-4cdc-93fc-cce511c0d7cb" model="ir.ui.menu">
         <field name="name">BPA y Riego</field>
         <field name="action" ref="step_bpa_irrigation.action_step_bpa_dashboard"/>
+        <field name="web_icon">step_bpa_irrigation,static/description/icon.png</field>
     </record>
 
     <menuitem id="menu_step_bpa_dashboard" name="Inicio"
