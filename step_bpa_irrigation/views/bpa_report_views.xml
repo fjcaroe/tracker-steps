@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_irrigation_calendar" model="ir.ui.view">
+        <field name="name">x.riego.fertilizacion.calendar.bpa</field><field name="model">x_riego_y_fertilizacio</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml"><calendar string="Calendario de fertirriego" date_start="x_studio_fecha_aplicacin" color="x_studio_fundo" mode="month" event_open_popup="true"><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_responsaable"/><field name="x_studio_hectreas_a_regar"/></calendar></field>
+    </record>
+    <record id="view_irrigation_search" model="ir.ui.view">
+        <field name="name">x.riego.fertilizacion.search.bpa</field><field name="model">x_riego_y_fertilizacio</field><field name="priority">5</field>
+        <field name="arch" type="xml"><search string="Buscar riego y fertilización"><field name="x_name"/><field name="x_studio_ot_bpa"/><field name="x_studio_fundo"/><field name="x_studio_responsaable"/><field name="x_studio_tipo_de_aplicacin"/><separator/><filter name="only_irrigation" string="Sólo riego" domain="[('x_studio_slo_riego','=',True)]"/><filter name="application_date" string="Fecha aplicación" date="x_studio_fecha_aplicacin"/><group expand="0" string="Agrupar por"><filter name="group_farm" string="Fundo" context="{'group_by':'x_studio_fundo'}"/><filter name="group_responsible" string="Responsable" context="{'group_by':'x_studio_responsaable'}"/><filter name="group_month" string="Mes" context="{'group_by':'x_studio_fecha_aplicacin:month'}"/></group></search></field>
+    </record>
+    <record id="view_irrigation_graph" model="ir.ui.view">
+        <field name="name">x.riego.fertilizacion.graph.bpa</field><field name="model">x_riego_y_fertilizacio</field><field name="priority">5</field>
+        <field name="arch" type="xml"><graph string="Superficie y mezcla de fertirriego" type="bar" sample="1"><field name="x_studio_fundo"/><field name="x_studio_hectreas_a_regar" type="measure"/><field name="x_studio_litros_mezcla" type="measure"/></graph></field>
+    </record>
+    <record id="view_irrigation_pivot" model="ir.ui.view">
+        <field name="name">x.riego.fertilizacion.pivot.bpa</field><field name="model">x_riego_y_fertilizacio</field><field name="priority">5</field>
+        <field name="arch" type="xml"><pivot string="Análisis de fertirriego" sample="1"><field name="x_studio_fundo" type="row"/><field name="x_studio_tipo_de_aplicacin" type="row"/><field name="x_studio_fecha_aplicacin" type="col" interval="month"/><field name="x_studio_hectreas_a_regar" type="measure"/><field name="x_studio_litros_mezcla" type="measure"/></pivot></field>
+    </record>
+
+    <record id="view_application_calendar" model="ir.ui.view">
+        <field name="name">x.aplicacion.foliar.calendar.bpa</field><field name="model">x_aplicacion_foliar</field><field name="priority">5</field>
+        <field name="arch" type="xml"><calendar string="Calendario de aplicaciones" date_start="x_studio_fecha_hora_planificada" color="x_studio_fundo" mode="month" event_open_popup="true"><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_especie_1"/><field name="x_studio_objetivo_aplicacin"/><field name="x_studio_aprueba"/></calendar></field>
+    </record>
+    <record id="view_application_search" model="ir.ui.view">
+        <field name="name">x.aplicacion.foliar.search.bpa</field><field name="model">x_aplicacion_foliar</field><field name="priority">5</field>
+        <field name="arch" type="xml"><search string="Buscar aplicaciones BPA"><field name="x_name"/><field name="x_studio_nmero_ot_bpa"/><field name="x_studio_fundo"/><field name="x_studio_especie_1"/><field name="x_studio_objetivo_aplicacin"/><field name="x_studio_aprueba"/><separator/><filter name="planned_date" string="Fecha planificada" date="x_studio_fecha_hora_planificada"/><group expand="0" string="Agrupar por"><filter name="group_farm" string="Fundo" context="{'group_by':'x_studio_fundo'}"/><filter name="group_species" string="Especie" context="{'group_by':'x_studio_especie_1'}"/><filter name="group_objective" string="Objetivo" context="{'group_by':'x_studio_objetivo_aplicacin'}"/><filter name="group_month" string="Mes" context="{'group_by':'x_studio_fecha:month'}"/></group></search></field>
+    </record>
+    <record id="view_application_graph" model="ir.ui.view">
+        <field name="name">x.aplicacion.foliar.graph.bpa</field><field name="model">x_aplicacion_foliar</field><field name="priority">5</field>
+        <field name="arch" type="xml"><graph string="Costos de aplicaciones BPA" type="bar" sample="1"><field name="x_studio_fundo"/><field name="x_studio_costo_total_aplicacin" type="measure"/><field name="x_studio_total_hectreas" type="measure"/></graph></field>
+    </record>
+    <record id="view_application_pivot" model="ir.ui.view">
+        <field name="name">x.aplicacion.foliar.pivot.bpa</field><field name="model">x_aplicacion_foliar</field><field name="priority">5</field>
+        <field name="arch" type="xml"><pivot string="Análisis de aplicaciones BPA" sample="1"><field name="x_studio_fundo" type="row"/><field name="x_studio_especie_1" type="row"/><field name="x_studio_objetivo_aplicacin" type="row"/><field name="x_studio_fecha" type="col" interval="month"/><field name="x_studio_total_hectreas" type="measure"/><field name="x_studio_costo_total_aplicacin" type="measure"/><field name="x_studio_costo_de_productos" type="measure"/><field name="x_studio_costo_de_personal" type="measure"/><field name="x_studio_costo_maquinarias" type="measure"/></pivot></field>
+    </record>
+
+    <record id="view_monitoring_calendar" model="ir.ui.view">
+        <field name="name">x.monitoreo.agricola.calendar.bpa</field><field name="model">x_monitoreo_agricola</field><field name="priority">5</field>
+        <field name="arch" type="xml"><calendar string="Calendario de monitoreo" date_start="x_studio_fecha" color="x_studio_fundo" mode="month" event_open_popup="true"><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_especie"/><field name="x_studio_estado_fenolgico"/><field name="x_studio_responsable"/></calendar></field>
+    </record>
+    <record id="view_monitoring_search" model="ir.ui.view">
+        <field name="name">x.monitoreo.agricola.search.bpa</field><field name="model">x_monitoreo_agricola</field><field name="priority">5</field>
+        <field name="arch" type="xml"><search string="Buscar monitoreo agrícola"><field name="x_name"/><field name="x_studio_nmero_ot"/><field name="x_studio_fundo"/><field name="x_studio_especie"/><field name="x_studio_estado_fenolgico"/><field name="x_studio_responsable"/><separator/><filter name="monitoring_date" string="Fecha" date="x_studio_fecha"/><group expand="0" string="Agrupar por"><filter name="group_farm" string="Fundo" context="{'group_by':'x_studio_fundo'}"/><filter name="group_species" string="Especie" context="{'group_by':'x_studio_especie'}"/><filter name="group_state" string="Estado fenológico" context="{'group_by':'x_studio_estado_fenolgico'}"/><filter name="group_month" string="Mes" context="{'group_by':'x_studio_fecha:month'}"/></group></search></field>
+    </record>
+
+    <record id="studio_customization.riego_y_fertilizacio_abfdac43-df3b-4c1a-ab45-739484dbdb49" model="ir.actions.act_window">
+        <field name="view_mode">list,calendar,form</field><field name="search_view_id" ref="step_bpa_irrigation.view_irrigation_search"/>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Planifique la primera orden de riego o fertilización.</p><p>Defina fundo, responsable, superficie, mezcla y sectores para conservar la trazabilidad.</p></field>
+    </record>
+    <record id="studio_customization.aplicacion_foliar_d0548a61-bbf3-42ac-bab3-6cac83f4f8c9" model="ir.actions.act_window">
+        <field name="view_mode">list,calendar,form</field><field name="search_view_id" ref="step_bpa_irrigation.view_application_search"/>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Registre la primera aplicación foliar.</p><p>Planifique el tratamiento y documente su ejecución, responsables y costos.</p></field>
+    </record>
+    <record id="studio_customization.monitoreo_agricola_42c91e4e-0a6b-48e2-90ca-b669f074188f" model="ir.actions.act_window">
+        <field name="view_mode">list,calendar,form</field><field name="search_view_id" ref="step_bpa_irrigation.view_monitoring_search"/>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Registre el primer monitoreo agrícola.</p><p>Documente condición fenológica, hallazgos y responsables de terreno.</p></field>
+    </record>
+
+    <record id="studio_customization.informe_de_riego_fdee3877-665d-40a2-ac4e-5af253c7ee54" model="ir.actions.act_window">
+        <field name="name">Analítica de riego</field><field name="res_model">x_riego_y_fertilizacio</field><field name="view_mode">graph,pivot,list,form</field><field name="search_view_id" ref="step_bpa_irrigation.view_irrigation_search"/>
+    </record>
+    <record id="studio_customization.informe_de_fertiliza_dd320252-b4f2-47c0-8cba-25cb81bc7caa" model="ir.actions.act_window">
+        <field name="name">Analítica de fertilización</field><field name="res_model">x_riego_y_fertilizacio</field><field name="view_mode">graph,pivot,list,form</field><field name="domain">[('x_studio_slo_riego','=',False)]</field><field name="search_view_id" ref="step_bpa_irrigation.view_irrigation_search"/>
+    </record>
+    <record id="studio_customization.informes_bpa_d767d3b1-52f9-4039-9d29-ed6980e72149" model="ir.actions.act_window">
+        <field name="name">Analítica BPA</field><field name="res_model">x_aplicacion_foliar</field><field name="view_mode">graph,pivot,list,form</field><field name="search_view_id" ref="step_bpa_irrigation.view_application_search"/>
+    </record>
+    <record id="studio_customization.costos_aplicaciones_3494df7e-a67f-4a6f-ad66-47fec11720f8" model="ir.actions.act_window">
+        <field name="name">Costos de aplicaciones</field><field name="res_model">x_aplicacion_foliar</field><field name="view_mode">pivot,graph,list,form</field><field name="search_view_id" ref="step_bpa_irrigation.view_application_search"/>
+    </record>
+</odoo>

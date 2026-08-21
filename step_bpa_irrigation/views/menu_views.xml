@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="studio_customization.bpa_y_riego_3e945603-e8bf-4cdc-93fc-cce511c0d7cb" model="ir.ui.menu">
+        <field name="name">BPA y Riego</field>
+        <field name="action" ref="step_bpa_irrigation.action_step_bpa_dashboard"/>
+    </record>
+
+    <menuitem id="menu_step_bpa_dashboard" name="Inicio"
+              action="step_bpa_irrigation.action_step_bpa_dashboard"
+              parent="studio_customization.bpa_y_riego_3e945603-e8bf-4cdc-93fc-cce511c0d7cb"
+              sequence="0"/>
+
+    <record id="studio_customization.bpa_y_riego_bpa_7eabb6b7-f7de-42e2-a329-0afcdb45e4bc" model="ir.ui.menu">
+        <field name="name">Buenas Prácticas Agrícolas</field><field name="sequence">10</field>
+    </record>
+    <record id="studio_customization.bpa_y_riego_ruego_fe_3c8ebd77-c7f5-4e7e-aedd-208e89415795" model="ir.ui.menu">
+        <field name="name">Riego y Fertilización</field><field name="sequence">20</field>
+    </record>
+    <record id="studio_customization.bpa_y_riego_informes_daeb0fba-26f1-4cc9-8599-176c10f0c1ea" model="ir.ui.menu">
+        <field name="name">Analítica</field><field name="sequence">30</field>
+    </record>
+    <record id="studio_customization.bpa_y_riego_maestros_b69cfda5-56c8-4aa4-8a77-42c209269f1e" model="ir.ui.menu">
+        <field name="sequence">40</field>
+    </record>
+    <record id="studio_customization.bpa_y_riego_configur_70322172-a277-4348-8b6e-2e5a7911b44f" model="ir.ui.menu">
+        <field name="sequence">50</field>
+    </record>
+
+    <!-- Reuse the canonical analytic cost-center master from Activities. -->
+    <record id="studio_customization.bpa_y_riego_centro_d_32f00355-9831-4125-aa44-fb9ef8af2fea" model="ir.ui.menu">
+        <field name="name">Centro de Costo</field>
+        <field name="action" ref="step_hr.action_step_centro_costo_analytic"/>
+        <field name="sequence">2</field>
+    </record>
+</odoo>
