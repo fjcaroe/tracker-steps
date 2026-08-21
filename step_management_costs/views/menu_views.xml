@@ -14,4 +14,5 @@
     <menuitem id="menu_management_masters" name="Maestros" parent="menu_management_root" sequence="90" groups="step_management_costs.group_management_manager"/>
     <menuitem id="menu_cost_center" name="Centros de costo" action="action_cost_center" parent="menu_management_masters" sequence="10"/>
     <menuitem id="menu_budget_group" name="Grupos presupuestarios" action="action_budget_group" parent="menu_management_masters" sequence="20"/>
+    <menuitem id="menu_exchange_rate" name="Tipos de cambio estimados" action="action_exchange_rate" parent="menu_management_masters" sequence="30"/>
 </odoo>

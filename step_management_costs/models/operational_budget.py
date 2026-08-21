@@ -1,7 +1,11 @@
+import re
+from datetime import date
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
 from .budget_template import MONTH_FIELDS
+from .exchange_rate import default_conversion_currency
 
 
 MONTH_SELECTION = [
@@ -10,6 +14,10 @@ MONTH_SELECTION = [
     ("dec", "Diciembre"), ("jan", "Enero"), ("feb", "Febrero"),
     ("mar", "Marzo"), ("apr", "Abril"),
 ]
+MONTH_NUMBERS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
 
 
 class StepManagementOperationalBudget(models.Model):
@@ -30,6 +38,22 @@ class StepManagementOperationalBudget(models.Model):
     currency_id = fields.Many2one(
         "res.currency", string="Moneda", required=True,
         default=lambda self: self.env.company.currency_id,
+    )
+    conversion_currency_id = fields.Many2one(
+        "res.currency", string="Convertir a",
+        default=lambda self: default_conversion_currency(self.env),
+        domain="[('active', '=', True)]",
+    )
+    conversion_rate_type = fields.Selection(
+        [("estimated", "Estimado mensual"), ("actual", "Real Odoo")],
+        string="Tipo de conversión", default="estimated", required=True,
+    )
+    conversion_available = fields.Boolean(compute="_compute_conversion")
+    conversion_factor = fields.Float(
+        string="Factor origen → destino", compute="_compute_conversion", digits=(16, 10)
+    )
+    conversion_target_value = fields.Float(
+        string="Valor moneda destino", compute="_compute_conversion", digits=(16, 6)
     )
     date = fields.Date(string="Fecha", required=True, default=fields.Date.context_today, tracking=True)
     season = fields.Char(string="Temporada", required=True, tracking=True, help="Ej.: 2026/2027")
@@ -56,6 +80,14 @@ class StepManagementOperationalBudget(models.Model):
         string="Costo promedio por hectárea", compute="_compute_totals", store=True,
         currency_field="currency_id",
     )
+    total_amount_converted = fields.Monetary(
+        string="Presupuesto convertido", compute="_compute_conversion",
+        currency_field="conversion_currency_id",
+    )
+    cost_per_ha_converted = fields.Monetary(
+        string="Costo/ha convertido", compute="_compute_conversion",
+        currency_field="conversion_currency_id",
+    )
     line_count = fields.Integer(string="Líneas", compute="_compute_totals", store=True)
     state = fields.Selection(
         [("draft", "Borrador"), ("calculated", "Calculado"),
@@ -73,6 +105,27 @@ class StepManagementOperationalBudget(models.Model):
             record.cost_per_ha = record.total_amount / record.total_hectares if record.total_hectares else 0.0
             record.line_count = len(record.line_ids)
 
+    @api.depends(
+        "total_amount", "cost_per_ha", "currency_id", "conversion_currency_id",
+        "conversion_rate_type", "date", "company_id",
+    )
+    def _compute_conversion(self):
+        service = self.env["step.management.exchange.rate"]
+        for record in self:
+            total_result = service.get_conversion(
+                record.total_amount, record.currency_id, record.conversion_currency_id,
+                record.company_id, record.date, record.conversion_rate_type,
+            )
+            hectare_result = service.get_conversion(
+                record.cost_per_ha, record.currency_id, record.conversion_currency_id,
+                record.company_id, record.date, record.conversion_rate_type,
+            )
+            record.conversion_available = total_result["available"]
+            record.conversion_factor = total_result["factor"]
+            record.conversion_target_value = total_result["target_value"]
+            record.total_amount_converted = total_result["amount"]
+            record.cost_per_ha_converted = hectare_result["amount"]
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -86,6 +139,8 @@ class StepManagementOperationalBudget(models.Model):
     def _onchange_template_id(self):
         if self.template_id:
             self.currency_id = self.template_id.currency_id
+            self.conversion_currency_id = self.template_id.conversion_currency_id
+            self.conversion_rate_type = self.template_id.conversion_rate_type
 
     def action_generate_lines(self):
         for budget in self:
@@ -202,6 +257,9 @@ class StepManagementBudgetLine(models.Model):
     )
     company_id = fields.Many2one(related="budget_id.company_id", store=True, index=True)
     currency_id = fields.Many2one(related="budget_id.currency_id", store=True)
+    conversion_currency_id = fields.Many2one(related="budget_id.conversion_currency_id")
+    conversion_rate_type = fields.Selection(related="budget_id.conversion_rate_type")
+    conversion_date = fields.Date(related="budget_id.date")
     center_id = fields.Many2one("step.management.cost.center", string="Centro de costo", required=True, index=True)
     template_line_id = fields.Many2one(
         "step.management.budget.template.line", string="Indicador de origen", ondelete="restrict"
@@ -223,12 +281,38 @@ class StepManagementBudgetLine(models.Model):
     amount = fields.Monetary(
         string="Total", compute="_compute_amount", store=True, currency_field="currency_id"
     )
+    unit_price_converted = fields.Monetary(
+        string="Tarifa convertida", compute="_compute_conversion",
+        currency_field="conversion_currency_id",
+    )
+    amount_converted = fields.Monetary(
+        string="Total convertido", compute="_compute_conversion",
+        currency_field="conversion_currency_id",
+    )
     month_ids = fields.One2many("step.management.budget.month", "budget_line_id", string="Distribución mensual")
 
     @api.depends("quantity", "unit_price")
     def _compute_amount(self):
         for record in self:
             record.amount = record.quantity * record.unit_price
+
+    @api.depends(
+        "unit_price", "amount", "currency_id", "conversion_currency_id",
+        "conversion_rate_type", "conversion_date", "company_id",
+    )
+    def _compute_conversion(self):
+        service = self.env["step.management.exchange.rate"]
+        for record in self:
+            unit_result = service.get_conversion(
+                record.unit_price, record.currency_id, record.conversion_currency_id,
+                record.company_id, record.conversion_date, record.conversion_rate_type,
+            )
+            amount_result = service.get_conversion(
+                record.amount, record.currency_id, record.conversion_currency_id,
+                record.company_id, record.conversion_date, record.conversion_rate_type,
+            )
+            record.unit_price_converted = unit_result["amount"]
+            record.amount_converted = amount_result["amount"]
 
 
 class StepManagementBudgetMonth(models.Model):
@@ -241,12 +325,61 @@ class StepManagementBudgetMonth(models.Model):
     center_id = fields.Many2one(related="budget_line_id.center_id", store=True, index=True)
     group_id = fields.Many2one(related="budget_line_id.group_id", store=True, index=True)
     currency_id = fields.Many2one(related="budget_line_id.currency_id", store=True)
+    company_id = fields.Many2one(related="budget_line_id.company_id")
+    conversion_currency_id = fields.Many2one(related="budget_line_id.conversion_currency_id")
+    conversion_rate_type = fields.Selection(related="budget_line_id.conversion_rate_type")
+    conversion_date = fields.Date(string="Mes de conversión", compute="_compute_conversion_date")
     month = fields.Selection(MONTH_SELECTION, string="Mes", required=True, index=True)
     quantity = fields.Float(string="Cantidad", digits=(16, 4))
     unit_price = fields.Monetary(string="Tarifa", currency_field="currency_id")
     amount = fields.Monetary(string="Total", compute="_compute_amount", store=True, currency_field="currency_id")
+    unit_price_converted = fields.Monetary(
+        string="Tarifa convertida", compute="_compute_conversion",
+        currency_field="conversion_currency_id",
+    )
+    amount_converted = fields.Monetary(
+        string="Total convertido", compute="_compute_conversion",
+        currency_field="conversion_currency_id",
+    )
+
+    @api.depends("month", "budget_id.season", "budget_id.date")
+    def _compute_conversion_date(self):
+        for record in self:
+            month_number = MONTH_NUMBERS.get(record.month)
+            if not month_number:
+                record.conversion_date = record.budget_id.date
+                continue
+            years = [int(value) for value in re.findall(r"\b\d{4}\b", record.budget_id.season or "")]
+            if years:
+                year = years[0] if month_number >= 5 else (
+                    years[1] if len(years) > 1 else years[0] + 1
+                )
+            else:
+                budget_date = record.budget_id.date or fields.Date.context_today(record)
+                year = budget_date.year + (
+                    1 if month_number < 5 and budget_date.month >= 5 else 0
+                )
+            record.conversion_date = date(year, month_number, 1)
 
     @api.depends("quantity", "unit_price")
     def _compute_amount(self):
         for record in self:
             record.amount = record.quantity * record.unit_price
+
+    @api.depends(
+        "unit_price", "amount", "currency_id", "conversion_currency_id",
+        "conversion_rate_type", "conversion_date", "company_id",
+    )
+    def _compute_conversion(self):
+        service = self.env["step.management.exchange.rate"]
+        for record in self:
+            unit_result = service.get_conversion(
+                record.unit_price, record.currency_id, record.conversion_currency_id,
+                record.company_id, record.conversion_date, record.conversion_rate_type,
+            )
+            amount_result = service.get_conversion(
+                record.amount, record.currency_id, record.conversion_currency_id,
+                record.company_id, record.conversion_date, record.conversion_rate_type,
+            )
+            record.unit_price_converted = unit_result["amount"]
+            record.amount_converted = amount_result["amount"]

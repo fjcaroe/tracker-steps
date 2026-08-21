@@ -12,6 +12,8 @@ Studio de gestión, planificación y presupuesto operacional.
 - creación de un presupuesto para uno o varios centros de costo;
 - extrapolación automática por las hectáreas asignadas a cada centro;
 - distribución mensual, aprobación y cierre del presupuesto;
+- conversión de valores a USD, EUR u otra moneda activa en Odoo;
+- tipos de cambio estimados por año y mes, separados de las tasas reales de Odoo;
 - planificación operacional y control presupuesto versus costo real;
 - vistas lista, kanban, gráfico y tabla dinámica.
 

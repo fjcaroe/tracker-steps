@@ -1,7 +1,7 @@
 {
     "name": "Steps - Gestión y Costos",
     "summary": "Presupuestos agrícolas por hectárea, planificación y control de costos",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "author": "Steps Consulting",
     "category": "Operations/Planning",
     "license": "LGPL-3",
@@ -12,6 +12,7 @@
         "data/management_sequences.xml",
         "views/cost_center_views.xml",
         "views/budget_group_views.xml",
+        "views/exchange_rate_views.xml",
         "views/budget_template_views.xml",
         "views/operational_budget_views.xml",
         "views/planning_views.xml",

@@ -6,6 +6,8 @@ Run from an Odoo shell after ``migrate_steps_qa_data.py``::
     validate(env)
 """
 
+from datetime import date
+
 
 def validate(env):
     Template = env["step.management.budget.template"]
@@ -69,8 +71,55 @@ def validate(env):
         })],
     })
     probe.line_ids._compute_amounts()
-    if probe.line_ids.quantity_per_ha != 5.0 or probe.line_ids.cost_per_ha != 500.0:
+    probe_quantity_per_ha = probe.line_ids.quantity_per_ha
+    if probe_quantity_per_ha != 5.0 or probe.line_ids.cost_per_ha != 500.0:
         raise AssertionError("La normalización de plantillas con base mayor a 1 ha falló.")
+
+    Rate = env["step.management.exchange.rate"]
+    usd = env.ref("base.USD")
+    estimated_usd = Rate.search([
+        ("company_id", "=", env.company.id),
+        ("currency_id", "=", usd.id),
+        ("year", "=", budget.date.year),
+        ("month", "=", "%02d" % budget.date.month),
+    ], limit=1)
+    if not estimated_usd:
+        raise AssertionError("Falta el tipo de cambio USD estimado del mes del presupuesto.")
+    expected_usd = budget.total_amount / estimated_usd.company_value_per_unit
+    if not budget.conversion_available or abs(budget.total_amount_converted - expected_usd) > 0.01:
+        raise AssertionError("La conversión presupuestaria a USD estimado es incorrecta.")
+
+    actual_result = Rate.get_conversion(
+        budget.total_amount, budget.currency_id, usd, env.company, budget.date, "actual",
+    )
+    if not actual_result["available"] or actual_result["amount"] <= 0:
+        raise AssertionError("La conversión con tasa real Odoo no está disponible.")
+
+    eur = env.ref("base.EUR")
+    probe_rate = Rate.create({
+        "company_id": env.company.id,
+        "currency_id": eur.id,
+        "year": 2040,
+        "month": "01",
+        "company_value_per_unit": 1100.0,
+        "notes": "Registro temporal de validación; se elimina inmediatamente.",
+    })
+    eur_result = Rate.get_conversion(
+        1100000.0, env.company.currency_id, eur, env.company, date(2040, 1, 15), "estimated",
+    )
+    probe_rate.unlink()
+    if not eur_result["available"] or abs(eur_result["amount"] - 1000.0) > 0.01:
+        raise AssertionError("La conversión estimada genérica para otras monedas falló.")
+
+    probe_month = env["step.management.budget.month"].new({
+        "budget_line_id": budget.line_ids[0].id,
+        "month": "jan",
+    })
+    probe_month._compute_conversion_date()
+    if probe_month.conversion_date != date(2027, 1, 1):
+        raise AssertionError("La distribución mensual no interpretó correctamente la temporada 2026/2027.")
+
+    env.ref("step_management_costs.menu_exchange_rate")
 
     result = {
         "budget_id": budget.id,
@@ -85,7 +134,12 @@ def validate(env):
         "dashboard_budgets": dashboard["budgets"]["total"],
         "dashboard_templates": dashboard["templates"],
         "excluded_menus": sorted(excluded),
-        "base_2ha_quantity_per_ha": probe.line_ids.quantity_per_ha,
+        "base_2ha_quantity_per_ha": probe_quantity_per_ha,
+        "estimated_usd_value": estimated_usd.company_value_per_unit,
+        "budget_usd_estimated": budget.total_amount_converted,
+        "budget_usd_actual": actual_result["amount"],
+        "generic_eur_ok": True,
+        "january_conversion_month": str(probe_month.conversion_date),
     }
     env.cr.commit()
     print("VALIDATION_RESULT", result)

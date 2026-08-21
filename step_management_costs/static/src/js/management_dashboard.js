@@ -19,7 +19,12 @@ export class StepManagementDashboard extends Component {
     openAction(xmlId) { return this.action.doAction(xmlId); }
     openRecord(id) { return this.action.doAction({ type: "ir.actions.act_window", res_model: "step.management.operational.budget", res_id: id, views: [[false,"form"]], target: "current" }); }
     number(value, digits = 0) { return new Intl.NumberFormat("es-CL", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value || 0); }
-    money(value) { return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(value || 0); }
+    money(value, currency = "CLP") {
+        return new Intl.NumberFormat("es-CL", {
+            style: "currency", currency: currency || "CLP",
+            maximumFractionDigits: currency === "CLP" ? 0 : 2,
+        }).format(value || 0);
+    }
     stateLabel(state) { return ({draft:"Borrador",calculated:"Calculado",approved:"Aprobado",closed:"Cerrado",cancelled:"Cancelado"})[state] || state; }
 }
 registry.category("actions").add("step_management_costs.dashboard", StepManagementDashboard);

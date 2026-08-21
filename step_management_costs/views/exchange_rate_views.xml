@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_exchange_rate_list" model="ir.ui.view">
+        <field name="name">step.management.exchange.rate.list</field>
+        <field name="model">step.management.exchange.rate</field>
+        <field name="arch" type="xml">
+            <list decoration-info="source == 'odoo'" decoration-muted="not active">
+                <field name="year"/>
+                <field name="month"/>
+                <field name="currency_id"/>
+                <field name="company_value_per_unit"/>
+                <field name="company_currency_id"/>
+                <field name="inverse_value" optional="hide"/>
+                <field name="source" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="active" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_exchange_rate_form" model="ir.ui.view">
+        <field name="name">step.management.exchange.rate.form</field>
+        <field name="model">step.management.exchange.rate</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_load_odoo_rate" type="object"
+                            string="Copiar tasa real Odoo" class="btn-secondary"
+                            title="Usa la última tasa real disponible al cierre del mes como punto de partida de la estimación."/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Tipo de cambio presupuestario</span>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        Esta tabla contiene valores <strong>estimados</strong>. Las tasas reales continúan siendo administradas por Odoo.
+                    </div>
+                    <group>
+                        <group string="Período y moneda">
+                            <field name="year"/>
+                            <field name="month"/>
+                            <field name="rate_date" readonly="1"/>
+                            <field name="currency_id" options="{'no_create': True}"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Estimación">
+                            <field name="company_value_per_unit"/>
+                            <field name="company_currency_id" readonly="1"/>
+                            <field name="inverse_value" readonly="1"/>
+                            <field name="source" readonly="1"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <field name="notes" placeholder="Supuestos utilizados para esta estimación…"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_exchange_rate_search" model="ir.ui.view">
+        <field name="name">step.management.exchange.rate.search</field>
+        <field name="model">step.management.exchange.rate</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="currency_id"/>
+                <field name="year"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Moneda" name="currency" context="{'group_by':'currency_id'}"/>
+                    <filter string="Año" name="year" context="{'group_by':'year'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_exchange_rate_graph" model="ir.ui.view">
+        <field name="name">step.management.exchange.rate.graph</field>
+        <field name="model">step.management.exchange.rate</field>
+        <field name="arch" type="xml">
+            <graph string="Evolución del tipo de cambio estimado" type="line">
+                <field name="rate_date" interval="month"/>
+                <field name="currency_id"/>
+                <field name="company_value_per_unit" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_exchange_rate" model="ir.actions.act_window">
+        <field name="name">Tipos de cambio estimados</field>
+        <field name="res_model">step.management.exchange.rate</field>
+        <field name="view_mode">list,graph,form</field>
+        <field name="search_view_id" ref="view_exchange_rate_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Registre el dólar estimado u otras monedas para cada mes.</p>
+            <p>Los presupuestos pueden usar esta estimación o la tasa real histórica de Odoo.</p>
+        </field>
+    </record>
+</odoo>
