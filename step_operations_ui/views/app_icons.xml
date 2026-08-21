@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="step_machinery.menu_step_machinery_root" model="ir.ui.menu">
+        <field name="web_icon">step_operations_ui,static/description/icon_machinery.png</field>
+    </record>
+
+    <record id="studio_customization.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu">
+        <field name="web_icon">step_operations_ui,static/description/icon_freight.png</field>
+    </record>
+
+    <record id="step_hr.menu_step_tracker_gps_root" model="ir.ui.menu">
+        <field name="web_icon">step_operations_ui,static/description/icon_tracker.png</field>
+    </record>
+</odoo>
