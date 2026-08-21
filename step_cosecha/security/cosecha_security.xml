@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_step_cosecha_registry_company" model="ir.rule">
+        <field name="name">Cosecha: registros por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_registry"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_registry_line_company" model="ir.rule">
+        <field name="name">Cosecha: líneas por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_registry_line"/>
+        <field name="domain_force">['|', ('registry_id.company_id', '=', False), ('registry_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_tarja_line_company" model="ir.rule">
+        <field name="name">Cosecha: tarjas por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_tarja_line"/>
+        <field name="domain_force">['|', ('registry_id.company_id', '=', False), ('registry_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_tarja_registry_line_company" model="ir.rule">
+        <field name="name">Cosecha: registros de tarja por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_tarja_registry_line"/>
+        <field name="domain_force">['|', ('registry_id.company_id', '=', False), ('registry_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_reception_company" model="ir.rule">
+        <field name="name">Cosecha: recepciones por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_recepcion"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_reception_line_company" model="ir.rule">
+        <field name="name">Cosecha: detalles de recepción por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_recepcion_line"/>
+        <field name="domain_force">['|', ('recep_id.company_id', '=', False), ('recep_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_process_company" model="ir.rule">
+        <field name="name">Cosecha: procesos por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_proceso"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_process_line_company" model="ir.rule">
+        <field name="name">Cosecha: controles de proceso por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_proceso_line"/>
+        <field name="domain_force">['|', ('proceso_id.company_id', '=', False), ('proceso_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_cosecha_location_company" model="ir.rule">
+        <field name="name">Cosecha: ubicaciones por empresa</field>
+        <field name="model_id" ref="model_step_cosecha_ubicacion"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_history_cosecha_company" model="ir.rule">
+        <field name="name">Cosecha: histórico por empresa</field>
+        <field name="model_id" ref="model_step_history_cosecha"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+</odoo>

@@ -97,10 +97,15 @@
               parent="step_cosecha.menu_step_cosecha_root"
               sequence="40"/>
     <menuitem id="menu_step_cosecha_recep"
-              name="Recepción de Cosecha"
-              action="step_cosecha.step_action_picking_tree_incoming"
+              name="Control de Recepciones"
+              action="step_cosecha.action_step_cosecha_recepcion"
               parent="step_cosecha.menu_step_cosecha_recepcion"
               sequence="10"/>
+    <menuitem id="menu_step_cosecha_recep_stock"
+              name="Movimientos de Bodega"
+              action="step_cosecha.step_action_picking_tree_incoming"
+              parent="step_cosecha.menu_step_cosecha_recepcion"
+              sequence="20"/>
 
 <!--    Maestros-->
     <menuitem id="step_maestros_cosecha"
@@ -128,6 +133,11 @@
               parent="step_cosecha.step_history_cosecha"
               action="step_cosecha.action_step_history_cosecha"
               sequence="10"/>
+    <menuitem id="menu_analysis_step_cosecha"
+              name="Analítica Operativa"
+              parent="step_cosecha.step_history_cosecha"
+              action="step_cosecha.action_step_cosecha_registry_analysis"
+              sequence="20"/>
 
 <!--    Configuración-->
     <menuitem id="menu_step_cosecha_config"

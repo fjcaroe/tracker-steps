@@ -38,6 +38,7 @@
                             <field name="envase"/>
                             <field name="kilos"/>
                             <field name="kilos_numeric" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>
                 </sheet>
@@ -62,6 +63,7 @@
                 <field name="envase" optional="show"/>
                 <field name="kilos" optional="hide"/>
                 <field name="kilos_numeric" optional="show" sum="Total kilos"/>
+                <field name="company_id" optional="hide"/>
             </list>
         </field>
     </record>

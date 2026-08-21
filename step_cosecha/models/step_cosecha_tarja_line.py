@@ -9,27 +9,40 @@ class StepCosechaTarjaLine(models.Model):
     _name = 'step.cosecha.tarja.line'
     _rec_name = 'employee_id'
 
-    @api.depends('employee_id', 'quantity', 'tarifa')
+    @api.depends(
+        'employee_id', 'quantity', 'tarifa', 'labor_id', 'uom_id',
+        'registry_id.pricelist_id', 'registry_id.date',
+        'registry_id.fundo_id', 'registry_id.especie_id',
+        'registry_id.grupo_variedad_id_domain', 'registry_id.partner_id'
+    )
     def compute_total_trato(self):
-        eta_list = []
-        hora_extra = 0
         for move in self:
-            min_quantity = 0
-            if move.registry_id.pricelist_id:
-                for item in move.registry_id.pricelist_id.item_ids:
-                    if move.registry_id.labor_id.id == item.product_tmpl_id.id:
-                        move.cant_minima = item.min_quantity
-                        move.tarifa = item.fixed_price
-                        # move.uom_id = item.uom_id.id
+            registry = move.registry_id
+            move.cost_id_domain = self.env['account.analytic.account']
+            move.employee_id_domain = self.env['hr.employee']
+            move.trato_total = 0.0
+            if not registry:
+                continue
+
+            labor = move.labor_id or registry.labor_id
+            if registry.pricelist_id and labor:
+                item, unit_price = registry._get_cosecha_unit_price(
+                    labor, move.quantity, move.uom_id
+                )
+                if item:
+                    move.cant_minima = item.min_quantity
+                    move.tarifa = unit_price
+                    if item.uom_id:
+                        move.uom_id = item.uom_id
             move.cost_id_domain = self.env['account.analytic.account'].search(
-                [('fundo_id', '=', move.registry_id.fundo_id.id),
-                 ('especie_id', '=', move.registry_id.especie_id.id),
+                [('fundo_id', '=', registry.fundo_id.id),
+                 ('especie_id', '=', registry.especie_id.id),
                  ('grupo_variedad_id', 'in',
-                  move.registry_id.grupo_variedad_id_domain.ids)]).ids
+                  registry.grupo_variedad_id_domain.ids)])
             move.employee_id_domain = self.env['hr.employee'].search(
                 [('is_contratista', '=', True),
                  ('contratista_id', '=',
-                  move.registry_id.partner_id.id)]).ids
+                  registry.partner_id.id)])
             move.trato_total = float(move.quantity) * float(move.tarifa)
 
     employee_id = fields.Many2one('hr.employee', 'Empleado')

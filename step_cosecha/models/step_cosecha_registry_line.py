@@ -49,14 +49,15 @@ class StepCosechaRegistryLine(models.Model):
                 ('grupo_variedad_id', '=', registry.grupo_variedad_id.id),
             ])
 
-            if registry.pricelist_id:
-                item = registry.pricelist_id.item_ids.filtered(
-                    lambda price: price.product_tmpl_id == move.labor_id
-                )[:1]
+            if registry.pricelist_id and move.labor_id:
+                item, unit_price = registry._get_cosecha_unit_price(
+                    move.labor_id, move.quantity, move.uom_id
+                )
                 if item:
                     move.cant_minima = item.min_quantity
-                    move.tarifa = item.fixed_price
-                    move.uom_id = item.uom_id
+                    move.tarifa = unit_price
+                    if item.uom_id:
+                        move.uom_id = item.uom_id
 
             move.total_trato = float(move.quantity or 0.0) * float(move.tarifa or 0.0)
 

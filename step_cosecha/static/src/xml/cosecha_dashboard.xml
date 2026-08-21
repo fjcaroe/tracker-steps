@@ -11,16 +11,21 @@
                     </div>
                     <button type="button" class="btn btn-light" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><i class="fa fa-plus me-1"/> Nueva cosecha propia</button>
                     <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry_contra')"><i class="fa fa-handshake-o me-1"/> Nueva contratista</button>
+                    <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry_analysis')"><i class="fa fa-bar-chart me-1"/> Ver analítica</button>
                 </div>
             </header>
 
             <div t-if="state.loading" class="o_cosecha_loading"><i class="fa fa-spinner fa-spin"/> Preparando la información…</div>
+            <div t-elif="state.error" class="o_cosecha_empty">
+                <i class="fa fa-exclamation-circle me-1"/> <t t-esc="state.error"/>
+                <button type="button" class="btn btn-primary ms-2" t-on-click="() => this.loadDashboard()">Reintentar</button>
+            </div>
             <t t-elif="state.data">
                 <section class="o_cosecha_kpis">
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><span t-esc="state.days === 0 ? 'Registros históricos' : 'Registros del período'"/><strong t-esc="formatNumber(state.data.kpis.records)"/><small><t t-esc="state.data.types.propio"/> propios · <t t-esc="state.data.types.contratista"/> contratistas</small></button>
                     <article><span>Kilos registrados</span><strong><t t-esc="formatNumber(state.data.kpis.kilos, 1)"/> kg</strong><small>Según tarjas del período</small></article>
                     <article><span>Cajas registradas</span><strong t-esc="formatNumber(state.data.kpis.boxes, 1)"/><small>Trazabilidad de envases</small></article>
-                    <button t-on-click="() => this.openAction('step_cosecha.step_action_picking_tree_incoming')"><span>Recepciones</span><strong t-esc="formatNumber(state.data.receptions)"/><small><t t-esc="state.data.kpis.pending_receipt"/> pendientes por recibir</small></button>
+                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_recepcion')"><span>Control de recepciones</span><strong t-esc="formatNumber(state.data.receptions)"/><small><t t-esc="state.data.reception_in_progress"/> abiertas · <t t-esc="formatNumber(state.data.reception_kilos, 1)"/> kg</small></button>
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_history_cosecha')"><span>Histórico disponible</span><strong t-esc="formatNumber(state.data.kpis.history)"/><small>Registros para consulta</small></button>
                 </section>
 
@@ -45,6 +50,7 @@
                         <header><div><span>CONTROL OPERATIVO</span><h2>Qué requiere atención</h2></div></header>
                         <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry_contra')"><i class="fa fa-truck"/><span><b><t t-esc="state.data.kpis.pending_receipt"/> recepciones pendientes</b><small>Cosecha contratista contabilizada y aún no recibida.</small></span></button>
                         <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><i class="fa fa-clock-o"/><span><b><t t-esc="state.data.states.in"/> registros ingresados</b><small>Esperan revisión antes de pasar a aprobación.</small></span></button>
+                        <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_recepcion')"><i class="fa fa-exclamation-triangle"/><span><b><t t-esc="state.data.reception_quality_alerts"/> alertas de calidad</b><small>Recepciones observadas o rechazadas que requieren revisión.</small></span></button>
                         <div class="o_cosecha_attention_note"><i class="fa fa-info-circle"/><p>Los indicadores son accesos de consulta. Las aprobaciones, costos y contabilizaciones conservan el flujo original.</p></div>
                     </aside>
                 </div>
@@ -52,7 +58,7 @@
                 <section class="o_cosecha_shortcuts">
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry')"><i class="fa fa-users"/><span>Cosecha propia<small>Registro, cuadrillas y costeo</small></span></button>
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_registry_contra')"><i class="fa fa-handshake-o"/><span>Contratistas<small>Tarjas, tarifas y proforma</small></span></button>
-                    <button t-on-click="() => this.openAction('step_cosecha.step_action_picking_tree_incoming')"><i class="fa fa-cubes"/><span>Recepción<small>Ingresos de fruta a bodega</small></span></button>
+                    <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_recepcion')"><i class="fa fa-cubes"/><span>Control recepción<small>Calidad, kilos y envases</small></span></button>
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_history_cosecha')"><i class="fa fa-history"/><span>Histórico<small>Temporadas y trazabilidad</small></span></button>
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_ubicacion')"><i class="fa fa-map-marker"/><span>Ubicaciones<small><t t-esc="state.data.locations"/> configuradas</small></span></button>
                     <button t-on-click="() => this.openAction('step_cosecha.action_step_cosecha_proceso')"><i class="fa fa-sitemap"/><span>Procesos<small><t t-esc="state.data.processes"/> configurados</small></span></button>

@@ -11,3 +11,4 @@ from . import step_cosecha_proceso_line
 from . import step_cosecha_tarja_line
 from . import step_cosecha_tarja_registry_line
 from . import step_history_cosecha
+from . import stock_picking

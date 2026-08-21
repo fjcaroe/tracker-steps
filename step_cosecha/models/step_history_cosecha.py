@@ -22,6 +22,10 @@ class StepHistory(models.Model):
     kilos_numeric = fields.Float(
         string='Kilos analíticos', compute='_compute_kilos_numeric', store=True
     )
+    company_id = fields.Many2one(
+        'res.company', string='Empresa', default=lambda self: self.env.company,
+        index=True, copy=False
+    )
 
     @api.depends('kilos')
     def _compute_kilos_numeric(self):

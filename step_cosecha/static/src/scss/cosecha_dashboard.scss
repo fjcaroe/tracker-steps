@@ -403,6 +403,27 @@ body:has(.o_menu_brand[data-menu-xmlid="step_cosecha.menu_step_cosecha_root"]) {
     .o_notebook { margin-top: 16px; }
     .o_notebook_headers { border-radius: 11px 11px 0 0; background: #eef4f0; }
     .nav-link.active { color: #123c33; font-weight: 850; }
+
+    .o_cosecha_record_summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 9px;
+        margin: 5px 0 16px;
+
+        > div {
+            min-width: 0;
+            padding: 11px 13px;
+            border: 1px solid #dfe8e3;
+            border-radius: 11px;
+            background: #f7faf8;
+        }
+
+        span { display: block; overflow: hidden; color: #71817c; font-size: 9px; font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+        strong { display: flex; align-items: baseline; gap: 3px; margin-top: 3px; color: #123c33; font-size: 17px; font-weight: 850; }
+        .o_field_widget { width: auto; }
+        > div.is-warning { border-color: #efd7ba; background: #fff8ee; }
+        > div.is-warning strong { color: #a95b25; }
+    }
 }
 
 .o_cosecha_master_list,
@@ -462,6 +483,21 @@ body:has(.o_menu_brand[data-menu-xmlid="step_cosecha.menu_step_cosecha_root"]) {
     footer { margin-top: 12px; padding-top: 9px; border-top: 1px solid #e6ece8; color: #71817c; font-size: 10px; }
     .o_cosecha_process_card__top { display: flex; align-items: center; justify-content: space-between; gap: 9px; color: #71817c; font-size: 10px; }
     .o_cosecha_process_card__top > span { padding: 4px 8px; border-radius: 99px; color: #315e4f; background: #e7f1ec; font-weight: 850; }
+
+    .o_cosecha_card_metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px solid #e6ece8;
+
+        > span { display: flex; min-width: 0; flex-direction: column; padding: 6px 7px; border-radius: 8px; background: #f4f7f4; }
+        strong { overflow: hidden; color: #123c33; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+        small { color: #71817c; font-size: 8px; text-transform: uppercase; }
+        > span.is-warning { background: #fff1e3; }
+        > span.is-warning strong { color: #a95421; }
+    }
 }
 
 .o_cosecha_master_card {
@@ -488,5 +524,5 @@ body:has(.o_menu_brand[data-menu-xmlid="step_cosecha.menu_step_cosecha_root"]) {
 
 @media(max-width:1200px){.o_cosecha_kpis{grid-template-columns:repeat(3,1fr)}.o_cosecha_shortcuts{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.o_cosecha_hero{align-items:flex-start;flex-direction:column}.o_cosecha_grid{grid-template-columns:1fr}.o_cosecha_flow{grid-template-columns:repeat(4,1fr)}.o_cosecha_flow em{display:none}.o_cosecha_flow>div{flex-direction:column;text-align:center}.o_cosecha_recent>button{grid-template-columns:7px 1fr auto}.o_cosecha_recent>button>strong,.o_cosecha_recent>button>time{display:none}}
-@media(max-width:760px){.o_cosecha_registry_form .o_form_sheet{padding:14px;border-radius:0}.o_cosecha_form_title{grid-template-columns:1fr}.o_cosecha_form_title__meta{justify-content:flex-start}.o_cosecha_form_sections{padding:10px}.o_cosecha_studio_form .o_form_sheet_bg,.o_cosecha_master_form .o_form_sheet_bg,.o_cosecha_process_form .o_form_sheet_bg,.o_cosecha_reception_form .o_form_sheet_bg,.o_cosecha_history_form .o_form_sheet_bg{padding:0}.o_cosecha_studio_form .o_form_sheet,.o_cosecha_master_form .o_form_sheet,.o_cosecha_process_form .o_form_sheet,.o_cosecha_reception_form .o_form_sheet,.o_cosecha_history_form .o_form_sheet{padding:14px;border-radius:0}.o_cosecha_studio_form .o_cosecha_record_intro,.o_cosecha_master_form .o_cosecha_record_intro,.o_cosecha_process_form .o_cosecha_record_intro,.o_cosecha_reception_form .o_cosecha_record_intro,.o_cosecha_history_form .o_cosecha_record_intro{align-items:flex-start;margin-bottom:12px;padding:11px}.o_cosecha_studio_form .o_cosecha_record_intro>i{width:36px;height:36px;flex-basis:36px}.o_cosecha_master_form .o_cosecha_record_icon,.o_cosecha_process_form .o_cosecha_record_icon,.o_cosecha_reception_form .o_cosecha_record_icon,.o_cosecha_history_form .o_cosecha_record_icon{width:36px;height:36px;flex-basis:36px}.o_cosecha_studio_form .o_cosecha_record_intro small,.o_cosecha_master_form .o_cosecha_record_intro small,.o_cosecha_process_form .o_cosecha_record_intro small,.o_cosecha_reception_form .o_cosecha_record_intro small,.o_cosecha_history_form .o_cosecha_record_intro small{display:none}}
+@media(max-width:760px){.o_cosecha_registry_form .o_form_sheet{padding:14px;border-radius:0}.o_cosecha_form_title{grid-template-columns:1fr}.o_cosecha_form_title__meta{justify-content:flex-start}.o_cosecha_form_sections{padding:10px}.o_cosecha_studio_form .o_form_sheet_bg,.o_cosecha_master_form .o_form_sheet_bg,.o_cosecha_process_form .o_form_sheet_bg,.o_cosecha_reception_form .o_form_sheet_bg,.o_cosecha_history_form .o_form_sheet_bg{padding:0}.o_cosecha_studio_form .o_form_sheet,.o_cosecha_master_form .o_form_sheet,.o_cosecha_process_form .o_form_sheet,.o_cosecha_reception_form .o_form_sheet,.o_cosecha_history_form .o_form_sheet{padding:14px;border-radius:0}.o_cosecha_studio_form .o_cosecha_record_intro,.o_cosecha_master_form .o_cosecha_record_intro,.o_cosecha_process_form .o_cosecha_record_intro,.o_cosecha_reception_form .o_cosecha_record_intro,.o_cosecha_history_form .o_cosecha_record_intro{align-items:flex-start;margin-bottom:12px;padding:11px}.o_cosecha_studio_form .o_cosecha_record_intro>i{width:36px;height:36px;flex-basis:36px}.o_cosecha_master_form .o_cosecha_record_icon,.o_cosecha_process_form .o_cosecha_record_icon,.o_cosecha_reception_form .o_cosecha_record_icon,.o_cosecha_history_form .o_cosecha_record_icon{width:36px;height:36px;flex-basis:36px}.o_cosecha_studio_form .o_cosecha_record_intro small,.o_cosecha_master_form .o_cosecha_record_intro small,.o_cosecha_process_form .o_cosecha_record_intro small,.o_cosecha_reception_form .o_cosecha_record_intro small,.o_cosecha_history_form .o_cosecha_record_intro small{display:none}.o_cosecha_process_form .o_cosecha_record_summary,.o_cosecha_reception_form .o_cosecha_record_summary{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.o_cosecha_dashboard{padding:11px}.o_cosecha_hero{padding:21px}.o_cosecha_kpis{grid-template-columns:1fr 1fr}.o_cosecha_shortcuts{grid-template-columns:1fr 1fr}.o_cosecha_hero_actions{justify-content:flex-start}.o_cosecha_hero_actions>.btn{width:100%}}

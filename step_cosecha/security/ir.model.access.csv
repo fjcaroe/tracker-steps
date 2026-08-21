@@ -8,4 +8,5 @@ access_step_cosecha_proceso,access.step.cosecha.proceso,model_step_cosecha_proce
 access_step_cosecha_proceso_line,access.step.cosecha.proceso.line,model_step_cosecha_proceso_line,base.group_user,1,1,1,1
 access_step_cosecha_tarja_line,access.step.cosecha.tarja.line,model_step_cosecha_tarja_line,base.group_user,1,1,1,1
 access_step_cosecha_tarja_registry_line,access.step.cosecha.tarja.registry.line,model_step_cosecha_tarja_registry_line,base.group_user,1,1,1,1
-access_step_history_cosecha,access.step.history.cosecha,model_step_history_cosecha,base.group_user,1,1,1,1
+access_step_history_cosecha_read,access.step.history.cosecha.read,model_step_history_cosecha,base.group_user,1,0,0,0
+access_step_history_cosecha_manager,access.step.history.cosecha.manager,model_step_history_cosecha,step_cosecha.permin_step_history_cosecha,1,1,1,1

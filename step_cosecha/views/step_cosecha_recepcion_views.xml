@@ -12,12 +12,18 @@
                 <header>
                     <button name="action_draft" string="Cambiar a Borrador"
                             type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado a borrador"
-                            invisible="state == 'draft'"/>
+                            invisible="state != 'progress'"/>
                     <button name="action_progress" string="En Proceso"
                             type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado en proceso"
-                            invisible="state == 'progress'"/>
+                            invisible="state != 'draft'"/>
                     <button name="action_done" string="Marcar listo"
-                            type="object" class="btn-primary" invisible="state == 'done'"/>
+                            type="object" class="btn-primary" invisible="state != 'progress'"/>
+                    <button name="action_generate_stock_receipt" string="Generar entrada de bodega"
+                            type="object" class="btn-secondary"
+                            invisible="not registry_id or picking_id"/>
+                    <button name="action_open_picking" string="Abrir entrada de bodega"
+                            type="object" class="btn-secondary"
+                            invisible="not picking_id"/>
                     <field name="state" widget="statusbar" nolabel="1" readonly="1" />
                 </header>
                 <sheet>
@@ -35,8 +41,15 @@
                             <field name="name" required="1" placeholder="Ej.: Recepción Fundo El Sauce"/>
                         </h1>
                     </div>
-                    <group class="o_cosecha_master_sections">
+                    <div class="o_cosecha_record_summary">
+                        <div><span>Líneas registradas</span><strong><field name="line_count" readonly="1"/></strong></div>
+                        <div><span>Kilos recibidos</span><strong><field name="total_kilos" readonly="1"/> kg</strong></div>
+                        <div><span>Cajas / envases</span><strong><field name="total_boxes" readonly="1"/></strong></div>
+                        <div class="is-warning"><span>Alertas de calidad</span><strong><field name="observed_count" readonly="1"/></strong></div>
+                    </div>
+                    <group class="o_cosecha_master_sections" readonly="state == 'done'">
                         <group string="Contacto">
+                            <field name="registry_id" options="{'no_create': True}"/>
                             <field name="contact_id"/>
                             <field name="phone"/>
                             <field name="email"/>
@@ -45,17 +58,32 @@
                             <field name="date"/>
                             <field name="dates"/>
                             <field name="responsable_id"/>
+                            <field name="picking_id" readonly="1"/>
+                            <field name="picking_state" widget="badge" readonly="1"/>
                             <field name="company_id"/>
                         </group>
                     </group>
-                    <group string="Observaciones">
+                    <group string="Observaciones" readonly="state == 'done'">
                         <field name="note" nolabel="1" placeholder="Agregue indicaciones o comentarios relevantes para esta recepción..."/>
                     </group>
-                    <notebook colspan="4">
+                    <notebook colspan="4" readonly="state == 'done'">
                         <page name='recep_line' string="Detalles">
                             <field name="recep_line">
-                                <list editable="bottom">
+                                <list editable="bottom" decoration-warning="quality == 'observed'" decoration-danger="quality == 'rejected'" decoration-success="quality == 'approved'">
                                     <field name="recep_id" column_invisible="True"/>
+                                    <field name="tarja" optional="show"/>
+                                    <field name="product_id" optional="show"/>
+                                    <field name="packaging_id" optional="show"/>
+                                    <field name="quantity" optional="show" sum="Total kilos"/>
+                                    <field name="boxes" optional="show" sum="Total cajas"/>
+                                    <field name="uom_id" optional="hide"/>
+                                    <field name="temperature" optional="show"/>
+                                    <field name="quality" widget="badge" optional="show"
+                                           decoration-success="quality == 'approved'"
+                                           decoration-warning="quality == 'observed'"
+                                           decoration-danger="quality == 'rejected'"/>
+                                    <field name="employee_id" optional="hide"/>
+                                    <field name="note" optional="show"/>
                                 </list>
                             </field>
                         </page>
@@ -74,11 +102,17 @@
                   decoration-success="state == 'done'" decoration-info="state == 'progress'">
                 <field name="name" optional="show"/>
                 <field name="contact_id" optional="show"/>
+                <field name="registry_id" optional="show"/>
                 <field name="phone" optional="show"/>
                 <field name="email" optional="show"/>
                 <field name="date" optional="show"/>
                 <field name="responsable_id" optional="show"/>
+                <field name="total_kilos" optional="show" sum="Total kilos"/>
+                <field name="total_boxes" optional="show" sum="Total cajas"/>
+                <field name="observed_count" optional="show" sum="Alertas"/>
                 <field name="company_id" optional="show"/>
+                <field name="picking_id" optional="hide"/>
+                <field name="picking_state" widget="badge" optional="show"/>
                 <field name="state" widget="badge" optional="show"
                        decoration-success="state == 'done'" decoration-info="state == 'progress'"/>
             </list>
@@ -93,9 +127,13 @@
             <kanban class="o_cosecha_reception_kanban" default_group_by="state" sample="1">
                 <field name="name"/>
                 <field name="contact_id"/>
+                <field name="registry_id"/>
                 <field name="date"/>
                 <field name="responsable_id"/>
                 <field name="state"/>
+                <field name="total_kilos"/>
+                <field name="total_boxes"/>
+                <field name="observed_count"/>
                 <templates>
                     <t t-name="card">
                         <div class="o_cosecha_process_card">
@@ -106,7 +144,13 @@
                             <strong class="o_cosecha_card_title"><field name="name"/></strong>
                             <div class="o_cosecha_card_details">
                                 <span><i class="fa fa-truck" title="Contacto"/><field name="contact_id"/></span>
+                                <span><i class="fa fa-leaf" title="Registro"/><field name="registry_id"/></span>
                                 <span><i class="fa fa-user" title="Responsable"/><field name="responsable_id"/></span>
+                            </div>
+                            <div class="o_cosecha_card_metrics">
+                                <span><strong><field name="total_kilos"/></strong><small>kg</small></span>
+                                <span><strong><field name="total_boxes"/></strong><small>cajas</small></span>
+                                <span t-att-class="record.observed_count.raw_value ? 'is-warning' : ''"><strong><field name="observed_count"/></strong><small>alertas</small></span>
                             </div>
                         </div>
                     </t>
@@ -115,10 +159,78 @@
         </field>
     </record>
 
+    <record id="view_step_cosecha_recepcion_search" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.search</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="arch" type="xml">
+            <search string="Buscar recepciones de cosecha">
+                <field name="name"/>
+                <field name="contact_id"/>
+                <field name="registry_id"/>
+                <field name="responsable_id"/>
+                <field name="date"/>
+                <filter name="draft" string="Nuevas" domain="[('state','=','draft')]"/>
+                <filter name="progress" string="En proceso" domain="[('state','=','progress')]"/>
+                <filter name="done" string="Listas" domain="[('state','=','done')]"/>
+                <filter name="quality_alerts" string="Con alertas" domain="[('observed_count','&gt;',0)]"/>
+                <filter name="pending_warehouse" string="Sin entrada de bodega" domain="[('registry_id','!=',False),('picking_id','=',False)]"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by':'state'}"/>
+                    <filter name="group_contact" string="Contacto" context="{'group_by':'contact_id'}"/>
+                    <filter name="group_registry" string="Registro" context="{'group_by':'registry_id'}"/>
+                    <filter name="group_responsible" string="Responsable" context="{'group_by':'responsable_id'}"/>
+                    <filter name="group_month" string="Mes" context="{'group_by':'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_recepcion_calendar" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.calendar</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="arch" type="xml">
+            <calendar string="Calendario de recepciones" date_start="date" color="state" mode="month">
+                <field name="name"/>
+                <field name="contact_id"/>
+                <field name="total_kilos"/>
+                <field name="state" filters="1"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_recepcion_graph" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.graph</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="arch" type="xml">
+            <graph string="Kilos recibidos por período" type="bar">
+                <field name="date" interval="month"/>
+                <field name="total_kilos" type="measure"/>
+                <field name="total_boxes" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_recepcion_pivot" model="ir.ui.view">
+        <field name="name">step.cosecha.recepcion.pivot</field>
+        <field name="model">step.cosecha.recepcion</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de recepciones">
+                <field name="contact_id" type="row"/>
+                <field name="state" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="total_kilos" type="measure"/>
+                <field name="total_boxes" type="measure"/>
+                <field name="observed_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
     <record id="action_step_cosecha_recepcion" model="ir.actions.act_window">
         <field name="name">Recepción Cosecha</field>
         <field name="res_model">step.cosecha.recepcion</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,calendar,graph,pivot,form</field>
+        <field name="search_view_id" ref="view_step_cosecha_recepcion_search"/>
     </record>
 
 

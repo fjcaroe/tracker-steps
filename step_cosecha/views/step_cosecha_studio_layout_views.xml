@@ -105,11 +105,11 @@
         </field>
     </record>
     <record id="studio_customization.informes_de_cosecha_f1db1e5b-6b7f-42ed-8c2f-a36363d1354c" model="ir.actions.act_window">
-        <field name="name">Informes de Cosecha</field>
+        <field name="name">Informes de Registro Manual</field>
         <field name="res_model">x_registro_cosecha</field>
         <field name="view_mode">graph,pivot,list,form</field>
         <field name="search_view_id" ref="view_registro_cosecha_search_report"/>
-        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Registre cosechas para comenzar a analizar la producción.</p></field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Ingrese registros manuales para analizarlos por separado de la operación conectada a Odoo.</p></field>
     </record>
 
     <!-- Post-harvest forms and lists -->

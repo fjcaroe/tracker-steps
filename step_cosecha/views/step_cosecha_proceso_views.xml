@@ -12,13 +12,13 @@
                 <header>
                     <button name="action_draft" string="Cambiar a Borrador"
                             type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado a borrador"
-                            invisible="state == 'draft'"/>
+                            invisible="state != 'progress'"/>
                     <button name="action_progress" string="En Proceso"
                             type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado en proceso"
-                            invisible="state == 'progress'"/>
+                            invisible="state != 'draft'"/>
                     <button name="action_done" string="Marcar listo"
                             type="object" class="btn-primary" title="Finaliza el proceso"
-                            invisible="state == 'done'"/>
+                            invisible="state != 'progress'"/>
                     <field name="state" widget="statusbar" nolabel="1" readonly="1" />
                 </header>
                 <sheet>
@@ -29,8 +29,15 @@
                             <field name="name" required="1" placeholder="Ej.: Selección y enfriado"/>
                         </h1>
                     </div>
-                    <group class="o_cosecha_master_sections">
+                    <div class="o_cosecha_record_summary">
+                        <div><span>Controles registrados</span><strong><field name="control_count" readonly="1"/></strong></div>
+                        <div><span>Horas de proceso</span><strong><field name="duration_hours" readonly="1"/> h</strong></div>
+                        <div class="is-warning"><span>Controles rechazados</span><strong><field name="rejected_count" readonly="1"/></strong></div>
+                    </div>
+                    <group class="o_cosecha_master_sections" readonly="state == 'done'">
                         <group string="Operación">
+                            <field name="registry_id" options="{'no_create': True}"/>
+                            <field name="product_id" readonly="1"/>
                             <field name="date"/>
                             <field name="super_id"/>
                             <field name="cosecha_ubi_id"/>
@@ -40,7 +47,7 @@
                             <field name="company_id"/>
                         </group>
                     </group>
-                    <notebook colspan="4">
+                    <notebook colspan="4" readonly="state == 'done'">
                         <page name='proceso_line' string="Detalles">
                             <field name="proceso_line">
                                 <list editable="bottom">
@@ -50,8 +57,11 @@
                                     <field name="num_tarja" optional="show"/>
                                     <field name="date_tarja_init" optional="show"/>
                                     <field name="date_tarja_end" optional="show"/>
+                                    <field name="duration_hours" optional="show" sum="Total horas"/>
                                     <field name="temp" optional="show"/>
-                                    <field name="calidad" optional="show"/>
+                                    <field name="calidad" widget="badge" optional="show"
+                                           decoration-success="calidad == 'aprueba'"
+                                           decoration-danger="calidad == 'rechaza'"/>
                                     <field name="comment" optional="show"/>
                                 </list>
                             </field>
@@ -70,9 +80,14 @@
             <list class="o_cosecha_master_list" decoration-success="state == 'done'" decoration-info="state == 'progress'" default_order="date desc">
                 <field name="name" optional="show"/>
                 <field name="date" optional="show"/>
+                <field name="registry_id" optional="show"/>
+                <field name="product_id" optional="show"/>
                 <field name="super_id" optional="show"/>
                 <field name="cosecha_ubi_id" optional="show"/>
                 <field name="responsable_id" optional="show"/>
+                <field name="control_count" optional="show" sum="Controles"/>
+                <field name="duration_hours" optional="show" sum="Total horas"/>
+                <field name="rejected_count" optional="show" sum="Rechazados"/>
                 <field name="state" widget="badge" optional="show"/>
             </list>
         </field>
@@ -84,24 +99,99 @@
         <field name="priority">5</field>
         <field name="arch" type="xml">
             <kanban class="o_cosecha_process_kanban" default_group_by="state" default_order="date desc">
-                <field name="name"/><field name="date"/><field name="super_id"/><field name="cosecha_ubi_id"/><field name="responsable_id"/><field name="state"/><field name="proceso_line"/>
+                <field name="name"/><field name="date"/><field name="registry_id"/><field name="product_id"/><field name="super_id"/><field name="cosecha_ubi_id"/><field name="responsable_id"/><field name="state"/><field name="control_count"/><field name="duration_hours"/><field name="rejected_count"/>
                 <templates><t t-name="card">
                     <div class="o_cosecha_process_card">
                         <div class="o_cosecha_process_card__top"><span t-att-class="'is-' + record.state.raw_value"><field name="state"/></span><time><field name="date" widget="date"/></time></div>
                         <h3><field name="name"/></h3>
+                        <p><i class="fa fa-leaf" title="Registro"/> <field name="registry_id"/></p>
                         <p><i class="fa fa-map-marker" title="Ubicación"/> <field name="cosecha_ubi_id"/></p>
                         <p><i class="fa fa-user" title="Supervisor"/> <field name="super_id"/></p>
-                        <footer><i class="fa fa-list" title="Detalles"/> <t t-esc="record.proceso_line.raw_value.length"/> controles registrados</footer>
+                        <div class="o_cosecha_card_metrics">
+                            <span><strong><field name="control_count"/></strong><small>controles</small></span>
+                            <span><strong><field name="duration_hours"/></strong><small>horas</small></span>
+                            <span t-att-class="record.rejected_count.raw_value ? 'is-warning' : ''"><strong><field name="rejected_count"/></strong><small>rechazados</small></span>
+                        </div>
                     </div>
                 </t></templates>
             </kanban>
         </field>
     </record>
 
+    <record id="view_step_cosecha_proceso_search" model="ir.ui.view">
+        <field name="name">step.cosecha.proceso.search</field>
+        <field name="model">step.cosecha.proceso</field>
+        <field name="arch" type="xml">
+            <search string="Buscar procesos de cosecha">
+                <field name="name"/>
+                <field name="registry_id"/>
+                <field name="product_id"/>
+                <field name="cosecha_ubi_id"/>
+                <field name="super_id"/>
+                <field name="responsable_id"/>
+                <field name="date"/>
+                <filter name="draft" string="Nuevos" domain="[('state','=','draft')]"/>
+                <filter name="progress" string="En proceso" domain="[('state','=','progress')]"/>
+                <filter name="done" string="Listos" domain="[('state','=','done')]"/>
+                <filter name="rejected" string="Con rechazos" domain="[('rejected_count','&gt;',0)]"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by':'state'}"/>
+                    <filter name="group_location" string="Ubicación" context="{'group_by':'cosecha_ubi_id'}"/>
+                    <filter name="group_product" string="Producto" context="{'group_by':'product_id'}"/>
+                    <filter name="group_supervisor" string="Supervisor" context="{'group_by':'super_id'}"/>
+                    <filter name="group_month" string="Mes" context="{'group_by':'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_proceso_calendar" model="ir.ui.view">
+        <field name="name">step.cosecha.proceso.calendar</field>
+        <field name="model">step.cosecha.proceso</field>
+        <field name="arch" type="xml">
+            <calendar string="Calendario de procesos" date_start="date" color="state" mode="month">
+                <field name="name"/>
+                <field name="cosecha_ubi_id"/>
+                <field name="super_id"/>
+                <field name="state" filters="1"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_proceso_graph" model="ir.ui.view">
+        <field name="name">step.cosecha.proceso.graph</field>
+        <field name="model">step.cosecha.proceso</field>
+        <field name="arch" type="xml">
+            <graph string="Controles postcosecha" type="bar">
+                <field name="cosecha_ubi_id"/>
+                <field name="control_count" type="measure"/>
+                <field name="duration_hours" type="measure"/>
+                <field name="rejected_count" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_proceso_pivot" model="ir.ui.view">
+        <field name="name">step.cosecha.proceso.pivot</field>
+        <field name="model">step.cosecha.proceso</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de procesos postcosecha">
+                <field name="cosecha_ubi_id" type="row"/>
+                <field name="state" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="control_count" type="measure"/>
+                <field name="duration_hours" type="measure"/>
+                <field name="rejected_count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
     <record id="action_step_cosecha_proceso" model="ir.actions.act_window">
         <field name="name">Procesos de Cosecha</field>
         <field name="res_model">step.cosecha.proceso</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,calendar,graph,pivot,form</field>
+        <field name="search_view_id" ref="view_step_cosecha_proceso_search"/>
     </record>
 
 

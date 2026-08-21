@@ -25,7 +25,7 @@
                     <button name="recibir_cosecha" string="Recibir Cosecha"
                             type="object" class="oe_highlight"
                             confirm="Esta Seguro de Recibir toda la cosecha registrada?"
-                            invisible="state != 'cont' or type_tarea == 'propio' or cos_recibida == True"/>
+                            invisible="state != 'cont' or type_tarea == 'propio' or cos_recibida == True or reception_picking_id"/>
                     <field name="state" widget="statusbar" nolabel="1" readonly="1" />
                 </header>
                 <sheet>
@@ -40,10 +40,10 @@
                         </h1>
                         <div class="o_cosecha_form_title__meta">
                             <field name="type_tarea" widget="badge" readonly="1" force_save="1" nolabel="1"/>
-                            <field name="date" nolabel="1"/>
+                            <field name="date" nolabel="1" readonly="state == 'cont'"/>
                         </div>
                     </div>
-                    <group class="o_cosecha_form_sections">
+                    <group class="o_cosecha_form_sections" readonly="state == 'cont'">
                         <group string="Identificación de la jornada">
                             <field name="folio"/>
                             <field name="responsable_id"/>
@@ -62,7 +62,7 @@
                             <field name="pricelist_id" domain="[('group_type', '=', type_tarea),('cosecha', '=', True),('partner_id', '=', partner_id)]"/>
                         </group>
                     </group>
-                    <group class="o_cosecha_form_sections">
+                    <group class="o_cosecha_form_sections" readonly="state == 'cont'">
                         <group string="Producto cosechado">
                             <field name="especie_id"/>
                             <field name="grupo_variedad_id_domain" widget="many2many_tags"/>
@@ -78,10 +78,12 @@
                             <field name="qty_pasada"/>
                             <field name="tarja_cajas"/>
                             <field name="tarja_kg"/>
+                            <field name="total_boxes" readonly="1"/>
+                            <field name="total_kilos" readonly="1"/>
                             <field name="cos_recibida" invisible="cos_recibida == False"/>
                         </group>
                     </group>
-                    <notebook colspan="4">
+                    <notebook colspan="4" readonly="state == 'cont'">
                         <page name='movi_registry' string="Registro" invisible="type_tarea == 'contratista'">
                             <field name="registry_line">
                                 <list editable="bottom">
@@ -150,6 +152,7 @@
                         <page name='Conta' string="Contabilización" invisible="state not in ['costo','cont']">
                             <group string="Contabilización">
                                 <field name="invoice_id" readonly="1" force_save="1"/>
+                                <field name="reception_picking_id" readonly="1" invisible="type_tarea == 'propio'"/>
                             </group>
                         </page>
                     </notebook>
@@ -174,9 +177,12 @@
                 <field name="grupo_variedad_id" optional="show"/>
                 <field name="cost_id" optional="show"/>
                 <field name="cuartel_id" optional="show"/>
-                <field name="tarja_cajas" optional="hide" sum="Cajas"/>
-                <field name="tarja_kg" optional="show" sum="Kilos"/>
+                <field name="tarja_cajas" optional="hide" sum="Cajas informadas"/>
+                <field name="tarja_kg" optional="hide" sum="Kilos informados"/>
+                <field name="total_boxes" optional="show" sum="Cajas reales"/>
+                <field name="total_kilos" optional="show" sum="Kilos reales"/>
                 <field name="state" widget="badge" optional="show"/>
+                <field name="reception_picking_id" optional="hide"/>
                 <field name="company_id" optional="hide"/>
             </list>
         </field>
@@ -196,8 +202,8 @@
                 <field name="fundo_id"/>
                 <field name="especie_id"/>
                 <field name="cuartel_id"/>
-                <field name="tarja_kg"/>
-                <field name="tarja_cajas"/>
+                <field name="total_kilos"/>
+                <field name="total_boxes"/>
                 <field name="state"/>
                 <templates>
                     <t t-name="card">
@@ -220,8 +226,8 @@
                                 <span><small><i class="fa fa-th-large" title="Cuartel"/><b>Cuartel</b></small><strong><field name="cuartel_id"/></strong></span>
                             </div>
                             <div class="o_cosecha_kanban_totals">
-                                <span><b><t t-esc="record.tarja_kg.value || '0,00'"/></b><small>kg registrados</small></span>
-                                <span><b><t t-esc="record.tarja_cajas.value || '0,00'"/></b><small>cajas</small></span>
+                                <span><b><t t-esc="record.total_kilos.value || '0,00'"/></b><small>kg registrados</small></span>
+                                <span><b><t t-esc="record.total_boxes.value || '0,00'"/></b><small>cajas</small></span>
                             </div>
                         </div>
                     </t>
@@ -246,20 +252,69 @@
                 <filter name="state_cont" string="Contabilizados" domain="[('state','=','cont')]"/>
                 <separator/>
                 <filter name="pending_receipt" string="Pendientes de recepción" domain="[('type_tarea','=','contratista'),('state','=','cont'),('cos_recibida','=',False)]"/>
+                <filter name="this_month" string="Este mes" date="date" default_period="this_month"/>
                 <group expand="0" string="Agrupar por">
                     <filter name="group_state" string="Estado" context="{'group_by':'state'}"/>
                     <filter name="group_type" string="Tipo" context="{'group_by':'type_tarea'}"/>
                     <filter name="group_fundo" string="Fundo" context="{'group_by':'fundo_id'}"/>
+                    <filter name="group_partner" string="Contratista" context="{'group_by':'partner_id'}"/>
+                    <filter name="group_product" string="Producto" context="{'group_by':'product_id'}"/>
                     <filter name="group_date" string="Fecha" context="{'group_by':'date:month'}"/>
                 </group>
             </search>
         </field>
     </record>
 
+    <record id="view_step_cosecha_registry_calendar" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.calendar</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="arch" type="xml">
+            <calendar string="Calendario de cosecha" date_start="date" color="type_tarea" mode="month">
+                <field name="name"/>
+                <field name="fundo_id"/>
+                <field name="partner_id"/>
+                <field name="total_kilos"/>
+                <field name="state" filters="1"/>
+                <field name="type_tarea" filters="1"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_registry_graph" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.graph</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <graph string="Producción operativa de cosecha" type="bar" stacked="1">
+                <field name="date" interval="month"/>
+                <field name="type_tarea"/>
+                <field name="total_kilos" type="measure"/>
+                <field name="total_boxes" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_cosecha_registry_pivot" model="ir.ui.view">
+        <field name="name">step.cosecha.registry.pivot</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="priority">5</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis operativo de cosecha">
+                <field name="fundo_id" type="row"/>
+                <field name="type_tarea" type="row"/>
+                <field name="state" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="total_kilos" type="measure"/>
+                <field name="total_boxes" type="measure"/>
+                <field name="qty_pasada" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
     <record id="action_step_cosecha_registry" model="ir.actions.act_window">
         <field name="name">Registro Cosecha</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,calendar,graph,pivot,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
         <field name="domain">[('type_tarea', 'in', ['propio'])]</field>
         <field name="context">{'step_default_propio':1}</field>
@@ -268,7 +323,7 @@
     <record id="action_step_cosecha_registry_contra" model="ir.actions.act_window">
         <field name="name">Registro Cosecha</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,calendar,graph,pivot,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
         <field name="domain">[('type_tarea', 'in', ['contratista'])]</field>
         <field name="context">{'step_default_contratista':1}</field>
@@ -277,19 +332,27 @@
     <record id="action_step_cosecha_registry_costo" model="ir.actions.act_window">
         <field name="name">Costeo Cosecha Contratista</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,calendar,graph,pivot,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
-        <field name="domain">[('type_tarea', 'in', ['contratista'])]</field>
-        <field name="context">{'step_default_contratista':1}</field>
+        <field name="domain">[('type_tarea', '=', 'contratista'), ('state', 'in', ['apro', 'costo'])]</field>
+        <field name="context">{'step_default_contratista':1, 'create': False}</field>
     </record>
 
     <record id="action_step_cosecha_costo_pro" model="ir.actions.act_window">
         <field name="name">Costeo Cosecha Propio</field>
         <field name="res_model">step.cosecha.registry</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">kanban,list,calendar,graph,pivot,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
-        <field name="domain">[('type_tarea', 'in', ['propio'])]</field>
-        <field name="context">{'step_default_propio':1}</field>
+        <field name="domain">[('type_tarea', '=', 'propio'), ('state', 'in', ['apro', 'costo'])]</field>
+        <field name="context">{'step_default_propio':1, 'create': False}</field>
+    </record>
+
+    <record id="action_step_cosecha_registry_analysis" model="ir.actions.act_window">
+        <field name="name">Analítica Operativa de Cosecha</field>
+        <field name="res_model">step.cosecha.registry</field>
+        <field name="view_mode">graph,pivot,list,calendar,form</field>
+        <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
+        <field name="context">{'search_default_this_month': 1}</field>
     </record>
 
     <record id="step_action_picking_tree_incoming" model="ir.actions.act_window">

@@ -11,13 +11,14 @@ export class StepCosechaDashboard extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
-        this.state = useState({ loading: true, days: 30, data: null });
+        this.state = useState({ loading: true, days: 30, data: null, error: null });
         onWillStart(() => this.loadDashboard());
     }
 
     async loadDashboard(days = this.state.days) {
         this.state.loading = true;
         this.state.days = Number(days);
+        this.state.error = null;
         try {
             this.state.data = await this.orm.call(
                 "step.cosecha.registry",
@@ -26,8 +27,8 @@ export class StepCosechaDashboard extends Component {
                 { days: this.state.days }
             );
         } catch (error) {
-            this.notification.add("No fue posible cargar el resumen de Cosecha.", { type: "danger" });
-            throw error;
+            this.state.error = "No fue posible cargar el resumen de Cosecha.";
+            this.notification.add(this.state.error, { type: "danger" });
         } finally {
             this.state.loading = false;
         }
