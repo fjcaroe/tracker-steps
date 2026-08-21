@@ -352,7 +352,7 @@
         <field name="res_model">step.cosecha.registry</field>
         <field name="view_mode">graph,pivot,list,calendar,form</field>
         <field name="search_view_id" ref="step_cosecha.view_step_cosecha_registry_search"/>
-        <field name="context">{'search_default_this_month': 1}</field>
+        <field name="context">{}</field>
     </record>
 
     <record id="step_action_picking_tree_incoming" model="ir.actions.act_window">
