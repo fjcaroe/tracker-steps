@@ -21,7 +21,7 @@ export class StepBpaDashboard extends Component {
         this.state.error = null;
         try {
             this.state.data = await this.orm.call(
-                "x_riego_y_fertilizacio", "get_step_bpa_dashboard", [], { days: this.state.days }
+                "res.company", "get_step_bpa_dashboard", [], { days: this.state.days }
             );
         } catch (error) {
             this.state.error = "No fue posible cargar el centro BPA y Riego.";

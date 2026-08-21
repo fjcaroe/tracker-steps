@@ -5,7 +5,10 @@ from odoo.exceptions import AccessError
 
 
 class BpaIrrigationDashboard(models.Model):
-    _inherit = "x_riego_y_fertilizacio"
+    # Studio models are added to the registry after regular Python models.
+    # Expose the dashboard endpoint from a stable native model and access the
+    # Studio records lazily inside the method.
+    _inherit = "res.company"
 
     @api.model
     def get_step_bpa_dashboard(self, days=0):
