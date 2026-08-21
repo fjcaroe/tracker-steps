@@ -12,7 +12,7 @@
     'author': "jamie.escalante7@gmail.com",
     'website': "",
     'category': 'Operations',
-    'version': '18.0.1.2.0',
+    'version': '18.0.1.2.1',
     'license': 'LGPL-3',
 
     'depends': ['base',

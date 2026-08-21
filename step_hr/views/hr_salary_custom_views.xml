@@ -97,7 +97,7 @@
         <field name="model">hr.salary.custom</field>
         <field name="priority">5</field>
         <field name="arch" type="xml">
-            <kanban class="o_step_salary_kanban" default_group_by="state" default_order="date desc">
+            <kanban class="o_step_salary_kanban" default_order="date desc">
                 <field name="name"/><field name="date"/><field name="group_type"/><field name="fundo_id"/>
                 <field name="employee_id"/><field name="responsable_id"/><field name="partner_id"/><field name="state"/>
                 <templates>

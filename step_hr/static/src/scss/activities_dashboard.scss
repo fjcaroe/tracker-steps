@@ -40,10 +40,13 @@
 @media (max-width: 700px) { .o_step_activities_dashboard { padding: 12px; } .o_step_activities_hero { align-items: flex-start; flex-direction: column; padding: 22px; } .o_step_activities_kpis, .o_step_activities_shortcuts { grid-template-columns: repeat(2,1fr); } .o_step_activities_flow > em { display: none; } .o_step_activities_flow { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 480px) { .o_step_activities_kpis, .o_step_activities_shortcuts { grid-template-columns: 1fr; } }
 
-.o_step_salary_kanban .o_kanban_record { border: 0; background: transparent; box-shadow: none; }
-.o_step_salary_card { position: relative; min-height: 190px; padding: 18px; overflow: hidden; border: 1px solid #dce5df; border-radius: 17px; color: #183029; background: #fff; box-shadow: 0 7px 22px rgba(16,63,53,.07); }
+.o_step_salary_kanban:not(.o_kanban_grouped) { align-content: flex-start; gap: 16px; padding: 20px; background: #f2f5f1; }
+.o_step_salary_kanban .o_kanban_record { width: 340px; max-width: 100%; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.o_step_salary_card { position: relative; min-height: 235px; padding: 18px 18px 54px; overflow: hidden; border: 1px solid #dce5df; border-radius: 17px; color: #183029; background: #fff; box-shadow: 0 7px 22px rgba(16,63,53,.07); transition: transform .15s ease, box-shadow .15s ease; }
+.o_step_salary_card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(16,63,53,.12); }
 .o_step_salary_card_top { display: flex; justify-content: space-between; gap: 12px; color: #71817c; font-size: 11px; > span { padding: 5px 9px; border-radius: 99px; color: #176048; font-weight: 750; background: #e1f3ec; &.is-contratista { color: #8b4c13; background: #fff0d8; } } }
 .o_step_salary_card h3 { margin: 15px 0 6px; color: #103f35; font-size: 18px; font-weight: 800; }
 .o_step_salary_card > p { color: #61736d; i { color: #e65b45; } }
 .o_step_salary_card_meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding-top: 10px; border-top: 1px solid #edf1ee; span { display: flex; min-width: 0; flex-direction: column; } small { color: #82908b; font-size: 10px; text-transform: uppercase; } strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 .o_step_salary_card_state { position: absolute; right: 0; bottom: 0; left: 0; padding: 6px 18px; color: #85620c; font-size: 11px; font-weight: 750; text-align: right; background: #fff5d7; &.is-progress { color: #a43b2c; background: #ffebe7; } &.is-done { color: #176048; background: #e1f3ec; } }
+@media (max-width: 520px) { .o_step_salary_kanban .o_kanban_record { width: 100%; } }
