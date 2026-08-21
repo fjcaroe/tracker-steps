@@ -77,8 +77,9 @@ class HrSalaryCustomActivitiesDashboard(models.Model):
             ["fundo_id"],
             ["fundo_id"],
         )
-        fundo_groups = sorted(fundo_groups, key=lambda group: group["__count"], reverse=True)[:5]
-        max_fundo = max((group["__count"] for group in fundo_groups), default=1)
+        group_count = lambda group: group.get("__count", group.get("fundo_id_count", 0))
+        fundo_groups = sorted(fundo_groups, key=group_count, reverse=True)[:5]
+        max_fundo = max((group_count(group) for group in fundo_groups), default=1)
 
         latest_salary = self.search(
             [("company_id", "=", self.env.company.id), ("date", "!=", False)],
@@ -142,8 +143,8 @@ class HrSalaryCustomActivitiesDashboard(models.Model):
             "fundos": [{
                 "id": group["fundo_id"][0],
                 "name": group["fundo_id"][1],
-                "count": group["__count"],
-                "percent": round((group["__count"] / max_fundo) * 100, 1),
+                "count": group_count(group),
+                "percent": round((group_count(group) / max_fundo) * 100, 1),
             } for group in fundo_groups],
             "recent": [{
                 "id": record.id,
