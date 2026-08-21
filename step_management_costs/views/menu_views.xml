@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_management_root" name="Gestión y Costos" action="action_management_dashboard" sequence="20" groups="step_management_costs.group_management_user"/>
+    <menuitem id="menu_management_root" name="Gestión y Costos" action="action_management_dashboard" sequence="20" groups="step_management_costs.group_management_user" web_icon="step_management_costs,static/description/icon.png"/>
     <menuitem id="menu_management_home" name="Inicio" action="action_management_dashboard" parent="menu_management_root" sequence="0"/>
     <menuitem id="menu_management_budget" name="Presupuesto Operacional" parent="menu_management_root" sequence="10"/>
     <menuitem id="menu_operational_budget_create" name="Crear desde plantilla" action="action_operational_budget_create" parent="menu_management_budget" sequence="5"/>
