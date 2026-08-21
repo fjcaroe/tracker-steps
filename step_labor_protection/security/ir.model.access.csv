@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_labor_protocol_user,Protocolo prevención usuario,model_step_labor_protocol,step_labor_protection.group_labor_user,1,0,0,0
+access_labor_protocol_manager,Protocolo prevención responsable,model_step_labor_protocol,step_labor_protection.group_labor_manager,1,1,1,0
+access_labor_protocol_hr_manager,Protocolo prevención RRHH,model_step_labor_protocol,hr.group_hr_manager,1,1,1,0
+access_labor_karin_case_confidential,Caso Ley Karin confidencial,model_step_labor_karin_case,step_labor_protection.group_labor_confidential,1,1,1,0
+access_labor_karin_case_hr_manager,Caso Ley Karin RRHH,model_step_labor_karin_case,hr.group_hr_manager,1,1,1,0
+access_labor_karin_safeguard_confidential,Resguardo Ley Karin confidencial,model_step_labor_karin_safeguard,step_labor_protection.group_labor_confidential,1,1,1,1
+access_labor_karin_safeguard_hr_manager,Resguardo Ley Karin RRHH,model_step_labor_karin_safeguard,hr.group_hr_manager,1,1,1,1
+access_labor_karin_event_confidential,Bitácora Ley Karin confidencial,model_step_labor_karin_event,step_labor_protection.group_labor_confidential,1,1,1,1
+access_labor_karin_event_hr_manager,Bitácora Ley Karin RRHH,model_step_labor_karin_event,hr.group_hr_manager,1,1,1,1
+

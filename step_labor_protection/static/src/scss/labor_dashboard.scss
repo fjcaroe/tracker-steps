@@ -1,0 +1,22 @@
+.o_step_labor_dashboard {
+    --labor-ink: #172b27; --labor-green: #155e52; --labor-mint: #e7f5ef; --labor-line: #dce6e1;
+    height: 100%; overflow: auto; background: #f5f7f6; color: var(--labor-ink); padding: 20px 24px 32px;
+    button { transition: transform .15s ease, box-shadow .15s ease; }
+    button:hover { transform: translateY(-1px); }
+}
+.o_step_labor_loading { min-height: 60vh; display: flex; gap: 12px; align-items: center; justify-content: center; }
+.o_step_labor_hero { max-width: 1500px; margin: auto; border-radius: 22px; padding: 25px 28px; color: white; display: flex; justify-content: space-between; align-items: center; gap: 20px; background: linear-gradient(120deg, #103c37, #19705f 60%, #2f8e76); box-shadow: 0 14px 35px #164c3d26;
+    span { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: #bde8dc; } h1 { margin: 4px 0 3px; font-size: clamp(25px, 3vw, 38px); } p { margin: 0; color: #e4f5ef; }
+}
+.o_step_labor_period { display: flex; padding: 4px; border-radius: 12px; background: #ffffff1c; button { color: white; border: 0; background: transparent; padding: 8px 12px; border-radius: 9px; font-weight: 600; } button.active { background: white; color: var(--labor-green); } }
+.o_step_labor_actions, .o_step_labor_kpis, .o_step_labor_grid { max-width: 1500px; margin-left: auto; margin-right: auto; }
+.o_step_labor_actions { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 9px; .btn { border-radius: 10px; padding: 9px 15px; border-color: var(--labor-line); box-shadow: 0 3px 10px #183d3420; } .btn-primary { background: var(--labor-green); } i { margin-right: 6px; } }
+.o_step_labor_kpis { display: grid; grid-template-columns: repeat(6, minmax(145px, 1fr)); gap: 12px; margin-top: 14px; }
+.o_step_labor_kpi { border: 1px solid var(--labor-line); background: white; text-align: left; border-radius: 15px; padding: 15px; box-shadow: 0 4px 14px #183d340d; border-top: 4px solid #71847e; span, small { display: block; color: #64746f; } span { font-weight: 700; font-size: 12px; } strong { display: block; font-size: 28px; line-height: 1.15; margin: 5px 0 2px; } small { font-size: 11px; } &--blue { border-top-color: #3b82f6; } &--green { border-top-color: #22a06b; } &--orange { border-top-color: #e68a31; } &--purple { border-top-color: #7c5ac7; } }
+.o_step_labor_grid { margin-top: 14px; display: grid; grid-template-columns: 1.25fr .75fr; gap: 14px; }
+.o_step_labor_panel { background: white; border: 1px solid var(--labor-line); border-radius: 17px; padding: 20px; box-shadow: 0 5px 18px #183d340c; header > span, > div > span { color: #b24638; letter-spacing: .12em; font-weight: 800; font-size: 10px; } h2 { font-size: 19px; margin: 3px 0 12px; } > button { width: 100%; display: flex; gap: 12px; align-items: center; border: 0; border-top: 1px solid #edf1ef; background: transparent; padding: 12px 3px; text-align: left; i { width: 28px; color: var(--labor-green); font-size: 17px; } span { display: flex; flex-direction: column; } small { color: #74817d; } } }
+.o_step_labor_panel--karin { display: flex; align-items: center; gap: 20px; background: linear-gradient(135deg, #faf8ff, #f1ebff); border-color: #ded1fa; .o_step_labor_panel_icon { flex: 0 0 62px; height: 62px; border-radius: 18px; display: grid; place-items: center; background: #6d4bb5; color: white; font-size: 26px; } p { color: #5d566a; max-width: 760px; } button { width: auto; margin-top: 12px; border: 0; border-radius: 9px; padding: 9px 13px; background: #6d4bb5; color: white; font-weight: 700; } }
+.o_step_labor_panel--guide { grid-column: 1 / -1; ol { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; list-style-position: inside; padding: 0; margin: 0; } li { background: #f5faf8; padding: 12px; border-radius: 11px; color: var(--labor-green); } li small { display: block; color: #657670; padding: 5px 0 0 20px; } }
+@media (max-width: 1100px) { .o_step_labor_kpis { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px) { .o_step_labor_dashboard { padding: 10px; } .o_step_labor_hero { align-items: flex-start; flex-direction: column; } .o_step_labor_kpis { grid-template-columns: repeat(2, 1fr); } .o_step_labor_grid { grid-template-columns: 1fr; } .o_step_labor_panel--guide { grid-column: auto; ol { grid-template-columns: 1fr; } } }
+

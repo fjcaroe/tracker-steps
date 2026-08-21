@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_labor_protection.Dashboard">
+        <main class="o_step_labor_dashboard">
+            <div t-if="state.loading" class="o_step_labor_loading"><i class="fa fa-circle-o-notch fa-spin"/> Cargando protección laboral…</div>
+            <div t-elif="state.error" class="o_step_labor_loading"><strong t-esc="state.error"/><button class="btn btn-primary" t-on-click="() => this.loadDashboard()">Reintentar</button></div>
+            <t t-else="">
+                <section class="o_step_labor_hero">
+                    <div><span>BIENESTAR, PREVENCIÓN Y CUMPLIMIENTO</span><h1>Centro de Protección Laboral</h1><p>Prevención, capacitación, EPP, accidentes y Ley Karin en una sola vista.</p></div>
+                    <div class="o_step_labor_period">
+                        <button t-att-class="state.days === 30 ? 'active' : ''" t-on-click="() => this.loadDashboard(30)">30 días</button>
+                        <button t-att-class="state.days === 90 ? 'active' : ''" t-on-click="() => this.loadDashboard(90)">90 días</button>
+                        <button t-att-class="state.days === 365 ? 'active' : ''" t-on-click="() => this.loadDashboard(365)">1 año</button>
+                        <button t-att-class="state.days === 0 ? 'active' : ''" t-on-click="() => this.loadDashboard(0)">Todo</button>
+                    </div>
+                </section>
+
+                <section class="o_step_labor_actions">
+                    <button class="btn btn-primary" t-on-click="() => this.openAction('studio_customization.accidentes_laborales_612ba5f1-ae9a-4f0e-b272-f27b0444fa3b')"><i class="fa fa-medkit"/> Registrar accidente</button>
+                    <button class="btn btn-light" t-on-click="() => this.openAction('studio_customization.entrega_epp_e9424ed4-d0c7-4783-82aa-5e01bb11535a')"><i class="fa fa-shield"/> Entrega EPP</button>
+                    <button class="btn btn-light" t-on-click="() => this.openAction('studio_customization.inducciones_y_cursos_d00a32a3-0274-4084-9fd4-a709975f4fdf')"><i class="fa fa-graduation-cap"/> Capacitación</button>
+                    <button t-if="state.data.karin.allowed" class="btn btn-light" t-on-click="() => this.openAction('step_labor_protection.action_labor_karin_case')"><i class="fa fa-lock"/> Gestión Ley Karin</button>
+                </section>
+
+                <section class="o_step_labor_kpis">
+                    <button class="o_step_labor_kpi o_step_labor_kpi--blue" t-on-click="() => this.openAction('studio_customization.inducciones_y_cursos_d00a32a3-0274-4084-9fd4-a709975f4fdf')"><span>Capacitaciones</span><strong t-esc="formatNumber(state.data.courses.total)"/><small>inducciones y cursos</small></button>
+                    <button class="o_step_labor_kpi o_step_labor_kpi--green" t-on-click="() => this.openAction('studio_customization.entrega_epp_e9424ed4-d0c7-4783-82aa-5e01bb11535a')"><span>Entregas EPP</span><strong t-esc="formatNumber(state.data.epp.total)"/><small>registros del período</small></button>
+                    <button class="o_step_labor_kpi o_step_labor_kpi--orange" t-on-click="() => this.openAction('studio_customization.accidentes_laborales_612ba5f1-ae9a-4f0e-b272-f27b0444fa3b')"><span>Accidentes</span><strong t-esc="formatNumber(state.data.accidents.total)"/><small>registros del período</small></button>
+                    <button class="o_step_labor_kpi" t-on-click="() => this.openAction('studio_customization.riesgos_laborales_f7feac93-870e-4504-a74e-e9688c5f4cf9')"><span>Riesgos definidos</span><strong t-esc="formatNumber(state.data.risks.total)"/><small>matriz preventiva</small></button>
+                    <button t-if="state.data.karin.allowed" class="o_step_labor_kpi o_step_labor_kpi--purple" t-on-click="() => this.openAction('step_labor_protection.action_labor_karin_case')"><span>Casos abiertos</span><strong t-esc="formatNumber(state.data.karin.open)"/><small><b t-esc="formatNumber(state.data.karin.overdue)"/> con plazo vencido</small></button>
+                    <button class="o_step_labor_kpi" t-on-click="() => this.openAction('step_labor_protection.action_labor_protocol')"><span>Protocolos vigentes</span><strong t-esc="formatNumber(state.data.protocols.active)"/><small><b t-esc="formatNumber(state.data.protocols.review)"/> requieren revisión</small></button>
+                </section>
+
+                <section class="o_step_labor_grid">
+                    <article class="o_step_labor_panel o_step_labor_panel--karin">
+                        <div class="o_step_labor_panel_icon"><i class="fa fa-balance-scale"/></div>
+                        <div><span>LEY KARIN</span><h2>Denuncias con trazabilidad y resguardo</h2><p>Recepción escrita o verbal, confidencialidad, medidas de resguardo, investigación, plazos y cierre documentado.</p>
+                            <button t-if="state.data.karin.allowed" t-on-click="() => this.openAction('step_labor_protection.action_labor_karin_case')">Abrir gestión confidencial <i class="fa fa-arrow-right"/></button>
+                            <small t-else="">El acceso a casos está restringido a responsables autorizados.</small>
+                        </div>
+                    </article>
+                    <article class="o_step_labor_panel">
+                        <header><span>PREVENCIÓN</span><h2>Accesos rápidos</h2></header>
+                        <button t-on-click="() => this.openAction('studio_customization.riesgos_laborales_f7feac93-870e-4504-a74e-e9688c5f4cf9')"><i class="fa fa-exclamation-triangle"/><span><b>Riesgos laborales</b><small>Identificación y catálogo</small></span></button>
+                        <button t-on-click="() => this.openAction('studio_customization.medidas_preventivas_e388b823-a2b4-4861-b539-6958e3996b25')"><i class="fa fa-check-circle"/><span><b>Medidas preventivas</b><small>Controles y mitigaciones</small></span></button>
+                        <button t-on-click="() => this.openAction('step_labor_protection.action_labor_protocol')"><i class="fa fa-file-text-o"/><span><b>Protocolos</b><small>Vigencia, difusión y revisión</small></span></button>
+                    </article>
+                    <article class="o_step_labor_panel o_step_labor_panel--guide">
+                        <header><span>RUTA DE RESPUESTA</span><h2>Ante una denuncia</h2></header>
+                        <ol><li><b>Recibir y documentar</b><small>Si es verbal, levantar acta y obtener firma.</small></li><li><b>Proteger de inmediato</b><small>Confidencialidad, no represalias y medidas sin menoscabo.</small></li><li><b>Investigar o derivar</b><small>Definir la vía y controlar el plazo.</small></li><li><b>Resolver y hacer seguimiento</b><small>Aplicar medidas, notificar y prevenir reiteraciones.</small></li></ol>
+                    </article>
+                </section>
+            </t>
+        </main>
+    </t>
+</templates>
+

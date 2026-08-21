@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_labor_protocol_list" model="ir.ui.view">
+        <field name="name">step.labor.protocol.list</field>
+        <field name="model">step.labor.protocol</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'active' and review_status == 'ok'"
+                  decoration-warning="review_status == 'soon'" decoration-danger="review_status == 'overdue'">
+                <field name="name"/>
+                <field name="version"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="responsible_id" widget="many2one_avatar_user"/>
+                <field name="effective_date"/>
+                <field name="review_date"/>
+                <field name="review_status" widget="badge"
+                       decoration-success="review_status == 'ok'"
+                       decoration-warning="review_status == 'soon'"
+                       decoration-danger="review_status == 'overdue'"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_labor_protocol_form" model="ir.ui.view">
+        <field name="name">step.labor.protocol.form</field>
+        <field name="model">step.labor.protocol</field>
+        <field name="arch" type="xml">
+            <form string="Protocolo de prevención">
+                <header>
+                    <button name="action_activate" type="object" string="Publicar protocolo" class="btn-primary" invisible="state == 'active'"/>
+                    <button name="action_set_draft" type="object" string="Volver a borrador" invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,expired"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ej.: Protocolo Ley Karin y prevención de violencia"/></h1>
+                    </div>
+                    <group>
+                        <group string="Vigencia">
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="version"/>
+                            <field name="effective_date"/>
+                            <field name="review_date"/>
+                            <field name="review_status" widget="badge"/>
+                        </group>
+                        <group string="Responsabilidad y difusión">
+                            <field name="responsible_id" widget="many2one_avatar_user"/>
+                            <field name="communication_date"/>
+                            <field name="document" filename="document_filename"/>
+                            <field name="document_filename" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Canales de denuncia" name="channels">
+                            <field name="channel_description" placeholder="Indique dónde, cómo y ante quién se puede denunciar…"/>
+                        </page>
+                        <page string="Alcance y prevención" name="scope">
+                            <field name="scope" placeholder="Riesgos psicosociales, conductas prohibidas, prevención, difusión y seguimiento…"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_labor_protocol_search" model="ir.ui.view">
+        <field name="name">step.labor.protocol.search</field>
+        <field name="model">step.labor.protocol</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="responsible_id"/>
+                <filter string="Vigentes" name="active_protocol" domain="[('state','=','active')]"/>
+                <filter string="Revisión próxima" name="review_soon" domain="[('review_date','&lt;=',context_today().strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Empresa" name="company" context="{'group_by':'company_id'}"/>
+                    <filter string="Estado" name="state" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_labor_protocol" model="ir.actions.act_window">
+        <field name="name">Protocolos preventivos</field>
+        <field name="res_model">step.labor.protocol</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_labor_protocol_search"/>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Cree y mantenga vigente el protocolo preventivo de la empresa.</p></field>
+    </record>
+</odoo>
+

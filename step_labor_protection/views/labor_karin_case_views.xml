@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_labor_karin_case_list" model="ir.ui.view">
+        <field name="name">step.labor.karin.case.list</field>
+        <field name="model">step.labor.karin.case</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="deadline_status == 'overdue'" decoration-warning="deadline_status == 'soon'">
+                <field name="reference"/>
+                <field name="report_date"/>
+                <field name="case_type"/>
+                <field name="summary"/>
+                <field name="investigator_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="route" widget="badge"/>
+                <field name="deadline_status" widget="badge"
+                       decoration-success="deadline_status == 'done' or deadline_status == 'ok'"
+                       decoration-warning="deadline_status == 'soon'"
+                       decoration-danger="deadline_status == 'overdue'"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_labor_karin_case_kanban" model="ir.ui.view">
+        <field name="name">step.labor.karin.case.kanban</field>
+        <field name="model">step.labor.karin.case</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column" quick_create="false">
+                <field name="reference"/><field name="report_date"/><field name="case_type"/>
+                <field name="summary"/><field name="deadline_status"/><field name="investigator_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong><field name="reference"/></strong>
+                            <field name="deadline_status" widget="label_selection" options="{'classes': {'ok':'success','soon':'warning','overdue':'danger','done':'success'}}"/>
+                        </div>
+                        <div class="fw-semibold"><field name="summary"/></div>
+                        <div class="text-muted mt-2"><field name="case_type"/> · <field name="report_date"/></div>
+                        <footer class="mt-2"><field name="investigator_id" widget="many2one_avatar_user"/></footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_labor_karin_case_form" model="ir.ui.view">
+        <field name="name">step.labor.karin.case.form</field>
+        <field name="model">step.labor.karin.case</field>
+        <field name="arch" type="xml">
+            <form string="Caso Ley Karin" delete="false">
+                <header>
+                    <button name="action_apply_safeguards" type="object" string="Aplicar resguardos" class="btn-primary" invisible="state != 'received'"/>
+                    <button name="action_start_investigation" type="object" string="Iniciar investigación" class="btn-primary" invisible="state not in ('received','safeguards')"/>
+                    <button name="action_resolve" type="object" string="Emitir conclusiones" class="btn-primary" invisible="state != 'investigation'"/>
+                    <button name="action_close" type="object" string="Aplicar medidas y cerrar" class="btn-primary" invisible="state != 'resolution'"/>
+                    <button name="action_discard" type="object" string="Declarar no admisible" confirm="¿Confirma que el caso no corresponde a este procedimiento?" invisible="state not in ('received','safeguards')"/>
+                    <button name="action_reopen" type="object" string="Reabrir" invisible="state not in ('closed','discarded')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="received,safeguards,investigation,resolution,closed"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>Información confidencial.</strong> Evite datos sensibles innecesarios y cualquier acción que produzca revictimización o represalias.
+                    </div>
+                    <div class="oe_title">
+                        <label for="reference"/>
+                        <h1><field name="reference"/></h1>
+                        <h2><field name="summary" placeholder="Resumen breve y reservado del caso"/></h2>
+                    </div>
+                    <group>
+                        <group string="Recepción">
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="report_date"/>
+                            <field name="reception_channel"/>
+                            <field name="case_type"/>
+                            <field name="verbal_record_signed" invisible="reception_channel != 'verbal'"/>
+                            <field name="confidentiality_explained"/>
+                            <field name="no_retaliation_explained"/>
+                        </group>
+                        <group string="Gestión del plazo">
+                            <field name="investigator_id" widget="many2one_avatar_user"/>
+                            <field name="route"/>
+                            <field name="route_decision_date"/>
+                            <field name="route_deadline" readonly="1"/>
+                            <field name="investigation_deadline" readonly="1"/>
+                            <field name="measures_deadline" readonly="1"/>
+                            <field name="deadline_status" widget="badge"/>
+                            <field name="dt_folio" invisible="route != 'dt'"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Personas y relato" name="facts">
+                            <group>
+                                <group string="Personas involucradas">
+                                    <field name="affected_employee_id"/>
+                                    <field name="reporter_employee_id"/>
+                                    <field name="reporter_name"/>
+                                    <field name="reported_employee_id"/>
+                                    <field name="reported_third_party"/>
+                                </group>
+                            </group>
+                            <field name="description" placeholder="Registre el relato con lenguaje objetivo, fechas, lugares y hechos relevantes…"/>
+                        </page>
+                        <page string="Medidas de resguardo" name="safeguards">
+                            <field name="safeguard_ids" context="{'default_case_id': id}">
+                                <list editable="bottom">
+                                    <field name="measure_type"/>
+                                    <field name="description"/>
+                                    <field name="responsible_id"/>
+                                    <field name="start_date"/>
+                                    <field name="end_date"/>
+                                    <field name="non_detriment_confirmed"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Investigación y evidencias" name="investigation">
+                            <group>
+                                <field name="investigation_start_date"/>
+                                <field name="investigation_end_date"/>
+                            </group>
+                            <field name="event_ids" context="{'default_case_id': id}">
+                                <list editable="bottom">
+                                    <field name="date"/>
+                                    <field name="event_type"/>
+                                    <field name="description"/>
+                                    <field name="responsible_id"/>
+                                    <field name="attachment" filename="attachment_filename"/>
+                                    <field name="attachment_filename" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <separator string="Antecedentes generales"/>
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+                        <page string="Conclusión y cierre" name="resolution">
+                            <label for="conclusion" string="Conclusiones de la investigación"/>
+                            <field name="conclusion"/>
+                            <label for="resolution" string="Medidas o sanciones aplicadas"/>
+                            <field name="resolution"/>
+                            <field name="measures_applied_date"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_labor_karin_case_search" model="ir.ui.view">
+        <field name="name">step.labor.karin.case.search</field>
+        <field name="model">step.labor.karin.case</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="reference"/>
+                <field name="summary"/>
+                <field name="investigator_id"/>
+                <filter string="Abiertos" name="open" domain="[('state','not in',('closed','discarded'))]"/>
+                <filter string="Plazo vencido" name="overdue" domain="[('deadline_status','=','overdue')]"/>
+                <filter string="Mis casos" name="mine" domain="[('investigator_id','=',uid)]"/>
+                <separator/>
+                <filter string="Fecha de recepción" name="report_date" date="report_date"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado" name="state" context="{'group_by':'state'}"/>
+                    <filter string="Tipo" name="type" context="{'group_by':'case_type'}"/>
+                    <filter string="Responsable" name="investigator" context="{'group_by':'investigator_id'}"/>
+                    <filter string="Empresa" name="company" context="{'group_by':'company_id'}" groups="base.group_multi_company"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_labor_karin_case" model="ir.actions.act_window">
+        <field name="name">Casos Ley Karin</field>
+        <field name="res_model">step.labor.karin.case</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_labor_karin_case_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Registre una denuncia con acceso reservado y trazabilidad de plazos.</p></field>
+    </record>
+
+    <record id="action_labor_karin_case_all" model="ir.actions.act_window">
+        <field name="name">Historial Ley Karin</field>
+        <field name="res_model">step.labor.karin.case</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_labor_karin_case_search"/>
+    </record>
+</odoo>
+

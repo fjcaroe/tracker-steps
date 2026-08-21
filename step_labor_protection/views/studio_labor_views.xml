@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vistas nativas sobre los datos históricos creados originalmente con Studio. -->
+    <record id="view_studio_labor_course_list" model="ir.ui.view">
+        <field name="name">x_inducciones_y_cursos.step.list</field><field name="model">x_inducciones_y_cursos</field><field name="priority">5</field>
+        <field name="arch" type="xml"><list>
+            <field name="x_name" string="Folio"/><field name="x_studio_fecha"/><field name="x_studio_nombre_del_curso"/>
+            <field name="x_studio_tipo_curso" widget="badge"/><field name="x_studio_relator"/><field name="x_studio_supervisor"/>
+            <field name="x_studio_fundo"/><field name="x_studio_empresa" groups="base.group_multi_company"/>
+            <field name="x_studio_tiempo_del_curso" sum="Total horas"/>
+        </list></field>
+    </record>
+    <record id="view_studio_labor_course_search" model="ir.ui.view">
+        <field name="name">x_inducciones_y_cursos.step.search</field><field name="model">x_inducciones_y_cursos</field><field name="priority">5</field>
+        <field name="arch" type="xml"><search>
+            <field name="x_name"/><field name="x_studio_nombre_del_curso"/><field name="x_studio_relator"/><field name="x_studio_fundo"/>
+            <filter string="Fecha" name="date" date="x_studio_fecha"/>
+            <group expand="0" string="Agrupar por"><filter string="Curso" name="course" context="{'group_by':'x_studio_nombre_del_curso'}"/>
+                <filter string="Tipo" name="type" context="{'group_by':'x_studio_tipo_curso'}"/><filter string="Fundo" name="farm" context="{'group_by':'x_studio_fundo'}"/>
+                <filter string="Mes" name="month" context="{'group_by':'x_studio_fecha:month'}"/></group>
+        </search></field>
+    </record>
+    <record id="view_studio_labor_course_calendar" model="ir.ui.view">
+        <field name="name">x_inducciones_y_cursos.step.calendar</field><field name="model">x_inducciones_y_cursos</field>
+        <field name="arch" type="xml"><calendar string="Calendario de capacitación" date_start="x_studio_horario_curso" color="x_studio_tipo_curso" mode="month">
+            <field name="x_name"/><field name="x_studio_nombre_del_curso"/><field name="x_studio_relator"/><field name="x_studio_fundo"/>
+        </calendar></field>
+    </record>
+    <record id="view_studio_labor_course_graph" model="ir.ui.view">
+        <field name="name">x_inducciones_y_cursos.step.graph</field><field name="model">x_inducciones_y_cursos</field>
+        <field name="arch" type="xml"><graph string="Capacitaciones por mes" type="bar"><field name="x_studio_fecha" interval="month"/></graph></field>
+    </record>
+    <record id="view_studio_labor_course_pivot" model="ir.ui.view">
+        <field name="name">x_inducciones_y_cursos.step.pivot</field><field name="model">x_inducciones_y_cursos</field>
+        <field name="arch" type="xml"><pivot string="Análisis de capacitación"><field name="x_studio_nombre_del_curso" type="row"/><field name="x_studio_fecha" interval="month" type="col"/><field name="x_studio_tiempo_del_curso" type="measure"/></pivot></field>
+    </record>
+
+    <record id="view_studio_labor_epp_list" model="ir.ui.view">
+        <field name="name">x_entrega_epp.step.list</field><field name="model">x_entrega_epp</field><field name="priority">5</field>
+        <field name="arch" type="xml"><list>
+            <field name="x_name" string="Folio"/><field name="x_studio_fecha"/><field name="x_studio_responsable"/>
+            <field name="x_studio_labor_tarea"/><field name="x_studio_supervisor"/><field name="x_studio_cuadrilla"/>
+            <field name="x_studio_fundo"/><field name="x_studio_empresa" groups="base.group_multi_company"/><field name="x_studio_orden_de_trabajo" optional="hide"/>
+        </list></field>
+    </record>
+    <record id="view_studio_labor_epp_search" model="ir.ui.view">
+        <field name="name">x_entrega_epp.step.search</field><field name="model">x_entrega_epp</field><field name="priority">5</field>
+        <field name="arch" type="xml"><search>
+            <field name="x_name"/><field name="x_studio_responsable"/><field name="x_studio_supervisor"/><field name="x_studio_fundo"/>
+            <filter string="Fecha" name="date" date="x_studio_fecha"/>
+            <group expand="0" string="Agrupar por"><filter string="Responsable" name="employee" context="{'group_by':'x_studio_responsable'}"/>
+                <filter string="Fundo" name="farm" context="{'group_by':'x_studio_fundo'}"/><filter string="Mes" name="month" context="{'group_by':'x_studio_fecha:month'}"/></group>
+        </search></field>
+    </record>
+    <record id="view_studio_labor_epp_calendar" model="ir.ui.view">
+        <field name="name">x_entrega_epp.step.calendar</field><field name="model">x_entrega_epp</field>
+        <field name="arch" type="xml"><calendar string="Entregas EPP" date_start="x_studio_fecha" color="x_studio_fundo" mode="month"><field name="x_name"/><field name="x_studio_responsable"/><field name="x_studio_fundo"/></calendar></field>
+    </record>
+    <record id="view_studio_labor_epp_graph" model="ir.ui.view">
+        <field name="name">x_entrega_epp.step.graph</field><field name="model">x_entrega_epp</field>
+        <field name="arch" type="xml"><graph string="Entregas EPP por mes" type="bar"><field name="x_studio_fecha" interval="month"/></graph></field>
+    </record>
+    <record id="view_studio_labor_epp_pivot" model="ir.ui.view">
+        <field name="name">x_entrega_epp.step.pivot</field><field name="model">x_entrega_epp</field>
+        <field name="arch" type="xml"><pivot string="Análisis de EPP"><field name="x_studio_fundo" type="row"/><field name="x_studio_fecha" interval="month" type="col"/></pivot></field>
+    </record>
+
+    <record id="view_studio_labor_accident_list" model="ir.ui.view">
+        <field name="name">x_accidentes_laborales.step.list</field><field name="model">x_accidentes_laborales</field><field name="priority">5</field>
+        <field name="arch" type="xml"><list decoration-danger="x_studio_clasificacin_accidente in ('grave','fatal')">
+            <field name="x_name" string="Folio"/><field name="x_studio_fecha_hora_accidente"/><field name="x_studio_trabajador_accidentado"/>
+            <field name="x_studio_tipo_accidente" widget="badge"/><field name="x_studio_clasificacin_accidente" widget="badge"/>
+            <field name="x_studio_riesgo_laboral"/><field name="x_studio_fundo"/><field name="x_studio_supervisor"/>
+            <field name="x_studio_folio_diat" optional="show"/><field name="x_studio_das_de_licencia" sum="Días perdidos"/>
+        </list></field>
+    </record>
+    <record id="view_studio_labor_accident_search" model="ir.ui.view">
+        <field name="name">x_accidentes_laborales.step.search</field><field name="model">x_accidentes_laborales</field><field name="priority">5</field>
+        <field name="arch" type="xml"><search>
+            <field name="x_name"/><field name="x_studio_trabajador_accidentado"/><field name="x_studio_supervisor"/><field name="x_studio_folio_diat"/>
+            <filter string="Fecha" name="date" date="x_studio_fecha_hora_accidente"/>
+            <group expand="0" string="Agrupar por"><filter string="Clasificación" name="class" context="{'group_by':'x_studio_clasificacin_accidente'}"/>
+                <filter string="Tipo" name="type" context="{'group_by':'x_studio_tipo_accidente'}"/><filter string="Fundo" name="farm" context="{'group_by':'x_studio_fundo'}"/>
+                <filter string="Mes" name="month" context="{'group_by':'x_studio_fecha_hora_accidente:month'}"/></group>
+        </search></field>
+    </record>
+    <record id="view_studio_labor_accident_calendar" model="ir.ui.view">
+        <field name="name">x_accidentes_laborales.step.calendar</field><field name="model">x_accidentes_laborales</field>
+        <field name="arch" type="xml"><calendar string="Accidentes laborales" date_start="x_studio_fecha_hora_accidente" color="x_studio_clasificacin_accidente" mode="month"><field name="x_name"/><field name="x_studio_trabajador_accidentado"/><field name="x_studio_fundo"/></calendar></field>
+    </record>
+    <record id="view_studio_labor_accident_graph" model="ir.ui.view">
+        <field name="name">x_accidentes_laborales.step.graph</field><field name="model">x_accidentes_laborales</field>
+        <field name="arch" type="xml"><graph string="Accidentes por mes" type="bar"><field name="x_studio_fecha_hora_accidente" interval="month"/><field name="x_studio_das_de_licencia" type="measure"/></graph></field>
+    </record>
+    <record id="view_studio_labor_accident_pivot" model="ir.ui.view">
+        <field name="name">x_accidentes_laborales.step.pivot</field><field name="model">x_accidentes_laborales</field>
+        <field name="arch" type="xml"><pivot string="Análisis de accidentes"><field name="x_studio_clasificacin_accidente" type="row"/><field name="x_studio_fecha_hora_accidente" interval="month" type="col"/><field name="x_studio_das_de_licencia" type="measure"/></pivot></field>
+    </record>
+
+    <record id="studio_customization.inducciones_y_cursos_d00a32a3-0274-4084-9fd4-a709975f4fdf" model="ir.actions.act_window"><field name="view_mode">list,calendar,graph,pivot,form</field></record>
+    <record id="studio_customization.entrega_epp_e9424ed4-d0c7-4783-82aa-5e01bb11535a" model="ir.actions.act_window"><field name="view_mode">list,calendar,graph,pivot,form</field></record>
+    <record id="studio_customization.accidentes_laborales_612ba5f1-ae9a-4f0e-b272-f27b0444fa3b" model="ir.actions.act_window"><field name="view_mode">list,calendar,graph,pivot,form</field></record>
+</odoo>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_labor_karin_case" model="ir.sequence">
+        <field name="name">Caso Ley Karin</field>
+        <field name="code">step.labor.karin.case</field>
+        <field name="prefix">LK/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>
+

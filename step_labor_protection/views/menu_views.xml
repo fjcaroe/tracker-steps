@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="studio_customization.proteccion_laboral_d71afde5-f451-47c8-a269-25311654bc7f" model="ir.ui.menu">
+        <field name="name">Protección Laboral</field>
+        <field name="action" ref="step_labor_protection.action_labor_dashboard"/>
+    </record>
+
+    <menuitem id="menu_labor_home" name="Inicio" action="step_labor_protection.action_labor_dashboard"
+              parent="studio_customization.proteccion_laboral_d71afde5-f451-47c8-a269-25311654bc7f" sequence="0"/>
+
+    <menuitem id="menu_labor_karin" name="Ley Karin"
+              parent="studio_customization.proteccion_laboral_d71afde5-f451-47c8-a269-25311654bc7f" sequence="10"
+              groups="step_labor_protection.group_labor_confidential,hr.group_hr_manager"/>
+    <menuitem id="menu_labor_karin_cases" name="Casos activos" action="step_labor_protection.action_labor_karin_case"
+              parent="step_labor_protection.menu_labor_karin" sequence="10"
+              groups="step_labor_protection.group_labor_confidential,hr.group_hr_manager"/>
+    <menuitem id="menu_labor_karin_history" name="Historial confidencial" action="step_labor_protection.action_labor_karin_case_all"
+              parent="step_labor_protection.menu_labor_karin" sequence="20"
+              groups="step_labor_protection.group_labor_confidential,hr.group_hr_manager"/>
+    <menuitem id="menu_labor_protocol" name="Protocolos preventivos" action="step_labor_protection.action_labor_protocol"
+              parent="step_labor_protection.menu_labor_karin" sequence="30"
+              groups="step_labor_protection.group_labor_user,hr.group_hr_manager"/>
+
+    <record id="studio_customization.proteccion_laboral_c_4587f394-142b-4582-893f-84153aba59e8" model="ir.ui.menu">
+        <field name="name">Configuración general</field><field name="sequence">90</field>
+    </record>
+    <record id="studio_customization.proteccion_laboral_c_6435278f-b7f0-484f-aed4-1237d7fcfbfa" model="ir.ui.menu">
+        <field name="name">Maestros preventivos</field><field name="sequence">50</field>
+    </record>
+    <record id="studio_customization.proteccion_laboral_g_d9f98410-39fd-402a-8814-0b9b82670073" model="ir.ui.menu"><field name="sequence">10</field></record>
+    <record id="studio_customization.proteccion_laboral_i_37841e8d-a1a0-44e1-b5de-21d6bc6df374" model="ir.ui.menu"><field name="sequence">20</field></record>
+    <record id="studio_customization.proteccion_laboral_r_37d1c260-e950-49ba-99eb-44318b0fe485" model="ir.ui.menu"><field name="sequence">30</field></record>
+    <record id="studio_customization.proteccion_laboral_c_346547c3-a5d4-477a-8394-77e394fa5d5f" model="ir.ui.menu"><field name="sequence">40</field></record>
+    <record id="studio_customization.proteccion_laboral_m_7e0f8cb0-f986-4b1b-839f-d13cb610cace" model="ir.ui.menu"><field name="sequence">50</field></record>
+    <record id="studio_customization.proteccion_laboral_c_a5260b21-8d12-4f4d-8d78-7534cb077f51" model="ir.ui.menu"><field name="sequence">60</field></record>
+    <record id="studio_customization.proteccion_laboral_c_ea83727e-ec8e-4c8a-a9e0-88ba04e72124" model="ir.ui.menu"><field name="name">Capacitación</field><field name="sequence">20</field></record>
+    <record id="studio_customization.proteccion_laboral_e_5b57cd54-7091-4946-8282-86e82c0751a9" model="ir.ui.menu"><field name="name">EPP</field><field name="sequence">30</field></record>
+    <record id="studio_customization.proteccion_laboral_r_6cedcd92-2a4e-405e-b215-f8549ea44ef5" model="ir.ui.menu"><field name="name">Accidentes y riesgos</field><field name="sequence">40</field></record>
+</odoo>
+
