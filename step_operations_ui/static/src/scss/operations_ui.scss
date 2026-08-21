@@ -1,0 +1,185 @@
+.o_steps_operations_dashboard {
+    --ops-deep: #103d33;
+    --ops-mid: #2f8068;
+    --ops-accent: #d8ff62;
+    --ops-warm: #e87245;
+    min-height: 100%;
+    padding: 22px;
+    overflow: auto;
+    color: #173029;
+    background: #f3f6f2;
+
+    &.is-freight {
+        --ops-deep: #163c44;
+        --ops-mid: #287482;
+        --ops-accent: #c9f36b;
+        --ops-warm: #f0a446;
+    }
+}
+
+.o_steps_ops_hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 25px 29px;
+    border-radius: 22px;
+    color: #fff;
+    background: radial-gradient(circle at 84% 8%, rgba(216, 255, 98, .23), transparent 28%), linear-gradient(120deg, var(--ops-deep), var(--ops-mid));
+    box-shadow: 0 16px 40px rgba(16, 63, 53, .18);
+
+    > div:first-child > span { color: var(--ops-accent); font-size: 10px; font-weight: 900; letter-spacing: .13em; }
+    h1 { margin: 3px 0 5px; font-size: 31px; font-weight: 850; letter-spacing: -.025em; }
+    p { margin: 0; color: rgba(255, 255, 255, .78); }
+}
+
+.o_steps_ops_hero_actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.o_steps_ops_loading, .o_steps_ops_empty { padding: 38px; color: #71817c; text-align: center; }
+
+.o_steps_ops_kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin: 15px 0;
+
+    > button, > article {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+        padding: 15px 16px;
+        border: 1px solid #dce5df;
+        border-radius: 15px;
+        text-align: left;
+        background: #fff;
+        box-shadow: 0 5px 18px rgba(12, 45, 36, .04);
+    }
+    > button { transition: transform .15s ease, box-shadow .15s ease; }
+    > button:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(12, 45, 36, .09); }
+    > * > i { display: grid; flex: 0 0 38px; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: var(--ops-deep); background: var(--ops-accent); font-size: 16px; }
+    span { display: flex; min-width: 0; flex-direction: column; color: #6d7d77; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+    strong { margin: 3px 0 2px; color: var(--ops-deep); font-size: 22px; line-height: 1.05; }
+    small { overflow: hidden; color: #73827d; font-size: 10px; font-weight: 400; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
+}
+
+.o_steps_ops_grid { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(300px, .8fr); gap: 15px; }
+.o_steps_ops_panel { overflow: hidden; border: 1px solid #dce5df; border-radius: 17px; background: #fff; box-shadow: 0 7px 24px rgba(12, 45, 36, .05); }
+.o_steps_ops_panel > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; border-bottom: 1px solid #e6ece8; }
+.o_steps_ops_panel > header span { color: var(--ops-warm); font-size: 9px; font-weight: 900; letter-spacing: .11em; }
+.o_steps_ops_panel > header h2 { margin: 2px 0 0; color: var(--ops-deep); font-size: 17px; font-weight: 850; }
+.o_steps_ops_panel .btn-link { color: var(--ops-mid); font-size: 11px; font-weight: 750; text-decoration: none; }
+
+.o_steps_ops_recent > button {
+    display: grid;
+    width: 100%;
+    grid-template-columns: 34px minmax(160px, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 17px;
+    border: 0;
+    border-bottom: 1px solid #edf1ee;
+    color: #24453c;
+    text-align: left;
+    background: transparent;
+    transition: background .12s ease;
+
+    &:hover { background: #f2f8f4; }
+    > i { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--ops-deep); background: #edf5f0; }
+    > span { display: flex; min-width: 0; flex-direction: column; }
+    b, small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    b { color: var(--ops-deep); font-size: 12px; }
+    small { margin-top: 2px; color: #71817c; font-size: 10px; }
+    > strong { padding: 4px 8px; border-radius: 99px; color: #49645b; background: #eaf1ed; font-size: 9px; font-weight: 850; }
+    > strong.is-progress { color: #896416; background: #fff1c7; }
+    > strong.is-done { color: #166149; background: #e1f5eb; }
+    time { color: #71817c; font-size: 10px; }
+}
+
+.o_steps_ops_status { padding-bottom: 14px; }
+.o_steps_ops_flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 7px; padding: 23px 17px; }
+.o_steps_ops_flow span { display: flex; align-items: center; flex-direction: column; gap: 4px; color: #64766f; font-size: 10px; text-align: center; }
+.o_steps_ops_flow i { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; color: var(--ops-deep); background: var(--ops-accent); font-style: normal; font-weight: 900; }
+.o_steps_ops_flow b { color: var(--ops-deep); font-size: 10px; }
+.o_steps_ops_flow strong { font-size: 15px; }
+.o_steps_ops_flow em { width: 22px; height: 2px; background: #dce5df; }
+.o_steps_ops_note { display: flex; align-items: flex-start; gap: 9px; margin: 0 16px; padding: 11px 12px; border-radius: 11px; color: #5e7069; background: #f2f7f4; font-size: 10px; }
+.o_steps_ops_note i { margin-top: 2px; color: var(--ops-mid); }
+.o_steps_ops_note p { margin: 0; line-height: 1.45; }
+.o_steps_ops_control { display: flex; width: calc(100% - 32px); align-items: center; gap: 11px; margin: 12px 16px 0; padding: 11px 12px; border: 1px solid #e0e8e3; border-radius: 11px; color: #24453c; text-align: left; background: #fbfcfb; }
+.o_steps_ops_control:hover { border-color: #a7c6b9; background: #f1f7f3; }
+.o_steps_ops_control > i { display: grid; flex: 0 0 32px; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--ops-deep); background: var(--ops-accent); }
+.o_steps_ops_control span { display: flex; min-width: 0; flex-direction: column; }
+.o_steps_ops_control b { color: var(--ops-deep); font-size: 11px; }
+.o_steps_ops_control small { color: #71817c; font-size: 9px; }
+
+.o_steps_ops_shortcuts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 11px; margin-top: 15px; }
+.o_steps_ops_shortcuts button { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 13px 14px; border: 1px solid #dce5df; border-radius: 13px; color: #24453c; text-align: left; background: #fff; }
+.o_steps_ops_shortcuts button:hover { border-color: #95b8aa; box-shadow: 0 8px 20px rgba(16, 63, 53, .07); }
+.o_steps_ops_shortcuts i { display: grid; flex: 0 0 35px; place-items: center; width: 35px; height: 35px; border-radius: 10px; color: var(--ops-deep); background: var(--ops-accent); }
+.o_steps_ops_shortcuts span { display: flex; min-width: 0; flex-direction: column; font-size: 11px; font-weight: 800; }
+.o_steps_ops_shortcuts small { overflow: hidden; color: #71817c; font-size: 9px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+
+// Modern agricultural shell and internal views for both applications.
+body:has(.o_menu_brand[data-menu-xmlid="step_machinery.menu_step_machinery_root"]),
+body:has(img[alt="Maquinaria"]),
+body:has(.o_menu_brand[data-menu-xmlid^="studio_customization.fletes_7a210622-"]),
+body:has(img[alt="Fletes"]) {
+    --ops-shell-deep: #103d33;
+    --ops-shell-mid: #256d5a;
+    --ops-shell-accent: #d8ff62;
+
+    .o_main_navbar { min-height: 54px; padding: 6px 12px; border: 0; border-bottom: 1px solid rgba(216,255,98,.22); color: #fff; background: radial-gradient(circle at 72% -120%, rgba(216,255,98,.2), transparent 34%), linear-gradient(110deg, var(--ops-shell-deep), var(--ops-shell-mid)); box-shadow: 0 5px 18px rgba(8,36,29,.18); }
+    .o_navbar_apps_menu > .dropdown > button, .o_navbar_apps_menu > button { width: 38px; height: 38px; margin-right: 5px; border: 1px solid rgba(255,255,255,.15); border-radius: 11px; color: var(--ops-shell-accent); background: rgba(255,255,255,.08); }
+    .o_menu_brand { display: inline-flex !important; align-items: center; min-height: 38px; margin-right: 7px; padding: 0 13px !important; border-radius: 11px; color: #fff !important; background: rgba(255,255,255,.1); font-size: 15px; font-weight: 850; }
+    .o_menu_brand::before { content: "\f1b9"; margin-right: 8px; color: var(--ops-shell-accent); font-family: FontAwesome; font-size: 13px; }
+    .o_menu_sections { align-items: center; gap: 2px; }
+    .o_menu_sections .o_nav_entry, .o_menu_sections .o-dropdown > button { display: inline-flex; align-items: center; min-height: 36px; padding: 0 9px !important; border: 1px solid transparent; border-radius: 10px; color: rgba(255,255,255,.84) !important; background: transparent; font-size: 12px; font-weight: 650; }
+    .o_menu_sections .o_nav_entry:hover, .o_menu_sections .o-dropdown > button:hover, .o_menu_sections .o-dropdown > button[aria-expanded="true"] { border-color: rgba(216,255,98,.25); color: #fff !important; background: rgba(255,255,255,.1); }
+    .o_menu_sections .o_nav_entry::before, .o_menu_sections .o-dropdown > button::before { margin-right: 6px; color: var(--ops-shell-accent); font-family: FontAwesome; font-size: 11px; }
+    .o_menu_sections [data-menu-xmlid$="menu_machinery_dashboard"]::before, .o_menu_sections [data-menu-xmlid$="menu_freight_dashboard"]::before { content: "\f015"; }
+    .o_menu_sections [data-menu-xmlid="step_machinery.menu_step_machinery_main"]::before { content: "\f1b9"; }
+    .o_menu_sections [data-menu-xmlid="step_machinery.menu_step_machinery_costos"]::before { content: "\f155"; }
+    .o_menu_sections [data-menu-xmlid="step_machinery.step_machinery_maestros"]::before { content: "\f02d"; }
+    .o_menu_sections [data-menu-xmlid="step_machinery.step_machinery_informes"]::before { content: "\f080"; }
+    .o_menu_sections [data-menu-xmlid="step_machinery.menu_step_machinery_config"]::before { content: "\f013"; }
+    .o_control_panel { border-bottom: 1px solid #dce5df; background: linear-gradient(100deg, #f8faf8, #eef5f1); }
+    .o_list_renderer, .o_kanban_renderer, .o_form_sheet_bg { background: #f2f5f1; }
+    .o_list_table { border-collapse: separate; border-spacing: 0; background: #fff; }
+    .o_list_table thead th { height: 42px; border-bottom: 2px solid #c5d9d1 !important; color: #52675f; background: #f7faf8 !important; font-size: 10px; font-weight: 850; letter-spacing: .035em; text-transform: uppercase; }
+    .o_list_table tbody tr { height: 48px; transition: background .12s ease, box-shadow .12s ease; }
+    .o_list_table tbody tr:hover { background: #f0f7f3 !important; box-shadow: inset 3px 0 0 #2f8068; }
+    .o_list_table .o_data_cell { vertical-align: middle; }
+    .o_list_table .badge { padding: 5px 9px; border-radius: 99px; }
+    .o_form_sheet { max-width: 1380px; margin-top: 18px; padding: 22px 27px 28px; border: 1px solid #dce5df; border-radius: 18px; box-shadow: 0 12px 34px rgba(16,63,53,.07); }
+    .o_form_sheet .oe_title h1 { color: #123c33; font-weight: 850; letter-spacing: -.02em; }
+    .o_form_sheet > .o_group { margin-bottom: 13px; padding: 15px 17px 9px; border: 1px solid #e0e7e2; border-radius: 13px; background: #fbfcfb; }
+    .o_form_sheet .o_group_name { color: #123c33; font-size: 12px; font-weight: 850; }
+    .o_form_sheet .o_td_label, .o_form_sheet .o_form_label { color: #64766f; font-size: 11px; font-weight: 700; }
+    .o_notebook { margin-top: 16px; }
+    .o_notebook_headers { border-radius: 11px 11px 0 0; background: #eef4f0; }
+    .o_notebook_headers .nav-link.active { color: #123c33; font-weight: 850; }
+    .o_kanban_record { overflow: hidden; border: 1px solid #dce5df !important; border-radius: 15px !important; background: #fff !important; box-shadow: 0 5px 18px rgba(12,45,36,.05) !important; }
+}
+
+body:has(.o_menu_brand[data-menu-xmlid^="studio_customization.fletes_7a210622-"]),
+body:has(img[alt="Fletes"]) {
+    --ops-shell-deep: #163c44;
+    --ops-shell-mid: #287482;
+    --ops-shell-accent: #c9f36b;
+    .o_menu_brand::before { content: "\f0d1"; }
+    .o_menu_sections [data-menu-xmlid^="studio_customization.fletes_fletes_"]::before { content: "\f0d1"; }
+    .o_menu_sections [data-menu-xmlid^="studio_customization.fletes_control_de_fl_"]::before { content: "\f018"; }
+    .o_menu_sections [data-menu-xmlid^="studio_customization.fletes_informes_"]::before { content: "\f080"; }
+    .o_menu_sections [data-menu-xmlid^="studio_customization.fletes_configuracion_"]::before { content: "\f013"; }
+}
+
+.o_steps_record_intro { display: flex; align-items: center; gap: 13px; margin: -2px 0 19px; padding: 14px 17px; border: 1px solid #c9ddd5; border-left: 4px solid #2f8068; border-radius: 13px; color: #24453c; background: linear-gradient(105deg, #edf6f1, #fbfdf8); }
+.o_steps_record_intro > i { display: grid; flex: 0 0 42px; place-items: center; width: 42px; height: 42px; border-radius: 12px; color: #123c33; background: #d8ff62; font-size: 18px; }
+.o_steps_record_intro > div { display: flex; min-width: 0; flex-direction: column; }
+.o_steps_record_intro span { color: #2f8068; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+.o_steps_record_intro strong { margin-top: 1px; color: #123c33; font-size: 16px; font-weight: 850; }
+.o_steps_record_intro small { margin-top: 2px; color: #687a73; font-size: 11px; }
+
+@media (max-width: 1200px) { .o_steps_ops_kpis { grid-template-columns: repeat(3, 1fr); } .o_steps_ops_shortcuts { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) { .o_steps_ops_hero { align-items: flex-start; flex-direction: column; } .o_steps_ops_grid { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .o_steps_operations_dashboard { padding: 11px; } .o_steps_ops_hero { padding: 21px; } .o_steps_ops_kpis { grid-template-columns: 1fr 1fr; } .o_steps_ops_shortcuts { grid-template-columns: 1fr 1fr; } .o_steps_ops_recent > button { grid-template-columns: 34px 1fr auto; } .o_steps_ops_recent time { display: none; } body:has(img[alt="Maquinaria"]) .o_form_sheet, body:has(img[alt="Fletes"]) .o_form_sheet { margin-top: 0; padding: 14px; border-radius: 0; } }

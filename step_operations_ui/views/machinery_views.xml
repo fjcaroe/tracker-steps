@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_hrs_machinery_form_modern" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.form.modern</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes">
+                <attribute name="class" add="o_steps_machinery_form" separator=" "/>
+            </xpath>
+            <xpath expr="//sheet/div[hasclass('oe_title')]" position="before">
+                <div class="o_steps_record_intro">
+                    <i class="fa fa-cogs" title="Maquinaria"/>
+                    <div>
+                        <span>CONTROL DE MAQUINARIA</span>
+                        <strong>Registro de horas y operación</strong>
+                        <small>Centraliza responsables, ubicación, horas, combustible e implementos utilizados.</small>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_step_hrs_machinery_list_modern" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.list.modern</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="class" add="o_steps_machinery_list" separator=" "/>
+                <attribute name="decoration-muted">state == 'draft'</attribute>
+                <attribute name="decoration-info">state == 'progress'</attribute>
+                <attribute name="decoration-success">state == 'done'</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

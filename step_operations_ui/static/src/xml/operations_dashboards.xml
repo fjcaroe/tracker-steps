@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_operations_ui.MachineryDashboard">
+        <main class="o_steps_operations_dashboard is-machinery">
+            <header class="o_steps_ops_hero">
+                <div><span>OPERACIÓN AGRÍCOLA</span><h1>Maquinaria</h1><p>Control operativo, horas máquina, costos y trazabilidad en un solo lugar.</p></div>
+                <div class="o_steps_ops_hero_actions">
+                    <button class="btn btn-light" t-on-click="() => this.openAction('step_machinery.action_step_hrs_machinery')"><i class="fa fa-plus me-1"/> Nuevo registro</button>
+                    <button class="btn btn-outline-light" t-on-click="() => this.openAction('step_machinery.step_machinery_vehicle_action')"><i class="fa fa-cogs me-1"/> Ver maquinarias</button>
+                </div>
+            </header>
+            <div t-if="state.loading" class="o_steps_ops_loading"><i class="fa fa-spinner fa-spin"/> Preparando la información…</div>
+            <div t-elif="state.error" class="o_steps_ops_empty" t-esc="state.error"/>
+            <t t-else="">
+                <section class="o_steps_ops_kpis">
+                    <button t-on-click="() => this.openAction('step_machinery.action_step_hrs_machinery')"><i class="fa fa-file-text-o"/><span>Registros de operación<strong t-esc="formatNumber(state.data.total)"/><small>Horas máquina registradas</small></span></button>
+                    <article><i class="fa fa-clock-o"/><span>En progreso<strong t-esc="formatNumber(state.data.progress)"/><small><t t-esc="state.data.draft"/> nuevos por iniciar</small></span></article>
+                    <article><i class="fa fa-check-circle"/><span>Finalizados<strong t-esc="formatNumber(state.data.done)"/><small>Registros listos</small></span></article>
+                    <button t-on-click="() => this.openAction('step_machinery.step_machinery_vehicle_action')"><i class="fa fa-truck"/><span>Maquinarias<strong t-esc="formatNumber(state.data.vehicles)"/><small>Equipos configurados</small></span></button>
+                    <button t-on-click="() => this.openAction('step_machinery.action_real_cost_machinery')"><i class="fa fa-line-chart"/><span>Costos reales<strong t-esc="formatNumber(state.data.realCosts)"/><small>Procesos de costeo</small></span></button>
+                </section>
+                <div class="o_steps_ops_grid">
+                    <section class="o_steps_ops_panel">
+                        <header><div><span>ACTIVIDAD RECIENTE</span><h2>Últimos registros de maquinaria</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_machinery.action_step_hrs_machinery')">Ver todos</button></header>
+                        <div t-if="state.data.recent.length" class="o_steps_ops_recent">
+                            <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRecord('step.hrs.machinery', row.id)">
+                                <i class="fa fa-cogs"/><span><b t-esc="row.name"/><small><t t-esc="many2oneName(row.fundo_id, 'Sin fundo')"/> · <t t-esc="many2oneName(row.responsable_id)"/></small></span><strong t-att-class="'is-' + row.state" t-esc="stateLabel(row.state)"/><time t-esc="formatDate(row.date)"/>
+                            </button>
+                        </div>
+                        <div t-else="" class="o_steps_ops_empty">Aún no hay registros de maquinaria.</div>
+                    </section>
+                    <aside class="o_steps_ops_panel o_steps_ops_status">
+                        <header><div><span>FLUJO OPERATIVO</span><h2>Estado del trabajo</h2></div></header>
+                        <div class="o_steps_ops_flow"><span><i>1</i><b>Nuevo</b><strong t-esc="state.data.draft"/></span><em/><span><i>2</i><b>En progreso</b><strong t-esc="state.data.progress"/></span><em/><span><i>3</i><b>Listo</b><strong t-esc="state.data.done"/></span></div>
+                        <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>Hay <strong t-esc="formatNumber(state.data.lines)"/> líneas operativas registradas entre máquinas, implementos y labores.</p></div>
+                    </aside>
+                </div>
+                <section class="o_steps_ops_shortcuts">
+                    <button t-on-click="() => this.openAction('step_machinery.action_step_hrs_machinery_line')"><i class="fa fa-list"/><span>Detalle de horas<small>Máquinas, operadores y consumo</small></span></button>
+                    <button t-on-click="() => this.openAction('step_machinery.action_real_cost_machinery')"><i class="fa fa-calculator"/><span>Costo real<small>Períodos y valorización</small></span></button>
+                    <button t-on-click="() => this.openAction('step_machinery.step_machinery_vehicle_action')"><i class="fa fa-truck"/><span>Maestro de máquinas<small>Equipos disponibles</small></span></button>
+                    <button t-on-click="() => this.openAction('step_machinery.report_machinery_wizard_action')"><i class="fa fa-bar-chart"/><span>Informes de costos<small>Análisis operacional</small></span></button>
+                </section>
+            </t>
+        </main>
+    </t>
+
+    <t t-name="step_operations_ui.FreightDashboard">
+        <main class="o_steps_operations_dashboard is-freight">
+            <header class="o_steps_ops_hero">
+                <div><span>LOGÍSTICA AGRÍCOLA</span><h1>Fletes</h1><p>Órdenes, tarifas, transportistas y trazabilidad logística con una visión clara.</p></div>
+                <div class="o_steps_ops_hero_actions">
+                    <button class="btn btn-light" t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-plus me-1"/> Nueva orden</button>
+                    <button class="btn btn-outline-light" t-on-click="() => this.openAction('studio_customization.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money me-1"/> Ver tarifas</button>
+                </div>
+            </header>
+            <div t-if="state.loading" class="o_steps_ops_loading"><i class="fa fa-spinner fa-spin"/> Preparando la información…</div>
+            <div t-elif="state.error" class="o_steps_ops_empty" t-esc="state.error"/>
+            <t t-else="">
+                <section class="o_steps_ops_kpis">
+                    <button t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-truck"/><span>Órdenes de flete<strong t-esc="formatNumber(state.data.orders)"/><small>Operaciones registradas</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.contabilizacion_de_f_18e9c853-5387-4778-baeb-2f36d87e1d6e')"><i class="fa fa-book"/><span>Contabilizaciones<strong t-esc="formatNumber(state.data.accounting)"/><small>Documentos procesados</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas vigentes<strong t-esc="formatNumber(state.data.tariffs)"/><small>Acuerdos configurados</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-map-marker"/><span>Rastreos<strong t-esc="formatNumber(state.data.tracking)"/><small>Seguimientos registrados</small></span></button>
+                    <article><i class="fa fa-road"/><span>Tramos activos<strong t-esc="formatNumber(state.data.routes)"/><small><t t-esc="state.data.coldModes"/> modalidades de frío</small></span></article>
+                </section>
+                <div class="o_steps_ops_grid">
+                    <section class="o_steps_ops_panel">
+                        <header><div><span>OPERACIÓN RECIENTE</span><h2>Últimas órdenes de flete</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')">Ver todas</button></header>
+                        <div t-if="state.data.recent.length" class="o_steps_ops_recent">
+                            <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRecord('x_orden_de_flete', row.id)">
+                                <i class="fa fa-truck"/><span><b t-esc="row.x_name || 'Orden sin folio'"/><small><t t-esc="many2oneName(row.x_studio_fundo, 'Sin fundo')"/> · <t t-esc="many2oneName(row.x_studio_transportista, 'Sin transportista')"/></small></span><strong t-esc="stateLabel(row.x_studio_selection_field_4ag_1jhk4c7s5)"/><time t-esc="formatDate(row.x_studio_fecha)"/>
+                            </button>
+                        </div>
+                        <div t-else="" class="o_steps_ops_empty">Aún no hay órdenes de flete registradas.</div>
+                    </section>
+                    <aside class="o_steps_ops_panel o_steps_ops_status">
+                        <header><div><span>GESTIÓN LOGÍSTICA</span><h2>Accesos de control</h2></div></header>
+                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('studio_customization.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-location-arrow"/><span><b>Rastreo de camiones</b><small>Seguimiento de viajes y ubicación.</small></span></button>
+                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('studio_customization.informe_de_fletes_2d134967-2a6f-4953-9ade-9e7f4d1d8dba')"><i class="fa fa-bar-chart"/><span><b>Informe de fletes</b><small>Consulta consolidada de la operación.</small></span></button>
+                        <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>La portada resume la información existente y mantiene intactos los flujos de Studio.</p></div>
+                    </aside>
+                </div>
+                <section class="o_steps_ops_shortcuts">
+                    <button t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-file-text-o"/><span>Órdenes de flete<small>Registro y coordinación</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas<small>Vigencias y transportistas</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.transportistas_2c1977c3-a30e-4b17-b0f5-b339cac43c54')"><i class="fa fa-users"/><span>Transportistas<small>Proveedores logísticos</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.camiones_1bffc703-8cbf-4682-a0a9-a351661d8620')"><i class="fa fa-truck"/><span>Camiones<small>Flota habilitada</small></span></button>
+                    <button t-on-click="() => this.openAction('studio_customization.tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e')"><i class="fa fa-road"/><span>Tramos<small>Origen, destino y distancia</small></span></button>
+                </section>
+            </t>
+        </main>
+    </t>
+</templates>
