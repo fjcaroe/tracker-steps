@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_management_root" name="Gestión y Costos" action="action_management_dashboard" sequence="20" groups="step_management_costs.group_management_user"/>
+    <menuitem id="menu_management_home" name="Inicio" action="action_management_dashboard" parent="menu_management_root" sequence="0"/>
+    <menuitem id="menu_management_budget" name="Presupuesto Operacional" parent="menu_management_root" sequence="10"/>
+    <menuitem id="menu_operational_budget_create" name="Crear desde plantilla" action="action_operational_budget_create" parent="menu_management_budget" sequence="5"/>
+    <menuitem id="menu_operational_budget" name="Presupuestos" action="action_operational_budget" parent="menu_management_budget" sequence="10"/>
+    <menuitem id="menu_budget_template" name="Plantillas" action="action_budget_template" parent="menu_management_budget" sequence="20"/>
+    <menuitem id="menu_budget_analysis" name="Análisis por indicador" action="action_budget_analysis" parent="menu_management_budget" sequence="30"/>
+    <menuitem id="menu_budget_month_analysis" name="Distribución mensual" action="action_budget_month_analysis" parent="menu_management_budget" sequence="40"/>
+    <menuitem id="menu_management_planning" name="Planificación" action="action_management_plan" parent="menu_management_root" sequence="20"/>
+    <menuitem id="menu_management_control" name="Control de costos" parent="menu_management_root" sequence="30"/>
+    <menuitem id="menu_historical_cost" name="Presupuesto vs. real" action="action_historical_cost" parent="menu_management_control" sequence="10"/>
+    <menuitem id="menu_management_masters" name="Maestros" parent="menu_management_root" sequence="90" groups="step_management_costs.group_management_manager"/>
+    <menuitem id="menu_cost_center" name="Centros de costo" action="action_cost_center" parent="menu_management_masters" sequence="10"/>
+    <menuitem id="menu_budget_group" name="Grupos presupuestarios" action="action_budget_group" parent="menu_management_masters" sequence="20"/>
+</odoo>

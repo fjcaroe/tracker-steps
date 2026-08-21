@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo><record id="action_management_dashboard" model="ir.actions.client"><field name="name">Centro de Gestión y Costos</field><field name="tag">step_management_costs.dashboard</field></record></odoo>

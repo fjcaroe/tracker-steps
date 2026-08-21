@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_management_costs" model="ir.module.category">
+        <field name="name">Gestión y Costos</field><field name="sequence">32</field>
+    </record>
+    <record id="group_management_user" model="res.groups">
+        <field name="name">Usuario de gestión y costos</field>
+        <field name="category_id" ref="step_management_costs.module_category_management_costs"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="group_management_manager" model="res.groups">
+        <field name="name">Administrador de gestión y costos</field>
+        <field name="category_id" ref="step_management_costs.module_category_management_costs"/>
+        <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_user'))]"/>
+    </record>
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_manager'))]"/>
+    </record>
+
+    <record id="rule_cost_center_company" model="ir.rule"><field name="name">Centros por empresa</field><field name="model_id" ref="model_step_management_cost_center"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_budget_group_company" model="ir.rule"><field name="name">Grupos por empresa</field><field name="model_id" ref="model_step_management_budget_group"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_budget_template_company" model="ir.rule"><field name="name">Plantillas por empresa</field><field name="model_id" ref="model_step_management_budget_template"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_budget_template_line_company" model="ir.rule"><field name="name">Indicadores de plantilla por empresa</field><field name="model_id" ref="model_step_management_budget_template_line"/><field name="domain_force">[('template_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_operational_budget_company" model="ir.rule"><field name="name">Presupuestos por empresa</field><field name="model_id" ref="model_step_management_operational_budget"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_budget_center_company" model="ir.rule"><field name="name">Asignaciones por empresa</field><field name="model_id" ref="model_step_management_budget_center"/><field name="domain_force">[('budget_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_budget_line_company" model="ir.rule"><field name="name">Detalle presupuesto por empresa</field><field name="model_id" ref="model_step_management_budget_line"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_budget_month_company" model="ir.rule"><field name="name">Meses presupuesto por empresa</field><field name="model_id" ref="model_step_management_budget_month"/><field name="domain_force">[('budget_line_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_plan_company" model="ir.rule"><field name="name">Planes por empresa</field><field name="model_id" ref="model_step_management_plan"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_plan_line_company" model="ir.rule"><field name="name">Tareas por empresa</field><field name="model_id" ref="model_step_management_plan_line"/><field name="domain_force">[('plan_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <record id="rule_historical_cost_company" model="ir.rule"><field name="name">Costos históricos por empresa</field><field name="model_id" ref="model_step_management_historical_cost"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+</odoo>

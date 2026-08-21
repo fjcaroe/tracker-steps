@@ -1,0 +1,31 @@
+{
+    "name": "Steps - Gestión y Costos",
+    "summary": "Presupuestos agrícolas por hectárea, planificación y control de costos",
+    "version": "18.0.1.0.0",
+    "author": "Steps Consulting",
+    "category": "Operations/Planning",
+    "license": "LGPL-3",
+    "depends": ["base", "mail", "web", "account", "product"],
+    "data": [
+        "security/management_security.xml",
+        "security/ir.model.access.csv",
+        "data/management_sequences.xml",
+        "views/cost_center_views.xml",
+        "views/budget_group_views.xml",
+        "views/budget_template_views.xml",
+        "views/operational_budget_views.xml",
+        "views/planning_views.xml",
+        "views/historical_cost_views.xml",
+        "views/management_dashboard_views.xml",
+        "views/menu_views.xml",
+    ],
+    "assets": {
+        "web.assets_backend": [
+            "step_management_costs/static/src/js/management_dashboard.js",
+            "step_management_costs/static/src/xml/management_dashboard.xml",
+            "step_management_costs/static/src/scss/management_dashboard.scss",
+        ],
+    },
+    "application": True,
+    "installable": True,
+}
