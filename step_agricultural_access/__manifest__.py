@@ -1,7 +1,7 @@
 {
     "name": "Steps - Perfiles de Aplicaciones Agrícolas",
     "summary": "Permisos centralizados para habilitar aplicaciones agrícolas por usuario",
-    "version": "18.0.1.1.0",
+    "version": "18.0.2.0.0",
     "category": "Operations/Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
@@ -14,6 +14,7 @@
         "step_bpa_irrigation",
         "step_labor_protection",
         "step_management_costs",
+        "step_operations_ui",
     ],
     "data": [
         "security/agricultural_groups.xml",

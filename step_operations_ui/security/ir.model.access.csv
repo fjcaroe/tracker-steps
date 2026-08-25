@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_freight_order_user,Órdenes de flete,model_x_orden_de_flete,base.group_user,1,1,1,1
+access_freight_accounting_user,Contabilización de fletes,model_x_contabilizacion_de_f,base.group_user,1,1,1,1
+access_freight_tariff_user,Tarifas de flete,model_x_tarifa_de_fletes,base.group_user,1,1,1,1
+access_freight_tracking_user,Rastreo de camiones,model_x_rastreo_camiones,base.group_user,1,1,1,1
+access_freight_route_user,Tramos de flete,model_x_tramo_de_flete,base.group_user,1,1,1,1
+access_freight_cold_mode_user,Modalidades de frío,model_x_modalidad_de_frio,base.group_user,1,1,1,1

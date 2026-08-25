@@ -1,0 +1,29 @@
+{
+  "name": "Colaciones Steps",
+  "short_name": "Colaciones",
+  "description": "Autoregistro de colaciones para trabajadores",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f2f6ef",
+  "theme_color": "#123f2b",
+  "lang": "es-CL",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

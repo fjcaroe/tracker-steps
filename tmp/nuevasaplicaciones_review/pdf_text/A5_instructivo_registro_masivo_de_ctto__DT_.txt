@@ -1,0 +1,1499 @@
+Instructivo de Registro
+Masivo de Contrato de
+Trabajo
+
+
+
+
+                          Abril 2022
+                                                                      Índice
+Manual de Usuario Registro Masivo de Contrato de Trabajo ............................................................. 6
+   Registro Masivo de Contrato de Trabajo ......................................................................................... 6
+   Sección “Antecedentes del Contrato de Trabajo” .......................................................................... 7
+   Sección “Carga Masiva”................................................................................................................... 9
+   Consideraciones en la carga masiva de contratos de trabajo ....................................................... 15
+   Configurar sistema operativo para generar archivo CSV .............................................................. 15
+Estructura CSV archivo de carga masiva ........................................................................................... 18
+   CATEGORIA CONTRATO................................................................................................................. 18
+   COMUNA CELEBRACIÓN................................................................................................................ 18
+   FECHA SUSCRPCION ...................................................................................................................... 20
+   RUT TRABAJADOR ......................................................................................................................... 20
+   DNI TRABAJADOR .......................................................................................................................... 20
+   FECHA NACIMIENTO...................................................................................................................... 20
+   NOMBRES ...................................................................................................................................... 20
+   APELLIDOS ..................................................................................................................................... 20
+   SEXO .............................................................................................................................................. 20
+   NACIONALIDAD ............................................................................................................................. 21
+   EMAIL ............................................................................................................................................ 24
+   TELEFONO...................................................................................................................................... 24
+   COMUNA ....................................................................................................................................... 24
+   CALLE ............................................................................................................................................. 24
+   NUMERO ....................................................................................................................................... 24
+   DEPARTAMENTO ........................................................................................................................... 24
+   DECLARACION DISCAPACIDAD ...................................................................................................... 24
+   DECLARACION INVALIDEZ ............................................................................................................. 25
+   FUNCIONES.................................................................................................................................... 25
+   SUBCONTRATACIÓN ...................................................................................................................... 25
+   RUT EMPRESA PRINCIPAL.............................................................................................................. 25
+   EMPRESA DE SERVICIO TRANSITORIO ........................................................................................... 25
+   RUT EMPRESA USUARIA ................................................................................................................ 25
+   FAENA COMUNA ........................................................................................................................... 26
+   FAENA CALLE ................................................................................................................................. 26
+
+                                                                                                                                                       2
+FAENA NUMERO............................................................................................................................ 26
+FAENA DEPARTAMENTO ............................................................................................................... 26
+ZONA GEOGRAFICA 1 .................................................................................................................... 26
+ZONA GEOGRAFICA 2 .................................................................................................................... 26
+ZONA GEOGRAFICA 3 .................................................................................................................... 26
+ZONA GEOGRAFICA 4 .................................................................................................................... 26
+ZONA GEOGRAFICA 5 .................................................................................................................... 26
+SUELDO BASE ................................................................................................................................ 26
+MONTO IMPONIBLE ...................................................................................................................... 26
+HABER 1 ......................................................................................................................................... 27
+MONTO 1....................................................................................................................................... 28
+PERIODO DEVENGAMIENTO 1 ...................................................................................................... 28
+HABER 2 ......................................................................................................................................... 28
+MONTO 2....................................................................................................................................... 28
+PERIODO DEVENGAMIENTO 2 ...................................................................................................... 28
+HABER 3 ......................................................................................................................................... 28
+MONTO 3....................................................................................................................................... 28
+PERIODO DEVENGAMIENTO 3 ...................................................................................................... 28
+HABER 4 ......................................................................................................................................... 28
+MONTO 4....................................................................................................................................... 29
+PERIODO DEVENGAMIENTO 4 ...................................................................................................... 29
+HABER 5 ......................................................................................................................................... 29
+MONTO 5....................................................................................................................................... 29
+PERIODO DEVENGAMIENTO 5 ...................................................................................................... 29
+GRATIFICACIÓN FORMA PAGO ..................................................................................................... 29
+GRATIFICACIÓN MODALIDAD........................................................................................................ 29
+GRATIFICACIÓN PERIODO PAGO ................................................................................................... 29
+REMUNERACIÓN PERIODO PAGO ................................................................................................. 30
+REMUNERACIÓN FECHA PAGO ..................................................................................................... 30
+REMUNERACIÓN FORMA PAGO.................................................................................................... 30
+REMUNERACIÓN ANTICIPO ........................................................................................................... 30
+REMUNERACIÓN AFP .................................................................................................................... 30
+REMUNERACIÓN SALUD................................................................................................................ 31
+
+
+                                                                                                                                                  3
+REMUNERACIÓN OTROS PACTOS ................................................................................................. 31
+TIPO JORNADA .............................................................................................................................. 31
+NÚMERO RESOLUCIÓN ................................................................................................................. 31
+FECHA RESOLUCIÓN ...................................................................................................................... 31
+DURACION JORNADA .................................................................................................................... 31
+TURNOS ......................................................................................................................................... 32
+TIEMPO COLACION........................................................................................................................ 32
+TIEMPO COLACION IMPUTABLE .................................................................................................... 32
+TIEMPO COLACION NO IMPUTABLE.............................................................................................. 32
+ROTACIÓN ..................................................................................................................................... 32
+NÚMERO DÍAS DISTRIBUCIÓN JORNADA ...................................................................................... 32
+LUNES HORA INICIO ...................................................................................................................... 32
+LUNES HORA TERMINO ................................................................................................................. 32
+MARTES HORA INICIO ................................................................................................................... 33
+MARTES HORA TERMINO .............................................................................................................. 33
+MIERCOLES HORA INICIO .............................................................................................................. 33
+MIERCOLES HORA TERMINO ......................................................................................................... 33
+JUEVES HORA INICIO ..................................................................................................................... 33
+JUEVES HORA TERMINO ................................................................................................................ 33
+VIERNES HORA INICIO ................................................................................................................... 33
+VIERNES HORA TERMINO .............................................................................................................. 33
+SABADO HORA INICIO ................................................................................................................... 33
+SABADO HORA TERMINO .............................................................................................................. 33
+DOMINGO HORA INICIO ................................................................................................................ 33
+DOMINGO HORA TERMINO .......................................................................................................... 34
+TIPO CONTRATO ............................................................................................................................ 34
+FECHA DE INICIO DE LA RELACIÓN LABORAL ................................................................................ 34
+FECHA FIN RELABORAL .................................................................................................................. 34
+OTROS INDEMNIZACIONES ........................................................................................................... 34
+OTROS FERIADOS .......................................................................................................................... 34
+OTROS NEGOCIACIONES ............................................................................................................... 34
+OTROS PROPINTELECTUAL ............................................................................................................ 34
+OTROS LICENCIA MEDICA .............................................................................................................. 35
+
+
+                                                                                                                                                 4
+OTROS SALACUNA ......................................................................................................................... 35
+OTROS PERMISOS .......................................................................................................................... 35
+OTROS CONDICIONES ESPECIALES ................................................................................................ 35
+OTROS SEGUROS ........................................................................................................................... 35
+OTROS STOCK ................................................................................................................................ 35
+OTROS INSTRUMENTO COLECTIVO ............................................................................................... 36
+AFECTO A ....................................................................................................................................... 36
+FECHA INICIO INSTRUMENTO COLECTIVO .................................................................................... 36
+FECHA FIN INSTRUMENTO COLECTIVO ......................................................................................... 36
+
+
+
+
+                                                                                                                                                 5
+Manual de Usuario Registro Masivo de Contrato de Trabajo
+Registro Masivo de Contrato de Trabajo
+Para acceder al Registro Masivo de Contrato de Trabajo el Empleador (persona jurídica, persona natural,
+empresario individual) debe ingresar al Registro Electrónico Laboral (REL).
+Importante:
+
+       El Empleador Persona Jurídica actúa a través de su(s) representante(s) laboral(es) electrónico(s).
+       El Empleador Persona Natural y el Empleador Empresario Individual no pueden actuar a través de
+        un Representante Laboral Electrónico.
+
+
+
+
+Luego se despliega el menú principal del Registro Electrónico Laboral, donde están disponibles las tarjetas
+de Registro de Contrato de Trabajo, Registro de Anexo de Contrato de Trabajo, Registro de Término de
+Relación Laboral, Historial de Registro Electrónico Laboral, entre otros.
+
+Debe seleccionar la tarjeta de Registro de Contrato de Trabajo.
+
+
+
+
+                                                                                                              6
+Luego se despliega el menú principal del Registro de Contrato de Trabajo, donde están disponibles las
+tarjetas de Registro de Contrato de Trabajo Individual, Registro Masivo de Contrato de Trabajo y Borradores
+de Registro de Contrato de Trabajo.
+Debe seleccionar la tarjeta Registro Masivo de Contrato de Trabajo.
+
+
+
+
+Se despliega el Formulario de Registro Masivo de Contrato de Trabajo el cual contempla 2 secciones:
+    1.   Antecedente del Contrato de Trabajo.
+    2.   Carga Masiva.
+Importante:
+
+La carga masiva se ejecuta por “Cargo”, es decir, el empleador debe informar en archivos separados según
+los cargos por los cuales tiene contratados a sus trabajadores.
+Los empleadores deben informar, asimismo, según el CAE con el cual esta efectuada la contratación de sus
+trabajadores. Los trabajadores en un mismo archivo deben haber sido contratados por el mismo CAE.
+
+Sección “Antecedentes del Contrato de Trabajo”
+
+
+El empleador debe ingresar, en lo que corresponda, los siguientes Antecedente del Contrato de Trabajo:
+        Campo “Nombre o Razón Social”: El sistema indica automáticamente el nombre o razón social de
+         la empresa
+        Campo “RUT Empleador”: El sistema indica automáticamente el RUT de la empresa.
+        Campo “RUT Rep. Legal”: El empleador debe seleccionar de una lista desplegable el RUT de
+         representante legal de la empresa.
+        Campo “Nombre y Apellido Rep. Legal”: El sistema indica automáticamente el nombre y apellidos
+         del representante legal seleccionado en el campo anterior.
+        Esta información es proporcionada por el Servicio de Impuestos Internos (SII), la que no es
+         modificable en portal Mi DT. Para modificar el Representante Legal lo debe hacer en el SII.
+
+
+                                                                                                              7
+   Campo “Correo Electrónico”: El empleador debe registrar el correo electrónico con el formato
+    xx@yy.zz.
+   Campo “Teléfono”: El empleador debe registrar el número telefónico.
+   Campo “Domicilio”: El empleador debe seleccionar de una lista desplegable la dirección de la
+    empresa.
+   Campo “Región”: El sistema indica automáticamente la región de la dirección seleccionada.
+   Campo “Comuna”: El sistema indica automáticamente la comuna de la dirección seleccionada.
+   Campo “Calle”: El sistema indica la calle de la dirección seleccionada.
+   Campo “Número”: El sistema indica el número de la dirección seleccionada.
+   Campo “Depto./Oficina (opcional)”: El sistema indica el número de departamento de la dirección
+    seleccionada.
+    Esta información es proporcionada por el Servicio de Impuestos Internos (SII), la que no es
+    modificable en portal Mi DT. Para modificar la dirección lo debe hacer en el SII.
+   Campo “Código Actividad Económica”: El empleador debe seleccionar el Código de Actividad
+    Económica que corresponda (CAE). Si el empleador no posee CAE debe seleccionar “Otro”.
+   Campo “Cargo del trabajador/a”: El empleador debe seleccionar el Cargo del grupo de
+    trabajadores relacionado al CAE del campo anterior.
+
+
+
+
+                                                                                                     8
+Sección “Carga Masiva”
+Para realizar la carga masiva del archivo, el empleador debe descargar la Plantilla CSV y el Instructivo en
+formato PDF.
+Una vez ingresada la información de los contratos de trabajo en la plantilla CSV, el empleador debe
+seleccionar o arrastrar el archivo a cargar en el formulario.
+El archivo deberá tener el siguiente formato de nombre: rutempleador_aaaamm, donde “aaaa”
+corresponde al año en curso (4 caracteres, numérico) y “mm” corresponde al mes de registro (2 caracteres,
+numérico).
+
+
+Importante: El archivo a cargar debe cumplir con los siguientes requisitos:
+       Peso máximo de 5MB.
+       Extensión del archivo CSV
+       Mantener la estructura de la plantilla.
+       Cantidad máxima de 1000 filas.
+
+
+
+
+                                                                                                              9
+En caso de que el archivo no cumpla con alguno de los 4 requisitos antes señalados, el sistema desplegará
+una ventana con detalle del error.
+
+Una vez subsanado el error, el empleador podrá cargar un nuevo archivo presionando el botón “Subir otro
+archivo”.
+
+
+
+
+Asimismo, en caso de que se detecte un error en la validación en el formato de alguno de los campos del
+archivo, se desplegará la siguiente pantalla que contiene el link “Descargar detalle”, el que permite al
+empleador descargar el archivo con el detalle de los errores detectados.
+Una vez subsanado los errores, el empleador podrá cargar un nuevo archivo presionando el botón “Subir
+otro archivo”.
+
+
+
+
+Luego, debe activar botón con Declaración Jurada según artículo 210 del Código Penal y además presionar
+el botón “Cargar Archivo”.
+
+
+
+
+                                                                                                            10
+En caso de que el archivo cumpla con las validaciones anteriores, el sistema informará la recepción exitosa
+del archivo a través del siguiente mensaje.
+
+
+
+
+Asimismo, el sistema remitirá al empleador el siguiente correo electrónico informando la recepción exitosa
+y el inicio del procesamiento de la información, el plazo de procesamiento puede tardar hasta 7 días:
+
+
+
+
+                                                                                                              11
+12
+El sistema realizará una validación de fondo sobre la consistencia de datos de todos los campos contenidos
+en el archivo y en caso de no existir errores se enviará al empleador el siguiente correo:
+
+
+
+
+                                                                                                             13
+En caso de que la validación de fondo sobre la consistencia de datos de todos los campos contenidos en el
+archivo finalice con errores u observaciones, el sistema enviará al empleador el siguiente correo junto al
+archivo con los errores detectados:
+
+
+
+
+                                                                                                             14
+Consideraciones en la carga masiva de contratos de trabajo
+La carga masiva de contratos de trabajo presenta una serie de consideraciones, que el empleador debe
+tener presente al momento de decidir su utilización para el registro de la información requerida por el Art.
+9 y 515 del Código del Trabajo y conforme lo regula el DS N° 37 de 28-10-2021, del Ministerio del Trabajo
+y Previsión Social.
+Estas consideraciones son las siguientes:
+        Sólo se pueden incorporar en el archivo CSV contratos de trabajadores con un mismo Cargo, como
+         se ha señalado en las instrucciones previamente detalladas.
+        En el caso de contratos de trabajo donde se haya pactado más de cinco tipos de remuneraciones
+         de cualquier tipo, no se puede utilizar la carga masiva, debiendo registrarse dicho contrato de
+         forma individual, esto sin considerar los conceptos de sueldo base y gratificación, los que son
+         informados en otro apartado.
+        En el caso de contratos donde se haya pactado más de cinco comunas de desempeño para la
+         prestación de los servicios del trabajador, no se podrá utilizar la carga masiva, debiendo utilizarse
+         la carga individual.
+        En caso de contratos en que se haya pactado más de un turno, el empleador deberá informar solo
+         uno de ellos.
+        En caso de incorporar en el registro masivo a un trabajador respecto del cual ya existe un borrador
+         en el “Registro de Contrato de Trabajo Individual”, el empleador deberá eliminar dicho registro
+         para proceder a la carga masiva.
+        Cuando el “Haber” pactado deba calcularse con una fórmula, este se debe indicar con monto 0
+         (cero) en la columna correspondiente, omitiendo el detalle respectivo.
+
+Configurar sistema operativo para generar archivo CSV
+
+Verificar delimitador de símbolo en archivo CSV a punto y coma
+La configuración de Microsoft Windows por defecto tiene por delimitador el símbolo coma “,”. Para
+cambiarlo, el usuario debe realizar los siguientes pasos:
+    1.   Ir al panel de control de su computador y seleccionar el ícono “Región”, conforme se ilustra a
+         continuación:
+
+
+
+
+                                                                                                                 15
+2.   A continuación, se desplegará en su pantalla la pantalla emergente (pop up) titulado “Personalizar
+     formato”, debiendo seleccionar la opción “Configuración Adicional”:
+
+
+
+
+3.   Luego, en la opción “Separador de listas”, el usuario debe seleccionar símbolo punto y coma (;),
+     conforme se ilustra en la siguiente imagen:
+
+
+
+
+4.   Para finalizar, se debe hacer clic en el botón “Aceptar” y el cambio introducido quedará guardado.
+
+
+
+
+                                                                                                          16
+   5.   En algunos casos en que se le consulte al usuario si desea conservar el formato CSV debe presionar
+        la opción SI, conforme se ilustra a continuación:
+
+
+
+
+Campos de fecha con el formato establecido dd/mm/aaaa
+   1.   Ir al panel de control de su computador y seleccionar el ícono “Región”, conforme se ilustra a
+        continuación:
+
+
+
+
+   2.   A continuación, se desplegará en su pantalla la pantalla emergente (pop up) titulada “Personalizar
+        formato”, debiendo modificar la opción “Fecha corta” con la opción requerida:
+
+
+
+
+   3.   Para finalizar, debe hacer clic en el botón “Aceptar” y el cambio introducido quedará guardado.
+
+
+
+
+                                                                                                             17
+Estructura CSV archivo de carga masiva
+El archivo se estructura en base a columnas, cada una de las cuales tiene asignado un nombre, cuyo detalle
+es el siguiente:
+
+CATEGORIA CONTRATO
+Nombre de la Columna: CATEGORIA_CONTRATO
+Ingresar el código de tipo de contrato suscrito por las partes:
+
+ Código                        Glosa
+   1       Contrato de Trabajo sujeto a reglas generales
+
+COMUNA CELEBRACIÓN
+Nombre de la Columna: COMUNA_CELEBRACION
+Ingresar el código de comuna en la que se haya celebrado el contrato de trabajo:
+
+Tabla 1
+
+ Código             Glosa                       Código               Glosa     Código             Glosa
+   1      IQUIQUE                                 43       CASABLANCA            85     OLIVAR
+   2      ALTO HOSPICIO                           44       CONCÓN                86     MOSTAZAL
+   3      CAMIÑA                                  45       VIÑA DEL MAR          87     MALLOA
+   4      PICA                                    46       PUCHUNCAVÍ            88     MACHALÍ
+   5      POZO ALMONTE                            47       QUINTERO              89     CODEGUA
+   6      HUARA                                   48       ISLA DE PASCUA        90     GRANEROS
+   7      COLCHANE                                49       CALLE LARGA           91     DOÑIHUE
+   8      MEJILLONES                              50       LOS ANDES             92     COLTAUCO
+   9      ANTOFAGASTA                             51       SAN ESTEBAN           93     COINCO
+   10     TALTAL                                  52       RINCONADA             94     RANCAGUA
+   11     SIERRA GORDA                            53       CABILDO               95     LAS CABRAS
+   12     CALAMA                                  54       PETORCA               96     PAREDONES
+   13     SAN PEDRO DE ATACAMA                    55       ZAPALLAR              97     NAVIDAD
+   14     OLLAGÜE                                 56       LA LIGUA              98     LITUECHE
+   15     TOCOPILLA                               57       PAPUDO                99     LA ESTRELLA
+   16     MARÍA ELENA                             58       HIJUELAS             100     MARCHIHUE
+   17     COPIAPÓ                                 59       QUILLOTA             101     PICHILEMU
+   18     CALDERA                                 60       CALERA               102     LOLOL
+   19     TIERRA AMARILLA                         61       NOGALES              103     SANTA CRUZ
+   20     DIEGO DE ALMAGRO                        62       LA CRUZ              104     PUMANQUE
+   21     CHAÑARAL                                63       CARTAGENA            105     PLACILLA
+   22     HUASCO                                  64       ALGARROBO            106     PERALILLO
+   23     FREIRINA                                65       SAN ANTONIO          107     SAN FERNANDO
+   24     VALLENAR                                66       EL TABO              108     CHÉPICA
+   25     ALTO DEL CARMEN                         67       SANTO DOMINGO        109     CHIMBARONGO
+   26     COQUIMBO                                68       EL QUISCO            110     NANCAGUA
+   27     LA SERENA                               69       LLAILLAY             111     PALMILLA
+   28     ANDACOLLO                               70       CATEMU               112     PELARCO
+   29     PAIGUANO                                71       SAN FELIPE           113     RÍO CLARO
+   30     VICUÑA                                  72       PUTAENDO             114     MAULE
+   31     LA HIGUERA                              73       SANTA MARÍA          115     PENCAHUE
+   32     CANELA                                  74       PANQUEHUE            116     SAN RAFAEL
+   33     ILLAPEL                                 75       VILLA ALEMANA        117     EMPEDRADO
+   34     SALAMANCA                               76       OLMUÉ                118     SAN CLEMENTE
+   35     LOS VILOS                               77       LIMACHE              119     CONSTITUCIÓN
+   36     COMBARBALÁ                              78       QUILPUÉ              120     TALCA
+   37     MONTE PATRIA                            79       QUINTA DE TILCOCO    121     CUREPTO
+   38     PUNITAQUI                               80       RENGO                122     PELLUHUE
+   39     OVALLE                                  81       REQUÍNOA             123     CHANCO
+   40     RÍO HURTADO                             82       SAN VICENTE          124     CAUQUENES
+   41     JUAN FERNÁNDEZ                          83       PICHIDEGUA           125     ROMERAL
+   42     VALPARAÍSO                              84       PEUMO                126     SAGRADA FAMILIA
+
+
+                                                                                                          18
+Código             Glosa       Código             Glosa        Código             Glosa
+ 127     TENO                   189     EL CARMEN               251     PUYEHUE
+ 128     VICHUQUÉN              190     CHILLÁN VIEJO           252     SAN PABLO
+ 129     RAUCO                  191     COIHUECO                253     PURRANQUE
+ 130     MOLINA                 192     COELEMU                 254     HUALAIHUÉ
+ 131     CURICÓ                 193     COBQUECURA              255     PALENA
+ 132     HUALAÑÉ                194     CHILLÁN                 256     CHAITÉN
+ 133     LICANTÉN               195     NINHUE                  257     FUTALEUFÚ
+ 134     PARRAL                 196     PERQUENCO               258     COYHAIQUE
+ 135     RETIRO                 197     NUEVA IMPERIAL          259     LAGO VERDE
+ 136     SAN JAVIER             198     PITRUFQUÉN              260     AYSÉN
+ 137     VILLA ALEGRE           199     PADRE LAS CASAS         261     GUAITECAS
+ 138     YERBAS BUENAS          200     PUCÓN                   262     CISNES
+ 139     LONGAVÍ                201     VILCÚN                  263     COCHRANE
+ 140     LINARES                202     TEODORO SCHMIDT         264     O´HIGGINS
+ 141     COLBÚN                 203     CHOLCHOL                265     TORTEL
+ 142     FLORIDA                204     VILLARRICA              266     RÍO IBÁÑEZ
+ 143     LOTA                   205     TOLTÉN                  267     CHILE CHICO
+ 144     HUALQUI                206     SAAVEDRA                268     SAN GREGORIO
+ 145     CHIGUAYANTE            207     MELIPEUCO               269     RÍO VERDE
+ 146     PENCO                  208     CUNCO                   270     LAGUNA BLANCA
+ 147     CORONEL                209     LAUTARO                 271     PUNTA ARENAS
+ 148     SANTA JUANA            210     LONCOCHE                272     ANTÁRTICA
+ 149     TALCAHUANO             211     CARAHUE                 273     CABO DE HORNOS
+ 150     TOMÉ                   212     CURARREHUE              274     PORVENIR
+ 151     HUALPÉN                213     TEMUCO                  275     PRIMAVERA
+ 152     CONCEPCIÓN             214     GALVARINO               276     TIMAUKEL
+ 153     SAN PEDRO DE LA PAZ    215     GORBEA                  277     NATALES
+ 154     CAÑETE                 216     FREIRE                  278     TORRES DEL PAINE
+ 155     CURANILAHUE            217     VICTORIA                279     ESTACIÓN CENTRAL
+ 156     CONTULMO               218     TRAIGUÉN                280     LAS CONDES
+ 157     LOS ÁLAMOS             219     RENAICO                 281     LA REINA
+ 158     ARAUCO                 220     PURÉN                   282     LA PINTANA
+ 159     TIRÚA                  221     LUMACO                  283     LA GRANJA
+ 160     LEBU                   222     LOS SAUCES              284     LA FLORIDA
+ 161     NEGRETE                223     LONQUIMAY               285     LA CISTERNA
+ 162     TUCAPEL                224     COLLIPULLI              286     SANTIAGO
+ 163     YUMBEL                 225     CURACAUTÍN              287     CERRILLOS
+ 164     ALTO BIOBÍO            226     ANGOL                   288     INDEPENDENCIA
+ 165     SANTA BÁRBARA          227     ERCILLA                 289     CONCHALÍ
+ 166     SAN ROSENDO            228     PUERTO VARAS            290     EL BOSQUE
+ 167     QUILACO                229     MAULLÍN                 291     HUECHURABA
+ 168     NACIMIENTO             230     LLANQUIHUE              292     CERRO NAVIA
+ 169     QUILLECO               231     FRUTILLAR               293     MAIPÚ
+ 170     LAJA                   232     CALBUCO                 294     VITACURA
+ 171     CABRERO                233     FRESIA                  295     ÑUÑOA
+ 172     ANTUCO                 234     COCHAMÓ                 296     PEDRO AGUIRRE CERDA
+ 173     LOS ÁNGELES            235     PUERTO MONTT            297     PEÑALOLÉN
+ 174     MULCHÉN                236     LOS MUERMOS             298     PROVIDENCIA
+ 175     PORTEZUELO             237     QUEILÉN                 299     LO BARNECHEA
+ 176     QUILLÓN                238     ANCUD                   300     PUDAHUEL
+ 177     QUIRIHUE               239     CHONCHI                 301     MACUL
+ 178     RÁNQUIL                240     QUINCHAO                302     QUILICURA
+ 179     SAN CARLOS             241     QUEMCHI                 303     RECOLETA
+ 180     SAN IGNACIO            242     QUELLÓN                 304     RENCA
+ 181     PINTO                  243     CASTRO                  305     SAN JOAQUÍN
+ 182     SAN NICOLÁS            244     PUQUELDÓN               306     SAN MIGUEL
+ 183     TREGUACO               245     DALCAHUE                307     SAN RAMÓN
+ 184     YUNGAY                 246     CURACO DE VÉLEZ         308     LO PRADO
+ 185     SAN FABIÁN             247     SAN JUAN DE LA COSTA    309     QUINTA NORMAL
+ 186     ÑIQUÉN                 248     PUERTO OCTAY            310     LO ESPEJO
+ 187     PEMUCO                 249     OSORNO                  311     PIRQUE
+ 188     BULNES                 250     RÍO NEGRO               312     PUENTE ALTO
+
+
+                                                                                         19
+ Código             Glosa               Código             Glosa               Código            Glosa
+  313     SAN JOSÉ DE MAIPO              325     SAN PEDRO                      337     LOS LAGOS
+  314     TILTIL                         326     ISLA DE MAIPO                  338     CORRAL
+  315     LAMPA                          327     EL MONTE                       339     LAGO RANCO
+  316     COLINA                         328     TALAGANTE                      340     LA UNIÓN
+  317     CALERA DE TANGO                329     PEÑAFLOR                       341     FUTRONO
+  318     BUIN                           330     PADRE HURTADO                  342     RÍO BUENO
+  319     SAN BERNARDO                   331     LANCO                          343     CAMARONES
+  320     PAINE                          332     VALDIVIA                       344     ARICA
+  321     MELIPILLA                      333     PANGUIPULLI                    345     GENERAL LAGOS
+  322     CURACAVÍ                       334     PAILLACO                       346     PUTRE
+  323     MARÍA PINTO                    335     MARIQUINA
+  324     ALHUÉ                          336     MÁFIL
+
+FECHA SUSCRPCION
+Nombre de la Columna: FECHA_SUSCRPCION
+Digitar la fecha de inicio de la relación laboral, en formato DD/MM/AAAA (Ejemplo: 01/01/2022).
+
+RUT TRABAJADOR
+Nombre de la Columna: RUT_TRABAJADOR
+Digitar el número de Rol Único Tributario del trabajador. El formato a seguir es sin puntos, con guion antes
+del dígito verificador y sin anteponer "0" (cero). Es excluyente del DNI. (Ejemplo: 12345678-9 o 1234567-8).
+
+DNI TRABAJADOR
+Nombre de la Columna: DNI_TRABAJADOR
+Digitar la serie de Documento Nacional de Identidad del trabajador extranjero, que no ha obtenido documento
+de identificación oficial en Chile. En el caso de trabajador que cuente con RUT chileno, no debe ocupar este
+campo.
+
+FECHA NACIMIENTO
+Nombre de la Columna: FECHA_NACIMIENTO
+Digitar la fecha nacimiento del trabajador extranjero, en formato DD/MM/AAAA (Ejemplo: 01/01/2022). En
+el caso de trabajador que cuente con RUT chileno, no debe ocupar este campo.
+
+NOMBRES
+Nombre de la Columna: NOMBRES
+Digitar los nombres del trabajador extranjero. En el caso de trabajador que cuente con RUT chileno, no debe
+ocupar este campo.
+
+APELLIDOS
+Nombre de la Columna: APELLIDOS
+Digitar los apellidos del trabajador extranjero. En el caso de trabajador que cuente con RUT chileno, no debe
+ocupar este campo.
+
+SEXO
+Nombre de la Columna: SEXO
+Ingresar el código correspondiente al sexo del trabajador extranjero.
+
+ Código                   Glosa
+   1                    FEMENINO
+   2                    MASCULINO
+
+
+
+
+                                                                                                          20
+NACIONALIDAD
+Nombre de la Columna: NACIONALIDAD
+Ingresar el código correspondiente a la nacionalidad del trabajador extranjero.
+
+ Código       Nacionalidad              País                Código        Nacionalidad             País
+  101     CANADIENSE          CANADA                         417     ETIOPE              ETIOPIA
+  102     ESTADOUNIDENSE      USA                            418     GABONES             GABON
+  103     MEXICANA            MEXICO                         419     GAMBIANO            GAMBIA
+          DE ANTIGUA Y                                       420     GANES               GHANA
+  201                         ANTIGUA Y BARBUDA
+          BARBUDA                                            421     GUINA               GUINEA
+  202     BAHAMES             BAHAMAS                        422     GUINENSE BISSAU     GUINEA BISSAU
+  203     BARBADENSE          BARBADOS                               GUINENSE
+                                                             423                         GUINEA ECUATORIAL
+  204     BELICEÑO            BELICE                                 ECUATORIAL
+  205     COSTARRICENSE       COSTA RICA                     424     KENYATA             KENYA
+  206     CUBANA              CUBA                           425     LESOTA              LESOTHO
+  207     DE DOMINICA         DOMINICA                       426     LIBERIANA           LIBERIA
+  208     SALVADOREÑA         EL SALVADOR                    427     LIBIA               LIBIA
+  209     GRANADINO           GRENADA                        428     MALGACHE            MADAGASCAR
+  210     GUATEMALTECA        GUATEMALA                      429     MALAWI              MALAWI
+  211     HAITIANA            HAITI                          430     MALI                MALI
+  212     HONDUREÑA           HONDURAS                       431     MARROQUI            MARRUECOS
+  213     JAMAICANA           JAMAICA                        432     MAURICIA            MAURICIO
+  214     NICARAGUENSE        NICARAGUA                      433     MAURITANIA          MAURITANIA
+  215     PANAMEÑA            PANAMA                         434     MOZAMBIQUE@A        MOZAMBIQUE
+  216     PORTORRIQUENSE      PUERTO RICO                    435     NAMIBIA             NAMIBIA
+  217     DOMINICANA          REPUBLICA DOMINICANA           436     NIGERINA            NIGER
+  218     SANTA LUCIA         SANTA LUCIA                    437     NIGERIANA           NIGERIA
+                              SAN VICENTE Y LAS                                          REPUBLICA
+  219     VICENTEÑA                                          438     CENTROAFRICANA
+                              GRANADINAS                                                 CENTROAFRICANA
+  220     TRINITENSE          TRINIDAD Y TOBAGO              439     RWANDA              RWANDA
+          SAN CRISTOBAL Y                                            SANTO TOME Y
+  221                         SAN CRISTOBAL Y NEVIS          440                         SANTO TOME Y PRINCIPE
+          NEVI                                                       PRINCIPE
+  222     FED. SAINTS KITTS   FED. SAINTS KITTS              441     SENEGANI            SENEGAL
+  223     ISLAS COMORRAS      ISLAS COMORRAS                 442     SEYCHELLES          SEYCHELLES
+  301     ARGENTINA           ARGENTINA                      443     SIERRALEONES        SIERRA LEONA
+  302     BOLIVIANA           BOLIVIA                        444     SOMALI              SOMALIA
+  303     BRASILEÑA           BRASIL                         445     BANTU               SWAZILANDIA
+  304     COLOMBIANA          COLOMBIA                       446     SUDAFRICANA         REPUBLICA DE SUDAFRICA
+  305     ECUATORIANA         ECUADOR                        447     SUDANESA            SUDAN
+  306     GUYANESA            GUYANA                         448     TANZANIA            TANZANIA
+  307     PARAGUAYA           PARAGUAY                       449     TOGOLESA            TOGO
+  308     PERUANA             PERU                           450     SISKEYANA           TRANSKEI
+  309     SURINAMEÑA          SURINAME                       451     UGANDESA            UGANDA
+  310     URUGUAYA            URUGUAY                        453     VENDA               VENDA
+  311     VENEZOLANA          VENEZUELA                      454     ZAIREÑA             ZAIRE
+  320     CHILENA             CHILE                          455     ZAMBIANA            ZAMBIA
+  401     VOLTEÑA             ALTO VOLTA                     456     ZIMBABWENSE         ZIMBABWE
+  402     ANGOLEÑA            ANGOLA                         457     DE BURKINA FASO     BURKINA FASO
+  403     ARGELINA            ARGELIA                        458     TUNEZ               TUNEZ
+  404     BENINES             BENIN                          459     ERITREA             ERITREA
+  405     BOPHUTHATSWANI      BOPHUTHATSWANA                 501     AFGANA              AFGANISTAN
+  406     BOTSWANES           BOTSWANA                       502     ARABE SAUDITA       ARABIA SAUDITA
+  407     BURUNDIANA          BURUNDI                        503     DE BAHREIN          BAHREIN
+  408     CABOVERDIANA        CABO VERDE                     504     DE BANGLADESH       BANGLADESH
+  409     CAMERUNES           CAMERUN                        505     BIRMANA             BIRMANIA (MYANMA)
+  410     CISKEINA            CISKEI                                 DE BRUNEI DARUS-
+                                                             506                         BRUNEI
+  411     COMORANA            COMORAS                                SALAM
+  412     CONGOLEÑO           CONGO                          507     BUTHANES            BUTHAN
+  413     MARFILEÑA           COSTA DE MARFIL                508     COREANA             REPUBLICA DE COREA
+  414     CHADIANA            CHAD                                                       REP. POP. DEMOCRATICA
+                                                             509     COREANA
+  415     DE DJIBOUTI         DJIBOUTI                                                   DE COREA
+  416     EGIPCIA             EGIPTO                         510     TAIWANES            TAIWAN
+
+
+
+                                                                                                          21
+Código      Nacionalidad             País           Código        Nacionalidad               País
+                           REPUBLICA POPULAR         618     LIECHTENSTEIN         LIECHTENSTEIN
+ 511     CHINA POPULAR
+                           CHINA                     619     LUXEMBURGUESA         LUXEMBURGO
+ 512     CHIPRIOTA         CHIPRE                    620     MALTA                 MALTA
+                           EMIRATOS ARABES           621     MONEGASCA             MONACO
+ 513     ARABE UNIDA
+                           UNIDOS                    622     NORUEGA               NORUEGA
+ 514     FILIPINO          FILIPINAS                 623     POLACA                POLONIA
+ 515     INDIA             INDIA                     624     PORTUGUESA            PORTUGAL
+ 516     INDONESIA         INDONESIA                 625     BRITANICA             GRAN BRETAÑA
+ 517     IRAQUI            IRAK                      626     RUMANA                RUMANIA
+ 518     IRANI             IRAN                      627     SAN MARINA            SAN MARINO
+ 519     ISRAELI           ISRAEL                    628     SUECA                 SUECIA
+ 520     JAPONESA          JAPON                     629     SUIZA                 SUIZA
+ 521     JORDANA           JORDANIA                  631     VATICANA              VATICANO
+ 522     KMER              KAMPUCHEA                 632     YUGOSLAVA             YUGOESLAVIA
+ 523     KATAR             KATAR                     633     ESCOCESA              ESCOCIA
+ 524     KUWAITI           KUWAIT                    635     UCRANIANA             UCRANIA
+ 525     LAOSIANA          LAOS                      636     LETONESA              LETONIA
+ 526     LIBANESA          LIBANO                    637     ESTONIO               ESTONIA
+         FEDERACION DE                               638     LITUANA               LITUANIA
+ 527                       FEDERACION DE MALASIA
+         MALASI                                      639     MOLDAVA               MOLDAVIA
+ 528     MALDIVAS          MALDIVAS                  640     RUSA                  RUSIA
+ 529     MOGOL             MONGOLIA                  641     SIBERIANA             SIBERIA
+ 530     NEPALESA          NEPAL                     642     BIELORUSA             BIELORUSIA
+ 531     OMANI             OMAN                      643     CROATA                CROACIA
+ 532     PAKISTANI         PAKISTAN                  644     ESLOVENA              ESLOVENIA
+ 533     SINGAPURENSE      SINGAPUR                          DE BOSNIA Y
+ 534     SIRIA             SIRIA                     645                           BOSNIA Y HERZEGOVINA
+                                                             HERZEGOVINA
+ 535     CINGALESA         SRI LANKA                 646     SERBIA                SERBIA
+ 536     TAILANDESA        TAILANDIA                 648     MONTENEGRINA          MONTENEGRO
+ 537     TURCA             TURQUIA                   655     CHECA                 REPUBLICA CHECA
+ 538     VIETNAMITA        VIETNAM                   656     MACEDONIA             MACEDONIA
+ 539     YEMENITA          REP. ARABE DEL YEMEN      657     ESLOVACA              ESLOVAQUIA
+ 540     PALESTINA         PALESTINA                 670     MOLDOVA               MOLDOVA
+ 541     MACAO             MACAO                     701     AUSTRALIANA           AUSTRALIA
+ 542     MALASIA           MALASIA                   702     BELAN                 BELAN
+ 543     QATAR             QATAR                     703     DE FIJI               FIJI
+ 544     BRITANICA         HONG KONG                 704     KIRIBATI              KIRIBATI
+ 545     AZERBAIYANO       AZERBAIJAN                                              ESTADOS FEDERADOS DE
+                                                     705     MICRONESIA
+ 546     ARMENIO           ARMENIA                                                 MICRONESIA
+ 547     GEORGIANA         GEORGIA                   706     NAURU                 NAURU
+ 548     KAZAKJASTANA      KAZAKJASTAN               707     NEOZELANDESA          NUEVA ZELANDIA
+ 549     UZBEKA            UZBEKISTAN                708     NOVO GUINEANA         PAPUA NUEVA GUINEA
+ 550     THASJANA          THAJADISTAN               709     ISLAS SALOMON         ISLAS SALOMON
+ 551     KIRGI             KIRGUIZIA                 710     SAMOANA               SAMOA OCCIDENTAL
+ 552     CAMBOYANA         REINO DE CAMBOYA          711     TONGALESA             TONGA
+ 601     ALBANES           ALBANIA                   712     TUVALU                TUVALU
+ 602     ALEMANA           ALEMANIA                  713     VANUATU               VANUATU
+ 603     ANDORRANA         ANDORRA                   714     ISLAS MARSHALL        ISLAS MARSHALL
+ 604     AUSTRIACA         AUSTRIA                   715     FRANCESA              TAHITI
+ 605     BELGA             BELGICA                   999     APATRIDA              APATRIDA
+ 606     BULGARA           BULGARIA                 1001     AFAR E ISSAS          AFAR E ISSAS
+ 607     CHECOSLOVACA      CHECOSLOVAQUIA           1003     AFRICA                AFRICA
+ 608     DANESA            DINAMARCA                1004     AFRICA DEL SUDOESTE   AFRICA DEL SUDOESTE
+ 609     ESPAÑOLA          ESPAÑA                   1005     ALASKA                ALASKA
+ 610     FINLANDESA        FINLANDIA                         ANTILLAS
+                                                    1018                           ANTILLAS NEERLANDESAS
+ 611     FRANCESA          FRANCIA                           NEERLANDESAS
+ 612     GRIEGA            GRECIA                   1033     BELAU                 BELAU
+ 613     HOLANDESA         HOLANDA (PAISES BAJOS)   1058     CEILAN                CEILAN
+ 614     HUNGARA           HUNGRIA                  1075     CURLANDIA             CURLANDIA
+ 615     IRLANDESA         IRLANDA                  1076     DAHOMEY               DAHOMEY
+ 616     ISLANDESA         ISLANDIA                 1077     DALMACIA              DALMACIA
+ 617     ITALIANA          ITALIA                   1085     EIRE                  EIRE
+
+
+                                                                                                    22
+Código        Nacionalidad                País           Código       Nacionalidad                   País
+ 1087    ELLICE                 ELLICE                    1192    ISLAS ESPIRITU SANTO   ISLAS ESPIRITU SANTO
+ 1109    GALES                  GALES                     1193    ISLAS FALKLAND         ISLAS FALKLAND
+ 1113    GIBRALTAR              GIBRALTAR                 1194    ISLAS FENIX            ISLAS FENIX
+ 1115    GRANADINO              GRANADA                   1195    ISLAS FEROE            ISLAS FEROE
+ 1119    GUAYANA FRANCESA       GUAYANA FRANCESA          1196    ISLAS FLORIDA          ISLAS FLORIDA
+         GUAYANA                                          1197    ISLAS FUTUNA           ISLAS FUTUNA
+1120                            GUAYANA HOLANDESA
+         HOLANDESA                                        1198    ISLAS GALAPAGOS        ISLAS GALAPAGOS
+1124     GUINEA PORTUGUESA      GUINEA PORTUGUESA         1199    ISLAS GAMBIER          ISLAS GAMBIER
+         IMPERIO                IMPERIO                   1200    ISLAS GILBERT          ISLAS GILBERT
+1131
+         CENTROAFRICANA         CENTROAFRICANO            1202    ISLAS HAAPAI           ISLAS HAAPAI
+1139     ISLA ANGUILLA          ISLA ANGUILLA             1203    ISLAS HAINAN           ISLAS HAINAN
+1140     ISLA ARUBA             ISLA ARUBA                1204    ISLAS HAWAII           ISLAS HAWAII
+1141     ISLA ASCENCION         ISLA ASCENCION                    ISLAS HEARD-MAC        ISLAS HEARD-MAC
+                                                         1205
+1142     ISLA CERDENA           ISLA CERDENA                      DONALD                 DONALD
+1143     ISLA CORCEGA           ISLA CORCEGA             1206     ISLAS HEBRIDAS         ISLAS HEBRIDAS
+1144     ISLA CRETA             ISLA CRETA               1207     ISLAS HOKKAIDO         ISLAS HOKKAIDO
+1145     ISLA CURAZAO           ISLA CURAZAO             1208     ISLAS JAN MAYEN        ISLAS JAN MAYEN
+1146     ISLA DE PASCUA         ISLA DE PASCUA           1209     ISLAS JOHNSTON         ISLAS JOHNSTON
+1147     ISLA GROENLANDIA       ISLA GROENLANDIA                  ISLAS JUAN
+                                                         1210                            ISLAS JUAN FERNANDEZ
+1148     ISLA GUADALCANAL       ISLA GUADALCANAL                  FERNANDEZ
+1149     ISLA GUADALUPE         ISLA GUADALUPE           1211     ISLAS KANDAVU          ISLAS KANDAVU
+1150     ISLA GUAM              ISLA GUAM                1212     ISLAS KUSAIE           ISLAS KUSAIE
+1151     ISLA IWOJIMA           ISLA IWOJIMA             1213     ISLAS LAU              ISLAS LAU
+1152     ISLA JAVA              ISLA JAVA                1214     ISLAS LEALTAD          ISLAS LEALTAD
+1153     ISLA KIUSIU            ISLA KIUSIU              1215     ISLAS LINE             ISLAS LINE
+1154     ISLA LUZON             ISLA LUZON               1216     ISLAS MACQUARIE        ISLAS MACQUARIE
+1155     ISLA MARTINICA         ISLA MARTINICA           1217     ISLAS MADEIRA          ISLAS MADEIRA
+1156     ISLA MINDANAO          ISLA MINDANAO            1218     ISLAS MALAIATA         ISLAS MALAIATA
+1157     ISLA MONTSERRAT        ISLA MONTSERRAT          1219     ISLAS MALEKULA         ISLAS MALEKULA
+1158     ISLA OKINAWA           ISLA OKINAWA             1220     ISLAS MALVINAS         ISLAS MALVINAS
+1159     ISLA SAMOA             ISLA SAMOA               1221     ISLAS MARIANAS         ISLAS MARIANAS
+1160     ISLA SANTA ELENA       ISLA SANTA ELENA         1222     ISLAS MARQUESAS        ISLAS MARQUESAS
+1161     ISLA SICILIA           ISLA SICILIA             1224     ISLAS MAYOTTE          ISLAS MAYOTTE
+1162     ISLA SUMATRA           ISLA SUMATRA             1225     ISLAS MELVILLE         ISLAS MELVILLE
+1163     ISLA TASMANIA          ISLA TASMANIA            1226     ISLAS MIDWAY           ISLAS MIDWAY
+1164     ISLA TERRANOVA         ISLA TERRANOVA           1227     ISLAS NIPON            ISLAS NIPON
+1165     ISLA TIMOR             ISLA TIMOR               1228     ISLAS NIUE             ISLAS NIUE
+1166     ISLA WAKE              ISLA WAKE                1229     ISLAS NORFOLK          ISLAS NORFOLK
+1168     ISLAS AMBRIM           ISLAS AMBRIM                      ISLAS NUEVA
+                                                         1230                            ISLAS NUEVA CALEDONIA
+1169     ISLAS ANDAMAN          ISLAS ANDAMAN                     CALEDONIA
+1170     ISLAS AZORES           ISLAS AZORES             1231     ISLAS NUEVA SIBERIA    ISLAS NUEVA SIBERIA
+1171     ISLAS BAFFIN           ISLAS BAFFIN             1232     ISLAS NUEVA ZEMBLA     ISLAS NUEVA ZEMBLA
+1172     ISLAS BALEARES         ISLAS BALEARES           1233     ISLAS OCEAN            ISLAS OCEAN
+1173     ISLAS BANKS            ISLAS BANKS              1234     ISLAS ORCADAS          ISLAS ORCADAS
+1174     ISLAS BERMUDAS         ISLAS BERMUDAS           1235     ISLAS PALAU            ISLAS PALAU
+1175     ISLAS BONAIRE          ISLAS BONAIRE            1236     ISLAS PINOS            ISLAS PINOS
+1176     ISLAS BORNEO           ISLAS BORNEO             1237     ISLAS PITCAIRN         ISLAS PITCAIRN
+1177     ISLAS CAIMANES         ISLAS CAIMANES           1238     ISLAS POLINESIA        ISLAS POLINESIA
+1178     ISLAS CANARIAS         ISLAS CANARIAS           1239     ISLAS PONAPE           ISLAS PONAPE
+         ISLAS CANTON                                             ISLAS PRINCIPE DE
+1179                            ISLAS CANTON ENDERBURY   1240                            ISLAS PRINCIPE DE GALES
+         ENDERBURY                                                GALES
+1180     ISLAS CAROLINAS        ISLAS CAROLINAS                   ISLAS SAN PEDRO Y      ISLAS SAN PEDRO Y
+                                                         1242
+1181     ISLAS CELEBES          ISLAS CELEBES                     MIQUELO                MIQUELON
+1182     ISLAS CHRISTMAS        ISLAS CHRISTMAS          1243     ISLAS SAVAII           ISLAS SAVAII
+1183     ISLAS COCOS            ISLAS COCOS                       ISLAS SEVERNAIA
+                                                         1244                            ISLAS SEVERNAIA ZEMLI
+1185     ISLAS COOK             ISLAS COOK                        ZEMLI
+1186     ISLAS DE LA REUNION    ISLAS DE LA REUNION      1245     ISLAS SHETLAND         ISLAS SHETLAND
+1187     ISLAS DE LA SOCIEDAD   ISLAS DE LA SOCIEDAD     1246     ISLAS SIKOKU           ISLAS SIKOKU
+1188     ISLAS DEVON            ISLAS DEVON              1247     ISLAS SPITSBERGEN      ISLAS SPITSBERGEN
+1189     ISLAS EFATE            ISLAS EFATE                       ISLAS TIERRAS DEL
+                                                         1249                            ISLAS TIERRAS DEL NORTE
+1190     ISLAS ELLESMERE        ISLAS ELLESMERE                   NORTE
+1191     ISLAS EROMANGA         ISLAS EROMANGA
+
+
+                                                                                                             23
+ Código       Nacionalidad                 País              Código         Nacionalidad              País
+          ISLAS TIERRAS         ISLAS TIERRAS FRANCISCO       1266     ISLAS WALLIS        ISLAS WALLIS
+  1250
+          FRANCISCO J           JOSE                          1267     ISLAS WRANGEL       ISLAS WRANGEL
+  1251    ISLAS TOKELAU         ISLAS TOKELAU                 1268     ISLAS YAP           ISLAS YAP
+  1252    ISLAS TONGATAPU       ISLAS TONGATAPU               1282     KOWEIT              KOWEIT
+  1253    ISLAS TRAVEUNI        ISLAS TRAVEUNI                1285     LAS ANTILLAS        LAS ANTILLAS
+          ISLAS TRISTAN DA                                    1302     MASCATE Y OMAN      MASCATE Y OMAN
+  1254                          ISLAS TRISTAN DA CUNHA
+          CUNHA                                               1310     MONTE ATHOS         MONTE ATHOS
+  1255    ISLAS TRUK            ISLAS TRUK                    1318     NGWANE              NGWANE
+  1256    ISLAS TUAMOTU         ISLAS TUAMOTU                 1325     NUEVAS HEBRIDAS     NUEVAS HEBRIDAS
+  1257    ISLAS TUBAI           ISLAS TUBAI                   1326     OCEANIA             OCEANIA
+          ISLAS TURCAS Y                                      1350     REPUBLICA COMORAS   REPUBLICA COMORAS
+  1258                          ISLAS TURCAS Y CAICOS
+          CAICOS                                                       REPUBLICA
+  1259    ISLAS UPOLU           ISLAS UPOLU                  1357                          REPUBLICA MALGACHE
+                                                                       MALGACHE
+  1260    ISLAS VANUA LEVU      ISLAS VANUA LEVU             1360      RHODESIA            RHODESIA
+  1261    ISLAS VAVAU           ISLAS VAVAU                  1388      SIKKIM              SIKKIM
+  1262    ISLAS VICTORIA        ISLAS VICTORIA               1404      SVALBARD            SVALBARD
+  1263    ISLAS VIRGENES        ISLAS VIRGENES               1413      TRANSJORDANIA       TRANSJORDANIA
+          ISLAS VIRGENES        ISLAS VIRGENES               1417      TUNISIA             TUNISIA
+  1264
+          AMERICANAS            AMERICANAS                   1431      YEMEN DEL NORTE     YEMEN DEL NORTE
+  1265    ISLAS VITI LEVU       ISLAS VITI LEVU              1432      YEMEN DEL SUR       YEMEN DEL SUR
+
+EMAIL
+Nombre de la Columna: EMAIL
+Digitar el correo electrónico del trabajador (Ejemplo: xxx@xxx.xxx).
+
+TELEFONO
+Nombre de la Columna: TELEFONO
+Digitar el número de teléfono del trabajador, sin código del país (Ejemplo: 912345678).
+
+COMUNA
+Nombre de la Columna: COMUNA
+Ingresar el código correspondiente a la comuna donde reside el trabajador. Ver Tabla N°1.
+
+CALLE
+Nombre de la Columna: CALLE
+Digitar calle correspondiente al domicilio del trabajador.
+
+NUMERO
+Nombre de la Columna: NUMERO
+Digitar el número del domicilio del trabajador.
+
+DEPARTAMENTO
+Nombre de la Columna: DPTO
+Digitar el número o letra del departamento o casa del domicilio del trabajador.
+
+DECLARACION DISCAPACIDAD
+Nombre de la Columna: DECLARACION_DISCAPACIDAD
+Ingresar el código correspondiente a la situación de discapacidad del trabajador. Las opciones son:
+
+ Código                      Glosa
+   0                          No
+   1                           Sí
+
+Para estos efectos, la condición de discapacidad está regulada por la Ley Nº 20.422 de 10.02.2010, que
+establece normas sobre igualdad de oportunidades e inclusión social de personas con discapacidad,
+entendiéndose por tales aquellas personas que teniendo una o más deficiencias físicas, mentales, sea por
+causa psíquica o intelectual, o sensoriales, de carácter temporal o permanente, al interactuar con diversas
+
+                                                                                                             24
+barreras presentes en el entorno, ve impedida o restringida su participación plena y efectiva en la sociedad,
+en igualdad de condiciones con las demás.
+
+La calificación y certificación de la discapacidad corresponderá a la COMPIN.
+
+DECLARACION INVALIDEZ
+Nombre de la Columna: DECLARACION_INVALIDEZ
+Ingresar el código correspondiente si el trabajador es asignatario de pensión de invalidez. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+La pensión de invalidez corresponde a un derecho de los afiliados no pensionados conforme al DL 3.500, que
+sin cumplir los requisitos de edad para obtener pensión de vejez, y a consecuencia de enfermedad o
+debilitamiento de sus fuerzas físicas o intelectuales, sufran un menoscabo permanente de su capacidad de
+trabajo y hayan sido declarados inválidos por una Comisión Médica.
+
+FUNCIONES
+Nombre de la Columna: FUNCIONES
+Digitar la descripción de la(s) función(es) del trabajador pactadas en el contrato de trabajo. Máximo 300
+caracteres alfanuméricos.
+
+SUBCONTRATACIÓN
+Nombre de la Columna: SUBCONTRATACION
+Ingresar el código correspondiente si el trabajador presta servicio en régimen de subcontratación. Las
+opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+RUT EMPRESA PRINCIPAL
+Nombre de la Columna: RUT_EMPRESA_PRINCIPAL
+En caso de que el trabajador preste servicios en régimen de Subcontratación, debe anotar el RUT de la
+empresa mandante o principal. El formato a seguir es sin puntos, con guion antes del dígito verificador y sin
+anteponer "0" (cero). (Ejemplo: 70345678-9 o 9234567-8).
+
+EMPRESA DE SERVICIO TRANSITORIO
+Nombre de la Columna: EST
+Ingresar el código correspondiente si el trabajador presta servicio en régimen de suministro de trabajadores
+en empresa usuaria. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+RUT EMPRESA USUARIA
+Nombre de la Columna: RUT_EMPRESA_USUARIA
+En caso de que el trabajador preste servicios en régimen de suministro de trabajadores en empresa usuaria
+(EST=1), debe ingresar el RUT de la empresa usuaria. El formato a seguir es sin puntos, con guion antes del
+dígito verificador y sin anteponer "0" (cero). (Ejemplo: 70345678-9 o 9234567-8).
+
+
+
+
+                                                                                                           25
+FAENA COMUNA
+Nombre de la Columna: FAENA_COMUNA
+Ingresar el código correspondiente a la comuna donde el trabajador se desempeñará para la empresa usuaria.
+Ver Tabla N°1.
+
+FAENA CALLE
+Nombre de la Columna: FAENA_CALLE
+Digitar la calle que corresponde al domicilio de la empresa usuaria donde el trabajador presta sus servicios.
+
+FAENA NUMERO
+Nombre de la Columna: FAENA_NUMERO
+Digitar el número que corresponde al domicilio de la empresa usuaria donde el trabajador presta sus servicios.
+
+FAENA DEPARTAMENTO
+Nombre de la Columna: FAENA_DPTO
+Digitar el número de departamento o casa que corresponde al domicilio de la empresa usuaria donde el
+trabajador presta sus servicios.
+
+ZONA GEOGRAFICA 1
+Nombre de la Columna: ZONA_GEOGRAFICA_1
+Ingresar la comuna donde el trabajador desempeñará el trabajo convenido. Puede ingresar hasta 5 comunas.
+Ver Tabla N°1.
+
+ZONA GEOGRAFICA 2
+Nombre de la Columna: ZONA_GEOGRAFICA_2
+Ingresar la segunda comuna en caso de corresponder, donde el trabajador desempeñará el trabajo convenido.
+Ver Tabla N°1.
+
+ZONA GEOGRAFICA 3
+Nombre de la Columna: ZONA_GEOGRAFICA_3
+Ingresar la tercera comuna en caso de corresponder, donde el trabajador desempeñará el trabajo convenido.
+Ver Tabla N°1.
+
+ZONA GEOGRAFICA 4
+Nombre de la Columna: ZONA_GEOGRAFICA_4
+Ingresar la cuarta comuna en caso de corresponder, donde el trabajador desempeñará el trabajo convenido.
+Ver Tabla N°1.
+
+ZONA GEOGRAFICA 5
+Nombre de la Columna: ZONA_GEOGRAFICA_5
+Ingresar la quinta comuna en caso de corresponder, donde el trabajador desempeñará el trabajo convenido.
+Ver Tabla N°1.
+
+SUELDO BASE
+Nombre de la Columna: SUELDO_BASE
+Digitar la suma de montos pagados por concepto de sueldo, o sueldo base, que es el estipendio obligatorio y
+fijo, en dinero, pagado por períodos iguales, determinados en el contrato, que recibe el trabajador por la
+prestación de sus servicios en una jornada ordinaria de trabajo. Anotar el monto sin puntos y la cifra no puede
+ser superior a 9 dígitos.
+
+MONTO IMPONIBLE
+Nombre de la Columna: MONTO_IMPONIBLE
+Digitar el monto de las contraprestaciones que constituyen remuneración para efectos de conformar la base
+imponible para efectos previsionales. Anotar el monto sin puntos y la cifra no puede ser superior a 9 dígitos.
+
+
+                                                                                                            26
+HABER 1
+Nombre de la Columna: HABER_1
+Ingresar el código correspondiente a un tipo de estipendio pactado en el contrato según el Suplemento del
+Libro de Remuneraciones Electrónico (LRE). Las opciones son:
+
+Tabla 2
+
+ Código                                         Glosa
+   2      Sobresueldo
+   3      Comisiones (mensual)
+   4      Semana corrida mensual (Art. 45)
+   5      Participación (mensual)
+   7      Recargo 30% día domingo (Art. 38)
+   8      Remuneración variable pagada en vacaciones (Art. 71)
+   9      Remuneración variable pagada en clausura (Art. 38 DFL 2)
+   10     Aguinaldo
+   11     Bonos u otras remuneraciones fijas mensuales
+   12     Tratos (mensual)
+   13     Bonos u otras remuneraciones variables mensuales o superiores a un mes
+   14     Ejercicio opción no pactada en contrato (Art. 17 Nº8 LIR)
+   15     Beneficios en especie constitutivos de remuneración
+   16     Remuneraciones bimestrales (devengo en dos meses)
+   17     Remuneraciones trimestrales (devengo en tres meses)
+   18     Remuneraciones cuatrimestrales (devengo en cuatro meses)
+   19     Remuneraciones semestrales (devengo en seis meses)
+   20     Remuneraciones anuales (devengo en doce meses)
+   21     Participación anual (devengo en doce meses)
+   22     Otras remuneraciones superiores a un mes
+   23     Pago por horas de trabajo sindical
+   24     Subsidio por incapacidad laboral por licencia médica - total mensual
+   25     Beca de estudio (Art. 17 Nº18 LIR)
+   26     Gratificaciones de zona (Art. 17 Nº29 LIR)
+   27     Otros ingresos no constitutivos de renta (Art. 17 Nº29 LIR)
+   28     Indemnizaciones voluntarias tributables
+   29     Indemnizaciones contractuales tributables
+   30     Colación total mensual (Art. 41)
+   31     Movilización total mensual (Art. 41)
+   32     Viáticos total mensual (Art. 41)
+   33     Asignación de pérdida de caja total mensual (Art. 41)
+   34     Asignación de desgaste herramienta total mensual (Art. 41)
+   35     Asignación familiar legal total mensual (Art.41)
+   36     Gastos por causa del trabajo (Art. 41)
+   37     Gastos por cambio de residencia (Art. 53)
+   38     Sala cuna (Art. 203)
+   39     Asignación trabajo a distancia o teletrabajo
+   40     Depósito convenido hasta UF 900
+   41     Alojamiento por razones de trabajo (Art. 17 Nº14 LIR)
+   42     Asignación de traslación (Art. 17 Nº14 LIR)
+   43     Indemnización por feriado legal
+   44     Indemnización años de servicio
+   45     Indemnización sustitutiva del aviso previo
+   46     Indemnización fuero maternal (Art. 163 bis)
+   47     Indemnización a todo evento (Art. 164)
+
+
+
+
+                                                                                                      27
+MONTO 1
+Nombre de la Columna: MONTO_1
+Digitar la cantidad en dinero del estipendio pactado. Anotar el monto sin puntos y la cifra no puede ser
+superior a 9 dígitos.
+
+PERIODO DEVENGAMIENTO 1
+Nombre de la Columna: PER_DEVENGAMIENTO_1
+Ingresar el código correspondiente al periodo del devengo del estipendio. Las opciones son:
+
+Tabla 3
+
+ Código                    Glosa
+   1                       Hora
+   2                       Diario
+   3                     Semanal
+   4                    Quincenal
+   5                     Mensual
+   6                     Bimestral
+   7                    Trimestral
+   8                   Cuatrimestral
+   9                    Semestral
+   10                      Anual
+
+HABER 2
+Nombre de la Columna: HABER_2
+Ingresar en caso de corresponder, el segundo código vinculado a un tipo de estipendio pactado en el contrato
+según el Suplemento del Libro de Remuneraciones Electrónico (LRE). Ver Tabla N°2.
+
+MONTO 2
+Nombre de la Columna: MONTO_2
+Digitar la cantidad en dinero del estipendio pactado. Anotar el monto sin puntos y la cifra no puede ser
+superior a 9 dígitos.
+
+PERIODO DEVENGAMIENTO 2
+Nombre de la Columna: PER_DEVENGAMIENTO_2
+Ingresar el código correspondiente al periodo del devengo del estipendio. Ver Tabla N°3.
+
+HABER 3
+Nombre de la Columna: HABER_3
+Ingresar en caso de corresponder, el tercer código vinculado a un tipo de estipendio pactado en el contrato
+según el Suplemento del Libro de Remuneraciones Electrónico (LRE). Ver Tabla N°2.
+
+MONTO 3
+Nombre de la Columna: MONTO_3
+Digitar la cantidad en dinero del estipendio pactado. Anotar el monto sin puntos y la cifra no puede ser
+superior a 9 dígitos.
+
+PERIODO DEVENGAMIENTO 3
+Nombre de la Columna: PER_DEVENGAMIENTO_3
+Ingresar el código correspondiente al periodo del devengo del estipendio. Ver Tabla N°3.
+
+HABER 4
+Nombre de la Columna: HABER_4
+Ingresar en caso de corresponder, el cuarto código vinculado a un tipo de estipendio pactado en el contrato
+según el Suplemento del Libro de Remuneraciones Electrónico (LRE). Ver Tabla N°2.
+
+                                                                                                         28
+MONTO 4
+Nombre de la Columna: MONTO_4
+Digitar la cantidad en dinero del estipendio pactado. Anotar el monto sin puntos y la cifra no puede ser
+superior a 9 dígitos.
+
+PERIODO DEVENGAMIENTO 4
+Nombre de la Columna: PER_DEVENGAMIENTO_4
+Ingresar el código correspondiente al periodo del devengo del estipendio. Ver Tabla N°3.
+
+HABER 5
+Nombre de la Columna: HABER_5
+Ingresar en caso de corresponder, el quinto código vinculado a un tipo de estipendio pactado en el contrato
+según el Suplemento del Libro de Remuneraciones Electrónico (LRE). Ver Tabla N°2.
+
+MONTO 5
+Nombre de la Columna: MONTO_5
+Digitar la cantidad en dinero del estipendio pactado. Anotar el monto sin puntos y la cifra no puede ser
+superior a 9 dígitos.
+
+PERIODO DEVENGAMIENTO 5
+Nombre de la Columna: PER_DEVENGAMIENTO_5
+Ingresar el código correspondiente al periodo del devengo del estipendio. Ver Tabla N°3.
+
+GRATIFICACIÓN FORMA PAGO
+Nombre de la Columna: GRAT_FORMA_PAGO
+Ingresar el código correspondiente al tipo de forma de pago. Las opciones son:
+
+Tabla 4
+
+ Código                        Glosa
+   1      No pactado en contrato de trabajo
+   2      Artículo 47 Código de Trabajo
+          Modalidad convencional superior al mínimo
+    3
+          legal
+    4     Artículo 50 del Código del Trabajo
+    5     Sin obligación legal de pago
+
+GRATIFICACIÓN MODALIDAD
+Nombre de la Columna: GRAT_MODALIDAD
+Digitar la descripción de la modalidad convencional superior al mínimo legal pactada. Esta descripción es
+requerida si GRAT_FORMA_PAGO = 3 (Ver Tabla N°4). Máximo 2.000 caracteres alfanuméricos.
+
+GRATIFICACIÓN PERIODO PAGO
+Nombre de la Columna: GRAT_PERIODO_PAGO
+Ingresar el código correspondiente a la periodicidad de pago pactada. Este código es requerido si la
+GRAT_FORMA_PAGO corresponde al Art. 47, Art. 50 o Convencional Superior (Ver Tabla N°4). Las opciones
+son:
+
+ Código                    Glosa
+   1                     Mensual
+   2                     Bimestral
+   3                    Trimestral
+   4                   Cuatrimestral
+   5                    Semestral
+   6                       Anual
+
+
+                                                                                                        29
+REMUNERACIÓN PERIODO PAGO
+Nombre de la Columna: REM_PERIODO_PAGO
+Ingresar el código correspondiente a la periodicidad de pago pactada. Las opciones son:
+
+ Código                    Glosa
+   1                     Mensual
+   2                     Bimestral
+   3                    Trimestral
+   4                   Cuatrimestral
+   5                    Semestral
+   6                       Anual
+
+REMUNERACIÓN FECHA PAGO
+Nombre de la Columna: REM_FECHA_PAGO
+Ingresar el día correspondiente a la fecha del pago (1 al 30), de la remuneración pactada.
+
+REMUNERACIÓN FORMA PAGO
+Nombre de la Columna: REM_FORMA_PAGO
+Ingresar el código correspondiente a la forma de pago de la remuneración pactada. Las opciones son:
+
+ Código                    Glosa
+    1                Dinero en efectivo
+    2                     Cheque
+    3                    Vale vista
+    4                Depósito bancario
+    5              Transferencia bancaria
+
+REMUNERACIÓN ANTICIPO
+Nombre de la Columna: REM_ANTICIPO
+Ingresar el código correspondiente al pago del anticipo de la remuneración pactada. Las opciones son:
+
+ Código                    Glosa
+   1                    Sin anticipo
+   2                      Por hora
+   3                       Diario
+   4                      Semanal
+   5                     Quincenal
+
+REMUNERACIÓN AFP
+Nombre de la Columna: REM_AFP
+Ingresar el código de régimen previsional del trabajador. Las opciones son:
+
+  Código                   Glosa
+     6                  AFP PROVIDA
+    11                 AFP PLANVITAL
+    13                  AFP CUPRUM
+    14                  AFP HABITAT
+    19                    UNO S.A.
+    27                AFP BANSANDER
+    31                  AFP CAPITAL
+   100                  NO AFILIADO
+   101                       IPS
+   103                  AFP MODELO
+   104         PERSONA EXCEPTUADA DE COTIZAR
+
+
+
+                                                                                                        30
+REMUNERACIÓN SALUD
+Nombre de la Columna: REM_SALUD
+Ingresar el código de sistema de salud del trabajador. Las opciones son:
+
+ Código                      Glosa
+   1                ISAPRE CRUZ BLANCA
+   3                 ISAPRE BANMEDICA
+   4                   ISAPRE COLMENA
+   9                  ISAPRE CONSALUD
+   12                  ISAPRE VIDA TRES
+   37             ISAPRE CHUQUICAMATA
+   38             ISAPRE CRUZ DEL NORTE
+   39                    ISAPRE FUSAT
+   40                ISAPRE FUNDACION
+   41                ISAPRE RIO BLANCO
+   42               ISAPRE SAN LORENZO
+   43             ISAPRE NUEVA MASVIDA
+  102                       FONASA
+
+
+REMUNERACIÓN OTROS PACTOS
+Nombre de la Columna: REM_OTROS_PACTOS
+Digitar el detalle de otros pactos de remuneraciones y beneficios adicionales con el trabajador. Si no los hay,
+debe dejar este campo en blanco. Máximo 2.000 caracteres alfanuméricos.
+
+TIPO JORNADA
+Nombre de la Columna: TIPO_JORNADA
+Ingresar el código correspondiente a la jornada pactada con el trabajador. Las opciones son:
+
+Tabla 5
+
+ Código                    Glosa
+   1      Jornada Semanal Ordinaria
+   2      Jornada Semanal Extendida
+   3      Jornada Bisemanal
+   4      Jornada Mensual
+   5      Jornada Diaria
+   6      Jornada Excepcional
+   7      Jornada Art. 22
+   8      Art. 38 Semanal Ordinaria
+   9      Art. 38 Semanal Extendida
+
+NÚMERO RESOLUCIÓN
+Nombre de la Columna: NRO_RESOLUCION
+Digitar el número de la Resolución que autoriza una jornada excepcional. Se requiere para TIPO_JORNADA =
+6 (Ver Tabla N°5). Máximo 12 caracteres alfanuméricos.
+
+FECHA RESOLUCIÓN
+Nombre de la Columna: FECHA_RESOLUCION
+Digitar la fecha de la Resolución que autoriza una jornada excepcional en formato DD/MM/AAAA (Ejemplo:
+01/01/2022). Se requiere para TIPO_JORNADA = 6 (Ver Tabla N°5).
+
+DURACION JORNADA
+Nombre de la Columna: DURACION_JORNADA
+Digitar la duración de la jornada laboral pactada, expresada en horas en formato numérico de 1 a 180. Esta
+información no se requiere para TIPO_JORNADA = 6 y 7 (Ver Tabla N°5).
+
+                                                                                                            31
+TURNOS
+Nombre de la Columna: TURNOS
+Ingresar el código correspondiente a horarios y turnos pactados. Esta información no se requiere para
+TIPO_JORNADA = 6 y 7 (Ver Tabla N°5). Las opciones son:
+
+ Código                  Glosa
+   1             HORARIO FIJO SIN TURNO
+   2                   MAÑANA
+   3                    TARDE
+   4                    NOCHE
+
+TIEMPO COLACION
+Nombre de la Columna: TIEMPO_COLACION
+Digitar el tiempo de colación pactado expresado en minutos. El rango numérico es de 30 a 240. Debe anotar
+0 (cero) si no se ha pactado colación. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver
+Tabla N°5).
+
+TIEMPO COLACION IMPUTABLE
+Nombre de la Columna: T_COLACION_IMP
+Digitar el tiempo de colación imputable pactado, expresado en minutos. El tiempo de colación imputable
+sumado al no imputable debe ser igual al tiempo de colación (TIEMPO_COLACION).
+
+TIEMPO COLACION NO IMPUTABLE
+Nombre de la Columna: T_COLACION_NO_IMP
+Digitar el tiempo de colación no imputable pactado, expresado en minutos. El tiempo de colación imputable
+sumado al no imputable debe ser igual al tiempo de colación (TIEMPO_COLACION).
+
+ROTACIÓN
+Nombre de la Columna: ROTACION
+Ingresar el código correspondiente al turno rotativo pactado. Esta información es requerida para
+TIPO_JORNADA = 1, 2, 8 y 9. Las opciones son:
+
+ Código                  Glosa
+   1             HORARIO FIJO SIN TURNO
+   2                   MAÑANA
+   3                    TARDE
+   4                    NOCHE
+
+NÚMERO DÍAS DISTRIBUCIÓN JORNADA
+Nombre de la Columna: NRO_DIAS_DIST_JOR
+Digitar el número de días en el cual se encuentra distribuida la jornada. Esta información es requerida para
+TIPO_JORNADA = 3 (Ver Tabla N°5), con rango de 7 a 12 días y para TIPO_JORNADA = 4, con rango de 20 a 26
+días.
+
+LUNES HORA INICIO
+Nombre de la Columna: LUNES_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Lunes, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+LUNES HORA TERMINO
+Nombre de la Columna: LUNES_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Lunes, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+
+
+                                                                                                          32
+MARTES HORA INICIO
+Nombre de la Columna: MARTES_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Martes, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+MARTES HORA TERMINO
+Nombre de la Columna: MARTES_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Martes, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+MIERCOLES HORA INICIO
+Nombre de la Columna: MIERCOLES_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Miércoles, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+MIERCOLES HORA TERMINO
+Nombre de la Columna: MIERCOLES_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Miércoles, expresada en horas y minutos en el
+formato HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+JUEVES HORA INICIO
+Nombre de la Columna: JUEVES_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Jueves, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+JUEVES HORA TERMINO
+Nombre de la Columna: JUEVES_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Jueves, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+VIERNES HORA INICIO
+Nombre de la Columna: VIERNES_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Viernes, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+VIERNES HORA TERMINO
+Nombre de la Columna: VIERNES_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Viernes, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+SABADO HORA INICIO
+Nombre de la Columna: SABADO_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Sábado, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+SABADO HORA TERMINO
+Nombre de la Columna: SABADO_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Sábado, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 1, 2, 5, 8 y 9 (Ver Tabla N°5).
+
+DOMINGO HORA INICIO
+Nombre de la Columna: DOMINGO_HORA_INICIO
+Digitar la hora de inicio de la jornada de trabajo del día Domingo, expresada en horas y minutos en el formato
+HH:MM. Esta información es requerida para TIPO_JORNADA = 8 y 9 (Art. 38).
+
+
+                                                                                                             33
+DOMINGO HORA TERMINO
+Nombre de la Columna: DOMINGO_HORA_TERMINO
+Digitar la hora de término de la jornada de trabajo del día Domingo, expresada en horas y minutos en el
+formato HH:MM. Esta información es requerida para TIPO_JORNADA = 8 y 9 (Art. 38).
+
+TIPO CONTRATO
+Nombre de la Columna: TIPO_CONTRATO
+Ingresar el código correspondiente a la duración del contrato de trabajo. Las opciones son:
+
+ Código                    Glosa
+   1                    Indefinido
+   2                     Plazo fijo
+   3                   Obra o faena
+
+FECHA DE INICIO DE LA RELACIÓN LABORAL
+Nombre de la Columna: FECHA_INI_RELABORAL
+Digitar la fecha de inicio de la relación laboral, expresada en formato DD/MM/AAAA.
+
+FECHA FIN RELABORAL
+Nombre de la Columna: FECHA_FIN_RELABORAL
+Digitar la fecha estimada que se ha pactado para el término del contrato a plazo fijo expresada en formato
+DD/MM/AAAA. Esta información es requerida para TIPO_CONTRATO = 2
+
+OTROS INDEMNIZACIONES
+Nombre de la Columna: OTROS_INDEMNIZACIONES
+Ingresar el código correspondiente si se pactó alguna indemnización contractual. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS FERIADOS
+Nombre de la Columna: OTROS_FERIADOS
+Ingresar el código correspondiente si se pactó algún feriado adicional. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS NEGOCIACIONES
+Nombre de la Columna: OTROS_NEGOCIACIONES
+Ingresar el código correspondiente si se pactaron actividades que el trabajador tiene prohibido realizar
+durante la vigencia del contrato. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+OTROS PROPINTELECTUAL
+Nombre de la Columna: OTROS_PROPINTELECTUAL
+Ingresar el código correspondiente si se pactó la regulación de derechos de autoría. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+
+
+                                                                                                         34
+OTROS LICENCIA MEDICA
+Nombre de la Columna: OTROS_LICMEDICA
+Ingresar el código correspondiente si se pactó otorgamiento de beneficios sobre licencias médicas. Las
+opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS SALACUNA
+Nombre de la Columna: OTROS_SALACUNA
+Ingresar el código correspondiente si se pactaron beneficios adicionales sobre sala cuna y derechos de
+alimentación. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS PERMISOS
+Nombre de la Columna: OTROS_PERMISOS
+Ingresar el código correspondiente si se pactaron otorgamientos de permisos adicionales a los legales. Las
+opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS CONDICIONES ESPECIALES
+Nombre de la Columna: OTROS_CONESPECIALES
+Ingresar el código correspondiente si se pactaron condiciones especiales de trabajo según el título VI del libro
+IV del Código del Trabajo. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS SEGUROS
+Nombre de la Columna: OTROS_SEGUROS
+Ingresar el código correspondiente si se pactaron pólizas de seguro a favor de los trabajadores. Las opciones
+son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+OTROS STOCK
+Nombre de la Columna: OTROS_STOCK
+Ingresar el código correspondiente si se pactaron derechos preferentes de compra de acciones de la sociedad
+empleadora. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+
+
+
+                                                                                                             35
+OTROS INSTRUMENTO COLECTIVO
+Nombre de la Columna: OTROS_INSTCOLECTIVO
+Ingresar el código correspondiente si el trabajador mantiene un instrumento colectivo vigente con su
+empleador. Las opciones son:
+
+ Código                    Glosa
+   0                        No
+   1                         Sí
+
+AFECTO A
+Nombre de la Columna: AFECTO_A
+Ingresar el código correspondiente al tipo de instrumento colectivo al que se encuentra adscrito el trabajador.
+Las opciones son:
+
+ Código                      Glosa
+   1      Afecto a contrato colectivo
+   2      Afecto a convenio colectivo
+   3      Afecto a acuerdo de grupo negociador
+   4      Afecto a fallo arbitral
+   5      Afecto a extensión de beneficio
+
+FECHA INICIO INSTRUMENTO COLECTIVO
+Nombre de la Columna: FECHA_INI_INSTCOLECTIVO
+Digitar la fecha de inicio de vigencia del instrumento colectivo al que se encuentra adscrito el trabajador, en
+el formato DD/MM/AAAA.
+
+FECHA FIN INSTRUMENTO COLECTIVO
+Nombre de la Columna: FECHA_FIN_INSTCOLECTIVO
+Digitar la fecha de fin de vigencia del instrumento colectivo al que se encuentra adscrito el trabajador, en el
+formato DD/MM/AAAA.
+
+
+
+
+                                                                                                            36
+

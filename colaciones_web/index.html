@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#123f2b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="Autoregistro de colaciones Steps" />
+    <title>Colaciones Steps</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.png" />
+    <link rel="apple-touch-icon" href="./icon.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="app" class="app-shell" aria-busy="true">
+      <header class="topbar">
+        <div class="brand">
+          <img src="./icon.png" alt="" />
+          <div>
+            <span>STEPS · COLACIONES</span>
+            <strong id="totem-name">Cargando tótem…</strong>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="install-button" class="ghost-button" type="button" hidden>Instalar App</button>
+          <button id="diagnostics-button" class="ghost-button" type="button"
+                  aria-haspopup="dialog">Diagnóstico</button>
+          <div id="network-status" class="network-status offline" role="status" aria-live="polite">
+            <span aria-hidden="true"></span><b>Comprobando</b>
+          </div>
+        </div>
+      </header>
+
+      <div id="banner" class="banner" role="status" aria-live="polite" hidden>
+        <span id="banner-text"></span>
+        <button id="banner-action" class="banner-action" type="button" hidden></button>
+      </div>
+
+      <section class="content" id="content">
+        <article class="meal-summary">
+          <span class="eyebrow">COLACIÓN DISPONIBLE</span>
+          <h1 id="product-name">—</h1>
+          <p><span id="supplier-name">—</span><span class="separator">•</span>Cantidad 1</p>
+        </article>
+
+        <section class="registration-card" aria-labelledby="method-title">
+          <div id="method-icon" class="method-icon" aria-hidden="true">●</div>
+          <span class="eyebrow">AUTORREGISTRO</span>
+          <h2 id="method-title">Preparando el lector</h2>
+          <p id="method-help">Espere mientras recuperamos la configuración del tótem.</p>
+
+          <form id="registration-form" autocomplete="off">
+            <label id="identifier-label" for="identifier">Identificación</label>
+            <div class="input-row">
+              <input id="identifier" name="identifier" type="text" autocomplete="off"
+                     autocapitalize="off" spellcheck="false" enterkeyhint="done"
+                     aria-describedby="method-help" disabled required />
+              <button id="register-button" type="submit" disabled>Registrar</button>
+            </div>
+            <button id="nfc-button" class="secondary-button" type="button" hidden>Leer pulsera NFC</button>
+          </form>
+        </section>
+
+        <section id="message" class="message" role="status" aria-live="assertive" hidden>
+          <div id="message-symbol" aria-hidden="true">✓</div>
+          <div><strong id="message-title"></strong><span id="message-body"></span></div>
+        </section>
+      </section>
+
+      <section id="blocker" class="blocker" hidden>
+        <div class="blocker-card" role="alertdialog" aria-labelledby="blocker-title" aria-describedby="blocker-body">
+          <div id="blocker-symbol" class="blocker-symbol" aria-hidden="true">🔒</div>
+          <h2 id="blocker-title">Equipo no asociado</h2>
+          <p id="blocker-body"></p>
+          <ol id="blocker-steps" class="blocker-steps"></ol>
+          <button id="blocker-action" class="secondary-button" type="button" hidden></button>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <span>Tótem <b id="totem-code">—</b></span>
+        <span id="queue-status">Sin registros pendientes</span>
+        <span id="sync-status">Sin sincronizar aún</span>
+        <span id="clock"></span>
+      </footer>
+    </main>
+
+    <dialog id="diagnostics-dialog" class="diagnostics">
+      <form method="dialog">
+        <h2>Diagnóstico del equipo</h2>
+        <p class="text-muted">
+          No incluye el token completo, ni nombres ni identificadores de trabajadores.
+        </p>
+        <pre id="diagnostics-content" tabindex="0"></pre>
+        <div class="dialog-actions">
+          <button id="diagnostics-retry" type="button" class="secondary-button">Reintentar sincronización</button>
+          <button id="diagnostics-copy" type="button" class="secondary-button">Copiar</button>
+          <button value="close" class="ghost-button">Cerrar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="./src/ui/main.js"></script>
+  </body>
+</html>

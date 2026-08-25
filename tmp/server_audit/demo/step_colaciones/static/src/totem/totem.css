@@ -1,0 +1,54 @@
+:root {
+    --green: #123f2b;
+    --green-soft: #1e6847;
+    --cream: #f7f3e7;
+    --ink: #173127;
+    --amber: #efa92d;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; font-family: Inter, "Segoe UI", system-ui, sans-serif; background: #eef3ed; color: var(--ink); }
+body { min-height: 100vh; }
+#meal-totem { min-height: 100vh; display: flex; flex-direction: column; background: radial-gradient(circle at 90% 10%, #dbe8d7, transparent 30%), #eef3ed; }
+.meal-header, .meal-footer { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 18px 28px; }
+.meal-header { background: var(--green); color: white; box-shadow: 0 8px 24px rgba(17, 61, 42, .2); }
+.meal-brand { display: flex; gap: 14px; align-items: center; }
+.meal-brand img { width: 58px; height: 58px; border-radius: 16px; box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+.meal-brand small { color: #f5c460; font-size: 11px; font-weight: 800; letter-spacing: .14em; }
+.meal-brand h1 { margin: 2px 0 0; font-size: clamp(20px, 3vw, 30px); }
+.meal-network { border-radius: 999px; padding: 9px 14px; background: rgba(255,255,255,.12); display: flex; align-items: center; gap: 8px; }
+.meal-network span { width: 9px; height: 9px; border-radius: 50%; background: #f4bf50; }
+.meal-network.online span { background: #63d390; box-shadow: 0 0 0 4px rgba(99,211,144,.15); }
+.meal-network.offline span { background: #ef7b6c; }
+.meal-content { flex: 1; width: min(760px, calc(100% - 32px)); margin: 0 auto; display: grid; align-content: center; gap: 22px; padding: 34px 0; }
+.meal-product { text-align: center; }
+.meal-kicker { color: var(--green-soft); font-weight: 900; letter-spacing: .15em; font-size: 11px; }
+.meal-product h2 { margin: 5px 0; font-size: clamp(30px, 6vw, 48px); }
+.meal-product p { margin: 0; color: #708078; font-size: 17px; }
+.meal-card { background: white; border-radius: 28px; padding: clamp(26px, 5vw, 48px); text-align: center; box-shadow: 0 20px 55px rgba(27, 68, 49, .12); }
+.meal-method-icon { margin: auto; width: 64px; height: 64px; border-radius: 20px; background: #e3f0e7; color: var(--green-soft); display: grid; place-items: center; font-size: 24px; }
+.meal-card h3 { font-size: clamp(24px, 4vw, 34px); margin: 18px 0 6px; }
+.meal-card > p { color: #75857d; margin: 0 0 24px; }
+#registration-form { display: grid; gap: 12px; max-width: 520px; margin: auto; }
+#registration-form label { text-align: left; font-weight: 750; }
+#identifier { width: 100%; border: 2px solid #cbd9d0; border-radius: 16px; padding: 18px; font-size: 26px; text-align: center; letter-spacing: .08em; outline: 0; }
+#identifier:focus { border-color: var(--green-soft); box-shadow: 0 0 0 5px rgba(30,104,71,.12); }
+#registration-form button { border: 0; border-radius: 16px; padding: 18px; font-size: 19px; font-weight: 800; color: white; background: linear-gradient(135deg, var(--green), var(--green-soft)); cursor: pointer; }
+#registration-form button:disabled { opacity: .55; }
+#registration-form .meal-secondary { color: var(--green); background: #e6f0e9; }
+.meal-message { border-radius: 20px; padding: 18px 22px; display: flex; flex-direction: column; text-align: center; box-shadow: 0 8px 22px rgba(0,0,0,.06); }
+.meal-message strong { font-size: 20px; }
+.meal-message.success { background: #dff4e7; color: #16643e; }
+.meal-message.warning { background: #fff0c9; color: #805600; }
+.meal-message.error { background: #f8dfdc; color: #8e3028; }
+.meal-message.offline { background: #e1edf8; color: #285e8b; }
+.meal-footer { color: #66766e; font-size: 13px; border-top: 1px solid #dce5df; }
+.meal-footer .pending { color: #a66b00; font-weight: 800; }
+
+@media (max-width: 620px) {
+    .meal-header { padding: 14px 16px; }
+    .meal-brand img { width: 48px; height: 48px; }
+    .meal-network b { display: none; }
+    .meal-card { border-radius: 22px; }
+    .meal-footer { flex-wrap: wrap; justify-content: center; padding: 12px; }
+}

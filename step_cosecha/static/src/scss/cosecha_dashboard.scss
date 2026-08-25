@@ -526,3 +526,18 @@ body:has(.o_menu_brand[data-menu-xmlid="step_cosecha.menu_step_cosecha_root"]) {
 @media(max-width:900px){.o_cosecha_hero{align-items:flex-start;flex-direction:column}.o_cosecha_grid{grid-template-columns:1fr}.o_cosecha_flow{grid-template-columns:repeat(4,1fr)}.o_cosecha_flow em{display:none}.o_cosecha_flow>div{flex-direction:column;text-align:center}.o_cosecha_recent>button{grid-template-columns:7px 1fr auto}.o_cosecha_recent>button>strong,.o_cosecha_recent>button>time{display:none}}
 @media(max-width:760px){.o_cosecha_registry_form .o_form_sheet{padding:14px;border-radius:0}.o_cosecha_form_title{grid-template-columns:1fr}.o_cosecha_form_title__meta{justify-content:flex-start}.o_cosecha_form_sections{padding:10px}.o_cosecha_studio_form .o_form_sheet_bg,.o_cosecha_master_form .o_form_sheet_bg,.o_cosecha_process_form .o_form_sheet_bg,.o_cosecha_reception_form .o_form_sheet_bg,.o_cosecha_history_form .o_form_sheet_bg{padding:0}.o_cosecha_studio_form .o_form_sheet,.o_cosecha_master_form .o_form_sheet,.o_cosecha_process_form .o_form_sheet,.o_cosecha_reception_form .o_form_sheet,.o_cosecha_history_form .o_form_sheet{padding:14px;border-radius:0}.o_cosecha_studio_form .o_cosecha_record_intro,.o_cosecha_master_form .o_cosecha_record_intro,.o_cosecha_process_form .o_cosecha_record_intro,.o_cosecha_reception_form .o_cosecha_record_intro,.o_cosecha_history_form .o_cosecha_record_intro{align-items:flex-start;margin-bottom:12px;padding:11px}.o_cosecha_studio_form .o_cosecha_record_intro>i{width:36px;height:36px;flex-basis:36px}.o_cosecha_master_form .o_cosecha_record_icon,.o_cosecha_process_form .o_cosecha_record_icon,.o_cosecha_reception_form .o_cosecha_record_icon,.o_cosecha_history_form .o_cosecha_record_icon{width:36px;height:36px;flex-basis:36px}.o_cosecha_studio_form .o_cosecha_record_intro small,.o_cosecha_master_form .o_cosecha_record_intro small,.o_cosecha_process_form .o_cosecha_record_intro small,.o_cosecha_reception_form .o_cosecha_record_intro small,.o_cosecha_history_form .o_cosecha_record_intro small{display:none}.o_cosecha_process_form .o_cosecha_record_summary,.o_cosecha_reception_form .o_cosecha_record_summary{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.o_cosecha_dashboard{padding:11px}.o_cosecha_hero{padding:21px}.o_cosecha_kpis{grid-template-columns:1fr 1fr}.o_cosecha_shortcuts{grid-template-columns:1fr 1fr}.o_cosecha_hero_actions{justify-content:flex-start}.o_cosecha_hero_actions>.btn{width:100%}}
+
+// Client actions are mounted directly below `.o_action_manager` in Odoo 18.
+// That parent keeps `overflow: hidden` on mobile, so the dashboard must own
+// the vertical scroll instead of overflowing into its parent.
+@media (max-width: 767.98px) {
+    .o_cosecha_dashboard {
+        height: 100%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: auto;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+}

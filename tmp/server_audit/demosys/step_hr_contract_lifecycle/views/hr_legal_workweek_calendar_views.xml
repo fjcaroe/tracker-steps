@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_legal_workweek_calendar_list" model="ir.ui.view">
+        <field name="name">hr.legal.workweek.calendar.list</field>
+        <field name="model">hr.legal.workweek.calendar</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date_from"/>
+                <field name="max_weekly_hours"/>
+                <field name="company_id"/>
+                <field name="legal_reference"/>
+                <field name="is_official"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_legal_workweek_calendar_form" model="ir.ui.view">
+        <field name="name">hr.legal.workweek.calendar.form</field>
+        <field name="model">hr.legal.workweek.calendar</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_simulate" type="object" string="Simular adecuación" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-info" role="alert" invisible="not is_official">
+                        Transición legal oficial: editarla requiere el permiso
+                        técnico y un motivo justificado.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="max_weekly_hours"/>
+                            <field name="company_id"/>
+                        </group>
+                        <group>
+                            <field name="is_official"/>
+                            <field name="legal_reference"/>
+                        </group>
+                    </group>
+                    <group string="Modificación excepcional" invisible="not is_official">
+                        <field name="exception_reason"/>
+                    </group>
+                    <field name="notes" placeholder="Notas..."/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_legal_workweek_calendar" model="ir.actions.act_window">
+        <field name="name">Calendario legal laboral</field>
+        <field name="res_model">hr.legal.workweek.calendar</field>
+        <field name="view_mode">list,form</field>
+        <field name="help">
+            Transiciones legales de la jornada ordinaria máxima semanal.
+            Las filas oficiales (44h desde 2024-04-26, 42h desde
+            2026-04-26, 40h desde 2028-04-26) no pueden editarse sin el
+            permiso técnico correspondiente.
+        </field>
+    </record>
+</odoo>

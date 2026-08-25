@@ -11,7 +11,7 @@
     'author': "jamie.escalante7@gmail.com",
     'website': "",
     'category': 'Operations/Agriculture',
-    'version': '18.0.1.5.2',
+    'version': '18.0.1.5.3',
     'license': 'LGPL-3',
 
     'depends': ['base',
@@ -40,7 +40,6 @@
         'views/step_cosecha_recepcion_views.xml',
         'views/step_cosecha_proceso_views.xml',
         'views/step_history_cosecha_views.xml',
-        'views/step_cosecha_studio_layout_views.xml',
         'views/menu_views.xml',
     ],
     'demo': [],

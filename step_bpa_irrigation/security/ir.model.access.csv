@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_bpa_irrigation_user,Riego y fertilización,model_x_riego_y_fertilizacio,base.group_user,1,1,1,1
+access_bpa_application_user,Aplicaciones foliares,model_x_aplicacion_foliar,base.group_user,1,1,1,1
+access_bpa_monitoring_user,Monitoreos agrícolas,model_x_monitoreo_agricola,base.group_user,1,1,1,1
+access_bpa_sector_user,Sectores de riego,model_x_sector_de_riego,base.group_user,1,1,1,1
+access_bpa_application_type_user,Tipos de aplicación,model_x_tipo_de_aplicaciones,base.group_user,1,1,1,1
+access_bpa_objective_user,Objetivos o plagas,model_x_objetivo_o_plaga,base.group_user,1,1,1,1
+access_bpa_phenological_state_user,Estados fenológicos,model_x_estado_fenologico,base.group_user,1,1,1,1

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_hr_labor_document" model="ir.actions.report">
+        <field name="name">Documento laboral</field>
+        <field name="model">hr.labor.document</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_hr_contract_lifecycle.report_hr_labor_document</field>
+        <field name="report_file">step_hr_contract_lifecycle.report_hr_labor_document</field>
+        <field name="print_report_name">object.name</field>
+        <field name="binding_model_id" ref="model_hr_labor_document"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>

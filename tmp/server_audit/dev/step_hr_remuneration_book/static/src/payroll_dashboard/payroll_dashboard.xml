@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_hr_remuneration_book.PayrollDashboard">
+        <div class="o_steps_payroll_dashboard">
+            <div class="o_steps_payroll_shell">
+                <div t-if="state.loading" class="o_steps_payroll_loading">
+                    <i class="fa fa-spinner fa-spin"/> Cargando Nómina…
+                </div>
+                <div t-elif="state.error" class="alert alert-danger" t-esc="state.error"/>
+                <t t-elif="state.data">
+                    <header class="o_steps_payroll_hero">
+                        <div>
+                            <img class="o_steps_payroll_partner_logo"
+                                 src="/step_hr_remuneration_book/static/description/simpledigital_logo.png"
+                                 alt="SimpleDigital"/>
+                            <span class="o_steps_payroll_eyebrow">GESTIÓN DE PERSONAS</span>
+                            <h1>Nómina</h1>
+                            <p><t t-esc="state.data.company"/> · <t t-esc="state.data.period"/></p>
+                            <div class="o_steps_payroll_pills">
+                                <span><i class="fa fa-cogs"/> <t t-esc="state.data.engine"/></span>
+                                <span t-att-class="'is-' + state.data.profile_state">
+                                    <i class="fa fa-check-circle"/> <t t-esc="state.data.profile"/>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="o_steps_payroll_hero_actions">
+                            <button class="btn btn-light" t-on-click="() => this.openAction('hr_payroll.action_hr_payslip_new')">
+                                <i class="fa fa-plus me-2"/>Nueva liquidación
+                            </button>
+                            <button t-if="state.data.can_full_book" class="btn btn-outline-light"
+                                    t-on-click="() => this.openAction('step_hr_remuneration_book.action_hr_libro_remuneraciones_wizard_steps')">
+                                <i class="fa fa-book me-2"/>Libro de remuneraciones
+                            </button>
+                            <button t-else="" class="btn btn-outline-light"
+                                    t-on-click="() => this.openAction('step_hr_remuneration_book.action_hr_remuneration_partial_report_steps')">
+                                <i class="fa fa-file-text-o me-2"/>Reporte parcial
+                            </button>
+                        </div>
+                    </header>
+
+                    <section class="o_steps_payroll_kpis">
+                        <button class="o_steps_payroll_kpi" t-on-click="() => this.openPayslips()">
+                            <span class="icon green"><i class="fa fa-files-o"/></span>
+                            <span><small>LIQUIDACIONES DEL MES</small><strong t-esc="state.data.total"/></span>
+                        </button>
+                        <button class="o_steps_payroll_kpi" t-on-click="() => this.openPayslips('verify')">
+                            <span class="icon amber"><i class="fa fa-clock-o"/></span>
+                            <span><small>POR REVISAR</small><strong t-esc="state.data.states.verify"/></span>
+                        </button>
+                        <button class="o_steps_payroll_kpi" t-on-click="() => this.openPayslips('done')">
+                            <span class="icon blue"><i class="fa fa-check"/></span>
+                            <span><small>PROCESADAS</small><strong t-esc="state.data.completed"/></span>
+                        </button>
+                        <div class="o_steps_payroll_kpi">
+                            <span class="icon violet"><i class="fa fa-users"/></span>
+                            <span><small>PERSONAS LIQUIDADAS</small><strong t-esc="state.data.employees"/></span>
+                        </div>
+                    </section>
+
+                    <section class="o_steps_payroll_grid">
+                        <article class="o_steps_payroll_panel o_steps_payroll_amounts">
+                            <div class="panel_head">
+                                <div><span class="o_steps_payroll_eyebrow dark">RESUMEN DEL MES</span><h2>Resultado de nómina</h2></div>
+                                <span class="currency" t-esc="state.data.currency"/>
+                            </div>
+                            <div class="amount_row"><span>Total haberes</span><strong><t t-esc="state.data.currency"/> <t t-esc="this.formatAmount(state.data.gross)"/></strong></div>
+                            <div class="amount_row net"><span>Líquido calculado</span><strong><t t-esc="state.data.currency"/> <t t-esc="this.formatAmount(state.data.net)"/></strong></div>
+                            <div t-if="state.data.missing_identification" class="o_steps_payroll_warning">
+                                <i class="fa fa-exclamation-triangle"/>
+                                <span><strong t-esc="state.data.missing_identification"/> persona(s) sin identificación; revise antes del Libro.</span>
+                            </div>
+                            <div t-else="" class="o_steps_payroll_ok"><i class="fa fa-check-circle"/> Identificaciones completas para el período.</div>
+                        </article>
+
+                        <article class="o_steps_payroll_panel">
+                            <div class="panel_head">
+                                <div><span class="o_steps_payroll_eyebrow dark">TRAZABILIDAD</span><h2>Últimos lotes</h2></div>
+                                <button class="btn btn-sm btn-link" t-on-click="() => this.openAction('hr_payroll.action_hr_payslip_run_tree')">Ver todos</button>
+                            </div>
+                            <button t-foreach="state.data.recent_batches" t-as="batch" t-key="batch.id"
+                                    class="batch_row" t-on-click="() => this.openBatch(batch.id)">
+                                <span class="batch_icon"><i class="fa fa-calendar"/></span>
+                                <span class="batch_text"><strong t-esc="batch.name"/><small><t t-esc="batch.date_start"/> — <t t-esc="batch.date_end"/></small></span>
+                                <span class="batch_count"><strong t-esc="batch.done"/>/<t t-esc="batch.count"/><small>procesadas</small></span>
+                            </button>
+                            <div t-if="!state.data.recent_batches.length" class="o_steps_payroll_empty">Los lotes aparecerán aquí.</div>
+                        </article>
+                    </section>
+
+                    <section class="o_steps_payroll_panel o_steps_payroll_trend">
+                        <div class="panel_head"><div><span class="o_steps_payroll_eyebrow dark">6 MESES</span><h2>Volumen procesado</h2></div></div>
+                        <div class="trend_bars">
+                            <div t-foreach="state.data.trend" t-as="item" t-key="item.label" class="trend_item">
+                                <div class="trend_track"><span t-att-style="'height:' + Math.max(item.percent, 3) + '%'"/></div>
+                                <strong t-esc="item.count"/><small t-esc="item.label"/>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="o_steps_payroll_shortcuts">
+                        <button t-on-click="() => this.openAction('hr_payroll.action_hr_payslip_run_tree')"><i class="fa fa-calendar-check-o"/><span>Lotes de nómina</span></button>
+                        <button t-on-click="() => this.openAction('hr_payroll.hr_payroll_dashboard_open')"><i class="fa fa-exclamation-circle"/><span>Controles estándar</span></button>
+                        <button t-if="state.data.can_full_book" t-on-click="() => this.openAction('step_hr_remuneration_book.action_hr_libro_remuneraciones_wizard_steps')"><i class="fa fa-book"/><span>Libro consolidado</span></button>
+                        <button t-on-click="() => this.openAction('step_hr_remuneration_book.action_hr_remuneration_partial_report_steps')"><i class="fa fa-pie-chart"/><span>Reporte parcial</span></button>
+                    </section>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

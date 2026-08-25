@@ -1,0 +1,752 @@
+                                               Instructivo
+
+
+
+
+INSTRUCTIVO DE REGISTRO MASIVO
+Finiquito Laboral Electrónico
+
+
+
+
+    DEPARTAMENTO DE TECNOLOGÍAS DE LA INFORMACIÓN
+        DEPARTAMENTO DE RELACIONES LABORALES
+
+                                                             1
+Control de Versiones
+
+
+
+   VERSIÓN              FECHA                                   CAMBIO
+
+       1.0             Junio/2021   Creación de documento.
+
+       2.0             junio/2023   Actualización.
+
+       3.0             Julio/2024   Actualización domicilio laboral.
+
+       4.0             Abril/2026   Actualización comuna y AFC.
+
+
+
+
+                                                                         2
+Contenido
+1   Introducción ............................................................................................................................................... 4
+2   Instrucciones para llenar el archivo ............................................................................................................ 5
+3   Detalle columnas del archivo ...................................................................................................................... 6
+4   Tablas de Código ...................................................................................................................................... 14
+5   Formato del archivo ................................................................................................................................. 20
+6   Historial de cargas masivas ....................................................................................................................... 20
+
+
+
+
+                                                                                                                                                              3
+1 Introducción
+El presente documento contiene una descripción del formato del archivo CSV requerido para el ingreso de
+Finiquitos Laborales electrónicos masivos.
+
+Como primer paso, debe asegurarse de descargar la plantilla en la página de carga masiva seleccionando el
+
+botón                                             , para realizar el ingreso de sus ext r a b a j a d o r e s /as
+tal como se muestra en la siguiente imagen:
+
+
+
+
+                                                     Ilustración 1
+
+
+
+ Importante: cargue un máximo de 100 extrabajadores/as por archivo.
+
+
+
+
+                                                     Ilustración 2
+
+
+
+
+                                                                                                             4
+2 Instrucciones para llenar el archivo CSV “plantilla de finiquito
+  masivo”.
+
+Debe tener presente las siguientes consideraciones:
+
+•     Cada campo está ubicado en una posición específica dentro del archivo, por lo que no se pueden mover
+      o cambiar de nombre.
+•     Cada registro o fila de este archivo representa los datos de un extrabajador/a de su empresa.
+•     La cantidad máxima de registros en su archivo no debe superar los 100 extrabajadores/as.
+•     No debe modificar la estructura del archivo (eliminar o agregar columnas). En caso de realizar alguna
+      modificación, la plataforma no permitirá continuar con el proceso.
+•     La extensión del archivo debe ser CSV, con la opción delimitada por comas.
+
+
+Dentro del archivo existen campos Obligatorios, Opcionales y Condicionales:
+
+•     Campos Obligatorios: Son datos que deben registrarse siempre y sin ninguna condición.
+•     Campos Opcionales: Son datos que no son obligatorios de completar.
+•     Campos Condicionales: Son datos que dependen de algún otro campo u observación para ser
+      completados.
+
+
+Importante: La información proporcionada en el archivo se asociará al ex empleador/a.
+
+
+
+
+                                                                                                          5
+3 Detalle columnas del archivo CSV “plantilla de finiquito masivo”.
+3.1      Datos del extrabajador/a.
+N°            CAMPO                  TIPO              INSTRUCCIÓN            CONDICIÓN        OBSERVACIÓN
+                                                Debe ingresar RUT de la
+1     RutEmpresa                     Texto                                    Obligatorio Sin puntos y con guion.
+                                                Empresa.
+                                     Texto      Debe ingresar RUT del
+                                                extrabajador en el caso que
+                                                haya      ingresado   "Cédula
+2     RutTrabajador                                                           Obligatorio Sin puntos y con guion.
+                                                Identidad" en la columna
+                                                "Tipo de Documento de
+                                                Identificación".
+
+                                   Tipo Fecha
+                                                Debe ingresar la fecha de
+3     FechaInicioContrato           (dd-mm-                                       Obligatorio
+                                                inicio del Contrato de trabajo.
+                                      aaaa)
+
+                                   Tipo Fecha   Debe ingresar la fecha de
+                                    (dd-mm-     término del contrato, la fecha
+                                      aaaa)     no puede ser menor a la fecha Obligatorio
+4     FechaTerminoContrato
+                                                de inicio del Contrato de
+                                                trabajo.
+
+                                     Texto      Debe indicar si ha sido                         Si o No
+      DeclaraNotificacionRetenci                                                  Obligatorio
+5                                               notificado o no por Ley
+      o nAlimento
+                                                21.389
+                                   Numérico     Debe ingresar el código de                    Ver tabla de códigos:
+6     CausalFiniquitoId                                                           Obligatorio
+                                                la causal de término.                         1.Causal de Término.
+7     Funciones                      Texto                                        Obligatorio Máximo 100
+                                                                                              Caracteres.
+                                   Numérico      Debe ingresar la región
+                                                                                                Ver tabla de códigos:
+8     RegionTrabajoId                            del lugar de trabajo del      Obligatorio
+                                                 extrabajador.                                  2. REGION.
+                                   Numérico      Debe ingresar la comuna del Obligatorio
+                                                                                                Ver tabla de códigos:
+9     ComunaId                                   lugar     de     trabajo  del
+                                                                                                3. COMUNA.
+                                                 extrabajador.
+                                     Texto      Debe ingresar la dirección      Opcional        Máximo 100
+10    LugarPresentacionTrabajo                  que el extrabajador prestó                      Caracteres.
+                                                servicios.
+                                                      Tabla 1
+
+
+
+
+                                                                                                              6
+Ejemplo de Datos del extrabajador/a
+
+
+
+
+                                      Ejemplo 1
+
+
+
+
+                                                  7
+     3.2   Montos indemnizaciones y Remuneraciones.
+     Ingrese, en los campos respectivos, los montos brutos correspondientes a las indemnizaciones y
+     remuneraciones adeudadas al extrabajador/a en la propuesta de finiquito. Dichos montos deben ser ingresados
+     sin puntos ni comas y en pesos chilenos. La suma total de indemnizaciones se determinará automáticamente.
+
+
+N°           CAMPO                  TIPO              INSTRUCCIÓN            CONDICIÓ                OBSERVACIÓN
+                                                                                 N
+                                Numérico       Se debe ingresar el          Obligatorio   Si no cuenta con días de
+                                               número de días de                          vacaciones el valor debe ser
+     CantidadDiasVacaciones                    vacaciones a pagar                         cero. Este campo corresponde a
+11                                                                                        los días de feriado legal y/o
+                                                                                          proporcional que se le adeuda
+                                                                                          al
+                                                                                          extrabajador/a.
+                                               Se debe ingresar el
+                                Numérico       monto por concepto de        Opcional      Extensión máxima de 14 dígitos
+12   IndemnizacionFeriado
+                                               feriado      anual  y
+                                               proporcional.
+                                               Se debe ingresar    el
+                                               monto por concepto de
+                                Numérico                                    Condición     Extensión máxima de 14 dígitos.
+13   IndemnizacionAvisoPrevio                  indemnización
+                                                                               al
+                                               sustitutiva
+                                               del aviso precio.
+                                                                                          Campo obligatorio si la relación
+                                                                                          laboral (fecha de inicio y fecha
+                                               Se debe ingresar el
+                                                                                          término del contrato) es igual o
+                                               monto por concepto de                      superior a 12 meses y la causal
+14    IndemnizacionServicio     Numérico                                    Opcional/
+                                               indemnización de años                      de término es del artículo 161.
+                                                                            Obligatorio
+                                               deservicio.                                En caso contrario es
+                                                                                          opcional. Largo máximo de
+                                                                                          14 dígitos.
+                                               Se debe ingresar el
+                                               monto       por      otros
+                                Numérico                                    Opcional      Extensión máxima de 14 dígitos.
+      IndemnizacionOtras                       conceptos            como
+15                                             pactada
+                                               contractualmente o de
+                                               forma voluntaria.
+                                Numérico       Se debe ingresar el           Opcional     Extensión máxima de 14 dígitos.
+      IndemnizacionArticulo1                   monto por concepto de
+16    63                                       indemnización por obra
+                                               o faena
+                                               Se debe ingresar el
+                                               monto por concepto
+      remuneracionPendien       Numérico                                    Opcional      Extensión máxima de 14 dígitos.
+17                                             remuneraciones
+      te
+                                               pendientes del último
+                                               mes trabajado.
+                                               Se debe ingresar        el
+18    Gratificaciones           Numérico       monto por concepto de        Opcional      Extensión máxima de 14 dígitos.
+                                               Gratificación Legal.
+
+
+                                                                                                              8
+                                         Se debe ingresar el monto
+19   Bonos                    Numérico                                Opcional   Extensión máxima de 14 dígitos.
+                                         por concepto de Bonos.
+                                         Se debe ingresar       el
+20   HorasExtraordinarias     Numérico   monto por concepto de        Opcional   Extensión máxima de 14 dígitos.
+                                         Horas Extras.
+                                         Se debe ingresar el monto
+                              Numérico                                Opcional   Extensión máxima de 14 dígitos.
+21   Aguinaldo                           por concepto              de
+                                         Aguinaldo.
+                                         Se debe ingresar el
+22   SemanaCorrida            Numérico   monto por concepto de        Opcional   Extensión máxima de 14 dígitos.
+                                         Semana Corrida.
+                                         Se debe ingresar el
+                              Numérico   monto por concepto de        Opcional   Extensión máxima de 14 dígitos.
+23   ComisionOParticipacion
+                                         comisiones               o
+                                         participación.
+                                         Se debe ingresar       el
+24   Movilizacion             Numérico   monto por concepto de        Opcional   Extensión máxima de 14 dígitos.
+                                         movilización.
+                                         Se debe ingresar el monto
+25   Colacion                 Numérico                                Opcional   Extensión máxima de 14 dígitos.
+                                         por concepto de colación.
+                                         Se debe ingresar el monto
+26   PerdidaCaja              Numérico   por concepto de pérdida Opcional        Extensión máxima de 14 dígitos.
+                                         de caja.
+                                         Se debe ingresar el monto
+27   DesgasteHerramientas     Numérico   por concepto de desgaste Opcional       Extensión máxima de 14 dígitos.
+                                         de herramientas.
+                                         Se debe ingresar       el
+                              Numérico                                Opcional   Extensión máxima de 14 dígitos.
+28   Viaticos                            monto por concepto de
+                                         viáticos.
+                                         Se debe ingresar el
+29   AsignacionesFamiliares   Numérico   monto por concepto de        Opcional   Extensión máxima de 14 dígitos.
+                                         asignaciones familiares.
+                                         Tabla 2
+
+Ejemplo de montos, indemnizaciones y remuneraciones:
+
+
+
+
+                                                  Ejemplo 2
+
+
+
+
+                                                                                                     9
+     3.3    Montos por descuentos.
+     Ingrese en los campos respectivos los montos de los descuentos que se aplicarán a su extrabajador
+     /a. Dichos montos deben ser ingresados sin puntos ni comas y en pesos chilenos. La suma total de los
+     descuentos se determinará automáticamente.
+
+N° CAMPO                            TIPO          INSTRUCCIÓN                       CONDICIÓN         OBSERVACIÓN
+                                                  Se debe ingresar el monto por
+30 DescuentoSeguridadSocial                       concepto de descuentos por
+                                    Numérico                                         Opcional         Extensión máxima de
+                                                  cotizaciones de seguridad social.                   14 dígitos.
+                                                  Se debe ingresar el monto por
+     DescuentoImpuestos             Numérico                                             Opcional     Extensión máxima de
+31                                                concepto de descuentos por
+                                                                                                      14 dígitos.
+                                                  impuestos.
+                                                  Se debe ingresar el monto 0 en el
+     DescuentoAfc                   Numérico      concepto de descuentos por             Opcional     Digitar 0.
+32                                                aporte del ex empleador al Fondo
+                                                  de Cesantía (AFC), ya que este
+                                                  valor         es        calculado
+                                                  automáticamente por el sistema,
+                                                  según su base datos.
+                                                  Se debe ingresar el monto por
+     DescuentoAnticipado            Numérico      concepto de descuentos por             Opcional     Extensión máxima de
+33
+                                                  remuneraciones anticipadas.                         14 dígitos.
+
+                                                  Se debe ingresar el monto por
+34 DescuentoIndemnizacion           Numérico      concepto de descuentos por             Opcional     Extensión máxima de
+                                                  indemnización anticipada.                           14 dígitos.
+                                                  Se debe ingresar el monto por
+     DescuentoPension               Numérico                                             Opcional     Extensión máxima de
+                                                  concepto de descuentos por
+35                                                                                                    14 dígitos.
+                                                  pensiones alimenticias.
+
+                                                                                                      Como máximo
+                                                  Se debe ingresar el monto por
+     DescuentoCajaCompensacion Numérico                                                  Opcional     se       puede
+                                                  concepto de descuentos por caja
+                                                                                                      descontar solo
+36                                                de compensación.
+                                                                                                      una cuota.
+                                                                                                      Extensión máxima de
+                                                                                                      14 dígitos.
+                                                  Se debe ingresar el monto por
+     PrestamoAdeudado               Numérico      concepto de descuentos por             Opcional     Extensión máxima de
+37
+                                                  préstamos adeudados al ex                           14 dígitos.
+                                                  empleador.
+                                                  Se debe ingresar el monto por
+     AnticipoSueldo                 Numérico                                             Opcional     Extensión máxima de
+38                                                concepto de descuentos por
+                                                                                                      14 dígitos.
+                                                  anticipo de sueldo.
+
+                                                  Se debe ingresar el monto por
+39 VacacionesAnticipadas            Numérico      concepto de descuentos          por    Opcional     Extensión máxima de
+                                                  vacaciones anticipadas.                             14 dígitos.
+                                                        Tabla 3
+
+
+                                                                                                               10
+Ejemplo de montos por descuentos:
+
+
+
+
+                                    Ejemplo 3
+
+
+
+
+                                                11
+       3.4     Antecedentes bancarios del extrabajador/a.
+
+Una vez que usted envíe la propuesta de finiquito, el/la extrabajador/a tendrá un plazo de 10 días hábiles, contados de lunes a
+sábado, para responder a través del Portal MI DT. En caso de que dicho plazo venza sin recibir respuesta, el/la ex empleador/a
+podrá realizar una nueva propuesta.
+
+Si la propuesta es rechazada por el/la extrabajador/a, el/la ex empleador/a, conforme a lo establecido en la Ley N.º 21.361, que
+adecua el Código del Trabajo en materia de documentos electrónicos laborales, estará obligado/a a poner a disposición el
+respectivo finiquito de manera presencial dentro del plazo señalado en el inciso primero del artículo 177 del Código del Trabajo,
+es decir, dentro de 10 días hábiles contados desde la separación del trabajador/a. Si dicho plazo hubiere expirado, se otorgará
+uno nuevo de máximo tres días hábiles, contados desde el rechazo de la propuesta, para su puesta a disposición presencial ante
+un ministro de fe, según lo establece la ley.
+
+En caso de que alguna de las propuestas de finiquito masivo contemple montos a pagar al/la extrabajador/a, el/la ex empleador/a
+deberá realizar la transferencia a través del menú “Pago de Finiquitos”, la cual se efectuará mediante la Tesorería General de la
+República (TGR).
+
+Si el/la extrabajador/a acepta la propuesta, con o sin reserva de derechos, y el/la empleador/a no realiza la transferencia dentro
+de los plazos establecidos en los términos y condiciones, se emitirá un “Acta de Acuerdo por Terminación de Contrato de Trabajo”.
+Este documento contendrá el detalle de los montos ofrecidos y aceptados por las partes, así como la eventual reserva de derechos,
+y podrá ser cobrado judicialmente por el/la extrabajador/a.
+
+       Información importante:
+       La cuenta bancaria del extrabajador/a debe ser unipersonal, usted debe ingresar números sin espacio ni
+       guiones en el campo “N° de cuenta”.
+
+
+       N°      CAMPO         TIPO                   INSTRUCCIÓN                     CONDICIÓN            OBSERVACIÓN
+
+      40     Email           Texto    Debe ingresar el correo electrónico           Obligatorio    Debe     ser un        correo
+                                      personal vigente del extrabajador.                           electrónico válido.
+             CodigoCo
+      41     munaPerso     Numérico Debe ingresar el código de la comuna del        Obligatorio    Ver tabla de          códigos:
+                                    domicilio del extrabajador.                                    3. COMUNA.
+             nal
+
+      42     CallePerso      Texto    Debe ingresar la calle del domicilio del      Obligatorio    Extensión máxima de 50
+             nal                      extrabajador.                                                caracteres.
+
+
+      43     NumeroPer     Numérico Debe ingresar el número del domicilio del       Obligatorio    Extensión     máxima       10
+             sonal                  extrabajador.                                                  caracteres.
+
+
+
+
+                                                                                                                    12
+       Departame               Debe ingresar el número del
+  44   ntoBlockPe     Texto                                                 Opcional     Extensión     máxima      10
+                               depto. del extrabajador (si                               caracteres.
+       rsonal                  corresponde).
+
+       Telefono     Numérico Debe ingresar el teléfono del extrabajador     Opcional     La extensión máxima debe
+  45
+                             (si corresponde).                                           ser de 9 caracteres y solo se
+                                                                                         permiten números.
+       CuentaTra                                                           Obligatorio
+46                  Numérico   Debe Ingresar el número de cuenta                         Extensión máxima          15
+       nsferencia
+                               corriente, sin ceros.                                     caracteres.
+
+47     BancoId      Numérico   Debe ingresar el código que identifica al   Obligatorio    Ver tabla de códigos:
+                               banco según la codificación.                               4. Bancos.
+
+       TipoCuenta              Debe ingresar el código que identifica el
+48                  Numérico   tipo de cuenta según la codificación.       Obligatorio    Ver tabla de códigos:
+       Id                                                                                 5.Tipo de Cuenta.
+                                           Tabla 4
+
+Ejemplo de antecedentes bancarios del ex trabajador/a:
+
+
+
+
+                                                     Ejemplo 4
+
+
+
+
+                                                                                                          13
+4 Tablas de Código
+
+                                    1. CAUSAL DE TÉRMINO
+
+     Código                                        Glosa
+
+       3      Art. 159 N° 1: mutuo acuerdo de las partes.
+       4      Art. 159 N° 2: renuncia del trabajador.
+       5      Art. 159 N° 3: muerte del trabajador.
+       6      Art. 159 N° 4: vencimiento del plazo convenido en el contrato.
+       7      Art. 159 N° 5: conclusión del trabajo o servicio que dio origen al contrato.
+       8      Art. 159 N° 6: caso fortuito o fuerza mayor.
+       24     Art. 160 N° 1 letra a): falta de probidad del trabajador en el desempeño de
+              sus funciones.
+       25     Art. 160 N° 1 letra b): conductas de acoso sexual.
+       26     Art. 160 N° 1 letra c): vías de hecho ejercidas por el trabajador en contra del
+              empleador o de cualquier trabajador que se desempeñe en la misma
+              empresa.
+       27     Art. 160 N° 1 letra d): injurias proferidas por el trabajador al empleador.
+       28     Art. 160 N° 1 letra e): conducta inmoral del trabajador que afecte a la
+              empresa donde se desempeña.
+       29     Art. 160 N° 1 letra f): conductas de acoso laboral.
+       11     Art. 160 N° 2: negociaciones que ejecute el trabajador dentro del giro del
+              negocio y que hubieren sido prohibidas por escrito en el respectivo contrato
+              por el empleador.
+       12     Art. 160 N° 3: no concurrencia del trabajador a sus labores sin causa
+              justificada.
+       13     Art. 160 N° 4: abandono del trabajo por parte del trabajador.
+       14     Art. 160 N° 5: actos, omisiones o imprudencias temerarias que afecten a la
+              seguridad o al funcionamiento del establecimiento, a la seguridad o a la
+              actividad de los trabajadores, o a la salud de éstos.
+       15     Art. 160 N° 6 el perjuicio material causado intencionalmente en las
+              instalaciones, maquinarias, herramientas, útiles de trabajo, productos o
+              mercaderías.
+       16     Art. 160 N° 7: incumplimiento grave de las obligaciones que impone el
+              contrato.
+       18     Art. 161 inciso primero: necesidades de la empresa.
+       19     Art. 161 inciso segundo: desahucio escrito del empleador.
+       20     Art. 163 bis: procedimiento concursal de liquidación.
+                                                                                                14
+                           2. REGIÓN
+
+Código de Región                  Nombre de Región
+
+       1           REGIÓN TARAPACA
+       2           REGIÓN ANTOFAGASTA
+       3           REGIÓN ATACAMA
+       4           REGIÓNCOQUIMBO
+       5           REGIÓN VALPARAISO
+       6           REGIÓN L. BDO. O HIGGINS
+       7           REGIÓN DEL MAULE
+       8           REGIÓN DEL BIO BÍO
+       9           REGIÓN ARAUCANIA
+      10           REGIÓN LOS LAGOS
+                   REGIÓN AYSEN DEL GENERAL CARLOS IBAÐES DEL
+      11
+                   CAMPO
+      12           REGIÓN MAGALLANES Y LA ANTARTICA CHILENA
+      13           REGIÓN METROPOLITANA
+      14           REGIÓN DE LOS RIOS
+      15           REGIÓN ARICA PARINACOTA
+      16           REGIÓN ÑUBLE
+
+
+
+
+                                                                15
+            3.COMUNA
+                                   Código   Código                      Código   Código                     Código
+Código de                                                                                   Nombre de
+            Nombre de Comuna         de       de     Nombre de Comuna     de       de                         de
+ Comuna                                                                                      Comuna
+                                   Región   Comuna                      Región   Comuna                     Región
+  1101      IQUIQUE                  1       4101    LA SERENA            4       5304    SAN ESTEBAN         5
+  1102      CAMIÑA                   1       4102    COQUIMBO             4       5401    LA LIGUA            5
+  1103      COLCHANE                 1       4103    ANDACOLLO            4       5402    CABILDO             5
+  1104      HUARA                    1       4104    LA HIGUERA           4       5403    PAPUDO              5
+  1105      PICA                     1       4105    PAIHUANO             4       5404    PETORCA             5
+  1106      POZO ALMONTE             1       4106    VICUÑA               4       5405    ZAPALLAR            5
+  1107      ALTO HOSPICIO            1       4201    ILLAPEL              4       5501    QUILLOTA            5
+  1202      CAMARONES                1       4202    CANELA               4       5502    LA CALERA           5
+  1301      PUTRE                   15       4203    LOS VILOS            4       5503    HIJUELAS            5
+  1302      GENERAL LAGOS            1       4204    SALAMANCA            4       5504    LA CRUZ             5
+  2101      ANTOFAGASTA              2       4301    OVALLE               4       5505    LIMACHE             5
+  2102      MEJILLONES               2       4302    COMBARBALÁ           4       5506    NOGALES             5
+  2103      SIERRA GORDA             2       4303    MONTE PATRIA         4       5507    OLMUÉ               5
+  2104      TALTAL                   2       4304    PUNITAQUI            4       5601    SAN ANTONIO         5
+  2105      MARIA ELENA              2       4305    RÍO HURTADO          4       5602    ALGARROBO           5
+  2201      CALAMA                   2       5101    VALPARAÍSO           5       5603    CARTAGENA           5
+  2202      OLLAGUE                  2       5102    CASABLANCA           5       5604    EL QUISCO           5
+            SAN   PEDRO       DE
+  2203                               2       5103    CONCÓN               5       5605    EL TABO             5
+            ATACAMA
+                                                                                          SANTO
+  2301      TOCOPILLA                2       5104    JUAN FERNÁNDEZ       5       5606                        5
+                                                                                          DOMINGO
+  3101      COPIAPÓ                  3       5105    PUCHUNCAVÍ           5       5701    SAN FELIPE          5
+  3102      CALDERA                  3       5106    QUILPUÉ              5       5702    CATEMU              5
+  3103      TIERRA AMARILLA          3       5107    QUINTERO             5       5703    LLAY-LLAY           5
+  3201      CHAÑARAL                 3       5108    VILLA ALEMANA        5       5704    PANQUEHUE           5
+
+  3202      DIEGO DE ALMAGRO         3       5109    VIÑA DEL MAR         5       5705    PUTAENDO            5
+
+  3301      VALLENAR                 3       5201    ISLA DE PASCUA       5       5706    SANTA MARÍA         5
+  3302      ALTO DEL CARMEN          3       5301    LOS ANDES            5       6101    RANCAGUA            6
+  3303      FREIRINA                 3       5302    CALLE LARGA          5       6102    CODEGUA             6
+  3304      HUASCO                   3       5303    RINCONADA            5       6103    COINCO              6
+  6104      COLTAUCO                 6       6310    SANTA CRUZ           6       7407    VILLA ALEGRE        7
+                                                                                          YERBAS
+  6105      DOÑIHUE                  6       7101    TALCA                7       7408                        7
+                                                                                          BUENAS
+  6106      GRANEROS                 6       7102    CONSTITUCIÓN         7       8101    CONCEPCIÓN          8
+  6107      LAS CABRAS               6       7103    CUREPTO              7       8102    CORONEL             8
+  6108      MACHALÍ                  6       7104    EMPEDRADO            7       8103    CHIGUAYANTE         8
+  6109      MALLOA                   6       7105    MAULE                7       8104    FLORIDA             8
+  6110      MOSTAZAL                 6       7106    PELARCO              7       8105    HUALQUI             8
+  6111      OLIVAR                   6       7107    PENCAHUE             7       8106    LOTA                8
+  6112      PEUMO                    6       7108    RÍO CLARO            7       8107    PENCO               8
+                                                                                          SAN PEDRO DE
+  6113      PICHIDEGUA               6       7109    SAN CLEMENTE         7       8108                        8
+                                                                                          LA PAZ
+
+
+
+
+                                                                                                       16
+                                Código   Código                      Código   Código                    Código
+Código de                                                                                Nombre de
+            Nombre de Comuna      de       de     Nombre de Comuna     de       de                        de
+ Comuna                                                                                   Comuna
+                                Región   Comuna                      Región   Comuna                    Región
+
+  6114      QUINTA DE TILCOCO     6       7110    SAN RAFAEL           7       8109    SANTA JUANA        8
+
+  6115      RENGO                 6       7201    CAUQUENES            7       8110    TALCAHUANO         8
+  6116      REQUÍNOA              6       7202    CHANCO               7       8111    TOMÉ               8
+  6117      SAN VICENTE           6       7203    PELLUHUE             7       8201    LEBU               8
+  6201      PICHILEMU             6       7301    CURICÓ               7       8202    ARAUCO             8
+  6202      LA ESTRELLA           6       7302    HUALAÑÉ              7       8203    CAÑETE             8
+  6203      LITUECHE              6       7303    LICANTÉN             7       8204    CONTULMO           8
+  6204      MARCHIGUE             6       7304    MOLINA               7       8205    CURANILAHUE        8
+  6205      NAVIDAD               6       7305    RAUCO                7       8206    LOS ALAMOS         8
+  6206      PAREDONES             6       7306    ROMERAL              7       8207    TIRÚA              8
+
+  6301      SAN FERNANDO          6       7307    SAGRADA FAMILIA      7       8208    HUALPEN            8
+
+  6302      CHEPICA               6       7308    TENO                 7       8301    LOS ANGELES        8
+  6303      CHIMBARONGO           6       7309    VICHUQUÉN            7       8302    ANTUCO             8
+  6304      LOLOL                 6       7401    LINARES              7       8303    CABRERO            8
+  6305      NANCAGUA              6       7402    COLBÚN               7       8304    LAJA               8
+  6306      PALMILLA              6       7403    LONGAVÍ              7       8305    MULCHÉN            8
+  6307      PERALILLO             6       7404    PARRAL               7       8306    NACIMIENTO         8
+  6308      PLACILLA              6       7405    RETIRO               7       8307    NEGRETE            8
+  6309      PUMANQUE              6       7406    SAN JAVIER           7       8308    QUILACO            8
+  8309      QUILLECO              8       9203    CURACAUTÍN           9      10302    PUERTO OCTAY      10
+  8310      SAN ROSENDO           8       9204    ERCILLA              9      10303    PURRANQUE         10
+  8311      SANTA BÁRBARA         8       9205    LONQUIMAY            9      10304    PUYEHUE           10
+  8312      TUCAPEL               8       9206    LOS SAUCES           9      10305    RÍO NEGRO         10
+                                                                                       SAN JUAN DE LA
+  8313      YUMBEL                8       9207    LUMACO               9      10306                      10
+                                                                                       COSTA
+  8314      ALTO BIOBÍO           8       9208    PURÉN                9      10307    SAN PABLO         10
+  9101      TEMUCO                9       9209    RENAICO              9      10401    CHAITEN           10
+  9102      CARAHUE               9       9210    TRAIGUÉN             9      10402    FUTALEUFÚ         10
+  9103      CUNCO                 9       9211    VICTORIA             9      10403    HUALAIHUÉ         10
+  9104      CURARREHUE            9      10101    PUERTO MONTT        10      10404    PALENA            10
+  9105      FREIRE                9      10102    CALBUCO             10      10501    VALDIVIA          14
+  9106      GALVARINO             9      10103    COCHAMÓ             10      10502    CORRAL            14
+  9107      GORBEA                9      10104    FRESIA              10      10503    FUTRONO           14
+  9108      LAUTARO               9      10105    FRUTILLAR           10      10504    LA UNIÓN          14
+  9109      LONCOCHE              9      10106    LOS MUERMOS         10      10505    LAGO RANCO        14
+  9110      MELIPEUCO             9      10107    LLANQUIHUE          10      10506    LANCO             14
+  9111      NUEVA IMPERIAL        9      10108    MAULLÍN             10      10507    LOS LAGOS         14
+  9112      PADRE LAS CASAS       9      10109    PUERTO VARAS        10      10508    MÁFIL             14
+  9113      PERQUENCO             9      10201    CASTRO              10      10509    MARIQUINA         14
+  9114      PITRUFQUÉN            9      10202    ANCUD               10      10510    PAILLACO          14
+  9115      PUCÓN                 9      10203    CHONCHI             10      10511    PANGUIPULLI       14
+
+
+
+
+                                                                                                   17
+                               Código   Código                         Código   Código                    Código
+Código de                                                                                  Nombre de
+            Nombre de Comuna     de       de     Nombre de Comuna        de       de                        de
+ Comuna                                                                                     Comuna
+                               Región   Comuna                         Región   Comuna                    Región
+
+  9116      SAAVEDRA             9      10204    CURACO DE VÉLEZ        10      10512    RÍO BUENO         14
+
+  9117      TEODORO SCHMIDT      9      10205    DALCAHUE               10      11101    COYHAIQUE         11
+
+  9118      TOLTÉN               9      10206    PUQUELDÓN              10      11102    LAGO VERDE        11
+  9119      VILCÚN               9      10207    QUEILÉN                10      11201    AYSEN             11
+  9120      VILLARRICA           9      10208    QUELLÓN                10      11202    CISNES            11
+  9121      CHOLCHOL             9      10209    QUEMCHI                10      11203    GUAITECAS         11
+  9201      ANGOL                9      10210    QUINCHAO               10      11301    COCHRANE          11
+  9202      COLLIPULLI           9      10301    OSORNO                 10      11302    OHIGGINS          11
+  11303     TORTEL              11      13116    LO ESPEJO              13      13503    CURACAVÍ          13
+  11401     CHILE CHICO         11      13117    LO PRADO               13      13504    MARÍA PINTO       13
+  11402     RÍO IBÁÑEZ          11      13118    MACUL                  13      13505    SAN PEDRO         13
+  12101     PUNTA ARENAS        12      13119    MAIPÚ                  13      13601    TALAGANTE         13
+  12102     LAGUNA BLANCA       12      13120    ÑUÑOA                  13      13602    EL MONTE          13
+
+                                                 PEDRO       AGUIRRE
+  12103     RÍO VERDE           12      13121                           13      13603    ISLA DE MAIPO     13
+                                                 CERDA
+
+                                                                                         PADRE
+  12104     SAN GREGORIO        12      13122    PEÑALOLÉN              13      13604                      13
+                                                                                         HURTADO
+  12201     CABO DE HORNOS      12      13123    PROVIDENCIA            13      13605    PEÑAFLOR          13
+  12202     ANTARTICA           12      13124    PUDAHUEL               13      15101    ARICA             15
+  12301     PORVENIR            12      13125    QUILICURA              13      16101    CHILLÁN           16
+
+  12302     PRIMAVERA           12      13126    QUINTA NORMAL          13      16102    BULNES            16
+
+  12303     TIMAUKEL            12      13127    RECOLETA               13      16103    CHILLAN VIEJO     16
+  12401     PUERTO NATALES      12      13128    RENCA                  13      16104    EL CARMEN         16
+  12402     TORRES DEL PAINE    12      13129    SAN JOAQUÍN            13      16105    PEMUCO            16
+  13101     SANTIAGO            13      13130    SAN MIGUEL             13      16106    PINTO             16
+  13102     CERRILLOS           13      13131    SAN RAMÓN              13      16107    QUILLÓN           16
+  13103     CERRO NAVIA         13      13132    VITACURA               13      16108    SAN IGNACIO       16
+  13104     CONCHALÍ            13      13201    PUENTE ALTO            13      16109    YUNGAY            16
+  13105     EL BOSQUE           13      13202    PIRQUE                 13      16201    QUIRIHUE          16
+
+  13106     ESTACIÓN CENTRAL    13      13203    SAN JOSÉ DE MAIPO      13      16202    COBQUECURA        16
+
+  13107     HUECHURABA          13      13301    COLINA                 13      16203    COELEMU           16
+  13108     INDEPENDENCIA       13      13302    LAMPA                  13      16204    NINHUE            16
+  13109     LA CISTERNA         13      13303    TIL-TIL                13      16205    PORTEZUELO        16
+  13110     LA FLORIDA          13      13401    SAN BERNARDO           13      16206    RÁNQUIL           16
+  13111     LA GRANJA           13      13402    BUIN                   13      16207    TREHUACO          16
+
+  13112     LA PINTANA          13      13403    CALERA DE TANGO        13      16301    SAN CARLOS        16
+
+  13113     LA REINA            13      13404    PAINE                  13      16302    COIHUECO          16
+  13114     LAS CONDES          13      13501    MELIPILLA              13      16303    ÑIQUÉN            16
+  13115     LO BARNECHEA        13      13502    ALHUE                  13      16304    SAN FABIÁN        16
+                                                                                16305    SAN NICOLÁS       16
+
+
+                                                                                                     18
+                                     4. BANCOS
+
+      Código                                 Glosa
+
+        1          BANCO DE CHILE
+        2          BANCO INTERNACIONAL
+        3          BANCO ESTADO
+        4          SCOTIABANK
+        5          BCI
+        6          CORPBANCA
+        7          BANCO BICE
+        8          HSBC BANK CHILE
+
+        9          BANCO SANTANDER
+       10          BANCO ITAU
+       11          BANCO SECURITY
+       12          BANCO FALABELLA
+       13          BANCO RIPLEY
+       14          BANCO CONSORCIO
+       15          SCOTIABANK (ex BBVA)
+       16          BANCO DESARROLLO (SCOTIABANK)
+
+
+
+
+               5. TIPO DE CUENTA
+
+Id   Nombre
+
+1    CUENTA CORRIENTE
+3    CUENTA VISTA
+4    CUENTA RUT
+
+
+
+
+                                                     19
+5 Formato del archivo.
+Cuando se encuentre registrada toda la información de sus extrabajadores/as el archivo debe “guardar”
+en formato CSV con la opción “delimitado por comas” como se visualiza en la siguiente imagen:
+
+
+
+
+Importante: La carga del archivo masivo de propuestas de finiquitos puede tardar aproximadamente 15
+minutos, en caso de contener el máximo de 100 extrabajadores permitidos.
+
+
+6 Historial de cargas masivas.
+En esta sección se encuentra el historial de cargas masivas realizadas dentro del sistema.
+
+
+
+
+                                          Historial de cargas masivas
+
+                                                                                                        20
+En la imagen anterior, en la columna “Acciones” se presentan dos opciones, las cuales son:
+
+    1.   Documento Original: Al presionar este link, el sistema descargará el archivo cargado para el ingreso
+         masivo de finiquitos.
+    2.   Revisar y enviar finiquitos: Al presionar este link el sistema desplegará en una nueva grilla los
+         finiquitos ingresados dentro de la carga masiva. Acá se podrán revisar las propuestas de finiquitos
+         para su posterior firma. Una vez firmado el finiquito, éste quedará disponible al extrabajador/a en su
+         Portal Mi DT para su rechazo o aprobación. Está opción estará disponible solo si no se han firmado
+         todos los finiquitos ingresados dentro de la carga.
+
+
+
+
+                               Finiquitos ingresados dentro de una carga masiva
+
+
+
+
+                                                                                                            21
+

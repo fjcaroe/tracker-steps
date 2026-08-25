@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_contract_form_lifecycle_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.form.lifecycle.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <div class="alert alert-warning" role="alert"
+                     invisible="adequacy_state != 'exception'">
+                    Este contrato tiene una jornada superior al máximo legal
+                    vigente y no cuenta con un lote de adecuación aprobado.
+                    Revise la incidencia registrada.
+                </div>
+            </xpath>
+            <div name="button_box" position="inside">
+                <button name="action_view_documents" type="object"
+                        string="Documentos" class="oe_stat_button" icon="fa-file-pdf-o">
+                    <field name="document_count" widget="statinfo" string="Documentos"/>
+                </button>
+            </div>
+            <notebook position="inside">
+                <page string="Gestión contractual">
+                    <group>
+                        <group string="Modalidad">
+                            <field name="labor_modality"/>
+                            <field name="labor_template_id"/>
+                            <field name="is_faena_contract"/>
+                            <field name="faena_name" invisible="not is_faena_contract"/>
+                            <field name="document_state"/>
+                            <field name="dt_registration_state"/>
+                        </group>
+                        <group string="Celebración y ubicación">
+                            <field name="date_signature"/>
+                            <field name="commune_signature_id"/>
+                            <field name="fundo_id"/>
+                            <field name="cost_center_id"/>
+                            <field name="work_region_id"/>
+                            <field name="work_commune_id"/>
+                            <field name="work_street"/>
+                            <field name="work_number"/>
+                            <field name="work_complement"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Jornada">
+                            <field name="max_weekly_hours_legal" readonly="1"/>
+                            <field name="adequacy_state" readonly="1"/>
+                            <field name="colacion_imputable"/>
+                            <field name="colacion_minutes"/>
+                            <field name="has_excepcion_jornada"/>
+                            <field name="excepcion_jornada_resolution" invisible="not has_excepcion_jornada"/>
+                            <field name="excepcion_jornada_date" invisible="not has_excepcion_jornada"/>
+                        </group>
+                        <group string="Datos DT / condicionales">
+                            <field name="cae_code"/>
+                            <field name="is_foreign_worker"/>
+                            <field name="passport_number" invisible="not is_foreign_worker"/>
+                            <field name="has_disability" groups="step_hr_contract_lifecycle.group_contract_sensitive_data"/>
+                            <field name="is_subcontracted"/>
+                            <field name="main_company_partner_id" invisible="not is_subcontracted"/>
+                            <field name="is_temporary_work"/>
+                            <field name="user_company_partner_id" invisible="not is_temporary_work"/>
+                        </group>
+                    </group>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+    <record id="view_hr_contract_list_lifecycle_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.list.lifecycle.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_tree"/>
+        <field name="arch" type="xml">
+            <field name="job_id" position="after">
+                <field name="labor_modality" optional="show"/>
+                <field name="document_state" optional="show"/>
+                <field name="adequacy_state" optional="hide"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_hr_contract_search_lifecycle_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.search.lifecycle.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_search"/>
+        <field name="arch" type="xml">
+            <filter name="group_by_department" position="after">
+                <filter string="Modalidad" name="group_labor_modality" context="{'group_by': 'labor_modality'}"/>
+                <filter string="Fundo" name="group_fundo" context="{'group_by': 'fundo_id'}"/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="action_hr_contract_mass_print" model="ir.actions.act_window">
+        <field name="name">Imprimir contratos</field>
+        <field name="res_model">hr.contract.mass.print</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="hr_contract.model_hr_contract"/>
+        <field name="binding_view_types">list</field>
+        <field name="context">{'default_contract_ids': active_ids}</field>
+    </record>
+
+    <record id="view_hr_contract_mass_print_form" model="ir.ui.view">
+        <field name="name">hr.contract.mass.print.form</field>
+        <field name="model">hr.contract.mass.print</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="contract_ids" widget="many2many_tags"/>
+                <field name="generated_document_ids" widget="many2many_tags" invisible="1"/>
+                <footer>
+                    <button name="action_print" type="object" string="Generar PDFs" class="oe_highlight"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

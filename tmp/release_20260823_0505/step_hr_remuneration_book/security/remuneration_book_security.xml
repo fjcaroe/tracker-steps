@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!--
+            Dos permisos distintos para dos productos distintos:
+
+            * `group_remuneration_book_full` habilita el LIBRO CORPORATIVO y
+              sus cuatro salidas. Lo implica el Administrador de Nómina, que
+              es quien tiene acceso real a todas las liquidaciones de la
+              compañía. Sin él, el asistente corporativo no existe: ni menú,
+              ni acción, ni modelo, ni ruta HTTP.
+            * `group_remuneration_book_technical` habilita EDITAR los perfiles
+              de mapeo DT, que son configuración técnica. Un Administrador de
+              Nómina puede asignar a su empresa un perfil ya aprobado, pero no
+              programar de dónde sale un importe.
+        -->
+        <record id="group_remuneration_book_full" model="res.groups">
+            <field name="name">Libro de Remuneraciones: exportación completa</field>
+            <field name="category_id" ref="base.module_category_human_resources_payroll"/>
+            <field name="implied_ids" eval="[(4, ref('hr_payroll.group_hr_payroll_user'))]"/>
+            <field name="comment">Permite generar el Libro de Remuneraciones de
+la empresa completa y el archivo oficial de la Dirección del Trabajo. Sólo
+debe otorgarse a usuarios con acceso a todas las liquidaciones de la
+compañía.</field>
+        </record>
+
+        <record id="group_remuneration_book_technical" model="res.groups">
+            <field name="name">Libro de Remuneraciones: configuración técnica</field>
+            <field name="category_id" ref="base.module_category_human_resources_payroll"/>
+            <field name="comment">Permite crear y validar perfiles de mapeo
+entre códigos DT y reglas salariales. NO otorga por sí solo la exportación
+completa del libro: son permisos independientes.</field>
+        </record>
+
+        <!--
+            La implicación de grupos ajenos NO se declara aquí: los grupos de
+            `hr_payroll` están marcados `noupdate="1"` en su propio módulo, así
+            que una actualización desde otro addon se descarta en silencio y el
+            permiso parecería concedido sin estarlo. Se aplica de forma
+            explícita e idempotente en `hooks.ensure_group_implications()`,
+            que corre en la instalación y en cada actualización.
+        -->
+    </data>
+</odoo>

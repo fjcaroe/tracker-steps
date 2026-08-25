@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_termination_notice_list" model="ir.ui.view">
+        <field name="name">hr.termination.notice.list</field>
+        <field name="model">hr.termination.notice</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="is_late">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="causal_id"/>
+                <field name="date_termino"/>
+                <field name="deadline_date"/>
+                <field name="is_late" widget="boolean_toggle"/>
+                <field name="state" widget="badge"/>
+                <field name="registration_state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_termination_notice_form" model="ir.ui.view">
+        <field name="name">hr.termination.notice.form</field>
+        <field name="model">hr.termination.notice</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_generate_letter" type="object" string="Generar carta" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_mark_notified" type="object" string="Marcar notificada" invisible="state != 'draft'"/>
+                    <button name="action_cancel" type="object" string="Cancelar" invisible="state == 'cancelled'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert" invisible="not is_late">
+                        Este aviso está fuera del plazo legal estimado (revisar
+                        el plazo real de la causal invocada).
+                    </div>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="contract_id"/>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="company_id"/>
+                            <field name="causal_id"/>
+                            <field name="hechos_causal"/>
+                            <field name="certificate_attachment_id" invisible="not causal_id"
+                                   widget="binary" filename="name"/>
+                        </group>
+                        <group>
+                            <field name="date_termino"/>
+                            <field name="date_notificacion"/>
+                            <field name="medio_notificacion"/>
+                            <field name="oficina_correos" invisible="medio_notificacion != 'correo'"/>
+                            <field name="deadline_date" readonly="1"/>
+                            <field name="is_late" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Indemnizaciones">
+                        <field name="monto_anio_servicio"/>
+                        <field name="monto_aviso_previo"/>
+                    </group>
+                    <group string="Cotizaciones previsionales">
+                        <field name="estado_cotizaciones"/>
+                        <field name="tipo_doc_cotizaciones"/>
+                    </group>
+                    <group string="Finiquito propuesto">
+                        <field name="finiquito_modalidad_propuesta"/>
+                        <field name="reserva_derechos"/>
+                    </group>
+                    <group string="Registro DT" invisible="state == 'draft'">
+                        <field name="registration_state"/>
+                        <field name="document_id" readonly="1"/>
+                        <field name="delivery_receipt_id" widget="binary" filename="name"/>
+                    </group>
+                    <group string="Cancelación" invisible="state != 'cancelled'">
+                        <field name="cancel_reason"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_termination_notice" model="ir.actions.act_window">
+        <field name="name">Cartas de aviso</field>
+        <field name="res_model">hr.termination.notice</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hr_termination_notice_mass_wizard_form" model="ir.ui.view">
+        <field name="name">hr.termination.notice.mass.wizard.form</field>
+        <field name="model">hr.termination.notice.mass.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="company_id"/>
+                        <field name="work_location_id"/>
+                        <field name="department_id"/>
+                        <field name="contract_type_id"/>
+                        <field name="labor_modality"/>
+                    </group>
+                    <group>
+                        <field name="causal_id"/>
+                        <field name="date_termino"/>
+                    </group>
+                </group>
+                <field name="matched_contract_ids" readonly="1" invisible="not matched_contract_ids">
+                    <list><field name="employee_id"/><field name="job_id"/></list>
+                </field>
+                <footer>
+                    <button name="action_search" type="object" string="Buscar" class="oe_highlight"/>
+                    <button name="action_create_notices" type="object" string="Crear avisos"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_termination_notice_mass_wizard" model="ir.actions.act_window">
+        <field name="name">Emisión masiva de avisos</field>
+        <field name="res_model">hr.termination.notice.mass.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hr_termination_notice_dt_batch_list" model="ir.ui.view">
+        <field name="name">hr.termination.notice.dt.batch.list</field>
+        <field name="model">hr.termination.notice.dt.batch</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="notice_count"/>
+                <field name="state" widget="badge"/>
+                <field name="dt_result" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_termination_notice_dt_batch_form" model="ir.ui.view">
+        <field name="name">hr.termination.notice.dt.batch.form</field>
+        <field name="model">hr.termination.notice.dt.batch</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_validate" type="object" string="Prevalidar" invisible="state != 'draft'"/>
+                    <button name="action_generate_csv" type="object" string="Generar CSV" class="oe_highlight" invisible="state != 'validated'"/>
+                    <button name="action_record_result" type="object" string="Registrar resultado" invisible="state != 'generated'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <field name="company_id"/>
+                    <field name="csv_attachment_id" widget="binary" filename="name" readonly="1"/>
+                    <field name="csv_hash" readonly="1"/>
+                    <group string="Resultado" invisible="state not in ('generated','result_recorded')">
+                        <field name="dt_result"/>
+                        <field name="dt_result_notes"/>
+                    </group>
+                    <field name="error_report" readonly="1" invisible="not error_report"/>
+                    <field name="notice_ids" readonly="1">
+                        <list><field name="employee_id"/><field name="causal_id"/></list>
+                    </field>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_termination_notice_dt_batch" model="ir.actions.act_window">
+        <field name="name">Lotes DT (avisos)</field>
+        <field name="res_model">hr.termination.notice.dt.batch</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

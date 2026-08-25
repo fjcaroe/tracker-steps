@@ -1,93 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="step_hr.menu_step_hr_root" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_activities')])]"/>
-    </record>
-    <record id="step_hr.menu_step_tracker_gps_root" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_tracker')])]"/>
-    </record>
-    <record id="step_machinery.menu_step_machinery_root" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_machinery')])]"/>
-    </record>
-    <record id="step_cosecha.menu_step_cosecha_root" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_harvest')])]"/>
-    </record>
-    <record id="studio_customization.bpa_y_riego_3e945603-e8bf-4cdc-93fc-cce511c0d7cb" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_bpa_irrigation')])]"/>
-    </record>
-    <record id="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_quality')])]"/>
-    </record>
-    <record id="studio_customization.proteccion_laboral_d71afde5-f451-47c8-a269-25311654bc7f" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_labor_protection')])]"/>
-    </record>
-    <record id="step_management_costs.menu_management_root" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_management_costs')])]"/>
-    </record>
-    <record id="studio_customization.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('step_agricultural_access.group_app_freight')])]"/>
-    </record>
+    <!-- Aplicaciones -->
+    <record id="step_hr.menu_step_hr_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_activities')])]"/></record>
+    <record id="step_hr.menu_step_tracker_gps_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_tracker')])]"/></record>
+    <record id="step_machinery.menu_step_machinery_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_machinery')])]"/></record>
+    <record id="step_cosecha.menu_step_cosecha_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_harvest')])]"/></record>
+    <record id="step_bpa_irrigation.menu_bpa_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_bpa_irrigation')])]"/></record>
+    <record id="step_qa.menu_step_qa_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_quality')])]"/></record>
+    <record id="step_labor_protection.menu_labor_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_labor_protection')])]"/></record>
+    <record id="step_management_costs.menu_management_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_management_costs')])]"/></record>
+    <record id="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_freight')])]"/></record>
 
     <!-- Actividades -->
-    <record id="step_hr.menu_step_hr_main" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_activities_own_staff')])]"/></record>
-    <record id="step_hr.menu_step_hr_main_contra" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_activities_contractors')])]"/></record>
-    <record id="step_hr.menu_step_moviliza" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_activities_transport')])]"/></record>
-    <record id="step_hr.menu_step_informe_main" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_activities_reports')])]"/></record>
-    <record id="step_hr.step_maestros" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_activities_masters')])]"/></record>
-    <record id="step_hr.menu_step_hr_config" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_activities_configuration')])]"/></record>
+    <record id="step_hr.menu_step_hr_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_own_staff')])]"/></record>
+    <record id="step_hr.menu_step_hr_main_contra" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_contractors')])]"/></record>
+    <record id="step_hr.menu_step_moviliza" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_transport')])]"/></record>
+    <record id="step_hr.menu_step_informe_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_reports')])]"/></record>
+    <record id="step_hr.step_maestros" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_masters')])]"/></record>
+    <record id="step_hr.menu_step_hr_config" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_configuration')])]"/></record>
 
-    <!-- Steps Tracker -->
-    <record id="step_hr.menu_step_tracker_operation" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_tracker_operation')])]"/></record>
-    <record id="step_hr.menu_step_tracker_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_tracker_reports')])]"/></record>
-    <record id="step_hr.menu_step_tracker_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_tracker_masters')])]"/></record>
-    <record id="step_hr.menu_step_tracker_open_web" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_tracker_web_map')])]"/></record>
-    <record id="step_hr.menu_step_tracker_integration" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_tracker_integration')])]"/></record>
+    <!-- Tracker -->
+    <record id="step_hr.menu_step_tracker_operation" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_operation')])]"/></record>
+    <record id="step_hr.menu_step_tracker_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_reports')])]"/></record>
+    <record id="step_hr.menu_step_tracker_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_masters')])]"/></record>
+    <record id="step_hr.menu_step_tracker_open_web" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_web_map')])]"/></record>
+    <record id="step_hr.menu_step_tracker_integration" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_integration')])]"/></record>
 
     <!-- Maquinaria -->
-    <record id="step_machinery.menu_step_machinery_main" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_machinery_operation')])]"/></record>
-    <record id="step_machinery.menu_step_machinery_costos" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_machinery_auto_costs')])]"/></record>
-    <record id="step_machinery.step_machinery_maestros" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_machinery_masters')])]"/></record>
-    <record id="step_machinery.step_machinery_informes" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_machinery_reports')])]"/></record>
-    <record id="step_machinery.menu_step_machinery_config" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_machinery_configuration')])]"/></record>
+    <record id="step_machinery.menu_step_machinery_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_operation')])]"/></record>
+    <record id="step_machinery.menu_step_machinery_costos" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_auto_costs')])]"/></record>
+    <record id="step_machinery.step_machinery_maestros" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_masters')])]"/></record>
+    <record id="step_machinery.step_machinery_informes" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_reports')])]"/></record>
+    <record id="step_machinery.menu_step_machinery_config" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_configuration')])]"/></record>
 
-    <!-- Cosecha -->
-    <record id="studio_customization.cosecha_planificacio_eeb2b07e-0f1c-4fca-bccb-40acf3619638" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_planning')])]"/></record>
-    <record id="studio_customization.cosecha_cosecha_985cc0b3-3c47-4981-b2e6-92a54fb08141" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_harvest')])]"/></record>
-    <record id="studio_customization.cosecha_post_cosecha_fd1f0a67-9d26-4fca-8488-b7aff6747cbf" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_post_harvest')])]"/></record>
-    <record id="step_cosecha.menu_step_cosecha_main" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_own')])]"/></record>
-    <record id="step_cosecha.menu_step_cosecha_main_contra" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_contractors')])]"/></record>
-    <record id="step_cosecha.menu_step_cosecha_recepcion" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_reception')])]"/></record>
-    <record id="step_cosecha.step_maestros_cosecha" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_masters')])]"/></record>
-    <record id="step_cosecha.menu_step_cosecha_config" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_harvest_configuration')])]"/></record>
+    <!-- Cosecha nativa -->
+    <record id="step_cosecha.menu_step_cosecha_main_cosecha_plan" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_harvest_planning')])]"/></record>
+    <record id="step_cosecha.menu_step_cosecha_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_harvest_own')])]"/></record>
+    <record id="step_cosecha.menu_step_cosecha_main_contra" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_harvest_contractors')])]"/></record>
+    <record id="step_cosecha.menu_step_cosecha_recepcion" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_harvest_reception')])]"/></record>
+    <record id="step_cosecha.step_maestros_cosecha" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_harvest_masters')])]"/></record>
+    <record id="step_cosecha.menu_step_cosecha_config" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_harvest_configuration')])]"/></record>
 
-    <!-- BPA y Riego -->
-    <record id="studio_customization.bpa_y_riego_bpa_7eabb6b7-f7de-42e2-a329-0afcdb45e4bc" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_bpa_bpa')])]"/></record>
-    <record id="studio_customization.bpa_y_riego_ruego_fe_3c8ebd77-c7f5-4e7e-aedd-208e89415795" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_bpa_irrigation')])]"/></record>
-    <record id="studio_customization.bpa_y_riego_informes_daeb0fba-26f1-4cc9-8599-176c10f0c1ea" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_bpa_reports')])]"/></record>
-    <record id="studio_customization.bpa_y_riego_maestros_b69cfda5-56c8-4aa4-8a77-42c209269f1e" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_bpa_masters')])]"/></record>
-    <record id="studio_customization.bpa_y_riego_configur_70322172-a277-4348-8b6e-2e5a7911b44f" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_bpa_configuration')])]"/></record>
+    <!-- BPA nativo -->
+    <record id="step_bpa_irrigation.menu_bpa_operations" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_bpa_bpa'),ref('group_bpa_irrigation')])]"/></record>
+    <record id="step_bpa_irrigation.menu_bpa_analytics" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_bpa_reports')])]"/></record>
+    <record id="step_bpa_irrigation.menu_bpa_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_bpa_masters')])]"/></record>
 
-    <!-- QA-Inspecciones -->
-    <record id="studio_customization.qa_inspecciones_qa_p_1329b29f-841c-4d28-a232-4ddac5da2a1a" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_quality_quality')])]"/></record>
-    <record id="studio_customization.qa_inspecciones_insp_4ee5cf46-97bc-4f66-9f42-5bde67504ef3" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_quality_inspections')])]"/></record>
-    <record id="studio_customization.qa_inspecciones_conf_fce57426-cb59-4771-bc18-188965a025db" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_quality_configuration')])]"/></record>
+    <!-- Calidad nativa -->
+    <record id="step_qa.menu_step_qa_checks" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_quality_quality')])]"/></record>
+    <record id="step_qa.menu_step_qa_alerts" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_quality_quality')])]"/></record>
+    <record id="step_qa.menu_step_qa_points" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_quality_configuration')])]"/></record>
+    <record id="step_qa.menu_step_qa_teams" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_quality_configuration')])]"/></record>
 
-    <!-- Protección Laboral -->
-    <record id="step_labor_protection.menu_labor_karin" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_labor_karin')])]"/></record>
-    <record id="studio_customization.proteccion_laboral_c_ea83727e-ec8e-4c8a-a9e0-88ba04e72124" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_labor_courses')])]"/></record>
-    <record id="studio_customization.proteccion_laboral_e_5b57cd54-7091-4946-8282-86e82c0751a9" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_labor_epp')])]"/></record>
-    <record id="studio_customization.proteccion_laboral_r_6cedcd92-2a4e-405e-b215-f8549ea44ef5" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_labor_risks')])]"/></record>
-    <record id="studio_customization.proteccion_laboral_c_6435278f-b7f0-484f-aed4-1237d7fcfbfa" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_labor_configuration')])]"/></record>
+    <!-- Protección Laboral nativa -->
+    <record id="step_labor_protection.menu_labor_karin" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_labor_karin')])]"/></record>
+    <record id="step_labor_protection.menu_labor_protocol" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_labor_risks'),ref('group_labor_configuration')])]"/></record>
 
     <!-- Gestión y Costos -->
-    <record id="step_management_costs.menu_management_budget" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_management_budget')])]"/></record>
-    <record id="step_management_costs.menu_management_planning" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_management_planning')])]"/></record>
-    <record id="step_management_costs.menu_management_control" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_management_control')])]"/></record>
-    <record id="step_management_costs.menu_management_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_management_masters')])]"/></record>
+    <record id="step_management_costs.menu_management_budget" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_management_budget')])]"/></record>
+    <record id="step_management_costs.menu_management_planning" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_management_planning')])]"/></record>
+    <record id="step_management_costs.menu_management_control" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_management_control')])]"/></record>
+    <record id="step_management_costs.menu_management_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_management_masters')])]"/></record>
 
-    <!-- Fletes -->
-    <record id="studio_customization.fletes_fletes_de1e0b1d-ae8e-4594-bd35-210b7457e056" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_freight_operation')])]"/></record>
-    <record id="studio_customization.fletes_control_de_fl_fc836ba8-fe66-4a2c-ba31-8f237d78a22b" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_freight_control')])]"/></record>
-    <record id="studio_customization.fletes_informes_f7f78fdd-08f1-4672-b71e-2073eda3533f" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_freight_reports')])]"/></record>
-    <record id="studio_customization.fletes_configuracion_7d810445-2ebc-40bb-a8e9-1b5bf4f4a041" model="ir.ui.menu"><field name="groups_id" eval="[(6, 0, [ref('group_freight_configuration')])]"/></record>
+    <!-- Fletes nativo -->
+    <record id="step_operations_ui.menu_freight_operations" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_operation')])]"/></record>
+    <record id="step_operations_ui.menu_freight_accounting" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_control')])]"/></record>
+    <record id="step_operations_ui.menu_freight_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_reports')])]"/></record>
+    <record id="step_operations_ui.menu_freight_configuration" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_configuration')])]"/></record>
 </odoo>

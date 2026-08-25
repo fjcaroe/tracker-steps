@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_hr_labor_document_contract" model="ir.sequence">
+        <field name="name">Documento laboral - Contrato</field>
+        <field name="code">hr.labor.document.contract</field>
+        <field name="prefix">CONT/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+    <record id="seq_hr_labor_document_notice" model="ir.sequence">
+        <field name="name">Documento laboral - Carta de aviso</field>
+        <field name="code">hr.labor.document.notice</field>
+        <field name="prefix">AVISO/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+    <record id="seq_hr_labor_document_severance" model="ir.sequence">
+        <field name="name">Documento laboral - Finiquito</field>
+        <field name="code">hr.labor.document.severance</field>
+        <field name="prefix">FINIQ/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+    <record id="seq_hr_contract_dt_batch" model="ir.sequence">
+        <field name="name">Lote DT - Contratos</field>
+        <field name="code">hr.contract.dt.batch</field>
+        <field name="prefix">DT-CONT/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+    <record id="seq_hr_termination_notice" model="ir.sequence">
+        <field name="name">Aviso de término</field>
+        <field name="code">hr.termination.notice</field>
+        <field name="prefix">AVISO/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+    <record id="seq_hr_termination_notice_dt_batch" model="ir.sequence">
+        <field name="name">Lote DT - Avisos</field>
+        <field name="code">hr.termination.notice.dt.batch</field>
+        <field name="prefix">DT-AVISO/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+    <record id="seq_hr_severance" model="ir.sequence">
+        <field name="name">Finiquito</field>
+        <field name="code">hr.severance</field>
+        <field name="prefix">FINIQ/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+    <record id="seq_hr_severance_dt_batch" model="ir.sequence">
+        <field name="name">Lote DT - Finiquitos</field>
+        <field name="code">hr.severance.dt.batch</field>
+        <field name="prefix">DT-FINIQ/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+</odoo>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_libro_remuneraciones_wizard_form_steps" model="ir.ui.view">
+        <field name="name">step.hr.remuneration.book.wizard.form</field>
+        <field name="model">step.hr.remuneration.book.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Libro de Remuneraciones">
+                <div class="alert alert-info mb-3" role="alert" invisible="mode != 'full'">
+                    <h4 class="alert-heading mb-1">Libro de Remuneraciones</h4>
+                    <p class="mb-0">
+                        El <b>libro consolidado</b> (Excel y PDF) es un informe de
+                        control interno con 24 columnas agrupadas por departamento.
+                        El <b>archivo oficial DT</b> es un CSV distinto, con la
+                        estructura completa exigida para la carga en Mi DT.
+                        Se consideran sólo liquidaciones Hechas o Pagadas.
+                    </p>
+                </div>
+                <div class="alert alert-warning mb-3" role="alert" invisible="mode != 'partial'">
+                    <h4 class="alert-heading mb-1">Reporte parcial de remuneraciones</h4>
+                    <p class="mb-0">
+                        Este informe contiene <b>únicamente las liquidaciones que
+                        usted puede ver</b> según las reglas de acceso de Nómina.
+                        <b>No es el Libro de Remuneraciones de la empresa</b> y no
+                        habilita el archivo oficial de la Dirección del Trabajo.
+                    </p>
+                </div>
+                <field name="mode" invisible="1"/>
+                <group>
+                    <group>
+                        <field name="company_id" options="{'no_create': True}"/>
+                        <field name="group_by"/>
+                        <field name="scope_label" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="month"/>
+                        <field name="year" options="{'enable_formatting': False}"/>
+                        <field name="period_label" readonly="1"/>
+                        <field name="profile_id" readonly="1"/>
+                        <field name="profile_origin" readonly="1"/>
+                    </group>
+                </group>
+                <field name="date_from" invisible="1"/>
+                <field name="date_to" invisible="1"/>
+                <field name="preview_done" invisible="1"/>
+                <field name="preview_blocked" invisible="1"/>
+                <field name="official_csv_available" invisible="1"/>
+                <group string="Síntesis de control">
+                    <button name="action_refresh_preview" type="object"
+                            string="Revisar antes de descargar"
+                            class="btn-secondary mb-2" icon="fa-search"/>
+                    <field name="preview_html" nolabel="1" readonly="1"/>
+                </group>
+                <div class="alert alert-danger mb-0" role="alert"
+                     invisible="not (preview_done and preview_blocked)">
+                    Las descargas están bloqueadas: la revisión encontró errores
+                    que impiden emitir un informe confiable.
+                </div>
+                <footer>
+                    <button name="action_download_xlsx" type="object"
+                            string="Libro consolidado Excel"
+                            class="btn-primary" icon="fa-file-excel-o"
+                            invisible="mode != 'full' or (preview_done and preview_blocked)"/>
+                    <button name="action_download_xlsx" type="object"
+                            string="Reporte parcial Excel"
+                            class="btn-primary" icon="fa-file-excel-o"
+                            invisible="mode != 'partial' or (preview_done and preview_blocked)"/>
+                    <button name="action_download_pdf" type="object"
+                            string="Libro consolidado PDF"
+                            class="btn-primary" icon="fa-file-pdf-o"
+                            invisible="mode != 'full' or (preview_done and preview_blocked)"/>
+                    <button name="action_download_pdf" type="object"
+                            string="Reporte parcial PDF"
+                            class="btn-primary" icon="fa-file-pdf-o"
+                            invisible="mode != 'partial' or (preview_done and preview_blocked)"/>
+                    <button name="action_download_official_csv" type="object"
+                            string="Archivo oficial DT (CSV)"
+                            class="btn-secondary" icon="fa-download"
+                            invisible="mode != 'full' or not official_csv_available or (preview_done and preview_blocked)"/>
+                    <button name="action_download_employee_sheets" type="object"
+                            string="Fichas detalladas por trabajador"
+                            class="btn-secondary" icon="fa-file-text-o"
+                            invisible="preview_done and preview_blocked"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_libro_remuneraciones_wizard_steps" model="ir.actions.act_window">
+        <field name="name">Libro de Remuneraciones</field>
+        <field name="res_model">step.hr.remuneration.book.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_mode': 'full'}</field>
+        <field name="groups_id" eval="[(6, 0, [ref('step_hr_remuneration_book.group_remuneration_book_full')])]"/>
+    </record>
+
+    <record id="action_hr_remuneration_partial_report_steps" model="ir.actions.act_window">
+        <field name="name">Reporte parcial de remuneraciones</field>
+        <field name="res_model">step.hr.remuneration.book.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_mode': 'partial'}</field>
+        <field name="groups_id" eval="[(6, 0, [ref('hr_payroll.group_hr_payroll_user')])]"/>
+    </record>
+
+    <menuitem id="menu_hr_payroll_libro_remuneraciones_steps"
+              name="Libro de Remuneraciones"
+              parent="hr_payroll.menu_hr_payroll_report"
+              action="action_hr_libro_remuneraciones_wizard_steps"
+              sequence="42"
+              groups="step_hr_remuneration_book.group_remuneration_book_full"/>
+
+    <menuitem id="menu_hr_payroll_reporte_parcial_steps"
+              name="Reporte parcial de remuneraciones"
+              parent="hr_payroll.menu_hr_payroll_report"
+              action="action_hr_remuneration_partial_report_steps"
+              sequence="43"
+              groups="hr_payroll.group_hr_payroll_user"/>
+</odoo>

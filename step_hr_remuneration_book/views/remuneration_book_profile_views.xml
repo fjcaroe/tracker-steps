@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_remuneration_book_profile_form" model="ir.ui.view">
+        <field name="name">step.remuneration.book.profile.form</field>
+        <field name="model">step.remuneration.book.profile</field>
+        <field name="arch" type="xml">
+            <form string="Perfil de mapeo DT">
+                <header>
+                    <button name="action_validate" type="object"
+                            string="Validar" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_activate" type="object"
+                            string="Activar" class="btn-primary"
+                            invisible="state == 'active'"/>
+                    <button name="action_back_to_draft" type="object"
+                            string="Volver a borrador" class="btn-secondary"
+                            invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,validated,active"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Nombre del perfil"/></h1>
+                    </div>
+                    <div class="alert alert-info mb-2" role="alert">
+                        El perfil es <b>configuración técnica</b>. Un
+                        Administrador de Nómina puede asignar a su empresa un
+                        perfil <b>Activo</b>, pero no puede programar de dónde
+                        sale un importe: los orígenes externos son adaptadores
+                        registrados en código.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="company_id" options="{'no_create': True}"/>
+                            <field name="sequence"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="detector_rule_codes"/>
+                            <field name="validation_message" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Notas sobre el motor de nómina de origen"/>
+                    <notebook>
+                        <page string="Mapeo de códigos DT">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="dt_code"/>
+                                    <field name="label"/>
+                                    <field name="source_type"/>
+                                    <field name="rule_codes"
+                                           column_invisible="0"/>
+                                    <field name="operand_codes"/>
+                                    <field name="adapter_key"/>
+                                    <field name="adapter_param"/>
+                                    <field name="sign"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_remuneration_book_profile_list" model="ir.ui.view">
+        <field name="name">step.remuneration.book.profile.list</field>
+        <field name="model">step.remuneration.book.profile</field>
+        <field name="arch" type="xml">
+            <list string="Perfiles de mapeo DT">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="company_id"/>
+                <field name="detector_rule_codes"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-info="state == 'validated'"
+                       decoration-warning="state == 'draft'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_remuneration_book_profile" model="ir.actions.act_window">
+        <field name="name">Perfiles del Libro de Remuneraciones</field>
+        <field name="res_model">step.remuneration.book.profile</field>
+        <field name="view_mode">list,form</field>
+        <field name="groups_id" eval="[(6, 0, [ref('step_hr_remuneration_book.group_remuneration_book_technical')])]"/>
+    </record>
+
+    <record id="view_remuneration_book_log_list" model="ir.ui.view">
+        <field name="name">step.remuneration.book.log.list</field>
+        <field name="model">step.remuneration.book.log</field>
+        <field name="arch" type="xml">
+            <list string="Auditoría de exportaciones" create="false" edit="false">
+                <field name="create_date" string="Fecha"/>
+                <field name="user_id"/>
+                <field name="company_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="output"/>
+                <field name="scope"/>
+                <field name="result"/>
+                <field name="profile_id"/>
+                <field name="payslip_count"/>
+                <field name="line_count"/>
+                <field name="warning_count"/>
+                <field name="detail"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_remuneration_book_log" model="ir.actions.act_window">
+        <field name="name">Auditoría del Libro de Remuneraciones</field>
+        <field name="res_model">step.remuneration.book.log</field>
+        <field name="view_mode">list</field>
+        <field name="groups_id" eval="[(6, 0, [ref('step_hr_remuneration_book.group_remuneration_book_full')])]"/>
+    </record>
+
+    <menuitem id="menu_remuneration_book_profile"
+              name="Perfiles del Libro de Remuneraciones"
+              parent="hr_payroll.menu_hr_salary_configuration"
+              action="action_remuneration_book_profile"
+              sequence="90"
+              groups="step_hr_remuneration_book.group_remuneration_book_technical"/>
+
+    <menuitem id="menu_remuneration_book_log"
+              name="Auditoría del Libro de Remuneraciones"
+              parent="hr_payroll.menu_hr_payroll_report"
+              action="action_remuneration_book_log"
+              sequence="91"
+              groups="step_hr_remuneration_book.group_remuneration_book_full"/>
+
+    <record id="view_company_form_remuneration_book" model="ir.ui.view">
+        <field name="name">res.company.form.remuneration.book</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Libro de Remuneraciones Steps"
+                       groups="step_hr_remuneration_book.group_remuneration_book_full">
+                    <field name="remuneration_book_profile_id"
+                           options="{'no_create': True}"/>
+                    <field name="remuneration_book_tolerance"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -15,17 +15,17 @@
                     </div>
                 </section>
                 <section class="o_step_bpa_actions">
-                    <button class="btn btn-primary" t-on-click="() => this.openAction('studio_customization.riego_y_fertilizacio_abfdac43-df3b-4c1a-ab45-739484dbdb49')"><i class="fa fa-tint"/> Registrar fertirriego</button>
-                    <button class="btn btn-outline-primary" t-on-click="() => this.openAction('studio_customization.aplicacion_foliar_d0548a61-bbf3-42ac-bab3-6cac83f4f8c9')"><i class="fa fa-leaf"/> Aplicación foliar</button>
-                    <button class="btn btn-outline-primary" t-on-click="() => this.openAction('studio_customization.monitoreo_agricola_42c91e4e-0a6b-48e2-90ca-b669f074188f')"><i class="fa fa-binoculars"/> Monitoreo</button>
+                    <button class="btn btn-primary" t-on-click="() => this.openAction('step_bpa_irrigation.riego_y_fertilizacio_abfdac43-df3b-4c1a-ab45-739484dbdb49')"><i class="fa fa-tint"/> Registrar fertirriego</button>
+                    <button class="btn btn-outline-primary" t-on-click="() => this.openAction('step_bpa_irrigation.aplicacion_foliar_d0548a61-bbf3-42ac-bab3-6cac83f4f8c9')"><i class="fa fa-leaf"/> Aplicación foliar</button>
+                    <button class="btn btn-outline-primary" t-on-click="() => this.openAction('step_bpa_irrigation.monitoreo_agricola_42c91e4e-0a6b-48e2-90ca-b669f074188f')"><i class="fa fa-binoculars"/> Monitoreo</button>
                 </section>
                 <section class="o_step_bpa_kpis">
-                    <button class="o_step_bpa_kpi o_step_bpa_kpi--water" t-on-click="() => this.openAction('studio_customization.riego_y_fertilizacio_abfdac43-df3b-4c1a-ab45-739484dbdb49')"><span>Órdenes de fertirriego</span><strong t-esc="formatNumber(state.data.irrigation.total)"/><small><b t-esc="formatNumber(state.data.irrigation.only_water)"/> sólo riego</small></button>
+                    <button class="o_step_bpa_kpi o_step_bpa_kpi--water" t-on-click="() => this.openAction('step_bpa_irrigation.riego_y_fertilizacio_abfdac43-df3b-4c1a-ab45-739484dbdb49')"><span>Órdenes de fertirriego</span><strong t-esc="formatNumber(state.data.irrigation.total)"/><small><b t-esc="formatNumber(state.data.irrigation.only_water)"/> sólo riego</small></button>
                     <article class="o_step_bpa_kpi o_step_bpa_kpi--water"><span>Superficie a regar</span><strong><t t-esc="formatNumber(state.data.irrigation.hectares, 1)"/> ha</strong><small><t t-esc="formatNumber(state.data.irrigation.mixture_liters)"/> L de mezcla</small></article>
-                    <button class="o_step_bpa_kpi o_step_bpa_kpi--green" t-on-click="() => this.openAction('studio_customization.aplicacion_foliar_d0548a61-bbf3-42ac-bab3-6cac83f4f8c9')"><span>Aplicaciones BPA</span><strong t-esc="formatNumber(state.data.applications.total)"/><small><t t-esc="formatNumber(state.data.applications.hectares, 1)"/> ha tratadas</small></button>
+                    <button class="o_step_bpa_kpi o_step_bpa_kpi--green" t-on-click="() => this.openAction('step_bpa_irrigation.aplicacion_foliar_d0548a61-bbf3-42ac-bab3-6cac83f4f8c9')"><span>Aplicaciones BPA</span><strong t-esc="formatNumber(state.data.applications.total)"/><small><t t-esc="formatNumber(state.data.applications.hectares, 1)"/> ha tratadas</small></button>
                     <article class="o_step_bpa_kpi o_step_bpa_kpi--gold"><span>Costo aplicaciones</span><strong t-esc="formatCurrency(state.data.applications.cost)"/><small>Según registros del período</small></article>
-                    <button class="o_step_bpa_kpi" t-on-click="() => this.openAction('studio_customization.monitoreo_agricola_42c91e4e-0a6b-48e2-90ca-b669f074188f')"><span>Monitoreos agrícolas</span><strong t-esc="formatNumber(state.data.monitoring.total)"/><small>Seguimiento en terreno</small></button>
-                    <button class="o_step_bpa_kpi" t-on-click="() => this.openAction('studio_customization.sector_de_riego_7302c63c-ca82-4da9-b707-7dd50fe71bc7')"><span>Sectores de riego</span><strong t-esc="formatNumber(state.data.sectors.total)"/><small><t t-esc="formatNumber(state.data.sectors.hectares, 1)"/> ha configuradas</small></button>
+                    <button class="o_step_bpa_kpi" t-on-click="() => this.openAction('step_bpa_irrigation.monitoreo_agricola_42c91e4e-0a6b-48e2-90ca-b669f074188f')"><span>Monitoreos agrícolas</span><strong t-esc="formatNumber(state.data.monitoring.total)"/><small>Seguimiento en terreno</small></button>
+                    <button class="o_step_bpa_kpi" t-on-click="() => this.openAction('step_bpa_irrigation.sector_de_riego_7302c63c-ca82-4da9-b707-7dd50fe71bc7')"><span>Sectores de riego</span><strong t-esc="formatNumber(state.data.sectors.total)"/><small><t t-esc="formatNumber(state.data.sectors.hectares, 1)"/> ha configuradas</small></button>
                 </section>
                 <section class="o_step_bpa_workspace">
                     <div class="o_step_bpa_panel o_step_bpa_panel--wide">
@@ -38,9 +38,9 @@
                     <aside class="o_step_bpa_panel o_step_bpa_shortcuts">
                         <header><div><span>ACCESOS RÁPIDOS</span><h2>Gestión BPA y Riego</h2></div></header>
                         <button t-on-click="() => this.openAction('step_hr.action_step_centro_costo_analytic')"><i class="fa fa-sitemap"/><span><strong>Centro de Costo</strong><small>Maestro compartido con Actividades</small></span></button>
-                        <button t-on-click="() => this.openAction('studio_customization.sector_de_riego_7302c63c-ca82-4da9-b707-7dd50fe71bc7')"><i class="fa fa-map-marker"/><span><strong>Sectores de riego</strong><small>Superficie, suelo y sistema</small></span></button>
-                        <button t-on-click="() => this.openAction('studio_customization.informes_bpa_d767d3b1-52f9-4039-9d29-ed6980e72149')"><i class="fa fa-bar-chart"/><span><strong>Analítica BPA</strong><small>Costos y hectáreas aplicadas</small></span></button>
-                        <button t-on-click="() => this.openAction('studio_customization.informe_de_riego_fdee3877-665d-40a2-ac4e-5af253c7ee54')"><i class="fa fa-line-chart"/><span><strong>Analítica de riego</strong><small>Superficie y mezcla por período</small></span></button>
+                        <button t-on-click="() => this.openAction('step_bpa_irrigation.sector_de_riego_7302c63c-ca82-4da9-b707-7dd50fe71bc7')"><i class="fa fa-map-marker"/><span><strong>Sectores de riego</strong><small>Superficie, suelo y sistema</small></span></button>
+                        <button t-on-click="() => this.openAction('step_bpa_irrigation.informes_bpa_d767d3b1-52f9-4039-9d29-ed6980e72149')"><i class="fa fa-bar-chart"/><span><strong>Analítica BPA</strong><small>Costos y hectáreas aplicadas</small></span></button>
+                        <button t-on-click="() => this.openAction('step_bpa_irrigation.informe_de_riego_fdee3877-665d-40a2-ac4e-5af253c7ee54')"><i class="fa fa-line-chart"/><span><strong>Analítica de riego</strong><small>Superficie y mezcla por período</small></span></button>
                     </aside>
                 </section>
             </t>

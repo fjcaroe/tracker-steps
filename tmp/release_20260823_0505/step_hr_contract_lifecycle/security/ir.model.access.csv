@@ -1,0 +1,36 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_legal_workweek_calendar_hr_manager,hr.legal.workweek.calendar hr manager,model_hr_legal_workweek_calendar,hr_contract.group_hr_contract_manager,1,1,1,0
+access_hr_legal_workweek_calendar_employee,hr.legal.workweek.calendar employee,model_hr_legal_workweek_calendar,base.group_user,1,0,0,0
+access_hr_legal_workweek_calendar_technical,hr.legal.workweek.calendar technical,model_hr_legal_workweek_calendar,group_legal_calendar_technical,1,1,1,1
+access_hr_contract_adequacy_batch_hr_manager,hr.contract.adequacy.batch hr manager,model_hr_contract_adequacy_batch,hr_contract.group_hr_contract_manager,1,1,1,1
+access_hr_contract_adequacy_line_hr_manager,hr.contract.adequacy.line hr manager,model_hr_contract_adequacy_line,hr_contract.group_hr_contract_manager,1,1,1,1
+access_hr_legal_calendar_execution_log_hr_manager,hr.legal.calendar.execution.log hr manager,model_hr_legal_calendar_execution_log,hr_contract.group_hr_contract_manager,1,0,1,0
+access_hr_legal_calendar_execution_log_technical,hr.legal.calendar.execution.log technical,model_hr_legal_calendar_execution_log,group_legal_calendar_technical,1,1,1,0
+access_hr_legal_calendar_simulator,hr.legal.calendar.simulator,model_hr_legal_calendar_simulator,hr_contract.group_hr_contract_manager,1,1,1,1
+access_hr_labor_template_view,hr.labor.template view,model_hr_labor_template,group_contract_management_view,1,0,0,0
+access_hr_labor_template_config,hr.labor.template config,model_hr_labor_template,group_labor_template_config,1,1,1,1
+access_hr_labor_template_preview,hr.labor.template.preview,model_hr_labor_template_preview,group_contract_management_view,1,1,1,1
+access_hr_labor_document_view,hr.labor.document view,model_hr_labor_document,group_contract_management_view,1,0,0,0
+access_hr_labor_document_issue,hr.labor.document issue,model_hr_labor_document,group_contract_management_issue,1,1,1,0
+access_hr_contract_mass_print,hr.contract.mass.print,model_hr_contract_mass_print,group_contract_management_issue,1,1,1,1
+access_hr_causal_termino_audit,hr.causal.termino audit,l10n_cl_hr.model_hr_causal_termino,group_labor_audit,1,0,0,0
+access_hr_labor_template_audit,hr.labor.template audit,model_hr_labor_template,group_labor_audit,1,0,0,0
+access_hr_labor_document_audit,hr.labor.document audit,model_hr_labor_document,group_labor_audit,1,0,0,0
+access_hr_contract_dt_batch_issue,hr.contract.dt.batch issue,model_hr_contract_dt_batch,group_contract_management_issue,1,1,1,0
+access_hr_contract_dt_batch_view,hr.contract.dt.batch view,model_hr_contract_dt_batch,group_contract_management_view,1,0,0,0
+access_hr_contract_dt_batch_audit,hr.contract.dt.batch audit,model_hr_contract_dt_batch,group_labor_audit,1,0,0,0
+access_hr_contract_dt_export_wizard,hr.contract.dt.export.wizard,model_hr_contract_dt_export_wizard,group_contract_management_issue,1,1,1,1
+access_hr_termination_notice_issue,hr.termination.notice issue,model_hr_termination_notice,group_contract_management_issue,1,1,1,0
+access_hr_termination_notice_view,hr.termination.notice view,model_hr_termination_notice,group_contract_management_view,1,0,0,0
+access_hr_termination_notice_audit,hr.termination.notice audit,model_hr_termination_notice,group_labor_audit,1,0,0,0
+access_hr_termination_notice_mass_wizard,hr.termination.notice.mass.wizard,model_hr_termination_notice_mass_wizard,group_contract_management_issue,1,1,1,1
+access_hr_termination_notice_dt_batch_issue,hr.termination.notice.dt.batch issue,model_hr_termination_notice_dt_batch,group_contract_management_issue,1,1,1,0
+access_hr_termination_notice_dt_batch_view,hr.termination.notice.dt.batch view,model_hr_termination_notice_dt_batch,group_contract_management_view,1,0,0,0
+access_hr_termination_notice_dt_batch_audit,hr.termination.notice.dt.batch audit,model_hr_termination_notice_dt_batch,group_labor_audit,1,0,0,0
+access_hr_severance_calc,hr.severance calc,model_hr_severance,group_severance_calc,1,1,1,0
+access_hr_severance_view,hr.severance view,model_hr_severance,group_contract_management_view,1,0,0,0
+access_hr_severance_audit,hr.severance audit,model_hr_severance,group_labor_audit,1,0,0,0
+access_hr_severance_selection_wizard,hr.severance.selection.wizard,model_hr_severance_selection_wizard,group_severance_calc,1,1,1,1
+access_hr_severance_dt_batch_export,hr.severance.dt.batch export,model_hr_severance_dt_batch,group_dt_afc_export,1,1,1,0
+access_hr_severance_dt_batch_view,hr.severance.dt.batch view,model_hr_severance_dt_batch,group_contract_management_view,1,0,0,0
+access_hr_severance_dt_batch_audit,hr.severance.dt.batch audit,model_hr_severance_dt_batch,group_labor_audit,1,0,0,0

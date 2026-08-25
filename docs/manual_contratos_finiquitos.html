@@ -1,0 +1,749 @@
+<meta charset="utf-8">
+<title>Manual de Contratos y Finiquitos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --paper: #f6f5ef;
+    --paper-raised: #ffffff;
+    --ink: #1f2a24;
+    --ink-soft: #4b564e;
+    --border: #dcdfd3;
+    --pine: #2f5233;
+    --pine-strong: #23402a;
+    --pine-tint: #e7efe4;
+    --wheat: #b3801f;
+    --wheat-tint: #f7ecd7;
+    --danger: #a3402f;
+    --danger-tint: #f7e6e1;
+    --mono-bg: #eef0e6;
+    --shadow: 0 1px 2px rgba(31, 42, 36, 0.06), 0 8px 24px -12px rgba(31, 42, 36, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141a15;
+      --paper-raised: #1b231c;
+      --ink: #e9ece5;
+      --ink-soft: #aab3a4;
+      --border: #313c31;
+      --pine: #6fa878;
+      --pine-strong: #8ec096;
+      --pine-tint: #1e2c20;
+      --wheat: #d9a44c;
+      --wheat-tint: #2c2515;
+      --danger: #d97a68;
+      --danger-tint: #2e1e1a;
+      --mono-bg: #1c231b;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #141a15;
+    --paper-raised: #1b231c;
+    --ink: #e9ece5;
+    --ink-soft: #aab3a4;
+    --border: #313c31;
+    --pine: #6fa878;
+    --pine-strong: #8ec096;
+    --pine-tint: #1e2c20;
+    --wheat: #d9a44c;
+    --wheat-tint: #2c2515;
+    --danger: #d97a68;
+    --danger-tint: #2e1e1a;
+    --mono-bg: #1c231b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Source Sans 3', -apple-system, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--pine-strong); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--pine);
+    outline-offset: 2px;
+  }
+
+  .shell {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    max-width: 1180px;
+    margin: 0 auto;
+    gap: 0;
+  }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    grid-column: 1 / -1;
+    padding: 3.5rem clamp(1.25rem, 4vw, 3rem) 2.5rem;
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(ellipse 900px 320px at 15% 0%, var(--pine-tint), transparent 65%);
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--pine);
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin-bottom: 1rem;
+  }
+  .eyebrow::before {
+    content: "";
+    width: 1.6em;
+    height: 1px;
+    background: var(--pine);
+    display: inline-block;
+  }
+
+  h1.title {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(2.1rem, 4vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+
+  .dek {
+    font-size: 1.1rem;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0 0 1.6rem;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.6rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  .meta-row strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Sidebar / TOC ---------- */
+  nav.toc {
+    padding: 2.5rem 1.5rem 2.5rem clamp(1.25rem, 4vw, 3rem);
+    align-self: start;
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  nav.toc .toc-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 0.9rem;
+  }
+  nav.toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    counter-reset: toc;
+    border-left: 1px solid var(--border);
+  }
+  nav.toc li { counter-increment: toc; }
+  nav.toc a {
+    display: block;
+    padding: 0.5rem 0 0.5rem 1rem;
+    margin-left: -1px;
+    border-left: 1px solid transparent;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  nav.toc a::before {
+    content: counter(toc, decimal-leading-zero) "  ";
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--pine);
+    font-size: 0.78rem;
+  }
+  nav.toc a:hover { color: var(--ink); border-left-color: var(--pine); }
+
+  /* ---------- Main content ---------- */
+  main {
+    padding: 2.5rem clamp(1.25rem, 4vw, 3rem) 6rem;
+    min-width: 0;
+    border-left: 1px solid var(--border);
+  }
+
+  section.chapter {
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+    scroll-margin-top: 1.5rem;
+  }
+  section.chapter:not(:first-child) {
+    border-top: 1px solid var(--border);
+  }
+
+  .chapter-kicker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--pine);
+    margin: 0 0 0.4rem;
+  }
+
+  h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin: 2rem 0 0.7rem;
+  }
+
+  p { margin: 0 0 1rem; max-width: 66ch; }
+  p.lede { font-size: 1.05rem; color: var(--ink-soft); max-width: 62ch; }
+
+  ol.steps {
+    display: grid;
+    gap: 0.55rem;
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    max-width: 66ch;
+  }
+  ol.steps li {
+    counter-increment: step;
+    position: relative;
+    display: block;
+    min-height: 3.25rem;
+    padding: 0.75rem 0.9rem 0.75rem 3.7rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    background: var(--paper-raised);
+    background: color-mix(in srgb, var(--paper-raised) 72%, transparent);
+  }
+  ol.steps li:hover { border-color: var(--border); background: var(--paper-raised); }
+  ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    top: 0.75rem;
+    left: 0.85rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--pine-strong);
+    background: var(--pine-tint);
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  ol.steps li strong { color: var(--pine-strong); font-weight: 700; }
+
+  ul.plain { margin: 0 0 1.2rem; padding-left: 1.2rem; max-width: 62ch; }
+  ul.plain li { margin-bottom: 0.4rem; }
+
+  code, .tok {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.86em;
+    background: var(--mono-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+  }
+
+  .path {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.86em;
+    color: var(--pine-strong);
+  }
+  .path .sep { color: var(--ink-soft); margin: 0 0.15em; }
+
+  /* callouts */
+  .callout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.7rem;
+    align-items: start;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--pine);
+    background: var(--paper-raised);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin: 1.2rem 0;
+    max-width: 66ch;
+    box-shadow: var(--shadow);
+  }
+  .callout.warn { border-left-color: var(--wheat); }
+  .callout.stop { border-left-color: var(--danger); }
+  .callout .badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: var(--pine-tint);
+    color: var(--pine-strong);
+    white-space: nowrap;
+  }
+  .callout.warn .badge { background: var(--wheat-tint); color: var(--wheat); }
+  .callout.stop .badge { background: var(--danger-tint); color: var(--danger); }
+  .callout p { margin: 0; font-size: 0.95rem; }
+  .callout p + p { margin-top: 0.5rem; }
+
+  /* variable reference table */
+  .var-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin: 1.2rem 0 1.6rem;
+    background: var(--paper-raised);
+  }
+  table.var-table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 640px;
+    font-size: 0.92rem;
+  }
+  table.var-table th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--pine-tint);
+    position: sticky;
+    top: 0;
+  }
+  table.var-table td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.var-table tr:last-child td { border-bottom: none; }
+  table.var-table td.group {
+    font-weight: 600;
+    color: var(--pine-strong);
+    white-space: nowrap;
+  }
+  table.var-table code { white-space: nowrap; }
+
+  /* status pills */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--paper-raised);
+    white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 0.5em; height: 0.5em; border-radius: 999px; background: var(--pine); }
+  .pill.wheat::before { background: var(--wheat); }
+  .pill.gray::before { background: var(--ink-soft); }
+
+  /* nav map cards */
+  .tab-map {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.2rem 0 1.6rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .tab-map span {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--paper-raised);
+  }
+  .tab-map span.current { border-color: var(--pine); color: var(--pine-strong); background: var(--pine-tint); font-weight: 600; }
+  .tab-map .arrow { display: flex; align-items: center; color: var(--ink-soft); }
+
+  .menu-tree {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+    padding: 1.1rem 1.3rem;
+    margin: 1.2rem 0 1.6rem;
+    max-width: 66ch;
+    font-size: 0.94rem;
+  }
+  .menu-tree .lvl1 { font-weight: 600; color: var(--pine-strong); margin-top: 0.6rem; }
+  .menu-tree .lvl1:first-child { margin-top: 0; }
+  .menu-tree .lvl2 { padding-left: 1.4rem; color: var(--ink-soft); position: relative; }
+  .menu-tree .lvl2::before { content: "–"; position: absolute; left: 0.4rem; color: var(--border); }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    max-width: 66ch;
+    margin: 1.2rem 0 1.6rem;
+  }
+  .card {
+    border: 1px solid var(--border);
+    background: var(--paper-raised);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    box-shadow: var(--shadow);
+  }
+  .card h4 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--pine);
+    margin: 0 0 0.5rem;
+  }
+  .card p { margin: 0; font-size: 0.92rem; }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1.1rem 0 1.6rem;
+    font-size: 0.86rem;
+  }
+  .flow .stage {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--paper-raised);
+  }
+  .flow .stage.alt { border-style: dashed; color: var(--ink-soft); }
+  .flow .sep { color: var(--ink-soft); }
+
+  footer.colophon {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border);
+    padding: 2rem clamp(1.25rem, 4vw, 3rem) 3rem;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; }
+    nav.toc { position: static; max-height: none; border-bottom: 1px solid var(--border); }
+    main { border-left: none; }
+  }
+
+  @media (max-width: 560px) {
+    main { padding-left: 1rem; padding-right: 1rem; }
+    ol.steps li { padding: 0.7rem 0.75rem 0.7rem 3.35rem; }
+    ol.steps li::before { top: 0.7rem; left: 0.7rem; }
+    .path { font-size: 0.82em; }
+  }
+</style>
+
+<div class="shell">
+  <header class="masthead">
+    <div class="eyebrow">Steps Nómina · Contratos y Finiquitos</div>
+    <h1 class="title">Manual de operación</h1>
+    <p class="dek">Cómo emitir contratos, validar plantillas legales, calcular el calendario de jornada, generar avisos de término y calcular finiquitos — paso a paso, tal como está configurado en Desarrollo, Demo y Demo-SyS.</p>
+    <div class="meta-row">
+      <span><strong>Módulo:</strong> step_hr_contract_lifecycle</span>
+      <span><strong>Ambientes:</strong> desarrollo · demo · demo-sys</span>
+      <span><strong>Última revisión:</strong> 23 de agosto de 2026</span>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="Contenidos">
+    <div class="toc-label">En este manual</div>
+    <ol>
+      <li><a href="#mapa">Dónde está todo</a></li>
+      <li><a href="#plantillas">Plantillas y sus variables</a></li>
+      <li><a href="#contratos">Emitir un contrato</a></li>
+      <li><a href="#calendario">Calendario legal y jornada</a></li>
+      <li><a href="#avisos">Avisos de término</a></li>
+      <li><a href="#finiquitos">Finiquitos</a></li>
+      <li><a href="#dt">Archivos para la DT</a></li>
+      <li><a href="#permisos">Quién puede hacer qué</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section class="chapter" id="mapa">
+      <p class="chapter-kicker">01 · Orientación</p>
+      <h2>Dónde está todo</h2>
+      <p class="lede">Todo vive dentro de la app <strong>Nómina</strong>, no como una aplicación aparte. La barra de pestañas quedó así:</p>
+
+      <div class="tab-map">
+        <span>Tablero</span>
+        <span class="arrow">→</span>
+        <span>Contratos</span>
+        <span class="arrow">→</span>
+        <span>Entradas de trabajo</span>
+        <span class="arrow">→</span>
+        <span>Recibos de nómina</span>
+        <span class="arrow">→</span>
+        <span class="current">Término laboral</span>
+        <span class="arrow">→</span>
+        <span>Reportes</span>
+        <span class="arrow">→</span>
+        <span>Configuración</span>
+      </div>
+
+      <p>Dos pestañas concentran lo nuevo. Todo lo que empieza con <em>Gestión contractual</em> vive dentro de <strong>Contratos</strong>; todo lo de avisos y finiquitos vive en su pestaña propia, <strong>Término laboral</strong>:</p>
+
+      <div class="menu-tree">
+        <div class="lvl1">Contratos</div>
+        <div class="lvl2">Gestión contractual → Contratos, Emisión masiva, Documentos y firmas, Archivos DT, Lotes DT (contratos), Adecuación de jornada</div>
+        <div class="lvl1">Término laboral</div>
+        <div class="lvl2">Cartas de aviso, Emisión masiva de avisos, Lotes DT y AFC, Finiquitos, Ingreso masivo a finiquitar, Lotes DT (finiquitos)</div>
+        <div class="lvl1">Configuración</div>
+        <div class="lvl2">Calendario legal laboral, Causales y reglas de cálculo, Bitácora calendario legal</div>
+      </div>
+
+      <div class="callout">
+        <span class="badge">Tip</span>
+        <p>Las <strong>Plantillas laborales</strong> (el tema de la siguiente sección) están dentro de <span class="path">Contratos<span class="sep">›</span>Documentos y firmas</span>, porque un documento generado siempre nace de una plantilla.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="plantillas">
+      <p class="chapter-kicker">02 · Lo que preguntaste</p>
+      <h2>Plantillas laborales y cómo validar sus variables</h2>
+      <p class="lede">Una plantilla es el texto del contrato, aviso o finiquito con espacios en blanco que el sistema completa solo. Esos espacios en blanco son <strong>variables</strong>, y sólo se puede usar un conjunto cerrado de ellas — nunca fórmulas ni código.</p>
+
+      <h3>Por qué existe una lista cerrada</h3>
+      <p>El sistema nunca ejecuta lo que se escribe en el cuerpo de la plantilla como código: sólo busca textos con esta forma exacta — <code>{{grupo.campo}}</code> — y los reemplaza por el dato real del contrato. Si escribes algo que no está en la lista de abajo, el sistema no lo va a inventar ni a adivinar: te va a avisar antes de dejarte generar nada.</p>
+
+      <h3>Paso a paso para validar una plantilla</h3>
+      <ol class="steps">
+        <li>Ve a <span class="path">Contratos<span class="sep">›</span>Documentos y firmas<span class="sep">›</span>Plantillas laborales</span> y abre (o crea) la plantilla.</li>
+        <li>Escribe el cuerpo del documento en la pestaña <strong>Cuerpo del documento</strong>, usando <code>{{ }}</code> sólo para los datos que cambian según el trabajador — el resto es texto fijo, igual que en cualquier contrato.</li>
+        <li>Antes de tocar nada más, pulsa el botón <strong>Validar variables</strong> en la parte superior del formulario.</li>
+        <li>Si todo está bien, no pasa nada visible (es la señal correcta). Si algo está mal, aparece un mensaje con el nombre exacto de la o las variables que no reconoce.</li>
+        <li>Corrige esos textos comparándolos con la tabla de abajo — el error más común es un guion bajo de más, una letra cambiada, o escribir el grupo y el campo al revés.</li>
+        <li>Pulsa <strong>Vista previa</strong> para ver el documento ya armado con los datos de un contrato real de la compañía, y confirmar que se lee bien antes de darlo por bueno.</li>
+        <li>Cuando estés conforme, pulsa <strong>Validar plantilla</strong> (no <em>Validar variables</em>) para pasarla de Borrador a Validada — sólo entonces queda disponible para emitir contratos con ella.</li>
+      </ol>
+
+      <div class="callout stop">
+        <span class="badge">No se puede</span>
+        <p>Una plantilla en estado <strong>Borrador</strong> no se puede usar para emitir un contrato, aunque las variables estén bien escritas. Tiene que quedar en estado <strong>Validada</strong>.</p>
+      </div>
+
+      <h3>Variables disponibles</h3>
+      <p>Esta es la lista completa y cerrada. Cualquier otra cosa entre <code>{{ }}</code> no se va a reconocer.</p>
+
+      <div class="var-table-wrap">
+        <table class="var-table">
+          <thead>
+            <tr><th>Variable</th><th>Grupo</th><th>Qué muestra</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="group">Empleador</td><td><code>{{empleador.nombre}}</code></td><td>Razón social de la compañía del contrato</td></tr>
+            <tr><td></td><td><code>{{empleador.rut}}</code></td><td>RUT de la compañía</td></tr>
+            <tr><td></td><td><code>{{empleador.direccion}}</code></td><td>Dirección registrada de la compañía</td></tr>
+            <tr><td class="group">Trabajador</td><td><code>{{trabajador.nombre}}</code></td><td>Nombre completo del empleado</td></tr>
+            <tr><td></td><td><code>{{trabajador.rut}}</code></td><td>RUT / identificación del empleado</td></tr>
+            <tr><td></td><td><code>{{trabajador.nacionalidad}}</code></td><td>País del empleado</td></tr>
+            <tr><td class="group">Contrato</td><td><code>{{contrato.modalidad}}</code></td><td>Temporada, a trato, plazo fijo o permanente</td></tr>
+            <tr><td></td><td><code>{{contrato.cargo}}</code></td><td>Puesto / job del contrato</td></tr>
+            <tr><td></td><td><code>{{contrato.fundo}}</code></td><td>Fundo o predio (sólo si el adaptador agrícola está instalado)</td></tr>
+            <tr><td></td><td><code>{{contrato.fecha_inicio}}</code></td><td>Fecha de inicio, formato dd/mm/aaaa</td></tr>
+            <tr><td></td><td><code>{{contrato.fecha_termino}}</code></td><td>Fecha de término, si existe</td></tr>
+            <tr><td></td><td><code>{{contrato.fecha_celebracion}}</code></td><td>Fecha en que se firma el contrato</td></tr>
+            <tr><td></td><td><code>{{contrato.comuna_celebracion}}</code></td><td>Comuna donde se celebra el contrato</td></tr>
+            <tr><td></td><td><code>{{contrato.sueldo_base}}</code></td><td>Sueldo base, con separador de miles</td></tr>
+            <tr><td></td><td><code>{{contrato.jornada_semanal}}</code></td><td>Horas semanales pactadas en el contrato</td></tr>
+            <tr><td></td><td><code>{{contrato.jornada_maxima_legal}}</code></td><td>Máximo legal vigente ese día (ver Calendario legal)</td></tr>
+            <tr><td></td><td><code>{{contrato.lugar_trabajo}}</code></td><td>Calle, número y comuna donde trabaja</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Versionar sin romper contratos ya firmados</h3>
+      <p>Si necesitas cambiar el texto de una plantilla que ya se usó para emitir contratos, no la edites directamente: pulsa <strong>Nueva versión</strong>. Los documentos ya generados quedan congelados tal como se imprimieron — editar la plantilla nunca les cambia el texto retroactivamente.</p>
+    </section>
+
+    <section class="chapter" id="contratos">
+      <p class="chapter-kicker">03 · Emisión</p>
+      <h2>Emitir un contrato</h2>
+      <p class="lede">Un contrato usa exactamente una plantilla validada de su misma modalidad.</p>
+
+      <ol class="steps">
+        <li>Abre el contrato en <span class="path">Contratos<span class="sep">›</span>Gestión contractual<span class="sep">›</span>Contratos</span> y ve a la pestaña <strong>Gestión contractual</strong> del formulario.</li>
+        <li>Elige la <strong>Modalidad contractual</strong> (temporada, a trato, plazo fijo o permanente): esto filtra qué plantillas puedes elegir después.</li>
+        <li>Elige la <strong>Plantilla laboral</strong> — sólo aparecen las que ya están en estado Validada para esa modalidad.</li>
+        <li>Completa fecha de celebración, comuna y los datos de jornada/ubicación que necesite el documento.</li>
+        <li>Para uno solo: usa el botón de imprimir del contrato. Para varios a la vez, selecciona los contratos en la lista y usa la acción <strong>Imprimir contratos</strong> — deja el PDF y su historial en cada trabajador automáticamente.</li>
+      </ol>
+
+      <div class="callout warn">
+        <span class="badge">Antes de generar</span>
+        <p>Si algún dato legal obligatorio falta (por ejemplo AFP o salud, según el motor de nómina instalado), el sistema no genera un documento con ese campo vacío: te dice exactamente qué falta y en qué contrato.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="calendario">
+      <p class="chapter-kicker">04 · Jornada legal</p>
+      <h2>Calendario legal y adecuación de jornada</h2>
+      <p class="lede">La reducción de la jornada máxima (44 → 42 → 40 horas semanales) ya está cargada con sus tres fechas oficiales en <span class="path">Contratos<span class="sep">›</span>Configuración<span class="sep">›</span>Calendario legal laboral</span>, y no se puede editar sin permiso técnico.</p>
+
+      <div class="flow">
+        <span class="stage">26-04-2024 · 44 hrs</span><span class="sep">→</span>
+        <span class="stage">26-04-2026 · 42 hrs</span><span class="sep">→</span>
+        <span class="stage alt">26-04-2028 · 40 hrs</span>
+      </div>
+
+      <p>Cuando falten 180, 90, 60, 30, 15 o 7 días para una transición, el sistema crea automáticamente una actividad para el responsable configurado en la compañía. Para preparar el ajuste con anticipación:</p>
+      <ol class="steps">
+        <li>Abre la transición futura y pulsa <strong>Simular adecuación</strong> para ver cuántos contratos quedarían sobre el nuevo máximo.</li>
+        <li>Desde el simulador, pulsa <strong>Crear lote de adecuación</strong> — genera una línea por contrato afectado.</li>
+        <li>Completa la <strong>Distribución propuesta</strong> de cada contrato (obligatoria antes de aprobar).</li>
+        <li>Pulsa <strong>Aprobar</strong> — requiere el permiso de aprobación de adecuación, distinto del de configuración.</li>
+      </ol>
+      <p>El día exacto de la transición, los contratos con lote aprobado se ajustan solos; los que no tengan adecuación aprobada generan una incidencia crítica en vez de reducirse en silencio.</p>
+    </section>
+
+    <section class="chapter" id="avisos">
+      <p class="chapter-kicker">05 · Término laboral</p>
+      <h2>Avisos de término</h2>
+      <p class="lede">La carta de aviso es un trámite separado del finiquito — tiene su propio estado y su propio plazo legal.</p>
+      <div class="two-col">
+        <div class="card">
+          <h4>Individual</h4>
+          <p>Crea el aviso desde <span class="path">Término laboral<span class="sep">›</span>Cartas de aviso</span>, elige la causal y pulsa <strong>Generar carta</strong>. Si la causal exige certificado (ej. art. 163 bis), el sistema no deja continuar sin adjuntarlo.</p>
+        </div>
+        <div class="card">
+          <h4>Masiva</h4>
+          <p><span class="path">Término laboral<span class="sep">›</span>Emisión masiva de avisos</span> filtra por compañía, departamento, tipo de contrato y modalidad, y avisa si algún trabajador ya tiene un aviso abierto antes de crear duplicados.</p>
+        </div>
+      </div>
+      <p>Un aviso marcado en rojo en la lista está fuera del plazo legal estimado para esa causal — revísalo antes de notificar.</p>
+    </section>
+
+    <section class="chapter" id="finiquitos">
+      <p class="chapter-kicker">06 · Término laboral</p>
+      <h2>Finiquitos</h2>
+      <p class="lede">El cálculo sigue un flujo con etapas, no un botón único — cada paso queda registrado con quién y cuándo lo hizo.</p>
+
+      <div class="flow">
+        <span class="stage">Borrador</span><span class="sep">→</span>
+        <span class="stage">Prevalidación</span><span class="sep">→</span>
+        <span class="stage">Cálculo</span><span class="sep">→</span>
+        <span class="stage">Revisión</span><span class="sep">→</span>
+        <span class="stage">Aprobación</span><span class="sep">→</span>
+        <span class="stage">Documento</span><span class="sep">→</span>
+        <span class="stage">Firma</span><span class="sep">→</span>
+        <span class="stage">Pago</span><span class="sep">→</span>
+        <span class="stage">Contabilizado</span><span class="sep">→</span>
+        <span class="stage">Cerrado</span>
+      </div>
+
+      <ol class="steps">
+        <li>Crea el finiquito uno a uno, o varios con <span class="path">Término laboral<span class="sep">›</span>Ingreso masivo a finiquitar</span>.</li>
+        <li>Pulsa <strong>Prevalidar</strong> — revisa que no exista ya un finiquito abierto para ese contrato.</li>
+        <li>Si la renta es variable o mixta, agrega las liquidaciones de los últimos tres meses en <strong>Liquidaciones usadas</strong> antes de calcular.</li>
+        <li>Pulsa <strong>Calcular</strong> — obtiene feriado proporcional, indemnización por años de servicio e indemnización por meses de servicio según la causal, con el detalle de días y montos a la vista.</li>
+        <li>Completa los demás haberes y descuentos de la pestaña correspondiente si aplican.</li>
+        <li>Envía a <strong>Revisión</strong> y luego <strong>Aprobación</strong> (requiere el permiso de aprobación de finiquitos, distinto del de cálculo).</li>
+        <li>Emite el documento, márcalo firmado y pagado a medida que ocurra cada hito.</li>
+      </ol>
+
+      <div class="callout">
+        <span class="badge">Trazabilidad</span>
+        <p>Cada monto calculado muestra su fórmula, la fecha usada y el origen del dato — no es una caja negra. Si algo se ve raro, revisa primero las fechas de inicio/término y la renta base antes de dudar del cálculo.</p>
+      </div>
+    </section>
+
+    <section class="chapter" id="dt">
+      <p class="chapter-kicker">07 · Dirección del Trabajo</p>
+      <h2>Archivos para la DT</h2>
+      <p class="lede">Los tres archivos (contratos, avisos, finiquitos) se generan localmente para que los revises antes de subirlos — el sistema nunca los envía por ti.</p>
+
+      <div class="two-col">
+        <div class="card">
+          <h4>Contratos · 91 columnas</h4>
+          <p><span class="path">Contratos<span class="sep">›</span>Archivos DT</span>. Se agrupan solos por Cargo + CAE en lotes separados, como exige el instructivo.</p>
+        </div>
+        <div class="card">
+          <h4>Avisos · 19 columnas</h4>
+          <p><span class="path">Término laboral<span class="sep">›</span>Lotes DT y AFC</span>.</p>
+        </div>
+        <div class="card">
+          <h4>Finiquitos · 48 columnas</h4>
+          <p><span class="path">Término laboral<span class="sep">›</span>Lotes DT (finiquitos)</span>. Se dividen solos en archivos de máximo 100 filas, sin mezclar compañías.</p>
+        </div>
+      </div>
+
+      <p>En los tres, <strong>Prevalidar</strong> revisa fila por fila antes de generar el CSV. Si falta un dato obligatorio, te dice exactamente qué empleado y qué columna — no genera un archivo con huecos.</p>
+    </section>
+
+    <section class="chapter" id="permisos">
+      <p class="chapter-kicker">08 · Accesos</p>
+      <h2>Quién puede hacer qué</h2>
+      <p class="lede">La emisión, la aprobación y la configuración técnica son permisos distintos a propósito — para que nadie apruebe sus propios finiquitos por descuido.</p>
+
+      <div class="var-table-wrap">
+        <table class="var-table">
+          <thead><tr><th>Grupo</th><th>Puede</th></tr></thead>
+          <tbody>
+            <tr><td class="group">Gestión contractual: consulta</td><td>Ver contratos y documentos, sin emitir</td></tr>
+            <tr><td class="group">Gestión contractual: emisión</td><td>Generar contratos, avisos y lotes DT</td></tr>
+            <tr><td class="group">Finiquitos: cálculo</td><td>Crear y calcular finiquitos hasta Revisión</td></tr>
+            <tr><td class="group">Finiquitos: aprobación</td><td>Aprobar finiquitos ya calculados</td></tr>
+            <tr><td class="group">Adecuación de jornada: aprobación</td><td>Aprobar lotes de adecuación de jornada</td></tr>
+            <tr><td class="group">Calendario legal: configuración técnica</td><td>Editar las fechas oficiales del calendario legal</td></tr>
+            <tr><td class="group">Plantillas y parámetros legales: config. técnica</td><td>Crear y modificar plantillas y causales</td></tr>
+            <tr><td class="group">Archivos DT/AFC: exportación</td><td>Generar los CSV para la DT</td></tr>
+            <tr><td class="group">Datos sensibles del contrato</td><td>Ver discapacidad, salud y retenciones</td></tr>
+            <tr><td class="group">Auditoría laboral: sólo lectura</td><td>Ver todo, sin poder editar nada</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Se asignan desde <span class="path">Ajustes<span class="sep">›</span>Usuarios y compañías<span class="sep">›</span>Usuarios</span>, pestaña de permisos, categoría <strong>Nómina - Gestión contractual</strong>.</p>
+    </section>
+
+  </main>
+
+  <footer class="colophon">
+    <span>Steps Consulting — Nómina Agro</span>
+    <span>step_hr_contract_lifecycle · 18.0.2.0.0</span>
+  </footer>
+</div>

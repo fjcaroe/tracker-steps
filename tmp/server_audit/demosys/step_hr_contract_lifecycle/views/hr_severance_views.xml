@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_severance_list" model="ir.ui.view">
+        <field name="name">hr.severance.list</field>
+        <field name="model">hr.severance</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="causal_id"/>
+                <field name="date_termino"/>
+                <field name="total_a_pagar" sum="Total"/>
+                <field name="state" widget="badge"/>
+                <field name="responsible_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hr_severance" model="ir.actions.act_window">
+        <field name="name">Finiquitos</field>
+        <field name="res_model">hr.severance</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_hr_severance_create_batches" model="ir.actions.server">
+        <field name="name">Generar lote DT (finiquitos)</field>
+        <field name="model_id" ref="model_hr_severance"/>
+        <field name="binding_model_id" ref="model_hr_severance"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_create_dt_batches()</field>
+    </record>
+
+    <record id="view_hr_severance_form" model="ir.ui.view">
+        <field name="name">hr.severance.form</field>
+        <field name="model">hr.severance</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_prevalidate" type="object" string="Prevalidar" invisible="state != 'draft'"/>
+                    <button name="action_calculate" type="object" string="Calcular" class="oe_highlight" invisible="state != 'prevalidated'"/>
+                    <button name="action_send_review" type="object" string="Enviar a revisión" invisible="state != 'calculated'"/>
+                    <button name="action_approve" type="object" string="Aprobar" class="oe_highlight" invisible="state != 'review'"/>
+                    <button name="action_issue_document" type="object" string="Emitir documento" invisible="state != 'approved'"/>
+                    <button name="action_mark_signed" type="object" string="Marcar firmado" invisible="state != 'document_issued'"/>
+                    <button name="action_mark_paid" type="object" string="Marcar pagado" invisible="state != 'signed'"/>
+                    <button name="action_close" type="object" string="Cerrar" invisible="state != 'accounted'"/>
+                    <button name="action_observe" type="object" string="Observar" invisible="state in ('closed','cancelled','rejected')"/>
+                    <button name="action_reject" type="object" string="Rechazar" invisible="state in ('closed','cancelled','rejected')"/>
+                    <button name="action_cancel" type="object" string="Cancelar" invisible="state in ('closed','cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,prevalidated,calculated,review,approved,document_issued,signed,paid,accounted,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group>
+                        <group>
+                            <field name="contract_id" readonly="state != 'draft'"/>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="company_id"/>
+                            <field name="causal_id" readonly="state != 'draft'"/>
+                            <field name="date_termino" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="income_type"/>
+                            <field name="last_payslip_ids" widget="many2many_tags" invisible="income_type == 'fija'"/>
+                            <field name="renta_base"/>
+                            <field name="manual_adjustment_reason" invisible="not renta_base"/>
+                            <field name="uf_value"/>
+                            <field name="uf_date"/>
+                            <field name="uf_source"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Indemnizaciones (calculado)">
+                            <group string="Feriado proporcional">
+                                <field name="feriado_dias_habiles" readonly="1"/>
+                                <field name="feriado_dias_finales" readonly="1"/>
+                                <field name="feriado_window_start" readonly="1"/>
+                                <field name="feriado_window_end" readonly="1"/>
+                                <field name="feriado_amount" readonly="1"/>
+                            </group>
+                            <group string="Indemnización años de servicio (IAS anual)" invisible="not ias_anual_applies">
+                                <field name="ias_anual_years" readonly="1"/>
+                                <field name="ias_anual_tope_uf_aplicado" readonly="1"/>
+                                <field name="ias_anual_amount" readonly="1"/>
+                            </group>
+                            <group string="Indemnización meses de servicio (IAS mensual)" invisible="not ias_mensual_applies">
+                                <field name="ias_mensual_months" readonly="1"/>
+                                <field name="ias_mensual_amount" readonly="1"/>
+                            </group>
+                            <group string="Mes de aviso">
+                                <field name="mes_aviso_amount" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="total_indemnizaciones" readonly="1"/>
+                            </group>
+                        </page>
+                        <page string="Otros haberes">
+                            <group>
+                                <group>
+                                    <field name="remuneracion_pendiente"/>
+                                    <field name="gratificacion"/>
+                                    <field name="bonos"/>
+                                    <field name="horas_extraordinarias"/>
+                                    <field name="aguinaldo"/>
+                                    <field name="semana_corrida"/>
+                                    <field name="comision"/>
+                                </group>
+                                <group>
+                                    <field name="movilizacion"/>
+                                    <field name="colacion"/>
+                                    <field name="perdida_caja"/>
+                                    <field name="desgaste_herramientas"/>
+                                    <field name="viaticos"/>
+                                    <field name="asignaciones_familiares"/>
+                                </group>
+                            </group>
+                            <field name="total_haberes" readonly="1"/>
+                        </page>
+                        <page string="Descuentos">
+                            <group>
+                                <group>
+                                    <field name="descuento_seguridad_social"/>
+                                    <field name="descuento_impuestos"/>
+                                    <field name="descuento_afc"/>
+                                    <field name="descuento_anticipos"/>
+                                    <field name="descuento_indemnizacion_anticipada"/>
+                                </group>
+                                <group>
+                                    <field name="descuento_pension_alimenticia"/>
+                                    <field name="descuento_caja_compensacion"/>
+                                    <field name="descuento_prestamos"/>
+                                    <field name="descuento_anticipo_sueldo"/>
+                                    <field name="descuento_vacaciones_anticipadas"/>
+                                </group>
+                            </group>
+                            <group>
+                                <field name="retencion_alimentos"/>
+                                <field name="retencion_alimentos_notes" invisible="not retencion_alimentos"/>
+                            </group>
+                            <field name="total_descuentos" readonly="1"/>
+                        </page>
+                        <page string="Documento y registro">
+                            <field name="document_id" readonly="1"/>
+                            <field name="account_move_id" readonly="1"/>
+                            <field name="payment_id" readonly="1"/>
+                        </page>
+                    </notebook>
+                    <group>
+                        <field name="total_a_pagar" readonly="1" class="oe_subtotal_footer_separator"/>
+                    </group>
+                    <group string="Motivo del estado" invisible="state not in ('observed','rejected','cancelled','reopened')">
+                        <field name="state_reason"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_severance_selection_wizard_form" model="ir.ui.view">
+        <field name="name">hr.severance.selection.wizard.form</field>
+        <field name="model">hr.severance.selection.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="company_id"/>
+                        <field name="fundo_id"/>
+                        <field name="department_id"/>
+                        <field name="contract_type_id"/>
+                        <field name="labor_modality"/>
+                    </group>
+                    <group>
+                        <field name="causal_id"/>
+                        <field name="date_termino"/>
+                        <field name="income_type"/>
+                    </group>
+                </group>
+                <field name="matched_contract_ids" readonly="1" invisible="not matched_contract_ids">
+                    <list><field name="employee_id"/><field name="job_id"/></list>
+                </field>
+                <footer>
+                    <button name="action_search" type="object" string="Buscar" class="oe_highlight"/>
+                    <button name="action_create_severances" type="object" string="Crear finiquitos"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_severance_selection_wizard" model="ir.actions.act_window">
+        <field name="name">Ingreso masivo de personal a finiquitar</field>
+        <field name="res_model">hr.severance.selection.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="view_hr_severance_dt_batch_list" model="ir.ui.view">
+        <field name="name">hr.severance.dt.batch.list</field>
+        <field name="model">hr.severance.dt.batch</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="severance_count"/>
+                <field name="state" widget="badge"/>
+                <field name="dt_result" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_severance_dt_batch_form" model="ir.ui.view">
+        <field name="name">hr.severance.dt.batch.form</field>
+        <field name="model">hr.severance.dt.batch</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_validate" type="object" string="Prevalidar" invisible="state != 'draft'"/>
+                    <button name="action_generate_csv" type="object" string="Generar CSV" class="oe_highlight" invisible="state != 'validated'"/>
+                    <button name="action_record_result" type="object" string="Registrar resultado" invisible="state != 'generated'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <field name="company_id"/>
+                    <field name="csv_attachment_id" widget="binary" filename="name" readonly="1"/>
+                    <field name="csv_hash" readonly="1"/>
+                    <group string="Resultado" invisible="state not in ('generated','result_recorded')">
+                        <field name="dt_result"/>
+                    </group>
+                    <field name="error_report" readonly="1" invisible="not error_report"/>
+                    <field name="severance_ids" readonly="1">
+                        <list><field name="employee_id"/><field name="total_a_pagar"/></list>
+                    </field>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_severance_dt_batch" model="ir.actions.act_window">
+        <field name="name">Lotes DT (finiquitos)</field>
+        <field name="res_model">hr.severance.dt.batch</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

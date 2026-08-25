@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_causal_termino_list" model="ir.ui.view">
+        <field name="name">hr.causal.termino.list</field>
+        <field name="model">hr.causal.termino</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="dt_codigo_causal"/>
+                <field name="articulo"/>
+                <field name="name"/>
+                <field name="applies_ias_anual" widget="boolean_toggle"/>
+                <field name="applies_ias_mensual" widget="boolean_toggle"/>
+                <field name="applies_mes_aviso" widget="boolean_toggle"/>
+                <field name="requires_certificate" widget="boolean_toggle"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_causal_termino_form" model="ir.ui.view">
+        <field name="name">hr.causal.termino.form</field>
+        <field name="model">hr.causal.termino</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="codigo"/>
+                            <field name="name"/>
+                            <field name="articulo"/>
+                            <field name="dt_codigo_causal"/>
+                        </group>
+                        <group>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="active"/>
+                            <field name="requires_certificate"/>
+                        </group>
+                    </group>
+                    <group string="Conceptos de finiquito que aplica">
+                        <field name="applies_ias_anual"/>
+                        <field name="applies_ias_mensual"/>
+                        <field name="applies_mes_aviso"/>
+                    </group>
+                    <field name="description_legal" placeholder="Descripción legal / notas..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_causal_termino" model="ir.actions.act_window">
+        <field name="name">Causales de término</field>
+        <field name="res_model">hr.causal.termino</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+</odoo>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_steps_payroll_dashboard" model="ir.actions.client">
+        <field name="name">Inicio</field>
+        <field name="tag">step_hr_remuneration_book.payroll_dashboard</field>
+    </record>
+
+    <record id="hr_payroll.menu_hr_payroll_dashboard_root" model="ir.ui.menu">
+        <field name="name">Inicio</field>
+        <field name="action" ref="step_hr_remuneration_book.action_steps_payroll_dashboard"/>
+        <field name="sequence">1</field>
+    </record>
+
+    <menuitem id="menu_steps_payroll_report_center"
+              name="Centro de reportes"
+              parent="hr_payroll.menu_hr_payroll_report"
+              action="action_steps_payroll_dashboard"
+              sequence="1"
+              groups="hr_payroll.group_hr_payroll_user"/>
+</odoo>

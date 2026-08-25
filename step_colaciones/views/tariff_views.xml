@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_colacion_tariff_list" model="ir.ui.view">
+        <field name="name">step.colacion.tariff.list</field>
+        <field name="model">step.colacion.tariff</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'active'" decoration-muted="state == 'closed'" sample="1">
+                <field name="name"/>
+                <field name="supplier_id"/>
+                <field name="valid_from"/>
+                <field name="valid_to"/>
+                <field name="currency_id"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'active'"
+                       decoration-muted="state == 'closed'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_colacion_tariff_form" model="ir.ui.view">
+        <field name="name">step.colacion.tariff.form</field>
+        <field name="model">step.colacion.tariff</field>
+        <field name="arch" type="xml">
+            <form string="Tarifa de colaciones">
+                <header>
+                    <button name="action_activate" type="object" string="Activar tarifa" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_close" type="object" string="Cerrar tarifa" invisible="state != 'active'"/>
+                    <button name="action_draft" type="object" string="Volver a borrador" invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ej.: Tarifa Casino Central 2026"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="supplier_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="valid_from" readonly="state != 'draft'"/>
+                            <field name="valid_to" readonly="state != 'draft'"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Productos y precios">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_tmpl_id"/>
+                                    <field name="price"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notas">
+                            <field name="notes" placeholder="Condiciones comerciales, reajustes u observaciones..."/>
+                        </page>
+                        <page string="Migración" groups="base.group_system" invisible="not legacy_ref">
+                            <field name="legacy_ref" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_colacion_tariff_search" model="ir.ui.view">
+        <field name="name">step.colacion.tariff.search</field>
+        <field name="model">step.colacion.tariff</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="supplier_id"/>
+                <filter name="active_rates" string="Vigentes" domain="[('state', '=', 'active')]"/>
+                <filter name="draft_rates" string="Borradores" domain="[('state', '=', 'draft')]"/>
+                <filter name="group_supplier" string="Proveedor" context="{'group_by': 'supplier_id'}"/>
+                <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_colacion_tariff" model="ir.actions.act_window">
+        <field name="name">Tarifas</field>
+        <field name="res_model">step.colacion.tariff</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_colacion_tariff_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Configure la primera tarifa</p>
+            <p>Las colaciones se valorizan con la tarifa vigente al momento del registro.</p>
+        </field>
+    </record>
+</odoo>

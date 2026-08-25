@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_colacion_totem_list" model="ir.ui.view">
+        <field name="name">step.colacion.totem.list</field>
+        <field name="model">step.colacion.totem</field>
+        <field name="arch" type="xml">
+            <list sample="1">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="product_tmpl_id"/>
+                <field name="supplier_id"/>
+                <field name="identification_method" widget="badge"/>
+                <field name="last_seen_at" optional="show"/>
+                <field name="last_sync_at" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_colacion_totem_kanban" model="ir.ui.view">
+        <field name="name">step.colacion.totem.kanban</field>
+        <field name="model">step.colacion.totem</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile" sample="1">
+                <field name="active"/>
+                <templates>
+                    <t t-name="card">
+                        <main>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <strong class="fs-5"><field name="name"/></strong>
+                                <span class="badge rounded-pill text-bg-success" t-if="record.active.raw_value">Activo</span>
+                                <span class="badge rounded-pill text-bg-secondary" t-else="">Inactivo</span>
+                            </div>
+                            <div class="text-muted mt-1"><field name="code"/></div>
+                            <div class="mt-3"><i class="fa fa-cutlery me-2"/><field name="product_tmpl_id"/></div>
+                            <div class="mt-1"><i class="fa fa-truck me-2"/><field name="supplier_id"/></div>
+                            <div class="mt-1"><i class="fa fa-id-card me-2"/><field name="identification_method"/></div>
+                            <footer class="mt-3 border-top pt-2">
+                                <span class="text-muted">Última sincronización: </span>
+                                <field name="last_sync_at"/>
+                            </footer>
+                        </main>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_colacion_totem_form" model="ir.ui.view">
+        <field name="name">step.colacion.totem.form</field>
+        <field name="model">step.colacion.totem</field>
+        <field name="arch" type="xml">
+            <form string="Tótem de colaciones">
+                <header>
+                    <button name="action_open_totem" type="object" string="Abrir tótem" class="btn-primary" invisible="not active"/>
+                    <button name="action_regenerate_token" type="object" string="Regenerar acceso" confirm="La URL anterior dejará de funcionar. ¿Desea continuar?"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_registrations" type="object" class="oe_stat_button" icon="fa-cutlery">
+                            <field name="registration_count" widget="statinfo" string="Registros"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Inactivo" bg_color="text-bg-danger" invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ej.: Tótem Casino Packing"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identificación del equipo">
+                            <field name="code"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active"/>
+                            <field name="identification_method" widget="radio"/>
+                        </group>
+                        <group string="Colación configurada">
+                            <field name="product_tmpl_id"/>
+                            <field name="supplier_id"/>
+                            <field name="allow_offline"/>
+                            <field name="offline_max_hours" invisible="not allow_offline"/>
+                        </group>
+                    </group>
+                    <group string="Acceso de la aplicación">
+                        <field name="app_base_url" readonly="1"/>
+                        <field name="totem_url" widget="CopyClipboardChar" readonly="1" password="True"/>
+                        <field name="access_token" widget="CopyClipboardChar" readonly="1" password="True"/>
+                        <div class="alert alert-info" role="alert" colspan="2">
+                            Use <b>Abrir tótem</b> en el equipo, agregue la página como aplicación y deje el navegador en modo pantalla completa.
+                            La App móvil se asocia escaneando el código de abajo.
+                            La dirección se define en <b>Configuración → Ajustes</b>; cambiarla no regenera los tokens existentes.
+                            Para NFC se admite lector USB tipo teclado y, cuando el navegador lo permite, Web NFC.
+                        </div>
+                    </group>
+                    <group string="Código de asociación">
+                        <div colspan="2" class="text-center">
+                            <field name="pairing_qr" widget="image" options="{'size': [200, 200]}" readonly="1" nolabel="1"/>
+                            <p class="text-muted mt-2">
+                                Este código contiene el token del tótem: no lo comparta ni lo incluya en capturas de pantalla.
+                            </p>
+                        </div>
+                    </group>
+                    <group string="Monitoreo">
+                        <field name="last_seen_at" readonly="1"/>
+                        <field name="last_sync_at" readonly="1"/>
+                        <field name="device_platform" readonly="1"/>
+                        <field name="device_app_version" readonly="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_colacion_totem" model="ir.actions.act_window">
+        <field name="name">Tótems</field>
+        <field name="res_model">step.colacion.totem</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Configure el primer tótem</p>
+            <p>Seleccione producto, proveedor y método de identificación del trabajador.</p>
+        </field>
+    </record>
+</odoo>

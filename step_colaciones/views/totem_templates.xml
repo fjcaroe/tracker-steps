@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="totem_page" name="Tótem de Colaciones">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+                <meta name="theme-color" content="#123f2b"/>
+                <meta name="apple-mobile-web-app-capable" content="yes"/>
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+                <title>Colaciones — <t t-out="totem.name"/></title>
+                <link rel="manifest" t-att-href="'/colaciones/manifest/%s.webmanifest' % totem.access_token"/>
+                <link rel="icon" href="/step_colaciones/static/description/icon.png"/>
+                <link rel="stylesheet" href="/step_colaciones/static/src/totem/totem.css"/>
+            </head>
+            <body>
+                <main id="meal-totem"
+                      t-att-data-token="totem.access_token"
+                      t-att-data-method="totem.identification_method"
+                      t-att-data-product="totem.product_tmpl_id.display_name"
+                      t-att-data-supplier="totem.supplier_id.display_name"
+                      t-att-data-name="totem.name"
+                      t-att-data-allow-offline="'1' if totem.allow_offline else '0'">
+                    <header class="meal-header">
+                        <div class="meal-brand">
+                            <img src="/step_colaciones/static/description/icon.png" alt="Colaciones"/>
+                            <div><small>TÓTEM DE AUTORREGISTRO</small><h1 t-out="totem.name"/></div>
+                        </div>
+                        <div id="network-status" class="meal-network online"><span></span><b>En línea</b></div>
+                    </header>
+
+                    <section class="meal-content">
+                        <div class="meal-product">
+                            <span class="meal-kicker">COLACIÓN ACTUAL</span>
+                            <h2 t-out="totem.product_tmpl_id.display_name"/>
+                            <p><span t-out="totem.supplier_id.display_name"/> · Cantidad 1</p>
+                        </div>
+
+                        <section class="meal-card">
+                            <span id="method-icon" class="meal-method-icon">●</span>
+                            <h3 id="method-title">Identifíquese para registrar</h3>
+                            <p id="method-help">Acerque o ingrese su credencial.</p>
+                            <form id="registration-form" autocomplete="off">
+                                <label for="identifier" id="identifier-label">Identificación</label>
+                                <input id="identifier" name="identifier" type="text" inputmode="text"
+                                       autocomplete="off" autocapitalize="off" spellcheck="false" required="required"/>
+                                <button id="register-button" type="submit">Registrar colación</button>
+                                <button id="nfc-button" class="meal-secondary" type="button" hidden="hidden">Leer pulsera NFC</button>
+                            </form>
+                        </section>
+
+                        <div id="message" class="meal-message" role="status" aria-live="polite" hidden="hidden">
+                            <strong id="message-title"></strong>
+                            <span id="message-body"></span>
+                        </div>
+                    </section>
+
+                    <footer class="meal-footer">
+                        <span>ID <b t-out="totem.code"/></span>
+                        <span id="queue-status">Sin registros pendientes</span>
+                        <span id="clock"></span>
+                    </footer>
+                </main>
+                <script src="/step_colaciones/static/src/totem/totem.js"></script>
+            </body>
+        </html>
+    </template>
+</odoo>

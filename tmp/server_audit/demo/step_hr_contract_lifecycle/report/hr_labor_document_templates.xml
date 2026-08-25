@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        No usamos web.external_layout: en esta instancia esa plantilla
+        compartida fue editada (probablemente desde Studio) y asume una
+        variable "doc" con campo x_name, lo que rompe cualquier reporte
+        que no sea de un modelo Studio. Se arma un encabezado propio,
+        simple y profesional, sin tocar la plantilla compartida.
+    -->
+    <template id="report_hr_labor_document_document">
+        <t t-set="o" t-value="o.with_context(lang=o.employee_id.lang or 'es_CL')"/>
+        <div class="header">
+            <div class="row">
+                <div class="col-6">
+                    <img t-if="o.company_id.logo" t-att-src="image_data_uri(o.company_id.logo)" style="max-height: 60px;"/>
+                    <div t-esc="o.company_id.name"/>
+                    <div t-esc="o.company_id.vat"/>
+                </div>
+                <div class="col-6 text-end">
+                    <div t-esc="o.name"/>
+                    <div t-esc="o.generated_date" t-options="{'widget': 'datetime'}"/>
+                </div>
+            </div>
+            <hr/>
+        </div>
+        <div class="article" style="page-break-inside: auto;">
+            <div class="page">
+                <h2 class="text-center" t-esc="dict([
+                        ('contract', 'CONTRATO DE TRABAJO'),
+                        ('notice', 'CARTA DE AVISO DE TÉRMINO DE CONTRATO'),
+                        ('severance', 'FINIQUITO DE CONTRATO DE TRABAJO'),
+                    ]).get(o.document_type, 'DOCUMENTO LABORAL')"/>
+                <div t-out="o.rendered_body_html"/>
+                <div class="row mt64" style="page-break-inside: avoid;">
+                    <div class="col-6 text-center">
+                        <p>_______________________________</p>
+                        <p>Empleador</p>
+                    </div>
+                    <div class="col-6 text-center">
+                        <p>_______________________________</p>
+                        <p t-esc="o.employee_id.name"/>
+                        <p>Trabajador(a)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <hr/>
+            <div class="text-center text-muted" style="font-size: 9px;">
+                <span t-esc="o.name"/>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_hr_labor_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="step_hr_contract_lifecycle.report_hr_labor_document_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

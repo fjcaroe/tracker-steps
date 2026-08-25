@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_colaciones.Dashboard">
+        <div class="o_colaciones_dashboard">
+            <div class="o_colaciones_shell">
+                <header class="o_colaciones_hero">
+                    <div>
+                        <span class="o_colaciones_eyebrow">OPERACIÓN DIARIA</span>
+                        <h1>Colaciones</h1>
+                        <p>Registro confiable, planificación y costos en un solo lugar.</p>
+                    </div>
+                    <div class="o_colaciones_hero_actions">
+                        <label t-if="state.data" class="o_colaciones_period">
+                            <span>PERÍODO</span>
+                            <select aria-label="Período de colaciones" t-on-change="onPeriodChange">
+                                <option t-foreach="state.data.periods" t-as="option" t-key="option.value"
+                                        t-att-value="option.value"
+                                        t-att-selected="option.value === state.data.selected_period"
+                                        t-esc="option.label"/>
+                            </select>
+                        </label>
+                        <button class="btn btn-light" t-on-click="() => this.openAction('step_colaciones.action_colacion_registration', {additionalContext: {form_view_initial_mode: 'edit'}})">
+                            <i class="fa fa-plus me-2"/>Registrar colación
+                        </button>
+                        <button class="btn btn-outline-light" t-on-click="() => this.openAction('step_colaciones.action_colacion_totem')">
+                            <i class="fa fa-tablet me-2"/>Administrar tótems
+                        </button>
+                    </div>
+                </header>
+
+                <div t-if="state.loading" class="o_colaciones_loading">
+                    <i class="fa fa-spinner fa-spin"/> Cargando indicadores…
+                </div>
+
+                <t t-if="!state.loading and state.data">
+                    <section class="o_colaciones_kpis">
+                        <button class="o_colaciones_kpi" t-on-click="() => this.openAction('step_colaciones.action_colacion_registration')">
+                            <span class="o_colaciones_kpi_icon green"><i class="fa fa-cutlery"/></span>
+                            <span><small>REGISTRADAS EN EL PERÍODO</small><strong t-esc="state.data.total_period"/></span>
+                        </button>
+                        <button class="o_colaciones_kpi" t-on-click="() => this.openAction('step_colaciones.action_colacion_registration', {additionalContext: {search_default_entered: 1}})">
+                            <span class="o_colaciones_kpi_icon amber"><i class="fa fa-clock-o"/></span>
+                            <span><small>POR VALIDAR</small><strong t-esc="state.data.entered_period"/></span>
+                        </button>
+                        <button class="o_colaciones_kpi" t-on-click="() => this.openAction('step_colaciones.action_colacion_valued')">
+                            <span class="o_colaciones_kpi_icon teal"><i class="fa fa-money"/></span>
+                            <span><small>COSTO VALIDADO</small><strong><t t-esc="state.data.currency"/> <t t-esc="state.data.validated_cost"/></strong></span>
+                        </button>
+                        <div class="o_colaciones_kpi">
+                            <span class="o_colaciones_kpi_icon blue"><i class="fa fa-users"/></span>
+                            <span><small>PERSONAS ATENDIDAS</small><strong t-esc="state.data.unique_employees"/></span>
+                        </div>
+                    </section>
+
+                    <section class="o_colaciones_grid">
+                        <article class="o_colaciones_panel">
+                            <div class="o_colaciones_panel_header">
+                                <div>
+                                    <span class="o_colaciones_eyebrow dark" t-esc="state.data.period"/>
+                                    <h2>Demanda por producto</h2>
+                                </div>
+                                <span class="o_colaciones_offline"><i class="fa fa-cloud-upload me-1"/><t t-esc="state.data.offline_period"/> sincronizadas</span>
+                            </div>
+                            <div t-if="state.data.by_product.length" class="o_colaciones_product_list">
+                                <div t-foreach="state.data.by_product" t-as="item" t-key="item.name" class="o_colaciones_product_row">
+                                    <span t-esc="item.name"/>
+                                    <strong t-esc="item.count"/>
+                                </div>
+                            </div>
+                            <div t-else="" class="o_colaciones_empty">
+                                <i class="fa fa-leaf"/>
+                                <p>No hay colaciones registradas en este período.</p>
+                            </div>
+                        </article>
+
+                        <article class="o_colaciones_panel">
+                            <div class="o_colaciones_panel_header">
+                                <div>
+                                    <span class="o_colaciones_eyebrow dark">TRAZABILIDAD</span>
+                                    <h2>Últimos registros</h2>
+                                </div>
+                                <button class="btn btn-sm btn-link" t-on-click="() => this.openAction('step_colaciones.action_colacion_registration')">Ver todos</button>
+                            </div>
+                            <div t-if="state.data.recent.length" class="o_colaciones_recent">
+                                <button t-foreach="state.data.recent" t-as="record" t-key="record.id"
+                                        class="o_colaciones_recent_row" t-on-click="() => this.openRegistration(record.id)">
+                                    <span class="o_colaciones_avatar" t-esc="record.employee.substring(0, 1)"/>
+                                    <span class="o_colaciones_recent_text">
+                                        <strong t-esc="record.employee"/>
+                                        <small t-esc="record.product"/>
+                                    </span>
+                                    <span t-att-class="'o_colaciones_state ' + record.state"
+                                          t-esc="record.state == 'accounted' ? 'Contabilizado' : (record.state == 'costed' ? 'Costeado' : (record.state == 'validated' ? 'Validado' : (record.state == 'cancelled' ? 'Anulado' : 'Ingresado')))"/>
+                                </button>
+                            </div>
+                            <div t-else="" class="o_colaciones_empty compact"><p>Los registros aparecerán aquí.</p></div>
+                        </article>
+                    </section>
+
+                    <section class="o_colaciones_shortcuts">
+                        <button t-on-click="() => this.openAction('step_colaciones.action_colacion_plan')"><i class="fa fa-calendar"/><span>Planificación semanal</span></button>
+                        <button t-on-click="() => this.openAction('step_colaciones.action_colacion_tariff')"><i class="fa fa-tags"/><span>Tarifas vigentes</span></button>
+                        <button t-on-click="() => this.openAction('step_colaciones.action_colacion_products')"><i class="fa fa-cubes"/><span>Productos</span></button>
+                        <button t-on-click="() => this.openAction('step_colaciones.action_colacion_employees')"><i class="fa fa-id-card"/><span>Trabajadores</span></button>
+                    </section>
+                </t>
+            </div>
+        </div>
+    </t>
+</templates>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Perfiles de mapeo entre códigos DT y el motor de nómina instalado.
+        Son DATOS, no código: se pueden ajustar por empresa sin tocar el módulo
+        y sin modificar el addon del proveedor. Los nombres de departamento y
+        los importes nunca se declaran aquí: sólo la correspondencia de códigos.
+        `noupdate="1"` evita que una actualización pise ajustes del cliente.
+
+        Los perfiles se instalan en estado BORRADOR. El `post_init_hook` intenta
+        validarlos y activarlos contra la base real: si un adaptador necesita un
+        modelo que no está instalado, el perfil queda en borrador con un mensaje
+        accionable en vez de aparentar estar listo.
+    -->
+    <data noupdate="1">
+
+        <!-- ============ Localización chilena extendida (l10n_cl) ========== -->
+        <record id="profile_l10n_cl_extended" model="step.remuneration.book.profile">
+            <field name="name">Localización chilena extendida (l10n_cl)</field>
+            <field name="code">l10n_cl_extended</field>
+            <field name="sequence">10</field>
+            <field name="detector_rule_codes">TOTIM,HAB,TDE,LIQ</field>
+            <field name="note">Mapeo verificado contra las reglas de
+l10n_cl_hr_payroll_extended_14. Ojo: la regla AFP corresponde al total a
+enterar en la AFP (incluye el SIS del empleador); el descuento del trabajador
+para el código 3141 es PREV. Revise este perfil si su estructura salarial usa
+otros códigos.</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'sequence': 1,  'dt_code': '1101', 'label': 'Rut trabajador', 'source_type': 'employee_rut'}),
+                (0, 0, {'sequence': 2,  'dt_code': '1115', 'label': 'Días trabajados', 'source_type': 'worked_days', 'rule_codes': 'WORK100'}),
+                (0, 0, {'sequence': 3,  'dt_code': '2101', 'label': 'Sueldo', 'source_type': 'rule', 'rule_codes': 'SUELDO'}),
+                (0, 0, {'sequence': 4,  'dt_code': '2113', 'label': 'Bonos', 'source_type': 'rule', 'rule_codes': 'BONO,BONLAB,PROD'}),
+                (0, 0, {'sequence': 5,  'dt_code': '2106', 'label': 'Gratificación', 'source_type': 'rule', 'rule_codes': 'GRAT'}),
+                (0, 0, {'sequence': 6,  'dt_code': '5210', 'label': 'Total haberes imponibles', 'source_type': 'rule', 'rule_codes': 'TOTIM'}),
+                (0, 0, {'sequence': 7,  'dt_code': '2302', 'label': 'Movilización', 'source_type': 'rule', 'rule_codes': 'MOV'}),
+                (0, 0, {'sequence': 8,  'dt_code': '2301', 'label': 'Colación', 'source_type': 'rule', 'rule_codes': 'COL'}),
+                (0, 0, {'sequence': 9,  'dt_code': '2311', 'label': 'Asignación familiar', 'source_type': 'rule', 'rule_codes': 'ASIGFAM'}),
+                (0, 0, {'sequence': 10, 'dt_code': '5201', 'label': 'Total haberes', 'source_type': 'rule', 'rule_codes': 'HAB'}),
+                (0, 0, {'sequence': 11, 'dt_code': '3141', 'label': 'Cotización AFP o IPS', 'source_type': 'rule', 'rule_codes': 'PREV', 'sign': 'abs'}),
+                (0, 0, {'sequence': 12, 'dt_code': '3143', 'label': 'Cotización salud 7 %', 'source_type': 'rule', 'rule_codes': 'SALUD', 'sign': 'abs'}),
+                (0, 0, {'sequence': 13, 'dt_code': '3144', 'label': 'Cotización voluntaria salud', 'source_type': 'rule', 'rule_codes': 'ADISA', 'sign': 'abs'}),
+                (0, 0, {'sequence': 14, 'dt_code': '3151', 'label': 'Cotización AFC trabajador', 'source_type': 'rule', 'rule_codes': 'SECE', 'sign': 'abs'}),
+                (0, 0, {'sequence': 15, 'dt_code': '3161', 'label': 'Impuesto remuneraciones', 'source_type': 'rule', 'rule_codes': 'IMPUNI', 'sign': 'abs'}),
+                (0, 0, {'sequence': 16, 'dt_code': '3110', 'label': 'Crédito social CCAF', 'source_type': 'rule', 'rule_codes': 'PCCAF', 'sign': 'abs'}),
+                (0, 0, {'sequence': 17, 'dt_code': '3188', 'label': 'Anticipos', 'source_type': 'rule', 'rule_codes': 'ASUE,PREST', 'sign': 'abs'}),
+                (0, 0, {'sequence': 18, 'dt_code': '3183', 'label': 'Otros descuentos', 'source_type': 'rule', 'rule_codes': 'TOD', 'sign': 'abs'}),
+                (0, 0, {'sequence': 19, 'dt_code': '3155', 'label': 'Cotización APVi ahorro', 'source_type': 'rule', 'rule_codes': 'APV', 'sign': 'abs'}),
+                (0, 0, {'sequence': 20, 'dt_code': '5301', 'label': 'Total descuentos', 'source_type': 'rule', 'rule_codes': 'TDE', 'sign': 'abs'}),
+                (0, 0, {'sequence': 21, 'dt_code': '5501', 'label': 'Total líquido', 'source_type': 'rule', 'rule_codes': 'LIQ'}),
+            ]"/>
+        </record>
+
+        <!-- ===================== SimpleDigital ============================ -->
+        <record id="profile_simpledigital" model="step.remuneration.book.profile">
+            <field name="name">SimpleDigital</field>
+            <field name="code">simpledigital</field>
+            <field name="sequence">20</field>
+            <field name="detector_rule_codes">TOTAL_DSCTOS,GROSS,NET</field>
+            <field name="note">Mapeo verificado contra una copia de trabajo de
+una base con l10n_cl_simpledigital_payroll instalado (lectura, sin modificar el
+addon del proveedor ni las liquidaciones).
+
+Equivalencias comprobadas de forma agregada sobre períodos cerrados:
+  5210 = GROSS = 2101 + 2106 + 2113
+  5201 = 5210 + 2302 + 2301 + 2311  (misma fórmula que usa el generador del
+         proveedor: 5210 + 5220 + 5230 + 5240)
+  5301 = TOTAL_DSCTOS
+  5501 = NET = 5201 - 5301
+
+Los bonos (2113) y los anticipos o préstamos (3188) se materializan como reglas
+MOV_&lt;id&gt; generadas por cada tipo de movimiento, así que se leen mediante un
+adaptador registrado que resuelve esos códigos desde el catálogo de tipos y
+suma las líneas de la propia liquidación. No se usa la regla habIMP: el
+generador oficial del proveedor no la utiliza para el código 5210.
+
+Reglas identificadoras: TOTAL_DSCTOS, GROSS y NET. Se descartó AFC_T porque hay
+compañías reales sin ninguna línea de seguro de cesantía en el período, y el
+perfil dejaba de detectarse justo donde debía funcionar.</field>
+            <field name="line_ids" eval="[
+                (0, 0, {'sequence': 1,  'dt_code': '1101', 'label': 'Rut trabajador', 'source_type': 'employee_rut'}),
+                (0, 0, {'sequence': 2,  'dt_code': '1115', 'label': 'Días trabajados', 'source_type': 'worked_days', 'rule_codes': 'WORK100'}),
+                (0, 0, {'sequence': 3,  'dt_code': '2101', 'label': 'Sueldo', 'source_type': 'rule', 'rule_codes': 'BASIC'}),
+                (0, 0, {'sequence': 4,  'dt_code': '2106', 'label': 'Gratificación', 'source_type': 'rule', 'rule_codes': 'GRAT47,GRAT50'}),
+                (0, 0, {'sequence': 5,  'dt_code': '2113', 'label': 'Bonos', 'source_type': 'adapter', 'adapter_key': 'sd_movement_type_rules', 'adapter_param': 'bono_ok'}),
+                (0, 0, {'sequence': 6,  'dt_code': '5210', 'label': 'Total haberes imponibles', 'source_type': 'rule', 'rule_codes': 'GROSS'}),
+                (0, 0, {'sequence': 7,  'dt_code': '2302', 'label': 'Movilización', 'source_type': 'rule', 'rule_codes': 'MOV,MOV_15'}),
+                (0, 0, {'sequence': 8,  'dt_code': '2301', 'label': 'Colación', 'source_type': 'rule', 'rule_codes': 'COLA'}),
+                (0, 0, {'sequence': 9,  'dt_code': '2311', 'label': 'Asignación familiar', 'source_type': 'rule', 'rule_codes': 'ASIG_FAM'}),
+                (0, 0, {'sequence': 10, 'dt_code': '5201', 'label': 'Total haberes', 'source_type': 'aggregate', 'operand_codes': '5210,2302,2301,2311'}),
+                (0, 0, {'sequence': 11, 'dt_code': '3141', 'label': 'Cotización AFP o IPS', 'source_type': 'rule', 'rule_codes': 'AFP,IPS', 'sign': 'abs'}),
+                (0, 0, {'sequence': 12, 'dt_code': '3143', 'label': 'Cotización salud 7 %', 'source_type': 'rule', 'rule_codes': 'SALUD', 'sign': 'abs'}),
+                (0, 0, {'sequence': 13, 'dt_code': '3144', 'label': 'Cotización voluntaria salud', 'source_type': 'rule', 'rule_codes': 'ISAPRE_EXTRA', 'sign': 'abs'}),
+                (0, 0, {'sequence': 14, 'dt_code': '3151', 'label': 'Cotización AFC trabajador', 'source_type': 'rule', 'rule_codes': 'AFC_T', 'sign': 'abs'}),
+                (0, 0, {'sequence': 15, 'dt_code': '3161', 'label': 'Impuesto remuneraciones', 'source_type': 'rule', 'rule_codes': 'IMP_RETENIDO', 'sign': 'abs'}),
+                (0, 0, {'sequence': 16, 'dt_code': '3110', 'label': 'Crédito social CCAF', 'source_type': 'rule', 'rule_codes': 'CCAF_CREDITO,CCAF_SEG_VIDA', 'sign': 'abs'}),
+                (0, 0, {'sequence': 17, 'dt_code': '3188', 'label': 'Anticipos', 'source_type': 'adapter', 'adapter_key': 'sd_movement_type_rules', 'adapter_param': 'anticipo_prestamo', 'sign': 'abs'}),
+                (0, 0, {'sequence': 18, 'dt_code': '3183', 'label': 'Otros descuentos', 'source_type': 'rule', 'rule_codes': 'CCAF_OTROS,CCAF_DENTAL,CUENTA2', 'sign': 'abs'}),
+                (0, 0, {'sequence': 19, 'dt_code': '3155', 'label': 'Cotización APVi ahorro', 'source_type': 'rule', 'rule_codes': 'APVI', 'sign': 'abs'}),
+                (0, 0, {'sequence': 20, 'dt_code': '5301', 'label': 'Total descuentos', 'source_type': 'rule', 'rule_codes': 'TOTAL_DSCTOS', 'sign': 'abs'}),
+                (0, 0, {'sequence': 21, 'dt_code': '5501', 'label': 'Total líquido', 'source_type': 'rule', 'rule_codes': 'NET'}),
+            ]"/>
+        </record>
+
+    </data>
+</odoo>

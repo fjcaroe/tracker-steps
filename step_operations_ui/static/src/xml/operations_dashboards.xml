@@ -50,23 +50,23 @@
             <header class="o_steps_ops_hero">
                 <div><span>LOGÍSTICA AGRÍCOLA</span><h1>Fletes</h1><p>Órdenes, tarifas, transportistas y trazabilidad logística con una visión clara.</p></div>
                 <div class="o_steps_ops_hero_actions">
-                    <button class="btn btn-light" t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-plus me-1"/> Nueva orden</button>
-                    <button class="btn btn-outline-light" t-on-click="() => this.openAction('studio_customization.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money me-1"/> Ver tarifas</button>
+                    <button class="btn btn-light" t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-plus me-1"/> Nueva orden</button>
+                    <button class="btn btn-outline-light" t-on-click="() => this.openAction('step_operations_ui.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money me-1"/> Ver tarifas</button>
                 </div>
             </header>
             <div t-if="state.loading" class="o_steps_ops_loading"><i class="fa fa-spinner fa-spin"/> Preparando la información…</div>
             <div t-elif="state.error" class="o_steps_ops_empty" t-esc="state.error"/>
             <t t-else="">
                 <section class="o_steps_ops_kpis">
-                    <button t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-truck"/><span>Órdenes de flete<strong t-esc="formatNumber(state.data.orders)"/><small>Operaciones registradas</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.contabilizacion_de_f_18e9c853-5387-4778-baeb-2f36d87e1d6e')"><i class="fa fa-book"/><span>Contabilizaciones<strong t-esc="formatNumber(state.data.accounting)"/><small>Documentos procesados</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas vigentes<strong t-esc="formatNumber(state.data.tariffs)"/><small>Acuerdos configurados</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-map-marker"/><span>Rastreos<strong t-esc="formatNumber(state.data.tracking)"/><small>Seguimientos registrados</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-truck"/><span>Órdenes de flete<strong t-esc="formatNumber(state.data.orders)"/><small>Operaciones registradas</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.contabilizacion_de_f_18e9c853-5387-4778-baeb-2f36d87e1d6e')"><i class="fa fa-book"/><span>Contabilizaciones<strong t-esc="formatNumber(state.data.accounting)"/><small>Documentos procesados</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas vigentes<strong t-esc="formatNumber(state.data.tariffs)"/><small>Acuerdos configurados</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-map-marker"/><span>Rastreos<strong t-esc="formatNumber(state.data.tracking)"/><small>Seguimientos registrados</small></span></button>
                     <article><i class="fa fa-road"/><span>Tramos activos<strong t-esc="formatNumber(state.data.routes)"/><small><t t-esc="state.data.coldModes"/> modalidades de frío</small></span></article>
                 </section>
                 <div class="o_steps_ops_grid">
                     <section class="o_steps_ops_panel">
-                        <header><div><span>OPERACIÓN RECIENTE</span><h2>Últimas órdenes de flete</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')">Ver todas</button></header>
+                        <header><div><span>OPERACIÓN RECIENTE</span><h2>Últimas órdenes de flete</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')">Ver todas</button></header>
                         <div t-if="state.data.recent.length" class="o_steps_ops_recent">
                             <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRecord('x_orden_de_flete', row.id)">
                                 <i class="fa fa-truck"/><span><b t-esc="row.x_name || 'Orden sin folio'"/><small><t t-esc="many2oneName(row.x_studio_fundo, 'Sin fundo')"/> · <t t-esc="many2oneName(row.x_studio_transportista, 'Sin transportista')"/></small></span><strong t-esc="stateLabel(row.x_studio_selection_field_4ag_1jhk4c7s5)"/><time t-esc="formatDate(row.x_studio_fecha)"/>
@@ -76,17 +76,17 @@
                     </section>
                     <aside class="o_steps_ops_panel o_steps_ops_status">
                         <header><div><span>GESTIÓN LOGÍSTICA</span><h2>Accesos de control</h2></div></header>
-                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('studio_customization.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-location-arrow"/><span><b>Rastreo de camiones</b><small>Seguimiento de viajes y ubicación.</small></span></button>
-                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('studio_customization.informe_de_fletes_2d134967-2a6f-4953-9ade-9e7f4d1d8dba')"><i class="fa fa-bar-chart"/><span><b>Informe de fletes</b><small>Consulta consolidada de la operación.</small></span></button>
+                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-location-arrow"/><span><b>Rastreo de camiones</b><small>Seguimiento de viajes y ubicación.</small></span></button>
+                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.informe_de_fletes_2d134967-2a6f-4953-9ade-9e7f4d1d8dba')"><i class="fa fa-bar-chart"/><span><b>Informe de fletes</b><small>Consulta consolidada de la operación.</small></span></button>
                         <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>La portada resume la información existente y mantiene intactos los flujos de Studio.</p></div>
                     </aside>
                 </div>
                 <section class="o_steps_ops_shortcuts">
-                    <button t-on-click="() => this.openAction('studio_customization.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-file-text-o"/><span>Órdenes de flete<small>Registro y coordinación</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas<small>Vigencias y transportistas</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.transportistas_2c1977c3-a30e-4b17-b0f5-b339cac43c54')"><i class="fa fa-users"/><span>Transportistas<small>Proveedores logísticos</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.camiones_1bffc703-8cbf-4682-a0a9-a351661d8620')"><i class="fa fa-truck"/><span>Camiones<small>Flota habilitada</small></span></button>
-                    <button t-on-click="() => this.openAction('studio_customization.tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e')"><i class="fa fa-road"/><span>Tramos<small>Origen, destino y distancia</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-file-text-o"/><span>Órdenes de flete<small>Registro y coordinación</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas<small>Vigencias y transportistas</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.transportistas_2c1977c3-a30e-4b17-b0f5-b339cac43c54')"><i class="fa fa-users"/><span>Transportistas<small>Proveedores logísticos</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.camiones_1bffc703-8cbf-4682-a0a9-a351661d8620')"><i class="fa fa-truck"/><span>Camiones<small>Flota habilitada</small></span></button>
+                    <button t-on-click="() => this.openAction('step_operations_ui.tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e')"><i class="fa fa-road"/><span>Tramos<small>Origen, destino y distancia</small></span></button>
                 </section>
             </t>
         </main>

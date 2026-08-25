@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_account_journal_form_colaciones" model="ir.ui.view">
+        <field name="name">account.journal.form.colaciones</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='default_account_id']" position="after">
+                <field name="is_colaciones_provision_journal"
+                       invisible="type not in ('general', 'purchase')"
+                       groups="step_colaciones.group_colaciones_manager"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_server_colacion_cost" model="ir.actions.server">
+        <field name="name">Costear colaciones seleccionadas</field>
+        <field name="model_id" ref="model_step_colacion_registration"/>
+        <field name="binding_model_id" ref="model_step_colacion_registration"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_cost()</field>
+        <field name="groups_id" eval="[(4, ref('step_colaciones.group_colaciones_manager'))]"/>
+    </record>
+
+    <record id="action_server_colacion_account" model="ir.actions.server">
+        <field name="name">Contabilizar colaciones seleccionadas</field>
+        <field name="model_id" ref="model_step_colacion_registration"/>
+        <field name="binding_model_id" ref="model_step_colacion_registration"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_account()</field>
+        <field name="groups_id" eval="[(4, ref('step_colaciones.group_colaciones_manager'))]"/>
+    </record>
+</odoo>

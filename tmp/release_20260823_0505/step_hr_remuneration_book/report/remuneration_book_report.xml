@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Legal horizontal: es el formato del libro que ya se imprime y el
+         único que deja leer las 24 columnas sin reducir el texto. -->
+    <record id="paperformat_consolidated_book" model="report.paperformat">
+        <field name="name">Libro de Remuneraciones Steps (Legal horizontal)</field>
+        <field name="format">Legal</field>
+        <field name="orientation">Landscape</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">12</field>
+        <field name="margin_left">6</field>
+        <field name="margin_right">6</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">4</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="paperformat_employee_sheets" model="report.paperformat">
+        <field name="name">Fichas detalladas por trabajador Steps</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">10</field>
+        <field name="margin_bottom">12</field>
+        <field name="margin_left">8</field>
+        <field name="margin_right">8</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">5</field>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="action_report_consolidated_book" model="ir.actions.report">
+        <field name="name">Libro consolidado PDF</field>
+        <field name="model">step.hr.remuneration.book.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_hr_remuneration_book.consolidated_book</field>
+        <field name="report_file">step_hr_remuneration_book.consolidated_book</field>
+        <field name="paperformat_id" ref="step_hr_remuneration_book.paperformat_consolidated_book"/>
+        <field name="print_report_name">'Libro_Remuneraciones_%s_%s' % (object.year, object.month)</field>
+    </record>
+
+    <record id="action_report_employee_sheets" model="ir.actions.report">
+        <field name="name">Fichas detalladas por trabajador</field>
+        <field name="model">step.hr.remuneration.book.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_hr_remuneration_book.employee_sheets</field>
+        <field name="report_file">step_hr_remuneration_book.employee_sheets</field>
+        <field name="paperformat_id" ref="step_hr_remuneration_book.paperformat_employee_sheets"/>
+        <field name="print_report_name">'Fichas_Remuneraciones_%s_%s' % (object.year, object.month)</field>
+    </record>
+
+    <template id="book_styles">
+        <style>
+            .step-book-title { color: #174a35; font-size: 15px; font-weight: 700; }
+            .step-book-meta { color: #52675d; font-size: 8px; }
+            .step-book-table { width: 100%; border-collapse: collapse; font-size: 7.5px; }
+            .step-book-table th {
+                background: #2e6b4c; color: #ffffff; font-size: 6.8px;
+                font-weight: 700; padding: 3px 2px; border: 0.5px solid #d4e3da;
+                vertical-align: bottom; text-align: center;
+            }
+            .step-book-table td {
+                border: 0.5px solid #dce7e0; padding: 2px 3px;
+                vertical-align: middle;
+            }
+            .step-book-table tbody tr { page-break-inside: avoid; }
+            .step-book-group { page-break-inside: avoid; }
+            .step-book-num { text-align: right; white-space: nowrap; }
+            .step-book-name { font-size: 7.5px; }
+            .step-book-rut { white-space: nowrap; font-size: 7.5px; }
+            .step-book-alt { background: #f5f9f6; }
+            .step-book-subtotal td {
+                background: #dceae1; font-weight: 700;
+                border-top: 1px solid #2e6b4c;
+            }
+            .step-book-total td {
+                background: #174a35; color: #ffffff; font-weight: 700;
+                font-size: 8px;
+            }
+            .step-book-footer { font-size: 7px; color: #52675d; border-top: 0.5px solid #d4e3da; padding-top: 2px; }
+            .step-sheet { page-break-after: always; }
+            .step-sheet:last-child { page-break-after: auto; }
+            .step-sheet-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+            .step-sheet-table td { border: 1px solid #dce7e0; padding: 3px 6px; }
+            .step-sheet-label { width: 32%; background: #f1f7f3; color: #365b4a; font-weight: 600; }
+            .step-sheet-value { width: 18%; text-align: right; }
+            .step-sheet-section { background: #2e6b4c; color: #fff; font-size: 10px; font-weight: 700; padding: 3px 7px; margin-top: 6px; }
+        </style>
+    </template>
+
+    <!-- ============================ LIBRO CONSOLIDADO ==================== -->
+    <template id="consolidated_book">
+        <t t-call="web.html_container">
+            <div class="article"
+                 t-att-data-oe-model="docs._name"
+                 t-att-data-oe-id="docs.id"
+                 t-att-data-oe-lang="docs.env.context.get('lang')">
+                <t t-call="step_hr_remuneration_book.book_styles"/>
+
+                <div class="footer step-book-footer"
+                     style="font-size:7px; color:#52675d; border-top:0.5px solid #d4e3da; padding-top:2px;">
+                    <div class="row" style="font-size:7px;">
+                        <div class="col-8" style="font-size:7px;">
+                            <span t-esc="dataset.company_name"/> ·
+                            <span t-esc="dataset.period_label"/> ·
+                            Fuente: <span t-esc="dataset.source"/> ·
+                            Generado <span t-esc="dataset.generated_at"/>
+                        </div>
+                        <div class="col-4 text-end" style="font-size:7px;">
+                            Página <span class="page"/> de <span class="topage"/>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page">
+                    <div class="d-flex justify-content-between align-items-end mb-1">
+                        <div>
+                            <div class="step-book-title">
+                                <span t-esc="dataset.title"/>
+                                <t t-if="not dataset.is_full_scope">
+                                    — Reporte parcial de remuneraciones
+                                </t>
+                            </div>
+                            <div class="step-book-meta">
+                                <span t-esc="dataset.company_name"/>
+                                <t t-if="dataset.company_vat">
+                                    · RUT <span t-esc="rut(dataset.company_vat)"/>
+                                </t>
+                                · <span t-esc="dataset.scope_label"/>
+                                · Perfil <span t-esc="dataset.source"/>
+                                (<span t-esc="dataset.profile_origin_label"/>)
+                            </div>
+                        </div>
+                        <div class="step-book-meta text-end">
+                            Período <span t-esc="dataset.date_from"/> a <span t-esc="dataset.date_to"/><br/>
+                            <span t-esc="dataset.counters.get('lines')"/> línea(s) ·
+                            <span t-esc="dataset.counters.get('unique_employees')"/> trabajador(es) único(s) ·
+                            <span t-esc="dataset.counters.get('departments')"/> departamento(s)
+                        </div>
+                    </div>
+
+                    <table class="step-book-table">
+                        <thead>
+                            <tr>
+                                <th t-foreach="columns" t-as="column">
+                                    <span t-esc="column.label"/>
+                                    <t t-if="column.dt_code">
+                                        <br/><span t-esc="'(%s)' % column.dt_code"/>
+                                    </t>
+                                </th>
+                            </tr>
+                        </thead>
+                        <t t-foreach="dataset.groups" t-as="group">
+                            <tbody class="step-book-group">
+                                <tr t-foreach="group.lines" t-as="line"
+                                    t-att-class="'step-book-alt' if line_index % 2 else ''">
+                                    <t t-foreach="columns" t-as="column">
+                                        <td t-if="column.kind == 'group'">
+                                            <t t-if="line_first"><span t-esc="group.name"/></t>
+                                        </td>
+                                        <td t-elif="column.kind == 'rut'" class="step-book-rut"
+                                            t-esc="line.cell(column)"/>
+                                        <td t-elif="column.kind == 'text'" class="step-book-name"
+                                            t-esc="line.cell(column)"/>
+                                        <td t-elif="column.kind == 'count'"/>
+                                        <td t-else="" class="step-book-num"
+                                            t-esc="fmt(line.cell(column))"/>
+                                    </t>
+                                </tr>
+                                <tr class="step-book-subtotal">
+                                    <t t-foreach="columns" t-as="column">
+                                        <td t-if="column.kind == 'group'" t-esc="group.label"/>
+                                        <td t-elif="column.kind in ('rut', 'text')"/>
+                                        <td t-else="" class="step-book-num"
+                                            t-esc="fmt(group.cell(column))"/>
+                                    </t>
+                                </tr>
+                            </tbody>
+                        </t>
+                        <tbody>
+                            <tr class="step-book-total">
+                                <t t-foreach="columns" t-as="column">
+                                    <td t-if="column.kind == 'group'">Total general</td>
+                                    <td t-elif="column.kind in ('rut', 'text')"/>
+                                    <td t-else="" class="step-book-num"
+                                        t-esc="fmt(dataset.total_cell(column))"/>
+                                </t>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <t t-if="dataset.warnings">
+                        <div class="step-book-meta mt-2">
+                            <b>Advertencias:</b>
+                            <span t-esc="len(dataset.warnings)"/>, de las cuales
+                            <span t-esc="dataset.counters.get('reconciliation_warnings')"/>
+                            son de conciliación — revisar en la hoja Control del
+                            Excel o en la síntesis del asistente.
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ======================= FICHAS POR TRABAJADOR ===================== -->
+    <template id="employee_sheets">
+        <t t-call="web.html_container">
+            <t t-foreach="dataset.lines" t-as="line">
+                <div class="article step-sheet"
+                     t-att-data-oe-model="docs._name"
+                     t-att-data-oe-id="docs.id"
+                     t-att-data-oe-lang="docs.env.context.get('lang')">
+                    <t t-call="step_hr_remuneration_book.book_styles"/>
+                    <div class="page">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="step-book-title">Ficha detallada de remuneraciones</div>
+                                <div class="step-book-meta">
+                                    <span t-esc="dataset.company_name"/> ·
+                                    <span t-esc="dataset.period_label"/> ·
+                                    Fuente: <span t-esc="dataset.source"/>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <strong t-esc="line.employee_name"/><br/>
+                                <span class="step-book-meta">
+                                    RUT: <span t-esc="line.cell(columns[1])"/><br/>
+                                    Departamento: <span t-esc="line.department_label"/>
+                                </span>
+                            </div>
+                        </div>
+                        <table class="step-sheet-table">
+                            <tbody>
+                                <tr t-foreach="[c for c in columns if c.dt_code and c.kind != 'rut']" t-as="column">
+                                    <td class="step-sheet-label">
+                                        <span t-esc="column.label"/>
+                                        <span class="step-book-meta" t-esc="'(%s)' % column.dt_code"/>
+                                    </td>
+                                    <td class="step-sheet-value" t-esc="fmt(line.cell(column)) or '0'"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="step-book-meta mt-2">
+                            Documento de control interno. No constituye liquidación
+                            de sueldo ni archivo válido para carga en Mi DT.
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

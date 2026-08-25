@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Nómina RRHH (l10n_cl_hr.menu_cl_hr_payroll_base) ya existe; se
+         cuelgan aquí los submenús de gestión contractual pedidos. -->
+    <menuitem id="menu_hr_contract_lifecycle_gestion"
+              name="Gestión contractual"
+              parent="l10n_cl_hr.menu_cl_hr_payroll_base"
+              sequence="40"/>
+
+    <menuitem id="menu_hr_contract_lifecycle_termino"
+              name="Término laboral"
+              parent="l10n_cl_hr.menu_cl_hr_payroll_base"
+              sequence="41"/>
+
+    <menuitem id="menu_hr_contract_lifecycle_config"
+              name="Configuración"
+              parent="l10n_cl_hr.menu_cl_hr_payroll_base"
+              sequence="49"/>
+
+    <menuitem id="menu_hr_contract_lifecycle_contracts"
+              name="Contratos"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="hr_contract.action_hr_contract"
+              sequence="5"/>
+
+    <menuitem id="menu_hr_contract_mass_print"
+              name="Emisión masiva"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_mass_print"
+              sequence="6"/>
+
+    <menuitem id="menu_hr_labor_document"
+              name="Documentos y firmas"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_labor_document"
+              sequence="7"/>
+
+    <menuitem id="menu_hr_contract_dt_export_wizard"
+              name="Archivos DT"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_dt_export_wizard"
+              sequence="8"/>
+
+    <menuitem id="menu_hr_contract_dt_batch"
+              name="Lotes DT (contratos)"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_dt_batch"
+              sequence="9"/>
+
+    <menuitem id="menu_hr_contract_adequacy_batch"
+              name="Adecuación de jornada"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_adequacy_batch"
+              sequence="10"/>
+
+    <menuitem id="menu_hr_termination_notice"
+              name="Cartas de aviso"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_termination_notice"
+              sequence="10"/>
+
+    <menuitem id="menu_hr_termination_notice_mass_wizard"
+              name="Emisión masiva de avisos"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_termination_notice_mass_wizard"
+              sequence="11"/>
+
+    <menuitem id="menu_hr_termination_notice_dt_batch"
+              name="Lotes DT y AFC"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_termination_notice_dt_batch"
+              sequence="12"/>
+
+    <menuitem id="menu_hr_severance"
+              name="Finiquitos"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_severance"
+              sequence="13"/>
+
+    <menuitem id="menu_hr_severance_selection_wizard"
+              name="Ingreso masivo a finiquitar"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_severance_selection_wizard"
+              sequence="14"/>
+
+    <menuitem id="menu_hr_severance_dt_batch"
+              name="Lotes DT (finiquitos)"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_severance_dt_batch"
+              sequence="15"/>
+
+    <menuitem id="menu_hr_legal_workweek_calendar"
+              name="Calendario legal laboral"
+              parent="menu_hr_contract_lifecycle_config"
+              action="action_hr_legal_workweek_calendar"
+              sequence="10"/>
+
+    <menuitem id="menu_hr_causal_termino"
+              name="Causales y reglas de cálculo"
+              parent="menu_hr_contract_lifecycle_config"
+              action="action_hr_causal_termino"
+              sequence="20"/>
+
+    <menuitem id="menu_hr_legal_calendar_execution_log"
+              name="Bitácora calendario legal"
+              parent="menu_hr_contract_lifecycle_config"
+              action="action_hr_legal_calendar_execution_log"
+              sequence="30"/>
+</odoo>

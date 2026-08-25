@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Síntesis de control renderizada con QWeb.
+
+        Todo lo que viene de la base -nombre de empresa, nombre de perfil,
+        mensajes de validación- se emite con `t-out`, que escapa el valor. No
+        se concatena HTML a mano en Python: un nombre de empresa con
+        `<script>` o `onerror=` se muestra como texto y nunca se ejecuta.
+    -->
+    <template id="preview_synthesis">
+        <div class="o_step_book_preview">
+            <div t-attf-class="alert #{dataset and dataset.is_full_scope and 'alert-info' or 'alert-warning'} py-2 mb-2">
+                <b t-out="wizard.scope_label"/>
+                <span t-if="dataset">
+                    · Perfil: <b t-out="dataset.source"/>
+                    (<span t-out="dataset.profile_origin_label"/>)
+                    · Tolerancia de conciliación: ±<span t-out="dataset.tolerance"/>
+                </span>
+            </div>
+
+            <div t-if="blocking_message" class="alert alert-danger mb-2">
+                <b>No es posible generar el informe</b>
+                <div t-out="blocking_message"/>
+            </div>
+
+            <table t-if="dataset" class="table table-sm mb-2">
+                <tbody>
+                    <tr>
+                        <td class="ps-2">Liquidaciones consideradas</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('payslips', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Líneas del informe</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('lines', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Trabajadores únicos</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('unique_employees', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Departamentos</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('departments', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Líneas sin departamento</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('without_department', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Líneas sin RUT</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('without_rut', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Líneas con RUT inválido</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('invalid_rut', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Trabajadores con más de una liquidación</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('multiple_payslips', 0)"/>
+                    </tr>
+                    <tr>
+                        <td class="ps-2">Diferencias de conciliación</td>
+                        <td class="text-end pe-2 fw-bold" t-out="counters.get('reconciliation_warnings', 0)"/>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="mb-2">
+                <div class="small text-muted">Disponibilidad de las salidas</div>
+                <ul class="mb-0 small">
+                    <li>Libro consolidado Excel y PDF:
+                        <b t-if="dataset and not dataset.errors">disponible</b>
+                        <b t-else="">bloqueado</b>
+                    </li>
+                    <li>Fichas detalladas por trabajador:
+                        <b t-if="dataset and not dataset.errors">disponible</b>
+                        <b t-else="">bloqueado</b>
+                    </li>
+                    <li>Archivo oficial DT (CSV):
+                        <b t-if="wizard.official_csv_available">disponible</b>
+                        <b t-else="">no disponible</b>
+                        <span t-if="not wizard.official_csv_available">
+                            — <span t-out="wizard.official_csv_message"/>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+
+            <div t-if="errors" class="alert alert-danger mb-2">
+                <b>Errores que impiden generar el informe</b>
+                <ul class="mb-0">
+                    <li t-foreach="errors" t-as="issue" t-out="issue.message"/>
+                </ul>
+            </div>
+
+            <div t-if="warnings" class="alert alert-warning mb-0">
+                <b>Advertencias a revisar</b>
+                <ul class="mb-0">
+                    <li t-foreach="warnings" t-as="issue" t-out="issue.message"/>
+                </ul>
+                <div t-if="extra_warnings" class="small">
+                    y <span t-out="extra_warnings"/> advertencia(s) más
+                </div>
+            </div>
+            <div t-if="dataset and not errors and not warnings" class="alert alert-success mb-0">
+                Sin advertencias de conciliación.
+            </div>
+        </div>
+    </template>
+</odoo>

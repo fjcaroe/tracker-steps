@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_contract_adequacy_batch_list" model="ir.ui.view">
+        <field name="name">hr.contract.adequacy.batch.list</field>
+        <field name="model">hr.contract.adequacy.batch</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="calendar_id"/>
+                <field name="company_id"/>
+                <field name="line_count"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_contract_adequacy_batch_form" model="ir.ui.view">
+        <field name="name">hr.contract.adequacy.batch.form</field>
+        <field name="model">hr.contract.adequacy.batch</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_simulate" type="object" string="Simular" class="oe_highlight" invisible="state not in ('draft',)"/>
+                    <button name="action_approve" type="object" string="Aprobar" class="oe_highlight" invisible="state != 'simulated'"/>
+                    <button name="action_reset_draft" type="object" string="Volver a borrador" invisible="state not in ('simulated','cancelled')"/>
+                    <button name="action_cancel" type="object" string="Cancelar" invisible="state in ('cancelled','applied')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,simulated,approved,applied"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="calendar_id" readonly="state != 'draft'"/>
+                            <field name="company_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="approved_by" readonly="1"/>
+                            <field name="approved_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Contratos afectados">
+                            <field name="line_ids" readonly="state in ('applied','cancelled')">
+                                <list editable="bottom">
+                                    <field name="employee_id" readonly="1"/>
+                                    <field name="current_weekly_hours" readonly="1"/>
+                                    <field name="new_weekly_hours"/>
+                                    <field name="distribution_note"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Análisis / distribución">
+                            <field name="notes" placeholder="Análisis de la redistribución propuesta, acuerdos requeridos, etc."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_contract_adequacy_batch" model="ir.actions.act_window">
+        <field name="name">Lotes de adecuación de jornada</field>
+        <field name="res_model">hr.contract.adequacy.batch</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_hr_legal_calendar_execution_log_list" model="ir.ui.view">
+        <field name="name">hr.legal.calendar.execution.log.list</field>
+        <field name="model">hr.legal.calendar.execution.log</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="effective_date"/>
+                <field name="contract_id"/>
+                <field name="old_hours"/>
+                <field name="new_hours"/>
+                <field name="is_exception" widget="boolean_toggle"/>
+                <field name="user_id"/>
+                <field name="rolled_back"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hr_legal_calendar_execution_log" model="ir.actions.act_window">
+        <field name="name">Bitácora del calendario legal</field>
+        <field name="res_model">hr.legal.calendar.execution.log</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

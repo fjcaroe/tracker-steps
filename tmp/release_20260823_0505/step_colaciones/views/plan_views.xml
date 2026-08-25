@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_colacion_plan_list" model="ir.ui.view">
+        <field name="name">step.colacion.plan.list</field>
+        <field name="model">step.colacion.plan</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'approved'" decoration-muted="state in ('done', 'cancelled')" sample="1">
+                <field name="week_start"/>
+                <field name="week_end"/>
+                <field name="name"/>
+                <field name="department_id"/>
+                <field name="supplier_id"/>
+                <field name="total_quantity" sum="Total colaciones"/>
+                <field name="total_cost" sum="Costo total"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'approved'"
+                       decoration-primary="state == 'done'"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_colacion_plan_form" model="ir.ui.view">
+        <field name="name">step.colacion.plan.form</field>
+        <field name="model">step.colacion.plan</field>
+        <field name="arch" type="xml">
+            <form string="Plan semanal de colaciones">
+                <header>
+                    <button name="action_approve" type="object" string="Aprobar" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_done" type="object" string="Finalizar" invisible="state != 'approved'"/>
+                    <button name="action_cancel" type="object" string="Anular" invisible="state in ('done', 'cancelled')"/>
+                    <button name="action_draft" type="object" string="Volver a borrador" invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,done,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Ej.: Packing semana 48" readonly="state != 'draft'"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="week_start" readonly="state != 'draft'"/>
+                            <field name="week_end" readonly="1"/>
+                            <field name="department_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="supplier_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <field name="line_ids" readonly="state != 'draft'">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="product_tmpl_id"/>
+                            <field name="monday" sum="Lun"/>
+                            <field name="tuesday" sum="Mar"/>
+                            <field name="wednesday" sum="Mié"/>
+                            <field name="thursday" sum="Jue"/>
+                            <field name="friday" sum="Vie"/>
+                            <field name="saturday" sum="Sáb"/>
+                            <field name="sunday" sum="Dom"/>
+                            <field name="total_quantity" sum="Total" readonly="1"/>
+                            <field name="unit_cost" readonly="1"/>
+                            <field name="total_cost" sum="Costo" readonly="1"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+                    <group class="oe_subtotal_footer oe_right">
+                        <field name="total_quantity" readonly="1"/>
+                        <field name="total_cost" readonly="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Notas"><field name="notes"/></page>
+                        <page string="Migración" groups="base.group_system" invisible="not legacy_ref">
+                            <field name="legacy_ref" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_colacion_plan_search" model="ir.ui.view">
+        <field name="name">step.colacion.plan.search</field>
+        <field name="model">step.colacion.plan</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="department_id"/>
+                <field name="supplier_id"/>
+                <filter name="draft" string="Borradores" domain="[('state', '=', 'draft')]"/>
+                <filter name="approved" string="Aprobados" domain="[('state', '=', 'approved')]"/>
+                <filter name="group_week" string="Semana" context="{'group_by': 'week_start'}"/>
+                <filter name="group_department" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_colacion_plan" model="ir.actions.act_window">
+        <field name="name">Planificación semanal</field>
+        <field name="res_model">step.colacion.plan</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_colacion_plan_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Planifique la demanda semanal</p>
+            <p>Distribuya cantidades por producto y día; al aprobar se toma la tarifa vigente.</p>
+        </field>
+    </record>
+</odoo>

@@ -15,6 +15,21 @@ $qa-warning: #c88018;
     button { cursor: pointer; }
 }
 
+// Client actions are mounted directly below `.o_action_manager` in Odoo 18.
+// That parent keeps `overflow: hidden` on mobile, so the dashboard must own
+// the vertical scroll instead of overflowing into its parent.
+@media (max-width: 767.98px) {
+    .o_step_qa_dashboard {
+        height: 100%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: auto;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
 .o_step_qa_loading,
 .o_step_qa_error {
     min-height: 360px;

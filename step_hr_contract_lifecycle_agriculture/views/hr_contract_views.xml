@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_contract_form_agriculture_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.form.agriculture.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="step_hr_contract_lifecycle.view_hr_contract_form_lifecycle_inherit"/>
+        <field name="arch" type="xml">
+            <field name="work_location_id" position="after">
+                <field name="fundo_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

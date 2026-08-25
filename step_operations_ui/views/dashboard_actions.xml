@@ -8,17 +8,18 @@
               name="Inicio"
               parent="step_machinery.menu_step_machinery_root"
               action="action_machinery_dashboard"
-              sequence="0"
-              groups="step_agricultural_access.group_app_machinery"/>
+              sequence="0"/>
 
     <record id="action_freight_dashboard" model="ir.actions.client">
         <field name="name">Inicio Fletes</field>
         <field name="tag">step_operations_ui.freight_dashboard</field>
     </record>
+    <record id="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu">
+        <field name="action" ref="step_operations_ui.action_freight_dashboard"/>
+    </record>
     <menuitem id="menu_freight_dashboard"
               name="Inicio"
-              parent="studio_customization.fletes_7a210622-1359-4a28-a824-530c3f9e78a7"
+              parent="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7"
               action="action_freight_dashboard"
-              sequence="0"
-              groups="step_agricultural_access.group_app_freight"/>
+              sequence="0"/>
 </odoo>

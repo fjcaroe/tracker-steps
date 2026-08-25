@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_colacion_registration_list" model="ir.ui.view">
+        <field name="name">step.colacion.registration.list</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state in ('costed', 'accounted')"
+                  decoration-info="state == 'validated'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="event_datetime"/>
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="product_tmpl_id"/>
+                <field name="supplier_id" optional="show"/>
+                <field name="totem_id" optional="show"/>
+                <field name="source" widget="badge" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'entered'"
+                       decoration-warning="state == 'validated'"
+                       decoration-primary="state == 'costed'"
+                       decoration-success="state == 'accounted'"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="total_cost" sum="Costo total" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_colacion_registration_form" model="ir.ui.view">
+        <field name="name">step.colacion.registration.form</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="arch" type="xml">
+            <form string="Registro de colación">
+                <header>
+                    <button name="action_validate" type="object" string="Validar" class="btn-primary"
+                            invisible="state != 'entered'" groups="step_colaciones.group_colaciones_manager"/>
+                    <button name="action_cost" type="object" string="Costear" class="btn-primary"
+                            invisible="state != 'validated'" groups="step_colaciones.group_colaciones_manager"/>
+                    <button name="action_account" type="object" string="Contabilizar" class="btn-primary"
+                            invisible="state != 'costed'" groups="step_colaciones.group_colaciones_manager"/>
+                    <button name="action_cancel" type="object" string="Anular"
+                            invisible="state in ('cancelled', 'accounted')" groups="step_colaciones.group_colaciones_manager"/>
+                    <button name="action_reset_entered" type="object" string="Reabrir"
+                            invisible="state in ('entered', 'accounted')" groups="step_colaciones.group_colaciones_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="entered,validated,costed,accounted,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_account_move" type="object" class="oe_stat_button"
+                                icon="fa-book" invisible="not account_move_id"
+                                groups="account.group_account_user">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Comprobante</span>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Colación">
+                            <field name="event_datetime" readonly="state != 'entered'"/>
+                            <field name="meal_date" readonly="1"/>
+                            <field name="employee_id" readonly="state != 'entered'"
+                                   domain="[('meal_eligible', '=', True), ('company_id', '=', company_id)]"/>
+                            <field name="employee_name_snapshot" readonly="1"/>
+                            <field name="department_id" readonly="1"/>
+                            <field name="product_tmpl_id" readonly="state != 'entered'"/>
+                            <field name="supplier_id" readonly="state != 'entered'"/>
+                            <field name="quantity" readonly="1"/>
+                        </group>
+                        <group string="Origen y valorización">
+                            <field name="source" readonly="1"/>
+                            <field name="totem_id" readonly="1"/>
+                            <field name="identifier_method" readonly="1"/>
+                            <field name="identifier_masked" readonly="1" groups="step_colaciones.group_colaciones_manager"/>
+                            <field name="received_datetime" readonly="1"/>
+                            <field name="tariff_line_id" readonly="1"/>
+                            <field name="currency_id" readonly="1"/>
+                            <field name="unit_cost" readonly="1"/>
+                            <field name="total_cost" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'entered'"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" placeholder="Observaciones del registro..." readonly="state != 'entered'"/>
+                    </group>
+                    <notebook>
+                        <page string="Costeo y contabilidad" name="accounting"
+                              groups="step_colaciones.group_colaciones_manager">
+                            <group>
+                                <group string="Cuentas aplicadas">
+                                    <field name="expense_account_id" readonly="1"/>
+                                    <field name="provision_account_id" readonly="1"/>
+                                    <field name="provision_journal_id" readonly="1"/>
+                                    <field name="account_move_id" readonly="1"/>
+                                </group>
+                                <group string="Distribución analítica">
+                                    <field name="analytic_source" readonly="1"/>
+                                    <field name="analytic_fallback_used" readonly="1"/>
+                                    <field name="analytic_warning" readonly="1"
+                                           invisible="not analytic_warning"/>
+                                    <field name="analytic_precision" invisible="1"/>
+                                    <field name="analytic_distribution"
+                                           widget="analytic_distribution"
+                                           readonly="1"
+                                           groups="analytic.group_analytic_accounting"/>
+                                </group>
+                            </group>
+                            <group string="Importes">
+                                <field name="company_currency_id" invisible="1"/>
+                                <field name="company_currency_amount" readonly="1"/>
+                            </group>
+                        </page>
+                        <page string="Trazabilidad" groups="step_colaciones.group_colaciones_manager">
+                            <group>
+                                <field name="client_uuid" readonly="1"/>
+                                <field name="legacy_ref" readonly="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_colacion_registration_search" model="ir.ui.view">
+        <field name="name">step.colacion.registration.search</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="arch" type="xml">
+            <search string="Buscar colaciones">
+                <field name="name"/>
+                <field name="employee_id"/>
+                <field name="product_tmpl_id"/>
+                <field name="supplier_id"/>
+                <field name="totem_id"/>
+                <filter name="today" string="Hoy" domain="[('meal_date', '=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="entered" string="Por validar" domain="[('state', '=', 'entered')]"/>
+                <filter name="validated" string="Validadas" domain="[('state', '=', 'validated')]"/>
+                <filter name="costed" string="Costeadas" domain="[('state', '=', 'costed')]"/>
+                <filter name="accounted" string="Contabilizadas" domain="[('state', '=', 'accounted')]"/>
+                <filter name="offline" string="Sincronizadas offline" domain="[('source', '=', 'totem_offline')]"/>
+                <separator/>
+                <filter name="group_day" string="Día" context="{'group_by': 'meal_date'}"/>
+                <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                <filter name="group_product" string="Producto" context="{'group_by': 'product_tmpl_id'}"/>
+                <filter name="group_supplier" string="Proveedor" context="{'group_by': 'supplier_id'}"/>
+                <filter name="group_department" string="Departamento" context="{'group_by': 'department_id'}"/>
+                <filter name="group_totem" string="Tótem" context="{'group_by': 'totem_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_colacion_registration_pivot" model="ir.ui.view">
+        <field name="name">step.colacion.registration.pivot</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="arch" type="xml">
+            <pivot string="Colaciones valorizadas">
+                <field name="meal_date" type="row" interval="day"/>
+                <field name="product_tmpl_id" type="row"/>
+                <field name="department_id" type="col"/>
+                <field name="quantity" type="measure"/>
+                <field name="total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_colacion_registration_graph" model="ir.ui.view">
+        <field name="name">step.colacion.registration.graph</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="arch" type="xml">
+            <graph string="Colaciones por día" type="bar">
+                <field name="meal_date" interval="day"/>
+                <field name="quantity" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_colacion_registration" model="ir.actions.act_window">
+        <field name="name">Registros de colación</field>
+        <field name="res_model">step.colacion.registration</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_colacion_registration_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Registre la primera colación</p>
+            <p>Puede ingresarla manualmente o utilizar un tótem configurado.</p>
+        </field>
+    </record>
+
+    <record id="action_colacion_valued" model="ir.actions.act_window">
+        <field name="name">Colaciones valorizadas</field>
+        <field name="res_model">step.colacion.registration</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="domain">[('state', 'in', ('validated', 'costed', 'accounted'))]</field>
+        <field name="context">{'search_default_group_day': 1}</field>
+    </record>
+</odoo>

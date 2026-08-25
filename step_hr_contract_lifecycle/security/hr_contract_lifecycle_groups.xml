@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <record id="module_category_hr_contract_lifecycle" model="ir.module.category">
+        <field name="name">Nómina - Gestión contractual</field>
+        <field name="sequence">25</field>
+    </record>
+
+    <record id="group_legal_calendar_technical" model="res.groups">
+        <field name="name">Calendario legal: configuración técnica</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+        <field name="comment">
+            Permite crear/editar transiciones legales oficiales del
+            calendario de jornada máxima semanal y aprobar excepciones.
+            No otorga por sí sola acceso a aprobar lotes de adecuación.
+        </field>
+    </record>
+
+    <record id="group_contract_adequacy_approve" model="res.groups">
+        <field name="name">Adecuación de jornada: aprobación</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_contract_management_view" model="res.groups">
+        <field name="name">Gestión contractual: consulta</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_contract_management_issue" model="res.groups">
+        <field name="name">Gestión contractual: emisión</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+        <field name="implied_ids" eval="[(4, ref('group_contract_management_view'))]"/>
+    </record>
+
+    <record id="group_contract_sensitive_data" model="res.groups">
+        <field name="name">Datos sensibles del contrato (discapacidad, salud, retenciones)</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_labor_template_config" model="res.groups">
+        <field name="name">Plantillas y parámetros legales: configuración técnica</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_labor_audit" model="res.groups">
+        <field name="name">Auditoría laboral: sólo lectura completa</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_severance_calc" model="res.groups">
+        <field name="name">Finiquitos: cálculo</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_severance_approve" model="res.groups">
+        <field name="name">Finiquitos: aprobación</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+
+    <record id="group_dt_afc_export" model="res.groups">
+        <field name="name">Archivos DT/AFC: exportación</field>
+        <field name="category_id" ref="module_category_hr_contract_lifecycle"/>
+    </record>
+</odoo>

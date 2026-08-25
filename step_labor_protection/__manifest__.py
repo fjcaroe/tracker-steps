@@ -1,7 +1,7 @@
 {
     "name": "Steps - Protección Laboral",
     "summary": "Prevención, Ley Karin, EPP, capacitación y accidentes laborales",
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.0.2",
     "author": "Steps Consulting",
     "category": "Operations/Health and Safety",
     "license": "LGPL-3",
@@ -12,7 +12,6 @@
         "data/labor_sequence.xml",
         "views/labor_protocol_views.xml",
         "views/labor_karin_case_views.xml",
-        "views/studio_labor_views.xml",
         "views/labor_dashboard_views.xml",
         "views/menu_views.xml",
     ],

@@ -1,0 +1,17 @@
+// Odoo gives headings their own dark foreground.  In client-action heroes it
+// overrides the white inherited from the dark card, making application names
+// nearly unreadable.  Keep this shared rule in a presentation-only addon so
+// functional agricultural modules do not need to be modified independently.
+.o_colaciones_hero h1,
+.o_steps_ops_hero h1,
+.o_step_bpa_hero h1,
+.o_cosecha_hero h1,
+.o_step_activities_hero_copy h1,
+.o_steps_tracker_hero h1,
+.o_steps_payroll_hero h1,
+.o_step_labor_hero h1,
+.o_mgmt_hero h1,
+.o_step_qa_hero h1 {
+    color: #fff !important;
+    text-shadow: 0 2px 14px rgba(0, 18, 11, .24);
+}

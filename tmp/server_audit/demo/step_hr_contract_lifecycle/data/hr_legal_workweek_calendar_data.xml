@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_hr_contract_adequacy_batch" model="ir.sequence">
+        <field name="name">Lote de adecuación de jornada</field>
+        <field name="code">hr.contract.adequacy.batch</field>
+        <field name="prefix">ADEC/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <!--
+        Transiciones legales oficiales. Protegidas: sólo el grupo técnico
+        (step_hr_contract_lifecycle.group_legal_calendar_technical) puede
+        editarlas o eliminarlas, y sólo con motivo y fuente normativa.
+        Fuente: Ley de reducción de la jornada laboral (40 horas), DT
+        (https://www.dt.gob.cl/legislacion/1624/w3-article-129008.html),
+        consultada 2026-08-23.
+    -->
+    <record id="legal_workweek_2024" model="hr.legal.workweek.calendar">
+        <field name="date_from">2024-04-26</field>
+        <field name="max_weekly_hours">44</field>
+        <field name="legal_reference">Ley 21.561, art. 1 transitorio — máximo general 44 hrs/semana</field>
+        <field name="is_official">1</field>
+        <field name="exception_reason">Carga inicial del calendario legal (Ley 21.561)</field>
+    </record>
+
+    <record id="legal_workweek_2026" model="hr.legal.workweek.calendar">
+        <field name="date_from">2026-04-26</field>
+        <field name="max_weekly_hours">42</field>
+        <field name="legal_reference">Ley 21.561, art. 1 transitorio — máximo general 42 hrs/semana</field>
+        <field name="is_official">1</field>
+        <field name="exception_reason">Carga inicial del calendario legal (Ley 21.561)</field>
+    </record>
+
+    <record id="legal_workweek_2028" model="hr.legal.workweek.calendar">
+        <field name="date_from">2028-04-26</field>
+        <field name="max_weekly_hours">40</field>
+        <field name="legal_reference">Ley 21.561, art. 1 transitorio — máximo general 40 hrs/semana</field>
+        <field name="is_official">1</field>
+        <field name="exception_reason">Carga inicial del calendario legal (Ley 21.561)</field>
+    </record>
+</odoo>

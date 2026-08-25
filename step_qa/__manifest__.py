@@ -8,7 +8,7 @@
     """,
     "author": "Steps Consulting",
     "category": "Operations/Quality",
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.0.2",
     "license": "LGPL-3",
     "depends": [
         "base",
@@ -20,9 +20,7 @@
     "data": [
         "views/step_qa_dashboard_views.xml",
         "views/quality_views.xml",
-        "views/studio_inspection_views.xml",
         "views/menu_views.xml",
-        "views/translations.xml",
     ],
     "assets": {
         "web.assets_backend": [

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_legal_calendar_simulator_form" model="ir.ui.view">
+        <field name="name">hr.legal.calendar.simulator.form</field>
+        <field name="model">hr.legal.calendar.simulator</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="calendar_id" readonly="1"/>
+                    <field name="company_id"/>
+                </group>
+                <group string="Resultado de la simulación">
+                    <field name="affected_count"/>
+                    <field name="total_hours_to_reduce"/>
+                </group>
+                <field name="affected_contract_ids" widget="many2many_tags"/>
+                <footer>
+                    <button name="action_create_batch" type="object" string="Crear lote de adecuación" class="oe_highlight"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

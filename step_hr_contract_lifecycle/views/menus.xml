@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Se cuelga de los menús ESTÁNDAR de hr_payroll (Steps Nómina
+         reutiliza ese mismo árbol en los tres motores): el núcleo no
+         referencia ningún XML ID de l10n_cl_hr. -->
+    <menuitem id="menu_hr_contract_lifecycle_gestion"
+              name="Gestión contractual"
+              parent="hr_payroll.menu_hr_payroll_employees_root"
+              sequence="40"/>
+
+    <!-- "Recibos de nómina" y "Reportes" (núcleo de hr_payroll) están
+         empatados en sequence=70, así que el orden entre ambos no está
+         garantizado. Se separa "Reportes" a 75 para que el orden quede
+         determinístico: ... Recibos(70) -> Término laboral(72) -> Reportes(75) ... -->
+    <record id="hr_payroll.menu_hr_payroll_report" model="ir.ui.menu">
+        <field name="sequence">75</field>
+    </record>
+
+    <!-- Pestaña propia, al mismo nivel que "Contratos" (no es parte de
+         gestión contractual): cuelga directo de la raíz de la app Nómina.
+         Debe quedar entre "Recibos de nómina" y "Reportes". -->
+    <menuitem id="menu_hr_contract_lifecycle_termino"
+              name="Término laboral"
+              parent="hr_work_entry_contract_enterprise.menu_hr_payroll_root"
+              sequence="72"/>
+
+    <menuitem id="menu_hr_contract_lifecycle_config"
+              name="Configuración"
+              parent="hr_payroll.menu_hr_payroll_global_settings"
+              sequence="49"/>
+
+    <!-- No se agrega un ítem "Contratos" aquí: hr_payroll.menu_hr_payroll_employees_root
+         ya lo provee de forma nativa como primer ítem del mismo desplegable
+         ("Contratos" / "Deducciones salariales"); repetirlo duplicaba la
+         entrada en el menú. -->
+
+    <menuitem id="menu_hr_contract_mass_print"
+              name="Emisión masiva"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_mass_print_menu"
+              sequence="6"/>
+
+    <menuitem id="menu_hr_labor_document"
+              name="Documentos y firmas"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_labor_document"
+              sequence="7"/>
+
+    <menuitem id="menu_hr_contract_dt_export_wizard"
+              name="Archivos DT"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_dt_export_wizard"
+              sequence="8"/>
+
+    <menuitem id="menu_hr_contract_dt_batch"
+              name="Lotes DT (contratos)"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_dt_batch"
+              sequence="9"/>
+
+    <menuitem id="menu_hr_contract_adequacy_batch"
+              name="Adecuación de jornada"
+              parent="menu_hr_contract_lifecycle_gestion"
+              action="action_hr_contract_adequacy_batch"
+              sequence="10"/>
+
+    <menuitem id="menu_hr_termination_notice"
+              name="Cartas de aviso"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_termination_notice"
+              sequence="10"/>
+
+    <menuitem id="menu_hr_termination_notice_mass_wizard"
+              name="Emisión masiva de avisos"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_termination_notice_mass_wizard"
+              sequence="11"/>
+
+    <menuitem id="menu_hr_termination_notice_dt_batch"
+              name="Lotes DT y AFC"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_termination_notice_dt_batch"
+              sequence="12"/>
+
+    <menuitem id="menu_hr_severance"
+              name="Finiquitos"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_severance"
+              sequence="13"/>
+
+    <menuitem id="menu_hr_severance_selection_wizard"
+              name="Ingreso masivo a finiquitar"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_severance_selection_wizard"
+              sequence="14"/>
+
+    <menuitem id="menu_hr_severance_dt_batch"
+              name="Lotes DT (finiquitos)"
+              parent="menu_hr_contract_lifecycle_termino"
+              action="action_hr_severance_dt_batch"
+              sequence="15"/>
+
+    <menuitem id="menu_hr_legal_workweek_calendar"
+              name="Calendario legal laboral"
+              parent="menu_hr_contract_lifecycle_config"
+              action="action_hr_legal_workweek_calendar"
+              sequence="10"/>
+
+    <menuitem id="menu_step_hr_termination_cause"
+              name="Causales y reglas de cálculo"
+              parent="menu_hr_contract_lifecycle_config"
+              action="action_step_hr_termination_cause"
+              sequence="20"/>
+
+    <menuitem id="menu_hr_legal_calendar_execution_log"
+              name="Bitácora calendario legal"
+              parent="menu_hr_contract_lifecycle_config"
+              action="action_hr_legal_calendar_execution_log"
+              sequence="30"/>
+</odoo>

@@ -85,3 +85,17 @@ button.o_step_bpa_kpi:hover { transform: translateY(-1px); border-color: #9bc3b5
 @media (max-width: 1280px) { .o_step_bpa_dashboard { padding: 14px 16px 20px; } .o_step_bpa_kpis { grid-template-columns: repeat(3, minmax(150px, 1fr)); } }
 @media (max-width: 900px) { .o_step_bpa_hero { align-items: stretch; flex-direction: column; padding: 17px 19px; } .o_step_bpa_period { align-self: flex-start; } .o_step_bpa_workspace { grid-template-columns: 1fr; } }
 @media (max-width: 650px) { .o_step_bpa_dashboard { padding: 10px; } .o_step_bpa_actions { flex-wrap: wrap; } .o_step_bpa_kpis { grid-template-columns: repeat(2, minmax(130px, 1fr)); } .o_step_bpa_period { width: 100%; overflow-x: auto; } .o_step_bpa_row time { display: none; } }
+
+// Client actions are direct children of `.o_action_manager` in Odoo 18.
+// Its mobile layout clips overflow, so the dashboard must own the scroll.
+@media (max-width: 767.98px) {
+    .o_step_bpa_dashboard {
+        height: 100%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: auto;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+}

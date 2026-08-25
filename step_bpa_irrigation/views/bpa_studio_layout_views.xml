@@ -1,58 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_application_form_layout" model="ir.ui.view">
-        <field name="name">x.aplicacion.foliar.form.bpa.layout</field><field name="model">x_aplicacion_foliar</field>
-        <field name="inherit_id" ref="studio_customization.default_form_view_fo_1025eed1-dbb6-424d-b9bc-0ab62ad5543d"/>
-        <field name="arch" type="xml">
-            <xpath expr="//form" position="attributes"><attribute name="class" add="o_step_bpa_form" separator=" "/></xpath>
-            <xpath expr="//form/sheet/*[1]" position="before"><div class="o_step_bpa_record_intro"><i class="fa fa-leaf" title="Aplicación foliar"/><div><span>BUENAS PRÁCTICAS AGRÍCOLAS</span><strong>Aplicación foliar</strong><small>Planifique, ejecute y costee cada tratamiento con trazabilidad completa.</small></div></div></xpath>
-        </field>
+    <record id="view_irrigation_list" model="ir.ui.view">
+        <field name="name">x.riego.fertilizacion.list.bpa</field><field name="model">x_riego_y_fertilizacio</field>
+        <field name="arch" type="xml"><list class="o_step_bpa_list" decoration-info="x_studio_slo_riego"><field name="x_name"/><field name="x_studio_fecha_aplicacin"/><field name="x_studio_fundo"/><field name="x_studio_responsaable"/><field name="x_studio_tipo_de_aplicacin" widget="badge"/><field name="x_studio_hectreas_a_regar" sum="Hectáreas"/><field name="x_studio_litros_mezcla" sum="Litros"/><field name="company_id" groups="base.group_multi_company" optional="hide"/></list></field>
     </record>
-    <record id="view_application_list_layout" model="ir.ui.view">
-        <field name="name">x.aplicacion.foliar.list.bpa.layout</field><field name="model">x_aplicacion_foliar</field>
-        <field name="inherit_id" ref="studio_customization.default_list_view_fo_32e995f0-8bca-40b4-be73-4469b67db855"/>
-        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_step_bpa_list" separator=" "/></xpath></field>
+    <record id="view_irrigation_form" model="ir.ui.view">
+        <field name="name">x.riego.fertilizacion.form.bpa</field><field name="model">x_riego_y_fertilizacio</field>
+        <field name="arch" type="xml"><form class="o_step_bpa_form"><sheet><div class="o_step_bpa_record_intro"><i class="fa fa-tint" title="Fertirriego"/><div><span>GESTIÓN HÍDRICA Y NUTRICIONAL</span><strong>Riego y fertilización</strong><small>Planifique superficie, mezcla y responsables con trazabilidad.</small></div></div><group><group><field name="x_name"/><field name="x_studio_ot_bpa"/><field name="x_studio_fecha_aplicacin"/><field name="x_studio_fundo"/></group><group><field name="x_studio_responsaable"/><field name="x_studio_tipo_de_aplicacin"/><field name="x_studio_slo_riego"/><field name="company_id" groups="base.group_multi_company"/></group></group><group string="Plan de aplicación"><field name="x_studio_hectreas_a_regar"/><field name="x_studio_litros_mezcla"/></group><field name="notes"/></sheet><chatter/></form></field>
     </record>
 
-    <record id="view_monitoring_form_layout" model="ir.ui.view">
-        <field name="name">x.monitoreo.agricola.form.bpa.layout</field><field name="model">x_monitoreo_agricola</field>
-        <field name="inherit_id" ref="studio_customization.default_form_view_fo_26a61e20-f5a7-4e8c-9d5e-19296fcdc4f6"/>
-        <field name="arch" type="xml">
-            <xpath expr="//form" position="attributes"><attribute name="class" add="o_step_bpa_form" separator=" "/></xpath>
-            <xpath expr="//form/sheet/*[1]" position="before"><div class="o_step_bpa_record_intro"><i class="fa fa-binoculars" title="Monitoreo agrícola"/><div><span>OBSERVACIÓN EN TERRENO</span><strong>Monitoreo agrícola</strong><small>Registre condición fenológica, hallazgos, ubicación y responsables.</small></div></div></xpath>
-        </field>
+    <record id="view_application_list" model="ir.ui.view">
+        <field name="name">x.aplicacion.foliar.list.bpa</field><field name="model">x_aplicacion_foliar</field>
+        <field name="arch" type="xml"><list class="o_step_bpa_list"><field name="x_name"/><field name="x_studio_fecha_hora_planificada"/><field name="x_studio_fundo"/><field name="x_studio_especie_1"/><field name="x_studio_objetivo_aplicacin"/><field name="x_studio_aprueba"/><field name="x_studio_total_hectreas" sum="Hectáreas"/><field name="x_studio_costo_total_aplicacin" sum="Costo"/><field name="company_id" groups="base.group_multi_company" optional="hide"/></list></field>
     </record>
-    <record id="view_monitoring_list_layout" model="ir.ui.view">
-        <field name="name">x.monitoreo.agricola.list.bpa.layout</field><field name="model">x_monitoreo_agricola</field>
-        <field name="inherit_id" ref="studio_customization.default_list_view_fo_bd508db3-bf96-4ba8-ab17-66c93189f1a5"/>
-        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_step_bpa_list" separator=" "/></xpath></field>
+    <record id="view_application_form" model="ir.ui.view">
+        <field name="name">x.aplicacion.foliar.form.bpa</field><field name="model">x_aplicacion_foliar</field>
+        <field name="arch" type="xml"><form class="o_step_bpa_form"><sheet><div class="o_step_bpa_record_intro"><i class="fa fa-leaf" title="Aplicación foliar"/><div><span>BUENAS PRÁCTICAS AGRÍCOLAS</span><strong>Aplicación foliar</strong><small>Planifique, ejecute y costee el tratamiento.</small></div></div><group><group><field name="x_name"/><field name="x_studio_nmero_ot_bpa"/><field name="x_studio_fecha_hora_planificada"/><field name="x_studio_fundo"/><field name="x_studio_especie_1"/></group><group><field name="x_studio_objetivo_aplicacin"/><field name="x_studio_aprueba"/><field name="x_studio_total_hectreas"/><field name="company_id" groups="base.group_multi_company"/></group></group><group string="Costos"><field name="currency_id" invisible="1"/><field name="x_studio_costo_de_productos"/><field name="x_studio_costo_de_personal"/><field name="x_studio_costo_maquinarias"/><field name="x_studio_costo_total_aplicacin"/></group><field name="notes"/></sheet><chatter/></form></field>
     </record>
 
-    <record id="view_irrigation_form_layout" model="ir.ui.view">
-        <field name="name">x.riego.fertilizacion.form.bpa.layout</field><field name="model">x_riego_y_fertilizacio</field>
-        <field name="inherit_id" ref="studio_customization.default_form_view_fo_807e2cf9-c444-43e4-85b4-364204ce06e6"/>
-        <field name="arch" type="xml">
-            <xpath expr="//form" position="attributes"><attribute name="class" add="o_step_bpa_form" separator=" "/></xpath>
-            <xpath expr="//form/sheet/*[1]" position="before"><div class="o_step_bpa_record_intro"><i class="fa fa-tint" title="Fertirriego"/><div><span>GESTIÓN HÍDRICA Y NUTRICIONAL</span><strong>Riego y fertilización</strong><small>Coordine superficie, sectores, mezcla, productos y responsables de la ejecución.</small></div></div></xpath>
-        </field>
+    <record id="view_monitoring_list" model="ir.ui.view">
+        <field name="name">x.monitoreo.agricola.list.bpa</field><field name="model">x_monitoreo_agricola</field>
+        <field name="arch" type="xml"><list class="o_step_bpa_list"><field name="x_name"/><field name="x_studio_fecha"/><field name="x_studio_fundo"/><field name="x_studio_especie"/><field name="x_studio_estado_fenolgico"/><field name="x_studio_responsable"/><field name="company_id" groups="base.group_multi_company" optional="hide"/></list></field>
     </record>
-    <record id="view_irrigation_list_layout" model="ir.ui.view">
-        <field name="name">x.riego.fertilizacion.list.bpa.layout</field><field name="model">x_riego_y_fertilizacio</field>
-        <field name="inherit_id" ref="studio_customization.default_list_view_fo_2ce46dd1-ac1f-451c-99ee-9ac786eaaf04"/>
-        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_step_bpa_list" separator=" "/></xpath></field>
+    <record id="view_monitoring_form" model="ir.ui.view">
+        <field name="name">x.monitoreo.agricola.form.bpa</field><field name="model">x_monitoreo_agricola</field>
+        <field name="arch" type="xml"><form class="o_step_bpa_form"><sheet><div class="o_step_bpa_record_intro"><i class="fa fa-binoculars" title="Monitoreo"/><div><span>OBSERVACIÓN EN TERRENO</span><strong>Monitoreo agrícola</strong><small>Registre condición fenológica, hallazgos y responsables.</small></div></div><group><group><field name="x_name"/><field name="x_studio_nmero_ot"/><field name="x_studio_fecha"/><field name="x_studio_fundo"/></group><group><field name="x_studio_especie"/><field name="x_studio_estado_fenolgico"/><field name="x_studio_responsable"/><field name="company_id" groups="base.group_multi_company"/></group></group><field name="notes"/></sheet><chatter/></form></field>
     </record>
 
-    <record id="view_sector_form_layout" model="ir.ui.view">
-        <field name="name">x.sector.riego.form.bpa.layout</field><field name="model">x_sector_de_riego</field>
-        <field name="inherit_id" ref="studio_customization.default_form_view_fo_6cadd509-3b40-4ce9-8736-513062c2e0fc"/>
-        <field name="arch" type="xml">
-            <xpath expr="//form" position="attributes"><attribute name="class" add="o_step_bpa_form" separator=" "/></xpath>
-            <xpath expr="//form/sheet/*[1]" position="before"><div class="o_step_bpa_record_intro"><i class="fa fa-map-marker" title="Sector de riego"/><div><span>MAESTRO TERRITORIAL</span><strong>Sector de riego</strong><small>Caracterice superficie, fuente de agua, sistema de riego y tipo de suelo.</small></div></div></xpath>
-        </field>
+    <record id="view_sector_list" model="ir.ui.view">
+        <field name="name">x.sector.riego.list.bpa</field><field name="model">x_sector_de_riego</field>
+        <field name="arch" type="xml"><list class="o_step_bpa_list"><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_total_hs" sum="Hectáreas"/><field name="irrigation_system"/><field name="water_source"/><field name="soil_type"/><field name="company_id" groups="base.group_multi_company" optional="hide"/><field name="active" optional="hide"/></list></field>
     </record>
-    <record id="view_sector_list_layout" model="ir.ui.view">
-        <field name="name">x.sector.riego.list.bpa.layout</field><field name="model">x_sector_de_riego</field>
-        <field name="inherit_id" ref="studio_customization.default_list_view_fo_02a486d9-6293-46b3-b5a2-262366c52b51"/>
-        <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_step_bpa_list" separator=" "/></xpath></field>
+    <record id="view_sector_form" model="ir.ui.view">
+        <field name="name">x.sector.riego.form.bpa</field><field name="model">x_sector_de_riego</field>
+        <field name="arch" type="xml"><form class="o_step_bpa_form"><sheet><div class="o_step_bpa_record_intro"><i class="fa fa-map-marker" title="Sector"/><div><span>MAESTRO TERRITORIAL</span><strong>Sector de riego</strong><small>Caracterice superficie, fuente de agua y sistema.</small></div></div><group><group><field name="x_name"/><field name="x_studio_fundo"/><field name="x_studio_total_hs"/></group><group><field name="irrigation_system"/><field name="water_source"/><field name="soil_type"/><field name="company_id" groups="base.group_multi_company"/><field name="active"/></group></group></sheet><chatter/></form></field>
     </record>
 </odoo>

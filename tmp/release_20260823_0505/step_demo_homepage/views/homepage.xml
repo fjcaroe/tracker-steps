@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="website.homepage" model="ir.ui.view">
+        <field name="name">Steps Agro | Gestión agrícola conectada</field>
+        <field name="active" eval="True"/>
+        <field name="arch" type="xml">
+            <t name="Steps Agro" t-name="website.homepage">
+                <t t-call="website.layout">
+                    <t t-set="pageName" t-value="'homepage'"/>
+                    <t t-set="additional_title">Gestión agrícola conectada</t>
+                    <t t-set="bodyClassName" t-value="'steps-agro-website'"/>
+                    <t t-set="no_header" t-value="True"/>
+                    <t t-set="no_footer" t-value="True"/>
+                    <div id="wrap" class="oe_structure step-demo-home">
+                        <nav class="steps-nav" aria-label="Navegación principal">
+                            <div class="steps-container steps-nav__inner">
+                                <a class="steps-brand" href="/" aria-label="Steps Agro, inicio">
+                                    <span class="steps-brand__mark" aria-hidden="true">
+                                        <svg viewBox="0 0 48 48" role="img">
+                                            <path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/>
+                                            <path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/>
+                                            <path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/>
+                                        </svg>
+                                    </span>
+                                    <span><strong>Steps</strong><small>Agro</small></span>
+                                </a>
+                                <div class="steps-nav__links">
+                                    <a href="#soluciones">Soluciones</a>
+                                    <a href="#flujo">Trazabilidad</a>
+                                    <a href="#valor">Por qué Steps</a>
+                                </div>
+                                <a class="steps-button steps-button--compact" href="/web/login">
+                                    Ingresar <i class="fa fa-arrow-right ms-2" aria-hidden="true"/>
+                                </a>
+                            </div>
+                        </nav>
+
+                        <section class="steps-hero">
+                            <div class="steps-hero__glow steps-hero__glow--one"/>
+                            <div class="steps-hero__glow steps-hero__glow--two"/>
+                            <div class="steps-container steps-hero__grid">
+                                <div class="steps-hero__copy">
+                                    <span class="steps-eyebrow"><i class="fa fa-leaf" aria-hidden="true"/> Suite de gestión agrícola sobre Odoo 18</span>
+                                    <h1>Del campo a la decisión, <em>todo conectado.</em></h1>
+                                    <p>Planifica labores, coordina personas y maquinaria, controla aplicaciones, cosecha, calidad, costos y cumplimiento desde una sola plataforma.</p>
+                                    <div class="steps-hero__actions">
+                                        <a class="steps-button" href="/web/login">Entrar a la plataforma <i class="fa fa-arrow-right ms-2" aria-hidden="true"/></a>
+                                        <a class="steps-button steps-button--ghost" href="#soluciones">Explorar soluciones</a>
+                                    </div>
+                                    <div class="steps-hero__proof">
+                                        <span><i class="fa fa-check-circle" aria-hidden="true"/> Multiempresa</span>
+                                        <span><i class="fa fa-check-circle" aria-hidden="true"/> Trazabilidad integral</span>
+                                        <span><i class="fa fa-check-circle" aria-hidden="true"/> Operación móvil</span>
+                                    </div>
+                                </div>
+                                <div class="steps-command" aria-label="Vista resumida de la operación agrícola">
+                                    <div class="steps-command__top">
+                                        <div><span>Centro de operación</span><strong>Temporada agrícola</strong></div>
+                                        <span class="steps-live"><i/> En línea</span>
+                                    </div>
+                                    <div class="steps-command__metrics">
+                                        <article><i class="fa fa-calendar-check-o"/><span>Labores</span><strong>84%</strong><small>avance semanal</small></article>
+                                        <article><i class="fa fa-tint"/><span>Riego</span><strong>12</strong><small>sectores activos</small></article>
+                                        <article><i class="fa fa-truck"/><span>Logística</span><strong>7</strong><small>órdenes en curso</small></article>
+                                    </div>
+                                    <div class="steps-command__timeline">
+                                        <div class="steps-command__title"><span>Flujo operativo de hoy</span><small>Actualizado ahora</small></div>
+                                        <div class="steps-event"><span class="steps-event__icon steps-event__icon--green"><i class="fa fa-leaf"/></span><div><strong>Aplicación foliar validada</strong><small>Cuartel Norte · Fundo principal</small></div><b>08:30</b></div>
+                                        <div class="steps-event"><span class="steps-event__icon steps-event__icon--amber"><i class="fa fa-cogs"/></span><div><strong>Maquinaria asignada</strong><small>Tractor 04 · Labor de terreno</small></div><b>10:15</b></div>
+                                        <div class="steps-event"><span class="steps-event__icon steps-event__icon--blue"><i class="fa fa-check"/></span><div><strong>Control de calidad aprobado</strong><small>Lote de cosecha CH-026</small></div><b>12:40</b></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="steps-trust" id="valor">
+                            <div class="steps-container steps-trust__grid">
+                                <div><strong>10+</strong><span>aplicaciones conectadas</span></div>
+                                <div><strong>1</strong><span>fuente única de información</span></div>
+                                <div><strong>360°</strong><span>trazabilidad operacional</span></div>
+                                <div><strong>Web + móvil</strong><span>para oficina y terreno</span></div>
+                            </div>
+                        </section>
+
+                        <section class="steps-solutions" id="soluciones">
+                            <div class="steps-container">
+                                <div class="steps-section-heading">
+                                    <span class="steps-kicker">Un ecosistema, no aplicaciones aisladas</span>
+                                    <h2>Cada módulo aporta al mismo flujo agrícola</h2>
+                                    <p>La información nace una vez y se reutiliza en planificación, ejecución, control, remuneraciones, costos y reportabilidad.</p>
+                                </div>
+                                <div class="steps-solutions__grid">
+                                    <article class="steps-solution steps-solution--field">
+                                        <span class="steps-solution__icon"><i class="fa fa-tasks"/></span>
+                                        <div><small>OPERACIÓN DE CAMPO</small><h3>Actividades y Tracker</h3><p>Cuadrillas, labores, asistencia y captura de avances desde terreno.</p></div>
+                                        <span class="steps-solution__tag">Ejecución diaria</span>
+                                    </article>
+                                    <article class="steps-solution steps-solution--water">
+                                        <span class="steps-solution__icon"><i class="fa fa-tint"/></span>
+                                        <div><small>MANEJO DEL CULTIVO</small><h3>BPA y Riego</h3><p>Monitoreos, aplicaciones, fertirriego, carencias y cumplimiento agrícola.</p></div>
+                                        <span class="steps-solution__tag">Trazabilidad BPA</span>
+                                    </article>
+                                    <article class="steps-solution steps-solution--harvest">
+                                        <span class="steps-solution__icon"><i class="fa fa-leaf"/></span>
+                                        <div><small>PRODUCCIÓN</small><h3>Cosecha y Calidad</h3><p>Pronóstico, recepción, rendimiento, inspecciones, lotes y resultados.</p></div>
+                                        <span class="steps-solution__tag">Del cuartel al lote</span>
+                                    </article>
+                                    <article class="steps-solution steps-solution--fleet">
+                                        <span class="steps-solution__icon"><i class="fa fa-truck"/></span>
+                                        <div><small>RECURSOS Y LOGÍSTICA</small><h3>Maquinaria y Fletes</h3><p>Disponibilidad, costos, mantenimientos, tarifas y órdenes de transporte.</p></div>
+                                        <span class="steps-solution__tag">Control operacional</span>
+                                    </article>
+                                    <article class="steps-solution steps-solution--people">
+                                        <span class="steps-solution__icon"><i class="fa fa-users"/></span>
+                                        <div><small>PERSONAS</small><h3>Protección y Colaciones</h3><p>Seguridad laboral, protocolos y servicios diarios para trabajadores.</p></div>
+                                        <span class="steps-solution__tag">Bienestar y control</span>
+                                    </article>
+                                    <article class="steps-solution steps-solution--cost">
+                                        <span class="steps-solution__icon"><i class="fa fa-line-chart"/></span>
+                                        <div><small>GESTIÓN</small><h3>Nómina y Costos</h3><p>Remuneraciones, libro legal, centros de costo e indicadores de gestión.</p></div>
+                                        <span class="steps-solution__tag">Decisiones con datos</span>
+                                    </article>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="steps-flow" id="flujo">
+                            <div class="steps-container steps-flow__grid">
+                                <div class="steps-flow__copy">
+                                    <span class="steps-kicker">Trazabilidad de punta a punta</span>
+                                    <h2>Una operación que conserva su historia</h2>
+                                    <p>Desde la planificación hasta el resultado económico, cada etapa entrega contexto a la siguiente y evita volver a digitar la misma información.</p>
+                                    <ul>
+                                        <li><i class="fa fa-check"/> Responsables, predios, sectores, cultivos y temporadas compartidos.</li>
+                                        <li><i class="fa fa-check"/> Evidencia operacional y cumplimiento disponible para auditoría.</li>
+                                        <li><i class="fa fa-check"/> Costos y productividad vinculados al origen real de la labor.</li>
+                                    </ul>
+                                </div>
+                                <div class="steps-flow__path">
+                                    <div><span>01</span><strong>Planificar</strong><small>Temporada, cultivos y recursos</small></div>
+                                    <i class="fa fa-arrow-right"/>
+                                    <div><span>02</span><strong>Ejecutar</strong><small>Labores, insumos y personas</small></div>
+                                    <i class="fa fa-arrow-right"/>
+                                    <div><span>03</span><strong>Controlar</strong><small>Calidad, cumplimiento y alertas</small></div>
+                                    <i class="fa fa-arrow-right"/>
+                                    <div><span>04</span><strong>Decidir</strong><small>Costos, productividad e indicadores</small></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="steps-final-cta">
+                            <div class="steps-container steps-final-cta__inner">
+                                <div><span>Entorno demostrativo Steps App</span><h2>Explora una gestión agrícola que funciona como un solo sistema.</h2></div>
+                                <a class="steps-button steps-button--light" href="/web/login">Ingresar a Demo <i class="fa fa-arrow-right ms-2"/></a>
+                            </div>
+                        </section>
+
+                        <footer class="steps-footer">
+                            <div class="steps-container steps-footer__inner">
+                                <a class="steps-brand steps-brand--footer" href="/"><span class="steps-brand__mark"><svg viewBox="0 0 48 48"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><span><strong>Steps</strong><small>Agro</small></span></a>
+                                <p>Tecnología conectada con la realidad del campo.</p>
+                                <span>© 2026 Steps App</span>
+                            </div>
+                        </footer>
+                    </div>
+                </t>
+            </t>
+        </field>
+    </record>
+</odoo>

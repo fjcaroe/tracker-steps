@@ -4,7 +4,7 @@
         <field name="web_icon">step_operations_ui,static/description/icon_machinery.png</field>
     </record>
 
-    <record id="studio_customization.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu">
+    <record id="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu">
         <field name="web_icon">step_operations_ui,static/description/icon_freight.png</field>
     </record>
 

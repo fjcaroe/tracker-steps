@@ -1,0 +1,336 @@
+                              TRÁMITES EN LÍNEA
+INSTRUCTIVO PARA REGISTRAR UNA CARTA DE AVISO
+                                  DE DESPIDO”
+
+
+                                                                     Descripción breve
+  Manual para utilizar la aplicación que soporta el proceso de Registro de la Carta de Aviso de
+                Despido en la Dirección del trabajo utilizando el Portal de Trámites en Línea.
+
+
+
+
+                  DEPARTAMENTO TECNOLOGÍAS DE LA INFORMACIÓN
+              INSTRUCTIVO APLICACIÓN MULTIRUT                                                             1
+              ________________________________________________________________________________________________
+
+
+
+
+CARTA DE AVISO
+
+
+Para realizar una Carta de Aviso, el usuario debe seguir los pasos que se detallan a continuación:
+
+1.   Acceder a la Plataforma de Trámites en Línea e ingresar rut y clave de acceso. Posteriormente hacer Click
+
+     en el botón           .
+
+
+
+
+                                                   Imagen 1
+
+Observación: Para Obtener Clave de usuario, es necesario realizar el proceso de registro el que se ejecuta en
+el link “Registrarse”, ubicado en la página de inicio del Sistema de Trámites en línea.
+               INSTRUCTIVO APLICACIÓN MULTIRUT                                                             2
+               ________________________________________________________________________________________________
+
+
+
+
+2.   Se despliega la siguiente pantalla:
+
+
+
+
+                                                    Imagen 2
+               INSTRUCTIVO APLICACIÓN MULTIRUT                                                             3
+               ________________________________________________________________________________________________
+
+
+
+
+3.   Seleccionar la opción Carta de Aviso (Ind. y Masivo). A continuación se despliega la siguiente pantalla:
+
+
+
+
+                                                    Imagen 3
+               INSTRUCTIVO APLICACIÓN MULTIRUT                                                             4
+               ________________________________________________________________________________________________
+
+
+
+
+4.   Al Seleccionar la opción Carta de Aviso, se despliega la pantalla de Carta de Aviso:
+
+
+
+
+                                                    Imagen 4
+
+     Permite ingresar por medio del sitio Web de la Dirección del Trabajo (DT) una copia de la carta que debe
+     enviar el empleador al trabajador cuando lo despide. Cabe mencionar, que el documento debe ser
+     notificado personalmente o por correo certificado al domicilio del trabajador señalado en el contrato.
+        INSTRUCTIVO APLICACIÓN MULTIRUT                                                             5
+        ________________________________________________________________________________________________
+
+
+
+
+4.1. Proceso
+
+   4.1.1. Registrar los datos del Empleador, los que vienen por defecto de los datos de registro, sólo
+          está permitido modificar la cantidad de trabajadores (Ver Imagen 5).
+
+
+
+
+                                              Imagen 5
+
+   4.1.2. Ingresar los datos del al trabajador involucrado (Imagen 6).
+
+          Rut
+          Nombre
+          Apellido Paterno
+          Apellido Materno
+          Domicilio de trabajo
+          Comuna
+          Sexo
+          Nacionalidad
+
+   El ingreso de todos los campos es Obligatorio. Se pueden ingresar trabajadores con pasaporte o
+   identificación extranjera (Ver Imagen 6).
+     INSTRUCTIVO APLICACIÓN MULTIRUT                                                             6
+     ________________________________________________________________________________________________
+
+
+
+
+                                          Imagen 6
+
+
+
+4.1.3. Luego, al presionar el botón                  se despliega la siguiente pantalla:
+     INSTRUCTIVO APLICACIÓN MULTIRUT                                                             7
+     ________________________________________________________________________________________________
+
+
+
+
+                                          Imagen 7
+
+4.1.4. Completar el formulario donde se ingresan los siguientes ítems:
+   i.    Ítem I “Detalles Carta de Aviso”, campos:
+          Forma de Comunicación: Opciones Personal y Carta Certificada, campo obligatorio.
+
+           Fecha de Inicio Contrato: Campo obligatorio.
+       INSTRUCTIVO APLICACIÓN MULTIRUT                                                             8
+       ________________________________________________________________________________________________
+
+
+
+
+             Fecha Comunicación del despido (o fecha de envió por correo): Campo obligatorio.
+
+             Oficina de Correos desde donde se envió la carta certificada: Campo obligatorio.
+
+             Causal de Término de Contrato: Lista desplegable con las Causales de término de
+              Contrato, campo obligatorio. Si el usuario selecciona “Art. 163 bis”, se debe Adjuntar
+              Certificado de la Superintendencia de la Insolvencia y Reemprendimiento en formato
+              Pdf (Ver Imagen 8).
+
+             Motivos en los que se fundamenta el despido: Campo obligatorio.
+
+
+
+ii.       Ítem II “Montos”, campos:
+           Por Años de Servicio $: La indemnización por años de servicio1 (en estricto rigor
+              indemnización por despido proporcional a los años de servicio), en el derecho laboral
+              de Chile, es la indemnización por despido que el empleador debe dar al trabajador, en
+              proporción a la cantidad de años que el segundo ha trabajado para el primero. Campo
+              obligatorio.
+
+             Sustitutiva Aviso Previo $: La indemnización sustitutiva del aviso previo, en el derecho
+              laboral de Chile, es aquella que debe pagar el empleador al trabajador, cuando le
+              despide sin darle el aviso previo en el plazo que la ley exige. El Código del Trabajo de
+              Chile de 1994 exige que el empleador debe avisar al trabajador con un mínimo de 30
+              días, que será despedido. Campo obligatorio.
+
+iii.      Ítem III “COTIZACIONES PREVISIONALES”, campos:
+           Estado Cotizaciones Previsionales: Campo obligatorio.
+
+             Documentación que acredita pago previsional: Opciones Planilla Cotizaciones,
+              Certificado Cotizaciones y No corresponde informar. Campo obligatorio.
+     INSTRUCTIVO APLICACIÓN MULTIRUT                                                             9
+     ________________________________________________________________________________________________
+
+
+
+
+                                          Imagen 8
+
+
+
+4.1.5. Presionar el botón           , para crear la carta en formato PDF. Se despliega la siguiente
+       pantalla:
+
+
+
+
+                                          Imagen 9
+
+
+
+
+4.1.6. Al Presionar         se despliega el documento de Carta de Aviso (Ver Imagen 10).
+
+
+4.1.7. Al presionar           se despliega el Menú de Cartas de Aviso (Ver Imagen 3)
+INSTRUCTIVO APLICACIÓN MULTIRUT                                                             10
+________________________________________________________________________________________________
+
+
+
+
+                                    Imagen 10
+               INSTRUCTIVO APLICACIÓN MULTIRUT                                                             11
+               ________________________________________________________________________________________________
+
+
+
+
+5.   Al Seleccionar la opción Carta de Aviso (Nóminas), se despliega la siguiente pantalla:
+
+
+
+
+                                                   Imagen 11
+
+Permite ingresar por medio del sitio Web de la Dirección del Trabajo (DT) una copia de la carta que debe enviar
+el empleador al trabajador cuando lo despide. Se utiliza el procedimiento "por nóminas" cuando se requiere
+ingresar la copia del aviso de término de la relación laboral de cinco o más trabajadores.
+        INSTRUCTIVO APLICACIÓN MULTIRUT                                                             12
+        ________________________________________________________________________________________________
+
+
+
+
+5.1. Proceso
+
+   5.1.1. Registrar los datos del Empleador, los que vienen por defecto de los datos de registro (Ver
+          Imagen 11).
+
+
+   5.1.2. Presionar el botón        para descargar el archivo que contiene el formato y codificación de
+          los datos que se ingresan en la plantilla en la que se registran los empleados que tienen carta
+          de aviso.
+
+
+
+   5.1.3. Presionar el botón       para descargar la plantilla con el formato del archivo en el que se
+          registran los empleados que tienen carta de aviso
+
+   5.1.4. Adjuntar Certificado de la Superintendencia de Insolvencia y Reemprendimiento adjuntar
+          documento en formato Pdf si existen despidos por el “Artículo 163 bis.”
+
+
+   5.1.5. Presionar el botón                             para subir el archivo Excel con la nómina de
+          empleados que tienen carta de aviso.
+
+   5.1.6. Presionar el botón          para crear los documentos de Carta de Aviso de la nómina de
+          empleados registrados en el archivo Excel. Luego, se despliega la siguiente pantalla:
+
+
+
+
+                                             Imagen 12
+
+         Se despliega el mensaje que el proceso término satisfactoriamente y se indica el número de
+         Cartas de Aviso que fueron creadas.
+
+         Importante: Antes de grabar el registro de Cartas de Aviso el sistema valida en la planilla Excel
+         el contenido del campo “Código de Causal de Despido”, si este es igual a 20(Artículo 163 bis.)
+         el usuario debe Adjuntar         “Certificado de la Superintendencia de Insolvencia y
+         Reemprendimiento “en formato Pdf. En caso de no adjuntar el archivo se despliega el mensaje:
+     INSTRUCTIVO APLICACIÓN MULTIRUT                                                             13
+     ________________________________________________________________________________________________
+
+
+
+
+                                          Imagen 13
+
+
+
+
+5.1.7. Presionar el link “Historial” para ver las Cartas de Aviso creadas (Ver Imagen 14).
+
+5.1.8. Presionar el botón            para volver al Menú de Cartas de Aviso (Ver Imagen 3)
+               INSTRUCTIVO APLICACIÓN MULTIRUT                                                             14
+               ________________________________________________________________________________________________
+
+
+
+
+6.   Al Seleccionar la opción Historial, se despliega el Historial de Cartas de Aviso:
+
+
+
+
+                                                     Imagen 14
+
+En el historial (imagen 14) se desplegaran todas las cartas creadas por ambos procesos (Cartas de Aviso
+individuales y masivas).
+        INSTRUCTIVO APLICACIÓN MULTIRUT                                                             15
+        ________________________________________________________________________________________________
+
+
+
+
+6.1. Proceso
+
+   6.1.1. Seleccionar criterios de búsqueda:
+             Opción 1:
+                                Carta de Aviso Individual o Carta Aviso Masiva
+             Opcion 2:
+                                Todas (últimas 500)
+
+                                  Por fecha: Ingresar Fecha desde y hasta
+
+                                  Por Folio: Ingresar número de folio
+
+                                  Por Rut: Ingresar Rut del empleado
+
+                                  Por operación: Ingresar Nro. Operación
+
+   6.1.2. Presionar el botón            para obtener el resultado de la búsqueda:
+     INSTRUCTIVO APLICACIÓN MULTIRUT                                                             16
+     ________________________________________________________________________________________________
+
+
+
+
+                                          Imagen 15
+
+6.1.3. Ingresar en el campo “Buscar” para realizar un filtro en el resultado de la búsqueda anterior.
+
+
+6.1.4. Al presionar en la imagen       del registro asociado a la carta se despiega la carta Aviso:
+INSTRUCTIVO APLICACIÓN MULTIRUT                                                             17
+________________________________________________________________________________________________
+
+
+
+
+                                    Imagen 16
+     INSTRUCTIVO APLICACIÓN MULTIRUT                                                             18
+     ________________________________________________________________________________________________
+
+
+
+
+6.1.5. Al presionar en la imagen         del registro asociado a la carta se descarga el documento con
+       la Carta de Aviso en el equipo del usuario.
+

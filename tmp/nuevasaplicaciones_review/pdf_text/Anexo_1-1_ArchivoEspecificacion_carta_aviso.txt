@@ -1,0 +1,283 @@
+ .
+Características del Proceso
+ El registro de las cartas de aviso de término de contrato en la Dirección del Trabajo, está
+ contemplado en el artículo 162 del Código del Trabajo. Toda la información ingresada por esta
+ vía, así como el cumplimiento de los plazos estipulados en la mencionada normativa legal, son
+ responsabilidad del propio empleador.
+
+ La acción desarrollada en esta aplicación, guarda la fecha y hora en que se hizo ingreso de la
+ información. De la misma forma, Ud. podrá acceder a un historial de ingreso de cartas de aviso
+ de término de contrato, asociado al RUT de la empresa.
+
+ Para el registro de las cartas de aviso de sus ex trabadores, usted podrá proporcionar un
+ archivo en alguno de los siguientes formatos:
+
+     1. Excel 97-2003 (extensión .xls).
+
+     2. En la página de ingreso de cartas masivas se proporciona un ejemplo de archivo con
+        formato correcto para cada tipo de extensión valida.
+
+ Formato de Archivo
+ Campo                    Tipo              Obligatorio   Descripción
+ [rut_tr]                 numerico               Si       Rut Trabajador
+ [dv_tr]                  char(1)                Si       Digito Verificador
+ [nombres_tr]             varchar (50)           Si       Nombre Trabajador
+ [ap_paterno_tr]          varchar (50)           Si       Apellido Paterno
+ [ap_materno_tr]          varchar (50)           Si       Apellido Materno
+ [comuna_tr]              numerico               Si       Código comuna
+ [sexo]                   char(1)                Si       Sexo del Trabajador
+                                                          ('F' Femenino, 'M' Masculino)
+ [fecha_notificacion]     varchar (10)           Si       Fecha Notificación dd/mm/aaaa
+ [medio_notificacion]     char(1)                Si       Medio de Notificación, personal o por
+                                                          correo ('C' correo, 'P' personal)
+ [oficina_correos]        varchar (100)                   En caso de ser correo, identificar oficina
+                                                          de correo
+ [fecha_inicio]           varchar (10)           Si       Fecha Inicio de la relación laboral en
+                                                          formato dd/mm/aaaa
+ [fecha_termino]          varchar (10)           Si       Fecha Termino de la relación laboral en
+                                                          formato dd/mm/aaaa
+ [monto_anio_servicio]    Numerico                        Monto que corresponde por año de
+                                                          servicio, si corresponde. Si no
+                                                          corresponde indique 0 (cero)
+ [monto_aviso_previo]     Numerico                        Monto sustitutivo del aviso previo si
+                                                          corresponde. Si no corresponde indique
+                                                          0 (cero)
+ [TipoCausal]             numerico               Si       Causal que se invoca para el Termino de
+                                                          contrato, para ello se debe colocar el
+                                                          valor del código según tabla Adjunta
+                                                          “Causales de Despido”.
+ [ArticuloCausal]         varchar (15)           Si       Descripción de la Causal que se invoca
+                                                          para el Término de contrato, para ello se
+                                                          debe colocar el valor de la columna
+                                                          Descripción según tabla Adjunta
+                                                          “Causales de Despido”, debe ser la
+                                                          descripción que corresponde al código
+                                            indicado en el TipoCausal.
+[HechosCausal]          Varchar(200)   Si   Describe los Hechos en que se funda la
+                                            Causal Seleccionada. (el numero
+                                            caracteres no debe ser superior a 200)
+[EstadoCotizaciones]    Varchar(200)   Si   Debe indicar lo comunicado en relación
+                                            al estado de las Cotizaciones
+                                            previsionales de todo el Período
+                                            trabajado para el ex trabajador. (El
+                                            numero caracteres no debe ser superior
+                                            a 200)
+[TipoDocCotizaciones]   numérico       Si   Indica la documentación respecto al
+                                            estado de las cotizaciones previsionales,
+                                            que se adjuntó al momento de Notificar
+                                            el Aviso de Término. Se debe registrar el
+                                            código del documento, de acuerdo a la
+                                            Tabla “Documentos de Cotizaciones
+                                            Previsionales” que se Adjunta más
+                                            adelante. (1: Copias de las planillas de
+                                            cotizaciones previsionales.
+                                            2: Certificado emitido por el organismo
+                                            previsional correspondiente )
+Causales de Despido
+ Código       Articulo               Descripción
+          3   Art.159N1              Mutuo acuerdo de las partes.
+          4   Art.159N2              Renuncia del trabajador
+          6   Art.159N4              Vencimiento del plazo convenido en el contrato.
+          7   Art.159N5              Conclusión del trabajo o servicio que dio origen al contrato.
+          8   Art.159N6              Caso fortuito o fuerza mayor.
+      10      Art.160N1              Conductas indebidas de carácter grave.
+      11      Art.160N2              Ejecutar negociaciones prohibidas dentro del giro del negocio.
+      12      Art.160N3              No concurrencia a sus labores sin causa.
+      13      Art.160N4              Abandono del trabajo.
+      14      Art.160N5              Actos, omisiones o imprudencias temerarias
+      15      Art.160N6              Perjuicio material causado intencionalmente en instalaciones
+      16      Art.160N7              Incumplimiento grave de las obligaciones que impone el contrato.
+      18      Art.161Inciso1         Necesidades de la empresa, establecimiento o servicio.
+      19      Art.161Inciso2         Desahucio escrito del empleador
+      20      Art.163bis             Procedimiento Concursal de Liquidación
+
+
+
+ Documentos de Cotizaciones Previsionales.
+ Código       Descripción
+          0   Copias de las planillas de cotizaciones previsionales
+          1   Certificado emitido por el organismo previsional correspondiente.
+          2   No corresponde informar.
+Comunas
+                                CodigoComuna Comuna
+ CodigoComuna   Comuna                  13501 MELIPILLA
+          11201 AISÉN                    7304 MOLINA
+           5602 ALGARROBO                4303 MONTEPATRIA
+          13502 ALHUÉ                    6110 MOSTAZAL
+           8314 ALTOBIOBIO               8305 MULCHÉN
+           3302 ALTODELCARMEN            8306 NACIMIENTO
+           1107 ALTOHOSPICIO             6305 NANCAGUA
+          10202 ANCUD                   12401 NATALES
+           4103 ANDACOLLO                6205 NAVIDAD
+           9201 ANGOL                    8307 NEGRETE
+          12202 ANTÁRTICA                8408 NINHUE
+           2101 ANTOFAGASTA              5506 NOGALES
+           8302 ANTUCO                   9111 NUEVAIMPERIAL
+           8202 ARAUCO                   8409 ÑIQUÉN
+           1201 ARICA                   13120 ÑUÑOA
+          13402 BUIN                    11302 O'HIGGINS
+           8402 BULNES                   6111 OLIVAR
+           5402 CABILDO                  2202 OLLAGUE
+          12201 CABODEHORNOS             5507 OLMUÉ
+           8303 CABRERO                 10301 OSORNO
+           2201 CALAMA                   4301 OVALLE
+          10102 CALBUCO                 13604 PADREHURTADO
+           3102 CALDERA                  9112 PADRELASCASAS
+          13403 CALERADETANGO            4105 PAIHUANO
+           5302 CALLELARGA              10510 PAILLACO
+           1202 CAMARONES               13404 PAINE
+           1108 CAMARONES               10404 PALENA
+           1102 CAMIÑA                   6306 PALMILLA
+           4202 CANELA                  10511 PANGUIPULLI
+           8203 CAÑETE                   5704 PANQUEHUE
+           9102 CARAHUE                  5403 PAPUDO
+           5603 CARTAGENA                6206 PAREDONES
+           5102 CASABLANCA               7404 PARRAL
+          10201 CASTRO                  13121 PEDROAGUIRRECERDA
+           5702 CATEMU                   7106 PELARCO
+           7201 CAUQUENES                7203 PELLUHUE
+          13102 CERRILLOS                8410 PEMUCO
+          13103 CERRONAVIA               7107 PENCAHUE
+          10401 CHAITÉN                  8107 PENCO
+           7202 CHANCO                  13605 PEÑAFLOR
+           3201 CHAÑARAL                13122 PEÑALOLÉN
+           6302 CHÉPICA                  6307 PERALILLO
+           8103 CHIGUAYANTE              9113 PERQUENCO
+          11401 CHILECHICO               5404 PETORCA
+           8401 CHILLÁN
+CodigoComuna   Comuna           CodigoComuna Comuna
+          8406 CHILLÁNVIEJO              6112 PEUMO
+          6303 CHIMBARONGO               1105 PICA
+          9121 CHOLCHOL                  6113 PICHIDEGUA
+         10203 CHONCHI                   6201 PICHILEMU
+         11202 CISNES                    8411 PINTO
+          8403 COBQUECURA               13202 PIRQUE
+         10103 COCHAMÓ                   9114 PITRUFQUÉN
+         11301 COCHRANE                  6308 PLACILLA
+          6102 CODEGUA                   8412 PORTEZUELO
+          8404 COELEMU                  12301 PORVENIR
+         11101 COIHAIQUE                 1106 POZOALMONTE
+          8405 COIHUECO                 12302 PRIMAVERA
+          6103 COINCO                   13123 PROVIDENCIA
+          7402 COLBÚN                    5105 PUCHUNCAVÍ
+          1103 COLCHANE                  9115 PUCÓN
+         13301 COLINA                   13124 PUDAHUEL
+          9202 COLLIPULLI               13201 PUENTEALTO
+          6104 COLTAUCO                 10101 PUERTOMONTT
+          4302 COMBARBALÁ               10302 PUERTOOCTAY
+          8101 CONCEPCIÓN               10109 PUERTOVARAS
+         13104 CONCHALÍ                  6309 PUMANQUE
+          5103 CONCÓN                    4304 PUNITAQUI
+          7102 CONSTITUCIÓN             12101 PUNTAARENAS
+          8204 CONTULMO                 10406 PUQUELDON
+          3101 COPIAPÓ                  10206 PUQUELDÓN
+          4102 COQUIMBO                  9208 PURÉN
+          8102 CORONEL                  10303 PURRANQUE
+         10502 CORRAL                    5705 PUTAENDO
+          9103 CUNCO                     1301 PUTRE
+          9203 CURACAUTÍN               10304 PUYEHUE
+         13503 CURACAVÍ                 10405 QUEILEN
+         10407 CURACODEVELEZ            10207 QUEILÉN
+         10204 CURACODEVÉLEZ            10208 QUELLÓN
+          8205 CURANILAHUE              10209 QUEMCHI
+          9104 CURARREHUE                8308 QUILACO
+          7103 CUREPTO                  13125 QUILICURA
+          7301 CURICÓ                    8309 QUILLECO
+         10205 DALCAHUE                  8413 QUILLÓN
+          3202 DIEGODEALMAGRO            5501 QUILLOTA
+          6105 DOÑIHUE                   5106 QUILPUÉ
+         13105 ELBOSQUE                 10210 QUINCHAO
+          8407 ELCARMEN                  6114 QUINTADETILCOCO
+         13602 ELMONTE                  13126 QUINTANORMAL
+          5604 ELQUISCO                  5107 QUINTERO
+          3203 ELSALVADOR                8414 QUIRIHUE
+          5605 ELTABO                    6101 RANCAGUA
+CodigoComuna   Comuna            CodigoComuna Comuna
+          7104 EMPEDRADO                  8112 RANQUIL
+          9204 ERCILLA                    8415 RÁNQUIL
+         13106 ESTACIÓNCENTRAL            7305 RAUCO
+          8104 FLORIDA                   13127 RECOLETA
+          9105 FREIRE                     9209 RENAICO
+          3303 FREIRINA                  13128 RENCA
+         10104 FRESIA                     6115 RENGO
+         10105 FRUTILLAR                  6116 REQUÍNOA
+         10402 FUTALEUFÚ                  7405 RETIRO
+         10503 FUTRONO                    5303 RINCONADA
+          9106 GALVARINO                 10512 RÍOBUENO
+          1302 GENERALLAGOS               7108 RÍOCLARO
+          9107 GORBEA                     4305 RÍOHURTADO
+          6106 GRANEROS                  11402 RÍOIBÁÑEZ
+         11203 GUAITECAS                 10305 RÍONEGRO
+          5503 HIJUELAS                  12103 RÍOVERDE
+         10403 HUALAIHUÉ                  7306 ROMERAL
+          7302 HUALAÑÉ                    9116 SAAVEDRA
+          8208 HUALPEN                    7307 SAGRADAFAMILIA
+          8105 HUALQUI                    4204 SALAMANCA
+          1104 HUARA                      5601 SANANTONIO
+          3304 HUASCO                    13401 SANBERNARDO
+         13107 HUECHURABA                 8416 SANCARLOS
+          4201 ILLAPEL                    7109 SANCLEMENTE
+         13108 INDEPENDENCIA              5304 SANESTEBAN
+          1101 IQUIQUE                    8417 SANFABIÁN
+         13603 ISLADEMAIPO                5701 SANFELIPE
+          5201 ISLADEPASCUA               6301 SANFERNANDO
+          5104 JUANFERNÁNDEZ             12104 SANGREGORIO
+          5502 LACALERA                   8418 SANIGNACIO
+         13109 LACISTERNA                 7406 SANJAVIER
+          5504 LACRUZ                    13129 SANJOAQUÍN
+          6202 LAESTRELLA                13203 SANJOSÉDEMAIPO
+         13110 LAFLORIDA                 10306 SANJUANDELACOSTA
+         13111 LAGRANJA                  13130 SANMIGUEL
+          4104 LAHIGUERA                  8419 SANNICOLÁS
+          5401 LALIGUA                   10307 SANPABLO
+         13112 LAPINTANA                 13505 SANPEDRO
+         13113 LAREINA                    2203 SANPEDRODEATACAMA
+          4101 LASERENA                   8108 SANPEDRODELAPAZ
+         10504 LAUNIÓN                    7110 SANRAFAEL
+         10505 LAGORANCO                 13131 SANRAMÓN
+         11102 LAGOVERDE                  8310 SANROSENDO
+         12102 LAGUNABLANCA               6117 SANVICENTE
+          8304 LAJA                       8311 SANTABÁRBARA
+         13302 LAMPA                      6310 SANTACRUZ
+CodigoComuna   Comuna        CodigoComuna Comuna
+         10506 LANCO                  8109 SANTAJUANA
+          6107 LASCABRAS              5706 SANTAMARÍA
+         13114 LASCONDES             13101 SANTIAGO
+          9108 LAUTARO                5606 SANTODOMINGO
+          8201 LEBU                   2103 SIERRAGORDA
+          7303 LICANTÉN              13601 TALAGANTE
+          5505 LIMACHE                7101 TALCA
+          7401 LINARES                8110 TALCAHUANO
+          6203 LITUECHE               2104 TALTAL
+         10107 LLANQUIHUE             9101 TEMUCO
+          5703 LLAYLLAY               7308 TENO
+         13115 LOBARNECHEA            9117 TEODOROSCHMIDT
+         13116 LOESPEJO               3103 TIERRAAMARILLA
+         13117 LOPRADO               13303 TILTIL
+          6304 LOLOL                 12303 TIMAUKEL
+          9109 LONCOCHE               8207 TIRÚA
+          7403 LONGAVÍ                2301 TOCOPILLA
+          9205 LONQUIMAY              9118 TOLTÉN
+          8206 LOSALAMOS              8111 TOMÉ
+          5301 LOSANDES              12402 TORRESDELPAINE
+          8301 LOSANGELES            11303 TORTEL
+         10507 LOSLAGOS               9210 TRAIGUÉN
+         10106 LOSMUERMOS             8420 TREGUACO
+          9206 LOSSAUCES              8312 TUCAPEL
+          4203 LOSVILOS              10501 VALDIVIA
+          8106 LOTA                   3301 VALLENAR
+          9207 LUMACO                 5101 VALPARAÍSO
+          6108 MACHALÍ                7309 VICHUQUÉN
+         13118 MACUL                  9211 VICTORIA
+         10508 MÁFIL                  4106 VICUÑA
+         13119 MAIPÚ                  9119 VILCÚN
+          6109 MALLOA                 7407 VILLAALEGRE
+          6204 MARCHIGUE              5108 VILLAALEMANA
+          2105 MARIAELENA             9120 VILLARRICA
+         13504 MARÍAPINTO             5109 VIÑADELMAR
+         10509 MARIQUINA             13132 VITACURA
+          7105 MAULE                  7408 YERBASBUENAS
+         10108 MAULLÍN                8313 YUMBEL
+          2102 MEJILLONES             8421 YUNGAY
+          9110 MELIPEUCO              5405 ZAPALLAR
+

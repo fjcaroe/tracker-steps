@@ -1,0 +1,123 @@
+# Virtual host dedicado de la App de Colaciones.
+#
+# Plantilla sanitizada de /etc/nginx/sites-available/colaciones.stepsapp.cl.
+# Contiene rutas del servidor, nunca secretos.
+#
+# Principio: la raíz sirve la PWA estática y SOLO /colaciones/api/ llega a Odoo.
+# El navegador y la API comparten origen, así que no hace falta abrir CORS.
+#
+# Sustituya:
+#   colaciones.stepsapp.cl -> su nombre de host
+#   127.0.0.1:8080         -> puerto del Odoo que debe atender la API
+#                             (8080 = Demo/STEPS_DEMO, 8075 = Desarrollo/LAB_TAREAS)
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name colaciones.stepsapp.cl;
+
+    # El desafío ACME nunca se redirige: Certbot debe poder resolverlo por HTTP.
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        allow all;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name colaciones.stepsapp.cl;
+
+    ssl_certificate     /etc/letsencrypt/live/colaciones.stepsapp.cl/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/colaciones.stepsapp.cl/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam         /etc/letsencrypt/ssl-dhparams.pem;
+
+    root /var/www/colaciones_app;
+    index index.html;
+    charset utf-8;
+
+    client_max_body_size 2m;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+    # La App no carga nada de terceros: todo es del mismo origen.
+    add_header Content-Security-Policy "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'" always;
+
+    # ---------------------------------------------------------------
+    # API: única ruta que llega a Odoo, conservando el URI original.
+    # ---------------------------------------------------------------
+    location ^~ /colaciones/api/ {
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Port  443;
+        proxy_redirect off;
+
+        proxy_connect_timeout 30s;
+        proxy_read_timeout    120s;
+        proxy_send_timeout    120s;
+
+        # Sin barra final: el URI llega intacto a Odoo.
+        proxy_pass http://127.0.0.1:8080;
+    }
+
+    # ---------------------------------------------------------------
+    # Aplicación estática
+    # ---------------------------------------------------------------
+    # El service worker y el manifiesto deben revalidarse siempre: si quedan
+    # cacheados, un tótem puede seguir ejecutando una versión antigua.
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Service-Worker-Allowed "/" always;
+        default_type application/javascript;
+        try_files $uri =404;
+    }
+
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        types { } default_type application/manifest+json;
+        try_files $uri =404;
+    }
+
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # El icono sí puede cachearse: su nombre es estable pero cambia poco y el
+    # service worker ya lo conserva.
+    location = /icon.png {
+        add_header Cache-Control "public, max-age=604800, must-revalidate" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # Los módulos JavaScript tienen nombre estable, así que se revalidan en vez
+    # de cachearse por tiempo: de otro modo una corrección podría tardar días
+    # en llegar a un tótem.
+    location ~* \.(js|css)$ {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri =404;
+    }
+
+    # Fallback de aplicación de una sola página.
+    location / {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        try_files $uri $uri/ /index.html;
+    }
+}

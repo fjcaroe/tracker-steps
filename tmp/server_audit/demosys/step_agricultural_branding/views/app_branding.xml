@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="hr_work_entry_contract_enterprise.menu_hr_payroll_root" model="ir.ui.menu">
+        <field name="web_icon">step_agricultural_branding,static/description/icon_payroll.png</field>
+    </record>
+</odoo>
+

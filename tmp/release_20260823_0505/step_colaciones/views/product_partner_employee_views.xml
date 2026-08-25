@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_product_template_form_colaciones" model="ir.ui.view">
+        <field name="name">product.template.form.colaciones</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="is_meal"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_partner_form_colaciones" model="ir.ui.view">
+        <field name="name">res.partner.form.colaciones</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="is_meal_supplier"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_employee_form_colaciones" model="ir.ui.view">
+        <field name="name">hr.employee.form.colaciones</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Colaciones" name="colaciones" groups="hr.group_hr_user">
+                    <group>
+                        <group string="Habilitación">
+                            <field name="meal_eligible"/>
+                            <field name="company_id" readonly="1" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Identificadores de tótem">
+                            <field name="barcode"/>
+                            <field name="pin" password="True"/>
+                            <field name="meal_nfc_uid" password="True"/>
+                        </group>
+                    </group>
+                    <separator string="Costeo analítico"/>
+                    <group>
+                        <group>
+                            <field name="meal_distribution_mode"/>
+                        </group>
+                        <group>
+                            <field name="analytic_precision" invisible="1"/>
+                            <field name="meal_analytic_distribution"
+                                   widget="analytic_distribution"
+                                   options="{'force_applicability': 'optional'}"
+                                   groups="analytic.group_analytic_accounting"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert"
+                         invisible="meal_distribution_mode != 'dynamic'">
+                        La distribución dinámica usa la proporción de horas del día
+                        registrada en Actividades. Si no hay horas utilizables, se
+                        aplicará esta distribución fija y se notificará al responsable.
+                    </div>
+                    <div class="alert alert-warning" role="alert">
+                        El NIP y el identificador NFC son credenciales personales. No deben compartirse ni mostrarse en reportes de colaciones.
+                    </div>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_colacion_products" model="ir.actions.act_window">
+        <field name="name">Productos de colación</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_meal', '=', True)]</field>
+        <field name="context">{'default_is_meal': True, 'search_default_filter_to_sell': 0}</field>
+    </record>
+
+    <record id="action_colacion_suppliers" model="ir.actions.act_window">
+        <field name="name">Proveedores de colación</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_meal_supplier', '=', True)]</field>
+        <field name="context">{'default_is_meal_supplier': True, 'default_supplier_rank': 1}</field>
+    </record>
+
+    <record id="action_colacion_employees" model="ir.actions.act_window">
+        <field name="name">Trabajadores habilitados</field>
+        <field name="res_model">hr.employee</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('meal_eligible', '=', True)]</field>
+        <field name="context">{'default_meal_eligible': True}</field>
+    </record>
+</odoo>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="rule_hr_legal_workweek_calendar_company" model="ir.rule">
+        <field name="name">Calendario legal: multiempresa</field>
+        <field name="model_id" ref="model_hr_legal_workweek_calendar"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_contract_adequacy_batch_company" model="ir.rule">
+        <field name="name">Lote de adecuación: multiempresa</field>
+        <field name="model_id" ref="model_hr_contract_adequacy_batch"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_legal_calendar_execution_log_company" model="ir.rule">
+        <field name="name">Bitácora calendario legal: multiempresa</field>
+        <field name="model_id" ref="model_hr_legal_calendar_execution_log"/>
+        <field name="domain_force">[('contract_id.company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_labor_template_company" model="ir.rule">
+        <field name="name">Plantillas laborales: multiempresa</field>
+        <field name="model_id" ref="model_hr_labor_template"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_labor_document_company" model="ir.rule">
+        <field name="name">Documentos laborales: multiempresa</field>
+        <field name="model_id" ref="model_hr_labor_document"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_contract_dt_batch_company" model="ir.rule">
+        <field name="name">Lotes DT de contratos: multiempresa</field>
+        <field name="model_id" ref="model_hr_contract_dt_batch"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_termination_notice_company" model="ir.rule">
+        <field name="name">Avisos de término: multiempresa</field>
+        <field name="model_id" ref="model_hr_termination_notice"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_termination_notice_dt_batch_company" model="ir.rule">
+        <field name="name">Lotes DT de avisos: multiempresa</field>
+        <field name="model_id" ref="model_hr_termination_notice_dt_batch"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_severance_company" model="ir.rule">
+        <field name="name">Finiquitos: multiempresa</field>
+        <field name="model_id" ref="model_hr_severance"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_hr_severance_dt_batch_company" model="ir.rule">
+        <field name="name">Lotes DT de finiquitos: multiempresa</field>
+        <field name="model_id" ref="model_hr_severance_dt_batch"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

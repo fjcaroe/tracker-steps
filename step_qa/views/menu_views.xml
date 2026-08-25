@@ -1,26 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994" model="ir.ui.menu">
-        <field name="name">QA-Inspecciones</field>
-        <field name="action" ref="step_qa.action_step_qa_dashboard"/>
-        <field name="web_icon">step_qa,static/description/icon.png</field>
-    </record>
-
-    <menuitem id="menu_step_qa_dashboard"
-              name="Inicio"
+    <menuitem id="menu_step_qa_root" name="QA-Inspecciones"
               action="step_qa.action_step_qa_dashboard"
-              parent="studio_customization.qa_inspecciones_791dce79-c122-4bad-9795-d34e14b94994"
-              sequence="0"/>
-
-    <record id="studio_customization.qa_inspecciones_qa_p_1329b29f-841c-4d28-a232-4ddac5da2a1a" model="ir.ui.menu"><field name="name">Calidad</field><field name="sequence">10</field></record>
-    <record id="studio_customization.qa_inspecciones_punt_75a22f25-dd83-4256-8585-1b174e7db808" model="ir.ui.menu"><field name="name">Puntos de control</field><field name="sequence">10</field></record>
-    <record id="studio_customization.qa_inspecciones_cont_e5a98440-bc2d-4f08-964d-75513d54e14a" model="ir.ui.menu"><field name="name">Controles de calidad</field><field name="sequence">20</field></record>
-    <record id="studio_customization.qa_inspecciones_aler_0724ff00-c483-4e5f-9b25-43e949f2e7c4" model="ir.ui.menu"><field name="name">Alertas de calidad</field><field name="sequence">30</field></record>
-    <record id="studio_customization.qa_inspecciones_equi_9eec98c8-a402-4fe5-971a-20181ee53b63" model="ir.ui.menu"><field name="name">Equipos de calidad</field><field name="sequence">40</field></record>
-
-    <record id="studio_customization.qa_inspecciones_insp_4ee5cf46-97bc-4f66-9f42-5bde67504ef3" model="ir.ui.menu"><field name="name">Inspecciones</field><field name="sequence">20</field></record>
-    <record id="studio_customization.qa_inspecciones_insp_bfb6593f-e08c-467a-b3f0-8e3f2efe0ac1" model="ir.ui.menu"><field name="name">Inspecciones internas</field><field name="sequence">10</field></record>
-    <record id="studio_customization.qa_inspecciones_ases_b2fe5ab3-8004-4c97-9929-ef87dea966af" model="ir.ui.menu"><field name="name">Asesorías externas</field><field name="sequence">20</field></record>
-
-    <record id="studio_customization.qa_inspecciones_conf_fce57426-cb59-4771-bc18-188965a025db" model="ir.ui.menu"><field name="name">Configuración</field><field name="sequence">90</field></record>
+              sequence="40" web_icon="step_qa,static/description/icon.png"/>
+    <menuitem id="menu_step_qa_dashboard" name="Inicio"
+              action="step_qa.action_step_qa_dashboard"
+              parent="step_qa.menu_step_qa_root" sequence="0"/>
+    <menuitem id="menu_step_qa_checks" name="Controles de calidad"
+              action="step_qa.control_de_qa_b172c94c-5a8d-48d6-8779-b0ca0e1b0d8a"
+              parent="step_qa.menu_step_qa_root" sequence="10"/>
+    <menuitem id="menu_step_qa_points" name="Puntos de control"
+              action="step_qa.puntos_de_control_d607ccb0-74c4-46ba-84e7-7b7d8fa7c6b8"
+              parent="step_qa.menu_step_qa_root" sequence="20"/>
+    <menuitem id="menu_step_qa_alerts" name="Alertas de calidad"
+              action="step_qa.alertas_de_calidad_460e6a18-5379-4351-9b36-fcb6bc0f8240"
+              parent="step_qa.menu_step_qa_root" sequence="30"/>
+    <menuitem id="menu_step_qa_teams" name="Equipos de calidad"
+              action="step_qa.equipo_de_alertas_qa_7ba3c107-1e6a-4cbd-ae6d-cfafb976e614"
+              parent="step_qa.menu_step_qa_root" sequence="40"/>
 </odoo>
