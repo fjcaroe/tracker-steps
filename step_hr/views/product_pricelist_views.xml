@@ -13,7 +13,6 @@
                 <field name="group_type" widget="radio" readonly="1" force_save="1"/> <!--readonly="1" force_save="1"-->
                 <field name="date_init"/>
                 <field name="date_end"/>
-                <field name="moviliza" invisible="group_type != 'contratista'"/>
                 <field name="cosecha" invisible="1"/>
                 <field name="escalonado"/>
                 <field name="cost_ids" widget="many2many_tags" domain="[('plan_id.name', '=', 'Centro de costos')]"/>
@@ -23,9 +22,8 @@
 <!--                <field name="partner_id" domain="[('step_contra', '=', True)]" invisible="group_type != 'contratista'"/>-->
                 <field name="partner_ids" widget="many2many_tags" domain="[('step_contra', '=', True)]" invisible="group_type != 'contratista'"/>
                 <field name="user_id" domain="[ ('user_id', '!=', False)]"/>
-                <field name="especie_id" invisible="moviliza == True"/>
-                <field name="grupo_variedad_id_domain" domain="[('especie_id', '=', especie_id)]" widget="many2many_tags" invisible="moviliza == True"/>
-                <field name="transporte_id" invisible="group_type in ('propio', 'contratista')"/>
+                <field name="especie_id"/>
+                <field name="grupo_variedad_id_domain" domain="[('especie_id', '=', especie_id)]" widget="many2many_tags"/>
             </xpath>
             <xpath expr="//field[@name='item_ids']/list/field[@name='name']" position="after" >
 <!--                <field name="labor_id" domain="[('is_labor', '=', True)]"/>-->
@@ -39,7 +37,7 @@
 <!--                <attribute name="invisible">moviliza == True</attribute>-->
 <!--            </xpath>-->
             <xpath expr="//page[@name='pricelist_rules']" position="replace">
-                <page name="pricelist_rules" string="Reglas de Precio" invisible="moviliza == True">
+                <page name="pricelist_rules" string="Reglas de Precio">
                     <field name="item_ids" nolabel="1" context="{'default_base':'list_price'}">
                         <list string="Reglas de Precio">
                             <field name="product_tmpl_id" column_invisible="True"/>
@@ -182,21 +180,6 @@
                         </form>
                     </field>
                 </page>
-                <page name='move_line' string="Reglas de Precio Movilizacion" invisible="moviliza == False">-->
-                    <field name="move_item">
-                        <list editable="bottom">
-                            <field name="recorrido_id" optional="show"/>
-                            <field name="pricelist_id" column_invisible="True"/>
-                            <field name="product_id" optional="show" options="{'no_create': True}" domain="[('is_movi', '=', True)]"/>
-                            <field name="desde" optional="show"/>
-                            <field name="hasta" optional="show"/>
-                            <field name="t_viaje" optional="show"/>
-                            <field name="cobro_type" optional="show"/>
-                            <field name="min_quantity" optional="show" column_invisible="True"/>
-                            <field name="tarifa" optional="show"/>
-                        </list>
-                    </field>
-                </page>
             </xpath>
 <!--            <xpath expr="//page[@name='pricelist_rules']" position="after" >-->
 <!--                <page name='move_line' string="Reglas de Precio Movilizacion" invisible="moviliza == False">-->
@@ -238,7 +221,7 @@
         <field name="res_model">product.pricelist</field>
         <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="product.product_pricelist_view_search" />
-        <field name="domain">[('group_type', '=', 'contratista'), ('moviliza', '=', False), ('cosecha', '=', False)]</field>
+        <field name="domain">[('group_type', '=', 'contratista'), ('cosecha', '=', False)]</field>
         <field name="context">{"default_base":'list_price', 'step_default_contratista':1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -294,24 +277,6 @@
         <field name="search_view_id" ref="product.product_pricelist_view_search" />
         <field name="domain">[('group_type', '=', 'propio'), ('cosecha', '=', True)]</field>
         <field name="context">{"default_base":'list_price', 'step_propio_cosecha':1}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-            Create a new pricelist
-            </p><p>
-            A price is a set of sales prices or rules to compute the price of sales order lines based on products, product categories, dates and ordered quantities.
-            This is the perfect tool to handle several pricings, seasonal discounts, etc.
-            </p><p>
-            You can assign pricelists to your customers or select one when creating a new sales quotation.
-            </p>
-        </field>
-    </record>
-    <record id="step_product_pricelist_action_movi" model="ir.actions.act_window">
-        <field name="name">Tarifas Movilización</field>
-        <field name="res_model">product.pricelist</field>
-        <field name="view_mode">list,kanban,form</field>
-        <field name="search_view_id" ref="product.product_pricelist_view_search" />
-        <field name="domain">[('moviliza', '=', True)]</field>
-        <field name="context">{"default_base":'list_price', 'step_default_movi':1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
             Create a new pricelist

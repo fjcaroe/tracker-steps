@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_mobilization_epp_delivery_form" model="ir.ui.view">
+        <field name="name">step.mobilization.epp.delivery.form</field>
+        <field name="model">step.mobilization.epp.delivery</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" string="Confirmar entrega" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="company_id"/>
+                            <field name="transporter_id"/>
+                            <field name="chofer_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="delivered_by_id"/>
+                        </group>
+                    </group>
+                    <field name="line_ids">
+                        <list editable="bottom">
+                            <field name="item_name"/>
+                            <field name="quantity"/>
+                            <field name="size"/>
+                            <field name="certification"/>
+                            <field name="is_replacement"/>
+                            <field name="replacement_reason"/>
+                        </list>
+                    </field>
+                    <field name="received_evidence" widget="image"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_step_mobilization_epp_delivery_list" model="ir.ui.view">
+        <field name="name">step.mobilization.epp.delivery.list</field>
+        <field name="model">step.mobilization.epp.delivery</field>
+        <field name="arch" type="xml">
+            <list><field name="chofer_id"/><field name="transporter_id"/><field name="date"/><field name="state"/></list>
+        </field>
+    </record>
+    <record id="action_step_mobilization_epp_delivery" model="ir.actions.act_window">
+        <field name="name">Entrega de EPP</field>
+        <field name="res_model">step.mobilization.epp.delivery</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

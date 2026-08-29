@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============ Líneas del dataset canónico ============ -->
+    <record id="view_cashflow_line_list" model="ir.ui.view">
+        <field name="name">step.cashflow.line.list</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="arch" type="xml">
+            <list string="Detalle" editable="bottom" decoration-muted="excluded"
+                  decoration-info="is_manual" limit="80">
+                <field name="concept_id" options="{'no_create': True}"/>
+                <field name="partner_id"/>
+                <field name="partner_vat" optional="show"/>
+                <field name="doc_type_name" string="Tipo Doc" optional="show"/>
+                <field name="doc_date" string="Fecha Doc"/>
+                <field name="doc_number" string="Num Doc"/>
+                <field name="due_date"/>
+                <field name="currency_id" string="Moneda Doc" options="{'no_create': True}"/>
+                <field name="amount_origin" string="Saldo Docto"/>
+                <field name="amount_overdue" sum="Vencido" readonly="1"/>
+                <field name="amount_w1" sum="W1" readonly="1"/>
+                <field name="amount_w2" sum="W2" readonly="1"/>
+                <field name="amount_w3" sum="W3" readonly="1"/>
+                <field name="amount_w4" sum="W4" readonly="1"/>
+                <field name="amount_w5" sum="W5" readonly="1"/>
+                <field name="amount_other" sum="Otros" readonly="1"/>
+                <field name="amount_flow" sum="Total" readonly="1"/>
+                <field name="amount_aux" sum="Total aux." readonly="1" optional="show"
+                       groups="base.group_multi_currency"/>
+                <field name="excluded" optional="show"/>
+                <field name="comment" optional="hide"/>
+                <field name="adjust_reason" optional="hide"/>
+                <field name="is_manual" optional="hide" readonly="1"/>
+                <field name="bucket" optional="hide" readonly="1"/>
+                <field name="sheet" column_invisible="True"/>
+                <field name="flow_currency_id" column_invisible="True"/>
+                <field name="aux_currency_id" column_invisible="True"/>
+                <button name="action_open_source" type="object" icon="fa-external-link"
+                        title="Abrir documento origen" invisible="not source_id"/>
+                <field name="source_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cashflow_line_form" model="ir.ui.view">
+        <field name="name">step.cashflow.line.form</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="arch" type="xml">
+            <form string="Línea de flujo">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="cashflow_id" readonly="1"/>
+                            <field name="sheet"/>
+                            <field name="concept_id"/>
+                            <field name="partner_id"/>
+                            <field name="partner_vat"/>
+                        </group>
+                        <group>
+                            <field name="doc_type_name"/>
+                            <field name="doc_number"/>
+                            <field name="doc_date"/>
+                            <field name="due_date"/>
+                            <field name="bucket" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Importes">
+                            <field name="currency_id"/>
+                            <field name="amount_origin"/>
+                            <field name="flow_currency_id" invisible="1"/>
+                            <field name="amount_flow" readonly="1"/>
+                            <field name="aux_currency_id" invisible="1"/>
+                            <field name="amount_aux" readonly="1"/>
+                        </group>
+                        <group string="Gestión">
+                            <field name="is_manual" readonly="1"/>
+                            <field name="excluded"/>
+                            <field name="comment"/>
+                            <field name="adjust_reason"/>
+                            <field name="source_model" readonly="1"/>
+                            <field name="source_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <div>
+                        <button name="action_open_source" type="object" string="Abrir documento origen"
+                                class="btn-secondary" invisible="not source_id"/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cashflow_line_search" model="ir.ui.view">
+        <field name="name">step.cashflow.line.search</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="arch" type="xml">
+            <search string="Detalle del flujo">
+                <field name="partner_id"/>
+                <field name="doc_number"/>
+                <field name="concept_id"/>
+                <field name="cashflow_id"/>
+                <filter name="manual" string="Manuales" domain="[('is_manual', '=', True)]"/>
+                <filter name="excluded" string="Excluidas" domain="[('excluded', '=', True)]"/>
+                <separator/>
+                <filter name="overdue" string="Vencido" domain="[('bucket', '=', 'overdue')]"/>
+                <filter name="w1" string="W1" domain="[('bucket', '=', 'w1')]"/>
+                <filter name="w2" string="W2" domain="[('bucket', '=', 'w2')]"/>
+                <filter name="w3" string="W3" domain="[('bucket', '=', 'w3')]"/>
+                <filter name="w4" string="W4" domain="[('bucket', '=', 'w4')]"/>
+                <filter name="w5" string="W5" domain="[('bucket', '=', 'w5')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_sheet" string="Hoja" context="{'group_by': 'sheet'}"/>
+                    <filter name="group_bucket" string="Cubeta" context="{'group_by': 'bucket'}"/>
+                    <filter name="group_concept" string="Concepto" context="{'group_by': 'concept_id'}"/>
+                    <filter name="group_partner" string="Tercero" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cashflow_line" model="ir.actions.act_window">
+        <field name="name">Detalle de flujos</field>
+        <field name="res_model">step.cashflow.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_cashflow_line_search"/>
+    </record>
+
+    <!-- ============ Flujo de caja ============ -->
+    <record id="view_cashflow_form" model="ir.ui.view">
+        <field name="name">step.cashflow.form</field>
+        <field name="model">step.cashflow</field>
+        <field name="arch" type="xml">
+            <form string="Flujo de caja" class="o_steps_treasury_form">
+                <header>
+                    <button name="action_start" string="Iniciar" type="object"
+                            class="oe_highlight" invisible="state != 'draft'"
+                            groups="step_account_treasury.group_treasury_user"/>
+                    <button name="action_refresh" string="Actualizar datos" type="object"
+                            class="oe_highlight" invisible="state not in ('draft', 'in_progress')"
+                            groups="step_account_treasury.group_treasury_user"/>
+                    <button name="action_approve" string="Aprobar" type="object"
+                            class="oe_highlight" invisible="state != 'in_progress'"
+                            groups="step_account_treasury.group_treasury_approver"/>
+                    <button name="action_reopen" string="Reabrir" type="object"
+                            invisible="state != 'approved'"
+                            groups="step_account_treasury.group_treasury_approver"/>
+                    <button name="action_export_xlsx" string="Exportar XLSX" type="object"
+                            invisible="state == 'cancelled'"/>
+                    <button name="action_cancel" string="Anular" type="object"
+                            invisible="state in ('approved', 'cancelled')"/>
+                    <button name="action_draft" string="Volver a nuevo" type="object"
+                            invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,in_progress,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_lines" type="object" class="oe_stat_button" icon="fa-list">
+                            <field name="line_count" string="Líneas" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_opening_detail" type="object"
+                                class="oe_stat_button" icon="fa-university">
+                            <span class="o_stat_text">Saldo inicial</span>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Aprobado" bg_color="text-bg-success"
+                            invisible="state != 'approved'"/>
+                    <widget name="web_ribbon" title="Anulado" bg_color="text-bg-danger"
+                            invisible="state != 'cancelled'"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <div class="o_treasury_alert mb-3" invisible="not has_negative_cash">
+                        <i class="fa fa-exclamation-triangle"/>
+                        <span>El flujo proyecta caja negativa en alguna semana del horizonte.</span>
+                    </div>
+                    <group>
+                        <group string="Encabezado">
+                            <field name="date"/>
+                            <field name="start_date" readonly="state == 'approved'"/>
+                            <field name="end_date" readonly="1"/>
+                            <field name="undated_policy" readonly="state == 'approved'"/>
+                            <field name="responsible_id"/>
+                            <field name="approver_id"/>
+                        </group>
+                        <group string="Moneda y empresa">
+                            <field name="company_id" groups="base.group_multi_company"
+                                   readonly="state == 'approved'"/>
+                            <field name="currency_id" readonly="state == 'approved'"/>
+                            <field name="aux_currency_id" groups="base.group_multi_currency"/>
+                            <field name="rate_policy" readonly="state == 'approved'"/>
+                            <field name="rate_date" invisible="rate_policy != 'odoo'"
+                                   readonly="state == 'approved'"/>
+                            <field name="manual_rate" invisible="rate_policy != 'manual'"
+                                   readonly="state == 'approved'"/>
+                            <field name="manual_rate_reason" invisible="rate_policy != 'manual'"
+                                   readonly="state == 'approved'"/>
+                            <field name="applied_rate" readonly="1" invisible="not applied_rate"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Bancos y saldo inicial">
+                            <field name="journal_ids" widget="many2many_tags"
+                                   readonly="state == 'approved'"/>
+                            <field name="opening_balance" readonly="state == 'approved'"/>
+                        </group>
+                        <group string="Proyección">
+                            <field name="total_inflow" readonly="1"/>
+                            <field name="total_outflow" readonly="1"/>
+                            <field name="closing_balance" readonly="1"/>
+                            <field name="min_balance" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="customer" string="Clientes">
+                            <field name="line_customer_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'customer', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="sale_order" string="N Venta">
+                            <field name="line_sale_order_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'sale_order', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="other_income" string="Otras Recaudaciones">
+                            <field name="line_other_income_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'other_income', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="vendor" string="Proveedores">
+                            <field name="line_vendor_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'vendor', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="purchase_order" string="O Compra">
+                            <field name="line_purchase_order_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'purchase_order', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="proforma" string="Proformas">
+                            <field name="line_proforma_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'proforma', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="other_payment" string="Otros pagos">
+                            <field name="line_other_payment_ids" readonly="state == 'approved'"
+                                   context="{'default_sheet': 'other_payment', 'default_is_manual': True}"/>
+                        </page>
+                        <page name="summary" string="Resumen">
+                            <div class="o_treasury_summary_wrap">
+                                <field name="summary_html" readonly="1" nolabel="1"/>
+                            </div>
+                            <div class="mt-2">
+                                <button name="action_open_lines" type="object" class="btn btn-link"
+                                        string="Ver el detalle que respalda estas cifras"/>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cashflow_list" model="ir.ui.view">
+        <field name="name">step.cashflow.list</field>
+        <field name="model">step.cashflow</field>
+        <field name="arch" type="xml">
+            <list string="Flujos de caja" decoration-muted="state == 'cancelled'"
+                  decoration-success="state == 'approved'" decoration-danger="has_negative_cash">
+                <field name="name"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="responsible_id" optional="show"/>
+                <field name="approver_id" optional="hide"/>
+                <field name="opening_balance" sum="Saldo inicial"/>
+                <field name="total_inflow" sum="Ingresos"/>
+                <field name="total_outflow" sum="Egresos"/>
+                <field name="closing_balance"/>
+                <field name="min_balance" optional="show"/>
+                <field name="has_negative_cash" optional="hide"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cashflow_search" model="ir.ui.view">
+        <field name="name">step.cashflow.search</field>
+        <field name="model">step.cashflow</field>
+        <field name="arch" type="xml">
+            <search string="Flujos de caja">
+                <field name="name"/>
+                <field name="responsible_id"/>
+                <filter name="draft" string="Nuevos" domain="[('state', '=', 'draft')]"/>
+                <filter name="in_progress" string="En progreso" domain="[('state', '=', 'in_progress')]"/>
+                <filter name="approved" string="Aprobados" domain="[('state', '=', 'approved')]"/>
+                <separator/>
+                <filter name="negative" string="Con caja negativa" domain="[('has_negative_cash', '=', True)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_responsible" string="Responsable" context="{'group_by': 'responsible_id'}"/>
+                    <filter name="group_month" string="Inicio" context="{'group_by': 'start_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_cashflow_graph" model="ir.ui.view">
+        <field name="name">step.cashflow.graph</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="arch" type="xml">
+            <graph string="Proyección por semana" type="bar" stacked="0">
+                <field name="bucket"/>
+                <field name="flow_type"/>
+                <field name="amount_flow" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_cashflow" model="ir.actions.act_window">
+        <field name="name">Flujos de Caja</field>
+        <field name="res_model">step.cashflow</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_cashflow_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cree el primer flujo de caja</p>
+            <p>Un flujo proyecta cinco semanas a partir de las facturas, pedidos y
+               proformas abiertos, más los movimientos que registre a mano.</p>
+        </field>
+    </record>
+
+    <record id="action_cashflow_line_graph" model="ir.actions.act_window">
+        <field name="name">Proyección por semana</field>
+        <field name="res_model">step.cashflow.line</field>
+        <field name="view_mode">graph,list,form</field>
+        <field name="view_id" ref="view_cashflow_graph"/>
+        <field name="search_view_id" ref="view_cashflow_line_search"/>
+    </record>
+</odoo>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_machinery_implement_form" model="ir.ui.view">
+        <field name="name">step.machinery.implement.form</field>
+        <field name="model">step.machinery.implement</field>
+        <field name="arch" type="xml">
+            <form string="Máquinas-implementos">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="cod"/>
+                            <field name="type_imp"/>
+                            <field name="cap_ltr"/>
+                            <field name="cap_kg"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="fundo_id"/>
+                            <field name="company_id"/>
+                            <field name="is_bpa"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_machinery_implement_list" model="ir.ui.view">
+        <field name="name">step.machinery.implement.list</field>
+        <field name="model">step.machinery.implement</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="cod" optional="show"/>
+                <field name="type_imp" optional="show"/>
+                <field name="is_bpa" optional="show"/>
+                <field name="cap_ltr" optional="show"/>
+                <field name="cap_kg" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="fundo_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_machinery_implement" model="ir.actions.act_window">
+        <field name="name">Máquinas-implementos</field>
+        <field name="res_model">step.machinery.implement</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

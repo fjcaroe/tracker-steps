@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="step_mobilization_pricelist_view_inherit" model="ir.ui.view">
+        <field name="name">step.mobilization.pricelist.form.inherit</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="arch" type="xml">
+            <!-- Anclado en campos del formulario base de product.pricelist, no en
+                 campos añadidos por step_hr: esta vista debe cargar aunque
+                 step_hr no esté instalado. -->
+            <xpath expr="//field[@name='currency_id']" position="after">
+                <field name="moviliza"/>
+            </xpath>
+            <xpath expr="//field[@name='country_group_ids']" position="after">
+                <field name="transporte_id" invisible="not moviliza"/>
+            </xpath>
+            <xpath expr="//page[@name='pricelist_rules']" position="after">
+                <page name="move_line" string="Tarifas por recorrido" invisible="not moviliza">
+                    <field name="move_item">
+                        <list editable="bottom">
+                            <field name="recorrido_id" optional="show"/>
+                            <field name="pricelist_id" column_invisible="True"/>
+                            <field name="product_id" optional="show" options="{'no_create': True}"
+                                   domain="[('is_movi', '=', True)]"/>
+                            <field name="desde" optional="show"/>
+                            <field name="hasta" optional="show"/>
+                            <field name="cobro_type" optional="show"/>
+                            <field name="charge_type" optional="show"/>
+                            <field name="min_quantity" optional="show"/>
+                            <field name="tarifa" optional="show"/>
+                            <field name="currency_id" optional="hide"/>
+                            <field name="date_start" optional="show"/>
+                            <field name="date_end" optional="show"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="step_product_pricelist_action_movi" model="ir.actions.act_window">
+        <field name="name">Tarifas Movilización</field>
+        <field name="res_model">product.pricelist</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="product.product_pricelist_view_search"/>
+        <field name="domain">[('moviliza', '=', True)]</field>
+        <field name="context">{"default_base": 'list_price', 'step_default_movi': 1}</field>
+    </record>
+</odoo>

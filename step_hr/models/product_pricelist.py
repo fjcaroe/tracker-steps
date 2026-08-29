@@ -18,11 +18,6 @@ class Pricelist(models.Model):
             res.update({
                 'group_type': 'propio'
             })
-        if self.env.context.get('step_default_movi'):
-            res.update({
-                'group_type': 'contratista',
-                'moviliza': True
-            })
         if self.env.context.get('step_contra_cosecha'):
             res.update({
                 'group_type': 'contratista',
@@ -58,12 +53,5 @@ class Pricelist(models.Model):
         required=False, ondelete='cascade', copy=False)
     grupo_variedad_id_domain = fields.Many2many('step.grupo.variedad', 'grupo_variedad_pricelist_rel', 'grupo_variedad_id',
                                          'pricelist_id', string='Grupo Variedad')
-    moviliza = fields.Boolean(string='Es movilización?')
     cosecha = fields.Boolean(string='Es Cosecha?')
-    transporte_id = fields.Many2one('res.partner', 'Transportista')
-    move_item = fields.One2many(
-        comodel_name='product.pricelist.move.line',
-        inverse_name='pricelist_id',
-        string="Moves Lines",
-        copy=True, auto_join=True)
     cost_ids = fields.Many2many(comodel_name='account.analytic.account', relation='step_analytic_pricelist_rel', string='Centro costos')

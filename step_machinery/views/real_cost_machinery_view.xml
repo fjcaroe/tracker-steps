@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_real_cost_machinery_form" model="ir.ui.view">
+        <field name="name">real.cost.machinery.form</field>
+        <field name="model">real.cost.machinery</field>
+        <field name="arch" type="xml">
+            <form string="Costo Real Maquinaria">
+                <header>
+                    <button name="action_draft" string="Cambiar a Nuevo"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado Nuevo"
+                            invisible="state in ['draft', 'costo']"/>
+                    <button name="action_costo" string="Costeo"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de cambiar de estado costo"
+                            invisible="state in ['costo']"/>
+                    <button name="action_conta" string="Contabilizar"
+                            type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de Contabilizar los registros"
+                            invisible="state in ['draft','conta']"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1" />
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="cost_id" required="1"/>
+                            <field name="fundo_id"/>
+                            <field name="temp_id"/>
+                            <field name="invoice_id" invisible="state not in ['conta']" readonly="1" force_save="1"/>
+                        </group>
+                        <group>
+                            <field name="date_init" required="1"/>
+                            <field name="date_to" required="1"/>
+                            <field name="responsable_id"/>
+                            <field name="machinery_ids"/>
+                            <field name="company_id"/>
+                            <field name="total_hrs"/>
+                            <field name="cost_amount"/>
+                            <field name="total_cost"/>
+                        </group>
+                    </group>
+                    <notebook colspan="4">
+                        <page name='real_cost_machinery_line' string="Movimientos" >
+                            <div > <!--invisible="state in ['costo','conta']"-->
+                                <button name="action_cost_detail" string="Cargar Movimientos"
+                                    type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de Traer los registros"
+                                    invisible="state in ['conta','progress']"/>
+                            </div>
+                            <field name="real_cost_machinery_line" readonly="1" force_save="1">
+                                <list editable="bottom">
+                                    <field name="real_cost_id" column_invisible="True"/>
+                                    <field name="name" optional="show"/>
+                                    <field name="date" optional="show"/>
+                                    <field name="account_id" optional="show"/>
+                                    <field name="analytic_distribution" optional="show" widget="analytic_distribution"/>
+                                    <field name="machinery_ids" optional="hide" widget="many2one_avatar"/>
+                                    <field name="implement_id" optional="hide"/>
+                                    <field name="employee_id" optional="hide" widget="many2one_avatar" domain="[('is_tractorista', '=', True)]"/>
+                                    <field name="labor_id" optional="hide" domain="[('es_maquina', '=', True)]"/>
+                                    <field name="actividad_id" optional="hide"/>
+                                    <field name="uom_id" optional="hide"/>
+                                    <field name="odometer_init" optional="hide"/>
+                                    <field name="odometer_end" optional="hide"/>
+                                    <field name="hrs_maquina" optional="hide" sum="hrs_maquina"/>
+                                    <field name="lrts_combustible" optional="hide"/>
+                                    <field name="monto" optional="show" sum="monto"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name='regist_cost_machinery_line' string="Registro Costeo" invisible="state in ['draft']">
+                            <div invisible="state in ['draft','conta']">
+                                <button name="action_regist_detail" string="Cargar Registros"
+                                    type="object" class="oe_highlight" title="Con este boton tienes la posibilidad de Traer los registros"
+                                    />
+                            </div>
+                            <field name="regist_cost_machinery_line" readonly="1" force_save="1">
+                                <list editable="bottom">
+                                    <field name="regist_cost_id" column_invisible="True"/>
+                                    <field name="date" optional="show"/>
+                                    <field name="machinery_ids" optional="show" widget="many2one_avatar"/>
+                                    <field name="implement_id" optional="hide"/>
+                                    <field name="employee_id" optional="hide" widget="many2one_avatar" domain="[('is_tractorista', '=', True)]"/>
+                                    <field name="cost_id" optional="show"/>
+                                    <field name="labor_id" optional="show" domain="[('es_maquina', '=', True)]"/>
+                                    <field name="actividad_id" optional="show"/>
+                                    <field name="uom_id" optional="hide"/>
+                                    <field name="odometer_init" optional="hide"/>
+                                    <field name="odometer_end" optional="hide"/>
+                                    <field name="cost_odometer" optional="show"/>
+                                    <field name="hrs_maquina" optional="show"/>
+                                    <field name="cost_hrs_maquina" optional="show"/>
+                                    <field name="lrts_combustible" optional="show"/>
+                                    <field name="cost_lrts_combustible" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_real_cost_machinery_list" model="ir.ui.view">
+        <field name="name">real.cost.machinery.list</field>
+        <field name="model">real.cost.machinery</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_real_cost_machinery" model="ir.actions.act_window">
+        <field name="name">Costo Real Maquinaria</field>
+        <field name="res_model">real.cost.machinery</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <!-- Share Button in action menu -->
+<!--    <record id="model_real_cost_action_machinery" model="ir.actions.server">-->
+<!--        <field name="name">Crear costos reales de maquinarias existentes</field>-->
+<!--        <field name="model_id" ref="step_machinery.model_real_cost_machinery"/>-->
+<!--        <field name="binding_model_id" ref="step_machinery.model_real_cost_machinery"/>-->
+<!--        <field name="binding_view_types">tree</field>-->
+<!--        <field name="state">code</field>-->
+<!--        <field name="code">action = records.action_cost_create()</field>-->
+<!--    </record>-->
+</odoo>

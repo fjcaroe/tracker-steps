@@ -8,7 +8,9 @@
         <field name="web_icon">step_operations_ui,static/description/icon_freight.png</field>
     </record>
 
-    <record id="step_hr.menu_step_tracker_gps_root" model="ir.ui.menu">
-        <field name="web_icon">step_operations_ui,static/description/icon_tracker.png</field>
-    </record>
+    <!--
+      El icono de Steps Tracker lo declara el propio step_tracker_odoo
+      (mismo archivo, sha256 1631805f...), así que aquí sobraba y además
+      apuntaba al menú retirado de step_hr.
+    -->
 </odoo>

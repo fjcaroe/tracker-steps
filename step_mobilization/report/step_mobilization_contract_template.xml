@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_step_mobilization_contract_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Contrato de movilización <span t-field="o.name"/></h2>
+                        <p class="text-muted">
+                            Versión de plantilla: <span t-field="o.template_id.name"/>
+                            (v<span t-field="o.template_id.version"/>)
+                        </p>
+                        <div t-raw="o.render_body()"/>
+
+                        <h3>Tarifas asociadas</h3>
+                        <table class="table table-sm table-bordered" t-if="o.rate_snapshot_ids">
+                            <thead>
+                                <tr>
+                                    <th>Recorrido</th>
+                                    <th>Sentido</th>
+                                    <th>Mínimo pasajeros</th>
+                                    <th>Valor</th>
+                                    <th>Moneda</th>
+                                    <th>Vigencia</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.rate_snapshot_ids" t-as="rate">
+                                    <td><span t-field="rate.route_name"/></td>
+                                    <td><span t-field="rate.direction"/></td>
+                                    <td><span t-field="rate.min_passengers"/></td>
+                                    <td><span t-field="rate.amount"/></td>
+                                    <td><span t-field="rate.currency_id.name"/></td>
+                                    <td>
+                                        <span t-field="rate.valid_from"/> — <span t-field="rate.valid_to"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-else="" class="text-muted">Sin tarifas congeladas.</p>
+
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <p>_______________________________</p>
+                                <p>LA EMPRESA</p>
+                                <p t-field="o.company_representative_name"/>
+                            </div>
+                            <div class="col-6 text-center">
+                                <p>_______________________________</p>
+                                <p>EL TRANSPORTISTA</p>
+                                <p t-field="o.transporter_representative_name"/>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

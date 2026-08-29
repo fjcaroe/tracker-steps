@@ -15,10 +15,6 @@
             </xpath>
             <xpath expr="//page[@name='page_model']" position="inside">
                 <group>
-                    <group string="Pasajeros">
-                        <field name="step_min_pass"/>
-                        <field name="step_max_pass"/>
-                    </group>
                     <group string="Capacidad de carga">
                         <field name="step_tonelada"/>
                         <field name="step_mtrs_cub"/>

@@ -5,29 +5,10 @@ import { AccountReportFilters } from "@account_reports/components/account_report
 import { AccountReportHeader } from "@account_reports/components/account_report/header/header";
 
 patch(AccountReportFilters.prototype, {
-    get stepPresentationCurrencyLabel() {
-        const companyCurrency = this.controller.options.step_company_currency;
-        const selectedCurrencies = (
-            this.controller.options.step_presentation_currencies || []
-        ).filter((currency) => currency.selected);
-        return [companyCurrency, ...selectedCurrencies]
-            .filter(Boolean)
-            .map((currency) => currency.name)
-            .join(" + ");
-    },
-
-    async stepTogglePresentationCurrency(currencyId) {
-        const selectedIds = new Set(
-            this.controller.options.step_presentation_currency_ids || []
-        );
-        if (selectedIds.has(currencyId)) {
-            selectedIds.delete(currencyId);
-        } else {
-            selectedIds.add(currencyId);
-        }
+    async stepToggleOperationalCurrency() {
         await this.controller.updateOption(
-            "step_presentation_currency_ids",
-            [...selectedIds],
+            "step_show_operational_currency",
+            !this.controller.options.step_show_operational_currency,
             true
         );
     },
@@ -38,7 +19,7 @@ patch(AccountReportHeader.prototype, {
         const columns = this.controller.options.columns || [];
         const lineColumns = this.controller.lines[0]?.columns || [];
         if (
-            this.controller.options.step_presentation_currency_ids?.length &&
+            this.controller.options.step_show_operational_currency &&
             columns.length === lineColumns.length
         ) {
             return JSON.parse(JSON.stringify(columns));

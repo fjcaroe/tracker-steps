@@ -1,0 +1,15 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_machinery_tracking,access.step.machinery.tracking,model_step_machinery_tracking,base.group_user,1,1,1,1
+access_type_costing_machinery,access.type.costing.machinery,model_type_costing_machinery,base.group_user,1,1,1,1
+access_type_service_machinery,access.type.service.machinery,model_type_service_machinery,base.group_user,1,1,1,1
+access_step_machinery_implement,access.step.machinery.implement,model_step_machinery_implement,base.group_user,1,1,1,1
+access_real_cost_machinery,access.real.cost.machinery,model_real_cost_machinery,base.group_user,1,1,1,1
+access_step_cost_machinery,access.step.cost.machinery,model_step_cost_machinery,base.group_user,1,1,1,1
+access_step_hrs_machinery,access.step.hrs.machinery,model_step_hrs_machinery,base.group_user,1,1,1,1
+access_step_hrs_machinery_line,access.step.hrs.machinery.line,model_step_hrs_machinery_line,base.group_user,1,1,1,1
+access_monthly_consumption_line,access.monthly.consumption.line,model_monthly_consumption_line,base.group_user,1,1,1,1
+access_monthly_radio_line,access.monthly.radio.line,model_monthly_radio_line,base.group_user,1,1,1,1
+access_real_cost_machinery_line,access.real.cost.machinery.line,model_real_cost_machinery_line,base.group_user,1,1,1,1
+access_regist_cost_machinery_line,access.regist.cost.machinery.line,model_regist_cost_machinery_line,base.group_user,1,1,1,1
+access_report_machinery_wizard,access.report.machinery.wizard,model_report_machinery_wizard,base.group_user,1,1,1,1
+access_real_cost_machinery_wizard,access.real.cost.machinery.wizard,model_real_cost_machinery_wizard,base.group_user,1,1,1,1

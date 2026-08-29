@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate para que una actualización nunca reinicie los correlativos. -->
+    <data noupdate="1">
+        <record id="seq_step_cashflow" model="ir.sequence">
+            <field name="name">Tesorería - Flujo de caja</field>
+            <field name="code">step.cashflow</field>
+            <field name="prefix">FC%(year)s</field>
+            <field name="padding">4</field>
+            <field name="implementation">standard</field>
+            <field name="company_id" eval="False"/>
+        </record>
+        <record id="seq_step_vendor_proforma" model="ir.sequence">
+            <field name="name">Tesorería - Proforma de proveedor</field>
+            <field name="code">step.vendor.proforma</field>
+            <field name="prefix">PRF%(year)s</field>
+            <field name="padding">4</field>
+            <field name="implementation">standard</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

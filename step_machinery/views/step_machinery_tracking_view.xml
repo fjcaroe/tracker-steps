@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_step_machinery_tracking_form" model="ir.ui.view">
+        <field name="name">step.machinery.tracking.form</field>
+        <field name="model">step.machinery.tracking</field>
+        <field name="arch" type="xml">
+            <form string="Rastreo Maquinaria">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_machinery_tracking_list" model="ir.ui.view">
+        <field name="name">step.machinery.tracking.list</field>
+        <field name="model">step.machinery.tracking</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="company_id" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+<!--    <record id="action_step_machinery_tracking" model="ir.actions.act_window">-->
+<!--        <field name="name">Rastreo Maquinaria</field>-->
+<!--        <field name="res_model">step.machinery.tracking</field>-->
+<!--        <field name="view_mode">list,form</field>-->
+<!--    </record>-->
+    <record id="action_step_machinery_tracking_url" model="ir.actions.act_url">
+      <field name="name">Rastreo Maquinaria</field>
+      <field name="url">https://ebony-adopted-chuck-disclaimer.trycloudflare.com</field>
+      <field name="target">new</field> <!-- Opens in a new tab -->
+    </record>
+</odoo>

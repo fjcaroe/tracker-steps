@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Plantilla inicial derivada de la estructura del Anexo 1 (contrato de
+         buses). Es un borrador de trabajo: no tiene validez legal hasta que
+         legal/prevención de riesgos la revise y presione "Marcar como
+         revisada" (is_validated). Ninguna razón social, ciudad, multa,
+         antigüedad máxima de vehículo ni referencia legal específica queda
+         fija: son variables de plantilla o texto a completar por quien
+         redacte el contrato definitivo, y las condiciones concretas
+         (capacidades, plazos, multas) deben incorporarse como cláusulas
+         propias de cada contrato, no como valores globales del sistema. -->
+    <record id="contract_template_v1" model="step.mobilization.contract.template">
+        <field name="name">Contrato de transporte de personal — v1 (borrador)</field>
+        <field name="version">1</field>
+        <field name="is_validated">False</field>
+        <field name="notes">Borrador generado a partir de la estructura del Anexo 1 (contrato de buses)
+            entregado como antecedente. Pendiente de revisión legal y de prevención de riesgos antes de
+            usarse para emitir contratos reales. Completar/ajustar cláusulas de multas, plazos de
+            reemplazo de vehículo, antigüedad máxima y fuero de arbitraje según cada caso.</field>
+        <field name="body"><![CDATA[
+<h3>CONTRATO DE TRANSPORTE DE PERSONAL — TEMPORADA {{season_label}}</h3>
+<p>En {{city}}, a {{contract_date}}, entre {{company_name}}, RUT {{company_vat}}, domiciliada en
+{{company_address}}, representada por {{company_representative_name}}
+({{company_representative_id_number}}), en adelante LA EMPRESA; y {{transporter_name}}, RUT
+{{transporter_vat}}, domiciliada en {{transporter_address}}, representada por
+{{transporter_representative_name}} ({{transporter_representative_id_number}}), en adelante EL
+TRANSPORTISTA, se conviene el siguiente contrato de transporte de personal.</p>
+
+<p><b>PRIMERO — Objeto.</b> EL TRANSPORTISTA se obliga a disponer de los vehículos necesarios para
+transportar al personal de LA EMPRESA hacia y desde los puntos definidos en el/los recorrido(s)
+contratado(s) para la faena/servicio "{{service_name}}", con vigencia entre {{date_start}} y
+{{date_end}}. Los vehículos deben cumplir la normativa de transporte privado de trabajadores
+agrícolas de temporada vigente a la fecha de firma (capacidad mínima de pasajeros sentados y
+antigüedad máxima: completar según normativa vigente y política de LA EMPRESA).</p>
+
+<p><b>SEGUNDO — Tarifas.</b> Las tarifas vigentes para este contrato son las que se detallan en la
+tabla de tarifas incorporada a continuación, congelada a la fecha de emisión de este documento. Una
+modificación posterior de las tarifas vigentes en el sistema no altera este contrato ya emitido.</p>
+
+<p><b>TERCERO — Facturación y pago.</b> Los viajes se facturarán según la periodicidad acordada y se
+pagarán en el plazo que las partes definan, conforme a las políticas de LA EMPRESA.</p>
+
+<p><b>CUARTO — Cumplimiento normativo y prevención de riesgos.</b> EL TRANSPORTISTA declara conocer y
+se obliga a cumplir la normativa de seguridad para el transporte privado de trabajadores agrícolas de
+temporada vigente, el reglamento de movilización de LA EMPRESA y el procedimiento de transporte seguro
+en buses vigentes a la fecha de este contrato, ambos incorporados como anexos administrables del
+sistema (ver Documentos y Plantillas de Movilización).</p>
+
+<p><b>QUINTO — Documentación exigida.</b> EL TRANSPORTISTA debe mantener vigente y a disposición de
+LA EMPRESA la documentación configurada como exigible en el sistema para transportista, choferes y
+vehículos (revisión técnica, seguros, permisos, licencias, Derecho a Saber, entrega de EPP, y demás
+que corresponda).</p>
+
+<p><b>SEXTO — Incumplimientos y término.</b> LA EMPRESA podrá poner término anticipado a este contrato
+ante incumplimientos graves o reiterados de los puntos anteriores, conforme al procedimiento que las
+partes acuerden. Las multas y plazos de reemplazo de vehículo aplicables deben completarse en este
+contrato según lo negociado, no están fijados por el sistema.</p>
+
+<p><b>SÉPTIMO — Resolución de controversias.</b> Toda controversia derivada de este contrato se
+resolverá según lo que las partes acuerden en esta cláusula al momento de la firma.</p>
+]]></field>
+    </record>
+</odoo>

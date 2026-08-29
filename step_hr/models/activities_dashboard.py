@@ -125,6 +125,7 @@ class HrSalaryCustomActivitiesDashboard(models.Model):
 
         return {
             "company_name": self.env.company.display_name,
+            "mobilization_installed": "step.movi.registry" in self.env,
             "days": days,
             "period_label": "Todo el histórico" if days == 0 else f"Últimos {days} días",
             "kpis": {
@@ -134,7 +135,11 @@ class HrSalaryCustomActivitiesDashboard(models.Model):
                 "tasks": len(tarjas),
                 "variable_pay": task_totals.get("total_trato", 0.0) or 0.0,
                 "company_cost": task_totals.get("cost_empresa", 0.0) or 0.0,
-                "mobilizations": self.env["step.movi.registry"].search_count(movi_domain),
+                "mobilizations": (
+                    self.env["step.movi.registry"].search_count(movi_domain)
+                    if "step.movi.registry" in self.env
+                    else 0
+                ),
             },
             "states": state_counts,
             "types": type_counts,

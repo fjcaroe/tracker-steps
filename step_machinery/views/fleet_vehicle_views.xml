@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="fleet_vehicle_radio_form">
+        <field name="name">machinery.fleet.vehicle.form</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="step_hr.step_view_fleet_vehicle_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="es_maquina"/>
+            </xpath>
+            <xpath expr="//field[@name='step_man_hrs']" position="after">
+                <field name="consumption_line" nolabel="1" colspan="2">
+                    <list editable="bottom">
+                        <field name="vehicle_id" column_invisible="True"/>
+                        <field name="name" optional="show"/>
+                        <field name="service_machinery_id" optional="show"/>
+                        <field name="concept_amount" optional="show" sum="concept_amount"/>
+                        <field name="cost_hr_amount" optional="show" sum="cost_hr_amount"/>
+                    </list>
+                </field>
+            </xpath>
+            <xpath expr="//field[@name='step_propo_hrmq']" position="after">
+                <field name="radio_line" nolabel="1" colspan="2">
+                    <list editable="bottom">
+                        <field name="vehicle_id" column_invisible="True"/>
+                        <field name="name" optional="show"/>
+                        <field name="service_machinery_id" optional="show"/>
+                        <field name="concept_amount" optional="show" sum="concept_amount"/>
+                        <field name="cost_hr_amount" optional="show" sum="cost_hr_amount"/>
+                    </list>
+                </field>
+            </xpath>
+        </field>
+    </record>
+<!--    Maestro de maquinarias-->
+    <record id='step_machinery_vehicle_action' model='ir.actions.act_window'>
+        <field name="name">Maestro de maquinarias</field>
+        <field name="res_model">fleet.vehicle</field>
+        <field name="view_mode">kanban,list,form,pivot,activity</field>
+        <field name="domain">[('es_maquina', '=', True)]</field>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+            Ready to manage your fleet more efficiently?
+          </p><p>
+            Let's create your first machinery.
+          </p>
+        </field>
+    </record>
+<!--    Maestro de empleados-->
+    <record id='step_machinery_employee_action' model='ir.actions.act_window'>
+        <field name="name">Trabajadores/Empleados</field>
+        <field name="res_model">hr.employee</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_tractorista', '=', True)]</field>
+        <field name="help" type="html">
+          <p class="o_view_nocontent_smiling_face">
+          </p>
+        </field>
+    </record>
+<!--    Maestros de productos-->
+    <record id="step_machinery_product_template_action" model="ir.actions.act_window">
+        <field name="name">Productos / Labores</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form,activity</field>
+        <field name="view_id" ref="product.product_template_kanban_view"/>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+        <field name="domain">[('service_machinery_id', '!=', False)]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear un nuevo producto / Maquinaria
+            </p><p>
+                Debe definir un producto para todo lo que vende o compra, ya sea un producto
+                Productos o Labores.
+            </p>
+        </field>
+    </record>
+</odoo>

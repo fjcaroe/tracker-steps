@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_hrs_machinery_form" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.form</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="arch" type="xml">
+            <form string="Horas Máquina" class="o_steps_machinery_form">
+                <header>
+                    <button name="action_progress" string="Iniciar" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_listo" string="Marcar listo" type="object" class="oe_highlight" invisible="state != 'progress'"/>
+                    <button name="action_cost" string="Ejecutar costeo" type="object" class="oe_highlight" invisible="state not in ('done', 'costed')"/>
+                    <button name="action_conta" string="Contabilizar" type="object" class="oe_highlight" invisible="state != 'costed'" groups="account.group_account_user"/>
+                    <button name="action_draft" string="Volver a nuevo" type="object" invisible="state not in ('progress', 'done', 'costed')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,progress,done,costed,accounted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_account_move" type="object" class="oe_stat_button" icon="fa-book" invisible="not invoice_id">
+                            <field name="invoice_id" string="Comprobante" widget="statinfo"/>
+                        </button>
+                    </div>
+                    <div class="o_steps_record_intro">
+                        <i class="fa fa-cogs" title="Maquinaria"/>
+                        <div><span>CONTROL DE MAQUINARIA</span><strong>Uso, costeo y contabilización</strong><small>Una sola trazabilidad desde la labor agrícola hasta el comprobante contable.</small></div>
+                    </div>
+                    <widget name="web_ribbon" title="Costeado" bg_color="text-bg-info" invisible="state != 'costed'"/>
+                    <widget name="web_ribbon" title="Contabilizado" bg_color="text-bg-success" invisible="state != 'accounted'"/>
+                    <div class="oe_title">
+                        <label for="ot_number" string="Número OT"/>
+                        <h1><field name="ot_number" readonly="1" placeholder="Se asigna al guardar"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identificación del registro">
+                            <field name="date" readonly="state in ('costed', 'accounted')"/>
+                            <field name="folio" placeholder="W35" readonly="state in ('costed', 'accounted')"/>
+                            <!-- step_bpa_irrigation inserta aquí el campo Folio BPA -->
+                            <field name="name" string="Nombre compuesto" readonly="1"/>
+                            <field name="legacy_name" invisible="not legacy_name"/>
+                            <field name="week_number" readonly="1"/>
+                            <field name="temp_id" readonly="1"/>
+                        </group>
+                        <group string="Responsabilidad">
+                            <field name="company_id" groups="base.group_multi_company" readonly="state in ('costed', 'accounted')"/>
+                            <field name="fundo_id" readonly="state in ('costed', 'accounted')"/>
+                            <field name="responsable_id" domain="[('is_tractorista', '=', True)]"/>
+                            <field name="user_id" domain="[('is_propio', '=', True)]"/>
+                            <field name="total_hours" readonly="1"/>
+                            <field name="total_cost" readonly="1" invisible="state not in ('costed', 'accounted')"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="hrs_machinery_line" string="Registro">
+                            <field name="hrs_machinery_line" readonly="state in ('costed', 'accounted')">
+                                <list editable="bottom">
+                                    <field name="machinery_ids" widget="many2one_avatar" domain="[('es_maquina', '=', True)]"/>
+                                    <field name="implement_id" optional="show"/>
+                                    <field name="employee_id" widget="many2one_avatar" domain="[('is_tractorista', '=', True)]"/>
+                                    <field name="cost_id" optional="show"/>
+                                    <field name="labor_id" domain="[('es_maquina', '=', True)]"/>
+                                    <field name="actividad_id" readonly="1" optional="show"/>
+                                    <field name="odometer_init" optional="show"/>
+                                    <field name="odometer_end" optional="show"/>
+                                    <field name="hrs_maquina" sum="Horas"/>
+                                    <field name="lrts_combustible" sum="Litros"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page name="hrs_machinery_line_cost" string="Costeo" invisible="state not in ('costed', 'accounted')">
+                            <field name="hrs_machinery_line" readonly="1">
+                                <list>
+                                    <field name="machinery_ids"/>
+                                    <field name="cost_id" optional="show"/>
+                                    <field name="labor_id" optional="show"/>
+                                    <field name="hrs_maquina" sum="Horas"/>
+                                    <field name="fuel_unit_cost" optional="show"/>
+                                    <field name="fuel_total_cost" sum="Combustible"/>
+                                    <field name="oil_unit_cost" optional="hide"/>
+                                    <field name="oil_total_cost" sum="Aceites"/>
+                                    <field name="spare_unit_cost" optional="hide"/>
+                                    <field name="spare_total_cost" sum="Repuestos"/>
+                                    <field name="corrective_unit_cost" optional="hide"/>
+                                    <field name="corrective_total_cost" sum="Mant. correctiva"/>
+                                    <field name="labor_unit_cost" optional="hide"/>
+                                    <field name="labor_total_cost" sum="Mano de obra"/>
+                                    <field name="rental_unit_cost" optional="hide"/>
+                                    <field name="rental_total_cost" sum="Arriendo"/>
+                                    <field name="preventive_unit_cost" optional="hide"/>
+                                    <field name="preventive_total_cost" sum="Mant. preventiva"/>
+                                    <field name="depreciation_unit_cost" optional="hide"/>
+                                    <field name="depreciation_total_cost" sum="Depreciación"/>
+                                    <field name="total_machine_cost" sum="Costo total"/>
+                                    <field name="total_hour_cost"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notas"><field name="note" placeholder="Observaciones operacionales, incidencias o respaldo del registro..."/></page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_hrs_machinery_search" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.search</field><field name="model">step.hrs.machinery</field>
+        <field name="arch" type="xml"><search>
+            <field name="name" string="Nombre / Número OT / histórico" filter_domain="['|', '|', '|', ('name', 'ilike', self), ('ot_number', 'ilike', self), ('folio', 'ilike', self), ('legacy_name', 'ilike', self)]"/>
+            <field name="ot_number"/><field name="folio"/><field name="legacy_name"/><field name="fundo_id"/><field name="responsable_id"/>
+            <filter name="pending_cost" string="Pendiente de costeo" domain="[('state', '=', 'done')]"/>
+            <filter name="pending_account" string="Pendiente de contabilizar" domain="[('state', '=', 'costed')]"/>
+            <separator/><filter name="group_week" string="Semana" context="{'group_by': 'week_number'}"/>
+            <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+        </search></field>
+    </record>
+
+    <record id="view_step_hrs_machinery_list" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.list</field><field name="model">step.hrs.machinery</field>
+        <field name="arch" type="xml"><list decoration-muted="state == 'draft'" decoration-info="state in ('progress', 'costed')" decoration-success="state == 'accounted'">
+            <field name="ot_number"/><field name="name"/><field name="legacy_name" optional="hide"/><field name="date"/><field name="week_number"/><field name="folio" optional="show"/>
+            <field name="temp_id"/><field name="responsable_id" optional="show"/><field name="fundo_id"/>
+            <field name="total_hours" sum="Horas"/><field name="total_cost" sum="Costo" optional="show"/>
+            <field name="company_id" groups="base.group_multi_company"/><field name="state" widget="badge"/>
+        </list></field>
+    </record>
+
+    <record id="action_step_hrs_machinery" model="ir.actions.act_window">
+        <field name="name">Horas Máquina</field><field name="res_model">step.hrs.machinery</field>
+        <field name="view_mode">list,form</field><field name="search_view_id" ref="view_step_hrs_machinery_search"/>
+    </record>
+
+    <record id="view_step_hrs_machinery_line_filter" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.line.search</field><field name="model">step.hrs.machinery.line</field>
+        <field name="arch" type="xml"><search><field name="machinery_ids"/><field name="employee_id"/><field name="labor_id"/><field name="cost_id"/>
+            <filter name="group_machine" string="Maquinaria" context="{'group_by': 'machinery_ids'}"/>
+            <filter name="group_record" string="Registro" context="{'group_by': 'machinery_id'}"/>
+            <filter name="group_month" string="Mes" context="{'group_by': 'date:month'}"/>
+        </search></field>
+    </record>
+    <record id="view_step_hrs_machinery_list_line" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.line.list</field><field name="model">step.hrs.machinery.line</field>
+        <field name="arch" type="xml"><list>
+            <field name="date"/><field name="name_parent"/><field name="fundo_id"/><field name="machinery_ids"/>
+            <field name="implement_id" optional="show"/><field name="employee_id"/><field name="cost_id"/>
+            <field name="labor_id"/><field name="hrs_maquina" sum="Horas"/><field name="lrts_combustible" sum="Litros"/>
+            <field name="total_machine_cost" sum="Costo" optional="show"/><field name="total_hour_cost" optional="show"/>
+            <field name="state" widget="badge"/><field name="company_id" groups="base.group_multi_company"/>
+        </list></field>
+    </record>
+    <record id="action_step_hrs_machinery_line" model="ir.actions.act_window">
+        <field name="name">Detalle Horas Máquina</field><field name="res_model">step.hrs.machinery.line</field>
+        <field name="view_mode">list</field><field name="view_id" ref="view_step_hrs_machinery_list_line"/>
+        <field name="search_view_id" ref="view_step_hrs_machinery_line_filter"/>
+    </record>
+</odoo>

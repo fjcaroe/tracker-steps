@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_hr_route_company" model="ir.rule">
+        <field name="name">Recorrido: multiempresa</field>
+        <field name="model_id" ref="model_hr_route"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_movi_registry_company" model="ir.rule">
+        <field name="name">Viaje de movilización: multiempresa</field>
+        <field name="model_id" ref="model_step_movi_registry"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_mobilization_driver_device_company" model="ir.rule">
+        <field name="name">Dispositivo de chofer: multiempresa</field>
+        <field name="model_id" ref="model_step_mobilization_driver_device"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_mobilization_contract_company" model="ir.rule">
+        <field name="name">Contrato de movilización: multiempresa</field>
+        <field name="model_id" ref="model_step_mobilization_contract"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_mobilization_right_to_know_company" model="ir.rule">
+        <field name="name">Derecho a Saber: multiempresa</field>
+        <field name="model_id" ref="model_step_mobilization_right_to_know"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_mobilization_epp_delivery_company" model="ir.rule">
+        <field name="name">Entrega de EPP: multiempresa</field>
+        <field name="model_id" ref="model_step_mobilization_epp_delivery"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_mobilization_document_company" model="ir.rule">
+        <field name="name">Documento de cumplimiento: multiempresa</field>
+        <field name="model_id" ref="model_step_mobilization_document"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="rule_step_mobilization_inspection_company" model="ir.rule">
+        <field name="name">Inspección de vehículo: multiempresa</field>
+        <field name="model_id" ref="model_step_mobilization_inspection"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

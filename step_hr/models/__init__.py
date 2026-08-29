@@ -6,8 +6,6 @@ from . import hr_salary_custom
 from . import activities_dashboard
 from . import hr_salary_custom_line
 from . import hr_salary_contract_line
-from . import hr_route
-from . import hr_route_line
 from . import step_fundo
 from . import step_actividad
 from . import step_actividad_line
@@ -40,8 +38,6 @@ from . import res_partner
 from . import fleet_vehicle
 from . import step_tracker
 from . import step_tracker_sync
-from . import step_movi_registry
-from . import step_movi_registry_line
 # from . import step_cosecha_registry
 # from . import step_cosecha_registry_line
 # from . import step_cosecha_recepcion
@@ -53,9 +49,6 @@ from . import res_company
 from . import res_config_settings
 # from . import step_cosecha_tarja_line
 # from . import step_cosecha_tarja_registry_line
-from . import step_movi_cost_line
-from . import step_movi_cont_line
-from . import product_pricelist_move_item
 from . import res_sector
 from . import step_tarja_registry
 from . import step_haber_costeo

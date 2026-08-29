@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_hrs_machinery_form_bpa" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.form.bpa</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_form"/>
+        <field name="arch" type="xml">
+            <!--
+              Orden funcional del bloque: Número OT (título), Fecha, Orden de trabajo,
+              Folio BPA y por último el Nombre compuesto de sólo lectura.
+            -->
+            <field name="folio" position="after">
+                <field name="bpa_order_id"
+                       domain="[('company_id', '=', company_id), ('state', '=', 'status1')]"
+                       readonly="state in ('costed', 'accounted')"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_step_hrs_machinery_list_bpa" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.list.bpa</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_list"/>
+        <field name="arch" type="xml">
+            <field name="folio" position="after"><field name="bpa_folio" string="Folio BPA" optional="show"/></field>
+        </field>
+    </record>
+    <record id="view_step_hrs_machinery_search_bpa" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.search.bpa</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_search"/>
+        <field name="arch" type="xml">
+            <field name="folio" position="after"><field name="bpa_order_id"/><field name="bpa_folio"/></field>
+            <!-- El buscador general debe alcanzar también el Folio BPA. -->
+            <field name="name" position="attributes">
+                <attribute name="string">Nombre / Número OT / histórico / BPA</attribute>
+                <attribute name="filter_domain">['|', '|', '|', '|', ('name', 'ilike', self), ('ot_number', 'ilike', self), ('folio', 'ilike', self), ('legacy_name', 'ilike', self), ('bpa_folio', 'ilike', self)]</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

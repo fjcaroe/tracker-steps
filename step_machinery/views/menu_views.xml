@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_step_machinery_root" name="Maquinaria" sequence="20" web_icon="step_machinery,static/description/icon.png"/>
+
+    <menuitem id="menu_step_machinery_main" name="Maquinaria" parent="menu_step_machinery_root" sequence="10"/>
+    <menuitem id="menu_step_hrs_machinery" name="Horas Máquina" action="action_step_hrs_machinery" parent="menu_step_machinery_main" sequence="10"/>
+    <menuitem id="menu_step_hrs_machinery_line" name="Detalle Horas Máquina" action="action_step_hrs_machinery_line" parent="menu_step_machinery_main" sequence="20"/>
+
+    <menuitem id="menu_step_machinery_costing" name="Costeo de Maquinarias" parent="menu_step_machinery_root" sequence="20"/>
+    <menuitem id="menu_real_cost_machinery" name="Conciliación real vs. estándar" action="action_real_cost_machinery" parent="menu_step_machinery_costing" sequence="10"/>
+    <menuitem id="menu_step_machinery_cost_real" name="Preparar costos reales" action="real_cost_machinery_wizard_action" parent="menu_step_machinery_costing" sequence="20"/>
+
+    <menuitem id="step_machinery_maestros" name="Maestros" parent="menu_step_machinery_root" sequence="60"/>
+    <menuitem id="menu_hr_employee_step_machinery" name="Trabajadores/Empleados" parent="step_machinery_maestros" action="step_machinery_employee_action" sequence="10"/>
+    <menuitem id="menu_vehicle_step_machinery" name="Maestro de maquinarias" action="step_machinery_vehicle_action" parent="step_machinery_maestros" sequence="20"/>
+    <menuitem id="menu_product_step_machinery" name="Productos y Servicios" action="step_machinery_product_template_action" parent="step_machinery_maestros" sequence="30"/>
+
+    <menuitem id="step_machinery_informes" name="Informes" parent="menu_step_machinery_root" sequence="70"/>
+    <menuitem id="menu_report_step_machinery" name="Costos" parent="step_machinery_informes" action="report_machinery_wizard_action" sequence="10"/>
+
+    <menuitem id="menu_step_machinery_config" name="Configuración" parent="menu_step_machinery_root" sequence="99"/>
+    <menuitem id="menu_step_machinery_general_settings" name="Ajustes" parent="menu_step_machinery_config" sequence="0" action="action_step_machinery_configuration" groups="base.group_system"/>
+    <menuitem id="menu_config_machinery" name="Configuración de Maquinarias" parent="menu_step_machinery_config" sequence="20"/>
+    <menuitem id="menu_type_costing_machinery" name="Tipo Costeo Maquinaria" action="action_type_costing_machinery" parent="menu_config_machinery" sequence="10"/>
+    <menuitem id="menu_type_service_tracking" name="Tipo servicio Maquinaria" action="action_type_service_tracking" parent="menu_config_machinery" sequence="20"/>
+    <menuitem id="menu_step_machinery_implement" name="Máquinas - Implementos" action="action_step_machinery_implement" parent="menu_config_machinery" sequence="30"/>
+    <menuitem id="menu_parametro_gnl_machinery" name="Parámetros Generales" parent="menu_step_machinery_config" sequence="30"/>
+    <menuitem id="menu_step_fundo_michenary" name="Fundo" action="step_hr.action_step_fundo" parent="menu_parametro_gnl_machinery" sequence="10"/>
+    <menuitem id="menu_step_machinery_centro_costo" name="Centro de Costo" action="step_hr.action_step_centro_costo" parent="menu_parametro_gnl_machinery" sequence="20"/>
+    <menuitem id="menu_step_machinery_labor" name="Labores de Maquinarias" action="action_step_labor_machinery" parent="menu_parametro_gnl_machinery" sequence="40"/>
+
+    <!-- Lanzadores antiguos archivados sin borrar datos ni acciones. -->
+    <menuitem id="menu_step_machinery_tracking" name="Rastreo Maquinaria (archivado)" action="action_step_machinery_tracking_url" parent="menu_step_machinery_main" active="False"/>
+    <menuitem id="menu_step_cost_machinery" name="Costo Maquinaria (archivado)" action="action_step_cost_machinery" parent="menu_step_machinery_main" active="False"/>
+    <menuitem id="menu_step_machinery_costos" name="Costos Auto (archivado)" parent="menu_step_machinery_root" active="False"/>
+</odoo>

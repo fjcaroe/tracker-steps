@@ -31,11 +31,8 @@
                             <field name="step_contra"/>
                             <field name="productor_name"/>
                         </group>
-                        <group string="Tranporte">
+                        <group string="Carga">
                             <field name="step_carga"/>
-                            <field name="step_trans_person"/>
-                            <field name="step_chofer"/>
-                            <field name="transpor_id" invisible="step_chofer == False"/>
                         </group>
                     </group>
                 </page>
@@ -47,21 +44,6 @@
                     </map>
                 </page>
             </xpath>
-        </field>
-    </record>
-    <record id="action_partner_supplier_form_step" model="ir.actions.act_window">
-        <field name="name">Proveedor Movilizacion</field>
-        <field name="res_model">res.partner</field>
-        <field name="view_mode">kanban,list,form</field>
-        <field name="domain">['|', '|', ('step_trans_person', '=', True),('step_carga','=',True),('step_chofer','=',True)]</field>
-        <field name="context">{'res_partner_search_mode': 'supplier', 'default_is_company': True}</field>
-        <field name="filter" eval="True"/>
-        <field name="help" type="html">
-          <p class="o_view_nocontent_smiling_face">
-            Create a new vendor in your address book
-          </p><p>
-            Odoo helps you easily track all activities related to a vendor.
-          </p>
         </field>
     </record>
     <record id="action_partner_contratista_form_step" model="ir.actions.act_window">

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+      Menú Tesorería dentro de Contabilidad. Reutiliza las acciones estándar de
+      Odoo: no duplica la lógica de pagos, conciliación ni informes. Los menús
+      estándar quedan donde están.
+    -->
+    <menuitem id="menu_treasury_root"
+              name="Tesorería"
+              parent="account.menu_finance"
+              sequence="16"
+              groups="step_account_treasury.group_treasury_reader"/>
+
+    <!-- Ingresos -->
+    <menuitem id="menu_treasury_inflow"
+              name="Ingresos"
+              parent="menu_treasury_root"
+              sequence="10"/>
+    <menuitem id="menu_treasury_customer_payments"
+              name="Pagos de clientes"
+              parent="menu_treasury_inflow"
+              action="account.action_account_payments"
+              sequence="10"/>
+
+    <!-- Egresos -->
+    <menuitem id="menu_treasury_outflow"
+              name="Egresos"
+              parent="menu_treasury_root"
+              sequence="20"/>
+    <menuitem id="menu_treasury_vendor_payments"
+              name="Pagos de proveedores"
+              parent="menu_treasury_outflow"
+              action="account.action_account_payments_payable"
+              sequence="10"/>
+    <menuitem id="menu_treasury_internal_transfers"
+              name="Transferencias internas"
+              parent="menu_treasury_outflow"
+              action="account.action_account_payments_transfer"
+              sequence="30"/>
+
+    <!-- Conciliación bancaria -->
+    <menuitem id="menu_treasury_bank"
+              name="Conciliación bancaria"
+              parent="menu_treasury_root"
+              sequence="30"/>
+    <menuitem id="menu_treasury_bank_dashboard"
+              name="Bancos y efectivo"
+              parent="menu_treasury_bank"
+              action="account.open_account_journal_dashboard_kanban"
+              sequence="10"/>
+    <menuitem id="menu_treasury_bank_reconciliation"
+              name="Conciliación bancaria"
+              parent="menu_treasury_bank"
+              action="account_reports.action_account_report_bank_reconciliation"
+              sequence="20"/>
+
+    <!-- Informes -->
+    <menuitem id="menu_treasury_reports"
+              name="Informes"
+              parent="menu_treasury_root"
+              sequence="40"/>
+    <menuitem id="menu_treasury_partner_ledger"
+              name="Cuentas corrientes"
+              parent="menu_treasury_reports"
+              action="account_reports.action_account_report_partner_ledger"
+              sequence="10"/>
+    <menuitem id="menu_treasury_cash_flow_statement"
+              name="Estado de flujo de efectivo"
+              parent="menu_treasury_reports"
+              action="account_reports.action_account_report_cs"
+              sequence="20"/>
+    <menuitem id="menu_treasury_aged_receivable"
+              name="Cuentas por cobrar vencidas"
+              parent="menu_treasury_reports"
+              action="account_reports.action_account_report_ar"
+              sequence="30"/>
+    <menuitem id="menu_treasury_aged_payable"
+              name="Cuentas por pagar vencidas"
+              parent="menu_treasury_reports"
+              action="account_reports.action_account_report_ap"
+              sequence="40"/>
+
+    <!-- Planificación -->
+    <menuitem id="menu_treasury_planning"
+              name="Planificación"
+              parent="menu_treasury_root"
+              sequence="50"/>
+    <menuitem id="menu_treasury_cashflow"
+              name="Flujos de Caja"
+              parent="menu_treasury_planning"
+              action="action_cashflow"
+              sequence="10"/>
+    <menuitem id="menu_treasury_cashflow_projection"
+              name="Proyección por semana"
+              parent="menu_treasury_planning"
+              action="action_cashflow_line_graph"
+              sequence="20"/>
+
+    <!-- Configuración -->
+    <menuitem id="menu_treasury_configuration"
+              name="Configuración"
+              parent="menu_treasury_root"
+              sequence="90"
+              groups="step_account_treasury.group_treasury_manager"/>
+    <menuitem id="menu_treasury_concept"
+              name="Concepto flujo caja"
+              parent="menu_treasury_configuration"
+              action="action_treasury_concept"
+              sequence="10"/>
+    <menuitem id="menu_treasury_proforma"
+              name="Proformas de proveedor"
+              parent="menu_treasury_configuration"
+              action="action_vendor_proforma"
+              sequence="20"/>
+
+    <!--
+      El documento funcional pide además el concepto de flujo bajo
+      Contabilidad / Configuración / Bancos. Se agrega como acceso adicional a
+      la MISMA acción, sin mover ningún menú estándar.
+    -->
+    <menuitem id="menu_treasury_concept_in_bank_config"
+              name="Concepto flujo caja"
+              parent="account.account_banks_menu"
+              action="action_treasury_concept"
+              sequence="90"
+              groups="step_account_treasury.group_treasury_manager"/>
+</odoo>

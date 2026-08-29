@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_treasury_concept_reader,treasury.concept.reader,model_step_treasury_concept,group_treasury_reader,1,0,0,0
+access_treasury_concept_manager,treasury.concept.manager,model_step_treasury_concept,group_treasury_manager,1,1,1,1
+access_cashflow_reader,cashflow.reader,model_step_cashflow,group_treasury_reader,1,0,0,0
+access_cashflow_user,cashflow.user,model_step_cashflow,group_treasury_user,1,1,1,0
+access_cashflow_manager,cashflow.manager,model_step_cashflow,group_treasury_manager,1,1,1,1
+access_cashflow_line_reader,cashflow.line.reader,model_step_cashflow_line,group_treasury_reader,1,0,0,0
+access_cashflow_line_user,cashflow.line.user,model_step_cashflow_line,group_treasury_user,1,1,1,1
+access_proforma_reader,vendor.proforma.reader,model_step_vendor_proforma,group_treasury_reader,1,0,0,0
+access_proforma_user,vendor.proforma.user,model_step_vendor_proforma,group_treasury_user,1,1,1,0
+access_proforma_manager,vendor.proforma.manager,model_step_vendor_proforma,group_treasury_manager,1,1,1,1
+access_proforma_line_reader,vendor.proforma.line.reader,model_step_vendor_proforma_line,group_treasury_reader,1,0,0,0
+access_proforma_line_user,vendor.proforma.line.user,model_step_vendor_proforma_line,group_treasury_user,1,1,1,1

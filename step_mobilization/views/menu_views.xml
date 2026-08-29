@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_step_mobilization_configuration" model="ir.actions.act_window">
+        <field name="name">Configuración</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'step_mobilization', 'bin_size': False}</field>
+    </record>
+
+    <menuitem id="menu_step_mobilization_root" name="Movilización" sequence="35"
+              web_icon="step_mobilization,static/description/icon.png"/>
+
+    <menuitem id="menu_step_mobilization_home" name="Inicio" parent="menu_step_mobilization_root"
+              sequence="1" action="action_step_mobilization_dashboard"/>
+
+    <menuitem id="menu_step_mobilization_operation" name="Operación" parent="menu_step_mobilization_root"
+              sequence="10"/>
+    <menuitem id="menu_step_mobilization_tracker" name="Seguimiento en línea"
+              parent="menu_step_mobilization_operation" sequence="10"
+              action="action_step_movi_registry_open"/>
+    <menuitem id="menu_step_movi_registry" name="Viajes / Registro" parent="menu_step_mobilization_operation"
+              sequence="20" action="action_step_movi_registry"/>
+    <menuitem id="menu_step_movi_registry_costo" name="Costeo" parent="menu_step_mobilization_operation"
+              sequence="30" action="action_step_movi_registry_costeo"
+              groups="group_mobilization_costing"/>
+    <menuitem id="menu_acount_movi" name="Contabilización" parent="menu_step_mobilization_operation"
+              sequence="40" action="action_step_movi_in_invoice"
+              groups="group_mobilization_accounting"/>
+
+    <menuitem id="menu_step_mobilization_compliance" name="Contratos y cumplimiento"
+              parent="menu_step_mobilization_root" sequence="20"/>
+    <menuitem id="menu_step_mobilization_contract" name="Contratos" parent="menu_step_mobilization_compliance"
+              sequence="10" action="action_step_mobilization_contract"
+              groups="group_mobilization_contract_manager,group_mobilization_approver"/>
+    <menuitem id="menu_step_mobilization_rtk" name="Derecho a Saber" parent="menu_step_mobilization_compliance"
+              sequence="20" action="action_step_mobilization_rtk" groups="group_mobilization_prevention"/>
+    <menuitem id="menu_step_mobilization_epp" name="Entrega de EPP" parent="menu_step_mobilization_compliance"
+              sequence="30" action="action_step_mobilization_epp_delivery"
+              groups="group_mobilization_prevention"/>
+    <menuitem id="menu_step_mobilization_document" name="Documentos" parent="menu_step_mobilization_compliance"
+              sequence="40" action="action_step_mobilization_document"
+              groups="group_mobilization_prevention"/>
+    <menuitem id="menu_step_mobilization_inspection" name="Inspecciones de vehículos"
+              parent="menu_step_mobilization_compliance" sequence="50"
+              action="action_step_mobilization_inspection"/>
+
+    <menuitem id="menu_step_movi_tarifa" name="Tarifas y recorridos" parent="menu_step_mobilization_root"
+              sequence="30" action="step_product_pricelist_action_movi"/>
+
+    <menuitem id="menu_step_mobilization_reports" name="Informes" parent="menu_step_mobilization_root"
+              sequence="40"/>
+    <menuitem id="menu_step_movi_line" name="Análisis de Registro" parent="menu_step_mobilization_reports"
+              sequence="10" action="action_view_step_movi_line"/>
+    <menuitem id="menu_step_movi_cost" name="Análisis de Costeo" parent="menu_step_mobilization_reports"
+              sequence="20" action="action_view_step_movi_cost" groups="group_mobilization_costing"/>
+    <menuitem id="menu_step_mobilization_report_passengers" name="Pasajeros por día y vehículo"
+              parent="menu_step_mobilization_reports" sequence="30"
+              action="action_step_mobilization_report_passengers"/>
+    <menuitem id="menu_step_mobilization_report_compliance" name="Cumplimiento de recorrido"
+              parent="menu_step_mobilization_reports" sequence="40"
+              action="action_step_mobilization_report_route_compliance"/>
+    <menuitem id="menu_step_mobilization_report_expirations" name="Vencimientos y no conformidades"
+              parent="menu_step_mobilization_reports" sequence="50"
+              action="action_step_mobilization_report_expirations"
+              groups="group_mobilization_prevention"/>
+
+    <menuitem id="menu_step_mobilization_masters" name="Maestros" parent="menu_step_mobilization_root"
+              sequence="50"/>
+    <menuitem id="menu_vehicle_step" name="Vehículos" parent="menu_step_mobilization_masters"
+              sequence="10" action="action_step_mobilization_fleet_vehicle"/>
+    <menuitem id="menu_prove_movi" name="Transportistas" parent="menu_step_mobilization_masters"
+              sequence="20" action="action_step_mobilization_transporters"/>
+    <menuitem id="menu_step_mobilization_drivers" name="Choferes" parent="menu_step_mobilization_masters"
+              sequence="30" action="action_step_mobilization_drivers"/>
+    <menuitem id="menu_hr_route" name="Recorridos y paradas" parent="menu_step_mobilization_masters"
+              sequence="40" action="action_hr_route"/>
+    <menuitem id="menu_step_mobilization_templates" name="Plantillas" parent="menu_step_mobilization_masters"
+              sequence="50"/>
+    <menuitem id="menu_step_mobilization_contract_template" name="Contratos"
+              parent="menu_step_mobilization_templates" sequence="10"
+              action="action_step_mobilization_contract_template"
+              groups="group_mobilization_contract_manager"/>
+    <menuitem id="menu_step_mobilization_rtk_template" name="Derecho a Saber"
+              parent="menu_step_mobilization_templates" sequence="20"
+              action="action_step_mobilization_rtk_template" groups="group_mobilization_prevention"/>
+    <menuitem id="menu_step_mobilization_inspection_template" name="Inspección"
+              parent="menu_step_mobilization_templates" sequence="30"
+              action="action_step_mobilization_inspection_template"
+              groups="group_mobilization_prevention"/>
+
+    <menuitem id="menu_step_mobilization_config" name="Configuración" parent="menu_step_mobilization_root"
+              sequence="60" groups="base.group_system"/>
+    <menuitem id="menu_step_mobilization_config_settings" name="Contabilidad y aplicación móvil"
+              parent="menu_step_mobilization_config" sequence="10"
+              action="action_step_mobilization_configuration" groups="base.group_system"/>
+    <menuitem id="menu_step_mobilization_config_devices" name="Dispositivos móviles"
+              parent="menu_step_mobilization_config" sequence="20"
+              action="action_step_mobilization_driver_device" groups="group_mobilization_operator"/>
+    <menuitem id="menu_step_mobilization_config_document_types" name="Reglas de cumplimiento (documentos)"
+              parent="menu_step_mobilization_config" sequence="30"
+              action="action_step_mobilization_document_type" groups="group_mobilization_prevention"/>
+</odoo>

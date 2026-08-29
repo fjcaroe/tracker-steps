@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Tipos de documento iniciales, derivados de Anexo 1 y Anexo 3 (fuente:
+         docs adjuntos al encargo). Contenido administrable: se puede editar,
+         desactivar o agregar tipos nuevos desde Configuración. -->
+    <record id="doc_type_revision_tecnica" model="step.mobilization.document.type">
+        <field name="name">Revisión técnica</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_seguro" model="step.mobilization.document.type">
+        <field name="name">Seguro obligatorio / pólizas requeridas</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_permiso_circulacion" model="step.mobilization.document.type">
+        <field name="name">Permiso de circulación</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_autorizacion_transporte" model="step.mobilization.document.type">
+        <field name="name">Autorización de transporte aplicable</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_padron" model="step.mobilization.document.type">
+        <field name="name">Padrón</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">False</field>
+    </record>
+    <record id="doc_type_letrero" model="step.mobilization.document.type">
+        <field name="name">Letrero de trabajadores agrícolas de temporada</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_licencia_conducir" model="step.mobilization.document.type">
+        <field name="name">Licencia de conducir adecuada</field>
+        <field name="scope">chofer</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_contrato_trabajo" model="step.mobilization.document.type">
+        <field name="name">Contrato de trabajo del chofer</field>
+        <field name="scope">chofer</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_derecho_saber" model="step.mobilization.document.type">
+        <field name="name">Derecho a Saber</field>
+        <field name="scope">chofer</field>
+        <field name="is_blocking">True</field>
+    </record>
+    <record id="doc_type_entrega_epp" model="step.mobilization.document.type">
+        <field name="name">Entrega de EPP</field>
+        <field name="scope">chofer</field>
+        <field name="is_blocking">False</field>
+    </record>
+    <record id="doc_type_manejo_defensivo" model="step.mobilization.document.type">
+        <field name="name">Curso de manejo defensivo</field>
+        <field name="scope">chofer</field>
+        <field name="is_blocking">False</field>
+    </record>
+    <record id="doc_type_arriendo" model="step.mobilization.document.type">
+        <field name="name">Contrato de arriendo (cuando vehículo/transportista no coinciden)</field>
+        <field name="scope">vehiculo</field>
+        <field name="is_blocking">False</field>
+    </record>
+    <record id="doc_type_registro_sanitario" model="step.mobilization.document.type">
+        <field name="name">Registros sanitarios</field>
+        <field name="scope">transportista</field>
+        <field name="is_blocking">False</field>
+        <field name="active">False</field>
+    </record>
+</odoo>

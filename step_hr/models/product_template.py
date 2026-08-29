@@ -25,7 +25,6 @@ class ProductTemplate(models.Model):
     is_fruta =  fields.Boolean('Es Fruta?')
     cosecha =  fields.Boolean('Es Cosecha?')
     is_labor =  fields.Boolean('Es Labor, Tarea?')
-    is_movi =  fields.Boolean('Es movilización?')
     is_flete =  fields.Boolean('Es flete?')
     is_bpa =  fields.Boolean('Es BPA?')
     dia_carencia = fields.Integer(string='Días de carencia')

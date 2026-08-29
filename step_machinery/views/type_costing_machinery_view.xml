@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record id="view_type_costing_machinery_form" model="ir.ui.view">
+        <field name="name">type.costing.machinery.form</field>
+        <field name="model">type.costing.machinery</field>
+        <field name="arch" type="xml">
+            <form string="Tipo Costeo Maquinaria">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" required="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="type" widget="radio"/>
+                            <field name="cod"/>
+                            <field name="comment"/>
+                        </group>
+                        <group>
+                            <field name="responsable_id"/>
+                            <field name="company_id"/>
+                            <field name="aplica"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_type_costing_machinery_list" model="ir.ui.view">
+        <field name="name">type.costing.machinery.list</field>
+        <field name="model">type.costing.machinery</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" optional="show"/>
+                <field name="type" optional="show"/>
+                <field name="cod" optional="show"/>
+                <field name="aplica" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="comment" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_type_costing_machinery" model="ir.actions.act_window">
+        <field name="name">Tipo Costeo Maquinaria</field>
+        <field name="res_model">type.costing.machinery</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

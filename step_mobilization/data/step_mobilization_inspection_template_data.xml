@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Plantilla inicial derivada del Anexo 4 (checklist de buses). Las
+         medidas (mm/cm) quedan como texto del ítem, no como validaciones de
+         código; el criterio de "crítico" es una propuesta inicial editable
+         por prevención de riesgos, no una calificación legal. -->
+    <record id="inspection_template_v1" model="step.mobilization.inspection.template">
+        <field name="name">Checklist de buses — v1</field>
+        <field name="version">1</field>
+    </record>
+
+    <record id="inspt_line_1" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">10</field>
+        <field name="category">visual</field>
+        <field name="label">Letrero: trabajadores agrícolas de temporada</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_2" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">20</field>
+        <field name="category">visual</field>
+        <field name="label">Espejos exteriores en buen estado</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_3" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">30</field>
+        <field name="category">visual</field>
+        <field name="label">Espejos interiores en buen estado</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_4" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">40</field>
+        <field name="category">visual</field>
+        <field name="label">Neumáticos: profundidad de dibujo suficiente</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_5" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">50</field>
+        <field name="category">visual</field>
+        <field name="label">Neumáticos: presión correcta</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_6" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">60</field>
+        <field name="category">visual</field>
+        <field name="label">Botiquín presente y vigente</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_7" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">70</field>
+        <field name="category">visual</field>
+        <field name="label">Extintor presente</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_8" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">80</field>
+        <field name="category">visual</field>
+        <field name="label">Extintor con mantención anual vigente</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_9" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">90</field>
+        <field name="category">visual</field>
+        <field name="label">Instrumentos indicadores (tablero) funcionando</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_10" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">100</field>
+        <field name="category">visual</field>
+        <field name="label">Bocina funciona</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_11" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">110</field>
+        <field name="category">visual</field>
+        <field name="label">Puerta de servicio: ancho mínimo adecuado</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_12" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">120</field>
+        <field name="category">visual</field>
+        <field name="label">Puerta de escape señalizada</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_13" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">130</field>
+        <field name="category">visual</field>
+        <field name="label">Puerta de escape sin obstrucción</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_14" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">140</field>
+        <field name="category">visual</field>
+        <field name="label">Ventana de escape señalizada</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_15" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">150</field>
+        <field name="category">visual</field>
+        <field name="label">Ventana de escape con sistema de expulsión</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_16" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">160</field>
+        <field name="category">visual</field>
+        <field name="label">Panel divisorio detrás del conductor</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_17" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">170</field>
+        <field name="category">visual</field>
+        <field name="label">Piso antideslizante y en buen estado</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_18" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">180</field>
+        <field name="category">visual</field>
+        <field name="label">Peldaños de puertas en buen estado</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_19" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">190</field>
+        <field name="category">visual</field>
+        <field name="label">Parabrisas en buen estado</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_20" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">200</field>
+        <field name="category">visual</field>
+        <field name="label">Salidas de escape: cantidad suficiente y abren hacia afuera</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_21" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">210</field>
+        <field name="category">visual</field>
+        <field name="label">Pasamanos y columnas en buen estado</field>
+        <field name="is_critical">False</field>
+    </record>
+
+    <record id="inspt_line_22" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">220</field>
+        <field name="category">operational</field>
+        <field name="label">Luces delanteras altas y bajas</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_23" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">230</field>
+        <field name="category">operational</field>
+        <field name="label">Luces traseras</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_24" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">240</field>
+        <field name="category">operational</field>
+        <field name="label">Luces intermitentes</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_25" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">250</field>
+        <field name="category">operational</field>
+        <field name="label">Freno de estacionamiento</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_26" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">260</field>
+        <field name="category">operational</field>
+        <field name="label">Frenos de servicio</field>
+        <field name="is_critical">True</field>
+    </record>
+    <record id="inspt_line_27" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">270</field>
+        <field name="category">operational</field>
+        <field name="label">Freno de motor, accionamiento automático</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_28" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">280</field>
+        <field name="category">operational</field>
+        <field name="label">Lavador de parabrisas eléctrico</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_29" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">290</field>
+        <field name="category">operational</field>
+        <field name="label">Desempañadores (frío y caliente)</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_30" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">300</field>
+        <field name="category">operational</field>
+        <field name="label">Limpiaparabrisas funciona (2 velocidades)</field>
+        <field name="is_critical">False</field>
+    </record>
+    <record id="inspt_line_31" model="step.mobilization.inspection.template.line">
+        <field name="template_id" ref="inspection_template_v1"/>
+        <field name="sequence">310</field>
+        <field name="category">operational</field>
+        <field name="label">Dispositivo que impide la marcha con puerta abierta</field>
+        <field name="is_critical">True</field>
+    </record>
+</odoo>

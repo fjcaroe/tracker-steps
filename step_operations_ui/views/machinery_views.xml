@@ -8,16 +8,6 @@
             <xpath expr="//form" position="attributes">
                 <attribute name="class" add="o_steps_machinery_form" separator=" "/>
             </xpath>
-            <xpath expr="//sheet/div[hasclass('oe_title')]" position="before">
-                <div class="o_steps_record_intro">
-                    <i class="fa fa-cogs" title="Maquinaria"/>
-                    <div>
-                        <span>CONTROL DE MAQUINARIA</span>
-                        <strong>Registro de horas y operación</strong>
-                        <small>Centraliza responsables, ubicación, horas, combustible e implementos utilizados.</small>
-                    </div>
-                </div>
-            </xpath>
         </field>
     </record>
 
@@ -29,8 +19,8 @@
             <xpath expr="//list" position="attributes">
                 <attribute name="class" add="o_steps_machinery_list" separator=" "/>
                 <attribute name="decoration-muted">state == 'draft'</attribute>
-                <attribute name="decoration-info">state == 'progress'</attribute>
-                <attribute name="decoration-success">state == 'done'</attribute>
+                <attribute name="decoration-success">state in ('done', 'accounted')</attribute>
+                <attribute name="decoration-info">state in ('progress', 'costed')</attribute>
             </xpath>
         </field>
     </record>

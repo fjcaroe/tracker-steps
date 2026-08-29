@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="step_mobilization_view_res_partner_form">
+        <field name="name">step.mobilization.res.partner.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='sales_purchases']" position="after">
+                <page name="mobilization" string="Movilización">
+                    <group>
+                        <field name="step_trans_person"/>
+                        <field name="step_chofer"/>
+                        <field name="transpor_id" invisible="not step_chofer"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_partner_supplier_form_step" model="ir.actions.act_window">
+        <field name="name">Proveedor Movilización</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">['|', ('step_trans_person', '=', True), ('step_chofer', '=', True)]</field>
+        <field name="context">{'res_partner_search_mode': 'supplier', 'default_is_company': True,
+                                'default_step_trans_person': True}</field>
+    </record>
+
+    <record id="action_step_mobilization_transporters" model="ir.actions.act_window">
+        <field name="name">Transportistas</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('step_trans_person', '=', True)]</field>
+        <field name="context">{'default_is_company': True, 'default_step_trans_person': True}</field>
+    </record>
+
+    <record id="action_step_mobilization_drivers" model="ir.actions.act_window">
+        <field name="name">Choferes</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('step_chofer', '=', True)]</field>
+        <field name="context">{'default_step_chofer': True}</field>
+    </record>
+</odoo>

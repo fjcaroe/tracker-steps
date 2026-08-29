@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_mobilization.Dashboard">
+        <div class="o_step_mobilization_dashboard p-3">
+            <h2>Movilización</h2>
+            <div t-if="state.loading" class="text-muted">Cargando…</div>
+            <div t-if="state.error" class="alert alert-danger" t-esc="state.error"/>
+            <div t-if="state.data and !state.loading" class="row g-3">
+                <div class="col-md-3">
+                    <div class="card p-3" role="button" t-on-click="() => this.openAction('step_mobilization.action_step_movi_registry_open')">
+                        <div class="fs-2" t-esc="formatNumber(state.data.trips_open)"/>
+                        <div>Viajes abiertos</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3" role="button" t-on-click="() => this.openAction('step_mobilization.action_step_movi_registry')">
+                        <div class="fs-2" t-esc="formatNumber(state.data.trips_closed)"/>
+                        <div>Viajes cerrados/validados</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3">
+                        <div class="fs-2" t-esc="formatNumber(state.data.vehicles_active)"/>
+                        <div>Vehículos en ruta</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3">
+                        <div class="fs-2" t-esc="formatNumber(state.data.passengers_aboard_now)"/>
+                        <div>Pasajeros a bordo ahora</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3">
+                        <div class="fs-2" t-esc="formatNumber(state.data.passengers_transported_today)"/>
+                        <div>Pasajeros transportados hoy</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3 border-danger" t-if="state.data.overcapacity_trips">
+                        <div class="fs-2 text-danger" t-esc="formatNumber(state.data.overcapacity_trips)"/>
+                        <div>Viajes con sobrecupo</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3" role="button" t-on-click="() => this.openAction('step_mobilization.action_step_mobilization_contract')">
+                        <div class="fs-2" t-esc="formatNumber(state.data.contracts_expiring_30d)"/>
+                        <div>Contratos por vencer (30 días)</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3" role="button" t-on-click="() => this.openAction('step_mobilization.action_step_mobilization_document')">
+                        <div class="fs-2" t-esc="formatNumber(state.data.documents_expired)"/>
+                        <div>Documentos vencidos/faltantes</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3" role="button" t-on-click="() => this.openAction('step_mobilization.action_step_mobilization_inspection')">
+                        <div class="fs-2" t-esc="formatNumber(state.data.inspections_rejected)"/>
+                        <div>Inspecciones rechazadas</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3">
+                        <div class="fs-2" t-esc="formatCurrency(state.data.cost_this_month)"/>
+                        <div>Costo del mes</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card p-3">
+                        <div class="fs-2" t-esc="formatNumber(state.data.sync_conflicts)"/>
+                        <div>Alertas de sincronización móvil</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_previred_wizard_summary,previred.wizard.summary,model_step_previred_export_wizard,step_hr_previred.group_previred_summary,1,1,1,1
+access_previred_profile_read,previred.profile.read,model_step_previred_profile,step_hr_previred.group_previred_summary,1,0,0,0
+access_previred_profile_admin,previred.profile.admin,model_step_previred_profile,step_hr_previred.group_previred_technical,1,1,1,1
+access_previred_batch_audit,previred.batch.audit,model_step_previred_batch,step_hr_previred.group_previred_audit,1,0,0,0
+access_previred_batch_file_audit,previred.batch.file.audit,model_step_previred_batch_file,step_hr_previred.group_previred_audit,1,0,0,0

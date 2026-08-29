@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_treasury_customer_batch"
+              name="Pagos por lotes de clientes"
+              parent="step_account_treasury.menu_treasury_inflow"
+              action="account_batch_payment.action_batch_payment_in"
+              sequence="20"/>
+    <menuitem id="menu_treasury_vendor_batch"
+              name="Pagos por lotes de proveedores"
+              parent="step_account_treasury.menu_treasury_outflow"
+              action="account_batch_payment.action_batch_payment_out"
+              sequence="20"/>
+</odoo>

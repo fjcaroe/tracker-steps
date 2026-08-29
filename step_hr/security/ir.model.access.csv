@@ -4,8 +4,6 @@ access_success_message,access.success.message,model_success_message,base.group_u
 access_hr_entry_xls_wizard,access.hr.entry.xls.wizard,model_hr_entry_xls_wizard,base.group_user,1,1,1,1
 access_hr_salary_custom,access.hr.salary.custom,model_hr_salary_custom,base.group_user,1,1,1,1
 access_hr_salary_custom_line,access.hr.salary.custom.line,model_hr_salary_custom_line,base.group_user,1,1,1,1
-access_hr_route,access.hr.route,model_hr_route,base.group_user,1,1,1,1
-access_hr_route_line,access.hr.route.line,model_hr_route_line,base.group_user,1,1,1,1
 access_step_temporada,access.step.temporada,model_step_temporada,base.group_user,1,1,1,1
 access_step_fundo,access.step.fundo,model_step_fundo,base.group_user,1,1,1,1
 access_step_especie,access.step.especie,model_step_especie,base.group_user,1,1,1,1
@@ -36,13 +34,8 @@ access_step_tracker_session,access.step.tracker.session,model_step_tracker_sessi
 access_step_tracker_work_order,access.step.tracker.work_order,model_step_tracker_work_order,base.group_user,1,1,0,0
 access_step_tracker_sync_log,access.step.tracker.sync.log,model_step_tracker_sync_log,base.group_user,1,0,0,0
 access_step_tracker_sync_log_system,access.step.tracker.sync.log.system,model_step_tracker_sync_log,base.group_system,1,1,1,1
-access_step_movi_registry,access.step.movi.registry,model_step_movi_registry,base.group_user,1,1,1,1
-access_step_movi_registry_line,access.step.movi.registry.line,model_step_movi_registry_line,base.group_user,1,1,1,1
 access_step_work_schedule,access.step.work.schedule,model_step_work_schedule,base.group_user,1,1,1,1
 access_hr_salary_contract_line,access.hr.salary.contract.line,model_hr_salary_contract_line,base.group_user,1,1,1,1
-access_step_movi_cost_line,access.step.movi.cost.line,model_step_movi_cost_line,base.group_user,1,1,1,1
-access_step_movi_cont_line,access.step.movi.cont.line,model_step_movi_cont_line,base.group_user,1,1,1,1
-access_product_pricelist_move_line,access.product.pricelist.move.line,model_product_pricelist_move_line,base.group_user,1,1,1,1
 access_res_sector,access.res.sector,model_res_sector,base.group_user,1,1,1,1
 access_step_tarja_registry,access.step.tarja.registry,model_step_tarja_registry,base.group_user,1,1,1,1
 access_step_haber_costeo,access.step.haber.costeo,model_step_haber_costeo,base.group_user,1,1,1,1

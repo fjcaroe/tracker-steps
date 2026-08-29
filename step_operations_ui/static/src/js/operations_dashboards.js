@@ -69,7 +69,7 @@ export class MachineryDashboard extends StepsOperationsDashboard {
             const total = await this.safeCount("step.hrs.machinery");
             const draft = await this.safeCount("step.hrs.machinery", [["state", "=", "draft"]]);
             const progress = await this.safeCount("step.hrs.machinery", [["state", "=", "progress"]]);
-            const done = await this.safeCount("step.hrs.machinery", [["state", "=", "done"]]);
+            const done = await this.safeCount("step.hrs.machinery", [["state", "in", ["done", "costed", "accounted"]]]);
             const lines = await this.safeCount("step.hrs.machinery.line");
             const vehicles = await this.safeCount("fleet.vehicle", [["es_maquina", "=", true]]);
             const realCosts = await this.safeCount("real.cost.machinery");

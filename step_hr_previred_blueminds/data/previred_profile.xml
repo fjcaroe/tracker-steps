@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        `noupdate="1"` deliberadamente: una vez que una empresa generó archivos
+        contra este perfil, una actualización del módulo no debe reescribir la
+        versión de formato con la que se produjo el histórico. Las versiones
+        nuevas de la especificación se añaden como registros nuevos.
+    -->
+    <data noupdate="1">
+        <record id="profile_blueminds_v84" model="step.previred.profile">
+            <field name="name">Previred largo variable v84 — Blueminds</field>
+            <field name="sequence">10</field>
+            <field name="engine">l10n_cl_hr</field>
+            <field name="layout">variable</field>
+            <field name="spec_version">84</field>
+            <field name="spec_date">2025-07</field>
+            <field name="effective_from">2025-08</field>
+            <field name="effective_to">2026-07</field>
+            <field name="eligible_states">done,paid</field>
+            <field name="source_url">https://www.previred.com/wp-content/uploads/2025/07/FormatoLargoVariablePorSeparador-Reforma-5.pdf</field>
+            <field name="note">Reutiliza el asistente `wizard.export.csv.previred`
+del addon del proveedor para los importes de los 105 campos. El alcance sí se
+corrige: el asistente no filtraba por compañía ni por estado y exportaba
+liquidaciones de otras empresas y en borrador.</field>
+        </record>
+        <record id="profile_blueminds_v98" model="step.previred.profile">
+            <field name="name">Previred largo variable v98 — Blueminds</field>
+            <field name="sequence">5</field>
+            <field name="engine">l10n_cl_hr</field>
+            <field name="layout">variable</field>
+            <field name="spec_version">98</field>
+            <field name="spec_date">2026-08</field>
+            <field name="effective_from">2026-08</field>
+            <field name="eligible_states">done,paid</field>
+            <field name="source_url">https://www.previred.com/documents/FormatosArchivos/FormatoLargoVariablePorSeparador.pdf</field>
+            <field name="note">Formato oficial vigente desde remuneraciones de
+agosto de 2026. Normaliza la jornada y calcula las cotizaciones de expectativa
+de vida y rentabilidad protegida antes de permitir la descarga.</field>
+        </record>
+    </data>
+</odoo>

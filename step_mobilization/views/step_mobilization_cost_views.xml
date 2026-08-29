@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_movi_cost_pivot" model="ir.ui.view">
+        <field name="name">step.movi.cost.line.pivot</field>
+        <field name="model">step.movi.cost.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de costeo de movilización" sample="1">
+                <field name="date" interval="month" type="col"/>
+                <field name="employee_id" type="row"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_step_movi_cost_graph" model="ir.ui.view">
+        <field name="name">step.movi.cost.line.graph</field>
+        <field name="model">step.movi.cost.line</field>
+        <field name="arch" type="xml">
+            <graph string="Análisis de costeo de movilización" sample="1">
+                <field name="employee_id" type="col"/>
+                <field name="vehicle_id" type="col"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_movi_cost_list" model="ir.ui.view">
+        <field name="name">step.movi.cost.line.list</field>
+        <field name="model">step.movi.cost.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="parent_name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="employee_id" optional="show"/>
+                <field name="cost_id" optional="show"/>
+                <field name="recorrido_id" optional="show"/>
+                <field name="vehicle_id" optional="show"/>
+                <field name="chofer_id" optional="show"/>
+                <field name="cost_in" optional="show"/>
+                <field name="cost_out" optional="show"/>
+                <field name="cost_total" optional="show"/>
+                <field name="state" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_movi_cost_search" model="ir.ui.view">
+        <field name="name">step.movi.cost.line.search</field>
+        <field name="model">step.movi.cost.line</field>
+        <field name="arch" type="xml">
+            <search string="Análisis de costeo de movilización">
+                <field name="parent_name" filter_domain="[('parent_name', 'ilike', self)]"/>
+                <field name="partner_id" filter_domain="[('partner_id', 'ilike', self)]"/>
+                <filter string="Fecha" name="today" date="date"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Transportista" name="groupby_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Vehículo" name="groupby_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Estado" name="groupby_state" context="{'group_by': 'state'}"/>
+                    <filter string="Fecha" name="groupby_date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_view_step_movi_cost" model="ir.actions.act_window">
+        <field name="name">Análisis de Costeo</field>
+        <field name="res_model">step.movi.cost.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="view_step_movi_cost_search"/>
+    </record>
+</odoo>

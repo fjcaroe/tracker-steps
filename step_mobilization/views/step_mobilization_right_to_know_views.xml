@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_mobilization_rtk_template_form" model="ir.ui.view">
+        <field name="name">step.mobilization.right_to_know.template.form</field>
+        <field name="model">step.mobilization.right_to_know.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_validate" string="Marcar como revisada" type="object"
+                            class="oe_highlight" invisible="is_validated"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="version"/>
+                        <field name="is_validated" readonly="1"/>
+                    </group>
+                    <field name="line_ids">
+                        <list editable="bottom">
+                            <field name="activity"/>
+                            <field name="risk"/>
+                            <field name="consequence"/>
+                            <field name="preventive_measure"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_step_mobilization_rtk_template_list" model="ir.ui.view">
+        <field name="name">step.mobilization.right_to_know.template.list</field>
+        <field name="model">step.mobilization.right_to_know.template</field>
+        <field name="arch" type="xml">
+            <list><field name="name"/><field name="version"/><field name="is_validated"/></list>
+        </field>
+    </record>
+    <record id="action_step_mobilization_rtk_template" model="ir.actions.act_window">
+        <field name="name">Plantillas de Derecho a Saber</field>
+        <field name="res_model">step.mobilization.right_to_know.template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_step_mobilization_rtk_form" model="ir.ui.view">
+        <field name="name">step.mobilization.right_to_know.form</field>
+        <field name="model">step.mobilization.right_to_know</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_issue" string="Emitir" type="object" class="oe_highlight"
+                            invisible="state != 'draft'"/>
+                    <field name="state" widget="statusbar" nolabel="1" readonly="1"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="company_id"/>
+                            <field name="transporter_id"/>
+                            <field name="chofer_id"/>
+                            <field name="position"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="place"/>
+                            <field name="relator_name"/>
+                            <field name="template_id"/>
+                            <field name="expiry_date"/>
+                        </group>
+                    </group>
+                    <field name="acceptance_evidence" widget="image"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_step_mobilization_rtk_list" model="ir.ui.view">
+        <field name="name">step.mobilization.right_to_know.list</field>
+        <field name="model">step.mobilization.right_to_know</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="chofer_id"/><field name="transporter_id"/><field name="date"/>
+                <field name="template_id"/><field name="state"/><field name="expiry_date"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_step_mobilization_rtk" model="ir.actions.act_window">
+        <field name="name">Derecho a Saber</field>
+        <field name="res_model">step.mobilization.right_to_know</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

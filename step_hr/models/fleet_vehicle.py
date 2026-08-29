@@ -48,8 +48,6 @@ class FleetVehicle(models.Model):
     # step_asiento =  fields.Integer('Número de asientos')
     # step_puerta =  fields.Integer('Número de puertas')
     # step_enganche =  fields.Boolean('Enganche de remolque')
-    step_min_pass =  fields.Integer('Mínimo pasajeros')
-    step_max_pass =  fields.Integer('Máximo pasajeros')
     mod_carga = fields.Selection(string='Modalidad de carga',
                                    selection=[('ram', 'Rampa Plana'),
                                               ('cerrado', 'Cerrado sin frio'),

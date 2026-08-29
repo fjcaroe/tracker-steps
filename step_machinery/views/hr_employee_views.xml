@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="step_machinery_view_hr_employee_form">
+        <field name="name">step.hr.employee.form</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='personal_information']" position="after">
+                <page name='agri' string="BPA">
+                    <group>
+                        <group>
+                            <field name="is_tractorista"/>
+                            <field name="is_res_registro"/>
+                            <field name="is_admin"/>
+                        </group>
+                        <group>
+                            <field name="is_aplicador"/>
+                            <field name="is_dosifi"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -16,3 +16,5 @@ def post_init_hook(env):
     internal_users.write(
         {"groups_id": [Command.link(group_id) for group_id in groups.ids]}
     )
+    # Deja una sola entrada por aplicación en el menú principal.
+    env["ir.ui.menu"]._consolidate_duplicated_apps()

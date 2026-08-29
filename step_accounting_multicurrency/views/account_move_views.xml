@@ -6,6 +6,12 @@
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="priority">90</field>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_date'][1]" position="after">
+                <field name="operational_currency_id" optional="show"/>
+                <field name="operational_rate_date" readonly="1" optional="hide"/>
+                <field name="observed_exchange_rate" optional="show"
+                       invisible="not operational_currency_id"/>
+            </xpath>
             <xpath expr="//page[@name='aml_tab']//list/field[@name='amount_currency']" position="attributes">
                 <attribute name="string">Importe en moneda</attribute>
                 <attribute name="optional">show</attribute>
@@ -19,6 +25,16 @@
             </xpath>
             <xpath expr="//page[@name='aml_tab']//list/field[@name='credit']" position="attributes">
                 <attribute name="string">Crédito (moneda compañía)</attribute>
+            </xpath>
+            <xpath expr="//page[@name='aml_tab']//list/field[@name='credit']" position="after">
+                <field name="operational_currency_id" column_invisible="True"/>
+                <field name="operational_exchange_rate" optional="show"
+                       readonly="parent.state != 'draft'"/>
+                <field name="operational_debit" string="Débito operacional"
+                       optional="show" readonly="1"/>
+                <field name="operational_credit" string="Crédito operacional"
+                       optional="show" readonly="1"/>
+                <field name="is_operational_exchange_adjustment" optional="hide"/>
             </xpath>
         </field>
     </record>
@@ -42,6 +58,14 @@
             </xpath>
             <xpath expr="//field[@name='credit']" position="attributes">
                 <attribute name="string">Crédito (moneda compañía)</attribute>
+            </xpath>
+            <xpath expr="//field[@name='credit']" position="after">
+                <field name="operational_currency_id" optional="hide"/>
+                <field name="operational_exchange_rate" optional="show"/>
+                <field name="operational_debit" optional="show"/>
+                <field name="operational_credit" optional="show"/>
+                <field name="operational_balance" optional="show"/>
+                <field name="is_operational_exchange_adjustment" optional="hide"/>
             </xpath>
         </field>
     </record>

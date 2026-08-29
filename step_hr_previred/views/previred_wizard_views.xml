@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_previred_export_wizard_form" model="ir.ui.view">
+        <field name="name">step.previred.export.wizard.form</field>
+        <field name="model">step.previred.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Exportación Previred">
+                <field name="state" invisible="1"/>
+
+                <div class="alert alert-info" role="status">
+                    Previred sólo admite archivos <strong>TXT, CSV o ZIP</strong>.
+                    El <strong>Excel de revisión</strong> que genera este
+                    asistente es un archivo de control para personas y
+                    <strong>no debe cargarse en Previred</strong>.
+                </div>
+
+                <group invisible="state != 'setup'">
+                    <group string="Período y empresa">
+                        <field name="company_id" options="{'no_create': True}"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="profile_id" options="{'no_create': True}"
+                               help="Fija la versión de la especificación oficial y el motor de nómina. Si se deja vacío se usa el perfil aplicable a la compañía."/>
+                    </group>
+                    <group string="Alcance y salida">
+                        <field name="scope" widget="radio"/>
+                        <field name="output" widget="radio"/>
+                        <field name="department_ids" widget="many2many_tags"
+                               options="{'no_create': True}"
+                               placeholder="Vacío = todos los departamentos"/>
+                    </group>
+                    <group string="Opciones" colspan="2">
+                        <field name="allow_without_department"/>
+                        <field name="department_sheets"
+                               invisible="output == 'txt'"/>
+                        <field name="zip_single"/>
+                    </group>
+                </group>
+
+                <div invisible="state == 'setup'">
+                    <field name="summary_html" widget="html" readonly="1"
+                           nolabel="1"/>
+                </div>
+
+                <group invisible="state != 'done'">
+                    <field name="file_name" invisible="1"/>
+                    <field name="file_data" filename="file_name"
+                           string="Descargar" readonly="1"/>
+                    <field name="batch_id" readonly="1"
+                           string="Lote de auditoría"/>
+                </group>
+
+                <footer>
+                    <button name="action_validate" type="object"
+                            string="Validar" class="btn-secondary"
+                            invisible="state == 'done'"
+                            help="Revisa el período sin producir ningún archivo."/>
+                    <button name="action_generate" type="object"
+                            string="Generar" class="btn-primary"
+                            invisible="state == 'done'"
+                            groups="step_hr_previred.group_previred_generate"/>
+                    <button name="action_back" type="object"
+                            string="Volver a los parámetros"
+                            class="btn-secondary"
+                            invisible="state == 'setup'"/>
+                    <button string="Cerrar" special="cancel"
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_previred_export_wizard" model="ir.actions.act_window">
+        <field name="name">Previred por departamento</field>
+        <field name="res_model">step.previred.export.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

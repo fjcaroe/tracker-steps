@@ -19,4 +19,3 @@ class AccountMove(models.Model):
     propio = fields.Boolean(string='Propio')
     contra = fields.Boolean(string='Contratista')
     cosecha = fields.Boolean(string='Cosecha')
-    moviliza = fields.Boolean(string='Movilización')

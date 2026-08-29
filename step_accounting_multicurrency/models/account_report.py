@@ -1,146 +1,104 @@
-from odoo import fields, models
+from copy import deepcopy
+
+from odoo import models
+from odoo.tools import SQL
 
 
 class AccountReport(models.Model):
     _inherit = "account.report"
 
     def _init_options_custom(self, options, previous_options):
+        """Agrega columnas basadas en importes históricos almacenados.
+
+        Cada columna operacional recibe su propio grupo de opciones. Por eso
+        el motor vuelve a ejecutar la consulta usando
+        ``account_move_line.operational_*``; no convierte el total al tipo de
+        cambio de la fecha del informe.
+        """
         super()._init_options_custom(options, previous_options)
-
-        monetary_columns = [
-            column
-            for column in options.get("columns", [])
-            if column.get("figure_type") == "monetary"
-            and column.get("expression_label") != "amount_currency"
-            and not column.get("step_presentation_currency_id")
-            and not column.get("step_company_currency_column")
-        ]
-        if not monetary_columns:
+        currency = self.env.company.operational_currency_id
+        # Sólo se duplica una columna cuando todas las hojas del informe se
+        # resuelven mediante expresiones domain/aggregation. Reportes con
+        # handlers SQL propios (Libro Mayor, Antigüedad, Flujo de Caja, etc.)
+        # requieren un adaptador específico; mostrarlos como operacionales
+        # convertiría una columna CLP en una columna falsamente rotulada USD.
+        engines = set(self.line_ids.expression_ids.mapped("engine"))
+        supported_engines = {"domain", "aggregation", "cross_report"}
+        supports_stored_operational = (
+            "domain" in engines and engines.issubset(supported_engines)
+        )
+        if not currency or not supports_stored_operational:
             return
-
-        company_currency = self.env.company.currency_id
-        available_currencies = self.env["res.currency"].search(
-            [("active", "=", True)], order="name"
-        )
-        rated_currency_ids = set(
-            self.env["res.currency.rate"]
-            .search(
-                [
-                    ("currency_id", "in", available_currencies.ids),
-                    ("company_id", "in", [False, self.env.company.id]),
-                ]
-            )
-            .mapped("currency_id")
-            .ids
-        )
-        foreign_currencies = (available_currencies - company_currency).filtered(
-            lambda currency: currency.id in rated_currency_ids
-        )
-        if not foreign_currencies:
-            return
-
-        requested_ids = previous_options.get("step_presentation_currency_ids")
-        if requested_ids is None:
-            default_currency = foreign_currencies.filtered(lambda currency: currency.name == "USD")[:1]
-            requested_ids = default_currency.ids
-
-        selected_currencies = foreign_currencies.filtered(
-            lambda currency: currency.id in requested_ids
-        )
-        options["step_presentation_currency_ids"] = selected_currencies.ids
-        options["step_presentation_currencies"] = [
-            {
-                "id": currency.id,
-                "name": currency.name,
-                "symbol": currency.symbol,
-                "selected": currency in selected_currencies,
-            }
-            for currency in foreign_currencies
-        ]
-        options["step_company_currency"] = {
-            "id": company_currency.id,
-            "name": company_currency.name,
-            "symbol": company_currency.symbol,
+        enabled = previous_options.get("step_show_operational_currency", True)
+        options["step_show_operational_currency"] = bool(enabled)
+        options["step_operational_currency"] = {
+            "id": currency.id,
+            "name": currency.name,
+            "symbol": currency.symbol,
         }
-
-        if not selected_currencies:
+        if not enabled:
             return
 
+        original_groups = options.get("column_groups", {})
         expanded_columns = []
-        for column in options["columns"]:
-            is_convertible = (
-                column.get("figure_type") == "monetary"
-                and column.get("expression_label") != "amount_currency"
-                and not column.get("step_presentation_currency_id")
-                and not column.get("step_company_currency_column")
-            )
-            if not is_convertible:
-                expanded_columns.append(column)
+        for column in list(options.get("columns", [])):
+            expanded_columns.append(column)
+            if column.get("figure_type") != "monetary":
                 continue
-
-            original_name = column.get("name") or "Importe"
-            expanded_columns.append(
-                {
-                    **column,
-                    "name": f"{original_name} ({company_currency.name})",
-                    "step_company_currency_column": True,
-                }
-            )
-            for currency in selected_currencies:
-                expanded_columns.append(
-                    {
-                        **column,
-                        "name": f"{original_name} ({currency.name})",
-                        "sortable": False,
-                        "step_presentation_currency_id": currency.id,
-                    }
-                )
-
+            source_key = column.get("column_group_key")
+            if source_key not in original_groups:
+                continue
+            operational_key = "%s__step_operational" % source_key
+            if operational_key not in options["column_groups"]:
+                group = deepcopy(original_groups[source_key])
+                group.setdefault("forced_options", {})[
+                    "step_use_operational_values"
+                ] = True
+                options["column_groups"][operational_key] = group
+            expanded_columns.append({
+                **column,
+                "column_group_key": operational_key,
+                "name": "%s (%s)" % (column.get("name") or "Importe", currency.name),
+                "step_operational_currency_column": True,
+                "sortable": False,
+            })
         options["columns"] = expanded_columns
 
-    def _build_column_dict(
-        self,
-        col_value,
-        col_data,
-        options=None,
-        currency=False,
-        digits=1,
-        column_expression=None,
-        has_sublines=False,
-        report_line_id=None,
+    def _compute_formula_batch_with_engine_domain(
+        self, options, date_scope, formulas_dict, current_groupby,
+        next_groupby, offset=0, limit=None, warnings=None,
     ):
-        presentation_currency_id = (col_data or {}).get(
-            "step_presentation_currency_id"
+        if options.get("step_use_operational_values"):
+            report = self.with_context(step_operational_report=True)
+            return super(AccountReport, report)._compute_formula_batch_with_engine_domain(
+                options, date_scope, formulas_dict, current_groupby,
+                next_groupby, offset=offset, limit=limit, warnings=warnings,
+            )
+        return super()._compute_formula_batch_with_engine_domain(
+            options, date_scope, formulas_dict, current_groupby,
+            next_groupby, offset=offset, limit=limit, warnings=warnings,
         )
-        if presentation_currency_id and isinstance(col_value, (int, float)):
-            options = options or {}
-            presentation_currency = self.env["res.currency"].browse(
-                presentation_currency_id
-            ).exists()
-            if presentation_currency:
-                column_group_key = (col_data or {}).get("column_group_key")
-                forced_options = options.get("column_groups", {}).get(
-                    column_group_key, {}
-                ).get("forced_options", {})
-                date_options = forced_options.get("date") or options.get("date", {})
-                conversion_date = fields.Date.to_date(
-                    date_options.get("date_to") or fields.Date.context_today(self)
-                )
-                col_value = self.env.company.currency_id._convert(
-                    col_value,
-                    presentation_currency,
-                    self.env.company,
-                    conversion_date,
-                )
-                currency = presentation_currency
 
+    def _currency_table_apply_rate(self, value: SQL) -> SQL:
+        if self.env.context.get("step_operational_report"):
+            expression = value.code.strip()
+            replacements = {
+                "account_move_line.balance": "account_move_line.operational_balance",
+                "account_move_line.debit": "account_move_line.operational_debit",
+                "account_move_line.credit": "account_move_line.operational_credit",
+            }
+            if expression in replacements:
+                return SQL(replacements[expression])
+        return super()._currency_table_apply_rate(value)
+
+    def _build_column_dict(
+        self, col_value, col_data, options=None, currency=False, digits=1,
+        column_expression=None, has_sublines=False, report_line_id=None,
+    ):
+        if (col_data or {}).get("step_operational_currency_column"):
+            currency = self.env.company.operational_currency_id
         return super()._build_column_dict(
-            col_value,
-            col_data,
-            options=options,
-            currency=currency,
-            digits=digits,
-            column_expression=column_expression,
-            has_sublines=has_sublines,
-            report_line_id=report_line_id,
+            col_value, col_data, options=options, currency=currency,
+            digits=digits, column_expression=column_expression,
+            has_sublines=has_sublines, report_line_id=report_line_id,
         )

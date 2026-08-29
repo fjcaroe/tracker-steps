@@ -2,7 +2,7 @@
 <odoo>
     <!-- Aplicaciones -->
     <record id="step_hr.menu_step_hr_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_activities')])]"/></record>
-    <record id="step_hr.menu_step_tracker_gps_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_tracker')])]"/></record>
+    <record id="step_tracker_odoo.menu_step_tracker_gps_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_tracker')])]"/></record>
     <record id="step_machinery.menu_step_machinery_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_machinery')])]"/></record>
     <record id="step_cosecha.menu_step_cosecha_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_harvest')])]"/></record>
     <record id="step_bpa_irrigation.menu_bpa_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_bpa_irrigation')])]"/></record>
@@ -10,25 +10,25 @@
     <record id="step_labor_protection.menu_labor_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_labor_protection')])]"/></record>
     <record id="step_management_costs.menu_management_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_management_costs')])]"/></record>
     <record id="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_freight')])]"/></record>
+    <record id="step_mobilization.menu_step_mobilization_root" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_mobilization')])]"/></record>
 
     <!-- Actividades -->
     <record id="step_hr.menu_step_hr_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_own_staff')])]"/></record>
     <record id="step_hr.menu_step_hr_main_contra" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_contractors')])]"/></record>
-    <record id="step_hr.menu_step_moviliza" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_transport')])]"/></record>
     <record id="step_hr.menu_step_informe_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_reports')])]"/></record>
     <record id="step_hr.step_maestros" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_masters')])]"/></record>
     <record id="step_hr.menu_step_hr_config" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_activities_configuration')])]"/></record>
 
-    <!-- Tracker -->
-    <record id="step_hr.menu_step_tracker_operation" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_operation')])]"/></record>
-    <record id="step_hr.menu_step_tracker_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_reports')])]"/></record>
-    <record id="step_hr.menu_step_tracker_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_masters')])]"/></record>
-    <record id="step_hr.menu_step_tracker_open_web" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_web_map')])]"/></record>
-    <record id="step_hr.menu_step_tracker_integration" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_integration')])]"/></record>
+    <!-- Tracker: la app la publica step_tracker_odoo, no step_hr -->
+    <record id="step_tracker_odoo.menu_step_tracker_operation" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_operation')])]"/></record>
+    <record id="step_tracker_odoo.menu_step_tracker_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_reports')])]"/></record>
+    <record id="step_tracker_odoo.menu_step_tracker_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_masters')])]"/></record>
+    <record id="step_tracker_odoo.menu_step_tracker_open_web" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_web_map')])]"/></record>
+    <record id="step_tracker_odoo.menu_step_tracker_integration" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_tracker_integration')])]"/></record>
 
     <!-- Maquinaria -->
     <record id="step_machinery.menu_step_machinery_main" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_operation')])]"/></record>
-    <record id="step_machinery.menu_step_machinery_costos" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_auto_costs')])]"/></record>
+    <record id="step_machinery.menu_step_machinery_costing" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_auto_costs')])]"/></record>
     <record id="step_machinery.step_machinery_maestros" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_masters')])]"/></record>
     <record id="step_machinery.step_machinery_informes" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_reports')])]"/></record>
     <record id="step_machinery.menu_step_machinery_config" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_machinery_configuration')])]"/></record>
@@ -67,4 +67,11 @@
     <record id="step_operations_ui.menu_freight_accounting" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_control')])]"/></record>
     <record id="step_operations_ui.menu_freight_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_reports')])]"/></record>
     <record id="step_operations_ui.menu_freight_configuration" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_freight_configuration')])]"/></record>
+
+    <!-- Movilización nativo -->
+    <record id="step_mobilization.menu_step_mobilization_operation" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_mob_operation')])]"/></record>
+    <record id="step_mobilization.menu_step_mobilization_compliance" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_mob_contracts'), ref('group_mob_prevention')])]"/></record>
+    <record id="step_mobilization.menu_step_mobilization_reports" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_mob_operation'), ref('group_mob_costing')])]"/></record>
+    <record id="step_mobilization.menu_step_mobilization_masters" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_app_mobilization')])]"/></record>
+    <record id="step_mobilization.menu_step_mobilization_config" model="ir.ui.menu"><field name="groups_id" eval="[(6,0,[ref('group_mob_manager')])]"/></record>
 </odoo>

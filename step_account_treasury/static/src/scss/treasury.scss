@@ -1,0 +1,24 @@
+.o_treasury_summary {
+    width: 100%;
+    font-size: 13px;
+
+    th { background: #f3f6f5; color: #123c33; font-weight: 700; white-space: nowrap; }
+    td, th { padding: 6px 10px; border-bottom: 1px solid #e4eae8; }
+    .o_treasury_concept { min-width: 220px; text-align: left; }
+    tr.o_treasury_opening td { background: #f7fbf9; }
+    tr.o_treasury_subtotal td { background: #eef5f2; }
+    tr.o_treasury_closing td { background: #123c33; color: #ffffff; }
+}
+
+.o_treasury_summary_wrap { overflow-x: auto; }
+
+.o_treasury_alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #f0c2c2;
+    background: #fdf1f1;
+    color: #8a2020;
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cashflow_form_agro" model="ir.ui.view">
+        <field name="name">step.cashflow.form.agro</field>
+        <field name="model">step.cashflow</field>
+        <field name="inherit_id" ref="step_account_treasury.view_cashflow_form"/>
+        <field name="arch" type="xml">
+            <field name="approver_id" position="after">
+                <field name="fundo_id"/>
+            </field>
+        </field>
+    </record>
+</odoo>

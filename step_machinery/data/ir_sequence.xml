@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <data noupdate="0">
+
+        <!-- Sequences for horas maquina-->
+       <record id="seq_step_hrs_machinery" model="ir.sequence">
+            <field name="name">Step secuencia Horas Maquina</field>
+            <field name="code">step_hrs_machinery_seq</field>
+            <field name="prefix">HM</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+         <record id="seq_real_cost_machinery" model="ir.sequence">
+            <field name="name">Step secuencia costo real maquinaria</field>
+            <field name="code">step_real_cost_machinery_seq</field>
+            <field name="prefix">CostRM</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+    </data>
+
+    <!--
+      Correlativo "Número OT" de Horas Máquina. Va en un bloque noupdate para que
+      una actualización del módulo nunca reinicie el contador ni altere el formato.
+      Sin prefijo ni padding: entrega 1, 2, 3 ... tal como exige el nombre compuesto.
+      Para un correlativo propio por empresa basta duplicar este registro con el
+      mismo código y la empresa asignada; el modelo prioriza la secuencia de la
+      empresa del registro sobre la global.
+    -->
+    <data noupdate="1">
+        <record id="seq_step_hrs_machinery_ot" model="ir.sequence">
+            <field name="name">Steps Maquinaria - Número OT</field>
+            <field name="code">step.hrs.machinery.ot</field>
+            <field name="prefix"></field>
+            <field name="suffix"></field>
+            <field name="padding">0</field>
+            <field name="implementation">standard</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

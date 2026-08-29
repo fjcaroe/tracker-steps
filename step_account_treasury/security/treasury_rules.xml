@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Aislamiento multiempresa: nadie ve datos fuera de sus compañías. -->
+        <record id="rule_cashflow_company" model="ir.rule">
+            <field name="name">Flujo de caja: multiempresa</field>
+            <field name="model_id" ref="model_step_cashflow"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+        <record id="rule_cashflow_line_company" model="ir.rule">
+            <field name="name">Línea de flujo: multiempresa</field>
+            <field name="model_id" ref="model_step_cashflow_line"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+        <record id="rule_concept_company" model="ir.rule">
+            <field name="name">Concepto de flujo: multiempresa</field>
+            <field name="model_id" ref="model_step_treasury_concept"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+        <record id="rule_proforma_company" model="ir.rule">
+            <field name="name">Proforma de proveedor: multiempresa</field>
+            <field name="model_id" ref="model_step_vendor_proforma"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+        <record id="rule_proforma_line_company" model="ir.rule">
+            <field name="name">Línea de proforma: multiempresa</field>
+            <field name="model_id" ref="model_step_vendor_proforma_line"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+    </data>
+</odoo>

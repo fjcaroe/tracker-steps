@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_mobilization" model="ir.module.category">
+        <field name="name">Movilización</field>
+        <field name="sequence">25</field>
+    </record>
+
+    <record id="group_mobilization_user" model="res.groups">
+        <field name="name">Usuario / Consulta</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+    </record>
+
+    <record id="group_mobilization_operator" model="res.groups">
+        <field name="name">Operador / Despachador</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_user'))]"/>
+    </record>
+
+    <record id="group_mobilization_driver" model="res.groups">
+        <field name="name">Chofer móvil (sin backend)</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="comment">Sólo para representar el rol; el chofer opera vía la API móvil, no el backend.</field>
+    </record>
+
+    <record id="group_mobilization_contract_manager" model="res.groups">
+        <field name="name">Gestor de contratos</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_user'))]"/>
+    </record>
+
+    <record id="group_mobilization_prevention" model="res.groups">
+        <field name="name">Prevención de riesgos</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_user'))]"/>
+    </record>
+
+    <record id="group_mobilization_costing" model="res.groups">
+        <field name="name">Costeo</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_user'))]"/>
+    </record>
+
+    <record id="group_mobilization_accounting" model="res.groups">
+        <field name="name">Contabilización</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_user'))]"/>
+    </record>
+
+    <record id="group_mobilization_approver" model="res.groups">
+        <field name="name">Aprobador</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_user'))]"/>
+    </record>
+
+    <record id="group_mobilization_manager" model="res.groups">
+        <field name="name">Auditor / Administrador</field>
+        <field name="category_id" ref="module_category_mobilization"/>
+        <field name="implied_ids" eval="[(4, ref('group_mobilization_operator')),
+                                          (4, ref('group_mobilization_contract_manager')),
+                                          (4, ref('group_mobilization_prevention')),
+                                          (4, ref('group_mobilization_costing')),
+                                          (4, ref('group_mobilization_accounting')),
+                                          (4, ref('group_mobilization_approver'))]"/>
+    </record>
+</odoo>

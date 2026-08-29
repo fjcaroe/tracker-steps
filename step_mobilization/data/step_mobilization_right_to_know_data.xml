@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Plantilla inicial derivada del Anexo 2 (Derecho a Saber, Art. 21 DS
+         40). Matriz administrable: se puede versionar de nuevo cuando
+         prevención de riesgos actualice el contenido. -->
+    <record id="right_to_know_template_v1" model="step.mobilization.right_to_know.template">
+        <field name="name">Derecho a Saber — Chofer, v1</field>
+        <field name="version">1</field>
+    </record>
+
+    <record id="rtk_line_mantencion" model="step.mobilization.right_to_know.template.line">
+        <field name="template_id" ref="right_to_know_template_v1"/>
+        <field name="activity">Mantención</field>
+        <field name="risk">Corte con elementos filosos, golpes, atrapamientos</field>
+        <field name="consequence">Heridas cortantes, contusiones, traumatismos, mutilaciones</field>
+        <field name="preventive_measure">Use elementos de protección personal. Utilice las herramientas
+            adecuadas para el trabajo a realizar. Siempre que intervenga el vehículo, apague el motor.</field>
+    </record>
+    <record id="rtk_line_desplazamiento" model="step.mobilization.right_to_know.template.line">
+        <field name="template_id" ref="right_to_know_template_v1"/>
+        <field name="activity">Desplazamiento en caminos y carreteras</field>
+        <field name="risk">Sobreesfuerzo, caída a nivel, volcamiento, choque, atropello por condiciones
+            climáticas/topográficas adversas o falta de luz</field>
+        <field name="consequence">Luxación, esguince, fractura, contusión, traumatismos, lesiones múltiples</field>
+        <field name="preventive_measure">Camine con pasos firmes y seguros, sin correr. No se desplace con
+            objetos pesados en las manos. Nunca exija al vehículo fuera de su rango de operación. Mantenga
+            atención permanente a condiciones climáticas y topográficas adversas. Transite a velocidad
+            razonable y prudente según las condiciones del lugar. Revise el estado general del vehículo antes
+            de la jornada. Use el cinturón de seguridad. Al bajar del vehículo, detenga el motor y use el
+            freno de parqueo. Transite con las luces encendidas. Mantenga distancia de seguimiento.</field>
+    </record>
+</odoo>

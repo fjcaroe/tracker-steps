@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_movi_registry_form_agri" model="ir.ui.view">
+        <field name="name">step.movi.registry.form.agri</field>
+        <field name="model">step.movi.registry</field>
+        <field name="inherit_id" ref="step_mobilization.view_step_movi_registry_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='recorrido_id']" position="after">
+                <field name="fundo_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_step_movi_registry_list_agri" model="ir.ui.view">
+        <field name="name">step.movi.registry.list.agri</field>
+        <field name="model">step.movi.registry</field>
+        <field name="inherit_id" ref="step_mobilization.view_step_movi_registry_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='recorrido_id']" position="after">
+                <field name="fundo_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

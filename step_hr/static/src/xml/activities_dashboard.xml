@@ -27,7 +27,7 @@
                     <article><span>Horas informadas</span><strong><t t-esc="formatNumber(state.data.kpis.hours, 1)"/> h</strong><small>Propias y contratistas</small></article>
                     <button t-on-click="() => this.openAction('step_hr.action_step_tarja')"><span>Tareas registradas</span><strong t-esc="formatNumber(state.data.kpis.tasks)"/><small><t t-esc="state.data.tarja_types.propio"/> propias · <t t-esc="state.data.tarja_types.contratista"/> contratistas</small></button>
                     <article class="is-accent"><span>Sueldo variable</span><strong t-esc="formatCurrency(state.data.kpis.variable_pay)"/><small>Tratos informados en tarjas</small></article>
-                    <button t-on-click="() => this.openAction('step_hr.action_step_movi_registry')"><span>Movilizaciones</span><strong t-esc="formatNumber(state.data.kpis.mobilizations)"/><small>Registros del período</small></button>
+                    <button t-if="state.data.mobilization_installed" t-on-click="() => this.openAction('step_mobilization.action_step_movi_registry')"><span>Movilizaciones</span><strong t-esc="formatNumber(state.data.kpis.mobilizations)"/><small>Registros del período</small></button>
                 </section>
 
                 <section class="o_step_activities_flow">
@@ -69,7 +69,7 @@
                     <button t-on-click="() => this.openAction('step_hr.action_hr_salary_custom_contra')"><i class="fa fa-handshake-o"/><span>Contratistas<small>Cuadrillas, tarifas y costeo</small></span></button>
                     <button t-on-click="() => this.openAction('step_hr.action_step_tarja')"><i class="fa fa-tasks"/><span>Registro de tareas<small>Tarjas y avance operativo</small></span></button>
                     <button t-on-click="() => this.openAction('step_hr.action_step_tracker_dashboard')"><i class="fa fa-map-marker"/><span>Step Tracker<small>Maquinaria y sesiones</small></span></button>
-                    <button t-on-click="() => this.openAction('step_hr.action_step_movi_registry')"><i class="fa fa-bus"/><span>Movilización<small>Rutas, vehículos y costos</small></span></button>
+                    <button t-if="state.data.mobilization_installed" t-on-click="() => this.openAction('step_mobilization.action_step_movi_registry')"><i class="fa fa-bus"/><span>Movilización<small>Rutas, vehículos y costos</small></span></button>
                     <button t-on-click="() => this.openAction('step_hr.action_view_step_tarja_line')"><i class="fa fa-bar-chart"/><span>Informes operativos<small>Detalle, gráfico y pivote</small></span></button>
                 </section>
             </t>

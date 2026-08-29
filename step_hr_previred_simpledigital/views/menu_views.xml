@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Un solo flujo Previred visible. El menú que el documento funcional
+        nombra («Nómina › Reportes › Previred › Previred TXT Remuneraciones»)
+        se conserva con su nombre y su ubicación, y se repunta al asistente
+        nuevo desde `hooks.redirect_previred_menu`, de forma idempotente y sin
+        tocar el addon del proveedor.
+
+        Aquí sólo se añaden las dos entradas que antes no existían.
+    -->
+    <menuitem id="menu_previred_profile"
+              name="Perfiles de formato Previred"
+              parent="l10n_cl_simpledigital_payroll.menu_hr_payroll_previred"
+              action="step_hr_previred.action_previred_profile"
+              sequence="80"
+              groups="step_hr_previred.group_previred_technical"/>
+
+    <menuitem id="menu_previred_batch"
+              name="Lotes Previred generados"
+              parent="l10n_cl_simpledigital_payroll.menu_hr_payroll_previred"
+              action="step_hr_previred.action_previred_batch"
+              sequence="90"
+              groups="step_hr_previred.group_previred_audit"/>
+</odoo>

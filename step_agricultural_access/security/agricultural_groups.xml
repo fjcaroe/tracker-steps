@@ -58,12 +58,22 @@
         <field name="category_id" ref="step_agricultural_access.module_category_agricultural_apps"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
+    <record id="group_app_mobilization" model="res.groups">
+        <field name="name">Movilización</field>
+        <field name="category_id" ref="step_agricultural_access.module_category_agricultural_apps"/>
+        <field name="implied_ids" eval="[(4, ref('step_mobilization.group_mobilization_user'))]"/>
+    </record>
 
     <!-- Functional permissions inside each agricultural application. -->
     <record id="category_activities" model="ir.module.category"><field name="name">Actividades</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">20</field></record>
     <record id="group_activities_own_staff" model="res.groups"><field name="name">Personal propio</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
     <record id="group_activities_contractors" model="res.groups"><field name="name">Contratistas</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
-    <record id="group_activities_transport" model="res.groups"><field name="name">Movilización</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
+    <!-- Movilización dejó de ser una sección de Actividades (ver docs/movilizacion).
+         Este grupo se conserva como puente de continuidad: cualquier usuario que ya
+         lo tuviera asignado conserva acceso, ahora a la app Movilización completa,
+         en vez de perder el acceso en el corte. Los perfiles nuevos deben asignarse
+         directamente en category_mobilization más abajo. -->
+    <record id="group_activities_transport" model="res.groups"><field name="name">Movilización (heredado)</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization'))]"/></record>
     <record id="group_activities_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
     <record id="group_activities_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
     <record id="group_activities_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_activities"/><field name="implied_ids" eval="[(4, ref('group_app_activities'))]"/></record>
@@ -77,7 +87,7 @@
 
     <record id="category_machinery" model="ir.module.category"><field name="name">Maquinaria</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">40</field></record>
     <record id="group_machinery_operation" model="res.groups"><field name="name">Maquinaria</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
-    <record id="group_machinery_auto_costs" model="res.groups"><field name="name">Costos Auto</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
+    <record id="group_machinery_auto_costs" model="res.groups"><field name="name">Costeo y contabilización</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
     <record id="group_machinery_masters" model="res.groups"><field name="name">Maestros</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
     <record id="group_machinery_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
     <record id="group_machinery_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_machinery"/><field name="implied_ids" eval="[(4, ref('group_app_machinery'))]"/></record>
@@ -122,6 +132,15 @@
     <record id="group_freight_control" model="res.groups"><field name="name">Control de fletes</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
     <record id="group_freight_reports" model="res.groups"><field name="name">Informes</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
     <record id="group_freight_configuration" model="res.groups"><field name="name">Configuración</field><field name="category_id" ref="category_freight"/><field name="implied_ids" eval="[(4, ref('group_app_freight'))]"/></record>
+
+    <record id="category_mobilization" model="ir.module.category"><field name="name">Movilización</field><field name="parent_id" ref="module_category_agricultural_steps"/><field name="sequence">45</field></record>
+    <record id="group_mob_operation" model="res.groups"><field name="name">Operación</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_operator'))]"/></record>
+    <record id="group_mob_contracts" model="res.groups"><field name="name">Contratos</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_contract_manager'))]"/></record>
+    <record id="group_mob_prevention" model="res.groups"><field name="name">Prevención de riesgos</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_prevention'))]"/></record>
+    <record id="group_mob_costing" model="res.groups"><field name="name">Costeo</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_costing'))]"/></record>
+    <record id="group_mob_accounting" model="res.groups"><field name="name">Contabilización</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_accounting'))]"/></record>
+    <record id="group_mob_approver" model="res.groups"><field name="name">Aprobador</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_approver'))]"/></record>
+    <record id="group_mob_manager" model="res.groups"><field name="name">Auditor/Administrador</field><field name="category_id" ref="category_mobilization"/><field name="implied_ids" eval="[(4, ref('group_app_mobilization')), (4, ref('step_mobilization.group_mobilization_manager'))]"/></record>
 
     <record id="base.group_system" model="res.groups">
         <field name="implied_ids" eval="[
@@ -178,7 +197,14 @@
             (4, ref('step_agricultural_access.group_freight_operation')),
             (4, ref('step_agricultural_access.group_freight_control')),
             (4, ref('step_agricultural_access.group_freight_reports')),
-            (4, ref('step_agricultural_access.group_freight_configuration'))
+            (4, ref('step_agricultural_access.group_freight_configuration')),
+            (4, ref('step_agricultural_access.group_mob_operation')),
+            (4, ref('step_agricultural_access.group_mob_contracts')),
+            (4, ref('step_agricultural_access.group_mob_prevention')),
+            (4, ref('step_agricultural_access.group_mob_costing')),
+            (4, ref('step_agricultural_access.group_mob_accounting')),
+            (4, ref('step_agricultural_access.group_mob_approver')),
+            (4, ref('step_agricultural_access.group_mob_manager'))
         ]"/>
     </record>
 

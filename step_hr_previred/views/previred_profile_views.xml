@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_previred_profile_list" model="ir.ui.view">
+        <field name="name">step.previred.profile.list</field>
+        <field name="model">step.previred.profile</field>
+        <field name="arch" type="xml">
+            <list string="Perfiles de formato Previred">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="engine"/>
+                <field name="layout"/>
+                <field name="spec_version"/>
+                <field name="effective_from"/>
+                <field name="effective_to"/>
+                <field name="eligible_states"/>
+                <field name="company_ids" widget="many2many_tags"
+                       optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_previred_profile_form" model="ir.ui.view">
+        <field name="name">step.previred.profile.form</field>
+        <field name="model">step.previred.profile</field>
+        <field name="arch" type="xml">
+            <form string="Perfil de formato Previred">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Previred largo variable v84"/></h1>
+                    </div>
+                    <group>
+                        <group string="Origen">
+                            <field name="engine"/>
+                            <field name="layout"/>
+                            <field name="company_ids"
+                                   widget="many2many_tags"
+                                   options="{'no_create': True}"
+                                   placeholder="Vacío = todas las compañías"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Especificación oficial">
+                            <field name="spec_version"/>
+                            <field name="spec_date"/>
+                            <field name="effective_from"/>
+                            <field name="effective_to"/>
+                            <field name="source_url" widget="url"/>
+                        </group>
+                        <group string="Estructura del archivo">
+                            <field name="field_count"/>
+                            <field name="separator"/>
+                            <field name="encoding"/>
+                            <field name="line_ending"/>
+                        </group>
+                    </group>
+                    <group string="Liquidaciones exportables">
+                        <field name="eligible_states"/>
+                        <field name="eligible_states_note" readonly="1"/>
+                        <field name="supports_annexes" readonly="1"/>
+                        <field name="annexes_note" readonly="1"
+                               invisible="not annexes_note"/>
+                    </group>
+                    <group string="Notas">
+                        <field name="note" nolabel="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Matriz de los 105 campos" name="matrix">
+                            <div class="alert alert-info" role="status">
+                                Cada campo oficial con el dato del motor del que
+                                se toma. Ninguna correspondencia se dedujo: todas
+                                salen del generador vigente del proveedor.
+                            </div>
+                            <field name="matrix_html" widget="html"
+                                   nolabel="1" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_previred_profile" model="ir.actions.act_window">
+        <field name="name">Perfiles de formato Previred</field>
+        <field name="res_model">step.previred.profile</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Defina un perfil de formato</p>
+            <p>Un perfil ata cada archivo generado a una versión concreta de la
+            especificación oficial de Previred y al motor de nómina que la
+            produce.</p>
+        </field>
+    </record>
+</odoo>

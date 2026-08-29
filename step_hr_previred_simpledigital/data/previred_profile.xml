@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="profile_simpledigital_v84" model="step.previred.profile">
+            <field name="name">Previred largo variable v84 — Simpledigital</field>
+            <field name="sequence">20</field>
+            <field name="engine">simpledigital</field>
+            <field name="layout">variable</field>
+            <field name="spec_version">84</field>
+            <field name="spec_date">2025-07</field>
+            <field name="effective_from">2025-08</field>
+            <field name="effective_to">2026-07</field>
+            <field name="eligible_states">verify,done,paid</field>
+            <field name="source_url">https://www.previred.com/wp-content/uploads/2025/07/FormatoLargoVariablePorSeparador-Reforma-5.pdf</field>
+            <field name="note">Reutiliza el generador `/hr_payroll/previred/txt`
+del addon del proveedor, incluidas sus líneas anexas por movimiento de
+personal. Se conserva su criterio de estados exportables, que incluye
+«verify»; queda editable y documentado en este perfil.</field>
+        </record>
+        <record id="profile_simpledigital_v98" model="step.previred.profile">
+            <field name="name">Previred largo variable v98 — Simpledigital</field>
+            <field name="sequence">5</field>
+            <field name="engine">simpledigital</field>
+            <field name="layout">variable</field>
+            <field name="spec_version">98</field>
+            <field name="spec_date">2026-08</field>
+            <field name="effective_from">2026-08</field>
+            <field name="eligible_states">verify,done,paid</field>
+            <field name="source_url">https://www.previred.com/documents/FormatosArchivos/FormatoLargoVariablePorSeparador.pdf</field>
+            <field name="note">Formato oficial vigente desde remuneraciones de
+agosto de 2026. Conserva los importes conciliados del motor y completa las
+validaciones obligatorias de la reforma previsional.</field>
+        </record>
+    </data>
+</odoo>

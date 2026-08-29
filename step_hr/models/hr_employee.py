@@ -26,8 +26,6 @@ class HrEmployee(models.Model):
         'step.work.schedule', "Horario de Trabajo")
     is_propio =  fields.Boolean('Es Propio')
     is_contratista =  fields.Boolean('Es de Contratista')
-    is_movi =  fields.Boolean('Usa servicio movilización')
-    recorrido_id = fields.Many2one('hr.route', 'Recorrido', required=False)
     is_super =  fields.Boolean('Supervisor Propio')
     is_super_contratista =  fields.Boolean('Supervisor Propio')
     # super_id = fields.Many2one('hr.employee', string='Supervisor Propio', tracking=True,

@@ -18,7 +18,6 @@
                             <field name="actividad_id" domain="[('plan_id.name', '=', 'Actividad')]" invisible="is_labor == False"/>
                         </group>
                         <group>
-                            <field name="is_movi"/>
                             <field name="is_flete"/>
                             <field name="cosecha"/>
                         </group>

@@ -93,36 +93,10 @@
               sequence="50"/>
 
 
-<!--    Movilización-->
-    <menuitem id="menu_step_moviliza"
-              name="Movilización"
-              parent="step_hr.menu_step_hr_root"
-              sequence="40"/>
-    <menuitem id="menu_step_tracker"
-              name="Step Tracker"
-              action="step_hr.action_step_tracker"
-              parent="step_hr.menu_step_moviliza"
-              sequence="10"/>
-    <menuitem id="menu_step_movi_tarifa"
-              name="Tarifas Movilización"
-              action="step_hr.step_product_pricelist_action_movi"
-              parent="step_hr.menu_step_moviliza"
-              sequence="20"/>
-    <menuitem id="menu_step_movi_registry"
-              name="Registro Movilización"
-              action="step_hr.action_step_movi_registry"
-              parent="step_hr.menu_step_moviliza"
-              sequence="30"/>
-    <menuitem id="menu_step_movi_registry_costo"
-              name="Costeo Movilización"
-              action="step_hr.action_step_movi_registry_costeo"
-              parent="step_hr.menu_step_moviliza"
-              sequence="40"/>
-    <menuitem id="menu_acount_movi"
-              name="Contabilización Movilización"
-              action="step_hr.action_step_movi_in_invoice"
-              parent="step_hr.menu_step_moviliza"
-              sequence="50"/>
+<!--    Movilización: extraída a step_mobilization (ver docs/movilizacion). El
+     XML id step_hr.menu_step_moviliza que consumía step_agricultural_access
+     se retira aquí; ese addon fue actualizado para depender de
+     step_mobilization y apuntar a su propio menú raíz. -->
 
 
 <!--    Cosecha-->
@@ -219,16 +193,6 @@
               parent="step_hr.menu_step_informe_main"
               action="step_hr.action_view_step_tarja_cost_line"
               sequence="60"/>
-    <menuitem id="menu_step_movi_line"
-              name="Análisis de Registro Movilizacion"
-              parent="step_hr.menu_step_informe_main"
-              action="step_hr.action_view_step_movi_line"
-              sequence="70"/>
-    <menuitem id="menu_step_movi_cost"
-              name="Análisis de Costeo Movilizacion"
-              parent="step_hr.menu_step_informe_main"
-              action="step_hr.action_view_step_movi_cost"
-              sequence="80"/>
 
 <!--    Maestros-->
     <menuitem id="step_maestros"
@@ -251,11 +215,6 @@
               parent="step_hr.step_maestros"
               sequence="30"/>
     <!--              action="step_hr.step_fleet_vehicle_action"-->
-    <menuitem id="menu_prove_movi"
-              name="Proveedor Movilización"
-              action="step_hr.action_partner_supplier_form_step"
-              parent="step_hr.step_maestros"
-              sequence="40"/>
     <menuitem id="menu_contratista"
               name="Contratistas"
               action="step_hr.action_partner_contratista_form_step"
@@ -302,16 +261,6 @@
               action="step_hr.action_step_haber_costeo"
               parent="step_hr.menu_step_empleado_config"
               sequence="40"/>
-    <menuitem id="menu_hr_movi"
-              name="Movilización"
-              action="step_hr.action_hr_salary_custom"
-              parent="step_hr.menu_step_hr_config"
-              sequence="20"/>
-    <menuitem id="menu_hr_route"
-              name="Recorrido"
-              action="step_hr.action_hr_route"
-              parent="step_hr.menu_hr_movi"
-              sequence="10"/>
     <menuitem id="menu_parametro_gnl"
               name="Parámetros Generales"
               parent="step_hr.menu_step_hr_config"

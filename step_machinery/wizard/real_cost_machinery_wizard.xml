@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+        <record id="real_cost_machinery_wizard_form" model="ir.ui.view">
+            <field name="name">real.cost.machinery.wizard.form</field>
+            <field name="model">real.cost.machinery.wizard</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="mes_select" invisible="1"/>
+                            <field name="machinery_domain" invisible="1" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="machinery_ids" widget="many2many_tags" domain="[('id', 'in', machinery_domain)]"/>
+                        </group>
+                        <group>
+                            <field name="date_init"/>
+                            <field name="date_to"/>
+                            <field name="temp_id"/>
+                            <field name="company_id"/>
+                        </group>
+                    </group>
+                    <footer>
+                        <button string="Generar" name="action_cost_create" type="object" class="oe_highlight" data-hotkey="q"/>
+                        <button string="Generar/Costos" name="action_cost_create_cost" type="object" class="oe_highlight" data-hotkey="q"/>
+                        <button string="Generar/Costos/Contabilización" name="action_cost_create_conta" type="object" class="oe_highlight" data-hotkey="q"/>
+                        <button string="Cancelar" class="btn btn-secondary" special="cancel" data-hotkey="x"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="real_cost_machinery_wizard_action" model="ir.actions.act_window">
+            <field name="name">Crear costos reales de maquinarias existentes</field>
+            <field name="res_model">real.cost.machinery.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+</odoo>

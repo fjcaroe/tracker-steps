@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_operational_currency" model="ir.ui.view">
+        <field name="name">res.config.settings.form.operational.currency</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//setting[@id='main_currency']" position="after">
+                <setting id="step_operational_currency" string="Moneda operacional"
+                         company_dependent="1"
+                         help="Conserva cada transacción simultáneamente en una segunda moneda.">
+                    <div class="content-group">
+                        <div class="row mt16">
+                            <label for="operational_currency_id" class="col-lg-3 o_light_label"/>
+                            <field name="operational_currency_id"
+                                   options="{'no_create_edit': True, 'no_open': True}"
+                                   context="{'active_test': False}"/>
+                        </div>
+                        <div class="text-muted mt8">
+                            El tipo de cambio y los importes quedan guardados en cada asiento.
+                        </div>
+                    </div>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

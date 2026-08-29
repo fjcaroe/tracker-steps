@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Pasajeros por día y vehículo -->
+    <record id="view_step_mobilization_passengers_pivot" model="ir.ui.view">
+        <field name="name">step.movi.registry.line.passengers.pivot</field>
+        <field name="model">step.movi.registry.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Pasajeros por día y vehículo" sample="1">
+                <field name="date" interval="day" type="row"/>
+                <field name="vehicle_id" type="col"/>
+            </pivot>
+        </field>
+    </record>
+    <record id="action_step_mobilization_report_passengers" model="ir.actions.act_window">
+        <field name="name">Pasajeros por día y vehículo</field>
+        <field name="res_model">step.movi.registry.line</field>
+        <field name="view_mode">pivot,list</field>
+        <field name="view_id" ref="view_step_mobilization_passengers_pivot"/>
+        <field name="domain">[('operacion', '=', 'in')]</field>
+    </record>
+
+    <!-- Cumplimiento de recorrido -->
+    <record id="view_step_mobilization_route_compliance_list" model="ir.ui.view">
+        <field name="name">step.movi.registry.route.compliance.list</field>
+        <field name="model">step.movi.registry</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="delay_minutes > 15" decoration-warning="delay_minutes &gt; 0 and delay_minutes &lt;= 15">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="recorrido_id"/>
+                <field name="vehicle_id"/>
+                <field name="chofer_id"/>
+                <field name="scheduled_time"/>
+                <field name="actual_start"/>
+                <field name="delay_minutes"/>
+                <field name="last_gps_at"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_step_mobilization_report_route_compliance" model="ir.actions.act_window">
+        <field name="name">Cumplimiento de recorrido</field>
+        <field name="res_model">step.movi.registry</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="view_id" ref="view_step_mobilization_route_compliance_list"/>
+        <field name="domain">[('state', '!=', 'draft')]</field>
+    </record>
+
+    <!-- Vencimientos y no conformidades -->
+    <record id="action_step_mobilization_report_expirations" model="ir.actions.act_window">
+        <field name="name">Vencimientos y no conformidades</field>
+        <field name="res_model">step.mobilization.document</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">['|', ('review_state', '!=', 'approved'), ('expiry_date', '&lt;=', context_today().strftime('%Y-%m-%d'))]</field>
+    </record>
+</odoo>

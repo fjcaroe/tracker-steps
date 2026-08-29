@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+  License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+-->
+<odoo>
+    <record model="ir.ui.view" id="step_machinery_view_product_template_form">
+        <field name="name">step.machinery.product.template.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="step_hr.step_view_product_template_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='actividad_id']" position="after">
+                <field name="service_machinery_id"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="step_machinery_product_action" model="ir.actions.act_window">
+        <field name="name">Productos</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form,activity</field>
+        <field name="view_id" ref="product.product_template_kanban_view"/>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+        <field name="domain">[]</field>
+        <field name="context">{"search_default_filter_is_labor":1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear un nuevo producto
+            </p><p>
+                Debe definir un producto para todo lo que vende o compra, ya sea un producto
+                Productos o Labores.
+            </p>
+        </field>
+    </record>
+</odoo>

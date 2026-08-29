@@ -29,14 +29,6 @@
                             <field name="step_cosecha_document_type_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
                         </setting>
                     </block>
-                    <block title="Configuración Contable Movilización" name="step_hr_contable">
-                        <setting id="step_movi_journal_id" title="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras" help="El diario de contabilidad es un documento contable esencial donde se registran de forma cronológica todas las transacciones financieras">
-                            <field name="step_movi_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
-                        </setting>
-                        <setting id="step_movi_document_type_id" title="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización." help="Los Tipos de documentos sirven como respaldo para registrar y justificar las transacciones financieras de una organización. ">
-                            <field name="step_movi_document_type_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>
-                        </setting>
-                    </block>
                     <block title="Configuración Contable Propia" name="step_hr_contable">
                         <setting id="step_propio_journal" title="Diario transitorio donde se hara el asiento contable diario de las tareas propias realizadas" help="Cuenta transitoria donde se hara el asiento contable diario de las tareas propias realizadas">
                             <field name="propio_journal_id" class="o_light_label" options="{'no_create': True, 'no_open': True}"/>

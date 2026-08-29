@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_movi_line_pivot" model="ir.ui.view">
+        <field name="name">step.movi.registry.line.pivot</field>
+        <field name="model">step.movi.registry.line</field>
+        <field name="arch" type="xml">
+            <pivot string="Análisis de registro de movilización" sample="1">
+                <field name="date" interval="month" type="col"/>
+                <field name="vehicle_id" type="col"/>
+                <field name="employee_id" type="row"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_step_movi_line_graph" model="ir.ui.view">
+        <field name="name">step.movi.registry.line.graph</field>
+        <field name="model">step.movi.registry.line</field>
+        <field name="arch" type="xml">
+            <graph string="Análisis de registro de movilización" sample="1">
+                <field name="employee_id" type="col"/>
+                <field name="vehicle_id" type="col"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_step_movi_line_list" model="ir.ui.view">
+        <field name="name">step.movi.registry.line.list</field>
+        <field name="model">step.movi.registry.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="parent_name" optional="show"/>
+                <field name="date" optional="show"/>
+                <field name="partner_id" optional="show"/>
+                <field name="employee_id" optional="show"/>
+                <field name="responsable_id" optional="show"/>
+                <field name="company_id" optional="show"/>
+                <field name="recorrido_id" optional="show"/>
+                <field name="vehicle_id" optional="show"/>
+                <field name="chofer_id" optional="show"/>
+                <field name="pricelist_id" optional="show"/>
+                <field name="state" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_movi_line_search" model="ir.ui.view">
+        <field name="name">step.movi.registry.line.search</field>
+        <field name="model">step.movi.registry.line</field>
+        <field name="arch" type="xml">
+            <search string="Análisis de registro de movilización">
+                <field name="parent_name" filter_domain="[('parent_name', 'ilike', self)]"/>
+                <field name="partner_id" filter_domain="[('partner_id', 'ilike', self)]"/>
+                <filter string="Abierto" name="open" domain="[('state', '=', 'open')]"/>
+                <filter string="Contabilizado" name="accounted" domain="[('state', '=', 'accounted')]"/>
+                <filter string="Fecha" name="today" date="date"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Transportista" name="groupby_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Vehículo" name="groupby_vehicle" context="{'group_by': 'vehicle_id'}"/>
+                    <filter string="Trabajador" name="groupby_employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Estado" name="groupby_state" context="{'group_by': 'state'}"/>
+                    <filter string="Fecha" name="groupby_date" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_view_step_movi_line" model="ir.actions.act_window">
+        <field name="name">Análisis de Registro</field>
+        <field name="res_model">step.movi.registry.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+        <field name="search_view_id" ref="view_step_movi_line_search"/>
+    </record>
+</odoo>

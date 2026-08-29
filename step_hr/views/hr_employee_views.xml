@@ -29,14 +29,6 @@
                     </group>
                 </page>
             </xpath>
-            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='hr_settings']/group[1]" position="after">
-                <group>
-                    <group name="movi_group" string="Movilización">
-                        <field name="is_movi"/>
-                        <field name="recorrido_id" options="{'no_create': True}"/>
-                    </group>
-                </group>
-            </xpath>
         </field>
     </record>
 </odoo>

@@ -30,6 +30,11 @@ class BpaFoliarApplication(models.Model):
     _order = "x_studio_fecha_hora_planificada desc, id desc"
 
     x_name = fields.Char(string="Referencia", required=True, default="Nueva aplicación", tracking=True)
+    state = fields.Selection(
+        [("status1", "Ingresado"), ("status2", "Aprobado"),
+         ("status3", "Costeado"), ("Contabilizado", "Contabilizado")],
+        string="Estado", default="status1", required=True, tracking=True, index=True,
+    )
     x_studio_nmero_ot_bpa = fields.Char(string="Número OT BPA")
     x_studio_fecha = fields.Date(string="Fecha", default=fields.Date.context_today)
     x_studio_fecha_hora_planificada = fields.Datetime(string="Fecha planificada", default=fields.Datetime.now, tracking=True)
