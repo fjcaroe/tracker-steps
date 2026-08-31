@@ -496,9 +496,13 @@ class PreviredExtractor(models.AbstractModel):
           `min(30, …)`. Si la suma de asistencia supera 30 (p. ej. un mes
           calendario de 31 días) se acota a 30 y queda una advertencia; no es
           pérdida de dato sino el modelo de 30 días del formato.
-        * Si no hay una fuente válida no se inventa un valor (ni días
-          calendario, ni el rango de la liquidación, ni «30 − ausencias»):
-          se informa un error preciso que identifica la liquidación.
+        * Si todas las líneas con días son ausencias (p. ej. licencia médica
+          todo el mes), el campo 13 es `0`: la persona trabajó 0 días.
+        * Si hay días en líneas que no son ausencia ni asistencia (p. ej.
+          «Fuera de contrato») y ninguna de asistencia, no se inventa un valor
+          (ni días calendario, ni el rango de la liquidación, ni
+          «30 − ausencias»): se informa un error preciso que identifica la
+          liquidación y las líneas conflictivas.
         * El valor resultante se escribe en **todas** las filas del registro
           (principal y anexas): Previred exige el campo 13 en cada línea y
           las anexas son del mismo trabajador y período.
@@ -540,17 +544,29 @@ class PreviredExtractor(models.AbstractModel):
                     days = 30
                 value = str(days)
         elif worked_days_lines:
-            # Hay detalle de días en la liquidación pero ninguna línea de
-            # asistencia: no se deduce el valor de otra fuente.
-            dataset.issues.append(previred.Issue(
-                previred.SEVERITY_ERROR, "worked_days_source_missing",
-                _("RUT %(rut)s-%(dv)s: la liquidación %(slip)s no tiene una "
-                  "línea de asistencia (código %(code)s, o Tipo y Descripción "
-                  "«Asistencia») de la que tomar el campo 13 «Días "
-                  "Trabajados».",
-                  rut=record.rut, dv=record.dv,
-                  slip=self._payslip_ref(payslip),
-                  code="/".join(previred.ATTENDANCE_CODES))))
+            non_leave = worked_days_lines.filtered(
+                lambda line: not line.work_entry_type_id.is_leave
+                and (line.number_of_days or 0) > 0)
+            if not non_leave:
+                # Todas las líneas con días son ausencias (p. ej. licencia
+                # médica todo el mes): 0 días trabajados es el valor correcto,
+                # no una fuente faltante.
+                value = "0"
+            else:
+                # Hay líneas con días que no son ausencia ni asistencia (p. ej.
+                # «Fuera de contrato»): no se deduce el campo 13 de ellas ni de
+                # ninguna otra fuente. Se bloquea con un error trazable.
+                dataset.issues.append(previred.Issue(
+                    previred.SEVERITY_ERROR, "worked_days_source_missing",
+                    _("RUT %(rut)s-%(dv)s: la liquidación %(slip)s tiene días "
+                      "en líneas que no son de asistencia (%(lines)s) y "
+                      "ninguna línea de asistencia (código %(code)s, o Tipo y "
+                      "Descripción «Asistencia») de la que tomar el campo 13.",
+                      rut=record.rut, dv=record.dv,
+                      slip=self._payslip_ref(payslip),
+                      lines=", ".join(sorted(set(
+                          non_leave.mapped("work_entry_type_id.name")))),
+                      code="/".join(previred.ATTENDANCE_CODES))))
 
         if value is None:
             # Sin fuente canónica: se conserva lo que entregó el motor (en el

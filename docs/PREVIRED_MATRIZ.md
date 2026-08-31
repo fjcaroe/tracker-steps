@@ -33,7 +33,7 @@ Tipos de origen: `rule` (línea de la liquidación), `contract`, `employee`,
 | 10 | Período Hasta | period | `date_stop_format` | period | `period_str` |
 | 11 | Régimen Previsional | computed | `self.get_regimen_provisional(payslip.contract_id)` | constant | `'AFP' ;; 'INP' ;; 'SIP' ;; 'AFP'` |
 | 12 | Tipo Trabajador | unused | `"0" (uso futuro / no aplica en este motor)` | constant | `'0' ;; '2' if contract.pension_option == 'sip' else '1' ;; '3'` |
-| 13 | Días Trabajados | computed | `int(self.get_dias_trabajados(payslip and payslip[0] or False))` | computed | `self._get_real_worked_days_from_payslip(payslip)` |
+| 13 | Días Trabajados | computed | `int(self.get_dias_trabajados(payslip and payslip[0] or False))` — el core lo recalcula (ver nota) | computed | `self._get_real_worked_days_from_payslip(payslip)` = `hr.payslip._dias_trabajados_previred()` — **el core NO lo usa** (ver nota) |
 | 14 | Tipo de Línea | computed | `self.get_tipo_linea(payslip and payslip[0] or False)` | computed | `"0" del motor; normalizado por el core a "00"` |
 | 15 | Código Movimiento de Personal | computed | `payslip.movimientos_personal` | unused | `"0" (uso futuro / no aplica en este motor)` |
 | 16 | Fecha Desde | computed | `payslip.date_from.strftime("%d/%m/%Y") if payslip.movimientos_personal != '0' else '00/0…` | unused | `en blanco (uso futuro / no aplica)` |
@@ -129,6 +129,7 @@ Tipos de origen: `rule` (línea de la liquidación), `contract`, `employee`,
 
 ## Notas de revisión — Blueminds
 
+- **13 Días Trabajados** — El core recalcula el campo 13 a partir de la línea de días trabajados de tipo «Asistencia» de la liquidación (código estable `WORK100`, o Tipo y Descripción «Asistencia»). Sólo se suman esas líneas; «Fuera de contrato», licencias, permisos, ausencias y vacaciones quedan excluidos. Formato entero, acotado a 30 (mes previsional). Si no hay una línea de asistencia válida se bloquea la generación con un hallazgo que identifica la liquidación. El valor se escribe también en las líneas anexas. Se conserva el valor del motor sólo si la liquidación no trae detalle de días trabajados.
 - **12 Tipo Trabajador** — El motor fija «0» (activo no pensionado) en vez de leer el tipo de trabajador de la tabla N°5; el campo existe en el contrato.
 - **14 Tipo de Línea** — Fijo en «00». Correcto para este motor: no tiene modelo de movimientos múltiples, así que no hay anexas que informar.
 - **24 Reintegro Cargas Familiares** — Reintegro de cargas familiares siempre en cero.
@@ -142,6 +143,8 @@ Tipos de origen: `rule` (línea de la liquidación), `contract`, `employee`,
 
 ## Notas de revisión — SimpleDigital
 
+- **13 Días Trabajados** — El generador declara `_get_real_worked_days_from_payslip`, que en esta base es `hr.payslip._dias_trabajados_previred()` («30 − ausencias», con «Fuera de contrato» contando como ausencia y un tope de 30). **El core NO usa ese valor**: recalcula el campo 13 desde la línea de días trabajados de tipo «Asistencia» (código `WORK100`, o Tipo y Descripción «Asistencia»), suma sólo esas líneas, aplica formato entero y tope 30, y lo escribe también en las líneas anexas. Sin línea de asistencia válida se bloquea la generación con un hallazgo trazable. Es la corrección 1 del documento funcional 2026-08-29 (p. ej. `SLIP/491` pasa de 18 a 6).
+- **Multiplicidad por contrato** — El bridge entrega al core, junto con las filas, el `contract_id` de cada línea principal (replicando la selección del generador del proveedor: mismo dominio y orden). El core admite tantas líneas principales como contratos elegibles tenga el trabajador; dos líneas del mismo contrato son error, y más líneas que contratos elegibles bloquea la generación. Es la corrección 2 del documento funcional.
 - **8 Tipo Pago** — Tipo de pago fijo en «01» (remuneraciones del mes, tabla N°3).
 - **14 Tipo de Línea** — El generador emite «0»; el módulo escribe el valor canónico «00» requerido por la tabla N°6.
 - **23 Asignación Familiar Retroactiva** — Asignación familiar retroactiva en blanco; sólo aplica a empresas adheridas a CCAF.

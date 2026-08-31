@@ -1,5 +1,42 @@
 # Changelog
 
+## 18.0.3.4.0
+
+Correcciones 2 (documento funcional 2026-08-29). Elimina las dos causas de los
+11 errores que impedían generar el TXT PreviRed en Demo-SyS.
+
+* **Campo 13 «Días Trabajados» desde la línea de asistencia.** El valor se toma
+  de la línea de días trabajados cuyo tipo de entrada es «Asistencia» (código
+  técnico estable `WORK100`; respaldo por rótulo si Tipo y Descripción son
+  ambos «Asistencia», normalizados). Se suman **sólo** esas líneas: «Fuera de
+  contrato», licencias, permisos, ausencias y vacaciones quedan excluidos
+  siempre. Se **elimina** el respaldo genérico que sumaba toda línea no marcada
+  como ausencia (contaba «Fuera de contrato» y producía p. ej. 18 en vez de 6).
+* **Formato entero y tope de 30.** `6.00` se exporta como `6`. Una fracción no
+  representable se informa como error, sin truncar en silencio. La suma se
+  acota a 30 (mes previsional Previred) con una advertencia auditable.
+* **Sin fuente válida ⇒ error preciso.** Si la liquidación no tiene una línea
+  de asistencia no se inventa un valor (ni días calendario, ni el rango de la
+  liquidación, ni «30 − ausencias»): se bloquea con un hallazgo que identifica
+  la liquidación de forma segura.
+* **Campo 13 en todas las filas.** El valor se escribe también en las líneas
+  anexas. Era la causa real de «Falta el campo obligatorio 13»: 10 de los 11
+  errores estaban en líneas anexas, no en la principal.
+* **Multiplicidad de líneas principales por contrato.** El registro canónico
+  gana `contract_id` como metadata interna: no se exporta ni desplaza ningún
+  campo del TXT. La unicidad admite tantas líneas principales (código `00`)
+  como contratos elegibles tenga el trabajador en la compañía y período; dos
+  líneas del mismo contrato siguen siendo error. N líneas para menos de N
+  contratos elegibles bloquea la generación (`too_many_principal_lines`).
+* **Correlación línea ↔ contrato determinística.** El bridge SimpleDigital
+  entrega al núcleo el contrato de cada línea principal replicando la selección
+  del generador del proveedor. Sin esa metadata y con ambigüedad real, se
+  bloquea con `ambiguous_contract_correlation` en vez de asignar por posición.
+* Contratos y liquidaciones en borrador o cancelados no amplían el cupo de
+  líneas principales.
+* Documentación: la matriz SimpleDigital anota que el núcleo recalcula el
+  campo 13 y no usa `_get_real_worked_days_from_payslip` del proveedor.
+
 ## 18.0.1.0.0
 
 Primera versión.

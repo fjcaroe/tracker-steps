@@ -108,9 +108,19 @@ class TestCampo13(PreviredCase):
         dataset = self._one([("OUT", 20, "Fuera de contrato")],
                             field13_override="")
         self.assertTrue(dataset.errors,
-                        "Sin línea de asistencia no debe generarse el TXT.")
+                        "Con «Fuera de contrato» y sin asistencia no debe "
+                        "generarse el TXT.")
         self.assertIn("worked_days_source_missing",
                       [i.code for i in dataset.errors])
+
+    def test_full_month_leave_reports_zero_days_without_error(self):
+        """Licencia médica todo el mes: el campo 13 es 0, no un error."""
+        dataset = self._one([("LIC", 30, "Licencia Médica", True)],
+                            field13_override="")
+        self.assertEqual(
+            dataset.records[0].principal[previred.F_WORKED_DAYS - 1], "0")
+        self.assertNotIn("worked_days_source_missing",
+                         [i.code for i in dataset.errors])
 
     def test_six_point_zero_serialises_as_six(self):
         dataset = self._one([("WORK100", 6.0, "Asistencia")])
