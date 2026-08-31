@@ -86,8 +86,19 @@ class PreviredExtractor(models.AbstractModel):
                   "en el período.", states=", ".join(states),
                   company=company.display_name)))
 
-        rows, issues = adapter.generate_rows(
+        result = adapter.generate_rows(
             self.env, company, date_from, date_to, payslips)
+        # El contrato del adaptador admite `(rows, issues)` o, cuando el motor
+        # puede correlacionar cada línea principal con su contrato de forma
+        # determinística, `(rows, issues, row_meta)`. `row_meta` es una lista
+        # paralela a las líneas **principales** en su orden de aparición; cada
+        # entrada lleva `contract_id` y, opcionalmente, `payslip_id`. Ese dato
+        # no toca ninguna de las 105 posiciones del TXT.
+        if len(result) == 3:
+            rows, issues, row_meta = result
+        else:
+            rows, issues = result
+            row_meta = None
         dataset.issues.extend(issues)
         if not rows:
             return dataset
@@ -104,21 +115,11 @@ class PreviredExtractor(models.AbstractModel):
 
         records, group_issues = self._group_rows(rows, adapter)
         dataset.issues.extend(group_issues)
+        self._attach_contract_meta(records, row_meta, dataset)
 
         index = self._payslip_index(payslips)
         records = self._enforce_eligibility(records, index, dataset)
-
-        positions = defaultdict(int)
-        for record in records:
-            key = previred.rut_key(record.rut + record.dv)
-            entries = index.get(key) or []
-            if not entries:
-                continue
-            position = positions[key]
-            entry = entries[min(position, len(entries) - 1)]
-            positions[key] += 1
-            self._assign_department(record, entry, dataset)
-            self._enrich_official_fields(record, entry["payslip"], dataset)
+        self._match_contracts(records, index, dataset)
 
         dataset.records = records
         dataset.issues.extend(previred.validate_dataset(dataset))
@@ -133,8 +134,11 @@ class PreviredExtractor(models.AbstractModel):
         La especificación garantiza que una línea anexa va inmediatamente
         después de su principal, así que el agrupamiento es posicional: se
         abre un registro con cada línea principal y las siguientes se le
-        adjuntan hasta la próxima. **No** se agrupa por RUT: un segundo
-        contrato del mismo trabajador es una línea anexa, no una principal.
+        adjuntan hasta la próxima. **No** se agrupa por RUT: un trabajador con
+        dos contratos elegibles en el mismo período tiene dos líneas
+        principales (código `00`) y forma dos registros, cada uno con sus
+        propias anexas. Las líneas 01/02/03 son anexas de su principal y no
+        cuentan como contratos adicionales.
         """
         records = []
         issues = []
@@ -210,20 +214,32 @@ class PreviredExtractor(models.AbstractModel):
         Es la corrección de fondo sobre el generador de Blueminds, que no
         filtra por compañía ni por estado: aquí se comprueba que cada línea
         principal corresponda a una liquidación realmente elegible.
+
+        La cantidad admitida de líneas principales por RUT es el número de
+        **contratos** elegibles distintos de esa persona en la compañía y el
+        período, no el de liquidaciones. Si el motor entrega más líneas
+        principales que contratos elegibles, se bloquea la generación.
         """
         kept = []
         dropped_other = 0
         generated = Counter(previred.rut_key(r.rut + r.dv) for r in records)
-        expected = {key: len(entries) for key, entries in index.items()}
+        eligible_contracts = {
+            key: {entry["payslip"].contract_id.id for entry in entries
+                  if entry["payslip"].contract_id}
+            for key, entries in index.items()
+        }
         for key, count in generated.items():
-            if key in expected and count != expected[key]:
+            if key not in eligible_contracts:
+                continue
+            allowed = len(eligible_contracts[key]) or len(index[key])
+            if count > allowed:
                 dataset.issues.append(previred.Issue(
-                    previred.SEVERITY_ERROR, "ambiguous_engine_rows",
+                    previred.SEVERITY_ERROR, "too_many_principal_lines",
                     _("El motor generó %(generated)s línea(s) principal(es) "
-                      "para un RUT con %(expected)s liquidación(es) elegible(s). "
-                      "No es seguro decidir cuál corresponde; revise "
-                      "duplicados, reliquidaciones o estados del período.",
-                      generated=count, expected=expected[key])))
+                      "para un RUT con sólo %(allowed)s contrato(s) "
+                      "elegible(s) en la compañía y el período. Revise "
+                      "duplicados, reliquidaciones o estados.",
+                      generated=count, allowed=allowed)))
         for record in records:
             if previred.rut_key(record.rut + record.dv) in index:
                 kept.append(record)
@@ -239,6 +255,80 @@ class PreviredExtractor(models.AbstractModel):
                   states=", ".join(dataset.eligible_states))))
             dataset.dropped_count = dropped_other
         return kept
+
+    # -- correlación línea principal ↔ contrato -----------------------------
+
+    def _attach_contract_meta(self, records, row_meta, dataset):
+        """Adjunta a cada registro el `contract_id` que declaró el motor.
+
+        `row_meta` viene del bridge y es paralelo a las líneas **principales**
+        en su orden de aparición. Si el motor no lo entrega, no se hace nada:
+        la unicidad caerá al respaldo por compañía + período + RUT.
+        """
+        if not row_meta:
+            return
+        if len(row_meta) != len(records):
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_ERROR, "engine_meta_mismatch",
+                _("El motor entregó %(meta)s descriptor(es) de contrato para "
+                  "%(rows)s línea(s) principal(es). No es seguro asociarlos.",
+                  meta=len(row_meta), rows=len(records))))
+            return
+        for record, meta in zip(records, row_meta):
+            contract_id = (meta or {}).get("contract_id")
+            record.contract_id = contract_id or None
+
+    def _match_contracts(self, records, index, dataset):
+        """Empareja cada línea principal con una liquidación elegible.
+
+        Cuando el motor entregó `contract_id`, el emparejamiento es por
+        contrato y es determinístico. Sin esa metadata se mantiene el
+        emparejamiento posicional anterior, **pero sólo si no es ambiguo**:
+        si un RUT tiene varias líneas principales y varias liquidaciones
+        elegibles y no hay forma segura de aparearlas, se bloquea con un
+        error explícito en vez de asignar por posición en silencio.
+        """
+        grouped = defaultdict(list)
+        for record in records:
+            grouped[previred.rut_key(record.rut + record.dv)].append(record)
+
+        for key, group in grouped.items():
+            entries = list(index.get(key) or [])
+            if not entries:
+                continue
+            used = set()
+            for record in group:
+                entry = None
+                if record.contract_id is not None:
+                    for position, candidate in enumerate(entries):
+                        if position in used:
+                            continue
+                        contract = candidate["payslip"].contract_id
+                        if contract and contract.id == record.contract_id:
+                            entry = candidate
+                            used.add(position)
+                            break
+                if entry is None:
+                    free = [p for p in range(len(entries)) if p not in used]
+                    ambiguous = len(group) > 1 and len(free) > 1
+                    if ambiguous:
+                        dataset.issues.append(previred.Issue(
+                            previred.SEVERITY_ERROR,
+                            "ambiguous_contract_correlation",
+                            _("RUT %(rut)s-%(dv)s: hay varias líneas "
+                              "principales y varias liquidaciones elegibles y "
+                              "el motor no entregó el contrato de cada línea. "
+                              "No se asigna por posición; corrija el motor o "
+                              "los datos del período.",
+                              rut=record.rut, dv=record.dv)))
+                        continue
+                    position = free[0] if free else len(entries) - 1
+                    entry = entries[position]
+                    used.add(position)
+                if record.contract_id is None and entry["payslip"].contract_id:
+                    record.contract_id = entry["payslip"].contract_id.id
+                self._assign_department(record, entry, dataset)
+                self._enrich_official_fields(record, entry["payslip"], dataset)
 
     # -- departamento --------------------------------------------------------
 
@@ -318,22 +408,7 @@ class PreviredExtractor(models.AbstractModel):
             workday_type or ("2" if weekly and weekly <= 30 else "1")
         )
 
-        # Campo 13: días efectivamente trabajados. Los generadores anteriores
-        # sumaban todas las líneas y contaban licencias médicas, permisos y
-        # ausencias como días trabajados. Si existe WORK100 se usa como fuente
-        # canónica; en instalaciones que usan otro código se suman únicamente
-        # líneas cuyo tipo de entrada NO sea ausencia.
-        worked_lines = payslip.worked_days_line_ids.filtered(
-            lambda line: line.number_of_days > 0
-            and not line.work_entry_type_id.is_leave
-        )
-        attendance_lines = worked_lines.filtered(
-            lambda line: line.work_entry_type_id.code == "WORK100"
-        )
-        source_lines = attendance_lines or worked_lines
-        worked_days = sum(source_lines.mapped("number_of_days"))
-        row[previred.F_WORKED_DAYS - 1] = str(int(Decimal(
-            str(worked_days)).quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
+        self._set_worked_days(record, payslip, dataset)
 
         # Campo 105: centro de costo del contrato. En SimpleDigital el campo
         # visible como Centro de Costos es analytic_account_id; algunas bases
@@ -388,6 +463,90 @@ class PreviredExtractor(models.AbstractModel):
 
         row[previred.F_PROTECTED_RETURN - 1] = contribution(
             previred.protected_return_rate(dataset.period))
+
+    # -- campo 13 «Días Trabajados» ---------------------------------------
+
+    @staticmethod
+    def _payslip_ref(payslip):
+        """Referencia segura de una liquidación para los mensajes de error.
+
+        Usa el número de documento (`SLIP/491`), que no lleva datos
+        personales; si no lo tiene, el id interno.
+        """
+        return payslip.number or ("#%s" % payslip.id)
+
+    def _set_worked_days(self, record, payslip, dataset):
+        """Fija el campo 13 desde la línea de asistencia de la liquidación.
+
+        Regla (documento funcional, corrección 1):
+
+        * La fuente es la línea de días trabajados cuyo tipo de entrada es
+          «Asistencia»: se prefiere el código técnico estable
+          `WORK100`; si la instalación no lo usa, se acepta una línea cuyo
+          Tipo **y** Descripción sean ambos «Asistencia» (normalizados).
+        * Se suman **sólo** esas líneas. «Fuera de contrato», licencias,
+          permisos, ausencias y vacaciones quedan excluidos siempre. Se
+          elimina el respaldo genérico que sumaba toda línea no marcada como
+          ausencia (podía incluir «Fuera de contrato» y dar un valor falso).
+        * El formato oficial es entero: `6.00` se exporta como `6`. Una
+          fracción no representable no se trunca en silencio: se informa un
+          error auditable.
+        * Si no hay una fuente válida no se inventa un valor (ni días
+          calendario, ni el rango de la liquidación, ni «30 − ausencias»):
+          se informa un error preciso que identifica la liquidación.
+        * El valor resultante se escribe en **todas** las filas del registro
+          (principal y anexas): Previred exige el campo 13 en cada línea y
+          las anexas son del mismo trabajador y período.
+        """
+        worked_days_lines = payslip.worked_days_line_ids
+        attendance = worked_days_lines.filtered(
+            lambda line: (line.work_entry_type_id.code or "")
+            in previred.ATTENDANCE_CODES and (line.number_of_days or 0) > 0)
+        if not attendance:
+            attendance = worked_days_lines.filtered(
+                lambda line: previred.is_attendance_label(
+                    line.work_entry_type_id.name, line.name)
+                and (line.number_of_days or 0) > 0)
+
+        current = str(record.principal[previred.F_WORKED_DAYS - 1] or "").strip()
+        value = None
+        if attendance:
+            total = sum(attendance.mapped("number_of_days"))
+            amount = Decimal(str(total))
+            if amount != amount.to_integral_value():
+                dataset.issues.append(previred.Issue(
+                    previred.SEVERITY_ERROR, "worked_days_fraction",
+                    _("RUT %(rut)s-%(dv)s: los días de asistencia de la "
+                      "liquidación %(slip)s son %(value)s y el campo 13 "
+                      "oficial exige un entero. Revise la línea de asistencia.",
+                      rut=record.rut, dv=record.dv,
+                      slip=self._payslip_ref(payslip), value=total)))
+            else:
+                value = str(int(amount.quantize(
+                    Decimal("1"), rounding=ROUND_HALF_UP)))
+        elif worked_days_lines:
+            # Hay detalle de días en la liquidación pero ninguna línea de
+            # asistencia: no se deduce el valor de otra fuente.
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_ERROR, "worked_days_source_missing",
+                _("RUT %(rut)s-%(dv)s: la liquidación %(slip)s no tiene una "
+                  "línea de asistencia (código %(code)s, o Tipo y Descripción "
+                  "«Asistencia») de la que tomar el campo 13 «Días "
+                  "Trabajados».",
+                  rut=record.rut, dv=record.dv,
+                  slip=self._payslip_ref(payslip),
+                  code="/".join(previred.ATTENDANCE_CODES))))
+
+        if value is None:
+            # Sin fuente canónica: se conserva lo que entregó el motor (en el
+            # motor Blueminds y en las bases de prueba suele ser un valor
+            # válido). Si viene vacío, `validate_row` lo marcará como campo
+            # obligatorio faltante y el error anterior explica la causa real.
+            value = current
+
+        for row in record.rows:
+            if len(row) == previred.FIELD_COUNT:
+                row[previred.F_WORKED_DAYS - 1] = value
 
     # -- alcance -------------------------------------------------------------
 

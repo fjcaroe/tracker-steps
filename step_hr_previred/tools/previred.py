@@ -99,6 +99,36 @@ LINE_TYPE_ORDER = {
     LINE_VOLUNTARY: 3,
 }
 
+#: Campo 13 «Días Trabajados». La fuente oficial es la línea de asistencia de
+#: la liquidación. `WORK100` es el código técnico estable del tipo de entrada
+#: de trabajo «Asistencia» de Odoo (xmlid `hr_work_entry.work_entry_type_attendance`)
+#: y es lo que usa la base SimpleDigital de Demo-SyS. Se prefiere el código; el
+#: respaldo por rótulo (ver `is_attendance_label`) sólo aplica en instalaciones
+#: sin un código estable. **Nunca** se suman genéricamente las demás líneas:
+#: «Fuera de contrato», licencias, permisos, ausencias y vacaciones quedan
+#: excluidos siempre.
+ATTENDANCE_CODES = ("WORK100",)
+
+#: Rótulos que, normalizados, identifican una línea de asistencia cuando no hay
+#: código técnico. Se acepta el término en español de la especificación y el
+#: nombre en inglés del tipo estándar de Odoo.
+ATTENDANCE_LABELS = ("asistencia", "attendance")
+
+
+def is_attendance_label(*values):
+    """`True` si **todos** los textos dados designan «Asistencia».
+
+    Respaldo acotado para instalaciones sin un código técnico estable: la
+    especificación pide que Tipo y Descripción sean ambos «Asistencia». Se
+    normaliza quitando tildes, colapsando espacios y pasando a minúsculas.
+    """
+    normalized = [
+        re.sub(r"\s+", " ", strip_accents(str(value or "")).strip().lower())
+        for value in values
+    ]
+    return bool(normalized) and all(
+        text in ATTENDANCE_LABELS for text in normalized)
+
 def normalize_line_type(value):
     """Normaliza el tipo de línea a los dos dígitos de la tabla N°6.
 
@@ -406,6 +436,11 @@ class PreviredRecord:
     employee_id: Optional[int] = None
     payslip_id: Optional[int] = None
     company_id: Optional[int] = None
+    #: Identidad técnica del contrato al que pertenece esta línea principal.
+    #: **No se exporta**: no ocupa ninguna de las 105 posiciones del TXT. Sólo
+    #: sirve para que la unicidad distinga dos contratos elegibles del mismo
+    #: trabajador en la misma compañía y período (ver `validate_dataset`).
+    contract_id: Optional[int] = None
 
     @property
     def rows(self):
@@ -748,17 +783,33 @@ def validate_annex_conditions(row, label="", department=""):
 
 
 def validate_dataset(dataset):
-    """Valida todo el lote y devuelve los hallazgos nuevos."""
+    """Valida todo el lote y devuelve los hallazgos nuevos.
+
+    Unicidad **consciente del contrato**: un trabajador puede tener tantas
+    líneas principales (código `00`) como contratos elegibles tenga en la
+    misma compañía y período. Sigue siendo error repetir la línea principal
+    de un mismo contrato. Cuando el motor no entrega la identidad del
+    contrato (`contract_id is None`), se conserva el criterio anterior
+    —compañía + período + RUT— para no relajar la validación.
+    """
     issues = []
     seen = {}
     for record in dataset.records:
         issues.extend(validate_record(record, dataset.spec_version))
-        key = (record.company_id, rut_key("%s%s" % (record.rut, record.dv)))
+        rk = rut_key("%s%s" % (record.rut, record.dv))
+        key = (record.company_id, rk, record.contract_id)
         if key in seen:
+            if record.contract_id is not None:
+                message = (
+                    "RUT %s-%s tiene más de una línea principal para el mismo "
+                    "contrato en la misma compañía y período."
+                    % (record.rut, record.dv))
+            else:
+                message = (
+                    "RUT %s-%s aparece más de una vez con línea principal en "
+                    "la misma compañía y período." % (record.rut, record.dv))
             issues.append(Issue(
-                SEVERITY_ERROR, "duplicate_worker",
-                "RUT %s-%s aparece más de una vez con línea principal en la "
-                "misma compañía y período." % (record.rut, record.dv),
+                SEVERITY_ERROR, "duplicate_worker", message,
                 record.department_label,
             ))
         seen[key] = record

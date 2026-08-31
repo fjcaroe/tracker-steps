@@ -293,6 +293,7 @@ class TestDataset(PreviredCase):
                       [issue.code for issue in dataset.errors])
 
     def test_duplicate_principal_is_reported(self):
+        """Un solo contrato con dos líneas principales sigue siendo error."""
         employee = self.make_employee("Ana Rojas", "11111111-1",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
@@ -300,10 +301,9 @@ class TestDataset(PreviredCase):
             make_row(rut="11111111", dv="1"),
             make_row(rut="11111111", dv="1"),
         ])
-        self.assertIn("duplicate_worker",
-                      [issue.code for issue in dataset.errors])
-        self.assertIn("ambiguous_engine_rows",
-                      [issue.code for issue in dataset.errors])
+        codes = [issue.code for issue in dataset.errors]
+        self.assertIn("duplicate_worker", codes)
+        self.assertIn("too_many_principal_lines", codes)
 
     def test_v98_enriches_reform_fields_from_taxable_income(self):
         employee = self.make_employee("Reforma", "19191919-K", self.dep_agri)

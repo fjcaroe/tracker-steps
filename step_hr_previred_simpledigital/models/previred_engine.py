@@ -25,6 +25,13 @@ _logger = logging.getLogger(__name__)
 #: Notas de revisión por posición, contrastadas con la especificación v98.
 MATRIX_NOTES = {
     8: "Tipo de pago fijo en «01» (remuneraciones del mes, tabla N°3).",
+    13: "El generador declara `_get_real_worked_days_from_payslip`, que en "
+        "esta base es `hr.payslip._dias_trabajados_previred()` («30 − "
+        "ausencias», con «Fuera de contrato» contando como ausencia). El "
+        "núcleo NO usa ese valor: recalcula el campo 13 desde la línea de "
+        "días trabajados de tipo «Asistencia» (código WORK100, o Tipo y "
+        "Descripción «Asistencia»), que es lo que pide el documento funcional. "
+        "El valor se escribe también en las líneas anexas.",
     14: "El generador emite «0» donde la tabla N°6 declara «00»; el core lo "
         "serializa de forma canónica como «00».",
     23: "Asignación familiar retroactiva en blanco; sólo aplica a empresas "
@@ -117,7 +124,74 @@ class SimpleDigitalAdapter(adapters.EngineAdapter):
                 previred.SEVERITY_WARNING, "engine_empty",
                 _("El generador de %s no devolvió ninguna línea para el "
                   "período solicitado.", cls.label))]
-        return cls.split_text(text), []
+
+        rows = cls.split_text(text)
+        row_meta, meta_issues = cls._contract_meta(env, company, date_from,
+                                                   rows)
+        if row_meta is None:
+            return rows, meta_issues
+        return rows, meta_issues, row_meta
+
+    @classmethod
+    def _contract_meta(cls, env, company, date_from, rows):
+        """Correlación explícita línea principal → contrato.
+
+        El generador del proveedor recorre `hr.payslip` del período (rango de
+        `date_from`, estados `verify/done/paid`, compañía) en orden de
+        trabajador y emite **una línea principal por liquidación**. Aquí se
+        reconstruye esa misma lista y se asocia, RUT por RUT y en el mismo
+        orden, cada línea principal con el contrato de su liquidación.
+
+        Devuelve `(row_meta, issues)`. Si la correlación no es fiable
+        (recuentos que no cuadran) devuelve `(None, issues)` y el núcleo cae
+        al respaldo de unicidad por compañía + período + RUT.
+        """
+        import calendar as _calendar
+
+        period_start = date_from.replace(day=1)
+        period_end = date_from.replace(
+            day=_calendar.monthrange(date_from.year, date_from.month)[1])
+        vendor_payslips = env["hr.payslip"].sudo().search([
+            ("date_from", ">=", period_start),
+            ("date_from", "<=", period_end),
+            ("state", "in", ["verify", "done", "paid"]),
+            ("company_id", "=", company.id),
+        ], order="employee_id")
+
+        by_rut = {}
+        for payslip in vendor_payslips:
+            key = previred.rut_key(payslip.employee_id.identification_id)
+            by_rut.setdefault(key, []).append(payslip)
+
+        principals = [row for row in rows
+                      if previred.normalize_line_type(
+                          row[previred.F_LINE_TYPE - 1])
+                      == previred.LINE_PRINCIPAL]
+        if len(principals) != len(vendor_payslips):
+            return None, [previred.Issue(
+                previred.SEVERITY_WARNING, "engine_contract_meta_unavailable",
+                _("El generador de %(engine)s emitió %(p)s línea(s) principal(es) "
+                  "y el período tiene %(s)s liquidación(es); no se puede "
+                  "correlacionar contrato por contrato y la unicidad usará el "
+                  "respaldo por RUT.",
+                  engine=cls.label, p=len(principals),
+                  s=len(vendor_payslips)))]
+
+        seen = {}
+        row_meta = []
+        for row in principals:
+            key = previred.rut_key(
+                (row[previred.F_RUT - 1] or "") + (row[previred.F_DV - 1] or ""))
+            bucket = by_rut.get(key) or []
+            position = seen.get(key, 0)
+            seen[key] = position + 1
+            payslip = bucket[position] if position < len(bucket) else None
+            row_meta.append({
+                "contract_id": payslip.contract_id.id
+                if payslip and payslip.contract_id else None,
+                "payslip_id": payslip.id if payslip else None,
+            })
+        return row_meta, []
 
 
 adapters.register(SimpleDigitalAdapter)

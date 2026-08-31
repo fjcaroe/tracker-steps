@@ -69,6 +69,10 @@ class FakeAdapter(adapters.EngineAdapter):
 
     rows = []
     issues = []
+    #: Cuando una prueba lo fija, `generate_rows` devuelve la 3-tupla
+    #: `(rows, issues, row_meta)` que el núcleo usa para la unicidad por
+    #: contrato. `None` = motor sin correlación de contrato (2-tupla).
+    row_meta = None
 
     @classmethod
     def is_available(cls, env):
@@ -81,7 +85,10 @@ class FakeAdapter(adapters.EngineAdapter):
 
     @classmethod
     def generate_rows(cls, env, company, date_from, date_to, payslips):
-        return [list(row) for row in cls.rows], list(cls.issues)
+        rows = [list(row) for row in cls.rows]
+        if cls.row_meta is not None:
+            return rows, list(cls.issues), [dict(m) for m in cls.row_meta]
+        return rows, list(cls.issues)
 
 
 class PreviredCase(TransactionCase):
@@ -217,10 +224,11 @@ class PreviredCase(TransactionCase):
 
     def build(self, rows, issues=(), departments=None,
               allow_without_department=False, company=None, states=None,
-              spec_version="84"):
+              spec_version="84", row_meta=None):
         """Atajo: construye el dataset con el adaptador falso."""
         FakeAdapter.rows = rows
         FakeAdapter.issues = list(issues)
+        FakeAdapter.row_meta = row_meta
         return self.env["step.previred.extractor"].build_dataset(
             company=company or self.company,
             date_from=self.date_from,

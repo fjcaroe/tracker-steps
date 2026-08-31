@@ -127,6 +127,20 @@ class EngineAdapter:
         período y estados elegibles). El adaptador puede usarlo para acotar su
         consulta; si el generador del proveedor no admite ese filtro, el core
         descarta después las filas que no correspondan.
+
+        Opcionalmente puede devolver una **tercera** posición, `row_meta`:
+        una lista paralela a las líneas **principales** (código `00`) en su
+        orden de aparición. Cada entrada es un `dict` con:
+
+        * ``contract_id``: identidad técnica del contrato de esa línea, para
+          que la unicidad admita tantas líneas principales como contratos
+          elegibles tenga el trabajador y bloquee dos líneas del mismo
+          contrato. **No** se exporta.
+        * ``payslip_id`` (opcional): liquidación de origen, para trazabilidad.
+
+        Un motor que no puede correlacionar contrato por contrato devuelve
+        sólo `(rows, issues)`; el core cae entonces al criterio de unicidad
+        por compañía + período + RUT.
         """
         raise NotImplementedError
 
