@@ -1,0 +1,202 @@
+LINE 1: select id, name, engine_key, spec_version, effective_from, e...
+                         ^
+(if column names differ, list them:)
+     column_name      |          data_type          
+----------------------+-----------------------------
+ id                   | integer
+ sequence             | integer
+ field_count          | integer
+ create_uid           | integer
+ write_uid            | integer
+ name                 | character varying
+ engine               | character varying
+ layout               | character varying
+ spec_version         | character varying
+ spec_date            | character varying
+ effective_from       | character varying
+ effective_to         | character varying
+ source_url           | character varying
+ separator            | character varying
+ encoding             | character varying
+ line_ending          | character varying
+ eligible_states      | character varying
+ eligible_states_note | text
+ annexes_note         | text
+ note                 | text
+ active               | boolean
+ supports_annexes     | boolean
+ create_date          | timestamp without time zone
+ write_date           | timestamp without time zone
+(24 rows)
+
+===== company 7 July 2026 payslips (all states) =====
+ id  |  number  | state  | contract_id | employee_id | rut_tail | date_from  |  date_to   
+-----+----------+--------+-------------+-------------+----------+------------+------------
+ 481 | SLIP/484 | cancel |         177 |         208 | 0083     | 2026-07-01 | 2026-07-31
+ 427 | SLIP/430 | cancel |          29 |          41 | 0485     | 2026-07-01 | 2026-07-31
+ 457 | SLIP/460 | cancel |         101 |         111 | 0696     | 2026-07-01 | 2026-07-31
+ 449 | SLIP/452 | cancel |          91 |         101 | 0744     | 2026-07-01 | 2026-07-31
+ 482 | SLIP/485 | cancel |         178 |         209 | 0785     | 2026-07-01 | 2026-07-31
+ 424 | SLIP/427 | cancel |          26 |          38 | 0791     | 2026-07-01 | 2026-07-31
+ 428 | SLIP/431 | cancel |          30 |          42 | 0863     | 2026-07-01 | 2026-07-31
+ 451 | SLIP/454 | cancel |          93 |         103 | 1038     | 2026-07-01 | 2026-07-31
+ 430 | SLIP/433 | cancel |          32 |          44 | 1853     | 2026-07-01 | 2026-07-31
+ 460 | SLIP/463 | cancel |         104 |         114 | 1890     | 2026-07-01 | 2026-07-31
+ 426 | SLIP/429 | cancel |          28 |          40 | 1983     | 2026-07-01 | 2026-07-31
+ 459 | SLIP/462 | cancel |         103 |         113 | 2068     | 2026-07-01 | 2026-07-31
+ 486 | SLIP/489 | cancel |         182 |         213 | 2108     | 2026-07-01 | 2026-07-31
+ 478 | SLIP/481 | cancel |         174 |         205 | 2260     | 2026-07-01 | 2026-07-31
+ 429 | SLIP/432 | cancel |          31 |          43 | 2332     | 2026-07-01 | 2026-07-31
+ 418 | SLIP/421 | cancel |          19 |          29 | 233K     | 2026-07-01 | 2026-07-31
+ 434 | SLIP/437 | cancel |          36 |          48 | 2541     | 2026-07-01 | 2026-07-31
+ 469 | SLIP/472 | cancel |         118 |         150 | 2792     | 2026-07-01 | 2026-07-31
+ 453 | SLIP/456 | cancel |          95 |         105 | 2943     | 2026-07-01 | 2026-07-31
+ 421 | SLIP/424 | cancel |          22 |          34 | 3018     | 2026-07-01 | 2026-07-31
+ 454 | SLIP/457 | cancel |          98 |         108 | 3093     | 2026-07-01 | 2026-07-31
+ 468 | SLIP/471 | cancel |         117 |         149 | 3189     | 2026-07-01 | 2026-07-31
+ 473 | SLIP/476 | cancel |         141 |          89 | 323K     | 2026-07-01 | 2026-07-31
+ 420 | SLIP/423 | cancel |          21 |          31 | 3544     | 2026-07-01 | 2026-07-31
+ 435 | SLIP/438 | cancel |          39 |          51 | 3670     | 2026-07-01 | 2026-07-31
+ 490 | SLIP/493 | cancel |         207 |         239 | 3724     | 2026-07-01 | 2026-07-31
+ 472 | SLIP/475 | cancel |         121 |         159 | 3834     | 2026-07-01 | 2026-07-31
+ 471 | SLIP/474 | cancel |         120 |         152 | 3901     | 2026-07-01 | 2026-07-31
+ 447 | SLIP/450 | cancel |          86 |          96 | 3958     | 2026-07-01 | 2026-07-31
+ 484 | SLIP/487 | cancel |         180 |         211 | 3989     | 2026-07-01 | 2026-07-31
+ 475 | SLIP/478 | cancel |         171 |         202 | 4023     | 2026-07-01 | 2026-07-31
+ 488 | SLIP/491 | cancel |         205 |         237 | 4023     | 2026-07-01 | 2026-07-31
+ 452 | SLIP/455 | cancel |          94 |         104 | 4358     | 2026-07-01 | 2026-07-31
+ 414 | SLIP/417 | cancel |          14 |          24 | 4630     | 2026-07-01 | 2026-07-31
+ 479 | SLIP/482 | cancel |         175 |         206 | 4720     | 2026-07-01 | 2026-07-31
+ 440 | SLIP/443 | cancel |          44 |          56 | 4843     | 2026-07-01 | 2026-07-31
+ 474 | SLIP/477 | cancel |         153 |          85 | 5264     | 2026-07-01 | 2026-07-31
+ 462 | SLIP/465 | cancel |         108 |         132 | 5428     | 2026-07-01 | 2026-07-31
+ 438 | SLIP/441 | cancel |          42 |          54 | 5561     | 2026-07-01 | 2026-07-31
+ 444 | SLIP/447 | cancel |          48 |          60 | 563K     | 2026-07-01 | 2026-07-31
+ 441 | SLIP/444 | cancel |          45 |          57 | 5666     | 2026-07-01 | 2026-07-31
+ 423 | SLIP/426 | cancel |          24 |          36 | 5868     | 2026-07-01 | 2026-07-31
+ 455 | SLIP/458 | cancel |          99 |         109 | 5869     | 2026-07-01 | 2026-07-31
+ 443 | SLIP/446 | cancel |          47 |          59 | 5914     | 2026-07-01 | 2026-07-31
+ 456 | SLIP/459 | cancel |         100 |         110 | 606K     | 2026-07-01 | 2026-07-31
+ 464 | SLIP/467 | cancel |         110 |         136 | 6091     | 2026-07-01 | 2026-07-31
+ 442 | SLIP/445 | cancel |          46 |          58 | 6122     | 2026-07-01 | 2026-07-31
+ 417 | SLIP/420 | cancel |          17 |          27 | 6274     | 2026-07-01 | 2026-07-31
+ 437 | SLIP/440 | cancel |          41 |          53 | 636K     | 2026-07-01 | 2026-07-31
+ 532 | SLIP/540 | cancel |         209 |         242 | 6728     | 2026-07-01 | 2026-07-31
+ 480 | SLIP/483 | cancel |         176 |         207 | 6817     | 2026-07-01 | 2026-07-31
+ 432 | SLIP/435 | cancel |          34 |          46 | 6822     | 2026-07-01 | 2026-07-31
+ 470 | SLIP/473 | cancel |         119 |         151 | 6919     | 2026-07-01 | 2026-07-31
+ 425 | SLIP/428 | cancel |          27 |          39 | 7090     | 2026-07-01 | 2026-07-31
+ 433 | SLIP/436 | cancel |          35 |          47 | 7169     | 2026-07-01 | 2026-07-31
+ 416 | SLIP/419 | cancel |          16 |          26 | 7309     | 2026-07-01 | 2026-07-31
+ 466 | SLIP/469 | cancel |         113 |         141 | 7746     | 2026-07-01 | 2026-07-31
+ 495 | SLIP/501 | cancel |         206 |         238 | 7783     | 2026-07-08 | 2026-07-31
+ 445 | SLIP/448 | cancel |          50 |          62 | 783K     | 2026-07-01 | 2026-07-31
+ 476 | SLIP/479 | cancel |         172 |         203 | 7936     | 2026-07-01 | 2026-07-31
+ 439 | SLIP/442 | cancel |          43 |          55 | 8009     | 2026-07-01 | 2026-07-31
+ 461 | SLIP/464 | cancel |         107 |         118 | 8176     | 2026-07-01 | 2026-07-31
+ 446 | SLIP/449 | cancel |          51 |          63 | 8210     | 2026-07-01 | 2026-07-31
+ 436 | SLIP/439 | cancel |          40 |          52 | 8252     | 2026-07-01 | 2026-07-31
+ 458 | SLIP/461 | cancel |         102 |         112 | 8302     | 2026-07-01 | 2026-07-31
+ 487 | SLIP/490 | cancel |         185 |         216 | 846K     | 2026-07-01 | 2026-07-31
+ 448 | SLIP/451 | cancel |          88 |          98 | 8841     | 2026-07-01 | 2026-07-31
+ 463 | SLIP/466 | cancel |         109 |         133 | 8894     | 2026-07-01 | 2026-07-31
+ 415 | SLIP/418 | cancel |          15 |          25 | 8932     | 2026-07-01 | 2026-07-31
+ 413 | SLIP/416 | cancel |          13 |          22 | 894K     | 2026-07-01 | 2026-07-31
+ 419 | SLIP/422 | cancel |          20 |          30 | 8959     | 2026-07-01 | 2026-07-31
+ 467 | SLIP/470 | cancel |         116 |         145 | 9013     | 2026-07-01 | 2026-07-31
+ 483 | SLIP/486 | cancel |         179 |         210 | 9076     | 2026-07-01 | 2026-07-31
+ 465 | SLIP/468 | cancel |         111 |         137 | 9347     | 2026-07-01 | 2026-07-31
+ 477 | SLIP/480 | cancel |         173 |         204 | 9381     | 2026-07-01 | 2026-07-31
+ 450 | SLIP/453 | cancel |          92 |         102 | 949K     | 2026-07-01 | 2026-07-31
+ 485 | SLIP/488 | cancel |         181 |         212 | 9544     | 2026-07-01 | 2026-07-31
+ 431 | SLIP/434 | cancel |          33 |          45 | 965K     | 2026-07-01 | 2026-07-31
+ 422 | SLIP/425 | cancel |          23 |          35 | 9700     | 2026-07-01 | 2026-07-31
+(79 rows)
+
+===== company 7 July payslips state summary =====
+ state  | count | emps | contracts 
+--------+-------+------+-----------
+ cancel |    79 |   79 |        79
+(1 row)
+
+===== duplicate employees for RUT ...4023 and ...3724 =====
+ id  |         name          | identification_id | company_id | active | contracts | payslips 
+-----+-----------------------+-------------------+------------+--------+-----------+----------
+ 106 | Maria Riquelme Zapata | 10.xxx.xxx-3      |          7 | t      |         2 |        1
+ 202 | Maria Riquelme Zapata | 10.xxx.xxx-3      |          7 | t      |         1 |        2
+ 237 | Maria Riquelme Zapata | 10.xxx.xxx-3      |          7 | t      |         1 |        1
+  84 | Raul Vilche Escobar   | 12.xxx.xxx-4      |          7 | t      |         2 |        1
+ 239 | RAUL VILCHE ESCOBAR   | 12.xxx.xxx-4      |          7 | t      |         1 |        1
+(5 rows)
+
+===== batches already recorded (step_previred_batch) =====
+ id |        create_date         | company_id | period |            engine            | result  | error_count | warning_count 
+----+----------------------------+------------+--------+------------------------------+---------+-------------+---------------
+ 32 | 2026-08-29 20:42:48.412857 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          11 |             1
+ 31 | 2026-08-29 20:40:28.395747 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          12 |             1
+ 30 | 2026-08-29 20:27:24.954578 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          13 |             1
+ 29 | 2026-08-29 20:23:53.092409 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          13 |             2
+ 28 | 2026-08-29 20:23:21.951816 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          13 |             2
+ 27 | 2026-08-29 20:22:53.042059 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          13 |             2
+ 26 | 2026-08-29 20:22:16.232904 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          13 |             2
+ 25 | 2026-08-29 20:18:31.816831 |          7 | 202607 | Nómina Chilena Simpledigital | blocked |          13 |             1
+ 24 | 2026-08-28 13:02:46.615021 |          2 | 202607 | Nómina Chilena Simpledigital | blocked |           2 |             0
+ 23 | 2026-08-28 12:56:30.953923 |          5 | 202607 | Nómina Chilena Simpledigital | ok      |           0 |             0
+(10 rows)
+
+(columns:)
+       column_name        
+--------------------------
+ id
+ user_id
+ company_id
+ profile_id
+ worker_count
+ principal_count
+ annex_count
+ row_count
+ department_count
+ without_department_count
+ error_count
+ warning_count
+ create_uid
+ write_uid
+ display_name
+ period
+ engine
+ spec_version
+ spec_source
+ scope
+ output
+ department_names
+ result
+ issue_codes
+ date_from
+ date_to
+ allow_without_department
+ create_date
+ write_date
+(29 rows)
+
+===== when were company-7 July payslips cancelled? (mail messages) =====
+        date         | subject | body_snip 
+---------------------+---------+-----------
+ 2026-08-30 20:01:19 |         | 
+ 2026-08-30 20:01:19 |         | 
+ 2026-08-30 20:01:19 |         | 
+ 2026-08-30 20:01:19 |         | 
+ 2026-08-30 20:01:19 |         | 
+ 2026-08-23 18:42:59 |         | 
+ 2026-08-23 18:42:59 |         | 
+ 2026-08-23 18:42:59 |         | 
+ 2026-08-23 18:42:59 |         | 
+ 2026-08-23 18:42:59 |         | 
+ 2026-08-23 18:42:41 |         | 
+ 2026-08-23 18:42:41 |         | 
+ 2026-08-23 18:42:41 |         | 
+ 2026-08-23 18:42:41 |         | 
+ 2026-08-23 18:42:41 |         | 
+(15 rows)
+
+
+[exited with code 0]

@@ -1,0 +1,135 @@
+=== pre-deploy safety: running odoo updates? ===
+(vacio = ninguna actualizacion de modulos en curso)
+=== [dev] DB dump LAB_TAREAS lun 31 ago 2026 15:13:31 UTC ===
+rc_dump_dev=0
+verify dev: pg_restore --list lines=30143  size=19848344 bytes
+=== [dev] addons tar (previred modules) ===
+rc_tar_dev=0  size=150734
+=== [dev] deployed SHA-256 (before) ===
+d41b7d41a91187df3165125c9ed1e434dc956e837799e6c4170170993198f1dd  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+8b56f9b428c3a0eb61a433a4294a7bc2827c8b056e12ac4961ddb2e133e99ff3  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+07d542a01686e8016dd66a4ccd65d773ac1484b11ae32aaa9f0f9221baee0048  /opt/dev_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+8b2ce520b0e83de4a37ed795a72a5427cc562bf3b30f2f806e8593722a1c2adb  /opt/dev_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/field_matrix.py
+=== [demo] DB dump STEPS_DEMO lun 31 ago 2026 15:13:42 UTC ===
+rc_dump_demo=0
+verify demo: pg_restore --list lines=29613  size=22848812 bytes
+=== [demo] addons tar (previred modules) ===
+rc_tar_demo=0  size=150288
+=== [demo] deployed SHA-256 (before) ===
+d41b7d41a91187df3165125c9ed1e434dc956e837799e6c4170170993198f1dd  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+8b56f9b428c3a0eb61a433a4294a7bc2827c8b056e12ac4961ddb2e133e99ff3  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+07d542a01686e8016dd66a4ccd65d773ac1484b11ae32aaa9f0f9221baee0048  /opt/demo_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+8b2ce520b0e83de4a37ed795a72a5427cc562bf3b30f2f806e8593722a1c2adb  /opt/demo_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/field_matrix.py
+=== [demosys] DB dump STEPS_DEMO_SYS lun 31 ago 2026 15:13:53 UTC ===
+rc_dump_demosys=0
+verify demosys: pg_restore --list lines=25553  size=24233017 bytes
+=== [demosys] addons tar (previred modules) ===
+rc_tar_demosys=0  size=154353
+=== [demosys] deployed SHA-256 (before) ===
+d41b7d41a91187df3165125c9ed1e434dc956e837799e6c4170170993198f1dd  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+8b56f9b428c3a0eb61a433a4294a7bc2827c8b056e12ac4961ddb2e133e99ff3  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+07d542a01686e8016dd66a4ccd65d773ac1484b11ae32aaa9f0f9221baee0048  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+8b2ce520b0e83de4a37ed795a72a5427cc562bf3b30f2f806e8593722a1c2adb  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/field_matrix.py
+LAB_TAREAS|283 MB
+STEPS_DEMO|182 MB
+STEPS_DEMO_SYS|290 MB
+total 65828
+drwxrwxrwx  2 root                       root                           4096 ago 31 15:23 .
+drwxr-xr-x 29 root                       root                           4096 ago 31 15:13 ..
+-rw-rw-r--  1 fernandocaro1198_gmail_com fernandocaro1198_gmail_com     2724 ago 31 15:23 backup.log
+-rw-r--r--  1 root                       root                         150288 ago 31 15:13 demo_previred_addons_before.tgz
+-rw-rw-r--  1 postgres                   postgres                   22848812 ago 31 15:13 demo_STEPS_DEMO.dump
+-rw-r--r--  1 root                       root                         154353 ago 31 15:23 demosys_previred_addons_before.tgz
+-rw-rw-r--  1 postgres                   postgres                   24233017 ago 31 15:23 demosys_STEPS_DEMO_SYS.dump
+-rw-rw-r--  1 postgres                   postgres                   19848344 ago 31 15:13 dev_LAB_TAREAS.dump
+-rw-r--r--  1 root                       root                         150734 ago 31 15:13 dev_previred_addons_before.tgz
+@@@@@DEPLOY@@@@@
+15:27:11 ========== [dev] ==========
+15:27:11 dev code dir: odoo:odoo 777 -> odoo:odoo 777
+15:27:11 dev manifest "version": "18.0.3.4.0"
+15:27:34 dev apply rc=0
+15:27:45 dev is-active=active
+15:27:49 dev http /web/login -> 200
+15:27:50 dev DB step_hr_previred latest_version=18.0.3.4.0
+92435ec88977940bb1a7e6f3aa598eb9b6abcff43032f398b5b5f9f9320a3554  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+d07823aa89ddcf271bde9cbf49341657ddacc84c962677217b1ea8f334579de0  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+0681212ded45ce1655d380642569cf9d5493f3e0b04c2acfea1eb05a89db867a  /opt/dev_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+15:27:57 [dev] OK
+15:27:57 ========== [demo] ==========
+15:27:57 demo code dir: demo_odoo18:demo_odoo18 777 -> demo_odoo18:demo_odoo18 777
+15:27:57 demo manifest "version": "18.0.3.4.0"
+15:28:18 demo apply rc=0
+15:28:27 demo is-active=active
+15:28:30 demo http /web/login -> 200
+15:28:30 demo DB step_hr_previred latest_version=18.0.3.4.0
+92435ec88977940bb1a7e6f3aa598eb9b6abcff43032f398b5b5f9f9320a3554  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+d07823aa89ddcf271bde9cbf49341657ddacc84c962677217b1ea8f334579de0  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+0681212ded45ce1655d380642569cf9d5493f3e0b04c2acfea1eb05a89db867a  /opt/demo_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+15:28:35 [demo] OK
+15:28:36 ========== [demosys] ==========
+15:28:36 demosys code dir:  -> 
+15:28:36 demosys manifest "version": "18.0.3.4.0"
+15:28:52 demosys apply rc=0
+15:29:01 demosys is-active=active
+15:29:05 demosys http /web/login -> 200
+15:29:05 demosys DB step_hr_previred latest_version=18.0.3.4.0
+92435ec88977940bb1a7e6f3aa598eb9b6abcff43032f398b5b5f9f9320a3554  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+d07823aa89ddcf271bde9cbf49341657ddacc84c962677217b1ea8f334579de0  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+0681212ded45ce1655d380642569cf9d5493f3e0b04c2acfea1eb05a89db867a  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+15:29:06 [demosys] OK
+rc_repro_live=0
+@@@@@SHA_AFTER@@@@@
+== /opt/dev_odoo18/odoo_agriculture ==
+92435ec88977940bb1a7e6f3aa598eb9b6abcff43032f398b5b5f9f9320a3554  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+b87930364fecbef180806291b071d6697d512514b54be1f35572c9926c395193  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/models/previred_adapter.py
+d07823aa89ddcf271bde9cbf49341657ddacc84c962677217b1ea8f334579de0  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+0681212ded45ce1655d380642569cf9d5493f3e0b04c2acfea1eb05a89db867a  /opt/dev_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+8b2ce520b0e83de4a37ed795a72a5427cc562bf3b30f2f806e8593722a1c2adb  /opt/dev_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/field_matrix.py
+d6521b249f117fdeadb6a8719e82104733e6298dff9e3b262a6215bf214f8601  /opt/dev_odoo18/odoo_agriculture/step_hr_previred/__manifest__.py
+== /opt/demo_odoo18/odoo_agriculture ==
+92435ec88977940bb1a7e6f3aa598eb9b6abcff43032f398b5b5f9f9320a3554  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+b87930364fecbef180806291b071d6697d512514b54be1f35572c9926c395193  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/models/previred_adapter.py
+d07823aa89ddcf271bde9cbf49341657ddacc84c962677217b1ea8f334579de0  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+0681212ded45ce1655d380642569cf9d5493f3e0b04c2acfea1eb05a89db867a  /opt/demo_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+8b2ce520b0e83de4a37ed795a72a5427cc562bf3b30f2f806e8593722a1c2adb  /opt/demo_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/field_matrix.py
+d6521b249f117fdeadb6a8719e82104733e6298dff9e3b262a6215bf214f8601  /opt/demo_odoo18/odoo_agriculture/step_hr_previred/__manifest__.py
+== /opt/demosys_odoo18/odoo_agriculture ==
+92435ec88977940bb1a7e6f3aa598eb9b6abcff43032f398b5b5f9f9320a3554  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/models/previred_extractor.py
+b87930364fecbef180806291b071d6697d512514b54be1f35572c9926c395193  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/models/previred_adapter.py
+d07823aa89ddcf271bde9cbf49341657ddacc84c962677217b1ea8f334579de0  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/tools/previred.py
+0681212ded45ce1655d380642569cf9d5493f3e0b04c2acfea1eb05a89db867a  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/previred_engine.py
+8b2ce520b0e83de4a37ed795a72a5427cc562bf3b30f2f806e8593722a1c2adb  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred_simpledigital/models/field_matrix.py
+d6521b249f117fdeadb6a8719e82104733e6298dff9e3b262a6215bf214f8601  /opt/demosys_odoo18/odoo_agriculture/step_hr_previred/__manifest__.py
+@@@@@LIVE_REPRO@@@@@
+== Compañía: 7 Servicios Emca SpA | período 2026-07-01 .. 2026-07-31
+== Perfiles simpledigital: [(2, 'Previred largo variable v98 — Simpledigital', '98', '2026-08', False), (1, 'Previred largo variable v84 — Simpledigital', '84', '2025-08', '2026-07')]
+== Perfil elegido: 1 Previred largo variable v84 — Simpledigital states: ('verify', 'done', 'paid')
+== usando download_previred_txt.__wrapped__ (sin decorar)
+== adapter: <class 'odoo.addons.step_hr_previred_simpledigital.models.previred_engine.SimpleDigitalAdapter'> simpledigital Nómina Chilena Simpledigital
+
+===== COUNTERS =====
+  workers              0
+  rows                 0
+  principal            0
+  annexes              0
+  departments          0
+  without_department   0
+  errors               0
+  warnings             2
+
+===== ISSUES (2) =====
+  por código: {'no_eligible_payslips': 1, 'engine_empty': 1}
+  [warning] no_eligible_payslips :: No hay liquidaciones en estado verify, done, paid para «Servicios Emca SpA» en el período.
+  [warning] engine_empty :: El generador de Nómina Chilena Simpledigital no devolvió ninguna línea para el período solicitado.
+
+===== RECORDS: field13 / annexes / contrato =====
+
+===== DIAGNÓSTICO field 13 =====
+  SLIP/491 id=488 state=cancel emp=237 ident=10.xxx.xxx-3 contract=205(2026-07-13..2026-07-18)
+    wd: code=WORK100 is_leave=False days=6.0 name=Asistencia
+    wd: code=OUT is_leave=False days=12.0 name=Fuera de contrato (Medio día)
+  vendor _dias_trabajados_previred() = 6
+  eligible_payslips count = 0
+  claves de índice (muestra): []
+
+REPRO_OK

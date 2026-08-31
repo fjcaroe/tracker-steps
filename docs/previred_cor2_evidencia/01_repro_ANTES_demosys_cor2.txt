@@ -1,0 +1,123 @@
+== Compañía: 7 Servicios Emca SpA | período 2026-07-01 .. 2026-07-31
+== Perfiles simpledigital: [(2, 'Previred largo variable v98 — Simpledigital', '98', '2026-08', False), (1, 'Previred largo variable v84 — Simpledigital', '84', '2025-08', '2026-07')]
+== Perfil elegido: 1 Previred largo variable v84 — Simpledigital states: ('verify', 'done', 'paid')
+== usando download_previred_txt.__wrapped__ (sin decorar)
+
+===== COUNTERS =====
+  workers              78
+  rows                 88
+  principal            78
+  annexes              10
+  departments          6
+  without_department   0
+  errors               13
+  warnings             1
+
+===== ISSUES (14) =====
+  por código: {'dropped_not_eligible': 1, 'missing_mandatory': 10, 'movement_date_to_required': 2, 'duplicate_worker': 1}
+  [warning] dropped_not_eligible :: Se descartaron 1 trabajador(es) que el motor entregó pero que no corresponden a una liquidación de esta compañía en estado verify, done, paid.
+  [error] missing_mandatory :: RUT 14######-6: Falta el campo obligatorio «13 Días Trabajados».
+  [error] missing_mandatory :: RUT 21######-9: Falta el campo obligatorio «13 Días Trabajados».
+  [error] missing_mandatory :: RUT 15######-3: Falta el campo obligatorio «13 Días Trabajados».
+  [error] missing_mandatory :: RUT 15######-3: Falta el campo obligatorio «13 Días Trabajados».
+  [error] missing_mandatory :: RUT 10######-3: Falta el campo obligatorio «13 Días Trabajados».
+  [error] movement_date_to_required :: RUT 10######-3: El movimiento de personal 5 exige «17 Fecha Hasta».
+  [error] missing_mandatory :: RUT 10######-3: Falta el campo obligatorio «13 Días Trabajados».
+  [error] missing_mandatory :: RUT 10######-3: Falta el campo obligatorio «13 Días Trabajados».
+  [error] duplicate_worker :: RUT 10######-3 aparece más de una vez con línea principal en la misma compañía y período.
+  [error] missing_mandatory :: RUT 12######-4: Falta el campo obligatorio «13 Días Trabajados».
+  [error] movement_date_to_required :: RUT 12######-4: El movimiento de personal 5 exige «17 Fecha Hasta».
+  [error] missing_mandatory :: RUT 12######-4: Falta el campo obligatorio «13 Días Trabajados».
+  [error] missing_mandatory :: RUT 92######-8: Falta el campo obligatorio «13 Días Trabajados».
+
+===== RECORDS: field13 / annexes / contrato =====
+  rut=19######1-7  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=207  slip=480  contract_id=N/A
+  rut=10######0-9  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=26  slip=416  contract_id=N/A
+  rut=10######0-1  f13='30'  nlin=105  anexas=0  dep=Hotel Parador  comp=7  emp=152  slip=471  contract_id=N/A
+  rut=14######6-K  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=53  slip=437  contract_id=N/A
+  rut=20######7-6  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=118  slip=461  contract_id=N/A
+  rut=13######9-K  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=102  slip=450  contract_id=N/A
+  rut=14######9-6  f13='20'  nlin=105  anexas=1  dep=Aseo Industrial CMPC  comp=7  emp=111  slip=457  contract_id=N/A
+  rut=11######6-8  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=36  slip=423  contract_id=N/A
+  rut=12######2-2  f13='30'  nlin=105  anexas=0  dep=Hotel Parador  comp=7  emp=46  slip=432  contract_id=N/A
+  rut=20######2-0  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=206  slip=479  contract_id=N/A
+  rut=14######4-1  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=98  slip=448  contract_id=N/A
+  rut=08######0-0  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=35  slip=422  contract_id=N/A
+  rut=15######6-3  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=42  slip=428  contract_id=N/A
+  rut=09######0-9  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=55  slip=439  contract_id=N/A
+  rut=12######3-8  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=103  slip=451  contract_id=N/A
+  rut=10######6-0  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=205  slip=478  contract_id=N/A
+  rut=20######2-8  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=132  slip=462  contract_id=N/A
+  rut=19######1-0  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=63  slip=446  contract_id=N/A
+  rut=19######5-K  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=45  slip=431  contract_id=N/A
+  rut=14######5-2  f13='30'  nlin=105  anexas=0  dep=Administración y Finanzas  comp=7  emp=52  slip=436  contract_id=N/A
+  rut=04######3-2  f13='30'  nlin=105  anexas=0  dep=Administración y Finanzas  comp=7  emp=43  slip=429  contract_id=N/A
+  rut=20######3-K  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=89  slip=473  contract_id=N/A
+  rut=10######6-8  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=113  slip=459  contract_id=N/A
+  rut=12######8-1  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=204  slip=477  contract_id=N/A
+  rut=12######3-6  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=203  slip=476  contract_id=N/A
+  rut=07######4-3  f13='30'  nlin=105  anexas=0  dep=Administración y Finanzas  comp=7  emp=56  slip=440  contract_id=N/A
+  rut=17######6-6  f13='30'  nlin=105  anexas=0  dep=Administración y Finanzas  comp=7  emp=57  slip=441  contract_id=N/A
+  rut=12######9-0  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=114  slip=460  contract_id=N/A
+  rut=09######9-2  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=150  slip=469  contract_id=N/A
+  rut=11######4-7  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=137  slip=465  contract_id=N/A
+  rut=16######7-6  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=210  slip=483  contract_id=N/A
+  rut=21######8-9  f13='29'  nlin=105  anexas=1  dep=Seguridad y Romana  comp=7  emp=149  slip=468  contract_id=N/A
+  rut=20######8-3  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=208  slip=481  contract_id=N/A
+  rut=13######9-0  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=39  slip=425  contract_id=N/A
+  rut=07######1-4  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=59  slip=443  contract_id=N/A
+  rut=18######3-K  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=62  slip=445  contract_id=N/A
+  rut=10######1-9  f13='30'  nlin=105  anexas=0  dep=Hotel Parador  comp=7  emp=151  slip=470  contract_id=N/A
+  rut=14######1-3  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=145  slip=467  contract_id=N/A
+  rut=13######4-4  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=101  slip=449  contract_id=N/A
+  rut=08######8-3  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=40  slip=426  contract_id=N/A
+  rut=08######6-9  f13='30'  nlin=105  anexas=0  dep=Hotel Parador  comp=7  emp=47  slip=433  contract_id=N/A
+  rut=14######4-1  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=48  slip=434  contract_id=N/A
+  rut=14######0-8  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=213  slip=486  contract_id=N/A
+  rut=15######4-3  f13='0'  nlin=105  anexas=2  dep=Aseo Industrial CMPC  comp=7  emp=105  slip=453  contract_id=N/A
+  rut=19######3-2  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=25  slip=415  contract_id=N/A
+  rut=16######3-K  f13='30'  nlin=105  anexas=0  dep=Administración y Finanzas  comp=7  emp=29  slip=418  contract_id=N/A
+  rut=11######5-9  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=30  slip=419  contract_id=N/A
+  rut=10######2-3  f13='5'  nlin=105  anexas=2  dep=Aseo Industrial CMPC  comp=7  emp=202  slip=475  contract_id=N/A
+  rut=10######2-3  f13='6'  nlin=105  anexas=1  dep=Aseo Industrial CMPC  comp=7  emp=237  slip=488  contract_id=N/A
+  rut=13######6-K  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=216  slip=487  contract_id=N/A
+  rut=16######9-1  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=38  slip=424  contract_id=N/A
+  rut=10######3-K  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=60  slip=444  contract_id=N/A
+  rut=13######4-4  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=31  slip=420  contract_id=N/A
+  rut=14######4-6  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=141  slip=466  contract_id=N/A
+  rut=20######5-3  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=44  slip=430  contract_id=N/A
+  rut=17######7-0  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=51  slip=435  contract_id=N/A
+  rut=20######6-1  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=54  slip=438  contract_id=N/A
+  rut=18######2-2  f13='30'  nlin=105  anexas=0  dep=Hotel Parador  comp=7  emp=58  slip=442  contract_id=N/A
+  rut=16######9-1  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=136  slip=464  contract_id=N/A
+  rut=20######6-K  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=110  slip=456  contract_id=N/A
+  rut=18######5-8  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=96  slip=447  contract_id=N/A
+  rut=26######0-2  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=112  slip=458  contract_id=N/A
+  rut=12######1-8  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=34  slip=421  contract_id=N/A
+  rut=13######8-5  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=41  slip=427  contract_id=N/A
+  rut=12######4-K  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=22  slip=413  contract_id=N/A
+  rut=19######8-5  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=209  slip=482  contract_id=N/A
+  rut=12######2-4  f13='30'  nlin=105  anexas=2  dep=CHCLB 25086  comp=7  emp=239  slip=490  contract_id=N/A
+  rut=11######9-3  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=108  slip=454  contract_id=N/A
+  rut=13######8-9  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=211  slip=484  contract_id=N/A
+  rut=12######4-4  f13='30'  nlin=105  anexas=0  dep=CHCLB 26001  comp=7  emp=212  slip=485  contract_id=N/A
+  rut=12######9-4  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=133  slip=463  contract_id=N/A
+  rut=16######3-0  f13='30'  nlin=105  anexas=0  dep=Seguridad y Romana  comp=7  emp=24  slip=414  contract_id=N/A
+  rut=21######7-4  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=27  slip=417  contract_id=N/A
+  rut=92######2-8  f13='29'  nlin=105  anexas=1  dep=Administración y Finanzas  comp=7  emp=242  slip=532  contract_id=N/A
+  rut=14######5-8  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=104  slip=452  contract_id=N/A
+  rut=20######3-4  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=159  slip=472  contract_id=N/A
+  rut=11######6-4  f13='30'  nlin=105  anexas=0  dep=CHCLB 25086  comp=7  emp=85  slip=474  contract_id=N/A
+  rut=10######6-9  f13='30'  nlin=105  anexas=0  dep=Aseo Industrial CMPC  comp=7  emp=109  slip=455  contract_id=N/A
+
+===== DIAGNÓSTICO field 13 =====
+  SLIP/491 id=488 state=done emp=237 ident=10.xxx.xxx-3 contract=205(2026-07-13..2026-07-18)
+    wd: code=WORK100 is_leave=False days=6.0 name=Asistencia
+    wd: code=OUT is_leave=False days=12.0 name=Fuera de contrato (Medio día)
+  vendor _dias_trabajados_previred() = 6
+  eligible_payslips count = 78
+  claves de índice (muestra): [((0, '000019105681', '7'), ['SLIP/483']), ((0, '000010731730', '9'), ['SLIP/419']), ((0, '000010741390', '1'), ['SLIP/474']), ((0, '000014581636', 'K'), ['SLIP/440']), ((0, '000020229817', '6'), ['SLIP/464'])]
+
+REPRO_OK
+
+[exited with code 0]
