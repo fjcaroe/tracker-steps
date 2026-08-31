@@ -491,6 +491,11 @@ class PreviredExtractor(models.AbstractModel):
         * El formato oficial es entero: `6.00` se exporta como `6`. Una
           fracción no representable no se trunca en silencio: se informa un
           error auditable.
+        * El mes previsional Previred es de 30 días: la especificación exige
+          `0 =< días =< 30` y el propio generador del proveedor acota con
+          `min(30, …)`. Si la suma de asistencia supera 30 (p. ej. un mes
+          calendario de 31 días) se acota a 30 y queda una advertencia; no es
+          pérdida de dato sino el modelo de 30 días del formato.
         * Si no hay una fuente válida no se inventa un valor (ni días
           calendario, ni el rango de la liquidación, ni «30 − ausencias»):
           se informa un error preciso que identifica la liquidación.
@@ -522,8 +527,18 @@ class PreviredExtractor(models.AbstractModel):
                       rut=record.rut, dv=record.dv,
                       slip=self._payslip_ref(payslip), value=total)))
             else:
-                value = str(int(amount.quantize(
-                    Decimal("1"), rounding=ROUND_HALF_UP)))
+                days = int(amount.quantize(
+                    Decimal("1"), rounding=ROUND_HALF_UP))
+                if days > 30:
+                    dataset.issues.append(previred.Issue(
+                        previred.SEVERITY_WARNING, "worked_days_capped",
+                        _("RUT %(rut)s-%(dv)s: la asistencia de la liquidación "
+                          "%(slip)s suma %(days)s días; el mes previsional "
+                          "Previred es de 30 y el campo 13 se acota a 30.",
+                          rut=record.rut, dv=record.dv,
+                          slip=self._payslip_ref(payslip), days=days)))
+                    days = 30
+                value = str(days)
         elif worked_days_lines:
             # Hay detalle de días en la liquidación pero ninguna línea de
             # asistencia: no se deduce el valor de otra fuente.

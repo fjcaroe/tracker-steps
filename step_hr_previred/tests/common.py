@@ -178,37 +178,48 @@ class PreviredCase(TransactionCase):
 
     @classmethod
     def make_payslip(cls, employee, department=None, company=None,
-                     date_from=None, date_to=None, state="done"):
+                     date_from=None, date_to=None, state="done",
+                     contract=None, contract_date_start="2024-01-01",
+                     contract_date_end=False, contract_state="open"):
         """Liquidación con contrato, que es de donde sale el departamento.
 
         Nace en `done` porque el extractor sólo exporta liquidaciones
         validadas; las pruebas que quieren ejercitar el filtro pasan otro
         estado explícitamente.
+
+        Para el caso de dos contratos en el mismo período se puede pasar un
+        `contract` ya creado, o fechas y estado de contrato explícitos: el
+        stack rechaza dos contratos vigentes solapados del mismo trabajador,
+        así que deben ir en rangos que no se pisen (uno cerrado y otro
+        vigente, por ejemplo), tal como ocurre en los datos reales.
         """
         company = company or cls.company
         date_from = date_from or cls.date_from
         date_to = date_to or cls.date_to
-        contract_values = {
-            "name": "Contrato %s" % employee.name,
-            "employee_id": employee.id,
-            "company_id": company.id,
-            "date_start": "2024-01-01",
-            "wage": 800000,
-            "structure_type_id": cls.structure.type_id.id,
-            "department_id": department.id if department else False,
-            "state": "open",
-        }
-        # SimpleDigital materializa este campo como NOT NULL aunque en otras
-        # bases/motores no exista. La fixture usa el maestro real disponible
-        # para probar el core sin depender del proveedor instalado.
         contract_model = cls.env["hr.contract"]
-        contract_type_field = contract_model._fields.get("contract_type_id")
-        if contract_type_field:
-            contract_type = cls.env[
-                contract_type_field.comodel_name].search([], limit=1)
-            if contract_type:
-                contract_values["contract_type_id"] = contract_type.id
-        contract = contract_model.create(contract_values)
+        if contract is None:
+            contract_values = {
+                "name": "Contrato %s" % employee.name,
+                "employee_id": employee.id,
+                "company_id": company.id,
+                "date_start": contract_date_start,
+                "wage": 800000,
+                "structure_type_id": cls.structure.type_id.id,
+                "department_id": department.id if department else False,
+                "state": contract_state,
+            }
+            if contract_date_end:
+                contract_values["date_end"] = contract_date_end
+            # SimpleDigital materializa este campo como NOT NULL aunque en
+            # otras bases/motores no exista. La fixture usa el maestro real
+            # disponible para probar el core sin depender del proveedor.
+            contract_type_field = contract_model._fields.get("contract_type_id")
+            if contract_type_field:
+                contract_type = cls.env[
+                    contract_type_field.comodel_name].search([], limit=1)
+                if contract_type:
+                    contract_values["contract_type_id"] = contract_type.id
+            contract = contract_model.create(contract_values)
         payslip = cls.env["hr.payslip"].create({
             "name": "Liquidación %s" % employee.name,
             "employee_id": employee.id,

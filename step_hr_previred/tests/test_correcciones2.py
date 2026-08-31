@@ -156,10 +156,21 @@ class TestMultiplesContratos(PreviredCase):
 
     def _two_contract_employee(self, identification="10339402-3",
                                states=("done", "done")):
+        """Trabajador con dos contratos elegibles en el mismo período.
+
+        Como en los datos reales (María Riquelme en Demo-SyS): dos contratos
+        que **no se solapan** —uno cerrado a mitad de mes y otro que arranca
+        después—, cada uno con su liquidación del mes completo.
+        """
         employee = self.make_employee("Maria Riquelme", identification,
                                       self.dep_agri)
-        first = self.make_payslip(employee, self.dep_agri, state=states[0])
-        second = self.make_payslip(employee, self.dep_agri, state=states[1])
+        first = self.make_payslip(
+            employee, self.dep_agri, state=states[0],
+            contract_date_start="2026-08-01", contract_date_end="2026-08-15",
+            contract_state="close")
+        second = self.make_payslip(
+            employee, self.dep_agri, state=states[1],
+            contract_date_start="2026-08-16", contract_state="open")
         return employee, first, second
 
     def _rows(self, count, line_type=previred.LINE_PRINCIPAL, rut="10339402",
@@ -227,10 +238,8 @@ class TestMultiplesContratos(PreviredCase):
             self.assertEqual(len(record.annexes), 1)
 
     def test_same_rut_in_two_companies_is_validated_separately(self):
-        self.make_employee("Doble A", "33333333-3", self.dep_agri)
-        self.make_payslip(self.env["hr.employee"].search(
-            [("identification_id", "=", "33333333-3")], limit=1),
-            self.dep_agri)
+        emp_a = self.make_employee("Doble A", "33333333-3", self.dep_agri)
+        self.make_payslip(emp_a, self.dep_agri)
         other_employee = self.env["hr.employee"].create({
             "name": "Doble B", "identification_id": "33333333-3",
             "company_id": self.other_company.id})
@@ -244,8 +253,10 @@ class TestMultiplesContratos(PreviredCase):
     def test_payslip_in_another_period_does_not_add_a_principal(self):
         employee = self.make_employee("Otro Periodo", "44444444-4",
                                       self.dep_agri)
-        self.make_payslip(employee, self.dep_agri)
+        current = self.make_payslip(employee, self.dep_agri)
+        # Mismo contrato, liquidación de otro mes: no debe sumar principal.
         self.make_payslip(employee, self.dep_agri,
+                          contract=current.contract_id,
                           date_from="2026-07-01", date_to="2026-07-31")
         dataset = self.build([make_row(rut="44444444", dv="4")])
         self.assertEqual(len(dataset.records), 1)
