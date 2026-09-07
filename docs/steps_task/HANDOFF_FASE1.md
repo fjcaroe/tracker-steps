@@ -164,10 +164,32 @@ de cosecha (`/cosecha/` = Steps Harvest).
   same-origin resuelve al Odoo de cada vhost).
 - Runbook completo: [`docs/DESPLIEGUE_TASK.md`](../DESPLIEGUE_TASK.md).
 
+## Post-entrega — correcciones 2026-09-07 (`step_task` `18.0.1.3.0`)
+
+- **Layout Home**: "Acciones rápidas" y "Orden de trabajo activa" pasan a
+  secciones de ancho completo (iban dentro de `dashboard-grid` y el 3er botón
+  se salía del panel). Front commit `67f48ae`.
+- **Informes desde la web**: nuevo modelo `step.task.report` (fuente única,
+  `build`/`to_xlsx`) + endpoints `GET /api/task/reports` y
+  `GET /api/task/report/<key>?format=json|xlsx`. La página Reportes de la PWA
+  ahora tiene, por informe, un formulario de filtros + **Ver** (previsualiza la
+  tabla en un modal, con resaltado de días bajo/sobre jornada y totales) +
+  **Descargar XLSX**. Ya no redirige a Odoo. Los wizards de consola quedaron
+  como wrappers finos sobre `step.task.report`. Odoo commit `95acb5c`.
+- Desplegado a **dev y demo** (`-u step_task`, `18.0.1.3.0`); front en
+  `/var/www/task/` (compartido); `odoo18-dev.service` y `odoo18-demo.service`
+  reiniciados para cargar las rutas nuevas del controlador. Verificado por shell
+  (los 4 `build`+`to_xlsx` dan XLSX válido; JSON serializa con datos reales) y
+  HTTP (`/api/task/reports` → 303 auth en ambos).
+
 ## Pendiente
 
 - **Repo GitHub del front** `fjcaroe/step_task` (hoy solo local en
   `C:\Users\tito4\Documents\step_task`, rama `main`).
+- Verificación en navegador con un usuario real: tablero OWL, transmisión de una
+  OT, y "Ver"/"Descargar" de los 4 informes.
+- El nº de informes es el del documento 1.1.3 (4). Si el cliente espera otros,
+  agregar la clave a `REPORTS` en `step_task_report.py` + un `_build_<key>`.
 - Verificación con usuario dev: render del tablero OWL en navegador y una
   transmisión con datos reales (LAB_TAREAS no tenía OT con líneas).
 - Cola de sync sin backoff automático (hoy botón manual "Sincronizar").
