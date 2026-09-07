@@ -56,44 +56,84 @@ de cosecha (`/cosecha/` = Steps Harvest).
 - `npm run build` (tsc + vite) OK. Verificado en `vite preview` escritorio y
   móvil 375px (sidebar → bottom-nav, cards apiladas).
 
+## Fase 2 — captura móvil (PWA)  ✅  commit front `c24d292`
+
+- `lib/db.ts` + `context/TaskStore.tsx`: estado local persistido en
+  `localStorage` (maestros, cuadrillas, OT con líneas). Cola de sync = líneas
+  con `synced=false`; idempotencia por `client_uuid` (= id de línea).
+- `lib/uuid.ts`: uuid + `today()` + `isoWeekTag()`.
+- `components/ScannerInput.tsx`: lectura por pistola (teclado-wedge, ráfaga +
+  Enter) + Web NFC (`NDEFReader`), reserva a escritura manual.
+- `components/SearchSelect.tsx`: selector con búsqueda sobre maestros.
+- **Cuadrillas**: crear (propia/contratista, fundo, jefe, contratista), sumar
+  por lectura o del maestro, enrolado rápido (nombre/RUT/NIP/sexo), marca de
+  asistencia (`checkIn`) al sumar, salida anticipada por trabajador, jornada
+  horas + toggle H. extra, cerrar cuadrilla, "repetir día anterior".
+- **Registrar OT**: encabezado (cuadrilla, N° OP=`W<semana>`, N° OT auto, fecha,
+  hora inicio, fundo, autorizador, especie, variedad, centro costos) → detalle
+  por trabajador (labor + relación trato, cantidad, HO, HE; por lectura contra
+  la cuadrilla de la OT, o de un desplegable) → cierre (`closed`) con HO/HE de
+  OT editables y reabrir; "repetir tarja día anterior"; envío parcial (OT en
+  proceso) y transmitir total (OT cerrada).
+- **Órdenes**: lista local con estado de sync por línea + acción parcial/total +
+  sección de OT de la consola (`/api/task/recent`); `AppShell` con botón
+  Sincronizar y badge de pendientes.
+- **Configuración**: Descargar maestros (`/api/task/bootstrap`), conteos por
+  maestro, parámetros de jornada/lectura/latencia, id de equipo.
+- `tsc -b && vite build` OK. Verificado en `vite preview`: crear cuadrilla,
+  enrolado rápido con marca de hora, crear OT, persistencia en `localStorage`
+  entre navegaciones, layout móvil.
+- **Pendiente menor**: reintento con backoff explícito de la cola (hoy es
+  reintento manual con el botón Sincronizar); el `sw.js` no registra en el
+  sandbox del preview pero sí en HTTPS real.
+
+## Fase 3 — consola Odoo  ✅  commit `8effe1c` · instalada en dev `LAB_TAREAS`
+
+- `step.tarja`: `mobile_especie_id` / `mobile_variedad_id` (encabezado consola);
+  `task_alert_count` (store) + `task_alert_html` computados con las 4
+  validaciones del doc 1.1.3 (horas < jornada, sin horas, horas > jornada,
+  producción < `can_std` / > `can_max` de la tarifa `pricelist_id`).
+- Acciones: `action_task_review` (→ `reviewed`), `action_task_transmit`
+  (consolida líneas por `employee_id + cost_id + labor_id`, vuelca asistencia
+  entrada/salida a `hr.attendance`, → `sent`, fija `send_type`),
+  `action_task_reset_mobile`.
+- `get_task_dashboard_data(days)` para el tablero.
+- `views/step_tarja_task_views.xml`: list (decoración por `mobile_status`), form
+  (statusbar, botones Aprobar/Transmitir/Reabrir, encabezado, detalle
+  `tarja_registry` editable, pestaña Alertas), search con filtros y agrupados,
+  acciones **Estados OT** (`action_step_task_ot_states`) y **Crear OT**
+  (`action_step_task_crear_ot`).
+- Tablero OWL `step_task.dashboard` (`static/src/js|xml|scss`, tema verde, KPIs,
+  flujo de estados, últimas OT, panel "qué requiere atención", reglas de scroll
+  móvil) + `ir.actions.client` `action_step_task_dashboard`.
+- `menu_views.xml`: menú raíz **Task** — Inicio/Panel · Registro OT (Estados OT,
+  Cuadrillas, Crear OT) · Informes (vacío, Fase 4) · Maestros (Centros de Costo,
+  Productos/Labores, Trabajadores, Contratistas, Cuadrillas) · Configuración
+  (Fundo, Especie, Variedad). Reutiliza acciones de `step_hr`.
+- **Validado en dev**: `-i step_task` en `LAB_TAREAS` instala sin error; el
+  servicio `odoo18-dev.service` recargó el registro solo; `get_task_dashboard_data`
+  y el compute de alertas corren sobre datos reales; `/api/task/health` y
+  `/api/task/session` responden en `https://desarrollo.stepsapp.cl`.
+- **Pendiente de verificación con usuario dev** (no tengo credenciales): render
+  del tablero OWL en el navegador y `action_task_transmit` con una OT real
+  (consolidación + asistencia). El módulo quedó copiado en
+  `/opt/dev_odoo18/odoo_agriculture/step_task` (ruta final; NO instalado en demo
+  ni prod).
+
 ## Pendiente
 
-### Fase 2 — captura móvil
-- Descarga de maestros (`/api/task/bootstrap` → IndexedDB/localStorage).
-- Cuadrillas: armar, asistencia por manual/barcode/QR/NFC, enrolado rápido
-  (nombre/RUT/NIP/sexo), hora salida + salida anticipada, "repetir cuadrilla
-  día anterior".
-- OT: encabezado (cuadrilla, tipo, N° OP, N° OT, fecha, hora inicio, fundo,
-  usuario, autorizador, especie, variedad, centro costos) → detalle (trabajador,
-  labor + relación trato, cantidad, HO, HE; alta por digitación o lectura) →
-  cierre (hora cierre, revisión).
-- Cola offline con reintento/backoff; `sync` parcial (OT en proceso) y total.
-- Componente lector barcode/QR (teclado-wedge) + Web NFC.
-
-### Fase 3 — consola Odoo (`step_task`)
-- Menús: Task / (Inicio Panel) / (Registro OT: Estados OT, Cuadrillas, Crear OT)
-  / (Informes) / (Maestros: Centro Costos, Productos-Labores, Trabajadores,
-  Contratistas, Cuadrillas) / (Configuración: Fundo, Especie, Variedad,
-  Cuadrillas, parámetros).
-- Tablero OWL `task_dashboard` (calcar `cosecha_dashboard.js/xml/scss`) con
-  reglas de scroll móvil (`height:100%; min-height:0; overflow-y:auto;
-  touch-action:pan-y`).
-- Acciones: Estados OT → click detalle → Aprobar (`reviewed`) → Transmitir
-  (`sent`) que vuelca a Actividades:
-  - `tarja_type='propio'` → Actividades / Personal propio / Registro Tareas.
-  - `tarja_type='contratista'` → Actividades / Contratistas / Registro Tareas
-    Contratistas.
-  - Sumar líneas por trabajador + centro de costo + labor en una sola.
-- Glue `hr.attendance`: alta de cuadrilla = entrada; cierre OT = salida; cargar
-  HO/HE. Configurar tipo de entrada en Asistencia.
-- Alertas diarias: trabajador con < jornada u 0 horas; con > jornada de HO;
-  producción (Σ cantidad/labor) bajo `pricelist.item.can_std` o sobre `can_max`.
-- Decidir: `step.tarja` no tiene Especie/Variedad/Centro de costos a nivel
-  cabecera (los deriva de `pricelist_id`). Añadir campos propios o resolver vía
-  tarifa.
-- `_rec` de líneas: el detalle móvil hoy va a `step.tarja.registry`; validar si
-  la transmisión a nómina/costeo debe además poblar `step.tarja.line`
-  (`onchange_salary_id` lo llena desde la cuadrilla y `envio_nomina` lo usa).
+### Deuda técnica de las Fases 2-3 a resolver
+- `action_task_transmit` deja el detalle en `step.tarja.registry` consolidado y
+  fija `mobile_status='sent'`, pero **no** puebla `step.tarja.line` (la línea de
+  costeo/sueldo que `onchange_salary_id` llena desde la cuadrilla y que
+  `envio_nomina` usa). Falta decidir/implementar ese volcado para que la OT
+  transmitida entre completa al flujo de nómina de Actividades.
+- Cola de sync sin backoff automático (hoy botón manual "Sincronizar").
+- Encabezado consola usa `mobile_especie_id`/`mobile_variedad_id` propios; no se
+  reconcilian con `especie_id`/`grupo_variedad_id` que derivan de `pricelist_id`.
+- Sin grupos de seguridad propios: el menú Task se gatilla en `base.group_user`.
+- Verificación pendiente con usuario dev: render del tablero OWL y transmisión
+  con datos reales.
 
 ### Fase 4 — informes (wizards XLSX, patrón `hr_entry_xls_wizard`)
 1. **Data Steps Task** (Anexo 1.1.3.3): 1 fila por línea de OT transmitida.
