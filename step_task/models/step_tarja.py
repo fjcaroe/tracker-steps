@@ -5,6 +5,12 @@ from datetime import timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
+_TASK_ALERT_DEPENDS = (
+    'tarja_registry.employee_id', 'tarja_registry.hrs', 'tarja_registry.hrs_extra',
+    'tarja_registry.quantity', 'tarja_registry.labor_id', 'tarja_registry.cost_id',
+    'hr_ordinarias', 'pricelist_id',
+)
+
 
 class StepTarja(models.Model):
     """Capa Steps Task sobre la cabecera de OT de labores (``step.tarja``).
@@ -77,9 +83,9 @@ class StepTarja(models.Model):
 
     num_workers = fields.Integer(string='N° trabajadores', compute='_compute_num_workers')
     task_alert_count = fields.Integer(
-        string='Alertas Task', compute='_compute_task_alerts', store=True)
+        string='Alertas Task', compute='_compute_task_alert_count', store=True)
     task_alert_html = fields.Html(
-        string='Detalle de alertas', compute='_compute_task_alerts', sanitize=False)
+        string='Detalle de alertas', compute='_compute_task_alert_html', sanitize=False)
 
     @api.depends('tarja_registry.employee_id', 'tarja_line.employee_id')
     def _compute_num_workers(self):
@@ -156,12 +162,15 @@ class StepTarja(models.Model):
                 })
         return alerts
 
-    @api.depends('tarja_registry.employee_id', 'tarja_registry.hrs', 'tarja_registry.hrs_extra',
-                 'tarja_registry.quantity', 'tarja_registry.labor_id', 'hr_ordinarias', 'pricelist_id')
-    def _compute_task_alerts(self):
+    @api.depends(*_TASK_ALERT_DEPENDS)
+    def _compute_task_alert_count(self):
+        for record in self:
+            record.task_alert_count = len(record._task_alerts())
+
+    @api.depends(*_TASK_ALERT_DEPENDS)
+    def _compute_task_alert_html(self):
         for record in self:
             alerts = record._task_alerts()
-            record.task_alert_count = len(alerts)
             if alerts:
                 rows = ''.join(
                     '<li class="text-%s">%s</li>' % (a['level'], a['text']) for a in alerts
@@ -201,6 +210,40 @@ class StepTarja(models.Model):
             })
             (lines - keeper).unlink()
 
+    def _task_build_costing_lines(self):
+        """Prepara ``step.tarja.line`` (línea de costeo/nómina de Actividades) a
+        partir del detalle móvil consolidado, cuando aún no existe.
+
+        Es tolerante: cada línea se crea en su propio savepoint y se omite
+        (sin abortar la transmisión) si ``step.tarja.line`` la rechaza — por
+        ejemplo si el trabajador ya tiene un registro de labor para esa fecha.
+        """
+        self.ensure_one()
+        if self.tarja_line:
+            return
+        Line = self.env['step.tarja.line']
+        for reg in self.tarja_registry:
+            if not reg.employee_id:
+                continue
+            contract = self.env['hr.contract'].search(
+                [('employee_id', '=', reg.employee_id.id)], limit=1)
+            values = {
+                'tarja_id': self.id,
+                'employee_id': reg.employee_id.id,
+                'contract_id': contract.id or False,
+                'cost_id': reg.cost_id.id or False,
+                'labor_id': reg.labor_id.id or False,
+                'uom_id': reg.uom_id.id or False,
+                'quantity': reg.quantity or 0.0,
+                'hrs': reg.hrs or 0.0,
+                'hrs_extra': reg.hrs_extra or 0.0,
+            }
+            try:
+                with self.env.cr.savepoint():
+                    Line.create(values)
+            except Exception:  # noqa: BLE001
+                continue
+
     def _task_sync_attendance(self):
         """Vuelca la asistencia de la OT (entrada = hora inicio, salida = hora
         cierre) a ``hr.attendance``."""
@@ -229,6 +272,10 @@ class StepTarja(models.Model):
             if not record.tarja_registry:
                 raise UserError(_('La OT %s no tiene líneas para transmitir.', record.display_name))
             record._task_consolidate_lines()
+            try:
+                record._task_build_costing_lines()
+            except Exception:  # noqa: BLE001 - no debe bloquear la transmisión
+                pass
             try:
                 record._task_sync_attendance()
             except Exception:  # noqa: BLE001 - la asistencia no debe bloquear la transmisión

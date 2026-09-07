@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_report_task_data,report.task.data,model_report_task_data,base.group_user,1,1,1,1
+access_report_task_hours,report.task.hours,model_report_task_hours,base.group_user,1,1,1,1
+access_report_task_yield,report.task.yield,model_report_task_yield,base.group_user,1,1,1,1
+access_report_task_yield_analysis,report.task.yield.analysis,model_report_task_yield_analysis,base.group_user,1,1,1,1

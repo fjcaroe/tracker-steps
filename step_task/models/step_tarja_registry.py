@@ -7,6 +7,7 @@ class StepTarjaRegistry(models.Model):
     """Línea de detalle de la OT con metadatos de captura móvil."""
 
     _inherit = 'step.tarja.registry'
+    _description = 'Detalle de OT de labores'
 
     mobile_uid = fields.Char(
         string='UID móvil',

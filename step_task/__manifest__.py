@@ -17,7 +17,7 @@
     'author': "Steps Consulting",
     'website': "https://stepsapp.cl",
     'category': 'Operations/Agriculture',
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.2.0',
     'license': 'LGPL-3',
     'depends': [
         'base',
@@ -29,10 +29,12 @@
         'step_hr',
     ],
     'data': [
+        'security/ir.model.access.csv',
         'data/ir_sequence.xml',
         'views/task_dashboard_views.xml',
         'views/step_tarja_task_views.xml',
         'views/menu_views.xml',
+        'wizard/task_report_wizards.xml',
     ],
     'assets': {
         'web.assets_backend': [

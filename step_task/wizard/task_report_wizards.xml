@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- =============== Data Steps Task (Anexo 1.1.3.3) =============== -->
+    <record id="view_report_task_data_form" model="ir.ui.view">
+        <field name="name">report.task.data.form</field>
+        <field name="model">report.task.data</field>
+        <field name="arch" type="xml">
+            <form string="Data Steps Task">
+                <group invisible="file">
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="only_transmitted"/>
+                </group>
+                <group string="Resultado" invisible="not file">
+                    <field name="file_name" invisible="1"/>
+                    <field name="file" filename="file_name" readonly="1"/>
+                </group>
+                <footer>
+                    <button string="Generar" name="action_generate" type="object" class="btn-primary"
+                            invisible="file"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_report_task_data" model="ir.actions.act_window">
+        <field name="name">Data Steps Task</field>
+        <field name="res_model">report.task.data</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- =============== Horas diarias (Anexo 1.1.3.1) =============== -->
+    <record id="view_report_task_hours_form" model="ir.ui.view">
+        <field name="name">report.task.hours.form</field>
+        <field name="model">report.task.hours</field>
+        <field name="arch" type="xml">
+            <form string="Horas diarias">
+                <group invisible="file">
+                    <group>
+                        <field name="year"/>
+                        <field name="month"/>
+                        <field name="jornada_hours"/>
+                    </group>
+                    <group>
+                        <field name="fundo_id"/>
+                        <field name="crew_id"/>
+                    </group>
+                </group>
+                <group string="Resultado" invisible="not file">
+                    <field name="file_name" invisible="1"/>
+                    <field name="file" filename="file_name" readonly="1"/>
+                </group>
+                <footer>
+                    <button string="Generar" name="action_generate" type="object" class="btn-primary"
+                            invisible="file"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_report_task_hours" model="ir.actions.act_window">
+        <field name="name">Horas diarias</field>
+        <field name="res_model">report.task.hours</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- =============== Rendimientos diarios (Anexo 1.1.3.2) =============== -->
+    <record id="view_report_task_yield_form" model="ir.ui.view">
+        <field name="name">report.task.yield.form</field>
+        <field name="model">report.task.yield</field>
+        <field name="arch" type="xml">
+            <form string="Rendimientos diarios">
+                <group invisible="file">
+                    <group>
+                        <field name="year"/>
+                        <field name="month"/>
+                    </group>
+                    <group>
+                        <field name="fundo_id"/>
+                        <field name="crew_id"/>
+                    </group>
+                </group>
+                <group string="Resultado" invisible="not file">
+                    <field name="file_name" invisible="1"/>
+                    <field name="file" filename="file_name" readonly="1"/>
+                </group>
+                <footer>
+                    <button string="Generar" name="action_generate" type="object" class="btn-primary"
+                            invisible="file"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_report_task_yield" model="ir.actions.act_window">
+        <field name="name">Rendimientos diarios</field>
+        <field name="res_model">report.task.yield</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- =============== Análisis de rendimientos (Anexo 1.1.3.4) =============== -->
+    <record id="view_report_task_yield_analysis_form" model="ir.ui.view">
+        <field name="name">report.task.yield.analysis.form</field>
+        <field name="model">report.task.yield.analysis</field>
+        <field name="arch" type="xml">
+            <form string="Análisis de rendimientos">
+                <group invisible="file">
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="fundo_id"/>
+                </group>
+                <group string="Resultado" invisible="not file">
+                    <field name="file_name" invisible="1"/>
+                    <field name="file" filename="file_name" readonly="1"/>
+                </group>
+                <footer>
+                    <button string="Generar" name="action_generate" type="object" class="btn-primary"
+                            invisible="file"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_report_task_yield_analysis" model="ir.actions.act_window">
+        <field name="name">Análisis de rendimientos</field>
+        <field name="res_model">report.task.yield.analysis</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- =============== Menús bajo Task / Informes =============== -->
+    <menuitem id="menu_report_task_data" name="Data Steps Task"
+              parent="menu_step_task_reports" action="action_report_task_data" sequence="10"/>
+    <menuitem id="menu_report_task_hours" name="Horas diarias"
+              parent="menu_step_task_reports" action="action_report_task_hours" sequence="20"/>
+    <menuitem id="menu_report_task_yield" name="Rendimientos diarios"
+              parent="menu_step_task_reports" action="action_report_task_yield" sequence="30"/>
+    <menuitem id="menu_report_task_yield_analysis" name="Análisis de rendimientos"
+              parent="menu_step_task_reports" action="action_report_task_yield_analysis" sequence="40"/>
+
+</odoo>
