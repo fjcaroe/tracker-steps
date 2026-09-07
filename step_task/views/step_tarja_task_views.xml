@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_step_tarja_task_tree" model="ir.ui.view">
+        <field name="name">step.tarja.task.tree</field>
+        <field name="model">step.tarja</field>
+        <field name="arch" type="xml">
+            <list string="Estados OT" decoration-warning="mobile_status == 'closed'"
+                  decoration-info="mobile_status == 'progress'"
+                  decoration-success="mobile_status == 'sent'"
+                  decoration-muted="mobile_status == 'reviewed'">
+                <field name="mobile_work_order" string="N° OT"/>
+                <field name="date"/>
+                <field name="tarja_type"/>
+                <field name="partner_id" optional="show"/>
+                <field name="salary_id" string="Cuadrilla" optional="show"/>
+                <field name="salary_id_contrac" string="Cuadrilla contr." optional="hide"/>
+                <field name="fundo_id" optional="show"/>
+                <field name="op_number" string="N° OP" optional="show"/>
+                <field name="mobile_device" string="Equipo" optional="hide"/>
+                <field name="mobile_user" string="Usuario móvil" optional="hide"/>
+                <field name="num_workers" string="Trab."/>
+                <field name="hora_inicio" optional="hide"/>
+                <field name="hora_cierre" optional="hide"/>
+                <field name="hr_ordinarias" string="H. ord." sum="H. ord."/>
+                <field name="hr_extras" string="H. extra" sum="H. extra"/>
+                <field name="send_type" string="Envío" optional="show"/>
+                <field name="task_alert_count" string="Alertas"/>
+                <field name="mobile_status" widget="badge"
+                       decoration-info="mobile_status == 'progress'"
+                       decoration-warning="mobile_status == 'closed'"
+                       decoration-success="mobile_status == 'sent'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tarja_task_form" model="ir.ui.view">
+        <field name="name">step.tarja.task.form</field>
+        <field name="model">step.tarja</field>
+        <field name="arch" type="xml">
+            <form string="Orden de trabajo Task">
+                <header>
+                    <button name="action_task_review" type="object" string="Aprobar"
+                            class="btn-primary"
+                            invisible="mobile_status not in ('progress', 'closed')"/>
+                    <button name="action_task_transmit" type="object" string="Transmitir a Actividades"
+                            class="btn-primary" confirm="Se consolidarán las líneas por trabajador, centro de costos y labor. ¿Transmitir?"
+                            invisible="mobile_status != 'reviewed'"/>
+                    <button name="action_task_reset_mobile" type="object" string="Reabrir"
+                            invisible="mobile_status in ('progress', False)"/>
+                    <field name="mobile_status" widget="statusbar"
+                           statusbar_visible="progress,closed,reviewed,sent"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="mobile_work_order" string="Orden de trabajo"/>
+                        <h1><field name="mobile_work_order" placeholder="N° OT"/></h1>
+                    </div>
+                    <group>
+                        <group string="Encabezado">
+                            <field name="tarja_type"/>
+                            <field name="salary_id" string="Cuadrilla"
+                                   invisible="tarja_type != 'propio'"/>
+                            <field name="salary_id_contrac" string="Cuadrilla contratista"
+                                   invisible="tarja_type != 'contratista'"/>
+                            <field name="partner_id" string="Contratista"
+                                   invisible="tarja_type != 'contratista'"/>
+                            <field name="op_number"/>
+                            <field name="date"/>
+                            <field name="user_id"/>
+                            <field name="auto_id"/>
+                            <field name="fundo_id"/>
+                        </group>
+                        <group string="Operación">
+                            <field name="mobile_especie_id"/>
+                            <field name="mobile_variedad_id"/>
+                            <field name="pricelist_id"/>
+                            <field name="hora_inicio"/>
+                            <field name="hora_cierre"/>
+                            <field name="hr_ordinarias"/>
+                            <field name="hr_extras"/>
+                            <field name="send_type"/>
+                            <field name="mobile_device"/>
+                            <field name="mobile_user"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Detalle" name="detalle">
+                            <field name="tarja_registry">
+                                <list editable="bottom">
+                                    <field name="employee_id"/>
+                                    <field name="cost_id"/>
+                                    <field name="labor_id"/>
+                                    <field name="relacion_trato" optional="hide"/>
+                                    <field name="uom_id" optional="show"/>
+                                    <field name="quantity"/>
+                                    <field name="hrs" string="H. ord."/>
+                                    <field name="hrs_extra" string="H. extra"/>
+                                    <field name="read_method" optional="show"/>
+                                    <field name="event_datetime" optional="hide"/>
+                                    <field name="mobile_uid" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Alertas" name="alertas">
+                            <field name="task_alert_count" invisible="1"/>
+                            <field name="task_alert_html" widget="html" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_tarja_task_search" model="ir.ui.view">
+        <field name="name">step.tarja.task.search</field>
+        <field name="model">step.tarja</field>
+        <field name="arch" type="xml">
+            <search string="OT Task">
+                <field name="mobile_work_order" string="N° OT"/>
+                <field name="salary_id"/>
+                <field name="salary_id_contrac"/>
+                <field name="fundo_id"/>
+                <field name="partner_id"/>
+                <filter name="f_progress" string="En proceso" domain="[('mobile_status', '=', 'progress')]"/>
+                <filter name="f_closed" string="Cerradas" domain="[('mobile_status', '=', 'closed')]"/>
+                <filter name="f_reviewed" string="Revisadas" domain="[('mobile_status', '=', 'reviewed')]"/>
+                <filter name="f_sent" string="Transmitidas" domain="[('mobile_status', '=', 'sent')]"/>
+                <separator/>
+                <filter name="f_alerts" string="Con alertas" domain="[('task_alert_count', '>', 0)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="g_status" string="Estado móvil" context="{'group_by': 'mobile_status'}"/>
+                    <filter name="g_type" string="Tipo tarea" context="{'group_by': 'tarja_type'}"/>
+                    <filter name="g_farm" string="Fundo" context="{'group_by': 'fundo_id'}"/>
+                    <filter name="g_date" string="Fecha" context="{'group_by': 'date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_step_task_ot_states" model="ir.actions.act_window">
+        <field name="name">Estados OT</field>
+        <field name="res_model">step.tarja</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('mobile_status', '!=', False)]</field>
+        <field name="search_view_id" ref="view_step_tarja_task_search"/>
+        <field name="context">{
+            'default_mobile_status': 'progress',
+            'search_default_f_closed': 1,
+            'search_default_f_progress': 1,
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no llegan OT desde Steps Task.</p>
+            <p>Las OT enviadas desde la app móvil aparecen aquí para revisión y transmisión a Actividades.</p>
+        </field>
+    </record>
+
+    <record id="action_step_task_ot_states_tree_view" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_step_tarja_task_tree"/>
+        <field name="act_window_id" ref="action_step_task_ot_states"/>
+    </record>
+    <record id="action_step_task_ot_states_form_view" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_step_tarja_task_form"/>
+        <field name="act_window_id" ref="action_step_task_ot_states"/>
+    </record>
+
+    <record id="action_step_task_crear_ot" model="ir.actions.act_window">
+        <field name="name">Crear OT</field>
+        <field name="res_model">step.tarja</field>
+        <field name="view_mode">form,list</field>
+        <field name="view_id" ref="view_step_tarja_task_form"/>
+        <field name="context">{'default_mobile_status': 'progress'}</field>
+    </record>
+
+</odoo>

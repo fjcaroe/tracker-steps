@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_task.Dashboard">
+        <main class="o_task_dashboard">
+            <header class="o_task_hero">
+                <div>
+                    <span>GESTIÓN DE LABORES</span>
+                    <h1>Steps Task</h1>
+                    <p t-if="state.data">Recepción y transmisión de OT de labores de <strong t-esc="state.data.company_name"/>.</p>
+                </div>
+                <div class="o_task_hero_actions">
+                    <div class="btn-group" role="group" aria-label="Período">
+                        <button t-foreach="[7, 30, 90]" t-as="d" t-key="d" type="button"
+                                t-att-class="'btn ' + (state.days === d ? 'btn-light' : 'btn-outline-light')"
+                                t-on-click="() => this.load(d)"><t t-esc="d"/> días</button>
+                        <button type="button"
+                                t-att-class="'btn ' + (state.days === 0 ? 'btn-light' : 'btn-outline-light')"
+                                t-on-click="() => this.load(0)"><i class="fa fa-history me-1"/> Todo</button>
+                    </div>
+                    <button type="button" class="btn btn-light"
+                            t-on-click="() => this.openAction('step_task.action_step_task_crear_ot')">
+                        <i class="fa fa-plus me-1"/> Crear OT
+                    </button>
+                    <button type="button" class="btn btn-outline-light"
+                            t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                        <i class="fa fa-list me-1"/> Estados OT
+                    </button>
+                </div>
+            </header>
+
+            <div t-if="state.loading" class="o_task_loading"><i class="fa fa-spinner fa-spin"/> Cargando…</div>
+            <div t-elif="state.error" class="o_task_empty">
+                <i class="fa fa-exclamation-circle me-1"/> <t t-esc="state.error"/>
+                <button type="button" class="btn btn-primary ms-2" t-on-click="() => this.load()">Reintentar</button>
+            </div>
+            <t t-elif="state.data">
+                <section class="o_task_kpis">
+                    <button t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                        <span>OT recibidas</span>
+                        <strong t-esc="num(state.data.kpis.received)"/>
+                        <small><t t-esc="state.data.period_label"/></small>
+                    </button>
+                    <button t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                        <span>Por revisar</span>
+                        <strong t-esc="num(state.data.kpis.to_review)"/>
+                        <small>OT cerradas en el equipo</small>
+                    </button>
+                    <button t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                        <span>Por transmitir</span>
+                        <strong t-esc="num(state.data.kpis.to_transmit)"/>
+                        <small>Revisadas, listas para Actividades</small>
+                    </button>
+                    <article>
+                        <span>Transmitidas</span>
+                        <strong t-esc="num(state.data.kpis.transmitted)"/>
+                        <small>Volcadas a Actividades</small>
+                    </article>
+                    <article t-att-class="state.data.kpis.alerts ? 'is-warning' : ''">
+                        <span>Alertas de validación</span>
+                        <strong t-esc="num(state.data.kpis.alerts)"/>
+                        <small>Horas y producción fuera de rango</small>
+                    </article>
+                </section>
+
+                <section class="o_task_flow">
+                    <div><i>1</i><span><b>En proceso</b><small t-esc="state.data.states.progress"/></span></div><em/>
+                    <div><i>2</i><span><b>Cerrada</b><small t-esc="state.data.states.closed"/></span></div><em/>
+                    <div><i>3</i><span><b>Revisada</b><small t-esc="state.data.states.reviewed"/></span></div><em/>
+                    <div><i>4</i><span><b>Transmitida</b><small t-esc="state.data.states.sent"/></span></div>
+                </section>
+
+                <div class="o_task_grid">
+                    <section class="o_task_panel">
+                        <header>
+                            <div><span t-esc="state.data.period_label.toUpperCase()"/><h2>Últimas OT recibidas</h2></div>
+                            <button class="btn btn-link" t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">Ver todas</button>
+                        </header>
+                        <div t-if="state.data.recent.length" class="o_task_recent">
+                            <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openOrder(row.id)">
+                                <i t-att-class="'is-' + row.status"/>
+                                <span><b t-esc="row.name"/><small><t t-esc="row.crew"/> · <t t-esc="row.type_label"/> · <t t-esc="row.farm"/></small></span>
+                                <em><t t-esc="row.workers"/> trab.</em>
+                                <strong t-if="row.alerts" class="o_task_alert_badge"><i class="fa fa-exclamation-triangle"/> <t t-esc="row.alerts"/></strong>
+                                <b t-att-class="'is-' + row.status" t-esc="row.status_label"/>
+                                <time t-esc="fmtDate(row.date)"/>
+                            </button>
+                        </div>
+                        <div t-else="" class="o_task_empty">Sin OT en este período.</div>
+                    </section>
+
+                    <aside class="o_task_panel o_task_attention">
+                        <header><div><span>CONTROL OPERATIVO</span><h2>Qué requiere atención</h2></div></header>
+                        <button t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                            <i class="fa fa-clock-o"/>
+                            <span><b><t t-esc="state.data.kpis.to_review"/> OT por revisar</b><small>Cerradas en terreno, esperan aprobación.</small></span>
+                        </button>
+                        <button t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                            <i class="fa fa-paper-plane-o"/>
+                            <span><b><t t-esc="state.data.kpis.to_transmit"/> OT por transmitir</b><small>Revisadas, listas para volcar a Actividades.</small></span>
+                        </button>
+                        <button t-on-click="() => this.openAction('step_task.action_step_task_ot_states')">
+                            <i class="fa fa-exclamation-triangle"/>
+                            <span><b><t t-esc="state.data.kpis.alerts"/> alertas de validación</b><small>Trabajadores fuera de jornada o producción fuera del rango de la tarifa.</small></span>
+                        </button>
+                        <div class="o_task_attention_note">
+                            <i class="fa fa-info-circle"/>
+                            <p>Al transmitir se consolidan las líneas por trabajador, centro de costos y labor, y se registra la asistencia de la OT.</p>
+                        </div>
+                    </aside>
+                </div>
+            </t>
+        </main>
+    </t>
+</templates>

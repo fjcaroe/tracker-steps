@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_step_task_root" name="Task" sequence="46"
+              web_icon="step_task,static/description/icon.png"
+              groups="base.group_user"/>
+
+    <!-- Inicio -->
+    <menuitem id="menu_step_task_home" name="Inicio"
+              parent="menu_step_task_root" sequence="10"/>
+    <menuitem id="menu_step_task_dashboard" name="Panel"
+              parent="menu_step_task_home"
+              action="action_step_task_dashboard" sequence="10"/>
+
+    <!-- Registro OT -->
+    <menuitem id="menu_step_task_registro" name="Registro OT"
+              parent="menu_step_task_root" sequence="20"/>
+    <menuitem id="menu_step_task_ot_states" name="Estados OT"
+              parent="menu_step_task_registro"
+              action="action_step_task_ot_states" sequence="10"/>
+    <menuitem id="menu_step_task_crews_reg" name="Cuadrillas"
+              parent="menu_step_task_registro"
+              action="step_hr.action_hr_salary_custom" sequence="20"/>
+    <menuitem id="menu_step_task_create_ot" name="Crear OT"
+              parent="menu_step_task_registro"
+              action="action_step_task_crear_ot" sequence="30"/>
+
+    <!-- Informes (wizards en Fase 4) -->
+    <menuitem id="menu_step_task_reports" name="Informes"
+              parent="menu_step_task_root" sequence="30"/>
+
+    <!-- Maestros -->
+    <menuitem id="menu_step_task_masters" name="Maestros"
+              parent="menu_step_task_root" sequence="40"/>
+    <menuitem id="menu_step_task_master_cost" name="Centros de Costo"
+              parent="menu_step_task_masters"
+              action="step_hr.action_step_centro_costo_analytic" sequence="10"/>
+    <menuitem id="menu_step_task_master_labor" name="Productos / Labores"
+              parent="menu_step_task_masters"
+              action="step_hr.step_product_template_action" sequence="20"/>
+    <menuitem id="menu_step_task_master_workers" name="Trabajadores"
+              parent="menu_step_task_masters"
+              action="hr.open_view_employee_list_my" sequence="30"/>
+    <menuitem id="menu_step_task_master_contractors" name="Contratistas"
+              parent="menu_step_task_masters"
+              action="step_hr.action_hr_salary_custom_contra" sequence="40"/>
+    <menuitem id="menu_step_task_master_crews" name="Cuadrillas"
+              parent="menu_step_task_masters"
+              action="step_hr.action_hr_salary_custom" sequence="50"/>
+
+    <!-- Configuración -->
+    <menuitem id="menu_step_task_config" name="Configuración"
+              parent="menu_step_task_root" sequence="99"/>
+    <menuitem id="menu_step_task_config_fundo" name="Fundo"
+              parent="menu_step_task_config"
+              action="step_hr.action_step_fundo" sequence="10"/>
+    <menuitem id="menu_step_task_config_especie" name="Especie"
+              parent="menu_step_task_config"
+              action="step_hr.action_step_especie" sequence="20"/>
+    <menuitem id="menu_step_task_config_variedad" name="Variedad"
+              parent="menu_step_task_config"
+              action="step_hr.action_step_variedad" sequence="30"/>
+
+</odoo>

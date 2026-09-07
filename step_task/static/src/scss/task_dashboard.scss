@@ -1,0 +1,229 @@
+.o_task_dashboard {
+    --task-green: #123c33;
+    --task-green-2: #2f8068;
+    --task-lime: #d8ff62;
+    --task-ink: #173029;
+    --task-line: #dce5df;
+    --task-muted: #687a73;
+    min-height: 100%;
+    padding: 22px;
+    overflow: auto;
+    color: var(--task-ink);
+    background: #f3f6f2;
+
+    h1, h2 { margin: 0; }
+    p { margin: 0; }
+}
+
+.o_task_hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 26px 28px;
+    border-radius: 20px;
+    color: #fff;
+    background: linear-gradient(115deg, #0e352d, var(--task-green) 55%, #1c5a4b);
+    box-shadow: 0 14px 34px rgba(12, 45, 36, .16);
+
+    span { font-size: 10px; font-weight: 900; letter-spacing: .16em; color: var(--task-lime); }
+    h1 { margin-top: 6px; font-size: 30px; font-weight: 850; letter-spacing: -.03em; }
+    p { margin-top: 6px; color: #cfe4da; font-size: 13px; }
+}
+
+.o_task_hero_actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.o_task_loading,
+.o_task_empty {
+    margin-top: 18px;
+    padding: 22px;
+    border: 1px solid var(--task-line);
+    border-radius: 14px;
+    background: #fff;
+    color: var(--task-muted);
+    font-size: 13px;
+}
+
+.o_task_kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0 14px;
+
+    > button,
+    > article {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 0;
+        padding: 16px 17px;
+        border: 1px solid var(--task-line);
+        border-radius: 15px;
+        background: #fff;
+        text-align: left;
+    }
+    > button { cursor: pointer; transition: box-shadow .12s ease, transform .12s ease; }
+    > button:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(12, 45, 36, .1); }
+
+    span { color: var(--task-green-2); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    strong { font-size: 23px; font-weight: 850; letter-spacing: -.03em; }
+    small { color: var(--task-muted); font-size: 10px; }
+
+    > .is-warning { border-color: #efd7ba; background: #fff8ee; }
+    > .is-warning strong { color: #a95b25; }
+}
+
+.o_task_flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--task-line);
+    border-radius: 15px;
+    background: #fff;
+
+    > div { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    i {
+        display: grid; place-items: center;
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        color: var(--task-green);
+        background: var(--task-lime);
+        font-style: normal; font-weight: 850; font-size: 12px;
+    }
+    span { display: flex; flex-direction: column; }
+    b { font-size: 12px; }
+    small { color: var(--task-muted); font-size: 11px; }
+    > em { height: 2px; background: #e0e7e2; }
+}
+
+.o_task_grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(300px, .5fr);
+    gap: 14px;
+}
+
+.o_task_panel {
+    padding: 20px;
+    border: 1px solid var(--task-line);
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(29, 57, 46, .06);
+
+    > header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 10px;
+    }
+    > header span { color: var(--task-green-2); font-size: 10px; font-weight: 800; letter-spacing: .1em; }
+    > header h2 { margin-top: 3px; font-size: 16px; font-weight: 850; letter-spacing: -.02em; }
+}
+
+.o_task_recent {
+    display: grid;
+
+    > button {
+        display: grid;
+        grid-template-columns: 8px minmax(0, 1fr) auto auto auto auto;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 4px;
+        border: 0;
+        border-bottom: 1px solid #edf1ee;
+        background: transparent;
+        text-align: left;
+        cursor: pointer;
+    }
+    > button:hover { background: #f4f8f5; }
+    > button > i { width: 8px; height: 8px; border-radius: 50%; background: #9ba6a2; }
+    > button > i.is-progress { background: #2871a5; }
+    > button > i.is-closed { background: #c77616; }
+    > button > i.is-reviewed { background: #7562b3; }
+    > button > i.is-sent { background: #2ca878; }
+    span { display: flex; flex-direction: column; min-width: 0; }
+    b { font-size: 12px; }
+    small { color: var(--task-muted); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    em { color: var(--task-muted); font-size: 10px; font-style: normal; }
+    > button > b { padding: 4px 9px; border-radius: 99px; font-size: 10px; font-weight: 800; background: #eef3f0; }
+    > button > b.is-closed { color: #86520e; background: #fff3df; }
+    > button > b.is-reviewed { color: #4b3f76; background: #f0edf9; }
+    > button > b.is-sent { color: #216a50; background: #e7f3ed; }
+    time { color: var(--task-muted); font-size: 10px; }
+    .o_task_alert_badge { color: #a95b25; background: #fff3df; }
+}
+
+.o_task_attention {
+    > button {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        width: 100%;
+        margin-top: 10px;
+        padding: 12px;
+        border: 0;
+        border-radius: 11px;
+        background: #f8faf8;
+        text-align: left;
+        cursor: pointer;
+    }
+    > button:hover { background: #eef4f0; }
+    > button > i { color: var(--task-green-2); font-size: 15px; margin-top: 2px; }
+    b { font-size: 11px; }
+    small { display: block; margin-top: 3px; color: var(--task-muted); font-size: 10px; line-height: 1.4; }
+}
+
+.o_task_attention_note {
+    display: flex;
+    gap: 9px;
+    margin-top: 12px;
+    padding: 11px 12px;
+    border-radius: 11px;
+    background: #eef4f0;
+    color: var(--task-muted);
+    font-size: 10px;
+
+    i { color: var(--task-green-2); }
+}
+
+@media (max-width: 1200px) {
+    .o_task_kpis { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 900px) {
+    .o_task_hero { align-items: flex-start; flex-direction: column; }
+    .o_task_grid { grid-template-columns: 1fr; }
+    .o_task_flow { grid-template-columns: repeat(4, 1fr); }
+    .o_task_flow > em { display: none; }
+    .o_task_flow > div { flex-direction: column; text-align: center; }
+    .o_task_recent > button { grid-template-columns: 8px 1fr auto; }
+    .o_task_recent > button > em,
+    .o_task_recent > button > time { display: none; }
+}
+@media (max-width: 620px) {
+    .o_task_dashboard { padding: 11px; }
+    .o_task_kpis { grid-template-columns: 1fr 1fr; }
+    .o_task_hero_actions { justify-content: flex-start; }
+    .o_task_hero_actions > .btn { width: 100%; }
+}
+
+// El client action se monta bajo `.o_action_manager`, que mantiene
+// `overflow: hidden` en móvil: el tablero debe ser dueño del scroll vertical.
+@media (max-width: 767.98px) {
+    .o_task_dashboard {
+        height: 100%;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+}

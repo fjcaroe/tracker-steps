@@ -11,13 +11,13 @@
           * Campos de sincronización móvil en ``step.tarja`` / ``step.tarja.registry``.
           * Un controlador same-origin ``/api/task/*`` para la PWA publicada en
             ``/task/`` (equivalente a ``/api/harvest/*`` de Steps Harvest).
-          * (fases siguientes) menús de consola, tablero OWL, aprobación y
-            transmisión a Actividades, e informes.
+          * Consola: menú Task, tablero, estados de OT, consolidación y
+            transmisión a Actividades, y alertas de validación diaria.
     """,
     'author': "Steps Consulting",
     'website': "https://stepsapp.cl",
     'category': 'Operations/Agriculture',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.1.0',
     'license': 'LGPL-3',
     'depends': [
         'base',
@@ -30,7 +30,16 @@
     ],
     'data': [
         'data/ir_sequence.xml',
+        'views/task_dashboard_views.xml',
+        'views/step_tarja_task_views.xml',
+        'views/menu_views.xml',
     ],
-    'assets': {},
+    'assets': {
+        'web.assets_backend': [
+            'step_task/static/src/js/task_dashboard.js',
+            'step_task/static/src/xml/task_dashboard.xml',
+            'step_task/static/src/scss/task_dashboard.scss',
+        ],
+    },
     'application': True,
 }
