@@ -32,10 +32,15 @@ gcloud compute ssh odoo-new --project=stepsconsulting --zone=us-central1-c
 
 ## Estado actual (2026-09-07)
 
-- **Desarrollo: PUBLICADO.** `step_task` instalado en `LAB_TAREAS`
-  (`18.0.1.2.0`); front en `/var/www/task/`; bloque nginx agregado; verificado.
-  Respaldo del vhost en `/opt/fernando_odoo18/backups/task-deploy-20260907-134321/`.
-- **Demo: PENDIENTE.** Nada tocado (`STEPS_DEMO`, `/opt/demo_odoo18`, vhost demo).
+- **Desarrollo: PUBLICADO.** `step_task` en `LAB_TAREAS` (`18.0.1.2.0`); front en
+  `/var/www/task/`; bloque nginx agregado; verificado.
+  Respaldo: `/opt/fernando_odoo18/backups/task-deploy-20260907-134321/`.
+- **Demo: PUBLICADO.** `step_task` en `STEPS_DEMO` (`18.0.1.2.0`);
+  `odoo18-demo.service` reiniciado; bloque nginx en
+  `/etc/nginx/sites-available/demo.stepsapp.cl`; `https://demo.stepsapp.cl/task/`
+  verificado (200, hash de assets = build). Respaldo (incl. `pg_dump STEPS_DEMO`):
+  `/opt/fernando_odoo18/backups/task-demo-20260907-152056/`.
+- `/var/www/task/` es **compartido** por ambos hosts (mismo build).
 
 ## Bloque nginx `/task` (idéntico para ambos vhosts)
 

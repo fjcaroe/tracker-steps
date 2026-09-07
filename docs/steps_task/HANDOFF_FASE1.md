@@ -145,24 +145,27 @@ de cosecha (`/cosecha/` = Steps Harvest).
 - `task_alert_count` (store) y `task_alert_html` (no store): computes separados
   → sin warnings de `compute_sudo`/`store`.
 
-## Fase 5 — despliegue  ⏳  Desarrollo publicado · Demo pendiente
+## Fase 5 — despliegue  ✅  Desarrollo y Demo publicados
 
-- **Desarrollo: PUBLICADO** — `step_task` instalado en `LAB_TAREAS` (`18.0.1.2.0`),
-  front en `/var/www/task/`, bloque nginx `# BEGIN STEPS TASK /task` insertado
-  tras el de `/cosecha` en el server `desarrollo.stepsapp.cl` de
-  `/etc/nginx/sites-available/stepsapp`, `nginx -t` OK + `reload`.
-  `https://desarrollo.stepsapp.cl/task/` sirve la PWA (hash de assets coincide
-  con el build) y `/api/task/health` responde. Respaldo del vhost en
+- **Desarrollo: PUBLICADO** — `step_task` en `LAB_TAREAS` (`18.0.1.2.0`), front
+  en `/var/www/task/`, bloque nginx `# BEGIN STEPS TASK /task` en el server
+  `desarrollo.stepsapp.cl` de `/etc/nginx/sites-available/stepsapp`.
+  `https://desarrollo.stepsapp.cl/task/` OK. Respaldo:
   `/opt/fernando_odoo18/backups/task-deploy-20260907-134321/`.
-- **Demo: PENDIENTE** — nada tocado en `STEPS_DEMO` / `/opt/demo_odoo18` / vhost
-  demo. Pasos en `docs/DESPLIEGUE_TASK.md` (repetir con base/servicio/vhost de
-  demo). `/var/www/task/` lo comparten ambos hosts: si demo necesita un build
-  distinto, usar `/var/www/task-demo/`.
+- **Demo: PUBLICADO (2026-09-07)** — `step_task` instalado en `STEPS_DEMO`
+  (`18.0.1.2.0`, `-i` rc 0), `odoo18-demo.service` reiniciado y activo, bloque
+  nginx `# BEGIN STEPS TASK /task` en `/etc/nginx/sites-available/demo.stepsapp.cl`
+  tras el de `/cosecha`, `nginx -t` OK + `reload`.
+  `https://demo.stepsapp.cl/task/` sirve la PWA (200, asset hash = build) y
+  `/api/task/health` responde contra el Odoo de demo (`:8080`). Deep-links OK.
+  Respaldo (incluye `pg_dump STEPS_DEMO` + vhost previo):
+  `/opt/fernando_odoo18/backups/task-demo-20260907-152056/`.
+- `/var/www/task/` es **compartido** por ambos hosts (mismo build; API
+  same-origin resuelve al Odoo de cada vhost).
 - Runbook completo: [`docs/DESPLIEGUE_TASK.md`](../DESPLIEGUE_TASK.md).
 
 ## Pendiente
 
-- **Publicar en Demo** (Fase 5, requiere OK explícito por ser cliente-facing).
 - **Repo GitHub del front** `fjcaroe/step_task` (hoy solo local en
   `C:\Users\tito4\Documents\step_task`, rama `main`).
 - Verificación con usuario dev: render del tablero OWL en navegador y una
