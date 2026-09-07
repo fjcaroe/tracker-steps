@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="seq_step_task_mobile_ot" model="ir.sequence">
+        <field name="name">Steps Task - OT móvil</field>
+        <field name="code">step.task.mobile.ot</field>
+        <field name="prefix">TOT-%(year)s-</field>
+        <field name="padding">5</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+        <field name="implementation">standard</field>
+    </record>
+</odoo>
