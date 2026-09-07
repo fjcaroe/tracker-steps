@@ -27,6 +27,17 @@ class StepCosechaRegistry(models.Model):
         return res
 
     name = fields.Char(string='Nombre', index=True, required=True)
+    mobile_uid = fields.Char(string='UUID App Cosecha', index=True, copy=False)
+    mobile_work_order = fields.Char(string='OT App Cosecha', index=True, copy=False)
+    mobile_status = fields.Selection(
+        selection=[
+            ('progress', 'En proceso'),
+            ('closed', 'Cerrada'),
+            ('reviewed', 'Revisada'),
+            ('sent', 'Enviada'),
+        ],
+        string='Estado App Cosecha', default='progress', copy=False,
+    )
     type_tarea = fields.Selection(
         selection=[
             ('propio', 'Propio'),

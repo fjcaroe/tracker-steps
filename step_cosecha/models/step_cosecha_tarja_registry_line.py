@@ -37,6 +37,8 @@ class StepCosechaTarjaRegistryLine(models.Model):
     #                                       'cosecha_id', string='Empleados', compute='compute_total_trato')
 
     employee_id = fields.Many2one('hr.employee', 'Empleado')
+    mobile_uid = fields.Char(string='UUID App Cosecha', index=True, copy=False)
+    mobile_hilera = fields.Char(string='Hilera App Cosecha', copy=False)
     # employee_id_domain = fields.Many2many('hr.employee', 'cosecha_employee_rel', 'employee_id',
     #                                       'cosecha_id', string='Empleados', compute='compute_total_trato')
     registry_id = fields.Many2one(
@@ -53,3 +55,11 @@ class StepCosechaTarjaRegistryLine(models.Model):
     cant_minima = fields.Float(string='Cant Minima')
     tarifa = fields.Float(string='Tarifa')
     trato_total = fields.Float(string='Total Trato')
+
+    _sql_constraints = [
+        (
+            'mobile_uid_unique',
+            'unique(mobile_uid)',
+            'La entrega móvil ya fue sincronizada.',
+        ),
+    ]
