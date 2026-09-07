@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+from datetime import datetime, timezone
 from urllib.parse import urlsplit
 
 from odoo import fields, http, _
@@ -36,7 +36,20 @@ class StepHarvestApi(http.Controller):
             return True
         expected = urlsplit(request.httprequest.host_url)
         supplied = urlsplit(origin)
-        return (supplied.scheme, supplied.netloc) == (expected.scheme, expected.netloc)
+        # Nginx termina TLS y puede presentar ``http`` a Odoo. El host debe
+        # coincidir exactamente y el navegador sólo puede declarar HTTP(S).
+        return supplied.scheme in ('http', 'https') and supplied.netloc == expected.netloc
+
+    def _event_datetime(self, value):
+        if not value:
+            return fields.Datetime.now()
+        try:
+            parsed = datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+            if parsed.tzinfo:
+                parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return fields.Datetime.to_string(parsed)
+        except (TypeError, ValueError):
+            raise ValidationError(_('La fecha de la entrega no tiene un formato válido.'))
 
     def _item(self, record, **extra):
         return {'id': record.id, 'name': record.display_name, **extra}
@@ -187,7 +200,7 @@ class StepHarvestApi(http.Controller):
             'mobile_uid': client_uuid,
             'mobile_hilera': str(data.get('row') or ''),
             'num_tarja': str(data.get('tarja') or ''),
-            'date_tarja': data.get('event_datetime') or fields.Datetime.now(),
+            'date_tarja': self._event_datetime(data.get('event_datetime')),
             'qty_caja': float(data.get('boxes') or 0),
             'qty_kg': float(data.get('kilos') or 0),
             'quantity': float(data.get('kilos') or data.get('boxes') or 0),
