@@ -11,6 +11,8 @@ Rutas:
     GET  /api/task/ref/<resource>      (usuario)
     GET  /api/task/bootstrap           (usuario)
     GET  /api/task/recent              (usuario)
+    GET  /api/task/reports             (usuario)  -> lista de informes
+    GET  /api/task/report/<key>        (usuario)  -> ?format=json (tabla) | xlsx (descarga)
     POST /api/task/sync                (usuario, mismo origen)
 """
 
@@ -19,7 +21,9 @@ from urllib.parse import urlsplit
 
 from odoo import fields, http, _
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.http import request
+from odoo.http import content_disposition, request
+
+XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 
 API_VERSION = 1
@@ -343,6 +347,43 @@ class StepTaskApi(http.Controller):
             ('company_id', '=', request.env.company.id),
         ], order='date desc, id desc', limit=min(int(kwargs.get('limit', 50)), 100))
         return self._json({'ok': True, 'items': [self._order(record) for record in orders]})
+
+    # ------------------------------------------------------------- informes
+    @http.route('/api/task/reports', type='http', auth='user', methods=['GET'], csrf=False, sitemap=False)
+    def reports(self, **kwargs):
+        return self._json({'ok': True, 'items': request.env['step.task.report'].specs()})
+
+    @http.route('/api/task/report/<string:key>', type='http', auth='user', methods=['GET'],
+                csrf=False, sitemap=False)
+    def report(self, key, **kwargs):
+        fmt = (kwargs.pop('format', None) or 'json').lower()
+        try:
+            result = request.env['step.task.report'].build(key, kwargs)
+        except (AccessError, UserError, ValidationError, ValueError) as exc:
+            return self._json({'ok': False, 'error': str(exc)}, status=422)
+
+        if fmt == 'xlsx':
+            data = request.env['step.task.report'].to_xlsx(result)
+            return request.make_response(data, headers=[
+                ('Content-Type', XLSX_MIME),
+                ('Content-Disposition', content_disposition(result.get('filename', '%s.xlsx' % key))),
+                ('Content-Length', str(len(data))),
+                ('Cache-Control', 'no-store'),
+            ])
+
+        return self._json({
+            'ok': True,
+            'key': result.get('key', key),
+            'kind': result.get('kind'),
+            'title': result.get('title'),
+            'filename': result.get('filename'),
+            'meta': result.get('meta', []),
+            'columns': result.get('columns', []),
+            'rows': [r['cells'] if isinstance(r, dict) else r for r in result.get('rows', [])],
+            'flags': [r.get('flags', {}) if isinstance(r, dict) else {} for r in result.get('rows', [])],
+            'note': result.get('note'),
+            'server_time': self._server_time(),
+        })
 
     @http.route('/api/task/sync', type='http', auth='user', methods=['POST'], csrf=False, sitemap=False)
     def sync(self, **kwargs):
