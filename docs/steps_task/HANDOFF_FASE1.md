@@ -120,39 +120,55 @@ de cosecha (`/cosecha/` = Steps Harvest).
   `/opt/dev_odoo18/odoo_agriculture/step_task` (ruta final; NO instalado en demo
   ni prod).
 
+## Fase 4 — informes XLSX  ✅  commit `b1b608a` · instalada en dev
+
+`wizard/task_report_wizards.py` — 4 `TransientModel` con filtros + `file`
+(Binary), patrón `report.step.hrs.wizard`, generan XLSX con `xlsxwriter`:
+1. **`report.task.data`** (Anexo 1.1.3.3): 1 fila por `step.tarja.registry` de OT
+   transmitidas (o de todo el canal móvil).
+2. **`report.task.hours`** (Anexo 1.1.3.1): matriz trabajador × día del mes +
+   TOTAL; naranja = día bajo la jornada, amarillo = con exceso.
+3. **`report.task.yield`** (Anexo 1.1.3.2): matriz trabajador × labor × UdM ×
+   día + TOTAL.
+4. **`report.task.yield.analysis`** (Anexo 1.1.3.4): centro de costo × labor con
+   hectáreas (`has_cost`) / plantas (`plant_cost`) / hileras (`len(hilera_line)`)
+   del maestro vs Σ OT y **Diferencia** (columna elegida por la relación de
+   trato de la labor).
+- Menús bajo **Task → Informes**; `security/ir.model.access.csv`.
+- Verificado en dev vía shell: los 4 generan XLSX válido (magic `PK`).
+
+### Deuda cerrada en Fase 4
+- `action_task_transmit` ahora también llama `_task_build_costing_lines()`:
+  puebla `step.tarja.line` (costeo/nómina) desde el detalle consolidado cuando
+  está vacío — cada línea en su savepoint y tolerante a los rechazos de
+  `step_hr` (p. ej. trabajador con otro registro ese día).
+- `task_alert_count` (store) y `task_alert_html` (no store): computes separados
+  → sin warnings de `compute_sudo`/`store`.
+
+## Fase 5 — despliegue  ⏳  Desarrollo publicado · Demo pendiente
+
+- **Desarrollo: PUBLICADO** — `step_task` instalado en `LAB_TAREAS` (`18.0.1.2.0`),
+  front en `/var/www/task/`, bloque nginx `# BEGIN STEPS TASK /task` insertado
+  tras el de `/cosecha` en el server `desarrollo.stepsapp.cl` de
+  `/etc/nginx/sites-available/stepsapp`, `nginx -t` OK + `reload`.
+  `https://desarrollo.stepsapp.cl/task/` sirve la PWA (hash de assets coincide
+  con el build) y `/api/task/health` responde. Respaldo del vhost en
+  `/opt/fernando_odoo18/backups/task-deploy-20260907-134321/`.
+- **Demo: PENDIENTE** — nada tocado en `STEPS_DEMO` / `/opt/demo_odoo18` / vhost
+  demo. Pasos en `docs/DESPLIEGUE_TASK.md` (repetir con base/servicio/vhost de
+  demo). `/var/www/task/` lo comparten ambos hosts: si demo necesita un build
+  distinto, usar `/var/www/task-demo/`.
+- Runbook completo: [`docs/DESPLIEGUE_TASK.md`](../DESPLIEGUE_TASK.md).
+
 ## Pendiente
 
-### Deuda técnica de las Fases 2-3 a resolver
-- `action_task_transmit` deja el detalle en `step.tarja.registry` consolidado y
-  fija `mobile_status='sent'`, pero **no** puebla `step.tarja.line` (la línea de
-  costeo/sueldo que `onchange_salary_id` llena desde la cuadrilla y que
-  `envio_nomina` usa). Falta decidir/implementar ese volcado para que la OT
-  transmitida entre completa al flujo de nómina de Actividades.
+- **Publicar en Demo** (Fase 5, requiere OK explícito por ser cliente-facing).
+- **Repo GitHub del front** `fjcaroe/step_task` (hoy solo local en
+  `C:\Users\tito4\Documents\step_task`, rama `main`).
+- Verificación con usuario dev: render del tablero OWL en navegador y una
+  transmisión con datos reales (LAB_TAREAS no tenía OT con líneas).
 - Cola de sync sin backoff automático (hoy botón manual "Sincronizar").
-- Encabezado consola usa `mobile_especie_id`/`mobile_variedad_id` propios; no se
-  reconcilian con `especie_id`/`grupo_variedad_id` que derivan de `pricelist_id`.
-- Sin grupos de seguridad propios: el menú Task se gatilla en `base.group_user`.
-- Verificación pendiente con usuario dev: render del tablero OWL y transmisión
-  con datos reales.
-
-### Fase 4 — informes (wizards XLSX, patrón `hr_entry_xls_wizard`)
-1. **Data Steps Task** (Anexo 1.1.3.3): 1 fila por línea de OT transmitida.
-2. **Horas diarias** (Anexo 1.1.3.1): matriz trabajador × día del mes + TOTAL;
-   marcar días sin horas / con exceso.
-3. **Rendimientos diarios** (Anexo 1.1.3.2): matriz trabajador × labor × UdM ×
-   día + TOTAL.
-4. **Análisis de rendimientos** (Anexo 1.1.3.4): centro costos × labor con
-   hectáreas/plantas/hileras del maestro vs Σ OT y columna Diferencia.
-
-### Fase 5 — despliegue
-- Bloques nginx `# BEGIN STEPS TASK /task` en vhosts `desarrollo.stepsapp.cl` y
-  `demo.stepsapp.cl` (patrón textual del bloque `/cosecha`: `= /task` 301,
-  `= /task/manifest.webmanifest`, `= /task/sw.js` + `Service-Worker-Allowed`,
-  `^~ /task/assets/`, `^~ /task/`). `/api/task/*` no necesita bloque.
-- Runbook `docs/DESPLIEGUE_TASK.md` (calcar `DESPLIEGUE_COLACIONES.md`):
-  clonar front en `/tmp`, `npm ci && npm run build`, `rsync dist/ → /var/www/task/`,
-  copiar `step_task/` al `addons_path`, `-u step_task` en `LAB_TAREAS` (dev) y
-  `STEPS_DEMO` (demo), `nginx -t && systemctl reload nginx`, verificar hash del JS.
-- Desarrollo: base `LAB_TAREAS`, `/opt/dev_odoo18/odoo_agriculture`,
-  `odoo18-dev.service`, `/etc/dev_odoo18.conf`. Demo: `STEPS_DEMO`,
-  `/opt/demo_odoo18/odoo_agriculture`, `odoo18-demo.service`.
+- `mobile_especie_id`/`mobile_variedad_id` no reconcilian con
+  `especie_id`/`grupo_variedad_id` derivados de `pricelist_id`.
+- Sin grupos de seguridad propios (menú Task en `base.group_user`).
+- Warning cosmético `step.tarja.registry has no _description` (viene de `step_hr`).
