@@ -6,9 +6,12 @@ importante— el **cierre de la ruta insegura del proveedor**, con los cinco
 casos que el encargo exige.
 """
 
+from odoo import fields
 from odoo.tests.common import HttpCase, TransactionCase, new_test_user, tagged
 
 from odoo.addons.step_hr_previred.models import previred_adapter as adapters
+from odoo.addons.step_hr_previred.tests.common import PreviredCase, make_row
+from odoo.addons.step_hr_previred.tools import previred
 
 from ..controllers.previred_secure import SecuredPreviredExportController
 from ..models.previred_engine import SimpleDigitalAdapter
@@ -115,6 +118,95 @@ class TestSimpleDigitalMatrix(TransactionCase):
             len(menus), 1,
             "Hay %d menús apuntando al asistente Previred: %s"
             % (len(menus), menus.mapped("complete_name")))
+
+
+@tagged("post_install", "-at_install")
+class TestActiveOver65(PreviredCase):
+
+    def _make_case(self, birthday="1957-12-31"):
+        employee = self.make_employee(
+            "Trabajador Mayor 65", "98765432-5", self.dep_agri
+        )
+        employee.birthday = fields.Date.to_date(birthday)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        payslip.contract_id.is_retired_elderly = False
+        return payslip
+
+    def _add_payslip_line(self, payslip, code, total):
+        category = self.env["hr.salary.rule.category"].search(
+            [("code", "=", "DED")], limit=1
+        ) or self.env["hr.salary.rule.category"].create({
+            "name": "Deducciones prueba mayor 65",
+            "code": "DED",
+        })
+        rule = self.env["hr.salary.rule"].create({
+            "name": "Prueba %s" % code,
+            "code": code,
+            "sequence": 900,
+            "category_id": category.id,
+            "struct_id": payslip.struct_id.id,
+        })
+        return self.env["hr.payslip.line"].create({
+            "name": code,
+            "code": code,
+            "sequence": 900,
+            "category_id": category.id,
+            "salary_rule_id": rule.id,
+            "slip_id": payslip.id,
+            "employee_id": payslip.employee_id.id,
+            "contract_id": payslip.contract_id.id,
+            "amount": total,
+            "quantity": 1,
+            "rate": 100,
+        })
+
+    def test_period_age_matches_previred_type_3_cutoff(self):
+        payslip = self._make_case()
+        self.assertTrue(payslip._step_previred_active_over_65())
+
+        # El 1 de agosto todavía tiene 65: pasa a tipo 3 recién en el período
+        # siguiente a cumplir 66, igual que el generador del proveedor.
+        payslip.employee_id.birthday = fields.Date.to_date("1960-08-02")
+        self.assertFalse(payslip._step_previred_active_over_65())
+
+        payslip.contract_id.is_retired_elderly = True
+        self.assertFalse(payslip._step_previred_active_over_65())
+
+    def test_salary_rules_exclude_active_over_65(self):
+        for xmlid in (
+                "l10n_cl_simpledigital_payroll.hr_AFP_Em",
+                "l10n_cl_simpledigital_payroll.hr_rule_sis",
+                "l10n_cl_simpledigital_payroll.hr_rule_Expec_vida",
+                "l10n_cl_simpledigital_payroll.hr_rule_rentabilidad_protegida"):
+            condition = self.env.ref(xmlid).condition_python
+            self.assertIn("_step_previred_active_over_65", condition)
+
+    def test_export_keeps_base_afp_and_zeros_employer_contributions(self):
+        payslip = self._make_case()
+        self._add_payslip_line(payslip, "AFP", 335536)
+        self._add_payslip_line(payslip, "AFP_EMP", 2977)
+        self._add_payslip_line(payslip, "SIS", 52995)
+
+        row = make_row(
+            rut="98765432",
+            dv="5",
+            overrides={
+                previred.F_WORKER_TYPE: "3",
+                previred.F_AFP_CONTRIBUTION: "338513",
+                previred.F_SIS_CONTRIBUTION: "52995",
+                previred.F_LIFE_EXPECTANCY: "21436",
+                previred.F_PROTECTED_RETURN: "26795",
+            },
+        )
+        dataset = self.build([row], spec_version="98")
+        exported = dataset.records[0].principal
+
+        self.assertEqual(
+            exported[previred.F_AFP_CONTRIBUTION - 1], "335536"
+        )
+        self.assertEqual(exported[previred.F_SIS_CONTRIBUTION - 1], "0")
+        self.assertEqual(exported[previred.F_LIFE_EXPECTANCY - 1], "0")
+        self.assertEqual(exported[previred.F_PROTECTED_RETURN - 1], "0")
 
     # -- herencia real del controlador ---------------------------------------
 

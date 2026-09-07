@@ -196,6 +196,7 @@ F_VOLUNTARY_RUT = 50
 F_AFP_CODE = 26
 F_AFP_TAXABLE = 27
 F_AFP_CONTRIBUTION = 28
+F_SIS_CONTRIBUTION = 29
 F_HEALTH_CODE = 75
 F_CCAF_CODE = 83
 F_WORKDAY_TYPE = 93
@@ -739,6 +740,22 @@ def validate_record(record, spec_version=SPEC_VERSION):
                         SEVERITY_ERROR, "missing_reform_contribution",
                         "%s: falta el campo obligatorio «%s» para afiliado "
                         "AFP." % (label, field_label(position)),
+                        record.department_label,
+                    ))
+        if worker_type == "3":
+            for position in (
+                    F_SIS_CONTRIBUTION,
+                    F_LIFE_EXPECTANCY,
+                    F_PROTECTED_RETURN):
+                value = (record.principal[position - 1] or "").strip()
+                if value and value != "0":
+                    issues.append(Issue(
+                        SEVERITY_ERROR,
+                        "active_over_65_employer_contribution",
+                        "%s: el tipo de trabajador 3 debe informar cero en "
+                        "«%s»; se recibió %s." % (
+                            label, field_label(position), value
+                        ),
                         record.department_label,
                     ))
     return issues

@@ -1,5 +1,14 @@
 # Changelog
 
+## 18.0.3.6.0
+
+* **Trabajador tipo 3 (activo mayor de 65 años).** El puente SimpleDigital
+  conserva sólo la cotización base AFP en el campo 28 y fuerza a cero SIS
+  (campo 29), expectativa de vida (campo 94) y rentabilidad protegida
+  (campo 95). La liquidación deja de generar las reglas `AFP_EMP`, `SIS`,
+  `EXP_VIDA` y `RENT_PROT` para estos trabajadores, usando la misma edad al
+  inicio del período con que el proveedor informa el campo 12.
+
 ## 18.0.3.5.1
 
 * **Campo 93 consistente en líneas anexas.** El Tipo de Jornada se calcula

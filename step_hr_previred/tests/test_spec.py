@@ -238,3 +238,23 @@ class TestSpec(TransactionCase):
         self.assertEqual(previred.protected_return_rate("202708"), "1.50")
         self.assertEqual(previred.protected_return_rate("204509"), "1.35")
         self.assertEqual(previred.protected_return_rate("205409"), "0")
+
+    def test_active_over_65_rejects_employer_contributions(self):
+        row = make_row(overrides={
+            previred.F_WORKER_TYPE: "3",
+            previred.F_SIS_CONTRIBUTION: "52995",
+            previred.F_LIFE_EXPECTANCY: "21436",
+            previred.F_PROTECTED_RETURN: "26795",
+        })
+        record = previred.PreviredRecord(
+            rut="07340484", dv="3", principal=row
+        )
+
+        codes = [
+            issue.code
+            for issue in previred.validate_record(record, spec_version="98")
+        ]
+
+        self.assertEqual(
+            codes.count("active_over_65_employer_contribution"), 3
+        )
