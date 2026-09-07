@@ -1,5 +1,38 @@
 # Changelog
 
+## 18.0.3.5.1
+
+* **Campo 93 consistente en líneas anexas.** El Tipo de Jornada se calcula
+  una vez desde el calendario del contrato y se replica en todas las líneas
+  `00/01/02/03` del trabajador. Corrige el rechazo de PreviRed que se produce
+  cuando una línea adicional informa un valor distinto de su principal
+  (caso EMCA, agosto 2026, RUT 12358793-6).
+
+## 18.0.3.5.0
+
+Ticket PreviRed 2026-08 (Agrícola Los Lingues y Megafrut Limitada, nómina
+agosto 2026): 4 de los 7 errores reportados por el portal eran el mismo
+defecto.
+
+* **Campo 105 «Centro de Costos, Sucursal, Agencia» en ASCII puro.** Un
+  nombre de cuenta analítica o centro de costo con tilde («Administración»)
+  se codificaba en UTF-8 y Previred lo releía como Latin-1, mostrando
+  «AdministraciÃ³n» y rechazando la línea con «Error de formato en el campo
+  Centro de Costos, Sucursal, Agencia, Obra, Region». Ahora se translitera a
+  ASCII con `previred.strip_accents` antes de truncar a 20 caracteres, igual
+  que el resto de los campos alfanuméricos del formato. Corrige RUT
+  20681876-K (Los Lingues) y los tres RUT reportados por Megafrut
+  (09800422-K, 07016555-4, 14692801-3).
+* **Pendiente, no incluido en este corte** (RUT 14250811-7, Marcelo Soto,
+  licencia médica de 30 días): la Cotización SIS (campo 29), la Cotización
+  Expectativa de Vida (campo 94) y la Renta Imponible / Cotización Accidente
+  del Trabajo Mutual (campos 97-98) dependen de una renta imponible especial
+  para licencias (RIMA, campo 92) y de reglas de negocio (tope de 30 días de
+  licencia para el aporte Mutual) que hoy calcula el motor de nómina del
+  proveedor (`l10n_cl_hr`), no `step_hr_previred`. Ver
+  `docs/PREVIRED_TICKET_LOS_LINGUES_MEGAFRUT_2026-09.md` para el análisis
+  numérico y lo que falta confirmar antes de tocar ese cálculo.
+
 ## 18.0.3.4.0
 
 Correcciones 2 (documento funcional 2026-08-29). Elimina las dos causas de los

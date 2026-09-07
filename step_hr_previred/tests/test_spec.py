@@ -216,6 +216,20 @@ class TestSpec(TransactionCase):
             make_row(overrides={previred.F_WORKDAY_TYPE: "0"}))]
         self.assertIn("bad_workday_type", codes)
 
+    def test_annex_workday_type_must_match_principal(self):
+        principal = make_row(
+            overrides={previred.F_WORKDAY_TYPE: "1"})
+        annex = make_row(
+            line_type=previred.LINE_ADDITIONAL,
+            overrides={previred.F_WORKDAY_TYPE: "2"})
+        record = previred.PreviredRecord(
+            rut="12358793", dv="6", principal=principal,
+            annexes=[annex])
+
+        codes = [issue.code for issue in previred.validate_record(record)]
+
+        self.assertIn("annex_workday_type_mismatch", codes)
+
     def test_reform_rate_schedule(self):
         self.assertEqual(previred.life_expectancy_rate("202607"), "0.90")
         self.assertEqual(previred.life_expectancy_rate("202608"), "1.00")

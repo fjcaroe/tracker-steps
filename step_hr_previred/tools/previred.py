@@ -708,6 +708,21 @@ def validate_record(record, spec_version=SPEC_VERSION):
         issues.extend(
             validate_annex_conditions(row, label, record.department_label))
 
+    if len(record.principal) == FIELD_COUNT:
+        principal_workday_type = (
+            record.principal[F_WORKDAY_TYPE - 1] or "").strip()
+        for row in record.annexes:
+            if (len(row) == FIELD_COUNT
+                    and (row[F_WORKDAY_TYPE - 1] or "").strip()
+                    != principal_workday_type):
+                issues.append(Issue(
+                    SEVERITY_ERROR, "annex_workday_type_mismatch",
+                    "%s: el Tipo de Jornada de cada línea anexa debe ser "
+                    "igual al de la línea 00 (%s)." % (
+                        label, principal_workday_type or "-"),
+                    record.department_label,
+                ))
+
     # En v98 los campos 94 y 95 son obligatorios para una línea principal de
     # una persona afiliada a AFP. El enriquecimiento del core los calcula a
     # partir de la renta imponible y la vigencia legal; cero sigue siendo un

@@ -57,6 +57,36 @@ class TestDataset(PreviredCase):
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
 
+    def test_workday_type_is_propagated_to_annex_lines(self):
+        """Ticket EMCA 2026-08: las líneas 01/02/03 deben repetir el campo
+        93 de su línea principal 00, aunque el motor entregue otro valor."""
+        employee = self.make_employee("Filomena Munoz", "12358793-6",
+                                      self.dep_agri)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        payslip.contract_id.resource_calendar_id.previred_workday_type = "1"
+        rows = [
+            make_row(rut="12358793", dv="6",
+                     line_type=previred.LINE_PRINCIPAL,
+                     overrides={previred.F_WORKDAY_TYPE: "1"}),
+            make_row(rut="12358793", dv="6",
+                     line_type=previred.LINE_ADDITIONAL,
+                     overrides={previred.F_WORKDAY_TYPE: "2"}),
+            make_row(rut="12358793", dv="6",
+                     line_type=previred.LINE_SECOND_CONTRACT,
+                     overrides={previred.F_WORKDAY_TYPE: "2"}),
+            make_row(rut="12358793", dv="6",
+                     line_type=previred.LINE_VOLUNTARY,
+                     overrides={previred.F_WORKDAY_TYPE: "2"}),
+        ]
+
+        dataset = self.build(rows, spec_version="98")
+
+        self.assertEqual(
+            [row[previred.F_WORKDAY_TYPE - 1]
+             for row in dataset.records[0].rows],
+            ["1", "1", "1", "1"],
+        )
+
     def test_v98_cost_center_uses_code_or_name_from_contract(self):
         contract_model = self.env["hr.contract"]
         field_name = "analytic_account_id" if "analytic_account_id" in \
@@ -82,6 +112,41 @@ class TestDataset(PreviredCase):
         self.assertEqual(
             dataset.records[0].principal[previred.F_COST_CENTER - 1],
             "Maquinarias")
+
+    def test_v98_cost_center_strips_accents(self):
+        """Ticket PreviRed 2026-08 (Los Lingues / Megafrut): un centro de
+        costo con tilde («Administración») se rechazaba con «Error de
+        formato en el campo Centro de Costos» porque el archivo UTF-8 se
+        releía como Latin-1 («AdministraciÃ³n»). El campo 105 debe quedar en
+        ASCII puro."""
+        contract_model = self.env["hr.contract"]
+        field_name = "analytic_account_id" if "analytic_account_id" in \
+            contract_model._fields else "cost_center_id"
+        if field_name not in contract_model._fields:
+            self.skipTest("El motor instalado no aporta centro de costo")
+        employee = self.make_employee("Centro Costo Tilde", "12345678-9",
+                                      self.dep_agri)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        analytic_model = self.env[contract_model._fields[
+            field_name].comodel_name]
+        values = {"name": "Administración", "company_id": self.company.id}
+        if "plan_id" in analytic_model._fields:
+            plan = self.env["account.analytic.plan"].search(
+                [("name", "=", "Plan Previred")], limit=1
+            ) or self.env["account.analytic.plan"].create({
+                "name": "Plan Previred",
+            })
+            values["plan_id"] = plan.id
+        center = analytic_model.create(values)
+        payslip.contract_id[field_name] = center
+
+        dataset = self.build([make_row()], spec_version="98")
+
+        value = dataset.records[0].principal[previred.F_COST_CENTER - 1]
+        self.assertEqual(value, "Administracion")
+        # el valor debe coincidir byte a byte al codificar UTF-8 o Latin-1:
+        # ninguna tilde sobrevive para poder divergir entre ambas.
+        self.assertEqual(value.encode("utf-8"), value.encode("latin-1"))
 
     def test_annexes_stay_with_their_principal(self):
         """Caso 2: un trabajador con líneas 00/01/02/03 forma UN registro."""

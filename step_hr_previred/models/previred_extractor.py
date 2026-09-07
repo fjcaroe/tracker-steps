@@ -404,9 +404,17 @@ class PreviredExtractor(models.AbstractModel):
         # heurística queda sólo como respaldo para datos históricos aún no
         # migrados.
         workday_type = getattr(calendar, "previred_workday_type", False)
-        row[previred.F_WORKDAY_TYPE - 1] = (
+        workday_type = (
             workday_type or ("2" if weekly and weekly <= 30 else "1")
         )
+        # Previred exige que el campo 93 de cada línea anexa 01/02/03 sea
+        # idéntico al de la línea principal 00 del trabajador. Algunos
+        # motores recalculan este valor por línea y pueden entregar, por
+        # ejemplo, 00=1 y 01=2. La jornada pertenece al contrato, por lo que
+        # se normaliza una vez y se propaga al bloque completo.
+        for record_row in record.rows:
+            if len(record_row) == previred.FIELD_COUNT:
+                record_row[previred.F_WORKDAY_TYPE - 1] = workday_type
 
         self._set_worked_days(record, payslip, dataset)
 
@@ -414,6 +422,11 @@ class PreviredExtractor(models.AbstractModel):
         # visible como Centro de Costos es analytic_account_id; algunas bases
         # Blueminds usan cost_center_id. Se conserva esa precedencia y se usa
         # el nombre si el maestro no tiene código, evitando exportar vacío.
+        # Se translitera a ASCII (ver `previred.strip_accents`): un nombre con
+        # tilde («Administración») se codifica en UTF-8 y Previred lo relee
+        # como Latin-1, mostrando «AdministraciÃ³n» y rechazando la línea por
+        # «Error de formato en el campo Centro de Costos» (ticket PreviRed
+        # 2026-08, Agrícola Los Lingues y Megafrut).
         contract = payslip.contract_id
         cost_center = getattr(contract, "analytic_account_id", False) or \
             getattr(contract, "cost_center_id", False)
@@ -421,7 +434,9 @@ class PreviredExtractor(models.AbstractModel):
         if cost_center:
             cost_center_value = (getattr(cost_center, "code", False)
                                  or cost_center.name or "")
-        row[previred.F_COST_CENTER - 1] = str(cost_center_value).strip()[:20]
+        cost_center_value = previred.strip_accents(
+            str(cost_center_value).strip())
+        row[previred.F_COST_CENTER - 1] = cost_center_value[:20]
 
         # Los tres campos anteriores existen tanto en el perfil histórico
         # v84 como en v98. Los campos de la reforma previsional que siguen sí
