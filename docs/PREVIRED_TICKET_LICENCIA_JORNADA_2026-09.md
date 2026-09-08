@@ -53,6 +53,7 @@ Reglas confirmadas por el usuario:
 | — | SIS (campo 29) = RIMA × 1,78 %. |
 | — | CEV (campo 94) = RIMA × 0,72 % (ya en 1.1). |
 | c | Mutual (campos 97 y 98) = 0 cuando hay ≥ 30 días **continuos** (corridos) de la misma licencia médica, contando la continuación de licencias de meses anteriores. |
+| e | **El "+RIMA" aplica SOLO a SIS (29) y Expectativa de Vida (94), NO a Mutual** (usuario, 2026-09-08, resolviendo el conflicto tickets #13 vs #15). Mutual (97/98) = imponible del mes × tasa de la empresa, sin RIMA. Cuando días trabajados = 0, la base SIS/CEV es RIMA (imponible del mes ≈ 0) y la base Mutual también ≈ 0 (o 0 por la regla de los 30 días). |
 
 ### Lo que falta cerrar antes de codificar
 
@@ -158,12 +159,15 @@ repositorio** — vive en el `addons_path` del servidor. Opciones:
    campo 98 = campo 97 × tasa de la empresa cuando son inconsistentes. Sólo
    arregla el TXT, no la liquidación.
 
-**Falta para implementar la opción 2:** el `xmlid` exacto de la regla
-`APORTE_MUTUAL`, y en qué campo/registro vive la tasa Mutual de la empresa
-(¿`res.company`, una mutualidad, `previred_indicator`?). Confirmar además si
-Mutual va sólo sobre el imponible trabajado aun cuando la licencia parcial
-sea < 30 días (matiz frente a la regla de «primeros 30 días» del ticket
-RUT 14250811-7).
+**Regla confirmada (usuario, 2026-09-08):** Mutual va sólo sobre el imponible
+trabajado, sin RIMA, también en licencia parcial (ver fila `e` de la tabla de
+arriba). Por lo tanto el campo 98 = `round(renta_imponible_mutual × tasa_
+mutual_empresa)` sin más matices.
+
+**Falta para implementar la opción 2:** acceso a la base de nómina (`:8070`)
+para leer el `amount_python_compute` y el `xmlid` de la regla `APORTE_MUTUAL`,
+y ubicar en qué campo/registro vive la tasa Mutual de la empresa
+(¿`res.company`, una mutualidad, `previred_indicator`?).
 
 **Además:** este recibo resuelve el punto 2 de arriba — el tipo de entrada de
 licencia médica en esta base aparece rotulado **«Licencia Médica»**
