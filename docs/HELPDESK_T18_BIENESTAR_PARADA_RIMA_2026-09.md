@@ -144,3 +144,27 @@ departamento** que bloquea el lote completo (`error: without_department`) —
 es un dato de la base demo, no del cálculo; la línea de Valentina se genera
 correcta. Confirmar en SyS que todos los trabajadores tienen departamento
 antes de generar el archivo definitivo. **Nada persistido; SyS intacto.**
+# Revisión 2 — línea adicional 01 (2026-09-08)
+
+El cliente confirmó que la línea adicional tipo `01` debe informar cero en
+los campos 13 (Días Trabajados), 71 (Accidente del Trabajo ISL) y 92 (RIMA).
+Los valores `11`, `1790` y `350000` pertenecen a la línea principal y no deben
+replicarse en la anexa. El resto del archivo fue aprobado en la revisión.
+
+## 7. Revisión 2 corregida y validada en Demo-Sys — 2026-09-08
+
+Se desplegó `step_hr_previred 18.0.3.8.2` en `STEPS_DEMO_SYS`, con respaldo
+previo en
+`/opt/steps_backups/ticket18_r2_18_0_3_8_2_20260908-210858/demosys`.
+
+La prueba Odoo específica terminó con **0 fallos y 0 errores**. Además, el
+generador real de SimpleDigital se ejecutó sobre la liquidación `SLIP/655` de
+Valentina Parada (agosto 2026) y produjo:
+
+| Línea | Campo 13 | Campo 71 | Campo 92 | Campo 93 |
+|---|---:|---:|---:|---:|
+| `00` principal | 11 | 5.045 | 350.000 | 1 |
+| `01` adicional | **0** | **0** | **0** | 1 |
+
+El dataset dejó el hallazgo auditable `medical_leave_annex_zeroed`. El
+servicio `odoo18-demo-sys.service` quedó activo y respondió HTTP 200.

@@ -581,6 +581,48 @@ class TestDataset(PreviredCase):
         self.assertIn("medical_leave_bases_rebased",
                       [issue.code for issue in dataset.issues])
 
+    def test_medical_leave_additional_line_zeroes_13_71_and_92(self):
+        """Ticket #18 revisión 2: la línea 01 de Valentina no replica días
+        trabajados, accidente ISL ni RIMA; el resto de sus campos se conserva.
+        """
+        employee = self.make_employee("Valentina Parada", "18656818-4",
+                                      self.dep_admin)
+        payslip = self.make_payslip(employee, self.dep_admin)
+        payslip.contract_id.wage = 420000
+        payslip.worked_days_line_ids.unlink()
+        self._add_worked_days(payslip, "WORK100", 11)
+        self._add_worked_days(payslip, "LIC", 20, is_leave=True)
+        principal = make_row(rut="18656818", dv="4", overrides={
+            previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "192500",
+            previred.F_RIMA: "0",
+            previred.F_MUTUAL_CODE: "",
+            previred.F_ISL_ACCIDENT: "1790",
+        })
+        annex = make_row(
+            rut="18656818", dv="4",
+            line_type=previred.LINE_ADDITIONAL,
+            overrides={
+                previred.F_WORKED_DAYS: "11",
+                previred.F_ISL_ACCIDENT: "1790",
+                previred.F_RIMA: "350000",
+                previred.F_WORKDAY_TYPE: "2",
+            })
+
+        dataset = self.build([principal, annex], spec_version="98")
+
+        record = dataset.records[0]
+        self.assertEqual(record.principal[previred.F_WORKED_DAYS - 1], "11")
+        self.assertEqual(record.principal[previred.F_RIMA - 1], "350000")
+        self.assertEqual(record.principal[previred.F_ISL_ACCIDENT - 1], "5045")
+        self.assertEqual(record.annexes[0][previred.F_WORKED_DAYS - 1], "0")
+        self.assertEqual(record.annexes[0][previred.F_ISL_ACCIDENT - 1], "0")
+        self.assertEqual(record.annexes[0][previred.F_RIMA - 1], "0")
+        # Un campo ajeno a la revisión mantiene la normalización general.
+        self.assertEqual(record.annexes[0][previred.F_WORKDAY_TYPE - 1], "1")
+        self.assertIn("medical_leave_annex_zeroed",
+                      [issue.code for issue in dataset.issues])
+
     def test_medical_leave_full_month_computes_rima_capped_by_imm(self):
         """Ticket #17, RUT 17.932.663-9: mes completo de licencia, sin RIMA
         del motor. gratificación = min(25 % de 986.646, 4,75 × 553.553 / 12)
