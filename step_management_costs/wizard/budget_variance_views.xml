@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_budget_variance_wizard_form" model="ir.ui.view">
+        <field name="name">step.management.budget.variance.wizard.form</field>
+        <field name="model">step.management.budget.variance.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Presupuesto vs. real">
+                <group>
+                    <group>
+                        <field name="budget_id" readonly="1"/>
+                        <field name="company_id" invisible="1"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="only_deviations"/>
+                    </group>
+                </group>
+                <div class="alert alert-info" role="alert" invisible="computed">
+                    El «real» se lee de apuntes contables <strong>publicados</strong>
+                    imputados por analítica a la cuenta de cada centro. Pulse
+                    <em>Calcular</em>.
+                </div>
+                <button name="action_compute" type="object" string="Calcular" class="btn-primary"/>
+                <div class="row g-3 my-3" invisible="not computed">
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Presupuesto (costo)</span><span class="fs-4 fw-bold"><field name="total_budget_cost" widget="monetary"/></span></div></div>
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Real (costo)</span><span class="fs-4 fw-bold"><field name="total_actual_cost" widget="monetary"/></span></div></div>
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Var $ (costo)</span><span class="fs-4 fw-bold"><field name="total_variance_cost" widget="monetary"/></span></div></div>
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Var % (costo)</span><span class="fs-4 fw-bold"><field name="variance_pct_cost" widget="percentage"/></span></div></div>
+                </div>
+                <field name="line_ids" invisible="not computed">
+                    <list decoration-danger="flow_type == 'cost' and variance &gt; 0" decoration-success="flow_type == 'cost' and variance &lt; 0" create="false" edit="false">
+                        <field name="center_id"/>
+                        <field name="group_label"/>
+                        <field name="month"/>
+                        <field name="flow_type" widget="badge"/>
+                        <field name="budget_amount" sum="Presupuesto"/>
+                        <field name="actual_amount" sum="Real"/>
+                        <field name="variance" sum="Var $"/>
+                        <field name="variance_percent" widget="percentage"/>
+                        <field name="budget_qty" optional="hide"/>
+                        <field name="actual_qty" optional="hide"/>
+                        <field name="move_count"/>
+                        <field name="currency_id" column_invisible="True"/>
+                        <button name="action_open_moves" type="object" string="Ver asientos" icon="fa-search" invisible="move_count == 0"/>
+                    </list>
+                </field>
+                <footer>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

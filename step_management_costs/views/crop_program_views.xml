@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crop_program_list" model="ir.ui.view">
+        <field name="name">step.management.crop.program.list</field>
+        <field name="model">step.management.crop.program</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'approved'" decoration-muted="state == 'superseded'">
+                <field name="name"/>
+                <field name="program_type" widget="badge"/>
+                <field name="season"/>
+                <field name="species"/>
+                <field name="total_hectares" sum="Hectáreas"/>
+                <field name="total_amount" sum="Costo" widget="monetary"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="revision"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crop_program_form" model="ir.ui.view">
+        <field name="name">step.management.crop.program.form</field>
+        <field name="model">step.management.crop.program</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_compute_applications" type="object"
+                            string="Calcular aplicaciones" class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Aprobar"
+                            class="btn-primary" invisible="state != 'draft'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_new_revision" type="object" string="Nueva revisión"
+                            invisible="state != 'approved'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_duplicate" type="object" string="Duplicar"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Aprobado" bg_color="text-bg-success"
+                            invisible="state != 'approved'"/>
+                    <widget name="web_ribbon" title="Reemplazado" bg_color="text-bg-secondary"
+                            invisible="state != 'superseded'"/>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Programa</span>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="program_type" readonly="state != 'draft'"/>
+                            <field name="season" readonly="state != 'draft'"/>
+                            <field name="species" readonly="state != 'draft'"/>
+                            <field name="variety" readonly="state != 'draft'"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="price_policy" readonly="state != 'draft'"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="total_hectares"/>
+                            <field name="total_amount" widget="monetary"/>
+                            <field name="cost_per_ha" widget="monetary"/>
+                            <field name="revision"/>
+                            <field name="revision_of_id" invisible="not revision_of_id"/>
+                            <field name="superseded_by_id" invisible="not superseded_by_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Centros de costo / cuarteles" name="centers">
+                            <field name="center_ids" widget="many2many_tags"
+                                   domain="[('company_id', '=', company_id)]"
+                                   readonly="state != 'draft'"/>
+                        </page>
+                        <page string="Receta por hectárea" name="recipe">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="program_type" column_invisible="True"/>
+                                    <field name="product_id" options="{'no_create': True}"/>
+                                    <field name="target"/>
+                                    <field name="dose_per_ha"/>
+                                    <field name="uom_id"/>
+                                    <field name="manual_price"
+                                           column_invisible="parent.price_policy != 'manual'"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="week_number"/>
+                                    <field name="phi_days"
+                                           column_invisible="parent.program_type != 'phyto'"/>
+                                    <field name="rei_hours"
+                                           column_invisible="parent.program_type != 'phyto'"/>
+                                    <field name="notes" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Aplicaciones" name="applications"
+                              invisible="not application_ids">
+                            <field name="application_ids" readonly="1">
+                                <list default_order="center_id, line_id, id">
+                                    <field name="center_id"/>
+                                    <field name="product_id"/>
+                                    <field name="hectares"/>
+                                    <field name="dose_per_ha"/>
+                                    <field name="quantity" sum="Cantidad"/>
+                                    <field name="uom_id"/>
+                                    <field name="unit_price"/>
+                                    <field name="price_source" optional="show"/>
+                                    <field name="amount" sum="Importe" widget="monetary"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                    <field name="week_number" optional="hide"/>
+                                    <field name="phi_days" optional="hide"/>
+                                    <field name="rei_hours" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Aprobación" name="approval" invisible="state == 'draft'">
+                            <group>
+                                <field name="approved_by_id"/>
+                                <field name="approved_at"/>
+                                <field name="approval_hash"/>
+                                <field name="reopen_reason" invisible="not reopen_reason"/>
+                            </group>
+                            <field name="approval_snapshot" readonly="1"/>
+                        </page>
+                    </notebook>
+                    <field name="notes" placeholder="Supuestos del programa…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_crop_program_search" model="ir.ui.view">
+        <field name="name">step.management.crop.program.search</field>
+        <field name="model">step.management.crop.program</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="season"/>
+                <field name="species"/>
+                <filter string="Fitosanitario" name="phyto" domain="[('program_type', '=', 'phyto')]"/>
+                <filter string="Fertilización" name="fert" domain="[('program_type', '=', 'fert')]"/>
+                <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Aprobados" name="approved" domain="[('state', '=', 'approved')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Tipo" name="type_g" context="{'group_by': 'program_type'}"/>
+                    <filter string="Temporada" name="season_g" context="{'group_by': 'season'}"/>
+                    <filter string="Estado" name="state_g" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_crop_program_phyto" model="ir.actions.act_window">
+        <field name="name">Programas fitosanitarios</field>
+        <field name="res_model">step.management.crop.program</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('program_type', '=', 'phyto')]</field>
+        <field name="context">{'default_program_type': 'phyto', 'search_default_phyto': 1}</field>
+        <field name="search_view_id" ref="view_crop_program_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Defina el programa fitosanitario por hectárea.</p>
+            <p>Se amplifica por las hectáreas de cada cuartel y se valoriza al aprobar.</p>
+        </field>
+    </record>
+
+    <record id="action_crop_program_fert" model="ir.actions.act_window">
+        <field name="name">Programas de fertilización</field>
+        <field name="res_model">step.management.crop.program</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('program_type', '=', 'fert')]</field>
+        <field name="context">{'default_program_type': 'fert', 'search_default_fert': 1}</field>
+        <field name="search_view_id" ref="view_crop_program_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Defina el programa de fertilización por hectárea.</p>
+            <p>Igual que el fitosanitario, se amplifica siempre por hectáreas del cuartel.</p>
+        </field>
+    </record>
+</odoo>
