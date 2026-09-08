@@ -118,11 +118,52 @@ tasa Mutual de la empresa. En un mes de licencia **parcial** no se agrega
 RIMA ni subsidio a la base Mutual (a diferencia del SIS y la CEV). El motor
 está inflando la base ~8.975 por los 12 días de licencia.
 
-**Pendiente para cerrar:** ver la línea generada del TXT de EMCA agosto 2026
-para saber si el valor errado está en el campo 97 (base inflada) o en el 98
-(base ok, tasa/redondeo mal). Con eso, el corte 2 normaliza el campo 97 al
-imponible de la liquidación y recalcula el 98, con prueba de regresión para
-el RUT 12359103-8 (438.229 ⇒ 4.076).
+**Resuelto el punto pendiente (archivo de revisión EMCA 202608, fila
+RUT 12359103-8):**
+
+| Campo | Valor en el archivo | Correcto | Estado |
+|---|---|---|---|
+| 97 Renta Imponible Mutual | `438229` | 438229 | ✅ correcto (= GROSS, bajo el tope AFP) |
+| 98 Cotización Acc. Trabajo Mutual | `4159` | 4076 | ❌ (438229 × 0,93 % = 4.075,53 → 4.076) |
+
+El **campo 97 está bien**. El errado es el **campo 98**, y **no lo calcula
+el exportador**: según `step_hr_previred_simpledigital/models/field_matrix.py`
+línea 114, el campo 98 se toma tal cual de la línea de nómina con código
+**`APORTE_MUTUAL`**. Es decir, la regla salarial `APORTE_MUTUAL` del motor de
+nómina devolvió 4.159 en vez de 4.076 para esta trabajadora (mes con 12 días
+de licencia médica). El resto de los trabajadores del archivo cuadran exacto
+a `imponible × 0,93 %`.
+
+Base implícita del 4.159 = `4.159 ÷ 0,0093 ≈ 447.204`, unos **8.975 más** que
+el imponible reportado (438.229) — el equivalente a cargar Mutual también
+sobre una porción de los 12 días de licencia. Fernando indica que el valor
+correcto es sólo `imponible_trabajado × tasa` (4.076), sin porción de
+licencia.
+
+### Dónde se corrige
+
+`APORTE_MUTUAL` es una **regla salarial del motor de nómina de terceros**
+(`l10n_cl_simpledigital_payroll` / `l10n_cl_hr`), que **no está en este
+repositorio** — vive en el `addons_path` del servidor. Opciones:
+
+1. **Corregir la regla en el motor** (servidor). Requiere acceso al módulo
+   del proveedor y su despliegue propio.
+2. **Override desde un módulo Steps.** Hay precedente: `step_hr_previred_
+   simpledigital/hooks.py` ya sobre-escribe `condition_python` de reglas del
+   proveedor (`apply_salary_rule_overrides`, caso tipo 3). Se puede extender
+   para forzar `APORTE_MUTUAL` = `round(renta_imponible_mutual × tasa_mutual_
+   empresa)`. Corrige la liquidación **y** el TXT, con el flujo de despliegue
+   de este repo.
+3. **Red de seguridad en el exportador**: `step_hr_previred` normaliza el
+   campo 98 = campo 97 × tasa de la empresa cuando son inconsistentes. Sólo
+   arregla el TXT, no la liquidación.
+
+**Falta para implementar la opción 2:** el `xmlid` exacto de la regla
+`APORTE_MUTUAL`, y en qué campo/registro vive la tasa Mutual de la empresa
+(¿`res.company`, una mutualidad, `previred_indicator`?). Confirmar además si
+Mutual va sólo sobre el imponible trabajado aun cuando la licencia parcial
+sea < 30 días (matiz frente a la regla de «primeros 30 días» del ticket
+RUT 14250811-7).
 
 **Además:** este recibo resuelve el punto 2 de arriba — el tipo de entrada de
 licencia médica en esta base aparece rotulado **«Licencia Médica»**
