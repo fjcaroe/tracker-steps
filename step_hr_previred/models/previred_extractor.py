@@ -594,11 +594,20 @@ class PreviredExtractor(models.AbstractModel):
              _contribution(previred.unemployment_employer_rate(
                  dataset.period, fixed_term)))
 
+        # Cuando el empleador cotiza en el ISL (no en una mutualidad), el
+        # accidente del trabajo va en el campo 71 sobre imponible + RIMA, y
+        # la mutualidad (97/98) no aplica. El motor a veces deja el campo 71
+        # en 0 en licencia de mes completo (caso Somed / Carolina Medel), así
+        # que se recalcula siempre que el empleador sea ISL.
         mutual_code = str(row[previred.F_MUTUAL_CODE - 1] or "").strip()
         uses_mutual = mutual_code not in ("", "0", "00")
-        if not uses_mutual and _int(previred.F_ISL_ACCIDENT) > 0:
+        if not uses_mutual:
             _set(previred.F_ISL_ACCIDENT,
                  _contribution(previred.isl_accident_rate(dataset.period)))
+            if _int(previred.F_MUTUAL_TAXABLE) or _int(
+                    previred.F_MUTUAL_CONTRIBUTION):
+                _set(previred.F_MUTUAL_TAXABLE, 0)
+                _set(previred.F_MUTUAL_CONTRIBUTION, 0)
 
         if changes:
             dataset.issues.append(previred.Issue(
