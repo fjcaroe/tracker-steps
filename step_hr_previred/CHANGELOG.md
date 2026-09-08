@@ -1,5 +1,19 @@
 # Changelog
 
+## 18.0.3.8.2
+
+Ticket Helpdesk S&S #18, **revisión 2** (Servicio de Bienestar / Valentina
+Parada, agosto 2026).
+
+* La línea adicional tipo `01` de una licencia médica ahora informa `0` en
+  Días Trabajados (campo 13), Accidente del Trabajo ISL (campo 71) y RIMA
+  (campo 92), tal como confirmó el cliente. La línea principal `00` conserva
+  sus valores calculados (11, 5.045 y 350.000 en el caso revisado) y el resto
+  de los campos de la anexa no se altera.
+* La RIMA calculada por la extracción se escribe únicamente en la línea
+  principal; ya no se propaga a anexas. La normalización deja un hallazgo
+  auditable `medical_leave_annex_zeroed` cuando corrige valores del motor.
+
 ## 18.0.3.8.1
 
 Correcciones tras **validar el TXT real en `demo-sys` (`STEPS_DEMO_SYS`)** con

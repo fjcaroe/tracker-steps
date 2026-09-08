@@ -452,6 +452,13 @@ class PreviredExtractor(models.AbstractModel):
         if dataset.spec_version != "98":
             return
 
+        # Ticket #18, revisión 2 (Servicio de Bienestar / Valentina Parada):
+        # en una licencia médica la línea adicional 01 no repite días
+        # trabajados, cotización ISL ni RIMA de la principal. Se normaliza
+        # después de `_set_worked_days`, que por regla general propaga el
+        # campo 13 al bloque completo.
+        self._normalize_medical_leave_annexes(record, payslip, dataset)
+
         afp_code = str(row[previred.F_AFP_CODE - 1] or "").strip()
         regime = str(row[previred.F_PENSION_REGIME - 1] or "").strip().upper()
         worker_type = str(row[previred.F_WORKER_TYPE - 1] or "").strip()
@@ -490,6 +497,50 @@ class PreviredExtractor(models.AbstractModel):
         self._set_medical_leave_bases(record, payslip, dataset)
 
     # -- licencia médica: base imponible + RIMA --------------------------
+
+    def _normalize_medical_leave_annexes(self, record, payslip, dataset):
+        """Deja en cero 13, 71 y 92 en anexas 01 de licencia médica.
+
+        PreviRed usa esos valores sólo en la línea principal 00. La revisión
+        2 del ticket #18 confirmó que copiarlos en la línea adicional 01
+        produce un archivo incorrecto, aunque el resto de la anexa esté bien.
+        """
+        has_medical_leave = any(
+            (wd.number_of_days or 0) > 0
+            and self._is_medical_leave_entry(wd.work_entry_type_id)
+            for wd in payslip.worked_days_line_ids)
+        if not has_medical_leave:
+            return
+
+        changes = []
+        positions = (
+            previred.F_WORKED_DAYS,
+            previred.F_ISL_ACCIDENT,
+            previred.F_RIMA,
+        )
+        for annex in record.annexes:
+            if len(annex) != previred.FIELD_COUNT:
+                continue
+            line_type = previred.normalize_line_type(
+                annex[previred.F_LINE_TYPE - 1])
+            if line_type != previred.LINE_ADDITIONAL:
+                continue
+            for position in positions:
+                old = str(annex[position - 1] or "").strip()
+                if old not in ("", "0"):
+                    changes.append("%s: %s → 0" % (
+                        previred.field_label(position), old))
+                annex[position - 1] = "0"
+
+        if changes:
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING,
+                "medical_leave_annex_zeroed",
+                _("RUT %(rut)s-%(dv)s: línea adicional 01 de licencia "
+                  "médica normalizada según revisión 2 del ticket #18. "
+                  "%(detail)s.", rut=record.rut, dv=record.dv,
+                  detail="; ".join(changes)),
+                record.department_label))
 
     def _set_medical_leave_bases(self, record, payslip, dataset):
         """Rebasa las cotizaciones de cargo del empleador sobre imponible + RIMA.
@@ -546,9 +597,10 @@ class PreviredExtractor(models.AbstractModel):
         if rima <= 0:
             rima, why = self._compute_medical_leave_rima(payslip, dataset)
             if rima > 0:
-                for record_row in record.rows:
-                    if len(record_row) == previred.FIELD_COUNT:
-                        record_row[previred.F_RIMA - 1] = str(rima)
+                # La RIMA pertenece a la principal 00. En particular, la
+                # línea adicional 01 debe llevar campo 92 = 0 (ticket #18,
+                # revisión 2).
+                row[previred.F_RIMA - 1] = str(rima)
                 rima_source = "calculada en la extracción — %s" % why
             else:
                 leave_evident = (
@@ -706,8 +758,8 @@ class PreviredExtractor(models.AbstractModel):
           «30 − ausencias»): se informa un error preciso que identifica la
           liquidación y las líneas conflictivas.
         * El valor resultante se escribe en **todas** las filas del registro
-          (principal y anexas): Previred exige el campo 13 en cada línea y
-          las anexas son del mismo trabajador y período.
+          (principal y anexas), salvo la línea adicional 01 de una licencia
+          médica: la revisión 2 del ticket #18 exige allí campo 13 = 0.
         """
         worked_days_lines = payslip.worked_days_line_ids
         attendance = worked_days_lines.filtered(
