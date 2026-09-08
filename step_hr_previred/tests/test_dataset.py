@@ -414,7 +414,8 @@ class TestDataset(PreviredCase):
                        previred.F_PROTECTED_RETURN: ""})], spec_version="98")
         row = dataset.records[0].principal
         self.assertEqual(row[previred.F_WORKDAY_TYPE - 1], "1")
-        self.assertEqual(row[previred.F_LIFE_EXPECTANCY - 1], "10000")
+        # Tasa CEV 0,72 % desde 2026-08 (corte 2): 1.000.000 × 0,72 % = 7.200.
+        self.assertEqual(row[previred.F_LIFE_EXPECTANCY - 1], "7200")
         self.assertEqual(row[previred.F_PROTECTED_RETURN - 1], "9000")
         self.assertFalse(dataset.errors)
 
@@ -523,10 +524,14 @@ class TestDataset(PreviredCase):
         self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
 
     def test_medical_leave_without_motor_rima_warns_and_keeps_fields(self):
-        """Si el mes es de licencia completa y el motor no informó la RIMA,
-        no se recalcula nada y queda un aviso: es el corte 2."""
+        """Licencia médica, el motor no informó la RIMA y tampoco se puede
+        calcular (sin sueldo base en el contrato): no se recalcula nada y
+        queda un aviso trazable."""
         employee = self.make_employee("Sin RIMA", "18656818-4", self.dep_admin)
-        self.make_payslip(employee, self.dep_admin)
+        payslip = self.make_payslip(employee, self.dep_admin)
+        payslip.contract_id.wage = 0
+        payslip.worked_days_line_ids.unlink()
+        self._add_worked_days(payslip, "LIC", 30, is_leave=True)
         row = make_row(rut="18656818", dv="4", overrides={
             previred.F_WORKED_DAYS: "0",
             previred.F_AFP_CODE: "29",
