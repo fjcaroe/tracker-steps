@@ -168,3 +168,22 @@ Valentina Parada (agosto 2026) y produjo:
 
 El dataset dejó el hallazgo auditable `medical_leave_annex_zeroed`. El
 servicio `odoo18-demo-sys.service` quedó activo y respondió HTTP 200.
+
+## 8. Desplegado y validado en producción SyS — 2026-09-08
+
+Con autorización explícita del usuario se desplegó `step_hr_previred
+18.0.3.8.2` en SyS. Antes de actualizar se respaldaron la base y el addon en:
+
+`/opt/steps_backups/ticket18_r2_18_0_3_8_2_20260908-225020/sys`
+
+La actualización terminó sin errores y `odoo18-sys.service` quedó activo;
+los accesos local y público respondieron HTTP 200. La regeneración de solo
+lectura con el motor real sobre `SLIP/671` confirmó:
+
+| Línea | Campo 13 | Campo 71 | Campo 92 | Campo 93 |
+|---|---:|---:|---:|---:|
+| `00` principal | 11 | 5.045 | 350.000 | 2 |
+| `01` adicional | **0** | **0** | **0** | 2 |
+
+También se verificó que la principal mantiene los campos 97 y 98 en cero y
+que el hallazgo `medical_leave_annex_zeroed` se produjo durante la extracción.
