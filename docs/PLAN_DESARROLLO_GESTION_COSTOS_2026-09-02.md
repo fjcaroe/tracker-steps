@@ -1,8 +1,8 @@
 # Plan de desarrollo — Módulo Gestión y Costos
 
-**Fecha:** 2 de septiembre de 2026  
-**Plataforma objetivo:** Odoo 18  
-**Addon existente:** `step_management_costs`  
+**Fecha:** 2 de septiembre de 2026
+**Plataforma objetivo:** Odoo 18
+**Addon existente:** `step_management_costs`
 **Estado de este documento:** plan de ejecución; no implica instalación ni despliegue
 
 ## 1. Decisión ejecutiva

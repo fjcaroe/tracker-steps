@@ -1,6 +1,6 @@
 # Handoff — Fase 3, corte 1
 
-**Addon:** `step_management_costs` · **De:** `18.0.6.0.0` → **A:** `18.0.7.0.0`  
+**Addon:** `step_management_costs` · **De:** `18.0.6.0.0` → **A:** `18.0.7.0.0`
 **Fecha:** 2026-09-03 · **Autor:** Codex · **Estado:** implementado y verificado, sin despliegue
 
 ## 1. Alcance
