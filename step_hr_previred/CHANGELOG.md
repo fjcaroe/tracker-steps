@@ -1,5 +1,26 @@
 # Changelog
 
+## 18.0.3.8.1
+
+Correcciones tras **validar el TXT real en `demo-sys` (`STEPS_DEMO_SYS`)** con
+las liquidaciones de Carolina Medel (Somed) y Valentina Parada (Serv.
+Bienestar), agosto 2026. Con estas correcciones los campos 29, 71, 92, 94, 95,
+97, 98, 100 y 102 del archivo generado coinciden exactamente con los valores
+que pide cada ticket.
+
+* **`_()` no admite el kwarg reservado `source`.** El hallazgo
+  `medical_leave_bases_rebased` se construía con `_("… %(source)s …",
+  source=…)`, que choca con el primer parámetro posicional de
+  `get_text_alias` y lanzaba `TypeError` al generar el archivo. Marcador
+  renombrado a `%(origen)s`.
+* **Empleador ISL (sin mutualidad): campo 71 y campos 97/98.** El motor deja
+  el campo 71 en 0 en licencia de mes completo aunque el empleador cotice en
+  el ISL (caso Somed). Ahora, cuando el campo 96 (Código Mutualidad) viene
+  vacío, el recálculo de licencia médica fija el campo 71 = base × 0,93 %
+  siempre, y pone en 0 los campos 97 (Renta Imponible Mutual) y 98
+  (Cotización Mutual), que no aplican a quien no está en una mutualidad
+  (ticket #18: «campo 97 = 0 porque cotiza en INP»).
+
 ## 18.0.3.8.0
 
 Tickets Helpdesk S&S #17 (Somed / Carolina Medel, RUT 17.932.663-9) y #18

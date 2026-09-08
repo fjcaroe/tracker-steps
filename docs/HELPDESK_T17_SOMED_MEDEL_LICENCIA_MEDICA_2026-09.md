@@ -257,3 +257,38 @@ resultado.
 **No aplicado en SyS** (solo lectura: sin autorización de escritura en chat,
 sin dry-run en demo-sys, sin respaldo; módulo en SyS en 18.0.3.6.0 sin ruta
 de deploy). La rama queda para despliegue y verificación por una persona.
+
+---
+
+## 9. VALIDADO EN demo-sys (STEPS_DEMO_SYS) — 2026-09-08
+
+`step_hr_previred 18.0.3.8.1` desplegado en `demo-sys` (`odoo18-demo-sys`,
+`/opt/demosys_odoo18/odoo_agriculture`), `-u step_hr_previred`, servicio
+reiniciado. Respaldo previo:
+`/opt/steps_backups/demosys_previred_deploy/STEPS_DEMO_SYS_20260908-193204.dump`
++ `step_hr_previred_BEFORE_20260908-193204.tgz`.
+
+TXT PreviRed consolidado de **Somed Spa** (perfil v98 Simpledigital), período
+202608, generado contra la liquidación real de Carolina Medel — línea
+principal (RUT 17.932.663-9):
+
+| Campo | Motor (antes) | 18.0.3.8.1 | Esperado (cliente) |
+|---|---|---|---|
+| 29 SIS | 22.178 | **21.463** | 21.463 |
+| 71 Acc. Trabajo ISL | 0 | **11.214** | 11.214 |
+| 92 RIMA | 1.205.761 | **1.205.761** | 1.205.761 |
+| 94 Expectativa de Vida | 8.681 | **8.681** | 8.681 |
+| 95 Rentabilidad Protegida | 0 | **10.852** | 10.852 |
+| 97 Renta Imponible Mutual | 0 | **0** | 0 |
+| 100 R.I. Seguro Cesantía | 1.205.761 | **1.205.761** | 1.205.761 |
+| 102 AFC empleador | 29.903 | **28.938** | 28.938 |
+
+Líneas anexas (01): campos 13 y 71 = 0. Hallazgo
+`medical_leave_bases_rebased` registrado con el detalle antes→después.
+`errors: []` — el archivo se genera sin bloqueos.
+
+Dos defectos encontrados y corregidos durante esta validación (ver
+`CHANGELOG 18.0.3.8.1`): `_()` con kwarg `source`, y el campo 71 en 0 para
+empleador ISL. La generación se hizo por el asistente real (motor
+SimpleDigital) sobre `STEPS_DEMO_SYS`; **nada se persistió** (transacción
+revertida). **SyS no se tocó.**

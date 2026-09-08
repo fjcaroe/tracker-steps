@@ -449,8 +449,10 @@ class TestDataset(PreviredCase):
             previred.F_SIS_CONTRIBUTION: "22178",
             previred.F_LIFE_EXPECTANCY: "8681",
             previred.F_PROTECTED_RETURN: "0",
-            previred.F_MUTUAL_CODE: "",
-            previred.F_ISL_ACCIDENT: "362",
+            previred.F_MUTUAL_CODE: "00",
+            # El motor real deja el campo 71 en 0 en licencia de mes completo
+            # (empleador ISL «Sin Mutual»); debe recalcularse igual.
+            previred.F_ISL_ACCIDENT: "0",
             previred.F_UNEMPLOYMENT_TAXABLE: "1205761",
             previred.F_UNEMPLOYMENT_EMPLOYER: "29903",
         })
@@ -495,6 +497,29 @@ class TestDataset(PreviredCase):
             principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "542500")
         self.assertEqual(
             principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "13020")
+        self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
+
+    def test_medical_leave_isl_employer_zeroes_mutual_fields(self):
+        """Ticket Serv. Bienestar: quien cotiza en INP/ISL (campo 96 vacío) no
+        lleva mutualidad — el motor deja el campo 97 con monto y debe quedar
+        en 0, y el campo 71 se recalcula sobre imponible + RIMA."""
+        employee = self.make_employee("INP Parada", "18656818-4",
+                                      self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={
+            previred.F_WORKED_DAYS: "11",
+            previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "192500",
+            previred.F_RIMA: "350000",
+            previred.F_MUTUAL_CODE: "",
+            previred.F_ISL_ACCIDENT: "0",
+            previred.F_MUTUAL_TAXABLE: "192500",
+            previred.F_MUTUAL_CONTRIBUTION: "1790",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "5045")
+        self.assertEqual(principal[previred.F_MUTUAL_TAXABLE - 1], "0")
         self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
 
     def test_medical_leave_without_motor_rima_warns_and_keeps_fields(self):
