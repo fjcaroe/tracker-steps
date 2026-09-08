@@ -398,14 +398,22 @@ class PreviredExtractor(models.AbstractModel):
 
         row = record.principal
         calendar = payslip.contract_id.resource_calendar_id
-        weekly = getattr(calendar, "hours_per_week", 0.0) or getattr(
-            calendar, "full_time_required_hours", 0.0) or 0.0
+        # «Horas de la semana» = campo «Tiempo completo de la empresa» del
+        # horario (`full_time_required_hours`). Previred valida el sueldo
+        # mínimo del campo 27 contra el tipo de jornada del campo 93: una
+        # jornada semanal **inferior a 40 h** es parcial (tipo 2) y admite
+        # una renta imponible bajo el mínimo legal; 40 h o más es completa
+        # (tipo 1) y exige el mínimo. Ticket EMCA agosto 2026, RUT
+        # 12588103-3: calendario «Jornada parcial 24 horas» (24 h en «Tiempo
+        # completo de la empresa»), rechazado porque salía como tipo 1.
+        weekly = getattr(calendar, "full_time_required_hours", 0.0) or getattr(
+            calendar, "hours_per_week", 0.0) or 0.0
         # La configuración explícita del horario es la fuente oficial. La
-        # heurística queda sólo como respaldo para datos históricos aún no
-        # migrados.
+        # heurística por horas queda sólo como respaldo para datos históricos
+        # aún no migrados.
         workday_type = getattr(calendar, "previred_workday_type", False)
         workday_type = (
-            workday_type or ("2" if weekly and weekly <= 30 else "1")
+            workday_type or ("2" if weekly and weekly < 40 else "1")
         )
         # Previred exige que el campo 93 de cada línea anexa 01/02/03 sea
         # idéntico al de la línea principal 00 del trabajador. Algunos

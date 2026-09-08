@@ -1,5 +1,26 @@
 # Changelog
 
+## 18.0.3.7.0
+
+Tickets PreviRed 2026-09 (nómina agosto 2026). Dos correcciones acotadas y
+verificadas por aritmética; la parte de cálculo de la RIMA en licencia médica
+queda especificada aparte (`docs/PREVIRED_TICKET_LICENCIA_JORNADA_2026-09.md`).
+
+* **Tasa de Cotización Expectativa de Vida (campo 94) = 0,72 % desde agosto
+  2026.** `life_expectancy_rate` devolvía `1,00 %`, una estimación previa a la
+  publicación de la tabla previsional del mes. Confirma el valor el rechazo de
+  PreviRed del ticket «imposiciones licencia médica» (RUT 14250811-7): con
+  RIMA 673.750, el campo 94 esperado es 4.851 = 673.750 × 0,72 %. También
+  corrige el campo 94 del RUT 14250811-7 en el ticket Los Lingues.
+* **Tipo de Jornada (campo 93): parcial cuando la jornada semanal es inferior
+  a 40 h.** El umbral era `≤ 30 h` y la fuente de horas priorizaba
+  `hours_per_week`. Ahora se toma «Tiempo completo de la empresa»
+  (`full_time_required_hours`) del horario y una jornada `< 40 h` se informa
+  como tipo 2. El caso EMCA agosto 2026 (RUT 12588103-3, KAREN FLIES,
+  calendario «Jornada parcial 24 horas») salía como tipo 1 y PreviRed
+  rechazaba el campo 27 «Renta Imponible AFP no corresponde al mínimo legal».
+  `previred_workday_type` explícito del horario mantiene la precedencia.
+
 ## 18.0.3.6.0
 
 * **Trabajador tipo 3 (activo mayor de 65 años).** El puente SimpleDigital

@@ -147,10 +147,18 @@ def normalize_line_type(value):
 
 
 def life_expectancy_rate(period):
-    """Tasa CEV de respaldo por período; la liquidación tiene precedencia."""
+    """Tasa CEV de respaldo por período; la liquidación tiene precedencia.
+
+    Desde agosto 2026 la tasa de la Cotización Expectativa de Vida es
+    **0,72 %**, según las tablas previsionales del mes. El valor `1,00 %` que
+    se usó al liberar el formato v98 era una estimación previa a la
+    publicación de la tabla. Confirmado por el rechazo de PreviRed del ticket
+    «imposiciones licencia médica» 2026-09 (RUT 14250811-7): con
+    RIMA = 673.750, el campo 94 esperado es 4.851 = 673.750 × 0,72 %.
+    """
     value = str(period or "").replace("-", "")[:6]
     if value >= "202608":
-        return "1.00"
+        return "0.72"
     if value >= "202508":
         return "0.90"
     return "0"
