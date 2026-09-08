@@ -112,11 +112,46 @@ class StepHrsMachinery(models.Model):
 
     @staticmethod
     def _distribution(*accounts):
+        """Arma la distribución al 100 % con una cuenta por plan analítico.
+
+        Odoo rechaza una distribución con dos cuentas del mismo plan raíz. Hay
+        registros antiguos cuyo "Centro de costos" apunta a una cuenta de otro
+        plan (Temporada o Project), así que gana la primera cuenta recibida y
+        las que repiten plan se descartan en vez de reventar la
+        contabilización.
+        """
         ids = []
+        plans = set()
         for account in accounts:
-            if account and account.id not in ids:
-                ids.append(account.id)
+            if not account or account.id in ids:
+                continue
+            plan = account.root_plan_id or account.plan_id
+            if plan.id in plans:
+                continue
+            plans.add(plan.id)
+            ids.append(account.id)
         return {",".join(str(item) for item in ids): 100.0} if ids else False
+
+    def _debit_analytic_distribution(self, line):
+        """Distribución analítica del cargo, un segmento por plan analítico.
+
+        Los planes definidos en la contabilidad son Temporada, Centro de costos
+        y Actividad, y cada uno se toma de donde el usuario lo captura:
+
+        * **Temporada**: encabezado del registro de horas máquina.
+        * **Centro de costos**: línea de detalle.
+        * **Actividad**: línea de detalle, a través de la labor.
+
+        En los tres casos lo que va al apunte es la *cuenta analítica* asociada
+        al maestro, nunca el id del maestro. La cuenta de pasivo (el abono) no
+        lleva analítica: eso lo resuelve :meth:`action_conta`.
+        """
+        self.ensure_one()
+        return self._distribution(
+            self.temp_id.cost_id,
+            line.cost_id,
+            line.actividad_id.cost_id,
+        )
 
     def action_conta(self):
         Service = self.env["type.service.machinery"]
@@ -145,9 +180,9 @@ class StepHrsMachinery(models.Model):
                     credit_account = (service.abono_account_id if service else False) or journal.default_account_id
                     if not debit_account or not credit_account:
                         raise UserError(_("Faltan cuentas contables para el concepto %s.") % code)
-                    debit_distribution = self._distribution(record.temp_id.cost_id, line.cost_id, line.actividad_id)
-                    machinery_center = line.machinery_ids.cost_id or line.machinery_ids.analytic_id
-                    credit_distribution = self._distribution(machinery_center)
+                    debit_distribution = record._debit_analytic_distribution(line)
+                    # La cuenta de pasivo no lleva cuenta analítica: sólo los gastos.
+                    credit_distribution = False
                     grouped[("debit", debit_account.id, json.dumps(debit_distribution, sort_keys=True))] += amount
                     grouped[("credit", credit_account.id, json.dumps(credit_distribution, sort_keys=True))] += amount
 
