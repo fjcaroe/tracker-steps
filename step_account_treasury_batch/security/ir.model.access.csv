@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cashflow_batch_wizard_user,cashflow.batch.wizard.user,model_step_cashflow_batch_wizard,step_account_treasury.group_treasury_user,1,1,1,1
