@@ -172,3 +172,59 @@ Unificar en el corte 2 (rama `correo/20260907-previred-licencia-jornada`):
    acceso a esa base.
 4. Consolidar el corte 1 (tasa CEV 0,72 %) en la rama base para no depender
    de la precedencia de la línea de nómina.
+
+---
+
+## 7. Resolución 2026-09-08 (respuestas del cliente + implementación)
+
+El cliente respondió las 5 preguntas de §5 (adjunto
+«T17 Somed, RESPUIESTAS A PREGUNTAS.docx»). Resumen:
+
+1. La base **1.205.761 es la RIMA** (todo agosto con licencia ⇒ imponible
+   del mes = 0; RIMA = sueldo base contrato + gratificación porque el mes
+   anterior tampoco se trabajó completo).
+2. Misma base para SIS (29), CEV (94), Rentabilidad Protegida (95), AFC
+   empleador (102) — y también ISL (71) y Renta Imp. Seg. Cesantía (100).
+3. La base es **sólo** 1.205.761; el 81.148 es la **suma** de las
+   cotizaciones patronales (21.463 + 8.681 + 10.852 + 11.214 + 28.938).
+4. Campo 71: **todo agosto al empleador** (simplificación del cliente) ⇒
+   1.205.761 × 0,93 % = 11.214.
+5. El +40.196 que inflaba la base SIS/AFC es **un error del motor**.
+
+### Implementado — `step_hr_previred 18.0.3.8.0`
+
+`PreviredExtractor._set_medical_leave_bases` (llamado desde
+`_enrich_official_fields`): cuando el motor ya informó la RIMA (campo 92 > 0),
+la base de 29 / 71 / 94 / 95 / 100 / 102 pasa a `campo 27 + campo 92` y cada
+cotización se recalcula con su tasa estatutaria. No toca campo 28 ni la
+mutualidad (97/98). Deja el hallazgo `medical_leave_bases_rebased`.
+
+Verificado por aritmética contra el archivo de revisión de PreviRed
+(RUT 17.932.663-9, base 1.205.761):
+
+| Campo | Motor | Esperado | `18.0.3.8.0` |
+|---|---|---|---|
+| 29 SIS | 22.178 | 21.463 | **21.463** |
+| 71 ISL | 362 | 11.214 | **11.214** |
+| 94 CEV | 8.681 | 8.681 | **8.681** |
+| 95 Rent. Protegida | 0 | 10.852 | **10.852** |
+| 100 R.I. Seg. Cesantía | 1.205.761 | 1.205.761 | **1.205.761** |
+| 102 AFC empleador | 29.903 | 28.938 | **28.938** |
+
+Pruebas: `test_dataset.py::test_medical_leave_rebases_employer_contributions_on_rima`
+y tres más (mes parcial, aviso sin RIMA, regresión sin licencia).
+
+### MUEVE MONTOS DECLARADOS A PREVIRED — REQUIERE VALIDACIÓN FUNCIONAL ANTES DE SyS
+
+Supuestos: tasas estatutarias SIS 1,78 %, ISL básica 0,93 %, CEV 0,72 %,
+Rent. Protegida 0,90 %, AFC empleador 2,4 % (indefinido) / 3,0 % (plazo
+fijo, según `contract.date_end`); la mutualidad no suma RIMA; sólo se
+recalcula la línea principal.
+
+### Pendiente
+
+* Aplicar y verificar contra datos reales: la base de S&S vive en `:8070`
+  (motor del proveedor) y esta automatización no tiene credenciales para
+  ese ambiente ni para SyS. `demo-sys` no tiene esta liquidación.
+* Confirmar con el usuario la lista extendida de campos con «+RIMA» (el
+  corte 2 decía «sólo 29 y 94»).

@@ -487,6 +487,116 @@ class PreviredExtractor(models.AbstractModel):
         row[previred.F_PROTECTED_RETURN - 1] = contribution(
             previred.protected_return_rate(dataset.period))
 
+        self._set_medical_leave_bases(record, payslip, dataset)
+
+    # -- licencia médica: base imponible + RIMA --------------------------
+
+    def _set_medical_leave_bases(self, record, payslip, dataset):
+        """Rebasa las cotizaciones de cargo del empleador sobre imponible + RIMA.
+
+        Regla funcional (tickets S&S 2026-09, Somed / Carolina Medel y
+        Servicio de Bienestar / Valentina Parada; valores confirmados por el
+        cliente en las respuestas del 2026-09-08):
+
+        * En licencia médica la base de las cotizaciones de cargo del
+          empleador es **Renta Imponible AFP del mes (campo 27) + RIMA
+          (campo 92)**. Sobre esa base se recalculan con la tasa estatutaria:
+          SIS (29), Acc. Trabajo ISL (71, sólo si la línea usa ISL y no
+          mutual), Expectativa de Vida (94), Rentabilidad Protegida (95),
+          Renta Imponible Seguro Cesantía (100) y Aporte Empleador Seguro
+          Cesantía (102).
+        * **No** se tocan la cotización adicional AFP del campo 28 (va sólo
+          sobre el imponible del mes) ni la mutualidad (campos 97 / 98), que
+          no suma RIMA (usuario, 2026-09-08, conflicto tickets #13 vs #15).
+        * Sólo actúa cuando el motor **ya informó la RIMA** en el campo 92.
+          Cuando el mes es de licencia completa y el motor no la informó,
+          deja un aviso trazable y no recalcula: el cálculo de la RIMA
+          (sueldo base + gratificación con tope IMM, o liquidación previa) es
+          el «corte 2» especificado en
+          `docs/PREVIRED_TICKET_LICENCIA_JORNADA_2026-09.md`.
+
+        MUEVE MONTOS DECLARADOS A PREVIRED. Cada override deja un hallazgo
+        auditable; requiere validación funcional contra datos reales antes de
+        aplicarse en SyS.
+        """
+        if dataset.spec_version != "98":
+            return
+        row = record.principal
+        if len(row) != previred.FIELD_COUNT:
+            return
+
+        regime = str(row[previred.F_PENSION_REGIME - 1] or "").strip().upper()
+        worker_type = str(row[previred.F_WORKER_TYPE - 1] or "").strip()
+        afp_code = str(row[previred.F_AFP_CODE - 1] or "").strip()
+        if (regime != "AFP" or worker_type != "0" or not afp_code
+                or afp_code in ("0", "00")):
+            return
+
+        def _int(position):
+            raw = str(row[position - 1] or "0").strip()
+            return int(raw) if raw.lstrip("-").isdigit() else 0
+
+        worked = str(row[previred.F_WORKED_DAYS - 1] or "").strip()
+        full_month_leave = worked.isdigit() and int(worked) == 0
+        rima = _int(previred.F_RIMA)
+        if rima <= 0:
+            if full_month_leave:
+                dataset.issues.append(previred.Issue(
+                    previred.SEVERITY_WARNING, "medical_leave_rima_missing",
+                    _("RUT %(rut)s-%(dv)s: mes completo de licencia médica y "
+                      "el motor no informó la RIMA (campo 92). Los campos 29, "
+                      "71, 94, 95, 100 y 102 no se recalcularon; requiere el "
+                      "cálculo de RIMA del corte 2.",
+                      rut=record.rut, dv=record.dv),
+                    record.department_label))
+            return
+
+        taxable = _int(previred.F_AFP_TAXABLE)
+        base = taxable + rima
+        fixed_term = bool(getattr(payslip.contract_id, "date_end", False))
+
+        def _contribution(rate):
+            return str(int((Decimal(base) * Decimal(str(rate)) / 100)
+                           .quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
+
+        changes = []
+
+        def _set(position, value):
+            value = str(value)
+            old = str(row[position - 1] or "").strip()
+            if old != value:
+                changes.append("%s: %s → %s" % (
+                    previred.field_label(position), old or "0", value))
+            row[position - 1] = value
+
+        _set(previred.F_SIS_CONTRIBUTION,
+             _contribution(previred.sis_rate(dataset.period)))
+        _set(previred.F_LIFE_EXPECTANCY,
+             _contribution(previred.life_expectancy_rate(dataset.period)))
+        _set(previred.F_PROTECTED_RETURN,
+             _contribution(previred.protected_return_rate(dataset.period)))
+        _set(previred.F_UNEMPLOYMENT_TAXABLE, base)
+        _set(previred.F_UNEMPLOYMENT_EMPLOYER,
+             _contribution(previred.unemployment_employer_rate(
+                 dataset.period, fixed_term)))
+
+        mutual_code = str(row[previred.F_MUTUAL_CODE - 1] or "").strip()
+        uses_mutual = mutual_code not in ("", "0", "00")
+        if not uses_mutual and _int(previred.F_ISL_ACCIDENT) > 0:
+            _set(previred.F_ISL_ACCIDENT,
+                 _contribution(previred.isl_accident_rate(dataset.period)))
+
+        if changes:
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING, "medical_leave_bases_rebased",
+                _("RUT %(rut)s-%(dv)s: licencia médica; cotizaciones de cargo "
+                  "del empleador recalculadas sobre imponible %(taxable)s + "
+                  "RIMA %(rima)s = %(base)s. %(detail)s. MUEVE MONTOS "
+                  "DECLARADOS: validar antes de SyS.",
+                  rut=record.rut, dv=record.dv, taxable=taxable, rima=rima,
+                  base=base, detail="; ".join(changes)),
+                record.department_label))
+
     # -- campo 13 «Días Trabajados» ---------------------------------------
 
     @staticmethod

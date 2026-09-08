@@ -1,5 +1,38 @@
 # Changelog
 
+## 18.0.3.8.0
+
+Tickets Helpdesk S&S #17 (Somed / Carolina Medel, RUT 17.932.663-9) y #18
+(Servicio de Bienestar / Valentina Parada, RUT 18.656.818-4), nómina agosto
+2026. El cliente confirmó los valores esperados y la regla el 2026-09-08.
+
+* **Licencia médica: cotizaciones de cargo del empleador sobre imponible del
+  mes + RIMA.** Nuevo `PreviredExtractor._set_medical_leave_bases`. Cuando el
+  motor ya informó la RIMA en el campo 92, la base de SIS (29), Acc. Trabajo
+  ISL (71, sólo si la línea usa ISL y no mutual), Expectativa de Vida (94),
+  Rentabilidad Protegida (95), Renta Imponible Seguro Cesantía (100) y Aporte
+  Empleador Seguro Cesantía (102) pasa a ser `campo 27 + campo 92` y cada
+  cotización se recalcula con su tasa estatutaria (`sis_rate` 1,78 %;
+  `isl_accident_rate` 0,93 %; `life_expectancy_rate` 0,72 %;
+  `protected_return_rate` 0,90 %; `unemployment_employer_rate` 2,4 % / 3,0 %).
+  No se tocan la cotización adicional AFP del campo 28 ni la mutualidad
+  (97/98). Verificado contra los archivos de revisión de PreviRed de ambos
+  tickets: Somed base 1.205.761 ⇒ 29=21.463, 94=8.681, 95=10.852, 71=11.214,
+  102=28.938; Serv. Bienestar base 542.500 ⇒ 29=9.657, 94=3.906, 95=4.883,
+  71=5.045, 102=13.020. Cada override deja un hallazgo auditable
+  (`medical_leave_bases_rebased`). **Mueve montos declarados a PreviRed:**
+  pendiente de validación funcional contra datos reales antes de SyS.
+* **Aviso cuando falta la RIMA del motor.** Si el mes es de licencia médica
+  completa (campo 13 = 0) y el motor no informó el campo 92, se deja el
+  hallazgo `medical_leave_rima_missing` y **no** se recalcula: el cálculo de
+  la RIMA (sueldo base + gratificación con tope IMM, o la última liquidación
+  previa) es el «corte 2» de `docs/PREVIRED_TICKET_LICENCIA_JORNADA_2026-09.md`
+  y sigue pendiente.
+* Helpers nuevos en `tools/previred.py`: `sis_rate`, `isl_accident_rate`,
+  `unemployment_employer_rate`, `minimum_wage` (tabla IMM por período, 202608
+  = 553.553); constantes `F_ISL_ACCIDENT`, `F_RIMA`, `F_MUTUAL_TAXABLE`,
+  `F_MUTUAL_CONTRIBUTION`, `F_UNEMPLOYMENT_EMPLOYER`.
+
 ## 18.0.3.7.0
 
 Tickets PreviRed 2026-09 (nómina agosto 2026). Dos correcciones acotadas y

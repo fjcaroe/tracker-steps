@@ -180,6 +180,40 @@ def protected_return_rate(period):
     return "0"
 
 
+def sis_rate(period):
+    """Tasa del Seguro de Invalidez y Sobrevivencia (SIS), de cargo del
+    empleador. Confirmada por los archivos de revisión de PreviRed de los
+    tickets S&S 2026-09: 1.205.761 × 1,78 % = 21.463 (Somed) y
+    542.500 × 1,78 % = 9.657 (Serv. Bienestar)."""
+    return "1.78"
+
+
+def isl_accident_rate(period):
+    """Cotización básica de la Ley 16.744 (accidentes del trabajo): 0,90 %
+    permanente + 0,03 % extraordinario = 0,93 %. Es la tasa estatutaria común;
+    una empresa con tasa adicional individualizada la informa por su mutual y
+    ese caso no pasa por este respaldo."""
+    return "0.93"
+
+
+def unemployment_employer_rate(period, fixed_term=False):
+    """Aporte del empleador al Seguro de Cesantía: 2,4 % en contrato
+    indefinido, 3,0 % en plazo fijo / obra o faena."""
+    return "3.0" if fixed_term else "2.4"
+
+
+#: Ingreso Mínimo Mensual por período. Es el tope de la gratificación legal en
+#: el cálculo de la RIMA (`grat = min(25 % devengado, 4,75 × IMM ÷ 12)`).
+#: Confirmado por el usuario para agosto 2026 (es el valor que nombra el
+#: propio rechazo de PreviRed). Cada período nuevo se agrega explícitamente.
+MINIMUM_WAGE_BY_PERIOD = {"202608": 553553}
+
+
+def minimum_wage(period):
+    """IMM del período o `None` si no está en la tabla."""
+    return MINIMUM_WAGE_BY_PERIOD.get(str(period or "").replace("-", "")[:6])
+
+
 # --- posiciones de campo relevantes (1-based, como la especificación) -------
 
 F_RUT = 1
@@ -205,13 +239,18 @@ F_AFP_CODE = 26
 F_AFP_TAXABLE = 27
 F_AFP_CONTRIBUTION = 28
 F_SIS_CONTRIBUTION = 29
+F_ISL_ACCIDENT = 71
 F_HEALTH_CODE = 75
 F_CCAF_CODE = 83
+F_RIMA = 92
 F_WORKDAY_TYPE = 93
 F_LIFE_EXPECTANCY = 94
 F_PROTECTED_RETURN = 95
 F_MUTUAL_CODE = 96
+F_MUTUAL_TAXABLE = 97
+F_MUTUAL_CONTRIBUTION = 98
 F_UNEMPLOYMENT_TAXABLE = 100
+F_UNEMPLOYMENT_EMPLOYER = 102
 F_COST_CENTER = 105
 
 #: Campos obligatorios en TODA línea según la columna «Condición» de la

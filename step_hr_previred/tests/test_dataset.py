@@ -432,6 +432,112 @@ class TestDataset(PreviredCase):
         self.assertIn("scope_filtered",
                       [issue.code for issue in dataset.warnings])
 
+    def test_medical_leave_rebases_employer_contributions_on_rima(self):
+        """Ticket Somed 2026-09, RUT 17.932.663-9: mes completo de licencia
+        médica; el motor informa la RIMA (campo 92) y el imponible del mes es
+        0. Las cotizaciones de cargo del empleador se recalculan sobre
+        imponible + RIMA con la tasa estatutaria, contra los valores que
+        confirmó el cliente."""
+        employee = self.make_employee("Carolina Medel", "17932663-9",
+                                      self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="17932663", dv="9", overrides={
+            previred.F_WORKED_DAYS: "0",
+            previred.F_AFP_CODE: "34",
+            previred.F_AFP_TAXABLE: "0",
+            previred.F_RIMA: "1205761",
+            previred.F_SIS_CONTRIBUTION: "22178",
+            previred.F_LIFE_EXPECTANCY: "8681",
+            previred.F_PROTECTED_RETURN: "0",
+            previred.F_MUTUAL_CODE: "",
+            previred.F_ISL_ACCIDENT: "362",
+            previred.F_UNEMPLOYMENT_TAXABLE: "1205761",
+            previred.F_UNEMPLOYMENT_EMPLOYER: "29903",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "21463")
+        self.assertEqual(principal[previred.F_LIFE_EXPECTANCY - 1], "8681")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "10852")
+        self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "11214")
+        self.assertEqual(
+            principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "1205761")
+        self.assertEqual(
+            principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "28938")
+        self.assertIn("medical_leave_bases_rebased",
+                      [issue.code for issue in dataset.issues])
+        self.assertFalse(dataset.errors)
+
+    def test_medical_leave_partial_month_rebases_taxable_plus_rima(self):
+        """Ticket Serv. Bienestar 2026-09, RUT 18.656.818-4: mes parcial (con
+        imponible propio) más RIMA informada por el motor. La base es la suma
+        y las cotizaciones patronales usan esa base; la mutualidad no."""
+        employee = self.make_employee("Valentina Parada", "18656818-4",
+                                      self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={
+            previred.F_WORKED_DAYS: "11",
+            previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "192500",
+            previred.F_RIMA: "350000",
+            previred.F_MUTUAL_CODE: "",
+            previred.F_ISL_ACCIDENT: "1790",
+            previred.F_MUTUAL_CONTRIBUTION: "0",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        # base = 192.500 + 350.000 = 542.500
+        self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "9657")
+        self.assertEqual(principal[previred.F_LIFE_EXPECTANCY - 1], "3906")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "4883")
+        self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "5045")
+        self.assertEqual(
+            principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "542500")
+        self.assertEqual(
+            principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "13020")
+        self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
+
+    def test_medical_leave_without_motor_rima_warns_and_keeps_fields(self):
+        """Si el mes es de licencia completa y el motor no informó la RIMA,
+        no se recalcula nada y queda un aviso: es el corte 2."""
+        employee = self.make_employee("Sin RIMA", "18656818-4", self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={
+            previred.F_WORKED_DAYS: "0",
+            previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "0",
+            previred.F_RIMA: "0",
+            previred.F_SIS_CONTRIBUTION: "3427",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "3427")
+        self.assertIn("medical_leave_rima_missing",
+                      [issue.code for issue in dataset.issues])
+        self.assertNotIn("medical_leave_bases_rebased",
+                         [issue.code for issue in dataset.issues])
+
+    def test_no_rima_leaves_employer_contributions_untouched(self):
+        """Sin RIMA y con días trabajados normales: el recálculo de licencia
+        médica no toca ningún campo ni emite avisos."""
+        employee = self.make_employee("Sin Licencia", "12345678-9",
+                                      self.dep_agri)
+        self.make_payslip(employee, self.dep_agri)
+        row = make_row(overrides={
+            previred.F_AFP_CODE: "8",
+            previred.F_AFP_TAXABLE: "800000",
+            previred.F_SIS_CONTRIBUTION: "11111",
+            previred.F_ISL_ACCIDENT: "7440",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "11111")
+        self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "7440")
+        self.assertFalse(any(
+            issue.code in ("medical_leave_bases_rebased",
+                           "medical_leave_rima_missing")
+            for issue in dataset.issues))
+
     def test_sort_order_is_deterministic(self):
         for rut, dv, department in (("9999999", "3", self.dep_agri),
                                     ("10000000", "8", self.dep_agri),

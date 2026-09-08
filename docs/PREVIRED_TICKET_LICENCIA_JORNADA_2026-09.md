@@ -179,3 +179,94 @@ licencia médica en esta base aparece rotulado **«Licencia Médica»**
 * Suite `--test-tags=/step_hr_previred` en `odoo-new`: **pendiente** (no se
   corrió; el entorno local no la levanta).
 * No se tocó ningún ambiente (`demo`, `desarrollo`, `demo-sys`, `SyS`).
+
+## 4. Respuestas del cliente — tickets Helpdesk #17 y #18 (2026-09-08)
+
+Dos casos nuevos de licencia médica, con archivo de revisión de PreviRed y
+valores esperados. El cliente respondió las preguntas abiertas del corte 2.
+
+### 4.1 Ticket #17 — Somed, Carolina Medel (RUT 17.932.663-9), agosto 2026
+
+Mes **completo** de licencia médica (campo 13 = 0). Licencia continua
+20-07 → 31-08 (~43 días corridos). El motor **sí** informa la RIMA en el
+campo 92.
+
+Respuestas del cliente:
+
+1. La base 1.205.761 **es la RIMA**: como todo agosto está con licencia, el
+   imponible del mes es 0 y la RIMA se calcula porque el mes anterior tampoco
+   se trabajó completo ⇒ RIMA = sueldo base del contrato + gratificación
+   (rama a' del punto 2).
+2. **La misma base** (1.205.761) para SIS (29), CEV (94), Rentabilidad
+   Protegida (95) y AFC empleador (102). El ticket #18 agrega ISL (71) y
+   Renta Imponible Seguro Cesantía (100).
+3. La base es **sólo** 1.205.761. El valor 81.148 es la **suma** de las
+   cotizaciones patronales a pagar, no un campo aparte
+   (21.463 + 8.681 + 10.852 + 11.214 + 28.938 = 81.148).
+4. Campo 71 (ISL): con 12 días en julio y 18 en agosto, correspondería
+   prorratear, pero **para simplificar el cliente carga todo agosto al
+   empleador** ⇒ campo 71 = 1.205.761 × 0,93 % = 11.214.
+5. El +40.196 que el motor sumaba a la base de SIS/AFC es **un error del
+   motor**. El recálculo del exportador lo corrige sin tocar :8070.
+
+Valores esperados (base 1.205.761):
+
+| Campo | Motor | Correcto | Tasa |
+|---|---|---|---|
+| 29 SIS | 22.178 | **21.463** | 1,78 % |
+| 71 Acc. Trabajo ISL | 362 | **11.214** | 0,93 % |
+| 94 Expectativa de Vida | 8.681 | 8.681 | 0,72 % |
+| 95 Rentabilidad Protegida | 0 | **10.852** | 0,90 % |
+| 100 Renta Imp. Seg. Cesantía | 1.205.761 | 1.205.761 | — |
+| 102 AFC empleador | 29.903 | **28.938** | 2,4 % |
+
+### 4.2 Ticket #18 — Servicio de Bienestar, Valentina Parada (RUT 18.656.818-4)
+
+Mes **parcial**: 11 días trabajados (imponible propio 192.500) + licencia
+médica 22-07 → 20-08 (20 días de agosto). El motor **no** informa la RIMA.
+
+RIMA pedida por el cliente = (sueldo base 420.000 + gratificación 105.000) ÷
+30 × 20 días de licencia del mes = **350.000**.
+
+Base = imponible del mes 192.500 + RIMA 350.000 = **542.500**.
+
+| Campo | Correcto | Tasa |
+|---|---|---|
+| 29 SIS | 9.657 | 1,78 % |
+| 71 Acc. Trabajo ISL | 5.045 | 0,93 % |
+| 92 RIMA | 350.000 | (calcular en el motor) |
+| 94 Expectativa de Vida | 3.906 | 0,72 % |
+| 95 Rentabilidad Protegida | 4.883 | 0,90 % |
+| 100 Renta Imp. Seg. Cesantía | 542.500 | — |
+| 102 AFC empleador | 13.020 | 2,4 % |
+| 97 Renta Imponible Mutual | 0 | (cotiza en INP/ISL) |
+
+Correcciones al TXT que pide el ticket #18 y **no** cubre este corte:
+campo 13 de la línea anexa = 0; campo 71 de la línea anexa = 0; campo 97 = 0.
+
+### 4.3 Qué implementa `18.0.3.8.0`
+
+`_set_medical_leave_bases` recalcula 29/71/94/95/100/102 sobre
+`campo 27 + campo 92` **cuando el motor ya informó la RIMA** (caso #17). Para
+el caso #18 (motor sin RIMA) deja el hallazgo `medical_leave_rima_missing`:
+falta el cálculo de la RIMA en sí.
+
+### 4.4 Qué sigue pendiente para cerrar el corte 2
+
+* **Cálculo de la RIMA cuando el motor no la informa** (ticket #18): leer
+  sueldo base del contrato + gratificación legal (`min(25 % devengado,
+  4,75 × IMM ÷ 12)`, IMM ya en `minimum_wage`), contar los días de licencia
+  del mes, y decidir entre la rama a (liquidación previa completa) y la a'
+  (mes previo también con licencia). Requiere datos de contrato/liquidación
+  que esta automatización no puede validar contra la base real (:8070 / SyS).
+* **Conflicto de alcance del «+RIMA».** El punto 2 fila `e` decía «sólo SIS
+  (29) y CEV (94)»; los tickets #17 y #18 lo extienden a 71, 95, 100 y 102.
+  Se asume la lista extendida (la mutualidad 97/98 sigue **sin** RIMA).
+  Confirmar con el usuario.
+* **Tasa AFC del campo 102**: 2,4 % indefinido / 3,0 % plazo fijo. El
+  recálculo la deriva de `contract.date_end`; validar en casos reales.
+* **Líneas anexas**: el ticket #18 pide campo 13 y campo 71 de la anexa = 0.
+  El recálculo sólo toca la línea principal; los campos de la anexa se
+  entregan tal cual del motor.
+* **`hr.work.entry.type` de licencia médica**: sigue identificándose por
+  rótulo; el `code` técnico no está confirmado.
