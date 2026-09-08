@@ -605,10 +605,10 @@ class PreviredExtractor(models.AbstractModel):
                 previred.SEVERITY_WARNING, "medical_leave_bases_rebased",
                 _("RUT %(rut)s-%(dv)s: licencia médica; cotizaciones de cargo "
                   "del empleador recalculadas sobre imponible %(taxable)s + "
-                  "RIMA %(rima)s [%(source)s] = %(base)s. %(detail)s. MUEVE "
+                  "RIMA %(rima)s [%(origen)s] = %(base)s. %(detail)s. MUEVE "
                   "MONTOS DECLARADOS: validar antes de SyS.",
                   rut=record.rut, dv=record.dv, taxable=taxable, rima=rima,
-                  source=rima_source, base=base, detail="; ".join(changes)),
+                  origen=rima_source, base=base, detail="; ".join(changes)),
                 record.department_label))
 
     #: Tipos de entrada de trabajo que son licencia médica (tabla real de
