@@ -89,6 +89,45 @@ Reglas confirmadas por el usuario:
   campo 29 = 11.993, campo 94 = 4.851, campos 97 y 98 = 0 (60 días de
   licencia acumulada).
 
+## 2.bis Ticket relacionado — Cotización Mutual con licencia médica parcial
+
+**Origen:** correo «Ticket, error en accidentes laborales» (2026-09-08) +
+recibo de nómina adjunto.
+
+**Caso:** EMCA, agosto 2026, Celestina Peñaloza Medina (RUT 12359103-8).
+Auxiliar de Aseo, contrato indefinido desde 2018. Días del mes: **19 de
+asistencia + 12 de licencia médica** (mes parcial, no días = 0).
+
+| Concepto (recibo) | Monto |
+|---|---|
+| Sueldo Base (19 días) | 350.584 |
+| Gratificación Legal Art. 50 | 87.646 |
+| **Sueldo imponible** | **438.229** |
+
+* Tasa Mutual de la empresa: **0,93 %**.
+* `438.229 × 0,93 % = 4.075,53` ⇒ **4.076** (valor correcto que indica el
+  cliente).
+* El sistema informa **4.159**, que equivale a una base de
+  `4.159 ÷ 0,0093 ≈ 447.204`, es decir **≈ 8.975 más** que el sueldo
+  imponible.
+
+**Conclusión:** la Renta Imponible Mutual (campo 97) debe ser el **sueldo
+imponible de la liquidación** (438.229) — que ya refleja sólo los días
+trabajados y la gratificación proporcional — y el campo 98 = campo 97 ×
+tasa Mutual de la empresa. En un mes de licencia **parcial** no se agrega
+RIMA ni subsidio a la base Mutual (a diferencia del SIS y la CEV). El motor
+está inflando la base ~8.975 por los 12 días de licencia.
+
+**Pendiente para cerrar:** ver la línea generada del TXT de EMCA agosto 2026
+para saber si el valor errado está en el campo 97 (base inflada) o en el 98
+(base ok, tasa/redondeo mal). Con eso, el corte 2 normaliza el campo 97 al
+imponible de la liquidación y recalcula el 98, con prueba de regresión para
+el RUT 12359103-8 (438.229 ⇒ 4.076).
+
+**Además:** este recibo resuelve el punto 2 de arriba — el tipo de entrada de
+licencia médica en esta base aparece rotulado **«Licencia Médica»**
+(coincidencia por rótulo `licencia`; el `code` técnico sigue por confirmar).
+
 ## 3. Verificación de este corte
 
 * `python -m py_compile` de los archivos tocados: _(ver commit)_.
