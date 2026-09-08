@@ -57,6 +57,38 @@ class TestDataset(PreviredCase):
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
 
+    def test_workday_type_part_time_under_40_hours_is_partial(self):
+        """Ticket EMCA 2026-08, RUT 12588103-3: un horario cuyo «Tiempo
+        completo de la empresa» es inferior a 40 h semanales es jornada
+        parcial (campo 93 = 2), aunque no tenga `previred_workday_type`."""
+        employee = self.make_employee("Karen Flies", "12588103-3",
+                                      self.dep_agri)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        calendar = payslip.contract_id.resource_calendar_id
+        calendar.previred_workday_type = False
+        calendar.full_time_required_hours = 24
+
+        dataset = self.build([make_row(rut="12588103", dv="3")],
+                             spec_version="98")
+
+        self.assertEqual(
+            dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
+
+    def test_workday_type_40_hours_is_full(self):
+        """40 h semanales o más es jornada completa (campo 93 = 1): Previred
+        exige el sueldo mínimo legal en el campo 27."""
+        employee = self.make_employee("Jornada Completa", "12345678-9",
+                                      self.dep_agri)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        calendar = payslip.contract_id.resource_calendar_id
+        calendar.previred_workday_type = False
+        calendar.full_time_required_hours = 40
+
+        dataset = self.build([make_row()], spec_version="98")
+
+        self.assertEqual(
+            dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "1")
+
     def test_workday_type_is_propagated_to_annex_lines(self):
         """Ticket EMCA 2026-08: las líneas 01/02/03 deben repetir el campo
         93 de su línea principal 00, aunque el motor entregue otro valor."""
