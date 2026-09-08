@@ -50,8 +50,9 @@ Respaldo en el servidor:
 - `LAB_TAREAS.before.dump`: respaldo PostgreSQL completo (20.002.327 bytes).
 - `upgrade.log`: registro de actualización.
 
-El script de despliegue de esta entrega está en `tmp/deploy_steps_home_20260908.sh`.
-Demo y Producción no fueron desplegados ni reiniciados.
+El script de despliegue inicial de esta entrega está en
+`tmp/deploy_steps_home_20260908.sh`. La primera publicación se hizo sólo en
+Desarrollo; la promoción posterior a Demo y Demo-SyS se documenta al final.
 
 ## Verificación
 
@@ -123,8 +124,20 @@ ni enlaces a tiendas que todavía no estén disponibles.
   publicado. Ancho de página igual al ancho útil móvil: 375 / 375 píxeles.
 - Los cinco enlaces principales apuntan a las URLs verificadas y abren otra
   pestaña con `noopener noreferrer`.
-- Solo se actualizó Desarrollo; no se modificaron Nginx ni las aplicaciones
-  enlazadas, Demo o Producción.
+- En esta primera ampliación sólo se actualizó Desarrollo; no se modificaron
+  Nginx ni las aplicaciones enlazadas.
+
+## Promoción a Demo y Demo-SyS — 8 de septiembre de 2026
+
+La versión `18.0.2.1.0` se promovió posteriormente a `STEPS_DEMO` y
+`STEPS_DEMO_SYS`, sin instalarla en SyS productivo. Se tomó un dump completo y
+un tar del addon de cada ambiente antes de actualizar:
+
+`/opt/steps_backups/home_rollout_20260908-202624/`
+
+Los dos servicios quedaron activos y ambos sitios respondieron HTTP 200. La
+vista pública se validó en cada ambiente con 12 familias, 5 tarjetas de apps,
+un único H1 y el texto del nuevo hero.
 
 ## Imagen y procedencia
 
