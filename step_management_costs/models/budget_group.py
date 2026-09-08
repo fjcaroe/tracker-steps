@@ -5,6 +5,7 @@ class StepManagementBudgetGroup(models.Model):
     _name = "step.management.budget.group"
     _description = "Grupo de presupuesto"
     _order = "code, name"
+    _check_company_auto = True
 
     name = fields.Char(string="Nombre", required=True)
     code = fields.Char(string="Código", required=True, index=True)
@@ -13,6 +14,12 @@ class StepManagementBudgetGroup(models.Model):
     )
     parent_id = fields.Many2one("step.management.budget.group", string="Grupo padre", ondelete="restrict")
     account_id = fields.Many2one("account.account", string="Cuenta contable")
+    flow_type = fields.Selection(
+        [("cost", "Costo"), ("income", "Ingreso")],
+        string="Naturaleza", default="cost", required=True,
+        help="Determina si las líneas de este grupo suman al costo o al ingreso "
+             "del presupuesto. Los ingresos nunca se mezclan con los costos.",
+    )
     color = fields.Integer(string="Color")
     active = fields.Boolean(default=True)
 

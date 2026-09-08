@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_production_order_preview_wizard_form" model="ir.ui.view">
+        <field name="name">step.management.production.order.preview.wizard.form</field>
+        <field name="model">step.management.production.order.preview.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Vista previa: generar Orden de Producción">
+                <div class="alert alert-warning" role="alert">
+                    Al confirmar se reemplazan las líneas actuales de la OP por las
+                    calculadas aquí.
+                </div>
+                <field name="fingerprint" invisible="1"/>
+                <group>
+                    <field name="order_id" readonly="1"/>
+                    <field name="monday" readonly="1"/>
+                    <field name="sunday" readonly="1"/>
+                </group>
+                <group col="2">
+                    <field name="remove_count" readonly="1" string="Líneas actuales a reemplazar"/>
+                    <field name="add_count" readonly="1" string="Líneas nuevas a crear"/>
+                </group>
+                <field name="preview_line_ids" readonly="1">
+                    <list>
+                        <field name="source_type" widget="badge"/>
+                        <field name="description"/>
+                        <field name="activity"/>
+                        <field name="product_id"/>
+                        <field name="uom_id"/>
+                        <field name="quantity"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirmar y generar" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

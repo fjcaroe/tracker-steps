@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_budget_reopen_wizard_form" model="ir.ui.view">
+        <field name="name">step.management.budget.reopen.wizard.form</field>
+        <field name="model">step.management.budget.reopen.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Crear corrección presupuestaria">
+                <div class="alert alert-warning" role="alert">
+                    Se creará una nueva revisión editable. El presupuesto aprobado
+                    permanecerá inmutable y vigente hasta aprobar su reemplazo.
+                </div>
+                <group>
+                    <field name="budget_id" readonly="1"/>
+                    <field name="reason" placeholder="Explique el motivo de la corrección…"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Crear corrección" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
