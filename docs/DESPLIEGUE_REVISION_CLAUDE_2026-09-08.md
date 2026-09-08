@@ -37,6 +37,15 @@ addons anteriores y logs de actualización.
   reiniciar y ejecutar el cron de autolimpieza; el cron terminó y no hubo
   errores posteriores en estado estable.
 
+## Aprobación del ticket 17 para SyS
+
+El correo más reciente del hilo «T17 Somed, Carolina Medel, error imposiciones
+con licencia médica», recibido el 8 de septiembre de 2026 a las 20:26, aprobó
+explícitamente la revisión de Demo-SyS y el paso a la base servida en el puerto
+8070. La actualización de `SyS` se ejecutó posteriormente, a las 20:36, con el
+respaldo previo indicado arriba. La ruta `/odoo/` redirige al login, el servicio
+permanece activo y `step_hr_previred` figura instalado en `18.0.3.8.1`.
+
 ## Git
 
 - `codex/claude-work-consolidated-20260908`: home, Tesorería, maquinaria,
