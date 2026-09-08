@@ -414,7 +414,8 @@ class TestDataset(PreviredCase):
                        previred.F_PROTECTED_RETURN: ""})], spec_version="98")
         row = dataset.records[0].principal
         self.assertEqual(row[previred.F_WORKDAY_TYPE - 1], "1")
-        self.assertEqual(row[previred.F_LIFE_EXPECTANCY - 1], "10000")
+        # Tasa CEV 0,72 % desde 2026-08 (corte 2): 1.000.000 × 0,72 % = 7.200.
+        self.assertEqual(row[previred.F_LIFE_EXPECTANCY - 1], "7200")
         self.assertEqual(row[previred.F_PROTECTED_RETURN - 1], "9000")
         self.assertFalse(dataset.errors)
 
@@ -449,8 +450,10 @@ class TestDataset(PreviredCase):
             previred.F_SIS_CONTRIBUTION: "22178",
             previred.F_LIFE_EXPECTANCY: "8681",
             previred.F_PROTECTED_RETURN: "0",
-            previred.F_MUTUAL_CODE: "",
-            previred.F_ISL_ACCIDENT: "362",
+            previred.F_MUTUAL_CODE: "00",
+            # El motor real deja el campo 71 en 0 en licencia de mes completo
+            # (empleador ISL «Sin Mutual»); debe recalcularse igual.
+            previred.F_ISL_ACCIDENT: "0",
             previred.F_UNEMPLOYMENT_TAXABLE: "1205761",
             previred.F_UNEMPLOYMENT_EMPLOYER: "29903",
         })
@@ -497,11 +500,38 @@ class TestDataset(PreviredCase):
             principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "13020")
         self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
 
-    def test_medical_leave_without_motor_rima_warns_and_keeps_fields(self):
-        """Si el mes es de licencia completa y el motor no informó la RIMA,
-        no se recalcula nada y queda un aviso: es el corte 2."""
-        employee = self.make_employee("Sin RIMA", "18656818-4", self.dep_admin)
+    def test_medical_leave_isl_employer_zeroes_mutual_fields(self):
+        """Ticket Serv. Bienestar: quien cotiza en INP/ISL (campo 96 vacío) no
+        lleva mutualidad — el motor deja el campo 97 con monto y debe quedar
+        en 0, y el campo 71 se recalcula sobre imponible + RIMA."""
+        employee = self.make_employee("INP Parada", "18656818-4",
+                                      self.dep_admin)
         self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={
+            previred.F_WORKED_DAYS: "11",
+            previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "192500",
+            previred.F_RIMA: "350000",
+            previred.F_MUTUAL_CODE: "",
+            previred.F_ISL_ACCIDENT: "0",
+            previred.F_MUTUAL_TAXABLE: "192500",
+            previred.F_MUTUAL_CONTRIBUTION: "1790",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "5045")
+        self.assertEqual(principal[previred.F_MUTUAL_TAXABLE - 1], "0")
+        self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
+
+    def test_medical_leave_without_motor_rima_warns_and_keeps_fields(self):
+        """Licencia médica, el motor no informó la RIMA y tampoco se puede
+        calcular (sin sueldo base en el contrato): no se recalcula nada y
+        queda un aviso trazable."""
+        employee = self.make_employee("Sin RIMA", "18656818-4", self.dep_admin)
+        payslip = self.make_payslip(employee, self.dep_admin)
+        payslip.contract_id.wage = 0
+        payslip.worked_days_line_ids.unlink()
+        self._add_worked_days(payslip, "LIC", 30, is_leave=True)
         row = make_row(rut="18656818", dv="4", overrides={
             previred.F_WORKED_DAYS: "0",
             previred.F_AFP_CODE: "29",
