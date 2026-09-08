@@ -78,3 +78,39 @@ Supuestos: tasas estatutarias (SIS 1,78 %, ISL básica 0,93 %, CEV 0,72 %,
 Rent. Protegida 0,90 %, AFC 2,4 % indefinido); la mutualidad no suma RIMA;
 gratificación 105.000 = 25 % de 420.000, bajo el tope IMM; días de licencia
 del mes = 20.
+## 5. Confirmado contra SyS (solo lectura) — 2026-09-08 · RIMA implementada
+
+Liquidación real de Valentina Parada en SyS (SLIP/671, agosto 2026, `done`):
+
+- `worked_days`: `LIC` 20 días, `WORK100` 11 días.
+- Contrato `wage` = 420.000 (calendario «Estándar de 9 horas a la semana»).
+- `BASIC` 154.000 (11/30), `GRAT50` 38.500, `GROSS` = **192.500** (imponible
+  del mes; coincide con el campo 27 del archivo de revisión).
+- **No hay línea `SUBSIDIO`** — el motor no emite la RIMA. Julio fue mes
+  completo de licencia y junio tuvo 9 días de licencia: no hay mes previo
+  trabajado completo.
+
+`18.0.3.8.0` ahora **calcula la RIMA** (`_compute_medical_leave_rima`):
+`gratificación = min(0,25 × 420.000, 4,75 × 553.553 ÷ 12) = min(105.000;
+219.115) = 105.000`; `RIMA = (420.000 + 105.000) / 30 × 20 = 350.000`.
+Base = 192.500 + 350.000 = 542.500. Recálculo:
+
+| Campo | 18.0.3.8.0 | Esperado (ticket) |
+|---|---|---|
+| 92 RIMA | 350.000 | 350.000 |
+| 29 SIS | 9.657 | 9.657 |
+| 71 ISL | 5.045 | 5.045 |
+| 94 CEV | 3.906 | 3.906 |
+| 95 Rent. Protegida | 4.883 | 4.883 |
+| 100 R.I. Seg. Cesantía | 542.500 | 542.500 |
+| 102 AFC empleador | 13.020 | 13.020 |
+
+Prueba: `test_medical_leave_computes_rima_from_contract_when_motor_omits_it`.
+
+### Sigue pendiente
+
+- Líneas anexas: campo 13 y campo 71 de la anexa = 0.
+- Campo 97 = 0 (cotiza en INP): confirmar que el exportador ya lo emite en 0.
+- **No aplicado**: SyS es solo lectura para esta automatización; `demo-sys`
+  no tiene esta liquidación y el módulo ahí está en 18.0.3.6.0 sin ruta de
+  deploy. La rama queda para despliegue y verificación por una persona.
