@@ -1,170 +1,128 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <odoo>
-    <record id="website.homepage" model="ir.ui.view">
-        <field name="name">Steps Agro | Gestión agrícola conectada</field>
-        <field name="active" eval="True"/>
-        <field name="arch" type="xml">
-            <t name="Steps Agro" t-name="website.homepage">
-                <t t-call="website.layout">
-                    <t t-set="pageName" t-value="'homepage'"/>
-                    <t t-set="additional_title">Gestión agrícola conectada</t>
-                    <t t-set="bodyClassName" t-value="'steps-agro-website'"/>
-                    <t t-set="no_header" t-value="True"/>
-                    <t t-set="no_footer" t-value="True"/>
-                    <div id="wrap" class="oe_structure step-demo-home">
-                        <nav class="steps-nav" aria-label="Navegación principal">
-                            <div class="steps-container steps-nav__inner">
-                                <a class="steps-brand" href="/" aria-label="Steps Agro, inicio">
-                                    <span class="steps-brand__mark" aria-hidden="true">
-                                        <svg viewBox="0 0 48 48" role="img">
-                                            <path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/>
-                                            <path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/>
-                                            <path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/>
-                                        </svg>
-                                    </span>
-                                    <span><strong>Steps</strong><small>Agro</small></span>
-                                </a>
-                                <div class="steps-nav__links">
-                                    <a href="#soluciones">Soluciones</a>
-                                    <a href="#flujo">Trazabilidad</a>
-                                    <a href="#valor">Por qué Steps</a>
-                                </div>
-                                <a class="steps-button steps-button--compact" href="/web/login">
-                                    Ingresar <i class="fa fa-arrow-right ms-2" aria-hidden="true"/>
-                                </a>
-                            </div>
-                        </nav>
-
-                        <section class="steps-hero">
-                            <div class="steps-hero__glow steps-hero__glow--one"/>
-                            <div class="steps-hero__glow steps-hero__glow--two"/>
-                            <div class="steps-container steps-hero__grid">
-                                <div class="steps-hero__copy">
-                                    <span class="steps-eyebrow"><i class="fa fa-leaf" aria-hidden="true"/> Suite de gestión agrícola sobre Odoo 18</span>
-                                    <h1>Del campo a la decisión, <em>todo conectado.</em></h1>
-                                    <p>Planifica labores, coordina personas y maquinaria, controla aplicaciones, cosecha, calidad, costos y cumplimiento desde una sola plataforma.</p>
-                                    <div class="steps-hero__actions">
-                                        <a class="steps-button" href="/web/login">Entrar a la plataforma <i class="fa fa-arrow-right ms-2" aria-hidden="true"/></a>
-                                        <a class="steps-button steps-button--ghost" href="#soluciones">Explorar soluciones</a>
-                                    </div>
-                                    <div class="steps-hero__proof">
-                                        <span><i class="fa fa-check-circle" aria-hidden="true"/> Multiempresa</span>
-                                        <span><i class="fa fa-check-circle" aria-hidden="true"/> Trazabilidad integral</span>
-                                        <span><i class="fa fa-check-circle" aria-hidden="true"/> Operación móvil</span>
-                                    </div>
-                                </div>
-                                <div class="steps-command" aria-label="Vista resumida de la operación agrícola">
-                                    <div class="steps-command__top">
-                                        <div><span>Centro de operación</span><strong>Temporada agrícola</strong></div>
-                                        <span class="steps-live"><i/> En línea</span>
-                                    </div>
-                                    <div class="steps-command__metrics">
-                                        <article><i class="fa fa-calendar-check-o"/><span>Labores</span><strong>84%</strong><small>avance semanal</small></article>
-                                        <article><i class="fa fa-tint"/><span>Riego</span><strong>12</strong><small>sectores activos</small></article>
-                                        <article><i class="fa fa-truck"/><span>Logística</span><strong>7</strong><small>órdenes en curso</small></article>
-                                    </div>
-                                    <div class="steps-command__timeline">
-                                        <div class="steps-command__title"><span>Flujo operativo de hoy</span><small>Actualizado ahora</small></div>
-                                        <div class="steps-event"><span class="steps-event__icon steps-event__icon--green"><i class="fa fa-leaf"/></span><div><strong>Aplicación foliar validada</strong><small>Cuartel Norte · Fundo principal</small></div><b>08:30</b></div>
-                                        <div class="steps-event"><span class="steps-event__icon steps-event__icon--amber"><i class="fa fa-cogs"/></span><div><strong>Maquinaria asignada</strong><small>Tractor 04 · Labor de terreno</small></div><b>10:15</b></div>
-                                        <div class="steps-event"><span class="steps-event__icon steps-event__icon--blue"><i class="fa fa-check"/></span><div><strong>Control de calidad aprobado</strong><small>Lote de cosecha CH-026</small></div><b>12:40</b></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="steps-trust" id="valor">
-                            <div class="steps-container steps-trust__grid">
-                                <div><strong>10+</strong><span>aplicaciones conectadas</span></div>
-                                <div><strong>1</strong><span>fuente única de información</span></div>
-                                <div><strong>360°</strong><span>trazabilidad operacional</span></div>
-                                <div><strong>Web + móvil</strong><span>para oficina y terreno</span></div>
-                            </div>
-                        </section>
-
-                        <section class="steps-solutions" id="soluciones">
-                            <div class="steps-container">
-                                <div class="steps-section-heading">
-                                    <span class="steps-kicker">Un ecosistema, no aplicaciones aisladas</span>
-                                    <h2>Cada módulo aporta al mismo flujo agrícola</h2>
-                                    <p>La información nace una vez y se reutiliza en planificación, ejecución, control, remuneraciones, costos y reportabilidad.</p>
-                                </div>
-                                <div class="steps-solutions__grid">
-                                    <article class="steps-solution steps-solution--field">
-                                        <span class="steps-solution__icon"><i class="fa fa-tasks"/></span>
-                                        <div><small>OPERACIÓN DE CAMPO</small><h3>Actividades y Tracker</h3><p>Cuadrillas, labores, asistencia y captura de avances desde terreno.</p></div>
-                                        <span class="steps-solution__tag">Ejecución diaria</span>
-                                    </article>
-                                    <article class="steps-solution steps-solution--water">
-                                        <span class="steps-solution__icon"><i class="fa fa-tint"/></span>
-                                        <div><small>MANEJO DEL CULTIVO</small><h3>BPA y Riego</h3><p>Monitoreos, aplicaciones, fertirriego, carencias y cumplimiento agrícola.</p></div>
-                                        <span class="steps-solution__tag">Trazabilidad BPA</span>
-                                    </article>
-                                    <article class="steps-solution steps-solution--harvest">
-                                        <span class="steps-solution__icon"><i class="fa fa-leaf"/></span>
-                                        <div><small>PRODUCCIÓN</small><h3>Cosecha y Calidad</h3><p>Pronóstico, recepción, rendimiento, inspecciones, lotes y resultados.</p></div>
-                                        <span class="steps-solution__tag">Del cuartel al lote</span>
-                                    </article>
-                                    <article class="steps-solution steps-solution--fleet">
-                                        <span class="steps-solution__icon"><i class="fa fa-truck"/></span>
-                                        <div><small>RECURSOS Y LOGÍSTICA</small><h3>Maquinaria y Fletes</h3><p>Disponibilidad, costos, mantenimientos, tarifas y órdenes de transporte.</p></div>
-                                        <span class="steps-solution__tag">Control operacional</span>
-                                    </article>
-                                    <article class="steps-solution steps-solution--people">
-                                        <span class="steps-solution__icon"><i class="fa fa-users"/></span>
-                                        <div><small>PERSONAS</small><h3>Protección y Colaciones</h3><p>Seguridad laboral, protocolos y servicios diarios para trabajadores.</p></div>
-                                        <span class="steps-solution__tag">Bienestar y control</span>
-                                    </article>
-                                    <article class="steps-solution steps-solution--cost">
-                                        <span class="steps-solution__icon"><i class="fa fa-line-chart"/></span>
-                                        <div><small>GESTIÓN</small><h3>Nómina y Costos</h3><p>Remuneraciones, libro legal, centros de costo e indicadores de gestión.</p></div>
-                                        <span class="steps-solution__tag">Decisiones con datos</span>
-                                    </article>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="steps-flow" id="flujo">
-                            <div class="steps-container steps-flow__grid">
-                                <div class="steps-flow__copy">
-                                    <span class="steps-kicker">Trazabilidad de punta a punta</span>
-                                    <h2>Una operación que conserva su historia</h2>
-                                    <p>Desde la planificación hasta el resultado económico, cada etapa entrega contexto a la siguiente y evita volver a digitar la misma información.</p>
-                                    <ul>
-                                        <li><i class="fa fa-check"/> Responsables, predios, sectores, cultivos y temporadas compartidos.</li>
-                                        <li><i class="fa fa-check"/> Evidencia operacional y cumplimiento disponible para auditoría.</li>
-                                        <li><i class="fa fa-check"/> Costos y productividad vinculados al origen real de la labor.</li>
-                                    </ul>
-                                </div>
-                                <div class="steps-flow__path">
-                                    <div><span>01</span><strong>Planificar</strong><small>Temporada, cultivos y recursos</small></div>
-                                    <i class="fa fa-arrow-right"/>
-                                    <div><span>02</span><strong>Ejecutar</strong><small>Labores, insumos y personas</small></div>
-                                    <i class="fa fa-arrow-right"/>
-                                    <div><span>03</span><strong>Controlar</strong><small>Calidad, cumplimiento y alertas</small></div>
-                                    <i class="fa fa-arrow-right"/>
-                                    <div><span>04</span><strong>Decidir</strong><small>Costos, productividad e indicadores</small></div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section class="steps-final-cta">
-                            <div class="steps-container steps-final-cta__inner">
-                                <div><span>Entorno demostrativo Steps App</span><h2>Explora una gestión agrícola que funciona como un solo sistema.</h2></div>
-                                <a class="steps-button steps-button--light" href="/web/login">Ingresar a Demo <i class="fa fa-arrow-right ms-2"/></a>
-                            </div>
-                        </section>
-
-                        <footer class="steps-footer">
-                            <div class="steps-container steps-footer__inner">
-                                <a class="steps-brand steps-brand--footer" href="/"><span class="steps-brand__mark"><svg viewBox="0 0 48 48"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><span><strong>Steps</strong><small>Agro</small></span></a>
-                                <p>Tecnología conectada con la realidad del campo.</p>
-                                <span>© 2026 Steps App</span>
-                            </div>
-                        </footer>
-                    </div>
-                </t>
-            </t>
-        </field>
-    </record>
+  <record id="website.homepage" model="ir.ui.view">
+<field name="name">Steps | Campo, personas y finanzas</field><field name="active" eval="True"/>
+<field name="arch" type="xml"><t name="Steps" t-name="website.homepage"><t t-call="website.layout">
+<t t-set="pageName" t-value="'homepage'"/>
+<t t-set="additional_title">Campo, personas y finanzas en una sola plataforma</t>
+<t t-set="meta_description">Conoce el ecosistema Steps: operación agrícola, cosecha, maquinaria, personas, remuneraciones, tesorería y costos. Desarrollos propios conectados con Odoo.</t>
+<t t-set="bodyClassName" t-value="'steps-agro-website'"/><t t-set="no_header" t-value="True"/><t t-set="no_footer" t-value="True"/>
+<div id="wrap" class="oe_structure step-demo-home">
+<header class="steps-nav"><nav class="steps-container steps-nav__inner" aria-label="Navegación principal">
+    <a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><div class="steps-nav__links"><a href="#soluciones">Soluciones</a><a href="#ecosistema">El ecosistema</a><a href="#apps">Apps web y móvil</a></div>
+    <a class="steps-button steps-button--small steps-button--dark" href="/web/login">Ingresar <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <details class="steps-mobile-nav"><summary aria-label="Abrir menú"><span/><span/></summary><div><a href="#soluciones">Soluciones</a><a href="#ecosistema">El ecosistema</a><a href="#apps">Apps web y móvil</a></div></details>
+</nav></header>
+<section class="steps-hero" aria-labelledby="steps-title"><div class="steps-container steps-hero__grid">
+    <div class="steps-hero__copy"><div class="steps-eyebrow"><span class="steps-status-dot"/> TECNOLOGÍA QUE CONOCE TU TERRENO</div>
+        <h1 id="steps-title">Tu operación,<br/>en su mejor<br/><em>versión.</em></h1>
+        <p>Del primer trabajo en el campo al cierre financiero. Conecta tu producción, tus personas y tus decisiones en un solo ecosistema.</p>
+        <div class="steps-hero__actions"><a class="steps-button steps-button--dark" href="#soluciones">Descubre el pack Steps <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><a class="steps-text-link" href="#apps">Explorar nuestras apps <span aria-hidden="true">↗</span></a></div>
+        <div class="steps-hero__note"><span class="steps-mini-mark">s.</span><span>Desarrollo propio.<br/><strong>Conectado con Odoo.</strong></span></div>
+    </div>
+    <div class="steps-hero__visual"><img class="steps-hero__photo" src="/step_demo_homepage/static/src/img/orchard-hero.jpg" alt="Vista aérea de hileras de un huerto frutal al pie de la cordillera" width="1536" height="1024" fetchpriority="high"/>
+        <div class="steps-photo-label"><span class="steps-status-dot"/> HECHO PARA LA REALIDAD DEL CAMPO</div>
+        <div class="steps-connect-card"><div class="steps-connect-card__top"><span class="steps-connect-card__logo">s.</span><span>Todo parte aquí.<br/><strong>Todo se conecta.</strong></span><span class="steps-connect-card__arrow" aria-hidden="true">↗</span></div><div class="steps-connect-card__areas"><span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg> Campo</span><i aria-hidden="true">+</i><span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg> Personas</span><i aria-hidden="true">+</i><span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg> Finanzas</span></div></div>
+        <span class="steps-photo-index">01 / UNA VISIÓN COMPLETA</span>
+    </div>
+</div></section>
+<section class="steps-strip" aria-label="Áreas del ecosistema"><div class="steps-container steps-strip__inner"><span>UNA PLATAFORMA.<br/><strong>TODA TU OPERACIÓN.</strong></span><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg> Campo y producción</a><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg> Gestión de personas</a><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3ZM14 9h4l3 4v4h-7M21 13h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg> Recursos y logística</a><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg> Finanzas y control</a></div></section>
+<section class="steps-solutions steps-section" id="soluciones" aria-labelledby="solutions-title"><div class="steps-container">
+    <div class="steps-section-heading"><div><span class="steps-kicker">01 — EL PACK STEPS</span><h2 id="solutions-title">Cada área más fuerte.<br/><span>Juntas, mucho más.</span></h2></div><p>Soluciones propias para los desafíos de todos los días. Explora las capacidades que necesita tu operación y descubre cómo se complementan.</p></div>
+    <div class="steps-filters" role="group" aria-label="Filtrar soluciones por área" hidden="hidden"><button type="button" data-filter="all" aria-pressed="true">Todas las soluciones <span>12</span></button><button type="button" data-filter="campo" aria-pressed="false">Campo y producción</button><button type="button" data-filter="personas" aria-pressed="false">Personas</button><button type="button" data-filter="logistica" aria-pressed="false">Recursos y logística</button><button type="button" data-filter="finanzas" aria-pressed="false">Finanzas</button></div>
+    <p class="steps-sr-only" data-filter-status="true" aria-live="polite" aria-atomic="true"/>
+    <div class="steps-catalog"><article class="steps-product" data-category="campo">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span>CAMPO Y PRODUCCIÓN</span><small>01</small></div>
+        <h3>Labores y asistencia</h3><p>Organiza cuadrillas, registra tarjas y conecta el trabajo diario con su costo.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Planificación de actividades y labores</li><li>Asistencia, horas y tratos</li><li>Costos por labor y centro de costo</li></ul></details>
+    </article><article class="steps-product" data-category="campo">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3S5 10 5 15a7 7 0 0 0 14 0c0-5-7-12-7-12ZM9 16a3 3 0 0 0 3 3"/></svg></span><span>CAMPO Y PRODUCCIÓN</span><small>02</small></div>
+        <h3>BPA, riego y trazabilidad</h3><p>Cuida cada etapa del cultivo, con el historial y los controles de cada cuartel.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Monitoreos, aplicaciones y fertirriego</li><li>Restricciones de carencia y reingreso</li><li>Evidencia y trazabilidad fitosanitaria</li></ul></details>
+    </article><article class="steps-product" data-category="campo">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10M8 5l9 4v4"/></svg></span><span>CAMPO Y PRODUCCIÓN</span><small>03</small></div>
+        <h3>Cosecha y calidad</h3><p>De la captura en terreno a la recepción: producción e inspecciones con contexto.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Tarjas, folios y cuadrillas en Step Harvest</li><li>Recepciones, lotes y rendimientos</li><li>Inspecciones y resultados de calidad</li></ul></details>
+    </article><article class="steps-product" data-category="logistica">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/></svg></span><span>RECURSOS Y LOGÍSTICA</span><small>04</small></div>
+        <h3>Maquinaria</h3><p>Conoce el trabajo de tus equipos y cuánto cuesta mantenerlos en movimiento.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Órdenes de trabajo y horas de uso</li><li>Mantenimiento y disponibilidad</li><li>Costos reales y contabilización</li></ul></details>
+    </article><article class="steps-product" data-category="logistica">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>RECURSOS Y LOGÍSTICA</span><small>05</small></div>
+        <h3>Tracker GPS</h3><p>Ubica tu maquinaria y entiende sus recorridos desde una vista de la operación.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Monitoreo geográfico de equipos</li><li>Historial y reproducción de recorridos</li><li>Consulta de actividad y desplazamientos</li></ul></details>
+    </article><article class="steps-product" data-category="logistica">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3ZM14 9h4l3 4v4h-7M21 13h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><span>RECURSOS Y LOGÍSTICA</span><small>06</small></div>
+        <h3>Fletes y movilización</h3><p>Coordina el transporte de carga y de personas con sus recursos y costos.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Órdenes de flete, transportistas y tarifas</li><li>Recorridos, viajes y pasajeros</li><li>Contratos, documentos y costos de transporte</li></ul></details>
+    </article><article class="steps-product" data-category="personas">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>07</small></div>
+        <h3>Remuneraciones y Previred</h3><p>Reúne el cierre de nómina, las cotizaciones y la información que necesitas revisar.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Integración con motores de nómina Odoo</li><li>Previred consolidado o por departamento</li><li>Libro de remuneraciones, Excel, PDF y archivo DT</li></ul></details>
+    </article><article class="steps-product" data-category="personas">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8ZM14 3v5h5M8 12h8M8 16h5"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>08</small></div>
+        <h3>Contratos y finiquitos</h3><p>Acompaña el ciclo laboral, desde el contrato hasta los documentos de término.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Gestión del ciclo contractual</li><li>Avisos de término y finiquitos</li><li>Archivos de carga para la Dirección del Trabajo</li></ul></details>
+    </article><article class="steps-product" data-category="personas">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6ZM8 12l3 3 5-6"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>09</small></div>
+        <h3>Protección laboral</h3><p>Ordena la prevención y conserva la evidencia del cuidado de tus equipos.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Entrega y control de EPP</li><li>Capacitaciones, protocolos y Ley Karin</li><li>Registro y seguimiento de accidentes</li></ul></details>
+    </article><article class="steps-product" data-category="personas">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18M18 21V3c-4 2-5 8 0 9"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>10</small></div>
+        <h3>Colaciones</h3><p>Planifica el servicio, registra entregas y lleva el consumo hasta su costo.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Planificación y registro de entregas</li><li>Aplicación y tótem con operación offline</li><li>Costeo y contabilización de consumos</li></ul></details>
+    </article><article class="steps-product" data-category="finanzas">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8H4a2 2 0 0 1 0-4h13v4M3 6v13a2 2 0 0 0 2 2h15V8M20 12h-6v5h6M17 14.5h.01"/></svg></span><span>FINANZAS Y CONTROL</span><small>11</small></div>
+        <h3>Tesorería y multimoneda</h3><p>Anticipa tu caja y revisa la información financiera en las monedas de tu negocio.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Flujo de caja con horizonte de cinco semanas</li><li>Cobros y pagos conectados con Contabilidad</li><li>Captura y balances en monedas de presentación</li><li>Pagos por lotes mediante integración opcional</li></ul></details>
+    </article><article class="steps-product" data-category="finanzas">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg></span><span>FINANZAS Y CONTROL</span><small>12</small></div>
+        <h3>Gestión y costos</h3><p>Convierte tu planificación en presupuesto y contrástala con el costo real.</p>
+        <details><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Presupuestos y plantillas por hectárea</li><li>Centros de costo y distribución mensual</li><li>Control de presupuesto versus costo real</li></ul></details>
+    </article></div>
+    <div class="steps-catalog-note"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><p>Un pack modular. <strong>Empieza por lo que necesitas y suma capacidades a tu ritmo.</strong></p><a href="#ecosistema" class="steps-text-link">Así se conecta <span aria-hidden="true">↘</span></a></div>
+</div></section>
+<section class="steps-ecosystem steps-section" id="ecosistema" aria-labelledby="ecosystem-title"><div class="steps-container">
+    <div class="steps-section-heading"><div><span class="steps-kicker">02 — UNA VISIÓN COMPARTIDA</span><h2 id="ecosystem-title">Lo que pasa en terreno<br/><em>importa en toda la empresa.</em></h2></div><p>Una labor tiene personas, recursos, producción y costos. Steps conecta esas piezas para que cada área trabaje con el contexto de las demás.</p></div>
+    <div class="steps-journey"><article><span class="steps-journey__number">01 <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><svg class="st-icon steps-journey__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><h3>Planifica</h3><p>Temporadas, labores, presupuestos y recursos.</p><span class="steps-journey__tag">Una base común</span></article><article><span class="steps-journey__number">02 <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><svg class="st-icon steps-journey__icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4M11 19h2"/></svg><h3>Ejecuta</h3><p>Cuadrillas, maquinaria y registros desde el campo.</p><span class="steps-journey__tag">En el origen del trabajo</span></article><article><span class="steps-journey__number">03 <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span><svg class="st-icon steps-journey__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6ZM8 12l3 3 5-6"/></svg><h3>Controla</h3><p>Calidad, trazabilidad y evidencia operacional.</p><span class="steps-journey__tag">Con toda la historia</span></article><article><span class="steps-journey__number">04 <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span><svg class="st-icon steps-journey__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg><h3>Decide</h3><p>Costos, remuneraciones y proyección de caja.</p><span class="steps-journey__tag">Con información conectada</span></article></div>
+    <div class="steps-ecosystem__base"><strong>STEPS <span>+ Odoo</span></strong><p>Desarrollos propios sobre una base empresarial compartida.</p><span>Multiempresa <i aria-hidden="true">/</i> Web y móvil <i aria-hidden="true">/</i> Por roles</span></div>
+</div></section>
+<section class="steps-apps steps-section" id="apps" aria-labelledby="apps-title">
+    <div class="steps-container"><span id="terreno" class="steps-anchor"/>
+        <div class="steps-section-heading"><div><span class="steps-kicker">03 — APPS WEB Y MÓVILES</span><h2 id="apps-title">La app que necesitas.<br/><span>Donde la necesitas.</span></h2></div><p>Del navegador al terreno. Accede a nuestras aplicaciones especializadas y conoce los próximos pasos de la experiencia móvil de Steps.</p></div>
+        <div class="steps-apps-intro"><strong>Abre tu próxima herramienta de trabajo.</strong><span><i class="steps-status-dot"/> Apps web publicadas</span></div>
+        <div class="steps-app-grid"><article class="steps-app-card" data-app="harvest">
+        <div class="steps-app-card__top"><span class="steps-app-icon steps-app-icon--harvest"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10M8 5l9 4v4"/></svg></span><span class="steps-app-kind">Web instalable</span></div>
+        <span class="steps-app-card__subtitle">Cosecha en terreno</span><h3>Steps Harvest</h3><p>Folios, cuadrillas y registros de cosecha en una aplicación pensada para el trabajo diario.</p>
+        <div class="steps-app-card__bottom"><span>desarrollo.stepsapp.cl/cosecha/</span><a href="/cosecha/" target="_blank" rel="noopener noreferrer" aria-label="Abrir Steps Harvest en una pestaña nueva">Abrir app <span aria-hidden="true">↗</span></a></div>
+    </article><article class="steps-app-card" data-app="task">
+        <div class="steps-app-card__top"><span class="steps-app-icon steps-app-icon--task"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span class="steps-app-kind">Web instalable</span></div>
+        <span class="steps-app-card__subtitle">Labores y órdenes de trabajo</span><h3>Steps Task</h3><p>Cuadrillas, registro de labores y órdenes de trabajo, con captura offline y sincronización a Actividades.</p>
+        <div class="steps-app-card__bottom"><span>desarrollo.stepsapp.cl/task/</span><a href="/task/" target="_blank" rel="noopener noreferrer" aria-label="Abrir Steps Task en una pestaña nueva">Abrir app <span aria-hidden="true">↗</span></a></div>
+    </article><article class="steps-app-card" data-app="tracker">
+        <div class="steps-app-card__top"><span class="steps-app-icon steps-app-icon--tracker"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span class="steps-app-kind">App web</span></div>
+        <span class="steps-app-card__subtitle">Maquinaria a la vista</span><h3>Steps Tracker</h3><p>Consulta equipos, actividad y recorridos en el mapa de tu operación.</p>
+        <div class="steps-app-card__bottom"><span>stepsapp.cl/web_tracker/</span><a href="https://stepsapp.cl/web_tracker/#live" target="_blank" rel="noopener noreferrer" aria-label="Abrir Steps Tracker en una pestaña nueva">Abrir app <span aria-hidden="true">↗</span></a></div>
+    </article><article class="steps-app-card" data-app="colaciones">
+        <div class="steps-app-card__top"><span class="steps-app-icon steps-app-icon--colaciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18M18 21V3c-4 2-5 8 0 9"/></svg></span><span class="steps-app-kind">Web instalable</span></div>
+        <span class="steps-app-card__subtitle">Cada entrega cuenta</span><h3>Colaciones Steps</h3><p>Registra colaciones en el tótem, conserva las capturas sin conexión y sincroniza al volver la señal.</p>
+        <div class="steps-app-card__bottom"><span>colaciones.stepsapp.cl</span><a href="https://colaciones.stepsapp.cl/" target="_blank" rel="noopener noreferrer" aria-label="Abrir Colaciones Steps en una pestaña nueva">Abrir app <span aria-hidden="true">↗</span></a></div>
+    </article><article class="steps-app-card" data-app="truck">
+        <div class="steps-app-card__top"><span class="steps-app-icon steps-app-icon--truck"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3ZM14 9h4l3 4v4h-7M21 13h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><span class="steps-app-kind">App web</span></div>
+        <span class="steps-app-card__subtitle">Transporte de personas</span><h3>Steps Mobile Tracker</h3><p>Accesos para conductor, administración y pasajeros en una experiencia web de transporte.</p>
+        <div class="steps-app-card__bottom"><span>stepsapp.cl/truck/</span><a href="https://stepsapp.cl/truck/" target="_blank" rel="noopener noreferrer" aria-label="Abrir Steps Mobile Tracker en una pestaña nueva">Abrir app <span aria-hidden="true">↗</span></a></div>
+    </article>
+            <a class="steps-app-mobile-teaser" href="#apps-mobile"><img src="/step_demo_homepage/static/src/img/orchard-hero.jpg" alt="" width="1536" height="1024" loading="lazy"/><span class="steps-app-mobile-teaser__top"><svg class="st-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4M11 19h2"/></svg> EL SIGUIENTE PASO</span><div><h3>También<br/>en tu bolsillo.</h3><p>Android, iOS y nuevas experiencias para terreno.</p><span>Conoce la línea móvil <b aria-hidden="true">↘</b></span></div></a>
+        </div>
+        <div class="steps-apps-footnote"><p><strong>Del navegador a tu teléfono.</strong> Harvest, Task y Colaciones incluyen una versión web instalable en dispositivos compatibles.</p><details><summary>Otros accesos de la operación <span aria-hidden="true">+</span></summary><div><a href="/colaciones/app/" target="_blank" rel="noopener noreferrer">Colaciones en Desarrollo ↗</a><a href="https://stepsapp.cl/harvest/" target="_blank" rel="noopener noreferrer">Harvest · versión anterior ↗</a></div></details></div>
+        <div class="steps-mobile-line" id="apps-mobile" aria-labelledby="mobile-title"><div class="steps-mobile-line__heading"><div><span class="steps-kicker">LA EXPERIENCIA MÓVIL SIGUE CRECIENDO</span><h3 id="mobile-title">Más cerca de cada equipo.</h3></div><p>Apps nativas y próximos desarrollos, con su estado actual a la vista.</p></div>
+            <div class="steps-mobile-grid"><article><span class="steps-mobile-status">En validación</span><span class="steps-mobile-platform">ANDROID</span><h4>Colaciones Mobile</h4><p>Asociación por QR, registro de entregas y funcionamiento sin conexión.</p><small>Versión de prueba desarrollada; pendiente de validación en equipos físicos.</small></article>
+            <article><span class="steps-mobile-status steps-mobile-status--future">En preparación</span><span class="steps-mobile-platform">iOS / iPadOS</span><h4>Colaciones Mobile</h4><p>La experiencia de Colaciones para iPhone y iPad.</p><small>Publicación para dispositivos Apple pendiente.</small></article>
+            <article><span class="steps-mobile-status steps-mobile-status--future">Planificada</span><span class="steps-mobile-platform">TRANSPORTE DE PERSONAS</span><h4>Movilización para choferes</h4><p>Una futura app para viajes, marcación de pasajeros y seguimiento del recorrido.</p><small>Integración preparada; aplicación móvil pendiente.</small></article></div>
+        </div>
+    </div>
+</section><section class="steps-next" id="valor"><div class="steps-container steps-next__grid"><div><span class="steps-kicker">TECNOLOGÍA CON ESPACIO PARA CRECER</span><h2>Tu operación cambia.<br/>Steps crece contigo.</h2></div><div class="steps-next__points"><article><span>01</span><div><h3>Elige tu punto de partida</h3><p>Campo, personas, logística o finanzas. Una estructura modular para distintas necesidades.</p></div></article><article><span>02</span><div><h3>Conserva el contexto</h3><p>Conecta la información operacional con los procesos de gestión en Odoo.</p></div></article><article><span>03</span><div><h3>Construye el siguiente paso</h3><p>Una base de desarrollos propios para seguir incorporando procesos y nuevas integraciones.</p></div></article></div></div></section>
+<section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Una visión completa.<br/><em>Un nuevo punto de partida.</em></h2><a class="steps-button steps-button--dark" href="/web/login">Explorar la plataforma <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
+<footer class="steps-footer"><div class="steps-container"><div class="steps-footer__top"><a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><p>Tecnología conectada con tu operación.</p><div><a href="#soluciones">Soluciones</a><a href="#ecosistema">Ecosistema</a><a href="/web/login">Ingresar ↗</a></div></div><div class="steps-footer__bottom"><span>© 2026 Steps Consulting</span><span>Desarrollo propio · Integrado con Odoo</span></div></div></footer>
+</div></t></t></field></record>
 </odoo>

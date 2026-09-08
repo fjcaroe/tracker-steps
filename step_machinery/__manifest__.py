@@ -7,7 +7,7 @@ costeo por ocho conceptos, distribución analítica y conciliación real versus 
     'author': "Steps App",
     'website': "https://stepsapp.cl",
     'category': 'Operations/Agriculture',
-    'version': '18.0.21.0.0',
+    'version': '18.0.22.0.0',
 
     'depends': ['base',
                 'hr',

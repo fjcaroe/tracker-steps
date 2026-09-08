@@ -139,7 +139,7 @@ Tipos de origen: `rule` (línea de la liquidación), `contract`, `employee`,
 - **93 Tipo de Jornada** — El core completa el valor requerido por la tabla N°22: 1 jornada completa o 2 jornada parcial.
 - **94 Cotización Expectativa de Vida** — Se usa primero la regla salarial CEV/EXP_VIDA y, si no existe, se calcula con la tasa vigente.
 - **95 Cotización Rentabilidad Protegida** — Se calcula desde agosto de 2026 sobre la renta imponible AFP con la tasa del período.
-- **105 Centro de Costos, Sucursal, Agencia** — Centro de costos: el motor envía el **nombre** de la cuenta analítica; la especificación admite 20 caracteres y el validador rechaza el registro si se excede.
+- **105 Centro de Costos, Sucursal, Agencia** — Centro de costos: el motor envía el **nombre** de la cuenta analítica; la especificación admite 20 caracteres y el validador rechaza el registro si se excede. Desde `18.0.3.5.0` el core translitera el valor a ASCII (`previred.strip_accents`) antes de truncar: un nombre con tilde («Administración») se codificaba en UTF-8 y Previred lo releía como Latin-1 («AdministraciÃ³n»), rechazando la línea (ticket 2026-08, Los Lingues y Megafrut).
 
 ## Notas de revisión — SimpleDigital
 

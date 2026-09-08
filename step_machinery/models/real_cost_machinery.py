@@ -192,6 +192,25 @@ class RealCostMachinery(models.Model):
                 self.compute_cost_total()
             # machinery.write({'state': 'draft'})
 
+    @staticmethod
+    def _analytic_distribution(*accounts):
+        """Un segmento por plan analítico (Temporada, Centro de costos, Actividad).
+
+        Gana la primera cuenta recibida: Odoo rechaza dos cuentas del mismo
+        plan raíz en una misma distribución.
+        """
+        ids = []
+        plans = set()
+        for account in accounts:
+            if not account or account.id in ids:
+                continue
+            plan = account.root_plan_id or account.plan_id
+            if plan.id in plans:
+                continue
+            plans.add(plan.id)
+            ids.append(account.id)
+        return {",".join(str(item) for item in ids): 100.0} if ids else False
+
     def action_conta(self):
         for machinery in self:
             line_asiento = []
@@ -219,9 +238,11 @@ class RealCostMachinery(models.Model):
                     'account_id': machinery.company_id.step_journal_machinery.default_account_id.id,
                     'debit': round(monto, 4),
                     'credit': 0,
-                    'analytic_distribution': {str(machinery.temp_id.cost_id.id) + "," +
-                                              str(line.cost_id.id) + "," +
-                                              str(line.actividad_id.id): 100},
+                    # Temporada, Centro de costos y Actividad van con su cuenta
+                    # analítica, no con el id del maestro.
+                    'analytic_distribution': self._analytic_distribution(
+                        machinery.temp_id.cost_id, line.cost_id,
+                        line.actividad_id.cost_id),
                     'move_id': invoice_id.id,
                     'tax_ids': False
                 }
@@ -233,9 +254,7 @@ class RealCostMachinery(models.Model):
                     'debit': 0,
                     'credit': round(monto, 4),
                     'move_id': invoice_id.id,
-                    # 'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                    #                           str(line.cost_id.cost_id.id) + "," +
-                    #                           str(line.labor_id.actividad_id.id): 100},
+                    # La cuenta de pasivo no lleva cuenta analítica: sólo los gastos.
                 }
                 line_asiento.append(credit_num_reg)
             create_line2 = self.env['account.move.line'].create(line_asiento)

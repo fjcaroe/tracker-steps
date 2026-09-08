@@ -186,6 +186,68 @@ class TestTreasuryBuckets(TestTreasuryCommon):
         flow = self._flow()
         self.assertEqual(flow.end_date, self.start + timedelta(days=34))
 
+    def test_bucket_labels_use_the_real_calendar_week(self):
+        """El encabezado dice la semana del calendario, no W1..W5."""
+        flow = self._flow()  # 01/09/2026, martes de la semana ISO 36
+        labels = flow._bucket_labels()
+        self.assertEqual(
+            [labels["w%d" % index] for index in range(1, 6)],
+            ["W36", "W37", "W38", "W39", "W40"])
+        # Vencido y Otros conservan su nombre: no son semanas del horizonte.
+        self.assertEqual(labels["overdue"], "Vencido")
+        self.assertEqual(labels["other"], "Otros")
+
+    def test_bucket_labels_align_with_iso_weeks_when_starting_on_monday(self):
+        """Empezando en lunes, ventana y semana calendario coinciden exactamente."""
+        monday = fields.Date.to_date("2026-08-24")
+        flow = self._flow(start_date=monday)
+        self.assertEqual(monday.isoweekday(), 1)
+        labels = flow._bucket_labels()
+        self.assertEqual(
+            [labels["w%d" % index] for index in range(1, 6)],
+            ["W35", "W36", "W37", "W38", "W39"])
+        for index in range(1, 6):
+            start, end = flow._bucket_bounds()["w%d" % index]
+            self.assertEqual(start.isocalendar()[1], end.isocalendar()[1],
+                             "La ventana no debería cruzar dos semanas ISO.")
+
+    def test_bucket_labels_fall_back_without_start_date(self):
+        """Sin fecha de inicio no hay semana que mostrar: se conserva W1..W5."""
+        labels = self.Flow.new({"start_date": False})._bucket_labels()
+        self.assertEqual(labels["w1"], "W1")
+
+    def test_line_carries_the_calendar_week(self):
+        """La línea expone la semana real, para listas, filtros y exportación."""
+        flow = self._flow()
+        line = self._manual_line(
+            flow, "other_income", 100.0, self.start + timedelta(days=8))
+        self.assertEqual(line.bucket, "w2")
+        self.assertEqual(line.bucket_label, "W37")
+        # Mover el horizonte re-rotula sin tocar la línea.
+        flow.start_date = self.start + timedelta(days=7)
+        self.assertEqual(line.bucket, "w1")
+        self.assertEqual(line.bucket_label, "W37")
+
+    def test_treasury_is_its_own_application(self):
+        """El módulo se presenta como Tesorería y no bajo Facturando."""
+        root = self.env.ref("step_account_treasury.menu_treasury_root")
+        self.assertFalse(root.parent_id, "Tesorería debe ser una app de primer nivel.")
+        self.assertEqual(root.name, "Tesorería")
+        self.assertEqual(
+            root.web_icon, "step_account_treasury,static/description/icon.png")
+        # Y sigue habiendo un acceso desde Contabilidad para quien lo busque ahí.
+        shortcut = self.env.ref("step_account_treasury.menu_treasury_from_accounting")
+        self.assertEqual(shortcut.parent_id, self.env.ref("account.menu_finance"))
+
+    def test_summary_header_shows_the_calendar_week(self):
+        """El resumen del formulario usa las mismas etiquetas que las hojas."""
+        flow = self._flow()
+        self._manual_line(flow, "other_income", 100.0, self.start)
+        html = flow.summary_html
+        for label in ("W36", "W37", "W38", "W39", "W40"):
+            self.assertIn(label, html)
+        self.assertNotIn(">W1<", html)
+
     def test_undated_policy_is_visible_and_applied(self):
         flow = self._flow()
         self.assertEqual(flow.undated_policy, "other")
@@ -333,6 +395,9 @@ class TestTreasurySheets(TestTreasuryCommon):
         self.assertAlmostEqual(line.amount_flow, 500.0, places=2)
 
     def test_purchase_order_counts_only_the_uninvoiced_part(self):
+        # Este caso valida la política por cantidad pedida; las compras por
+        # recepción tienen una prueba independiente más abajo.
+        self.product_a.product_tmpl_id.purchase_method = "purchase"
         order = self.env["purchase.order"].create({
             "partner_id": self.partner_b.id,
             "treasury_due_date": self.start + timedelta(days=15),
@@ -357,6 +422,43 @@ class TestTreasurySheets(TestTreasuryCommon):
         bill.action_post()
         flow.action_refresh()
         self.assertAlmostEqual(flow.line_purchase_order_ids.amount_flow, 500.0, places=2)
+
+    def test_sale_delivery_policy_projects_only_delivered_quantity(self):
+        """La política por entrega no anticipa cobros por lo no entregado."""
+        self.product_a.product_tmpl_id.invoice_policy = "delivery"
+        order = self.env["sale.order"].create({
+            "partner_id": self.partner_a.id,
+            "treasury_due_date": self.start + timedelta(days=8),
+            "order_line": [Command.create({
+                "product_id": self.product_a.id, "product_uom_qty": 10,
+                "price_unit": 100.0, "tax_id": [],
+            })],
+        })
+        order.action_confirm()
+        order.order_line.qty_delivered = 4
+        flow = self._flow()
+        flow.action_refresh()
+        self.assertEqual(len(flow.line_sale_order_ids), 1)
+        self.assertAlmostEqual(flow.line_sale_order_ids.amount_flow, 400.0, places=2)
+
+    def test_purchase_receipt_policy_projects_only_received_quantity(self):
+        """La política por recepción no anticipa pagos por lo no recibido."""
+        self.product_a.product_tmpl_id.purchase_method = "receive"
+        order = self.env["purchase.order"].create({
+            "partner_id": self.partner_b.id,
+            "treasury_due_date": self.start + timedelta(days=15),
+            "order_line": [Command.create({
+                "product_id": self.product_a.id, "product_qty": 10,
+                "price_unit": 100.0, "taxes_id": [],
+                "name": "Compra por recepción", "date_planned": fields.Datetime.now(),
+            })],
+        })
+        order.button_confirm()
+        order.order_line.qty_received = 4
+        flow = self._flow()
+        flow.action_refresh()
+        self.assertEqual(len(flow.line_purchase_order_ids), 1)
+        self.assertAlmostEqual(flow.line_purchase_order_ids.amount_flow, 400.0, places=2)
 
     def test_proforma_disappears_once_invoiced(self):
         proforma = self.env["step.vendor.proforma"].create({
@@ -504,6 +606,18 @@ class TestTreasurySummary(TestTreasuryCommon):
         self.assertAlmostEqual(matrix["closing"]["overdue"], 1000.0, places=2)
         self.assertAlmostEqual(matrix["closing"]["w1"], 1100.0, places=2)
         self.assertAlmostEqual(matrix["closing"]["other"], 1100.0, places=2)
+
+    def test_dashboard_and_pdf_reuse_the_canonical_summary(self):
+        flow = self._flow()
+        flow.opening_balance = 1000.0
+        self._manual_line(flow, "other_income", 250.0, self.start)
+        dashboard = self.Flow.get_treasury_dashboard_data()
+        self.assertEqual(dashboard["current"]["id"], flow.id)
+        self.assertEqual(len(dashboard["current"]["buckets"]), 7)
+        self.assertEqual(
+            dashboard["current"]["closing"], flow._format(flow.closing_balance))
+        action = flow.action_export_pdf()
+        self.assertEqual(action["type"], "ir.actions.report")
 
     def test_excluded_line_does_not_add_up(self):
         flow = self._flow()
@@ -664,5 +778,9 @@ class TestTreasuryGovernance(TestTreasuryCommon):
             "step_account_treasury.action_treasury_concept",
         ):
             self.assertTrue(self.env.ref(xmlid, raise_if_not_found=False), xmlid)
+        # Tesorería dejó de colgar de Contabilidad: es una app propia. Lo que
+        # queda dentro de Contabilidad es el acceso directo.
         root = self.env.ref("step_account_treasury.menu_treasury_root")
-        self.assertEqual(root.parent_id, self.env.ref("account.menu_finance"))
+        self.assertFalse(root.parent_id)
+        shortcut = self.env.ref("step_account_treasury.menu_treasury_from_accounting")
+        self.assertEqual(shortcut.parent_id, self.env.ref("account.menu_finance"))
