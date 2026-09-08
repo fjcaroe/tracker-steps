@@ -270,3 +270,68 @@ falta el cálculo de la RIMA en sí.
   entregan tal cual del motor.
 * **`hr.work.entry.type` de licencia médica**: sigue identificándose por
   rótulo; el `code` técnico no está confirmado.
+
+## 5. Confirmado contra datos reales de SyS (solo lectura, 2026-09-08)
+
+Con la key de SyS (`https://sys.stepsapp.cl`, db `SyS`) en modo **solo
+lectura** se revisaron las liquidaciones reales. Cierra varios puntos
+abiertos del §2:
+
+### 5.1 Identificación de la licencia médica (punto 2)
+
+`hr.work.entry.type`: la licencia médica es el código **`LIC`**
+(«Licencia Médica», `is_leave = True`); accidente del trabajo es **`ACCTR`**.
+Ambos son deterministas por `code`. `_is_medical_leave_entry` los reconoce
+por código y, de respaldo, por `is_leave` + nombre que contenga «licencia».
+
+### 5.2 RIMA — cómo la calcula hoy el motor y qué falta
+
+* **Carolina Medel (Somed), agosto 2026** — `hr.payslip` SLIP/689, estado
+  `verify`. `worked_days`: `LIC` 30 días, `WORK100` 0. Línea `SUBSIDIO` =
+  **1.205.761** = `BASIC` 986.646 (sueldo contrato) + `GRAT50` 219.115
+  (gratificación **topada** al IMM: `4,75 × 553.553 ÷ 12 = 219.114,73`; el
+  25 % daría 246.661). `GROSS` = 0 (imponible del mes). El motor sí emite la
+  RIMA (campo 92). Las cotizaciones patronales del motor están sobre una base
+  inflada: SIS 22.178 ⇒ base implícita `22.178 ÷ 0,0178 ≈ 1.245.955`
+  (**+40.194** sobre 1.205.761, el «error del motor» que menciona el
+  cliente); `RENT_PROT` = 0; `APORTE_MUTUAL` (línea de accidente) = 362.
+* **Valentina Parada (Serv. Bienestar), agosto 2026** — SLIP/671, estado
+  `done`. `worked_days`: `LIC` 20 días, `WORK100` 11. Contrato `wage` =
+  420.000. `BASIC` = 154.000 (11/30), `GRAT50` = 38.500, `GROSS` = 192.500.
+  **No hay línea `SUBSIDIO`**: el motor no emite la RIMA (campo 92 vacío).
+  Julio fue mes completo de licencia y junio tuvo 9 días de licencia, así que
+  no hay «mes anterior trabajado completo» del que tomar la renta imponible.
+
+### 5.3 Fórmula de la RIMA (implementada en `18.0.3.8.0`)
+
+```
+gratificación = min(0,25 × wage, 4,75 × IMM(período) ÷ 12)
+RIMA          = (wage + gratificación) / 30 × días_licencia_médica_del_mes
+```
+
+Comprobación con los dos casos reales:
+
+| Trabajadora | wage | gratificación | días lic. | RIMA | Coincide con |
+|---|---|---|---|---|---|
+| Carolina Medel | 986.646 | 219.114 (tope IMM) | 30 | **1.205.761** | línea `SUBSIDIO` + campo 92 del archivo de revisión |
+| Valentina Parada | 420.000 | 105.000 (25 %) | 20 | **350.000** | valor pedido en el ticket #18 |
+
+### 5.4 Lo que sigue pendiente
+
+* **Rama a (mes anterior trabajado completo).** Ninguno de estos dos casos la
+  ejercita (ambos son rama a': mes previo con licencia). Para Carolina la
+  fórmula coincide con la renta imponible de junio (mes completo), así que
+  para licencia de mes completo ambas ramas convergen; sólo divergirían si el
+  mes previo tuvo horas extra o bonos. Confirmar con el usuario si en ese
+  caso la RIMA debe ser la renta imponible real del mes previo.
+* **Tasa AFC del campo 102** (2,4 % / 3,0 %): sigue derivándose de
+  `contract.date_end`. Ambos contratos reales son indefinidos (`date_end`
+  vacío) ⇒ 2,4 %, que es lo que esperan los tickets.
+* **Líneas anexas** (ticket #18: campo 13 y campo 71 de la anexa = 0) y
+  **campo 97 = 0 para quien cotiza en INP**: aún no cubiertos por el
+  recálculo, que sólo toca la línea principal.
+* **Aplicación y verificación**: SyS es solo lectura para esta automatización
+  (no hay autorización de escritura en chat, ni dry-run en demo-sys, ni
+  respaldo). `step_hr_previred` en SyS está en 18.0.3.6.0 y no hay ruta de
+  deploy de código documentada. La rama queda para que una persona la
+  despliegue, regenere el TXT de Somed y de Serv. Bienestar y compare.

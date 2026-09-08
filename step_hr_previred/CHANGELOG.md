@@ -22,12 +22,18 @@ Tickets Helpdesk S&S #17 (Somed / Carolina Medel, RUT 17.932.663-9) y #18
   71=5.045, 102=13.020. Cada override deja un hallazgo auditable
   (`medical_leave_bases_rebased`). **Mueve montos declarados a PreviRed:**
   pendiente de validación funcional contra datos reales antes de SyS.
-* **Aviso cuando falta la RIMA del motor.** Si el mes es de licencia médica
-  completa (campo 13 = 0) y el motor no informó el campo 92, se deja el
-  hallazgo `medical_leave_rima_missing` y **no** se recalcula: el cálculo de
-  la RIMA (sueldo base + gratificación con tope IMM, o la última liquidación
-  previa) es el «corte 2» de `docs/PREVIRED_TICKET_LICENCIA_JORNADA_2026-09.md`
-  y sigue pendiente.
+* **Cálculo de la RIMA cuando el motor no la informa** (nuevo
+  `_compute_medical_leave_rima`). Si el campo 92 viene vacío pero la
+  liquidación tiene una línea de licencia médica (tipo de entrada `LIC` o
+  `ACCTR`), la RIMA se calcula = `(sueldo base del contrato + gratificación) /
+  30 × días de licencia médica del mes`, con
+  `gratificación = min(25 % del sueldo base, 4,75 × IMM ÷ 12)` e IMM desde
+  `previred.minimum_wage`. Verificado contra las liquidaciones reales de SyS
+  (agosto 2026): Carolina Medel `(986.646 + 219.114 tope IMM) / 30 × 30 =
+  1.205.761` (idéntico a la línea `SUBSIDIO` del motor) y Valentina Parada
+  `(420.000 + 105.000) / 30 × 20 = 350.000`. El valor calculado se escribe en
+  el campo 92 y alimenta el recálculo anterior. Si falta el IMM del período o
+  el sueldo base del contrato, no calcula y deja `medical_leave_rima_missing`.
 * Helpers nuevos en `tools/previred.py`: `sis_rate`, `isl_accident_rate`,
   `unemployment_employer_rate`, `minimum_wage` (tabla IMM por período, 202608
   = 553.553); constantes `F_ISL_ACCIDENT`, `F_RIMA`, `F_MUTUAL_TAXABLE`,

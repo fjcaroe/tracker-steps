@@ -508,12 +508,15 @@ class PreviredExtractor(models.AbstractModel):
         * **No** se tocan la cotización adicional AFP del campo 28 (va sólo
           sobre el imponible del mes) ni la mutualidad (campos 97 / 98), que
           no suma RIMA (usuario, 2026-09-08, conflicto tickets #13 vs #15).
-        * Sólo actúa cuando el motor **ya informó la RIMA** en el campo 92.
-          Cuando el mes es de licencia completa y el motor no la informó,
-          deja un aviso trazable y no recalcula: el cálculo de la RIMA
-          (sueldo base + gratificación con tope IMM, o liquidación previa) es
-          el «corte 2» especificado en
-          `docs/PREVIRED_TICKET_LICENCIA_JORNADA_2026-09.md`.
+        * Si el motor ya informó la RIMA en el campo 92, se usa ese valor. Si
+          no, se calcula en la extracción: `(sueldo base del contrato +
+          gratificación legal) / 30 × días de licencia médica del mes`, con
+          `gratificación = min(25 % del sueldo base, 4,75 × IMM ÷ 12)`.
+          Verificado 2026-09 contra las liquidaciones reales de SyS: Carolina
+          Medel (Somed, `986.646 + 219.115` tope IMM = `1.205.761`, 30 días) y
+          Valentina Parada (Serv. Bienestar, `(420.000 + 105.000) / 30 × 20 =
+          350.000`). Si falta el IMM del período o el sueldo base, no
+          recalcula y deja un aviso.
 
         MUEVE MONTOS DECLARADOS A PREVIRED. Cada override deja un hallazgo
         auditable; requiere validación funcional contra datos reales antes de
@@ -539,17 +542,28 @@ class PreviredExtractor(models.AbstractModel):
         worked = str(row[previred.F_WORKED_DAYS - 1] or "").strip()
         full_month_leave = worked.isdigit() and int(worked) == 0
         rima = _int(previred.F_RIMA)
+        rima_source = "motor (campo 92)"
         if rima <= 0:
-            if full_month_leave:
-                dataset.issues.append(previred.Issue(
-                    previred.SEVERITY_WARNING, "medical_leave_rima_missing",
-                    _("RUT %(rut)s-%(dv)s: mes completo de licencia médica y "
-                      "el motor no informó la RIMA (campo 92). Los campos 29, "
-                      "71, 94, 95, 100 y 102 no se recalcularon; requiere el "
-                      "cálculo de RIMA del corte 2.",
-                      rut=record.rut, dv=record.dv),
-                    record.department_label))
-            return
+            rima, why = self._compute_medical_leave_rima(payslip, dataset)
+            if rima > 0:
+                for record_row in record.rows:
+                    if len(record_row) == previred.FIELD_COUNT:
+                        record_row[previred.F_RIMA - 1] = str(rima)
+                rima_source = "calculada en la extracción — %s" % why
+            else:
+                leave_evident = (
+                    full_month_leave
+                    or "sin línea de licencia médica" not in why)
+                if leave_evident:
+                    dataset.issues.append(previred.Issue(
+                        previred.SEVERITY_WARNING, "medical_leave_rima_missing",
+                        _("RUT %(rut)s-%(dv)s: licencia médica y no hay RIMA "
+                          "utilizable (el motor no informó el campo 92; "
+                          "%(why)s). Los campos 29, 71, 94, 95, 100 y 102 no "
+                          "se recalcularon.",
+                          rut=record.rut, dv=record.dv, why=why),
+                        record.department_label))
+                return
 
         taxable = _int(previred.F_AFP_TAXABLE)
         base = taxable + rima
@@ -591,11 +605,57 @@ class PreviredExtractor(models.AbstractModel):
                 previred.SEVERITY_WARNING, "medical_leave_bases_rebased",
                 _("RUT %(rut)s-%(dv)s: licencia médica; cotizaciones de cargo "
                   "del empleador recalculadas sobre imponible %(taxable)s + "
-                  "RIMA %(rima)s = %(base)s. %(detail)s. MUEVE MONTOS "
-                  "DECLARADOS: validar antes de SyS.",
+                  "RIMA %(rima)s [%(source)s] = %(base)s. %(detail)s. MUEVE "
+                  "MONTOS DECLARADOS: validar antes de SyS.",
                   rut=record.rut, dv=record.dv, taxable=taxable, rima=rima,
-                  base=base, detail="; ".join(changes)),
+                  source=rima_source, base=base, detail="; ".join(changes)),
                 record.department_label))
+
+    #: Tipos de entrada de trabajo que son licencia médica (tabla real de
+    #: SyS: `LIC` = «Licencia Médica», `ACCTR` = «Licencia accidente trabajo»).
+    MEDICAL_LEAVE_ENTRY_CODES = ("LIC", "ACCTR")
+
+    def _is_medical_leave_entry(self, entry_type):
+        code = str(getattr(entry_type, "code", "") or "").strip().upper()
+        if code in self.MEDICAL_LEAVE_ENTRY_CODES:
+            return True
+        name = str(getattr(entry_type, "name", "") or "").strip().lower()
+        return bool(getattr(entry_type, "is_leave", False)) and (
+            "licencia" in name)
+
+    def _compute_medical_leave_rima(self, payslip, dataset):
+        """RIMA cuando el motor no la informó en el campo 92.
+
+        Devuelve `(monto, detalle)`; `monto = 0` con el motivo si no se puede
+        calcular (falta el IMM del período o el sueldo base del contrato, o la
+        liquidación no tiene línea de licencia médica).
+
+        Fórmula (verificada contra liquidaciones reales de SyS, agosto 2026):
+        `(sueldo base contrato + gratificación) / 30 × días de licencia médica
+        del mes`, con `gratificación = min(25 % del sueldo base,
+        4,75 × IMM ÷ 12)`.
+        """
+        leave_days = sum(
+            wd.number_of_days or 0.0
+            for wd in payslip.worked_days_line_ids
+            if self._is_medical_leave_entry(wd.work_entry_type_id))
+        if leave_days <= 0:
+            return 0, "sin línea de licencia médica en la liquidación"
+        leave_days = min(Decimal(str(leave_days)), Decimal("30"))
+        imm = previred.minimum_wage(dataset.period)
+        if not imm:
+            return 0, ("el IMM del período %s no está en "
+                       "previred.minimum_wage" % dataset.period)
+        wage = Decimal(str(getattr(payslip.contract_id, "wage", 0) or 0))
+        if wage <= 0:
+            return 0, "el contrato no tiene sueldo base"
+        gratification = min(wage * Decimal("0.25"),
+                            Decimal("4.75") * Decimal(imm) / 12)
+        rima = int(((wage + gratification) / 30 * leave_days).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP))
+        return rima, (
+            "(%s sueldo base + %s gratificación) / 30 × %s días de licencia"
+            % (int(wage), int(gratification), int(leave_days)))
 
     # -- campo 13 «Días Trabajados» ---------------------------------------
 
