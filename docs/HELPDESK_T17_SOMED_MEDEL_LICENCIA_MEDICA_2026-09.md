@@ -228,3 +228,32 @@ recalcula la línea principal.
   ese ambiente ni para SyS. `demo-sys` no tiene esta liquidación.
 * Confirmar con el usuario la lista extendida de campos con «+RIMA» (el
   corte 2 decía «sólo 29 y 94»).
+
+---
+
+## 8. Confirmado contra SyS (solo lectura) y RIMA calculada — 2026-09-08
+
+Con la key de SyS en **solo lectura** se revisó la liquidación real de
+Carolina Medel (SLIP/689, agosto 2026, estado `verify`):
+
+- `worked_days`: `LIC` 30 días, `WORK100` 0 ⇒ mes completo de licencia.
+- Línea `SUBSIDIO` = **1.205.761** = `BASIC` 986.646 + `GRAT50` 219.115
+  (gratificación topada al IMM: `4,75 × 553.553 ÷ 12 = 219.114,73`).
+- `GROSS` (imponible del mes) = 0.
+- Cotizaciones del motor sobre base inflada: `SIS` 22.178 ⇒ base implícita
+  ≈ 1.245.955 (**+40.194**, el «error del motor»); `RENT_PROT` = 0;
+  `APORTE_MUTUAL` = 362; `AFC_EMPLEADOR` = 29.903.
+
+`18.0.3.8.0` ahora también **calcula la RIMA** cuando el motor no la informa
+(`_compute_medical_leave_rima`): `(986.646 + 219.114) / 30 × 30 = 1.205.761`,
+idéntico a la línea `SUBSIDIO`. Prueba nueva:
+`test_medical_leave_full_month_computes_rima_capped_by_imm`.
+
+Para Carolina el motor **sí** emite el campo 92, así que el camino que aplica
+es el recálculo directo sobre `campo 27 + campo 92` (prueba
+`test_medical_leave_rebases_employer_contributions_on_rima`), con el mismo
+resultado.
+
+**No aplicado en SyS** (solo lectura: sin autorización de escritura en chat,
+sin dry-run en demo-sys, sin respaldo; módulo en SyS en 18.0.3.6.0 sin ruta
+de deploy). La rama queda para despliegue y verificación por una persona.
