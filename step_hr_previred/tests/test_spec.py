@@ -232,7 +232,10 @@ class TestSpec(TransactionCase):
 
     def test_reform_rate_schedule(self):
         self.assertEqual(previred.life_expectancy_rate("202607"), "0.90")
-        self.assertEqual(previred.life_expectancy_rate("202608"), "1.00")
+        # Desde agosto 2026 la tasa CEV de la tabla previsional es 0,72 %
+        # (ticket licencia médica 2026-09, RUT 14250811-7).
+        self.assertEqual(previred.life_expectancy_rate("202608"), "0.72")
+        self.assertEqual(previred.life_expectancy_rate("202612"), "0.72")
         self.assertEqual(previred.protected_return_rate("202607"), "0")
         self.assertEqual(previred.protected_return_rate("202608"), "0.90")
         self.assertEqual(previred.protected_return_rate("202708"), "1.50")
