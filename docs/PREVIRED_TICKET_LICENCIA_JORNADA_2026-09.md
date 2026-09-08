@@ -57,15 +57,15 @@ Reglas confirmadas por el usuario:
 ### Lo que falta cerrar antes de codificar
 
 1. **Valor del IMM por período** para el tope de gratificación (`4,75 × IMM ÷ 12`).
-   La tabla previsional del mes lo tiene; hay que transcribir el/los valores
-   vigentes (¿`553.553` que nombra el propio error de PreviRed, u otro?) a
-   una función `imm(period)` análoga a `life_expectancy_rate`, con su fuente.
-   Mientras no esté confirmado, la rama a' debe bloquear con un hallazgo
-   auditable en vez de calcular con un número supuesto.
+   **Confirmado (usuario, 2026-09-07):** IMM agosto 2026 = **553.553** (el
+   valor que nombra el propio error de PreviRed). Codificar `imm(period)`
+   análoga a `life_expectancy_rate` con `202608 → 553553` y bloquear con
+   hallazgo auditable los períodos no cubiertos.
 2. **Identificación de «licencia médica»** entre las líneas de ausencia de la
    liquidación (distinguirla de vacaciones y permisos): ¿por `code` del
-   `hr.work.entry.type`, por marca en el tipo, o por rótulo? Se necesita el
-   criterio estable de la base.
+   `hr.work.entry.type`, por marca en el tipo, o por rótulo?
+   **Pendiente:** el usuario revisará en `demo-sys` / `desarrollo` qué
+   `hr.work.entry.type` usa la base para licencia médica antes de implementar.
 3. **Liquidación anterior**: buscar en `hr.payslip` la del mismo
    empleado/contrato del período `dataset.period − 1 mes`, estados válidos
    (`done`, `paid`); si no existe, ¿se bloquea o se cae a la rama a'?
