@@ -446,6 +446,14 @@ class PreviredExtractor(models.AbstractModel):
             str(cost_center_value).strip())
         row[previred.F_COST_CENTER - 1] = cost_center_value[:20]
 
+        # Ticket #19 (Sociedad de Bienestar, período 202608): cuando el
+        # empleador no está adherido a una CCAF y paga las cargas familiares a
+        # través del IPS/ex-INP, la asignación familiar se informa en el campo
+        # 73 y no en el 22. Es un traslado entre columnas de un valor ya
+        # conciliado por el motor y existe en los perfiles v84 y v98, por lo
+        # que se hace antes del corte por versión.
+        self._relocate_family_allowance_to_ips(record, dataset)
+
         # Los tres campos anteriores existen tanto en el perfil histórico
         # v84 como en v98. Los campos de la reforma previsional que siguen sí
         # pertenecen exclusivamente al formato v98.
@@ -495,6 +503,57 @@ class PreviredExtractor(models.AbstractModel):
             previred.protected_return_rate(dataset.period))
 
         self._set_medical_leave_bases(record, payslip, dataset)
+
+    # -- asignación familiar por IPS/ex-INP ------------------------------
+
+    def _relocate_family_allowance_to_ips(self, record, dataset):
+        """Traslada la Asignación Familiar del campo 22 al campo 73.
+
+        Regla funcional (ticket #19, Sociedad de Bienestar Integral y
+        Mantenimiento de la Salud Ltda., período 202608): cuando la empresa
+        **no** está adherida a una Caja de Compensación (CCAF) para pagar la
+        asignación familiar sino que cotiza en el IPS/ex-INP, el monto de la
+        carga familiar no se informa en el campo 22 «Asignación Familiar»
+        sino en el campo 73 «Descuento por Cargas Familiares IPS».
+
+        Es un **traslado entre columnas** del valor que ya concilió el motor
+        de nómina: no se recalcula ni se inventa un monto. La condición es de
+        la empresa, no del régimen previsional individual del trabajador: se
+        aplica a toda línea con asignación familiar y sin código de CCAF en el
+        campo 83. Un empleador adherido a CCAF conserva el campo 22 intacto.
+        """
+        moved = []
+        for row in record.rows:
+            if len(row) != previred.FIELD_COUNT:
+                continue
+            ccaf_code = str(row[previred.F_CCAF_CODE - 1] or "").strip()
+            if ccaf_code and ccaf_code not in ("0", "00"):
+                continue
+            raw = str(row[previred.F_FAMILY_ALLOWANCE - 1] or "").strip()
+            amount = int(raw) if raw.lstrip("-").isdigit() else 0
+            if amount <= 0:
+                continue
+            existing = str(
+                row[previred.F_FAMILY_ALLOWANCE_IPS - 1] or "").strip()
+            existing_amount = (
+                int(existing) if existing.lstrip("-").isdigit() else 0)
+            row[previred.F_FAMILY_ALLOWANCE_IPS - 1] = str(
+                existing_amount + amount)
+            row[previred.F_FAMILY_ALLOWANCE - 1] = "0"
+            moved.append("%s → %s: %s" % (
+                previred.field_label(previred.F_FAMILY_ALLOWANCE),
+                previred.field_label(previred.F_FAMILY_ALLOWANCE_IPS),
+                amount))
+
+        if moved:
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING,
+                "family_allowance_moved_to_ips",
+                _("RUT %(rut)s-%(dv)s: la asignación familiar se informa por "
+                  "el IPS/ex-INP porque el empleador no está adherido a una "
+                  "CCAF. %(detail)s.", rut=record.rut, dv=record.dv,
+                  detail="; ".join(moved)),
+                record.department_label))
 
     # -- licencia médica: base imponible + RIMA --------------------------
 

@@ -1,6 +1,6 @@
 {
     "name": "Steps - Previred por departamento",
-    "version": "18.0.3.8.2",
+    "version": "18.0.3.8.3",
     "category": "Human Resources/Payroll",
     "summary": "TXT Previred consolidado o por departamento, más Excel de revisión",
     "description": """
