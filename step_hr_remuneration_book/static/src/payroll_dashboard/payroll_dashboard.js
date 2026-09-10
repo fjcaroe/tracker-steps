@@ -66,6 +66,13 @@ export class StepsPayrollDashboard extends Component {
     formatAmount(value) {
         return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(value || 0);
     }
+
+    formatPercent(value, digits = 1) {
+        return `${new Intl.NumberFormat("es-CL", {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits,
+        }).format(value || 0)} %`;
+    }
 }
 
 registry.category("actions").add(
