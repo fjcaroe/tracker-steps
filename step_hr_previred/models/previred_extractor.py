@@ -406,16 +406,20 @@ class PreviredExtractor(models.AbstractModel):
         # (tipo 1) y exige el mínimo. Ticket EMCA agosto 2026, RUT
         # 12588103-3: calendario «Jornada parcial 24 horas» (24 h en «Tiempo
         # completo de la empresa»), rechazado porque salía como tipo 1.
-        weekly = getattr(calendar, "full_time_required_hours", 0.0) or getattr(
-            calendar, "hours_per_week", 0.0) or 0.0
-        # Las horas contractuales prevalecen cuando prueban que la jornada es
-        # parcial. Esto corrige configuraciones históricas migradas como
-        # «completa» aunque el horario real sea de 24 h (ticket #14, Karen
-        # Flies). La selección explícita sigue resolviendo calendarios sin
-        # una carga semanal utilizable.
+        weekly_values = [
+            float(value) for value in (
+                getattr(calendar, "full_time_required_hours", 0.0),
+                getattr(calendar, "hours_per_week", 0.0),
+            ) if value
+        ]
+        # Las horas contractuales prevalecen cuando cualquiera de las dos
+        # métricas del horario prueba que la jornada es parcial. En SyS el
+        # calendario real de Karen tiene 24 h efectivas, pero conserva 40 en
+        # «Tiempo completo de la empresa» y una marca histórica tipo 1.
         configured_type = getattr(calendar, "previred_workday_type", False)
         workday_type = (
-            "2" if weekly and weekly < 40 else (configured_type or "1")
+            "2" if any(weekly < 40 for weekly in weekly_values)
+            else (configured_type or "1")
         )
         # Previred exige que el campo 93 de cada línea anexa 01/02/03 sea
         # idéntico al de la línea principal 00 del trabajador. Algunos

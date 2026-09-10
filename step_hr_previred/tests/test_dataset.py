@@ -81,7 +81,8 @@ class TestDataset(PreviredCase):
         payslip = self.make_payslip(employee, self.dep_agri)
         calendar = payslip.contract_id.resource_calendar_id
         calendar.previred_workday_type = "1"
-        calendar.full_time_required_hours = 24
+        calendar.full_time_required_hours = 40
+        calendar.hours_per_week = 24
 
         dataset = self.build([make_row(rut="12588103", dv="3")],
                              spec_version="98")
