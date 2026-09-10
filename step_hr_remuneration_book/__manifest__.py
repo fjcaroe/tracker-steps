@@ -1,6 +1,6 @@
 {
     "name": "Steps - Libro de Remuneraciones",
-    "version": "18.0.3.3.0",
+    "version": "18.0.3.4.0",
     "category": "Human Resources/Payroll",
     "summary": "Libro consolidado por departamento en Excel y PDF, y archivo oficial DT",
     "description": """
@@ -30,7 +30,7 @@ remuneraciones», rotulado como tal y sin archivo oficial DT.
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
     "license": "LGPL-3",
-    "depends": ["hr_payroll"],
+    "depends": ["hr_payroll", "step_hr_previred"],
     "external_dependencies": {"python": ["xlsxwriter"]},
     "data": [
         "security/remuneration_book_security.xml",
