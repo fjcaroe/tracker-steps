@@ -408,12 +408,14 @@ class PreviredExtractor(models.AbstractModel):
         # completo de la empresa»), rechazado porque salía como tipo 1.
         weekly = getattr(calendar, "full_time_required_hours", 0.0) or getattr(
             calendar, "hours_per_week", 0.0) or 0.0
-        # La configuración explícita del horario es la fuente oficial. La
-        # heurística por horas queda sólo como respaldo para datos históricos
-        # aún no migrados.
-        workday_type = getattr(calendar, "previred_workday_type", False)
+        # Las horas contractuales prevalecen cuando prueban que la jornada es
+        # parcial. Esto corrige configuraciones históricas migradas como
+        # «completa» aunque el horario real sea de 24 h (ticket #14, Karen
+        # Flies). La selección explícita sigue resolviendo calendarios sin
+        # una carga semanal utilizable.
+        configured_type = getattr(calendar, "previred_workday_type", False)
         workday_type = (
-            workday_type or ("2" if weekly and weekly < 40 else "1")
+            "2" if weekly and weekly < 40 else (configured_type or "1")
         )
         # Previred exige que el campo 93 de cada línea anexa 01/02/03 sea
         # idéntico al de la línea principal 00 del trabajador. Algunos
@@ -466,6 +468,7 @@ class PreviredExtractor(models.AbstractModel):
         # después de `_set_worked_days`, que por regla general propaga el
         # campo 13 al bloque completo.
         self._normalize_medical_leave_annexes(record, payslip, dataset)
+        self._normalize_mutual_contribution(record, payslip, dataset)
 
         afp_code = str(row[previred.F_AFP_CODE - 1] or "").strip()
         regime = str(row[previred.F_PENSION_REGIME - 1] or "").strip().upper()
@@ -503,6 +506,47 @@ class PreviredExtractor(models.AbstractModel):
             previred.protected_return_rate(dataset.period))
 
         self._set_medical_leave_bases(record, payslip, dataset)
+
+    def _normalize_mutual_contribution(self, record, payslip, dataset):
+        """Concilia el aporte Mutual con la renta imponible del campo 97.
+
+        La cotización de accidentes se calcula sobre la renta imponible Mutual
+        ya emitida por el motor, sin agregar RIMA: campo 98 = campo 97 por la
+        tasa base más la tasa adicional configuradas en la empresa.
+        """
+        if dataset.spec_version != "98":
+            return
+        row = record.principal
+        if len(row) != previred.FIELD_COUNT:
+            return
+        mutual_code = str(row[previred.F_MUTUAL_CODE - 1] or "").strip()
+        if mutual_code in ("", "0", "00"):
+            return
+        company = payslip.company_id
+        if "rate_base" not in company._fields:
+            return
+        taxable_raw = str(row[previred.F_MUTUAL_TAXABLE - 1] or "0").strip()
+        if not taxable_raw.lstrip("-").isdigit():
+            return
+        taxable = int(taxable_raw)
+        rate = Decimal(str(company.rate_base or 0))
+        if "rate_additional" in company._fields:
+            rate += Decimal(str(company.rate_additional or 0))
+        expected = int((Decimal(taxable) * rate / 100).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP))
+        old = str(row[previred.F_MUTUAL_CONTRIBUTION - 1] or "0").strip()
+        current = int(old) if old.lstrip("-").isdigit() else 0
+        if current == expected:
+            return
+        row[previred.F_MUTUAL_CONTRIBUTION - 1] = str(expected)
+        dataset.issues.append(previred.Issue(
+            previred.SEVERITY_WARNING, "mutual_contribution_normalized",
+            _("RUT %(rut)s-%(dv)s: cotización Mutual (campo 98) corregida "
+              "desde %(old)s a %(new)s = renta imponible Mutual %(taxable)s "
+              "× tasa empresa %(rate)s%%. MUEVE MONTOS DECLARADOS: validar "
+              "antes de SyS.", rut=record.rut, dv=record.dv, old=current,
+              new=expected, taxable=taxable, rate=rate),
+            record.department_label))
 
     # -- asignación familiar por IPS/ex-INP ------------------------------
 

@@ -74,6 +74,47 @@ class TestDataset(PreviredCase):
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
 
+    def test_part_time_hours_override_stale_full_time_configuration(self):
+        """Una migración antigua no debe convertir 24 h en jornada completa."""
+        employee = self.make_employee("Karen Flies migrada", "12588103-3",
+                                      self.dep_agri)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        calendar = payslip.contract_id.resource_calendar_id
+        calendar.previred_workday_type = "1"
+        calendar.full_time_required_hours = 24
+
+        dataset = self.build([make_row(rut="12588103", dv="3")],
+                             spec_version="98")
+
+        self.assertEqual(
+            dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
+
+    def test_mutual_contribution_uses_taxable_and_company_rate(self):
+        """Ticket #15: 438.229 × 0,93 % = 4.076, no 4.159."""
+        if "rate_base" not in self.company._fields:
+            self.skipTest("La localización no aporta las tasas Mutual")
+        self.company.rate_base = 0.93
+        if "rate_additional" in self.company._fields:
+            self.company.rate_additional = 0
+        employee = self.make_employee("Celestina Peñaloza", "12359103-8",
+                                      self.dep_agri)
+        self.make_payslip(employee, self.dep_agri)
+        row = make_row(rut="12359103", dv="8", overrides={
+            previred.F_MUTUAL_CODE: "01",
+            previred.F_MUTUAL_TAXABLE: "438229",
+            previred.F_MUTUAL_CONTRIBUTION: "4159",
+        })
+
+        dataset = self.build([row], spec_version="98")
+
+        self.assertEqual(
+            dataset.records[0].principal[
+                previred.F_MUTUAL_CONTRIBUTION - 1],
+            "4076",
+        )
+        self.assertIn("mutual_contribution_normalized",
+                      [issue.code for issue in dataset.issues])
+
     def test_workday_type_40_hours_is_full(self):
         """40 h semanales o más es jornada completa (campo 93 = 1): Previred
         exige el sueldo mínimo legal en el campo 27."""
