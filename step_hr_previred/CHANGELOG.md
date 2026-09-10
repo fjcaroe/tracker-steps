@@ -1,5 +1,21 @@
 # Changelog
 
+## 18.0.3.8.3
+
+Ticket Helpdesk S&S #19 (Sociedad de Bienestar Integral y Mantenimiento de la
+Salud Ltda., período 202608).
+
+* **Asignación familiar por IPS/ex-INP.** Cuando el empleador no está adherido
+  a una Caja de Compensación (CCAF) y paga las cargas familiares a través del
+  IPS, el monto de la asignación familiar se traslada del campo 22 «Asignación
+  Familiar» al campo 73 «Descuento por Cargas Familiares IPS», y el campo 22
+  queda en `0`. Es un traslado entre columnas del valor ya conciliado por el
+  motor de nómina: no se recalcula ningún importe. Se aplica a toda línea con
+  asignación familiar cuando la empresa no trae código de CCAF (campo 83),
+  aunque el trabajador esté afiliado a AFP; un empleador adherido a CCAF
+  conserva el campo 22 intacto. Cada traslado deja el hallazgo
+  `family_allowance_moved_to_ips` con el detalle.
+
 ## 18.0.3.8.2
 
 Ticket Helpdesk S&S #18, **revisión 2** (Servicio de Bienestar / Valentina

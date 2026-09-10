@@ -419,6 +419,44 @@ class TestDataset(PreviredCase):
         self.assertEqual(row[previred.F_PROTECTED_RETURN - 1], "9000")
         self.assertFalse(dataset.errors)
 
+    def test_without_ccaf_moves_afp_family_allowance_to_field_73(self):
+        """Ticket S&S #19: la condición es «empresa Sin CCAF», incluso si la
+        trabajadora está afiliada a AFP como Valentina en el caso real."""
+        employee = self.make_employee("Ana AFP", "18656818-4", self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={
+            previred.F_PENSION_REGIME: "AFP",
+            previred.F_FAMILY_ALLOWANCE: "27812",
+            previred.F_FAMILY_ALLOWANCE_IPS: "0",
+            previred.F_CCAF_CODE: "0",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_FAMILY_ALLOWANCE - 1], "0")
+        self.assertEqual(
+            principal[previred.F_FAMILY_ALLOWANCE_IPS - 1], "27812")
+        self.assertIn("family_allowance_moved_to_ips",
+                      [issue.code for issue in dataset.issues])
+        self.assertFalse(dataset.errors)
+
+    def test_with_ccaf_keeps_family_allowance_in_field_22(self):
+        """Una empresa adherida a CCAF conserva el campo 22, sea cual sea el
+        régimen previsional individual del trabajador."""
+        employee = self.make_employee("Caro AFP CCAF", "18656818-4",
+                                      self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={
+            previred.F_PENSION_REGIME: "AFP",
+            previred.F_FAMILY_ALLOWANCE: "27812",
+            previred.F_CCAF_CODE: "5",
+        })
+        dataset = self.build([row], spec_version="98")
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_FAMILY_ALLOWANCE - 1], "27812")
+        self.assertEqual(principal[previred.F_FAMILY_ALLOWANCE_IPS - 1], "0")
+        self.assertNotIn("family_allowance_moved_to_ips",
+                         [issue.code for issue in dataset.issues])
+
     def test_department_filter_narrows_the_batch(self):
         agri = self.make_employee("Ana Rojas", "11111111-1", self.dep_agri)
         admin = self.make_employee("Luis Díaz", "22222222-2", self.dep_admin)
