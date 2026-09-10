@@ -1,5 +1,18 @@
 # Changelog
 
+## 18.0.3.8.4
+
+Tickets Helpdesk S&S #14 y #15 (EMCA, agosto 2026).
+
+* **Jornada parcial:** una carga semanal real inferior a 40 h prevalece sobre
+  una selección histórica de jornada completa. El caso Karen Flies, horario
+  de 24 h, queda con campo 93 = `2` en la principal y sus anexas.
+* **Cotización Mutual:** para empresas afiliadas a Mutual se concilia el campo
+  98 como `campo 97 × (tasa base + tasa adicional)` usando las tasas de la
+  empresa y redondeo al peso. En el caso Celestina Peñaloza corrige 4.159 a
+  4.076 (`438.229 × 0,93 %`), sin sumar RIMA. Cada ajuste deja el hallazgo
+  `mutual_contribution_normalized`.
+
 ## 18.0.3.8.3
 
 Ticket Helpdesk S&S #19 (Sociedad de Bienestar Integral y Mantenimiento de la
