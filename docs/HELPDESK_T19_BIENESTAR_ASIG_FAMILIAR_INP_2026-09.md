@@ -2,8 +2,7 @@
 
 - **Empresa:** Sociedad de Bienestar Integral y Mantenimiento de la Salud Ltda.
 - **Período:** 202608
-- **Base indicada por el cliente:** http://35.222.25.110:8070/odoo (motor de
-  nómina del proveedor — solo lectura para esta automatización).
+- **Base indicada por el cliente:** http://35.222.25.110:8070/odoo (`SyS`).
 - **Área:** Nómina / PreviRed. Módulo `step_hr_previred`.
 - **Rama:** `ticket/19-bienestar-asig-familiar-inp` (sobre `develop`, que ya
   contiene `fix/previred-correcciones-2` + tickets #17 y #18).
@@ -63,10 +62,15 @@ No hay recálculo: es un traslado del mismo valor entre dos columnas.
 - El traslado se aplica a la línea principal y a cualquier anexa que trajera
   monto en el campo 22 (en la práctica sólo la principal lo trae).
 
-## Pendiente / validación
+## Despliegue y validación
 
-- Desplegar 18.0.3.8.3 y regenerar el TXT de Sociedad de Bienestar 202608:
-  confirmar que las líneas con asignación familiar muestran campo 22 = 0 y
-  campo 73 = monto de la carga, y que las empresas con CCAF no cambian.
-- «Actualizar en :8070»: es la base del motor del proveedor; esta
-  automatización sólo la lee. El cambio vive en el exportador `step_hr_previred`.
+- Demo-Sys: `step_hr_previred 18.0.3.8.3`, prueba dirigida sin fallos, servicio
+  activo y HTTP 200. Respaldo:
+  `/opt/steps_backups/ticket19_18_0_3_8_3_20260910-005930/demosys`.
+- Producción SyS (`:8070`): `step_hr_previred 18.0.3.8.3`, actualización sin
+  errores, servicio activo y HTTP 200. Respaldo:
+  `/opt/steps_backups/ticket19_18_0_3_8_3_20260910-010239/sys`.
+- Validación real en ambos entornos, Sociedad de Bienestar período 202608:
+  los RUT `13.789.922-1` y `18.656.818-4` pasaron de campo 22 = 13.870 y campo
+  73 vacío a campo 22 = 0 y campo 73 = 13.870; ambos son afiliados AFP y la
+  empresa figura sin CCAF (`83 = 00`).

@@ -27,3 +27,20 @@ En Demo-Sys, EMCA agosto 2026 tiene 82 liquidaciones cerradas. El dataset del
 Libro DT confirma sueldo base 49.897.767, total haberes 67.461.124, líquido
 47.361.257 y anticipos 4.570.000, coincidentes con el documento (diferencia de
 un peso en el líquido por el estado actual de la base).
+
+El TXT PreviRed real entrega cotización trabajador 15.710.705, cotización
+empresa 3.797.293 e imposiciones pagadas 19.507.998. Los indicadores resultan:
+sueldo base 74,0 %, líquido 70,2 %, anticipos 6,8 %, empresa 5,6 %, trabajador
+23,3 %, pagado 28,9 % y costo de seguros 5,65 %.
+
+## Despliegue
+
+`step_hr_remuneration_book 18.0.3.4.0` quedó actualizado con dos pruebas
+dirigidas sin fallos, servicios activos y HTTP 200 en:
+
+- Desarrollo / `LAB_TAREAS`. Respaldo:
+  `/opt/steps_backups/ticket20_21_payroll_dashboard_20260910-012537/dev`.
+- Demo / `STEPS_DEMO`. Respaldo:
+  `/opt/steps_backups/ticket20_21_payroll_dashboard_20260910-012616/demo`.
+- Demo-Sys / `STEPS_DEMO_SYS`. Respaldo:
+  `/opt/steps_backups/ticket20_21_payroll_dashboard_20260910-011855/demosys`.
