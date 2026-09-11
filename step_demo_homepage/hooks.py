@@ -27,3 +27,9 @@ def post_init_hook(env):
         ]
     )
     competing.write(page_values)
+
+    # Odoo caches sitemap.xml as attachments for several hours. Clear only
+    # those generated files so new public pages are visible immediately.
+    env["ir.attachment"].sudo().search(
+        [("type", "=", "binary"), ("url", "=like", "/sitemap-%.xml")]
+    ).unlink()

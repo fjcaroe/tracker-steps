@@ -159,4 +159,17 @@
 <section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Conversemos sobre<br/><em>tu operación agrícola.</em></h2><a class="steps-button steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
 <footer class="steps-footer"><div class="steps-container"><div class="steps-footer__top"><a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><p>ERP agrícola conectado con Odoo.</p><div><a href="#soluciones">Soluciones</a><a href="#ecosistema">Ecosistema</a><a href="/contactus">Contacto</a><a href="/web/login">Ingresar ↗</a></div></div><div class="steps-footer__bottom"><span>© 2026 Steps Consulting</span><span>Desarrollo propio · Integrado con Odoo</span></div></div></footer>
 </div></t></t></field></record>
+
+<record id="google_site_verification_view" model="ir.ui.view">
+    <field name="name">Google Search Console verification</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.google_site_verification</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.google_site_verification">google-site-verification: googleaa69ac452cd72427.html</t></field>
+</record>
+
+<record id="google_site_verification_page" model="website.page">
+    <field name="url">/googleaa69ac452cd72427.html</field>
+    <field name="view_id" ref="google_site_verification_view"/>
+    <field name="is_published" eval="True"/>
+</record>
 </odoo>

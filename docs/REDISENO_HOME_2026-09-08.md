@@ -180,3 +180,20 @@ Respaldos completos previos a la promoción y a la corrección final:
 
 - `/opt/steps_backups/home-seo-20260911-173539/`
 - `/opt/steps_backups/home-seo-20260911-173946/`
+
+### Verificación de Google Search Console
+
+El archivo `googleaa69ac452cd72427.html` quedó conservado en el módulo y
+publicado en la raíz de `stepsapp.cl`. Nginx sirve la ruta exacta sin pasar por
+Odoo, con respuesta HTTP 200 y el contenido original entregado por Google.
+
+La URL también se registró como página pública para mantenerla en el sitemap
+dinámico de Odoo. Se invalidó únicamente la caché generada del sitemap y se
+verificó la entrada:
+
+`https://stepsapp.cl/googleaa69ac452cd72427.html`
+
+Respaldos de esta intervención:
+
+- `/opt/steps_backups/home-seo-20260911-182213/`
+- `/opt/steps_backups/google-verification-20260911-182322/`
