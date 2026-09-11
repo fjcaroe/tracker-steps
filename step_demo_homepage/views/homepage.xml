@@ -160,6 +160,12 @@
 <footer class="steps-footer"><div class="steps-container"><div class="steps-footer__top"><a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><p>ERP agrícola conectado con Odoo.</p><div><a href="#soluciones">Soluciones</a><a href="#ecosistema">Ecosistema</a><a href="/contactus">Contacto</a><a href="/web/login">Ingresar ↗</a></div></div><div class="steps-footer__bottom"><span>© 2026 Steps Consulting</span><span>Desarrollo propio · Integrado con Odoo</span></div></div></footer>
 </div></t></t></field></record>
 
+<template id="google_site_verification_meta" name="Google Search Console verification meta" inherit_id="website.layout">
+    <xpath expr="//head" position="inside">
+        <meta name="google-site-verification" content="4N_pZPqg9sXXBIujW8UZOY-lPKRGt_V_rtqxCMvPw2I"/>
+    </xpath>
+</template>
+
 <record id="google_site_verification_view" model="ir.ui.view">
     <field name="name">Google Search Console verification</field>
     <field name="type">qweb</field>

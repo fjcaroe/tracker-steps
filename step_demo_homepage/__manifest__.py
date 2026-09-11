@@ -1,7 +1,7 @@
 {
     "name": "Steps - Portada de producto",
     "summary": "ERP agrícola en Odoo: campo, personas, logística y finanzas",
-    "version": "18.0.2.2.2",
+    "version": "18.0.2.2.3",
     "author": "Steps Consulting",
     "category": "Website",
     "license": "LGPL-3",
