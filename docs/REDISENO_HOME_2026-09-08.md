@@ -150,3 +150,33 @@ alterar la composición.
 Prompt utilizado:
 
 > Use case: photorealistic-natural. Asset type: wide landscape editorial hero photograph for Steps, a premium Chilean agricultural operations software website. Create an elegant authentic aerial drone photograph of a lush commercial fruit orchard in the central valley of Chile, late afternoon light, precise long parallel rows of richly green trees running diagonally from lower left to upper right, narrow warm earth service roads, distant Andes hazy foothills only in the top 15 percent, rich natural deep green foliage, subtle lime highlights, earthy brown between rows. Camera oblique aerial, cinematic and quiet, exceptionally detailed natural texture, sophisticated magazine agricultural photography. Wide 3:2 composition that also crops well vertically. No people in close up, no text, no typography, no logos, no graphic overlays, no UI, no watermarks. Natural realistic colors, avoid HDR, avoid artificial fantasy trees. This image will occupy the right half of a white and forest-green landing page hero.
+
+## Promoción al sitio principal y base SEO — 11 de septiembre de 2026
+
+La portada se publicó en `https://stepsapp.cl/` con la versión
+`18.0.2.2.1` del módulo. Producción corresponde a la base
+`karo_consultorias`, el servicio `odoo18.service` y el sitio `Steps Agro`.
+
+La promoción incorporó:
+
+- título y descripción orientados a «ERP agrícola», «Odoo» y las capacidades
+  principales de Steps Agro;
+- un H1 descriptivo y texto visible de gestión agrícola sobre Odoo;
+- datos estructurados `Organization`, `WebSite` y `SoftwareApplication`;
+- llamados visibles para solicitar una demo y acceso separado para clientes;
+- dominio canónico y `web.base.url` fijados en `https://stepsapp.cl`;
+- redirección HTTPS permanente de `www.stepsapp.cl` al dominio sin `www`;
+- cabecera `X-Robots-Tag: noindex, nofollow, noarchive` en Desarrollo para
+  evitar que compita con Producción;
+- enlaces absolutos a Cosecha, Task y Colaciones en Desarrollo, porque esas
+  tres rutas no existen bajo el dominio productivo.
+
+La portada, contacto y las siete aplicaciones enlazadas respondieron HTTP 200.
+El HTML público se validó con un único H1, doce familias de soluciones, cinco
+tarjetas de apps, descripción, canonical, JSON-LD y el contenido objetivo.
+`www.stepsapp.cl` respondió 301 hacia el dominio canónico.
+
+Respaldos completos previos a la promoción y a la corrección final:
+
+- `/opt/steps_backups/home-seo-20260911-173539/`
+- `/opt/steps_backups/home-seo-20260911-173946/`

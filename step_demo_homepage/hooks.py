@@ -6,7 +6,16 @@ def post_init_hook(env):
 
     website = env["website"].sudo().search([], limit=1)
     if website:
-        website.name = "Steps Agro Demo"
+        website.name = "Steps Agro"
+
+    page_values = {
+        "active": True,
+        "name": homepage.name,
+        "arch_db": homepage.arch_db,
+        "website_meta_title": homepage.website_meta_title,
+        "website_meta_description": homepage.website_meta_description,
+        "website_meta_keywords": homepage.website_meta_keywords,
+    }
 
     competing = env["ir.ui.view"].sudo().search(
         [
@@ -17,10 +26,4 @@ def post_init_hook(env):
             ("website_id", "=", website.id if website else False),
         ]
     )
-    competing.write(
-        {
-            "active": True,
-            "name": homepage.name,
-            "arch_db": homepage.arch_db,
-        }
-    )
+    competing.write(page_values)
