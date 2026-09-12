@@ -31,6 +31,7 @@
                 <field name="adjust_reason" optional="hide"/>
                 <field name="is_manual" optional="hide" readonly="1"/>
                 <field name="bucket" optional="hide" readonly="1"/>
+                <field name="bucket_label" optional="hide" readonly="1"/>
                 <field name="sheet" column_invisible="True"/>
                 <field name="flow_currency_id" column_invisible="True"/>
                 <field name="aux_currency_id" column_invisible="True"/>
@@ -99,6 +100,7 @@
                 <field name="doc_number"/>
                 <field name="concept_id"/>
                 <field name="cashflow_id"/>
+                <field name="bucket_label" string="Semana"/>
                 <filter name="manual" string="Manuales" domain="[('is_manual', '=', True)]"/>
                 <filter name="excluded" string="Excluidas" domain="[('excluded', '=', True)]"/>
                 <separator/>
@@ -110,7 +112,8 @@
                 <filter name="w5" string="W5" domain="[('bucket', '=', 'w5')]"/>
                 <group expand="0" string="Agrupar por">
                     <filter name="group_sheet" string="Hoja" context="{'group_by': 'sheet'}"/>
-                    <filter name="group_bucket" string="Cubeta" context="{'group_by': 'bucket'}"/>
+                    <filter name="group_bucket" string="Ventana del horizonte" context="{'group_by': 'bucket'}"/>
+                    <filter name="group_week" string="Semana calendario" context="{'group_by': 'bucket_label'}"/>
                     <filter name="group_concept" string="Concepto" context="{'group_by': 'concept_id'}"/>
                     <filter name="group_partner" string="Tercero" context="{'group_by': 'partner_id'}"/>
                 </group>
@@ -145,6 +148,8 @@
                             invisible="state != 'approved'"
                             groups="step_account_treasury.group_treasury_approver"/>
                     <button name="action_export_xlsx" string="Exportar XLSX" type="object"
+                            invisible="state == 'cancelled'"/>
+                    <button name="action_export_pdf" string="Exportar PDF" type="object"
                             invisible="state == 'cancelled'"/>
                     <button name="action_cancel" string="Anular" type="object"
                             invisible="state in ('approved', 'cancelled')"/>
@@ -214,31 +219,31 @@
                     </group>
                     <notebook>
                         <page name="customer" string="Clientes">
-                            <field name="line_customer_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_customer_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'customer', 'default_is_manual': True}"/>
                         </page>
                         <page name="sale_order" string="N Venta">
-                            <field name="line_sale_order_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_sale_order_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'sale_order', 'default_is_manual': True}"/>
                         </page>
                         <page name="other_income" string="Otras Recaudaciones">
-                            <field name="line_other_income_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_other_income_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'other_income', 'default_is_manual': True}"/>
                         </page>
                         <page name="vendor" string="Proveedores">
-                            <field name="line_vendor_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_vendor_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'vendor', 'default_is_manual': True}"/>
                         </page>
                         <page name="purchase_order" string="O Compra">
-                            <field name="line_purchase_order_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_purchase_order_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'purchase_order', 'default_is_manual': True}"/>
                         </page>
                         <page name="proforma" string="Proformas">
-                            <field name="line_proforma_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_proforma_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'proforma', 'default_is_manual': True}"/>
                         </page>
                         <page name="other_payment" string="Otros pagos">
-                            <field name="line_other_payment_ids" readonly="state == 'approved'"
+                            <field widget="treasury_week_lines" name="line_other_payment_ids" readonly="state == 'approved'"
                                    context="{'default_sheet': 'other_payment', 'default_is_manual': True}"/>
                         </page>
                         <page name="summary" string="Resumen">

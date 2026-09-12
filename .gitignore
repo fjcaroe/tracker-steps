@@ -32,3 +32,5 @@ __pycache__/
 .venv/
 backend/tracker_py/.env
 .tmp_manual/
+tmp/
+step_harvest_web/

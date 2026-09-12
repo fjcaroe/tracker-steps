@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_historical_template_version_list" model="ir.ui.view">
+        <field name="name">step.management.historical.template.version.list</field>
+        <field name="model">step.management.historical.template.version</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="code"/>
+                <field name="kind"/>
+                <field name="schema_version"/>
+                <field name="is_current"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_historical_template_version_form" model="ir.ui.view">
+        <field name="name">step.management.historical.template.version.form</field>
+        <field name="model">step.management.historical.template.version</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="kind"/>
+                            <field name="schema_version"/>
+                            <field name="is_current"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="template_file" filename="template_filename"/>
+                            <field name="template_filename" invisible="1"/>
+                        </group>
+                    </group>
+                    <field name="header_signature" placeholder="Una cabecera normalizada por línea, en el orden exacto del archivo…"/>
+                    <field name="notes" placeholder="Instrucciones de migración si se reemplaza esta versión…"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_historical_template_version" model="ir.actions.act_window">
+        <field name="name">Plantillas de carga histórica</field>
+        <field name="res_model">step.management.historical.template.version</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Registre la versión de plantilla vigente para presupuesto y real histórico.</p>
+            <p>Sólo el Administrador mantiene el formato (L3); una carga con cabecera desconocida se rechaza con instrucciones.</p>
+        </field>
+    </record>
+
+    <record id="view_historical_import_batch_list" model="ir.ui.view">
+        <field name="name">step.management.historical.import.batch.list</field>
+        <field name="model">step.management.historical.import.batch</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'approved'" decoration-danger="state == 'blocked'">
+                <field name="name"/>
+                <field name="dataset_kind"/>
+                <field name="template_version_id"/>
+                <field name="line_count"/>
+                <field name="error_count"/>
+                <field name="duplicate_count"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_historical_import_batch_form" model="ir.ui.view">
+        <field name="name">step.management.historical.import.batch.form</field>
+        <field name="model">step.management.historical.import.batch</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_validate" type="object" string="Validar"
+                            class="btn-secondary" invisible="state != 'draft'"/>
+                    <button name="action_import" type="object" string="Importar"
+                            class="btn-primary" invisible="state != 'validated'"/>
+                    <button name="action_approve" type="object" string="Aprobar"
+                            class="btn-primary" invisible="state != 'entered'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_block" type="object" string="Bloquear"
+                            invisible="state not in ('entered', 'approved')"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_create_reversal" type="object" string="Crear reversa"
+                            invisible="state != 'approved'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_reset" type="object" string="Restablecer"
+                            invisible="state not in ('validated', 'entered')"/>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state not in ('draft', 'validated')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated,entered,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Lote de carga histórica</span>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="dataset_kind" readonly="state != 'draft'"/>
+                            <field name="template_version_id" readonly="1"/>
+                            <field name="file" filename="filename" readonly="state != 'draft'"/>
+                            <field name="filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="exclude_exact_duplicates" readonly="state not in ('draft', 'validated')"/>
+                            <field name="import_valid_only" readonly="state not in ('draft', 'validated')"/>
+                            <field name="line_count"/>
+                            <field name="error_count"/>
+                            <field name="duplicate_count"/>
+                            <field name="reversal_of_id" invisible="not reversal_of_id"/>
+                            <field name="approved_by_id" invisible="not approved_by_id"/>
+                            <field name="approved_at" invisible="not approved_at"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Filas" name="lines">
+                            <field name="line_ids" readonly="1">
+                                <list decoration-danger="state == 'error'" decoration-muted="is_duplicate">
+                                    <field name="row_number"/>
+                                    <field name="season"/>
+                                    <field name="center_label"/>
+                                    <field name="center_id"/>
+                                    <field name="species" optional="show"/>
+                                    <field name="quantity"/>
+                                    <field name="source_amount"/>
+                                    <field name="source_exchange_rate"/>
+                                    <field name="source_amount_usd"/>
+                                    <field name="is_duplicate"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="error" optional="show"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Hechos creados" name="facts" invisible="not cost_ids">
+                            <field name="cost_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="season"/>
+                                    <field name="center_id"/>
+                                    <field name="source_amount"/>
+                                    <field name="locked"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                    <field name="notes" placeholder="Observaciones del lote…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_historical_import_batch_search" model="ir.ui.view">
+        <field name="name">step.management.historical.import.batch.search</field>
+        <field name="model">step.management.historical.import.batch</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter string="Presupuesto" name="budget" domain="[('dataset_kind', '=', 'budget')]"/>
+                <filter string="Real" name="actual" domain="[('dataset_kind', '=', 'actual')]"/>
+                <filter string="Aprobados" name="approved" domain="[('state', '=', 'approved')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Tipo" name="kind_g" context="{'group_by': 'dataset_kind'}"/>
+                    <filter string="Estado" name="state_g" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_historical_import_batch" model="ir.actions.act_window">
+        <field name="name">Cargas históricas oficiales</field>
+        <field name="res_model">step.management.historical.import.batch</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_historical_import_batch_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cargue el presupuesto o el real histórico oficial (Anexo 1.6.2.1 / 1.6.10.3).</p>
+            <p>Cada fila se ingresa como un hecho histórico normalizado; presupuesto y real nunca se fuerzan a la misma fila.</p>
+        </field>
+    </record>
+</odoo>

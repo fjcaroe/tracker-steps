@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_termination_correction_wizard_form" model="ir.ui.view">
+        <field name="name">hr.termination.correction.wizard.form</field>
+        <field name="model">hr.termination.correction.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Corregir finiquito">
+                <field name="company_id" invisible="1"/>
+                <group>
+                    <field name="employee_id" options="{'no_create': True}"/>
+                    <field name="actual_termination_date"/>
+                </group>
+                <div class="alert alert-info" role="alert"
+                     invisible="not employee_id or not actual_termination_date or has_action">
+                    No hay nada que corregir para este trabajador con esa fecha: ni
+                    contratos, ni asistencia, ni liquidaciones posteriores.
+                </div>
+                <group string="Se va a corregir" invisible="not has_action">
+                    <field name="contract_ids" widget="many2many_tags" string="Contratos"/>
+                    <field name="work_entry_count" string="Asistencias a eliminar"/>
+                    <field name="payslip_ids" widget="many2many_tags" string="Liquidaciones a recalcular"/>
+                </group>
+                <div class="alert alert-danger" role="alert" invisible="not blocked_payslip_ids">
+                    <strong>Atención:</strong> las liquidaciones
+                    <field name="blocked_payslip_ids" widget="many2many_tags" nolabel="1"
+                           readonly="1" class="d-inline"/>
+                    ya están pagadas y no se corrigen automáticamente. Revíselas a mano.
+                </div>
+                <field name="has_action" invisible="1"/>
+                <div class="mt-3" invisible="not has_action or blocked_payslip_ids">
+                    <field name="confirm"/>
+                    <label for="confirm"
+                           string="Confirmo que quiero aplicar esta corrección: desbloqueará liquidaciones confirmadas y eliminará asistencia validada."/>
+                </div>
+                <footer>
+                    <button name="action_apply" type="object" string="Aplicar corrección"
+                            class="btn-primary"
+                            invisible="not has_action or blocked_payslip_ids or not confirm"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_termination_correction_wizard" model="ir.actions.act_window">
+        <field name="name">Corregir finiquito</field>
+        <field name="res_model">hr.termination.correction.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="groups_id" eval="[(4, ref('group_payroll_correction'))]"/>
+    </record>
+
+    <!-- Acceso directo desde la ficha o la lista del trabajador. -->
+    <record id="action_hr_termination_correction_from_employee" model="ir.actions.server">
+        <field name="name">Corregir finiquito</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="binding_model_id" ref="hr.model_hr_employee"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="groups_id" eval="[(4, ref('group_payroll_correction'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = {
+    "type": "ir.actions.act_window",
+    "name": "Corregir finiquito",
+    "res_model": "hr.termination.correction.wizard",
+    "view_mode": "form",
+    "target": "new",
+    "context": {"default_employee_id": records[:1].id},
+}</field>
+    </record>
+
+    <!-- El menú contextual vive en el engranaje y puede pasar desapercibido.
+         Se deja además un botón visible en la cabecera de la ficha. -->
+    <record id="view_employee_form_payroll_correction" model="ir.ui.view">
+        <field name="name">hr.employee.form.payroll.correction</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form/header" position="inside">
+                <button name="%(action_hr_termination_correction_from_employee)d"
+                        type="action"
+                        string="Corregir finiquito"
+                        class="btn-secondary"
+                        groups="steps_hr_payroll_correction.group_payroll_correction"
+                        context="{'default_employee_id': id}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

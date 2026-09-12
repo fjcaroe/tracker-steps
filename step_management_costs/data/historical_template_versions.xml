@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Corte V2 B — versión vigente de las plantillas oficiales del
+         cliente (L1/L3): Anexo 1.6.2.1 (presupuesto) y Anexo 1.6.10.3
+         (real). La cabecera se normaliza igual que `_norm()` en
+         `models/historical_import.py`: minúsculas, sin acentos, espacios
+         colapsados. Sólo el Administrador la mantiene (L3). -->
+    <record id="historical_template_version_budget_v1" model="step.management.historical.template.version">
+        <field name="code">PPTO_HIST_V1</field>
+        <field name="kind">budget</field>
+        <field name="schema_version">1.0</field>
+        <field name="is_current" eval="True"/>
+        <field name="active" eval="True"/>
+        <field name="header_signature">version ppto
+temporada
+ano
+mes
+fundo
+especie
+variedad
+tipo ccosto
+centro de costos
+origen
+grupo presupuesto
+actividad
+producto-labor
+udm
+cantidad
+valor ppto$
+tc ppto
+valor ppto us$</field>
+        <field name="notes">Anexo 1.6.2.1 — Base dato agrícola histórica, PRESUPUESTO (18 columnas).</field>
+    </record>
+
+    <record id="historical_template_version_actual_v1" model="step.management.historical.template.version">
+        <field name="code">REAL_HIST_V1</field>
+        <field name="kind">actual</field>
+        <field name="schema_version">1.0</field>
+        <field name="is_current" eval="True"/>
+        <field name="active" eval="True"/>
+        <field name="header_signature">tipo registro
+temporada
+ano
+mes
+fundo
+especie
+variedad
+tipo ccosto
+centro de costos
+origen
+grupo presupuesto
+actividad
+producto-labor
+udm
+cantidad
+valor real $
+tc real
+valor real us$</field>
+        <field name="notes">Anexo 1.6.10.3 — Base dato agrícola histórica REAL (18 columnas).</field>
+    </record>
+</odoo>

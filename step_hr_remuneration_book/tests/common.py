@@ -152,6 +152,13 @@ class RemunerationBookCommon(TransactionCase):
             contract_type = cls._contract_type()
             if contract_type:
                 values["contract_type_id"] = contract_type.id
+        # La localización SimpleDigital declara este campo obligatorio, pero
+        # su override de ``create`` no conserva siempre el valor por defecto
+        # al ejecutar tests de módulos dependientes. Mantener el fixture
+        # portable evita acoplar la prueba a que esa localización esté o no
+        # instalada en la base.
+        if "income_tax_type" in cls.env["hr.contract"]._fields:
+            values["income_tax_type"] = "1"
         return cls.env["hr.contract"].create(values)
 
     @classmethod
