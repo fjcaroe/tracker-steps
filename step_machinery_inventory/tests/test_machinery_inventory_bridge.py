@@ -81,3 +81,30 @@ class TestMachineryInventoryBridge(TransactionCase):
         usage.action_cost()
         with self.assertRaises(UserError):
             usage.action_generate_inventory_move()
+
+    def test_generate_inventory_move_stops_on_machine_missing_fuel_product(self):
+        # Ticket 24, alternativa aprobada por el cliente en el punto 5: si una
+        # máquina de la OT no tiene producto de combustible configurado,
+        # Odoo debe detener el proceso y avisar cuál falta, no omitirla.
+        vehicle_model = self.vehicle.model_id
+        unconfigured_vehicle = self.env["fleet.vehicle"].create({
+            "model_id": vehicle_model.id,
+            "license_plate": "TEST-MQ-INV-SINPROD",
+            "es_maquina": True,
+            "step_total_hrs_mes": 100,
+        })
+        usage = self.env["step.hrs.machinery"].create({
+            "date": "2026-08-15", "folio": "TEST-MQ-INV-MIXED", "company_id": self.company.id, "state": "done",
+        })
+        self.env["step.hrs.machinery.line"].create({
+            "machinery_id": usage.id, "machinery_ids": self.vehicle.id,
+            "hrs_maquina": 2.0, "lrts_combustible": 3.0,
+        })
+        self.env["step.hrs.machinery.line"].create({
+            "machinery_id": usage.id, "machinery_ids": unconfigured_vehicle.id,
+            "hrs_maquina": 1.0, "lrts_combustible": 2.0,
+        })
+        usage.action_cost()
+        with self.assertRaises(UserError):
+            usage.action_generate_inventory_move()
+        self.assertFalse(usage.inventory_picking_id)

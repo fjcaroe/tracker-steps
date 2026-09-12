@@ -24,14 +24,18 @@ class StepHrsMachinery(models.Model):
         if self.inventory_picking_id:
             return self._open_inventory_picking()
 
-        lines = self.hrs_machinery_line.filtered(
-            lambda line: line.lrts_combustible > 0 and line.machinery_ids.step_product_id
-        )
-        if not lines:
+        fuel_lines = self.hrs_machinery_line.filtered(lambda line: line.lrts_combustible > 0)
+        if not fuel_lines:
             raise UserError(_(
-                "No hay líneas con litros de combustible y producto de combustible "
-                "configurado en la maquinaria (pestaña Costo hora, sección Combustibles)."
+                "No hay líneas con litros de combustible en esta OT."
             ))
+        missing = fuel_lines.filtered(lambda line: not line.machinery_ids.step_product_id)
+        if missing:
+            raise UserError(_(
+                "Falta configurar el producto de combustible (pestaña Costo hora, "
+                "sección Combustibles) en: %s."
+            ) % ", ".join(missing.mapped("machinery_ids.display_name")))
+        lines = fuel_lines
 
         picking_type = self.env.ref(CONSUMPTION_PICKING_TYPE_XMLID)
         move_vals = []
