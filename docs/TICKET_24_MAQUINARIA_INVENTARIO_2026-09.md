@@ -35,9 +35,10 @@ un addon chico que sólo lee campos reales de otro módulo, nunca lo edita.
    entrega".** El ticket dice literalmente "Orden de entrega", pero ese
    tipo de Odoo apunta por defecto a un cliente — este movimiento no es una
    venta. Se creó un `stock.picking.type` propio ("Consumo de Maquinaria",
-   código `internal`) con origen fijo `MQ/Stock` (nueva `stock.location`) y
-   destino `Virtual Locations/Production` (ubicación estándar de consumo de
-   Odoo, no una ubicación inventada). **Queda pendiente de confirmación
+   código `internal`) con origen fijo `MQ/Stock` y destino
+   `MQ/Producción` (ubicaciones propias; la segunda tiene
+   `usage=production`, porque Odoo 18 no expone un XML ID estable para la
+   ubicación de producción por empresa). **Queda pendiente de confirmación
    funcional** si esto debe ser en cambio una Orden de entrega real
    (cliente ficticio "Consumo interno" o similar) — se optó por la opción
    más segura (no contamina el flujo de ventas) mientras se define.
@@ -71,9 +72,13 @@ sigue el patrón de `step_machinery/tests/test_costing.py`):
 - exige estado `costed`/`accounted` antes de generar;
 - exige al menos una línea con combustible y producto configurado.
 
-No se ejecutó contra un Odoo real en esta sesión (sólo
-`python -m compileall` y parseo de los XML) — pendiente de aplicar y
-verificar en `demo-sys`/`desarrollo` con datos reales.
+Se instaló y ejecutó contra Odoo 18 Enterprise en la base temporal aislada
+`TICKET24_VALID_20260912`: **4 casos, 0 fallos, 0 errores**. La validación
+real detectó y permitió corregir la referencia inválida
+`stock.location_production`; tras la corrección, la instalación y una
+actualización posterior del módulo pasaron satisfactoriamente. También
+pasaron `python -m compileall` y el parseo de los XML. No se desplegó en
+`demo-sys`/`desarrollo` ni se tocaron datos compartidos.
 
 ## Pendiente / requiere confirmación funcional
 
