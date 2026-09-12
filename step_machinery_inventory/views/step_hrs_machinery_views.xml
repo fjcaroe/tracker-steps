@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_step_hrs_machinery_form_inventory" model="ir.ui.view">
+        <field name="name">step.hrs.machinery.form.inventory</field>
+        <field name="model">step.hrs.machinery</field>
+        <field name="inherit_id" ref="step_machinery.view_step_hrs_machinery_form"/>
+        <field name="arch" type="xml">
+            <button name="action_conta" position="after">
+                <button name="action_generate_inventory_move" string="Generar movimiento de Inventario"
+                        type="object" class="oe_highlight"
+                        invisible="state not in ('costed', 'accounted')"/>
+            </button>
+            <div name="button_box" position="inside">
+                <button name="action_generate_inventory_move" type="object" class="oe_stat_button"
+                        icon="fa-truck" invisible="not inventory_picking_id">
+                    <field name="inventory_picking_id" widget="statinfo" string="Movimiento"/>
+                </button>
+            </div>
+        </field>
+    </record>
+
+</odoo>
