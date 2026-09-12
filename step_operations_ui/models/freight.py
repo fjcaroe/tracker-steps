@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class FreightRoute(models.Model):
@@ -102,3 +103,71 @@ class FreightTracking(models.Model):
     latitude = fields.Float(string="Latitud", digits=(10, 7))
     longitude = fields.Float(string="Longitud", digits=(10, 7))
     note = fields.Char(string="Observación")
+
+
+class FreightDispatchType(models.Model):
+    _name = "x_tipo_despacho"
+    _description = "Tipo de despacho"
+    _order = "x_name"
+
+    x_name = fields.Char(string="Tipo de despacho", required=True)
+    paga_flete = fields.Selection(
+        [("no", "No"), ("opcional", "Opcional"), ("si", "Sí")],
+        string="¿Paga flete?",
+        default="no",
+        required=True,
+    )
+    x_active = fields.Boolean(string="Activo", default=True)
+    company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
+
+
+class FreightPlan(models.Model):
+    _name = "x_planificacion_de_flete"
+    _description = "Planificación de flete"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _order = "x_studio_fecha desc, id desc"
+
+    x_name = fields.Char(string="Planificación", required=True, default="Nueva planificación", tracking=True)
+    x_studio_fecha = fields.Date(string="Fecha", default=fields.Date.context_today, tracking=True)
+    x_studio_fundo = fields.Many2one("step.fundo", string="Fundo", tracking=True)
+    x_studio_responsable = fields.Many2one("hr.employee", string="Responsable", tracking=True)
+    line_ids = fields.One2many("x_planificacion_de_flete_linea", "plan_id", string="Líneas de flete")
+    amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
+    currency_id = fields.Many2one(related="company_id.currency_id", store=True)
+    company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
+
+    @api.depends("line_ids.amount_total")
+    def _compute_amount_total(self):
+        for plan in self:
+            plan.amount_total = sum(plan.line_ids.mapped("amount_total"))
+
+
+class FreightPlanLine(models.Model):
+    _name = "x_planificacion_de_flete_linea"
+    _description = "Línea de planificación de flete"
+    _order = "id"
+
+    plan_id = fields.Many2one("x_planificacion_de_flete", string="Planificación", required=True, ondelete="cascade")
+    description = fields.Char(string="Descripción")
+    product_id = fields.Many2one(
+        "product.template", string="Producto", required=True, domain="[('is_flete', '=', True)]"
+    )
+    uom_id = fields.Many2one(related="product_id.uom_id", string="Unidad de flete", store=True)
+    quantity = fields.Float(string="Cantidad", default=1.0)
+    price = fields.Monetary(string="Precio")
+    amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
+    currency_id = fields.Many2one(related="plan_id.currency_id", store=True)
+
+    @api.depends("quantity", "price")
+    def _compute_amount_total(self):
+        for line in self:
+            line.amount_total = (line.quantity or 0.0) * (line.price or 0.0)
+
+    @api.constrains("product_id")
+    def _check_product_is_flete(self):
+        for line in self:
+            if line.product_id and not line.product_id.is_flete:
+                raise ValidationError(
+                    "El producto de la línea de flete debe estar marcado como "
+                    "'Es flete?' en el maestro de productos."
+                )
