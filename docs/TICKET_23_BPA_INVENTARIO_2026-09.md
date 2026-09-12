@@ -52,9 +52,10 @@ Puente nuevo (no se modificó `step_bpa_irrigation`), depende de
   si ya existe, el botón reabre el mismo movimiento en vez de duplicarlo.
 - **Botón `action_generate_inventory_move`**: visible en `status3`
   ("Costeado") y `Contabilizado`; exige al menos una línea de consumo;
-  crea una transferencia interna desde "BPA/Stock" (ubicación nueva) hacia
-  `Virtual Locations/Production` (consumo, ubicación estándar de Odoo, no
-  inventada), con `origin` = número de OT-BPA.
+  crea una transferencia interna desde "BPA/Stock" hacia
+  "BPA/Producción" (ubicación virtual propia con `usage=production`), con
+  `origin` = número de OT-BPA. Se usa una ubicación propia porque Odoo 18
+  crea sus ubicaciones de producción por empresa sin un XML ID estable.
 - El picking **no se auto-valida** (queda confirmado, no "Hecho"): el
   equipo de bodega lo valida como cualquier transferencia normal, lo que
   permite cancelarlo con las herramientas estándar de Inventario si el
@@ -75,9 +76,13 @@ Puente nuevo (no se modificó `step_bpa_irrigation`), depende de
 - exige estado `status3`/`Contabilizado` antes de generar;
 - exige al menos una línea de consumo de productos.
 
-No se ejecutó contra un Odoo real en esta sesión (sólo
-`python -m compileall` y parseo de los XML) — pendiente de aplicar y
-verificar en `demo-sys`/`desarrollo` con datos reales.
+Se instaló y ejecutó contra Odoo 18 Enterprise en la base temporal aislada
+`TICKET23_VALID_20260912`: **4 casos, 0 fallos, 0 errores**. La primera
+instalación detectó que `stock.location_production` no existe como XML ID en
+Odoo 18; se corrigió creando la ubicación virtual propia descrita arriba y
+se repitió la instalación completa con resultado satisfactorio. También
+pasaron `python -m compileall` y el parseo de los XML. No se desplegó en
+`demo-sys`/`desarrollo` ni se tocaron datos compartidos.
 
 ## Pendiente / requiere confirmación funcional
 
