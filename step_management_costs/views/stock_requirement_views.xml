@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_stock_requirement_list" model="ir.ui.view">
+        <field name="name">step.management.stock.requirement.list</field>
+        <field name="model">step.management.stock.requirement</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'computed'">
+                <field name="name"/>
+                <field name="season"/>
+                <field name="granularity"/>
+                <field name="line_count"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_stock_requirement_form" model="ir.ui.view">
+        <field name="name">step.management.stock.requirement.form</field>
+        <field name="model">step.management.stock.requirement</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_compute" type="object" string="Calcular"
+                            class="btn-primary"/>
+                    <button name="action_set_draft" type="object" string="Volver a borrador"
+                            invisible="state != 'computed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,computed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Necesidades de stock</span>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="season"/>
+                            <field name="date"/>
+                            <field name="granularity"/>
+                        </group>
+                        <group>
+                            <field name="include_budgets"/>
+                            <field name="include_programs"/>
+                            <field name="line_count"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="warehouse_id"/>
+                            <field name="availability_metric"/>
+                        </group>
+                        <group>
+                            <field name="computed_at" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="budget_ids" widget="many2many_tags"
+                               domain="[('company_id', '=', company_id), ('state', 'in', ('approved', 'closed'))]"
+                               invisible="not include_budgets"/>
+                        <field name="program_ids" widget="many2many_tags"
+                               domain="[('company_id', '=', company_id), ('state', '=', 'approved')]"
+                               invisible="not include_programs"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Consolida la demanda de insumos de la temporada desde presupuestos
+                        aprobados/cerrados y programas aprobados. Deje las fuentes vacías
+                        para tomar todas las de la temporada. Cada fuente aporta en su
+                        propia columna: la suma no se duplica.
+                    </div>
+                    <field name="line_ids" readonly="1">
+                        <list default_order="product_id, period_index, period_key, id">
+                            <field name="product_id"/>
+                            <field name="period_label"/>
+                            <field name="period_index" column_invisible="True"/>
+                            <field name="budget_quantity" sum="Presupuesto"/>
+                            <field name="program_quantity" sum="Programas"/>
+                            <field name="total_quantity" sum="Total"/>
+                            <field name="available_quantity" sum="Disponible"/>
+                            <field name="shortage_quantity" sum="Faltante" decoration-danger="shortage_quantity &gt; 0"/>
+                            <field name="committed_quantity" sum="Comprometido"/>
+                            <field name="net_to_buy" sum="Neto por comprar" decoration-danger="net_to_buy &gt; 0"/>
+                            <field name="committed_purchase_line_ids" widget="many2many_tags" optional="hide"/>
+                            <field name="uom_id"/>
+                        </list>
+                    </field>
+                    <field name="notes" placeholder="Supuestos de la consolidación…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_stock_requirement_search" model="ir.ui.view">
+        <field name="name">step.management.stock.requirement.search</field>
+        <field name="model">step.management.stock.requirement</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="season"/>
+                <filter string="Calculadas" name="computed" domain="[('state', '=', 'computed')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Temporada" name="season_g" context="{'group_by': 'season'}"/>
+                    <filter string="Granularidad" name="gran_g" context="{'group_by': 'granularity'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_stock_requirement" model="ir.actions.act_window">
+        <field name="name">Necesidades de stock</field>
+        <field name="res_model">step.management.stock.requirement</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_stock_requirement_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Consolide las necesidades de insumos por semana, mes o temporada.</p>
+            <p>Toma la demanda de los presupuestos y programas aprobados; concilia
+               con sus fuentes y no duplica.</p>
+        </field>
+    </record>
+</odoo>

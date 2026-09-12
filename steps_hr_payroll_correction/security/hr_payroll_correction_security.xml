@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_payroll_correction" model="res.groups">
+        <field name="name">Nómina: corrección de finiquitos</field>
+        <field name="category_id" ref="base.module_category_human_resources_payroll"/>
+        <field name="comment">Puede desbloquear liquidaciones confirmadas y eliminar
+asistencia validada para corregir la fecha real de término de un finiquito. No
+requiere el perfil de Administrador de sistema completo: es un permiso acotado a
+esta única herramienta, con su propio registro de auditoría.</field>
+    </record>
+
+    <!-- Quien administra Nóminas hoy (hr_payroll.group_hr_payroll_manager) parte
+         con el permiso: es la persona que ya cierra y paga liquidaciones. -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_payroll_correction'))]"/>
+    </record>
+    <record id="hr_payroll.group_hr_payroll_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_payroll_correction'))]"/>
+    </record>
+</odoo>

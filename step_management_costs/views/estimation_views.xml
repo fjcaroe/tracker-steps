@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============ Versión de estimación (maestro) ============ -->
+    <record id="view_estimation_version_list" model="ir.ui.view">
+        <field name="name">step.management.estimation.version.list</field>
+        <field name="model">step.management.estimation.version</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'closed'">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="season"/>
+                <field name="deadline_date"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_estimation_version_form" model="ir.ui.view">
+        <field name="name">step.management.estimation.version.form</field>
+        <field name="model">step.management.estimation.version</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_open" type="object" string="Abrir"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_close" type="object" string="Cerrar"
+                            invisible="state != 'open'"/>
+                    <button name="action_set_draft" type="object" string="Volver a borrador"
+                            invisible="state == 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,open,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Versión de estimación</span>
+                        <h1><field name="name" placeholder="Ej. Estimación oficial 2026/2027"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="season"/>
+                        </group>
+                        <group>
+                            <field name="deadline_date"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <field name="notes" placeholder="Reglas y alcance de esta versión…"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_estimation_version" model="ir.actions.act_window">
+        <field name="name">Versiones de estimación</field>
+        <field name="res_model">step.management.estimation.version</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ============ Documento de estimación ============ -->
+    <record id="view_estimation_list" model="ir.ui.view">
+        <field name="name">step.management.estimation.list</field>
+        <field name="model">step.management.estimation</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'validated'" decoration-muted="state == 'superseded'">
+                <field name="name"/>
+                <field name="version_id"/>
+                <field name="season"/>
+                <field name="species"/>
+                <field name="method"/>
+                <field name="total_kg" sum="Total kg"/>
+                <field name="revision"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_estimation_form" model="ir.ui.view">
+        <field name="name">step.management.estimation.form</field>
+        <field name="model">step.management.estimation</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_compute_lines" type="object"
+                            string="Calcular detalle" class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_validate" type="object"
+                            string="Validar" class="btn-primary"
+                            invisible="state != 'draft'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_new_revision" type="object"
+                            string="Nueva revisión"
+                            invisible="state != 'validated'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,validated"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Validada" bg_color="text-bg-success"
+                            invisible="state != 'validated'"/>
+                    <widget name="web_ribbon" title="Reemplazada" bg_color="text-bg-secondary"
+                            invisible="state != 'superseded'"/>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Estimación de cosecha</span>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="version_id"
+                                   options="{'no_create': True}"/>
+                            <field name="season"/>
+                            <field name="date"/>
+                            <field name="species"/>
+                            <field name="variety"/>
+                        </group>
+                        <group>
+                            <field name="unit_id" options="{'no_create': True}"/>
+                            <field name="method"/>
+                            <field name="default_yield_ue"
+                                   invisible="method == 'kilos'"/>
+                            <field name="revision"/>
+                            <field name="revision_of_id" invisible="not revision_of_id"/>
+                            <field name="superseded_by_id" invisible="not superseded_by_id"/>
+                        </group>
+                    </group>
+                    <group string="Curvas validadas">
+                        <field name="week_curve_id" options="{'no_create': True}"/>
+                        <field name="caliber_curve_id" options="{'no_create': True}"/>
+                        <field name="class_curve_id" options="{'no_create': True}"/>
+                    </group>
+                    <notebook>
+                        <page string="Centros de costo / cuarteles" name="centers">
+                            <field name="center_ids" widget="many2many_tags"
+                                   domain="[('company_id', '=', company_id), '|', ('hectares', '>', 0), ('plants', '>', 0)]"
+                                   readonly="state != 'draft'"/>
+                            <p class="text-muted">
+                                Use «Calcular detalle» para copiar hectáreas, plantas y
+                                datos del centro al detalle como snapshot reproducible.
+                            </p>
+                        </page>
+                        <page string="Detalle" name="lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="method" column_invisible="True"/>
+                                    <field name="center_id" readonly="1"/>
+                                    <field name="farm" optional="show"/>
+                                    <field name="plot" optional="show"/>
+                                    <field name="species" optional="hide"/>
+                                    <field name="variety" optional="hide"/>
+                                    <field name="hectares"/>
+                                    <field name="plants"/>
+                                    <field name="yield_ue"
+                                           column_invisible="parent.method == 'kilos'"/>
+                                    <field name="kg_factor"
+                                           column_invisible="parent.method == 'kilos'"/>
+                                    <field name="total_kg_input"
+                                           column_invisible="parent.method != 'kilos'"/>
+                                    <field name="total_ue" readonly="1"/>
+                                    <field name="total_kg" readonly="1" sum="Total kg"/>
+                                    <field name="kg_per_ha" readonly="1"/>
+                                    <field name="kg_per_plant" readonly="1"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="total_hectares"/>
+                                <field name="total_plants"/>
+                                <field name="total_ue"/>
+                                <field name="total_kg"/>
+                                <field name="kg_per_ha"/>
+                                <field name="kg_per_plant"/>
+                            </group>
+                        </page>
+                        <page string="Distribución normalizada" name="distribution"
+                              invisible="not distribution_ids">
+                            <field name="distribution_ids" readonly="1">
+                                <list default_order="axis, sequence, id">
+                                    <field name="axis" widget="badge"/>
+                                    <field name="dimension_name"/>
+                                    <field name="week_number" optional="hide"/>
+                                    <field name="percentage" sum="%"/>
+                                    <field name="kg" sum="Total kg"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Validación" name="validation"
+                              invisible="state == 'draft'">
+                            <group>
+                                <field name="validated_by_id"/>
+                                <field name="validated_at"/>
+                                <field name="validation_hash"/>
+                                <field name="reopen_reason" invisible="not reopen_reason"/>
+                            </group>
+                            <field name="validation_snapshot" readonly="1"/>
+                        </page>
+                    </notebook>
+                    <field name="notes" placeholder="Supuestos agronómicos…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_estimation_search" model="ir.ui.view">
+        <field name="name">step.management.estimation.search</field>
+        <field name="model">step.management.estimation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="version_id"/>
+                <field name="season"/>
+                <field name="species"/>
+                <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Validadas" name="validated" domain="[('state', '=', 'validated')]"/>
+                <filter string="Reemplazadas" name="superseded" domain="[('state', '=', 'superseded')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Versión" name="group_version" context="{'group_by': 'version_id'}"/>
+                    <filter string="Temporada" name="group_season" context="{'group_by': 'season'}"/>
+                    <filter string="Método" name="group_method" context="{'group_by': 'method'}"/>
+                    <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_estimation" model="ir.actions.act_window">
+        <field name="name">Estimaciones</field>
+        <field name="res_model">step.management.estimation</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_estimation_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cree la estimación de cosecha por centro/cuartel.</p>
+            <p>Elija método (plantas, hectáreas o kilos) y tres curvas validadas
+               (semana, calibre y clase). Al validar se generan las distribuciones
+               normalizadas que concilian con el total de kilos.</p>
+        </field>
+    </record>
+</odoo>

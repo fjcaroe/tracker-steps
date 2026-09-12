@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_production_order" model="ir.actions.report">
+        <field name="name">Orden de Producción</field>
+        <field name="model">step.management.production.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_management_costs.report_production_order</field>
+        <field name="report_file">step_management_costs.report_production_order</field>
+        <field name="print_report_name">'ORDEN_PRODUCCION_%s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="model_step_management_production_order"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_production_order_document">
+        <t t-call="web.basic_layout">
+            <t t-set="payload" t-value="doc._report_payload()"/>
+            <div class="page">
+                <h2>
+                    ORDEN DE PRODUCCIÓN W<t t-esc="'%02d' % payload['iso_week']"/>
+                </h2>
+                <div class="row mt16">
+                    <div class="col-6">
+                        <p>
+                            <strong>Temporada:</strong> <span t-esc="payload['season']"/><br/>
+                            <strong>Semana:</strong>
+                            <span t-esc="payload['monday']"/> a <span t-esc="payload['sunday']"/>
+                            (año ISO <span t-esc="payload['iso_year']"/>, semana <span t-esc="payload['iso_week']"/>)<br/>
+                            <strong>Folio:</strong> <span t-esc="payload['folio']"/>
+                            (revisión <span t-esc="payload['revision']"/>)<br/>
+                            <strong>Fecha de emisión:</strong>
+                            <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                        </p>
+                    </div>
+                    <div class="col-6">
+                        <p>
+                            <strong>Empresa:</strong> <span t-esc="payload['company']"/><br/>
+                            <strong>Fundo:</strong> <span t-esc="payload['farm'] or '—'"/><br/>
+                            <strong>Especie:</strong> <span t-esc="payload['species'] or '—'"/><br/>
+                            <strong>Centro de costo:</strong> <span t-esc="payload['center']"/>
+                            <t t-if="payload['plot']"> (cuartel: <span t-esc="payload['plot']"/>)</t><br/>
+                            <strong>Creado por:</strong> <span t-esc="payload['creator'] or '—'"/><br/>
+                            <strong>Autorizado por:</strong> <span t-esc="payload['authorizer'] or '—'"/>
+                        </p>
+                    </div>
+                </div>
+                <table class="table table-sm o_main_table mt16">
+                    <thead>
+                        <tr>
+                            <th>Origen</th>
+                            <th>Actividad</th>
+                            <th>Grupo presupuesto</th>
+                            <th>Producto / labor</th>
+                            <th>Descripción</th>
+                            <th>UdM</th>
+                            <th class="text-end">Cantidad semanal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="payload['lines']" t-as="line">
+                            <td><span t-esc="line['source_type']"/></td>
+                            <td><span t-esc="line['activity']"/></td>
+                            <td><span t-esc="line['budget_group']"/></td>
+                            <td><span t-esc="line['product']"/></td>
+                            <td><span t-esc="line['description']"/></td>
+                            <td><span t-esc="line['uom']"/></td>
+                            <td class="text-end"><span t-esc="line['quantity']"/></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" class="text-end"><strong>Total líneas</strong></td>
+                            <td class="text-end"><strong t-esc="len(payload['lines'])"/></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <p t-if="payload['notes']">
+                    <strong>Instrucciones / observaciones:</strong><br/>
+                    <span t-esc="payload['notes']"/>
+                </p>
+                <p class="text-muted mt16">
+                    Identificación de usuario / aprobador:
+                    <span t-esc="payload['creator'] or '—'"/> / <span t-esc="payload['authorizer'] or '—'"/>.
+                </p>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_production_order">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="step_management_costs.report_production_order_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -398,14 +398,28 @@ class PreviredExtractor(models.AbstractModel):
 
         row = record.principal
         calendar = payslip.contract_id.resource_calendar_id
-        weekly = getattr(calendar, "hours_per_week", 0.0) or getattr(
-            calendar, "full_time_required_hours", 0.0) or 0.0
-        # La configuración explícita del horario es la fuente oficial. La
-        # heurística queda sólo como respaldo para datos históricos aún no
-        # migrados.
-        workday_type = getattr(calendar, "previred_workday_type", False)
+        # «Horas de la semana» = campo «Tiempo completo de la empresa» del
+        # horario (`full_time_required_hours`). Previred valida el sueldo
+        # mínimo del campo 27 contra el tipo de jornada del campo 93: una
+        # jornada semanal **inferior a 40 h** es parcial (tipo 2) y admite
+        # una renta imponible bajo el mínimo legal; 40 h o más es completa
+        # (tipo 1) y exige el mínimo. Ticket EMCA agosto 2026, RUT
+        # 12588103-3: calendario «Jornada parcial 24 horas» (24 h en «Tiempo
+        # completo de la empresa»), rechazado porque salía como tipo 1.
+        weekly_values = [
+            float(value) for value in (
+                getattr(calendar, "full_time_required_hours", 0.0),
+                getattr(calendar, "hours_per_week", 0.0),
+            ) if value
+        ]
+        # Las horas contractuales prevalecen cuando cualquiera de las dos
+        # métricas del horario prueba que la jornada es parcial. En SyS el
+        # calendario real de Karen tiene 24 h efectivas, pero conserva 40 en
+        # «Tiempo completo de la empresa» y una marca histórica tipo 1.
+        configured_type = getattr(calendar, "previred_workday_type", False)
         workday_type = (
-            workday_type or ("2" if weekly and weekly <= 30 else "1")
+            "2" if any(weekly < 40 for weekly in weekly_values)
+            else (configured_type or "1")
         )
         # Previred exige que el campo 93 de cada línea anexa 01/02/03 sea
         # idéntico al de la línea principal 00 del trabajador. Algunos
@@ -438,11 +452,27 @@ class PreviredExtractor(models.AbstractModel):
             str(cost_center_value).strip())
         row[previred.F_COST_CENTER - 1] = cost_center_value[:20]
 
+        # Ticket #19 (Sociedad de Bienestar, período 202608): cuando el
+        # empleador no está adherido a una CCAF y paga las cargas familiares a
+        # través del IPS/ex-INP, la asignación familiar se informa en el campo
+        # 73 y no en el 22. Es un traslado entre columnas de un valor ya
+        # conciliado por el motor y existe en los perfiles v84 y v98, por lo
+        # que se hace antes del corte por versión.
+        self._relocate_family_allowance_to_ips(record, dataset)
+
         # Los tres campos anteriores existen tanto en el perfil histórico
         # v84 como en v98. Los campos de la reforma previsional que siguen sí
         # pertenecen exclusivamente al formato v98.
         if dataset.spec_version != "98":
             return
+
+        # Ticket #18, revisión 2 (Servicio de Bienestar / Valentina Parada):
+        # en una licencia médica la línea adicional 01 no repite días
+        # trabajados, cotización ISL ni RIMA de la principal. Se normaliza
+        # después de `_set_worked_days`, que por regla general propaga el
+        # campo 13 al bloque completo.
+        self._normalize_medical_leave_annexes(record, payslip, dataset)
+        self._normalize_mutual_contribution(record, payslip, dataset)
 
         afp_code = str(row[previred.F_AFP_CODE - 1] or "").strip()
         regime = str(row[previred.F_PENSION_REGIME - 1] or "").strip().upper()
@@ -478,6 +508,322 @@ class PreviredExtractor(models.AbstractModel):
 
         row[previred.F_PROTECTED_RETURN - 1] = contribution(
             previred.protected_return_rate(dataset.period))
+
+        self._set_medical_leave_bases(record, payslip, dataset)
+
+    def _normalize_mutual_contribution(self, record, payslip, dataset):
+        """Concilia el aporte Mutual con la renta imponible del campo 97.
+
+        La cotización de accidentes se calcula sobre la renta imponible Mutual
+        ya emitida por el motor, sin agregar RIMA: campo 98 = campo 97 por la
+        tasa base más la tasa adicional configuradas en la empresa.
+        """
+        if dataset.spec_version != "98":
+            return
+        row = record.principal
+        if len(row) != previred.FIELD_COUNT:
+            return
+        mutual_code = str(row[previred.F_MUTUAL_CODE - 1] or "").strip()
+        if mutual_code in ("", "0", "00"):
+            return
+        company = payslip.company_id
+        if "rate_base" not in company._fields:
+            return
+        taxable_raw = str(row[previred.F_MUTUAL_TAXABLE - 1] or "0").strip()
+        if not taxable_raw.lstrip("-").isdigit():
+            return
+        taxable = int(taxable_raw)
+        rate = Decimal(str(company.rate_base or 0))
+        if "rate_additional" in company._fields:
+            rate += Decimal(str(company.rate_additional or 0))
+        expected = int((Decimal(taxable) * rate / 100).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP))
+        old = str(row[previred.F_MUTUAL_CONTRIBUTION - 1] or "0").strip()
+        current = int(old) if old.lstrip("-").isdigit() else 0
+        if current == expected:
+            return
+        row[previred.F_MUTUAL_CONTRIBUTION - 1] = str(expected)
+        dataset.issues.append(previred.Issue(
+            previred.SEVERITY_WARNING, "mutual_contribution_normalized",
+            _("RUT %(rut)s-%(dv)s: cotización Mutual (campo 98) corregida "
+              "desde %(old)s a %(new)s = renta imponible Mutual %(taxable)s "
+              "× tasa empresa %(rate)s%%. MUEVE MONTOS DECLARADOS: validar "
+              "antes de SyS.", rut=record.rut, dv=record.dv, old=current,
+              new=expected, taxable=taxable, rate=rate),
+            record.department_label))
+
+    # -- asignación familiar por IPS/ex-INP ------------------------------
+
+    def _relocate_family_allowance_to_ips(self, record, dataset):
+        """Traslada la Asignación Familiar del campo 22 al campo 73.
+
+        Regla funcional (ticket #19, Sociedad de Bienestar Integral y
+        Mantenimiento de la Salud Ltda., período 202608): cuando la empresa
+        **no** está adherida a una Caja de Compensación (CCAF) para pagar la
+        asignación familiar sino que cotiza en el IPS/ex-INP, el monto de la
+        carga familiar no se informa en el campo 22 «Asignación Familiar»
+        sino en el campo 73 «Descuento por Cargas Familiares IPS».
+
+        Es un **traslado entre columnas** del valor que ya concilió el motor
+        de nómina: no se recalcula ni se inventa un monto. La condición es de
+        la empresa, no del régimen previsional individual del trabajador: se
+        aplica a toda línea con asignación familiar y sin código de CCAF en el
+        campo 83. Un empleador adherido a CCAF conserva el campo 22 intacto.
+        """
+        moved = []
+        for row in record.rows:
+            if len(row) != previred.FIELD_COUNT:
+                continue
+            ccaf_code = str(row[previred.F_CCAF_CODE - 1] or "").strip()
+            if ccaf_code and ccaf_code not in ("0", "00"):
+                continue
+            raw = str(row[previred.F_FAMILY_ALLOWANCE - 1] or "").strip()
+            amount = int(raw) if raw.lstrip("-").isdigit() else 0
+            if amount <= 0:
+                continue
+            existing = str(
+                row[previred.F_FAMILY_ALLOWANCE_IPS - 1] or "").strip()
+            existing_amount = (
+                int(existing) if existing.lstrip("-").isdigit() else 0)
+            row[previred.F_FAMILY_ALLOWANCE_IPS - 1] = str(
+                existing_amount + amount)
+            row[previred.F_FAMILY_ALLOWANCE - 1] = "0"
+            moved.append("%s → %s: %s" % (
+                previred.field_label(previred.F_FAMILY_ALLOWANCE),
+                previred.field_label(previred.F_FAMILY_ALLOWANCE_IPS),
+                amount))
+
+        if moved:
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING,
+                "family_allowance_moved_to_ips",
+                _("RUT %(rut)s-%(dv)s: la asignación familiar se informa por "
+                  "el IPS/ex-INP porque el empleador no está adherido a una "
+                  "CCAF. %(detail)s.", rut=record.rut, dv=record.dv,
+                  detail="; ".join(moved)),
+                record.department_label))
+
+    # -- licencia médica: base imponible + RIMA --------------------------
+
+    def _normalize_medical_leave_annexes(self, record, payslip, dataset):
+        """Deja en cero 13, 71 y 92 en anexas 01 de licencia médica.
+
+        PreviRed usa esos valores sólo en la línea principal 00. La revisión
+        2 del ticket #18 confirmó que copiarlos en la línea adicional 01
+        produce un archivo incorrecto, aunque el resto de la anexa esté bien.
+        """
+        has_medical_leave = any(
+            (wd.number_of_days or 0) > 0
+            and self._is_medical_leave_entry(wd.work_entry_type_id)
+            for wd in payslip.worked_days_line_ids)
+        if not has_medical_leave:
+            return
+
+        changes = []
+        positions = (
+            previred.F_WORKED_DAYS,
+            previred.F_ISL_ACCIDENT,
+            previred.F_RIMA,
+        )
+        for annex in record.annexes:
+            if len(annex) != previred.FIELD_COUNT:
+                continue
+            line_type = previred.normalize_line_type(
+                annex[previred.F_LINE_TYPE - 1])
+            if line_type != previred.LINE_ADDITIONAL:
+                continue
+            for position in positions:
+                old = str(annex[position - 1] or "").strip()
+                if old not in ("", "0"):
+                    changes.append("%s: %s → 0" % (
+                        previred.field_label(position), old))
+                annex[position - 1] = "0"
+
+        if changes:
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING,
+                "medical_leave_annex_zeroed",
+                _("RUT %(rut)s-%(dv)s: línea adicional 01 de licencia "
+                  "médica normalizada según revisión 2 del ticket #18. "
+                  "%(detail)s.", rut=record.rut, dv=record.dv,
+                  detail="; ".join(changes)),
+                record.department_label))
+
+    def _set_medical_leave_bases(self, record, payslip, dataset):
+        """Rebasa las cotizaciones de cargo del empleador sobre imponible + RIMA.
+
+        Regla funcional (tickets S&S 2026-09, Somed / Carolina Medel y
+        Servicio de Bienestar / Valentina Parada; valores confirmados por el
+        cliente en las respuestas del 2026-09-08):
+
+        * En licencia médica la base de las cotizaciones de cargo del
+          empleador es **Renta Imponible AFP del mes (campo 27) + RIMA
+          (campo 92)**. Sobre esa base se recalculan con la tasa estatutaria:
+          SIS (29), Acc. Trabajo ISL (71, sólo si la línea usa ISL y no
+          mutual), Expectativa de Vida (94), Rentabilidad Protegida (95),
+          Renta Imponible Seguro Cesantía (100) y Aporte Empleador Seguro
+          Cesantía (102).
+        * **No** se tocan la cotización adicional AFP del campo 28 (va sólo
+          sobre el imponible del mes) ni la mutualidad (campos 97 / 98), que
+          no suma RIMA (usuario, 2026-09-08, conflicto tickets #13 vs #15).
+        * Si el motor ya informó la RIMA en el campo 92, se usa ese valor. Si
+          no, se calcula en la extracción: `(sueldo base del contrato +
+          gratificación legal) / 30 × días de licencia médica del mes`, con
+          `gratificación = min(25 % del sueldo base, 4,75 × IMM ÷ 12)`.
+          Verificado 2026-09 contra las liquidaciones reales de SyS: Carolina
+          Medel (Somed, `986.646 + 219.115` tope IMM = `1.205.761`, 30 días) y
+          Valentina Parada (Serv. Bienestar, `(420.000 + 105.000) / 30 × 20 =
+          350.000`). Si falta el IMM del período o el sueldo base, no
+          recalcula y deja un aviso.
+
+        MUEVE MONTOS DECLARADOS A PREVIRED. Cada override deja un hallazgo
+        auditable; requiere validación funcional contra datos reales antes de
+        aplicarse en SyS.
+        """
+        if dataset.spec_version != "98":
+            return
+        row = record.principal
+        if len(row) != previred.FIELD_COUNT:
+            return
+
+        regime = str(row[previred.F_PENSION_REGIME - 1] or "").strip().upper()
+        worker_type = str(row[previred.F_WORKER_TYPE - 1] or "").strip()
+        afp_code = str(row[previred.F_AFP_CODE - 1] or "").strip()
+        if (regime != "AFP" or worker_type != "0" or not afp_code
+                or afp_code in ("0", "00")):
+            return
+
+        def _int(position):
+            raw = str(row[position - 1] or "0").strip()
+            return int(raw) if raw.lstrip("-").isdigit() else 0
+
+        worked = str(row[previred.F_WORKED_DAYS - 1] or "").strip()
+        full_month_leave = worked.isdigit() and int(worked) == 0
+        rima = _int(previred.F_RIMA)
+        rima_source = "motor (campo 92)"
+        if rima <= 0:
+            rima, why = self._compute_medical_leave_rima(payslip, dataset)
+            if rima > 0:
+                # La RIMA pertenece a la principal 00. En particular, la
+                # línea adicional 01 debe llevar campo 92 = 0 (ticket #18,
+                # revisión 2).
+                row[previred.F_RIMA - 1] = str(rima)
+                rima_source = "calculada en la extracción — %s" % why
+            else:
+                leave_evident = (
+                    full_month_leave
+                    or "sin línea de licencia médica" not in why)
+                if leave_evident:
+                    dataset.issues.append(previred.Issue(
+                        previred.SEVERITY_WARNING, "medical_leave_rima_missing",
+                        _("RUT %(rut)s-%(dv)s: licencia médica y no hay RIMA "
+                          "utilizable (el motor no informó el campo 92; "
+                          "%(why)s). Los campos 29, 71, 94, 95, 100 y 102 no "
+                          "se recalcularon.",
+                          rut=record.rut, dv=record.dv, why=why),
+                        record.department_label))
+                return
+
+        taxable = _int(previred.F_AFP_TAXABLE)
+        base = taxable + rima
+        fixed_term = bool(getattr(payslip.contract_id, "date_end", False))
+
+        def _contribution(rate):
+            return str(int((Decimal(base) * Decimal(str(rate)) / 100)
+                           .quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
+
+        changes = []
+
+        def _set(position, value):
+            value = str(value)
+            old = str(row[position - 1] or "").strip()
+            if old != value:
+                changes.append("%s: %s → %s" % (
+                    previred.field_label(position), old or "0", value))
+            row[position - 1] = value
+
+        _set(previred.F_SIS_CONTRIBUTION,
+             _contribution(previred.sis_rate(dataset.period)))
+        _set(previred.F_LIFE_EXPECTANCY,
+             _contribution(previred.life_expectancy_rate(dataset.period)))
+        _set(previred.F_PROTECTED_RETURN,
+             _contribution(previred.protected_return_rate(dataset.period)))
+        _set(previred.F_UNEMPLOYMENT_TAXABLE, base)
+        _set(previred.F_UNEMPLOYMENT_EMPLOYER,
+             _contribution(previred.unemployment_employer_rate(
+                 dataset.period, fixed_term)))
+
+        # Cuando el empleador cotiza en el ISL (no en una mutualidad), el
+        # accidente del trabajo va en el campo 71 sobre imponible + RIMA, y
+        # la mutualidad (97/98) no aplica. El motor a veces deja el campo 71
+        # en 0 en licencia de mes completo (caso Somed / Carolina Medel), así
+        # que se recalcula siempre que el empleador sea ISL.
+        mutual_code = str(row[previred.F_MUTUAL_CODE - 1] or "").strip()
+        uses_mutual = mutual_code not in ("", "0", "00")
+        if not uses_mutual:
+            _set(previred.F_ISL_ACCIDENT,
+                 _contribution(previred.isl_accident_rate(dataset.period)))
+            if _int(previred.F_MUTUAL_TAXABLE) or _int(
+                    previred.F_MUTUAL_CONTRIBUTION):
+                _set(previred.F_MUTUAL_TAXABLE, 0)
+                _set(previred.F_MUTUAL_CONTRIBUTION, 0)
+
+        if changes:
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING, "medical_leave_bases_rebased",
+                _("RUT %(rut)s-%(dv)s: licencia médica; cotizaciones de cargo "
+                  "del empleador recalculadas sobre imponible %(taxable)s + "
+                  "RIMA %(rima)s [%(origen)s] = %(base)s. %(detail)s. MUEVE "
+                  "MONTOS DECLARADOS: validar antes de SyS.",
+                  rut=record.rut, dv=record.dv, taxable=taxable, rima=rima,
+                  origen=rima_source, base=base, detail="; ".join(changes)),
+                record.department_label))
+
+    #: Tipos de entrada de trabajo que son licencia médica (tabla real de
+    #: SyS: `LIC` = «Licencia Médica», `ACCTR` = «Licencia accidente trabajo»).
+    MEDICAL_LEAVE_ENTRY_CODES = ("LIC", "ACCTR")
+
+    def _is_medical_leave_entry(self, entry_type):
+        code = str(getattr(entry_type, "code", "") or "").strip().upper()
+        if code in self.MEDICAL_LEAVE_ENTRY_CODES:
+            return True
+        name = str(getattr(entry_type, "name", "") or "").strip().lower()
+        return bool(getattr(entry_type, "is_leave", False)) and (
+            "licencia" in name)
+
+    def _compute_medical_leave_rima(self, payslip, dataset):
+        """RIMA cuando el motor no la informó en el campo 92.
+
+        Devuelve `(monto, detalle)`; `monto = 0` con el motivo si no se puede
+        calcular (falta el IMM del período o el sueldo base del contrato, o la
+        liquidación no tiene línea de licencia médica).
+
+        Fórmula (verificada contra liquidaciones reales de SyS, agosto 2026):
+        `(sueldo base contrato + gratificación) / 30 × días de licencia médica
+        del mes`, con `gratificación = min(25 % del sueldo base,
+        4,75 × IMM ÷ 12)`.
+        """
+        leave_days = sum(
+            wd.number_of_days or 0.0
+            for wd in payslip.worked_days_line_ids
+            if self._is_medical_leave_entry(wd.work_entry_type_id))
+        if leave_days <= 0:
+            return 0, "sin línea de licencia médica en la liquidación"
+        leave_days = min(Decimal(str(leave_days)), Decimal("30"))
+        imm = previred.minimum_wage(dataset.period)
+        if not imm:
+            return 0, ("el IMM del período %s no está en "
+                       "previred.minimum_wage" % dataset.period)
+        wage = Decimal(str(getattr(payslip.contract_id, "wage", 0) or 0))
+        if wage <= 0:
+            return 0, "el contrato no tiene sueldo base"
+        gratification = min(wage * Decimal("0.25"),
+                            Decimal("4.75") * Decimal(imm) / 12)
+        rima = int(((wage + gratification) / 30 * leave_days).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP))
+        return rima, (
+            "(%s sueldo base + %s gratificación) / 30 × %s días de licencia"
+            % (int(wage), int(gratification), int(leave_days)))
 
     # -- campo 13 «Días Trabajados» ---------------------------------------
 
@@ -519,8 +865,8 @@ class PreviredExtractor(models.AbstractModel):
           «30 − ausencias»): se informa un error preciso que identifica la
           liquidación y las líneas conflictivas.
         * El valor resultante se escribe en **todas** las filas del registro
-          (principal y anexas): Previred exige el campo 13 en cada línea y
-          las anexas son del mismo trabajador y período.
+          (principal y anexas), salvo la línea adicional 01 de una licencia
+          médica: la revisión 2 del ticket #18 exige allí campo 13 = 0.
         """
         worked_days_lines = payslip.worked_days_line_ids
         attendance = worked_days_lines.filtered(

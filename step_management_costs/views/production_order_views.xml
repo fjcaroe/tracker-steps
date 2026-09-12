@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_production_order_list" model="ir.ui.view">
+        <field name="name">step.management.production.order.list</field>
+        <field name="model">step.management.production.order</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'authorized'" decoration-muted="state in ('superseded', 'cancelled')">
+                <field name="name"/>
+                <field name="season"/>
+                <field name="iso_year"/>
+                <field name="iso_week"/>
+                <field name="center_id"/>
+                <field name="species"/>
+                <field name="line_count"/>
+                <field name="revision"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_production_order_form" model="ir.ui.view">
+        <field name="name">step.management.production.order.form</field>
+        <field name="model">step.management.production.order</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_generate_preview" type="object"
+                            string="Generar líneas" class="btn-secondary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_authorize" type="object" string="Autorizar"
+                            class="btn-primary" invisible="state != 'draft'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_new_revision" type="object" string="Nueva revisión"
+                            invisible="state != 'authorized'"
+                            groups="step_management_costs.group_management_approver"/>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state != 'draft'"/>
+                    <button name="action_set_draft" type="object" string="Restablecer a borrador"
+                            invisible="state != 'cancelled'"/>
+                    <button name="action_send_report" type="object" string="Enviar"
+                            invisible="state not in ('authorized', 'superseded')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,authorized"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Autorizada" bg_color="text-bg-success"
+                            invisible="state != 'authorized'"/>
+                    <widget name="web_ribbon" title="Reemplazada" bg_color="text-bg-secondary"
+                            invisible="state != 'superseded'"/>
+                    <div class="oe_title">
+                        <span class="text-uppercase text-muted small fw-bold">Orden de Producción</span>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="season" readonly="state != 'draft'"/>
+                            <field name="iso_year" readonly="state != 'draft'"/>
+                            <field name="iso_week" readonly="state != 'draft'"/>
+                            <field name="monday" invisible="not monday"/>
+                            <field name="sunday" invisible="not sunday"/>
+                        </group>
+                        <group>
+                            <field name="center_id" readonly="state != 'draft'"
+                                   domain="[('company_id', '=', company_id)]"/>
+                            <field name="species" readonly="state != 'draft'"/>
+                            <field name="line_count"/>
+                            <field name="revision"/>
+                            <field name="revision_of_id" invisible="not revision_of_id"/>
+                            <field name="superseded_by_id" invisible="not superseded_by_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Líneas" name="lines">
+                            <field name="line_ids" readonly="1">
+                                <list default_order="source_type, id">
+                                    <field name="source_type" widget="badge"/>
+                                    <field name="description"/>
+                                    <field name="activity"/>
+                                    <field name="budget_group_id" optional="show"/>
+                                    <field name="product_id"/>
+                                    <field name="uom_id"/>
+                                    <field name="quantity" sum="Cantidad"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Autorización" name="authorization" invisible="state == 'draft'">
+                            <group>
+                                <field name="authorized_by_id"/>
+                                <field name="authorized_at"/>
+                                <field name="approval_hash"/>
+                                <field name="reopen_reason" invisible="not reopen_reason"/>
+                            </group>
+                            <field name="approval_snapshot" readonly="1"/>
+                        </page>
+                        <page string="Destinatarios / envío" name="recipients">
+                            <group>
+                                <field name="recipient_ids" widget="many2many_tags"/>
+                                <field name="send_state" widget="badge"/>
+                                <field name="send_requested_by_id" invisible="not send_requested_by_id"/>
+                                <field name="send_requested_at" invisible="not send_requested_at"/>
+                            </group>
+                        </page>
+                    </notebook>
+                    <field name="notes" placeholder="Instrucciones / observaciones…"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_production_order_search" model="ir.ui.view">
+        <field name="name">step.management.production.order.search</field>
+        <field name="model">step.management.production.order</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="season"/>
+                <field name="center_id"/>
+                <field name="species"/>
+                <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Autorizadas" name="authorized" domain="[('state', '=', 'authorized')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Temporada" name="season_g" context="{'group_by': 'season'}"/>
+                    <filter string="Centro de costo" name="center_g" context="{'group_by': 'center_id'}"/>
+                    <filter string="Semana ISO" name="week_g" context="{'group_by': 'iso_week'}"/>
+                    <filter string="Estado" name="state_g" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_production_order" model="ir.actions.act_window">
+        <field name="name">Orden de Producción</field>
+        <field name="res_model">step.management.production.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_production_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Genere la Orden de Producción semanal de un centro de costo.</p>
+            <p>Consolida tareas planificadas y aplicaciones fito/ferti aprobadas de la misma semana ISO; autorizarla congela un snapshot inmutable.</p>
+        </field>
+    </record>
+</odoo>

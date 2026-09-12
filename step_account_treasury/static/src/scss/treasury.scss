@@ -22,3 +22,108 @@
     background: #fdf1f1;
     color: #8a2020;
 }
+
+.o_steps_treasury_dashboard {
+    --treasury-green: #123c33;
+    --treasury-green-2: #2f8068;
+    --treasury-lime: #d8ff62;
+    --treasury-orange: #e2633f;
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 0;
+    padding: 22px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    color: #173029;
+    background: #f3f6f2;
+}
+
+.o_treasury_hero {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding: 25px 29px; border-radius: 22px; color: #fff;
+    background: radial-gradient(circle at 84% 12%, rgba(216,255,98,.23), transparent 27%), linear-gradient(120deg,#103d33,#1d6554 70%,#2f8068);
+    box-shadow: 0 16px 40px rgba(16,63,53,.18);
+    span { color: var(--treasury-lime); font-size: 10px; font-weight: 850; letter-spacing: .12em; }
+    h1 { margin: 3px 0 5px; color: #fff; font-size: 31px; font-weight: 850; }
+    p { margin: 0; color: rgba(255,255,255,.78); }
+}
+.o_treasury_hero_actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.o_treasury_loading,.o_treasury_empty { padding: 42px; color: #71817c; text-align: center; }
+.o_treasury_empty_state { margin-top: 16px; padding: 64px 20px; border: 1px dashed #b9cdc5; border-radius: 18px; text-align: center; background: #fff;
+    >i { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 14px; border-radius: 17px; color: var(--treasury-green); background: var(--treasury-lime); font-size: 25px; }
+    h2 { color: var(--treasury-green); font-weight: 850; } p { color: #71817c; }
+}
+.o_treasury_current_header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding: 14px 18px; border: 1px solid #dce5df; border-radius: 15px; background: #fff;
+    span { color: var(--treasury-green-2); font-size: 9px; font-weight: 850; letter-spacing: .11em; }
+    h2 { margin: 2px 0; color: var(--treasury-green); font-size: 18px; font-weight: 850; }
+    small { color: #71817c; }
+}
+.o_treasury_state { padding: 6px 11px; border: 0; border-radius: 99px; color: #315e4f; background: #e7f1ec; font-size: 11px; font-weight: 850;
+    &.is-approved { color: #166149; background: #e1f5eb; }
+    &.is-in_progress { color: #805b0c; background: #fff1c7; }
+    &.is-cancelled { color: #8a2020; background: #fbe5e5; }
+}
+.o_treasury_kpis { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; margin: 15px 0;
+    >article,>button { min-width: 0; padding: 15px 16px; border: 1px solid #dce5df; border-radius: 15px; text-align: left; background: #fff; box-shadow: 0 5px 18px rgba(12,45,36,.04); }
+    >button { transition: transform .15s ease,box-shadow .15s ease; &:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(12,45,36,.09); } }
+    span { display: block; overflow: hidden; color: #6d7d77; font-size: 10px; font-weight: 800; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    strong { display: block; margin: 5px 0 4px; overflow: hidden; color: var(--treasury-green); font-size: 20px; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+    small { color: #73827d; font-size: 10px; }
+    .is-positive strong { color: #20745b; } .is-outflow strong { color: #a95b25; }
+    .is-danger { border-color: #efc4c4; background: #fff7f7; strong { color: #a52525; } }
+}
+.o_treasury_dashboard_grid { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(280px,.5fr); gap: 15px; }
+.o_treasury_panel { min-width: 0; overflow: hidden; border: 1px solid #dce5df; border-radius: 18px; background: #fff;
+    >header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 19px; border-bottom: 1px solid #e9eeeb; }
+    >header span { color: var(--treasury-orange); font-size: 9px; font-weight: 850; letter-spacing: .12em; }
+    >header h2 { margin: 3px 0 0; color: var(--treasury-green); font-size: 17px; font-weight: 850; }
+    .btn-link { color: var(--treasury-green-2); text-decoration: none; }
+}
+.o_treasury_chart { padding: 15px 18px 12px;
+    svg { width: 100%; height: 235px; overflow: visible; }
+    line { stroke: #dce5df; stroke-width: .55; }
+    polyline { fill: none; stroke: var(--treasury-green-2); stroke-width: 2.2; vector-effect: non-scaling-stroke; &.is-danger { stroke: #c54141; } }
+    circle { fill: var(--treasury-lime); stroke: var(--treasury-green); stroke-width: .7; vector-effect: non-scaling-stroke; }
+}
+.o_treasury_chart_labels { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; color: #71817c; font-size: 9px; font-weight: 750; text-align: center; }
+.o_treasury_attention { >button { display: grid; grid-template-columns: 39px 1fr; gap: 11px; align-items: center; width: 100%; padding: 14px 18px; border: 0; border-top: 1px solid #edf1ee; text-align: left; background: #fff; &:hover { background:#f8faf8; } }
+    >button>i { display:grid; place-items:center; width:38px; height:38px; border-radius:11px; color:var(--treasury-green); background:var(--treasury-lime); }
+    >button span { display:flex; flex-direction:column; } >button small { margin-top:2px; color:#71817c; font-size:10px; }
+}
+.o_treasury_notice { display:flex; gap:10px; margin:14px; padding:13px; border-radius:12px; color:#315e4f; background:#edf6f1;
+    >i { font-size:20px; } span { display:flex; flex-direction:column; } small { margin-top:3px; color:#6f7e79; font-size:10px; }
+    &.is-danger { color:#8a2020; background:#fff0f0; }
+}
+.o_treasury_buckets { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:9px; margin:15px 0;
+    article { min-width:0; padding:12px; border:1px solid #dce5df; border-radius:13px; background:#fff; }
+    article.is-negative { border-color:#efc4c4; background:#fff7f7; }
+    header { padding-bottom:8px; border-bottom:1px solid #edf1ee; span { display:block; color:#71817c; font-size:9px; font-weight:850; text-transform:uppercase; } strong { display:block; overflow:hidden; margin-top:3px; color:var(--treasury-green); font-size:13px; text-overflow:ellipsis; white-space:nowrap; } }
+    div { display:flex; justify-content:space-between; gap:5px; margin-top:7px; small { color:#71817c; font-size:9px; } b { overflow:hidden; font-size:10px; text-overflow:ellipsis; } .is-in { color:#20745b; } .is-out { color:#a95b25; } }
+}
+.o_treasury_recent { >button { display:grid; grid-template-columns:7px minmax(160px,1fr) 140px 105px; gap:10px; align-items:center; width:100%; padding:11px 18px; border:0; border-bottom:1px solid #edf1ee; color:#173029; text-align:left; background:#fff; &:hover{background:#f7faf7;} }
+    >button>i { width:7px; height:32px; border-radius:99px; background:#2f8068; &.is-danger{background:#c54141;} }
+    span { display:flex; min-width:0; flex-direction:column; b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} small{color:#71817c;font-size:10px;} }
+    em { font-style:normal; font-weight:800; text-align:right; }
+    >button>strong { padding:4px 7px; border-radius:99px; color:#42675a; background:#e9f2ed; font-size:10px; text-align:center; &.is-in_progress{color:#805b0c;background:#fff1c7;} &.is-cancelled{color:#8a2020;background:#fbe5e5;} }
+}
+
+body:has(.o_menu_brand[data-menu-xmlid="step_account_treasury.menu_treasury_root"]) .o_main_navbar {
+    border-bottom: 1px solid rgba(216,255,98,.22); color:#fff;
+    background: linear-gradient(110deg,#0e352d,#123c33 50%,#1c5a4b);
+    .o_menu_brand { color:#fff!important; font-weight:850; }
+    .o_menu_sections .o_nav_entry,.o_menu_sections .o-dropdown>button,.o_menu_systray button { color:rgba(255,255,255,.88)!important; border-radius:9px; }
+}
+
+@media(max-width:1200px){.o_treasury_kpis{grid-template-columns:repeat(3,1fr)}.o_treasury_buckets{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:900px){.o_treasury_hero{align-items:flex-start;flex-direction:column}.o_treasury_dashboard_grid{grid-template-columns:1fr}.o_treasury_buckets{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.o_steps_treasury_dashboard{height:100%;min-height:0;padding:11px;overflow-y:auto;overscroll-behavior:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}.o_treasury_kpis{grid-template-columns:1fr 1fr}.o_treasury_recent>button{grid-template-columns:7px 1fr auto}.o_treasury_recent>button>strong{display:none}.o_treasury_chart{padding:8px}.o_treasury_chart svg{height:180px}.o_treasury_hero_actions>.btn{width:100%}}
+
+// Subtítulo con el rango de fechas bajo el número de semana del resumen.
+.o_treasury_summary .o_treasury_week_hint {
+    font-weight: 400;
+    font-size: 0.75em;
+    line-height: 1.1;
+    opacity: 0.65;
+    white-space: nowrap;
+}
