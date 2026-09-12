@@ -7,6 +7,12 @@
         <field name="location_id" ref="stock.stock_location_stock"/>
     </record>
 
+    <record id="stock_location_machinery_production" model="stock.location">
+        <field name="name">MQ/Producción</field>
+        <field name="usage">production</field>
+        <field name="location_id" ref="stock.stock_location_locations_virtual"/>
+    </record>
+
     <record id="sequence_picking_type_machinery_consumption" model="ir.sequence">
         <field name="name">Consumo de Maquinaria</field>
         <field name="code">stock.picking.machinery.consumption</field>
@@ -20,7 +26,7 @@
         <field name="code">internal</field>
         <field name="sequence_id" ref="sequence_picking_type_machinery_consumption"/>
         <field name="default_location_src_id" ref="stock_location_machinery"/>
-        <field name="default_location_dest_id" ref="stock.location_production"/>
+        <field name="default_location_dest_id" ref="stock_location_machinery_production"/>
         <field name="warehouse_id" eval="False"/>
         <field name="sequence_code">MQCONS</field>
     </record>
