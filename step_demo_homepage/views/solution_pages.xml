@@ -1,0 +1,232 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+
+<record id="solution_campo_view" model="ir.ui.view">
+    <field name="name">Steps Agro | Campo y producción</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.solution_campo_view</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.solution_campo_view"><t t-call="website.layout">
+<t t-set="pageName" t-value="'soluciones-campo'"/>
+<t t-set="additional_title">Campo y producción agrícola en Odoo</t>
+<t t-set="meta_description">Steps Agro conecta labores, BPA, riego, trazabilidad y cosecha en una sola plataforma sobre Odoo, con el costo y el contexto de cada actividad en terreno.</t>
+<t t-set="bodyClassName" t-value="'steps-agro-website'"/><t t-set="no_header" t-value="True"/><t t-set="no_footer" t-value="True"/>
+<div id="wrap" class="oe_structure step-demo-home">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://stepsapp.cl/"},
+    {"@type": "ListItem", "position": 2, "name": "Soluciones", "item": "https://stepsapp.cl/#soluciones"},
+    {"@type": "ListItem", "position": 3, "name": "Campo y producción", "item": "https://stepsapp.cl/soluciones/campo-y-produccion"}
+  ]
+}
+</script>
+<t t-call="step_demo_homepage.nav"/>
+<section class="steps-solution-hero steps-section" aria-labelledby="solution-title"><div class="steps-container">
+    <nav class="steps-breadcrumbs" aria-label="Ruta de navegación"><a href="/">Inicio</a><span aria-hidden="true">/</span><a href="/#soluciones">Soluciones</a><span aria-hidden="true">/</span><span aria-current="page">Campo y producción</span></nav>
+    <div class="steps-section-heading"><div><span class="steps-kicker">CAMPO Y PRODUCCIÓN</span><h1 id="solution-title">Campo y producción,<br/><em>conectado de punta a punta.</em></h1></div><p>Steps Agro conecta labores, BPA, riego, trazabilidad y cosecha en una sola plataforma sobre Odoo. Cada actividad en terreno queda con su costo, su historial y su contexto.</p></div>
+</div></section>
+<section class="steps-solutions steps-section" aria-labelledby="solution-catalog-title"><div class="steps-container">
+    <h2 id="solution-catalog-title" class="steps-sr-only">Soluciones de Campo y producción</h2>
+    <div class="steps-catalog"><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span><span>CAMPO Y PRODUCCIÓN</span><small>01</small></div>
+        <h3>Labores y asistencia</h3><p>Organiza cuadrillas, registra tarjas y conecta el trabajo diario con su costo.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Planificación de actividades y labores</li><li>Asistencia, horas y tratos</li><li>Costos por labor y centro de costo</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3S5 10 5 15a7 7 0 0 0 14 0c0-5-7-12-7-12ZM9 16a3 3 0 0 0 3 3"/></svg></span><span>CAMPO Y PRODUCCIÓN</span><small>02</small></div>
+        <h3>BPA, riego y trazabilidad</h3><p>Cuida cada etapa del cultivo, con el historial y los controles de cada cuartel.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Monitoreos, aplicaciones y fertirriego</li><li>Restricciones de carencia y reingreso</li><li>Evidencia y trazabilidad fitosanitaria</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="m3 7 9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10M8 5l9 4v4"/></svg></span><span>CAMPO Y PRODUCCIÓN</span><small>03</small></div>
+        <h3>Cosecha y calidad</h3><p>De la captura en terreno a la recepción: producción e inspecciones con contexto.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Tarjas, folios y cuadrillas en Step Harvest</li><li>Recepciones, lotes y rendimientos</li><li>Inspecciones y resultados de calidad</li></ul></details>
+    </article></div>
+    <nav class="steps-solution-siblings" aria-label="Otras áreas de Steps"><a class="steps-text-link" href="/soluciones/personas">Personas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/recursos-y-logistica">Recursos y logística <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/finanzas">Finanzas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/#soluciones">Ver todas las soluciones <span aria-hidden="true">↗</span></a></nav>
+</div></section>
+<section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Conversemos sobre<br/><em>tu operación agrícola.</em></h2><a class="steps-button steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="/#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
+<t t-call="step_demo_homepage.footer"/>
+</div></t></t></field>
+</record>
+
+<record id="solution_campo_page" model="website.page">
+    <field name="url">/soluciones/campo-y-produccion</field>
+    <field name="view_id" ref="solution_campo_view"/>
+    <field name="is_published" eval="True"/>
+    <field name="website_meta_title">Campo y producción agrícola en Odoo | Steps Agro</field>
+    <field name="website_meta_description">Steps Agro conecta labores, BPA, riego, trazabilidad y cosecha en una sola plataforma sobre Odoo, con el costo y el contexto de cada actividad en terreno.</field>
+    <field name="website_meta_og_img">/step_demo_homepage/static/src/img/orchard-hero.jpg</field>
+</record>
+
+<record id="solution_personas_view" model="ir.ui.view">
+    <field name="name">Steps Agro | Gestión de personas</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.solution_personas_view</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.solution_personas_view"><t t-call="website.layout">
+<t t-set="pageName" t-value="'soluciones-personas'"/>
+<t t-set="additional_title">Gestión de personas para el agro en Odoo</t>
+<t t-set="meta_description">Remuneraciones, Previred, contratos, finiquitos, protección laboral y colaciones para tu operación agrícola, conectados en una sola plataforma sobre Odoo.</t>
+<t t-set="bodyClassName" t-value="'steps-agro-website'"/><t t-set="no_header" t-value="True"/><t t-set="no_footer" t-value="True"/>
+<div id="wrap" class="oe_structure step-demo-home">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://stepsapp.cl/"},
+    {"@type": "ListItem", "position": 2, "name": "Soluciones", "item": "https://stepsapp.cl/#soluciones"},
+    {"@type": "ListItem", "position": 3, "name": "Gestión de personas", "item": "https://stepsapp.cl/soluciones/personas"}
+  ]
+}
+</script>
+<t t-call="step_demo_homepage.nav"/>
+<section class="steps-solution-hero steps-section" aria-labelledby="solution-title"><div class="steps-container">
+    <nav class="steps-breadcrumbs" aria-label="Ruta de navegación"><a href="/">Inicio</a><span aria-hidden="true">/</span><a href="/#soluciones">Soluciones</a><span aria-hidden="true">/</span><span aria-current="page">Gestión de personas</span></nav>
+    <div class="steps-section-heading"><div><span class="steps-kicker">GESTIÓN DE PERSONAS</span><h1 id="solution-title">Gestión de personas,<br/><em>de principio a fin.</em></h1></div><p>Steps Agro acompaña el ciclo completo de tus equipos: remuneraciones y Previred, contratos y finiquitos, protección laboral y colaciones, conectados con el resto de tu operación en Odoo.</p></div>
+</div></section>
+<section class="steps-solutions steps-section" aria-labelledby="solution-catalog-title"><div class="steps-container">
+    <h2 id="solution-catalog-title" class="steps-sr-only">Soluciones de Gestión de personas</h2>
+    <div class="steps-catalog"><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>01</small></div>
+        <h3>Remuneraciones y Previred</h3><p>Reúne el cierre de nómina, las cotizaciones y la información que necesitas revisar.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Integración con motores de nómina Odoo</li><li>Previred consolidado o por departamento</li><li>Libro de remuneraciones, Excel, PDF y archivo DT</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H5v18h14V8ZM14 3v5h5M8 12h8M8 16h5"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>02</small></div>
+        <h3>Contratos y finiquitos</h3><p>Acompaña el ciclo laboral, desde el contrato hasta los documentos de término.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Gestión del ciclo contractual</li><li>Avisos de término y finiquitos</li><li>Archivos de carga para la Dirección del Trabajo</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6ZM8 12l3 3 5-6"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>03</small></div>
+        <h3>Protección laboral</h3><p>Ordena la prevención y conserva la evidencia del cuidado de tus equipos.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Entrega y control de EPP</li><li>Capacitaciones, protocolos y Ley Karin</li><li>Registro y seguimiento de accidentes</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18M18 21V3c-4 2-5 8 0 9"/></svg></span><span>GESTIÓN DE PERSONAS</span><small>04</small></div>
+        <h3>Colaciones</h3><p>Planifica el servicio, registra entregas y lleva el consumo hasta su costo.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Planificación y registro de entregas</li><li>Aplicación y tótem con operación offline</li><li>Costeo y contabilización de consumos</li></ul></details>
+    </article></div>
+    <nav class="steps-solution-siblings" aria-label="Otras áreas de Steps"><a class="steps-text-link" href="/soluciones/campo-y-produccion">Campo y producción <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/recursos-y-logistica">Recursos y logística <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/finanzas">Finanzas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/#soluciones">Ver todas las soluciones <span aria-hidden="true">↗</span></a></nav>
+</div></section>
+<section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Conversemos sobre<br/><em>tu operación agrícola.</em></h2><a class="steps-button steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="/#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
+<t t-call="step_demo_homepage.footer"/>
+</div></t></t></field>
+</record>
+
+<record id="solution_personas_page" model="website.page">
+    <field name="url">/soluciones/personas</field>
+    <field name="view_id" ref="solution_personas_view"/>
+    <field name="is_published" eval="True"/>
+    <field name="website_meta_title">Gestión de personas para el agro en Odoo | Steps Agro</field>
+    <field name="website_meta_description">Remuneraciones, Previred, contratos, finiquitos, protección laboral y colaciones para tu operación agrícola, conectados en una sola plataforma sobre Odoo.</field>
+    <field name="website_meta_og_img">/step_demo_homepage/static/src/img/orchard-hero.jpg</field>
+</record>
+
+<record id="solution_logistica_view" model="ir.ui.view">
+    <field name="name">Steps Agro | Recursos y logística</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.solution_logistica_view</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.solution_logistica_view"><t t-call="website.layout">
+<t t-set="pageName" t-value="'soluciones-logistica'"/>
+<t t-set="additional_title">Maquinaria, Tracker GPS y fletes en Odoo</t>
+<t t-set="meta_description">Controla maquinaria, ubica tus equipos con Tracker GPS y coordina fletes y movilización de tu operación agrícola en una sola plataforma sobre Odoo.</t>
+<t t-set="bodyClassName" t-value="'steps-agro-website'"/><t t-set="no_header" t-value="True"/><t t-set="no_footer" t-value="True"/>
+<div id="wrap" class="oe_structure step-demo-home">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://stepsapp.cl/"},
+    {"@type": "ListItem", "position": 2, "name": "Soluciones", "item": "https://stepsapp.cl/#soluciones"},
+    {"@type": "ListItem", "position": 3, "name": "Recursos y logística", "item": "https://stepsapp.cl/soluciones/recursos-y-logistica"}
+  ]
+}
+</script>
+<t t-call="step_demo_homepage.nav"/>
+<section class="steps-solution-hero steps-section" aria-labelledby="solution-title"><div class="steps-container">
+    <nav class="steps-breadcrumbs" aria-label="Ruta de navegación"><a href="/">Inicio</a><span aria-hidden="true">/</span><a href="/#soluciones">Soluciones</a><span aria-hidden="true">/</span><span aria-current="page">Recursos y logística</span></nav>
+    <div class="steps-section-heading"><div><span class="steps-kicker">RECURSOS Y LOGÍSTICA</span><h1 id="solution-title">Recursos y logística,<br/><em>bajo control.</em></h1></div><p>Steps Agro conecta maquinaria, Tracker GPS y fletes y movilización, para que sepas dónde está cada recurso, cuánto cuesta mantenerlo en movimiento y cómo se conecta con el resto de tu operación.</p></div>
+</div></section>
+<section class="steps-solutions steps-section" aria-labelledby="solution-catalog-title"><div class="steps-container">
+    <h2 id="solution-catalog-title" class="steps-sr-only">Soluciones de Recursos y logística</h2>
+    <div class="steps-catalog"><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/></svg></span><span>RECURSOS Y LOGÍSTICA</span><small>01</small></div>
+        <h3>Maquinaria</h3><p>Conoce el trabajo de tus equipos y cuánto cuesta mantenerlos en movimiento.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Órdenes de trabajo y horas de uso</li><li>Mantenimiento y disponibilidad</li><li>Costos reales y contabilización</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></span><span>RECURSOS Y LOGÍSTICA</span><small>02</small></div>
+        <h3>Tracker GPS</h3><p>Ubica tu maquinaria y entiende sus recorridos desde una vista de la operación.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Monitoreo geográfico de equipos</li><li>Historial y reproducción de recorridos</li><li>Consulta de actividad y desplazamientos</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3ZM14 9h4l3 4v4h-7M21 13h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><span>RECURSOS Y LOGÍSTICA</span><small>03</small></div>
+        <h3>Fletes y movilización</h3><p>Coordina el transporte de carga y de personas con sus recursos y costos.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Órdenes de flete, transportistas y tarifas</li><li>Recorridos, viajes y pasajeros</li><li>Contratos, documentos y costos de transporte</li></ul></details>
+    </article></div>
+    <nav class="steps-solution-siblings" aria-label="Otras áreas de Steps"><a class="steps-text-link" href="/soluciones/campo-y-produccion">Campo y producción <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/personas">Personas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/finanzas">Finanzas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/#soluciones">Ver todas las soluciones <span aria-hidden="true">↗</span></a></nav>
+</div></section>
+<section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Conversemos sobre<br/><em>tu operación agrícola.</em></h2><a class="steps-button steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="/#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
+<t t-call="step_demo_homepage.footer"/>
+</div></t></t></field>
+</record>
+
+<record id="solution_logistica_page" model="website.page">
+    <field name="url">/soluciones/recursos-y-logistica</field>
+    <field name="view_id" ref="solution_logistica_view"/>
+    <field name="is_published" eval="True"/>
+    <field name="website_meta_title">Maquinaria, Tracker GPS y fletes en Odoo | Steps Agro</field>
+    <field name="website_meta_description">Controla maquinaria, ubica tus equipos con Tracker GPS y coordina fletes y movilización de tu operación agrícola en una sola plataforma sobre Odoo.</field>
+    <field name="website_meta_og_img">/step_demo_homepage/static/src/img/orchard-hero.jpg</field>
+</record>
+
+<record id="solution_finanzas_view" model="ir.ui.view">
+    <field name="name">Steps Agro | Finanzas y control</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.solution_finanzas_view</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.solution_finanzas_view"><t t-call="website.layout">
+<t t-set="pageName" t-value="'soluciones-finanzas'"/>
+<t t-set="additional_title">Tesorería y gestión de costos en Odoo</t>
+<t t-set="meta_description">Anticipa tu caja con tesorería multimoneda y controla presupuesto versus costo real de tu operación agrícola en una sola plataforma sobre Odoo.</t>
+<t t-set="bodyClassName" t-value="'steps-agro-website'"/><t t-set="no_header" t-value="True"/><t t-set="no_footer" t-value="True"/>
+<div id="wrap" class="oe_structure step-demo-home">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Inicio", "item": "https://stepsapp.cl/"},
+    {"@type": "ListItem", "position": 2, "name": "Soluciones", "item": "https://stepsapp.cl/#soluciones"},
+    {"@type": "ListItem", "position": 3, "name": "Finanzas y control", "item": "https://stepsapp.cl/soluciones/finanzas"}
+  ]
+}
+</script>
+<t t-call="step_demo_homepage.nav"/>
+<section class="steps-solution-hero steps-section" aria-labelledby="solution-title"><div class="steps-container">
+    <nav class="steps-breadcrumbs" aria-label="Ruta de navegación"><a href="/">Inicio</a><span aria-hidden="true">/</span><a href="/#soluciones">Soluciones</a><span aria-hidden="true">/</span><span aria-current="page">Finanzas y control</span></nav>
+    <div class="steps-section-heading"><div><span class="steps-kicker">FINANZAS Y CONTROL</span><h1 id="solution-title">Finanzas y control,<br/><em>con información conectada.</em></h1></div><p>Steps Agro conecta tesorería y multimoneda con gestión y costos, para anticipar tu caja y contrastar tu planificación con el costo real de la operación.</p></div>
+</div></section>
+<section class="steps-solutions steps-section" aria-labelledby="solution-catalog-title"><div class="steps-container">
+    <h2 id="solution-catalog-title" class="steps-sr-only">Soluciones de Finanzas y control</h2>
+    <div class="steps-catalog"><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 8H4a2 2 0 0 1 0-4h13v4M3 6v13a2 2 0 0 0 2 2h15V8M20 12h-6v5h6M17 14.5h.01"/></svg></span><span>FINANZAS Y CONTROL</span><small>01</small></div>
+        <h3>Tesorería y multimoneda</h3><p>Anticipa tu caja y revisa la información financiera en las monedas de tu negocio.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Flujo de caja con horizonte de cinco semanas</li><li>Cobros y pagos conectados con Contabilidad</li><li>Captura y balances en monedas de presentación</li><li>Pagos por lotes mediante integración opcional</li></ul></details>
+    </article><article class="steps-product">
+        <div class="steps-product__top"><span class="steps-product__icon"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg></span><span>FINANZAS Y CONTROL</span><small>02</small></div>
+        <h3>Gestión y costos</h3><p>Convierte tu planificación en presupuesto y contrástala con el costo real.</p>
+        <details open="open"><summary>Ver capacidades <span aria-hidden="true">+</span></summary><ul><li>Presupuestos y plantillas por hectárea</li><li>Centros de costo y distribución mensual</li><li>Control de presupuesto versus costo real</li></ul></details>
+    </article></div>
+    <nav class="steps-solution-siblings" aria-label="Otras áreas de Steps"><a class="steps-text-link" href="/soluciones/campo-y-produccion">Campo y producción <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/personas">Personas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/recursos-y-logistica">Recursos y logística <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/#soluciones">Ver todas las soluciones <span aria-hidden="true">↗</span></a></nav>
+</div></section>
+<section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Conversemos sobre<br/><em>tu operación agrícola.</em></h2><a class="steps-button steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="/#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
+<t t-call="step_demo_homepage.footer"/>
+</div></t></t></field>
+</record>
+
+<record id="solution_finanzas_page" model="website.page">
+    <field name="url">/soluciones/finanzas</field>
+    <field name="view_id" ref="solution_finanzas_view"/>
+    <field name="is_published" eval="True"/>
+    <field name="website_meta_title">Tesorería y gestión de costos en Odoo | Steps Agro</field>
+    <field name="website_meta_description">Anticipa tu caja con tesorería multimoneda y controla presupuesto versus costo real de tu operación agrícola en una sola plataforma sobre Odoo.</field>
+    <field name="website_meta_og_img">/step_demo_homepage/static/src/img/orchard-hero.jpg</field>
+</record>
+
+</odoo>

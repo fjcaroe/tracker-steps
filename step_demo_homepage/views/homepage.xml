@@ -4,6 +4,7 @@
 <field name="name">Steps Agro | ERP agrícola en Odoo</field><field name="active" eval="True"/>
 <field name="website_meta_title">ERP agrícola en Odoo para Chile | Steps Agro</field>
 <field name="website_meta_description">Software de gestión agrícola sobre Odoo para controlar labores, cosecha, maquinaria, remuneraciones, trazabilidad y costos en una sola plataforma.</field>
+<field name="website_meta_og_img">/step_demo_homepage/static/src/img/orchard-hero.jpg</field>
 <field name="arch" type="xml"><t name="Steps" t-name="website.homepage"><t t-call="website.layout">
 <t t-set="pageName" t-value="'homepage'"/>
 <t t-set="additional_title">ERP agrícola en Odoo para Chile</t>
@@ -19,7 +20,15 @@
       "@id": "https://stepsapp.cl/#organization",
       "name": "Steps Consulting",
       "alternateName": "Steps Agro",
-      "url": "https://stepsapp.cl/"
+      "url": "https://stepsapp.cl/",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+56-9-6675-5691",
+        "email": "contacto@stepsapp.cl",
+        "contactType": "sales",
+        "areaServed": "CL",
+        "availableLanguage": "Spanish"
+      }
     },
     {
       "@type": "WebSite",
@@ -42,11 +51,7 @@
   ]
 }
 </script>
-<header class="steps-nav"><nav class="steps-container steps-nav__inner" aria-label="Navegación principal">
-    <a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><div class="steps-nav__links"><a href="#soluciones">Soluciones</a><a href="#ecosistema">El ecosistema</a><a href="#apps">Apps web y móvil</a><a href="/web/login">Ingresar</a></div>
-    <a class="steps-button steps-button--small steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    <details class="steps-mobile-nav"><summary aria-label="Abrir menú"><span/><span/></summary><div><a href="#soluciones">Soluciones</a><a href="#ecosistema">El ecosistema</a><a href="#apps">Apps web y móvil</a><a href="/contactus">Solicita una demo</a><a href="/web/login">Ingresar</a></div></details>
-</nav></header>
+<t t-call="step_demo_homepage.nav"/>
 <section class="steps-hero" aria-labelledby="steps-title"><div class="steps-container steps-hero__grid">
     <div class="steps-hero__copy"><div class="steps-eyebrow"><span class="steps-status-dot"/> SOFTWARE DE GESTIÓN AGRÍCOLA SOBRE ODOO</div>
         <h1 id="steps-title">ERP agrícola<br/>conectado,<br/><em>de punta a punta.</em></h1>
@@ -54,15 +59,20 @@
         <div class="steps-hero__actions"><a class="steps-button steps-button--dark" href="#soluciones">Conoce Steps Agro <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><a class="steps-text-link" href="/contactus">Solicita una demo <span aria-hidden="true">↗</span></a></div>
         <div class="steps-hero__note"><span class="steps-mini-mark">s.</span><span>Desarrollo propio.<br/><strong>Integrado con Odoo.</strong></span></div>
     </div>
-    <div class="steps-hero__visual"><img class="steps-hero__photo" src="/step_demo_homepage/static/src/img/orchard-hero.jpg" alt="Vista aérea de hileras de un huerto frutal al pie de la cordillera" width="1536" height="1024" fetchpriority="high" loading="eager"/>
+    <div class="steps-hero__visual"><picture>
+        <source type="image/avif" srcset="/step_demo_homepage/static/src/img/orchard-hero-768.avif 768w, /step_demo_homepage/static/src/img/orchard-hero.avif 1536w" sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 720px"/>
+        <source type="image/webp" srcset="/step_demo_homepage/static/src/img/orchard-hero-768.webp 768w, /step_demo_homepage/static/src/img/orchard-hero.webp 1536w" sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 720px"/>
+        <img class="steps-hero__photo" src="/step_demo_homepage/static/src/img/orchard-hero.jpg" srcset="/step_demo_homepage/static/src/img/orchard-hero-768.jpg 768w, /step_demo_homepage/static/src/img/orchard-hero.jpg 1536w" sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 720px" alt="Vista aérea de hileras de un huerto frutal al pie de la cordillera" width="1536" height="1024" fetchpriority="high" loading="eager"/>
+    </picture>
         <div class="steps-photo-label"><span class="steps-status-dot"/> HECHO PARA LA REALIDAD DEL CAMPO</div>
         <div class="steps-connect-card"><div class="steps-connect-card__top"><span class="steps-connect-card__logo">s.</span><span>Todo parte aquí.<br/><strong>Todo se conecta.</strong></span><span class="steps-connect-card__arrow" aria-hidden="true">↗</span></div><div class="steps-connect-card__areas"><span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg> Campo</span><i aria-hidden="true">+</i><span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg> Personas</span><i aria-hidden="true">+</i><span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg> Finanzas</span></div></div>
         <span class="steps-photo-index">01 / UNA VISIÓN COMPLETA</span>
     </div>
 </div></section>
-<section class="steps-strip" aria-label="Áreas del ecosistema"><div class="steps-container steps-strip__inner"><span>UNA PLATAFORMA.<br/><strong>TODA TU OPERACIÓN.</strong></span><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg> Campo y producción</a><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg> Gestión de personas</a><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3ZM14 9h4l3 4v4h-7M21 13h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg> Recursos y logística</a><a href="#soluciones"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg> Finanzas y control</a></div></section>
+<section class="steps-strip" aria-label="Áreas del ecosistema"><div class="steps-container steps-strip__inner"><span>UNA PLATAFORMA.<br/><strong>TODA TU OPERACIÓN.</strong></span><a href="/soluciones/campo-y-produccion"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg> Campo y producción</a><a href="/soluciones/personas"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 5v3"/></svg> Gestión de personas</a><a href="/soluciones/recursos-y-logistica"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h11v12H3ZM14 9h4l3 4v4h-7M21 13h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg> Recursos y logística</a><a href="/soluciones/finanzas"><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3v17h17M8 15l4-5 4 2 5-7M17 5h4v4"/></svg> Finanzas y control</a></div></section>
 <section class="steps-solutions steps-section" id="soluciones" aria-labelledby="solutions-title"><div class="steps-container">
     <div class="steps-section-heading"><div><span class="steps-kicker">01 — EL PACK STEPS</span><h2 id="solutions-title">Cada área más fuerte.<br/><span>Juntas, mucho más.</span></h2></div><p>Soluciones propias para los desafíos de todos los días. Explora las capacidades que necesita tu operación y descubre cómo se complementan.</p></div>
+    <p class="steps-solutions-jump"><a class="steps-text-link" href="/soluciones/campo-y-produccion">Campo y producción <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/personas">Personas <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/recursos-y-logistica">Recursos y logística <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="/soluciones/finanzas">Finanzas <span aria-hidden="true">↗</span></a></p>
     <div class="steps-filters" role="group" aria-label="Filtrar soluciones por área" hidden="hidden"><button type="button" data-filter="all" aria-pressed="true">Todas las soluciones <span>12</span></button><button type="button" data-filter="campo" aria-pressed="false">Campo y producción</button><button type="button" data-filter="personas" aria-pressed="false">Personas</button><button type="button" data-filter="logistica" aria-pressed="false">Recursos y logística</button><button type="button" data-filter="finanzas" aria-pressed="false">Finanzas</button></div>
     <p class="steps-sr-only" data-filter-status="true" aria-live="polite" aria-atomic="true"/>
     <div class="steps-catalog"><article class="steps-product" data-category="campo">
@@ -157,8 +167,30 @@
     </div>
 </section><section class="steps-next" id="valor"><div class="steps-container steps-next__grid"><div><span class="steps-kicker">TECNOLOGÍA CON ESPACIO PARA CRECER</span><h2>Tu operación cambia.<br/>Steps crece contigo.</h2></div><div class="steps-next__points"><article><span>01</span><div><h3>Elige tu punto de partida</h3><p>Campo, personas, logística o finanzas. Una estructura modular para distintas necesidades.</p></div></article><article><span>02</span><div><h3>Conserva el contexto</h3><p>Conecta la información operacional con los procesos de gestión en Odoo.</p></div></article><article><span>03</span><div><h3>Construye el siguiente paso</h3><p>Una base de desarrollos propios para seguir incorporando procesos y nuevas integraciones.</p></div></article></div></div></section>
 <section class="steps-final-cta"><div class="steps-container"><div class="steps-final-cta__top"><span class="steps-kicker">EL SIGUIENTE PASO ES TUYO</span><svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4C10 2 3 6 4 13c1 6 9 8 13 3 3-4 3-8 3-12ZM4 21 16 9"/></svg></div><div class="steps-final-cta__main"><h2>Conversemos sobre<br/><em>tu operación agrícola.</em></h2><a class="steps-button steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div><div class="steps-final-cta__bottom"><span>Campo. Personas. Finanzas. Steps.</span><a href="#soluciones">Volver a las soluciones <span aria-hidden="true">↑</span></a></div></div></section>
-<footer class="steps-footer"><div class="steps-container"><div class="steps-footer__top"><a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><p>ERP agrícola conectado con Odoo.</p><div><a href="#soluciones">Soluciones</a><a href="#ecosistema">Ecosistema</a><a href="/contactus">Contacto</a><a href="/web/login">Ingresar ↗</a></div></div><div class="steps-footer__bottom"><span>© 2026 Steps Consulting</span><span>Desarrollo propio · Integrado con Odoo</span></div></div></footer>
+<t t-call="step_demo_homepage.footer"/>
 </div></t></t></field></record>
+
+<record id="nav" model="ir.ui.view">
+    <field name="name">Steps navegación principal</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.nav</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.nav">
+<header class="steps-nav"><nav class="steps-container steps-nav__inner" aria-label="Navegación principal">
+    <a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><div class="steps-nav__links"><a href="/#soluciones">Soluciones</a><a href="/#ecosistema">El ecosistema</a><a href="/#apps">Apps web y móvil</a><a href="/web/login">Ingresar</a></div>
+    <a class="steps-button steps-button--small steps-button--dark" href="/contactus">Solicita una demo <svg class="st-icon " viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    <details class="steps-mobile-nav"><summary aria-label="Abrir menú"><span/><span/></summary><div><a href="/#soluciones">Soluciones</a><a href="/#ecosistema">El ecosistema</a><a href="/#apps">Apps web y móvil</a><a href="/contactus">Solicita una demo</a><a href="/web/login">Ingresar</a></div></details>
+</nav></header>
+</t></field>
+</record>
+
+<record id="footer" model="ir.ui.view">
+    <field name="name">Steps pie de página</field>
+    <field name="type">qweb</field>
+    <field name="key">step_demo_homepage.footer</field>
+    <field name="arch" type="xml"><t t-name="step_demo_homepage.footer">
+<footer class="steps-footer"><div class="steps-container"><div class="steps-footer__top"><a class="steps-brand" href="/" aria-label="Steps, inicio"><span class="steps-brand__mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4C13 4 6 12 6 23c0 11 7 19 18 21 11-2 18-10 18-21C42 12 35 4 24 4Z"/><path class="steps-brand__leaf" d="M14 28c8-1 14-6 19-15 1 9-3 18-13 22"/><path class="steps-brand__stem" d="M18 36c3-8 8-14 15-19"/></svg></span><strong>steps<span>APP</span></strong></a><p>ERP agrícola conectado con Odoo.</p><div><a href="/#soluciones">Soluciones</a><a href="/#ecosistema">Ecosistema</a><a href="/contactus">Contacto</a><a href="/web/login">Ingresar ↗</a></div></div><div class="steps-footer__bottom"><span>© 2026 Steps Consulting</span><span>Desarrollo propio · Integrado con Odoo</span></div></div></footer>
+</t></field>
+</record>
 
 <template id="google_site_verification_meta" name="Google Search Console verification meta" inherit_id="website.layout">
     <xpath expr="//head" position="inside">
