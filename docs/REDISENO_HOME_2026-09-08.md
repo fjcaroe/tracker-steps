@@ -197,3 +197,61 @@ Respaldos de esta intervención:
 
 - `/opt/steps_backups/home-seo-20260911-182213/`
 - `/opt/steps_backups/google-verification-20260911-182322/`
+
+## Segunda pasada SEO — 13 de septiembre de 2026
+
+A pedido del usuario, siguiendo el checklist de
+`developers.google.com/search/docs/fundamentals/seo-starter-guide`. Versión
+del módulo `18.0.2.3.0`. Aplicado y verificado en `desarrollo` (`LAB_TAREAS`,
+`odoo18-dev.service`); **no** promovido aún a Demo/Demo-SyS/SyS ni al sitio
+productivo `stepsapp.cl` — queda pendiente de autorización explícita antes de
+tocar el sitio en vivo.
+
+- **Imagen del hero**: se generaron variantes WebP/AVIF y una versión de
+  768px (además de la original de 1536px) y se sirven con `<picture>` +
+  `srcset`/`sizes`. El navegador ahora elige AVIF/WebP cuando puede: el peso
+  baja de ~397 KB (JPEG único) a ~46–170 KB según formato y ancho de
+  viewport.
+- **`og:image` de marca**: se fijó `website_meta_og_img` a la foto del hero
+  en el home y en las 4 páginas nuevas. Antes, `website.layout` caía al
+  fallback genérico (`/web/image/website/1/logo`) para Open Graph/Twitter
+  Card — Odoo ya generaba esos meta tags solos, sólo faltaba una imagen más
+  representativa.
+- **`Organization` con `contactPoint`**: se agregó teléfono y correo al
+  JSON-LD, usando los datos ya publicados en `/contactus`
+  (+56 9 6675 5691, contacto@stepsapp.cl). No se agregó `sameAs` ni `logo`:
+  no hay perfiles de redes sociales públicos verificados ni un archivo de
+  logo independiente del SVG de marca inline.
+- **4 páginas indexables nuevas** bajo `/soluciones/<área>`
+  (`campo-y-produccion`, `personas`, `recursos-y-logistica`, `finanzas`),
+  cada una con su propio `website_meta_title`/`description`, un H1
+  descriptivo, `BreadcrumbList` en JSON-LD y enlaces cruzados entre las 4
+  áreas. Antes, las doce soluciones sólo existían como tarjetas detrás de
+  anclas (`#soluciones`) en una única URL, sin superficie propia para
+  búsquedas específicas por área. El contenido de cada página reutiliza
+  literalmente los textos ya aprobados de las tarjetas del home (sin texto
+  nuevo inventado); lo nuevo es la introducción de cada página y la
+  arquitectura de navegación.
+  - El header y el footer se extrajeron a templates reutilizables
+    (`step_demo_homepage.nav` / `step_demo_homepage.footer`) para no
+    duplicar ese markup en cada página.
+  - Los enlaces del bloque `steps-strip` del home y un nuevo bloque de
+    enlaces sobre el catálogo (`steps-solutions-jump`) apuntan a estas
+    páginas en vez de a `#soluciones`.
+- **Verificado en vivo antes de tocar código** (no requería cambios):
+  `robots.txt` de producción permite todo el sitio y referencia el sitemap;
+  `/sitemap.xml` ya es dinámico e incluye `/`; Odoo ya generaba
+  `og:*`/`twitter:*` automáticamente.
+- **Pendiente / requiere acción humana**:
+  - Confirmar en Search Console que el sitemap de `stepsapp.cl` está
+    enviado (no sólo presente) — requiere sesión con la cuenta de Google del
+    usuario, no accesible desde esta automatización.
+  - Autorización explícita para promover esta versión a Demo, Demo-SyS y al
+    sitio productivo `stepsapp.cl` (`karo_consultorias`, `odoo18.service`).
+  - Evaluar a futuro extender el mismo patrón de página dedicada a nivel de
+    producto individual (no sólo por área) si el tráfico de estas 4 páginas
+    lo justifica.
+
+Rama: `codex/homepage-prod-seo-20260911` (commit `7636eb6`), subida a
+`origin`. Respaldo del módulo previo en `desarrollo`:
+`/opt/fernando_odoo18/backups/step-demo-homepage-seo-20260913-014419Z/`.
