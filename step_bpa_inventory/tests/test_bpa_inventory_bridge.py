@@ -59,3 +59,44 @@ class TestBpaInventoryBridge(TransactionCase):
         application = self._application()
         with self.assertRaises(UserError):
             application.action_generate_inventory_move()
+
+    def test_generate_inventory_move_distributes_cost_by_hectare(self):
+        """Ticket 23, punto 6: reparto por hectáreas, no en partes iguales."""
+        analytic_plan = self.env["account.analytic.plan"].create({"name": "Plan cuarteles prueba"})
+        account_a = self.env["account.analytic.account"].create({
+            "name": "Cuartel A", "plan_id": analytic_plan.id,
+        })
+        account_b = self.env["account.analytic.account"].create({
+            "name": "Cuartel B", "plan_id": analytic_plan.id,
+        })
+        application = self._application()
+        self.env["step.bpa.inventory.consumption.line"].create({
+            "application_id": application.id, "product_id": self.product.id, "product_qty": 10.0,
+        })
+        self.env["x_aplicacion_foliar_line_2f222"].create([
+            {
+                "x_aplicacion_foliar_id": application.id,
+                "x_studio_centro_costo": account_a.id,
+                "x_studio_has_aplicadas": 3.0,
+            },
+            {
+                "x_aplicacion_foliar_id": application.id,
+                "x_studio_centro_costo": account_b.id,
+                "x_studio_has_aplicadas": 1.0,
+            },
+        ])
+        application.action_generate_inventory_move()
+        move = application.inventory_picking_id.move_ids
+        self.assertEqual(
+            move.analytic_distribution,
+            {str(account_a.id): 75.0, str(account_b.id): 25.0},
+        )
+
+    def test_generate_inventory_move_without_cuarteles_has_no_distribution(self):
+        application = self._application()
+        self.env["step.bpa.inventory.consumption.line"].create({
+            "application_id": application.id, "product_id": self.product.id, "product_qty": 1.0,
+        })
+        application.action_generate_inventory_move()
+        move = application.inventory_picking_id.move_ids
+        self.assertFalse(move.analytic_distribution)

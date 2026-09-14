@@ -96,3 +96,42 @@ pasaron `python -m compileall` y el parseo de los XML. No se desplegó en
 - Desplegar el módulo en `desarrollo`/`demo-sys`, correr las pruebas y
   ejercer el botón con datos reales para confirmar el resultado contra lo
   que espera el cliente.
+
+## Actualización 2026-09-14 — puntos 1 y 6 confirmados por el cliente
+
+El cliente respondió los dos puntos que habían quedado pendientes (nota
+`⟦IA-EVIDENCIA⟧` del 2026-09-12 19:19:40):
+
+1. **Alcance (punto 1):** confirma **A** — partir sólo con Aplicaciones
+   foliares (lo ya construido). Riego/Fertilización se define después, en
+   un ticket aparte. No se implementa nada nuevo por este punto.
+2. **Distribución del costo entre cuarteles (punto 6):** confirma **B** —
+   según hectáreas (no en partes iguales).
+
+Se implementó el punto 6: `action_generate_inventory_move` ahora calcula
+`analytic_distribution` para cada `stock.move` generado, prorrateando por
+hectáreas entre los centros de costo (`account.analytic.account`) de los
+cuarteles trabajados en la OT-BPA. La fuente de hectáreas/centro de costo
+por cuartel es la línea "Maquinada" nativa de `x_aplicacion_foliar`
+(campo Studio `x_studio_one2many_field_1s3_1jhkpul9f` →
+`x_aplicacion_foliar_line_2f222`, con `x_studio_cuartel`,
+`x_studio_centro_costo` y `x_studio_has_aplicadas`), agrupando por centro
+de costo para no duplicar hectáreas si un cuartel tiene más de una línea
+de maquinaria. Si la OT no tiene líneas de cuartel con hectáreas (dato
+incompleto), no se fija `analytic_distribution` — el movimiento queda sin
+reparto en vez de fallar o repartir a ciegas.
+
+Pruebas agregadas en `tests/test_bpa_inventory_bridge.py`:
+`test_generate_inventory_move_distributes_cost_by_hectare` (3 ha + 1 ha →
+75 %/25 %) y `test_generate_inventory_move_without_cuarteles_has_no_distribution`.
+
+Hallazgo de entorno (no de este ticket): en `desarrollo` (LAB_TAREAS),
+`search`/`search_read`/`search_count` sobre `x_aplicacion_foliar` y sobre
+`x_aplicacion_foliar_line_2f222` fallan con
+`IndexError: tuple index out of range` dentro de
+`odoo/osv/expression.py` (`is_false`), incluso con dominios triviales
+(`[('id','>',0)]`) — consistente con una regla de registro (`ir.rule`)
+mal formada en esa base para el usuario de la API usada por esta
+automatización. No se investigó a fondo (no bloquea la evaluación de este
+ticket); impidió leer datos reales de ejemplo para confirmar contra un
+caso real antes de desplegar.
