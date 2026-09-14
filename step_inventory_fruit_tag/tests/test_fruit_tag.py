@@ -28,8 +28,10 @@ class TestFruitTag(TransactionCase):
     def test_real_warehouses_seeded(self):
         """El ticket 22 quedó bloqueado hasta que el cliente confirmara los
         nombres reales de bodega; esto verifica que la semilla los use tal
-        cual los dio (respuesta del 14-09-2026)."""
-        names = {"Bodega Insumos", "Bodega Fruta", "Bodega BPA", "Bodega Máquina"}
+        cual los dio (respuesta del 14-09-2026). Sólo Insumos y Fruta: BPA
+        y Máquina ya existen con otro nombre técnico vía los módulos de
+        los tickets 23/24 (ver comentario en data/stock_location_data.xml)."""
+        names = {"Bodega Insumos", "Bodega Fruta"}
         locations = self.env["stock.location"].search([("name", "in", list(names))])
         self.assertEqual(set(locations.mapped("name")), names)
         self.assertTrue(all(loc.usage == "internal" for loc in locations))

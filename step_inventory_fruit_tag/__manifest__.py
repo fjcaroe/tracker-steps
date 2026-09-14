@@ -8,8 +8,10 @@
         pendientes (variantes de producto de fruta, marcado explícitamente
         "(pendiente)" en el documento de diseño del cliente):
 
-        - Bodegas reales confirmadas por el cliente: Bodega Insumos,
-          Bodega Fruta, Bodega BPA, Bodega Máquina.
+        - Bodegas reales confirmadas por el cliente: se siembran Bodega
+          Insumos y Bodega Fruta (las 2 que faltaban); Bodega BPA y Bodega
+          Máquina ya existen con otro nombre técnico vía los módulos
+          puente de los tickets 23/24 -- ver data/stock_location_data.xml.
         - Adapta el paquete nativo de Inventario (stock.quant.package) al
           concepto de "tarja de fruta de exportación": variantes
           (especie, variedad, calibre, calidad, categoría, clase, tipo de
