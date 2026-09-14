@@ -75,11 +75,13 @@ class TestBpaInventoryBridge(TransactionCase):
         })
         self.env["x_aplicacion_foliar_line_2f222"].create([
             {
+                "x_name": "Maquinada cuartel A",
                 "x_aplicacion_foliar_id": application.id,
                 "x_studio_centro_costo": account_a.id,
                 "x_studio_has_aplicadas": 3.0,
             },
             {
+                "x_name": "Maquinada cuartel B",
                 "x_aplicacion_foliar_id": application.id,
                 "x_studio_centro_costo": account_b.id,
                 "x_studio_has_aplicadas": 1.0,
