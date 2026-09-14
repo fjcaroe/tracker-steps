@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Semilla mínima: valores de ejemplo citados por el cliente en el
+         documento de diseño (Calidad: A, B, J1) y en la tarja real
+         adjunta (Calidad C1). El cliente puede agregar más desde
+         Gestión y Costos > Maestros > Calidades de fruta. -->
+    <record id="fruit_quality_a" model="step.management.fruit.quality">
+        <field name="code">A</field>
+        <field name="name">A</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="fruit_quality_b" model="step.management.fruit.quality">
+        <field name="code">B</field>
+        <field name="name">B</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="fruit_quality_c1" model="step.management.fruit.quality">
+        <field name="code">C1</field>
+        <field name="name">C1</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="fruit_quality_j1" model="step.management.fruit.quality">
+        <field name="code">J1</field>
+        <field name="name">J1</field>
+        <field name="sequence">40</field>
+    </record>
+</odoo>

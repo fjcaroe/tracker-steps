@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_fruit_quality_user,Calidad fruta consulta y uso,model_step_management_fruit_quality,base.group_user,1,0,0,0
+access_fruit_quality_readonly,Calidad fruta consulta gestión,model_step_management_fruit_quality,step_management_costs.group_management_readonly,1,0,0,0
+access_fruit_quality_manager,Calidad fruta administrador,model_step_management_fruit_quality,step_management_costs.group_management_manager,1,1,1,1
+access_fruit_category_stock_user,Categoría fruta uso en Inventario,model_step_management_fruit_category,base.group_user,1,0,0,0
+access_fruit_class_stock_user,Clase fruta uso en Inventario,model_step_management_fruit_class,base.group_user,1,0,0,0
+access_fruit_caliber_stock_user,Calibre fruta uso en Inventario,model_step_management_fruit_caliber,base.group_user,1,0,0,0
