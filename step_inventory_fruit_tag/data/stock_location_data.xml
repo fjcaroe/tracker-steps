@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Las 4 bodegas reales confirmadas por el cliente en el ticket 22
+         (adjunto "respuesta pregunta 14-09-2026.docx"): Bodega Insumos,
+         Bodega Fruta, Bodega BPA, Bodega Máquina. "Bodega BPA" ya se usa
+         como nombre de referencia en el ticket 23 (step_bpa_inventory usa
+         una ubicación "BPA/Stock" con otro nombre técnico); si ese
+         módulo se instala en el mismo ambiente, alguien debe revisar y
+         evitar dos ubicaciones BPA distintas conviviendo. -->
+    <record id="stock_location_bodega_insumos" model="stock.location">
+        <field name="name">Bodega Insumos</field>
+        <field name="usage">internal</field>
+        <field name="location_id" ref="stock.stock_location_locations"/>
+    </record>
+    <record id="stock_location_bodega_fruta" model="stock.location">
+        <field name="name">Bodega Fruta</field>
+        <field name="usage">internal</field>
+        <field name="location_id" ref="stock.stock_location_locations"/>
+    </record>
+    <record id="stock_location_bodega_bpa" model="stock.location">
+        <field name="name">Bodega BPA</field>
+        <field name="usage">internal</field>
+        <field name="location_id" ref="stock.stock_location_locations"/>
+    </record>
+    <record id="stock_location_bodega_maquina" model="stock.location">
+        <field name="name">Bodega Máquina</field>
+        <field name="usage">internal</field>
+        <field name="location_id" ref="stock.stock_location_locations"/>
+    </record>
+</odoo>
