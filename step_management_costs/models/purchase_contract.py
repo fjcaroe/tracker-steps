@@ -191,7 +191,7 @@ class StepManagementPurchaseContractInstallment(models.Model):
     validation_criteria = fields.Char(string="Criterio de validación")
     state = fields.Selection(
         [("created", "Creado"), ("approved", "Aprobado"), ("posted", "Contabilizado")],
-        string="Estado", default="created", required=True, tracking=True,
+        string="Estado", default="created", required=True,
         help="«Contabilizado» describe la cuota una vez que el Contador "
              "generó su comprobante contable fuera de este módulo — T30 no "
              "define aún el mapeo de cuentas/diario para publicarlo "
