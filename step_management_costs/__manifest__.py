@@ -32,6 +32,7 @@
         "views/management_dashboard_views.xml",
         "views/production_order_views.xml",
         "views/production_order_report.xml",
+        "views/purchase_contract_views.xml",
         "wizard/budget_reopen_views.xml",
         "wizard/budget_variance_views.xml",
         "wizard/plan_weekly_preview_views.xml",

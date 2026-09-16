@@ -44,4 +44,8 @@
         <field name="name">Lote de carga histórica</field><field name="code">step.management.historical.import.batch</field>
         <field name="prefix">HIST/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
     </record>
+    <record id="seq_purchase_contract" model="ir.sequence">
+        <field name="name">Contrato de compra (anticipo a proveedor)</field><field name="code">step.management.purchase.contract</field>
+        <field name="prefix">CTR/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
 </odoo>

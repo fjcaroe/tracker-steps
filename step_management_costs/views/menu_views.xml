@@ -22,6 +22,8 @@
     <menuitem id="menu_crop_program_import" name="Carga de programas desde Excel" action="action_crop_program_import" parent="menu_management_planning" sequence="45"/>
     <menuitem id="menu_stock_requirement" name="Necesidades de stock" action="action_stock_requirement" parent="menu_management_planning" sequence="50"/>
     <menuitem id="menu_production_order" name="Orden de Producción" action="action_production_order" parent="menu_management_planning" sequence="60"/>
+    <menuitem id="menu_management_purchase" name="Compras / Contratos" parent="menu_management_root" sequence="25"/>
+    <menuitem id="menu_purchase_contract" name="Contratos de compra" action="action_purchase_contract" parent="menu_management_purchase" sequence="10"/>
     <menuitem id="menu_management_control" name="Control de costos" parent="menu_management_root" sequence="30"/>
     <menuitem id="menu_historical_cost" name="Presupuesto vs. real" action="action_historical_cost" parent="menu_management_control" sequence="10"/>
     <menuitem id="menu_historical_import_batch" name="Cargas históricas oficiales" action="action_historical_import_batch" parent="menu_management_control" sequence="20"/>

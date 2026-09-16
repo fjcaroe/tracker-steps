@@ -284,4 +284,16 @@
         <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
         <field name="groups" eval="[(5, 0, 0)]"/>
     </record>
+    <record id="rule_purchase_contract_company" model="ir.rule">
+        <field name="name">Contratos de compra por empresa</field>
+        <field name="model_id" ref="model_step_management_purchase_contract"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_purchase_contract_installment_company" model="ir.rule">
+        <field name="name">Cuotas de contrato de compra por empresa</field>
+        <field name="model_id" ref="model_step_management_purchase_contract_installment"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
 </odoo>

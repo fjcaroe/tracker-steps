@@ -20,3 +20,4 @@ from . import crop_program_import
 from . import stock_requirement
 from . import harvest_resource
 from . import production_order
+from . import purchase_contract

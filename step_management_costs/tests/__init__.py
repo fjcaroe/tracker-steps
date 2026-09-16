@@ -16,3 +16,4 @@ from . import test_v2_a_harvest
 from . import test_v2_b_historical_import
 from . import test_v2_c_committed
 from . import test_v2_f_dashboard
+from . import test_purchase_contract
