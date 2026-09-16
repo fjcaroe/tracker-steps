@@ -115,12 +115,14 @@ class StepManagementPurchaseContract(models.Model):
                     "menos una cuota antes de confirmar."
                 ) % contract.name)
             contract.state = "confirmed"
+        return True
 
     def action_close(self):
         for contract in self:
             if contract.state != "confirmed":
                 raise UserError(_("Sólo un contrato Confirmado puede cerrarse."))
             contract.state = "closed"
+        return True
 
     def action_revise(self):
         """T30 punto 3.b: ante un cambio de condiciones, se reversan las
@@ -244,3 +246,4 @@ class StepManagementPurchaseContractInstallment(models.Model):
             if line.state != "created":
                 raise UserError(_("Sólo una cuota Creada puede aprobarse."))
             line.state = "approved"
+        return True
