@@ -8,7 +8,7 @@
             <field name="pack_date" position="after">
                 <field name="is_fruit_tag"/>
             </field>
-            <xpath expr="//separator[@string='Content']" position="before">
+            <xpath expr="//field[@name='quant_ids']" position="before">
                 <group string="Tarja de fruta de exportación" invisible="not is_fruit_tag">
                     <group string="Origen">
                         <field name="fundo_id"/>
