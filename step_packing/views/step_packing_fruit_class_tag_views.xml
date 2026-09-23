@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_packing_fruit_class_tag_list" model="ir.ui.view">
+        <field name="name">step.packing.fruit.class.tag.list</field>
+        <field name="model">step.packing.fruit.class.tag</field>
+        <field name="arch" type="xml">
+            <list string="Clase de Fruta (etiqueta)">
+                    <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_packing_fruit_class_tag_form" model="ir.ui.view">
+        <field name="name">step.packing.fruit.class.tag.form</field>
+        <field name="model">step.packing.fruit.class.tag</field>
+        <field name="arch" type="xml">
+            <form string="Clase de Fruta (etiqueta)">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="color"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_packing_fruit_class_tag" model="ir.actions.act_window">
+        <field name="name">Clase de Fruta (etiqueta)</field>
+        <field name="res_model">step.packing.fruit.class.tag</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

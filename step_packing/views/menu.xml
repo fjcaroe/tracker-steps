@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_step_packing_root" name="Packing Campo" sequence="60"/>
+    <menuitem id="menu_step_packing_ops" name="Operaciones" parent="menu_step_packing_root" sequence="10"/>
+    <menuitem id="menu_step_packing_config" name="Configuración" parent="menu_step_packing_root" sequence="90"/>
+    <menuitem id="menu_step_packing_fruit_category" name="Categoría de Fruta" parent="menu_step_packing_config" action="action_step_packing_fruit_category"/>
+    <menuitem id="menu_step_packing_fruit_class" name="Clase de Fruta" parent="menu_step_packing_config" action="action_step_packing_fruit_class"/>
+    <menuitem id="menu_step_packing_caliber_group" name="Grupo de Calibre" parent="menu_step_packing_config" action="action_step_packing_caliber_group"/>
+    <menuitem id="menu_step_packing_fruit_caliber" name="Calibre de Fruta" parent="menu_step_packing_config" action="action_step_packing_fruit_caliber"/>
+    <menuitem id="menu_step_packing_process_type" name="Tipo de Proceso" parent="menu_step_packing_config" action="action_step_packing_process_type"/>
+    <menuitem id="menu_step_packing_correction_reason" name="Causa Corrección de Proceso" parent="menu_step_packing_config" action="action_step_packing_correction_reason"/>
+    <menuitem id="menu_step_packing_tag_state" name="Estado de Tarja" parent="menu_step_packing_config" action="action_step_packing_tag_state"/>
+    <menuitem id="menu_step_packing_tag_type" name="Tipo de Tarja" parent="menu_step_packing_config" action="action_step_packing_tag_type"/>
+    <menuitem id="menu_step_packing_stop_reason" name="Causa de Detención de Línea" parent="menu_step_packing_config" action="action_step_packing_stop_reason"/>
+    <menuitem id="menu_step_packing_line" name="Línea de Proceso" parent="menu_step_packing_config" action="action_step_packing_line"/>
+    <menuitem id="menu_step_packing_activity" name="Actividad Agrícola" parent="menu_step_packing_config" action="action_step_packing_activity"/>
+    <menuitem id="menu_step_packing_labor" name="Labor / Mano de Obra" parent="menu_step_packing_config" action="action_step_packing_labor"/>
+    <menuitem id="menu_step_packing_temperature_control" name="Control de Temperatura" parent="menu_step_packing_config" action="action_step_packing_temperature_control"/>
+    <menuitem id="menu_step_packing_inspection_sag" name="Inspección SAG" parent="menu_step_packing_config" action="action_step_packing_inspection_sag"/>
+    <menuitem id="menu_step_packing_inspection_usda" name="Inspección USDA" parent="menu_step_packing_config" action="action_step_packing_inspection_usda"/>
+    <menuitem id="menu_step_packing_fruit_category_tag" name="Categoría de Fruta (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_fruit_category_tag"/>
+    <menuitem id="menu_step_packing_fruit_class_tag" name="Clase de Fruta (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_fruit_class_tag"/>
+    <menuitem id="menu_step_packing_caliber_group_tag" name="Grupo de Calibre (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_caliber_group_tag"/>
+    <menuitem id="menu_step_packing_fruit_caliber_tag" name="Calibre de Fruta (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_fruit_caliber_tag"/>
+    <menuitem id="menu_step_packing_process_type_tag" name="Tipo de Proceso (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_process_type_tag"/>
+    <menuitem id="menu_step_packing_correction_reason_tag" name="Causa Corrección de Proceso (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_correction_reason_tag"/>
+    <menuitem id="menu_step_packing_tag_state_tag" name="Estado de Tarja (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_tag_state_tag"/>
+    <menuitem id="menu_step_packing_tag_type_tag" name="Tipo de Tarja (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_tag_type_tag"/>
+    <menuitem id="menu_step_packing_stop_reason_tag" name="Causa de Detención de Línea (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_stop_reason_tag"/>
+    <menuitem id="menu_step_packing_line_tag" name="Línea de Proceso (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_line_tag"/>
+    <menuitem id="menu_step_packing_activity_tag" name="Actividad Agrícola (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_activity_tag"/>
+    <menuitem id="menu_step_packing_campo_tag" name="Packing Campo (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_campo_tag"/>
+    <menuitem id="menu_step_packing_reception_tag" name="Recepción a Granel (etiqueta)" parent="menu_step_packing_config" action="action_step_packing_reception_tag"/>
+    <menuitem id="menu_step_packing_campo_stage" name="Packing Campo (etapa)" parent="menu_step_packing_config" action="action_step_packing_campo_stage"/>
+    <menuitem id="menu_step_packing_reception_stage" name="Recepción a Granel (etapa)" parent="menu_step_packing_config" action="action_step_packing_reception_stage"/>
+    <menuitem id="menu_step_packing_campo" name="Packing Campo" parent="menu_step_packing_ops" action="action_step_packing_campo"/>
+    <menuitem id="menu_step_packing_reception" name="Recepción a Granel" parent="menu_step_packing_ops" action="action_step_packing_reception"/>
+</odoo>

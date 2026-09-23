@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61"/>
+    <menuitem id="menu_step_export_ops" name="Operaciones" parent="menu_step_export_root" sequence="10"/>
+    <menuitem id="menu_step_export_config" name="Configuración" parent="menu_step_export_root" sequence="90"/>
+    <menuitem id="menu_step_export_vessel" name="Nave" parent="menu_step_export_config" action="action_step_export_vessel"/>
+    <menuitem id="menu_step_export_sale_mode" name="Modalidad de Venta" parent="menu_step_export_config" action="action_step_export_sale_mode"/>
+    <menuitem id="menu_step_export_payment_concept" name="Concepto de Pago Productor" parent="menu_step_export_config" action="action_step_export_payment_concept"/>
+    <menuitem id="menu_step_export_grower_discount" name="Ítem Productor (Descuento Liquidación)" parent="menu_step_export_config" action="action_step_export_grower_discount"/>
+    <menuitem id="menu_step_export_grower_rate" name="Tarifa Productor" parent="menu_step_export_config" action="action_step_export_grower_rate"/>
+    <menuitem id="menu_step_export_shipping_instruction" name="Instructivo de Embarque" parent="menu_step_export_config" action="action_step_export_shipping_instruction"/>
+    <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_config" action="action_step_export_dispatch_order"/>
+    <menuitem id="menu_step_export_customer_claim" name="Reclamo de Clientes" parent="menu_step_export_config" action="action_step_export_customer_claim"/>
+    <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_config" action="action_step_export_stock_reservation"/>
+    <menuitem id="menu_step_export_vessel_tag" name="Nave (etiqueta)" parent="menu_step_export_config" action="action_step_export_vessel_tag"/>
+    <menuitem id="menu_step_export_sale_mode_tag" name="Modalidad de Venta (etiqueta)" parent="menu_step_export_config" action="action_step_export_sale_mode_tag"/>
+    <menuitem id="menu_step_export_grower_discount_tag" name="Ítem Productor (Descuento Liquidación) (etiqueta)" parent="menu_step_export_config" action="action_step_export_grower_discount_tag"/>
+    <menuitem id="menu_step_export_grower_rate_tag" name="Tarifa Productor (etiqueta)" parent="menu_step_export_config" action="action_step_export_grower_rate_tag"/>
+    <menuitem id="menu_step_export_shipping_instruction_tag" name="Instructivo de Embarque (etiqueta)" parent="menu_step_export_config" action="action_step_export_shipping_instruction_tag"/>
+    <menuitem id="menu_step_export_export_tag" name="Exportación (etiqueta)" parent="menu_step_export_config" action="action_step_export_export_tag"/>
+    <menuitem id="menu_step_export_estimate_tag" name="Estimación de Cosecha (etiqueta)" parent="menu_step_export_config" action="action_step_export_estimate_tag"/>
+    <menuitem id="menu_step_export_export_stage" name="Exportación (etapa)" parent="menu_step_export_config" action="action_step_export_export_stage"/>
+    <menuitem id="menu_step_export_estimate_stage" name="Estimación de Cosecha (etapa)" parent="menu_step_export_config" action="action_step_export_estimate_stage"/>
+    <menuitem id="menu_step_export_export" name="Exportación" parent="menu_step_export_ops" action="action_step_export_export"/>
+    <menuitem id="menu_step_export_estimate" name="Estimación de Cosecha" parent="menu_step_export_ops" action="action_step_export_estimate"/>
+</odoo>

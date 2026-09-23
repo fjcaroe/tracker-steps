@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_packing_caliber_group_tag_list" model="ir.ui.view">
+        <field name="name">step.packing.caliber.group.tag.list</field>
+        <field name="model">step.packing.caliber.group.tag</field>
+        <field name="arch" type="xml">
+            <list string="Grupo de Calibre (etiqueta)">
+                    <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_packing_caliber_group_tag_form" model="ir.ui.view">
+        <field name="name">step.packing.caliber.group.tag.form</field>
+        <field name="model">step.packing.caliber.group.tag</field>
+        <field name="arch" type="xml">
+            <form string="Grupo de Calibre (etiqueta)">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="color"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_packing_caliber_group_tag" model="ir.actions.act_window">
+        <field name="name">Grupo de Calibre (etiqueta)</field>
+        <field name="res_model">step.packing.caliber.group.tag</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
