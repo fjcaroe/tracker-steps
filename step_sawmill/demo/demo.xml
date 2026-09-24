@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="demo_grade_1" model="step.sawmill.grade">
+        <field name="name">Primera</field>
+    </record>
+    <record id="demo_grade_2" model="step.sawmill.grade">
+        <field name="name">2da</field>
+    </record>
+    <record id="demo_grade_3" model="step.sawmill.grade">
+        <field name="name">Astillador</field>
+    </record>
+    <record id="demo_grade_4" model="step.sawmill.grade">
+        <field name="name">Ast 3ra</field>
+    </record>
+    <record id="demo_grade_5" model="step.sawmill.grade">
+        <field name="name">Cons Int</field>
+    </record>
+    <record id="demo_grade_6" model="step.sawmill.grade">
+        <field name="name">PP Elab</field>
+    </record>
+    <record id="demo_grade_7" model="step.sawmill.grade">
+        <field name="name">PP Impreg</field>
+    </record>
+    <record id="demo_grade_8" model="step.sawmill.grade">
+        <field name="name">PP Secado</field>
+    </record>
+    <record id="demo_quality_1" model="step.sawmill.quality">
+        <field name="name">E</field>
+    </record>
+    <record id="demo_quality_2" model="step.sawmill.quality">
+        <field name="name">Mancha</field>
+    </record>
+    <record id="demo_quality_3" model="step.sawmill.quality">
+        <field name="name">RGH</field>
+    </record>
+    <record id="demo_quality_4" model="step.sawmill.quality">
+        <field name="name">Venta</field>
+    </record>
+    <record id="demo_ptype_1" model="step.sawmill.product.type">
+        <field name="name">PP</field>
+    </record>
+    <record id="demo_ptype_2" model="step.sawmill.product.type">
+        <field name="name">PT</field>
+    </record>
+    <record id="demo_ptype_3" model="step.sawmill.product.type">
+        <field name="name">PPint</field>
+    </record>
+    <record id="demo_ptype_4" model="step.sawmill.product.type">
+        <field name="name">OT</field>
+    </record>
+    <record id="demo_ptype_5" model="step.sawmill.product.type">
+        <field name="name">CM</field>
+    </record>
+    <record id="demo_ptype_6" model="step.sawmill.product.type">
+        <field name="name">DV</field>
+    </record>
+    <record id="demo_ptype_7" model="step.sawmill.product.type">
+        <field name="name">SC</field>
+    </record>
+    <record id="demo_dest_1" model="step.sawmill.destination">
+        <field name="name">Astillador</field>
+        <field name="scope">internal</field>
+    </record>
+    <record id="demo_dest_2" model="step.sawmill.destination">
+        <field name="name">Consumo Interno</field>
+        <field name="scope">internal</field>
+    </record>
+    <record id="demo_dest_3" model="step.sawmill.destination">
+        <field name="name">MP Elaboración</field>
+        <field name="scope">internal</field>
+    </record>
+    <record id="demo_dest_4" model="step.sawmill.destination">
+        <field name="name">MP Impregnado</field>
+        <field name="scope">internal</field>
+    </record>
+    <record id="demo_dest_5" model="step.sawmill.destination">
+        <field name="name">MP Secado</field>
+        <field name="scope">internal</field>
+    </record>
+    <record id="demo_dest_6" model="step.sawmill.destination">
+        <field name="name">MP Reproceso</field>
+        <field name="scope">internal</field>
+    </record>
+    <record id="demo_dest_7" model="step.sawmill.destination">
+        <field name="name">Venta Nacional</field>
+        <field name="scope">external</field>
+    </record>
+    <record id="demo_dest_8" model="step.sawmill.destination">
+        <field name="name">Venta Retail</field>
+        <field name="scope">external</field>
+    </record>
+    <record id="demo_dest_9" model="step.sawmill.destination">
+        <field name="name">Venta Exportación</field>
+        <field name="scope">external</field>
+    </record>
+    <record id="demo_driver_1" model="step.sawmill.costing.driver">
+        <field name="name">Metros cúbicos</field>
+    </record>
+    <record id="demo_driver_2" model="step.sawmill.costing.driver">
+        <field name="name">Pulgadas</field>
+    </record>
+    <record id="demo_driver_3" model="step.sawmill.costing.driver">
+        <field name="name">Numeral</field>
+    </record>
+    <record id="demo_driver_4" model="step.sawmill.costing.driver">
+        <field name="name">UdM</field>
+    </record>
+    <record id="demo_driver_5" model="step.sawmill.costing.driver">
+        <field name="name">Hrs jornadas</field>
+    </record>
+    <record id="demo_driver_6" model="step.sawmill.costing.driver">
+        <field name="name">Hrs máquina</field>
+    </record>
+    <record id="demo_ptype_proc_1" model="step.sawmill.process.type">
+        <field name="name">Aserrío trozas</field>
+        <field name="category">production</field>
+    </record>
+    <record id="demo_ptype_proc_2" model="step.sawmill.process.type">
+        <field name="name">Elaboración</field>
+        <field name="category">production</field>
+    </record>
+    <record id="demo_ptype_proc_3" model="step.sawmill.process.type">
+        <field name="name">Secado</field>
+        <field name="category">production</field>
+    </record>
+    <record id="demo_ptype_proc_4" model="step.sawmill.process.type">
+        <field name="name">Impregnación</field>
+        <field name="category">production</field>
+    </record>
+    <record id="demo_shift_1" model="step.sawmill.shift">
+        <field name="name">Turno A</field>
+        <field name="hour_from">8.0</field>
+        <field name="hour_to">16.0</field>
+    </record>
+    <record id="demo_shift_2" model="step.sawmill.shift">
+        <field name="name">Turno B</field>
+        <field name="hour_from">16.0</field>
+        <field name="hour_to">24.0</field>
+    </record>
+</odoo>

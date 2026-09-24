@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_sawmill_grade_list" model="ir.ui.view">
+        <field name="name">step.sawmill.grade.list</field>
+        <field name="model">step.sawmill.grade</field>
+        <field name="arch" type="xml">
+            <list string="Grado de madera" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_grade_form" model="ir.ui.view">
+        <field name="name">step.sawmill.grade.form</field>
+        <field name="model">step.sawmill.grade</field>
+        <field name="arch" type="xml">
+            <form string="Grado de madera">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_grade" model="ir.actions.act_window">
+        <field name="name">Grado de madera</field>
+        <field name="res_model">step.sawmill.grade</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_quality_list" model="ir.ui.view">
+        <field name="name">step.sawmill.quality.list</field>
+        <field name="model">step.sawmill.quality</field>
+        <field name="arch" type="xml">
+            <list string="Calidad de madera" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="workcenter_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_quality_form" model="ir.ui.view">
+        <field name="name">step.sawmill.quality.form</field>
+        <field name="model">step.sawmill.quality</field>
+        <field name="arch" type="xml">
+            <form string="Calidad de madera">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                    <field name="workcenter_id"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_quality" model="ir.actions.act_window">
+        <field name="name">Calidad de madera</field>
+        <field name="res_model">step.sawmill.quality</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_product_type_list" model="ir.ui.view">
+        <field name="name">step.sawmill.product_type.list</field>
+        <field name="model">step.sawmill.product.type</field>
+        <field name="arch" type="xml">
+            <list string="Tipo de producto" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="description"/>
+                <field name="workcenter_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_product_type_form" model="ir.ui.view">
+        <field name="name">step.sawmill.product_type.form</field>
+        <field name="model">step.sawmill.product.type</field>
+        <field name="arch" type="xml">
+            <form string="Tipo de producto">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                    <field name="description"/>
+                    <field name="workcenter_id"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_product_type" model="ir.actions.act_window">
+        <field name="name">Tipo de producto</field>
+        <field name="res_model">step.sawmill.product.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_destination_list" model="ir.ui.view">
+        <field name="name">step.sawmill.destination.list</field>
+        <field name="model">step.sawmill.destination</field>
+        <field name="arch" type="xml">
+            <list string="Destino de producto" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="description"/>
+                <field name="scope"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_destination_form" model="ir.ui.view">
+        <field name="name">step.sawmill.destination.form</field>
+        <field name="model">step.sawmill.destination</field>
+        <field name="arch" type="xml">
+            <form string="Destino de producto">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                    <field name="description"/>
+                    <field name="scope"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_destination" model="ir.actions.act_window">
+        <field name="name">Destino de producto</field>
+        <field name="res_model">step.sawmill.destination</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_costing_driver_list" model="ir.ui.view">
+        <field name="name">step.sawmill.costing_driver.list</field>
+        <field name="model">step.sawmill.costing.driver</field>
+        <field name="arch" type="xml">
+            <list string="Driver de costeo" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_costing_driver_form" model="ir.ui.view">
+        <field name="name">step.sawmill.costing_driver.form</field>
+        <field name="model">step.sawmill.costing.driver</field>
+        <field name="arch" type="xml">
+            <form string="Driver de costeo">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_costing_driver" model="ir.actions.act_window">
+        <field name="name">Driver de costeo</field>
+        <field name="res_model">step.sawmill.costing.driver</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_shift_list" model="ir.ui.view">
+        <field name="name">step.sawmill.shift.list</field>
+        <field name="model">step.sawmill.shift</field>
+        <field name="arch" type="xml">
+            <list string="Turno" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="hour_from"/>
+                <field name="hour_to"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_shift_form" model="ir.ui.view">
+        <field name="name">step.sawmill.shift.form</field>
+        <field name="model">step.sawmill.shift</field>
+        <field name="arch" type="xml">
+            <form string="Turno">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                    <field name="hour_from"/>
+                    <field name="hour_to"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_shift" model="ir.actions.act_window">
+        <field name="name">Turno</field>
+        <field name="res_model">step.sawmill.shift</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_process_type_list" model="ir.ui.view">
+        <field name="name">step.sawmill.process_type.list</field>
+        <field name="model">step.sawmill.process.type</field>
+        <field name="arch" type="xml">
+            <list string="Tipo de proceso" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="category"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_process_type_form" model="ir.ui.view">
+        <field name="name">step.sawmill.process_type.form</field>
+        <field name="model">step.sawmill.process.type</field>
+        <field name="arch" type="xml">
+            <form string="Tipo de proceso">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                    <field name="category"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_process_type" model="ir.actions.act_window">
+        <field name="name">Tipo de proceso</field>
+        <field name="res_model">step.sawmill.process.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_step_sawmill_process_line_list" model="ir.ui.view">
+        <field name="name">step.sawmill.process_line.list</field>
+        <field name="model">step.sawmill.process.line</field>
+        <field name="arch" type="xml">
+            <list string="Línea / máquina de proceso" editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="workcenter_id"/>
+                <field name="staff_total"/>
+                <field name="capacity_inches"/>
+                <field name="capacity_m3"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_process_line_form" model="ir.ui.view">
+        <field name="name">step.sawmill.process_line.form</field>
+        <field name="model">step.sawmill.process.line</field>
+        <field name="arch" type="xml">
+            <form string="Línea / máquina de proceso">
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <field name="name"/>
+                    <field name="workcenter_id"/>
+                    <field name="staff_total"/>
+                    <field name="capacity_inches"/>
+                    <field name="capacity_m3"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="active" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_sawmill_process_line" model="ir.actions.act_window">
+        <field name="name">Línea / máquina de proceso</field>
+        <field name="res_model">step.sawmill.process.line</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
