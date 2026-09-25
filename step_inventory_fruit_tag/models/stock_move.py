@@ -18,7 +18,12 @@ class StockMove(models.Model):
         help="Cantidad convertida a kilogramos usando el peso del producto.",
     )
 
-    @api.depends("product_uom_qty", "product_id.weight")
+    @api.depends("product_uom_qty", "product_uom", "product_id.weight", "product_id.uom_id")
     def _compute_fruit_tag_kilos(self):
         for move in self:
-            move.fruit_tag_kilos = move.product_uom_qty * move.product_id.weight
+            kg = self.env.ref("uom.product_uom_kgm")
+            if move.product_uom.category_id == kg.category_id:
+                move.fruit_tag_kilos = move.product_uom._compute_quantity(move.product_uom_qty, kg, round=False)
+            else:
+                units = move.product_uom._compute_quantity(move.product_uom_qty, move.product_id.uom_id, round=False)
+                move.fruit_tag_kilos = units * move.product_id.weight

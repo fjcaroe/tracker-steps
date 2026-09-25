@@ -1,0 +1,1 @@
+{'name': 'Steps - Contratos en flujo de caja', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['step_purchase_contract_account', 'step_account_treasury'], 'installable': True, 'data': ['security/ir.model.access.csv']}

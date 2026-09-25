@@ -1,0 +1,1 @@
+{'name': 'Steps - Cosecha con OP y OT en Inventario', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['step_inventory_dispatch', 'step_cosecha'], 'data': ['views/harvest.xml'], 'installable': True}

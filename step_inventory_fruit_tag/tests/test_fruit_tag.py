@@ -22,7 +22,8 @@ class TestFruitTag(TransactionCase):
             "name": "Arándano test",
             "is_storable": True,
             "weight": 5.0,
-            "uom_id": cls.uom_kg.id,
+            "uom_id": cls.env.ref("uom.product_uom_unit").id,
+            "uom_po_id": cls.env.ref("uom.product_uom_unit").id,
         }).product_variant_id
 
     def test_real_warehouses_seeded(self):

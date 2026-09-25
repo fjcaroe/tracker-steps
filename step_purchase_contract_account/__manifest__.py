@@ -1,0 +1,1 @@
+{'name': 'Steps - Contratos de compra y provisiones', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['step_management_costs', 'purchase_stock'], 'data': ['security/ir.model.access.csv', 'views/contract.xml'], 'installable': True}

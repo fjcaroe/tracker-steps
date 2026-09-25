@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <record id="picking_form" model="ir.ui.view">
+        <field name="name">picking.op.dispatch.form</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="step_inventory_fruit_tag.view_picking_form_op_ot" />
+        <field name="arch" type="xml">
+            <field name="num_op" position="before">
+                <field name="production_order_id" readonly="state in ['done','cancel']" />
+            </field>
+        </field>
+    </record>
+</odoo>

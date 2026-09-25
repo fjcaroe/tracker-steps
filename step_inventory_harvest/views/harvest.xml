@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <record id="harvest_form" model="ir.ui.view">
+        <field name="name">harvest.op.inventory.form</field>
+        <field name="model">step.cosecha.registry</field>
+        <field name="inherit_id" ref="step_cosecha.view_step_cosecha_registry_form" />
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="production_order_id" />
+            </field>
+        </field>
+    </record>
+</odoo>

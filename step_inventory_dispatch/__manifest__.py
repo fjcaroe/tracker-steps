@@ -1,0 +1,1 @@
+{'name': 'Steps - Inventario y guías de despacho', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['step_inventory_fruit_tag', 'step_dispatch_guide'], 'data': ['security/ir.model.access.csv', 'views/picking.xml'], 'installable': True}

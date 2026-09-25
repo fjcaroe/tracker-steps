@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+stock_read_op,stock_read_op,step_management_costs.model_step_management_production_order,stock.group_stock_user,1,0,0,0

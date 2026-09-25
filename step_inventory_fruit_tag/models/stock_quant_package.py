@@ -52,11 +52,13 @@ class StockQuantPackage(models.Model):
         help="Suma de cantidad × peso del producto (kg) de cada quant contenido.",
     )
 
-    @api.depends("quant_ids.quantity", "quant_ids.product_id.weight")
+    @api.depends("quant_ids.quantity", "quant_ids.product_id.weight", "quant_ids.product_id.uom_id")
     def _compute_kilos_total(self):
         for package in self:
             package.kilos_total = sum(
-                quant.quantity * quant.product_id.weight
+                (quant.product_id.uom_id._compute_quantity(quant.quantity, self.env.ref("uom.product_uom_kgm"), round=False)
+                 if quant.product_id.uom_id.category_id == self.env.ref("uom.product_uom_kgm").category_id
+                 else quant.quantity * quant.product_id.weight)
                 for quant in package.quant_ids
             )
 

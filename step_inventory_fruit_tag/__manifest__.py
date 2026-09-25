@@ -21,7 +21,7 @@
         - Campos "Número OP" / "Número OT" en el formulario de Operaciones
           de Inventario (stock.picking).
     """,
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "author": "Steps Consulting",
     "category": "Inventory/Inventory",
     "license": "LGPL-3",
