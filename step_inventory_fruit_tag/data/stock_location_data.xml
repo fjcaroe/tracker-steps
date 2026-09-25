@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- El cliente confirmó 4 bodegas reales en el ticket 22 (adjunto
+         "respuesta pregunta 14-09-2026.docx"): Bodega Insumos, Bodega
+         Fruta, Bodega BPA, Bodega Máquina.
+
+         Sólo se siembran aquí las 2 que no existen todavía: "Bodega BPA"
+         y "Bodega Máquina" YA tienen una ubicación equivalente en el
+         ambiente `desarrollo`, creada por los módulos puente de los
+         tickets 23 y 24 (step_bpa_inventory: "BPA/Stock" /
+         step_machinery_inventory: "MQ/Stock") con nombre técnico en vez
+         del nombre real que dio el cliente después. Crear "Bodega BPA" /
+         "Bodega Máquina" aquí duplicaría la bodega en vez de nombrarla
+         bien; eso lo debe decidir una persona (renombrar las
+         ubicaciones existentes de esos módulos, o dejarlas así). Ver nota
+         del ticket 22. -->
+    <record id="stock_location_bodega_insumos" model="stock.location">
+        <field name="name">Bodega Insumos</field>
+        <field name="usage">internal</field>
+        <field name="location_id" ref="stock.stock_location_locations"/>
+    </record>
+    <record id="stock_location_bodega_fruta" model="stock.location">
+        <field name="name">Bodega Fruta</field>
+        <field name="usage">internal</field>
+        <field name="location_id" ref="stock.stock_location_locations"/>
+    </record>
+</odoo>

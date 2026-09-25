@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_plan_weekly_preview_wizard_form" model="ir.ui.view">
+        <field name="name">step.management.plan.weekly.preview.wizard.form</field>
+        <field name="model">step.management.plan.weekly.preview.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Vista previa: regenerar tareas semanales">
+                <div class="alert alert-warning" role="alert">
+                    Al confirmar se eliminarán las tareas generadas anteriormente y se
+                    crearán las nuevas. Las tareas manuales nunca se tocan.
+                </div>
+                <field name="fingerprint" invisible="1"/>
+                <group>
+                    <field name="plan_id" readonly="1"/>
+                    <field name="season" readonly="1"/>
+                </group>
+                <group col="3">
+                    <field name="remove_count" readonly="1" string="A eliminar (generadas)"/>
+                    <field name="add_count" readonly="1" string="A crear (nuevas)"/>
+                    <field name="keep_manual_count" readonly="1" string="Manuales que se conservan"/>
+                </group>
+                <field name="preview_line_ids" readonly="1">
+                    <list>
+                        <field name="date"/>
+                        <field name="week_label"/>
+                        <field name="center_id"/>
+                        <field name="indicator"/>
+                        <field name="quantity"/>
+                        <field name="uom_id"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirmar y regenerar" class="btn-primary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

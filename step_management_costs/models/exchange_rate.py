@@ -2,7 +2,7 @@ import calendar
 from datetime import date
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 
 MONTH_SELECTION = [
@@ -23,6 +23,7 @@ class StepManagementExchangeRate(models.Model):
     _description = "Tipo de cambio estimado mensual de gestión"
     _order = "year desc, month desc, currency_id"
     _rec_name = "name"
+    _check_company_auto = True
 
     name = fields.Char(compute="_compute_name", store=True)
     company_id = fields.Many2one(
@@ -104,6 +105,13 @@ class StepManagementExchangeRate(models.Model):
                 raise ValidationError("La moneda de la empresa siempre debe tener valor 1.")
 
     def action_load_odoo_rate(self):
+        if self and not self.env.user.has_group(
+            "step_management_costs.group_management_manager"
+        ):
+            raise UserError(_(
+                "Sólo el administrador de Gestión y Costos puede modificar "
+                "las tasas estimadas."
+            ))
         for record in self:
             if not record.currency_id or not record.company_id or not record.year or not record.month:
                 continue

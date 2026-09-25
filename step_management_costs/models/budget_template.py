@@ -14,6 +14,7 @@ class StepManagementBudgetTemplate(models.Model):
     _description = "Plantilla de presupuesto operacional"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "active desc, name"
+    _check_company_auto = True
 
     name = fields.Char(string="Nombre", required=True, tracking=True)
     version = fields.Char(string="Versión", default="1.0", required=True, tracking=True)
@@ -67,10 +68,11 @@ class StepManagementBudgetTemplate(models.Model):
     )
     active = fields.Boolean(default=True)
 
-    @api.depends("line_ids.cost_per_ha")
+    @api.depends("line_ids.cost_per_ha", "line_ids.flow_type")
     def _compute_totals(self):
         for record in self:
-            record.total_per_ha = sum(record.line_ids.mapped("cost_per_ha"))
+            cost_lines = record.line_ids.filtered(lambda line: line.flow_type != "income")
+            record.total_per_ha = sum(cost_lines.mapped("cost_per_ha"))
             record.line_count = len(record.line_ids)
 
     @api.depends(
@@ -109,9 +111,13 @@ class StepManagementBudgetTemplateLine(models.Model):
     _name = "step.management.budget.template.line"
     _description = "Indicador de plantilla presupuestaria"
     _order = "sequence, id"
+    _check_company_auto = True
 
     template_id = fields.Many2one(
         "step.management.budget.template", required=True, ondelete="cascade", index=True
+    )
+    company_id = fields.Many2one(
+        related="template_id.company_id", string="Empresa", store=True, index=True,
     )
     sequence = fields.Integer(default=10)
     category = fields.Selection(
@@ -121,7 +127,11 @@ class StepManagementBudgetTemplateLine(models.Model):
     )
     group_id = fields.Many2one(
         "step.management.budget.group", string="Grupo presupuestario", required=True,
+        check_company=True,
         domain="[('company_id', '=', parent.company_id)]",
+    )
+    flow_type = fields.Selection(
+        related="group_id.flow_type", string="Naturaleza", store=True,
     )
     indicator = fields.Char(string="Indicador / labor", required=True)
     activity = fields.Char(string="Actividad")

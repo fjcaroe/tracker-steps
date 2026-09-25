@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Precisión de peso para el reparto de kilos de la estimación.
+         Se lee en step.management.estimation._kg_rounding(); el residuo de
+         redondeo se asigna a la última línea ordenada de cada eje. -->
+    <record id="decimal_precision_estimation_kg" model="decimal.precision">
+        <field name="name">Estimación de cosecha</field>
+        <field name="digits">2</field>
+    </record>
+</odoo>

@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_purchase_contract_list" model="ir.ui.view"><field name="name">step.management.purchase.contract.list</field><field name="model">step.management.purchase.contract</field><field name="arch" type="xml">
+        <list><field name="name"/><field name="partner_id"/><field name="operation_type"/><field name="date_start"/><field name="date_end"/><field name="quantity_total" sum="Total cantidad"/><field name="amount_total" sum="Total neto a pago"/><field name="version"/><field name="state" widget="badge" decoration-success="state == 'confirmed'" decoration-muted="state == 'closed'"/><field name="company_id" groups="base.group_multi_company" optional="hide"/></list>
+    </field></record>
+    <record id="view_purchase_contract_form" model="ir.ui.view"><field name="name">step.management.purchase.contract.form</field><field name="model">step.management.purchase.contract</field><field name="arch" type="xml">
+        <form><header>
+            <button name="action_confirm" type="object" string="Confirmar" class="btn-primary" invisible="state != 'draft'"/>
+            <button name="action_close" type="object" string="Cerrar" invisible="state != 'confirmed'" groups="step_management_costs.group_management_approver"/>
+            <button name="action_revise" type="object" string="Revisar condiciones" invisible="state != 'confirmed' or is_superseded" groups="step_management_costs.group_management_approver"/>
+            <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,closed"/>
+        </header><sheet>
+            <widget name="web_ribbon" title="Reemplazado" bg_color="text-bg-warning" invisible="not is_superseded"/>
+            <div class="oe_title"><label for="name"/><h1><field name="name" readonly="1"/></h1></div>
+            <group>
+                <group string="Contrato">
+                    <field name="partner_id"/>
+                    <field name="operation_type" placeholder="Ej.: Fruta: Recepción fruta"/>
+                    <field name="reference"/>
+                    <field name="currency_id" groups="base.group_multi_currency"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </group>
+                <group string="Vigencia">
+                    <field name="date_start"/>
+                    <field name="date_end"/>
+                    <field name="version"/>
+                    <field name="parent_id" readonly="1"/>
+                    <field name="revision_ids" widget="many2many_tags" readonly="1"/>
+                </group>
+            </group>
+            <notebook>
+                <page string="Calendario de pago">
+                    <field name="installment_ids" context="{'default_active': True}">
+                        <list editable="bottom" decoration-muted="not active">
+                            <field name="sequence" widget="handle"/>
+                            <field name="product_id"/>
+                            <field name="quantity"/>
+                            <field name="uom_id"/>
+                            <field name="price_unit"/>
+                            <field name="amount" sum="Neto a pago"/>
+                            <field name="date_due"/>
+                            <field name="validation_criteria"/>
+                            <field name="state" widget="badge"/>
+                            <field name="active" column_invisible="1"/>
+                            <button name="action_approve" type="object" string="Aprobar" invisible="state != 'created'" icon="fa-check"/>
+                        </list>
+                    </field>
+                    <group class="oe_subtotal_footer">
+                        <field name="quantity_total"/>
+                        <field name="amount_total"/>
+                    </group>
+                </page>
+                <page string="Notas">
+                    <field name="notes"/>
+                </page>
+            </notebook>
+        </sheet><chatter/></form>
+    </field></record>
+    <record id="view_purchase_contract_search" model="ir.ui.view"><field name="name">step.management.purchase.contract.search</field><field name="model">step.management.purchase.contract</field><field name="arch" type="xml"><search><field name="name"/><field name="partner_id"/><field name="operation_type"/><filter string="Borrador" name="draft" domain="[('state','=','draft')]"/><filter string="Confirmado" name="confirmed" domain="[('state','=','confirmed')]"/><filter string="Cerrado" name="closed" domain="[('state','=','closed')]"/><filter string="Reemplazados" name="superseded" domain="[('is_superseded','=',True)]"/><group expand="0" string="Agrupar por"><filter string="Proveedor" name="partner_group" context="{'group_by':'partner_id'}"/><filter string="Estado" name="state_group" context="{'group_by':'state'}"/></group></search></field></record>
+    <record id="action_purchase_contract" model="ir.actions.act_window"><field name="name">Contratos de compra</field><field name="res_model">step.management.purchase.contract</field><field name="view_mode">list,form</field><field name="search_view_id" ref="view_purchase_contract_search"/><field name="help" type="html"><p class="o_view_nocontent_smiling_face">Cree un contrato de compra con anticipo a un proveedor y su calendario de pago.</p></field></record>
+</odoo>

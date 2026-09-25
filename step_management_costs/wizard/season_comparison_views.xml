@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_season_comparison_wizard_form" model="ir.ui.view">
+        <field name="name">step.management.season.comparison.wizard.form</field>
+        <field name="model">step.management.season.comparison.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Comparativo de temporada">
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="season"/>
+                        <field name="previous_season"/>
+                    </group>
+                    <group>
+                        <field name="dimension"/>
+                        <field name="metric"/>
+                    </group>
+                </group>
+                <div class="alert alert-info" role="alert" invisible="computed">
+                    Compara la temporada seleccionada contra la temporada
+                    anterior, por la dimensión elegida. Fuente: hecho
+                    histórico normalizado (Control de costos). Pulse
+                    <em>Calcular</em>.
+                </div>
+                <button name="action_compute" type="object" string="Calcular" class="btn-primary"/>
+                <div class="row g-3 my-3" invisible="not computed">
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Temporada actual</span><span class="fs-4 fw-bold"><field name="total_current_amount" widget="monetary"/></span></div></div>
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Temporada anterior</span><span class="fs-4 fw-bold"><field name="total_previous_amount" widget="monetary"/></span></div></div>
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Variación $</span><span class="fs-4 fw-bold"><field name="total_variance_amount" widget="monetary"/></span></div></div>
+                    <div class="col-lg-3"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Variación %</span><span class="fs-4 fw-bold"><field name="total_variance_percent" widget="percentage" invisible="not total_variance_percent_available"/><span invisible="total_variance_percent_available" class="text-muted">— sin base</span></span></div></div>
+                </div>
+                <field name="line_ids" invisible="not computed">
+                    <list create="false" edit="false">
+                        <field name="dimension_value"/>
+                        <field name="current_amount" sum="Actual"/>
+                        <field name="previous_amount" sum="Anterior"/>
+                        <field name="current_amount_usd" sum="Actual US$" optional="show"/>
+                        <field name="previous_amount_usd" sum="Anterior US$" optional="show"/>
+                        <field name="variance_amount" sum="Var $"/>
+                        <field name="variance_percent" widget="percentage" invisible="not variance_percent_available"/>
+                        <field name="variance_percent_available" column_invisible="True"/>
+                        <field name="currency_id" column_invisible="True"/>
+                    </list>
+                </field>
+                <footer>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_season_comparison_wizard" model="ir.actions.act_window">
+        <field name="name">Comparativo de temporada</field>
+        <field name="res_model">step.management.season.comparison.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
