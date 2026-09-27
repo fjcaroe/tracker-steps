@@ -28,8 +28,11 @@ class TestPackingFruta(TransactionCase):
         })
         cls.species = cls.env['step.especie'].create({
             'name': 'Cereza prueba T34', 'type_especie': 'frutal', 'group_especie': 'fruta_h'})
+        cls.variety_group = cls.env['step.grupo.variedad'].create({
+            'name': 'Rojas prueba T34', 'especie_id': cls.species.id})
         cls.variety = cls.env['step.variedad'].create({
             'name': 'Lapins prueba T34', 'cod_variedad': 'T34LAP', 'especie_id': cls.species.id,
+            'grupo_variedad_id': cls.variety_group.id,
         })
         cls.fundo = cls.env['step.fundo'].create({'name': 'Fundo prueba T34'})
         cls.category = cls.env['step.packing.fruit.category'].create({'name': 'Exportación T34'})
