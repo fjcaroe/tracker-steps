@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="helpdesk.helpdesk_tickets_view_search"/>
         <field name="arch" type="xml">
             <xpath expr="//filter[@name='unassigned']" position="after">
-                <filter name="steps_no_customer" string="Sin cliente" domain="[('partner_id', '=', False)]" help="Tickets aún sin un cliente asignado para el seguimiento en el portal"/>
+                <filter name="steps_no_customer" string="Sin cliente" domain="[('partner_id', '=', False)]" help="Solicitudes internas o tickets sin cliente asociado"/>
             </xpath>
         </field>
     </record>
@@ -17,10 +17,10 @@
         <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[hasclass('oe_title')]" position="after">
-                <div class="steps-support-customer-note alert alert-warning" role="status" invisible="partner_id or team_privacy_visibility != 'portal'">
+                <div class="steps-support-customer-note alert alert-info" role="status" invisible="partner_id or team_privacy_visibility != 'portal'">
                     <i class="fa fa-user-o me-2" aria-hidden="true"/>
-                    <strong>Falta asociar un cliente.</strong>
-                    Así podrá encontrar y seguir este ticket desde su portal.
+                    <strong>Solicitud sin cliente asociado.</strong>
+                    Puede gestionarse internamente. Si corresponde a un cliente con cuenta, asígnalo en el campo Cliente para que pueda seguirla desde su portal.
                 </div>
             </xpath>
         </field>

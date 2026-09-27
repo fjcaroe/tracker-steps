@@ -77,10 +77,12 @@ ticket y los accesos para continuar.
 
 El portal muestra un acceso a crear solicitudes tanto en la lista como en la
 ficha de ticket, además de un estado vacío que orienta al cliente. En el
-backend, el filtro «Sin cliente» localiza tickets pendientes de asociación y
-la ficha avisa cuando un ticket de equipo visible para portal carece de
-cliente. Los listados, kanban e informes comparten la paleta y el espaciado
-de Steps.
+backend, el filtro «Sin cliente» localiza solicitudes internas y tickets sin
+cliente asociado. La ficha muestra una nota informativa solo en equipos
+visibles para portal: una solicitud interna, como el ticket 35 creado por el
+administrador, puede gestionarse sin cliente; si corresponde a alguien con
+cuenta, se puede asociar para que la siga desde su portal. Los listados,
+kanban e informes comparten la paleta y el espaciado de Steps.
 
 La creación y confirmación de tickets se comprobaron con un ticket sintético
 en una base aislada. También se verificó que el filtro y el aviso están en
