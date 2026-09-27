@@ -3,7 +3,7 @@
     "name": "Steps - Exportaciones",
     "summary": "Exportaciones, tarifas a productor y estimacion de cosecha "
                 "(puerto desde Studio, ticket 33 Cerro El Plomo).",
-    "version": "18.0.2.2.0",
+    "version": "18.0.2.3.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",

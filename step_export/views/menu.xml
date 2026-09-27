@@ -53,4 +53,14 @@
     <menuitem id="menu_step_export_estimate_stage" name="Estimación de Cosecha (etapa)" parent="menu_step_export_config" action="action_step_export_estimate_stage"/>
     <menuitem id="menu_step_export_export" name="Exportación" parent="menu_step_export_ops" action="action_step_export_export"/>
     <menuitem id="menu_step_export_estimate" name="Estimación de Cosecha" parent="menu_step_export_ops" action="action_step_export_estimate"/>
+
+    <!-- App Packing Fruta (ticket 34): piezas de Studio que viven en este modulo. -->
+    <menuitem id="menu_packing_fruta_estimate" name="Estimaciones" parent="step_packing.menu_packing_fruta_planning"
+              action="action_step_export_estimate" sequence="10"/>
+    <menuitem id="menu_packing_fruta_stock_reservation" name="Reservar Stock" parent="step_packing.menu_packing_fruta_receptions"
+              action="action_step_export_stock_reservation" sequence="30"/>
+    <menuitem id="menu_packing_fruta_dispatch_order" name="Orden de despacho" parent="step_packing.menu_packing_fruta_dispatch_root"
+              action="action_step_export_dispatch_order" sequence="10"/>
+    <menuitem id="menu_packing_fruta_vessel" name="Naves" parent="step_packing.menu_packing_fruta_config_export"
+              action="action_step_export_vessel" sequence="10"/>
 </odoo>

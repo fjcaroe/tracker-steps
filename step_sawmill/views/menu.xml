@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <menuitem id="menu_step_sawmill_root" name="Aserradero" sequence="65"
+              web_icon="step_sawmill,static/description/icon.png"
               groups="group_sawmill_user"/>
 
     <menuitem id="menu_step_sawmill_planning" name="Planificación" parent="menu_step_sawmill_root" sequence="10"/>

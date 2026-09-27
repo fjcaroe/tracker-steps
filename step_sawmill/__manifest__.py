@@ -16,7 +16,7 @@ Solo depende de módulos estándar de Odoo (base, mail, product, stock, mrp, hr)
 no requiere ningún otro módulo Steps ni Enterprise, para poder instalarse en
 otras instancias.
 """,
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Manufacturing",
     "author": "Steps Consulting",
     "license": "LGPL-3",

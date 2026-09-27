@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Packing Fruta (ticket 34): datos del proceso de fruta en la orden de fabricacion. -->
+    <record id="view_mrp_production_form_packing_fruit" model="ir.ui.view">
+        <field name="name">mrp.production.form.step.packing.fruit</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Fruta" name="step_packing_fruit">
+                    <group>
+                        <group string="Proceso">
+                            <field name="fruit_process_type_id"/>
+                            <field name="fruit_shift"/>
+                            <field name="fruit_type"/>
+                        </group>
+                        <group string="Origen">
+                            <field name="fruit_grower_id"/>
+                            <field name="fruit_fundo_id"/>
+                            <field name="fruit_species_id"/>
+                            <field name="fruit_variety_id"/>
+                            <field name="fruit_commercial_variety_id"/>
+                        </group>
+                        <group string="Destino">
+                            <field name="fruit_service_customer_id"/>
+                            <field name="fruit_receiver_id"/>
+                            <field name="fruit_shipment_ref"/>
+                            <field name="fruit_order_ref"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
