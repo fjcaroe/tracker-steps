@@ -37,7 +37,7 @@ class TestDispatchGuide(TransactionCase):
             "external_folio": folio, "partner_id": (partner or self.partner).id,
             "transfer_reason_id": (reason or self.reason_sale).id,
             "origin_address": "Fundo El Rayo", "destination_address": "Packing Buin",
-            "carrier_id": self.carrier.id, "driver_partner_id": self.driver.id, "truck_plate": "ABCD12",
+            "carrier_id": self.carrier.id, "driver_partner_id": self.driver.id,
             "line_ids": [
                 Command.create({"product_id": self.product.id, "description": "Mandarinas sector 1A",
                                 "product_uom_id": self.product.uom_id.id, "quantity": 10, "price_unit": 1000,
@@ -48,6 +48,8 @@ class TestDispatchGuide(TransactionCase):
                                 "bin_count": 32, "quantity_kg": 12549}),
             ],
         }
+        if "vehicle_id" not in extra:
+            vals["truck_plate"] = "ABCD12"
         vals.update(extra)
         return self.env["step.dispatch.guide"].create(vals)
 
