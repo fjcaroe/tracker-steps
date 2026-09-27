@@ -94,6 +94,12 @@ debe conservar `t-if="not grouped_tickets"` porque la plantilla base le sigue
 con un `t-else`. La vista heredada compiló correctamente en la base de
 producción después de actualizar el módulo.
 
+En el detalle del portal, el hilo de comunicación sigue mostrando los mensajes
+compartidos con clientes. Si el usuario pertenece al equipo de Helpdesk y tiene
+permiso de lectura sobre el ticket, la página también muestra las notas
+internas con sus adjuntos, además de un acceso a la ficha de gestión. El
+ticket 35 conserva sus respaldos sin exponerlos a cuentas de clientes.
+
 Antes de actualizar el módulo en `karo_consultorias` se guardaron la base, el
 módulo anterior y el vhost anterior en
 `/opt/backups/odoo/2026-09-27-support-v2/` (solo accesible en la VM). La copia

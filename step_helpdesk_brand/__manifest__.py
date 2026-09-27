@@ -1,7 +1,7 @@
 {
     "name": "Steps - Experiencia de soporte",
     "summary": "Identidad visual de Helpdesk y URL canónica de soporte",
-    "version": "18.0.1.1.2",
+    "version": "18.0.1.1.4",
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
     "category": "Services/Helpdesk",

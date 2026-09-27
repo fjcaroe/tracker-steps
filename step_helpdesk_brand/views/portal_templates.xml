@@ -39,5 +39,29 @@
                 </div>
             </section>
         </xpath>
+        <xpath expr="//div[@id='ticket_chat']/h3" position="after">
+            <t t-if="request.env.user.has_group('helpdesk.group_helpdesk_user') and ticket.with_user(request.env.user).has_access('read')">
+                <t t-set="steps_internal_notes" t-value="ticket.message_ids.filtered(lambda message: message.subtype_id == request.env.ref('mail.mt_note')).sorted('date', reverse=True)"/>
+                <div class="steps-helpdesk-internal-history" role="note">
+                    <p>Como integrante de soporte, también puedes ver aquí las notas internas. La conversación del cliente aparece debajo.</p>
+                    <a t-attf-href="/odoo/action-helpdesk.helpdesk_ticket_action_main_tree/#{ticket.id}?menu_id=#{ticket.env.ref('helpdesk.helpdesk_ticket_menu_all').id}">Abrir ficha de gestión <i class="fa fa-arrow-right ms-1" aria-hidden="true"/></a>
+                </div>
+                <section t-if="steps_internal_notes" class="steps-helpdesk-internal-notes" aria-label="Notas internas">
+                    <h4>Notas internas <span t-out="len(steps_internal_notes)"/></h4>
+                    <article t-foreach="steps_internal_notes" t-as="message" class="steps-helpdesk-internal-note">
+                        <header>
+                            <strong t-out="message.author_id.name or 'Equipo de soporte'"/>
+                            <time t-field="message.date" t-options='{"widget": "datetime"}'/>
+                        </header>
+                        <div class="steps-helpdesk-internal-note-body" t-field="message.body"/>
+                        <ul t-if="message.attachment_ids" class="steps-helpdesk-internal-attachments">
+                            <li t-foreach="message.attachment_ids" t-as="attachment">
+                                <a t-att-href="'/web/content/%d?download=1' % attachment.id" t-out="attachment.name"/>
+                            </li>
+                        </ul>
+                    </article>
+                </section>
+            </t>
+        </xpath>
     </template>
 </odoo>

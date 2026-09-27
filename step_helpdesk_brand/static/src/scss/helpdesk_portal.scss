@@ -37,12 +37,29 @@
     #ticket-nav .nav-link { border-radius: 8px; color: var(--st-deep); }
     #ticket-nav .nav-link:hover { background: #e8f2e7; }
     #card_header, #ticket_chat { scroll-margin-top: 80px; }
+    .steps-helpdesk-internal-history {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        margin: 0 0 20px; padding: 14px 16px; border: 1px solid #cde2d3;
+        border-radius: 12px; background: #edf6f0;
+        p { margin: 0; color: #315649; }
+        a { flex: none; font-weight: 700; }
+    }
+    .steps-helpdesk-internal-notes { margin: 0 0 26px; }
+    .steps-helpdesk-internal-notes h4 { margin: 0 0 12px; color: var(--st-deep); font-size: 1.1rem; }
+    .steps-helpdesk-internal-notes h4 span { display: inline-block; margin-left: 5px; padding: 2px 8px; border-radius: 999px; background: #dceedd; font-size: .85rem; }
+    .steps-helpdesk-internal-note { margin: 0 0 12px; padding: 16px 18px; border: 1px solid var(--st-line); border-radius: 12px; background: #fff; }
+    .steps-helpdesk-internal-note header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 15px; margin-bottom: 10px; color: var(--st-deep); }
+    .steps-helpdesk-internal-note time { color: #617467; font-size: .9rem; }
+    .steps-helpdesk-internal-note-body { overflow-wrap: anywhere; line-height: 1.55; }
+    .steps-helpdesk-internal-note-body > :last-child { margin-bottom: 0; }
+    .steps-helpdesk-internal-attachments { margin: 12px 0 0; padding-left: 21px; }
     .steps-helpdesk-empty { padding: 30px; border: 1px solid var(--st-line); border-radius: 15px; background: #fff; box-shadow: 0 8px 24px #153d300b; }
     .steps-helpdesk-empty h2 { color: var(--st-deep); font-size: 1.5rem; }
     .steps-helpdesk-empty p { max-width: 620px; color: #617467; }
 
     @media (max-width: 700px) {
         .steps-helpdesk-portal-hero { margin: 15px 0 22px; border-radius: 13px; }
+        .steps-helpdesk-internal-history { align-items: flex-start; flex-direction: column; }
         .table th, .table td { padding: 10px; }
     }
 }
