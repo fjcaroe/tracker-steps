@@ -95,10 +95,10 @@ class StepDispatchGuide(models.Model):
     driver_id = fields.Many2one("step.dispatch.driver", string="Chofer (maestro anterior)")
     vehicle_id = fields.Many2one("fleet.vehicle", string="Camión")
     trailer_vehicle_id = fields.Many2one("fleet.vehicle", string="Remolque")
-    truck_plate = fields.Char(string="Patente camión", required=True,
-                              compute="_compute_plates", store=True, readonly=False)
-    trailer_plate = fields.Char(string="Patente remolque",
-                                compute="_compute_plates", store=True, readonly=False)
+    truck_plate = fields.Char(string="Patente camión", required=True, compute="_compute_plates",
+                              store=True, readonly=False, precompute=True)
+    trailer_plate = fields.Char(string="Patente remolque", compute="_compute_plates",
+                                store=True, readonly=False, precompute=True)
 
     # Flete
     freight_paid = fields.Boolean(string="Paga flete", tracking=True)
