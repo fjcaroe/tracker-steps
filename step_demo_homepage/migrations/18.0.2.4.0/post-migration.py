@@ -22,14 +22,14 @@ def _record_values(path, record_id):
 def migrate(cr, version):
     env = api.Environment(cr, SUPERUSER_ID, {})
     root = Path(__file__).resolve().parents[2] / "views"
-    for record_id, filename in (
-        ("website.homepage", "homepage.xml"),
-        ("step_demo_homepage.solution_logistica_view", "solution_pages.xml"),
+    for record_id, xml_id, filename in (
+        ("website.homepage", "website.homepage", "homepage.xml"),
+        ("step_demo_homepage.solution_logistica_view", "solution_logistica_view", "solution_pages.xml"),
     ):
         source = env.ref(record_id, raise_if_not_found=False)
         if not source:
             continue
-        values = _record_values(root / filename, record_id.split(".")[-1])
+        values = _record_values(root / filename, xml_id)
         source.write(values)
         env["ir.ui.view"].search([
             ("key", "=", source.key),
