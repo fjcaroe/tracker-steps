@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="paperformat_dispatch_guide" model="report.paperformat">
+        <field name="name">Guía de despacho</field>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">8</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
+
     <record id="action_report_dispatch_guide" model="ir.actions.report">
         <field name="name">Guía de despacho</field>
         <field name="model">step.dispatch.guide</field>
@@ -7,6 +20,7 @@
         <field name="report_name">step_dispatch_guide.report_dispatch_guide</field>
         <field name="report_file">step_dispatch_guide.report_dispatch_guide</field>
         <field name="print_report_name">'Guia %s' % object.external_folio</field>
+        <field name="paperformat_id" ref="paperformat_dispatch_guide"/>
         <field name="binding_model_id" ref="model_step_dispatch_guide"/>
         <field name="binding_type">report</field>
     </record>
@@ -63,9 +77,9 @@
                                     <td><span t-field="l.product_id.default_code"/></td>
                                     <td><span t-field="l.description"/><t t-if="l.lot_id"><br/><small>Lote <span t-field="l.lot_id.name"/></small></t></td>
                                     <td><span t-field="l.packaging_id.name"/></td>
-                                    <td class="text-end"><span t-field="l.bin_count"/></td>
+                                    <td class="text-end"><span t-field="l.bin_count" t-options='{"widget": "float", "precision": 0}'/></td>
                                     <td><span t-field="l.product_uom_id"/></td>
-                                    <td class="text-end"><span t-field="l.quantity"/></td>
+                                    <td class="text-end"><span t-field="l.quantity" t-options='{"widget": "float", "precision": 0}'/></td>
                                     <td class="text-end"><span t-field="l.price_unit"/></td>
                                     <td class="text-end"><span t-field="l.subtotal"/></td>
                                 </tr>
@@ -73,9 +87,9 @@
                         </table>
                         <div class="row">
                             <div class="col-7">
-                                <p class="mb-1"><strong>TOTAL BINS <span t-field="o.total_bins"/></strong><br/>
-                                    <strong>TOTAL KILOS <span t-field="o.total_kilos"/></strong></p>
-                                <p class="mb-1" t-if="o.empty_bins_return"><span t-field="o.empty_bins_return"/> BINS VACÍOS DEVOLUCIÓN</p>
+                                <p class="mb-1"><strong>TOTAL BINS <span t-field="o.total_bins" t-options='{"widget": "float", "precision": 0}'/></strong><br/>
+                                    <strong>TOTAL KILOS <span t-field="o.total_kilos" t-options='{"widget": "float", "precision": 0}'/></strong></p>
+                                <p class="mb-1" t-if="o.empty_bins_return"><span t-field="o.empty_bins_return" t-options='{"widget": "float", "precision": 0}'/> BINS VACÍOS DEVOLUCIÓN</p>
                                 <p class="mb-1" t-if="o.globalgap_certified">FRUTA CERTIFICADA GLOBALG.A.P.<t t-if="o.ggn"><br/>GGN <span t-field="o.ggn"/></t></p>
                                 <p class="mb-1" t-if="o.csg">CSG <span t-field="o.csg"/></p>
                             </div>
@@ -90,9 +104,9 @@
                         </div>
                         <table class="table table-sm table-borderless border mt-2">
                             <tr><td colspan="4"><strong>DATOS DEL DESPACHO Y TRANSPORTE</strong></td></tr>
-                            <tr><td style="width: 18%;">Transportista</td><td>: <span t-field="o.carrier_id.name"/> — RUT <span t-field="o.carrier_vat"/></td>
+                            <tr><td style="width: 18%;">Transportista</td><td>: <span t-field="o.carrier_id.name"/><t t-if="o.carrier_vat"> — RUT <span t-field="o.carrier_vat"/></t></td>
                                 <td style="width: 18%;">Paga flete</td><td>: <t t-if="o.freight_paid">Sí<t t-if="o.freight_order_id"> (OT <span t-field="o.freight_order_id.x_name"/>)</t></t><t t-else="">No</t></td></tr>
-                            <tr><td>Chofer</td><td>: <span t-field="o.driver_partner_id.name"/><t t-if="not o.driver_partner_id"><span t-field="o.driver_id.name"/></t> — RUT <span t-field="o.driver_vat"/><t t-if="not o.driver_partner_id"><span t-field="o.driver_id.vat"/></t></td>
+                            <tr><td>Chofer</td><td>: <t t-if="o.driver_partner_id"><span t-field="o.driver_partner_id.name"/><t t-if="o.driver_vat"> — RUT <span t-field="o.driver_vat"/></t></t><t t-else=""><span t-field="o.driver_id.name"/> — RUT <span t-field="o.driver_id.vat"/></t></td>
                                 <td>Tramo</td><td>: <span t-field="o.freight_route_id.x_name"/></td></tr>
                             <tr><td>Patente camión</td><td>: <span t-field="o.truck_plate"/></td>
                                 <td>Patente remolque</td><td>: <span t-field="o.trailer_plate"/></td></tr>

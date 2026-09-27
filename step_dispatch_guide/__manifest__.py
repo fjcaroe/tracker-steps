@@ -17,7 +17,7 @@ Módulo de guías de despacho (diseño 2.10 y complemento "versión sin CAF", ti
 * Se crea desde Inventario (entregas y traslados internos), desde Fletes y
   desde el propio módulo; Cosecha se integra con step_dispatch_guide_cosecha.
 """,
-    "version": "18.0.2.0.0",
+    "version": "18.0.2.0.1",
     "category": "Inventory/Inventory",
     "author": "Steps Consulting",
     "license": "LGPL-3",
