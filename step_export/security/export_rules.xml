@@ -1,0 +1,116 @@
+<odoo>
+    <record id="rule_export_sales_program_company" model="ir.rule">
+        <field name="name">Exportaciones: programas por empresa</field>
+        <field name="model_id" ref="model_step_export_sales_program"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_sales_program_line_company" model="ir.rule">
+        <field name="name">Exportaciones: semanas de ventas por empresa</field>
+        <field name="model_id" ref="model_step_export_sales_program_line"/>
+        <field name="domain_force">[('program_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_estimate_company" model="ir.rule">
+        <field name="name">Exportaciones: estimaciones por empresa</field>
+        <field name="model_id" ref="model_step_export_estimate"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_estimate_line_company" model="ir.rule">
+        <field name="name">Exportaciones: fruta estimada por empresa</field>
+        <field name="model_id" ref="model_step_export_estimate_line"/>
+        <field name="domain_force">[('estimate_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_shipment_company" model="ir.rule">
+        <field name="name">Exportaciones: embarques por empresa</field>
+        <field name="model_id" ref="model_step_export_export"/>
+        <field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_shipment_line_company" model="ir.rule">
+        <field name="name">Exportaciones: carga por empresa</field>
+        <field name="model_id" ref="model_step_export_shipment_line"/>
+        <field name="domain_force">[('shipment_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_packing_list_company" model="ir.rule">
+        <field name="name">Exportaciones: Packing List por empresa</field>
+        <field name="model_id" ref="model_step_export_packing_list"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_claim_company" model="ir.rule">
+        <field name="name">Exportaciones: reclamos por empresa</field>
+        <field name="model_id" ref="model_step_export_customer_claim"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_receiver_settlement_company" model="ir.rule">
+        <field name="name">Exportaciones: liquidaciones recibidor por empresa</field>
+        <field name="model_id" ref="model_step_export_receiver_settlement"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_receiver_line_company" model="ir.rule">
+        <field name="name">Exportaciones: líneas liquidación recibidor por empresa</field>
+        <field name="model_id" ref="model_step_export_receiver_settlement_line"/>
+        <field name="domain_force">[('settlement_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_receiver_grade_company" model="ir.rule">
+        <field name="name">Exportaciones: calibres liquidados por empresa</field>
+        <field name="model_id" ref="model_step_export_receiver_settlement_grade"/>
+        <field name="domain_force">[('line_id.settlement_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_producer_settlement_company" model="ir.rule">
+        <field name="name">Exportaciones: liquidaciones productor por empresa</field>
+        <field name="model_id" ref="model_step_export_producer_settlement"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_producer_line_company" model="ir.rule">
+        <field name="name">Exportaciones: tarjas liquidadas por empresa</field>
+        <field name="model_id" ref="model_step_export_producer_settlement_line"/>
+        <field name="domain_force">[('settlement_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_producer_discount_company" model="ir.rule">
+        <field name="name">Exportaciones: descuentos productor por empresa</field>
+        <field name="model_id" ref="model_step_export_producer_settlement_discount"/>
+        <field name="domain_force">[('settlement_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_packaging_company" model="ir.rule">
+        <field name="name">Exportaciones: embalajes por empresa</field>
+        <field name="model_id" ref="model_step_export_packaging_program"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_packaging_cost_company" model="ir.rule">
+        <field name="name">Exportaciones: costos embalaje por empresa</field>
+        <field name="model_id" ref="model_step_export_packaging_cost"/>
+        <field name="domain_force">[('program_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_packaging_material_company" model="ir.rule">
+        <field name="name">Exportaciones: materiales por empresa</field>
+        <field name="model_id" ref="model_step_export_packaging_material"/>
+        <field name="domain_force">[('program_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_forecast_company" model="ir.rule">
+        <field name="name">Exportaciones: forecast por empresa</field>
+        <field name="model_id" ref="model_step_export_forecast"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_export_forecast_line_company" model="ir.rule">
+        <field name="name">Exportaciones: semanas forecast por empresa</field>
+        <field name="model_id" ref="model_step_export_forecast_line"/>
+        <field name="domain_force">[('forecast_id.company_id','in',company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+</odoo>

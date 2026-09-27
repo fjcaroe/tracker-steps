@@ -1,10 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="action_export_sale_orders" model="ir.actions.act_window">
+        <field name="name">Notas de venta y proformas</field><field name="res_model">sale.order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_export_invoices" model="ir.actions.act_window">
+        <field name="name">Facturas de clientes</field><field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field><field name="domain">[('move_type','=','out_invoice')]</field>
+        <field name="context">{'default_move_type': 'out_invoice'}</field>
+    </record>
+    <record id="action_export_payments" model="ir.actions.act_window">
+        <field name="name">Pagos de clientes</field><field name="res_model">account.payment</field>
+        <field name="view_mode">list,form</field><field name="domain">[('partner_type','=','customer')]</field>
+        <field name="context">{'default_partner_type': 'customer'}</field>
+    </record>
     <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61"/>
     <menuitem id="menu_step_export_ops" name="Operaciones" parent="menu_step_export_root" sequence="10"/>
     <menuitem id="menu_step_export_config" name="Configuración" parent="menu_step_export_root" sequence="90"/>
     <menuitem id="menu_step_export_sales_program" name="Programas de ventas" parent="menu_step_export_ops" action="action_step_export_sales_program" sequence="1"/>
     <menuitem id="menu_step_export_sales_program_all" name="Historial de programas" parent="menu_step_export_ops" action="action_step_export_sales_program_all" sequence="2"/>
+    <menuitem id="menu_step_export_packaging_program" name="Programas de embalajes" parent="menu_step_export_ops" action="action_export_packaging_program" sequence="3"/>
+    <menuitem id="menu_step_export_forecast" name="Forecast" parent="menu_step_export_ops" action="action_export_forecast" sequence="4"/>
+    <menuitem id="menu_step_export_packing_list" name="Packing Lists" parent="menu_step_export_ops" action="action_export_packing_list" sequence="14"/>
+    <menuitem id="menu_step_export_fruit_bom" name="Listas de materiales de fruta" parent="menu_step_export_config" action="action_export_fruit_bom" sequence="15"/>
+    <menuitem id="menu_step_export_receiver_settlement" name="Liquidaciones recibidores" parent="menu_step_export_ops" action="action_export_receiver_settlement" sequence="30"/>
+    <menuitem id="menu_step_export_producer_settlement" name="Liquidaciones productores" parent="menu_step_export_ops" action="action_export_producer_settlement" sequence="31"/>
+    <menuitem id="menu_step_export_sale_orders" name="Notas de venta y proformas" parent="menu_step_export_ops" action="action_export_sale_orders" sequence="20"/>
+    <menuitem id="menu_step_export_invoices" name="Facturas de clientes" parent="menu_step_export_ops" action="action_export_invoices" sequence="21"/>
+    <menuitem id="menu_step_export_receivables" name="Cuenta corriente recibidores" parent="menu_step_export_ops" action="action_export_receivables" sequence="23"/>
+    <menuitem id="menu_step_export_payments" name="Pagos de clientes" parent="menu_step_export_ops" action="action_export_payments" sequence="22"/>
     <menuitem id="menu_step_export_package_type" name="Tipos de pallet" parent="menu_step_export_config" action="action_step_export_package_type"/>
     <menuitem id="menu_step_export_packaging" name="Embalajes" parent="menu_step_export_config" action="action_step_export_packaging"/>
     <menuitem id="menu_step_export_vessel" name="Nave" parent="menu_step_export_config" action="action_step_export_vessel"/>

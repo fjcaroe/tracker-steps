@@ -6,6 +6,7 @@ from odoo import fields, models
 class StepExportCustomerClaim(models.Model):
     _name = 'step.export.customer.claim'
     _description = 'Reclamo de Clientes'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'sequence, name'
     _rec_name = 'name'
 

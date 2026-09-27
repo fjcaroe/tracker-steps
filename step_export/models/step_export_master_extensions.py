@@ -20,7 +20,7 @@ class ProductTemplate(models.Model):
 
     step_export_enabled = fields.Boolean(string="Es exportación")
     step_export_fruit_category_id = fields.Many2one(
-        "step.packing.fruit.category", string="Categoría de fruta")
+        "step.management.fruit.category", string="Categoría de fruta")
     step_export_base_product_id = fields.Many2one(
         "product.template", string="Producto base", domain="[('is_fruta', '=', True)]")
     step_export_species_id = fields.Many2one("step.especie", string="Especie")

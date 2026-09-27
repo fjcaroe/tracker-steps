@@ -1,0 +1,44 @@
+<odoo>
+    <record id="action_report_export_shipment" model="ir.actions.report">
+        <field name="name">Informe de embarque</field>
+        <field name="model">step.export.export</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_export.report_export_shipment</field>
+        <field name="report_file">step_export.report_export_shipment</field>
+        <field name="binding_model_id" ref="model_step_export_export"/>
+        <field name="binding_type">report</field>
+    </record>
+    <template id="report_export_shipment">
+        <t t-call="web.html_container"><t t-foreach="docs" t-as="doc">
+            <t t-call="web.external_layout"><div class="page">
+                <h2>Informe de embarque <span t-field="doc.shipment_number"/></h2>
+                <table class="table table-sm table-borderless">
+                    <tr><th>Programa</th><td><span t-field="doc.sales_program_id.name"/></td>
+                        <th>Recibidor</th><td><span t-field="doc.receiver_id.name"/></td></tr>
+                    <tr><th>Temporada</th><td><span t-field="doc.season_id.name"/></td>
+                        <th>Especie</th><td><span t-field="doc.species_id.name"/></td></tr>
+                    <tr><th>Guías</th><td><t t-foreach="doc.dispatch_guide_ids" t-as="guide">
+                        <span t-field="guide.external_folio"/> </t></td>
+                        <th>Packing Lists</th><td><t t-foreach="doc.packing_list_ids" t-as="packing">
+                        <span t-field="packing.name"/> </t></td></tr>
+                    <tr><th>DUS</th><td><span t-field="doc.dus_folio"/></td>
+                        <th>BL/AWB</th><td><span t-field="doc.bl_folio"/></td></tr>
+                    <tr><th>IVV</th><td><span t-field="doc.ivv_folio"/></td>
+                        <th>Liquidación</th><td><span t-field="doc.settlement_id.name"/></td></tr>
+                </table>
+                <table class="table table-sm table-bordered"><thead><tr>
+                    <th>Tarja</th><th>Productor</th><th>Fundo</th><th>Variedad</th>
+                    <th>Categoría</th><th>Calibre</th><th>Cajas</th><th>Kg</th>
+                </tr></thead><tbody><tr t-foreach="doc.tag_ids" t-as="tag">
+                    <td><span t-field="tag.name"/></td><td><span t-field="tag.owner_id.name"/></td>
+                    <td><span t-field="tag.fundo_id.name"/></td>
+                    <td><span t-field="tag.variedad_id.name"/></td>
+                    <td><span t-field="tag.fruit_category_id.name"/></td>
+                    <td><span t-field="tag.fruit_caliber_id.name"/></td>
+                    <td class="text-end"><span t-field="tag.box_count"/></td>
+                    <td class="text-end"><span t-field="tag.kilos_total"/></td>
+                </tr></tbody></table>
+            </div></t>
+        </t></t>
+    </template>
+</odoo>
