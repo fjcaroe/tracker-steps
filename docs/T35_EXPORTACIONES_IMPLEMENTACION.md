@@ -64,18 +64,29 @@ contratos y la política contable aplicable.
 1. Mantener productos exportables, tarjas con propietario y kilos, listas de
    materiales de fruta, conceptos de valorización y tarifas por productor,
    temporada y especie, incluida la cuenta de compra y los impuestos aplicables.
-2. Configurar diarios, cuentas de ingresos/compras y, si Odoo emite los DTE,
-   la localización chilena y los documentos de exportación 110/111/112.
-3. Registrar el folio de la nota externa cuando el proveedor DTE sea externo.
+2. Revisar por empresa los valores iniciales en **Exportaciones →
+   Configuración → Parámetros contables**: diarios de venta, compra y ajuste,
+   cuentas de venta y compra, e impuestos. El impuesto de venta vacío significa
+   factura de exportación sin IVA chileno; el impuesto inicial de compra de
+   fruta es el 19 % existente de la localización chilena. El cliente puede
+   cambiar cualquiera de estos valores desde esa pantalla.
+3. La localización de exportación electrónica `l10n_cl_edi_exports` y los
+   documentos 110/111/112 están instalados. La emisión y envío efectivos
+   dependen además de la autorización, certificado y folios SII de cada empresa.
+4. Registrar el folio de la nota externa cuando el proveedor DTE sea externo.
    Registrar además DUS, BL/AWB e IVV del embarque antes del cierre.
-4. La emisión electrónica y envío al SII siguen el servicio DTE configurado
+5. La emisión electrónica y envío al SII siguen el servicio DTE configurado
    en Contabilidad. Los asientos de una nota externa registran el documento ya
    emitido; no lo sustituyen.
+6. Completar cada tarifa contractual en **Exportaciones → Configuración →
+   Tarifa Productor** (productor, temporada, especie y valor). Las nuevas
+   tarifas heredan la cuenta e impuesto de compra de los parámetros contables.
+   No se inventaron tarifas ni comisiones sin contrato.
 
 ## Verificación
 
-La instalación y las pruebas se ejecutaron en una copia aislada de
-`LAB_TAREAS`, denominada `T35_EXPORT_TEST_20260927`; no se modificó la base
-original. La última actualización del módulo terminó con **10 pruebas,
-0 fallas y 0 errores**. El despliegue requiere configurar los diarios, cuentas,
-impuestos y folios DTE indicados arriba en la base de destino.
+La instalación y las pruebas se ejecutaron en copias aisladas de Desarrollo,
+Demo, Cerro El Plomo y Demo-SyS. La última actualización del módulo terminó
+con **11 pruebas, 0 fallas y 0 errores** en cada copia. El despliegue y sus
+parámetros iniciales están detallados en
+[T35_DESPLIEGUE_2026-09-27.md](T35_DESPLIEGUE_2026-09-27.md).
