@@ -10,7 +10,9 @@ su aspecto. Las páginas de lista y detalle del portal de tickets usan la misma
 paleta.
 
 `soporte.stepsapp.cl` apunta a la misma instancia. Nginx redirige HTTP a HTTPS
-y envía `/` a `/odoo/helpdesk`. Las rutas antiguas de Helpdesk abiertas desde
+y envía `/` a `/soporte`, la portada pública del canal. Desde allí se puede
+crear una solicitud mediante el formulario ya publicado del equipo o entrar
+con una cuenta de cliente para ver sus tickets. Las rutas antiguas de Helpdesk abiertas desde
 `35.222.25.110:8069` o `stepsapp.cl` redirigen a la misma ruta y consulta en
 `https://soporte.stepsapp.cl` cuando el parámetro
 `step_helpdesk_brand.canonical_enabled` vale `True`. En producción está
@@ -58,6 +60,34 @@ visibilidad.
    responde 301 con `Location: https://soporte.stepsapp.cl/odoo/helpdesk/action-543/35`;
    una ruta Odoo ajena a Helpdesk en la IP debe permanecer en su origen.
 
-La URL principal para compartir es
-`https://soporte.stepsapp.cl/odoo/helpdesk`. Un enlace directo al ticket 35 es
+La URL pública para compartir es `https://soporte.stepsapp.cl/`. El acceso
+interno de agentes continúa en `https://soporte.stepsapp.cl/odoo/helpdesk`.
+Un enlace directo al ticket 35 es
 `https://soporte.stepsapp.cl/odoo/helpdesk/action-543/35`.
+
+## Mejoras de atención
+
+La portada pública separa dos recorridos: crear una solicitud y seguir las
+existentes. La ruta estable `/soporte/nueva-solicitud` encuentra un equipo que
+tenga formulario publicado en el sitio actual y envía a su página de Odoo;
+si se despublica, vuelve a la portada. El formulario público muestra la
+identidad Steps y sus etiquetas en español sin alterar nombres de campos ni
+el envío estándar de Odoo. La página de confirmación entrega el número del
+ticket y los accesos para continuar.
+
+El portal muestra un acceso a crear solicitudes tanto en la lista como en la
+ficha de ticket, además de un estado vacío que orienta al cliente. En el
+backend, el filtro «Sin cliente» localiza tickets pendientes de asociación y
+la ficha avisa cuando un ticket de equipo visible para portal carece de
+cliente. Los listados, kanban e informes comparten la paleta y el espaciado
+de Steps.
+
+La creación y confirmación de tickets se comprobaron con un ticket sintético
+en una base aislada. También se verificó que el filtro y el aviso están en
+las vistas resueltas por Odoo, y que las páginas públicas conservan un ancho
+útil en móvil.
+
+Antes de actualizar el módulo en `karo_consultorias` se guardaron la base, el
+módulo anterior y el vhost anterior en
+`/opt/backups/odoo/2026-09-27-support-v2/` (solo accesible en la VM). La copia
+aislada de pruebas se retiró después de validar el recorrido.

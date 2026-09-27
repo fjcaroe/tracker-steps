@@ -13,7 +13,17 @@
                 <span>STEPS AGRO / SOPORTE</span>
                 <h1>Tus solicitudes, en un solo lugar.</h1>
                 <p>Consulta el avance y el historial de tus tickets.</p>
+                <div class="steps-helpdesk-portal-actions">
+                    <a class="btn btn-light" href="/soporte/nueva-solicitud">Crear solicitud <i class="fa fa-arrow-right ms-2" aria-hidden="true"/></a>
+                </div>
             </section>
+        </xpath>
+        <xpath expr="//div[@t-if='not grouped_tickets']" position="replace">
+            <div class="steps-helpdesk-empty" role="status">
+                <h2>Aún no tienes solicitudes visibles.</h2>
+                <p>Si necesitas ayuda, puedes crear una solicitud. Si ya escribiste al equipo, ingresa con la cuenta de cliente asociada al ticket.</p>
+                <a class="btn btn-primary" href="/soporte/nueva-solicitud">Crear solicitud</a>
+            </div>
         </xpath>
     </template>
 
@@ -23,6 +33,10 @@
                 <span>STEPS AGRO / SOPORTE</span>
                 <h1 t-out="ticket.name"/>
                 <p>Revisa el estado, los documentos y la conversación de esta solicitud.</p>
+                <div class="steps-helpdesk-portal-actions">
+                    <a class="btn btn-light" href="/my/tickets"><i class="fa fa-arrow-left me-2" aria-hidden="true"/> Mis tickets</a>
+                    <a class="btn btn-outline-light" href="/soporte/nueva-solicitud">Crear otra solicitud</a>
+                </div>
             </section>
         </xpath>
     </template>

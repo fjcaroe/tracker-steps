@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="support_public_nav" name="Steps support navigation">
+        <header class="steps-support-nav">
+            <a class="steps-support-brand" href="/soporte" aria-label="Steps Agro, centro de soporte">
+                <img src="/step_helpdesk_brand/static/description/icon.png" alt=""/>
+                <span><strong>Steps</strong><small>AGRO / SOPORTE</small></span>
+            </a>
+            <nav aria-label="Navegación de soporte">
+                <a href="/soporte">Inicio</a>
+                <a href="/soporte/nueva-solicitud">Crear solicitud</a>
+                <a href="/my/tickets">Mis tickets</a>
+            </nav>
+        </header>
+    </template>
+
+    <template id="support_public_home" name="Centro de soporte Steps">
+        <t t-call="website.layout">
+            <t t-set="additional_title">Centro de soporte Steps</t>
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <t t-set="bodyClassName" t-value="'steps-support-site'"/>
+            <div id="wrap" class="steps-support-public steps-support-hub">
+                <t t-call="step_helpdesk_brand.support_public_nav"/>
+                <main>
+                    <section class="steps-support-hub-hero">
+                        <div class="steps-support-eyebrow">STEPS AGRO / CENTRO DE SOPORTE</div>
+                        <h1>Estamos aquí para ayudarte.</h1>
+                        <p>Cuéntanos qué necesitas o revisa el avance de tus solicitudes. Todo tu soporte, en un mismo lugar.</p>
+                    </section>
+                    <section class="steps-support-choice-grid" aria-label="Opciones de soporte">
+                        <article class="steps-support-choice">
+                            <span class="steps-support-choice-number">01 / NUEVA SOLICITUD</span>
+                            <h2>Cuéntanos qué sucede.</h2>
+                            <p>Describe el problema o la mejora, agrega el contexto y adjunta los archivos que nos ayuden a revisarlo.</p>
+                            <a t-if="support_team" class="btn btn-primary" href="/soporte/nueva-solicitud">Crear solicitud <i class="fa fa-arrow-right ms-2" aria-hidden="true"/></a>
+                            <p t-else="" class="steps-support-unavailable">La recepción de solicitudes estará disponible pronto.</p>
+                        </article>
+                        <article class="steps-support-choice">
+                            <span class="steps-support-choice-number">02 / SEGUIMIENTO</span>
+                            <h2>Sigue cada avance.</h2>
+                            <p>Ingresa con tu cuenta de cliente para ver el estado, los documentos y la conversación de tus tickets.</p>
+                            <a class="btn btn-outline-primary" href="/my/tickets">Ver mis tickets <i class="fa fa-arrow-right ms-2" aria-hidden="true"/></a>
+                        </article>
+                    </section>
+                    <section class="steps-support-tip" aria-label="Consejo para solicitar ayuda">
+                        <i class="fa fa-lightbulb-o" aria-hidden="true"/>
+                        <p><strong>Para ayudarte más rápido:</strong> indica el módulo, qué intentabas hacer, qué ocurrió y adjunta una captura si la tienes.</p>
+                    </section>
+                </main>
+                <footer class="steps-support-footer"><span>Steps Agro · Centro de soporte</span><a href="/my/tickets">Mis tickets</a></footer>
+            </div>
+        </t>
+    </template>
+
+    <template id="support_team_brand" inherit_id="website_helpdesk.team" name="Steps public ticket form">
+        <xpath expr="//t[@t-set='additional_title']" position="replace"><t t-set="additional_title">Crear solicitud de soporte</t></xpath>
+        <xpath expr="//t[@t-call='website.layout']/div[@id='wrap']" position="before">
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <t t-set="bodyClassName" t-value="'steps-support-site'"/>
+        </xpath>
+        <xpath expr="//div[@id='wrap']" position="attributes">
+            <attribute name="class">steps-support-public steps-support-form</attribute>
+        </xpath>
+        <xpath expr="//div[@id='wrap']/div[hasclass('row')]" position="before">
+            <t t-call="step_helpdesk_brand.support_public_nav"/>
+            <section class="steps-support-form-hero">
+                <div class="steps-support-eyebrow">NUEVA SOLICITUD</div>
+                <h1>Cuéntanos cómo podemos ayudarte.</h1>
+                <p>Completa los datos y describe lo ocurrido. El equipo recibirá tu solicitud con el contexto necesario.</p>
+            </section>
+        </xpath>
+        <xpath expr="//div[@id='wrap']" position="inside">
+            <footer class="steps-support-footer"><span>Steps Agro · Centro de soporte</span><a href="/my/tickets">Mis tickets</a></footer>
+        </xpath>
+        <xpath expr="//h6[hasclass('card-header')]" position="replace"><h6 class="card-header">Sobre el equipo</h6></xpath>
+    </template>
+
+    <template id="support_ticket_submitted" inherit_id="website_helpdesk.ticket_submited" name="Steps ticket confirmation">
+        <xpath expr="//t[@t-call='website.layout']/div[@id='wrap']" position="before">
+            <t t-set="additional_title">Solicitud recibida</t>
+            <t t-set="no_header" t-value="True"/>
+            <t t-set="no_footer" t-value="True"/>
+            <t t-set="bodyClassName" t-value="'steps-support-site'"/>
+        </xpath>
+        <xpath expr="//div[@id='wrap']" position="attributes"><attribute name="class">steps-support-public steps-support-confirmation</attribute></xpath>
+        <xpath expr="//div[@id='wrap']" position="inside"><footer class="steps-support-footer"><span>Steps Agro · Centro de soporte</span><a href="/my/tickets">Mis tickets</a></footer></xpath>
+        <xpath expr="//div[@id='wrap']/div[hasclass('container')]" position="before"><t t-call="step_helpdesk_brand.support_public_nav"/></xpath>
+        <xpath expr="//h1" position="replace"><h1>Recibimos tu solicitud.</h1></xpath>
+        <xpath expr="//t[@t-if='ticket']/p[1]" position="replace"><p class="lead mb-0">Tu ticket fue enviado al equipo de soporte.</p></xpath>
+        <xpath expr="//t[@t-if='ticket']/p[2]" position="replace"><p class="lead">Guarda el número para identificarlo en futuras conversaciones.</p></xpath>
+        <xpath expr="//a[@href='/']" position="replace">
+            <div class="steps-support-confirmation-actions">
+                <a class="btn btn-primary" href="/my/tickets">Ver mis tickets</a>
+                <a class="btn btn-outline-primary" href="/soporte/nueva-solicitud">Crear otra solicitud</a>
+            </div>
+        </xpath>
+    </template>
+</odoo>

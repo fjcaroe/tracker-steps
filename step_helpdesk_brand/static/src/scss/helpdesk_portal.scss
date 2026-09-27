@@ -17,6 +17,10 @@
         span { color: var(--st-lime); font-size: .76rem; font-weight: 800; letter-spacing: .13em; }
         h1 { margin: 16px 0 10px; color: #fff; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 650; letter-spacing: -.045em; }
         p { margin: 0; color: #e2efe2; font-size: 1rem; }
+        .steps-helpdesk-portal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+        .steps-helpdesk-portal-actions .btn { border-radius: 9px; font-weight: 700; padding: 9px 17px; }
+        .steps-helpdesk-portal-actions .btn-light { color: var(--st-deep); background: var(--st-lime); border-color: var(--st-lime); }
+        .steps-helpdesk-portal-actions .btn-outline-light { color: #fff; border-color: #dbe9da; }
     }
     .o_portal_wrap, .o_portal_sidebar { color: #213a2f; }
     .card, .table-responsive { border: 1px solid var(--st-line); border-radius: 14px; background: #fff; box-shadow: 0 8px 24px #153d300b; overflow: hidden; }
@@ -33,6 +37,9 @@
     #ticket-nav .nav-link { border-radius: 8px; color: var(--st-deep); }
     #ticket-nav .nav-link:hover { background: #e8f2e7; }
     #card_header, #ticket_chat { scroll-margin-top: 80px; }
+    .steps-helpdesk-empty { padding: 30px; border: 1px solid var(--st-line); border-radius: 15px; background: #fff; box-shadow: 0 8px 24px #153d300b; }
+    .steps-helpdesk-empty h2 { color: var(--st-deep); font-size: 1.5rem; }
+    .steps-helpdesk-empty p { max-width: 620px; color: #617467; }
 
     @media (max-width: 700px) {
         .steps-helpdesk-portal-hero { margin: 15px 0 22px; border-radius: 13px; }

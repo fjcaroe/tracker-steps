@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="helpdesk_ticket_search_steps" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.search.steps</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_tickets_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='unassigned']" position="after">
+                <filter name="steps_no_customer" string="Sin cliente" domain="[('partner_id', '=', False)]" help="Tickets aún sin un cliente asignado para el seguimiento en el portal"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_form_steps" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.form.steps</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('oe_title')]" position="after">
+                <div class="steps-support-customer-note alert alert-warning" role="status" invisible="partner_id or team_privacy_visibility != 'portal'">
+                    <i class="fa fa-user-o me-2" aria-hidden="true"/>
+                    <strong>Falta asociar un cliente.</strong>
+                    Así podrá encontrar y seguir este ticket desde su portal.
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

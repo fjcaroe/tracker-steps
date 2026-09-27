@@ -111,10 +111,14 @@ body.o_steps_helpdesk {
     .o_list_table tbody tr:hover { background: #edf6ec !important; }
     .o_list_table tbody td { padding-top: 11px; padding-bottom: 11px; }
     .o_kanban_renderer { background: var(--st-support-bg); }
-    .o_kanban_group { border-radius: 13px; }
+    .o_kanban_group { border: 1px solid var(--st-support-line); border-radius: 13px; background: #eef5ec; }
     .o_kanban_group_header { color: var(--st-support-deep); font-weight: 700; }
-    .o_kanban_record { border-radius: 12px; }
+    .o_kanban_record { border: 1px solid var(--st-support-line); border-radius: 12px; background: #fff; box-shadow: 0 5px 15px #153d300b; }
     .o_graph_renderer, .o_pivot_table, .o_activity_view { color: var(--st-support-ink); }
+    .o_graph_renderer, .o_pivot_renderer, .o_activity_view {
+        margin: 16px 24px 24px; padding: 20px; border: 1px solid var(--st-support-line);
+        border-radius: 15px; background: #fff; box-shadow: 0 8px 25px #153d300b;
+    }
 
     // Ticket form and conversation stay distinct while sharing one palette.
     .o_form_view .o_form_sheet_bg { padding: 18px 20px 28px; background: var(--st-support-bg); }
@@ -127,6 +131,7 @@ body.o_steps_helpdesk {
         box-shadow: 0 10px 30px #153d300c;
     }
     .o_form_view .o_form_sheet h1 { color: var(--st-support-deep); font-weight: 650; letter-spacing: -.04em; }
+    .steps-support-customer-note { display: flex; align-items: center; gap: 3px; margin: 4px 0 18px; padding: 11px 14px; border: 1px solid #e6d7a7; border-radius: 10px; color: #604918; background: #fff9e8; }
     .o_form_statusbar { padding: 5px 4px 14px; border: 0; background: transparent; }
     .o_statusbar_status .o_arrow_button_current { color: var(--st-support-deep); background: #dff0dd; border-color: #a8c7a7; }
     .o_form_view .o_horizontal_separator { color: var(--st-support-deep); border-bottom-color: var(--st-support-line); }
@@ -147,6 +152,7 @@ body.o_steps_helpdesk {
         .o_helpdesk_banner { flex-direction: column !important; }
         .o_helpdesk_content { padding: 15px; }
         .o_list_renderer { margin: 12px; }
+        .o_graph_renderer, .o_pivot_renderer, .o_activity_view { margin: 12px; padding: 12px; }
         .o_form_view .o_form_sheet_bg { padding: 12px; }
         .o_form_view .o_form_sheet { padding: 20px; }
     }
