@@ -1,4 +1,8 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_export_sales_program_user,step_export_sales_program.user,model_step_export_sales_program,base.group_user,1,1,1,0
+access_step_export_sales_program_line_user,step_export_sales_program_line.user,model_step_export_sales_program_line,base.group_user,1,1,1,1
+access_step_export_estimate_line_user,step_export_estimate_line.user,model_step_export_estimate_line,base.group_user,1,1,1,1
+access_step_export_estimate_week_user,step_export_estimate_week.user,model_step_export_estimate_week,base.group_user,1,1,1,1
 access_step_export_vessel_user,step_export_vessel.user,model_step_export_vessel,base.group_user,1,1,1,0
 access_step_export_sale_mode_user,step_export_sale_mode.user,model_step_export_sale_mode,base.group_user,1,1,1,0
 access_step_export_payment_concept_user,step_export_payment_concept.user,model_step_export_payment_concept,base.group_user,1,1,1,0

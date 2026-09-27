@@ -19,7 +19,9 @@ class StepExportEstimate(models.Model):
     date_stop = fields.Datetime(string='Fecha de finalización')
     image = fields.Binary(string='Imagen')
     sequence = fields.Integer(string='Secuencia', default=10)
-    stage_id = fields.Many2one('step.export.estimate.stage', string='Etapa', required=True, group_expand='_read_group_stage_ids', tracking=True)
+    stage_id = fields.Many2one('step.export.estimate.stage', string='Etapa', required=True,
+                               default=lambda self: self.env.ref('step_export.estimate_stage_draft').id,
+                               group_expand='_read_group_stage_ids', tracking=True)
     priority = fields.Boolean(string='Alta prioridad')
     color = fields.Integer(string='Color')
     tag_ids = fields.Many2many('step.export.estimate.tag', string='Etiquetas')

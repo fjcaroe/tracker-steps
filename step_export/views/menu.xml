@@ -3,6 +3,10 @@
     <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61"/>
     <menuitem id="menu_step_export_ops" name="Operaciones" parent="menu_step_export_root" sequence="10"/>
     <menuitem id="menu_step_export_config" name="Configuración" parent="menu_step_export_root" sequence="90"/>
+    <menuitem id="menu_step_export_sales_program" name="Programas de ventas" parent="menu_step_export_ops" action="action_step_export_sales_program" sequence="1"/>
+    <menuitem id="menu_step_export_sales_program_all" name="Historial de programas" parent="menu_step_export_ops" action="action_step_export_sales_program_all" sequence="2"/>
+    <menuitem id="menu_step_export_package_type" name="Tipos de pallet" parent="menu_step_export_config" action="action_step_export_package_type"/>
+    <menuitem id="menu_step_export_packaging" name="Embalajes" parent="menu_step_export_config" action="action_step_export_packaging"/>
     <menuitem id="menu_step_export_vessel" name="Nave" parent="menu_step_export_config" action="action_step_export_vessel"/>
     <menuitem id="menu_step_export_sale_mode" name="Modalidad de Venta" parent="menu_step_export_config" action="action_step_export_sale_mode"/>
     <menuitem id="menu_step_export_payment_concept" name="Concepto de Pago Productor" parent="menu_step_export_config" action="action_step_export_payment_concept"/>
