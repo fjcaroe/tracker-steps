@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_step_sawmill_root" name="Aserradero" sequence="65"
+              groups="group_sawmill_user"/>
+
+    <menuitem id="menu_step_sawmill_planning" name="Planificación" parent="menu_step_sawmill_root" sequence="10"/>
+    <menuitem id="menu_step_sawmill_production_order" name="Órdenes de producción" parent="menu_step_sawmill_planning"
+              action="action_step_sawmill_production_order" sequence="10"/>
+    <menuitem id="menu_step_sawmill_work_order" name="Órdenes de trabajo" parent="menu_step_sawmill_planning"
+              action="action_step_sawmill_work_order" sequence="20"/>
+    <menuitem id="menu_step_sawmill_crew" name="Cuadrillas" parent="menu_step_sawmill_planning"
+              action="action_step_sawmill_crew" sequence="30"/>
+
+    <menuitem id="menu_step_sawmill_transformation" name="Transformación" parent="menu_step_sawmill_root" sequence="20"/>
+    <menuitem id="menu_step_sawmill_sawing" name="Aserrío" parent="menu_step_sawmill_transformation"
+              action="action_step_sawmill_sawing" sequence="10"/>
+    <menuitem id="menu_step_sawmill_elaboration" name="Elaboración" parent="menu_step_sawmill_transformation"
+              action="action_step_sawmill_elaboration" sequence="20"/>
+
+    <menuitem id="menu_step_sawmill_state_change" name="Cambio de estado" parent="menu_step_sawmill_root" sequence="30"/>
+    <menuitem id="menu_step_sawmill_drying" name="Secado" parent="menu_step_sawmill_state_change"
+              action="action_step_sawmill_drying" sequence="10"/>
+    <menuitem id="menu_step_sawmill_impregnation" name="Impregnado" parent="menu_step_sawmill_state_change"
+              action="action_step_sawmill_impregnation" sequence="20"/>
+    <menuitem id="menu_step_sawmill_certification" name="Certificación" parent="menu_step_sawmill_state_change"
+              action="action_step_sawmill_certification" sequence="30"/>
+
+    <menuitem id="menu_step_sawmill_config" name="Configuración" parent="menu_step_sawmill_root" sequence="90"
+              groups="group_sawmill_manager"/>
+    <menuitem id="menu_step_sawmill_config_product" name="Producto" parent="menu_step_sawmill_config" sequence="10"/>
+    <menuitem id="menu_step_sawmill_grade" name="Grado de madera" parent="menu_step_sawmill_config_product"
+              action="action_step_sawmill_grade" sequence="10"/>
+    <menuitem id="menu_step_sawmill_quality" name="Calidad de madera" parent="menu_step_sawmill_config_product"
+              action="action_step_sawmill_quality" sequence="20"/>
+    <menuitem id="menu_step_sawmill_product_type" name="Tipo de producto" parent="menu_step_sawmill_config_product"
+              action="action_step_sawmill_product_type" sequence="30"/>
+    <menuitem id="menu_step_sawmill_destination" name="Destino de producto" parent="menu_step_sawmill_config_product"
+              action="action_step_sawmill_destination" sequence="40"/>
+    <menuitem id="menu_step_sawmill_config_production" name="Producción" parent="menu_step_sawmill_config" sequence="20"/>
+    <menuitem id="menu_step_sawmill_process_line" name="Línea / máquina" parent="menu_step_sawmill_config_production"
+              action="action_step_sawmill_process_line" sequence="10"/>
+    <menuitem id="menu_step_sawmill_process_type" name="Tipo de proceso" parent="menu_step_sawmill_config_production"
+              action="action_step_sawmill_process_type" sequence="20"/>
+    <menuitem id="menu_step_sawmill_costing_driver" name="Driver de costeo" parent="menu_step_sawmill_config_production"
+              action="action_step_sawmill_costing_driver" sequence="30"/>
+    <menuitem id="menu_step_sawmill_shift" name="Turnos" parent="menu_step_sawmill_config_production"
+              action="action_step_sawmill_shift" sequence="40"/>
+    <menuitem id="menu_step_sawmill_working_days" name="Días y horas hábiles" parent="menu_step_sawmill_config_production"
+              action="action_step_sawmill_working_days" sequence="50"/>
+    <menuitem id="menu_step_sawmill_production_stage" name="Etapas de orden de producción"
+              parent="menu_step_sawmill_config_production" action="action_step_sawmill_production_stage" sequence="60"/>
+</odoo>
