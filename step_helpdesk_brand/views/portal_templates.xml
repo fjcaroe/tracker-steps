@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="portal_helpdesk_scope" inherit_id="portal.portal_layout" name="Steps Helpdesk portal scope">
+        <xpath expr="//div[@id='wrap']" position="attributes">
+            <attribute name="class"/>
+            <attribute name="t-attf-class">o_portal_wrap #{'steps-helpdesk-portal' if request.httprequest.path.startswith(('/my/ticket', '/helpdesk/ticket/')) else ''}</attribute>
+        </xpath>
+    </template>
+
+    <template id="portal_ticket_list_brand" inherit_id="helpdesk.portal_helpdesk_ticket" name="Steps Helpdesk portal list">
+        <xpath expr="//t[@t-call='portal.portal_layout']/t[@t-set='breadcrumbs_searchbar']" position="before">
+            <section class="steps-helpdesk-portal-hero" aria-label="Centro de soporte">
+                <span>STEPS AGRO / SOPORTE</span>
+                <h1>Tus solicitudes, en un solo lugar.</h1>
+                <p>Consulta el avance y el historial de tus tickets.</p>
+            </section>
+        </xpath>
+    </template>
+
+    <template id="portal_ticket_detail_brand" inherit_id="helpdesk.tickets_followup" name="Steps Helpdesk portal detail">
+        <xpath expr="//div[hasclass('o_project_portal_sidebar')]" position="before">
+            <section class="steps-helpdesk-portal-hero" aria-label="Detalle del ticket">
+                <span>STEPS AGRO / SOPORTE</span>
+                <h1 t-out="ticket.name"/>
+                <p>Revisa el estado, los documentos y la conversación de esta solicitud.</p>
+            </section>
+        </xpath>
+    </template>
+</odoo>

@@ -1,0 +1,161 @@
+// Scoped to the Helpdesk app by helpdesk_scope.js. Other Odoo apps keep their UI.
+body.o_steps_helpdesk {
+    --st-support-deep: #153d30;
+    --st-support-mid: #2d7656;
+    --st-support-lime: #d9f18d;
+    --st-support-ink: #213a2f;
+    --st-support-muted: #677a6e;
+    --st-support-line: #dbe7dc;
+    --st-support-bg: #f4f7f2;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--st-support-ink);
+    background: var(--st-support-bg);
+
+    .o_main_navbar {
+        min-height: 48px;
+        color: #f4f9f0;
+        background: var(--st-support-deep);
+        border-bottom: 1px solid #ffffff1f;
+        box-shadow: 0 5px 20px #153d301c;
+
+        .o_menu_toggle, .o_menu_brand, .o_menu_systray > * { color: #f4f9f0; }
+        .o_menu_brand { font-weight: 700; letter-spacing: -.02em; }
+        .o_navbar_breadcrumbs, .o_navbar_breadcrumbs .o_breadcrumb,
+        .o_navbar_breadcrumbs .o_last_breadcrumb_item, .o_navbar_breadcrumbs .o_back_button {
+            color: #f4f9f0;
+        }
+        .o_menu_sections > button, .o_menu_sections > a {
+            color: #f4f9f0;
+            background: transparent;
+            border-radius: 8px;
+        }
+        .o_menu_sections > button:hover, .o_menu_sections > a:hover,
+        .o_menu_sections > button:focus, .o_menu_sections > a:focus {
+            color: var(--st-support-lime);
+            background: #ffffff16;
+        }
+        .o_menu_systray button:not(.dropdown-item) { color: #f4f9f0; }
+        .o_menu_systray button:not(.dropdown-item):hover { color: var(--st-support-lime); background: #ffffff14; }
+    }
+
+    .o_action_manager, .o_content, .o_form_view_container { background: var(--st-support-bg); }
+
+    .o_control_panel {
+        padding: 16px 24px 18px !important;
+        background: #fff;
+        border-bottom: 1px solid var(--st-support-line);
+        box-shadow: 0 5px 22px #183f3108;
+        .o_breadcrumb, .o_last_breadcrumb_item { color: var(--st-support-deep); font-weight: 650; letter-spacing: -.025em; }
+        .o_breadcrumb a { color: var(--st-support-mid); }
+        .o_searchview { border: 1px solid var(--st-support-line); border-radius: 11px; background: #f9fbf7; box-shadow: none; }
+        .o_searchview:hover, .o_searchview:focus-within { border-color: #81a993; background: #fff; }
+        .o_searchview_input { color: var(--st-support-ink); }
+        .o_searchview_facet { border-radius: 7px; background: #e7f1e7; }
+        .o_cp_switch_buttons .btn, .o_pager .btn { border-radius: 8px; }
+    }
+
+    .btn-primary, .o_form_button_save {
+        color: #fff;
+        background: var(--st-support-deep);
+        border-color: var(--st-support-deep);
+        &:hover, &:focus { color: #fff; background: var(--st-support-mid); border-color: var(--st-support-mid); }
+    }
+    .btn-secondary { color: var(--st-support-deep); background: #edf3ec; border-color: #e1e9df; }
+    .btn-secondary:hover { color: var(--st-support-deep); background: #dfeadf; border-color: #cee0d0; }
+    a { color: var(--st-support-mid); }
+    a:hover { color: var(--st-support-deep); }
+    :is(a, button, input, select):focus-visible { outline: 2px solid #77a857; outline-offset: 2px; }
+
+    // Overview: give the metric grid and team cards the same editorial rhythm as Home.
+    .o_helpdesk_content { padding: 22px 24px 28px; gap: 20px; }
+    .steps-helpdesk-hero {
+        flex-shrink: 0;
+        padding: 30px 36px;
+        border-radius: 17px;
+        color: #fff;
+        background: radial-gradient(circle at 83% 10%, #d9f18d30, transparent 28%), linear-gradient(110deg, #12392d, #2b7155);
+        box-shadow: 0 15px 34px #153d3026;
+        span { color: var(--st-support-lime); font-size: .77rem; font-weight: 750; letter-spacing: .13em; }
+        h1 { margin: 9px 0 5px; color: #fff; font-size: clamp(1.55rem, 2.3vw, 2.35rem); font-weight: 650; letter-spacing: -.04em; }
+        p { margin: 0; color: #e5f0e4; font-size: .95rem; }
+    }
+    .o_helpdesk_banner {
+        padding: 0 !important;
+        gap: 16px;
+        border: 0 !important;
+        background: transparent !important;
+        > div { min-width: 0; padding: 18px; border: 1px solid var(--st-support-line); border-radius: 16px; background: #fff; }
+        .o_helpdesk_banner_table { border-collapse: separate; border-spacing: 4px; }
+        .o_helpdesk_banner_table td { color: var(--st-support-muted); }
+        .o_helpdesk_banner_table .o_text { min-width: 150px; }
+        .o_highlight { color: var(--st-support-deep); font-size: 1.15rem; font-weight: 700; }
+        .btn { border-radius: 10px !important; }
+        .btn-primary { background: var(--st-support-deep); }
+        .btn-light { background: #f3f7f1 !important; }
+    }
+    .o_helpdesk_wrap_kanban_view { background: transparent; }
+    .o_helpdesk_wrap_kanban_view .o_kanban_record {
+        border: 1px solid var(--st-support-line);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 8px 25px #153d300d;
+        overflow: hidden;
+    }
+
+    // Ticket tables, kanban, reporting, and configuration lists.
+    .o_list_renderer { margin: 18px 24px 28px; border: 1px solid var(--st-support-line); border-radius: 15px; background: #fff; box-shadow: 0 8px 25px #153d300b; overflow: auto; }
+    .o_list_table { margin: 0; --table-striped-bg: #fafcf9; }
+    .o_list_table thead { color: var(--st-support-deep); background: #e9f1e8; }
+    .o_list_table thead th { padding-top: 13px; padding-bottom: 13px; border-bottom: 1px solid #d1e1d2; font-weight: 700; }
+    .o_list_table tbody tr { border-bottom-color: #e9efe8; }
+    .o_list_table tbody tr:hover { background: #edf6ec !important; }
+    .o_list_table tbody td { padding-top: 11px; padding-bottom: 11px; }
+    .o_kanban_renderer { background: var(--st-support-bg); }
+    .o_kanban_group { border-radius: 13px; }
+    .o_kanban_group_header { color: var(--st-support-deep); font-weight: 700; }
+    .o_kanban_record { border-radius: 12px; }
+    .o_graph_renderer, .o_pivot_table, .o_activity_view { color: var(--st-support-ink); }
+
+    // Ticket form and conversation stay distinct while sharing one palette.
+    .o_form_view .o_form_sheet_bg { padding: 18px 20px 28px; background: var(--st-support-bg); }
+    .o_form_view .o_form_sheet {
+        max-width: none;
+        padding: 28px 34px;
+        border: 1px solid var(--st-support-line);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 10px 30px #153d300c;
+    }
+    .o_form_view .o_form_sheet h1 { color: var(--st-support-deep); font-weight: 650; letter-spacing: -.04em; }
+    .o_form_statusbar { padding: 5px 4px 14px; border: 0; background: transparent; }
+    .o_statusbar_status .o_arrow_button_current { color: var(--st-support-deep); background: #dff0dd; border-color: #a8c7a7; }
+    .o_form_view .o_horizontal_separator { color: var(--st-support-deep); border-bottom-color: var(--st-support-line); }
+    .o_form_view .o_field_html { line-height: 1.6; }
+    .o_form_view .o_tag, .o_form_view .badge { border-radius: 999px; }
+
+    .o-mail-ChatterContainer { border-left: 1px solid var(--st-support-line); background: #f8faf6; }
+    .o-mail-Chatter { background: #f8faf6; }
+    .o-mail-Chatter-top { z-index: 2; background: #f8faf6; box-shadow: 0 5px 14px #153d300a; }
+    .o-mail-Chatter-topbar { border-bottom: 1px solid var(--st-support-line); }
+    .o-mail-Message { margin: 9px 12px; padding: 14px 15px; border: 1px solid var(--st-support-line); border-radius: 13px; background: #fff; box-shadow: 0 5px 16px #153d3008; }
+    .o-mail-Message-content { color: var(--st-support-ink); line-height: 1.6; }
+    .o-mail-Message-content :is(p, ul, ol) { margin-bottom: .7em; }
+    .o-mail-Message-content a { text-decoration: underline; text-underline-offset: 2px; }
+    .o-mail-Message .o-mail-AttachmentCard { border-color: var(--st-support-line); border-radius: 10px; }
+
+    @media (max-width: 1100px) {
+        .o_helpdesk_banner { flex-direction: column !important; }
+        .o_helpdesk_content { padding: 15px; }
+        .o_list_renderer { margin: 12px; }
+        .o_form_view .o_form_sheet_bg { padding: 12px; }
+        .o_form_view .o_form_sheet { padding: 20px; }
+    }
+    @media (max-width: 700px) {
+        .o_control_panel { padding: 12px !important; }
+        .steps-helpdesk-hero { padding: 22px; }
+        .steps-helpdesk-hero span { font-size: .68rem; }
+        .o_helpdesk_banner .o_helpdesk_banner_table .o_text { min-width: 95px; }
+        .o_helpdesk_banner > div { padding: 10px; overflow-x: auto; }
+        .o-mail-Message { margin: 7px; padding: 11px; }
+    }
+}

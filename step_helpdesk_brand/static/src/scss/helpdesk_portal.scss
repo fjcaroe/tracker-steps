@@ -1,0 +1,41 @@
+.steps-helpdesk-portal {
+    --st-deep: #153d30;
+    --st-mid: #2d7656;
+    --st-lime: #d9f18d;
+    --st-line: #dbe7dc;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #213a2f;
+    background: #f4f7f2;
+
+    .steps-helpdesk-portal-hero {
+        margin: 24px 0 30px;
+        padding: clamp(27px, 4vw, 50px);
+        border-radius: 18px;
+        color: #fff;
+        background: radial-gradient(circle at 85% 10%, #d9f18d35, transparent 28%), linear-gradient(110deg, #12392d, #2b7155);
+        box-shadow: 0 16px 38px #153d3024;
+        span { color: var(--st-lime); font-size: .76rem; font-weight: 800; letter-spacing: .13em; }
+        h1 { margin: 16px 0 10px; color: #fff; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 650; letter-spacing: -.045em; }
+        p { margin: 0; color: #e2efe2; font-size: 1rem; }
+    }
+    .o_portal_wrap, .o_portal_sidebar { color: #213a2f; }
+    .card, .table-responsive { border: 1px solid var(--st-line); border-radius: 14px; background: #fff; box-shadow: 0 8px 24px #153d300b; overflow: hidden; }
+    .table { margin-bottom: 0; }
+    .table thead { color: var(--st-deep); background: #e9f1e8; }
+    .table th, .table td { padding: 14px 16px; border-color: #e8eee7; }
+    .table tbody tr:hover { background: #f1f7f0; }
+    .btn-primary, .badge.text-bg-primary { color: #fff; background: var(--st-deep); border-color: var(--st-deep); }
+    .btn-primary:hover { color: #fff; background: var(--st-mid); border-color: var(--st-mid); }
+    .badge.text-bg-success { background: #dceedd !important; color: var(--st-deep) !important; }
+    a { color: var(--st-mid); }
+    a:hover { color: var(--st-deep); }
+    :is(a, button, input):focus-visible { outline: 2px solid #77a857; outline-offset: 2px; }
+    #ticket-nav .nav-link { border-radius: 8px; color: var(--st-deep); }
+    #ticket-nav .nav-link:hover { background: #e8f2e7; }
+    #card_header, #ticket_chat { scroll-margin-top: 80px; }
+
+    @media (max-width: 700px) {
+        .steps-helpdesk-portal-hero { margin: 15px 0 22px; border-radius: 13px; }
+        .table th, .table td { padding: 10px; }
+    }
+}

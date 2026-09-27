@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="helpdesk.menu_helpdesk_root" model="ir.ui.menu">
+        <field name="web_icon">step_helpdesk_brand,static/description/icon.png</field>
+    </record>
+</odoo>
