@@ -418,11 +418,11 @@
 
     <menuitem id="menu_dispatch_configuration" name="Configuración" parent="menu_dispatch_root" sequence="90" groups="stock.group_stock_manager"/>
     <menuitem id="menu_dispatch_transfer_reasons" name="Razón del traslado" parent="menu_dispatch_configuration"
-              action="action_dispatch_transfer_reasons" sequence="10"/>
+              action="action_dispatch_transfer_reasons" sequence="10" groups="stock.group_stock_manager"/>
     <menuitem id="menu_dispatch_types" name="Tipo de despacho" parent="menu_dispatch_configuration"
-              action="step_operations_ui.action_freight_dispatch_type" sequence="20"/>
+              action="step_operations_ui.action_freight_dispatch_type" sequence="20" groups="stock.group_stock_manager"/>
     <menuitem id="menu_dispatch_drivers" name="Choferes (maestro anterior)" parent="menu_dispatch_configuration"
-              action="action_dispatch_drivers" sequence="80"/>
+              action="action_dispatch_drivers" sequence="80" groups="stock.group_stock_manager"/>
     <menuitem id="menu_dispatch_settings" name="Ajustes" parent="menu_dispatch_configuration"
               action="stock.action_stock_config_settings" sequence="90" groups="base.group_system"/>
 
