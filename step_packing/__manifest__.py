@@ -10,6 +10,7 @@
     "depends": ["base", "mail", "step_hr", "product", "mrp", "stock"],
     "data": [
         "security/ir.model.access.csv",
+        "data/stages.xml",
         "views/step_packing_fruit_category_views.xml",
         "views/step_packing_fruit_class_views.xml",
         "views/step_packing_caliber_group_views.xml",

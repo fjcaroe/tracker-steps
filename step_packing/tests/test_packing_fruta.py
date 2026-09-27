@@ -154,3 +154,11 @@ class TestPackingFruta(TransactionCase):
             view = self.env.ref(view_ref)
             arch = self.env[model].with_user(self.stock_user).get_view(view.id)['arch']
             self.assertIn('fruit_', arch, view_ref)
+
+    def test_default_stages(self):
+        campo = self.env['step.packing.campo'].create({'name': 'Proceso campo T34'})
+        self.assertEqual(campo.stage_id, self.env.ref('step_packing.stage_packing_campo_new'))
+        reception = self.env['step.packing.reception'].create({'name': 'Granel T34'})
+        self.assertEqual(reception.stage_id, self.env.ref('step_packing.stage_packing_reception_new'))
+        self.assertEqual(
+            self.env['step.packing.campo.stage'].search([]).mapped('name')[:3], ['Nuevo', 'En progreso', 'Listo'])

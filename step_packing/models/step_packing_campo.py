@@ -21,7 +21,7 @@ class StepPackingCampo(models.Model):
     date_start = fields.Datetime(string='Fecha de inicio')
     date_stop = fields.Datetime(string='Fecha de finalización')
     sequence = fields.Integer(string='Secuencia', default=10)
-    stage_id = fields.Many2one('step.packing.campo.stage', string='Etapa', required=True, group_expand='_read_group_stage_ids', tracking=True)
+    stage_id = fields.Many2one('step.packing.campo.stage', string='Etapa', required=True, default=lambda self: self._default_stage_id(), group_expand='_read_group_stage_ids', tracking=True)
     priority = fields.Boolean(string='Alta prioridad')
     color = fields.Integer(string='Color')
     tag_ids = fields.Many2many('step.packing.campo.tag', string='Etiquetas')
@@ -30,6 +30,9 @@ class StepPackingCampo(models.Model):
     fundo_id = fields.Many2one('step.fundo', string='Fundo')
     species_id = fields.Many2one('step.especie', string='Especie')
     process_number = fields.Char(string='Número proceso')
+
+    def _default_stage_id(self):
+        return self.env['step.packing.campo.stage'].search([], order='sequence, id', limit=1)
 
     def _read_group_stage_ids(self, stages, domain):
         return self.env['step.packing.campo.stage'].search([], order='sequence, id')
