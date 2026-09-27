@@ -89,6 +89,11 @@ en una base aislada. También se verificó que el filtro y el aviso están en
 las vistas resueltas por Odoo, y que las páginas públicas conservan un ancho
 útil en móvil.
 
+Se corrigió el error 500 de `/my/tickets`: la personalización del estado vacío
+debe conservar `t-if="not grouped_tickets"` porque la plantilla base le sigue
+con un `t-else`. La vista heredada compiló correctamente en la base de
+producción después de actualizar el módulo.
+
 Antes de actualizar el módulo en `karo_consultorias` se guardaron la base, el
 módulo anterior y el vhost anterior en
 `/opt/backups/odoo/2026-09-27-support-v2/` (solo accesible en la VM). La copia

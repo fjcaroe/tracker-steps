@@ -19,7 +19,7 @@
             </section>
         </xpath>
         <xpath expr="//div[@t-if='not grouped_tickets']" position="replace">
-            <div class="steps-helpdesk-empty" role="status">
+            <div t-if="not grouped_tickets" class="steps-helpdesk-empty" role="status">
                 <h2>Aún no tienes solicitudes visibles.</h2>
                 <p>Si necesitas ayuda, puedes crear una solicitud. Si ya escribiste al equipo, ingresa con la cuenta de cliente asociada al ticket.</p>
                 <a class="btn btn-primary" href="/soporte/nueva-solicitud">Crear solicitud</a>
