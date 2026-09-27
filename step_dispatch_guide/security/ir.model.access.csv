@@ -1,7 +1,10 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_dispatch_guide_user,Guías de despacho,model_step_dispatch_guide,stock.group_stock_user,1,1,1,0
 access_dispatch_guide_manager,Guías de despacho administrador,model_step_dispatch_guide,stock.group_stock_manager,1,1,1,1
+access_dispatch_guide_invoice,Guías de despacho facturación,model_step_dispatch_guide,account.group_account_invoice,1,1,0,0
 access_dispatch_guide_line_user,Líneas de guía,model_step_dispatch_guide_line,stock.group_stock_user,1,1,1,1
+access_dispatch_guide_line_invoice,Líneas de guía facturación,model_step_dispatch_guide_line,account.group_account_invoice,1,0,0,0
 access_dispatch_driver_user,Choferes de despacho,model_step_dispatch_driver,stock.group_stock_user,1,1,1,0
 access_dispatch_driver_manager,Choferes de despacho administrador,model_step_dispatch_driver,stock.group_stock_manager,1,1,1,1
-
+access_dispatch_reason_user,Razón del traslado,model_step_dispatch_transfer_reason,base.group_user,1,0,0,0
+access_dispatch_reason_manager,Razón del traslado administrador,model_step_dispatch_transfer_reason,stock.group_stock_manager,1,1,1,1

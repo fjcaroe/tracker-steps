@@ -20,12 +20,14 @@ class FreightOrder(models.Model):
             "res_model": "step.dispatch.guide", "view_mode": "form", "target": "current",
             "context": {
                 "default_freight_order_id": self.id,
+                "default_freight_paid": True,
+                "default_freight_route_id": self.route_id.id,
                 "default_date": self.x_studio_fecha,
                 "default_carrier_id": self.x_studio_transportista.id,
-                "default_truck_plate": self.vehicle_id.license_plate,
+                "default_vehicle_id": self.vehicle_id.id,
                 "default_origin_address": self.route_id.origin,
                 "default_destination_address": self.route_id.destination,
-                "default_transfer_reason": self.x_name,
+                "default_reference": self.x_name,
             },
         }
 
@@ -37,4 +39,3 @@ class FreightOrder(models.Model):
             "domain": [("freight_order_id", "=", self.id)],
             "context": {"default_freight_order_id": self.id},
         }
-
