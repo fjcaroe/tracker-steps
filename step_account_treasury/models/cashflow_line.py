@@ -90,6 +90,10 @@ class StepCashflowLine(models.Model):
     bucket = fields.Selection(
         BUCKET_SELECTION, string="Cubeta", compute="_compute_bucket", store=True, index=True,
     )
+    bucket_label = fields.Char(
+        string="Semana", compute="_compute_bucket_label", store=True,
+        help="La cubeta con la semana calendario real del horizonte: W35, W36, …",
+    )
     amount_overdue = fields.Monetary(string="Vencido", currency_field="flow_currency_id", compute="_compute_bucket_amounts")
     amount_w1 = fields.Monetary(string="W1", currency_field="flow_currency_id", compute="_compute_bucket_amounts")
     amount_w2 = fields.Monetary(string="W2", currency_field="flow_currency_id", compute="_compute_bucket_amounts")
@@ -138,6 +142,15 @@ class StepCashflowLine(models.Model):
     def _compute_bucket(self):
         for line in self:
             line.bucket = line.cashflow_id._bucket_for_date(line.due_date)
+
+    @api.depends("bucket", "cashflow_id.start_date")
+    def _compute_bucket_label(self):
+        # Los rótulos dependen del horizonte, así que se resuelven por flujo y
+        # no línea a línea: un flujo con mil líneas hace un solo cálculo.
+        for flow, lines in self.grouped("cashflow_id").items():
+            labels = flow._bucket_labels() if flow else dict(BUCKET_SELECTION)
+            for line in lines:
+                line.bucket_label = labels.get(line.bucket) or ""
 
     @api.depends("bucket", "amount_flow", "excluded")
     def _compute_bucket_amounts(self):

@@ -156,10 +156,11 @@ class StepCashflowCollect(models.Model):
     def _collect_orders(self, sheet, model, states, qty_field, doc_label):
         """Pedidos con importe aún no facturado.
 
-        Se proyecta `precio_total x (cantidad - cantidad facturada) / cantidad`.
-        La fórmula no depende de la política de control de facturación, así que
-        sirve igual para pedidos confirmados y para los que esperan factura, y
-        nunca vuelve a contar lo que ya se facturó.
+        Se proyecta `precio_total x cantidad_a_facturar / cantidad_base`.
+        `qty_to_invoice` es la fuente canónica de Odoo y ya incorpora la
+        política del producto: pedido/entregado en ventas y pedido/recibido en
+        compras. Así no se anticipa caja por bienes aún no entregados/recibidos
+        cuando la política exige ese hito, ni se vuelve a contar lo facturado.
         """
         self.ensure_one()
         defaults = self._line_defaults(sheet)
@@ -176,10 +177,10 @@ class StepCashflowCollect(models.Model):
                 quantity = line[qty_field]
                 if not quantity:
                     continue
-                remaining = quantity - line.qty_invoiced
-                if remaining <= 0:
+                to_invoice = line.qty_to_invoice
+                if to_invoice <= 0:
                     continue
-                pending += line.price_total * (remaining / quantity)
+                pending += line.price_total * (to_invoice / quantity)
             currency = order.currency_id
             if float_is_zero(pending, precision_rounding=currency.rounding):
                 continue

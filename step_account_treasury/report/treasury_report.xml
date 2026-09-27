@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_treasury_review" model="ir.actions.report">
+        <field name="name">Flujo de caja — revisión</field>
+        <field name="model">step.cashflow</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_account_treasury.report_treasury_review</field>
+        <field name="report_file">step_account_treasury.report_treasury_review</field>
+        <field name="print_report_name">'Flujo de caja - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_step_cashflow"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_treasury_review">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div style="padding:18px 22px;border-radius:14px;background:#123c33;color:white;">
+                            <small style="color:#d8ff62;font-weight:bold;letter-spacing:1px;">PLANIFICACIÓN FINANCIERA</small>
+                            <h1 style="margin:4px 0 2px;color:white;">Flujo de caja</h1>
+                            <div><strong t-esc="o.name"/> · <span t-esc="o.company_id.display_name"/></div>
+                            <div><span t-field="o.start_date"/> — <span t-field="o.end_date"/> · <span t-esc="o.currency_id.name"/></div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-3"><small>Saldo inicial</small><h3 t-esc="o._format(o.opening_balance)"/></div>
+                            <div class="col-3"><small>Ingresos</small><h3 t-esc="o._format(o.total_inflow)"/></div>
+                            <div class="col-3"><small>Egresos</small><h3 t-esc="o._format(o.total_outflow)"/></div>
+                            <div class="col-3"><small>Saldo final</small><h3 t-esc="o._format(o.closing_balance)"/></div>
+                        </div>
+                        <t t-set="bucket_labels" t-value="o._bucket_labels()"/>
+                        <t t-set="bucket_hints" t-value="o._bucket_label_hints()"/>
+                        <table class="table table-sm mt-3" style="font-size:9px;">
+                            <thead style="background:#eef5f2;color:#123c33;">
+                                <tr>
+                                    <th>Concepto</th>
+                                    <th t-foreach="['overdue','w1','w2','w3','w4','w5','other']" t-as="code" class="text-end">
+                                        <t t-esc="bucket_labels.get(code)"/>
+                                        <div t-if="bucket_hints.get(code)" style="font-weight:normal;color:#6b7b75;font-size:7px;" t-esc="bucket_hints.get(code)"/>
+                                    </th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.get_summary_rows()" t-as="row" t-att-style="'font-weight:bold;background:#eef5f2;' if row['kind'] in ('subtotal','closing') else ''">
+                                    <td t-esc="row['label']"/>
+                                    <td t-foreach="['overdue','w1','w2','w3','w4','w5','other']" t-as="code" class="text-end" t-esc="o._format(row['buckets'].get(code, 0.0))"/>
+                                    <td class="text-end" t-esc="o._format(row['total'])"/>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p t-if="o.has_negative_cash" style="padding:8px 10px;border:1px solid #efb6b6;background:#fff1f1;color:#8a2020;"><strong>Alerta:</strong> existe caja negativa en el horizonte proyectado.</p>
+                        <p style="margin-top:18px;color:#6b7b75;font-size:9px;">Documento de revisión generado desde el mismo dataset canónico del flujo. No ejecuta pagos ni constituye un archivo bancario.</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

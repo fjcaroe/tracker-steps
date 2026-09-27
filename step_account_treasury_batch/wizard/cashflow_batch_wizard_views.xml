@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cashflow_batch_wizard_form" model="ir.ui.view">
+        <field name="name">step.cashflow.batch.wizard.form</field>
+        <field name="model">step.cashflow.batch.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Crear lote de pago">
+                <field name="candidate_line_ids" invisible="1"/>
+                <field name="available_payment_method_line_ids" invisible="1"/>
+                <field name="company_id" invisible="1"/>
+                <field name="currency_id" invisible="1"/>
+                <group>
+                    <group string="Origen">
+                        <field name="cashflow_id" readonly="1"/>
+                        <field name="bucket_scope"/>
+                    </group>
+                    <group string="Pago">
+                        <field name="journal_id"/>
+                        <field name="payment_method_line_id" options="{'no_create': True}"/>
+                        <field name="payment_date"/>
+                        <field name="batch_reference" placeholder="Numeración automática"/>
+                    </group>
+                </group>
+                <div class="alert alert-info" role="alert" invisible="not skipped_note">
+                    <field name="skipped_note" nolabel="1" readonly="1"/>
+                </div>
+                <div class="alert alert-warning" role="alert" invisible="line_ids">
+                    No hay documentos pagables en el alcance elegido. Sólo se pagan
+                    egresos con una factura publicada y con saldo pendiente.
+                </div>
+                <field name="line_ids" nolabel="1"
+                       domain="[('id', 'in', candidate_line_ids)]">
+                    <list string="Documentos a pagar" create="false">
+                        <field name="partner_id" readonly="1"/>
+                        <field name="partner_vat" readonly="1" optional="show"/>
+                        <field name="doc_number" readonly="1"/>
+                        <field name="doc_date" readonly="1" optional="hide"/>
+                        <field name="due_date" readonly="1"/>
+                        <field name="bucket_label" string="Semana" readonly="1"/>
+                        <field name="currency_id" readonly="1" optional="hide"/>
+                        <field name="amount_origin" readonly="1"/>
+                        <field name="amount_flow" sum="Total" readonly="1"/>
+                        <field name="flow_currency_id" column_invisible="True"/>
+                    </list>
+                </field>
+                <group class="oe_subtotal_footer">
+                    <field name="payment_count"/>
+                    <field name="amount_total"/>
+                </group>
+                <footer>
+                    <button name="action_create_batch" type="object" string="Crear lote"
+                            class="btn-primary" invisible="not line_ids"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cashflow_line_create_batch" model="ir.actions.server">
+        <field name="name">Crear lote de pago</field>
+        <field name="model_id" ref="step_account_treasury.model_step_cashflow_line"/>
+        <field name="binding_model_id" ref="step_account_treasury.model_step_cashflow_line"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('step_account_treasury.group_treasury_user'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_open_batch_wizard()</field>
+    </record>
+</odoo>

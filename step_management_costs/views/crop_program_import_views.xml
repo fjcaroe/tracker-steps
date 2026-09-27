@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_crop_program_import_list" model="ir.ui.view">
+        <field name="name">step.management.crop.program.import.list</field>
+        <field name="model">step.management.crop.program.import</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'imported'" decoration-danger="error_count &gt; 0 and state == 'validated'" decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="filename"/>
+                <field name="program_type"/>
+                <field name="season"/>
+                <field name="line_count"/>
+                <field name="ok_count"/>
+                <field name="error_count"/>
+                <field name="program_id"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_crop_program_import_form" model="ir.ui.view">
+        <field name="name">step.management.crop.program.import.form</field>
+        <field name="model">step.management.crop.program.import</field>
+        <field name="arch" type="xml">
+            <form string="Carga de receta de programa desde Excel">
+                <header>
+                    <button name="action_validate" type="object" string="Validar" class="btn-primary" invisible="state == 'imported' or not file"/>
+                    <button name="action_import" type="object" string="Importar" class="btn-primary" invisible="state != 'validated'"/>
+                    <button name="action_reset" type="object" string="Restablecer" invisible="state in ('draft','imported')"/>
+                    <button name="action_cancel" type="object" string="Cancelar" invisible="state in ('imported','cancelled')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated,imported"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="file" filename="filename"/>
+                            <field name="filename" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="user_id"/>
+                            <field name="import_valid_only"/>
+                        </group>
+                        <group>
+                            <field name="program_type"/>
+                            <field name="season"/>
+                            <field name="species"/>
+                            <field name="variety"/>
+                            <field name="date"/>
+                            <field name="price_policy"/>
+                            <field name="currency_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="center_ids" widget="many2many_tags"
+                               domain="[('company_id', '=', company_id)]"/>
+                    </group>
+                    <div class="alert alert-info" role="alert" invisible="state != 'draft'">
+                        Defina el encabezado (tipo, temporada, centros) y adjunte el Excel con
+                        la receta: columnas Producto, Dosis/Ha, UdM, Objetivo, Semana,
+                        Carencia, Reingreso. Pulse <em>Validar</em>.
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="state != 'validated' or error_count == 0">
+                        <strong><field name="error_count" class="oe_inline"/> fila(s) con error.</strong>
+                        Corrija el Excel y vuelva a validar, o marque «Importar sólo filas válidas».
+                    </div>
+                    <div class="alert alert-success" role="alert" invisible="state != 'validated' or error_count &gt; 0">
+                        <strong><field name="ok_count" class="oe_inline"/> fila(s) válidas.</strong> Listo para importar.
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="state != 'imported'">
+                        El programa se creó en <strong>borrador</strong>. Debe calcular las
+                        aplicaciones y aprobarlo por el flujo normal.
+                    </div>
+                    <notebook>
+                        <page string="Filas" name="rows">
+                            <field name="line_ids" readonly="1">
+                                <list decoration-danger="state == 'error'" decoration-success="imported" limit="200">
+                                    <field name="row_number"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="raw_product"/>
+                                    <field name="product_id" optional="show"/>
+                                    <field name="raw_dose_per_ha"/>
+                                    <field name="raw_uom" optional="hide"/>
+                                    <field name="raw_target" optional="hide"/>
+                                    <field name="raw_week_number" optional="hide"/>
+                                    <field name="raw_phi_days" optional="hide"/>
+                                    <field name="raw_rei_hours" optional="hide"/>
+                                    <field name="error"/>
+                                    <field name="imported" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Observaciones" name="notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_crop_program_import_search" model="ir.ui.view">
+        <field name="name">step.management.crop.program.import.search</field>
+        <field name="model">step.management.crop.program.import</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="filename"/>
+                <field name="season"/>
+                <filter string="Con errores" name="with_errors" domain="[('error_count','&gt;',0)]"/>
+                <filter string="Importadas" name="imported" domain="[('state','=','imported')]"/>
+                <filter string="Pendientes" name="pending" domain="[('state','in',('draft','validated'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado" name="state" context="{'group_by':'state'}"/>
+                    <filter string="Tipo" name="type_g" context="{'group_by':'program_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_crop_program_import" model="ir.actions.act_window">
+        <field name="name">Carga de programas desde Excel</field>
+        <field name="res_model">step.management.crop.program.import</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_crop_program_import_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cargue la receta de un programa fito/ferti desde Excel.</p>
+            <p>La carga es todo-o-nada, con vista previa y errores por fila. El programa
+               importado nace en borrador.</p>
+        </field>
+    </record>
+</odoo>

@@ -5,7 +5,7 @@
     "description": """Tesorería sobre la contabilidad de Odoo: maestro de conceptos
 de flujo, flujos de caja con horizonte de cinco semanas, siete hojas de detalle y
 resumen acumulado, todo derivado de un único dataset canónico y auditable.""",
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.2.0",
     "category": "Accounting/Accounting",
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
@@ -21,6 +21,7 @@ resumen acumulado, todo derivado de un único dataset canónico y auditable.""",
         "account_reports",
         "sale",
         "purchase",
+        "l10n_latam_invoice_document",
         "step_accounting_multicurrency",
     ],
     "data": [
@@ -32,14 +33,19 @@ resumen acumulado, todo derivado de un único dataset canónico y auditable.""",
         "views/vendor_proforma_views.xml",
         "views/cashflow_views.xml",
         "views/sale_purchase_views.xml",
+        "report/treasury_report.xml",
+        "views/treasury_dashboard_views.xml",
         "views/treasury_menus.xml",
     ],
     "assets": {
         "web.assets_backend": [
             "step_account_treasury/static/src/scss/treasury.scss",
+            "step_account_treasury/static/src/js/treasury_dashboard.js",
+            "step_account_treasury/static/src/js/treasury_week_columns.js",
+            "step_account_treasury/static/src/xml/treasury_dashboard.xml",
         ],
     },
     "post_init_hook": "post_init_treasury",
-    "application": False,
+    "application": True,
     "installable": True,
 }

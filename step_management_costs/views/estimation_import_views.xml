@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_estimation_import_list" model="ir.ui.view">
+        <field name="name">step.management.estimation.import.list</field>
+        <field name="model">step.management.estimation.import</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'imported'"
+                  decoration-danger="error_count &gt; 0 and state == 'validated'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="filename"/>
+                <field name="version_id"/>
+                <field name="season"/>
+                <field name="method"/>
+                <field name="line_count"/>
+                <field name="ok_count"/>
+                <field name="error_count"/>
+                <field name="estimation_id"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_estimation_import_form" model="ir.ui.view">
+        <field name="name">step.management.estimation.import.form</field>
+        <field name="model">step.management.estimation.import</field>
+        <field name="arch" type="xml">
+            <form string="Carga de estimación desde Excel">
+                <header>
+                    <button name="action_validate" type="object" string="Validar"
+                            class="btn-primary" invisible="state == 'imported' or not file"/>
+                    <button name="action_import" type="object" string="Importar"
+                            class="btn-primary" invisible="state != 'validated'"/>
+                    <button name="action_reset" type="object" string="Restablecer"
+                            invisible="state in ('draft','imported')"/>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state in ('imported','cancelled')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated,imported"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="file" filename="filename"/>
+                            <field name="filename" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="version_id" options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="unit_id" options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="method" readonly="state != 'draft'"/>
+                            <field name="default_yield_ue" invisible="method == 'kilos'"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="season" readonly="1"/>
+                            <field name="species" readonly="state != 'draft'"/>
+                            <field name="variety" readonly="state != 'draft'"/>
+                            <field name="week_curve_id" options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="caliber_curve_id" options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="class_curve_id" options="{'no_create': True}"
+                                   readonly="state != 'draft'"/>
+                            <field name="import_valid_only"/>
+                            <field name="estimation_id" readonly="1" invisible="not estimation_id"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert" invisible="state != 'draft'">
+                        Adjunte el Excel del <strong>Anexo 1.6.4.1</strong> (columnas:
+                        Centro de costo/Cuartel, Hectáreas, Plantas, Rendimiento (UE),
+                        Kilos, Temporada, Fundo, Especie, Variedad) y pulse
+                        <em>Validar</em>. La carga crea una estimación en
+                        <strong>borrador</strong>: no se valida automáticamente.
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="state != 'validated' or error_count == 0">
+                        <strong><field name="error_count" class="oe_inline"/> fila(s) con error.</strong>
+                        Corrija el Excel y vuelva a validar, o marque «Importar sólo filas válidas».
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="state != 'validated' or error_count &gt; 0">
+                        <strong><field name="ok_count" class="oe_inline"/> fila(s) válidas.</strong> Listo para importar.
+                    </div>
+                    <notebook>
+                        <page string="Filas" name="rows">
+                            <field name="line_ids" readonly="1">
+                                <list decoration-danger="state == 'error'"
+                                      decoration-success="imported" limit="200">
+                                    <field name="row_number"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="raw_center"/>
+                                    <field name="center_id" optional="show"/>
+                                    <field name="raw_hectares"/>
+                                    <field name="raw_plants"/>
+                                    <field name="raw_yield_ue"/>
+                                    <field name="raw_total_kg"/>
+                                    <field name="raw_season" optional="hide"/>
+                                    <field name="error"/>
+                                    <field name="imported" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Observaciones" name="notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_estimation_import_search" model="ir.ui.view">
+        <field name="name">step.management.estimation.import.search</field>
+        <field name="model">step.management.estimation.import</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="filename"/>
+                <field name="version_id"/>
+                <field name="season"/>
+                <filter string="Con errores" name="with_errors" domain="[('error_count','&gt;',0)]"/>
+                <filter string="Importadas" name="imported" domain="[('state','=','imported')]"/>
+                <filter string="Pendientes" name="pending" domain="[('state','in',('draft','validated'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estado" name="state_g" context="{'group_by':'state'}"/>
+                    <filter string="Versión" name="version_g" context="{'group_by':'version_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_estimation_import" model="ir.actions.act_window">
+        <field name="name">Carga de estimación desde Excel</field>
+        <field name="res_model">step.management.estimation.import</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_estimation_import_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cargue una estimación por centro/cuartel desde el Anexo 1.6.4.1.</p>
+            <p>Todo-o-nada, con vista previa y errores por fila. El resultado es una
+               estimación en borrador que luego se valida con las tres curvas.</p>
+        </field>
+    </record>
+</odoo>

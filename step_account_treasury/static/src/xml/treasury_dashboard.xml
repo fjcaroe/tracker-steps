@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_account_treasury.Dashboard">
+        <main class="o_steps_treasury_dashboard">
+            <header class="o_treasury_hero">
+                <div>
+                    <span>PLANIFICACIÓN FINANCIERA</span>
+                    <h1>Tesorería</h1>
+                    <p t-if="state.data">Caja proyectada y compromisos de <strong t-esc="state.data.company_name"/> en un solo lugar.</p>
+                </div>
+                <div class="o_treasury_hero_actions">
+                    <button class="btn btn-light" t-on-click="() => this.openAction('step_account_treasury.action_cashflow')"><i class="fa fa-plus me-1"/> Nuevo flujo</button>
+                    <button class="btn btn-outline-light" t-on-click="() => this.openAction('step_account_treasury.action_cashflow_line_graph')"><i class="fa fa-bar-chart me-1"/> Analítica</button>
+                    <button class="btn btn-outline-light" t-on-click="() => this.loadDashboard()"><i class="fa fa-refresh me-1"/> Actualizar</button>
+                </div>
+            </header>
+
+            <div t-if="state.loading" class="o_treasury_loading"><i class="fa fa-spinner fa-spin"/> Preparando la proyección…</div>
+            <div t-elif="state.error" class="o_treasury_empty"><i class="fa fa-exclamation-circle me-1"/><t t-esc="state.error"/><button class="btn btn-primary ms-2" t-on-click="() => this.loadDashboard()">Reintentar</button></div>
+            <t t-elif="state.data">
+                <div t-if="!state.data.current" class="o_treasury_empty_state">
+                    <i class="fa fa-line-chart"/>
+                    <h2>Construya su primera proyección de caja</h2>
+                    <p>Reúna facturas, pedidos, proformas y compromisos manuales en un horizonte de cinco semanas.</p>
+                    <button class="btn btn-primary" t-on-click="() => this.openAction('step_account_treasury.action_cashflow')">Crear flujo de caja</button>
+                </div>
+                <t t-else="">
+                    <section class="o_treasury_current_header">
+                        <div><span>ESCENARIO ACTIVO</span><h2 t-esc="state.data.current.name"/><small><t t-esc="state.data.current.period"/> · <t t-esc="state.data.current.currency"/></small></div>
+                        <button t-att-class="'o_treasury_state is-' + state.data.current.state" t-on-click="() => this.openFlow(state.data.current.id)" t-esc="state.data.current.state_label"/>
+                    </section>
+
+                    <section class="o_treasury_kpis">
+                        <article><span>Saldo inicial</span><strong t-esc="state.data.current.opening"/><small>Base bancaria al inicio</small></article>
+                        <article class="is-positive"><span>Ingresos proyectados</span><strong t-esc="state.data.current.inflow"/><small>Recaudaciones del horizonte</small></article>
+                        <article class="is-outflow"><span>Egresos proyectados</span><strong t-esc="state.data.current.outflow"/><small>Pagos del horizonte</small></article>
+                        <article t-att-class="state.data.current.negative ? 'is-danger' : 'is-closing'"><span>Saldo mínimo</span><strong t-esc="state.data.current.minimum"/><small t-esc="state.data.current.negative ? 'Requiere acción de caja' : 'Sin déficit proyectado'"/></article>
+                        <button t-on-click="() => this.openFlow(state.data.current.id)"><span>Saldo final</span><strong t-esc="state.data.current.closing"/><small><t t-esc="state.data.current.line_count"/> movimientos explicables</small></button>
+                    </section>
+
+                    <div class="o_treasury_dashboard_grid">
+                        <section class="o_treasury_panel o_treasury_projection">
+                            <header><div><span>EVOLUCIÓN DE CAJA</span><h2>Saldo acumulado por semana</h2></div><button class="btn btn-link" t-on-click="() => this.openFlow(state.data.current.id)">Ver detalle</button></header>
+                            <div class="o_treasury_chart" role="img" aria-label="Evolución del saldo acumulado">
+                                <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    <line x1="10" y1="88" x2="90" y2="88"/>
+                                    <polyline t-att-class="state.data.current.negative ? 'is-danger' : ''" t-att-points="state.data.current.chart_points"/>
+                                    <circle t-foreach="state.data.current.chart_nodes" t-as="node" t-key="node_index" t-att-cx="node.x" t-att-cy="node.y" r="1.8"/>
+                                </svg>
+                                <div class="o_treasury_chart_labels"><span t-foreach="state.data.current.buckets" t-as="bucket" t-key="bucket.code" t-esc="bucket.label"/></div>
+                            </div>
+                        </section>
+                        <aside class="o_treasury_panel o_treasury_attention">
+                            <header><div><span>CONTROL DE CAJA</span><h2>Estado del escenario</h2></div></header>
+                            <div t-att-class="state.data.current.negative ? 'o_treasury_notice is-danger' : 'o_treasury_notice is-ok'"><i t-att-class="state.data.current.negative ? 'fa fa-exclamation-triangle' : 'fa fa-check-circle'"/><span><b t-esc="state.data.current.negative ? 'Existe caja negativa proyectada' : 'No se proyectan déficits de caja'"/><small>Revise las semanas y documentos que explican el saldo.</small></span></div>
+                            <button t-on-click="() => this.openAction('step_account_treasury.action_cashflow')"><i class="fa fa-folder-open"/><span><b><t t-esc="state.data.counts.in_progress || 0"/> flujos en progreso</b><small><t t-esc="state.data.counts.draft || 0"/> nuevos · <t t-esc="state.data.counts.approved || 0"/> aprobados</small></span></button>
+                            <button t-on-click="() => this.openAction('step_account_treasury.action_treasury_concept')"><i class="fa fa-tags"/><span><b>Conceptos de flujo</b><small>Clasificación y cuentas contables.</small></span></button>
+                        </aside>
+                    </div>
+
+                    <section class="o_treasury_buckets">
+                        <article t-foreach="state.data.current.buckets" t-as="bucket" t-key="bucket.code" t-att-class="bucket.negative ? 'is-negative' : ''">
+                            <header><span t-esc="bucket.label"/><strong t-esc="bucket.closing"/></header>
+                            <div><small>Ingresos</small><b class="is-in" t-esc="bucket.inflow"/></div>
+                            <div><small>Egresos</small><b class="is-out" t-esc="bucket.outflow"/></div>
+                        </article>
+                    </section>
+
+                    <section class="o_treasury_panel o_treasury_recent">
+                        <header><div><span>HISTORIAL</span><h2>Últimos flujos de caja</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_account_treasury.action_cashflow')">Ver todos</button></header>
+                        <button t-foreach="state.data.recent" t-as="flow" t-key="flow.id" t-on-click="() => this.openFlow(flow.id)"><i t-att-class="flow.negative ? 'is-danger' : 'is-ok'"/><span><b t-esc="flow.name"/><small><t t-esc="flow.start_date"/> — <t t-esc="flow.end_date"/></small></span><em t-esc="flow.closing"/><strong t-att-class="'is-' + flow.state" t-esc="flow.state_label"/></button>
+                    </section>
+                </t>
+            </t>
+        </main>
+    </t>
+</templates>

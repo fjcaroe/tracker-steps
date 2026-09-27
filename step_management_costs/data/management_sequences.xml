@@ -8,4 +8,40 @@
         <field name="name">Plan operacional</field><field name="code">step.management.plan</field>
         <field name="prefix">PLAN/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
     </record>
+    <record id="seq_budget_import" model="ir.sequence">
+        <field name="name">Carga de presupuesto Excel</field><field name="code">step.management.budget.import</field>
+        <field name="prefix">IMP/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_estimation" model="ir.sequence">
+        <field name="name">Documento de estimación de cosecha</field><field name="code">step.management.estimation</field>
+        <field name="prefix">EST/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_estimation_import" model="ir.sequence">
+        <field name="name">Carga de estimación Excel</field><field name="code">step.management.estimation.import</field>
+        <field name="prefix">IMPEST/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_harvest_plan" model="ir.sequence">
+        <field name="name">Plan de cosecha semanal</field><field name="code">step.management.harvest.plan</field>
+        <field name="prefix">COS/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_crop_program" model="ir.sequence">
+        <field name="name">Programa fitosanitario / de fertilización</field><field name="code">step.management.crop.program</field>
+        <field name="prefix">PROG/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_stock_requirement" model="ir.sequence">
+        <field name="name">Necesidades de stock</field><field name="code">step.management.stock.requirement</field>
+        <field name="prefix">STK/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_crop_program_import" model="ir.sequence">
+        <field name="name">Carga de receta de programa Excel</field><field name="code">step.management.crop.program.import</field>
+        <field name="prefix">IMPPROG/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_production_order" model="ir.sequence">
+        <field name="name">Orden de Producción semanal</field><field name="code">step.management.production.order</field>
+        <field name="prefix">OP/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
+    <record id="seq_historical_import_batch" model="ir.sequence">
+        <field name="name">Lote de carga histórica</field><field name="code">step.management.historical.import.batch</field>
+        <field name="prefix">HIST/%(year)s/</field><field name="padding">5</field><field name="company_id" eval="False"/>
+    </record>
 </odoo>

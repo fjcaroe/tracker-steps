@@ -1,5 +1,129 @@
 # Changelog
 
+## 18.0.3.8.4
+
+Tickets Helpdesk S&S #14 y #15 (EMCA, agosto 2026).
+
+* **Jornada parcial:** una carga semanal real inferior a 40 h prevalece sobre
+  una selección histórica de jornada completa. El caso Karen Flies, horario
+  de 24 h, queda con campo 93 = `2` en la principal y sus anexas.
+* **Cotización Mutual:** para empresas afiliadas a Mutual se concilia el campo
+  98 como `campo 97 × (tasa base + tasa adicional)` usando las tasas de la
+  empresa y redondeo al peso. En el caso Celestina Peñaloza corrige 4.159 a
+  4.076 (`438.229 × 0,93 %`), sin sumar RIMA. Cada ajuste deja el hallazgo
+  `mutual_contribution_normalized`.
+
+## 18.0.3.8.3
+
+Ticket Helpdesk S&S #19 (Sociedad de Bienestar Integral y Mantenimiento de la
+Salud Ltda., período 202608).
+
+* **Asignación familiar por IPS/ex-INP.** Cuando el empleador no está adherido
+  a una Caja de Compensación (CCAF) y paga las cargas familiares a través del
+  IPS, el monto de la asignación familiar se traslada del campo 22 «Asignación
+  Familiar» al campo 73 «Descuento por Cargas Familiares IPS», y el campo 22
+  queda en `0`. Es un traslado entre columnas del valor ya conciliado por el
+  motor de nómina: no se recalcula ningún importe. Se aplica a toda línea con
+  asignación familiar cuando la empresa no trae código de CCAF (campo 83),
+  aunque el trabajador esté afiliado a AFP; un empleador adherido a CCAF
+  conserva el campo 22 intacto. Cada traslado deja el hallazgo
+  `family_allowance_moved_to_ips` con el detalle.
+
+## 18.0.3.8.2
+
+Ticket Helpdesk S&S #18, **revisión 2** (Servicio de Bienestar / Valentina
+Parada, agosto 2026).
+
+* La línea adicional tipo `01` de una licencia médica ahora informa `0` en
+  Días Trabajados (campo 13), Accidente del Trabajo ISL (campo 71) y RIMA
+  (campo 92), tal como confirmó el cliente. La línea principal `00` conserva
+  sus valores calculados (11, 5.045 y 350.000 en el caso revisado) y el resto
+  de los campos de la anexa no se altera.
+* La RIMA calculada por la extracción se escribe únicamente en la línea
+  principal; ya no se propaga a anexas. La normalización deja un hallazgo
+  auditable `medical_leave_annex_zeroed` cuando corrige valores del motor.
+
+## 18.0.3.8.1
+
+Correcciones tras **validar el TXT real en `demo-sys` (`STEPS_DEMO_SYS`)** con
+las liquidaciones de Carolina Medel (Somed) y Valentina Parada (Serv.
+Bienestar), agosto 2026. Con estas correcciones los campos 29, 71, 92, 94, 95,
+97, 98, 100 y 102 del archivo generado coinciden exactamente con los valores
+que pide cada ticket.
+
+* **`_()` no admite el kwarg reservado `source`.** El hallazgo
+  `medical_leave_bases_rebased` se construía con `_("… %(source)s …",
+  source=…)`, que choca con el primer parámetro posicional de
+  `get_text_alias` y lanzaba `TypeError` al generar el archivo. Marcador
+  renombrado a `%(origen)s`.
+* **Empleador ISL (sin mutualidad): campo 71 y campos 97/98.** El motor deja
+  el campo 71 en 0 en licencia de mes completo aunque el empleador cotice en
+  el ISL (caso Somed). Ahora, cuando el campo 96 (Código Mutualidad) viene
+  vacío, el recálculo de licencia médica fija el campo 71 = base × 0,93 %
+  siempre, y pone en 0 los campos 97 (Renta Imponible Mutual) y 98
+  (Cotización Mutual), que no aplican a quien no está en una mutualidad
+  (ticket #18: «campo 97 = 0 porque cotiza en INP»).
+
+## 18.0.3.8.0
+
+Tickets Helpdesk S&S #17 (Somed / Carolina Medel, RUT 17.932.663-9) y #18
+(Servicio de Bienestar / Valentina Parada, RUT 18.656.818-4), nómina agosto
+2026. El cliente confirmó los valores esperados y la regla el 2026-09-08.
+
+* **Licencia médica: cotizaciones de cargo del empleador sobre imponible del
+  mes + RIMA.** Nuevo `PreviredExtractor._set_medical_leave_bases`. Cuando el
+  motor ya informó la RIMA en el campo 92, la base de SIS (29), Acc. Trabajo
+  ISL (71, sólo si la línea usa ISL y no mutual), Expectativa de Vida (94),
+  Rentabilidad Protegida (95), Renta Imponible Seguro Cesantía (100) y Aporte
+  Empleador Seguro Cesantía (102) pasa a ser `campo 27 + campo 92` y cada
+  cotización se recalcula con su tasa estatutaria (`sis_rate` 1,78 %;
+  `isl_accident_rate` 0,93 %; `life_expectancy_rate` 0,72 %;
+  `protected_return_rate` 0,90 %; `unemployment_employer_rate` 2,4 % / 3,0 %).
+  No se tocan la cotización adicional AFP del campo 28 ni la mutualidad
+  (97/98). Verificado contra los archivos de revisión de PreviRed de ambos
+  tickets: Somed base 1.205.761 ⇒ 29=21.463, 94=8.681, 95=10.852, 71=11.214,
+  102=28.938; Serv. Bienestar base 542.500 ⇒ 29=9.657, 94=3.906, 95=4.883,
+  71=5.045, 102=13.020. Cada override deja un hallazgo auditable
+  (`medical_leave_bases_rebased`). **Mueve montos declarados a PreviRed:**
+  pendiente de validación funcional contra datos reales antes de SyS.
+* **Cálculo de la RIMA cuando el motor no la informa** (nuevo
+  `_compute_medical_leave_rima`). Si el campo 92 viene vacío pero la
+  liquidación tiene una línea de licencia médica (tipo de entrada `LIC` o
+  `ACCTR`), la RIMA se calcula = `(sueldo base del contrato + gratificación) /
+  30 × días de licencia médica del mes`, con
+  `gratificación = min(25 % del sueldo base, 4,75 × IMM ÷ 12)` e IMM desde
+  `previred.minimum_wage`. Verificado contra las liquidaciones reales de SyS
+  (agosto 2026): Carolina Medel `(986.646 + 219.114 tope IMM) / 30 × 30 =
+  1.205.761` (idéntico a la línea `SUBSIDIO` del motor) y Valentina Parada
+  `(420.000 + 105.000) / 30 × 20 = 350.000`. El valor calculado se escribe en
+  el campo 92 y alimenta el recálculo anterior. Si falta el IMM del período o
+  el sueldo base del contrato, no calcula y deja `medical_leave_rima_missing`.
+* Helpers nuevos en `tools/previred.py`: `sis_rate`, `isl_accident_rate`,
+  `unemployment_employer_rate`, `minimum_wage` (tabla IMM por período, 202608
+  = 553.553); constantes `F_ISL_ACCIDENT`, `F_RIMA`, `F_MUTUAL_TAXABLE`,
+  `F_MUTUAL_CONTRIBUTION`, `F_UNEMPLOYMENT_EMPLOYER`.
+
+## 18.0.3.7.0
+
+Tickets PreviRed 2026-09 (nómina agosto 2026). Dos correcciones acotadas y
+verificadas por aritmética; la parte de cálculo de la RIMA en licencia médica
+queda especificada aparte (`docs/PREVIRED_TICKET_LICENCIA_JORNADA_2026-09.md`).
+
+* **Tasa de Cotización Expectativa de Vida (campo 94) = 0,72 % desde agosto
+  2026.** `life_expectancy_rate` devolvía `1,00 %`, una estimación previa a la
+  publicación de la tabla previsional del mes. Confirma el valor el rechazo de
+  PreviRed del ticket «imposiciones licencia médica» (RUT 14250811-7): con
+  RIMA 673.750, el campo 94 esperado es 4.851 = 673.750 × 0,72 %. También
+  corrige el campo 94 del RUT 14250811-7 en el ticket Los Lingues.
+* **Tipo de Jornada (campo 93): parcial cuando la jornada semanal es inferior
+  a 40 h.** El umbral era `≤ 30 h` y la fuente de horas priorizaba
+  `hours_per_week`. Ahora se toma «Tiempo completo de la empresa»
+  (`full_time_required_hours`) del horario y una jornada `< 40 h` se informa
+  como tipo 2. El caso EMCA agosto 2026 (RUT 12588103-3, KAREN FLIES,
+  calendario «Jornada parcial 24 horas») salía como tipo 1 y PreviRed
+  rechazaba el campo 27 «Renta Imponible AFP no corresponde al mínimo legal».
+  `previred_workday_type` explícito del horario mantiene la precedencia.
+
 ## 18.0.3.6.0
 
 * **Trabajador tipo 3 (activo mayor de 65 años).** El puente SimpleDigital

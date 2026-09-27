@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!--
-      Menú Tesorería dentro de Contabilidad. Reutiliza las acciones estándar de
-      Odoo: no duplica la lógica de pagos, conciliación ni informes. Los menús
-      estándar quedan donde están.
+      Tesorería es una aplicación propia: tiene su nombre y su icono en el
+      selector de aplicaciones, en lugar de aparecer bajo "Facturando". Sigue
+      reutilizando las acciones estándar de Odoo —no duplica la lógica de
+      pagos, conciliación ni informes— y los menús estándar quedan donde están.
     -->
     <menuitem id="menu_treasury_root"
               name="Tesorería"
-              parent="account.menu_finance"
               sequence="16"
+              web_icon="step_account_treasury,static/description/icon.png"
               groups="step_account_treasury.group_treasury_reader"/>
+
+    <menuitem id="menu_treasury_dashboard"
+              name="Inicio"
+              parent="menu_treasury_root"
+              action="action_treasury_dashboard"
+              sequence="1"/>
 
     <!-- Ingresos -->
     <menuitem id="menu_treasury_inflow"
@@ -118,6 +125,17 @@
       Contabilidad / Configuración / Bancos. Se agrega como acceso adicional a
       la MISMA acción, sin mover ningún menú estándar.
     -->
+    <!--
+      Tesorería dejó de colgar de Contabilidad, así que se conserva un acceso
+      directo ahí para quien la busque donde estaba.
+    -->
+    <menuitem id="menu_treasury_from_accounting"
+              name="Tesorería"
+              parent="account.menu_finance"
+              action="action_treasury_dashboard"
+              sequence="16"
+              groups="step_account_treasury.group_treasury_reader"/>
+
     <menuitem id="menu_treasury_concept_in_bank_config"
               name="Concepto flujo caja"
               parent="account.account_banks_menu"

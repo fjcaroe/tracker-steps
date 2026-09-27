@@ -80,8 +80,25 @@
                                     <span class="currency" t-esc="state.data.currency"/>
                                 </div>
                             </div>
-                            <div class="amount_row"><span>Total haberes</span><strong><t t-esc="state.data.currency"/> <t t-esc="this.formatAmount(state.data.gross)"/></strong></div>
-                            <div class="amount_row net"><span>Líquido calculado</span><strong><t t-esc="state.data.currency"/> <t t-esc="this.formatAmount(state.data.net)"/></strong></div>
+                            <div class="o_steps_payroll_amount_table">
+                                <div class="amount_table_head"><span>Concepto</span><span>$</span><span>% indicador</span></div>
+                                <div class="amount_table_row"><span>Sueldo base</span><strong t-esc="this.formatAmount(state.data.base_salary)"/><strong t-esc="this.formatPercent(state.data.indicators.base_salary)"/></div>
+                                <div class="amount_table_row net"><span>Sueldo líquido</span><strong t-esc="this.formatAmount(state.data.net)"/><strong t-esc="this.formatPercent(state.data.indicators.net)"/></div>
+                                <div class="amount_table_row"><span>Anticipo y retenciones</span><strong t-esc="this.formatAmount(state.data.advances)"/><strong t-esc="this.formatPercent(state.data.indicators.advances)"/></div>
+                                <div class="amount_table_row total"><span>Total haberes</span><strong t-esc="this.formatAmount(state.data.gross)"/><strong>100,0 %</strong></div>
+                                <div class="amount_table_separator"/>
+                                <div class="amount_table_row"><span>Cotización empresa</span><strong t-esc="this.formatAmount(state.data.contributions.employer)"/><strong t-esc="this.formatPercent(state.data.indicators.employer)"/></div>
+                                <div class="amount_table_row"><span>Cotización trabajador</span><strong t-esc="this.formatAmount(state.data.contributions.worker)"/><strong t-esc="this.formatPercent(state.data.indicators.worker)"/></div>
+                                <div class="amount_table_row total"><span>Imposiciones pagadas</span><strong t-esc="this.formatAmount(state.data.contributions.paid)"/><strong t-esc="this.formatPercent(state.data.indicators.paid)"/></div>
+                            </div>
+                            <div t-if="state.data.contributions.available" class="o_steps_payroll_insurance">
+                                <span>Costo seguros sobre haberes sin asignación familiar</span>
+                                <strong t-esc="this.formatPercent(state.data.indicators.insurance_cost, 2)"/>
+                            </div>
+                            <div t-else="" class="o_steps_payroll_warning">
+                                <i class="fa fa-exclamation-triangle"/>
+                                <span>No fue posible obtener las imposiciones desde PreviRed para este período.</span>
+                            </div>
                             <div t-if="state.data.missing_identification" class="o_steps_payroll_warning">
                                 <i class="fa fa-exclamation-triangle"/>
                                 <span><strong t-esc="state.data.missing_identification"/> persona(s) sin identificación; revise antes del Libro.</span>

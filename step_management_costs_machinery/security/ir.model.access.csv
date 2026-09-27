@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_machinery_labor_rate_readonly,Tarifa maquinaria/labor lectura,model_step_management_machinery_labor_rate,step_management_costs.group_management_readonly,1,0,0,0
+access_machinery_labor_rate_user,Tarifa maquinaria/labor usuario,model_step_management_machinery_labor_rate,step_management_costs.group_management_user,1,1,1,0
+access_machinery_labor_rate_manager,Tarifa maquinaria/labor administrador,model_step_management_machinery_labor_rate,step_management_costs.group_management_manager,1,1,1,1

@@ -187,6 +187,37 @@ class StepCashflow(models.Model):
             bounds["w%d" % (index + 1)] = (start, start + timedelta(days=6))
         return bounds
 
+    def _bucket_labels(self):
+        """Etiquetas de las cubetas con la semana calendario real del horizonte.
+
+        Internamente las cubetas siguen siendo `w1`..`w5` —ventanas de siete
+        días desde el inicio—, pero quien lee el flujo piensa en la semana del
+        calendario. Cada ventana se rotula con la semana ISO de su primer día,
+        de modo que un horizonte que arranca el 25/08/2026 se lee W35, W36,
+        W37, W38 y W39.
+
+        Si el inicio no cae en lunes, la ventana cruza dos semanas ISO y manda
+        la del primer día. Para que ventana y semana calendario coincidan
+        exactamente, el horizonte debe empezar en lunes.
+        """
+        self.ensure_one()
+        labels = dict(BUCKET_SELECTION)
+        if not self.start_date:
+            return labels
+        for code, (start, _end) in self._bucket_bounds().items():
+            labels[code] = "W%d" % start.isocalendar()[1]
+        return labels
+
+    def _bucket_label_hints(self):
+        """Rango de fechas de cada cubeta, en formato dd/mm, para subtítulos."""
+        self.ensure_one()
+        if not self.start_date:
+            return {}
+        return {
+            code: "%s – %s" % (start.strftime("%d/%m"), end.strftime("%d/%m"))
+            for code, (start, end) in self._bucket_bounds().items()
+        }
+
     # ------------------------------------------------------------------
     # Conversión de moneda
     # ------------------------------------------------------------------

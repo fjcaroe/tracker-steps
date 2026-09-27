@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_operational_budget_form_machinery" model="ir.ui.view">
+        <field name="name">step.management.operational.budget.form.machinery</field>
+        <field name="model">step.management.operational.budget</field>
+        <field name="inherit_id" ref="step_management_costs.view_operational_budget_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='line_ids']//list/field[@name='indicator']" position="after">
+                <field name="machinery_vehicle_id" optional="hide"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']//form//field[@name='indicator']" position="after">
+                <field name="machinery_vehicle_id" invisible="category != 'machinery'"/>
+                <field name="machinery_labor_id" invisible="category != 'machinery'"/>
+            </xpath>
+            <xpath expr="//field[@name='line_ids']//form//field[@name='unit_price']" position="after">
+                <button name="action_pull_machinery_rate" type="object"
+                        string="Calcular tarifa de maquinaria" class="btn-link"
+                        invisible="category != 'machinery' or not machinery_vehicle_id"/>
+                <field name="machinery_actual_hours" invisible="category != 'machinery'" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

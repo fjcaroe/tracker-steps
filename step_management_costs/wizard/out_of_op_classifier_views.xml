@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_out_of_op_wizard_form" model="ir.ui.view">
+        <field name="name">step.management.out.of.op.wizard.form</field>
+        <field name="model">step.management.out.of.op.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Gasto real dentro / fuera de OP">
+                <group>
+                    <group>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                        <field name="only_out_of_op"/>
+                    </group>
+                </group>
+                <div class="alert alert-info" role="alert" invisible="computed">
+                    Clasifica el gasto real (apuntes publicados) por centro +
+                    temporada + grupo presupuestario, según exista o no una
+                    Orden de Producción autorizada que lo ampare. La
+                    dimensión «actividad» queda pendiente de D20 (semántica
+                    del maestro sin confirmar). Pulse <em>Calcular</em>.
+                </div>
+                <button name="action_compute" type="object" string="Calcular" class="btn-primary"/>
+                <div class="row g-3 my-3" invisible="not computed">
+                    <div class="col-lg-6"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Amparado por OP</span><span class="fs-4 fw-bold"><field name="total_in_op" widget="monetary"/></span></div></div>
+                    <div class="col-lg-6"><div class="card border-0 bg-light p-3"><span class="text-muted small text-uppercase fw-bold">Fuera de OP</span><span class="fs-4 fw-bold"><field name="total_out_of_op" widget="monetary"/></span></div></div>
+                </div>
+                <field name="line_ids" invisible="not computed">
+                    <list decoration-warning="not backed_by_op" create="false" edit="false">
+                        <field name="center_id"/>
+                        <field name="season"/>
+                        <field name="group_label"/>
+                        <field name="amount" sum="Monto"/>
+                        <field name="backed_by_op" widget="boolean_toggle" readonly="1"/>
+                        <field name="source_label"/>
+                        <field name="op_names" optional="hide"/>
+                        <field name="move_count"/>
+                        <field name="currency_id" column_invisible="True"/>
+                        <button name="action_open_moves" type="object" string="Ver asientos" icon="fa-search" invisible="move_count == 0"/>
+                    </list>
+                </field>
+                <footer>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_out_of_op_wizard" model="ir.actions.act_window">
+        <field name="name">Gasto real dentro / fuera de OP</field>
+        <field name="res_model">step.management.out.of.op.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

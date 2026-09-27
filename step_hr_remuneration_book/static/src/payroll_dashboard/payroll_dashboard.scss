@@ -50,7 +50,18 @@ button.o_steps_payroll_kpi:hover { transform: translateY(-2px); box-shadow: 0 12
 .o_steps_payroll_period { display:flex; align-items:center; gap:10px; }
 .o_steps_payroll_period_select { border:1px solid #d7e3db; border-radius:10px; background:#f7faf8; color:var(--pay-green-2); font-weight:700; padding:7px 10px; max-width:190px; }
 .o_steps_payroll_period_select:focus { outline:none; border-color:var(--pay-green-2); box-shadow:0 0 0 3px rgba(31,104,71,.14); }
-.amount_row { display:flex; justify-content:space-between; align-items:center; padding:17px 0; border-bottom:1px solid #e9efeb; }.amount_row strong{font-size:22px}.amount_row.net strong{color:var(--pay-green-2)}
+.o_steps_payroll_amount_table { display:grid; gap:0; }
+.amount_table_head,.amount_table_row { display:grid; grid-template-columns:minmax(170px,1fr) minmax(105px,.55fr) minmax(82px,.4fr); gap:14px; align-items:center; }
+.amount_table_head { padding:0 0 9px; border-bottom:2px solid #5f7468; color:#627269; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+.amount_table_head span:not(:first-child),.amount_table_row strong { text-align:right; }
+.amount_table_row { padding:11px 0; border-bottom:1px solid #e9efeb; }
+.amount_table_row strong { font-size:16px; font-variant-numeric:tabular-nums; }
+.amount_table_row.net strong { color:var(--pay-green-2); }
+.amount_table_row.total { font-weight:800; }
+.amount_table_separator { height:15px; border-bottom:1px solid #dfe8e2; margin-bottom:4px; }
+.o_steps_payroll_insurance { margin-top:15px; padding:12px 14px; border-radius:13px; display:flex; justify-content:space-between; gap:12px; background:#edf6e4; color:#315f25; }
+.o_steps_payroll_insurance span { font-size:12px; font-weight:700; }
+.o_steps_payroll_insurance strong { white-space:nowrap; font-size:17px; }
 .o_steps_payroll_warning,.o_steps_payroll_ok { margin-top:18px; padding:13px 14px; border-radius:13px; display:flex; gap:10px; align-items:center; }.o_steps_payroll_warning{background:#fff3d8;color:#8d6209}.o_steps_payroll_ok{background:#e5f5eb;color:#176c42}
 .batch_row { width:100%; border:0; border-bottom:1px solid #edf1ee; background:transparent; display:flex; align-items:center; gap:12px; padding:12px 3px; text-align:left; }.batch_row:hover{background:#f7faf8}.batch_icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#e3f0e8;color:#216745}.batch_text{display:flex;flex-direction:column;flex:1;min-width:0}.batch_text small{color:#7a8982}.batch_count{text-align:right;display:flex;flex-direction:column}.batch_count small{color:#7a8982;font-size:10px}.o_steps_payroll_empty{padding:60px 0;text-align:center;color:#819087}
 .o_steps_payroll_trend { margin-top:20px; }.trend_bars{display:flex;align-items:flex-end;gap:18px;height:185px;padding:8px 12px 0}.trend_item{height:100%;flex:1;display:grid;grid-template-rows:1fr auto auto;text-align:center;gap:3px}.trend_track{height:100%;border-radius:9px;background:#edf3ef;display:flex;align-items:flex-end;overflow:hidden}.trend_track span{width:100%;min-height:4px;background:linear-gradient(#53a979,#1f6847);border-radius:9px 9px 0 0}.trend_item small{color:#73847b;text-transform:uppercase;font-size:10px}
@@ -58,6 +69,7 @@ button.o_steps_payroll_kpi:hover { transform: translateY(-2px); box-shadow: 0 12
 .o_steps_payroll_report_wizard .alert { border-radius: 14px; }.o_steps_payroll_report_wizard .o_group { row-gap: 10px; }.o_steps_payroll_report_wizard footer { background: #f5f8f6; }
 @media(max-width:980px){.o_steps_payroll_kpis{grid-template-columns:repeat(2,1fr)}.o_steps_payroll_grid{grid-template-columns:1fr}.o_steps_payroll_hero{align-items:flex-start;flex-direction:column}.o_steps_payroll_shortcuts{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.o_steps_payroll_shell{padding:14px}.o_steps_payroll_hero{padding:28px 24px;border-radius:20px}.o_steps_payroll_kpis,.o_steps_payroll_shortcuts{grid-template-columns:1fr}.o_steps_payroll_panel{padding:18px}}
+@media(max-width:560px){.amount_table_head,.amount_table_row{grid-template-columns:minmax(125px,1fr) minmax(82px,.55fr) minmax(68px,.45fr);gap:8px}.amount_table_row strong{font-size:14px}}
 
 // Client actions are direct children of `.o_action_manager` in Odoo 18.
 // Its mobile layout clips overflow, so the dashboard must own the scroll.

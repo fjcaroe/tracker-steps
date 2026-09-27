@@ -110,20 +110,105 @@ class TestMachineryAccounting(TransactionCase):
         self.assertIn(self.cargo, allowed)
         self.assertIn(self.abono, allowed)
 
-    def test_analytic_distribution_is_present(self):
-        analytic_plan = self.env["account.analytic.plan"].search([], limit=1)
-        if not analytic_plan:
-            analytic_plan = self.env["account.analytic.plan"].create({"name": "Plan QA"})
-        analytic = self.env["account.analytic.account"].create(
-            {"name": "Centro QA maquinaria", "plan_id": analytic_plan.id})
+    def _plan(self, name):
+        plan = self.env["account.analytic.plan"].search([("name", "=", name)], limit=1)
+        return plan or self.env["account.analytic.plan"].create({"name": name})
+
+    def _analytic(self, name, plan_name):
+        return self.env["account.analytic.account"].create(
+            {"name": name, "plan_id": self._plan(plan_name).id})
+
+    def _usage_with_three_plans(self):
+        """Escenario de la corrección: Temporada, Centro de costos y Actividad."""
+        self.season_account = self._analytic("T26-27 QA", "Temporada QA")
+        self.center_account = self._analytic("Centro QA maquinaria", "Centro de costos QA")
+        self.activity_account = self._analytic("Aplicaciones QA", "Actividad QA")
+        season = self.env["step.temporada"].create({
+            "name": "T26-27 QA", "start_date": "2026-08-01", "end_date": "2027-07-31",
+            "company_id": self.company.id, "cost_id": self.season_account.id,
+        })
+        activity = self.env["step.actividad"].create({
+            "name": "Aplicaciones QA", "company_id": self.company.id,
+            "cost_id": self.activity_account.id,
+        })
+        if activity.id == self.activity_account.id:
+            # El escenario debe poder distinguir el maestro de su cuenta.
+            self.activity_account = self._analytic("Aplicaciones QA 2", "Actividad QA")
+            activity.cost_id = self.activity_account
+        uom = self.env.ref("uom.product_uom_hour", raise_if_not_found=False)             or self.env["uom.uom"].search([], limit=1)
+        labor = self.env["step.labor"].create({
+            "name": "Aplicar pulverización QA", "actividad_id": activity.id,
+            "uom_id": uom.id, "uom_trato": uom.id,
+            "grupo_labor": "manten", "met_costeo": "udm",
+        })
         usage = self._usage()
-        usage.hrs_machinery_line.write({"cost_id": analytic.id})
+        # La temporada del encabezado se resuelve por fecha. Si la base ya trae
+        # otra que cubre el rango, se usa esa y se le da la misma cuenta.
+        self.assertTrue(usage.temp_id, "El registro debe quedar con temporada.")
+        if usage.temp_id != season:
+            usage.temp_id.cost_id = self.season_account
+        usage.hrs_machinery_line.write(
+            {"cost_id": self.center_account.id, "labor_id": labor.id})
+        return usage
+
+    def test_debit_distribution_uses_the_three_analytic_plans(self):
+        usage = self._usage_with_three_plans()
         usage.action_cost()
         usage.action_conta()
         debit_lines = usage.invoice_id.line_ids.filtered(lambda l: l.debit)
         self.assertTrue(debit_lines)
-        self.assertTrue(all(line.analytic_distribution for line in debit_lines),
-                        "El cargo debe llevar distribución analítica.")
+        expected_ids = {self.season_account.id, self.center_account.id,
+                        self.activity_account.id}
+        for line in debit_lines:
+            self.assertTrue(line.analytic_distribution,
+                            "El cargo debe llevar distribución analítica.")
+            found = set()
+            for key, percentage in line.analytic_distribution.items():
+                self.assertEqual(percentage, 100.0)
+                found.update(int(item) for item in key.split(","))
+            self.assertEqual(found, expected_ids)
+
+    def test_activity_uses_its_analytic_account_not_its_own_id(self):
+        """La regresión corregida: se repartía por el id de `step.actividad`."""
+        usage = self._usage_with_three_plans()
+        activity = usage.hrs_machinery_line.actividad_id
+        self.assertNotEqual(activity.id, self.activity_account.id,
+                            "El escenario debe distinguir maestro y cuenta analítica.")
+        usage.action_cost()
+        usage.action_conta()
+        debit = usage.invoice_id.line_ids.filtered(lambda l: l.debit)[0]
+        keys = set()
+        for key in debit.analytic_distribution:
+            keys.update(int(item) for item in key.split(","))
+        self.assertIn(self.activity_account.id, keys)
+        self.assertNotIn(activity.id, keys)
+
+    def test_repeated_plan_does_not_break_posting(self):
+        """Registros antiguos con el centro de costos en el plan Temporada."""
+        usage = self._usage_with_three_plans()
+        intruder = self._analytic("Centro mal clasificado", "Temporada QA")
+        usage.hrs_machinery_line.cost_id = intruder
+        usage.action_cost()
+        usage.action_conta()
+        debit = usage.invoice_id.line_ids.filtered(lambda l: l.debit)[0]
+        keys = set()
+        for key in debit.analytic_distribution:
+            keys.update(int(item) for item in key.split(","))
+        # Gana la temporada del encabezado; la cuenta repetida se descarta.
+        self.assertIn(self.season_account.id, keys)
+        self.assertNotIn(intruder.id, keys)
+        self.assertIn(self.activity_account.id, keys)
+
+    def test_liability_line_carries_no_analytic_distribution(self):
+        """La cuenta de pasivo no lleva analítica: sólo las cuentas de gasto."""
+        usage = self._usage_with_three_plans()
+        usage.action_cost()
+        usage.action_conta()
+        credit_lines = usage.invoice_id.line_ids.filtered(lambda l: l.credit)
+        self.assertTrue(credit_lines)
+        for line in credit_lines:
+            self.assertFalse(line.analytic_distribution,
+                             "El abono al pasivo no debe llevar cuenta analítica.")
 
     def test_cannot_post_twice(self):
         usage = self._usage()

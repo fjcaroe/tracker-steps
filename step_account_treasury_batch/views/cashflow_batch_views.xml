@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Acceso al proceso desde el propio flujo de caja. -->
+    <record id="view_cashflow_form_batch" model="ir.ui.view">
+        <field name="name">step.cashflow.form.batch</field>
+        <field name="model">step.cashflow</field>
+        <field name="inherit_id" ref="step_account_treasury.view_cashflow_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/button[@name='action_export_xlsx']" position="before">
+                <button name="action_open_batch_wizard" type="object"
+                        string="Crear lote de pago" invisible="state == 'cancelled'"
+                        groups="step_account_treasury.group_treasury_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Trazabilidad del lote en el detalle canónico. -->
+    <record id="view_cashflow_line_list_batch" model="ir.ui.view">
+        <field name="name">step.cashflow.line.list.batch</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="inherit_id" ref="step_account_treasury.view_cashflow_line_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='excluded']" position="before">
+                <field name="treasury_batch_id" optional="show" readonly="1"/>
+                <field name="treasury_payment_id" optional="hide" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_cashflow_line_form_batch" model="ir.ui.view">
+        <field name="name">step.cashflow.line.form.batch</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="inherit_id" ref="step_account_treasury.view_cashflow_line_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='source_id']" position="after">
+                <field name="treasury_payment_id" readonly="1"/>
+                <field name="treasury_batch_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_cashflow_line_search_batch" model="ir.ui.view">
+        <field name="name">step.cashflow.line.search.batch</field>
+        <field name="model">step.cashflow.line</field>
+        <field name="inherit_id" ref="step_account_treasury.view_cashflow_line_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='excluded']" position="after">
+                <separator/>
+                <filter name="batched" string="En un lote de pago"
+                        domain="[('treasury_batch_id', '!=', False)]"/>
+                <filter name="not_batched" string="Sin lote de pago"
+                        domain="[('treasury_batch_id', '=', False)]"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

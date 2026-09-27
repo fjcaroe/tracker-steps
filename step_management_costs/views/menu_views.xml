@@ -1,18 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_management_root" name="Gestión y Costos" action="action_management_dashboard" sequence="20" groups="step_management_costs.group_management_user" web_icon="step_management_costs,static/description/icon.png"/>
+    <menuitem id="menu_management_root" name="Gestión y Costos" action="action_management_dashboard" sequence="20" groups="step_management_costs.group_management_readonly" web_icon="step_management_costs,static/description/icon.png"/>
     <menuitem id="menu_management_home" name="Inicio" action="action_management_dashboard" parent="menu_management_root" sequence="0"/>
     <menuitem id="menu_management_budget" name="Presupuesto Operacional" parent="menu_management_root" sequence="10"/>
     <menuitem id="menu_operational_budget_create" name="Crear desde plantilla" action="action_operational_budget_create" parent="menu_management_budget" sequence="5"/>
-    <menuitem id="menu_operational_budget" name="Presupuestos" action="action_operational_budget" parent="menu_management_budget" sequence="10"/>
+    <menuitem id="menu_budget_import" name="Carga desde Excel" action="action_budget_import" parent="menu_management_budget" sequence="7"/>
+    <menuitem id="menu_operational_budget" name="Presupuesto agrícola" action="action_operational_budget_agricultural" parent="menu_management_budget" sequence="10"/>
+    <menuitem id="menu_operational_budget_general" name="Presupuesto general" action="action_operational_budget_general" parent="menu_management_budget" sequence="12"/>
     <menuitem id="menu_budget_template" name="Plantillas" action="action_budget_template" parent="menu_management_budget" sequence="20"/>
     <menuitem id="menu_budget_analysis" name="Análisis por indicador" action="action_budget_analysis" parent="menu_management_budget" sequence="30"/>
     <menuitem id="menu_budget_month_analysis" name="Distribución mensual" action="action_budget_month_analysis" parent="menu_management_budget" sequence="40"/>
-    <menuitem id="menu_management_planning" name="Planificación" action="action_management_plan" parent="menu_management_root" sequence="20"/>
+    <menuitem id="menu_management_estimation" name="Estimaciones" parent="menu_management_root" sequence="15"/>
+    <menuitem id="menu_estimation" name="Estimaciones" action="action_estimation" parent="menu_management_estimation" sequence="5"/>
+    <menuitem id="menu_estimation_import" name="Carga desde Excel" action="action_estimation_import" parent="menu_management_estimation" sequence="7"/>
+    <menuitem id="menu_estimation_curve" name="Curvas de estimación" action="action_estimation_curve" parent="menu_management_estimation" sequence="10"/>
+    <menuitem id="menu_management_planning" name="Planificación" parent="menu_management_root" sequence="20"/>
+    <menuitem id="menu_weekly_plan" name="Tareas semanales" action="action_management_plan" parent="menu_management_planning" sequence="10"/>
+    <menuitem id="menu_harvest_plan" name="Plan de cosecha" action="action_harvest_plan" parent="menu_management_planning" sequence="20"/>
+    <menuitem id="menu_crop_program_phyto" name="Programas fitosanitarios" action="action_crop_program_phyto" parent="menu_management_planning" sequence="30"/>
+    <menuitem id="menu_crop_program_fert" name="Programas de fertilización" action="action_crop_program_fert" parent="menu_management_planning" sequence="40"/>
+    <menuitem id="menu_crop_program_import" name="Carga de programas desde Excel" action="action_crop_program_import" parent="menu_management_planning" sequence="45"/>
+    <menuitem id="menu_stock_requirement" name="Necesidades de stock" action="action_stock_requirement" parent="menu_management_planning" sequence="50"/>
+    <menuitem id="menu_production_order" name="Orden de Producción" action="action_production_order" parent="menu_management_planning" sequence="60"/>
     <menuitem id="menu_management_control" name="Control de costos" parent="menu_management_root" sequence="30"/>
     <menuitem id="menu_historical_cost" name="Presupuesto vs. real" action="action_historical_cost" parent="menu_management_control" sequence="10"/>
+    <menuitem id="menu_historical_import_batch" name="Cargas históricas oficiales" action="action_historical_import_batch" parent="menu_management_control" sequence="20"/>
+    <menuitem id="menu_season_comparison" name="Comparativo de temporada" action="action_season_comparison_wizard" parent="menu_management_control" sequence="30"/>
+    <menuitem id="menu_out_of_op" name="Gasto dentro / fuera de OP" action="action_out_of_op_wizard" parent="menu_management_control" sequence="40"/>
     <menuitem id="menu_management_masters" name="Maestros" parent="menu_management_root" sequence="90" groups="step_management_costs.group_management_manager"/>
+    <menuitem id="menu_historical_template_version" name="Plantillas de carga histórica" action="action_historical_template_version" parent="menu_management_masters" sequence="40"/>
     <menuitem id="menu_cost_center" name="Centros de costo" action="action_cost_center" parent="menu_management_masters" sequence="10"/>
     <menuitem id="menu_budget_group" name="Grupos presupuestarios" action="action_budget_group" parent="menu_management_masters" sequence="20"/>
     <menuitem id="menu_exchange_rate" name="Tipos de cambio estimados" action="action_exchange_rate" parent="menu_management_masters" sequence="30"/>
+    <menuitem id="menu_estimation_version" name="Versiones de estimación" action="action_estimation_version" parent="menu_management_masters" sequence="35"/>
+    <menuitem id="menu_estimation_unit" name="Unidades de estimación" action="action_estimation_unit" parent="menu_management_masters" sequence="40"/>
+    <menuitem id="menu_fruit_category" name="Categorías de fruta" action="action_fruit_category" parent="menu_management_masters" sequence="50"/>
+    <menuitem id="menu_fruit_class" name="Clases de fruta" action="action_fruit_class" parent="menu_management_masters" sequence="60"/>
+    <menuitem id="menu_caliber_group" name="Grupos de calibre" action="action_caliber_group" parent="menu_management_masters" sequence="70"/>
+    <menuitem id="menu_fruit_caliber" name="Calibres de fruta" action="action_fruit_caliber" parent="menu_management_masters" sequence="80"/>
 </odoo>

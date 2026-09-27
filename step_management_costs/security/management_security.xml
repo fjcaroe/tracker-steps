@@ -3,30 +3,285 @@
     <record id="module_category_management_costs" model="ir.module.category">
         <field name="name">Gestión y Costos</field><field name="sequence">32</field>
     </record>
+
+    <!-- Perfiles encadenados: consulta ⊂ usuario ⊂ aprobador ⊂ administrador.
+         Se conservan los XML IDs group_management_user / group_management_manager. -->
+    <record id="group_management_readonly" model="res.groups">
+        <field name="name">Consulta de gestión y costos</field>
+        <field name="category_id" ref="step_management_costs.module_category_management_costs"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
     <record id="group_management_user" model="res.groups">
         <field name="name">Usuario de gestión y costos</field>
         <field name="category_id" ref="step_management_costs.module_category_management_costs"/>
-        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_readonly'))]"/>
+    </record>
+    <record id="group_management_approver" model="res.groups">
+        <field name="name">Aprobador / Control de gestión y costos</field>
+        <field name="category_id" ref="step_management_costs.module_category_management_costs"/>
+        <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_user'))]"/>
     </record>
     <record id="group_management_manager" model="res.groups">
         <field name="name">Administrador de gestión y costos</field>
         <field name="category_id" ref="step_management_costs.module_category_management_costs"/>
-        <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_approver'))]"/>
     </record>
     <record id="base.group_system" model="res.groups">
         <field name="implied_ids" eval="[(4, ref('step_management_costs.group_management_manager'))]"/>
     </record>
 
-    <record id="rule_cost_center_company" model="ir.rule"><field name="name">Centros por empresa</field><field name="model_id" ref="model_step_management_cost_center"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_budget_group_company" model="ir.rule"><field name="name">Grupos por empresa</field><field name="model_id" ref="model_step_management_budget_group"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_exchange_rate_company" model="ir.rule"><field name="name">Tipos de cambio estimados por empresa</field><field name="model_id" ref="model_step_management_exchange_rate"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_budget_template_company" model="ir.rule"><field name="name">Plantillas por empresa</field><field name="model_id" ref="model_step_management_budget_template"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_budget_template_line_company" model="ir.rule"><field name="name">Indicadores de plantilla por empresa</field><field name="model_id" ref="model_step_management_budget_template_line"/><field name="domain_force">[('template_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_operational_budget_company" model="ir.rule"><field name="name">Presupuestos por empresa</field><field name="model_id" ref="model_step_management_operational_budget"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_budget_center_company" model="ir.rule"><field name="name">Asignaciones por empresa</field><field name="model_id" ref="model_step_management_budget_center"/><field name="domain_force">[('budget_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_budget_line_company" model="ir.rule"><field name="name">Detalle presupuesto por empresa</field><field name="model_id" ref="model_step_management_budget_line"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_budget_month_company" model="ir.rule"><field name="name">Meses presupuesto por empresa</field><field name="model_id" ref="model_step_management_budget_month"/><field name="domain_force">[('budget_line_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_plan_company" model="ir.rule"><field name="name">Planes por empresa</field><field name="model_id" ref="model_step_management_plan"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_plan_line_company" model="ir.rule"><field name="name">Tareas por empresa</field><field name="model_id" ref="model_step_management_plan_line"/><field name="domain_force">[('plan_id.company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
-    <record id="rule_historical_cost_company" model="ir.rule"><field name="name">Costos históricos por empresa</field><field name="model_id" ref="model_step_management_historical_cost"/><field name="domain_force">[('company_id','in',company_ids)]</field><field name="groups" eval="[(4,ref('step_management_costs.group_management_user'))]"/></record>
+    <!-- Aislamiento por compañía: reglas GLOBALES (se intersectan). Antes eran
+         reglas de grupo, que se unen y pueden ampliar acceso. -->
+    <record id="rule_cost_center_company" model="ir.rule">
+        <field name="name">Centros por empresa</field>
+        <field name="model_id" ref="model_step_management_cost_center"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_group_company" model="ir.rule">
+        <field name="name">Grupos por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_group"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_exchange_rate_company" model="ir.rule">
+        <field name="name">Tipos de cambio estimados por empresa</field>
+        <field name="model_id" ref="model_step_management_exchange_rate"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_template_company" model="ir.rule">
+        <field name="name">Plantillas por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_template"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_template_line_company" model="ir.rule">
+        <field name="name">Indicadores de plantilla por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_template_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_operational_budget_company" model="ir.rule">
+        <field name="name">Presupuestos por empresa</field>
+        <field name="model_id" ref="model_step_management_operational_budget"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_center_company" model="ir.rule">
+        <field name="name">Asignaciones por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_center"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_line_company" model="ir.rule">
+        <field name="name">Detalle presupuesto por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_month_company" model="ir.rule">
+        <field name="name">Meses presupuesto por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_month"/>
+        <field name="domain_force">['|', ('budget_line_id.company_id', 'in', company_ids), ('budget_line_id.company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_plan_company" model="ir.rule">
+        <field name="name">Planes por empresa</field>
+        <field name="model_id" ref="model_step_management_plan"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_plan_line_company" model="ir.rule">
+        <field name="name">Tareas por empresa</field>
+        <field name="model_id" ref="model_step_management_plan_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_historical_cost_company" model="ir.rule">
+        <field name="name">Costos históricos por empresa</field>
+        <field name="model_id" ref="model_step_management_historical_cost"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_import_company" model="ir.rule">
+        <field name="name">Cargas Excel por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_import"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_budget_import_line_company" model="ir.rule">
+        <field name="name">Filas de carga Excel por empresa</field>
+        <field name="model_id" ref="model_step_management_budget_import_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_unit_company" model="ir.rule">
+        <field name="name">Unidades de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_unit"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_fruit_category_company" model="ir.rule">
+        <field name="name">Categorías de fruta por empresa</field>
+        <field name="model_id" ref="model_step_management_fruit_category"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_fruit_class_company" model="ir.rule">
+        <field name="name">Clases de fruta por empresa</field>
+        <field name="model_id" ref="model_step_management_fruit_class"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_caliber_group_company" model="ir.rule">
+        <field name="name">Grupos de calibre por empresa</field>
+        <field name="model_id" ref="model_step_management_caliber_group"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_fruit_caliber_company" model="ir.rule">
+        <field name="name">Calibres de fruta por empresa</field>
+        <field name="model_id" ref="model_step_management_fruit_caliber"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_curve_company" model="ir.rule">
+        <field name="name">Curvas de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_curve"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_curve_line_company" model="ir.rule">
+        <field name="name">Distribuciones de curvas por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_curve_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_version_company" model="ir.rule">
+        <field name="name">Versiones de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_version"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_company" model="ir.rule">
+        <field name="name">Estimaciones por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_line_company" model="ir.rule">
+        <field name="name">Detalle de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_distribution_company" model="ir.rule">
+        <field name="name">Distribución de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_distribution"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_import_company" model="ir.rule">
+        <field name="name">Cargas Excel de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_import"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_estimation_import_line_company" model="ir.rule">
+        <field name="name">Filas de carga de estimación por empresa</field>
+        <field name="model_id" ref="model_step_management_estimation_import_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_harvest_plan_company" model="ir.rule">
+        <field name="name">Planes de cosecha por empresa</field>
+        <field name="model_id" ref="model_step_management_harvest_plan"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_harvest_plan_line_company" model="ir.rule">
+        <field name="name">Semanas del plan de cosecha por empresa</field>
+        <field name="model_id" ref="model_step_management_harvest_plan_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_crop_program_company" model="ir.rule">
+        <field name="name">Programas por empresa</field>
+        <field name="model_id" ref="model_step_management_crop_program"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_crop_program_line_company" model="ir.rule">
+        <field name="name">Recetas de programa por empresa</field>
+        <field name="model_id" ref="model_step_management_crop_program_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_crop_program_application_company" model="ir.rule">
+        <field name="name">Aplicaciones de programa por empresa</field>
+        <field name="model_id" ref="model_step_management_crop_program_application"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_stock_requirement_company" model="ir.rule">
+        <field name="name">Necesidades de stock por empresa</field>
+        <field name="model_id" ref="model_step_management_stock_requirement"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_stock_requirement_line_company" model="ir.rule">
+        <field name="name">Líneas de necesidades de stock por empresa</field>
+        <field name="model_id" ref="model_step_management_stock_requirement_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_crop_program_import_company" model="ir.rule">
+        <field name="name">Cargas de receta de programa por empresa</field>
+        <field name="model_id" ref="model_step_management_crop_program_import"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_crop_program_import_line_company" model="ir.rule">
+        <field name="name">Filas de carga de receta de programa por empresa</field>
+        <field name="model_id" ref="model_step_management_crop_program_import_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_production_order_company" model="ir.rule">
+        <field name="name">Órdenes de Producción por empresa</field>
+        <field name="model_id" ref="model_step_management_production_order"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_production_order_line_company" model="ir.rule">
+        <field name="name">Líneas de Orden de Producción por empresa</field>
+        <field name="model_id" ref="model_step_management_production_order_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_harvest_resource_company" model="ir.rule">
+        <field name="name">Recursos de cosecha por empresa</field>
+        <field name="model_id" ref="model_step_management_harvest_resource"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_harvest_resource_week_company" model="ir.rule">
+        <field name="name">Semanas de recurso de cosecha por empresa</field>
+        <field name="model_id" ref="model_step_management_harvest_resource_week"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_historical_import_batch_company" model="ir.rule">
+        <field name="name">Lotes de carga histórica por empresa</field>
+        <field name="model_id" ref="model_step_management_historical_import_batch"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
+    <record id="rule_historical_import_line_company" model="ir.rule">
+        <field name="name">Filas de carga histórica por empresa</field>
+        <field name="model_id" ref="model_step_management_historical_import_line"/>
+        <field name="domain_force">['|', ('company_id', 'in', company_ids), ('company_id', '=', False)]</field>
+        <field name="groups" eval="[(5, 0, 0)]"/>
+    </record>
 </odoo>

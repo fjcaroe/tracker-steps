@@ -8,3 +8,4 @@ from . import test_preview
 from . import test_audit
 from . import test_security
 from . import test_performance
+from . import test_payroll_dashboard
