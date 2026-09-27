@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_export_accounting_company_list" model="ir.ui.view">
+        <field name="name">step.export.accounting.company.list</field>
+        <field name="model">res.company</field>
+        <field name="arch" type="xml">
+            <list string="Parámetros contables de Exportaciones" create="false" delete="false">
+                <field name="name"/>
+                <field name="step_export_sale_journal_id"/>
+                <field name="step_export_purchase_journal_id"/>
+                <field name="step_export_adjustment_journal_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_export_accounting_company_form" model="ir.ui.view">
+        <field name="name">step.export.accounting.company.form</field>
+        <field name="model">res.company</field>
+        <field name="arch" type="xml">
+            <form string="Parámetros contables de Exportaciones" create="false" delete="false">
+                <sheet>
+                    <h1><field name="name" readonly="1"/></h1>
+                    <group string="Diarios">
+                        <field name="step_export_sale_journal_id" domain="[('company_id', '=', id), ('type', '=', 'sale')]"/>
+                        <field name="step_export_purchase_journal_id" domain="[('company_id', '=', id), ('type', '=', 'purchase')]"/>
+                        <field name="step_export_adjustment_journal_id" domain="[('company_id', '=', id), ('type', '=', 'general')]"/>
+                    </group>
+                    <group string="Cuentas">
+                        <field name="step_export_income_account_id"/>
+                        <field name="step_export_purchase_account_id"/>
+                    </group>
+                    <group string="Impuestos">
+                        <field name="step_export_sale_tax_id" domain="[('company_id', '=', id), ('type_tax_use', '=', 'sale')]"/>
+                        <field name="step_export_purchase_tax_id" domain="[('company_id', '=', id), ('type_tax_use', '=', 'purchase')]"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_step_export_accounting_config" model="ir.actions.act_window">
+        <field name="name">Parámetros contables</field>
+        <field name="res_model">res.company</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_step_export_accounting_company_list')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_step_export_accounting_company_form')})]"/>
+    </record>
+</odoo>

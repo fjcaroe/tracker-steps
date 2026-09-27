@@ -17,6 +17,7 @@
     <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61"/>
     <menuitem id="menu_step_export_ops" name="Operaciones" parent="menu_step_export_root" sequence="10"/>
     <menuitem id="menu_step_export_config" name="Configuración" parent="menu_step_export_root" sequence="90"/>
+    <menuitem id="menu_step_export_accounting_config" name="Parámetros contables" parent="menu_step_export_config" action="action_step_export_accounting_config" sequence="1" groups="account.group_account_manager"/>
     <menuitem id="menu_step_export_sales_program" name="Programas de ventas" parent="menu_step_export_ops" action="action_step_export_sales_program" sequence="1"/>
     <menuitem id="menu_step_export_sales_program_all" name="Historial de programas" parent="menu_step_export_ops" action="action_step_export_sales_program_all" sequence="2"/>
     <menuitem id="menu_step_export_packaging_program" name="Programas de embalajes" parent="menu_step_export_ops" action="action_export_packaging_program" sequence="3"/>

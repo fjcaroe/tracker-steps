@@ -55,6 +55,29 @@ class TestExportOperations(TransactionCase):
         with self.assertRaises(UserError):
             self.shipment.action_dispatch()
 
+    def test_company_accounting_defaults_for_new_producer_rate(self):
+        company = self.env.company
+        account = self.env["account.account"].search([
+            ("company_ids", "in", company.id), ("account_type", "=", "expense")], limit=1)
+        tax = self.env["account.tax"].search([
+            ("company_id", "=", company.id), ("type_tax_use", "=", "purchase"),
+            ("amount", "=", 19)], limit=1)
+        journal = self.env["account.journal"].search([
+            ("company_id", "=", company.id), ("type", "=", "purchase")], limit=1)
+        self.assertTrue(account and tax and journal)
+        company.write({
+            "step_export_purchase_account_id": account.id,
+            "step_export_purchase_tax_id": tax.id,
+            "step_export_purchase_journal_id": journal.id,
+        })
+        rate = self.env["step.export.grower.rate"].create({
+            "name": "Tarifa configurada T35", "company_id": company.id,
+            "producer_id": self.producer.id, "season_id": self.season.id,
+            "species_id": self.species.id, "rate_value": 2,
+        })
+        self.assertEqual(rate.expense_account_id, account)
+        self.assertEqual(rate.purchase_tax_ids, tax)
+
     def test_claim_changes_receiver_fob_and_requires_posted_invoice(self):
         tag = self.env["stock.quant.package"].create({
             "name": "T35-TAG-CLAIM", "is_fruit_tag": True, "owner_id": self.producer.id,

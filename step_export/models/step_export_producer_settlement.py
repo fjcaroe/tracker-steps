@@ -17,6 +17,16 @@ class GrowerRate(models.Model):
     purchase_tax_ids = fields.Many2many("account.tax", string="Impuestos compra de fruta",
                                         domain="[('type_tax_use','=','purchase')]")
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            company = self.env["res.company"].browse(vals.get("company_id")) if vals.get("company_id") else self.env.company
+            if not vals.get("expense_account_id") and company.step_export_purchase_account_id:
+                vals["expense_account_id"] = company.step_export_purchase_account_id.id
+            if "purchase_tax_ids" not in vals and company.step_export_purchase_tax_id:
+                vals["purchase_tax_ids"] = [(6, 0, company.step_export_purchase_tax_id.ids)]
+        return super().create(vals_list)
+
     def write(self, vals):
         if {"rate_type", "rate_value", "expense_account_id", "purchase_tax_ids"}.intersection(vals):
             if self.env["step.export.producer.settlement"].search_count([
@@ -81,6 +91,10 @@ class ProducerSettlement(models.Model):
                 ], order="date desc, id desc", limit=1)
                 if rate:
                     vals["rate_id"] = rate.id
+            if not vals.get("purchase_journal_id") and vals.get("receiver_settlement_id"):
+                receiver = self.env["step.export.receiver.settlement"].browse(vals["receiver_settlement_id"])
+                if receiver.company_id.step_export_purchase_journal_id:
+                    vals["purchase_journal_id"] = receiver.company_id.step_export_purchase_journal_id.id
         return super().create(vals_list)
 
     @api.depends("line_ids.kg_qty", "line_ids.amount_usd", "discount_line_ids.amount_usd")

@@ -239,6 +239,28 @@ class ExportSaleOrder(models.Model):
         vals = super()._prepare_invoice()
         if self.step_export_shipment_id:
             vals["step_export_shipment_id"] = self.step_export_shipment_id.id
+            journal = self.company_id.step_export_sale_journal_id
+            if journal:
+                vals["journal_id"] = journal.id
+            if (self.company_id.account_fiscal_country_id.code == "CL" and
+                    "l10n_latam_document_type_id" in self.env["account.move"]._fields):
+                export_document = self.env["l10n_latam.document.type"].search([
+                    ("code", "=", "110")], limit=1)
+                if export_document:
+                    vals["l10n_latam_document_type_id"] = export_document.id
+        return vals
+
+
+class ExportSaleOrderLine(models.Model):
+    _inherit = "sale.order.line"
+
+    def _prepare_invoice_line(self, **optional_values):
+        vals = super()._prepare_invoice_line(**optional_values)
+        if self.order_id.step_export_shipment_id:
+            company = self.order_id.company_id
+            if company.step_export_income_account_id:
+                vals["account_id"] = company.step_export_income_account_id.id
+            vals["tax_ids"] = [(6, 0, company.step_export_sale_tax_id.ids)]
         return vals
 
 

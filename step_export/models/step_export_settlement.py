@@ -196,7 +196,7 @@ class ReceiverSettlement(models.Model):
     def _post_external_adjustment(self, line, invoice_line):
         """Book an externally issued 111/112 without asking Odoo to emit it again."""
         self.ensure_one()
-        journal = self.env["account.journal"].search([
+        journal = self.company_id.step_export_adjustment_journal_id or self.env["account.journal"].search([
             ("company_id", "=", self.company_id.id), ("type", "=", "general")], limit=1)
         receivable = line.invoice_id.line_ids.filtered(
             lambda item: item.account_id.account_type == "asset_receivable")[:1].account_id
@@ -238,7 +238,8 @@ class ReceiverSettlement(models.Model):
             raise UserError(_("Configure DTE de exportación o registre el folio de la nota externa."))
         move = self.env["account.move"].create({
             "move_type": move_type, "partner_id": self.receiver_id.id,
-            "company_id": self.company_id.id, "journal_id": line.invoice_id.journal_id.id,
+            "company_id": self.company_id.id,
+            "journal_id": (self.company_id.step_export_sale_journal_id or line.invoice_id.journal_id).id,
             "currency_id": self.usd_currency_id.id, "invoice_date": self.date,
             "invoice_origin": line.invoice_id.name,
             "ref": "%s / IVV %s" % (self.name, line.shipment_id.ivv_folio),
