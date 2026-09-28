@@ -138,6 +138,54 @@ body.o_steps_helpdesk {
     .o_form_view .o_field_html { line-height: 1.6; }
     .o_form_view .o_tag, .o_form_view .badge { border-radius: 999px; }
 
+    // Ticket detail: a clear case header, grouped metadata and a wider reading pane.
+    .o_form_description_expander_view {
+        .o_form_sheet_bg { background: radial-gradient(circle at 12% 8%, #e5f0e1, transparent 34%), var(--st-support-bg); }
+        .o_form_sheet { padding: 0 0 32px; overflow: hidden; }
+        .o_form_sheet > .o_field_state_selection { position: absolute; top: 31px; right: 36px; z-index: 2; }
+
+        .steps-ticket-hero {
+            padding: 30px 36px 32px;
+            color: #fff;
+            background: radial-gradient(circle at 87% 5%, #d9f18d2d, transparent 32%), linear-gradient(118deg, #143d30, #2c7656);
+        }
+        .steps-ticket-hero__top, .steps-ticket-hero__bottom { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .steps-ticket-hero__top { justify-content: space-between; padding-right: 44px; }
+        .steps-ticket-hero__eyebrow { color: var(--st-support-lime); font-size: .72rem; font-weight: 750; letter-spacing: .13em; }
+        .steps-ticket-hero__eyebrow .fa { margin-right: 7px; font-size: .9rem; }
+        .steps-ticket-hero__ref { display: inline-flex; align-items: baseline; gap: 2px; padding: 6px 11px; border: 1px solid #ffffff5e; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; white-space: nowrap; background: #ffffff1b; }
+        .steps-ticket-hero__ref .o_field_widget { color: inherit; }
+        .steps-ticket-hero h1 { max-width: 900px; margin: 20px 0 17px; color: #fff; font-size: clamp(1.6rem, 2.2vw, 2.35rem); font-weight: 650; line-height: 1.2; letter-spacing: -.035em; }
+        .steps-ticket-hero h1 .o_field_widget, .steps-ticket-hero h1 textarea { color: #fff; }
+        .steps-ticket-hero h1 textarea { padding-left: 0; padding-right: 0; background: transparent; border: 0; box-shadow: none; }
+        .steps-ticket-hero h1 textarea:focus { border-bottom: 1px solid #d9f18d; box-shadow: none; }
+        .steps-ticket-hero h1 textarea::placeholder { color: #ffffffb5; }
+        .steps-ticket-hero__bottom { color: #e7f1e5; font-size: .83rem; }
+        .steps-ticket-hero__bottom > span { display: inline-flex; align-items: center; gap: 6px; }
+        .steps-ticket-hero__bottom .fa { color: var(--st-support-lime); }
+        .steps-ticket-hero__bottom .o_field_widget { color: inherit; }
+
+        .steps-support-customer-note { margin: 22px 34px 0; }
+        .steps-ticket-section-heading { margin: 28px 34px 12px; }
+        .steps-ticket-section-heading span { color: var(--st-support-mid); font-size: .69rem; font-weight: 800; letter-spacing: .14em; }
+        .steps-ticket-section-heading h2 { margin: 4px 0; color: var(--st-support-deep); font-size: 1.14rem; font-weight: 700; letter-spacing: -.025em; }
+        .steps-ticket-section-heading p { margin: 0; color: var(--st-support-muted); font-size: .84rem; }
+        .steps-ticket-main-info { margin: 0 34px !important; padding: 20px 22px; border: 1px solid var(--st-support-line); border-radius: 14px; background: #fbfdf9; }
+        .steps-ticket-main-info .o_group { margin-bottom: 0; }
+        .steps-ticket-section-heading--description { margin-top: 30px; }
+        .o_form_sheet > .d-flex { margin-left: 34px; margin-right: 34px; }
+        .o_notebook { width: auto !important; margin: 0 34px; border: 1px solid var(--st-support-line); border-radius: 14px; background: #fff; overflow: hidden; }
+        .o_notebook .nav-tabs { padding: 0 14px; background: #f3f8f0; border-bottom: 1px solid var(--st-support-line); }
+        .o_notebook .nav-link { color: var(--st-support-mid); font-weight: 650; }
+        .o_notebook .nav-link.active { color: var(--st-support-deep); border-bottom: 3px solid var(--st-support-mid); background: #fff; }
+        .o_notebook .tab-content { padding: 20px 22px 24px; }
+    }
+
+    @media (min-width: 1500px) {
+        .o_form_description_expander_view .o_form_renderer > .o_form_sheet_bg { flex: 1 1 58%; min-width: 0; }
+        .o_form_description_expander_view .o_form_renderer > .o-mail-ChatterContainer { flex: 0 0 42%; width: 42%; min-width: 0; }
+    }
+
     .o-mail-ChatterContainer { border-left: 1px solid var(--st-support-line); background: #f8faf6; }
     .o-mail-Chatter { background: #f8faf6; }
     .o-mail-Chatter-top { z-index: 2; background: #f8faf6; box-shadow: 0 5px 14px #153d300a; }
@@ -155,6 +203,13 @@ body.o_steps_helpdesk {
         .o_graph_renderer, .o_pivot_renderer, .o_activity_view { margin: 12px; padding: 12px; }
         .o_form_view .o_form_sheet_bg { padding: 12px; }
         .o_form_view .o_form_sheet { padding: 20px; }
+        .o_form_description_expander_view .o_form_sheet { padding: 0 0 22px; }
+        .o_form_description_expander_view .steps-ticket-hero { padding: 25px 26px; }
+        .o_form_description_expander_view .steps-support-customer-note,
+        .o_form_description_expander_view .steps-ticket-section-heading,
+        .o_form_description_expander_view .o_notebook { margin-left: 24px; margin-right: 24px; }
+        .o_form_description_expander_view .steps-ticket-main-info { margin-left: 24px !important; margin-right: 24px !important; }
+        .o_form_description_expander_view .o_form_sheet > .d-flex { margin-left: 24px; margin-right: 24px; }
     }
     @media (max-width: 700px) {
         .o_control_panel { padding: 12px !important; }
@@ -163,5 +218,13 @@ body.o_steps_helpdesk {
         .o_helpdesk_banner .o_helpdesk_banner_table .o_text { min-width: 95px; }
         .o_helpdesk_banner > div { padding: 10px; overflow-x: auto; }
         .o-mail-Message { margin: 7px; padding: 11px; }
+        .o_form_description_expander_view .steps-ticket-hero { padding: 22px 19px; }
+        .o_form_description_expander_view .steps-ticket-hero__top { padding-right: 28px; }
+        .o_form_description_expander_view .steps-ticket-hero h1 { margin: 16px 0; }
+        .o_form_description_expander_view .steps-support-customer-note,
+        .o_form_description_expander_view .steps-ticket-section-heading,
+        .o_form_description_expander_view .o_notebook { margin-left: 14px; margin-right: 14px; }
+        .o_form_description_expander_view .steps-ticket-main-info { margin-left: 14px !important; margin-right: 14px !important; padding: 16px; }
+        .o_form_description_expander_view .o_form_sheet > .d-flex { margin-left: 14px; margin-right: 14px; }
     }
 }

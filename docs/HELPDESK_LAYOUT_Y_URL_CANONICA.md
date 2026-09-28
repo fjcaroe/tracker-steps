@@ -104,3 +104,24 @@ Antes de actualizar el módulo en `karo_consultorias` se guardaron la base, el
 módulo anterior y el vhost anterior en
 `/opt/backups/odoo/2026-09-27-support-v2/` (solo accesible en la VM). La copia
 aislada de pruebas se retiró después de validar el recorrido.
+
+## Ficha interna del ticket — 28 de septiembre de 2026
+
+La ruta `/odoo/all-tickets/35` usa ahora una cabecera Steps con el número,
+título y fecha de creación del caso. Los responsables y datos de contacto
+quedaron en una sección propia, y la descripción original en otra. El panel
+del historial dispone de más ancho en escritorio para leer mensajes largos;
+el diseño también se revisó en móvil. Se conservaron el cambio de etapa,
+los campos de Studio, el historial, las notas y los adjuntos.
+
+La actualización de `step_helpdesk_brand 18.0.1.1.5` se validó primero en una
+copia aislada de `karo_consultorias`: la vista combinada contiene una cabecera,
+una sección de datos y el componente de conversación, y el ticket 35 existe.
+Después del despliegue, `odoo18.service` quedó activo, `/web/login` respondió
+HTTP 200 y la ficha se revisó visualmente en `soporte.stepsapp.cl` en escritorio
+y móvil, sin errores del navegador. La base temporal de validación fue retirada.
+
+Respaldo previo de base, filestore y módulo:
+`/opt/steps_backups/support_ticket_layout_20260928_044525/`. El ajuste final
+de estilos móviles tiene respaldo adicional en
+`/opt/steps_backups/support_ticket_layout_20260928_044829/`.
