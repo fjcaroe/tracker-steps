@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_export_customer_claim_list" model="ir.ui.view">
+        <field name="name">step.export.customer.claim.list</field>
+        <field name="model">step.export.customer.claim</field>
+        <field name="arch" type="xml">
+            <list string="Reclamo de Clientes">
+                    <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_export_customer_claim_form" model="ir.ui.view">
+        <field name="name">step.export.customer.claim.form</field>
+        <field name="model">step.export.customer.claim</field>
+        <field name="arch" type="xml">
+            <form string="Reclamo de Clientes">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="sequence"/>
+                        <field name="user_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_export_customer_claim" model="ir.actions.act_window">
+        <field name="name">Reclamo de Clientes</field>
+        <field name="res_model">step.export.customer.claim</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

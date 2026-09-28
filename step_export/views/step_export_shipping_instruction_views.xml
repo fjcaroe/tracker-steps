@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_export_shipping_instruction_list" model="ir.ui.view">
+        <field name="name">step.export.shipping.instruction.list</field>
+        <field name="model">step.export.shipping.instruction</field>
+        <field name="arch" type="xml">
+            <list string="Instructivo de Embarque">
+                    <field name="name"/>
+                    <field name="partner_id"/>
+                    <field name="date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_export_shipping_instruction_form" model="ir.ui.view">
+        <field name="name">step.export.shipping.instruction.form</field>
+        <field name="model">step.export.shipping.instruction</field>
+        <field name="arch" type="xml">
+            <form string="Instructivo de Embarque">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="sequence"/>
+                        <field name="tag_ids"/>
+                        <field name="user_id"/>
+                        <field name="partner_id"/>
+                        <field name="notes"/>
+                        <field name="date"/>
+                        <field name="date_start"/>
+                        <field name="date_stop"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_export_shipping_instruction" model="ir.actions.act_window">
+        <field name="name">Instructivo de Embarque</field>
+        <field name="res_model">step.export.shipping.instruction</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

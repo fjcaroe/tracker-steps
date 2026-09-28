@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_export_payment_concept_list" model="ir.ui.view">
+        <field name="name">step.export.payment.concept.list</field>
+        <field name="model">step.export.payment.concept</field>
+        <field name="arch" type="xml">
+            <list string="Concepto de Pago Productor">
+                    <field name="name"/>
+                    <field name="code"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_export_payment_concept_form" model="ir.ui.view">
+        <field name="name">step.export.payment.concept.form</field>
+        <field name="model">step.export.payment.concept</field>
+        <field name="arch" type="xml">
+            <form string="Concepto de Pago Productor">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="sequence"/>
+                        <field name="code"/>
+                        <field name="notes"/>
+                        <field name="date"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_export_payment_concept" model="ir.actions.act_window">
+        <field name="name">Concepto de Pago Productor</field>
+        <field name="res_model">step.export.payment.concept</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

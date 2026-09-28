@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_fruit_tag" model="ir.actions.report">
+        <field name="name">Tarja de fruta</field>
+        <field name="model">stock.quant.package</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_inventory_fruit_tag.report_fruit_tag</field>
+        <field name="report_file">step_inventory_fruit_tag.report_fruit_tag</field>
+        <field name="print_report_name">'TARJA_%s' % (object.name or '').replace('/', '_')</field>
+        <field name="binding_model_id" ref="stock.model_stock_quant_package"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_fruit_tag_document">
+        <t t-call="web.basic_layout">
+            <div class="page">
+                <div class="row">
+                    <div class="col-8">
+                        <h2>TARJA FRUTA EXPORTACIÓN</h2>
+                    </div>
+                    <div class="col-4 text-end">
+                        <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=120&amp;height=120' % (doc.name or '')"
+                             style="width:90px;height:90px;"/>
+                    </div>
+                </div>
+                <table class="table table-sm o_main_table mt16">
+                    <tbody>
+                        <tr>
+                            <td><strong>Número tarja</strong><br/><span t-esc="doc.name"/></td>
+                            <td><strong>Fecha</strong><br/><span t-esc="doc.pack_date"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Especie</strong><br/><span t-esc="doc.especie_id.name or '—'"/></td>
+                            <td><strong>Variedad</strong><br/><span t-esc="doc.variedad_id.name or '—'"/></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <strong>Tipo Fruta</strong><br/>
+                                <span t-esc="dict(doc._fields['fruit_type'].selection).get(doc.fruit_type, '—')"/>
+                            </td>
+                            <td><strong>Productor</strong><br/><span t-esc="doc.owner_id.name or '—'"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Embalaje</strong><br/><span t-esc="doc.package_type_id.name or '—'"/></td>
+                            <td><strong>Id Fundo</strong><br/><span t-esc="doc.fundo_id.sdp_code or doc.fundo_id.fundo_code or '—'"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cantidad cajas</strong><br/><span t-esc="doc.box_count"/></td>
+                            <td><strong>Kilos</strong><br/><span t-esc="'%.2f' % doc.kilos_total"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Etiqueta</strong><br/><span t-esc="doc.label or '—'"/></td>
+                            <td><strong>Categoría</strong><br/><span t-esc="doc.fruit_category_id.name or '—'"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certificado</strong><br/><span t-esc="doc.certificate or '—'"/></td>
+                            <td><strong>OT Proceso</strong><br/><span t-esc="doc.ot_proceso or '—'"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Calidad</strong><br/><span t-esc="doc.fruit_quality_id.name or '—'"/></td>
+                            <td><strong>Calibre</strong><br/><span t-esc="doc.fruit_caliber_id.name or '—'"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Packing</strong><br/><span t-esc="doc.packing_plant or '—'"/></td>
+                            <td><strong>Línea</strong><br/><span t-esc="doc.process_line or '—'"/></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+    </template>
+
+    <template id="report_fruit_tag">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="step_inventory_fruit_tag.report_fruit_tag_document"/>
+            </t>
+        </t>
+    </template>
+</odoo>

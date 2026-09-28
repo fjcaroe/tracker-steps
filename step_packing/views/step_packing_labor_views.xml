@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_packing_labor_list" model="ir.ui.view">
+        <field name="name">step.packing.labor.list</field>
+        <field name="model">step.packing.labor</field>
+        <field name="arch" type="xml">
+            <list string="Labor / Mano de Obra">
+                    <field name="name"/>
+                    <field name="code"/>
+                    <field name="activity_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_packing_labor_form" model="ir.ui.view">
+        <field name="name">step.packing.labor.form</field>
+        <field name="model">step.packing.labor</field>
+        <field name="arch" type="xml">
+            <form string="Labor / Mano de Obra">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="sequence"/>
+                        <field name="code"/>
+                        <field name="date"/>
+                        <field name="is_worker_paid"/>
+                        <field name="is_machinery"/>
+                        <field name="date_start"/>
+                        <field name="date_end"/>
+                        <field name="uom_trato_id"/>
+                        <field name="product_tmpl_id"/>
+                        <field name="activity_id"/>
+                        <field name="is_qa_labor"/>
+                        <field name="uom_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_packing_labor" model="ir.actions.act_window">
+        <field name="name">Labor / Mano de Obra</field>
+        <field name="res_model">step.packing.labor</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_export_export_stage_list" model="ir.ui.view">
+        <field name="name">step.export.export.stage.list</field>
+        <field name="model">step.export.export.stage</field>
+        <field name="arch" type="xml">
+            <list string="Exportación (etapa)">
+                    <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_export_export_stage_form" model="ir.ui.view">
+        <field name="name">step.export.export.stage.form</field>
+        <field name="model">step.export.export.stage</field>
+        <field name="arch" type="xml">
+            <form string="Exportación (etapa)">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_export_export_stage" model="ir.actions.act_window">
+        <field name="name">Exportación (etapa)</field>
+        <field name="res_model">step.export.export.stage</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

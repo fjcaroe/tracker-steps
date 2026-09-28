@@ -21,7 +21,7 @@
                     product.hidden = button.dataset.filter !== "all" && product.dataset.category !== button.dataset.filter;
                     if (!product.hidden) visible += 1;
                 });
-                if (status) status.textContent = visible + " soluciones: " + button.textContent.trim().replace(/\s+12$/, "") + ".";
+                if (status) status.textContent = visible + " soluciones: " + button.textContent.trim().replace(/\s+\d+$/, "") + ".";
             });
         }
         var menu = root.querySelector(".steps-mobile-nav");
