@@ -20,10 +20,59 @@
         </xpath>
         <xpath expr="//div[@t-if='not grouped_tickets']" position="replace">
             <div t-if="not grouped_tickets" class="steps-helpdesk-empty" role="status">
-                <h2>Aún no tienes solicitudes visibles.</h2>
-                <p>Si necesitas ayuda, puedes crear una solicitud. Si ya escribiste al equipo, ingresa con la cuenta de cliente asociada al ticket.</p>
+                <h2>No encontramos tickets con estos filtros.</h2>
+                <p>Prueba otra etapa o quita los filtros. Si aún no tienes solicitudes, puedes crear una nueva.</p>
+                <a class="btn btn-outline-primary me-2" href="/my/tickets">Ver todos</a>
                 <a class="btn btn-primary" href="/soporte/nueva-solicitud">Crear solicitud</a>
             </div>
+        </xpath>
+        <xpath expr="//t[@t-call='portal.portal_table']" position="replace">
+            <p class="steps-helpdesk-mobile-hint">Desliza la tabla para ver el último comentario.</p>
+            <t t-call="portal.portal_table">
+                <thead>
+                    <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Etapa</th>
+                        <th scope="col">Última modificación</th>
+                        <th scope="col">Último comentario</th>
+                        <th scope="col">Responsable</th>
+                    </tr>
+                </thead>
+                <t t-foreach="grouped_tickets" t-as="tickets">
+                    <tbody>
+                        <tr t-if="groupby != 'none'" class="table-light steps-helpdesk-group-row">
+                            <th colspan="5" scope="rowgroup">
+                                <span t-if="groupby == 'stage_id'" t-out="tickets[0].stage_id.name or 'Sin etapa'"/>
+                                <span t-elif="groupby == 'user_id'" t-out="tickets[0].user_id.name or 'Sin asignar'"/>
+                                <span t-elif="groupby == 'team_id'" t-out="tickets[0].team_id.name or 'Sin equipo'"/>
+                                <span t-elif="groupby == 'partner_id'" t-out="tickets[0].partner_id.name or 'Sin cliente'"/>
+                                <span t-elif="groupby == 'kanban_state'" t-out="dict(normal='En progreso', blocked='Bloqueado', done='Listo').get(tickets[0].kanban_state, tickets[0].kanban_state)"/>
+                            </th>
+                        </tr>
+                        <tr t-foreach="tickets" t-as="ticket" t-att-class="'steps-helpdesk-ticket-unread' if ticket.id in steps_ticket_unread_ids else ''">
+                            <td class="steps-helpdesk-ticket-title">
+                                <a t-attf-href="/helpdesk/ticket/#{ticket.id}">
+                                    <span class="steps-helpdesk-ticket-ref">#<t t-out="ticket.ticket_ref"/></span>
+                                    <span t-field="ticket.name"/>
+                                </a>
+                                <span t-if="ticket.id in steps_ticket_unread_ids" class="steps-helpdesk-new-badge">Respuesta sin revisar</span>
+                                <small>Creado el <span t-field="ticket.create_date" t-options='{"widget": "datetime", "hide_seconds": True}'/></small>
+                            </td>
+                            <td><span t-attf-class="badge rounded-pill fw-normal #{'text-bg-success' if ticket.stage_id.fold else 'text-bg-primary'}" t-out="ticket.stage_id.name"/></td>
+                            <td><time t-field="ticket.write_date" t-options='{"widget": "datetime", "hide_seconds": True}'/></td>
+                            <td>
+                                <t t-set="steps_last_message" t-value="steps_ticket_last_messages.get(ticket.id)"/>
+                                <t t-if="steps_last_message">
+                                    <time t-field="steps_last_message.date" t-options='{"widget": "datetime", "hide_seconds": True}'/>
+                                    <small t-out="steps_last_message.author_id.name or 'Equipo de soporte'"/>
+                                </t>
+                                <span t-else="" class="text-muted">Sin comentarios</span>
+                            </td>
+                            <td t-out="ticket.user_id.name or 'Sin asignar'"/>
+                        </tr>
+                    </tbody>
+                </t>
+            </t>
         </xpath>
     </template>
 

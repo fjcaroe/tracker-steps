@@ -125,3 +125,38 @@ Respaldo previo de base, filestore y módulo:
 `/opt/steps_backups/support_ticket_layout_20260928_044525/`. El ajuste final
 de estilos móviles tiene respaldo adicional en
 `/opt/steps_backups/support_ticket_layout_20260928_044829/`.
+
+## Mis tickets: filtros y actividad — 28 de septiembre de 2026
+
+La lista del portal conserva la búsqueda y los grupos de Odoo. Agrega filtros
+por cada etapa que tenga tickets visibles para la cuenta, respuestas sin
+revisar y modificaciones de los últimos siete días. Se puede ordenar por
+última modificación, fecha de creación, prioridad, referencia, asunto,
+responsable o etapa. Cada fila muestra la etapa, la última modificación y
+la fecha y autor del último comentario compartido con el cliente; la fecha
+de creación queda bajo el asunto.
+
+«Respuesta sin revisar» compara el último comentario público escrito por otra
+persona con el último comentario que esa cuenta había visto al abrir el
+ticket. El seguimiento es individual por cuenta. En un ticket que nunca se
+ha abierto desde esa cuenta, sus respuestas existentes aparecen pendientes.
+Las notas internas no se usan para esta marca ni para la columna de último
+comentario. La fecha de última modificación sí refleja cambios de la ficha,
+incluidos los cambios internos, por lo que ambas fechas se muestran por
+separado.
+
+La actualización se probó primero en una copia aislada de
+`karo_consultorias` con un usuario de portal y un ticket sintético: la lista,
+el filtro por etapa, el filtro por respuestas pendientes y el orden por
+modificación respondieron HTTP 200. La respuesta pública se marcó pendiente
+y dejó de estarlo al abrir el ticket; el filtro dejó de incluirlo. Ese usuario
+no vio el ticket 35, ajeno a su cuenta.
+
+En producción quedó instalado `step_helpdesk_brand 18.0.1.1.6` y
+`odoo18.service` activo. Se verificó en `soporte.stepsapp.cl/my/tickets` que
+las etapas aparecen en el menú de filtros, que «En progreso» devuelve cuatro
+tickets de esa etapa para el administrador y que la lista muestra ambas fechas.
+Se revisaron escritorio y móvil; en este último la tabla indica que se puede
+deslizar para leer el último comentario. El respaldo previo está en
+`/opt/steps_backups/support_portal_filters_20260928_1516/` (base, filestore
+y versión anterior del módulo, solo en la VM).
