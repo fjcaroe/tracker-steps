@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Steps - Exportaciones",
-    "summary": "Exportaciones, tarifas a productor y estimacion de cosecha "
-                "(puerto desde Studio, ticket 33 Cerro El Plomo).",
-    "version": "18.0.2.3.0",
+    "summary": "Programa comercial, embarques y liquidaciones de exportación Steps",
+    "version": "18.0.2.4.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "step_hr", "step_management_costs", "step_packing", "step_inventory_fruit_tag", "step_dispatch_guide", "sale", "mrp", "account", "stock"],
+    "depends": ["base", "mail", "step_hr", "step_management_costs", "step_packing", "step_inventory_fruit_tag", "step_dispatch_guide", "step_accounting_multicurrency", "sale", "mrp", "account", "stock"],
     "data": [
         "security/ir.model.access.csv",
         "security/export_rules.xml",

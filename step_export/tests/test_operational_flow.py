@@ -48,6 +48,28 @@ class TestExportOperations(TransactionCase):
                                   "pallet_qty": 1, "boxes_per_pallet": 10, "kg_per_box": 5})],
         })
 
+    def test_producer_rate_uses_receiver_company(self):
+        other_company = self.env["res.company"].create({"name": "Otra empresa T35"})
+        wrong_rate = self.env["step.export.grower.rate"].create({
+            "name": "Tarifa otra empresa T35", "producer_id": self.producer.id,
+            "company_id": other_company.id, "season_id": self.season.id,
+            "species_id": self.species.id, "rate_value": 9,
+        })
+        expected_rate = self.env["step.export.grower.rate"].create({
+            "name": "Tarifa empresa actual T35", "producer_id": self.producer.id,
+            "company_id": self.env.company.id, "season_id": self.season.id,
+            "species_id": self.species.id, "rate_value": 1,
+        })
+        receiver = self.env["step.export.receiver.settlement"].create({
+            "receiver_id": self.receiver.id, "sales_program_id": self.program.id,
+            "date": date(2026, 11, 20), "rate_to_usd": 1,
+        })
+        producer = self.env["step.export.producer.settlement"].create({
+            "receiver_settlement_id": receiver.id, "producer_id": self.producer.id,
+        })
+        self.assertNotEqual(producer.rate_id, wrong_rate)
+        self.assertEqual(producer.rate_id, expected_rate)
+
     def test_shipment_validation_and_document_gate(self):
         self.assertEqual(self.shipment.kg_qty, 50)
         self.shipment.action_validate_shipment()

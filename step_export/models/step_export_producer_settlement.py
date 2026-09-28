@@ -28,7 +28,8 @@ class GrowerRate(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if {"rate_type", "rate_value", "expense_account_id", "purchase_tax_ids"}.intersection(vals):
+        if {"company_id", "producer_id", "season_id", "species_id", "rate_type",
+            "rate_value", "expense_account_id", "purchase_tax_ids"}.intersection(vals):
             if self.env["step.export.producer.settlement"].search_count([
                 ("rate_id", "in", self.ids), ("state", "in", ["validated", "accounted"])]):
                 raise UserError(_("La tarifa ya se usó en una liquidación validada."))
@@ -86,6 +87,7 @@ class ProducerSettlement(models.Model):
                 receiver = self.env["step.export.receiver.settlement"].browse(vals["receiver_settlement_id"])
                 rate = self.env["step.export.grower.rate"].search([
                     ("producer_id", "=", vals["producer_id"]),
+                    ("company_id", "=", receiver.company_id.id),
                     ("season_id", "=", receiver.season_id.id),
                     ("species_id", "=", receiver.species_id.id),
                 ], order="date desc, id desc", limit=1)
@@ -126,6 +128,11 @@ class ProducerSettlement(models.Model):
                 raise UserError(_("Primero valide la liquidación del recibidor."))
             if not record.rate_id or record.rate_id.rate_value <= 0 or not record.rate_id.expense_account_id:
                 raise ValidationError(_("Configure una tarifa positiva y su cuenta de compra de fruta."))
+            if (record.rate_id.company_id != record.company_id or
+                    record.rate_id.producer_id != record.producer_id or
+                    record.rate_id.season_id != record.receiver_settlement_id.season_id or
+                    record.rate_id.species_id != record.receiver_settlement_id.species_id):
+                raise ValidationError(_("La tarifa debe corresponder al productor, empresa, temporada y especie de la liquidación."))
             if record.net_usd < 0:
                 raise ValidationError(_("Los descuentos no pueden superar la liquidación bruta."))
             if any(line.tag_id.owner_id != record.producer_id for line in record.line_ids):

@@ -5,6 +5,8 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="step_hr.step_view_res_partner_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//page[@name='agri']//field[@name='step_export']" position="replace"/>
+            <xpath expr="//page[@name='agri']//field[@name='productor_name']" position="replace"/>
             <xpath expr="//page[@name='agri']" position="after">
                 <page name="step_export_partner" string="Exportación">
                     <group>
@@ -20,6 +22,9 @@
                 </page>
             </xpath>
             <xpath expr="//page[@name='productor']" position="inside">
+                <group string="Identificación comercial">
+                    <field name="productor_name"/>
+                </group>
                 <field name="step_export_fundo_ids">
                     <list editable="bottom">
                         <field name="name"/>
@@ -113,5 +118,21 @@
         <field name="res_model">product.packaging</field>
         <field name="view_mode">list,form</field>
         <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_step_export_packaging_list')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_step_export_packaging_form')})]"/>
+    </record>
+
+    <record id="action_step_export_product_templates" model="ir.actions.act_window">
+        <field name="name">Productos exportables</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('step_export_enabled', '=', True)]</field>
+        <field name="context">{'default_is_fruta': True, 'default_step_export_enabled': True}</field>
+    </record>
+
+    <record id="action_step_export_contacts" model="ir.actions.act_window">
+        <field name="name">Contactos de exportación</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">['|', ('step_export', '=', True), ('step_export_receiver', '=', True)]</field>
+        <field name="context">{'default_step_export': True}</field>
     </record>
 </odoo>

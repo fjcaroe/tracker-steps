@@ -33,6 +33,16 @@
     <menuitem id="menu_step_export_payments" name="Pagos de clientes" parent="menu_step_export_ops" action="action_export_payments" sequence="22"/>
     <menuitem id="menu_step_export_package_type" name="Tipos de pallet" parent="menu_step_export_config" action="action_step_export_package_type"/>
     <menuitem id="menu_step_export_packaging" name="Embalajes" parent="menu_step_export_config" action="action_step_export_packaging"/>
+    <menuitem id="menu_step_export_contacts" name="Contactos de exportación" parent="menu_step_export_config" action="action_step_export_contacts" sequence="16"/>
+    <menuitem id="menu_step_export_products" name="Productos exportables" parent="menu_step_export_config" action="action_step_export_product_templates" sequence="17"/>
+    <!-- Los maestros de proceso y tarja pertenecen a Packing Fruta; ambos menús abren los mismos registros. -->
+    <menuitem id="menu_step_export_packing_masters" name="Maestros de packing" parent="menu_step_export_config" sequence="60"/>
+    <menuitem id="menu_step_export_packing_line" name="Líneas de proceso" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_line" sequence="10"/>
+    <menuitem id="menu_step_export_packing_process_type" name="Tipos de proceso" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_process_type" sequence="20"/>
+    <menuitem id="menu_step_export_packing_tag_type" name="Tipos de tarja" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_tag_type" sequence="30"/>
+    <menuitem id="menu_step_export_packing_tag_state" name="Estados de tarja" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_tag_state" sequence="40"/>
+    <menuitem id="menu_step_export_packing_stop_reason" name="Causas de detención" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_stop_reason" sequence="50"/>
+    <menuitem id="menu_step_export_packing_correction_reason" name="Causas de corrección" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_correction_reason" sequence="60"/>
     <menuitem id="menu_step_export_vessel" name="Nave" parent="menu_step_export_config" action="action_step_export_vessel"/>
     <menuitem id="menu_step_export_sale_mode" name="Modalidad de Venta" parent="menu_step_export_config" action="action_step_export_sale_mode"/>
     <menuitem id="menu_step_export_payment_concept" name="Concepto de Pago Productor" parent="menu_step_export_config" action="action_step_export_payment_concept"/>

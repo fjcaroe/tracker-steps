@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Steps Productores">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0c7659"/><stop offset="1" stop-color="#083c32"/></linearGradient></defs>
+  <rect x="4" y="4" width="248" height="248" rx="54" fill="url(#bg)"/>
+  <path d="M51 194c20-18 45-27 77-27s57 9 77 27" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M73 205v-35m110 35v-35" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="128" cy="133" r="25" fill="none" stroke="#fff" stroke-width="11"/>
+  <path d="M129 106V64m0 26c-15-24-35-29-47-25 4 22 19 33 47 34m0-9c15-24 35-29 47-25-4 22-19 33-47 34" fill="#bedf71" stroke="#bedf71" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M128 64v41" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+</svg>
