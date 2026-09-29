@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_product_template_form_harvest_container" model="ir.ui.view">
+        <field name="name">product.template.form.harvest.container</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="step_is_harvest_container"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_stock_location_form_producer" model="ir.ui.view">
+        <field name="name">stock.location.form.producer.container</field>
+        <field name="model">stock.location</field>
+        <field name="inherit_id" ref="stock.view_location_form"/>
+        <field name="arch" type="xml">
+            <field name="usage" position="after">
+                <field name="step_producer_id"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_partner_form_container_location" model="ir.ui.view">
+        <field name="name">res.partner.form.container.location</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="step_producers.view_step_producer_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_step_container_location" type="object"
+                        class="oe_stat_button" icon="fa-archive" invisible="not is_productor"
+                        string="Ubicación de envases"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_step_harvest_container_balance" model="ir.actions.act_window">
+        <field name="name">Saldo de envases por productor</field>
+        <field name="res_model">stock.quant</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="domain">[('product_id.product_tmpl_id.step_is_harvest_container', '=', True), ('location_id.step_producer_id', '!=', False)]</field>
+    </record>
+    <record id="action_step_harvest_container_ledger" model="ir.actions.act_window">
+        <field name="name">Cuenta corriente de envases</field>
+        <field name="res_model">stock.move</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="domain">[('product_id.product_tmpl_id.step_is_harvest_container', '=', True), '|', ('location_id.step_producer_id', '!=', False), ('location_dest_id.step_producer_id', '!=', False)]</field>
+    </record>
+    <menuitem id="menu_step_harvest_container_ledger" name="Movimientos de envases"
+              parent="step_packing.menu_packing_fruta_operations" action="action_step_harvest_container_ledger"
+              sequence="26" groups="stock.group_stock_user"/>
+    <menuitem id="menu_step_harvest_container_balance" name="Saldo de envases"
+              parent="step_packing.menu_packing_fruta_operations" action="action_step_harvest_container_balance"
+              sequence="27" groups="stock.group_stock_user"/>
+</odoo>

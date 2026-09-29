@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form_steps_fruit_reception" model="ir.ui.view">
+        <field name="name">stock.picking.form.steps.fruit.reception</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="step_packing.view_picking_form_packing_fruit"/>
+        <field name="arch" type="xml">
+            <field name="fruit_fundo_id" position="before">
+                <field name="step_fruit_reception_kind" invisible="picking_type_code != 'incoming'"/>
+            </field>
+            <field name="fruit_weighing_type" position="after">
+                <field name="step_fruit_weighing_method" invisible="not step_fruit_reception_kind"/>
+                <field name="step_fruit_weighing_by" invisible="not step_fruit_reception_kind"/>
+                <field name="step_fruit_guide_date" invisible="not step_fruit_reception_kind"/>
+                <field name="step_fruit_cost_center" invisible="not step_fruit_reception_kind"/>
+            </field>
+            <field name="fruit_truck_plate" position="after">
+                <field name="step_fruit_driver_id" invisible="not step_fruit_reception_kind"/>
+                <field name="step_fruit_driver_vat" readonly="1" invisible="not step_fruit_reception_kind"/>
+            </field>
+            <field name="fruit_tag_line_ids" position="before">
+                <group string="Pesaje de fruta" invisible="not step_fruit_reception_kind">
+                    <field name="step_fruit_gross_kg"/>
+                    <field name="step_fruit_truck_tare_kg"/>
+                    <field name="step_fruit_container_tare_kg"/>
+                    <field name="step_fruit_transfer_tare_kg"/>
+                    <field name="step_fruit_net_kg" readonly="1"/>
+                </group>
+                <button name="action_step_import_fruit_tags" type="object"
+                        string="Importar tarjas Excel" class="btn-secondary"
+                        invisible="not step_fruit_reception_kind or state == 'done'"/>
+            </field>
+            <field name="kilos" position="after">
+                <field name="package_id"/>
+                <field name="product_id"/>
+                <field name="gross_kg"/>
+                <field name="tare_kg"/>
+                <field name="net_kg" readonly="1"/>
+                <field name="box_count"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_steps_fruit_process_reception" model="ir.actions.act_window">
+        <field name="name">Recepción de fruta a proceso</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('picking_type_code', '=', 'incoming'), ('step_fruit_reception_kind', '=', 'process')]</field>
+        <field name="context">{'default_step_fruit_reception_kind': 'process', 'restricted_picking_type_code': 'incoming'}</field>
+    </record>
+    <record id="action_steps_fruit_packed_reception" model="ir.actions.act_window">
+        <field name="name">Recepción de fruta embalada</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('picking_type_code', '=', 'incoming'), ('step_fruit_reception_kind', '=', 'packed')]</field>
+        <field name="context">{'default_step_fruit_reception_kind': 'packed', 'restricted_picking_type_code': 'incoming'}</field>
+    </record>
+    <menuitem id="menu_steps_fruit_process_reception" name="Fruta a proceso"
+              parent="step_packing.menu_packing_fruta_receptions"
+              action="action_steps_fruit_process_reception" sequence="11" groups="stock.group_stock_user"/>
+    <menuitem id="menu_steps_fruit_packed_reception" name="Fruta embalada"
+              parent="step_packing.menu_packing_fruta_receptions"
+              action="action_steps_fruit_packed_reception" sequence="12" groups="stock.group_stock_user"/>
+</odoo>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_res_config_settings_fruit_packing" model="ir.ui.view">
+        <field name="name">res.config.settings.fruit.packing</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='stock']/block[@name='operations_setting_container']" position="inside">
+                <setting id="steps_fruit_inventory" string="Recepción y tarjas de fruta"
+                         help="Habilita el control de tarjas C, E y N y el pesaje de recepciones agrícolas para esta empresa.">
+                    <field name="step_fruit_inventory_enabled"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

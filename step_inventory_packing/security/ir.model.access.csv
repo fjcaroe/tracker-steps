@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_fruit_package_line_user,step.fruit.package.line.user,model_step_fruit_package_line,stock.group_stock_user,1,1,1,1
+access_step_fruit_reception_import_user,step.fruit.reception.import.user,model_step_fruit_reception_import,stock.group_stock_user,1,1,1,1
