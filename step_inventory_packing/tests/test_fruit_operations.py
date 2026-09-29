@@ -83,3 +83,42 @@ class TestFruitOperations(TransactionCase):
         self.assertEqual(package.step_tag_state, "created")
         with self.assertRaises(ValidationError):
             picking._check_step_fruit_reception()  # aún falta asignar a operaciones de stock
+
+    def test_reception_validates_stock_and_tag_detail(self):
+        package = self.env["stock.quant.package"].create({
+            "name": "T40-RECEPCION-1", "is_fruit_tag": True,
+            "step_tag_kind": "E",
+        })
+        species = self.env["step.especie"].create({
+            "name": "Cerezas recepción T40", "type_especie": "frutal", "group_especie": "baya",
+        })
+        picking = self.env["stock.picking"].create({
+            "partner_id": self.producer.id,
+            "picking_type_id": self.warehouse.in_type_id.id,
+            "location_id": self.warehouse.in_type_id.default_location_src_id.id,
+            "location_dest_id": self.warehouse.lot_stock_id.id,
+            "step_fruit_reception_kind": "packed",
+            "fruit_fundo_id": self.fundo.id, "fruit_species_id": species.id,
+            "step_fruit_gross_kg": 55, "step_fruit_container_tare_kg": 5,
+            "fruit_tag_line_ids": [(0, 0, {
+                "tag_number": package.name, "package_id": package.id,
+                "product_id": self.product.id, "quantity": 10,
+                "kilos": 50, "box_count": 10,
+            })],
+        })
+        move = self.env["stock.move"].create({
+            "name": "Fruta T40", "picking_id": picking.id,
+            "product_id": self.product.id, "product_uom_qty": 10,
+            "product_uom": self.product.uom_id.id,
+            "location_id": picking.location_id.id,
+            "location_dest_id": picking.location_dest_id.id,
+        })
+        picking.action_confirm()
+        move.move_line_ids.write({"quantity": 10, "result_package_id": package.id})
+        self.assertTrue(move.move_line_ids)
+        picking.button_validate()
+        self.assertEqual(picking.state, "done")
+        self.assertEqual(package.step_tag_state, "validated")
+        self.assertEqual(package.step_producer_id, self.producer)
+        self.assertEqual(package.step_actual_kg, 50)
+        self.assertEqual(package.quant_ids.product_id, self.product)
