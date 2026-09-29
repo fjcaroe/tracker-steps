@@ -76,6 +76,13 @@ class StockPicking(models.Model):
                 raise ValidationError(_("El fundo de la recepción debe tener un productor."))
             for line in picking.fruit_tag_line_ids:
                 package = line.package_id
+                if package.step_tag_state == "created":
+                    package.write({
+                        "fundo_id": picking.fruit_fundo_id.id,
+                        "step_export_season_id": picking.fruit_season_id.id,
+                        "especie_id": picking.fruit_species_id.id,
+                        "variedad_id": picking.fruit_variety_id.id,
+                    })
                 if not package.step_tag_line_ids:
                     products = package.quant_ids.mapped("product_id")
                     product = line.product_id or (products if len(products) == 1 else False)
@@ -84,7 +91,6 @@ class StockPicking(models.Model):
                     if not product or quantity <= 0:
                         raise ValidationError(_("La tarja debe contener un único producto en stock o indicarlo en el detalle."))
                     package.write({
-                        "fundo_id": picking.fruit_fundo_id.id,
                         "step_producer_id": producer.id,
                         "box_count": line.box_count,
                         "step_tag_line_ids": [(0, 0, {
