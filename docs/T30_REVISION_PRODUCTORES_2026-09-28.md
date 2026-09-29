@@ -19,7 +19,7 @@ La especificación original del mismo ticket (adjunto 2962) indica productos, ca
 
 Se restauró una copia aislada de `STEPS_DEMO_SYS` en `T30_REVIEW_20260929`, con archivos del módulo separados. Se creó en esa copia un contrato del flujo anterior para verificar la migración; migró una vez, sin duplicación. También se probaron en la copia la confirmación de cantidades y netos, revisión de cuotas, asiento equilibrado por un usuario contable, vínculo con compras confirmadas y vistas. La suite del módulo terminó con **8 pruebas, 0 fallas y 0 errores** (`/tmp/t30_review_tests5.log`). Los asientos y cuentas sintéticas sólo existen en la copia aislada.
 
-En Demo-SyS se respaldó la base y el módulo en `/tmp/t30_demo_backup_20260929`, se actualizó `step_producers` a `18.0.1.1.0` y se verificó: servicio activo, HTTP 200 local y público, menú nuevo activo (acción 1918), menú antiguo inactivo, cuatro pestañas presentes y **0 contratos** existentes. Acceso: [Contratos de compra en Demo-SyS](https://demo-sys.stepsapp.cl/odoo/action-1918).
+En Demo-SyS se respaldó la base y el módulo en `/opt/demosys_odoo18/backups/t30_demo_backup_20260929`, se actualizó `step_producers` a `18.0.1.1.0` y se verificó: servicio activo, HTTP 200 local y público, menú nuevo activo (acción 1918), menú antiguo inactivo, cuatro pestañas presentes y **0 contratos** existentes. Acceso: [Contratos de compra en Demo-SyS](https://demo-sys.stepsapp.cl/odoo/action-1918).
 
 ## Configuración y validación del cliente
 
