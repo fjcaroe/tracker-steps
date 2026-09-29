@@ -78,11 +78,14 @@ class ProducerPreliquidationPriceLine(models.Model):
     week_number = fields.Integer(string="Semana ISO", default=0,
                                  help="0 aplica a cualquier semana.")
     price = fields.Monetary(string="Precio FOB por UdM", currency_field="currency_id", required=True)
+    estimated_cost_usd_per_kg = fields.Float(string="Gasto estimado USD/kg", digits=(16, 4))
+    cost_confirmed = fields.Boolean(string="Gasto confirmado")
     currency_id = fields.Many2one(related="price_id.currency_id", store=True)
 
     _sql_constraints = [
         ("price_positive", "check(price > 0)", "El precio debe ser mayor a cero."),
         ("week_range", "check(week_number between 0 and 53)", "La semana debe estar entre 1 y 53, o 0 para todas."),
+        ("cost_nonnegative", "check(estimated_cost_usd_per_kg >= 0)", "El gasto estimado no puede ser negativo."),
     ]
 
     @api.constrains("variety_id", "price_id")

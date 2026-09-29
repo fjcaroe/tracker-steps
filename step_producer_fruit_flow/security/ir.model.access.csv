@@ -1,1 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_producer_preliquidation_account,step.producer.preliquidation.account,model_step_producer_preliquidation,account.group_account_user,1,1,1,1
+access_producer_preliquidation_line_account,step.producer.preliquidation.line.account,model_step_producer_preliquidation_line,account.group_account_user,1,0,0,0
+access_producer_preliquidation_read,step.producer.preliquidation.read,model_step_producer_preliquidation,account.group_account_readonly,1,0,0,0
+access_producer_preliquidation_line_read,step.producer.preliquidation.line.read,model_step_producer_preliquidation_line,account.group_account_readonly,1,0,0,0

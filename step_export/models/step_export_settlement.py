@@ -40,6 +40,9 @@ class ReceiverSettlement(models.Model):
                                   default=lambda self: self.env.ref("base.USD"))
     usd_currency_id = fields.Many2one("res.currency", default=lambda self: self.env.ref("base.USD"))
     rate_to_usd = fields.Float(string="USD por unidad", digits=(16, 6), required=True)
+    producer_price_mode = fields.Selection([
+        ("individual", "Por productor"), ("pool", "Pool"),
+    ], string="Modalidad de precio productor", required=True, default="individual")
     line_ids = fields.One2many("step.export.receiver.settlement.line", "settlement_id", string="Embarques")
     producer_settlement_ids = fields.One2many("step.export.producer.settlement", "receiver_settlement_id",
                                               string="Liquidaciones productores")
@@ -160,6 +163,7 @@ class ReceiverSettlement(models.Model):
     def _generate_producer_settlements(self):
         for record in self:
             allocation = {}
+            tag_values = []
             for line in record.line_ids:
                 shipment = line.shipment_id
                 tags = shipment.tag_ids.filtered(
@@ -175,9 +179,20 @@ class ReceiverSettlement(models.Model):
                         amount = grade_fob - claim_share
                     else:
                         amount = line.fob_usd * tag_kg / total_kg
-                    for producer, share in tag._step_producer_shares():
-                        allocation.setdefault(producer.id, []).append(
-                            (tag, amount * share, tag_kg * share))
+                    tag_values.append((tag, shipment, tag_kg, amount))
+            pool_rates = {}
+            if record.producer_price_mode == "pool":
+                for tag, shipment, kg, amount in tag_values:
+                    key = record._step_pool_key(tag, shipment)
+                    current_kg, current_amount = pool_rates.get(key, (0.0, 0.0))
+                    pool_rates[key] = (current_kg + kg, current_amount + amount)
+            for tag, shipment, tag_kg, amount in tag_values:
+                if record.producer_price_mode == "pool":
+                    pool_kg, pool_fob = pool_rates[record._step_pool_key(tag, shipment)]
+                    amount = tag_kg * pool_fob / pool_kg
+                for producer, share in tag._step_producer_shares():
+                    allocation.setdefault(producer.id, []).append(
+                        (tag, amount * share, tag_kg * share))
             for producer_id, entries in allocation.items():
                 self.env["step.export.producer.settlement"].create({
                     "receiver_settlement_id": record.id, "producer_id": producer_id,
@@ -185,6 +200,15 @@ class ReceiverSettlement(models.Model):
                                           "kg_qty": kg})
                                  for tag, amount, kg in entries],
                 })
+
+    def _step_pool_key(self, tag, shipment):
+        """Las siete dimensiones comerciales del anexo de Productores."""
+        self.ensure_one()
+        when = shipment.departure_date or shipment.date
+        week = fields.Date.to_date(when).isocalendar()[:2]
+        return (tag.variedad_id.id, week, shipment.transport_type,
+                tag.package_type_id.id, tag.fruit_caliber_id.id,
+                tag.fruit_category_id.id, tag.fruit_type)
 
     def action_account(self):
         for record in self:
