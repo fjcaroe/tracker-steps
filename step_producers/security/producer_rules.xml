@@ -6,4 +6,16 @@
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         <field name="groups" eval="[(4, ref('base.group_user'))]"/>
     </record>
+    <record id="rule_preliq_price_company" model="ir.rule">
+        <field name="name">Productores: precios por empresa</field>
+        <field name="model_id" ref="model_step_producer_preliq_price"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_preliq_price_line_company" model="ir.rule">
+        <field name="name">Productores: líneas de precio por empresa</field>
+        <field name="model_id" ref="model_step_producer_preliq_price_line"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
 </odoo>
