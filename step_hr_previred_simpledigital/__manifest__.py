@@ -1,6 +1,6 @@
 {
     "name": "Steps - Previred: motor SimpleDigital",
-    "version": "18.0.2.3.0",
+    "version": "18.0.2.4.0",
     "category": "Human Resources/Payroll",
     "summary": "Conecta el Previred por departamento de Steps con SimpleDigital",
     "description": """
@@ -21,11 +21,9 @@ Previred Steps — puente con el motor SimpleDigital
   consultaban con `sudo()`. Se corrige heredando el controlador, sin modificar
   el addon del proveedor.
 * el **scraping del Impuesto 2da Categoría (SII)** (`impuesto_2da_categoria`):
-  el proveedor asume que el mes a registrar es el mes calendario de hoy, pero
-  el SII a veces publica el mes siguiente antes de que termine el actual, lo
-  que hacía fallar la validación y dejaba el registro en cero (ticket T39).
-  Se hereda el modelo para crear/actualizar el registro del período que el
-  SII está publicando realmente, sin modificar el addon del proveedor.
+  lee el período exacto y sus ocho tramos mensuales del HTML oficial. Valida
+  los límites, factores y rebajas antes de guardar; una respuesta incompleta
+  no crea registros con montos en cero (ticket T39). No modifica el proveedor.
 """,
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
