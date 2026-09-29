@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_producer_account_lines" model="ir.actions.act_window">
+        <field name="name">Cuenta corriente productores</field>
+        <field name="res_model">account.move.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('partner_id.is_productor', '=', True), ('parent_state', '=', 'posted')]</field>
+        <field name="context">{'search_default_group_by_partner': 1}</field>
+    </record>
+    <record id="action_producer_process_receptions" model="ir.actions.act_window">
+        <field name="name">Recepciones para proceso</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('step_fruit_reception_kind', '=', 'process'), ('state', '=', 'done')]</field>
+    </record>
+    <record id="action_producer_packed_receptions" model="ir.actions.act_window">
+        <field name="name">Recepciones embaladas</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('step_fruit_reception_kind', '=', 'packed'), ('state', '=', 'done')]</field>
+    </record>
+    <record id="action_producer_packing_tags" model="ir.actions.act_window">
+        <field name="name">Fruta embalada en packing</field>
+        <field name="res_model">stock.quant.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'E'), ('step_tag_state', 'in', ['validated', 'dispatched', 'liquidated'])]</field>
+    </record>
+    <record id="action_producer_shipments" model="ir.actions.act_window">
+        <field name="name">Embarques por productor</field>
+        <field name="res_model">stock.quant.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'E'), ('step_tag_state', 'in', ['dispatched', 'liquidated'])]</field>
+    </record>
+    <record id="action_producer_liquidated_tags" model="ir.actions.act_window">
+        <field name="name">Embarques liquidados</field>
+        <field name="res_model">stock.quant.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'E'), ('step_tag_state', '=', 'liquidated')]</field>
+    </record>
+    <menuitem id="menu_producer_account_lines" name="Cuenta corriente" parent="step_producers.menu_step_producers_root"
+              action="action_producer_account_lines" sequence="35" groups="account.group_account_readonly"/>
+    <menuitem id="menu_producer_process_receptions" name="Recepción a proceso" parent="step_producers.menu_step_producers_root"
+              action="action_producer_process_receptions" sequence="70" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_packed_receptions" name="Recepción embalada" parent="step_producers.menu_step_producers_root"
+              action="action_producer_packed_receptions" sequence="71" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_packing_tags" name="Proceso de packing" parent="step_producers.menu_step_producers_root"
+              action="action_producer_packing_tags" sequence="72" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_shipments" name="Embarques por productor" parent="step_producers.menu_step_producers_root"
+              action="action_producer_shipments" sequence="73" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_liquidated_tags" name="Embarques liquidados" parent="step_producers.menu_step_producers_root"
+              action="action_producer_liquidated_tags" sequence="74" groups="stock.group_stock_user"/>
+</odoo>

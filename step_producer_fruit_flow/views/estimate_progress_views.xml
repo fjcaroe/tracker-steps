@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_producer_estimate_delivery_form" model="ir.ui.view">
+        <field name="name">step.export.estimate.producer.delivery.form</field>
+        <field name="model">step.export.estimate</field>
+        <field name="inherit_id" ref="step_export.view_step_export_estimate_t35_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='estimate_line_ids']/list/field[@name='export_kg']" position="after">
+                <field name="step_received_kg" sum="Recibidos"/>
+                <field name="step_pending_kg" sum="Por entregar"/>
+                <field name="step_excess_kg" sum="Exceso"/>
+                <field name="step_delivery_closed"/>
+                <button name="action_step_close_delivery" type="object" string="Cerrar entrega"
+                        invisible="step_delivery_closed"/>
+            </xpath>
+            <xpath expr="//field[@name='estimate_line_ids']/form//field[@name='export_kg']" position="after">
+                <field name="step_received_kg"/>
+                <field name="step_pending_kg"/>
+                <field name="step_excess_kg"/>
+                <field name="step_delivery_closed"/>
+            </xpath>
+            <xpath expr="//field[@name='week_line_ids']/list/field[@name='export_kg']" position="after">
+                <field name="step_received_kg" sum="Recibidos"/>
+                <field name="step_pending_kg" sum="Por entregar"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

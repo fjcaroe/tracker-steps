@@ -178,7 +178,9 @@ class StepExportProducerEstimateLine(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if vals:
+        # Productores puede cerrar la entrega después de validar la versión;
+        # la estimación original y sus cantidades siguen siendo inmutables.
+        if vals and set(vals) != {"step_delivery_closed"}:
             self._check_editable()
         return super().write(vals)
 

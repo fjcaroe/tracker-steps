@@ -5,6 +5,18 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_is_zero
 
 
+class StockQuantPackage(models.Model):
+    _inherit = "stock.quant.package"
+
+    def _step_liquidation_kg(self):
+        self.ensure_one()
+        return self.kilos_total
+
+    def _step_producer_shares(self):
+        self.ensure_one()
+        return [(self.owner_id, 1.0)] if self.owner_id else []
+
+
 class ReceiverSettlement(models.Model):
     _name = "step.export.receiver.settlement"
     _description = "Liquidación de recibidor"
@@ -99,16 +111,16 @@ class ReceiverSettlement(models.Model):
                     if any(grade.sales_amount <= 0 for grade in line.grade_line_ids):
                         raise ValidationError(_("Ingrese las ventas por categoría y calibre."))
                     if not float_is_zero(sum(line.grade_line_ids.mapped("kg_qty")) -
-                                         sum(shipment.tag_ids.mapped("kilos_total")),
+                                         sum(tag._step_liquidation_kg() for tag in shipment.tag_ids),
                                          precision_rounding=0.001):
                         raise ValidationError(_("Los kilos por calibre deben coincidir con las tarjas."))
                 if line.fob_usd < 0:
                     raise ValidationError(_("El FOB no puede ser negativo."))
                 if line.invoice_id.state != "posted" or line.invoice_id.move_type != "out_invoice":
                     raise ValidationError(_("Seleccione una factura de cliente publicada."))
-                if any(not tag.owner_id for tag in shipment.tag_ids):
+                if any(not tag._step_producer_shares() for tag in shipment.tag_ids):
                     raise ValidationError(_("Todas las tarjas deben identificar al productor para generar su liquidación."))
-                if any(tag.kilos_total <= 0 for tag in shipment.tag_ids):
+                if any(tag._step_liquidation_kg() <= 0 for tag in shipment.tag_ids):
                     raise ValidationError(_("Todas las tarjas deben tener kilos positivos para distribuir la liquidación."))
                 shipment.write({"settlement_id": record.id, "state": "settled"})
                 shipment.tag_ids.write({"step_export_settlement_ids": [(4, record.id)]})
@@ -124,7 +136,7 @@ class ReceiverSettlement(models.Model):
                 if line.grade_line_ids:
                     continue
                 tags = line.shipment_id.tag_ids
-                total_kg = sum(tags.mapped("kilos_total"))
+                total_kg = sum(tag._step_liquidation_kg() for tag in tags)
                 if not total_kg:
                     raise ValidationError(_("El embarque necesita tarjas con kilos para detallar la liquidación."))
                 groups = {}
@@ -133,7 +145,7 @@ class ReceiverSettlement(models.Model):
                     groups.setdefault(key, self.env["stock.quant.package"])
                     groups[key] |= tag
                 for (category_id, caliber_id), group_tags in groups.items():
-                    kg = sum(group_tags.mapped("kilos_total"))
+                    kg = sum(tag._step_liquidation_kg() for tag in group_tags)
                     self.env["step.export.receiver.settlement.grade"].create({
                         "line_id": line.id, "category_id": category_id or False,
                         "caliber_id": caliber_id or False,
@@ -150,24 +162,28 @@ class ReceiverSettlement(models.Model):
             allocation = {}
             for line in record.line_ids:
                 shipment = line.shipment_id
-                tags = shipment.tag_ids.filtered(lambda tag: tag.owner_id and tag.kilos_total > 0)
-                total_kg = sum(tags.mapped("kilos_total"))
+                tags = shipment.tag_ids.filtered(
+                    lambda tag: tag._step_producer_shares() and tag._step_liquidation_kg() > 0)
+                total_kg = sum(tag._step_liquidation_kg() for tag in tags)
                 for tag in tags:
-                    key = tag.owner_id.id
+                    tag_kg = tag._step_liquidation_kg()
                     if line.use_grade_detail:
                         grade = line.grade_line_ids.filtered(lambda row: tag in row.tag_ids)
-                        group_kg = sum(grade.tag_ids.mapped("kilos_total"))
-                        grade_fob = grade.fob_usd * tag.kilos_total / group_kg
-                        claim_share = line.claim_usd * tag.kilos_total / total_kg
+                        group_kg = sum(row._step_liquidation_kg() for row in grade.tag_ids)
+                        grade_fob = grade.fob_usd * tag_kg / group_kg
+                        claim_share = line.claim_usd * tag_kg / total_kg
                         amount = grade_fob - claim_share
                     else:
-                        amount = line.fob_usd * tag.kilos_total / total_kg
-                    allocation.setdefault(key, []).append((tag, amount))
+                        amount = line.fob_usd * tag_kg / total_kg
+                    for producer, share in tag._step_producer_shares():
+                        allocation.setdefault(producer.id, []).append(
+                            (tag, amount * share, tag_kg * share))
             for producer_id, entries in allocation.items():
                 self.env["step.export.producer.settlement"].create({
                     "receiver_settlement_id": record.id, "producer_id": producer_id,
-                    "line_ids": [(0, 0, {"tag_id": tag.id, "allocated_fob_usd": amount})
-                                 for tag, amount in entries],
+                    "line_ids": [(0, 0, {"tag_id": tag.id, "allocated_fob_usd": amount,
+                                          "kg_qty": kg})
+                                 for tag, amount, kg in entries],
                 })
 
     def action_account(self):

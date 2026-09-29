@@ -84,3 +84,9 @@ class ProducerPreliquidationPriceLine(models.Model):
         ("price_positive", "check(price > 0)", "El precio debe ser mayor a cero."),
         ("week_range", "check(week_number between 0 and 53)", "La semana debe estar entre 1 y 53, o 0 para todas."),
     ]
+
+    @api.constrains("variety_id", "price_id")
+    def _check_variety_species(self):
+        for line in self:
+            if line.variety_id.especie_id != line.price_id.species_id:
+                raise ValidationError(_("La variedad debe pertenecer a la especie de la lista de precios."))

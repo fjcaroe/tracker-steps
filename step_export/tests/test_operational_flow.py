@@ -267,6 +267,11 @@ class TestExportOperations(TransactionCase):
         producer_settlement.action_validate()
         producer_settlement.action_account()
         self.assertEqual(producer_settlement.bill_id.state, "posted")
+        self.assertEqual(producer_settlement.state, "accounted")
+        self.assertTrue(producer_settlement.delivery_date)
+        producer_settlement.action_close()
+        self.assertEqual(producer_settlement.state, "closed")
+        self.assertTrue(producer_settlement.closed_date)
         self.assertAlmostEqual(producer_settlement.bill_id.amount_untaxed,
                                self.env.ref("base.USD")._convert(
                                    30, company.currency_id, company, date(2026, 11, 20)), places=2)
