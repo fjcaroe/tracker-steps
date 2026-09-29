@@ -92,6 +92,7 @@ class TestFruitOperations(TransactionCase):
         species = self.env["step.especie"].create({
             "name": "Cerezas recepción T40", "type_especie": "frutal", "group_especie": "baya",
         })
+        season = self.env["step.temporada"].create({"name": "Temporada recepción T40"})
         picking = self.env["stock.picking"].create({
             "partner_id": self.producer.id,
             "picking_type_id": self.warehouse.in_type_id.id,
@@ -99,6 +100,7 @@ class TestFruitOperations(TransactionCase):
             "location_dest_id": self.warehouse.lot_stock_id.id,
             "step_fruit_reception_kind": "packed",
             "fruit_fundo_id": self.fundo.id, "fruit_species_id": species.id,
+            "fruit_season_id": season.id,
             "step_fruit_gross_kg": 55, "step_fruit_container_tare_kg": 5,
             "fruit_tag_line_ids": [(0, 0, {
                 "tag_number": package.name, "package_id": package.id,
@@ -120,5 +122,7 @@ class TestFruitOperations(TransactionCase):
         self.assertEqual(picking.state, "done")
         self.assertEqual(package.step_tag_state, "validated")
         self.assertEqual(package.step_producer_id, self.producer)
+        self.assertEqual(package.step_export_season_id, season)
+        self.assertEqual(package.especie_id, species)
         self.assertEqual(package.step_actual_kg, 50)
         self.assertEqual(package.quant_ids.product_id, self.product)
