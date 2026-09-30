@@ -1,0 +1,25 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #f2f5f2; color: #162923; font-family: system-ui, sans-serif; }
+main { max-width: 640px; margin: auto; padding: 16px; }
+header { background: #185f54; color: white; padding: 18px 20px; border-radius: 12px; }
+h1 { margin: 0; font-size: 1.55rem; }
+h2 { margin: 0 0 14px; font-size: 1.15rem; }
+header p { margin-bottom: 0; }
+section { margin-top: 16px; padding: 18px; background: white; border: 1px solid #d6e1d9; border-radius: 12px; }
+label { display: block; font-weight: 650; margin: 12px 0 5px; }
+input, select, button { font: inherit; border-radius: 8px; min-height: 42px; }
+input, select { width: 100%; padding: 8px; border: 1px solid #8da99c; background: white; }
+button { border: 1px solid #185f54; background: white; color: #185f54; padding: 8px 14px; margin-top: 12px; cursor: pointer; }
+button.primary { background: #185f54; color: white; width: 100%; font-weight: 700; }
+button:disabled { opacity: .5; cursor: wait; }
+.scan-row { display: flex; gap: 8px; }
+.scan-row input { flex: 1; min-width: 0; }
+.scan-row button { margin-top: 0; white-space: nowrap; }
+video { width: 100%; max-height: 300px; margin-top: 12px; border-radius: 8px; background: #111; }
+#message { min-height: 2em; font-weight: 650; }
+#message.error { color: #a12828; }
+#message.success { color: #185f54; }
+#queue-list { padding-left: 20px; }
+#queue-list li { margin: 8px 0; }
+#queue-list button { margin: 0 0 0 8px; min-height: 32px; }
+#print-link a { display: inline-block; padding: 10px; color: #185f54; font-weight: 700; }

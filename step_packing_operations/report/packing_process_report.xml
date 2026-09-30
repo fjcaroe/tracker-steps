@@ -1,0 +1,60 @@
+<odoo>
+    <record id="action_report_packing_process" model="ir.actions.report">
+        <field name="name">Informe de proceso Packing</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_packing_operations.report_packing_process</field>
+        <field name="report_file">step_packing_operations.report_packing_process</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Packing - %s' % (object.name)</field>
+    </record>
+    <template id="report_packing_process">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <div class="page">
+                        <div class="mb-3"><strong><span t-field="doc.company_id.name"/></strong></div>
+                        <h2>Informe de proceso de Packing</h2>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr><th>OT</th><td><span t-field="doc.name"/></td>
+                                    <th>OP</th><td><span t-field="doc.step_packing_order_id"/></td></tr>
+                                <tr><th>Producto</th><td><span t-field="doc.product_id"/></td>
+                                    <th>Estado</th><td><span t-field="doc.step_packing_state"/></td></tr>
+                                <tr><th>Productor</th><td><span t-field="doc.fruit_grower_id"/></td>
+                                    <th>Variedad</th><td><span t-field="doc.fruit_variety_id"/></td></tr>
+                            </tbody>
+                        </table>
+                        <h3>Cuadratura de kilos</h3>
+                        <table class="table table-sm">
+                            <thead><tr><th>A proceso</th><th>Exportación</th><th>Comercial</th>
+                                <th>Precalibre</th><th>Desecho</th><th>Merma</th></tr></thead>
+                            <tbody><tr><td><span t-field="doc.step_packing_input_kg"/></td>
+                                <td><span t-field="doc.step_packing_export_kg"/></td>
+                                <td><span t-field="doc.step_packing_commercial_kg"/></td>
+                                <td><span t-field="doc.step_packing_precaliber_kg"/></td>
+                                <td><span t-field="doc.step_packing_waste_kg"/></td>
+                                <td><span t-field="doc.step_packing_loss_kg"/></td></tr></tbody>
+                        </table>
+                        <h3>Tarjas de entrada</h3>
+                        <table class="table table-sm">
+                            <thead><tr><th>Tarja</th><th>Variedad</th><th>Productor</th><th>Kilos</th></tr></thead>
+                            <tbody><tr t-foreach="doc.step_packing_input_tag_ids" t-as="tag">
+                                <td><span t-field="tag.name"/></td><td><span t-field="tag.variedad_id"/></td>
+                                <td><span t-field="tag.step_producer_id"/></td><td><span t-field="tag.step_actual_kg"/></td>
+                            </tr></tbody>
+                        </table>
+                        <h3>Tarjas resultantes</h3>
+                        <table class="table table-sm">
+                            <thead><tr><th>Tarja</th><th>Tipo</th><th>Resultado</th><th>Cajas</th><th>Kilos</th></tr></thead>
+                            <tbody><tr t-foreach="doc.step_packing_output_tag_ids" t-as="tag">
+                                <td><span t-field="tag.name"/></td><td><span t-field="tag.step_tag_kind"/></td>
+                                <td><span t-field="tag.step_packing_result"/></td>
+                                <td><span t-field="tag.box_count"/></td><td><span t-field="tag.step_actual_kg"/></td>
+                            </tr></tbody>
+                        </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

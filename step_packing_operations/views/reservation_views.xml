@@ -1,0 +1,24 @@
+<odoo>
+    <record id="view_stock_reservation_packing" model="ir.ui.view">
+        <field name="name">step.export.stock.reservation.form.packing</field>
+        <field name="model">step.export.stock.reservation</field>
+        <field name="inherit_id" ref="step_export.view_step_export_stock_reservation_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <header><button name="action_step_reserve" type="object" string="Reservar tarjas"
+                    class="btn-primary" invisible="not step_packing_order_id or step_reservation_state != 'draft'"
+                    groups="mrp.group_mrp_user"/>
+                    <button name="action_step_release" type="object" string="Liberar reserva"
+                    invisible="step_reservation_state != 'reserved'" groups="mrp.group_mrp_user"/>
+                    <field name="step_reservation_state" widget="statusbar"/>
+                </header>
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="step_packing_order_id"/>
+                <field name="step_package_ids" widget="many2many_tags"
+                    domain="[('is_fruit_tag','=',True),('step_tag_state','=','validated')]"/>
+                <field name="step_picking_id" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
