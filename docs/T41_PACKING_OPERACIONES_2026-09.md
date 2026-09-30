@@ -31,3 +31,10 @@ Las recepciones de fruta, envases, Packing List, instructivo de embarque y despa
 - Tras ajustar el informe a la plantilla global de Desarrollo, la prueba de impresión y las otras 7 pruebas de Packing pasaron nuevamente: 0 fallos y 0 errores al 30-09-2026 11:34 UTC.
 
 T22 y T27 ya estaban presentes en Desarrollo con archivos idénticos a sus ramas revisadas. La respuesta más reciente de T27 indica que Desarrollo es el ambiente donde el cliente desea probar; SyS se usa para Nómina.
+
+## Despliegue en Desarrollo
+
+- PR draft: https://github.com/fjcaroe/tracker-steps/pull/12, apilado sobre T40.
+- Base `LAB_TAREAS`, servidor `odoo-new`. Respaldo PostgreSQL verificado en `/opt/steps_backups/t41_packing_dev_20260930T113739Z/LAB_TAREAS.dump` (SHA-256 `1a1e35038329ee13c7858070b5c2ca9b60eb6c2593d457c519ae7530631f2caf`).
+- Instalados `step_inventory_packing` y `step_packing_operations` versión `18.0.1.0.0`; servicio `odoo18-dev.service` activo. `https://desarrollo.stepsapp.cl/packing/mobile` llega al inicio de sesión de Odoo (HTTP 200 después de redirecciones).
+- Helpdesk T41 pasó de «New» a «In Progress» para que el cliente pruebe la primera etapa. T22 permanece «Solved»; T27 continúa «In Progress» y su código ya estaba desplegado en Desarrollo.
