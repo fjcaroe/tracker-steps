@@ -27,6 +27,10 @@ def main():
     body = args.html_file.read_text(encoding="utf-8").strip()
     if not re.search(r"<(?:p|br|ul|ol|li|h[1-6]|div|strong|b|a)\b", body, re.I):
         parser.error("The file must contain HTML paragraphs, headings, lists, or links")
+    if re.search(r"&lt;/?(?:p|br|ul|ol|li|h[1-6])\b", body, re.I):
+        parser.error("The file contains escaped HTML tags; write actual HTML before posting")
+    if len(re.findall(r"<br\b", body, re.I)) > 8 and len(re.findall(r"<p\b", body, re.I)) <= 1:
+        parser.error("Split the long note into paragraphs, headings, and lists instead of many <br> tags")
 
     subtype = "mail.mt_note" if args.internal else "mail.mt_comment"
     if not args.post:
