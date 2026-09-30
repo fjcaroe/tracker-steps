@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="hr_expense_view_form_step" model="ir.ui.view">
+        <field name="name">hr.expense.view.form.step</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="hr_expense.hr_expense_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date']" position="after">
+                <field name="step_doc_type" readonly="not is_editable"/>
+                <field name="step_doc_number" readonly="not is_editable"/>
+            </xpath>
+            <xpath expr="//field[@name='vendor_id']" position="attributes">
+                <attribute name="invisible">0</attribute>
+                <attribute name="readonly">not is_editable</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_expenses_tree_step" model="ir.ui.view">
+        <field name="name">hr.expense.list.step</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="hr_expense.view_expenses_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="step_doc_type" optional="show"/>
+                <field name="step_doc_number" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

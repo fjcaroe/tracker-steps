@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_expense_sheet_step" model="ir.actions.report">
+        <field name="name">Rendición de gastos (formato Steps)</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_expense_report.report_expense_sheet_step</field>
+        <field name="report_file">step_expense_report.report_expense_sheet_step</field>
+        <field name="print_report_name">'Rendicion %s' % (object.folio or 'borrador')</field>
+        <field name="binding_model_id" ref="hr_expense.model_hr_expense_sheet"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_expense_sheet_step">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-set="company" t-value="o.company_id"/>
+                <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+                    <div class="row mb-3">
+                        <div class="col-6"><img t-if="company.logo" t-att-src="image_data_uri(company.logo)" style="max-height:60px;" alt="Logo"/></div>
+                        <div class="col-6 text-end"><strong t-field="company.name"/><br/><span t-field="company.vat"/></div>
+                    </div>
+                    <div class="page" style="font-size: 12px;">
+                        <h3 class="text-center mb-0">RENDICIÓN DE GASTOS</h3>
+                        <h4 class="text-center mt-1"><span t-field="o.folio"/></h4>
+                        <table class="table table-sm table-bordered mt-3">
+                            <tr>
+                                <th style="width:15%">Descripción</th>
+                                <td style="width:40%"><span t-field="o.name"/></td>
+                                <th style="width:15%">Fecha</th>
+                                <td><span t-out="o.accounting_date or o.create_date.date()" t-options="{'widget': 'date'}"/></td>
+                            </tr>
+                            <tr>
+                                <th>Empleado</th>
+                                <td><span t-field="o.employee_id.name"/></td>
+                                <th>Pagado por</th>
+                                <td><span t-field="o.payment_mode"/></td>
+                            </tr>
+                            <tr>
+                                <th>Notas</th>
+                                <td><span t-field="o.step_notes"/></td>
+                                <th>Aprueba</th>
+                                <td><span t-field="o.user_id.name"/></td>
+                            </tr>
+                        </table>
+
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Fecha gasto</th>
+                                    <th>Categoría / gasto</th>
+                                    <th>Tipo doc</th>
+                                    <th>N° doc</th>
+                                    <th>Proveedor</th>
+                                    <th>Moneda</th>
+                                    <th class="text-end">T. cambio</th>
+                                    <th class="text-end">Total moneda</th>
+                                    <th class="text-end">Total pesos</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.expense_line_ids.sorted('date')" t-as="l">
+                                    <td><span t-field="l.date"/></td>
+                                    <td><span t-out="l.product_id.display_name"/><t t-if="l.name and l.name != l.product_id.display_name"> - <span t-field="l.name"/></t></td>
+                                    <td><span t-field="l.step_doc_type"/></td>
+                                    <td><span t-field="l.step_doc_number"/></td>
+                                    <td><span t-field="l.vendor_id.name"/></td>
+                                    <td><span t-field="l.currency_id.name"/></td>
+                                    <td class="text-end"><span t-out="o._report_rate(l)" t-options="{'widget': 'float', 'precision': 4}"/></td>
+                                    <td class="text-end"><span t-field="l.total_amount_currency" t-options="{'widget': 'monetary', 'display_currency': l.currency_id}"/></td>
+                                    <td class="text-end"><span t-field="l.total_amount" t-options="{'widget': 'monetary', 'display_currency': l.company_currency_id}"/></td>
+                                </tr>
+                                <tr t-foreach="range(max(0, 8 - len(o.expense_line_ids)))" t-as="i">
+                                    <td>&#160;</td><td/><td/><td/><td/><td/><td/><td/><td/>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="7" class="text-end">Total</th>
+                                    <th class="text-end">
+                                        <div t-foreach="o._report_currency_totals()" t-as="ct">
+                                            <span t-out="ct[1]" t-options="{'widget': 'monetary', 'display_currency': ct[0]}"/>
+                                        </div>
+                                    </th>
+                                    <th class="text-end"><span t-field="o.total_amount"/></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+
+                        <p t-if="o.step_comment"><strong>Comentario:</strong> <span t-field="o.step_comment"/></p>
+
+                        <t t-if="o.vehicle_line_ids">
+                            <h5>Uso de vehículo</h5>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr class="table-light">
+                                        <th>Fecha</th><th>Recorrido</th>
+                                        <th class="text-end">Hr inicial</th><th class="text-end">Hr final</th>
+                                        <th class="text-end">Km</th><th class="text-end">Lts</th><th class="text-end">Rend.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="o.vehicle_line_ids" t-as="v">
+                                        <td><span t-field="v.date"/></td>
+                                        <td><span t-field="v.route"/></td>
+                                        <td class="text-end"><span t-field="v.start_reading"/></td>
+                                        <td class="text-end"><span t-field="v.end_reading"/></td>
+                                        <td class="text-end"><span t-field="v.distance"/></td>
+                                        <td class="text-end"><span t-field="v.liters"/></td>
+                                        <td class="text-end"><span t-field="v.yield_km_l"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+
+                        <div class="row mt-5 pt-5" style="page-break-inside: avoid;">
+                            <div class="col-5 text-center"><div style="border-top:1px solid #000;">Firma trabajador</div></div>
+                            <div class="col-2"/>
+                            <div class="col-5 text-center"><div style="border-top:1px solid #000;">Firma aprobador</div></div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_expense_sheet_form_step" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.form.step</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='can_reset']" position="before">
+                <field name="vehicle_mode" invisible="1"/>
+                <field name="show_vehicle" invisible="1"/>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]" position="before">
+                <div class="oe_title mb-0">
+                    <h2><field name="folio" readonly="1"/></h2>
+                </div>
+            </xpath>
+            <xpath expr="//field[@name='payment_mode']" position="after">
+                <field name="use_vehicle" invisible="vehicle_mode != 'optional'" readonly="not is_editable"/>
+            </xpath>
+            <xpath expr="//field[@name='expense_line_ids']/list/field[@name='name']" position="after">
+                <field name="step_doc_type" optional="show"/>
+                <field name="step_doc_number" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='expense_line_ids']/list/field[@name='vendor_id']" position="attributes">
+                <attribute name="column_invisible">0</attribute>
+                <attribute name="optional">show</attribute>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page name="step_vehicle" string="Uso de vehículo" invisible="not show_vehicle">
+                    <field name="vehicle_line_ids" readonly="not is_editable">
+                        <list editable="bottom">
+                            <field name="date"/>
+                            <field name="route"/>
+                            <field name="start_reading"/>
+                            <field name="end_reading"/>
+                            <field name="distance"/>
+                            <field name="liters"/>
+                            <field name="yield_km_l"/>
+                        </list>
+                    </field>
+                </page>
+                <page name="step_notes" string="Notas y comentario">
+                    <group>
+                        <field name="step_notes" readonly="not is_editable"/>
+                        <field name="step_comment" readonly="not is_editable"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hr_expense_sheet_tree_step" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.list.step</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="hr_expense.view_hr_expense_sheet_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="before">
+                <field name="folio"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
