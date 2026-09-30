@@ -1,0 +1,230 @@
+// Scoped to the Helpdesk app by helpdesk_scope.js. Other Odoo apps keep their UI.
+body.o_steps_helpdesk {
+    --st-support-deep: #153d30;
+    --st-support-mid: #2d7656;
+    --st-support-lime: #d9f18d;
+    --st-support-ink: #213a2f;
+    --st-support-muted: #677a6e;
+    --st-support-line: #dbe7dc;
+    --st-support-bg: #f4f7f2;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--st-support-ink);
+    background: var(--st-support-bg);
+
+    .o_main_navbar {
+        min-height: 48px;
+        color: #f4f9f0;
+        background: var(--st-support-deep);
+        border-bottom: 1px solid #ffffff1f;
+        box-shadow: 0 5px 20px #153d301c;
+
+        .o_menu_toggle, .o_menu_brand, .o_menu_systray > * { color: #f4f9f0; }
+        .o_menu_brand { font-weight: 700; letter-spacing: -.02em; }
+        .o_navbar_breadcrumbs, .o_navbar_breadcrumbs .o_breadcrumb,
+        .o_navbar_breadcrumbs .o_last_breadcrumb_item, .o_navbar_breadcrumbs .o_back_button {
+            color: #f4f9f0;
+        }
+        .o_menu_sections > button, .o_menu_sections > a {
+            color: #f4f9f0;
+            background: transparent;
+            border-radius: 8px;
+        }
+        .o_menu_sections > button:hover, .o_menu_sections > a:hover,
+        .o_menu_sections > button:focus, .o_menu_sections > a:focus {
+            color: var(--st-support-lime);
+            background: #ffffff16;
+        }
+        .o_menu_systray button:not(.dropdown-item) { color: #f4f9f0; }
+        .o_menu_systray button:not(.dropdown-item):hover { color: var(--st-support-lime); background: #ffffff14; }
+    }
+
+    .o_action_manager, .o_content, .o_form_view_container { background: var(--st-support-bg); }
+
+    .o_control_panel {
+        padding: 16px 24px 18px !important;
+        background: #fff;
+        border-bottom: 1px solid var(--st-support-line);
+        box-shadow: 0 5px 22px #183f3108;
+        .o_breadcrumb, .o_last_breadcrumb_item { color: var(--st-support-deep); font-weight: 650; letter-spacing: -.025em; }
+        .o_breadcrumb a { color: var(--st-support-mid); }
+        .o_searchview { border: 1px solid var(--st-support-line); border-radius: 11px; background: #f9fbf7; box-shadow: none; }
+        .o_searchview:hover, .o_searchview:focus-within { border-color: #81a993; background: #fff; }
+        .o_searchview_input { color: var(--st-support-ink); }
+        .o_searchview_facet { border-radius: 7px; background: #e7f1e7; }
+        .o_cp_switch_buttons .btn, .o_pager .btn { border-radius: 8px; }
+    }
+
+    .btn-primary, .o_form_button_save {
+        color: #fff;
+        background: var(--st-support-deep);
+        border-color: var(--st-support-deep);
+        &:hover, &:focus { color: #fff; background: var(--st-support-mid); border-color: var(--st-support-mid); }
+    }
+    .btn-secondary { color: var(--st-support-deep); background: #edf3ec; border-color: #e1e9df; }
+    .btn-secondary:hover { color: var(--st-support-deep); background: #dfeadf; border-color: #cee0d0; }
+    a { color: var(--st-support-mid); }
+    a:hover { color: var(--st-support-deep); }
+    :is(a, button, input, select):focus-visible { outline: 2px solid #77a857; outline-offset: 2px; }
+
+    // Overview: give the metric grid and team cards the same editorial rhythm as Home.
+    .o_helpdesk_content { padding: 22px 24px 28px; gap: 20px; }
+    .steps-helpdesk-hero {
+        flex-shrink: 0;
+        padding: 30px 36px;
+        border-radius: 17px;
+        color: #fff;
+        background: radial-gradient(circle at 83% 10%, #d9f18d30, transparent 28%), linear-gradient(110deg, #12392d, #2b7155);
+        box-shadow: 0 15px 34px #153d3026;
+        span { color: var(--st-support-lime); font-size: .77rem; font-weight: 750; letter-spacing: .13em; }
+        h1 { margin: 9px 0 5px; color: #fff; font-size: clamp(1.55rem, 2.3vw, 2.35rem); font-weight: 650; letter-spacing: -.04em; }
+        p { margin: 0; color: #e5f0e4; font-size: .95rem; }
+    }
+    .o_helpdesk_banner {
+        padding: 0 !important;
+        gap: 16px;
+        border: 0 !important;
+        background: transparent !important;
+        > div { min-width: 0; padding: 18px; border: 1px solid var(--st-support-line); border-radius: 16px; background: #fff; }
+        .o_helpdesk_banner_table { border-collapse: separate; border-spacing: 4px; }
+        .o_helpdesk_banner_table td { color: var(--st-support-muted); }
+        .o_helpdesk_banner_table .o_text { min-width: 150px; }
+        .o_highlight { color: var(--st-support-deep); font-size: 1.15rem; font-weight: 700; }
+        .btn { border-radius: 10px !important; }
+        .btn-primary { background: var(--st-support-deep); }
+        .btn-light { background: #f3f7f1 !important; }
+    }
+    .o_helpdesk_wrap_kanban_view { background: transparent; }
+    .o_helpdesk_wrap_kanban_view .o_kanban_record {
+        border: 1px solid var(--st-support-line);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 8px 25px #153d300d;
+        overflow: hidden;
+    }
+
+    // Ticket tables, kanban, reporting, and configuration lists.
+    .o_list_renderer { margin: 18px 24px 28px; border: 1px solid var(--st-support-line); border-radius: 15px; background: #fff; box-shadow: 0 8px 25px #153d300b; overflow: auto; }
+    .o_list_table { margin: 0; --table-striped-bg: #fafcf9; }
+    .o_list_table thead { color: var(--st-support-deep); background: #e9f1e8; }
+    .o_list_table thead th { padding-top: 13px; padding-bottom: 13px; border-bottom: 1px solid #d1e1d2; font-weight: 700; }
+    .o_list_table tbody tr { border-bottom-color: #e9efe8; }
+    .o_list_table tbody tr:hover { background: #edf6ec !important; }
+    .o_list_table tbody td { padding-top: 11px; padding-bottom: 11px; }
+    .o_kanban_renderer { background: var(--st-support-bg); }
+    .o_kanban_group { border: 1px solid var(--st-support-line); border-radius: 13px; background: #eef5ec; }
+    .o_kanban_group_header { color: var(--st-support-deep); font-weight: 700; }
+    .o_kanban_record { border: 1px solid var(--st-support-line); border-radius: 12px; background: #fff; box-shadow: 0 5px 15px #153d300b; }
+    .o_graph_renderer, .o_pivot_table, .o_activity_view { color: var(--st-support-ink); }
+    .o_graph_renderer, .o_pivot_renderer, .o_activity_view {
+        margin: 16px 24px 24px; padding: 20px; border: 1px solid var(--st-support-line);
+        border-radius: 15px; background: #fff; box-shadow: 0 8px 25px #153d300b;
+    }
+
+    // Ticket form and conversation stay distinct while sharing one palette.
+    .o_form_view .o_form_sheet_bg { padding: 18px 20px 28px; background: var(--st-support-bg); }
+    .o_form_view .o_form_sheet {
+        max-width: none;
+        padding: 28px 34px;
+        border: 1px solid var(--st-support-line);
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 10px 30px #153d300c;
+    }
+    .o_form_view .o_form_sheet h1 { color: var(--st-support-deep); font-weight: 650; letter-spacing: -.04em; }
+    .steps-support-customer-note { display: flex; align-items: center; gap: 3px; margin: 4px 0 18px; padding: 11px 14px; border: 1px solid #cde2d3; border-radius: 10px; color: #315649; background: #edf6f0; }
+    .o_form_statusbar { padding: 5px 4px 14px; border: 0; background: transparent; }
+    .o_statusbar_status .o_arrow_button_current { color: var(--st-support-deep); background: #dff0dd; border-color: #a8c7a7; }
+    .o_form_view .o_horizontal_separator { color: var(--st-support-deep); border-bottom-color: var(--st-support-line); }
+    .o_form_view .o_field_html { line-height: 1.6; }
+    .o_form_view .o_tag, .o_form_view .badge { border-radius: 999px; }
+
+    // Ticket detail: a clear case header, grouped metadata and a wider reading pane.
+    .o_form_description_expander_view {
+        .o_form_sheet_bg { background: radial-gradient(circle at 12% 8%, #e5f0e1, transparent 34%), var(--st-support-bg); }
+        .o_form_sheet { padding: 0 0 32px; overflow: hidden; }
+        .o_form_sheet > .o_field_state_selection { position: absolute; top: 31px; right: 36px; z-index: 2; }
+
+        .steps-ticket-hero {
+            padding: 30px 36px 32px;
+            color: #fff;
+            background: radial-gradient(circle at 87% 5%, #d9f18d2d, transparent 32%), linear-gradient(118deg, #143d30, #2c7656);
+        }
+        .steps-ticket-hero__top, .steps-ticket-hero__bottom { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .steps-ticket-hero__top { justify-content: space-between; padding-right: 44px; }
+        .steps-ticket-hero__eyebrow { color: var(--st-support-lime); font-size: .72rem; font-weight: 750; letter-spacing: .13em; }
+        .steps-ticket-hero__eyebrow .fa { margin-right: 7px; font-size: .9rem; }
+        .steps-ticket-hero__ref { display: inline-flex; align-items: baseline; gap: 2px; padding: 6px 11px; border: 1px solid #ffffff5e; border-radius: 999px; color: #fff; font-size: .78rem; font-weight: 700; white-space: nowrap; background: #ffffff1b; }
+        .steps-ticket-hero__ref .o_field_widget { color: inherit; }
+        .steps-ticket-hero h1 { max-width: 900px; margin: 20px 0 17px; color: #fff; font-size: clamp(1.6rem, 2.2vw, 2.35rem); font-weight: 650; line-height: 1.2; letter-spacing: -.035em; }
+        .steps-ticket-hero h1 .o_field_widget, .steps-ticket-hero h1 textarea { color: #fff; }
+        .steps-ticket-hero h1 textarea { padding-left: 0; padding-right: 0; background: transparent; border: 0; box-shadow: none; }
+        .steps-ticket-hero h1 textarea:focus { border-bottom: 1px solid #d9f18d; box-shadow: none; }
+        .steps-ticket-hero h1 textarea::placeholder { color: #ffffffb5; }
+        .steps-ticket-hero__bottom { color: #e7f1e5; font-size: .83rem; }
+        .steps-ticket-hero__bottom > span { display: inline-flex; align-items: center; gap: 6px; }
+        .steps-ticket-hero__bottom .fa { color: var(--st-support-lime); }
+        .steps-ticket-hero__bottom .o_field_widget { color: inherit; }
+
+        .steps-support-customer-note { margin: 22px 34px 0; }
+        .steps-ticket-section-heading { margin: 28px 34px 12px; }
+        .steps-ticket-section-heading span { color: var(--st-support-mid); font-size: .69rem; font-weight: 800; letter-spacing: .14em; }
+        .steps-ticket-section-heading h2 { margin: 4px 0; color: var(--st-support-deep); font-size: 1.14rem; font-weight: 700; letter-spacing: -.025em; }
+        .steps-ticket-section-heading p { margin: 0; color: var(--st-support-muted); font-size: .84rem; }
+        .steps-ticket-main-info { margin: 0 34px !important; padding: 20px 22px; border: 1px solid var(--st-support-line); border-radius: 14px; background: #fbfdf9; }
+        .steps-ticket-main-info .o_group { margin-bottom: 0; }
+        .steps-ticket-section-heading--description { margin-top: 30px; }
+        .o_form_sheet > .d-flex { margin-left: 34px; margin-right: 34px; }
+        .o_notebook { width: auto !important; margin: 0 34px; border: 1px solid var(--st-support-line); border-radius: 14px; background: #fff; overflow: hidden; }
+        .o_notebook .nav-tabs { padding: 0 14px; background: #f3f8f0; border-bottom: 1px solid var(--st-support-line); }
+        .o_notebook .nav-link { color: var(--st-support-mid); font-weight: 650; }
+        .o_notebook .nav-link.active { color: var(--st-support-deep); border-bottom: 3px solid var(--st-support-mid); background: #fff; }
+        .o_notebook .tab-content { padding: 20px 22px 24px; }
+    }
+
+    @media (min-width: 1500px) {
+        .o_form_description_expander_view .o_form_renderer > .o_form_sheet_bg { flex: 1 1 58%; min-width: 0; }
+        .o_form_description_expander_view .o_form_renderer > .o-mail-ChatterContainer { flex: 0 0 42%; width: 42%; min-width: 0; }
+    }
+
+    .o-mail-ChatterContainer { border-left: 1px solid var(--st-support-line); background: #f8faf6; }
+    .o-mail-Chatter { background: #f8faf6; }
+    .o-mail-Chatter-top { z-index: 2; background: #f8faf6; box-shadow: 0 5px 14px #153d300a; }
+    .o-mail-Chatter-topbar { border-bottom: 1px solid var(--st-support-line); }
+    .o-mail-Message { margin: 9px 12px; padding: 14px 15px; border: 1px solid var(--st-support-line); border-radius: 13px; background: #fff; box-shadow: 0 5px 16px #153d3008; }
+    .o-mail-Message-content { color: var(--st-support-ink); line-height: 1.6; }
+    .o-mail-Message-content :is(p, ul, ol) { margin-bottom: .7em; }
+    .o-mail-Message-content a { text-decoration: underline; text-underline-offset: 2px; }
+    .o-mail-Message .o-mail-AttachmentCard { border-color: var(--st-support-line); border-radius: 10px; }
+
+    @media (max-width: 1100px) {
+        .o_helpdesk_banner { flex-direction: column !important; }
+        .o_helpdesk_content { padding: 15px; }
+        .o_list_renderer { margin: 12px; }
+        .o_graph_renderer, .o_pivot_renderer, .o_activity_view { margin: 12px; padding: 12px; }
+        .o_form_view .o_form_sheet_bg { padding: 12px; }
+        .o_form_view .o_form_sheet { padding: 20px; }
+        .o_form_description_expander_view .o_form_sheet { padding: 0 0 22px; }
+        .o_form_description_expander_view .steps-ticket-hero { padding: 25px 26px; }
+        .o_form_description_expander_view .steps-support-customer-note,
+        .o_form_description_expander_view .steps-ticket-section-heading,
+        .o_form_description_expander_view .o_notebook { margin-left: 24px; margin-right: 24px; }
+        .o_form_description_expander_view .steps-ticket-main-info { margin-left: 24px !important; margin-right: 24px !important; }
+        .o_form_description_expander_view .o_form_sheet > .d-flex { margin-left: 24px; margin-right: 24px; }
+    }
+    @media (max-width: 700px) {
+        .o_control_panel { padding: 12px !important; }
+        .steps-helpdesk-hero { padding: 22px; }
+        .steps-helpdesk-hero span { font-size: .68rem; }
+        .o_helpdesk_banner .o_helpdesk_banner_table .o_text { min-width: 95px; }
+        .o_helpdesk_banner > div { padding: 10px; overflow-x: auto; }
+        .o-mail-Message { margin: 7px; padding: 11px; }
+        .o_form_description_expander_view .steps-ticket-hero { padding: 22px 19px; }
+        .o_form_description_expander_view .steps-ticket-hero__top { padding-right: 28px; }
+        .o_form_description_expander_view .steps-ticket-hero h1 { margin: 16px 0; }
+        .o_form_description_expander_view .steps-support-customer-note,
+        .o_form_description_expander_view .steps-ticket-section-heading,
+        .o_form_description_expander_view .o_notebook { margin-left: 14px; margin-right: 14px; }
+        .o_form_description_expander_view .steps-ticket-main-info { margin-left: 14px !important; margin-right: 14px !important; padding: 16px; }
+        .o_form_description_expander_view .o_form_sheet > .d-flex { margin-left: 14px; margin-right: 14px; }
+    }
+}

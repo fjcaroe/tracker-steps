@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="helpdesk_ticket_search_steps" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.search.steps</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_tickets_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='unassigned']" position="after">
+                <filter name="steps_no_customer" string="Sin cliente" domain="[('partner_id', '=', False)]" help="Solicitudes internas o tickets sin cliente asociado"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_form_steps" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.form.steps</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk.helpdesk_ticket_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="attributes">
+                <attribute name="class" add="steps-ticket-form" separator=" "/>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]" position="replace">
+                <div class="steps-ticket-hero">
+                    <div class="steps-ticket-hero__top">
+                        <span class="steps-ticket-hero__eyebrow"><i class="fa fa-life-ring" aria-hidden="true"/> STEPS AGRO · CENTRO DE SOPORTE</span>
+                        <span class="steps-ticket-hero__ref" invisible="not ticket_ref">Caso #<field name="ticket_ref" readonly="1" nolabel="1"/></span>
+                        <span class="steps-ticket-hero__ref" invisible="ticket_ref">Nuevo caso</span>
+                    </div>
+                    <h1><field name="name" options="{'line_breaks': False}" widget="text" class="field_name" placeholder="Título de la solicitud"/></h1>
+                    <div class="steps-ticket-hero__bottom">
+                        <span invisible="not create_date"><i class="fa fa-calendar-o" aria-hidden="true"/> Creado <field name="create_date" widget="date" readonly="1" nolabel="1"/></span>
+                        <span><i class="fa fa-comments-o" aria-hidden="true"/> Respuestas y archivos en el historial</span>
+                    </div>
+                </div>
+                <div class="steps-support-customer-note alert alert-info" role="status" invisible="partner_id or team_privacy_visibility != 'portal'">
+                    <i class="fa fa-user-o me-2" aria-hidden="true"/>
+                    <strong>Solicitud sin cliente asociado.</strong>
+                    Puede gestionarse internamente. Si corresponde a un cliente con cuenta, asígnalo en el campo Cliente para que pueda seguirla desde su portal.
+                </div>
+            </xpath>
+            <xpath expr="//sheet/group[hasclass('mb-0')]" position="before">
+                <div class="steps-ticket-section-heading">
+                    <span>GESTIÓN DEL CASO</span>
+                    <h2>Responsables y datos de contacto</h2>
+                    <p>Asigna el equipo, revisa la prioridad y vincula al cliente cuando corresponda.</p>
+                </div>
+            </xpath>
+            <xpath expr="//sheet/group[hasclass('mb-0')]" position="attributes">
+                <attribute name="class" add="steps-ticket-main-info" separator=" "/>
+            </xpath>
+            <xpath expr="//sheet/notebook" position="before">
+                <div class="steps-ticket-section-heading steps-ticket-section-heading--description">
+                    <span>SOLICITUD ORIGINAL</span>
+                    <h2>Descripción del ticket</h2>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
