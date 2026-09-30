@@ -87,3 +87,26 @@ Rollback: restaurar frontend, código API y addon del respaldo de esta entrega,
 reiniciar API y actualizar el addon con su versión respaldada. Conservar
 `gps_zones` (aditiva, no afecta versión anterior). El down que elimina la tabla
 se usa exclusivamente en el ensayo sin datos; no ejecutarlo sobre datos reales.
+
+## Entrega verificada · 30 septiembre 2026
+
+- Código desplegado: `4d7c9b8b5e06fd7d2f7a51cb06382d057bb2e40d`.
+- Respaldo: `/opt/backups/tracker-zones-20260930T223717Z/`; cuatro dumps con
+  sumas verificadas y copias de API, frontend y addon de los tres ambientes.
+- Bundle servido en Desarrollo, Demo y Cerro: `assets/index-CSNlemFY.js`, SHA256
+  `0edbeb8333a5e8c430b30e7879fd858a475902ec0fde3eb61faca048109ca66a`.
+- 31 pruebas backend aprobadas; build TypeScript/Vite y lint de archivos nuevos
+  aprobados. Ensayo PostgreSQL up/down/up, persistencia y métricas aprobado.
+- Actualización Odoo ensayada antes de aplicarse; pruebas HTTP autenticadas en
+  los tres ambientes verifican lectura de zonas, rechazo de un polígono vacío
+  sin persistencia, CSRF, menú, configuración y sincronización de incidentes.
+- Navegador: alta/edición/archivo local, dibujo de cuatro vértices sobre Google
+  Maps publicado, arrastre con actualización de coordenadas y guardado demo;
+  descargas CSV/GeoJSON verificadas. Vista móvil a 390 y 320 px sin desborde de
+  página (navegación horizontal en el menor ancho). Modo demo sin datos reales.
+- Todos los servicios activos y `nginx -t` aprobado. Persisten advertencias
+  anteriores de nombres HTTP duplicados en nginx, sin cambio en esta entrega.
+- Evidencia local: `output/tracker-zones-20260930/zonas-escritorio.png` y
+  `metricas-mobile.png` en el workspace principal. Falta la validación física
+  del Coban 401C cuando esté instalado y enviando posiciones; las métricas
+  reales se habilitan con su historial, no con el ejemplo sintético.
