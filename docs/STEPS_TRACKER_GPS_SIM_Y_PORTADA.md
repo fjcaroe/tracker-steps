@@ -72,3 +72,21 @@ Migración incremental: backend/tracker_py/migrations/20261001_device_configurat
 El frontend portal es compartido por Desarrollo, Demo y Cerro El Plomo; se entrega
 la misma versión y se actualiza el addon step_tracker_portal en las tres instancias.
 El sitio legacy stepsapp.cl/web_tracker no cambia.
+
+### Evidencia del despliegue
+- Release: 58a097226d99c7582cdbdbb92a5c05c1c21e8560.
+- Respaldo: /opt/backups/tracker-mobility-20260930T220639Z/ (cuatro bases,
+  código API, addon de cada entorno y portal anterior; SHA256SUMS verificado).
+- Migración PostgreSQL ensayada ida/vuelta y ciclo registrar/asociar/reasignar/
+  desvincular probado sobre copia real; actualización Odoo ensayada en copia.
+- Los tres dominios sirven assets/index-DFVMcV-F.js con SHA256
+  b432c57a1dfa6e7788cf03a22f34e677e3d674c091b3634a014e7ea40cd491b1.
+- Smoke HTTP autenticado en LAB_TAREAS, STEPS_DEMO y CERRO_EL_PLOMO:
+  contexto, configuración, CSRF, bloqueo de ingestión por el proxy, sincronización
+  de incidentes y acción del lanzador correctos. Flotas: 18, 18 y 0 respectivamente.
+- Backend, tres servicios Odoo y timer de señal activos; nginx -t correcto
+  con avisos de nombres HTTP duplicados que ya existían.
+- Se comprobó en navegador el clic Odoo → Steps Tracker → /web_tracker/#home.
+- Exportación CSV neutraliza fórmulas; calendario ICS valida fecha y aviso previo.
+- Las copias temporales de QA fueron eliminadas; no se cargaron GPS de prueba
+  en las bases reales. La validación física del 401C permanece pendiente.
