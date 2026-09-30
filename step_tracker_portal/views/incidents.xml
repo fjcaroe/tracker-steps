@@ -1,0 +1,15 @@
+<odoo>
+    <record id="view_summary_list" model="ir.ui.view">
+        <field name="name">step.tracker.protection.summary.list</field>
+        <field name="model">step.tracker.protection.summary</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="false" decoration-danger="state == 'open' and severity == 'high'" decoration-muted="state == 'closed'">
+                <field name="name"/><field name="vehicle_id"/><field name="kind"/><field name="severity"/><field name="state" widget="badge"/><field name="opened_at"/><field name="updated_at"/><field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_protection_summaries" model="ir.actions.act_window">
+        <field name="name">Incidentes sincronizados</field><field name="res_model">step.tracker.protection.summary</field><field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_summaries" name="Incidentes sincronizados" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_protection_summaries" sequence="5" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+</odoo>

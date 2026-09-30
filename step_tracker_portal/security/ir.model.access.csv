@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_protection_summary_viewer,protection.summary.viewer,model_step_tracker_protection_summary,group_tracker_viewer,1,0,0,0
+access_protection_summary_admin,protection.summary.admin,model_step_tracker_protection_summary,base.group_system,1,0,0,0
+access_protection_sync_admin,protection.sync.admin,model_step_tracker_protection_sync,base.group_system,1,0,0,0

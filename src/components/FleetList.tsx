@@ -1,0 +1,4 @@
+import { dateLabel, label, type FleetAsset } from '../services/fleetApi';
+export default function FleetList({ assets, selected, onSelect }: { assets: FleetAsset[]; selected: string | null; onSelect: (id: string) => void }) {
+  return <section className="fleet-list" aria-label="Equipos filtrados"><h2>Tu flota <span>{assets.length}</span></h2>{assets.map(a => <button key={a.asset_id} className={`fleet-card ${selected === a.asset_id ? 'is-selected' : ''}`} aria-pressed={selected === a.asset_id} onClick={() => onSelect(a.asset_id)}><strong>{a.name}</strong><span>{a.plate || 'Sin patente'} · {label(a.type)}</span><span className={`fleet-state fleet-state--${a.signal_state}`}>{label(a.signal_state)}</span><small>{label(a.motion_state)} · {dateLabel(a.last_position?.received_at)}</small></button>)}</section>;
+}

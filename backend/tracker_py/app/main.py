@@ -25,6 +25,9 @@ from app.routers.varieties import router as varieties_router
 
 app = FastAPI(title="Tracker Steps API")
 
+from app.routers.fleet import router as fleet_router
+app.include_router(fleet_router)
+
 app.include_router(health_router)
 app.include_router(auth_router)
 # Los catálogos y la operación productiva nunca deben quedar expuestos sin sesión.

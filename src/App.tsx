@@ -4,6 +4,7 @@ import { useAuthWeb } from "./services/useAuthWeb";
 import type { OperationsView } from "./pages/OperationsWorkspace";
 
 const OperationsWorkspace = lazy(() => import("./pages/OperationsWorkspace"));
+const FleetWorkspace = lazy(() => import("./pages/FleetWorkspace"));
 
 type IconName = "overview" | "register" | "manual" | "harvest" | "live" | "route" | "stats" | "chart" | "masters" | "history" | "logout";
 
@@ -61,6 +62,7 @@ function ViewLoader() {
 
 export default function App() {
   const { token, isReady } = useAuthWeb();
+  if (import.meta.env.VITE_ODOO_PORTAL === 'true') return <Suspense fallback={<ViewLoader/>}><FleetWorkspace/></Suspense>;
   if (!isReady) return <div className="view-loader"><span className="view-loader__spinner"/>Cargando sesión…</div>;
   if (!token) return <LoginPage />;
   return <AuthedApp />;
