@@ -130,3 +130,31 @@ se usa exclusivamente en el ensayo sin datos; no ejecutarlo sobre datos reales.
   `metricas-mobile.png` en el workspace principal. Falta la validación física
   del Coban 401C cuando esté instalado y enviando posiciones; las métricas
   reales se habilitan con su historial, no con el ejemplo sintético.
+
+## Mejora de navegación y trazado · 30 septiembre 2026
+
+- Versión publicada: `944b684c10792e3b0b20fe0de1eabc8cb6286c2f`
+  (funcionalidad `0174dd2` y ajuste móvil). Rama `codex/web-tracker-redesign`.
+- Despliegue incremental sin migraciones ni actualización Odoo:
+  clon fresco y `TRACKER_RELEASE=<clon> bash scripts/deploy-tracker-zone-navigation.sh`.
+  Respaldo final: `/opt/backups/tracker-zone-navigation-20260930T230514Z/`.
+- Desarrollo, Demo y Cerro sirven `assets/index-BJm2pxZd.js`, SHA256
+  `624e612d3d10c0590a0a58da8a27a6f34b30074940aaf7d26a827d747b286a8d`.
+  Nginx validado y los cuatro servicios activos.
+- 32 pruebas backend y 8 comprobaciones del recorrido aprobadas; TypeScript,
+  build y lint de los archivos TS/TSX modificados aprobados. Prueba local de
+  guardar polígono, deshacer y rehacer aprobada.
+- HTTP autenticado en los tres ambientes: contexto, CSRF, aislamiento del
+  proxy, zonas, configuración y acceso desde Odoo aprobados. Consulta del
+  recorrido actual aprobada en Desarrollo y Demo; Cerro no tiene vehículos
+  para comprobar esa consulta con un activo real.
+- Navegador sobre Desarrollo: búsqueda `Talca, Chile`, selección de resultado,
+  arrastre sin crear puntos, punto central, dibujo, deshacer/rehacer y cambio
+  de modo conservando el encuadre verificados. Recorrido sintético visible y
+  control de visibilidad operativo también con mapa ampliado en móvil.
+- Vistas de 390 y 320 px sin desborde horizontal. Evidencia en el workspace
+  principal: `output/tracker-navigation-20260930/editor-mobile.png` y
+  `output/tracker-navigation-20260930/editor-escritorio.png`.
+- No se solicitó ubicación personal durante QA. El usuario debe permitirla
+  en el navegador al pulsar Mi ubicación; resta validar esa lectura en su
+  teléfono y la recepción física del Coban instalado.
