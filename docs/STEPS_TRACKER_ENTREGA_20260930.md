@@ -110,3 +110,46 @@ sensor de confirmación física y restitución, avisos externos/escalamiento,
 acceso temporal de soporte, migración del sync histórico de sesiones,
 vistas compartidas autorizadas, piloto de cinco vehículos y alcance contractual.
 La habilitación de control físico permanece bloqueada hasta superar E4.
+
+## Evidencia final del despliegue
+
+Aplicación publicada el **30-09-2026**, código frontend `2704c06`, backend corregido
+en `fca8914`, módulo Odoo `step_tracker_portal` **18.0.1.0.0** instalado en:
+
+| Entorno | Dirección | Verificación autenticada |
+|---|---|---|
+| Desarrollo | https://desarrollo.stepsapp.cl/web_tracker/ | 18 vehículos, sesión Odoo y CSRF correctos |
+| Demo | https://demo.stepsapp.cl/web_tracker/ | 18 vehículos, sesión Odoo y CSRF correctos |
+| Cerro El Plomo | https://cerroelplomo.stepsapp.cl/web_tracker/ | 4 compañías separadas, sin vehículos en Flota Odoo |
+
+Los tres sitios sirven `assets/index-DsRYrmii.js`, SHA-256
+`3e8b623603835a49ac9c5e68d8e145762551b55e8d431cc7b3f2927a1e7f4700`,
+idéntico al archivo compilado en el servidor. `nginx -t` pasó antes del reload.
+
+- **19 pruebas Python pasaron**; build TypeScript/Vite correcto y ESLint de los
+  componentes nuevos sin errores.
+- Navegador: selección conservada mapa → tabla, filtro por patente, armado demo,
+  registro, reconocimiento y cierre de falsa alarma; conservación al navegar.
+- Anchos 320, 360, 768 y 1024: ancho del documento igual al ancho visible, sin
+  desborde horizontal global. La tabla tiene su desplazamiento propio.
+- API real: separación entre las seis combinaciones base/compañía, consultas
+  cruzadas por ID rechazadas, compañía no registrada rechazada.
+- HTTP real con sesión transitoria, eliminada al terminar: contexto, snapshot,
+  rechazo de POST sin CSRF y bloqueo de rutas de ingesta desde el puente Odoo,
+  comprobados en los tres entornos. Sincronizador de resúmenes sin errores.
+- PostgreSQL real en copia: migración `up/down/up`, rechazo de intervalos GPS
+  solapados y rechazo de asociación activo/cliente incoherente.
+- El monitor independiente `steps-tracker-signal.service` terminó con
+  `Result=success`, `ExecMainStatus=0`; su timer queda activo cada minuto.
+- Odoo Desarrollo/Demo/Cerro, FastAPI y receptor Teltonika quedaron activos.
+
+Respaldo recuperable: `/opt/backups/tracker-portal-20260930T201732Z/` en `odoo-new`.
+Contiene dumps verificables de las cuatro bases, `SHA256SUMS`, backend, Nginx y
+logs de ensayo/instalación. Se eliminaron únicamente las tres copias QA creadas
+por esta entrega, después de verificar los resultados.
+
+La revisión en el navegador confirmó el acceso con la sesión Odoo del usuario,
+la sincronización de 18 equipos desde Desarrollo y Google Maps operativo en modo
+demo. No hay posiciones reales del 401C, ni asociación automática del GPS histórico
+a estas compañías. La instalación comercial completa del documento sigue pendiente
+de los criterios enumerados arriba; este despliegue no acredita E4 ni el piloto E5.
