@@ -104,6 +104,23 @@ def snapshot(q: str = '', type: str = '', cost_center: str = '', motion: str = '
             'tenant': ctx['tenant'], 'tenant_id': ctx['tenant_id'], 'user_id': ctx['user_id'], 'role': ctx['role'], 'generated_at': now()}
 
 
+@router.get('/asset-sources')
+def asset_sources(after: str = '', limit: int = Query(200, ge=1, le=500), ctx=Depends(identity), db: Session = Depends(get_db)):
+    """Correspondencia activo -> origen (p. ej. odoo:fleet.vehicle:<id>) para el puente servidor a servidor.
+
+    Solo rol manager y solo el cliente de la identidad firmada. Fuera del prefijo ``assets/`` a propósito:
+    el proxy del navegador en Odoo nunca llega a esta ruta.
+    """
+    require(ctx, ('manager',))
+    query = db.query(Asset).filter(Asset.tenant_id == ctx['tenant_id'])
+    if after:
+        query = query.filter(Asset.id > after)
+    rows = query.order_by(Asset.id).limit(limit + 1).all()
+    page = rows[:limit]
+    return {'items': [{'asset_id': a.id, 'source_id': a.source_id, 'name': a.name, 'plate': a.plate} for a in page],
+            'next_cursor': page[-1].id if len(rows) > limit else None}
+
+
 @router.get('/assets/{asset_id}')
 def asset_detail(asset_id: str, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))

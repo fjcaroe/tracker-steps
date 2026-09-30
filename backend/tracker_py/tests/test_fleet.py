@@ -253,3 +253,28 @@ def test_configuration_association_boundaries_and_history(fleet):
     assert len(client.get('/v1/assets/a3/positions', headers=headers()).json()['items']) == 1
     assert client.post(path, headers=headers(), json={**body,'asset_id':None,'version':2}).status_code == 200
     assert client.get('/v1/configuration', headers=headers()).json()['items'][0]['asset_id'] is None
+
+
+def test_asset_sources_are_manager_only_tenant_scoped_and_paginated(fleet):
+    client, factory = fleet
+    with factory() as db:
+        db.add_all([Asset(id='a%02d' % i, tenant_id='t1', source_id='odoo:fleet.vehicle:%d' % i, name='Equipo %d' % i) for i in range(10, 16)])
+        db.add(Asset(id='a-manual', tenant_id='t1', source_id='manual:abc', name='Manual'))
+        db.commit()
+    for role in ('viewer', 'operator'):
+        assert client.get('/v1/asset-sources', headers=headers(role=role)).status_code == 403
+    assert client.get('/v1/asset-sources').status_code == 401
+    seen, cursor = [], ''
+    while True:
+        page = client.get('/v1/asset-sources', params={'limit': 3, 'after': cursor}, headers=headers()).json()
+        seen += page['items']
+        cursor = page['next_cursor']
+        if not cursor:
+            break
+    sources = {item['asset_id']: item['source_id'] for item in seen}
+    assert len(seen) == len(sources) == 8          # a1 + 6 importados + 1 manual, sin repetidos
+    assert sources['a-manual'] == 'manual:abc'
+    assert sources['a12'] == 'odoo:fleet.vehicle:12'
+    assert 'a2' not in sources                      # el activo del otro cliente no aparece
+    other = client.get('/v1/asset-sources', headers=headers('test-two')).json()['items']
+    assert [item['asset_id'] for item in other] == ['a2']

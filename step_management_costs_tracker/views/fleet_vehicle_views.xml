@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="fleet_vehicle_view_form_step_tracker_costs" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.step.tracker.costs</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <field name="tracker_asset_id" invisible="1"/>
+                <button name="action_open_tracker_map" type="object" class="oe_stat_button" icon="fa-map-marker"
+                        string="Steps Tracker" invisible="not tracker_asset_id"
+                        groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+                <button name="action_open_tracker_costs" type="object" class="oe_stat_button" icon="fa-calculator"
+                        string="Costos Tracker" groups="base.group_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Destino de los enlaces del portal: /odoo/action-<xmlid>/<id del vehículo> -->
+    <record id="action_server_vehicle_expenses" model="ir.actions.server">
+        <field name="name">Gastos del vehículo</field>
+        <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+        <field name="state">code</field>
+        <field name="code">action = record.action_open_step_expenses()</field>
+    </record>
+</odoo>
