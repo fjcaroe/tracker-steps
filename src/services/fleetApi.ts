@@ -39,7 +39,8 @@ export async function allPages<T>(path: string, context: FleetContext): Promise<
   return items;
 }
 export const labels: Record<string, string> = { moving: 'En movimiento', stationary: 'Detenido · señal reciente', unknown: 'Movimiento desconocido', received: 'Dato recibido', stale: 'Sin señal reciente', no_signal: 'Sin señal', armed: 'Armada', disarmed: 'Desarmada', incident_open: 'Incidente abierto', open: 'Abierto', acknowledged: 'Reconocido', closed: 'Cerrado', communication_failure: 'Falla de comunicación', suspected_movement: 'Sospecha de movimiento', external_power_lost: 'Alimentación desconectada', acc_outside_schedule: 'ACC fuera de horario', outside_zone: 'Salida de zona', sos: 'SOS', manual: 'Aviso manual', high: 'Alta', medium: 'Media', vehicle: 'Vehículo', tractor: 'Tractor', truck: 'Camión' };
-export const label = (s: string) => labels[s] || s;
+const auditLabels: Record<string, string> = { incident_opened: 'Incidente registrado', notification_pending: 'Aviso en bandeja', policy_changed: 'Política modificada', command_denied: 'Solicitud denegada', approval_denied: 'Aprobación denegada', device_assigned: 'GPS asociado', asset_upsert: 'Equipo sincronizado' };
+export const label = (s: string) => labels[s] || auditLabels[s] || s;
 export const dateLabel = (s?: string | null) => s ? new Date(s).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin dato';
 export function filterFleet(rows: FleetAsset[], f: FleetFilters) {
   return rows.filter(a => (!f.q || `${a.name} ${a.plate || ''}`.toLocaleLowerCase().includes(f.q.toLocaleLowerCase())) && (!f.type || a.type === f.type) && (!f.cost_center || a.cost_center === f.cost_center) && (!f.motion || a.motion_state === f.motion) && (!f.signal || a.signal_state === f.signal) && (!f.protection || a.protection_state === f.protection) && (!f.gps || a.device?.model === f.gps));

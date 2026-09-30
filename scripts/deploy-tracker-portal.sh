@@ -2,9 +2,11 @@
 # Run on odoo-new. Only the requested Odoo environments receive the new portal.
 set -euo pipefail
 release=${TRACKER_RELEASE:-/tmp/tracker-steps-deploy}
+chmod 755 "$release"
 target=/opt/fernando_odoo18/apis/backend/tracker_py
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
-backup=/opt/backups/tracker-portal-$stamp
+backup=${TRACKER_BACKUP:-/opt/backups/tracker-portal-$stamp}
+if [ -z "${TRACKER_BACKUP:-}" ]; then
 sudo install -d -m 700 "$backup"
 sudo cp -a "$target" "$backup/tracker_py"
 sudo cp -a /etc/nginx "$backup/nginx"
@@ -14,6 +16,7 @@ for db in tracker_steps LAB_TAREAS STEPS_DEMO CERRO_EL_PLOMO; do
 done
 echo "BACKUP=$backup"
 sudo sh -c "cd '$backup' && sha256sum *.dump > SHA256SUMS"
+fi
 
 # Rehearse both directions on a database restored from the real Tracker backup.
 testdb=TRACKER_LAYOUT_QA_$stamp
@@ -30,7 +33,7 @@ import pathlib, subprocess, sys
 release, target = map(pathlib.Path, sys.argv[1:])
 for p in (target/'app').rglob('*.py'):
     rel = p.relative_to(target).as_posix()
-    result = subprocess.run(['git','-C',str(release),'show','HEAD^:backend/tracker_py/'+rel],capture_output=True)
+    result = subprocess.run(['git','-C',str(release),'show','9aa55c15a0f3bb3fd28127ea260191ad4632b6e8:backend/tracker_py/'+rel],capture_output=True)
     current = (release/'backend/tracker_py'/rel)
     if result.returncode != 0 or p.read_text().replace('\r\n','\n') != result.stdout.decode().replace('\r\n','\n'):
         if not current.exists() or p.read_text().replace('\r\n','\n') != current.read_text().replace('\r\n','\n'):
@@ -59,6 +62,7 @@ cd "$release"
 sudo cp /opt/fernando_odoo18/apis/tracker-steps/.env .env
 cp /opt/fernando_odoo18/apis/tracker-steps/.env.production .env.production
 sudo chown "$(whoami)" .env
+chmod 600 .env .env.production
 npm ci --no-audit --no-fund
 VITE_ODOO_PORTAL=true npm run build
 sudo install -d -o root -g odoo /var/www/web_tracker_portal
