@@ -1,6 +1,6 @@
 {
     "name": "Steps - Previred: motor SimpleDigital",
-    "version": "18.0.2.2.0",
+    "version": "18.0.2.4.0",
     "category": "Human Resources/Payroll",
     "summary": "Conecta el Previred por departamento de Steps con SimpleDigital",
     "description": """
@@ -20,6 +20,10 @@ Previred Steps — puente con el motor SimpleDigital
   y `/hr_payroll/previred/csv` aceptaban la compañía desde la URL y
   consultaban con `sudo()`. Se corrige heredando el controlador, sin modificar
   el addon del proveedor.
+* el **scraping del Impuesto 2da Categoría (SII)** (`impuesto_2da_categoria`):
+  lee el período exacto y sus ocho tramos mensuales del HTML oficial. Valida
+  los límites, factores y rebajas antes de guardar; una respuesta incompleta
+  no crea registros con montos en cero (ticket T39). No modifica el proveedor.
 """,
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
