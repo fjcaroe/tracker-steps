@@ -7,16 +7,96 @@
         </xpath>
     </template>
 
+    <template id="portal_ticket_list_controls" name="Steps Helpdesk ticket list controls">
+            <section class="steps-helpdesk-list-controls" aria-label="Filtros de tickets">
+                <div class="steps-helpdesk-list-heading">
+                    <div>
+                        <span class="steps-helpdesk-eyebrow">TU ESPACIO DE SOPORTE</span>
+                        <h2>Mis tickets <span t-out="steps_result_count"/></h2>
+                        <p>Encuentra tus solicitudes y consulta lo que importa en cada una.</p>
+                    </div>
+                    <details class="steps-helpdesk-columns">
+                        <summary><i class="fa fa-columns me-2" aria-hidden="true"/>Personalizar columnas</summary>
+                        <div class="steps-helpdesk-columns-menu">
+                            <p>Elige qué datos ver en la lista. Tu selección se guarda en este navegador.</p>
+                            <label><input type="checkbox" data-steps-column-choice="created" checked="checked"/> Fecha de creación</label>
+                            <label><input type="checkbox" data-steps-column-choice="assignee" checked="checked"/> Responsable</label>
+                            <label><input type="checkbox" data-steps-column-choice="priority"/> Prioridad</label>
+                            <label><input type="checkbox" data-steps-column-choice="updated"/> Última modificación</label>
+                            <label><input type="checkbox" data-steps-column-choice="comment"/> Último comentario</label>
+                        </div>
+                    </details>
+                </div>
+                <form method="get" action="/my/tickets" class="steps-helpdesk-filter-form">
+                    <input type="hidden" name="sortby" t-att-value="sortby"/>
+                    <input type="hidden" name="groupby" t-att-value="groupby"/>
+                    <input type="hidden" name="filterby" t-att-value="filterby"/>
+                    <input type="hidden" name="search_in" t-att-value="search_in"/>
+                    <input t-if="search" type="hidden" name="search" t-att-value="search"/>
+                    <input t-if="steps_date_begin" type="hidden" name="date_begin" t-att-value="steps_date_begin"/>
+                    <input t-if="steps_date_end" type="hidden" name="date_end" t-att-value="steps_date_end"/>
+                    <div class="steps-helpdesk-filter-grid">
+                        <label>Estado
+                            <select name="steps_status" class="form-select">
+                                <option value="all" t-att-selected="steps_filter['status'] == 'all'">Todos</option>
+                                <option value="open" t-att-selected="steps_filter['status'] == 'open'">Abiertos</option>
+                                <option value="closed" t-att-selected="steps_filter['status'] == 'closed'">Cerrados</option>
+                            </select>
+                        </label>
+                        <label>Etapa
+                            <select name="steps_stage" class="form-select">
+                                <option value="0" t-att-selected="not steps_stage">Todas</option>
+                                <option t-foreach="steps_stages" t-as="stage" t-att-value="stage.id" t-att-selected="steps_stage == stage.id" t-out="stage.name"/>
+                            </select>
+                        </label>
+                        <label>Creado en
+                            <select name="steps_period" class="form-select">
+                                <option value="all" t-att-selected="steps_filter['period'] == 'all'">Cualquier fecha</option>
+                                <option value="7" t-att-selected="steps_filter['period'] == '7'">Últimos 7 días</option>
+                                <option value="30" t-att-selected="steps_filter['period'] == '30'">Últimos 30 días</option>
+                                <option value="90" t-att-selected="steps_filter['period'] == '90'">Últimos 90 días</option>
+                            </select>
+                        </label>
+                        <label>Prioridad
+                            <select name="steps_priority" class="form-select">
+                                <option value="all" t-att-selected="steps_priority == 'all'">Todas</option>
+                                <option t-foreach="steps_priority_options" t-as="priority_option" t-att-value="priority_option[0]" t-att-selected="steps_priority == priority_option[0]" t-out="priority_option[1]"/>
+                            </select>
+                        </label>
+                        <label>Asignación
+                            <select name="steps_assignment" class="form-select">
+                                <option value="all" t-att-selected="steps_filter['assignment'] == 'all'">Todos</option>
+                                <option value="assigned" t-att-selected="steps_filter['assignment'] == 'assigned'">Con responsable</option>
+                                <option value="unassigned" t-att-selected="steps_filter['assignment'] == 'unassigned'">Sin responsable</option>
+                            </select>
+                        </label>
+                        <div class="steps-helpdesk-filter-actions">
+                            <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+                            <a href="/my/tickets" class="steps-helpdesk-clear">Limpiar</a>
+                        </div>
+                    </div>
+                </form>
+            </section>
+    </template>
+
     <template id="portal_ticket_list_brand" inherit_id="helpdesk.portal_helpdesk_ticket" name="Steps Helpdesk portal list">
         <xpath expr="//t[@t-call='portal.portal_layout']/t[@t-set='breadcrumbs_searchbar']" position="before">
             <section class="steps-helpdesk-portal-hero" aria-label="Centro de soporte">
                 <span>STEPS AGRO / SOPORTE</span>
                 <h1>Tus solicitudes, en un solo lugar.</h1>
                 <p>Consulta el avance y el historial de tus tickets.</p>
+                <div class="steps-helpdesk-overview" aria-label="Resumen de solicitudes">
+                    <div><strong t-out="steps_total_count"/><span>Total</span></div>
+                    <div><strong t-out="steps_open_count"/><span>Abiertas</span></div>
+                    <div><strong t-out="steps_closed_count"/><span>Cerradas</span></div>
+                </div>
                 <div class="steps-helpdesk-portal-actions">
                     <a class="btn btn-light" href="/soporte/nueva-solicitud">Crear solicitud <i class="fa fa-arrow-right ms-2" aria-hidden="true"/></a>
                 </div>
             </section>
+        </xpath>
+        <xpath expr="//div[@t-if='not grouped_tickets']" position="before">
+            <t t-call="step_helpdesk_brand.portal_ticket_list_controls"/>
         </xpath>
         <xpath expr="//div[@t-if='not grouped_tickets']" position="replace">
             <div t-if="not grouped_tickets" class="steps-helpdesk-empty" role="status">
@@ -27,21 +107,22 @@
             </div>
         </xpath>
         <xpath expr="//t[@t-call='portal.portal_table']" position="replace">
-            <p class="steps-helpdesk-mobile-hint">Desliza la tabla para ver el último comentario.</p>
             <t t-call="portal.portal_table">
                 <thead>
                     <tr>
                         <th scope="col">Ticket</th>
                         <th scope="col">Etapa</th>
-                        <th scope="col">Última modificación</th>
-                        <th scope="col">Último comentario</th>
-                        <th scope="col">Responsable</th>
+                        <th scope="col" data-steps-column="created">Creado el</th>
+                        <th scope="col" data-steps-column="assignee">Responsable</th>
+                        <th scope="col" data-steps-column="priority" hidden="hidden">Prioridad</th>
+                        <th scope="col" data-steps-column="updated" hidden="hidden">Última modificación</th>
+                        <th scope="col" data-steps-column="comment" hidden="hidden">Último comentario</th>
                     </tr>
                 </thead>
                 <t t-foreach="grouped_tickets" t-as="tickets">
                     <tbody>
                         <tr t-if="groupby != 'none'" class="table-light steps-helpdesk-group-row">
-                            <th colspan="5" scope="rowgroup">
+                            <th colspan="4" scope="rowgroup">
                                 <span t-if="groupby == 'stage_id'" t-out="tickets[0].stage_id.name or 'Sin etapa'"/>
                                 <span t-elif="groupby == 'user_id'" t-out="tickets[0].user_id.name or 'Sin asignar'"/>
                                 <span t-elif="groupby == 'team_id'" t-out="tickets[0].team_id.name or 'Sin equipo'"/>
@@ -56,11 +137,13 @@
                                     <span t-field="ticket.name"/>
                                 </a>
                                 <span t-if="ticket.id in steps_ticket_unread_ids" class="steps-helpdesk-new-badge">Respuesta sin revisar</span>
-                                <small>Creado el <span t-field="ticket.create_date" t-options='{"widget": "datetime", "hide_seconds": True}'/></small>
                             </td>
-                            <td><span t-attf-class="badge rounded-pill fw-normal #{'text-bg-success' if ticket.stage_id.fold else 'text-bg-primary'}" t-out="ticket.stage_id.name"/></td>
-                            <td><time t-field="ticket.write_date" t-options='{"widget": "datetime", "hide_seconds": True}'/></td>
-                            <td>
+                            <td data-label="Etapa"><span t-attf-class="badge rounded-pill fw-normal #{'text-bg-success' if ticket.stage_id.fold else 'text-bg-primary'}" t-out="ticket.stage_id.name"/></td>
+                            <td data-label="Creado el" data-steps-column="created"><time t-field="ticket.create_date" t-options='{"widget": "date"}'/></td>
+                            <td data-label="Responsable" data-steps-column="assignee" t-out="ticket.user_id.name or 'Sin asignar'"/>
+                            <td data-label="Prioridad" data-steps-column="priority" hidden="hidden" t-out="dict(steps_priority_options).get(ticket.priority, ticket.priority)"/>
+                            <td data-label="Última modificación" data-steps-column="updated" hidden="hidden"><time t-field="ticket.write_date" t-options='{"widget": "datetime", "hide_seconds": True}'/></td>
+                            <td data-label="Último comentario" data-steps-column="comment" hidden="hidden">
                                 <t t-set="steps_last_message" t-value="steps_ticket_last_messages.get(ticket.id)"/>
                                 <t t-if="steps_last_message">
                                     <time t-field="steps_last_message.date" t-options='{"widget": "datetime", "hide_seconds": True}'/>
@@ -68,7 +151,6 @@
                                 </t>
                                 <span t-else="" class="text-muted">Sin comentarios</span>
                             </td>
-                            <td t-out="ticket.user_id.name or 'Sin asignar'"/>
                         </tr>
                     </tbody>
                 </t>

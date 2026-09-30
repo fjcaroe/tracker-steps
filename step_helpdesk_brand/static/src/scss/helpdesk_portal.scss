@@ -22,17 +22,42 @@
         .steps-helpdesk-portal-actions .btn-light { color: var(--st-deep); background: var(--st-lime); border-color: var(--st-lime); }
         .steps-helpdesk-portal-actions .btn-outline-light { color: #fff; border-color: #dbe9da; }
     }
+    .steps-helpdesk-overview { display: flex; flex-wrap: wrap; gap: clamp(20px, 4vw, 52px); margin-top: 28px; padding-top: 22px; border-top: 1px solid #ffffff40; }
+    .steps-helpdesk-overview div { display: flex; flex-direction: column; gap: 2px; }
+    .steps-helpdesk-overview strong { color: #fff; font-size: 1.65rem; line-height: 1; font-variant-numeric: tabular-nums; }
+    .steps-helpdesk-overview span { color: #d9eadb; font-size: .82rem; }
+    .steps-helpdesk-list-controls { position: relative; z-index: 2; margin: 0 0 20px; padding: clamp(18px, 3vw, 28px); border: 1px solid var(--st-line); border-radius: 18px; background: #fff; box-shadow: 0 8px 28px #153d300b; }
+    .steps-helpdesk-list-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
+    .steps-helpdesk-eyebrow { color: var(--st-mid); font-size: .68rem; font-weight: 800; letter-spacing: .15em; }
+    .steps-helpdesk-list-heading h2 { margin: 4px 0 3px; color: var(--st-deep); font-size: clamp(1.4rem, 2.6vw, 1.9rem); font-weight: 750; letter-spacing: -.025em; }
+    .steps-helpdesk-list-heading h2 span { display: inline-block; padding: 2px 9px; border-radius: 999px; background: #e7f0df; color: var(--st-deep); font-size: .85rem; vertical-align: middle; }
+    .steps-helpdesk-list-heading p { margin: 0; color: #64776b; font-size: .92rem; }
+    .steps-helpdesk-columns { position: relative; flex: none; }
+    .steps-helpdesk-columns summary { cursor: pointer; list-style: none; padding: 9px 13px; border: 1px solid #cbded0; border-radius: 9px; color: var(--st-deep); font-size: .86rem; font-weight: 700; background: #f8fbf7; }
+    .steps-helpdesk-columns summary::-webkit-details-marker { display: none; }
+    .steps-helpdesk-columns summary:hover { background: #eaf4e9; }
+    .steps-helpdesk-columns-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 5; width: 290px; max-width: 80vw; padding: 16px; border: 1px solid #cbded0; border-radius: 12px; background: #fff; box-shadow: 0 16px 38px #153d3026; }
+    .steps-helpdesk-columns-menu p { margin: 0 0 10px; color: #617467; font-size: .8rem; line-height: 1.4; }
+    .steps-helpdesk-columns-menu label { display: flex; align-items: center; gap: 9px; padding: 6px 0; color: var(--st-deep); font-size: .86rem; cursor: pointer; }
+    .steps-helpdesk-columns-menu input { accent-color: var(--st-mid); }
+    .steps-helpdesk-filter-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)) auto; gap: 10px; align-items: end; }
+    .steps-helpdesk-filter-grid > label { display: block; color: #50695a; font-size: .75rem; font-weight: 700; }
+    .steps-helpdesk-filter-grid .form-select { margin-top: 6px; min-height: 39px; border-color: #cbded0; border-radius: 8px; color: var(--st-deep); font-size: .83rem; background-color: #f9fbf8; }
+    .steps-helpdesk-filter-grid .form-select:focus { border-color: var(--st-mid); box-shadow: 0 0 0 3px #2d765629; }
+    .steps-helpdesk-filter-actions { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .steps-helpdesk-filter-actions .btn { min-height: 39px; border-radius: 8px; font-size: .83rem; font-weight: 700; }
+    .steps-helpdesk-clear { font-size: .83rem; font-weight: 700; }
     .o_portal_wrap, .o_portal_sidebar { color: #213a2f; }
     .card, .table-responsive { border: 1px solid var(--st-line); border-radius: 14px; background: #fff; box-shadow: 0 8px 24px #153d300b; overflow: hidden; }
     .table { margin-bottom: 0; }
     .table thead { color: var(--st-deep); background: #e9f1e8; }
+    .table [hidden] { display: none !important; }
     .table th, .table td { padding: 14px 16px; border-color: #e8eee7; }
     .table tbody tr:hover { background: #f1f7f0; }
     .steps-helpdesk-group-row th { background: #e8f0e7; color: var(--st-deep); font-weight: 750; }
     .steps-helpdesk-ticket-unread { background: #f7fbee; }
     .steps-helpdesk-ticket-title a { display: flex; align-items: baseline; gap: 8px; font-weight: 700; text-decoration: none; }
     .steps-helpdesk-ticket-title a span:last-child { white-space: normal; overflow-wrap: break-word; }
-    .steps-helpdesk-mobile-hint { display: none; }
     .steps-helpdesk-ticket-title small, .table td small { display: block; margin-top: 4px; color: #66786d; font-size: .78rem; }
     .steps-helpdesk-ticket-ref { color: var(--st-mid); font-weight: 800; white-space: nowrap; }
     .steps-helpdesk-new-badge { display: inline-block; margin-top: 6px; padding: 3px 8px; border-radius: 999px; background: var(--st-lime); color: var(--st-deep); font-size: .75rem; font-weight: 800; }
@@ -65,15 +90,31 @@
     .steps-helpdesk-empty h2 { color: var(--st-deep); font-size: 1.5rem; }
     .steps-helpdesk-empty p { max-width: 620px; color: #617467; }
 
+    @media (max-width: 1100px) {
+        .steps-helpdesk-filter-grid { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+    }
     @media (max-width: 700px) {
         .steps-helpdesk-portal-hero { margin: 15px 0 22px; border-radius: 13px; }
         .steps-helpdesk-internal-history { align-items: flex-start; flex-direction: column; }
-        .table th, .table td { padding: 10px; }
-        .table th:nth-child(5), .table td:nth-child(5) { display: none; }
-        .steps-helpdesk-group-row th { display: table-cell !important; }
+        .steps-helpdesk-list-heading { flex-direction: column; }
+        .steps-helpdesk-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .steps-helpdesk-filter-actions { grid-column: 1 / -1; }
+        .table thead { display: none; }
+        .table tbody { display: block; }
+        .table tbody tr:not(.steps-helpdesk-group-row) { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin: 0 0 10px; padding: 12px 15px; border: 1px solid var(--st-line); border-radius: 12px; background: #fff; }
+        .table tbody tr:not(.steps-helpdesk-group-row) td { display: block; min-width: 0; padding: 8px 0; border: 0; font-size: .88rem; }
+        .table tbody tr:not(.steps-helpdesk-group-row) td[hidden] { display: none !important; }
+        .table tbody tr:not(.steps-helpdesk-group-row) td:first-child { grid-column: 1 / -1; border-bottom: 1px solid #e8eee7; margin-bottom: 4px; }
+        .table tbody tr:not(.steps-helpdesk-group-row) td[data-label]::before { display: block; margin-bottom: 4px; color: #6b7e71; content: attr(data-label); font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+        .table tbody .steps-helpdesk-group-row { display: block; margin: 15px 0 8px; }
+        .table tbody .steps-helpdesk-group-row th { display: block; padding: 10px 14px; border-radius: 8px; }
         .steps-helpdesk-ticket-title a { display: block; }
-        .steps-helpdesk-ticket-title { min-width: 190px; }
         .steps-helpdesk-ticket-ref { margin-right: 5px; }
-        .steps-helpdesk-mobile-hint { display: block; margin: 0 0 8px; color: #596d5f; font-size: .82rem; }
+        .table-responsive { overflow: visible; border: 0; background: transparent; box-shadow: none; }
+    }
+    @media (max-width: 430px) {
+        .steps-helpdesk-filter-grid { grid-template-columns: 1fr; }
+        .steps-helpdesk-filter-actions { grid-column: auto; }
+        .steps-helpdesk-overview { gap: 20px; }
     }
 }

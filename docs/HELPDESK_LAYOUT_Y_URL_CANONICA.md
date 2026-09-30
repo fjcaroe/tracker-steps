@@ -160,3 +160,27 @@ Se revisaron escritorio y móvil; en este último la tabla indica que se puede
 deslizar para leer el último comentario. El respaldo previo está en
 `/opt/steps_backups/support_portal_filters_20260928_1516/` (base, filestore
 y versión anterior del módulo, solo en la VM).
+
+## Rediseño de la lista del portal — 30 de septiembre de 2026
+
+En la versión `18.0.1.1.7` del módulo, la lista muestra por defecto la fecha
+de creación y el responsable, y ordena por creación reciente. El usuario
+puede activar o quitar las columnas de creación, responsable, prioridad,
+última modificación y último comentario; la elección se guarda en su
+navegador. La cabecera resume el total de solicitudes abiertas y cerradas.
+
+Se agregaron filtros combinables por estado, etapa, fecha de creación,
+prioridad y asignación. Los filtros se conservan al cambiar de página, y el
+selector estándar de búsqueda, orden y agrupación también los mantiene cuando
+JavaScript está disponible. En móvil, cada ticket se presenta como una tarjeta
+con etiquetas para los datos visibles.
+
+Se actualizó `step_helpdesk_brand` a `18.0.1.1.7` en `karo_consultorias` tras
+probar la actualización y el portal HTTP con un usuario y ticket sintéticos en
+una copia aislada. El respaldo previo de base, filestore y módulo está en
+`/opt/steps_backups/helpdesk_portal_redesign_20260930_121949/`. En producción,
+Odoo quedó activo y la portada de soporte respondió HTTP 200. El bundle público
+de CSS y JavaScript contiene los estilos y la lógica de columnas nuevos.
+Durante la regeneración se restauraron dos adjuntos SCSS propios del tema
+desde el respaldo, y se volvió a generar el bundle; la comprobación final del
+CSS público no mostró errores de compilación.

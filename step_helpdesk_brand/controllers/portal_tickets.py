@@ -47,11 +47,28 @@ class StepsCustomerPortal(CustomerPortal):
                                    groupby="none", search_in="name"):
         values = self._prepare_portal_layout_values()
         Ticket = request.env["helpdesk.ticket"]
-        domain = self._prepare_helpdesk_tickets_domain()
+        visible_domain = self._prepare_helpdesk_tickets_domain()
+        domain = visible_domain
+        # Keep these independent of Odoo's single-choice searchbar filter so
+        # visitors can combine them without changing the standard portal UI.
+        args = request.httprequest.args
+        selections = {
+            "status": {"all", "open", "closed"},
+            "period": {"all", "7", "30", "90"},
+            "assignment": {"all", "assigned", "unassigned"},
+        }
+        selected = {
+            key: args.get(f"steps_{key}", "all")
+            for key in selections
+        }
+        selected = {
+            key: value if value in selections[key] else "all"
+            for key, value in selected.items()
+        }
         sortings = {
+            "create_date desc": {"label": "Creación: recientes"},
+            "create_date asc": {"label": "Creación: antiguos"},
             "write_date desc": {"label": "Última modificación"},
-            "create_date desc": {"label": "Más recientes"},
-            "create_date asc": {"label": "Más antiguos"},
             "priority desc, write_date desc": {"label": "Prioridad"},
             "id desc": {"label": "Referencia"},
             "name": {"label": "Asunto"},
@@ -78,8 +95,21 @@ class StepsCustomerPortal(CustomerPortal):
                 "domain": [("stage_id", "=", stage.id)],
             }
 
+        stage_ids = {stage.id for stage in visible_stages}
+        try:
+            selected_stage = int(args.get("steps_stage", "0"))
+        except (TypeError, ValueError):
+            selected_stage = 0
+        if selected_stage not in stage_ids:
+            selected_stage = 0
+        priority_options = Ticket.fields_get(["priority"])["priority"]["selection"]
+        priority_values = {value for value, _label in priority_options}
+        selected_priority = args.get("steps_priority", "all")
+        if selected_priority not in priority_values:
+            selected_priority = "all"
+
         if sortby not in sortings:
-            sortby = "write_date desc"
+            sortby = "create_date desc"
         if filterby not in filters:
             filterby = "all"
         inputs = dict(sorted(self._ticket_get_searchbar_inputs().items(), key=lambda item: item[1]["sequence"]))
@@ -88,6 +118,17 @@ class StepsCustomerPortal(CustomerPortal):
             groupby = "none"
 
         domain = AND([domain, filters[filterby]["domain"]])
+        if selected["status"] != "all":
+            domain = AND([domain, [("close_date", "=", False) if selected["status"] == "open" else ("close_date", "!=", False)]])
+        if selected_stage:
+            domain = AND([domain, [("stage_id", "=", selected_stage)]])
+        if selected["period"] != "all":
+            since = fields.Datetime.now() - timedelta(days=int(selected["period"]))
+            domain = AND([domain, [("create_date", ">=", since)]])
+        if selected_priority != "all":
+            domain = AND([domain, [("priority", "=", selected_priority)]])
+        if selected["assignment"] != "all":
+            domain = AND([domain, [("user_id", "!=", False) if selected["assignment"] == "assigned" else ("user_id", "=", False)]])
         if date_begin and date_end:
             domain = AND([domain, [("create_date", ">", date_begin), ("create_date", "<=", date_end)]])
         if search and search_in:
@@ -103,11 +144,15 @@ class StepsCustomerPortal(CustomerPortal):
             ]
             domain = AND([domain, [("id", "in", unread_ids)]])
 
+        result_count = Ticket.search_count(domain)
         pager = portal_pager(
             url="/my/tickets",
             url_args={"date_begin": date_begin, "date_end": date_end, "sortby": sortby,
-                      "search_in": search_in, "search": search, "groupby": groupby, "filterby": filterby},
-            total=Ticket.search_count(domain), page=page, step=self._items_per_page,
+                      "search_in": search_in, "search": search, "groupby": groupby, "filterby": filterby,
+                      "steps_status": selected["status"], "steps_stage": selected_stage,
+                      "steps_period": selected["period"], "steps_priority": selected_priority,
+                      "steps_assignment": selected["assignment"]},
+            total=result_count, page=page, step=self._items_per_page,
         )
         order = f"{groupby}, {sortby}" if groupby != "none" else sortby
         tickets = Ticket.search(domain, order=order, limit=self._items_per_page, offset=pager["offset"])
@@ -131,6 +176,8 @@ class StepsCustomerPortal(CustomerPortal):
         }
         values.update({
             "date": date_begin,
+            "steps_date_begin": date_begin,
+            "steps_date_end": date_end,
             "grouped_tickets": grouped_tickets,
             "page_name": "ticket",
             "default_url": "/my/tickets",
@@ -149,6 +196,15 @@ class StepsCustomerPortal(CustomerPortal):
                 for ticket_id, item in activity.items()
             },
             "steps_ticket_unread_ids": unread_ids,
+            "steps_filter": selected,
+            "steps_stage": selected_stage,
+            "steps_priority": selected_priority,
+            "steps_stages": visible_stages,
+            "steps_priority_options": priority_options,
+            "steps_total_count": Ticket.search_count(visible_domain),
+            "steps_open_count": Ticket.search_count(AND([visible_domain, [("close_date", "=", False)]])),
+            "steps_closed_count": Ticket.search_count(AND([visible_domain, [("close_date", "!=", False)]])),
+            "steps_result_count": result_count,
         })
         return values
 
