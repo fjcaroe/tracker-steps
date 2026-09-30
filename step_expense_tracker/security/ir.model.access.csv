@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_expense_tracker_import_user,step.expense.tracker.import.user,model_step_expense_tracker_import,base.group_user,1,1,1,1
+access_step_expense_tracker_import_line_user,step.expense.tracker.import.line.user,model_step_expense_tracker_import_line,base.group_user,1,1,1,1
+access_fleet_vehicle_expense_vehicle,fleet.vehicle.expense.vehicle,fleet.model_fleet_vehicle,group_expense_vehicle,1,0,0,0
+access_fleet_vehicle_model_expense_vehicle,fleet.vehicle.model.expense.vehicle,fleet.model_fleet_vehicle_model,group_expense_vehicle,1,0,0,0
+access_fleet_vehicle_model_brand_expense_vehicle,fleet.vehicle.model.brand.expense.vehicle,fleet.model_fleet_vehicle_model_brand,group_expense_vehicle,1,0,0,0

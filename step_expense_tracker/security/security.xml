@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Un empleado con solo «Empleado» no puede leer fleet.vehicle (Flota es un módulo aparte con sus
+         propios grupos). Para elegir el vehículo en una rendición se concede únicamente lectura, con las
+         reglas de compañía de Flota, a este grupo; aprobadores y administradores de gastos lo reciben solos. -->
+    <record id="group_expense_vehicle" model="res.groups">
+        <field name="name">Gastos: elegir vehículos de la flota</field>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Permite leer los vehículos de su empresa para atribuirles gastos y recorridos.</field>
+    </record>
+    <record id="hr_expense.group_hr_expense_team_approver" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('step_expense_tracker.group_expense_vehicle'))]"/>
+    </record>
+</odoo>
