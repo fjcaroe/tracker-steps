@@ -8,6 +8,7 @@ import json
 import sys
 from datetime import datetime
 from sqlalchemy import or_
+from app.main import app  # Register legacy relationships before the standalone query.
 from app.db.session import SessionLocal
 from app.models.fleet import Tenant, Asset, Device, Assignment, Audit, now
 

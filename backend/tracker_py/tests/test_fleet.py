@@ -2,6 +2,8 @@ import json
 import os
 from datetime import timedelta
 import pytest
+import subprocess
+import sys
 from fastapi.testclient import TestClient
 from jose import jwt
 from sqlalchemy import create_engine
@@ -163,3 +165,20 @@ def test_incremental_change_feed_delivers_later_updates(fleet):
     assert third['items'][0]['incident']['state'] == 'acknowledged'
     assert client.get('/v1/sync/changes', headers=headers('test-two')).json()['items'] == []
     assert client.get('/v1/sync/changes', headers=headers(role='viewer')).status_code == 403
+
+
+def test_standalone_signal_worker_registers_all_models(tmp_path):
+    url = 'sqlite:///'+str(tmp_path/'worker.db')
+    engine = create_engine(url)
+    Base.metadata.create_all(engine, tables=[m.__table__ for m in MODELS])
+    engine.dispose()
+    result = subprocess.run([sys.executable, 'scripts/check_gps_signal.py'], env={**os.environ, 'DATABASE_URL': url, 'PYTHONPATH': '.'}, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_buffered_point_before_arming_does_not_raise_new_incident(fleet):
+    client, _ = fleet
+    buffered = point('before-arm', minutes=1, external_power=False)
+    client.put('/v1/security/policies', headers=headers(), json={'asset_id': 'a1', 'armed': True, 'version': 0, 'reason': 'Armado posterior'})
+    assert client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=buffered).status_code == 200
+    assert client.get('/v1/security/incidents', headers=headers()).json()['items'] == []

@@ -350,7 +350,7 @@ class PointInput(Strict):
 
 
 def detect(db, ctx, row, policy):
-    if not policy or not policy.armed or (now()-utc(row.recorded_at)).total_seconds() > 300:
+    if not policy or not policy.armed or utc(row.recorded_at) < utc(policy.updated_at) or (now()-utc(row.recorded_at)).total_seconds() > 300:
         return
     evidence = {'position_id': row.id, 'recorded_at': utc(row.recorded_at).isoformat(), 'received_at': utc(row.received_at).isoformat()}
     kinds = []
@@ -402,6 +402,9 @@ def check_communications(db):
     """Run from systemd timer independently of Odoo and web sessions."""
     for policy in db.query(Policy).filter_by(armed=True):
         db.query(Tenant).filter_by(id=policy.tenant_id).with_for_update().one()
+        db.refresh(policy)
+        if not policy.armed:
+            continue
         asset = db.get(Asset, policy.asset_id)
         state = asset_out(db, asset, now())
         if state['signal_state'] != 'received' and (now()-utc(policy.updated_at)).total_seconds() > 300:

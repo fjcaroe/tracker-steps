@@ -12,6 +12,7 @@ import sys
 from datetime import datetime, timezone
 from urllib.request import Request, urlopen
 from jose import jwt
+from app.main import app  # Match API model registration in standalone workers.
 from app.routers.fleet import PointInput, bridge_keys
 
 parser = argparse.ArgumentParser()
