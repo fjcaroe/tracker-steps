@@ -8,12 +8,21 @@
     "depends": ["step_packing", "step_inventory_fruit_tag", "step_producers"],
     "data": [
         "security/ir.model.access.csv",
+        "security/container_rules.xml",
+        "data/container_transfer_sequence.xml",
         "views/settings_views.xml",
         "views/fruit_package_views.xml",
         "views/fruit_reception_views.xml",
         "views/harvest_container_views.xml",
+        "views/scale_profile_views.xml",
         "wizard/fruit_reception_import_views.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "step_inventory_packing/static/src/scale_capture.js",
+            "step_inventory_packing/static/src/scale_capture.xml",
+        ],
+    },
     "installable": True,
     "application": False,
 }

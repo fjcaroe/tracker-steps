@@ -54,6 +54,67 @@ class TestFruitOperations(TransactionCase):
         self.assertEqual(location.usage, "internal")
         self.assertEqual(location.step_producer_id, self.producer)
 
+    def test_container_issue_and_return_use_stock_moves(self):
+        container = self.env["product.product"].create({
+            "name": "Bins T40", "is_storable": True,
+            "step_is_harvest_container": True,
+        })
+        quant = self.env["stock.quant"]
+        quant._update_available_quantity(container, self.warehouse.lot_stock_id, 10)
+        transfer_model = self.env["step.harvest.container.transfer"]
+        issue = transfer_model.create({
+            "direction": "issue", "producer_id": self.producer.id,
+            "warehouse_id": self.warehouse.id,
+            "line_ids": [(0, 0, {"product_id": container.id, "quantity": 3})],
+        })
+        issue.action_validate()
+        producer_location = self.env["stock.location"].search([
+            ("step_producer_id", "=", self.producer.id),
+            ("company_id", "=", self.company.id),
+        ], limit=1)
+        self.assertEqual(issue.picking_id.state, "done")
+        self.assertEqual(issue.picking_id.move_ids.product_id, container)
+        self.assertEqual(quant._get_available_quantity(container, producer_location), 3)
+        self.assertEqual(quant._get_available_quantity(container, self.warehouse.lot_stock_id), 7)
+        returned = transfer_model.create({
+            "direction": "return", "producer_id": self.producer.id,
+            "warehouse_id": self.warehouse.id,
+            "line_ids": [(0, 0, {"product_id": container.id, "quantity": 2})],
+        })
+        returned.action_validate()
+        self.assertEqual(quant._get_available_quantity(container, producer_location), 1)
+        self.assertEqual(quant._get_available_quantity(container, self.warehouse.lot_stock_id), 9)
+        with self.assertRaises(UserError):
+            returned.unlink()
+
+    def test_scale_profile_requires_valid_transport_and_pattern(self):
+        profile = self.env["step.scale.profile"].create({
+            "name": "Serie ASCII", "protocol": "serial",
+            "weight_pattern": r"ST,([-+]?\d+[.,]\d+) kg", "kg_factor": 1,
+        })
+        self.assertEqual(profile.baud_rate, 9600)
+        with self.cr.savepoint(), self.assertRaises(ValidationError):
+            profile.write({"weight_pattern": "["})
+        with self.cr.savepoint(), self.assertRaises(ValidationError):
+            profile.write({"protocol": "ble"})
+
+    def test_opening_balance_creates_inventory_adjustment(self):
+        container = self.env["product.product"].create({
+            "name": "Bandejas T40", "is_storable": True,
+            "step_is_harvest_container": True,
+        })
+        opening = self.env["step.harvest.container.opening"].create({
+            "line_ids": [(0, 0, {
+                "producer_id": self.producer.id,
+                "product_id": container.id, "quantity": 8,
+            })],
+        })
+        opening.action_apply()
+        location = self.producer._step_container_location(self.company)
+        self.assertEqual(self.env["stock.quant"]._get_available_quantity(container, location), 8)
+        with self.cr.savepoint(), self.assertRaises(UserError):
+            opening.action_apply()
+
     def test_excel_import_creates_tags_without_validating_stock(self):
         picking = self.env["stock.picking"].create({
             "partner_id": self.producer.id,
