@@ -182,9 +182,9 @@ API aislada y se restauró todo.
 
 1. **API** (aditiva): publicar con el procedimiento de `DEPLOY_WEB_TRACKER.md`; verificar en `/openapi.json` `GET /sessions/period` y
    `GET /v1/asset-sources`. No requiere migración SQL.
-2. **Frontend**: el portal compartido `/var/www/web_tracker_portal/` se actualizó hoy a las 23:05 UTC por la entrega concurrente; esta rama
-   parte de `429d87b`, por lo que publicar el build actual lo sobrescribiría. Rebasar sobre la rama remota vigente, reconstruir y desplegar
-   después de la API. Mientras tanto el botón «Ver costos y gastos» solo falla con un mensaje en los entornos sin el módulo.
+2. **Frontend**: el portal compartido `/var/www/web_tracker_portal/` se actualizó hoy por la entrega concurrente. Esta rama ya integra la base
+   vigente (`358072d`, Zonas) y compila/lint sin errores, pero no se publicó para no pisar esa entrega: reconstruir desde la rama al momento de
+   publicar y desplegar después de la API. Mientras tanto el botón «Ver costos y gastos» solo falla con un mensaje en los entornos sin el módulo.
 3. **Demo / Cerro El Plomo / producción**: instalar con el mismo script (ajustando base, servicio y usuario de ejecución; Demo corre como `demo_odoo18`).
    Después: Ajustes → Tracker (URL y usuario de servicio), vincular máquinas↔vehículos, conductores↔empleados, centros de Tracker↔cuentas analíticas,
    y «Sincronizar desde Tracker» en Vínculos de activos.
