@@ -425,3 +425,13 @@ class TestExpenseTrackerImport(TrackerCase):
             wizard.action_preview()
             wizard.action_confirm()
         self.assertEqual(len(self._lines()), 1)
+
+    # ---- pantallas ----------------------------------------------------------------------------------------------------
+    def test_forms_expose_the_tracker_actions(self):
+        sheet_form = self.env['hr.expense.sheet'].get_view(view_type='form')['arch']
+        for marker in ('action_import_tracker_usage', 'action_refresh_tracker_lines', 'step_vehicle_id', 'action_open_usage'):
+            self.assertIn(marker, sheet_form)
+        self.assertIn('action_confirm', self.env['step.expense.tracker.import'].get_view(view_type='form')['arch'])
+        fleet_form = self.env['fleet.vehicle'].get_view(view_type='form')['arch']
+        self.assertIn('action_open_step_expenses', fleet_form)
+        self.assertIn('action_open_step_expense_sheets', fleet_form)

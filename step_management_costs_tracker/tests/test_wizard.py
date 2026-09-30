@@ -93,3 +93,12 @@ class TestCostWizard(CostCase):
         text = ' '.join(line.value or '' for line in wizard.line_ids)
         self.assertIn('Sin acceso', text)
         self.assertNotIn('99', text.replace('99.', ''))
+
+    def test_forms_expose_costs_and_map_buttons(self):
+        fleet_form = self.env['fleet.vehicle'].get_view(view_type='form')['arch']
+        self.assertIn('action_open_tracker_costs', fleet_form)
+        self.assertIn('action_open_tracker_map', fleet_form)
+        self.assertIn('action_open_tracker_costs', self.env['step.management.cost.center'].get_view(view_type='form')['arch'])
+        self.assertIn('management_center_id', self.env['step.tracker.cost_center'].get_view(view_type='form')['arch'])
+        with self.assertRaisesRegex(Exception, 'no está vinculado'):
+            self.vehicle.action_open_tracker_map()
