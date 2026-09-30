@@ -32,7 +32,7 @@ PY
 sudo install -d -m 700 "$backup"
 for db in tracker_steps LAB_TAREAS STEPS_DEMO CERRO_EL_PLOMO; do
   sudo -u postgres pg_dump -Fc "$db" | sudo tee "$backup/$db.dump" >/dev/null
-  sudo cat "$backup/$db.dump" | sudo -u postgres pg_restore --list >/dev/null
+  sudo pg_restore --list "$backup/$db.dump" >/dev/null
 done
 sudo cp -a "$target" "$backup/tracker_py"
 sudo cp -a /var/www/web_tracker_portal "$backup/web_tracker_portal"
