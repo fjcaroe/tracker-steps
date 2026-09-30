@@ -7,8 +7,13 @@ solo administradores crean, editan y archivan zonas.
 ## Uso
 
 1. Elegir **Nueva zona**, ingresar nombre, uso y color.
-2. Tocar el mapa para marcar entre 3 y 100 vértices. Cerrar el polígono y ajustar
-   sus puntos. En móvil, mover el mapa con dos dedos. Se puede trabajar también
+2. En **Mover mapa**, buscar dirección/comuna/coordenadas, usar **Mi ubicación**
+   (permiso del navegador) o **Ubicar vehículo**. Arrastrar con un dedo, usar
+   rueda/pellizco o zoom. **Ampliar mapa** conserva los controles del editor.
+   Elegir **Dibujar** para marcar entre 3 y 100 vértices; en móvil puede usarse
+   **Añadir punto en el centro** después de mover el mapa. Cerrar con el primer
+   vértice o **Ajustar**. Deshacer/rehacer también cubre movimientos de vértices.
+   Cambiar de herramienta no reinicia el encuadre. Se puede trabajar también
    con una línea `latitud, longitud` por vértice en grados decimales.
 3. Guardar. Se rechazan bordes cruzados, puntos repetidos, segmentos menores a
    0,5 m, superficies menores a 1 m² y zonas que se extiendan más de 2 grados
@@ -24,6 +29,21 @@ solo administradores crean, editan y archivan zonas.
 
 El mapa general incluye las zonas activas. No se configuran alertas ni acciones
 físicas al elegir «Zona restringida»: es una clasificación del lugar.
+
+**Recorrido reciente de referencia:** últimas 24 horas del GPS actualmente
+asociado al vehículo, máximo 500 posiciones, actualización cada minuto y aviso
+si hay más datos. No mezcla asignaciones antiguas; corta líneas ante huecos
+>5 minutos, fixes inválidos/ambiguos y saltos >200 km/h. Es distinto del reporte
+por zona/período. La última posición muestra fecha y antigüedad. La ubicación
+del navegador se pide solo al pulsar el botón y no se guarda en la flota.
+
+La búsqueda de direcciones usa el Geocoder de Google Maps (API ya habilitada
+en el proyecto); si no responde, siguen disponibles coordenadas y ubicación:
+[Geocoding](https://developers.google.com/maps/documentation/javascript/geocoding),
+[gestos del mapa](https://developers.google.com/maps/documentation/javascript/interaction).
+La entrega de navegación usa `scripts/deploy-tracker-zone-navigation.sh`:
+actualiza frontend y el filtro opcional del historial GPS, sin migraciones ni
+actualización del addon Odoo.
 
 ## Método y límites
 

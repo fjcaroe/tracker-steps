@@ -86,6 +86,28 @@ def test_old_fix_received_now_never_means_stopped(fleet):
     assert snap['motion_state'] == 'unknown'
 
 
+def test_recent_trail_only_current_assignment_and_since(fleet):
+    client, factory = fleet
+    client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point('trail-old', minutes=60))
+    with factory() as db:
+        boundary=now()-timedelta(minutes=30)
+        db.get(Assignment,'as1').valid_to=boundary
+        db.add(Assignment(id='as-trail',tenant_id='t1',device_id='d1',asset_id='a1',valid_from=boundary))
+        db.commit()
+    client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point('trail-new', minutes=1))
+    path='/v1/assets/a1/positions'
+    assert len(client.get(path,headers=headers()).json()['items'])==2
+    current=client.get(path,headers=headers(role='viewer'),params={'current_assignment':True}).json()
+    assert len(current['items'])==1
+    assert client.get(path,headers=headers(),params={'current_assignment':True,'since':now().isoformat()}).json()['items']==[]
+    assert client.get(path,headers=headers(),params={'since':'2026-01-01T00:00:00'}).status_code==422
+    assert client.get('/v1/assets/a2/positions?current_assignment=true',headers=headers()).status_code==404
+    with factory() as db:
+        db.get(Assignment,'as-trail').valid_to=now();db.commit()
+    assert client.get(path,headers=headers(),params={'current_assignment':True}).json()['items']==[]
+    assert len(client.get(path,headers=headers()).json()['items'])==2
+
+
 def test_reassignment_preserves_history(fleet):
     client, factory = fleet
     client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point(minutes=60))
