@@ -1,0 +1,13 @@
+export default function TrackerSetupGuide() {
+ return <section className="tracker-home-card tracker-setup-guide"><span className="fleet-eyebrow">ACTIVACIÓN ACOMPAÑADA</span><h2>Del dispositivo a tu pantalla</h2><p>Tu equipo administra la flota. Steps instala, configura y prueba el GPS.</p><div className="tracker-guide-grid">
+ {[
+ ['01','Registra','Cliente / administrador','Crea el vehículo y registra el IMEI de 15 dígitos que aparece en la etiqueta. Agrega el operador y número de la SIM. Registrar no conecta el equipo por sí solo.'],
+ ['02','Prepara la conectividad','Cliente con apoyo de Steps','La SIM necesita datos móviles activos y cobertura compatible. Confirma con el operador la bolsa, vigencia, APN y disponibilidad de SMS si el modelo los usa para configurar.'],
+ ['03','Instala y configura','Equipo técnico Steps','Steps revisa modelo y firmware, instala alimentación y accesorios, configura el APN y el destino del receptor compatible. La dirección web del portal no es el servidor de recepción GPS.'],
+ ['04','Asocia y verifica','Administrador + Steps','Asocia el GPS al vehículo. Steps valida la primera posición, hora, señal, ACC y desconexiones. Cambiar la asociación no mueve el historial anterior.'],
+ ].map(([n,title,who,copy])=><article key={n}><b>{n}</b><h3>{title}</h3><span>{who}</span><p>{copy}</p></article>)}</div>
+ <details><summary>Coban 401C: qué necesitamos cuando llegue</summary><p>Modelo exacto, IMEI, manual incluido, operador de la SIM y versión de firmware si está disponible. La instalación, el receptor compatible y sus parámetros se validan con el equipo físico. No copies comandos de otro modelo.</p><p>El corta corriente está deshabilitado en Steps. Solo se considerará la inhibición de arranque después de pruebas verificadas de instalación, lectura de estados y confirmación física.</p></details>
+ <details><summary>¿Por qué mi GPS no aparece en el mapa?</summary><p>Revisa en este orden: vehículo asociado, SIM activa con datos, cobertura y alimentación, configuración de APN/destino y primera posición GPS. “Sin señal” no significa que el vehículo esté detenido ni permite asegurar que se acabó el saldo.</p></details>
+ <details><summary>Recarga, datos y vigencia de la línea</summary><p>La bolsa de datos puede vencer antes que el saldo. La baja por inactividad depende del operador y contrato. Registra las fechas confirmadas por tu compañía móvil y actualízalas después de cada recarga.</p><p>Los recordatorios aparecen en Inicio y Configuración. Puedes agregarlos a tu calendario. Steps no consulta el saldo del operador, no hace recargas ni envía avisos externos automáticamente.</p></details>
+ </section>;
+}

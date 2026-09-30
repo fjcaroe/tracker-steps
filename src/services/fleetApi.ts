@@ -1,5 +1,5 @@
 export type FleetAsset = {
-  asset_id: string; name: string; plate: string | null; type: string; cost_center: string | null;
+  asset_id: string; name: string; plate: string | null; type: string; cost_center: string | null; linked_to_odoo?: boolean;
   responsible: string | null; created_at: string; position_stale: boolean;
   signal_state: 'received' | 'stale' | 'no_signal'; motion_state: 'moving' | 'stationary' | 'unknown';
   protection_state: 'armed' | 'disarmed' | 'incident_open';
@@ -38,7 +38,7 @@ export async function allPages<T>(path: string, context: FleetContext): Promise<
   } while (cursor);
   return items;
 }
-export const labels: Record<string, string> = { moving: 'En movimiento', stationary: 'Detenido · señal reciente', unknown: 'Movimiento desconocido', received: 'Dato recibido', stale: 'Sin señal reciente', no_signal: 'Sin señal', armed: 'Armada', disarmed: 'Desarmada', incident_open: 'Incidente abierto', open: 'Abierto', acknowledged: 'Reconocido', closed: 'Cerrado', communication_failure: 'Falla de comunicación', suspected_movement: 'Sospecha de movimiento', external_power_lost: 'Alimentación desconectada', acc_outside_schedule: 'ACC fuera de horario', outside_zone: 'Salida de zona', sos: 'SOS', manual: 'Aviso manual', high: 'Alta', medium: 'Media', vehicle: 'Vehículo', tractor: 'Tractor', truck: 'Camión' };
+export const labels: Record<string, string> = { car:'Auto', pickup:'Camioneta', van:'Furgón', motorcycle:'Moto', machinery:'Maquinaria', other:'Otro', moving: 'En movimiento', stationary: 'Detenido · señal reciente', unknown: 'Movimiento desconocido', received: 'Dato recibido', stale: 'Sin señal reciente', no_signal: 'Sin señal', armed: 'Armada', disarmed: 'Desarmada', incident_open: 'Incidente abierto', open: 'Abierto', acknowledged: 'Reconocido', closed: 'Cerrado', communication_failure: 'Falla de comunicación', suspected_movement: 'Sospecha de movimiento', external_power_lost: 'Alimentación desconectada', acc_outside_schedule: 'ACC fuera de horario', outside_zone: 'Salida de zona', sos: 'SOS', manual: 'Aviso manual', high: 'Alta', medium: 'Media', vehicle: 'Vehículo', tractor: 'Tractor', truck: 'Camión' };
 const auditLabels: Record<string, string> = { incident_opened: 'Incidente registrado', notification_pending: 'Aviso en bandeja', policy_changed: 'Política modificada', command_denied: 'Solicitud denegada', approval_denied: 'Aprobación denegada', device_assigned: 'GPS asociado', asset_upsert: 'Equipo sincronizado' };
 export const label = (s: string) => labels[s] || auditLabels[s] || s;
 export const dateLabel = (s?: string | null) => s ? new Date(s).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : 'Sin dato';

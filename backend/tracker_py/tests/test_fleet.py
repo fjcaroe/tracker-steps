@@ -12,10 +12,10 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.db.base import Base
 from app.db.session import get_db
-from app.models.fleet import Tenant, Asset, Device, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
+from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
 from app.routers.fleet import check_communications
 
-MODELS = [Tenant, Asset, Device, Assignment, Position, Policy, Incident, Audit, Preference, Command]
+MODELS = [Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command]
 
 
 @pytest.fixture
@@ -182,3 +182,74 @@ def test_buffered_point_before_arming_does_not_raise_new_incident(fleet):
     client.put('/v1/security/policies', headers=headers(), json={'asset_id': 'a1', 'armed': True, 'version': 0, 'reason': 'Armado posterior'})
     assert client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=buffered).status_code == 200
     assert client.get('/v1/security/incidents', headers=headers()).json()['items'] == []
+
+def test_asset_registration_edit_and_audit(fleet):
+    client, factory = fleet
+    details = {'name': '  Auto comercial  ', 'type': 'car', 'plate': 'STPS01'}
+    assert client.post('/v1/assets', headers=headers(role='viewer'), json=details).status_code == 403
+    assert client.post('/v1/assets', headers=headers(), json={**details, 'tenant_id': 't2'}).status_code == 422
+    aid = client.post('/v1/assets', headers=headers(), json=details).json()['asset_id']
+    assert client.get('/v1/assets/'+aid, headers=headers()).json()['name'] == 'Auto comercial'
+    assert client.patch('/v1/assets/'+aid, headers=headers('test-two'), json=details).status_code == 404
+    assert client.patch('/v1/assets/'+aid, headers=headers(), json={**details, 'name': '   '}).status_code == 422
+    assert client.patch('/v1/assets/'+aid, headers=headers(), json={**details, 'name': 'Auto gerencia'}).status_code == 200
+    with factory() as db:
+        assert db.get(Asset, aid).source_id.startswith('manual:')
+        assert db.query(Audit).filter_by(asset_id=aid, action='asset_updated').count() == 1
+
+
+def test_configuration_private_inventory_reminders_and_versions(fleet):
+    from zoneinfo import ZoneInfo
+    client, factory = fleet
+    today = now().astimezone(ZoneInfo('America/Santiago')).date()
+    body = {'imei':'111222333444555','brand':'Coban','model':'401C','phone':'+56900000000',
+            'operator':'Test','next_recharge_on':str(today+timedelta(days=7)),
+            'data_expires_on':str(today-timedelta(days=1)), 'line_review_on':str(today+timedelta(days=20)),
+            'last_recharged_on':str(today-timedelta(days=30)), 'reminder_days':7}
+    assert client.get('/v1/configuration', headers=headers(role='viewer')).status_code == 403
+    assert client.post('/v1/configuration/devices', headers=headers(role='operator'), json=body).status_code == 403
+    assert client.post('/v1/configuration/devices', headers=headers(), json={**body, 'tracking_approved':True}).status_code == 422
+    assert client.post('/v1/configuration/devices', headers=headers(), json={**body, 'imei':'bad'}).status_code == 422
+    row_id = client.post('/v1/configuration/devices', headers=headers(), json=body).json()['id']
+    assert client.post('/v1/configuration/devices', headers=headers('test-two'), json=body).status_code == 409
+    result = client.get('/v1/configuration', headers=headers()).json()
+    assert result['items'][0]['tracking_approved'] is False
+    assert result['items'][0]['last_received_at'] is None
+    assert [r['days_remaining'] for r in result['reminders']] == [-1,7]
+    assert client.get('/v1/configuration', headers=headers('test-two')).json()['items'] == []
+    edit = {k:v for k,v in body.items() if k != 'imei'}
+    edit.update(version=1, data_expires_on=str(today+timedelta(days=30)))
+    path='/v1/configuration/devices/'+row_id
+    assert client.patch(path, headers=headers('test-two'), json=edit).status_code == 404
+    assert client.patch(path, headers=headers(), json=edit).status_code == 200
+    assert client.patch(path, headers=headers(), json=edit).status_code == 409
+    assert len(client.get('/v1/configuration', headers=headers()).json()['reminders']) == 1
+    with factory() as db:
+        changes = db.query(Audit).filter_by(action='device_configuration_updated').one()
+        assert '+56900000000' not in json.dumps(changes.detail)
+
+
+def test_configuration_association_boundaries_and_history(fleet):
+    client, factory = fleet
+    with factory() as db:
+        db.add(DeviceRegistration(id='r1', tenant_id='t1',device_id='d1'))
+        db.add(Asset(id='a3', tenant_id='t1', source_id='manual:3', name='Auto nuevo'))
+        db.commit()
+    client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point('before-change'))
+    path='/v1/configuration/devices/r1/assignment'
+    body={'asset_id':'a3','reason':'Cambio físico confirmado','version':1}
+    assert client.post(path, headers=headers(role='operator'), json=body).status_code == 403
+    assert client.post(path, headers=headers('test-two'), json=body).status_code == 404
+    assert client.post(path, headers=headers(), json={**body,'asset_id':'a2'}).status_code == 404
+    policy={'asset_id':'a1','armed':True,'version':0,'reason':'Vigilancia activa'}
+    client.put('/v1/security/policies', headers=headers(), json=policy)
+    assert client.post(path, headers=headers(), json=body).status_code == 409
+    client.put('/v1/security/policies', headers=headers(), json={**policy,'armed':False,'version':1})
+    assert client.post(path, headers=headers(), json=body).status_code == 200
+    assert client.post(path, headers=headers(), json=body).status_code == 409
+    assert client.get('/v1/assets/a3', headers=headers()).json()['last_position'] is None
+    assert len(client.get('/v1/assets/a1/positions', headers=headers()).json()['items']) == 1
+    client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point('after-change'))
+    assert len(client.get('/v1/assets/a3/positions', headers=headers()).json()['items']) == 1
+    assert client.post(path, headers=headers(), json={**body,'asset_id':None,'version':2}).status_code == 200
+    assert client.get('/v1/configuration', headers=headers()).json()['items'][0]['asset_id'] is None

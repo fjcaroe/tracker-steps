@@ -1,4 +1,22 @@
 <odoo>
+    <record id="action_home" model="ir.actions.act_url">
+        <field name="name">Steps Tracker · GPS y flotas</field>
+        <field name="url">/web_tracker/#home</field>
+        <field name="target">self</field>
+    </record>
+    <record id="step_tracker_odoo.menu_step_tracker_gps_root" model="ir.ui.menu">
+        <field name="name">Steps Tracker</field>
+        <field name="action" eval="'ir.actions.act_url,%d' % ref('action_home')"/>
+        <field name="parent_id" eval="False"/>
+        <field name="sequence">8</field>
+    </record>
+    <menuitem id="menu_home" name="Inicio · GPS y flotas" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_home" sequence="0" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+    <record id="action_configuration" model="ir.actions.act_url">
+        <field name="name">GPS, SIM y configuración</field>
+        <field name="url">/web_tracker/#settings</field>
+        <field name="target">self</field>
+    </record>
+    <menuitem id="menu_configuration" name="GPS y SIM" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_configuration" sequence="6" groups="step_tracker_portal.group_tracker_manager,base.group_system"/>
     <record id="action_fleet" model="ir.actions.act_url">
         <field name="name">Operación · Steps Tracker</field>
         <field name="url">/web_tracker/#live</field>

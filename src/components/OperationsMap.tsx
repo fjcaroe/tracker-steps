@@ -1,3 +1,4 @@
+import TrackerIcon from './TrackerIcon';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   GoogleMap,
@@ -23,6 +24,7 @@ type OperationsMapProps = {
   followVehicle: boolean;
   onUserInteracted?: () => void;
   markerLabels?: Record<string, string>;
+  markerTypes?: Record<string, string>;
 };
 
 const containerStyle: CSSProperties = { width: "100%", height: "100%" };
@@ -31,12 +33,12 @@ function toMapPoint(point: GeoPoint): google.maps.LatLngLiteral {
   return { lat: point.lat, lng: point.lon };
 }
 
-function TractorMarker({ vehicle, selected, label }: { vehicle: DemoVehicle; selected: boolean; label?: string }) {
+function TractorMarker({ vehicle, selected, label, type }: { vehicle: DemoVehicle; selected: boolean; label?: string; type?: string }) {
   return (
     <div className={`ops-map-vehicle ${selected ? "is-selected" : ""}`}>
       <span className="ops-map-vehicle__pulse" />
       <span className="ops-map-vehicle__icon" style={{ transform: `rotate(${vehicle.bearing}deg)` }}>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h8v7h2.2l1.4-4H20l1 4v4h-2.1a3 3 0 0 1-5.8 0H9.9a3 3 0 0 1-5.8 0H2v-5h3V6Zm2 2v4h4V8H7Zm-.9 10a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6Zm9.9-1.3a1.3 1.3 0 1 0 2.6 0 1.3 1.3 0 0 0-2.6 0Z"/></svg>
+        <TrackerIcon name={type === 'truck' ? 'truck' : !type || type === 'tractor' || type === 'machinery' ? 'tractor' : 'fleet'}/>
       </span>
       <span className="ops-map-vehicle__copy"><b>{vehicle.name}</b><small>{label ?? `${vehicle.speedKmh.toFixed(1)} km/h`}</small></span>
     </div>
@@ -56,6 +58,7 @@ export default function OperationsMap({
   followVehicle,
   onUserInteracted,
   markerLabels,
+  markerTypes,
 }: OperationsMapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -175,7 +178,7 @@ export default function OperationsMap({
             aria-label={selectedVehicleId === vehicle.id ? `Quitar foco de ${vehicle.name}` : `Enfocar ${vehicle.name}`}
             aria-pressed={selectedVehicleId === vehicle.id}
           >
-            <TractorMarker vehicle={vehicle} selected={selectedVehicleId === vehicle.id} label={markerLabels?.[vehicle.id]} />
+            <TractorMarker vehicle={vehicle} selected={selectedVehicleId === vehicle.id} label={markerLabels?.[vehicle.id]} type={markerTypes?.[vehicle.id]} />
           </button>
         </OverlayViewF>
       ))}

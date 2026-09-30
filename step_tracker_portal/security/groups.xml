@@ -8,7 +8,7 @@
         <field name="implied_ids" eval="[(4, ref('group_tracker_viewer'))]"/>
     </record>
     <record id="group_tracker_manager" model="res.groups">
-        <field name="name">Tracker: administrar protección</field>
+        <field name="name">Tracker: administrar flota, GPS y protección</field>
         <field name="implied_ids" eval="[(4, ref('group_tracker_operator'))]"/>
     </record>
     <record id="rule_protection_company" model="ir.rule">

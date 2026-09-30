@@ -1,7 +1,7 @@
 """Isolated GPS domain. Legacy session tables keep their original meaning."""
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, JSON, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import Column, String, Integer, Float, Boolean, Date, DateTime, JSON, ForeignKey, UniqueConstraint, Index
 from app.db.base import Base
 
 
@@ -59,6 +59,26 @@ class Assignment(Base):
     asset_id = Column(String(36), ForeignKey('gps_assets.id'), nullable=False)
     valid_from = Column(DateTime(timezone=True), nullable=False)
     valid_to = Column(DateTime(timezone=True))
+
+
+class DeviceRegistration(Base):
+    __tablename__ = 'gps_device_registrations'
+    id = Column(String(36), primary_key=True, default=uid)
+    tenant_id = Column(String(36), ForeignKey('gps_tenants.id'), nullable=False, index=True)
+    device_id = Column(String(36), ForeignKey('gps_devices.id'), nullable=False, unique=True)
+    phone = Column(String(40))
+    operator = Column(String(100))
+    plan_type = Column(String(20), nullable=False, default='prepaid')
+    apn = Column(String(100))
+    responsible = Column(String(200))
+    last_recharged_on = Column(Date)
+    next_recharge_on = Column(Date)
+    data_expires_on = Column(Date)
+    line_review_on = Column(Date)
+    reminder_days = Column(Integer, nullable=False, default=7)
+    notes = Column(String(1000))
+    version = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now)
 
 
 class Position(Base):

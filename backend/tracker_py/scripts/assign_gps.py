@@ -10,7 +10,7 @@ from datetime import datetime
 from sqlalchemy import or_
 from app.main import app  # Register legacy relationships before the standalone query.
 from app.db.session import SessionLocal
-from app.models.fleet import Tenant, Asset, Device, Assignment, Audit, now
+from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Audit, now
 
 data = json.load(open(sys.argv[1], encoding='utf-8'))
 boundary = datetime.fromisoformat(data['valid_from'].replace('Z', '+00:00'))
@@ -24,6 +24,11 @@ with SessionLocal.begin() as db:
         device = Device(**{key: data.get(key) for key in ('imei', 'brand', 'model', 'firmware', 'protocol')})
         db.add(device)
         db.flush()
+    registration = db.query(DeviceRegistration).filter_by(device_id=device.id).one_or_none()
+    if registration and registration.tenant_id != tenant.id:
+        raise ValueError('Device inventory belongs to another tenant; reconcile ownership first')
+    if not registration:
+        db.add(DeviceRegistration(tenant_id=tenant.id, device_id=device.id))
     # Reassignment is intentionally separate: operator must close previous
     # interval after checking it, never silently steal an active installation.
     if db.query(Assignment).filter(or_(Assignment.device_id == device.id, Assignment.asset_id == asset.id), Assignment.valid_to.is_(None)).first():

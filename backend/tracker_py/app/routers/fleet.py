@@ -2,6 +2,7 @@
 import json
 import os
 import math
+from uuid import uuid4
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from typing import Literal
@@ -79,7 +80,7 @@ def asset_out(db, a, at):
     policy = db.get(Policy, a.id)
     incident = db.query(Incident).filter_by(tenant_id=a.tenant_id, asset_id=a.id).filter(Incident.state != 'closed').first()
     return {**{k: getattr(a, k) for k in ('name', 'plate', 'type', 'cost_center', 'responsible', 'created_at')},
-            'asset_id': a.id, 'last_position': position_out(p),
+            'asset_id': a.id, 'linked_to_odoo': a.source_id.startswith('odoo:'), 'last_position': position_out(p),
             'signal_state': 'received' if fresh else 'stale' if p else 'no_signal',
             'motion_state': ('moving' if p.speed_kmh > 2 else 'stationary') if fresh and recent_fix and p.speed_kmh is not None else 'unknown',
             'position_stale': not recent_fix,
@@ -135,6 +136,38 @@ class AssetInput(Strict):
     cost_center: str | None = Field(None, max_length=200)
     responsible: str | None = Field(None, max_length=200)
     created_at: AwareDatetime | None = None
+
+
+class AssetDetails(Strict):
+    model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
+    name: str = Field(min_length=1, max_length=200)
+    plate: str | None = Field(None, max_length=40)
+    type: str = Field('vehicle', min_length=1, max_length=50)
+    cost_center: str | None = Field(None, max_length=200)
+    responsible: str | None = Field(None, max_length=200)
+
+
+@router.post('/assets')
+def create_asset(body: AssetDetails, ctx=Depends(identity), db: Session = Depends(get_db)):
+    require(ctx, ('manager',))
+    row = Asset(tenant_id=ctx['tenant_id'], source_id='manual:'+str(uuid4()), **body.model_dump())
+    db.add(row)
+    db.flush()
+    audit(db, ctx, 'asset_created', {'name': row.name, 'type': row.type}, row.id)
+    db.commit()
+    return {'asset_id': row.id}
+
+
+@router.patch('/assets/{asset_id}')
+def edit_asset(asset_id: str, body: AssetDetails, ctx=Depends(identity), db: Session = Depends(get_db)):
+    require(ctx, ('manager',))
+    row = owned(db, Asset, asset_id, ctx)
+    changes = {k: {'before': getattr(row, k), 'after': v} for k, v in body.model_dump().items() if getattr(row, k) != v}
+    for k, v in body.model_dump().items():
+        setattr(row, k, v)
+    audit(db, ctx, 'asset_updated', changes, row.id)
+    db.commit()
+    return {'asset_id': row.id}
 
 
 @router.put('/assets')
