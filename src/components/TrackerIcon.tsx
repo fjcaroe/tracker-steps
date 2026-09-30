@@ -1,6 +1,6 @@
 export default function TrackerIcon({ name, size = 22 }: { name: string; size?: number }) {
   const paths: Record<string, string> = {
-    settings: 'M4 7h16M4 17h16M8 4v6m8 4v6', home: 'M3 10 12 3l9 7v11h-6v-7H9v7H3Z', live: 'm3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16',
+    zones: 'm4 7 11-4 6 12-11 6-7-6Z M4 7h.01M15 3h.01M21 15h.01M10 21h.01', settings: 'M4 7h16M4 17h16M8 4v6m8 4v6', home: 'M3 10 12 3l9 7v11h-6v-7H9v7H3Z', live: 'm3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16',
     fleet: 'm5 6 2-3h10l2 3 2 5v8h-3v-3H6v3H3v-8Zm-1 5h16M7 13h1m8 0h1',
     protection: 'M12 3 3 6v6c0 5 9 9 9 9s9-4 9-9V6Zm-5 9 3 3 7-7',
     plus: 'M12 5v14M5 12h14', arrow: 'M5 12h14m-6-6 6 6-6 6',

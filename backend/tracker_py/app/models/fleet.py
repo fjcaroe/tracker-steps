@@ -24,6 +24,20 @@ class Tenant(Base):
     __table_args__ = (UniqueConstraint('issuer', 'company_id'),)
 
 
+class Zone(Base):
+    __tablename__ = 'gps_zones'
+    id = Column(String(36), primary_key=True, default=uid)
+    tenant_id = Column(String(36), ForeignKey('gps_tenants.id'), nullable=False, index=True)
+    name = Column(String(150), nullable=False)
+    purpose = Column(String(30), nullable=False, default='operation')
+    color = Column(String(7), nullable=False, default='#6d963c')
+    vertices = Column(JSON, nullable=False)
+    active = Column(Boolean, nullable=False, default=True)
+    version = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=now)
+
+
 class Asset(Base):
     __tablename__ = 'gps_assets'
     id = Column(String(36), primary_key=True, default=uid)

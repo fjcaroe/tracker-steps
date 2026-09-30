@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { trailPaths } from '../src/services/vehicleTrail.ts';
+const start=Date.parse('2026-09-30T12:00:00Z');
+const fix=(seconds,lon,extra={})=>({id:String(seconds),recorded_at:new Date(start+seconds*1000).toISOString(),received_at:new Date(start+seconds*1000).toISOString(),lat:0,lon,speed_kmh:10,quality:'gps',acc:true,external_power:true,...extra});
+assert.equal(trailPaths([fix(60,.001),fix(0,0),fix(120,.002)])[0].length,3);
+assert.equal(trailPaths([fix(0,0),fix(301,.001)]).length,0);
+assert.equal(trailPaths([fix(0,0),fix(1,1)]).length,0);
+assert.equal(trailPaths([fix(0,0),fix(60,.001,{quality:'invalid'})]).length,0);
+assert.equal(trailPaths([fix(0,0),fix(60,.001),fix(60,.005),fix(120,.002)]).length,0);
+assert.equal(trailPaths([fix(0,0),fix(60,.001),fix(600,.002),fix(660,.003)]).length,2);
+assert.equal(trailPaths([fix(0,0),fix(60,.001,{speed_kmh:250})]).length,0);
+assert.equal(trailPaths([]).length,0);
+console.log('8 vehicle trail checks passed');

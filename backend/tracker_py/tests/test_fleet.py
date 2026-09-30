@@ -12,10 +12,10 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.db.base import Base
 from app.db.session import get_db
-from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
+from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, Zone, now
 from app.routers.fleet import check_communications
 
-MODELS = [Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command]
+MODELS = [Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, Zone]
 
 
 @pytest.fixture
@@ -84,6 +84,28 @@ def test_old_fix_received_now_never_means_stopped(fleet):
     assert snap['signal_state'] == 'received'
     assert snap['position_stale'] is True
     assert snap['motion_state'] == 'unknown'
+
+
+def test_recent_trail_only_current_assignment_and_since(fleet):
+    client, factory = fleet
+    client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point('trail-old', minutes=60))
+    with factory() as db:
+        boundary=now()-timedelta(minutes=30)
+        db.get(Assignment,'as1').valid_to=boundary
+        db.add(Assignment(id='as-trail',tenant_id='t1',device_id='d1',asset_id='a1',valid_from=boundary))
+        db.commit()
+    client.post('/v1/ingest/positions', headers=headers(role='ingestor'), json=point('trail-new', minutes=1))
+    path='/v1/assets/a1/positions'
+    assert len(client.get(path,headers=headers()).json()['items'])==2
+    current=client.get(path,headers=headers(role='viewer'),params={'current_assignment':True}).json()
+    assert len(current['items'])==1
+    assert client.get(path,headers=headers(),params={'current_assignment':True,'since':now().isoformat()}).json()['items']==[]
+    assert client.get(path,headers=headers(),params={'since':'2026-01-01T00:00:00'}).status_code==422
+    assert client.get('/v1/assets/a2/positions?current_assignment=true',headers=headers()).status_code==404
+    with factory() as db:
+        db.get(Assignment,'as-trail').valid_to=now();db.commit()
+    assert client.get(path,headers=headers(),params={'current_assignment':True}).json()['items']==[]
+    assert len(client.get(path,headers=headers()).json()['items'])==2
 
 
 def test_reassignment_preserves_history(fleet):
