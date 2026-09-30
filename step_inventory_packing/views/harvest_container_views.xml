@@ -44,6 +44,65 @@
         <field name="view_mode">list,form,pivot</field>
         <field name="domain">[('product_id.product_tmpl_id.step_is_harvest_container', '=', True), '|', ('location_id.step_producer_id', '!=', False), ('location_dest_id.step_producer_id', '!=', False)]</field>
     </record>
+    <record id="view_harvest_container_transfer_list" model="ir.ui.view">
+        <field name="name">step.harvest.container.transfer.list</field>
+        <field name="model">step.harvest.container.transfer</field>
+        <field name="arch" type="xml"><list>
+            <field name="name"/><field name="direction"/><field name="producer_id"/>
+            <field name="warehouse_id"/><field name="fruit_picking_id"/><field name="state"/>
+        </list></field>
+    </record>
+    <record id="view_harvest_container_transfer_form" model="ir.ui.view">
+        <field name="name">step.harvest.container.transfer.form</field>
+        <field name="model">step.harvest.container.transfer</field>
+        <field name="arch" type="xml"><form>
+            <header><button name="action_validate" type="object" string="Validar traslado"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                <field name="state" widget="statusbar"/></header>
+            <sheet><div class="oe_title"><h1><field name="name"/></h1></div>
+                <group><group><field name="direction" readonly="state == 'done'"/>
+                    <field name="producer_id" readonly="state == 'done'"/>
+                    <field name="fruit_picking_id" readonly="state == 'done'"/></group>
+                    <group><field name="company_id" readonly="state == 'done'"/>
+                    <field name="warehouse_id" readonly="state == 'done'"
+                           domain="[('company_id', '=', company_id)]"/>
+                    <field name="picking_id" readonly="1"/></group></group>
+                <field name="line_ids" readonly="state == 'done'"><list editable="bottom">
+                    <field name="product_id"/><field name="quantity"/><field name="uom_id"/>
+                </list></field>
+            </sheet><chatter/></form></field>
+    </record>
+    <record id="action_step_harvest_container_transfers" model="ir.actions.act_window">
+        <field name="name">Entregas y devoluciones de envases</field>
+        <field name="res_model">step.harvest.container.transfer</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_harvest_container_opening_form" model="ir.ui.view">
+        <field name="name">step.harvest.container.opening.form</field>
+        <field name="model">step.harvest.container.opening</field>
+        <field name="arch" type="xml"><form string="Inventario inicial de envases">
+            <sheet><field name="company_id"/>
+                <field name="line_ids"><list editable="bottom">
+                    <field name="producer_id"/><field name="product_id"/>
+                    <field name="quantity"/>
+                </list></field>
+            </sheet><footer><button name="action_apply" type="object" string="Aplicar inventario inicial"
+                                    class="btn-primary"/>
+                <button string="Cancelar" special="cancel"/></footer>
+        </form></field>
+    </record>
+    <record id="action_step_harvest_container_opening" model="ir.actions.act_window">
+        <field name="name">Inventario inicial de envases</field>
+        <field name="res_model">step.harvest.container.opening</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_step_harvest_container_opening" name="Inventario inicial de envases"
+              parent="step_packing.menu_packing_fruta_operations" action="action_step_harvest_container_opening"
+              sequence="24" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_step_harvest_container_transfers" name="Entregas y devoluciones de envases"
+              parent="step_packing.menu_packing_fruta_operations" action="action_step_harvest_container_transfers"
+              sequence="25" groups="stock.group_stock_user"/>
     <menuitem id="menu_step_harvest_container_ledger" name="Movimientos de envases"
               parent="step_packing.menu_packing_fruta_operations" action="action_step_harvest_container_ledger"
               sequence="26" groups="stock.group_stock_user"/>

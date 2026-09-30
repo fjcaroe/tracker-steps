@@ -10,6 +10,15 @@
             </field>
             <field name="fruit_weighing_type" position="after">
                 <field name="step_fruit_weighing_method" invisible="not step_fruit_reception_kind"/>
+                <field name="step_scale_profile_id" invisible="not step_fruit_reception_kind or step_fruit_weighing_method != 'scale'"
+                       domain="[('company_id', '=', company_id)]"/>
+                <field name="step_scale_protocol" invisible="1"/>
+                <field name="step_scale_service_uuid" invisible="1"/>
+                <field name="step_scale_characteristic_uuid" invisible="1"/>
+                <field name="step_scale_serial_service_uuid" invisible="1"/>
+                <field name="step_scale_baud_rate" invisible="1"/>
+                <field name="step_scale_weight_pattern" invisible="1"/>
+                <field name="step_scale_kg_factor" invisible="1"/>
                 <field name="step_fruit_weighing_by" invisible="not step_fruit_reception_kind"/>
                 <field name="step_fruit_guide_date" invisible="not step_fruit_reception_kind"/>
                 <field name="step_fruit_cost_center" invisible="not step_fruit_reception_kind"/>
@@ -19,7 +28,19 @@
                 <field name="step_fruit_driver_vat" readonly="1" invisible="not step_fruit_reception_kind"/>
             </field>
             <field name="fruit_tag_line_ids" position="before">
+                <button name="action_step_container_return" type="object"
+                        string="Registrar envases recibidos" class="btn-secondary"
+                        invisible="not step_fruit_reception_kind or state != 'done'"/>
+                <field name="step_container_transfer_ids" readonly="1"
+                       invisible="not step_fruit_reception_kind">
+                    <list><field name="name"/><field name="direction"/>
+                          <field name="state"/><field name="picking_id"/></list>
+                </field>
                 <group string="Pesaje de fruta" invisible="not step_fruit_reception_kind">
+                    <field name="step_scale_capture" widget="step_scale_capture"
+                           invisible="step_fruit_weighing_method != 'scale' or not step_scale_profile_id or state == 'done'"/>
+                    <field name="step_scale_read_at" readonly="1" force_save="1" invisible="not step_scale_read_at"/>
+                    <field name="step_scale_read_raw" readonly="1" force_save="1" invisible="not step_scale_read_raw"/>
                     <field name="step_fruit_gross_kg"/>
                     <field name="step_fruit_truck_tare_kg"/>
                     <field name="step_fruit_container_tare_kg"/>
@@ -33,9 +54,21 @@
             <field name="kilos" position="after">
                 <field name="package_id"/>
                 <field name="product_id"/>
+                <field name="step_scale_profile_id" column_invisible="True"/>
+                <field name="step_scale_protocol" column_invisible="True"/>
+                <field name="step_scale_service_uuid" column_invisible="True"/>
+                <field name="step_scale_characteristic_uuid" column_invisible="True"/>
+                <field name="step_scale_serial_service_uuid" column_invisible="True"/>
+                <field name="step_scale_baud_rate" column_invisible="True"/>
+                <field name="step_scale_weight_pattern" column_invisible="True"/>
+                <field name="step_scale_kg_factor" column_invisible="True"/>
                 <field name="gross_kg"/>
                 <field name="tare_kg"/>
                 <field name="net_kg" readonly="1"/>
+                <field name="step_scale_capture" widget="step_scale_capture"
+                       invisible="not step_scale_profile_id"/>
+                <field name="step_scale_read_at" optional="hide" readonly="1" force_save="1"/>
+                <field name="step_scale_read_raw" column_invisible="True" readonly="1" force_save="1"/>
                 <field name="box_count"/>
             </field>
         </field>

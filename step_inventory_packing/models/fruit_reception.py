@@ -17,6 +17,27 @@ class StockPicking(models.Model):
     step_fruit_weighing_by = fields.Selection([
         ("truck", "Por camión"), ("unit", "Por unidad de traslado"),
     ], string="Tipo de pesaje", default="truck")
+    step_scale_profile_id = fields.Many2one("step.scale.profile", string="Perfil de balanza")
+    step_scale_capture = fields.Char(string="Captura de balanza", compute="_compute_step_scale_capture")
+    step_scale_protocol = fields.Selection(related="step_scale_profile_id.protocol")
+    step_scale_service_uuid = fields.Char(related="step_scale_profile_id.service_uuid")
+    step_scale_characteristic_uuid = fields.Char(related="step_scale_profile_id.characteristic_uuid")
+    step_scale_serial_service_uuid = fields.Char(related="step_scale_profile_id.serial_service_uuid")
+    step_scale_baud_rate = fields.Integer(related="step_scale_profile_id.baud_rate")
+    step_scale_weight_pattern = fields.Char(related="step_scale_profile_id.weight_pattern")
+    step_scale_kg_factor = fields.Float(related="step_scale_profile_id.kg_factor")
+    step_scale_read_at = fields.Datetime(string="Última lectura de balanza", readonly=True, copy=False)
+    step_scale_read_raw = fields.Char(string="Trama de última lectura", readonly=True, copy=False)
+
+    def _compute_step_scale_capture(self):
+        for picking in self:
+            picking.step_scale_capture = False
+
+    @api.constrains("step_scale_profile_id", "company_id")
+    def _check_scale_company(self):
+        for picking in self:
+            if picking.step_scale_profile_id and picking.step_scale_profile_id.company_id != picking.company_id:
+                raise ValidationError(_("El perfil de balanza pertenece a otra empresa."))
     step_fruit_guide_date = fields.Date(string="Fecha guía productor")
     step_fruit_driver_id = fields.Many2one("res.partner", string="Chofer")
     step_fruit_driver_vat = fields.Char(related="step_fruit_driver_id.vat", string="RUT chofer")
@@ -118,6 +139,22 @@ class StockPicking(models.Model):
 
 class StepPackingPickingTagLine(models.Model):
     _inherit = "step.packing.picking.tag.line"
+
+    step_scale_profile_id = fields.Many2one(related="picking_id.step_scale_profile_id")
+    step_scale_protocol = fields.Selection(related="picking_id.step_scale_protocol")
+    step_scale_service_uuid = fields.Char(related="picking_id.step_scale_service_uuid")
+    step_scale_characteristic_uuid = fields.Char(related="picking_id.step_scale_characteristic_uuid")
+    step_scale_serial_service_uuid = fields.Char(related="picking_id.step_scale_serial_service_uuid")
+    step_scale_baud_rate = fields.Integer(related="picking_id.step_scale_baud_rate")
+    step_scale_weight_pattern = fields.Char(related="picking_id.step_scale_weight_pattern")
+    step_scale_kg_factor = fields.Float(related="picking_id.step_scale_kg_factor")
+    step_scale_capture = fields.Char(compute="_compute_step_scale_capture")
+    step_scale_read_at = fields.Datetime(string="Última lectura", readonly=True, copy=False)
+    step_scale_read_raw = fields.Char(string="Trama de última lectura", readonly=True, copy=False)
+
+    def _compute_step_scale_capture(self):
+        for line in self:
+            line.step_scale_capture = False
 
     package_id = fields.Many2one("stock.quant.package", string="Paquete de stock")
     product_id = fields.Many2one("product.product", string="Producto")
