@@ -74,7 +74,11 @@ class SessionSummaryOut(BaseModel):
     id: uuid.UUID
     machine_id: int
     machine_name: Optional[str] = None
+    # Identificadores de origen. Se entregan junto a los nombres para que los
+    # consumidores (p. ej. el espejo Odoo) resuelvan por ID y nunca por nombre.
+    driver_id: Optional[int] = None
     driver_name: Optional[str] = None
+    cost_center_id: Optional[int] = None
     cost_center_name: Optional[str] = None
     started_at: datetime
     ended_at: Optional[datetime] = None
@@ -96,3 +100,16 @@ class SessionSummaryOut(BaseModel):
     last_lat: Optional[float] = None
     last_lon: Optional[float] = None
     last_speed_mps: Optional[float] = None
+
+
+class SessionPeriodOut(BaseModel):
+    """Página de sesiones que tocan un período, con cursor estable.
+
+    `complete` solo es verdadero en la última página: un cliente que agote los
+    cursores sabe que recibió todo el período; uno que se detenga antes no puede
+    darlo por completo.
+    """
+    items: List[SessionSummaryOut]
+    next_cursor: Optional[str] = None
+    complete: bool
+    total: int

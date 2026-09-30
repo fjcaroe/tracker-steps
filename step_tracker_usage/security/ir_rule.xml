@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Aislamiento por compañía. Reglas GLOBALES (sin grupos): se intersectan con cualquier otra.
+         Los espejos step.tracker.* existían sin reglas de registro y ahora alimentan cantidades
+         para costos y rendiciones. Los XML IDs de modelo son los de step_tracker_odoo. -->
+    <record id="rule_step_tracker_machine_company" model="ir.rule">
+        <field name="name">Tracker máquinas: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_machine"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_driver_company" model="ir.rule">
+        <field name="name">Tracker conductores: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_driver"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_activity_company" model="ir.rule">
+        <field name="name">Tracker actividades: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_activity"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_labor_company" model="ir.rule">
+        <field name="name">Tracker labores: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_labor"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_implement_company" model="ir.rule">
+        <field name="name">Tracker implementos: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_implement"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_field_company" model="ir.rule">
+        <field name="name">Tracker predios: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_field"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_session_company" model="ir.rule">
+        <field name="name">Tracker sesiones: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_session"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_work_order_company" model="ir.rule">
+        <field name="name">Tracker partes: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_work_order"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_sync_log_company" model="ir.rule">
+        <field name="name">Tracker sincronizaciones: compañías permitidas</field>
+        <field name="model_id" ref="step_tracker_odoo.model_step_tracker_sync_log"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_usage_company" model="ir.rule">
+        <field name="name">Tracker uso de vehículos: compañías permitidas</field>
+        <field name="model_id" ref="model_step_tracker_usage"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_tracker_cost_center_company" model="ir.rule">
+        <field name="name">Tracker centros de costo: compañías permitidas</field>
+        <field name="model_id" ref="model_step_tracker_cost_center"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>
