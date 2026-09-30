@@ -39,7 +39,7 @@ def signed_token(current_role):
 
 def call_api(path, method='GET', body=None, params=None):
     # Fixed loopback destination and path allowlist prevent SSRF and legacy API access.
-    allowed = ('fleet/snapshot', 'assets', 'assets/', 'view-preferences/', 'security/policies', 'security/incidents', 'security/commands', 'configuration', 'configuration/')
+    allowed = ('fleet/snapshot', 'assets', 'assets/', 'view-preferences/', 'security/policies', 'security/incidents', 'security/commands', 'configuration', 'configuration/', 'zones', 'zones/')
     if not any(path == p or (p.endswith('/') and path.startswith(p)) or (p.startswith('security/') and path.startswith(p+'/')) for p in allowed):
         raise Forbidden('Ruta no disponible')
     if '..' in path or '?' in path or '#' in path:

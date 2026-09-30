@@ -1,3 +1,4 @@
+import type { Zone } from '../services/fleetZones';
 import TrackerIcon from './TrackerIcon';
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
@@ -12,6 +13,8 @@ import { getRoadRoute } from "../demo/roadRoutes";
 import type { DemoField, DemoVehicle, GeoPoint } from "../demo/scenario";
 
 type OperationsMapProps = {
+  zones?: Zone[];
+  onSelectZone?: (id: string) => void;
   fields: DemoField[];
   vehicles: DemoVehicle[];
   selectedVehicleId: string | null;
@@ -47,6 +50,8 @@ function TractorMarker({ vehicle, selected, label, type }: { vehicle: DemoVehicl
 
 export default function OperationsMap({
   fields,
+  zones = [],
+  onSelectZone,
   vehicles,
   selectedVehicleId,
   onSelectVehicle,
@@ -74,7 +79,7 @@ export default function OperationsMap({
   const selectedLon = selectedVehicle?.position.lon;
   const depotPoint = useMemo(() => toMapPoint(depot), [depot]);
 
-  const boundsKey = JSON.stringify([...fields.flatMap((field) => field.polygon), ...(markerLabels ? vehicles.map(v => v.position) : [])]);
+  const boundsKey = JSON.stringify([...fields.flatMap((field) => field.polygon), ...zones.flatMap(z => z.vertices), ...(markerLabels ? vehicles.map(v => v.position) : [])]);
   const fieldBounds = useMemo(() => (JSON.parse(boundsKey) as GeoPoint[]).map(toMapPoint), [boundsKey]);
 
   const fitScenario = useCallback((instance: google.maps.Map) => {
@@ -140,6 +145,7 @@ export default function OperationsMap({
         tilt: 0,
       }}
     >
+      {zones.map(z => <PolygonF key={z.id} paths={z.vertices.map(toMapPoint)} options={{ fillColor: z.color, strokeColor: z.color, fillOpacity: .18, strokeWeight: 2 }} onClick={() => onSelectZone?.(z.id)}/>)}
       {fields.map((field) => (
         <PolygonF
           key={field.id}

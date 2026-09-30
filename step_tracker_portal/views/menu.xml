@@ -35,4 +35,10 @@
     <menuitem id="menu_fleet" name="Mapa de flota" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_fleet" sequence="2" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
     <menuitem id="menu_control" name="Control de flota" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_control" sequence="3" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
     <menuitem id="menu_protection" name="Protección" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_protection" sequence="4" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+    <record id="action_zones" model="ir.actions.act_url">
+        <field name="name">Zonas y actividad</field>
+        <field name="url">/web_tracker/#zones</field>
+        <field name="target">self</field>
+    </record>
+    <menuitem id="menu_zones" name="Zonas y actividad" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_zones" sequence="5" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
 </odoo>

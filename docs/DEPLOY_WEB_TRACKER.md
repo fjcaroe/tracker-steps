@@ -1,5 +1,12 @@
 # Cómo desplegar Web Tracker a producción
 
+> Portal autenticado de Desarrollo, Demo y Cerro el Plomo (septiembre 2026):
+> utiliza `/var/www/web_tracker_portal/`, `VITE_ODOO_PORTAL=true` y el addon
+> `step_tracker_portal`. Para la entrega de polígonos seguir también
+> [Zonas y métricas](ZONAS_Y_METRICAS_TRACKER.md), con el script incremental
+> `scripts/deploy-tracker-zones.sh`. No confundir estos destinos con el frontend
+> histórico de `stepsapp.cl` descrito abajo.
+
 Este documento existe para que **cualquier sesión de Claude Code** (o cualquier
 persona) sepa desplegar sin tener que redescubrir el proceso cada vez. Si estás
 leyendo esto porque el usuario pidió "sube los cambios al servidor" o "despliega

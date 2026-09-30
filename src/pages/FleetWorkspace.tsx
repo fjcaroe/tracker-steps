@@ -12,6 +12,8 @@ import './OperationsWorkspace.css';
 import './FleetWorkspace.css';
 import './TrackerHome.css';
 import FleetHome from './FleetHome';
+import FleetZones from './FleetZones';
+import { useFleetZones } from '../hooks/useFleetZones';
 import FleetSettings from './FleetSettings';
 import FleetAssetEditor, { type AssetDetails } from '../components/FleetAssetEditor';
 import FleetHistory from '../components/FleetHistory';
@@ -20,9 +22,9 @@ import { exportFleet } from '../services/fleetExport';
 import type { Configuration } from '../services/fleetConfiguration';
 import type { FleetFilters as Filters } from '../services/fleetApi';
 
-type View = 'home' | 'live' | 'fleet' | 'protection' | 'settings';
+type View = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones';
 const initialPreference: ViewPreference = { schema_version: 1, columns: defaultColumns, filters: emptyFilters, sort: 'name' };
-function viewFromHash(): View { const hash = window.location.hash.slice(1); return ['live','fleet','protection','settings'].includes(hash) ? hash as View : 'home'; }
+function viewFromHash(): View { const hash = window.location.hash.slice(1); return ['live','fleet','protection','settings','zones'].includes(hash) ? hash as View : 'home'; }
 function syntheticAssets(): FleetAsset[] {
   return getDemoVehicles(0).map((v, i) => ({ asset_id: v.id, name: ['Auto comercial','Camioneta de servicio','Camión de reparto','Furgón de soporte','Tractor de campo','Equipo de faena'][i%6]+' '+String(Math.floor(i/6)+1).padStart(2,'0'), plate: v.plate, type: ['car','pickup','truck','van','tractor','machinery'][i%6], cost_center: DEMO_FIELDS.find(f => f.id === v.fieldId)?.name || null, responsible: v.driver,
     created_at: '2026-01-15T12:00:00Z', signal_state: i === 1 ? 'stale' : i === 2 ? 'no_signal' : 'received', motion_state: i === 1 || i === 2 ? 'unknown' : 'moving', position_stale: i === 1 || i === 2, protection_state: 'disarmed',
@@ -35,6 +37,8 @@ export default function FleetWorkspace() {
   const [contextError, setContextError] = useState('');
   const [view, setView] = useState<View>(viewFromHash);
   const [demo, setDemo] = useState(false);
+  const zoneStore = useFleetZones(context, demo);
+  const [selectedZone, setSelectedZone] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [preference, setPreference] = useState<ViewPreference>(initialPreference);
   const [notice, setNotice] = useState('');
@@ -99,18 +103,19 @@ export default function FleetWorkspace() {
   const mapVehicles: DemoVehicle[] = filtered.filter(a => a.last_position).map(a => ({ id: a.asset_id, name: a.name, plate: a.plate || '', driver: a.responsible || '', fieldId: '', regionId: '', status: a.motion_state === 'moving' ? 'working' : 'paused', progress: 0, speedKmh: a.last_position?.speed_kmh || 0, fuelPct: 0, engineHours: 0, distanceKm: 0, coveredHa: 0, position: { lat: a.last_position!.lat, lon: a.last_position!.lon }, bearing: 0 }));
   const markerLabels = Object.fromEntries(filtered.map(a => [a.asset_id, a.position_stale ? 'Posición antigua · '+(a.last_position ? new Date(a.last_position.recorded_at).toLocaleString('es-CL') : 'Sin dato') : a.motion_state === 'unknown' ? 'Movimiento desconocido' : `${a.last_position?.speed_kmh?.toFixed(1) ?? '—'} km/h`]));
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><span className="fleet-eyebrow">STEPS TRACKER</span><h1>Tu flota, siempre cerca.</h1>{contextError ? <><p role="alert">{contextError}</p><a href="/web/login?redirect=/web_tracker/">Entrar con Odoo →</a></> : <p role="status">Cargando tu compañía y permisos…</p>}</div></main>;
-  const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda'}[view];
+  const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad'}[view];
   const detail = <FleetAssetDetail asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')}/>;
   return <div className="fleet-app">
     <header className="fleet-header"><a className="fleet-brand" href="#home" aria-label="Steps Tracker Inicio"><b><TrackerIcon name="live" size={25}/></b><span>Steps <strong>Tracker</strong></span></a><div className="fleet-identity"><strong>{context.company}</strong><span>{context.user}</span></div><a className="tracker-odoo-link" href="/odoo">Odoo ↗</a></header>
-    <nav className="fleet-nav" aria-label="Áreas Tracker">{([['home','Inicio'],['live','Mapa'],['fleet','Flota'],['protection','Protección'],['settings','Configuración']] as const).map(([key,text]) => <button key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}><TrackerIcon name={key} size={19}/><span>{text}</span></button>)}</nav>
-    <main><div className="fleet-heading"><div><span className="fleet-eyebrow">{demo ? 'ESPACIO DE DEMOSTRACIÓN' : 'GPS · MOVILIDAD · PROTECCIÓN'}</span>{view === 'home' ? <p className="tracker-welcome">Hola, {context.user.split(' ')[0]}. Este es el estado de tu flota.</p> : <h1>{title}</h1>}</div><label className="fleet-demo"><input type="checkbox" checked={demo} onChange={e => {setDemo(e.target.checked);setSelected(null);setNotice('');}}/>Explorar demo</label></div>
+    <nav className="fleet-nav" aria-label="Áreas Tracker">{([['home','Inicio'],['live','Mapa'],['fleet','Flota'],['zones','Zonas'],['protection','Protección'],['settings','Configuración']] as const).map(([key,text]) => <button key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}><TrackerIcon name={key} size={19}/><span>{text}</span></button>)}</nav>
+    <main><div className="fleet-heading"><div><span className="fleet-eyebrow">{demo ? 'ESPACIO DE DEMOSTRACIÓN' : 'GPS · MOVILIDAD · PROTECCIÓN'}</span>{view === 'home' ? <p className="tracker-welcome">Hola, {context.user.split(' ')[0]}. Este es el estado de tu flota.</p> : <h1>{title}</h1>}</div><label className="fleet-demo"><input type="checkbox" checked={demo} onChange={e => {setDemo(e.target.checked);setSelected(null);setSelectedZone('');setNotice('');}}/>Explorar demo</label></div>
     {demo && <div className="fleet-notice"><strong>Demostración sintética</strong><span>Vehículos y acciones de ejemplo. No modifican tu flota real ni actúan sobre GPS.</span></div>}
+    {view === 'live' && zoneStore.error && <p className="fleet-error" role="alert">No se pudieron actualizar las zonas. <button onClick={zoneStore.refresh}>Reintentar</button></p>}
     {notice && <p className="fleet-notice" role="status">{notice}<button aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></p>}
     {!demo && error && <p role="alert" className="fleet-error">{error} <button onClick={refresh}>Reintentar</button></p>}
     {view === 'home' && !demo && configuration && configuration.reminders.length > 0 && <button className="tracker-reminder-banner" onClick={() => navigate('settings')}><TrackerIcon name="signal"/><span><strong>{configuration.reminders.length} recordatorios de conectividad</strong>Revisa recargas, datos y vigencia de tus líneas.</span><TrackerIcon name="arrow"/></button>}
     {view === 'home' && !demo && configError && <p className="fleet-error" role="alert">No pudimos consultar los recordatorios de SIM. <button onClick={() => setConfigTick(n => n+1)}>Reintentar</button></p>}
-    {view === 'settings' ? <FleetSettings context={context} assets={source} configuration={configuration} error={configError} loading={configLoading} refresh={() => {setConfigTick(n => n+1);refresh();}} demo={demo}/> :
+    {view === 'zones' ? <FleetZones initialZoneId={selectedZone} key={`${demo}:${context.tenant_key}`} context={context} assets={source} zones={zoneStore.zones} error={zoneStore.error} refresh={zoneStore.refresh} save={zoneStore.save} demo={demo}/> : view === 'settings' ? <FleetSettings context={context} assets={source} configuration={configuration} error={configError} loading={configLoading} refresh={() => {setConfigTick(n => n+1);refresh();}} demo={demo}/> :
     !demo && loading ? <p role="status">Cargando flota…</p> :
     view === 'home' ? <FleetHome assets={source} context={context} demo={demo} navigate={navigate} onCreate={() => setEditor('new')} onImport={() => void importFleet()} onFilter={onFilter} busy={saving}/> :
     <><FleetFilters assets={source} value={preference.filters} onChange={filters => setPreference(p => ({...p,filters}))}/>
@@ -119,7 +124,7 @@ export default function FleetWorkspace() {
       {!filtered.length && <div className="fleet-empty"><h2>{source.length ? 'No hay coincidencias' : 'Tu flota empieza aquí'}</h2><p>{source.length ? 'Ajusta los filtros para ver otros vehículos.' : 'Registra un vehículo o sincroniza tu flota desde Odoo. Luego asocia su GPS en Configuración.'}</p>{source.length > 0 && <button onClick={() => setPreference(p => ({...p,filters:emptyFilters}))}>Ver toda la flota</button>}</div>}
       {view === 'protection' ? <ProtectionPage key={`${demo}:${context.tenant_key}`} context={context} assets={filtered} selected={selected} demo={demo} refresh={refresh} demoStore={demoStore} onDemoChange={setDemoStore}/> :
       view === 'fleet' ? <div className="fleet-control-layout"><FleetTable assets={filtered} columns={preference.columns} selected={selected} onSelect={setSelected}/>{detail}</div> :
-      <div className="fleet-operation-layout"><FleetList assets={filtered} selected={selected} onSelect={setSelected}/><section className="fleet-map" aria-label="Mapa de última posición"><div className="fleet-map-caption">{mapVehicles.length} posiciones · los datos antiguos se indican en cada marcador</div>{mapVehicles.length ? <OperationsMap fields={demo ? DEMO_FIELDS : []} vehicles={mapVehicles} markerLabels={markerLabels} markerTypes={Object.fromEntries(filtered.map(a => [a.asset_id,a.type]))} selectedVehicleId={selected} onSelectVehicle={setSelected} showRows={false} showRoadRoute={false} depot={mapVehicles[0]?.position || REGIONS[0].depot} followVehicle={false}/> : <div className="fleet-empty"><TrackerIcon name="live" size={42}/><h2>Esperando la primera posición</h2><p>Tu flota ya puede administrarse. Un GPS asociado y conectado habilitará el mapa.</p><button onClick={() => navigate('settings')}>Ver guía de conexión</button></div>}</section>{detail}</div>}
+      <div className="fleet-operation-layout"><FleetList assets={filtered} selected={selected} onSelect={setSelected}/><section className="fleet-map" aria-label="Mapa de última posición"><div className="fleet-map-caption">{mapVehicles.length} posiciones · {zoneStore.zones.filter(z => z.active).length} zonas · los datos antiguos se indican en cada marcador</div>{(mapVehicles.length > 0 || zoneStore.zones.some(z => z.active)) ? <OperationsMap zones={zoneStore.zones.filter(z => z.active)} onSelectZone={id => {setSelectedZone(id);navigate('zones');}} fields={demo ? DEMO_FIELDS : []} vehicles={mapVehicles} markerLabels={markerLabels} markerTypes={Object.fromEntries(filtered.map(a => [a.asset_id,a.type]))} selectedVehicleId={selected} onSelectVehicle={setSelected} showRows={false} showRoadRoute={false} depot={mapVehicles[0]?.position || REGIONS[0].depot} followVehicle={false}/> : <div className="fleet-empty"><TrackerIcon name="live" size={42}/><h2>Esperando la primera posición</h2><p>Tu flota ya puede administrarse. Un GPS asociado y conectado habilitará el mapa.</p><button onClick={() => navigate('settings')}>Ver guía de conexión</button></div>}</section>{detail}</div>}
     </>}</main>
     <footer className="fleet-footer"><strong>Steps Tracker</strong><span>GPS para personas, empresas y operaciones.</span><button onClick={() => navigate('settings')}>Ayuda y configuración →</button></footer>
     {editor && <FleetAssetEditor asset={editor === 'new' ? undefined : editor} context={context} demo={demo} onClose={() => setEditor(null)} onSaved={savedAsset}/>}

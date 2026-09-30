@@ -12,10 +12,10 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.db.base import Base
 from app.db.session import get_db
-from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
+from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, Zone, now
 from app.routers.fleet import check_communications
 
-MODELS = [Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command]
+MODELS = [Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, Zone]
 
 
 @pytest.fixture
