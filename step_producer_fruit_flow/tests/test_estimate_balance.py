@@ -121,6 +121,11 @@ class TestProducerDeliveryBalance(TransactionCase):
         self.assertAlmostEqual(by_producer[producer_b.id].kg_qty, 40)
         self.assertAlmostEqual(by_producer[producer_a.id].allocated_fob_usd, 600)
         self.assertAlmostEqual(by_producer[producer_b.id].allocated_fob_usd, 400)
+        self.assertEqual(set(settlement.producer_settlement_ids.mapped("payout_mode")), {"fob"})
+        self.assertAlmostEqual(by_producer[producer_a.id].amount_usd, 600)
+        settlement.producer_settlement_ids.write({"fob_transfer_percent": 80})
+        self.assertAlmostEqual(by_producer[producer_a.id].amount_usd, 480)
+        self.assertAlmostEqual(by_producer[producer_b.id].amount_usd, 320)
 
         settlement.producer_settlement_ids.unlink()
         second_tag = self.env["stock.quant.package"].create({

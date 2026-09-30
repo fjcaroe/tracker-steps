@@ -17,6 +17,9 @@
             <field name="state" widget="statusbar"/>
         </header><sheet><group><field name="name"/><field name="producer_id"/>
             <field name="receiver_settlement_id"/><field name="rate_id"/>
+            <field name="payout_mode" readonly="state != 'draft'"/>
+            <field name="fob_transfer_percent" readonly="state != 'draft'"
+                   invisible="payout_mode != 'fob'"/>
             <field name="bill_id"/><field name="bill_currency_id"/>
             <field name="delivery_date"/><field name="closed_date"/>
             <field name="purchase_journal_id"/>

@@ -53,6 +53,12 @@ class ProducerSettlement(models.Model):
     company_id = fields.Many2one(related="receiver_settlement_id.company_id", store=True)
     producer_id = fields.Many2one("res.partner", string="Productor", required=True)
     rate_id = fields.Many2one("step.export.grower.rate", string="Tarifa productor")
+    payout_mode = fields.Selection([
+        ("rate", "Tarifa histórica"), ("fob", "FOB traspasado"),
+    ], string="Cálculo del retorno", required=True, default="rate",
+        help="Los registros anteriores conservan la tarifa histórica; las nuevas liquidaciones usan FOB.")
+    fob_transfer_percent = fields.Float(string="FOB al productor %", default=100,
+                                        digits=(8, 4))
     usd_currency_id = fields.Many2one("res.currency", default=lambda self: self.env.ref("base.USD"))
     bill_currency_id = fields.Many2one("res.currency", string="Moneda factura productor",
                                        default=lambda self: self.env.company.currency_id)
@@ -82,6 +88,7 @@ class ProducerSettlement(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            vals.setdefault("payout_mode", "fob")
             if vals.get("name", "Nuevo") == "Nuevo":
                 vals["name"] = self.env["ir.sequence"].next_by_code(
                     "step.export.producer.settlement") or "Nuevo"
@@ -100,6 +107,12 @@ class ProducerSettlement(models.Model):
                 if receiver.company_id.step_export_purchase_journal_id:
                     vals["purchase_journal_id"] = receiver.company_id.step_export_purchase_journal_id.id
         return super().create(vals_list)
+
+    @api.constrains("fob_transfer_percent")
+    def _check_fob_transfer_percent(self):
+        for record in self:
+            if not 0 <= record.fob_transfer_percent <= 100:
+                raise ValidationError(_("El porcentaje de FOB al productor debe estar entre 0 y 100."))
 
     @api.depends("line_ids.kg_qty", "line_ids.amount_usd", "discount_line_ids.amount_usd")
     def _compute_totals(self):
@@ -128,7 +141,8 @@ class ProducerSettlement(models.Model):
                 raise UserError(_("La liquidación de productor debe tener tarjas."))
             if record.receiver_settlement_id.state not in ("validated", "accounted"):
                 raise UserError(_("Primero valide la liquidación del recibidor."))
-            if not record.rate_id or record.rate_id.rate_value <= 0 or not record.rate_id.expense_account_id:
+            if (not record.rate_id or not record.rate_id.expense_account_id or
+                    (record.payout_mode == "rate" and record.rate_id.rate_value <= 0)):
                 raise ValidationError(_("Configure una tarifa positiva y su cuenta de compra de fruta."))
             if (record.rate_id.company_id != record.company_id or
                     record.rate_id.producer_id != record.producer_id or
@@ -244,7 +258,8 @@ class ProducerSettlement(models.Model):
         return True
 
     def write(self, vals):
-        frozen = {"producer_id", "rate_id", "line_ids", "discount_line_ids", "receiver_settlement_id"}
+        frozen = {"producer_id", "rate_id", "line_ids", "discount_line_ids",
+                  "receiver_settlement_id", "payout_mode", "fob_transfer_percent"}
         if frozen.intersection(vals) and any(record.state != "draft" for record in self):
             raise UserError(_("La liquidación validada conserva productor, tarifa y tarjas."))
         if "state" in vals:
@@ -273,14 +288,19 @@ class ProducerSettlementLine(models.Model):
     usd_currency_id = fields.Many2one(related="settlement_id.usd_currency_id")
     amount_usd = fields.Monetary(currency_field="usd_currency_id", compute="_compute_amount", store=True)
 
-    @api.depends("kg_qty", "allocated_fob_usd", "settlement_id.rate_id.rate_type",
+    @api.depends("kg_qty", "allocated_fob_usd", "settlement_id.payout_mode",
+                 "settlement_id.fob_transfer_percent", "settlement_id.rate_id.rate_type",
                  "settlement_id.rate_id.rate_value")
     def _compute_amount(self):
         for record in self:
             rate = record.settlement_id.rate_id
-            record.amount_usd = (
-                record.kg_qty * rate.rate_value if rate.rate_type == "usd_kg"
-                else record.allocated_fob_usd * rate.rate_value / 100)
+            if record.settlement_id.payout_mode == "fob":
+                record.amount_usd = (record.allocated_fob_usd *
+                                     record.settlement_id.fob_transfer_percent / 100)
+            else:
+                record.amount_usd = (
+                    record.kg_qty * rate.rate_value if rate.rate_type == "usd_kg"
+                    else record.allocated_fob_usd * rate.rate_value / 100)
 
     @api.model_create_multi
     def create(self, vals_list):

@@ -86,7 +86,7 @@ class ReceiverSettlement(models.Model):
 
     def write(self, vals):
         locked = {"receiver_id", "sales_program_id", "currency_id", "rate_to_usd",
-                  "line_ids", "date", "company_id"}
+                  "line_ids", "date", "company_id", "producer_price_mode"}
         if locked.intersection(vals) and any(r.state != "draft" for r in self):
             raise UserError(_("Una liquidación validada no puede modificarse."))
         return super().write(vals)

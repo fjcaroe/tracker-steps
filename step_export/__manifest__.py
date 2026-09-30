@@ -48,6 +48,7 @@
         "views/step_export_receivables_views.xml",
         "report/packing_list_report.xml",
         "report/shipment_report.xml",
+        "report/producer_settlement_report.xml",
         "views/dashboard.xml",
         "views/menu.xml",
     ],
