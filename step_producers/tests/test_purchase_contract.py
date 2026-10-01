@@ -73,6 +73,8 @@ class TestProducerPurchaseContract(TransactionCase):
             contract.with_user(user).write({"state": "closed"})
         with self.assertRaises(UserError):
             contract.installment_ids.with_user(user).write({"state": "accounted"})
+        with self.assertRaises(UserError):
+            contract.product_line_ids.with_user(user).write({"debit_account_id": False})
         action = contract.with_user(user).action_revise()
         self.assertEqual(contract.browse(action["res_id"]).version, 2)
 
@@ -108,6 +110,43 @@ class TestProducerPurchaseContract(TransactionCase):
         self.assertEqual(sum(move.line_ids.mapped("credit")), 200)
         with self.assertRaises(UserError):
             contract.with_user(accountant).action_account()
+
+    def test_confirmed_contract_can_correct_debit_before_posting(self):
+        company = self.env.company
+        wrong = self.env["account.account"].create({
+            "code": "T30W001", "name": "Costo automático no aprobado T30",
+            "account_type": "expense_direct_cost", "company_ids": [(6, 0, [company.id])],
+        })
+        debit = self.env["account.account"].create({
+            "code": "T30A001", "name": "Contrato productor T30",
+            "account_type": "asset_current", "company_ids": [(6, 0, [company.id])],
+        })
+        credit = self.env["account.account"].create({
+            "code": "T30L001", "name": "Contrato por pagar T30",
+            "account_type": "liability_current", "company_ids": [(6, 0, [company.id])],
+        })
+        journal = self.env["account.journal"].create({
+            "name": "Contratos restringidos T30", "code": uuid4().hex[:5].upper(),
+            "type": "general", "company_id": company.id,
+            "account_control_ids": [(6, 0, credit.ids)],
+        })
+        contract, product, _ = self._contract()
+        product.debit_account_id = wrong
+        contract.write({"journal_id": journal.id, "provision_account_id": credit.id})
+        contract.action_confirm()
+        with self.assertRaisesRegex(UserError, "Cuentas rechazadas"):
+            contract.action_account()
+        self.assertFalse(contract.accounting_move_id)
+        product.debit_account_id = debit
+        with self.assertRaisesRegex(UserError, "Cuentas rechazadas"):
+            contract.action_account()
+        journal.account_control_ids = [(6, 0, (credit | debit).ids)]
+        contract.action_account()
+        self.assertEqual(contract.accounting_move_id.state, "posted")
+        self.assertEqual(set(contract.accounting_move_id.line_ids.mapped("account_id").ids),
+                         set((credit | debit).ids))
+        with self.assertRaises(UserError):
+            product.debit_account_id = wrong
 
     def test_purchase_link_counts_only_confirmed_orders(self):
         contract, product_line, _ = self._contract()

@@ -137,6 +137,16 @@
                                 </group>
                             </group>
                             <div class="text-muted">La cuenta de cargo y la distribución analítica se configuran en cada línea de Productos. Contabilizar contrato usa esas cuentas y la cuenta de provisión indicada aquí.</div>
+                            <group string="Cuentas de cargo por producto">
+                                <field name="product_line_ids" readonly="bool(accounting_move_id)">
+                                    <list editable="bottom" create="false" delete="false">
+                                        <field name="product_id" readonly="1"/>
+                                        <field name="amount" readonly="1"/>
+                                        <field name="debit_account_id" required="1"/>
+                                    </list>
+                                </field>
+                                <div class="text-muted">Contabilidad puede corregir la cuenta de cargo hasta generar el asiento. Si el diario restringe cuentas, debe permitir tanto las cuentas de cargo como la cuenta de provisión.</div>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>

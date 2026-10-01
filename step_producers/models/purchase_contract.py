@@ -199,6 +199,20 @@ class ProducerPurchaseContract(models.Model):
                 raise UserError(_("Use un diario general o de compras para esta provisión."))
             if contract.journal_id.currency_id and contract.journal_id.currency_id != contract.currency_id:
                 raise UserError(_("La moneda del diario debe coincidir con la del contrato."))
+            allowed_accounts = contract.journal_id.account_control_ids
+            if allowed_accounts:
+                debit_accounts = contract.product_line_ids.mapped("debit_account_id")
+                disallowed = (debit_accounts | contract.provision_account_id) - allowed_accounts
+                if disallowed:
+                    raise UserError(_(
+                        "El diario %(journal)s restringe las cuentas permitidas. "
+                        "Revise en la pestaña Contabilización la cuenta de cargo de cada "
+                        "producto y la cuenta de provisión; después configure en "
+                        "Contabilidad → Configuración → Diarios → Ajustes avanzados → "
+                        "Cuentas permitidas las cuentas aprobadas por Contabilidad. "
+                        "Cuentas rechazadas: %(accounts)s.",
+                        journal=contract.journal_id.display_name,
+                        accounts=", ".join(sorted(disallowed.mapped("display_name")))))
             if contract.parent_id.accounting_move_id and (
                     not contract.parent_id.pending_reversal_move_id or
                     contract.parent_id.pending_reversal_move_id.state != "posted"):
@@ -313,8 +327,13 @@ class ProducerPurchaseContractProduct(models.Model):
     def write(self, vals):
         if any(line.contract_id.state != "draft" for line in self) and set(vals) & {
                 "product_id", "quantity", "uom_id", "price_unit", "analytic_distribution",
-                "debit_account_id", "description"}:
+                "description"}:
             raise UserError(_("Cree una revisión para cambiar productos de un contrato confirmado."))
+        if "debit_account_id" in vals:
+            if any(line.contract_id.accounting_move_id for line in self):
+                raise UserError(_("No cambie la cuenta de cargo después de contabilizar el contrato."))
+            if not self.env.su and not self.env.user.has_group("account.group_account_user"):
+                raise UserError(_("Sólo Contabilidad puede cambiar la cuenta de cargo."))
         return super().write(vals)
 
     def unlink(self):
