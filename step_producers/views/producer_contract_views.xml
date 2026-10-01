@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_producer_purchase_contract_list" model="ir.ui.view">
+        <field name="name">step.producer.purchase.contract.list</field>
+        <field name="model">step.producer.purchase.contract</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="operation_type" optional="show"/>
+                <field name="date_start" optional="hide"/>
+                <field name="date_end" optional="hide"/>
+                <field name="currency_id"/>
+                <field name="quantity_total" sum="Cantidad"/>
+                <field name="amount_total" sum="Neto"/>
+                <field name="version" optional="hide"/>
+                <field name="state" widget="badge" decoration-success="state == 'confirmed'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_producer_purchase_contract_form" model="ir.ui.view">
+        <field name="name">step.producer.purchase.contract.form</field>
+        <field name="model">step.producer.purchase.contract</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmar" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_revise" type="object" string="Revisar condiciones"
+                            invisible="state != 'confirmed' or is_superseded"/>
+                    <button name="action_account" type="object" string="Contabilizar contrato"
+                            class="btn-primary" groups="account.group_account_user"
+                            invisible="state != 'confirmed' or accounting_move_id"/>
+                    <button name="action_close" type="object" string="Cerrar"
+                            invisible="state != 'confirmed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,closed"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Reemplazado" bg_color="text-bg-warning"
+                            invisible="not is_superseded"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_account_move" type="object" class="oe_stat_button"
+                                icon="fa-book" invisible="not accounting_move_id"
+                                groups="account.group_account_user" string="Asiento"/>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="Contrato">
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="operation_type" placeholder="Ej.: Fruta: Recepción fruta"/>
+                            <field name="reference"/>
+                            <field name="currency_id" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company"
+                                   readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Vigencia y versiones">
+                            <field name="date_start" readonly="state != 'draft'"/>
+                            <field name="date_end" readonly="state != 'draft'"/>
+                            <field name="version"/>
+                            <field name="parent_id"/>
+                            <field name="revision_ids" widget="many2many_tags" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="products" string="Productos">
+                            <field name="product_line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"/>
+                                    <field name="description" optional="show"/>
+                                    <field name="quantity"/>
+                                    <field name="ordered_quantity" readonly="1"/>
+                                    <field name="uom_id"/>
+                                    <field name="analytic_distribution" widget="analytic_distribution"
+                                           groups="analytic.group_analytic_accounting"
+                                           options="{'product_field': 'product_id', 'business_domain': 'purchase_order', 'amount_field': 'amount'}"
+                                           optional="show"/>
+                                    <field name="price_unit"/>
+                                    <field name="amount" sum="Neto"/>
+                                    <field name="debit_account_id" optional="hide"
+                                           groups="account.group_account_user"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="quantity_total"/>
+                                <field name="amount_total"/>
+                            </group>
+                        </page>
+                        <page name="payment_schedule" string="Calendario de pago">
+                            <field name="installment_ids" context="{'default_active': True}">
+                                <list editable="bottom" decoration-muted="not active">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_line_id" domain="[('contract_id', '=', parent.id)]"
+                                           readonly="parent.state != 'draft'"/>
+                                    <field name="quantity" readonly="parent.state != 'draft'"/>
+                                    <field name="uom_id"/>
+                                    <field name="price_unit"/>
+                                    <field name="amount" sum="Neto a pago"/>
+                                    <field name="date_due" readonly="parent.state != 'draft'"/>
+                                    <field name="validation_criteria" readonly="parent.state != 'draft'"/>
+                                    <field name="state" widget="badge" readonly="1"/>
+                                    <field name="payment_move_id" optional="hide"
+                                           groups="account.group_account_user"/>
+                                    <field name="reversal_move_id" optional="hide"
+                                           groups="account.group_account_user"/>
+                                    <field name="active" column_invisible="1"/>
+                                    <button name="action_approve" type="object" string="Aprobar"
+                                            icon="fa-check" invisible="state != 'created' or parent.state != 'confirmed'"/>
+                                    <button name="action_mark_accounted" type="object" string="Contabilizada"
+                                            icon="fa-book" groups="account.group_account_user"
+                                            invisible="state != 'approved' or not parent.accounting_move_id"/>
+                                </list>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="scheduled_total"/>
+                            </group>
+                        </page>
+                        <page name="notes" string="Notas">
+                            <field name="notes" placeholder="Acuerdos y condiciones del contrato"/>
+                        </page>
+                        <page name="accounting" string="Contabilización" groups="account.group_account_user">
+                            <group>
+                                <group string="Provisión del contrato">
+                                    <field name="journal_id" readonly="bool(accounting_move_id)"/>
+                                    <field name="provision_account_id" readonly="bool(accounting_move_id)"/>
+                                    <field name="accounting_date" readonly="bool(accounting_move_id)"/>
+                                    <field name="accounting_move_id" readonly="1"/>
+                                </group>
+                                <group string="Cambios y pagos">
+                                    <field name="pending_reversal_move_id"/>
+                                    <div class="text-muted">El contador registra el pago y la reversa parcial de cada cuota en Contabilidad. Vincule ambos asientos en el calendario antes de marcarla contabilizada.</div>
+                                </group>
+                            </group>
+                            <div class="text-muted">La cuenta de cargo y la distribución analítica se configuran en cada línea de Productos. Contabilizar contrato usa esas cuentas y la cuenta de provisión indicada aquí.</div>
+                            <group string="Cuentas de cargo por producto">
+                                <field name="product_line_ids" readonly="bool(accounting_move_id)">
+                                    <list editable="bottom" create="false" delete="false">
+                                        <field name="product_id" readonly="1"/>
+                                        <field name="amount" readonly="1"/>
+                                        <field name="debit_account_id" required="1"/>
+                                    </list>
+                                </field>
+                                <div class="text-muted">Contabilidad puede corregir la cuenta de cargo hasta generar el asiento. Si el diario restringe cuentas, debe permitir tanto las cuentas de cargo como la cuenta de provisión.</div>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_step_producer_purchase_contract_search" model="ir.ui.view">
+        <field name="name">step.producer.purchase.contract.search</field>
+        <field name="model">step.producer.purchase.contract</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="operation_type"/>
+                <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmado" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Cerrado" name="closed" domain="[('state', '=', 'closed')]"/>
+                <filter string="Reemplazado" name="superseded" domain="[('is_superseded', '=', True)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Productor" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="Empresa" name="group_company" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_step_producer_purchase_contract" model="ir.actions.act_window">
+        <field name="name">Contratos de compra</field>
+        <field name="res_model">step.producer.purchase.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_step_producer_purchase_contract_search"/>
+        <field name="help" type="html"><p>Registre productos, calendario de pago y provisión del contrato.</p></field>
+    </record>
+</odoo>

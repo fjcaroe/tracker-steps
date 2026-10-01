@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_harvest_container_transfer_company" model="ir.rule">
+        <field name="name">Movimientos de envases por empresa</field>
+        <field name="model_id" ref="model_step_harvest_container_transfer"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_harvest_container_transfer_line_company" model="ir.rule">
+        <field name="name">Líneas de envases por empresa</field>
+        <field name="model_id" ref="model_step_harvest_container_transfer_line"/>
+        <field name="domain_force">[('transfer_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_scale_profile_company" model="ir.rule">
+        <field name="name">Perfiles de balanza por empresa</field>
+        <field name="model_id" ref="model_step_scale_profile"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

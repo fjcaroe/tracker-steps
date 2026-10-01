@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_scale_profile_list" model="ir.ui.view">
+        <field name="name">step.scale.profile.list</field>
+        <field name="model">step.scale.profile</field>
+        <field name="arch" type="xml"><list>
+            <field name="name"/><field name="protocol"/><field name="company_id"/><field name="active"/>
+        </list></field>
+    </record>
+    <record id="view_step_scale_profile_form" model="ir.ui.view">
+        <field name="name">step.scale.profile.form</field>
+        <field name="model">step.scale.profile</field>
+        <field name="arch" type="xml"><form><sheet>
+            <group><field name="name"/><field name="company_id"/><field name="active"/>
+                <field name="protocol"/></group>
+            <group string="Conexión"><field name="service_uuid" invisible="protocol != 'ble'"/>
+                <field name="characteristic_uuid" invisible="protocol != 'ble'"/>
+                <field name="baud_rate" invisible="protocol != 'serial'"/></group>
+            <group invisible="protocol != 'serial'"><field name="serial_service_uuid"/></group>
+            <group string="Lectura"><field name="weight_pattern"/>
+                <field name="kg_factor"/><field name="notes"/></group>
+        </sheet></form></field>
+    </record>
+    <record id="action_step_scale_profiles" model="ir.actions.act_window">
+        <field name="name">Perfiles de balanza</field>
+        <field name="res_model">step.scale.profile</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <menuitem id="menu_step_scale_profiles" name="Perfiles de balanza"
+              parent="step_packing.menu_packing_fruta_operations" action="action_step_scale_profiles"
+              sequence="28" groups="stock.group_stock_manager"/>
+</odoo>

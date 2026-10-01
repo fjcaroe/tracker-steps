@@ -18,6 +18,7 @@
             <field name="sales_program_id"/><field name="season_id"/><field name="species_id"/>
             <field name="receiver_reference"/></group>
             <group><field name="date"/><field name="currency_id"/><field name="rate_to_usd"/>
+                <field name="producer_price_mode" readonly="state != 'draft'"/>
                 <field name="usd_currency_id" invisible="1"/><field name="company_id"/></group></group>
             <notebook><page string="Embarques"><field name="line_ids" readonly="state != 'draft'">
                 <list editable="bottom"><field name="shipment_id"/><field name="invoice_id"/>

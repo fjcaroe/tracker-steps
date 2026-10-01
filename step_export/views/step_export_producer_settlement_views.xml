@@ -11,11 +11,17 @@
         <field name="model">step.export.producer.settlement</field>
         <field name="arch" type="xml"><form><header>
             <button name="action_validate" type="object" string="Validar" class="btn-primary" invisible="state != 'draft'"/>
-            <button name="action_account" type="object" string="Contabilizar factura" class="btn-primary" invisible="state != 'validated'"/>
+            <button name="action_reopen" type="object" string="Volver a generada" invisible="state != 'validated'"/>
+            <button name="action_account" type="object" string="Entregar y contabilizar" class="btn-primary" invisible="state != 'validated'"/>
+            <button name="action_close" type="object" string="Cerrar" class="btn-primary" invisible="state != 'accounted'"/>
             <field name="state" widget="statusbar"/>
         </header><sheet><group><field name="name"/><field name="producer_id"/>
             <field name="receiver_settlement_id"/><field name="rate_id"/>
+            <field name="payout_mode" readonly="state != 'draft'"/>
+            <field name="fob_transfer_percent" readonly="state != 'draft'"
+                   invisible="payout_mode != 'fob'"/>
             <field name="bill_id"/><field name="bill_currency_id"/>
+            <field name="delivery_date"/><field name="closed_date"/>
             <field name="purchase_journal_id"/>
             <field name="supplier_document_code"/><field name="supplier_invoice_folio"/>
             <field name="initial_bill_ids" widget="many2many_tags"/>
