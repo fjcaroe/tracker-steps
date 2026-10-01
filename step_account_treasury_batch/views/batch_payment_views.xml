@@ -8,7 +8,10 @@
             <xpath expr="//header/button[@id='validate_button']" position="after">
                 <button name="action_export_bancoestado_xlsx" type="object"
                         string="Exportar BancoEstado" class="oe_highlight"
-                        invisible="not payment_ids or batch_type != 'outbound'"/>
+                        invisible="not payment_ids or batch_type != 'outbound' or (approval_required and not approved_by_id)"/>
+                <button name="action_approve_batch" type="object"
+                        string="Aprobar lote" class="oe_highlight"
+                        invisible="not approval_required or approved_by_id"/>
                 <button name="action_export_treasury_review_csv" type="object"
                         string="Revisión interna (no banco)" class="btn-secondary"
                         invisible="not payment_ids"/>
@@ -20,6 +23,17 @@
                     banco, forma de pago y cuenta antes de cargarlo. La revisión
                     interna sigue siendo sólo para control humano.
                 </div>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not approval_required">
+                    Este lote supera el tope configurado en Tesorería y requiere
+                    aprobación antes de exportarse al banco.
+                </div>
+            </xpath>
+            <xpath expr="//sheet/group" position="after">
+                <group string="Aprobación" invisible="not approval_required">
+                    <field name="approved_by_id" readonly="1"/>
+                    <field name="approved_date" readonly="1"/>
+                </group>
             </xpath>
         </field>
     </record>

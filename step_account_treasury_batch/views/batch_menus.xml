@@ -10,4 +10,26 @@
               parent="step_account_treasury.menu_treasury_outflow"
               action="account_batch_payment.action_batch_payment_out"
               sequence="20"/>
+
+    <!--
+      Maestro de proveedores y clientes accesible directamente desde
+      Tesorería, con su cuenta corriente bancaria editable en la ficha
+      estándar del contacto (pedido en el ticket 28).
+    -->
+    <menuitem id="menu_treasury_customers_master"
+              name="Clientes"
+              parent="step_account_treasury.menu_treasury_inflow"
+              action="account.res_partner_action_customer"
+              sequence="30"/>
+    <menuitem id="menu_treasury_vendors_master"
+              name="Proveedores"
+              parent="step_account_treasury.menu_treasury_outflow"
+              action="account.res_partner_action_supplier"
+              sequence="40"/>
+
+    <menuitem id="menu_treasury_batch_approval_settings"
+              name="Aprobación de lotes"
+              parent="step_account_treasury.menu_treasury_configuration"
+              action="action_treasury_batch_approval_settings"
+              sequence="30"/>
 </odoo>

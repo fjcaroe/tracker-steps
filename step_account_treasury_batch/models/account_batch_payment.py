@@ -46,6 +46,52 @@ class AccountBatchPayment(models.Model):
     bancoestado_export_count = fields.Integer(
         string="Exportaciones BancoEstado", default=0, readonly=True, copy=False,
     )
+    approval_required = fields.Boolean(
+        string="Requiere aprobación", compute="_compute_approval_required",
+        help="El total del lote supera el tope configurado en Tesorería.",
+    )
+    approved_by_id = fields.Many2one(
+        "res.users", string="Aprobado por", readonly=True, copy=False,
+    )
+    approved_date = fields.Datetime(string="Fecha de aprobación", readonly=True, copy=False)
+
+    @api.depends("amount", "company_id", "batch_type")
+    def _compute_approval_required(self):
+        for batch in self:
+            threshold = batch.company_id.treasury_batch_approval_threshold
+            batch.approval_required = bool(
+                batch.batch_type == "outbound" and threshold and batch.amount > threshold
+            )
+
+    def action_approve_batch(self):
+        self.ensure_one()
+        approver = self.company_id.treasury_batch_approver_id
+        if not approver:
+            raise UserError(_(
+                "No hay un aprobador configurado en Tesorería → Configuración → "
+                "Aprobación de lotes."))
+        if self.env.user != approver:
+            raise UserError(_(
+                "Sólo %s puede aprobar este lote.") % approver.display_name)
+        self.write({
+            "approved_by_id": self.env.user.id,
+            "approved_date": fields.Datetime.now(),
+        })
+        self.message_post(body=_(
+            "Lote aprobado por %(user)s (monto %(amount)s, supera el tope de "
+            "%(threshold)s configurado en Tesorería).",
+            user=self.env.user.display_name, amount=self.amount,
+            threshold=self.company_id.treasury_batch_approval_threshold))
+
+    def _check_batch_approval(self):
+        self.ensure_one()
+        if self.approval_required and not self.approved_by_id:
+            approver = self.company_id.treasury_batch_approver_id
+            raise UserError(_(
+                "El lote %(name)s supera el tope de %(threshold)s configurado en "
+                "Tesorería y requiere aprobación de %(approver)s antes de exportarlo.",
+                name=self.name or "", threshold=self.company_id.treasury_batch_approval_threshold,
+                approver=approver.display_name if approver else _("(sin aprobador configurado)")))
 
     @api.model
     def _bancoestado_clean_rut(self, vat):
@@ -66,6 +112,7 @@ class AccountBatchPayment(models.Model):
             raise UserError(_("BancoEstado sólo admite lotes de pagos salientes."))
         if not self.payment_ids:
             raise UserError(_("Agregue pagos al lote antes de exportarlo."))
+        self._check_batch_approval()
         rows = []
         for payment in self.payment_ids.sorted(key=lambda item: (item.partner_id.name or "", item.id)):
             partner = payment.partner_id
@@ -73,7 +120,22 @@ class AccountBatchPayment(models.Model):
             if not partner.vat:
                 raise UserError(_("El beneficiario %s no tiene RUT.") % partner.display_name)
             if not bank_account:
-                raise UserError(_("El pago de %s no tiene una cuenta bancaria beneficiaria.") % partner.display_name)
+                partner_accounts = partner.bank_ids
+                if len(partner_accounts) == 1:
+                    # El pago no trae cuenta seleccionada pero el proveedor sólo
+                    # tiene una registrada en Contactos: se usa esa, sin ambigüedad.
+                    bank_account = partner_accounts
+                elif not partner_accounts:
+                    raise UserError(_(
+                        "El proveedor %s no tiene ninguna cuenta bancaria registrada "
+                        "en Contactos.") % partner.display_name)
+                else:
+                    raise UserError(_(
+                        "El pago de %(partner)s no tiene una cuenta bancaria "
+                        "beneficiaria seleccionada: el proveedor tiene %(count)s "
+                        "cuentas registradas en Contactos, elija una en el pago antes "
+                        "de incluirlo en el lote.",
+                        partner=partner.display_name, count=len(partner_accounts)))
             if not bank_account.bank_id:
                 raise UserError(_("La cuenta %s no tiene banco asociado.") % bank_account.acc_number)
             account_number = re.sub(r"\D", "", bank_account.acc_number or "")
