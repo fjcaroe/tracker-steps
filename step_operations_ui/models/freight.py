@@ -140,10 +140,7 @@ class FreightPlan(models.Model):
         required=True,
         tracking=True,
     )
-    line_ids = fields.One2many(
-        "x_planificacion_de_flete_linea", "plan_id", string="Líneas de flete",
-        readonly="state == 'validated'",
-    )
+    line_ids = fields.One2many("x_planificacion_de_flete_linea", "plan_id", string="Líneas de flete")
     amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
     currency_id = fields.Many2one(related="company_id.currency_id", store=True)
     company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)

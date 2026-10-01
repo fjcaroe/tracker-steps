@@ -33,7 +33,6 @@ class StepFreightCostReport(models.Model):
     route_id = fields.Many2one("x_tramo_de_flete", string="Tramo", readonly=True)
     carrier_id = fields.Many2one("res.partner", string="Transportista", readonly=True)
     product_id = fields.Many2one("product.template", string="Servicio de flete", readonly=True)
-    account_id = fields.Many2one("account.account", string="Cuenta", readonly=True)
     amount = fields.Float(string="Valor del flete", readonly=True)
     company_id = fields.Many2one("res.company", string="Compañía", readonly=True)
 
@@ -49,7 +48,6 @@ class StepFreightCostReport(models.Model):
                         ord.route_id AS route_id,
                         ord.x_studio_transportista AS carrier_id,
                         cost.x_studio_servicio_flete AS product_id,
-                        cost.x_studio_cuenta AS account_id,
                         cost.x_studio_costo_flete AS amount,
                         ord.company_id AS company_id
                     FROM x_orden_de_flete_line_72953 cost
@@ -62,7 +60,7 @@ class StepFreightCostReport(models.Model):
                     SELECT
                         NULL::integer AS id, NULL::integer AS order_id, NULL::date AS order_date,
                         NULL::integer AS route_id, NULL::integer AS carrier_id,
-                        NULL::integer AS product_id, NULL::integer AS account_id,
+                        NULL::integer AS product_id,
                         NULL::numeric AS amount, NULL::integer AS company_id
                     WHERE false
                 )
