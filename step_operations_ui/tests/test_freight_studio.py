@@ -270,6 +270,15 @@ class TestFreightStudioCosting(TransactionCase):
 
     def test_post_freight_requires_accounting_group(self):
         order = self._costed_order()
-        self.env.user.groups_id = [(3, self.env.ref("account.group_account_user").id)]
+        # No basta con quitar el grupo directo: el usuario admin de pruebas
+        # suele tener Contabilidad por un grupo que lo implica (p. ej.
+        # Administrador de Facturación). Se usa un usuario nuevo, sin ningún
+        # grupo de Contabilidad, para probar el bloqueo de forma confiable.
+        plain_user = self.env["res.users"].create({
+            "name": "QA sin contabilidad",
+            "login": "qa_sin_contabilidad@example.com",
+            "email": "qa_sin_contabilidad@example.com",
+            "groups_id": [(6, 0, [self.env.ref("base.group_user").id])],
+        })
         with self.assertRaises(UserError):
-            order.action_post_freight()
+            order.with_user(plain_user).action_post_freight()
