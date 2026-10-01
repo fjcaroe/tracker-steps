@@ -34,9 +34,15 @@ class FreightTariff(models.Model):
 
     x_name = fields.Char(string="Tarifa", required=True, tracking=True)
     carrier_id = fields.Many2one("res.partner", string="Transportista", domain="[('supplier_rank', '>', 0)]", tracking=True)
-    route_id = fields.Many2one("x_tramo_de_flete", string="Tramo", required=True)
+    # route_id/price ya no son obligatorios a nivel de encabezado: desde la
+    # migración del formulario de Studio (ticket T27, puntos 3 y 4) el tramo y
+    # la tarifa se registran por línea (ver x_tarifa_de_fletes_line_57b07 en
+    # freight_studio.py). El formulario code-owned (prioridad 5) no expone
+    # estos dos campos de encabezado, así que si siguieran siendo required=True
+    # sería imposible guardar una tarifa nueva desde esa pantalla.
+    route_id = fields.Many2one("x_tramo_de_flete", string="Tramo")
     cold_mode_id = fields.Many2one("x_modalidad_de_frio", string="Modalidad de frío")
-    price = fields.Monetary(string="Valor", required=True, tracking=True)
+    price = fields.Monetary(string="Valor", tracking=True)
     valid_from = fields.Date(string="Vigente desde", default=fields.Date.context_today)
     valid_to = fields.Date(string="Vigente hasta")
     x_active = fields.Boolean(string="Activa", default=True)
