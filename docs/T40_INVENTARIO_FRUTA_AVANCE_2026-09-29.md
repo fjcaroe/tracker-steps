@@ -23,10 +23,24 @@ PR borrador: https://github.com/fjcaroe/tracker-steps/pull/10
 ## Por cerrar
 
 - Homologar perfiles con marcas/modelos reales al conocer sus tramas y probar la captura en navegador con cada equipo. El software admite BLE GATT y Bluetooth SPP por puerto serie, no promete leer protocolos binarios cerrados sin adaptador.
-- Operación de repaletizaje y conversión C→E en el flujo real de Packing.
 - Piloto funcional con usuarios y datos reales antes de instalar en SyS.
 
 No se instaló en SyS ni se cerró el ticket.
+
+## Revisión del 01-10-2026 de los puntos indicados por el cliente
+
+El comentario del cliente del 01-10 señala que no encuentra todos los avances en QA y aclara que repaletizaje y conversión C→E ya están desarrollados en Packing. Revisamos el código instalado en Desarrollo y las pruebas de ambos módulos. El servicio `odoo18-dev` está activo; `https://desarrollo.stepsapp.cl/web/login` responde HTTP 200. En `LAB_TAREAS` están instalados `step_inventory_packing` y `step_packing_operations`, ambos versión `18.0.1.0.0`. Las pruebas de Packing del servidor contienen los tres casos citados abajo.
+
+| Flujo | Evidencia de QA aislada | En Desarrollo | Paso para revisión funcional |
+| --- | --- | --- | --- |
+| Recepción de fruta embalada y tarja E | `test_reception_validates_stock_and_tag_detail`: valida el picking nativo y comprueba stock, productor, temporada, especie y 50 kg en la tarja | Packing Fruta → Recepciones → Fruta embalada | Validar una recepción de prueba y consultar el paquete resultante. |
+| Tarjas y composición por productor | `test_package_state_and_producer_detail`: valida estado, kilos y SDP; `test_excel_import_creates_tags_without_validating_stock`: comprueba que la importación no valida movimientos por sí sola | Packing Fruta → Tarjas de fruta | Abrir una tarja y comprobar productor, kilos, especie y estado. |
+| Envases de cosecha | `test_container_issue_and_return_use_stock_moves`: entrega tres unidades y devuelve dos con saldos de Inventario; `test_opening_balance_creates_inventory_adjustment`: comprueba inventario inicial | Packing Fruta → Operaciones → Entregas y devoluciones de envases; Inventario inicial de envases | Registrar entrega y devolución de prueba con un productor. |
+| Perfil de balanza | `test_scale_profile_requires_valid_transport_and_pattern`: comprueba protocolo, patrón y rechazos de configuración inválida | Packing Fruta → Operaciones → Perfiles de balanza | Probar la captura con marca, modelo y trama reales; la prueba automatizada no homologa el equipo físico. |
+| Conversión C→E en fabricación | `step_packing_operations` / `test_manufacturing_close_checks_real_packages`: consume una tarja C de 100 kg en una OT nativa, produce una tarja E de 80 kg y confirma el movimiento del producto terminado al paquete E | Packing Fruta → Planificación → Órdenes de proceso → Orden de trabajo | Repetir con productos, lista de materiales y tarjas del cliente. La merma del ejemplo es 20 kg. |
+| Repaletizaje simple y mixto | `test_repack_moves_quant_between_packages`: traslada existencias entre paquetes y cambia sus estados; `test_repack_mixed_target_keeps_producer_detail`: conserva 15 cajas y los dos productores en la tarja mixta | Packing Fruta → Operaciones → Repaletizado | Probar un caso de cada tipo con paquetes de prueba. |
+
+Las siete pruebas de `step_inventory_packing` y las ocho pruebas de `step_packing_operations` pasaron en las copias aisladas documentadas en los registros de T40 y [T41](T41_PACKING_OPERACIONES_2026-09.md). No se ejecutaron pruebas nuevas en producción ni se generaron registros sintéticos allí. Los dos flujos de Packing dejan de figurar como trabajo técnico pendiente para T40. Siguen pendientes la homologación física de balanza y la validación del flujo con datos y usuarios del cliente. SyS no se modificó.
 
 ## Uso de la balanza
 
