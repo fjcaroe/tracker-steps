@@ -27,3 +27,9 @@ PR borrador: https://github.com/fjcaroe/tracker-steps/pull/11
 - Validación funcional/contable con un caso real antes de instalar en SyS.
 
 No se instaló en SyS ni se cerró el ticket.
+
+## Incidencia de contrato en Demo-SyS, 01-10-2026
+
+Durante la revisión del ciclo de contrato, `CTR/2026/00002` fue rechazado al intentar contabilizar porque la cuenta de cargo `410235`, tomada de la categoría del producto, no está permitida en el diario `CTOP`. La corrección de T30 permite que Contabilidad ajuste la cuenta de cargo antes del asiento y muestra las cuentas restringidas; quedó instalada y probada en Demo-SyS. Se incorporó también a esta rama de T38 para preservar el arreglo en una futura entrega de Productores. El diagnóstico, respaldo, nueve pruebas y reproducción sobre copia aislada constan en [el acta de T30](T30_REVISION_PRODUCTORES_2026-09-28.md).
+
+El contrato real sigue sin asiento y no se modificaron sus cuentas ni las del diario. La elección de la cuenta de cargo es una decisión contable; la prueba aislada con `110331` acreditó el funcionamiento técnico, no su autorización para el caso real.
