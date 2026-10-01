@@ -20,12 +20,12 @@ La prueba completa valida un `stock.picking` entrante con `stock.move` y `stock.
 Rama: `codex/t40-inventory-packing`.
 PR borrador: https://github.com/fjcaroe/tracker-steps/pull/10
 
-## Por cerrar
+## Validaciones de campo separadas en T45
 
-- Homologar perfiles con marcas/modelos reales al conocer sus tramas y probar la captura en navegador con cada equipo. El software admite BLE GATT y Bluetooth SPP por puerto serie, no promete leer protocolos binarios cerrados sin adaptador.
-- Piloto funcional con usuarios y datos reales antes de instalar en SyS.
+- [T45](https://soporte.stepsapp.cl/helpdesk/ticket/45) conserva la homologación de perfiles con marcas/modelos reales al conocer sus tramas y probar la captura en navegador con cada equipo. El software admite BLE GATT y Bluetooth SPP por puerto serie, no promete leer protocolos binarios cerrados sin adaptador.
+- T45 también conserva el piloto de recepción con usuarios y datos representativos antes de declarar operativa la captura física. Desarrollo es el ambiente solicitado para esas pruebas; SyS no forma parte de esta entrega.
 
-No se instaló en SyS ni se cerró el ticket.
+No se instaló en SyS. El 01-10-2026 el cliente propuso cerrar el desarrollo de T40 y abrir un ticket separado para la prueba de balanzas; se creó T45 para conservar esa validación.
 
 ## Revisión del 01-10-2026 de los puntos indicados por el cliente
 
@@ -40,7 +40,7 @@ El comentario del cliente del 01-10 señala que no encuentra todos los avances e
 | Conversión C→E en fabricación | `step_packing_operations` / `test_manufacturing_close_checks_real_packages`: consume una tarja C de 100 kg en una OT nativa, produce una tarja E de 80 kg y confirma el movimiento del producto terminado al paquete E | Packing Fruta → Planificación → Órdenes de proceso → Orden de trabajo | Repetir con productos, lista de materiales y tarjas del cliente. La merma del ejemplo es 20 kg. |
 | Repaletizaje simple y mixto | `test_repack_moves_quant_between_packages`: traslada existencias entre paquetes y cambia sus estados; `test_repack_mixed_target_keeps_producer_detail`: conserva 15 cajas y los dos productores en la tarja mixta | Packing Fruta → Operaciones → Repaletizado | Probar un caso de cada tipo con paquetes de prueba. |
 
-Las siete pruebas de `step_inventory_packing` y las ocho pruebas de `step_packing_operations` pasaron en las copias aisladas documentadas en los registros de T40 y [T41](T41_PACKING_OPERACIONES_2026-09.md). No se ejecutaron pruebas nuevas en producción ni se generaron registros sintéticos allí. Los dos flujos de Packing dejan de figurar como trabajo técnico pendiente para T40. Siguen pendientes la homologación física de balanza y la validación del flujo con datos y usuarios del cliente. SyS no se modificó.
+Las siete pruebas de `step_inventory_packing` y las ocho pruebas de `step_packing_operations` pasaron en las copias aisladas documentadas en los registros de T40 y [T41](T41_PACKING_OPERACIONES_2026-09.md). No se ejecutaron pruebas nuevas en producción ni se generaron registros sintéticos allí. Los dos flujos de Packing dejan de figurar como trabajo técnico pendiente para T40. La homologación física de balanza y la validación del flujo con datos y usuarios del cliente se siguen en T45. SyS no se modificó.
 
 ## Uso de la balanza
 
