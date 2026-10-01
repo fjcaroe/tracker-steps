@@ -129,17 +129,53 @@ class FreightPlan(models.Model):
 
     x_name = fields.Char(string="Planificación", required=True, default="Nueva planificación", tracking=True)
     x_studio_fecha = fields.Date(string="Fecha", default=fields.Date.context_today, tracking=True)
+    date_from = fields.Date(string="Fecha desde", tracking=True)
+    date_to = fields.Date(string="Fecha hasta", tracking=True)
     x_studio_fundo = fields.Many2one("step.fundo", string="Fundo", tracking=True)
     x_studio_responsable = fields.Many2one("hr.employee", string="Responsable", tracking=True)
-    line_ids = fields.One2many("x_planificacion_de_flete_linea", "plan_id", string="Líneas de flete")
+    state = fields.Selection(
+        [("draft", "Creado"), ("validated", "Validado")],
+        string="Estado",
+        default="draft",
+        required=True,
+        tracking=True,
+    )
+    line_ids = fields.One2many(
+        "x_planificacion_de_flete_linea", "plan_id", string="Líneas de flete",
+        readonly="state == 'validated'",
+    )
     amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
     currency_id = fields.Many2one(related="company_id.currency_id", store=True)
     company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
 
-    @api.depends("line_ids.amount_total")
+    @api.constrains("date_from", "date_to")
+    def _check_date_range(self):
+        for plan in self:
+            if plan.date_from and plan.date_to and plan.date_from > plan.date_to:
+                raise ValidationError("La fecha desde no puede ser posterior a la fecha hasta.")
+
+    @api.depends("line_ids.amount_total", "line_ids.currency_id", "company_id", "x_studio_fecha")
     def _compute_amount_total(self):
         for plan in self:
-            plan.amount_total = sum(plan.line_ids.mapped("amount_total"))
+            conversion_date = plan.x_studio_fecha or fields.Date.context_today(plan)
+            total = 0.0
+            for line in plan.line_ids:
+                if line.currency_id and line.currency_id != plan.currency_id:
+                    total += line.currency_id._convert(
+                        line.amount_total, plan.currency_id, plan.company_id, conversion_date
+                    )
+                else:
+                    total += line.amount_total
+            plan.amount_total = total
+
+    def action_validate(self):
+        for plan in self:
+            if not plan.line_ids:
+                raise ValidationError("No se puede validar una planificación sin líneas de flete.")
+            plan.state = "validated"
+
+    def action_reset_to_draft(self):
+        self.state = "draft"
 
 
 class FreightPlanLine(models.Model):
@@ -155,8 +191,10 @@ class FreightPlanLine(models.Model):
     uom_id = fields.Many2one(related="product_id.uom_id", string="Unidad de flete", store=True)
     quantity = fields.Float(string="Cantidad", default=1.0)
     price = fields.Monetary(string="Precio")
+    currency_id = fields.Many2one(
+        "res.currency", string="Moneda", default=lambda self: self.env.company.currency_id.id
+    )
     amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
-    currency_id = fields.Many2one(related="plan_id.currency_id", store=True)
 
     @api.depends("quantity", "price")
     def _compute_amount_total(self):

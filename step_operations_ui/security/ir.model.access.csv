@@ -8,3 +8,5 @@ access_freight_cold_mode_user,Modalidades de frío,model_x_modalidad_de_frio,bas
 access_freight_dispatch_type_user,Tipos de despacho,model_x_tipo_despacho,base.group_user,1,1,1,1
 access_freight_plan_user,Planificación de fletes,model_x_planificacion_de_flete,base.group_user,1,1,1,1
 access_freight_plan_line_user,Líneas de planificación de fletes,model_x_planificacion_de_flete_linea,base.group_user,1,1,1,1
+access_freight_cost_report_user,Análisis de fletes (costeo real),model_step_freight_cost_report,base.group_user,1,0,0,0
+access_freight_plan_vs_actual_user,Fletes planificado vs real,model_step_freight_plan_vs_actual,base.group_user,1,0,0,0

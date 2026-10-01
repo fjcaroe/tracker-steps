@@ -60,3 +60,63 @@ class TestFreightPlan(TransactionCase):
         self.assertEqual(plan.amount_total, 8000)
         plan.line_ids.unlink()
         self.assertEqual(plan.amount_total, 0)
+
+    def test_date_from_after_date_to_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.env["x_planificacion_de_flete"].create({
+                "x_name": "Planificación con rango invertido",
+                "date_from": "2026-10-10",
+                "date_to": "2026-10-05",
+            })
+
+    def test_validate_requires_lines(self):
+        plan = self.env["x_planificacion_de_flete"].create({"x_name": "Planificación sin líneas"})
+        with self.assertRaises(ValidationError):
+            plan.action_validate()
+
+    def test_validate_and_reset_to_draft(self):
+        plan = self.env["x_planificacion_de_flete"].create({
+            "x_name": "Planificación a validar",
+            "line_ids": [(0, 0, {
+                "product_id": self.freight_product.id,
+                "quantity": 1,
+                "price": 5000,
+            })],
+        })
+        plan.action_validate()
+        self.assertEqual(plan.state, "validated")
+        plan.action_reset_to_draft()
+        self.assertEqual(plan.state, "draft")
+
+    def test_line_currency_defaults_to_company_currency(self):
+        plan = self.env["x_planificacion_de_flete"].create({
+            "x_name": "Planificación moneda",
+            "line_ids": [(0, 0, {
+                "product_id": self.freight_product.id,
+                "quantity": 1,
+                "price": 1000,
+            })],
+        })
+        self.assertEqual(plan.line_ids.currency_id, self.env.company.currency_id)
+
+    def test_total_converts_foreign_currency_lines(self):
+        foreign_currency = self.env["res.currency"].create({
+            "name": "FLT",
+            "symbol": "FLT",
+        })
+        self.env["res.currency.rate"].create({
+            "currency_id": foreign_currency.id,
+            "name": "2026-10-01",
+            "rate": 2.0,  # 1 moneda base = 2 FLT -> 10 FLT = 5 moneda base
+        })
+        plan = self.env["x_planificacion_de_flete"].create({
+            "x_name": "Planificación multimoneda",
+            "x_studio_fecha": "2026-10-01",
+            "line_ids": [(0, 0, {
+                "product_id": self.freight_product.id,
+                "quantity": 1,
+                "price": 10,
+                "currency_id": foreign_currency.id,
+            })],
+        })
+        self.assertEqual(plan.amount_total, 5)

@@ -10,6 +10,7 @@
         "security/ir.model.access.csv",
         "data/freight_dispatch_type_data.xml",
         "views/freight_views.xml",
+        "views/freight_report_views.xml",
         "views/app_icons.xml",
         "views/dashboard_actions.xml",
         "views/machinery_views.xml",
