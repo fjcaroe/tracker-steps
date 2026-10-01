@@ -39,3 +39,9 @@ class HrExpenseSheet(models.Model):
         if expense.total_amount_currency:
             return expense.total_amount / expense.total_amount_currency
         return 1.0
+
+    def _get_expense_account_destination(self):
+        self.ensure_one()
+        if self.payment_mode == "own_account" and self.journal_id.default_account_id:
+            return self.journal_id.default_account_id.id
+        return super()._get_expense_account_destination()

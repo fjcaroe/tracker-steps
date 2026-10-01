@@ -57,6 +57,26 @@ class TestStepExpenseReport(TransactionCase):
         s.invalidate_recordset()
         self.assertTrue(s.show_vehicle)
 
+    def test_own_account_credit_uses_journal_default_account(self):
+        account = self.env["account.account"].create(
+            {"name": "Fondos por Rendir (test)", "code": "199999", "account_type": "asset_current"}
+        )
+        journal = self.env["account.journal"].create(
+            {"name": "Rendiciones Test", "type": "general", "code": "RNDT", "default_account_id": account.id}
+        )
+        s, _e = self._sheet()
+        s.payment_mode = "own_account"
+        s.journal_id = journal.id
+        self.assertEqual(s._get_expense_account_destination(), account.id)
+
+    def test_own_account_without_journal_default_keeps_standard_destination(self):
+        s, _e = self._sheet()
+        s.payment_mode = "own_account"
+        s.journal_id = False
+        work_contact = s.employee_id.sudo().work_contact_id
+        expected = (work_contact.property_account_payable_id or work_contact.parent_id.property_account_payable_id).id
+        self.assertEqual(s._get_expense_account_destination(), expected)
+
     def test_report_renders(self):
         s, _e = self._sheet()
         html, _fmt = self.env["ir.actions.report"]._render_qweb_html(
