@@ -18,6 +18,7 @@ import FleetSettings from './FleetSettings';
 import FleetAssetEditor, { type AssetDetails } from '../components/FleetAssetEditor';
 import FleetHistory from '../components/FleetHistory';
 import TrackerIcon from '../components/TrackerIcon';
+import type { TokenOut } from '../services/auth';
 import { exportFleet } from '../services/fleetExport';
 import type { Configuration } from '../services/fleetConfiguration';
 import type { FleetFilters as Filters } from '../services/fleetApi';
@@ -59,7 +60,12 @@ export default function FleetWorkspace() {
   const filtered = useMemo(() => filterFleet(source, preference.filters).sort((a,b) => String(a[preference.sort]).localeCompare(String(b[preference.sort]))), [source, preference]);
   const current = filtered.find(a => a.asset_id === selected);
   const demoKey = `tracker:demo:${context?.tenant_key}:${context?.user_id}:fleet:v1`;
-  useEffect(() => { portalRequest<FleetContext>('/steps_tracker/context').then(setContext).catch(e => setContextError(e.message)); }, []);
+  useEffect(() => {
+    // Sin sesión Odoo, Odoo responde con una redirección al login: se va directo a él.
+    fetch('/steps_tracker/context', { credentials: 'same-origin', redirect: 'manual', headers: { Accept: 'application/json' } })
+      .then(r => { if (r.type === 'opaqueredirect' || r.status === 302 || r.status === 303) { window.location.replace('/web/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)); return null; } return portalRequest<FleetContext>('/steps_tracker/context').then(setContext); })
+      .catch(e => setContextError(e.message));
+  }, []);
   useEffect(() => { if (demo) return; const url = new URL(window.location.href); if (selected) url.searchParams.set('asset', selected); else url.searchParams.delete('asset'); window.history.replaceState(window.history.state, '', url); }, [selected, demo]);
   useEffect(() => { const sync = () => setView(viewFromHash()); window.addEventListener('hashchange', sync); return () => window.removeEventListener('hashchange', sync); }, []);
   useEffect(() => {
@@ -109,7 +115,7 @@ export default function FleetWorkspace() {
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><span className="fleet-eyebrow">STEPS TRACKER</span><h1>Tu flota, siempre cerca.</h1>{contextError ? <><p role="alert">{contextError}</p><a href="/web/login?redirect=/web_tracker/">Entrar con Odoo →</a></> : <p role="status">Cargando tu compañía y permisos…</p>}</div></main>;
   const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
   const detail = <FleetAssetDetail asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
-  if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><ClassicApp onExit={() => navigate('home')}/></Suspense>;
+  if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><ClassicApp onExit={() => navigate('home')} exchange={() => portalRequest<TokenOut>('/steps_tracker/classic-session', context, 'POST')}/></Suspense>;
   return <div className="fleet-app">
     <header className="fleet-header"><a className="fleet-brand" href="#home" aria-label="Steps Tracker Inicio"><b><TrackerIcon name="live" size={25}/></b><span>Steps <strong>Tracker</strong></span></a><div className="fleet-identity"><strong>{context.company}</strong><span>{context.user}</span></div><a className="tracker-odoo-link" href="/odoo">Odoo ↗</a></header>
     <nav className="fleet-nav" aria-label="Áreas Tracker">{([['home','Inicio'],['live','Mapa'],['fleet','Flota'],['zones','Zonas'],['protection','Protección'],['ops','Operación'],['settings','Configuración']] as const).map(([key,text]) => <button key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}><TrackerIcon name={key} size={19}/><span>{text}</span></button>)}</nav>

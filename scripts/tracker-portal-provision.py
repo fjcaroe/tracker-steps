@@ -6,6 +6,7 @@ The generated key file is consumed only by the API systemd unit.
 import json
 import os
 import secrets
+import sys
 import uuid
 from pathlib import Path
 import psycopg2
@@ -14,7 +15,7 @@ key_path = Path('/etc/tracker-bridge-keys.json')
 keys = json.loads(key_path.read_text()) if key_path.exists() else {}
 with psycopg2.connect(dbname='tracker_steps') as tracker:
     with tracker.cursor() as target:
-        for database in ('LAB_TAREAS', 'STEPS_DEMO', 'CERRO_EL_PLOMO'):
+        for database in (sys.argv[1:] or ('LAB_TAREAS', 'STEPS_DEMO', 'CERRO_EL_PLOMO')):
             keys.setdefault(database, secrets.token_hex(32))
             with psycopg2.connect(dbname=database) as odoo:
                 with odoo.cursor() as source:

@@ -77,7 +77,22 @@ class TrackerPortal(http.Controller):
         return request.make_response(result.content, status=result.status_code,
             headers=[('Content-Type', 'application/json'), ('Cache-Control', 'no-store')])
 
-    @http.route('/steps_tracker/import-fleet', type='http', auth='user', methods=['POST'], csrf=True)
+    @http.route('/steps_tracker/classic-session', type='http', auth='user', methods=['POST'], csrf=True)
+    def classic_session(self, **kwargs):
+        """Cambia la sesión Odoo ya validada por un token de la operación clásica (sin segundo login)."""
+        current_role = role()
+        if current_role == 'viewer':
+            raise Forbidden('Tu perfil no incluye la operación clásica.')
+        try:
+            result = requests.post('http://127.0.0.1:8000/v1/classic-session',
+                headers={'Authorization': 'Bearer '+signed_token(current_role)},
+                json={'login': request.env.user.login or '', 'name': request.env.user.name or ''}, timeout=20)
+        except requests.RequestException:
+            raise ServiceUnavailable('La API Tracker no está disponible; vuelve a intentar')
+        return request.make_response(result.content, status=result.status_code,
+            headers=[('Content-Type', 'application/json'), ('Cache-Control', 'no-store')])
+
+    @http.route('/steps_tracker/import-fleet',type='http', auth='user', methods=['POST'], csrf=True)
     def import_fleet(self, **kwargs):
         if role() != 'manager':
             raise Forbidden()

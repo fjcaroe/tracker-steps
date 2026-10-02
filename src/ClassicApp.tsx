@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import LoginPage from "./pages/LoginPage";
 import { useAuthWeb } from "./services/useAuthWeb";
 import type { OperationsView } from "./pages/OperationsWorkspace";
+import type { TokenOut } from "./services/auth";
 
 const OperationsWorkspace = lazy(() => import("./pages/OperationsWorkspace"));
 
@@ -60,9 +61,25 @@ function ViewLoader() {
 }
 
 
-/** Operación clásica (registro, cosecha, indicadores, maestros…) con el login propio del Tracker. */
-export default function ClassicApp({ onExit }: { onExit?: () => void }) {
-  const { token, isReady } = useAuthWeb();
+/**
+ * Operación clásica (registro, cosecha, indicadores, maestros…).
+ * Embebida en el portal usa la sesión Odoo (`exchange`); independiente usa el login propio del Tracker.
+ */
+export default function ClassicApp({ onExit, exchange }: { onExit?: () => void; exchange?: () => Promise<TokenOut> }) {
+  const { token, isReady, adopt } = useAuthWeb();
+  const [odooReady, setOdooReady] = useState(!exchange);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!exchange) return;
+    let active = true;
+    setOdooReady(false); setError("");
+    exchange().then((data) => { if (active) { adopt(data); setOdooReady(true); } })
+      .catch((e: Error) => { if (active) setError(e.message || "No se pudo abrir la operación con tu sesión Odoo."); });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt]);
+  if (exchange && !odooReady) return <main className="view-loader" role={error ? "alert" : "status"}>{error ? <><span>{error}</span><button type="button" onClick={() => setAttempt((n) => n + 1)}>Reintentar</button><button type="button" onClick={onExit}>Volver a Flota</button></> : <><span className="view-loader__spinner" aria-hidden="true"/><span>Abriendo operación con tu sesión Odoo…</span></>}</main>;
   if (!isReady) return <div className="view-loader"><span className="view-loader__spinner"/>Cargando sesión…</div>;
   if (!token) return <LoginPage />;
   return <AuthedApp onExit={onExit} />;
@@ -94,7 +111,7 @@ function AuthedApp({ onExit }: { onExit?: () => void }) {
       <aside className="app-sidebar">
         <div className="app-brand"><div className="app-brand__mark"><span>S</span></div><div><strong>Steps Tracker</strong><span>Operaciones en terreno</span></div></div>
         <nav className="app-sidebar__nav" aria-label="Navegación principal">{onExit && <button type="button" className="app-sidebar__item" onClick={onExit}><AppIcon name="live"/><span>← Flota y GPS</span></button>}<span className="app-sidebar__label">Operación</span>{navItems.map((item) => <button key={item.id} type="button" className={`app-sidebar__item ${view === item.id ? "is-active" : ""}`} onClick={() => navigate(item.id)} aria-current={view === item.id ? "page" : undefined}><AppIcon name={item.icon}/><span>{item.label}</span>{item.id === "live" && <span className="app-sidebar__badge">4</span>}</button>)}</nav>
-        <div className="app-sidebar__footer"><div className="app-user-card"><span className="app-user-card__avatar">{initial}</span><span className="app-user-card__identity"><strong>{user?.full_name || "Usuario Tracker"}</strong><small>{user?.username || "Sesión activa"}</small></span><button type="button" className="app-user-card__logout" onClick={logout} title="Cerrar sesión" aria-label="Cerrar sesión"><AppIcon name="logout"/></button></div></div>
+        <div className="app-sidebar__footer"><div className="app-user-card"><span className="app-user-card__avatar">{initial}</span><span className="app-user-card__identity"><strong>{user?.full_name || "Usuario Tracker"}</strong><small>{user?.username || "Sesión activa"}</small></span><button type="button" className="app-user-card__logout" onClick={onExit ?? logout} title={onExit ? "Volver a Flota" : "Cerrar sesión"} aria-label="Cerrar sesión"><AppIcon name="logout"/></button></div></div>
       </aside>
       <div className="app-main">
         <header className="app-topbar"><div className="app-topbar__path"><span>Steps</span><b>/</b>{currentMeta.title}</div><div className="app-topbar__status"><span className="status-pulse"/> Plataforma operacional</div></header>

@@ -11,7 +11,9 @@ from jose import jwt, JWTError
 from pydantic import BaseModel, Field, ConfigDict, AwareDatetime
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from app.core.security import oauth2_scheme
+from app.core.security import oauth2_scheme, create_access_token, hash_password, get_user_cost_centers
+from app.models.users import User
+from app.schemas.auth import TokenOut
 from app.db.session import get_db
 from app.models.fleet import Tenant, Asset, Device, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
 
@@ -492,3 +494,32 @@ def sync_changes(cursor: str = '', limit: int = Query(100, ge=1, le=500), ctx=De
         items.append({'event_id': row.id, 'incident': incident_out(db, incident) if incident else None,
                       'asset': {'asset_id': asset.id, 'name': asset.name, 'source_id': asset.source_id} if asset else None})
     return {'items': items, 'cursor': utc(page[-1].created_at).isoformat()+'|'+page[-1].id if page else cursor, 'has_more': len(rows) > limit}
+
+
+class ClassicSessionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    login: str = Field(min_length=1, max_length=120)
+    name: str = Field(default='', max_length=200)
+
+
+@router.post('/classic-session', response_model=TokenOut)
+def classic_session(payload: ClassicSessionIn, ctx=Depends(identity), db: Session = Depends(get_db)):
+    """Sesión de la operación clásica a partir de una identidad Odoo ya autenticada.
+
+    El usuario Tracker se deriva de (tenant, usuario Odoo); solo el rol manager del portal
+    obtiene perfil administrador. Los viewers no reciben sesión clásica.
+    """
+    require(ctx, ('manager', 'operator'))
+    username = 'odoo-%s-%s' % (str(ctx['tenant_id']).replace('-', '')[:8], ctx['user_id'])
+    user = db.query(User).filter_by(username=username).one_or_none()
+    if user is None:
+        user = User(username=username, full_name=payload.name or payload.login, is_active=True,
+                    password_hash=hash_password(uuid4().hex + uuid4().hex))
+        db.add(user)
+    user.full_name = payload.name or payload.login
+    user.is_admin = ctx['role'] == 'manager'
+    db.flush()
+    audit(db, ctx, 'classic_session', {'tracker_user': user.id, 'login': payload.login})
+    token = create_access_token({'sub': str(user.id), 'username': user.username})
+    db.commit()
+    return {'access_token': token, 'token_type': 'bearer', 'user': user, 'cost_centers': get_user_cost_centers(db, user.id)}
