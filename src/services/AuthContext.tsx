@@ -14,10 +14,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // “Hidratación”: si hay token guardado, intentamos cargar /auth/me y /auth/me/cost_centers
   useEffect(() => {
     (async () => {
-      if (import.meta.env.VITE_ODOO_PORTAL === 'true') {
-        setIsReady(true);
-        return;
-      }
       const t = getToken();
       setTokenState(t);
 
