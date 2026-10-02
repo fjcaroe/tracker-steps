@@ -15,4 +15,6 @@
               action="step_export.action_step_export_grower_rate" sequence="40"/>
     <menuitem id="menu_step_producers_settlements" name="Liquidaciones" parent="menu_step_producers_root"
               action="step_export.action_export_producer_settlement" sequence="50"/>
+    <menuitem id="menu_step_producers_contracts" name="Contratos de compra" parent="menu_step_producers_root"
+              action="action_step_producer_purchase_contract" sequence="60"/>
 </odoo>
