@@ -1,7 +1,7 @@
 {
     "name": "Steps - Operación de Packing",
     "summary": "Planificación, cuadratura y trazabilidad de procesos de fruta",
-    "version": "18.0.2.0.0",
+    "version": "18.0.2.1.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
@@ -17,8 +17,16 @@
         "views/reservation_views.xml",
         "report/packing_process_report.xml",
         "views/mobile_views.xml",
+        "views/packing_dashboard_views.xml",
         "views/packing_menu.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "step_packing_operations/static/src/js/packing_dashboard.js",
+            "step_packing_operations/static/src/xml/packing_dashboard.xml",
+            "step_packing_operations/static/src/scss/packing_dashboard.scss",
+        ],
+    },
     "application": True,
     "installable": True,
 }

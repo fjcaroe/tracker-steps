@@ -1,6 +1,9 @@
 <odoo>
     <menuitem id="menu_packing_operations_root" name="Packing" sequence="55"
-        groups="stock.group_stock_user"/>
+        action="action_packing_dashboard"
+        groups="stock.group_stock_user" web_icon="step_packing_operations,static/description/icon.png"/>
+    <menuitem id="menu_packing_operations_dashboard" name="Inicio"
+        parent="menu_packing_operations_root" action="action_packing_dashboard" sequence="0"/>
     <menuitem id="menu_packing_operations_planning" name="Planificación"
         parent="menu_packing_operations_root" sequence="10"/>
     <menuitem id="menu_packing_operations_process" name="Proceso"

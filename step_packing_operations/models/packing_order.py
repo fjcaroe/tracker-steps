@@ -101,6 +101,47 @@ class PackingOrder(models.Model):
             order.state = "closed"
         return True
 
+    @api.model
+    def get_dashboard_data(self):
+        """Lectura ejecutiva para la portada de la app; no altera el flujo transaccional."""
+        order = self.env["step.packing.order"]
+        production = self.env["step.packing.production"]
+        open_orders = order.search_count([("state", "in", ("draft", "validated"))])
+        orders_without_materials = order.search_count([
+            ("state", "=", "validated"), ("material_need_ids", "=", False)])
+        open_productions = production.search([
+            ("state", "in", ("created", "validated"))], order="id desc")
+        to_close = open_productions.filtered(lambda p: p.state == "validated")
+        to_validate = open_productions.filtered(lambda p: p.state == "created")
+        recent_orders = order.search([], order="id desc", limit=6)
+        recent_productions = production.search([], order="id desc", limit=6)
+        return {
+            "company_name": self.env.company.display_name,
+            "kpis": {
+                "open_orders": open_orders,
+                "open_productions": len(open_productions),
+                "input_kg": sum(open_productions.mapped("step_packing_input_kg")),
+                "export_kg": sum(open_productions.mapped("step_packing_export_kg")),
+            },
+            "attention": {
+                "orders_without_materials": orders_without_materials,
+                "productions_to_close": len(to_close),
+                "productions_to_validate": len(to_validate),
+            },
+            "recent_orders": [{
+                "id": rec.id, "name": rec.name, "state": rec.state,
+                "state_label": dict(rec._fields["state"].selection).get(rec.state),
+                "boxes": rec.planned_boxes, "kg": rec.planned_kg,
+            } for rec in recent_orders],
+            "recent_productions": [{
+                "id": rec.id, "name": rec.name, "state": rec.state,
+                "state_label": dict(rec._fields["state"].selection).get(rec.state),
+                "order": rec.step_packing_order_id.name or "",
+                "product": rec.product_id.display_name or "",
+                "input_kg": rec.step_packing_input_kg,
+            } for rec in recent_productions],
+        }
+
 
 class PackingOrderLine(models.Model):
     _name = "step.packing.order.line"
