@@ -1,7 +1,7 @@
 // Sincronización: cola de operaciones + puntos GPS, con almacenamiento local.
-import { sessions } from './api';
+import { api, APP_VERSION, mobile, sessions } from './api';
 import { runOutbox, startPending, type Op } from './outbox';
-import { activeStore, pointQueue } from './queue';
+import { activeStore, pointQueue, syncStore } from './queue';
 
 const OPS = 'steps_movil_outbox';
 const RESOLVED = 'steps_movil_outbox_ids';
@@ -17,7 +17,17 @@ export const outboxStore = {
   resolved: () => read<Record<string, number>>(RESOLVED, {}),
 };
 
+/** Total de elementos sin enviar (operaciones + puntos GPS de todas las jornadas). */
+export function pendingTotal(): number {
+  return outboxStore.ops().length + Object.values(pointQueue.all()).reduce((n, p) => n + p.length, 0);
+}
+
+const platform = (): string => { try { return (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? 'web'; } catch { return 'web'; } };
+
 let running: Promise<number> | null = null;
+let lastBeat = 0;
+let lastBeatPending = -1;
+const BEAT_EVERY_MS = 60_000;
 
 /** Ejecuta la cola y luego envía los puntos de la jornada activa (si ya existe en el servidor). Devuelve operaciones completadas. */
 export function syncAll(): Promise<number> {
@@ -33,6 +43,7 @@ export function syncAll(): Promise<number> {
       flushPoints,
       closeSession: (id, endedAt) => sessions.close(id, endedAt),
       finishWorkOrder: sessions.finishWorkOrder,
+      post: (path, body) => api(`/mobile/${path}`, { method: 'POST', body: JSON.stringify(body) }),
     });
     write(OPS, result.ops);
     write(RESOLVED, result.resolved);
@@ -42,6 +53,13 @@ export function syncAll(): Promise<number> {
       const id = result.resolved[active.sessionId];
       if (id && active.workOrderId !== id) activeStore.set({ ...active, workOrderId: id });
       if (!startPending(result.ops, active.sessionId)) await flushPoints(active.sessionId);
+    }
+    // Señal de vida para soporte: versión de la app, pendientes y última sincronización.
+    const last = syncStore.get();
+    const pending = pendingTotal();
+    if (Date.now() - lastBeat > BEAT_EVERY_MS || pending !== lastBeatPending) {
+      lastBeat = Date.now(); lastBeatPending = pending;
+      void mobile.heartbeat({ version: APP_VERSION, platform: platform(), pending, last_sync_at: last ? new Date(last).toISOString() : null }).catch(() => {});
     }
     return result.done;
   })().finally(() => { running = null; });

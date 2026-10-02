@@ -7,7 +7,7 @@ const LAST_SYNC = 'steps_movil_last_sync';
 
 export type Active = {
   sessionId: string; workOrderId: number; machineId: number; machineName: string; startedAt: number;
-  hourmeterStart: number; tankStart: number; tankCapacity: number | null; distanceM: number;
+  hourmeterStart: number; tankStart: number; tankCapacity: number | null; distanceM: number; fromTask?: boolean;
 };
 
 function read<T>(key: string, fallback: T): T { try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }

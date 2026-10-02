@@ -65,7 +65,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 - **Requisito externo:** Android Studio / Xcode y cuentas de desarrollador (ver Bloque F).
 - **Aceptación:** jornada de 1 hora con pantalla apagada en un teléfono real, sin huecos > 2 min en la ruta.
 
-### I4 · Sesión y permisos sin fricción  `[ ]`
+### I4 · Sesión y permisos sin fricción  `[x]` 02-10-2026
 - **Qué:** que los **administradores Odoo vean todos los centros de costo** sin asignarlos a mano
   (`/auth/me/cost_centers` y `sessions/my` consideran `is_admin`); pantalla clara cuando un operador no tiene
   centros ("pide acceso a…" con botón de contacto); renovación de token antes de vencer; cierre de sesión que
@@ -79,7 +79,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque B — El día de un conductor
 
-### I5 · Revisión previa (checklist) e incidentes  `[ ]`
+### I5 · Revisión previa (checklist) e incidentes  `[x]` 02-10-2026 (falta: vista de incidentes en Odoo `step_tracker_portal`; la API y la vista Supervisor ya los muestran)
 - **Qué:** checklist antes de partir (luces, frenos, neumáticos, aceite, extintor… configurable por tipo de
   vehículo) y reporte de incidencias (falla, accidente, daño, robo) con categoría, nota y **foto**, con
   ubicación y hora. Funciona sin señal (cola).
@@ -88,20 +88,20 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   muestra los incidentes en Tracker → Incidentes.
 - **Aceptación:** una falla reportada desde el teléfono aparece en la web con foto, lugar y hora.
 
-### I6 · Combustible y gastos en ruta  `[ ]`
+### I6 · Combustible y gastos en ruta  `[x]` 02-10-2026 (falta: enlazar con la rendición `step_expense_tracker`; los gastos quedan en `mobile_expenses` con boleta)
 - **Qué:** cargas de combustible (litros, monto, estación, **foto de la boleta**, odómetro) durante la jornada,
   peajes y otros gastos del viaje. Se vinculan al parte y alimentan `step_expense_tracker` (rendiciones).
 - **Backend:** endpoint de gastos de jornada; integración con "Traer desde Tracker" ya existente (Entrega A).
 - **Aceptación:** una carga registrada en terreno aparece al armar la rendición del conductor.
 
-### I7 · Mis tareas  `[ ]`
+### I7 · Mis tareas  `[x]` 02-10-2026 (falta: pantalla web para asignar; hoy se asigna con `PUT /work_orders/{id}` `assigned_user_id`, solo administrador)
 - **Qué:** pantalla "Hoy" con las órdenes de trabajo asignadas al conductor (máquina, labor, campo, hora,
   indicaciones), iniciar jornada con un toque desde la tarea y marcar avance. Notificaciones locales de
   recordatorio.
 - **Backend:** asignación de `work_orders` a usuario/conductor (campo nuevo, aditivo) y `GET /work_orders?mine=1`.
 - **Aceptación:** el supervisor asigna una tarea en la web y el conductor la ve y la inicia sin llenar el formulario.
 
-### I8 · Resumen de la jornada y mapa propio  `[ ]`
+### I8 · Resumen de la jornada y mapa propio  `[x]` 02-10-2026 (ruta en SVG sin mapa base, funciona sin señal; falta alerta de salida de zona y comparación con la web)
 - **Qué:** mapa en vivo con la ruta recorrida y los campos/zonas asignados; al cerrar, resumen (tiempo, km,
   combustible estimado, paradas) y compartirlo. Alertas de salida de zona o exceso de velocidad (solo avisos
   al conductor).
@@ -134,7 +134,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   retrasos; cierre de servicio con manifiesto firmado (conductor) y novedades.
 - **Aceptación:** el coordinador ve en la web el avance del servicio y los retrasos en tiempo casi real.
 
-### I12 · Seguridad del pasajero y del conductor  `[ ]`
+### I12 · Seguridad del pasajero y del conductor  `[~]` 02-10-2026 parcial: SOS con ubicación y aviso de exceso de velocidad hechos; faltan pausas de conducción y contactos de emergencia configurables
 - **Qué:** botón SOS (aviso inmediato con ubicación a contactos y a la web), registro de exceso de velocidad
   y de pausas de conducción/descanso (jornada), números de emergencia configurables. Reutiliza incidentes
   y política de protección existentes; **no** habilita control físico del vehículo (bloqueado hasta E4).
@@ -144,7 +144,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque D — Gestión ligera (jefe de flota desde el teléfono)
 
-### I13 · Vista de supervisor  `[ ]`
+### I13 · Vista de supervisor  `[x]` 02-10-2026 (falta: última posición por vehículo y auditoría explícita de quién atendió, hoy `handled_by`)
 - **Qué:** para roles manager/operator del puente Odoo: lista de vehículos con última posición y estado,
   jornadas abiertas, incidentes pendientes y atender/cerrar un incidente. Sin duplicar la web: solo lo urgente.
 - **Aceptación:** un supervisor atiende un incidente desde el teléfono y queda en la auditoría.
@@ -153,13 +153,13 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque E — Experiencia y calidad
 
-### I14 · Experiencia de terreno  `[ ]`
+### I14 · Experiencia de terreno  `[~]` 02-10-2026 parcial: modo noche, modo guantes, tamaño de letra, sonido/vibración, ayuda de primer uso, versión y buscar actualización; falta revisión de accesibilidad con conductores reales
 - **Qué:** botones grandes y modo guantes, modo noche, voz/sonidos de aviso, textos en español claro,
   tamaño de letra ajustable, accesibilidad (lector de pantalla, contraste), pantalla de ayuda "primer uso"
   con permisos de ubicación paso a paso, y versión visible con "buscar actualización".
 - **Aceptación:** revisión de accesibilidad básica y prueba con 2 conductores reales.
 
-### I15 · Observabilidad y soporte  `[ ]`
+### I15 · Observabilidad y soporte  `[~]` 02-10-2026 parcial: señal de vida (versión, pendientes, última sincronización), registro de errores y enviar diagnóstico; falta el panel de salud en la web
 - **Qué:** registro de errores de la app (sin datos personales), "enviar diagnóstico" desde Perfil, versión de
   app en cada petición, panel de salud (última sincronización por conductor) en la web.
 - **Aceptación:** ante un reclamo se puede ver qué versión usa el conductor y cuándo sincronizó por última vez.
@@ -218,3 +218,4 @@ publicarse cuando ya haya clientes en ellos.
 | 02-10-2026 | Base (web/PWA, jornada, GPS con cola, historial) | `f3355be` | `index-CGTxg_cA.js` | Proyectos Android/iOS generados, sin compilar |
 | 02-10-2026 | I1 Jornada que no se pierde (retomar desde servidor, limpiar si ya está cerrada, reenvío al volver a primer plano, último envío visible) | ver rama `ticket/46-movil-i1-jornada-no-se-pierde` | `index-r-XhPasL.js` | Se ofrece *Retomar* en vez de retomar sola, porque `/sessions/my` lista las jornadas de los centros de costo del usuario, no solo las suyas (la sesión no guarda quién la inició). Sin verificar en terreno ni en dispositivo; respaldo del front: `steps-truck-frontend.pre-movil-20261002T012511Z` |
 | 02-10-2026 | I2 Iniciar jornada sin señal (cola ordenada e idempotente, catálogos en caché, pantalla Pendientes de sincronizar; API: `id` de cliente en `/sessions/start`, reintento idempotente en `/work_orders`) | `62a8173` | `index-CaDWgI7Z.js` | API desplegada antes que la app (sin cambios de esquema). Respaldos: `/opt/fernando_odoo18/backups/tracker_py-i2-20261002T031459Z`, `tracker_steps-i2-20261002T031459Z.dump`; front: `steps-truck-frontend.pre-movil-20261002T031528Z`. Sin verificar en dispositivo real ni en modo avión físico |
+| 02-10-2026 | I4–I8, I12 (parcial), I13, I14 (parcial), I15 (parcial): admin ve todos los centros, renovación de token, checklist, incidentes con foto, gastos con boleta, Mis tareas, resumen y ruta, SOS, supervisor, ajustes de terreno, diagnóstico. **No hechas:** I3 (necesita Android Studio/Xcode y cuentas), I9–I11 (pasajeros: I9 exige confirmar arquitectura), I16 (tiendas) | ver rama `ticket/46-movil-i4-i15` | ver nota del ticket | Migración aditiva `20261002_movil_field_ops.up.sql`. Sin verificar en dispositivo real |

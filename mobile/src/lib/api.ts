@@ -2,6 +2,8 @@
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
+export const APP_VERSION = '1.2.0';
+
 export class ApiError extends Error {
   status: number;
   constructor(message: string, status: number) { super(message); this.status = status; }
@@ -45,6 +47,17 @@ export type TokenOut = { access_token: string; token_type: string; user: User; c
 export type FuelStatus = { last_liters: number | null; tank_capacity_liters: number | null };
 export type WorkOrder = { id: number };
 export type WorkOrderSummary = { id: number; hourmeter_initial: number | null; fuel_tank_start_liters: number | null };
+export type Task = {
+  id: number; code: string; work_date: string; machine_id: number | null; activity_id: number; labor_id: number; cost_center_id: number | null;
+  field_id: number | null; notes: string | null; scheduled_time: string | null; mobile_status: string | null; progress_pct: number | null; implement_id: number | null;
+};
+export type IncidentCategory = 'breakdown' | 'accident' | 'damage' | 'theft' | 'sos' | 'other';
+export type IncidentOut = {
+  id: string; category: IncidentCategory; note: string | null; status: 'open' | 'attended' | 'closed'; machine_name: string | null; user_name: string | null;
+  lat: number | null; lon: number | null; occurred_at: string; has_photo: boolean;
+};
+export type DeviceOut = { user_id: number; user_name: string | null; version: string | null; platform: string | null; pending: number | null; last_sync_at: string | null; last_seen_at: string };
+export type ChecklistTemplate = { items: { key: string; label: string }[] };
 export type PointIn = { ts: string; lat: number; lon: number; speed_mps: number | null; accuracy_m: number | null };
 
 export async function login(username: string, password: string): Promise<TokenOut> {
@@ -53,6 +66,12 @@ export async function login(username: string, password: string): Promise<TokenOu
   return data;
 }
 export const me = () => api<User>('/auth/me');
+/** Renueva el token (30 días de vigencia en el servidor); se llama al abrir y al volver a primer plano. */
+export async function refreshToken(): Promise<TokenOut> {
+  const data = await api<TokenOut>('/auth/refresh', { method: 'POST' });
+  tokenStore.set(data.access_token);
+  return data;
+}
 
 /** Sesión Odoo (solo web alojada junto a Odoo): cambia la cookie por un token de la API. */
 export async function loginWithOdoo(): Promise<TokenOut | null> {
@@ -93,4 +112,22 @@ export const sessions = {
   close: (id: string, endedAt?: string) => api<Session>(`/sessions/${id}/close${endedAt ? `?ended_at=${encodeURIComponent(endedAt)}` : ''}`, { method: 'POST' }),
   workOrders: (season: string) => api<WorkOrderSummary[]>(`/work_orders?season=${encodeURIComponent(season)}`),
   mine: (limit = 40) => api<SessionSummary[]>(`/sessions/my?limit=${limit}`),
+};
+
+export const mobile = {
+  tasks: () => api<Task[]>('/work_orders?mine=true'),
+  updateTask: (id: number, body: { mobile_status?: string; progress_pct?: number; hourmeter_initial?: number | null; fuel_tank_start_liters?: number | null; implement_id?: number | null }) => api<Task>(`/work_orders/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  checklistTemplate: (machineId: number) => api<ChecklistTemplate>(`/mobile/checklist_template?machine_id=${machineId}`),
+  incidents: (status?: string) => api<IncidentOut[]>(`/mobile/incidents${status ? `?status=${status}` : ''}`),
+  setIncident: (id: string, status: string) => api<IncidentOut>(`/mobile/incidents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  devices: () => api<DeviceOut[]>('/mobile/devices'),
+  heartbeat: (body: { version: string; platform: string; pending: number; last_sync_at: string | null }) => api<{ ok: boolean }>('/mobile/heartbeat', { method: 'POST', body: JSON.stringify(body) }),
+  diagnostic: (body: { version: string; message: string; log: string }) => api<{ ok: boolean }>('/mobile/diagnostics', { method: 'POST', body: JSON.stringify(body) }),
+  /** La foto se pide con el token (no es pública): se devuelve como URL de objeto. */
+  async photo(kind: 'incidents' | 'expenses', id: string): Promise<string> {
+    const token = tokenStore.get();
+    const r = await fetch(`${API_BASE}/mobile/photos/${kind}/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!r.ok) throw new ApiError('No se pudo cargar la foto', r.status);
+    return URL.createObjectURL(await r.blob());
+  },
 };

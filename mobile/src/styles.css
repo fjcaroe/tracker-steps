@@ -1,6 +1,6 @@
 :root{--green:#123c33;--lime:#d8ff62;--ink:#183b32;--muted:#61786b;--line:#dce3df;--bg:#f3f5f2;--card:#fff;--danger:#b3261e;color-scheme:light}
 @media(prefers-color-scheme:dark){:root{--ink:#e7f0eb;--muted:#9bb3a6;--line:#2a4a40;--bg:#0c211c;--card:#143229;color-scheme:dark}}
-*{box-sizing:border-box}html,body,#root{height:100%;margin:0}body{background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box}html,body,#root{height:100%;margin:0}body{background:var(--bg);color:var(--ink);font:1rem/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
 h1{font-size:24px;margin:0;letter-spacing:-.4px}h2{font-size:19px;margin:0}h3{font-size:16px;margin:0 0 6px}p{margin:6px 0}small{display:block;color:var(--muted)}
 .shell{min-height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--green);color:#fff}
@@ -29,3 +29,22 @@ button{cursor:pointer;font-weight:650}button:disabled{opacity:.55}
 .pw{display:flex;gap:6px;align-items:center}.pw input{flex:1}
 @media(prefers-reduced-motion:reduce){.spinner{animation:none}}
 .grid2>*,.grid3>*{min-width:0}input,select{width:100%}
+
+/* I14 · Experiencia de terreno: tamaño de letra, modo noche y modo guantes */
+:root{--route:#1d6b57}
+html{font-size:calc(16px*var(--font-scale,1))}
+html[data-night=on]{--ink:#e7f0eb;--muted:#9bb3a6;--line:#2a4a40;--bg:#0c211c;--card:#143229;--route:#d8ff62;color-scheme:dark}
+html[data-night=on] .link{color:var(--lime)}html[data-night=on] .primary{background:var(--lime);color:#123c33;border-color:var(--lime)}
+html[data-night=off]{--ink:#183b32;--muted:#61786b;--line:#dce3df;--bg:#f3f5f2;--card:#fff;--route:#1d6b57;color-scheme:light}
+@media(prefers-color-scheme:dark){html[data-night=auto]{--route:#d8ff62}}
+html[data-gloves=on] button,html[data-gloves=on] input,html[data-gloves=on] select{min-height:64px;font-size:1.1rem}
+html[data-gloves=on] .tabbar button{min-height:72px}
+.seg{display:inline-flex;gap:6px}.seg button{min-height:44px;padding:6px 14px}.seg .is-on{background:#2e7d4f;color:#fff;border-color:#2e7d4f}.seg .is-on.is-bad{background:var(--danger);border-color:var(--danger)}
+.sos{background:#7a1510;color:#fff;border-color:#7a1510;min-height:56px;font-size:1.05rem;letter-spacing:.3px}
+.routemap{width:100%;height:auto;background:color-mix(in srgb,var(--card) 90%,var(--green));border-radius:12px;border:1px solid var(--line)}
+.photo{width:100%;border-radius:12px;max-height:340px;object-fit:contain}
+.btnlink{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;border:1px solid var(--line);text-decoration:none;color:var(--ink);font-weight:650}
+.check{flex-direction:row;align-items:center;gap:10px;font-size:1rem;color:var(--ink)}.check input{width:24px;min-height:24px}
+.steps{padding-left:20px;display:flex;flex-direction:column;gap:10px;margin:0}
+.card--alert{border-color:var(--danger);box-shadow:0 0 0 2px var(--danger) inset}
+.sheet__panel{max-height:92vh;overflow:auto}

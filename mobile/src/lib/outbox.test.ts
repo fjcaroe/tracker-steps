@@ -17,6 +17,7 @@ function handlers(log: string[], over: Partial<Handlers> = {}): Handlers {
     flushPoints: async () => { log.push('points'); return true; },
     closeSession: async () => { log.push('close'); },
     finishWorkOrder: async (id) => { log.push(`finish:${id}`); },
+    post: async (path, b) => { log.push(`post:${path}:${(b as { work_order_id?: number }).work_order_id ?? '-'}`); },
     ...over,
   };
 }
@@ -55,6 +56,23 @@ describe('outbox', () => {
     expect(r.ops.find((o) => o.kind === 'wo_create')?.error).toBe('Máquina inactiva');
     expect(log).toEqual(['points', 'close']);
     expect(r.ops).toHaveLength(4);
+  });
+  it('los registros de campo siguen a su jornada y heredan el parte resuelto', async () => {
+    const log: string[] = [];
+    const ops: Op[] = [...full().slice(0, 2), { kind: 'post', path: 'expenses', sessionId: 's1', body: { id: 'e1', kind: 'fuel', liters: 10 } }, { kind: 'post', path: 'incidents', sessionId: 'solo:i1', body: { id: 'i1', category: 'sos' } }];
+    const r = await runOutbox(ops, {}, handlers(log));
+    expect(log).toEqual(['wo', 'start:77', 'post:expenses:77', 'post:incidents:-']);
+    expect(r.ops).toEqual([]);
+  });
+  it('un registro rechazado no frena otros registros', async () => {
+    const log: string[] = [];
+    const ops: Op[] = [{ kind: 'post', path: 'incidents', sessionId: 'solo:a', body: { id: 'a' } }, { kind: 'post', path: 'incidents', sessionId: 'solo:b', body: { id: 'b' } }];
+    const bad = Object.assign(new Error('Categoría no válida'), { status: 400 });
+    let n = 0;
+    const r = await runOutbox(ops, {}, handlers(log, { post: async () => { n += 1; if (n === 1) throw bad; log.push('ok'); } }));
+    expect(log).toEqual(['ok']);
+    expect(r.ops).toHaveLength(1);
+    expect(r.ops[0].error).toBe('Categoría no válida');
   });
   it('startPending indica si la jornada aún no existe en el servidor', () => {
     expect(startPending(full(), 's1')).toBe(true);

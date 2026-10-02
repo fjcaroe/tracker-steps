@@ -1,13 +1,16 @@
-// Cola ordenada de operaciones pendientes (jornadas creadas / cerradas sin señal). Núcleo puro y probado.
+// Cola ordenada de operaciones pendientes (jornadas, checklist, incidencias y gastos creados sin señal). Núcleo puro y probado.
 import type { WorkOrderIn } from './api';
 
-export type FinishBody = { hourmeter_final: number | null; fuel_refill_liters: number | null; fuel_tank_end_liters: number | null };
+export type FinishBody = { hourmeter_final: number | null; fuel_refill_liters: number | null; fuel_tank_end_liters: number | null; mobile_status?: string; progress_pct?: number };
 type Base = { sessionId: string; error?: string };
+export type PostKind = 'checklists' | 'incidents' | 'expenses';
 export type Op =
   | (Base & { kind: 'wo_create'; body: WorkOrderIn })
   | (Base & { kind: 'session_start'; body: { machine_id: number; driver_id: number | null; cost_center_id: number | null }; startedAt: string; workOrderId?: number })
   | (Base & { kind: 'session_close'; endedAt: string })
-  | (Base & { kind: 'wo_finish'; body: FinishBody; workOrderId?: number });
+  | (Base & { kind: 'wo_finish'; body: FinishBody; workOrderId?: number })
+  // Registros de campo con id propio (idempotentes en el servidor). `sessionId` agrupa y ordena respecto de la jornada.
+  | (Base & { kind: 'post'; path: PostKind; body: Record<string, unknown> });
 
 export type Handlers = {
   createWorkOrder(body: WorkOrderIn): Promise<{ id: number }>;
@@ -16,6 +19,7 @@ export type Handlers = {
   flushPoints(sessionId: string): Promise<boolean>;
   closeSession(sessionId: string, endedAt: string): Promise<unknown>;
   finishWorkOrder(id: number, body: FinishBody): Promise<unknown>;
+  post(path: PostKind, body: Record<string, unknown>): Promise<unknown>;
 };
 
 export const isNetworkError = (e: unknown): boolean => {
@@ -43,6 +47,11 @@ export async function runOutbox(input: Op[], resolvedIn: Record<string, number>,
       else if (op.kind === 'session_close') {
         if (!(await h.flushPoints(op.sessionId))) { halted = true; remaining.push(op); continue; }
         await h.closeSession(op.sessionId, op.endedAt);
+      } else if (op.kind === 'post') {
+        const body = { ...op.body };
+        // El parte de la jornada puede haberse creado después de registrar el gasto.
+        if (op.path === 'expenses' && !body.work_order_id && resolved[op.sessionId]) body.work_order_id = resolved[op.sessionId];
+        await h.post(op.path, body);
       } else {
         const id = op.workOrderId ?? resolved[op.sessionId];
         if (!id) throw Object.assign(new Error('No se conoce el parte de trabajo de esta jornada.'), { status: 400 });
