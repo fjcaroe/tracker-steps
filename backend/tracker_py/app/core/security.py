@@ -52,6 +52,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
 
 def get_user_cost_centers(db: Session, user_id: int) -> List[CostCenter]:
+    user = db.get(User, user_id)
+    if user is not None and user.is_admin:
+        # Los administradores ven todos los centros de costo sin asignarlos a mano.
+        return db.query(CostCenter).order_by(CostCenter.name.asc()).all()
     return (
         db.query(CostCenter)
         .join(UserCostCenter, UserCostCenter.cost_center_id == CostCenter.id)

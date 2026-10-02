@@ -78,6 +78,8 @@ def create_work_order(
         fuel_tank_start_liters=payload.fuel_tank_start_liters,
         fuel_refill_liters=payload.fuel_refill_liters,
         fuel_tank_end_liters=payload.fuel_tank_end_liters,
+        assigned_user_id=payload.assigned_user_id if current.is_admin else None,
+        scheduled_time=payload.scheduled_time if current.is_admin else None,
     )
     db.add(wo)
     db.commit()
@@ -89,10 +91,17 @@ def create_work_order(
 def list_work_orders(
     date: datetime | None = None,
     season: str | None = None,
+    mine: bool = False,
     db: Session = Depends(get_db),
     current: User = Depends(get_current_user),
 ):
     q = db.query(WorkOrder)
+    if mine:
+        # "Mis tareas": solo las órdenes asignadas al usuario, aunque sea administrador.
+        q = q.filter(WorkOrder.assigned_user_id == current.id)
+        if season is not None:
+            q = q.filter(WorkOrder.season == season)
+        return q.order_by(WorkOrder.work_date.desc(), WorkOrder.code).all()
     if not current.is_admin:
         ids = allowed_cost_center_ids(db, current.id)
         if not ids:
@@ -115,9 +124,12 @@ def update_work_order(
     wo = db.get(WorkOrder, work_order_id)
     if not wo:
         raise HTTPException(status_code=404, detail="Parte de trabajo no encontrado.")
-    assert_cost_center_access(db, current, wo.cost_center_id)
+    if wo.assigned_user_id != current.id:
+        assert_cost_center_access(db, current, wo.cost_center_id)
 
     data = payload.model_dump(exclude_unset=True)
+    if ("assigned_user_id" in data or "scheduled_time" in data) and not current.is_admin:
+        raise HTTPException(status_code=403, detail="Solo un administrador puede asignar tareas.")
     if "cost_center_id" in data:
         assert_cost_center_access(db, current, data["cost_center_id"])
     if data.get("implement_id") is not None:

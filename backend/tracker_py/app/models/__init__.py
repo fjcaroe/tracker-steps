@@ -8,6 +8,7 @@ from app.models.machines import Machine
 from app.models.work_orders import WorkOrder
 from app.models.sessions import TrackingSession, TrackingPoint, TrackingLot
 from app.models.users import User, UserCostCenter
+from app.models.mobile import MobileIncident, MobileChecklist, MobileExpense, MobileDevice, MobileDiagnostic
 
 __all__ = [
     "TrackingStatus",

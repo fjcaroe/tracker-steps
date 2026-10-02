@@ -31,6 +31,8 @@ from app.routers.fleet_configuration import router as fleet_configuration_router
 app.include_router(fleet_configuration_router)
 from app.routers.zones import router as zones_router
 app.include_router(zones_router)
+from app.routers.mobile import router as mobile_router
+app.include_router(mobile_router)
 
 app.include_router(health_router)
 app.include_router(auth_router)
