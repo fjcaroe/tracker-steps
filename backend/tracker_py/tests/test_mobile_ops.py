@@ -141,3 +141,27 @@ def test_heartbeat_and_devices(api):
     who['id'] = 1
     devices = client.get('/mobile/devices').json()
     assert devices[0]['version'] == '0.4.0' and devices[0]['pending'] == 3 and devices[0]['user_name'] == 'Omar Operador'
+
+
+def test_routes_assign_and_follow(api):
+    client, who, _ = api
+    rid = str(uuid.uuid4())
+    body = {'id': rid, 'name': 'Potrero norte', 'machine_id': 1, 'waypoints': [{'lat': -35.4, 'lon': -71.6}, {'lat': -35.41, 'lon': -71.61, 'label': 'Fin'}]}
+    assert client.post('/mobile/routes', json=body).status_code == 403  # operador no asigna
+    who['id'] = 1
+    first = client.post('/mobile/routes', json=body)
+    assert first.status_code == 200 and first.json()['status'] == 'assigned' and first.json()['machine_name'] == 'Tractor A'
+    assert client.post('/mobile/routes', json=body).json()['id'] == rid  # idempotente
+    assert client.post('/mobile/routes', json={**body, 'id': str(uuid.uuid4()), 'waypoints': [{'lat': 1, 'lon': 1}]}).status_code == 422
+    who['id'] = 2
+    assert [r['id'] for r in client.get('/mobile/routes?machine_id=1').json()] == [rid]
+    assert client.patch(f'/mobile/routes/{rid}', json={'status': 'in_progress'}).json()['status'] == 'in_progress'
+    assert client.patch(f'/mobile/routes/{rid}', json={'status': 'cancelled'}).status_code == 403
+    assert client.patch(f'/mobile/routes/{rid}', json={'status': 'done'}).json()['status'] == 'done'
+    assert client.get('/mobile/routes').json() == []
+    assert len(client.get('/mobile/routes?active_only=false').json()) == 1
+    who['id'] = 1
+    other = str(uuid.uuid4())
+    client.post('/mobile/routes', json={**body, 'id': other, 'machine_id': 2})
+    who['id'] = 2
+    assert other not in [r['id'] for r in client.get('/mobile/routes?active_only=false').json()]

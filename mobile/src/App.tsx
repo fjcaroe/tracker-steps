@@ -82,7 +82,7 @@ export default function App() {
       {!online && <p className="banner" role="status">Sin conexión: todo se guarda en el teléfono y se envía al volver la señal.</p>}
       <main className="content">
         {tab === 'journey' && <Journey online={online} preset={preset} onPresetUsed={() => setPreset(null)} />}
-        {tab === 'tasks' && <Tasks onStart={startTask} />}
+        {tab === 'tasks' && <Tasks onStart={startTask} onOpenJourney={() => setTab('journey')} />}
         {tab === 'history' && <History />}
         {tab === 'supervisor' && user.is_admin && <Supervisor />}
         {tab === 'profile' && <Profile user={user} onLogout={safeLogout} />}

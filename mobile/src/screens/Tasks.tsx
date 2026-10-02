@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { catalogs, mobile, type Field, type Labor, type Machine, type Task } from '../lib/api';
+import { catalogs, mobile, type AssignedRoute, type Field, type Labor, type Machine, type Task } from '../lib/api';
+import MapView from '../components/MapView';
+import { formatDistance, routeLengthM } from '../lib/nav';
+import { activeStore, formatDuration } from '../lib/queue';
+import { routeStore } from '../lib/route';
 import { beep, loadSettings } from '../lib/settings';
 
 /** Minutos hasta la hora programada de hoy ("HH:MM"); null si no hay hora o ya pasó hace más de 2 h. */
@@ -11,7 +15,48 @@ export function minutesUntil(time: string | null, now = new Date()): number | nu
   return diff < -120 ? null : diff;
 }
 
-export default function Tasks({ onStart }: { onStart: (t: Task) => void }) {
+/** Jornada en curso en este teléfono (con su mapa), para que "Hoy" nunca aparezca vacío mientras se trabaja. */
+function TodayJourney({ onOpen }: { onOpen: () => void }) {
+  const [a, setA] = useState(activeStore.get());
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => { setA(activeStore.get()); setNow(Date.now()); }, 3000); return () => clearInterval(t); }, []);
+  const [routes, setRoutes] = useState<AssignedRoute[]>([]);
+  useEffect(() => { if (a) mobile.routes(a.machineId).then(setRoutes).catch(() => {}); }, [a?.machineId]);
+  if (!a) return null;
+  const track = routeStore.get(a.sessionId);
+  const route = routes.find((r) => r.status === 'in_progress') ?? routes[0];
+  return (
+    <article className="card stack">
+      <div className="row"><div><strong>Jornada en curso · {a.machineName}</strong><small>{formatDuration(now - a.startedAt)} · {(a.distanceM / 1000).toFixed(2)} km{route ? ` · ruta ${route.name}` : ''}</small></div><span className="chip chip--open">● En curso</span></div>
+      <MapView me={track.length ? track[track.length - 1] : null} track={track} route={route?.waypoints ?? []} height={220} />
+      <button className="primary" onClick={onOpen}>Ir a mi jornada</button>
+    </article>
+  );
+}
+
+/** Rutas que el supervisor asignó a máquinas visibles para esta persona. */
+function AssignedRoutes() {
+  const [routes, setRoutes] = useState<AssignedRoute[]>([]);
+  const [open, setOpen] = useState('');
+  useEffect(() => { mobile.routes().then(setRoutes).catch(() => {}); }, []);
+  if (!routes.length) return null;
+  return (
+    <>
+      <h2>Rutas asignadas</h2>
+      {routes.map((r) => (
+        <article key={r.id} className="card stack routecard">
+          <div className="row"><div><strong>{r.name}</strong><small>{r.machine_name ?? `Máquina ${r.machine_id}`} · {r.waypoints.length} puntos · {formatDistance(routeLengthM(r.waypoints))}</small></div>
+            <span className={`chip ${r.status === 'in_progress' ? 'chip--open' : ''}`}>{r.status === 'in_progress' ? 'En curso' : 'Asignada'}</span></div>
+          {r.note && <p>{r.note}</p>}
+          <button onClick={() => setOpen(open === r.id ? '' : r.id)}>{open === r.id ? 'Ocultar mapa' : 'Ver en el mapa'}</button>
+          {open === r.id && <MapView route={r.waypoints} height={240} />}
+        </article>
+      ))}
+    </>
+  );
+}
+
+export default function Tasks({ onStart, onOpenJourney }: { onStart: (t: Task) => void; onOpenJourney: () => void }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [names, setNames] = useState<{ machines: Machine[]; labors: Labor[]; fields: Field[] }>({ machines: [], labors: [], fields: [] });
   const [error, setError] = useState('');
@@ -38,16 +83,19 @@ export default function Tasks({ onStart }: { onStart: (t: Task) => void }) {
     return () => timers.forEach(clearTimeout);
   }, [tasks]);
 
-  if (error) return <section className="card"><p className="error" role="alert">{error}</p><button onClick={load}>Reintentar</button></section>;
-  if (!tasks) return <p role="status" className="muted">Cargando tus tareas…</p>;
-  const pending = tasks.filter((t) => t.mobile_status !== 'done');
+  const pending = (tasks ?? []).filter((t) => t.mobile_status !== 'done');
   const label = (t: Task) => `${names.labors.find((l) => l.id === t.labor_id)?.name ?? 'Labor'} · ${names.machines.find((m) => m.id === t.machine_id)?.name ?? 'Sin máquina'}`;
 
   return (
     <section className="stack">
-      <h1>Mis tareas</h1>
+      <h1>Hoy</h1>
+      <TodayJourney onOpen={onOpenJourney} />
+      <AssignedRoutes />
+      <h2>Mis tareas</h2>
       {perm === 'default' && <button onClick={() => void Notification.requestPermission().then(setPerm)}>Activar recordatorios</button>}
-      {!pending.length && <section className="card empty"><h2>Sin tareas pendientes</h2><p>Cuando tu supervisor te asigne una tarea aparecerá aquí.</p></section>}
+      {error && <section className="card"><p className="error" role="alert">No se pudieron cargar tus tareas: {error}</p><button onClick={load}>Reintentar</button></section>}
+      {!tasks && !error && <p role="status" className="muted">Cargando tus tareas…</p>}
+      {tasks && !pending.length && <section className="card empty"><h2>Sin tareas pendientes</h2><p>Cuando tu supervisor te asigne una tarea aparecerá aquí.</p></section>}
       {pending.map((t) => {
         const left = minutesUntil(t.scheduled_time);
         return (

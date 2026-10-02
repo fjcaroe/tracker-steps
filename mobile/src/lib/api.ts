@@ -40,8 +40,10 @@ export type Machine = { id: number; name: string; plate: string | null; cost_cen
 export type Labor = { id: number; activity_id: number; name: string };
 export type Driver = { id: number; name: string; is_active: boolean };
 export type Implement = { id: number; name: string; is_active: boolean };
-export type Field = { id: number; name: string; cost_center_id: number | null };
+export type Field = { id: number; name: string; cost_center_id: number | null; polygon?: { lat: number; lon: number }[] };
 export type Session = { id: string; machine_id: number; started_at: string; ended_at: string | null; status: 'open' | 'closed' };
+export type ActiveSession = SessionSummary & { last_lat: number | null; last_lon: number | null; last_speed_mps: number | null; last_point_ts: string | null };
+export type AssignedRoute = { id: string; name: string; machine_id: number; machine_name: string | null; waypoints: { lat: number; lon: number; label?: string | null }[]; note: string | null; status: 'assigned' | 'in_progress' | 'done' | 'cancelled'; created_by_name: string | null; created_at: string | null };
 export type SessionSummary = Session & { machine_name: string | null; driver_name: string | null; cost_center_name: string | null; points_count: number; work_order_id: number | null; total_distance_m: number | null };
 export type TokenOut = { access_token: string; token_type: string; user: User; cost_centers: CostCenter[] };
 export type FuelStatus = { last_liters: number | null; tank_capacity_liters: number | null };
@@ -111,6 +113,7 @@ export const sessions = {
   points: (id: string, points: PointIn[]) => api<{ inserted: number }>(`/sessions/${id}/points`, { method: 'POST', body: JSON.stringify({ points }) }),
   close: (id: string, endedAt?: string) => api<Session>(`/sessions/${id}/close${endedAt ? `?ended_at=${encodeURIComponent(endedAt)}` : ''}`, { method: 'POST' }),
   workOrders: (season: string) => api<WorkOrderSummary[]>(`/work_orders?season=${encodeURIComponent(season)}`),
+  active: () => api<ActiveSession[]>('/sessions_active'),
   mine: (limit = 40) => api<SessionSummary[]>(`/sessions/my?limit=${limit}`),
 };
 
@@ -121,6 +124,9 @@ export const mobile = {
   incidents: (status?: string) => api<IncidentOut[]>(`/mobile/incidents${status ? `?status=${status}` : ''}`),
   setIncident: (id: string, status: string) => api<IncidentOut>(`/mobile/incidents/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   devices: () => api<DeviceOut[]>('/mobile/devices'),
+  routes: (machineId?: number) => api<AssignedRoute[]>(`/mobile/routes${machineId != null ? `?machine_id=${machineId}` : ''}`),
+  createRoute: (body: { id: string; name: string; machine_id: number; waypoints: { lat: number; lon: number; label?: string }[]; note?: string }) => api<AssignedRoute>('/mobile/routes', { method: 'POST', body: JSON.stringify(body) }),
+  setRoute: (id: string, status: AssignedRoute['status']) => api<AssignedRoute>(`/mobile/routes/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   heartbeat: (body: { version: string; platform: string; pending: number; last_sync_at: string | null }) => api<{ ok: boolean }>('/mobile/heartbeat', { method: 'POST', body: JSON.stringify(body) }),
   diagnostic: (body: { version: string; message: string; log: string }) => api<{ ok: boolean }>('/mobile/diagnostics', { method: 'POST', body: JSON.stringify(body) }),
   /** La foto se pide con el token (no es pública): se devuelve como URL de objeto. */

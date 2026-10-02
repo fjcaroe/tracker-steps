@@ -80,3 +80,18 @@ class MobileDiagnostic(Base):
     message = Column(Text)
     log = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class MobileRoute(Base):
+    """Ruta asignada por un supervisor a una máquina: lista ordenada de puntos que el conductor sigue en el mapa."""
+    __tablename__ = "mobile_routes"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(Text, nullable=False)
+    machine_id = Column(Integer, ForeignKey("machines.id"), nullable=False)
+    waypoints = Column(JSON, nullable=False)  # [{lat, lon, label?}]
+    note = Column(Text)
+    status = Column(Text, nullable=False, default="assigned")  # assigned | in_progress | done | cancelled
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True))

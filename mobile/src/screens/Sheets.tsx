@@ -72,8 +72,8 @@ export function ChecklistSheet({ active, onClose, onSaved }: Props) {
 const CATEGORIES: [IncidentCategory, string][] = [['breakdown', 'Falla mecánica'], ['accident', 'Accidente'], ['damage', 'Daño'], ['theft', 'Robo'], ['other', 'Otro']];
 
 /** I5 · Incidente con categoría, nota, foto, ubicación y hora (cola sin conexión). */
-export function IncidentSheet({ active, fix, onClose, onSaved }: Props) {
-  const [category, setCategory] = useState<IncidentCategory>('breakdown');
+export function IncidentSheet({ active, fix, onClose, onSaved, initial }: Props & { initial?: IncidentCategory }) {
+  const [category, setCategory] = useState<IncidentCategory>(initial ?? 'breakdown');
   const [note, setNote] = useState('');
   const [photo, setPhoto] = useState('');
   const save = (e: FormEvent) => {
@@ -82,7 +82,7 @@ export function IncidentSheet({ active, fix, onClose, onSaved }: Props) {
     onSaved('Incidente registrado. Se enviará apenas haya señal.');
   };
   return (
-    <Sheet title="Reportar incidente" onClose={onClose}>
+    <Sheet title={initial === 'theft' ? 'Reportar robo' : 'Reportar incidente'} onClose={onClose}>
       <form className="stack" onSubmit={save}>
         <label>Tipo<select value={category} onChange={(e) => setCategory(e.target.value as IncidentCategory)}>{CATEGORIES.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>
         <label>Qué pasó<input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Describe brevemente" /></label>

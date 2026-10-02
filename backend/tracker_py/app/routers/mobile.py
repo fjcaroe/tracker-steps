@@ -16,10 +16,10 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field as PField
 from sqlalchemy.orm import Session
 
-from app.core.security import assert_cost_center_access, get_current_user
+from app.core.security import allowed_cost_center_ids, assert_cost_center_access, get_current_user
 from app.db.session import get_db
 from app.models.machines import Machine
-from app.models.mobile import MobileChecklist, MobileDevice, MobileDiagnostic, MobileExpense, MobileIncident
+from app.models.mobile import MobileChecklist, MobileDevice, MobileDiagnostic, MobileExpense, MobileIncident, MobileRoute
 from app.models.sessions import TrackingSession
 from app.models.users import User
 
@@ -357,3 +357,91 @@ def create_diagnostic(payload: DiagnosticIn, db: Session = Depends(get_db), curr
     db.add(MobileDiagnostic(user_id=current.id, version=payload.version, message=payload.message, log=payload.log))
     db.commit()
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- Rutas asignadas
+ROUTE_STATUSES = {"assigned", "in_progress", "done", "cancelled"}
+
+
+class Waypoint(BaseModel):
+    lat: float = PField(..., ge=-90, le=90)
+    lon: float = PField(..., ge=-180, le=180)
+    label: Optional[str] = PField(None, max_length=80)
+
+
+class RouteIn(BaseModel):
+    id: uuid.UUID
+    name: str = PField(..., min_length=1, max_length=120)
+    machine_id: int
+    waypoints: List[Waypoint] = PField(..., min_length=2, max_length=60)
+    note: Optional[str] = PField(None, max_length=1000)
+
+
+class RoutePatch(BaseModel):
+    status: str
+
+
+class RouteOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    machine_id: int
+    machine_name: Optional[str]
+    waypoints: List[Waypoint]
+    note: Optional[str]
+    status: str
+    created_by_name: Optional[str]
+    created_at: Optional[datetime]
+
+
+def _route_out(db: Session, r: MobileRoute) -> RouteOut:
+    m, u = db.get(Machine, r.machine_id), db.get(User, r.created_by)
+    return RouteOut(id=r.id, name=r.name, machine_id=r.machine_id, machine_name=m.name if m else None, waypoints=r.waypoints,
+                    note=r.note, status=r.status, created_by_name=u.full_name if u else None, created_at=r.created_at)
+
+
+@router.post("/routes", response_model=RouteOut)
+def create_route(payload: RouteIn, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    if not current.is_admin:
+        raise HTTPException(status_code=403, detail="Solo un supervisor puede asignar rutas.")
+    existing = db.get(MobileRoute, payload.id)
+    if existing is not None:
+        return _route_out(db, existing)
+    if db.get(Machine, payload.machine_id) is None:
+        raise HTTPException(status_code=404, detail="Máquina no encontrada.")
+    row = MobileRoute(id=payload.id, name=payload.name.strip(), machine_id=payload.machine_id,
+                      waypoints=[w.model_dump() for w in payload.waypoints], note=payload.note, status="assigned", created_by=current.id)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _route_out(db, row)
+
+
+@router.get("/routes", response_model=List[RouteOut])
+def list_routes(machine_id: Optional[int] = None, active_only: bool = True, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    q = db.query(MobileRoute)
+    if machine_id is not None:
+        q = q.filter(MobileRoute.machine_id == machine_id)
+    if active_only:
+        q = q.filter(MobileRoute.status.in_(["assigned", "in_progress"]))
+    if not current.is_admin:
+        allowed = allowed_cost_center_ids(db, current.id)
+        ids = [m.id for m in db.query(Machine).filter(Machine.cost_center_id.in_(allowed)).all()] if allowed else []
+        q = q.filter(MobileRoute.machine_id.in_(ids)) if ids else q.filter(False)
+    return [_route_out(db, r) for r in q.order_by(MobileRoute.created_at.desc()).limit(200).all()]
+
+
+@router.patch("/routes/{route_id}", response_model=RouteOut)
+def update_route(route_id: uuid.UUID, payload: RoutePatch, db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    if payload.status not in ROUTE_STATUSES:
+        raise HTTPException(status_code=400, detail="Estado no válido.")
+    row = db.get(MobileRoute, route_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Ruta no encontrada.")
+    if not current.is_admin:
+        if payload.status == "cancelled":
+            raise HTTPException(status_code=403, detail="Solo un supervisor puede cancelar una ruta.")
+        _check_access(db, current, row.machine_id, None)
+    row.status, row.updated_at = payload.status, _now()
+    db.commit()
+    db.refresh(row)
+    return _route_out(db, row)

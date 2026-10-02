@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { catalogs, mobile, sessions, type Task, type SessionSummary, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
+import { catalogs, mobile, sessions, type AssignedRoute, type Task, type SessionSummary, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
 import { activeStore, formatDuration, parseNumber, pointQueue, syncStore, type Active } from '../lib/queue';
 import { buildActive, reconcile } from '../lib/reconcile';
@@ -7,7 +7,9 @@ import { isNetworkError, startPending, type FinishBody, type Op } from '../lib/o
 import { outboxStore, syncAll } from '../lib/sync';
 import { continuousDrivingMs, routeStore, summarize, type RoutePoint, type Summary } from '../lib/route';
 import { beep, loadSettings } from '../lib/settings';
-import { ChecklistSheet, ExpenseSheet, IncidentSheet, RouteMap, SosSheet, SummarySheet } from './Sheets';
+import { directionsUrl, formatDistance, nextWaypoint, routeDeviationM, routeLengthM } from '../lib/nav';
+import MapView from '../components/MapView';
+import { ChecklistSheet, ExpenseSheet, IncidentSheet, SosSheet, SummarySheet } from './Sheets';
 
 type Finished = { machine: string; summary: Summary; points: RoutePoint[] };
 
@@ -24,6 +26,7 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
   const [resuming, setResuming] = useState('');
   const [ops, setOps] = useState<Op[]>(outboxStore.ops);
   const [syncing, setSyncing] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const change = (a: Active | null) => { activeStore.set(a); setActive(a); setOps(outboxStore.ops()); };
 
   const sync = useCallback(async () => {
@@ -62,6 +65,7 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
         catalogs.machines().catch(() => []),
         sessions.workOrders(String(new Date(s.started_at).getFullYear())).catch(() => []),
       ]);
+      setConfirmed(false);
       change(buildActive(s, wos.find((w) => w.id === s.work_order_id) ?? null, machines.find((m) => m.id === s.machine_id) ?? null));
       setNotice(''); setOpen([]);
     } finally { setResuming(''); }
@@ -73,7 +77,9 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
       {finished && <SummarySheet machine={finished.machine} summary={finished.summary} points={finished.points} onClose={() => setFinished(null)} />}
       {ops.length > 0 && <PendingOps ops={ops} syncing={syncing} online={online} onRetry={retry} />}
       {active
-        ? <Tracking active={active} online={online} onChange={change} onSync={sync} onFinished={setFinished} />
+        ? (confirmed
+            ? <Tracking active={active} online={online} onChange={change} onSync={sync} onFinished={setFinished} />
+            : <ResumeGate active={active} onContinue={() => setConfirmed(true)} />)
         : <>
             {open.length > 0 && (
               <section className="card stack" aria-label="Jornadas abiertas">
@@ -86,9 +92,22 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
                 ))}
               </section>
             )}
-            <StartForm onStarted={(a) => { onPresetUsed(); change(a); }} preset={preset} />
+            <StartForm onStarted={(a) => { onPresetUsed(); setConfirmed(true); change(a); }} preset={preset} />
           </>}
     </>
+  );
+}
+
+/** Una jornada que ya estaba abierta (otro teléfono, app reabierta) no registra GPS hasta que la persona decide continuar. */
+function ResumeGate({ active, onContinue }: { active: Active; onContinue: () => void }) {
+  return (
+    <section className="card gate" aria-label="Jornada pendiente">
+      <span className="chip">Jornada pendiente</span>
+      <h1>{active.machineName}</h1>
+      <p>Iniciada el {new Date(active.startedAt).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' }).replace(/\.$/, '')}. La app aún no está registrando tu ruta.</p>
+      <button className="primary big" onClick={onContinue}>Continuar jornada y registrar ruta</button>
+      <small className="muted">El seguimiento GPS parte solo cuando tú lo confirmas.</small>
+    </section>
   );
 }
 
@@ -196,12 +215,18 @@ function Select({ label, value, onChange, options, required }: { label: string; 
 function Tracking({ active, online, onChange, onSync, onFinished }: { active: Active; online: boolean; onChange: (a: Active | null) => void; onSync: () => Promise<void>; onFinished: (f: Finished) => void }) {
   const settings = useRef(loadSettings());
   const lastAlert = useRef(0);
-  const [sheet, setSheet] = useState<'' | 'check' | 'incident' | 'expense' | 'sos'>('');
+  const [sheet, setSheet] = useState<'' | 'check' | 'incident' | 'theft' | 'expense' | 'sos'>('');
   const [toast, setToast] = useState('');
   const [speedAlert, setSpeedAlert] = useState(false);
   const [drivingMin, setDrivingMin] = useState(0);
   const lastBreakBeep = useRef(0);
-  const [showMap, setShowMap] = useState(false);
+  const [route, setRoute] = useState<AssignedRoute | null>(null);
+  const [reached, setReached] = useState(0);
+  const [offRoute, setOffRoute] = useState<number | null>(null);
+  const [track, setTrack] = useState<RoutePoint[]>(() => routeStore.get(active.sessionId));
+  const lastOff = useRef(0);
+  const routeRef = useRef<AssignedRoute | null>(null);
+  routeRef.current = route;
   const checkedKey = `steps_movil_checked_${active.sessionId}`;
   const [checked, setChecked] = useState(() => { try { return localStorage.getItem(checkedKey) === '1'; } catch { return false; } });
   const [now, setNow] = useState(Date.now());
@@ -214,6 +239,18 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
   const lastSaved = useRef(0);
   const activeRef = useRef(active);
   activeRef.current = active;
+
+  // Ruta asignada a esta máquina (se guarda en el teléfono para seguirla sin señal).
+  useEffect(() => {
+    const key = `steps_movil_route_${active.machineId}`;
+    try { const raw = localStorage.getItem(key); if (raw) setRoute(JSON.parse(raw) as AssignedRoute); } catch { /* nada */ }
+    mobile.routes(active.machineId).then((rs) => {
+      const r = rs.find((x) => x.status === 'in_progress') ?? rs.find((x) => x.status === 'assigned') ?? null;
+      setRoute(r);
+      try { if (r) localStorage.setItem(key, JSON.stringify(r)); else localStorage.removeItem(key); } catch { /* nada */ }
+      if (r && r.status === 'assigned') void mobile.setRoute(r.id, 'in_progress').catch(() => {});
+    }).catch(() => {});
+  }, [active.machineId]);
 
   const flush = useCallback(async () => {
     await onSync();
@@ -243,6 +280,19 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
       if (after > 0 && dMin >= after && next.ts - lastBreakBeep.current > 30 * 60000) { lastBreakBeep.current = next.ts; beep(settings.current.sound); }
       pointQueue.push(active.sessionId, { ts: new Date(next.ts).toISOString(), lat: next.lat, lon: next.lon, speed_mps: next.speed_mps, accuracy_m: next.accuracy_m });
       setPending(pointQueue.size(active.sessionId));
+      setTrack(routeStore.get(active.sessionId));
+      const r = routeRef.current;
+      if (r) {
+        const wps = r.waypoints;
+        setReached((cur) => {
+          const nxt = nextWaypoint(next, wps, cur);
+          if (nxt >= wps.length && cur < wps.length) { beep(settings.current.sound); void mobile.setRoute(r.id, 'done').catch(() => {}); }
+          return nxt;
+        });
+        const dev = routeDeviationM(next, wps);
+        setOffRoute(dev != null && dev > 150 ? dev : null);
+        if (dev != null && dev > 150 && next.ts - lastOff.current > 120000) { lastOff.current = next.ts; beep(settings.current.sound); }
+      }
     }, (e) => setGeoError(e === 'denied' ? 'Permiso de ubicación denegado: actívalo para registrar la ruta.' : 'No se pudo obtener la ubicación. ¿Tienes GPS activo?'))
       .then((s) => { if (cancelled) s(); else stop = s; });
     void keepAwake().then((r) => { if (cancelled) r(); else release = r; });
@@ -258,6 +308,11 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
   }, [flush]);
 
   const km = (activeRef.current.distanceM || active.distanceM) / 1000;
+  const wps = route?.waypoints ?? [];
+  const routeDone = !!route && reached >= wps.length;
+  const target = route && !routeDone ? wps[reached] : null;
+  const toTarget = target && fix ? haversineMeters(fix, target) : null;
+  const fields = (cachedCatalogs()?.fields ?? []).flatMap((f) => (f.polygon && f.polygon.length > 2 ? [{ name: f.name, polygon: f.polygon }] : []));
   const speed = fix?.speed_mps != null ? fix.speed_mps * 3.6 : null;
 
   return (
@@ -272,20 +327,30 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
           <div><strong>{fix?.accuracy_m != null ? `±${Math.round(fix.accuracy_m)}` : '—'}</strong><small>m precisión</small></div>
         </div>
       </article>
+      <MapView me={fix} track={track} route={wps} reached={reached} fields={fields} height={280} />
       {geoError && <p className="error" role="alert">{geoError}</p>}
       {settings.current.breakAfterMin > 0 && drivingMin >= settings.current.breakAfterMin && <p className="banner" role="status">Llevas {Math.floor(drivingMin / 60)} h {drivingMin % 60} min conduciendo sin pausa. Detente a descansar al menos 15 minutos.</p>}
       {speedAlert && <p className="error" role="alert">Vas sobre el límite de {settings.current.speedLimitKmh} km/h. Reduce la velocidad.</p>}
       {toast && <p className="banner" role="status">{toast}</p>}
+      {route && (
+        <article className={`card stack routecard ${offRoute ? 'routecard--off' : ''}`}>
+          <div className="row"><div><strong>Ruta asignada: {route.name}</strong>
+            <small>{routeDone ? 'Ruta completada' : `Punto ${reached + 1} de ${wps.length}${toTarget != null ? ` · a ${formatDistance(toTarget)}` : ''} · total ${formatDistance(routeLengthM(wps))}`}</small></div>
+            <span className="chip chip--open">{routeDone ? 'Hecha' : 'En curso'}</span></div>
+          {route.note && <p>{route.note}</p>}
+          {offRoute && <p className="error" role="alert">Te alejaste {formatDistance(offRoute)} del trazado asignado.</p>}
+          {target && <a className="btnlink" href={directionsUrl(target)} target="_blank" rel="noreferrer">Navegar al siguiente punto</a>}
+        </article>
+      )}
       <div className="grid2">
         <button className={checked ? '' : 'primary'} onClick={() => setSheet('check')}>{checked ? 'Revisión previa ✓' : 'Revisión previa'}</button>
         <button onClick={() => setSheet('incident')}>Reportar incidente</button>
         <button onClick={() => setSheet('expense')}>Combustible / gastos</button>
-        <button onClick={() => setShowMap((v) => !v)} aria-expanded={showMap}>{showMap ? 'Ocultar ruta' : 'Ver mi ruta'}</button>
+        <button onClick={() => setSheet('theft')}>Reportar robo</button>
       </div>
-      {showMap && <article className="card"><RouteMap points={routeStore.get(active.sessionId)} /></article>}
       <button className="sos" onClick={() => setSheet('sos')}>SOS · Emergencia</button>
       {sheet === 'check' && <ChecklistSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { try { localStorage.setItem(checkedKey, '1'); } catch { /* nada */ } setChecked(true); setSheet(''); setToast(m); void onSync(); }} />}
-      {sheet === 'incident' && <IncidentSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
+      {(sheet === 'incident' || sheet === 'theft') && <IncidentSheet initial={sheet === 'theft' ? 'theft' : undefined} active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
       {sheet === 'expense' && <ExpenseSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
       {sheet === 'sos' && <SosSheet active={active} fix={fix} onClose={() => setSheet('')} onSaved={(m) => { setSheet(''); setToast(m); void onSync(); }} />}
       <p className="muted center" role="status">

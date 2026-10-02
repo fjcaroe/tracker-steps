@@ -48,3 +48,10 @@ html[data-gloves=on] .tabbar button{min-height:72px}
 .steps{padding-left:20px;display:flex;flex-direction:column;gap:10px;margin:0}
 .card--alert{border-color:var(--danger);box-shadow:0 0 0 2px var(--danger) inset}
 .sheet__panel{max-height:92vh;overflow:auto}
+
+/* Mapa real y rutas asignadas */
+.livemap{flex:none;isolation:isolate;width:100%;border-radius:14px;border:1px solid var(--line);overflow:hidden;background:#e8efe9;z-index:0}
+.mk{display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:3px solid #fff;color:#fff;font-size:12px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.mk--wp{background:#1d6bd8}.mk--done{background:#8aa39a}.mk--end{background:#2e9e4f}.mk--draft{background:#d98a00}.mk--machine{background:#1d6b57}.mk--incident{background:#d98a00}.mk--sos{background:#d2402f}.mk--stop{background:#7a5cc4}
+.routecard{border-left:6px solid #1d6bd8}.routecard--off{border-left-color:var(--danger)}
+.gate{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
