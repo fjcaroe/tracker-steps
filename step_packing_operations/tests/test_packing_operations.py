@@ -25,13 +25,13 @@ class TestPackingOperations(TransactionCase):
             "name": "Santina T41", "cod_variedad": "T41S", "especie_id": cls.species.id,
             "grupo_variedad_id": cls.variety_group.id})
         cls.raw = cls.env["product.product"].create({
-            "name": "Fruta granel T41", "is_storable": True, "weight": 1.0})
+            "name": "Fruta granel T41", "is_storable": True, "weight": 1.0, "grupo_labor": "pack"})
         cls.finished = cls.env["product.product"].create({
-            "name": "Caja exportación T41", "is_storable": True, "weight": 5.0})
+            "name": "Caja exportación T41", "is_storable": True, "weight": 5.0, "grupo_labor": "pack"})
         cls.national = cls.env["product.product"].create({
-            "name": "Fruta nacional T41", "is_storable": True, "weight": 1.0})
+            "name": "Fruta nacional T41", "is_storable": True, "weight": 1.0, "grupo_labor": "pack"})
         cls.carton = cls.env["product.product"].create({
-            "name": "Cartón T41", "is_storable": True})
+            "name": "Cartón T41", "is_storable": True, "grupo_labor": "pack"})
 
     def _order(self, forbidden=False):
         return self.env["step.packing.order"].create({
