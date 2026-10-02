@@ -35,6 +35,17 @@ export function detectStops(points: RoutePoint[], minMs = 3 * 60 * 1000, radiusM
   return stops;
 }
 
+/** Tiempo de conducción continua: desde el fin de la última pausa (parada de al menos `minBreakMs`) hasta el último punto. */
+export function continuousDrivingMs(points: RoutePoint[], minBreakMs = 15 * 60 * 1000, radiusM = 25): number {
+  if (!points.length) return 0;
+  const last = points[points.length - 1];
+  const breaks = detectStops(points, minBreakMs, radiusM);
+  const lastBreak = breaks[breaks.length - 1];
+  if (lastBreak && lastBreak.end >= last.ts) return 0;
+  const from = lastBreak ? lastBreak.end : points[0].ts;
+  return Math.max(0, last.ts - from);
+}
+
 export function routeDistanceM(points: RoutePoint[]): number {
   let d = 0;
   for (let i = 1; i < points.length; i += 1) d += haversineMeters(points[i - 1], points[i]);

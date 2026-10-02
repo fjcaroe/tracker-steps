@@ -63,6 +63,8 @@ export default function Profile({ user, onLogout }: { user: User; onLogout: () =
         <label className="check"><input type="checkbox" checked={s.sound} onChange={(e) => update({ sound: e.target.checked })} />Sonido y vibración en los avisos</label>
         <label>Aviso de velocidad (km/h, 0 = sin aviso)
           <input inputMode="numeric" value={String(s.speedLimitKmh)} onChange={(e) => update({ speedLimitKmh: Math.max(0, Number(e.target.value.replace(/\D/g, '')) || 0) })} /></label>
+        <label>Pausa sugerida tras conducir (minutos, 0 = sin aviso)
+          <input inputMode="numeric" value={String(s.breakAfterMin)} onChange={(e) => update({ breakAfterMin: Math.max(0, Number(e.target.value.replace(/\D/g, '')) || 0) })} /></label>
       </article>
       <article className="card">
         <h3>Ubicación</h3>

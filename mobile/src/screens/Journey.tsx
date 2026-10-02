@@ -5,7 +5,7 @@ import { activeStore, formatDuration, parseNumber, pointQueue, syncStore, type A
 import { buildActive, reconcile } from '../lib/reconcile';
 import { isNetworkError, startPending, type FinishBody, type Op } from '../lib/outbox';
 import { outboxStore, syncAll } from '../lib/sync';
-import { routeStore, summarize, type RoutePoint, type Summary } from '../lib/route';
+import { continuousDrivingMs, routeStore, summarize, type RoutePoint, type Summary } from '../lib/route';
 import { beep, loadSettings } from '../lib/settings';
 import { ChecklistSheet, ExpenseSheet, IncidentSheet, RouteMap, SosSheet, SummarySheet } from './Sheets';
 
@@ -199,6 +199,8 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
   const [sheet, setSheet] = useState<'' | 'check' | 'incident' | 'expense' | 'sos'>('');
   const [toast, setToast] = useState('');
   const [speedAlert, setSpeedAlert] = useState(false);
+  const [drivingMin, setDrivingMin] = useState(0);
+  const lastBreakBeep = useRef(0);
   const [showMap, setShowMap] = useState(false);
   const checkedKey = `steps_movil_checked_${active.sessionId}`;
   const [checked, setChecked] = useState(() => { try { return localStorage.getItem(checkedKey) === '1'; } catch { return false; } });
@@ -235,6 +237,10 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
       routeStore.push(active.sessionId, { ts: next.ts, lat: next.lat, lon: next.lon, speed_mps: next.speed_mps });
       const limit = settings.current.speedLimitKmh;
       if (next.speed_mps != null && limit > 0 && next.speed_mps * 3.6 > limit) { setSpeedAlert(true); if (next.ts - lastAlert.current > 60000) { lastAlert.current = next.ts; beep(settings.current.sound); } } else setSpeedAlert(false);
+      const dMin = Math.floor(continuousDrivingMs(routeStore.get(active.sessionId)) / 60000);
+      setDrivingMin(dMin);
+      const after = settings.current.breakAfterMin;
+      if (after > 0 && dMin >= after && next.ts - lastBreakBeep.current > 30 * 60000) { lastBreakBeep.current = next.ts; beep(settings.current.sound); }
       pointQueue.push(active.sessionId, { ts: new Date(next.ts).toISOString(), lat: next.lat, lon: next.lon, speed_mps: next.speed_mps, accuracy_m: next.accuracy_m });
       setPending(pointQueue.size(active.sessionId));
     }, (e) => setGeoError(e === 'denied' ? 'Permiso de ubicación denegado: actívalo para registrar la ruta.' : 'No se pudo obtener la ubicación. ¿Tienes GPS activo?'))
@@ -267,6 +273,7 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
         </div>
       </article>
       {geoError && <p className="error" role="alert">{geoError}</p>}
+      {settings.current.breakAfterMin > 0 && drivingMin >= settings.current.breakAfterMin && <p className="banner" role="status">Llevas {Math.floor(drivingMin / 60)} h {drivingMin % 60} min conduciendo sin pausa. Detente a descansar al menos 15 minutos.</p>}
       {speedAlert && <p className="error" role="alert">Vas sobre el límite de {settings.current.speedLimitKmh} km/h. Reduce la velocidad.</p>}
       {toast && <p className="banner" role="status">{toast}</p>}
       <div className="grid2">
