@@ -211,7 +211,7 @@ class TestPackingOperations(TransactionCase):
         self._stock(self.carton, 16)
         production = self._production(order, incoming, output, bom=bom)
         production.action_step_packing_validate()
-        self.assertFalse(self.env["mrp.production"].search([("step_packing_order_id", "=", order.id)]))
+        self.assertFalse(self.env["mrp.production"].search([]))
 
         production.action_step_packing_close()
 
