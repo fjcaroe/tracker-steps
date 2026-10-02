@@ -75,4 +75,56 @@
         <field name="res_model">step.packing.production</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <!-- Informe de procesos: resumen (anexo 1, hoja "Inf Pk" / PROC fila 87-91). -->
+    <record id="view_packing_production_summary_search" model="ir.ui.view">
+        <field name="name">step.packing.production.summary.search</field>
+        <field name="model">step.packing.production</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="step_packing_order_id"/>
+                <field name="fruit_grower_id"/>
+                <field name="fruit_variety_id"/>
+                <filter name="filter_created" string="Creadas" domain="[('state','=','created')]"/>
+                <filter name="filter_validated" string="Validadas" domain="[('state','=','validated')]"/>
+                <filter name="filter_closed" string="Cerradas" domain="[('state','in',('closed','costed','accounted'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_order" string="Orden de proceso" context="{'group_by':'step_packing_order_id'}"/>
+                    <filter name="group_grower" string="Productor" context="{'group_by':'fruit_grower_id'}"/>
+                    <filter name="group_variety" string="Variedad" context="{'group_by':'fruit_variety_id'}"/>
+                    <filter name="group_state" string="Estado" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="view_packing_production_summary_list" model="ir.ui.view">
+        <field name="name">step.packing.production.summary.list</field>
+        <field name="model">step.packing.production</field>
+        <field name="arch" type="xml">
+            <list string="Resumen de procesos">
+                <field name="name"/>
+                <field name="step_packing_order_id"/>
+                <field name="fruit_grower_id"/>
+                <field name="fruit_variety_id"/>
+                <field name="state"/>
+                <field name="step_packing_input_kg" sum="Total a proceso"/>
+                <field name="step_packing_export_kg" sum="Total exportación"/>
+                <field name="step_packing_commercial_kg" sum="Total comercial"/>
+                <field name="step_packing_precaliber_kg" sum="Total precalibre"/>
+                <field name="step_packing_waste_kg" sum="Total desecho"/>
+                <field name="step_packing_loss_kg" sum="Total merma"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_packing_production_summary" model="ir.actions.act_window">
+        <field name="name">Resumen de procesos</field>
+        <field name="res_model">step.packing.production</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_packing_production_summary_search"/>
+        <field name="context">{'search_default_group_order': 1}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_packing_production_summary_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_packing_production_form')})]"/>
+    </record>
 </odoo>

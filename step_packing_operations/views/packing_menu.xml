@@ -50,6 +50,8 @@
         parent="menu_packing_operations_process" action="action_packing_repack" sequence="20"/>
     <menuitem id="menu_packing_mobile" name="Packing móvil"
         parent="menu_packing_operations_process" action="action_packing_mobile" sequence="30"/>
+    <menuitem id="menu_packing_production_summary" name="Informes"
+        parent="menu_packing_operations_process" action="action_packing_production_summary" sequence="40"/>
 
     <!-- Despacho: ya desarrollado en Exportaciones; se enlaza también desde Packing -->
     <menuitem id="menu_packing_dispatch_shipping_instruction" name="Instructivo Embarque"

@@ -101,7 +101,11 @@ body:has(.o_menu_brand[data-menu-xmlid="step_packing_operations.menu_packing_ope
 
         [data-menu-xmlid="step_packing_operations.menu_packing_operations_dashboard"]::before { content: "\f015"; }
         [data-menu-xmlid="step_packing_operations.menu_packing_operations_planning"]::before { content: "\f073"; }
+        [data-menu-xmlid="step_packing_operations.menu_packing_operations_receptions"]::before { content: "\f01c"; }
         [data-menu-xmlid="step_packing_operations.menu_packing_operations_process"]::before { content: "\f1b2"; }
+        [data-menu-xmlid="step_packing_operations.menu_packing_operations_dispatch"]::before { content: "\f0d1"; }
+        [data-menu-xmlid="step_packing_operations.menu_packing_operations_masters"]::before { content: "\f0c0"; }
+        [data-menu-xmlid="step_packing_operations.menu_packing_operations_config"]::before { content: "\f013"; }
         .o_menu_sections_more button::before { content: "\f141"; margin: 0; }
         .o_menu_sections_more button i { display: none; }
     }

@@ -67,12 +67,12 @@ class PackingProduction(models.Model):
     input_picking_id = fields.Many2one("stock.picking", string="Consumo MP", readonly=True, copy=False)
     output_picking_id = fields.Many2one("stock.picking", string="Salida producto", readonly=True, copy=False)
     material_picking_id = fields.Many2one("stock.picking", string="Consumo materiales", readonly=True, copy=False)
-    step_packing_input_kg = fields.Float(compute="_compute_packing_balance", string="Kilos a proceso", digits="Stock Weight")
-    step_packing_export_kg = fields.Float(compute="_compute_packing_balance", string="Kilos exportación", digits="Stock Weight")
-    step_packing_commercial_kg = fields.Float(compute="_compute_packing_balance", string="Kilos comercial", digits="Stock Weight")
-    step_packing_precaliber_kg = fields.Float(compute="_compute_packing_balance", string="Kilos precalibre", digits="Stock Weight")
-    step_packing_waste_kg = fields.Float(compute="_compute_packing_balance", string="Kilos desecho", digits="Stock Weight")
-    step_packing_loss_kg = fields.Float(compute="_compute_packing_balance", string="Merma kg", digits="Stock Weight")
+    step_packing_input_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos a proceso", digits="Stock Weight")
+    step_packing_export_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos exportación", digits="Stock Weight")
+    step_packing_commercial_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos comercial", digits="Stock Weight")
+    step_packing_precaliber_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos precalibre", digits="Stock Weight")
+    step_packing_waste_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Kilos desecho", digits="Stock Weight")
+    step_packing_loss_kg = fields.Float(compute="_compute_packing_balance", store=True, string="Merma kg", digits="Stock Weight")
 
     @api.model_create_multi
     def create(self, vals_list):
