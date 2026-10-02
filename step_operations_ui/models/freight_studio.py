@@ -291,6 +291,10 @@ class FreightOrderCost(models.Model):
         "account.analytic.distribution.model", string="Modelo de distribución analítica"
     )
     analytic_distribution = fields.Json(string="Distribución analítica")
+    analytic_precision = fields.Integer(
+        store=False,
+        default=lambda self: self.env["decimal.precision"].precision_get("Percentage Analytic"),
+    )
 
     @api.depends("x_studio_servicio_flete")
     def _compute_expense_account(self):

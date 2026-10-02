@@ -126,6 +126,15 @@ class TestFreightStudioCosting(TransactionCase):
         self.assertEqual(line.service_product_id, self.freight_product)
         self.assertEqual(line.x_studio_km_desde, self.route.x_studio_km_desde)
 
+    def test_cost_line_has_analytic_precision_for_analytic_widget(self):
+        # El widget analytic_distribution de la vista pide analytic_precision;
+        # sin el campo, abrir el flete falla con KeyError al leer.
+        models = [m for m in self.env.registry if m.startswith("x_orden_de_flete_line")
+                  and "analytic_distribution" in self.env[m]._fields]
+        self.assertTrue(models)
+        for name in models:
+            self.assertIn("analytic_precision", self.env[name]._fields)
+
     # --- Costeo (punto 4): action_cost_freight ---
 
     def test_cost_freight_computes_value_as_quantity_times_rate(self):
