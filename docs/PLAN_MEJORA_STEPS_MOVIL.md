@@ -40,7 +40,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque A — Confiabilidad en terreno (primero: sin esto no hay datos reales)
 
-### I1 · Jornada que no se pierde  `[ ]`
+### I1 · Jornada que no se pierde  `[x]` 02-10-2026
 - **Qué:** al abrir la app consultar al servidor si el usuario tiene una sesión abierta (`GET /sessions/my?status=open`)
   y retomarla (otro teléfono, datos borrados, cierre del navegador). Si la sesión local ya está cerrada en el
   servidor, limpiar y avisar. Reenvío automático al recuperar red y al volver a primer plano
@@ -216,3 +216,4 @@ publicarse cuando ya haya clientes en ellos.
 | Fecha | Iteración | Commit | JS servido | Notas |
 |---|---|---|---|---|
 | 02-10-2026 | Base (web/PWA, jornada, GPS con cola, historial) | `f3355be` | `index-CGTxg_cA.js` | Proyectos Android/iOS generados, sin compilar |
+| 02-10-2026 | I1 Jornada que no se pierde (retomar desde servidor, limpiar si ya está cerrada, reenvío al volver a primer plano, último envío visible) | ver rama `ticket/46-movil-i1-jornada-no-se-pierde` | `index-r-XhPasL.js` | Se ofrece *Retomar* en vez de retomar sola, porque `/sessions/my` lista las jornadas de los centros de costo del usuario, no solo las suyas (la sesión no guarda quién la inició). Sin verificar en terreno ni en dispositivo; respaldo del front: `steps-truck-frontend.pre-movil-20261002T012511Z` |

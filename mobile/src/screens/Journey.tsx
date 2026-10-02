@@ -1,15 +1,67 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { catalogs, sessions, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
+import { catalogs, sessions, type SessionSummary, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
-import { activeStore, formatDuration, parseNumber, pointQueue, type Active } from '../lib/queue';
+import { activeStore, formatDuration, parseNumber, pointQueue, syncStore, type Active } from '../lib/queue';
+import { buildActive, reconcile } from '../lib/reconcile';
 
 type Catalogs = { machines: Machine[]; labors: Labor[]; drivers: Driver[]; implementsList: Implement[]; fields: Field[]; costCenters: CostCenter[] };
 
 export default function Journey({ online }: { online: boolean }) {
   const [active, setActive] = useState<Active | null>(activeStore.get);
-  return active
-    ? <Tracking active={active} online={online} onChange={(a) => { activeStore.set(a); setActive(a); }} />
-    : <StartForm onStarted={(a) => { activeStore.set(a); setActive(a); }} />;
+  const [notice, setNotice] = useState('');
+  const [open, setOpen] = useState<SessionSummary[]>([]);
+  const [resuming, setResuming] = useState('');
+  const change = (a: Active | null) => { activeStore.set(a); setActive(a); };
+
+  // Al abrir (y al recuperar red) se consulta al servidor: retomar jornada abierta o limpiar una ya cerrada.
+  const check = useCallback(async () => {
+    try {
+      const remote = await sessions.mine(100);
+      const local = activeStore.get();
+      const r = reconcile(local, remote);
+      if (r.kind === 'closed' && local) {
+        pointQueue.clear(local.sessionId);
+        activeStore.set(null); setActive(null);
+        setNotice('La jornada que tenías abierta ya fue cerrada en el servidor. Se limpió este teléfono.');
+      }
+      setOpen(r.kind === 'choose' ? r.candidates : []);
+    } catch { /* sin red: se reintenta al volver */ }
+  }, []);
+  useEffect(() => { if (online) void check(); }, [online, check]);
+
+  const resume = async (s: SessionSummary) => {
+    setResuming(s.id);
+    try {
+      const [machines, wos] = await Promise.all([
+        catalogs.machines().catch(() => []),
+        sessions.workOrders(String(new Date(s.started_at).getFullYear())).catch(() => []),
+      ]);
+      change(buildActive(s, wos.find((w) => w.id === s.work_order_id) ?? null, machines.find((m) => m.id === s.machine_id) ?? null));
+      setNotice(''); setOpen([]);
+    } finally { setResuming(''); }
+  };
+
+  return (
+    <>
+      {notice && <p className="banner" role="status">{notice}</p>}
+      {active
+        ? <Tracking active={active} online={online} onChange={change} />
+        : <>
+            {open.length > 0 && (
+              <section className="card stack" aria-label="Jornadas abiertas">
+                <h2>Tienes jornadas abiertas</h2>
+                {open.map((s) => (
+                  <div key={s.id} className="row">
+                    <div><strong>{s.machine_name ?? `Máquina ${s.machine_id}`}</strong><small>{new Date(s.started_at).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })}</small></div>
+                    <button className="primary" onClick={() => void resume(s)} disabled={!!resuming}>{resuming === s.id ? 'Abriendo…' : 'Retomar'}</button>
+                  </div>
+                ))}
+              </section>
+            )}
+            <StartForm onStarted={change} />
+          </>}
+    </>
+  );
 }
 
 function StartForm({ onStarted }: { onStarted: (a: Active) => void }) {
@@ -90,6 +142,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   const [geoError, setGeoError] = useState('');
   const [pending, setPending] = useState(pointQueue.size(active.sessionId));
   const [finishing, setFinishing] = useState(false);
+  const [lastSync, setLastSync] = useState<number | null>(syncStore.get);
   const last = useRef<Fix | null>(null);
   const lastSaved = useRef(0);
   const activeRef = useRef(active);
@@ -98,6 +151,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   const flush = useCallback(async () => {
     await pointQueue.flush(active.sessionId, (p) => sessions.points(active.sessionId, p));
     setPending(pointQueue.size(active.sessionId));
+    setLastSync(syncStore.get());
   }, [active.sessionId]);
 
   useEffect(() => {
@@ -123,6 +177,11 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   }, [active.sessionId, flush]);
 
   useEffect(() => { if (online) void flush(); }, [online, flush]);
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') void flush(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [flush]);
 
   const km = (activeRef.current.distanceM || active.distanceM) / 1000;
   const speed = fix?.speed_mps != null ? fix.speed_mps * 3.6 : null;
@@ -140,7 +199,10 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
         </div>
       </article>
       {geoError && <p className="error" role="alert">{geoError}</p>}
-      <p className="muted center">{pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'}</p>
+      <p className="muted center" role="status">
+        {pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'}
+        {' · '}Último envío: {lastSync ? new Date(lastSync).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : 'aún no'}
+      </p>
       <button className="danger big" onClick={() => setFinishing(true)}>Finalizar jornada</button>
       {finishing && <FinishSheet active={active} flush={flush} onCancel={() => setFinishing(false)} onDone={() => onChange(null)} />}
     </section>

@@ -3,6 +3,7 @@ import type { PointIn } from './api';
 
 const KEY = 'steps_movil_pending';
 const ACTIVE = 'steps_movil_active';
+const LAST_SYNC = 'steps_movil_last_sync';
 
 export type Active = {
   sessionId: string; workOrderId: number; machineId: number; machineName: string; startedAt: number;
@@ -17,10 +18,16 @@ export const activeStore = {
   set: (a: Active | null) => { if (a) write(ACTIVE, a); else { try { localStorage.removeItem(ACTIVE); } catch { /* nada */ } } },
 };
 
+/** Hora (ms) del último envío correcto de puntos al servidor. */
+export const syncStore = {
+  get: () => read<number | null>(LAST_SYNC, null),
+};
+
 export const pointQueue = {
   all: () => read<Record<string, PointIn[]>>(KEY, {}),
   push(sessionId: string, point: PointIn) { const q = pointQueue.all(); (q[sessionId] ||= []).push(point); write(KEY, q); },
   size(sessionId: string) { return pointQueue.all()[sessionId]?.length ?? 0; },
+  clear(sessionId: string) { const q = pointQueue.all(); delete q[sessionId]; write(KEY, q); },
   /** Envía por lotes; si un lote falla se conserva todo lo pendiente para el próximo intento. */
   async flush(sessionId: string, send: (points: PointIn[]) => Promise<unknown>, batch = 50): Promise<number> {
     let sent = 0;
@@ -33,6 +40,7 @@ export const pointQueue = {
       fresh[sessionId] = (fresh[sessionId] ?? []).slice(chunk.length);
       if (!fresh[sessionId].length) delete fresh[sessionId];
       write(KEY, fresh);
+      write(LAST_SYNC, Date.now());
       sent += chunk.length;
     }
   },
