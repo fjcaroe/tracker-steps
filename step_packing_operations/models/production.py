@@ -223,8 +223,8 @@ class PackingProduction(models.Model):
         if not self.bom_id:
             return self.env["stock.picking"]
         export_boxes = sum(
-            tag.box_count for tag in self.step_packing_output_tag_ids
-            if tag.step_packing_result == "export")
+            self.step_packing_output_tag_ids.filtered(lambda tag: tag.step_packing_result == "export")
+            .mapped("step_tag_line_ids.boxes"))
         if float_is_zero(export_boxes, precision_digits=2):
             return self.env["stock.picking"]
         factor = export_boxes / (self.bom_id.product_qty or 1.0)
