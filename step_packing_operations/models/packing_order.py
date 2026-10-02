@@ -29,7 +29,7 @@ class PackingOrder(models.Model):
         string="Productores restringidos")
     forbidden_variety_ids = fields.Many2many("step.variedad", relation="step_packing_order_forbidden_variety_rel",
         string="Variedades restringidas")
-    production_ids = fields.One2many("mrp.production", "step_packing_order_id", string="Órdenes de trabajo")
+    production_ids = fields.One2many("step.packing.production", "step_packing_order_id", string="Órdenes de trabajo")
     planned_boxes = fields.Float(compute="_compute_planned", string="Cajas planificadas")
     planned_kg = fields.Float(compute="_compute_planned", string="Kilos planificados", digits="Stock Weight")
 
@@ -96,7 +96,7 @@ class PackingOrder(models.Model):
         for order in self:
             if order.state != "validated":
                 raise UserError(_("Valide la orden antes de cerrarla."))
-            if order.production_ids and any(mo.step_packing_state != "closed" for mo in order.production_ids):
+            if order.production_ids and any(mo.state != "closed" for mo in order.production_ids):
                 raise UserError(_("Cierre primero todas las OT vinculadas."))
             order.state = "closed"
         return True
@@ -158,9 +158,9 @@ class PackingOrderLine(models.Model):
         }
         if self.bom_id:
             vals["bom_id"] = self.bom_id.id
-        production = self.env["mrp.production"].create(vals)
+        production = self.env["step.packing.production"].create(vals)
         return {
-            "type": "ir.actions.act_window", "res_model": "mrp.production",
+            "type": "ir.actions.act_window", "res_model": "step.packing.production",
             "res_id": production.id, "view_mode": "form", "target": "current",
         }
 

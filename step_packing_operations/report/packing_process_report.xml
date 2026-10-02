@@ -1,11 +1,11 @@
 <odoo>
     <record id="action_report_packing_process" model="ir.actions.report">
         <field name="name">Informe de proceso Packing</field>
-        <field name="model">mrp.production</field>
+        <field name="model">step.packing.production</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">step_packing_operations.report_packing_process</field>
         <field name="report_file">step_packing_operations.report_packing_process</field>
-        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_model_id" ref="model_step_packing_production"/>
         <field name="binding_type">report</field>
         <field name="print_report_name">'Packing - %s' % (object.name)</field>
     </record>
@@ -20,7 +20,7 @@
                                 <tr><th>OT</th><td><span t-field="doc.name"/></td>
                                     <th>OP</th><td><span t-field="doc.step_packing_order_id"/></td></tr>
                                 <tr><th>Producto</th><td><span t-field="doc.product_id"/></td>
-                                    <th>Estado</th><td><span t-field="doc.step_packing_state"/></td></tr>
+                                    <th>Estado</th><td><span t-field="doc.state"/></td></tr>
                                 <tr><th>Productor</th><td><span t-field="doc.fruit_grower_id"/></td>
                                     <th>Variedad</th><td><span t-field="doc.fruit_variety_id"/></td></tr>
                             </tbody>

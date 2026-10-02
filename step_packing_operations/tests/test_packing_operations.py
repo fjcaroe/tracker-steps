@@ -14,6 +14,8 @@ class TestPackingOperations(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        cls.warehouse = cls.env["stock.warehouse"].search([("company_id", "=", cls.company.id)], limit=1)
+        cls.location = cls.warehouse.lot_stock_id
         cls.producer = cls.env["res.partner"].create({"name": "Productor Packing T41"})
         cls.species = cls.env["step.especie"].create({
             "name": "Cereza Packing T41", "type_especie": "frutal", "group_especie": "fruta_h"})
@@ -52,14 +54,20 @@ class TestPackingOperations(TransactionCase):
             })],
         })
 
-    def _production(self, order, inputs, outputs):
-        return self.env["mrp.production"].create({
+    def _stock(self, product, qty, package=False):
+        self.env["stock.quant"]._update_available_quantity(product, self.location, qty, package_id=package or None)
+
+    def _production(self, order, inputs, outputs, bom=False):
+        vals = {
             "product_id": self.finished.id, "product_qty": 100,
             "product_uom_id": self.finished.uom_id.id,
             "step_packing_order_id": order.id,
             "step_packing_input_tag_ids": [(6, 0, inputs.ids)],
             "step_packing_output_tag_ids": [(6, 0, outputs.ids)],
-        })
+        }
+        if bom:
+            vals["bom_id"] = bom.id
+        return self.env["step.packing.production"].create(vals)
 
     def test_order_material_needs_and_creation(self):
         bom = self.env["mrp.bom"].create({
@@ -74,7 +82,10 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(order.material_need_ids.required_qty, 100)
         order.action_validate()
         action = order.line_ids.action_create_production()
-        self.assertEqual(self.env["mrp.production"].browse(action["res_id"]).step_packing_order_id, order)
+        production = self.env["step.packing.production"].browse(action["res_id"])
+        self.assertEqual(action["res_model"], "step.packing.production")
+        self.assertEqual(production.step_packing_order_id, order)
+        self.assertEqual(production.bom_id, bom)
         with self.assertRaises(UserError):
             order.write({"week_end": "2026-11-16"})
 
@@ -88,9 +99,11 @@ class TestPackingOperations(TransactionCase):
         production = self._production(order, incoming, export | national)
         self.assertEqual(production.step_packing_loss_kg, 100)
         production.action_step_packing_validate()
-        self.assertEqual(production.step_packing_state, "validated")
+        self.assertEqual(production.state, "validated")
         self.assertEqual(production.fruit_grower_id, self.producer)
-        with self.assertRaises(UserError):
+        with self.assertRaises(ValidationError):
+            # No hay existencias reales detrás de las tarjas: el cierre debe
+            # fallar por falta de stock, no por depender de Fabricación.
             production.action_step_packing_close()
 
     def test_overproduction_and_forbidden_producer(self):
@@ -114,11 +127,8 @@ class TestPackingOperations(TransactionCase):
             "step_packing_result": "export", "especie_id": self.species.id,
             "variedad_id": self.variety.id,
         })
-        warehouse = self.env["stock.warehouse"].search([
-            ("company_id", "=", self.company.id)], limit=1)
-        location = warehouse.lot_stock_id
+        self._stock(self.finished, 10, source)
         quant = self.env["stock.quant"]
-        quant._update_available_quantity(self.finished, location, 10, package_id=source)
         repack = self.env["step.packing.repack"].create({
             "line_ids": [(0, 0, {
                 "source_package_id": source.id, "target_package_id": target.id,
@@ -130,8 +140,8 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(repack.picking_id.state, "done")
         self.assertEqual(source.step_tag_state, "repalletized")
         self.assertEqual(target.step_tag_state, "validated")
-        self.assertEqual(quant._get_available_quantity(self.finished, location, package_id=source, strict=True), 0)
-        self.assertEqual(quant._get_available_quantity(self.finished, location, package_id=target, strict=True), 10)
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=source, strict=True), 0)
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=target, strict=True), 10)
 
     def test_repack_mixed_target_keeps_producer_detail(self):
         other = self.env["res.partner"].create({"name": "Segundo productor T41"})
@@ -146,12 +156,9 @@ class TestPackingOperations(TransactionCase):
             "step_packing_result": "export", "especie_id": self.species.id,
             "variedad_id": self.variety.id,
         })
-        warehouse = self.env["stock.warehouse"].search([
-            ("company_id", "=", self.company.id)], limit=1)
-        location = warehouse.lot_stock_id
+        self._stock(self.finished, 10, first)
+        self._stock(self.finished, 5, second)
         quant = self.env["stock.quant"]
-        quant._update_available_quantity(self.finished, location, 10, package_id=first)
-        quant._update_available_quantity(self.finished, location, 5, package_id=second)
         repack = self.env["step.packing.repack"].create({
             "line_ids": [
                 (0, 0, {"source_package_id": first.id, "target_package_id": target.id,
@@ -165,18 +172,15 @@ class TestPackingOperations(TransactionCase):
         repack.action_validate()
         self.assertEqual(target.step_composition, "mixed")
         self.assertEqual(set(target.step_tag_line_ids.mapped("producer_id").ids), {self.producer.id, other.id})
-        self.assertEqual(quant._get_available_quantity(self.finished, location, package_id=target, strict=True), 15)
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=target, strict=True), 15)
 
     def test_reservation_blocks_and_releases_tag_stock(self):
         order = self._order()
         order.action_validate()
         package = self._tag("T41-RESERVE", "E", self.finished, 50, 10, "export")
         package.action_step_validate_tag()
-        warehouse = self.env["stock.warehouse"].search([
-            ("company_id", "=", self.company.id)], limit=1)
-        location = warehouse.lot_stock_id
+        self._stock(self.finished, 10, package)
         quant = self.env["stock.quant"]
-        quant._update_available_quantity(self.finished, location, 10, package_id=package)
         reservation = self.env["step.export.stock.reservation"].create({
             "name": "T41 reserva especial", "step_packing_order_id": order.id,
             "step_package_ids": [(6, 0, package.ids)],
@@ -184,52 +188,58 @@ class TestPackingOperations(TransactionCase):
         reservation.action_step_reserve()
         self.assertEqual(reservation.step_reservation_state, "reserved")
         self.assertEqual(reservation.step_picking_id.move_line_ids.package_id, package)
-        self.assertEqual(quant._get_available_quantity(self.finished, location, package_id=package, strict=True), 0)
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=package, strict=True), 0)
         reservation.action_step_release()
         self.assertEqual(reservation.step_picking_id.state, "cancel")
-        self.assertEqual(quant._get_available_quantity(self.finished, location, package_id=package, strict=True), 10)
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=package, strict=True), 10)
 
-    def test_manufacturing_close_checks_real_packages(self):
+    def test_packing_close_moves_real_stock_without_manufacturing(self):
+        """El cierre de la OT traslada stock real (MP -> Producción -> PT) con
+        traslados de Inventario comunes; en ningún momento se crea ni se exige
+        una mrp.production para completar el proceso."""
         order = self._order()
         order.action_validate()
         bom = self.env["mrp.bom"].create({
             "product_tmpl_id": self.finished.product_tmpl_id.id,
             "product_id": self.finished.id, "product_qty": 16,
-            "bom_line_ids": [(0, 0, {"product_id": self.raw.id, "product_qty": 100})],
+            "bom_line_ids": [(0, 0, {"product_id": self.carton.id, "product_qty": 16})],
         })
         incoming = self._tag("T41-MO-C", "C", self.raw, 100, 100)
         incoming.action_step_validate_tag()
         output = self._tag("T41-MO-E", "E", self.finished, 80, 16, "export")
-        warehouse = self.env["stock.warehouse"].search([
-            ("company_id", "=", self.company.id)], limit=1)
-        quant = self.env["stock.quant"]
-        quant._update_available_quantity(self.raw, warehouse.lot_stock_id, 100, package_id=incoming)
-        production = self.env["mrp.production"].create({
-            "product_id": self.finished.id, "product_qty": 16,
-            "product_uom_id": self.finished.uom_id.id,
-            "bom_id": bom.id, "step_packing_order_id": order.id,
-            "step_packing_input_tag_ids": [(6, 0, incoming.ids)],
-            "step_packing_output_tag_ids": [(6, 0, output.ids)],
-        })
+        self._stock(self.raw, 100, incoming)
+        self._stock(self.carton, 16)
+        production = self._production(order, incoming, output, bom=bom)
         production.action_step_packing_validate()
-        production.action_confirm()
-        production.action_assign()
-        self.assertEqual(production.move_raw_ids.move_line_ids.package_id, incoming)
-        production.qty_producing = 16
-        production.move_finished_ids.quantity = 16
-        production.move_finished_ids.move_line_ids.result_package_id = output
-        production.move_raw_ids.picked = True
-        result = production.button_mark_done()
-        self.assertEqual(production.state, "done", result)
+        self.assertFalse(self.env["mrp.production"].search([("step_packing_order_id", "=", order.id)]))
+
         production.action_step_packing_close()
-        self.assertEqual(production.step_packing_state, "closed")
+
+        self.assertEqual(production.state, "closed")
         self.assertEqual(output.step_tag_state, "validated")
         self.assertEqual(incoming.step_tag_state, "processed")
-        self.assertEqual(quant._get_available_quantity(self.finished, warehouse.lot_stock_id,
-                         package_id=output, strict=True), 16)
+        self.assertFalse(self.env["mrp.production"].search([]))
+        self.assertEqual(production.input_picking_id.state, "done")
+        self.assertEqual(production.output_picking_id.state, "done")
+        self.assertEqual(production.material_picking_id.state, "done")
+        quant = self.env["stock.quant"]
+        self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=output, strict=True), 16)
+        self.assertEqual(quant._get_available_quantity(self.raw, self.location, package_id=incoming, strict=True), 0)
+        self.assertEqual(quant._get_available_quantity(self.carton, self.location), 0)
         html, _ = self.env["ir.actions.report"]._render_qweb_html(
             "step_packing_operations.report_packing_process", production.ids)
         self.assertIn(b"Informe de proceso de Packing", html)
+
+    def test_packing_close_without_stock_fails(self):
+        order = self._order()
+        order.action_validate()
+        incoming = self._tag("T41-NOSTOCK-C", "C", self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag("T41-NOSTOCK-E", "E", self.finished, 80, 16, "export")
+        production = self._production(order, incoming, output)
+        production.action_step_packing_validate()
+        with self.assertRaises(ValidationError):
+            production.action_step_packing_close()
 
     def test_mobile_scan_is_idempotent(self):
         order = self._order()

@@ -7,9 +7,9 @@
             <xpath expr="//form" position="inside">
                 <header><button name="action_step_reserve" type="object" string="Reservar tarjas"
                     class="btn-primary" invisible="not step_packing_order_id or step_reservation_state != 'draft'"
-                    groups="mrp.group_mrp_user"/>
+                    groups="stock.group_stock_user"/>
                     <button name="action_step_release" type="object" string="Liberar reserva"
-                    invisible="step_reservation_state != 'reserved'" groups="mrp.group_mrp_user"/>
+                    invisible="step_reservation_state != 'reserved'" groups="stock.group_stock_user"/>
                     <field name="step_reservation_state" widget="statusbar"/>
                 </header>
             </xpath>

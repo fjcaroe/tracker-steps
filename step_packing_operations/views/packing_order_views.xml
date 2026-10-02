@@ -44,7 +44,7 @@
                         </field></page>
                         <page string="OT" name="productions"><field name="production_ids" readonly="1">
                             <list><field name="name"/><field name="product_id"/><field name="product_qty"/>
-                                <field name="state"/><field name="step_packing_state"/></list>
+                                <field name="state"/></list>
                         </field></page>
                     </notebook>
                 </sheet>

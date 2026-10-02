@@ -9,8 +9,8 @@ class PackingMobile(http.Controller):
 
     @http.route("/packing/mobile", type="http", auth="user", website=False)
     def mobile_page(self, **kwargs):
-        if not request.env.user.has_group("mrp.group_mrp_user"):
-            raise AccessError(_("Se requiere acceso a Fabricación para registrar tarjas."))
+        if not request.env.user.has_group("stock.group_stock_user"):
+            raise AccessError(_("Se requiere acceso a Inventario para registrar tarjas."))
         return request.render("step_packing_operations.mobile_packing_page", {
             "user_id": request.env.user.id,
         })
@@ -29,13 +29,12 @@ class PackingMobile(http.Controller):
 
     @http.route("/packing/mobile/api", type="json", auth="user", methods=["POST"])
     def mobile_api(self, operation, **payload):
-        if not request.env.user.has_group("mrp.group_mrp_user"):
-            raise AccessError(_("Se requiere acceso a Fabricación para registrar tarjas."))
+        if not request.env.user.has_group("stock.group_stock_user"):
+            raise AccessError(_("Se requiere acceso a Inventario para registrar tarjas."))
         if operation == "orders":
-            orders = request.env["mrp.production"].search([
+            orders = request.env["step.packing.production"].search([
                 ("step_packing_order_id", "!=", False),
-                ("step_packing_state", "=", "created"),
-                ("state", "not in", ["done", "cancel"]),
+                ("state", "=", "created"),
             ], limit=100, order="id desc")
             return [{
                 "id": order.id, "name": order.name,
@@ -52,11 +51,9 @@ class PackingMobile(http.Controller):
             production_id = int(payload.get("production_id") or 0)
         except (TypeError, ValueError):
             raise ValidationError(_("Seleccione una OT válida."))
-        production = request.env["mrp.production"].browse(production_id).exists()
-        if not production or not production.step_packing_order_id or production.step_packing_state != "created":
+        production = request.env["step.packing.production"].browse(production_id).exists()
+        if not production or not production.step_packing_order_id or production.state != "created":
             raise ValidationError(_("La OT no está disponible para registrar tarjas."))
-        if production.state in ("done", "cancel"):
-            raise ValidationError(_("La fabricación ya terminó."))
         kind = (payload.get("kind") or "").strip().upper()
         code = (payload.get("code") or "").strip()
         if kind not in ("C", "E", "N") or not code or len(code) > 80:
@@ -106,11 +103,10 @@ class PackingMobile(http.Controller):
                     "quantity": quantity, "boxes": boxes, "kilos": kilos,
                 })],
             })
-        other = request.env["mrp.production"].search([
+        other = request.env["step.packing.production"].search([
             ("id", "!=", production.id),
             "|", ("step_packing_input_tag_ids", "in", package.id),
                  ("step_packing_output_tag_ids", "in", package.id),
-            ("state", "!=", "cancel"),
         ], limit=1)
         if other:
             raise ValidationError(_("La tarja ya está asociada a otra OT."))

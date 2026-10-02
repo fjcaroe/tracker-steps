@@ -6,6 +6,13 @@
         <field name="padding">5</field>
         <field name="company_id" eval="False"/>
     </record>
+    <record id="seq_packing_production" model="ir.sequence">
+        <field name="name">Orden de Trabajo Packing</field>
+        <field name="code">step.packing.production</field>
+        <field name="prefix">OT/%(year)s/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
     <record id="seq_packing_repack" model="ir.sequence">
         <field name="name">Repaletizado Packing</field>
         <field name="code">step.packing.repack</field>
