@@ -10,7 +10,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_process_type_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-cogs"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-cogs" title="Tipo de proceso" role="img" aria-label="Tipo de proceso"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Tipo de proceso</strong>
                     <small>Clasifica las OT de Packing: embalaje o corrección (repaletizado).</small>
                 </div></div>
@@ -24,7 +24,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_tag_type_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-tags"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-tags" title="Tipo de tarja" role="img" aria-label="Tipo de tarja"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Tipo de tarja</strong>
                     <small>Los tipos C (cosecha), E (exportación) y N (nacional) que identifican cada pallet.</small>
                 </div></div>
@@ -38,7 +38,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_tag_state_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-flag"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-flag" title="Estado de tarja" role="img" aria-label="Estado de tarja"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Estado de tarja</strong>
                     <small>Ciclo de vida de una tarja: creada, validada, procesada, repaletizada, despachada, liquidada o nula.</small>
                 </div></div>
@@ -52,7 +52,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_stop_reason_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-exclamation-triangle"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-exclamation-triangle" title="Causas de detención" role="img" aria-label="Causas de detención"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Causas de detención de líneas</strong>
                     <small>Motivos registrados cuando una línea de proceso se detiene (corte de luz, falla mecánica, etc.).</small>
                 </div></div>
@@ -66,7 +66,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_caliber_group_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-object-group"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-object-group" title="Grupo de calibre" role="img" aria-label="Grupo de calibre"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Grupo de calibre</strong>
                     <small>Agrupa calibres de fruta por especie para facilitar la selección en tarjas y OT.</small>
                 </div></div>
@@ -80,7 +80,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_fruit_caliber_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-balance-scale"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-balance-scale" title="Calibre de fruta" role="img" aria-label="Calibre de fruta"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Calibre de fruta</strong>
                     <small>Los calibres (2J, 3J, 4J, XL...) usados para clasificar la fruta embalada.</small>
                 </div></div>
@@ -94,7 +94,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_fruit_category_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-star"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-star" title="Categoría de fruta" role="img" aria-label="Categoría de fruta"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Categoría de fruta</strong>
                     <small>Categorías comerciales (Cat 1, Cat 2...) usadas en tarjas y cuadratura.</small>
                 </div></div>
@@ -108,7 +108,7 @@
         <field name="inherit_id" ref="step_packing.view_step_packing_line_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group" position="before">
-                <div class="o_packing_master_intro"><i class="fa fa-sitemap"/><div>
+                <div class="o_packing_master_intro"><i class="fa fa-sitemap" title="Líneas de proceso" role="img" aria-label="Líneas de proceso"/><div>
                     <span>CONFIGURACIÓN PACKING</span><strong>Líneas de proceso</strong>
                     <small>Las líneas físicas de embalaje a las que se asignan las órdenes de trabajo.</small>
                 </div></div>
