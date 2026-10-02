@@ -52,6 +52,15 @@ def create_work_order(
     _validate_work_order_relations(payload, db)
     assert_cost_center_access(db, current, payload.cost_center_id)
 
+    # Reintento idempotente (parte creado sin señal): el código lo genera el cliente y es único por jornada.
+    existing = (
+        db.query(WorkOrder)
+        .filter(WorkOrder.code == payload.code, WorkOrder.machine_id == payload.machine_id, WorkOrder.work_date == payload.work_date)
+        .first()
+    )
+    if existing is not None:
+        return existing
+
     wo = WorkOrder(
         code=payload.code,
         work_date=payload.work_date,

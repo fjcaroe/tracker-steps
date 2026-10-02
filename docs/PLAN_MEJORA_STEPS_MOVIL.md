@@ -49,7 +49,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 - **Aceptación:** matar la pestaña con una jornada abierta, volver a entrar → la jornada sigue, el contador
   conserva el tiempo real y los puntos pendientes se envían. Prueba unitaria de la reconciliación local/servidor.
 
-### I2 · Iniciar jornada sin señal  `[ ]`
+### I2 · Iniciar jornada sin señal  `[x]` 02-10-2026
 - **Qué:** si no hay red al iniciar, crear la jornada localmente (UUID de cliente), seguir registrando y
   sincronizar al volver la señal: crear parte → iniciar sesión → enviar puntos → cerrar. Cola de operaciones
   ordenada e idempotente, con pantalla "Pendientes de sincronizar" y reintento manual.

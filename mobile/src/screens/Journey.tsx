@@ -3,6 +3,11 @@ import { catalogs, sessions, type SessionSummary, type CostCenter, type Driver, 
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
 import { activeStore, formatDuration, parseNumber, pointQueue, syncStore, type Active } from '../lib/queue';
 import { buildActive, reconcile } from '../lib/reconcile';
+import { isNetworkError, startPending, type FinishBody, type Op } from '../lib/outbox';
+import { outboxStore, syncAll } from '../lib/sync';
+
+const CATALOG_CACHE = 'steps_movil_catalogs';
+const cachedCatalogs = (): Catalogs | null => { try { const raw = localStorage.getItem(CATALOG_CACHE); return raw ? (JSON.parse(raw) as Catalogs) : null; } catch { return null; } };
 
 type Catalogs = { machines: Machine[]; labors: Labor[]; drivers: Driver[]; implementsList: Implement[]; fields: Field[]; costCenters: CostCenter[] };
 
@@ -11,7 +16,22 @@ export default function Journey({ online }: { online: boolean }) {
   const [notice, setNotice] = useState('');
   const [open, setOpen] = useState<SessionSummary[]>([]);
   const [resuming, setResuming] = useState('');
-  const change = (a: Active | null) => { activeStore.set(a); setActive(a); };
+  const [ops, setOps] = useState<Op[]>(outboxStore.ops);
+  const [syncing, setSyncing] = useState(false);
+  const change = (a: Active | null) => { activeStore.set(a); setActive(a); setOps(outboxStore.ops()); };
+
+  const sync = useCallback(async () => {
+    setSyncing(true);
+    try { await syncAll(); } finally { setSyncing(false); setOps(outboxStore.ops()); const a = activeStore.get(); if (a) setActive((cur) => (cur && cur.workOrderId !== a.workOrderId ? a : cur)); }
+  }, []);
+  const retry = () => { outboxStore.clearErrors(); void sync(); };
+  useEffect(() => { if (online) void sync(); }, [online, sync]);
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') void sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = setInterval(() => { if (outboxStore.ops().length) void sync(); }, 20000);
+    return () => { document.removeEventListener('visibilitychange', onVisible); clearInterval(timer); };
+  }, [sync]);
 
   // Al abrir (y al recuperar red) se consulta al servidor: retomar jornada abierta o limpiar una ya cerrada.
   const check = useCallback(async () => {
@@ -44,8 +64,9 @@ export default function Journey({ online }: { online: boolean }) {
   return (
     <>
       {notice && <p className="banner" role="status">{notice}</p>}
+      {ops.length > 0 && <PendingOps ops={ops} syncing={syncing} online={online} onRetry={retry} />}
       {active
-        ? <Tracking active={active} online={online} onChange={change} />
+        ? <Tracking active={active} online={online} onChange={change} onSync={sync} />
         : <>
             {open.length > 0 && (
               <section className="card stack" aria-label="Jornadas abiertas">
@@ -74,8 +95,12 @@ function StartForm({ onStarted }: { onStarted: (a: Active) => void }) {
   const load = useCallback(() => {
     setError('');
     Promise.all([catalogs.machines(), catalogs.labors(), catalogs.drivers(), catalogs.implements(), catalogs.fields(), catalogs.costCenters()])
-      .then(([machines, labors, drivers, implementsList, fields, costCenters]) => setData({ machines, labors, drivers: drivers.filter((d) => d.is_active), implementsList: implementsList.filter((i) => i.is_active), fields, costCenters }))
-      .catch((e: Error) => setError(e.message));
+      .then(([machines, labors, drivers, implementsList, fields, costCenters]) => {
+        const fresh = { machines, labors, drivers: drivers.filter((d) => d.is_active), implementsList: implementsList.filter((i) => i.is_active), fields, costCenters };
+        try { localStorage.setItem(CATALOG_CACHE, JSON.stringify(fresh)); } catch { /* sin espacio */ }
+        setData(fresh);
+      })
+      .catch((e: Error) => { const cached = cachedCatalogs(); if (cached) setData(cached); else setError(e.message); });
   }, []);
   useEffect(load, [load]);
 
@@ -95,17 +120,32 @@ function StartForm({ onStarted }: { onStarted: (a: Active) => void }) {
       : tank == null || tank < 0 ? 'Indica los litros actuales del estanque.' : machine.tank_capacity_liters != null && tank > machine.tank_capacity_liters ? `El estanque admite hasta ${machine.tank_capacity_liters} L.` : '';
     if (problem || !labor || hm == null || tank == null) { setError(problem); return; }
     setBusy(true); setError('');
+    const now = new Date();
+    const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const sessionId = crypto.randomUUID();
+    const startedAt = now.toISOString();
+    const woBody = {
+      code: `WO-${day}-M${machine.id}-CC${f.cc}-L${labor.id}-${now.getTime().toString(36)}`, work_date: day, season: String(now.getFullYear()),
+      machine_id: machine.id, activity_id: labor.activity_id, labor_id: labor.id, cost_center_id: Number(f.cc), field_id: f.field ? Number(f.field) : null,
+      implement_id: f.implement ? Number(f.implement) : null, hourmeter_initial: hm, fuel_tank_start_liters: tank,
+    };
+    const startBody = { machine_id: machine.id, driver_id: f.driver ? Number(f.driver) : null, cost_center_id: Number(f.cc) };
+    const base = { sessionId, machineId: machine.id, machineName: machine.name, startedAt: now.getTime(), hourmeterStart: hm, tankStart: tank, tankCapacity: machine.tank_capacity_liters, distanceM: 0 };
+    let woId: number | null = null;
     try {
-      const now = new Date();
-      const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-      const wo = await sessions.createWorkOrder({
-        code: `WO-${day}-M${machine.id}-CC${f.cc}-L${labor.id}-${now.getTime().toString(36)}`, work_date: day, season: String(now.getFullYear()),
-        machine_id: machine.id, activity_id: labor.activity_id, labor_id: labor.id, cost_center_id: Number(f.cc), field_id: f.field ? Number(f.field) : null,
-        implement_id: f.implement ? Number(f.implement) : null, hourmeter_initial: hm, fuel_tank_start_liters: tank,
-      });
-      const session = await sessions.start({ machine_id: machine.id, driver_id: f.driver ? Number(f.driver) : null, cost_center_id: Number(f.cc), work_order_id: wo.id });
-      onStarted({ sessionId: session.id, workOrderId: wo.id, machineId: machine.id, machineName: machine.name, startedAt: Date.now(), hourmeterStart: hm, tankStart: tank, tankCapacity: machine.tank_capacity_liters, distanceM: 0 });
-    } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+      woId = (await sessions.createWorkOrder(woBody)).id;
+      await sessions.start({ ...startBody, id: sessionId, work_order_id: woId, started_at: startedAt });
+      onStarted({ ...base, workOrderId: woId });
+    } catch (err) {
+      if (!isNetworkError(err)) { setError((err as Error).message); }
+      else {
+        // Sin señal: la jornada se crea en el teléfono y se sincroniza al volver la red.
+        const ops: Op[] = woId == null ? [{ kind: 'wo_create', sessionId, body: woBody }] : [];
+        ops.push({ kind: 'session_start', sessionId, body: startBody, startedAt, ...(woId != null ? { workOrderId: woId } : {}) });
+        outboxStore.add(...ops);
+        onStarted({ ...base, workOrderId: woId ?? 0 });
+      }
+    } finally { setBusy(false); }
   };
 
   if (error && !data) return <section className="card"><p className="error" role="alert">{error}</p><button onClick={load}>Reintentar</button></section>;
@@ -136,7 +176,7 @@ function Select({ label, value, onChange, options, required }: { label: string; 
   return <label>{label}<select value={value} onChange={(e) => onChange(e.target.value)} required={required}><option value="">{required ? 'Seleccionar…' : 'Sin especificar'}</option>{options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label>;
 }
 
-function Tracking({ active, online, onChange }: { active: Active; online: boolean; onChange: (a: Active | null) => void }) {
+function Tracking({ active, online, onChange, onSync }: { active: Active; online: boolean; onChange: (a: Active | null) => void; onSync: () => Promise<void> }) {
   const [now, setNow] = useState(Date.now());
   const [fix, setFix] = useState<Fix | null>(null);
   const [geoError, setGeoError] = useState('');
@@ -149,10 +189,10 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   activeRef.current = active;
 
   const flush = useCallback(async () => {
-    await pointQueue.flush(active.sessionId, (p) => sessions.points(active.sessionId, p));
+    await onSync();
     setPending(pointQueue.size(active.sessionId));
     setLastSync(syncStore.get());
-  }, [active.sessionId]);
+  }, [active.sessionId, onSync]);
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000);
@@ -204,6 +244,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
         {' · '}Último envío: {lastSync ? new Date(lastSync).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : 'aún no'}
       </p>
       <button className="danger big" onClick={() => setFinishing(true)}>Finalizar jornada</button>
+      {startPending(outboxStore.ops(), active.sessionId) && <p className="muted center" role="status">Jornada creada en este teléfono: se enviará al servidor cuando haya señal.</p>}
       {finishing && <FinishSheet active={active} flush={flush} onCancel={() => setFinishing(false)} onDone={() => onChange(null)} />}
     </section>
   );
@@ -225,10 +266,22 @@ function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flus
     if (problem) { setError(problem); return; }
     setBusy(true); setError('');
     try {
+      const body: FinishBody = { hourmeter_final: hmEnd, fuel_refill_liters: ref, fuel_tank_end_liters: tankEnd };
+      const endedAt = new Date().toISOString();
       await flush();
-      if (pointQueue.size(active.sessionId) > 0) throw new Error('Aún hay puntos GPS sin enviar. Conéctate a internet y reintenta: no se perderán.');
-      await sessions.close(active.sessionId);
-      await sessions.finishWorkOrder(active.workOrderId, { hourmeter_final: hmEnd, fuel_refill_liters: ref, fuel_tank_end_liters: tankEnd });
+      const stillPending = startPending(outboxStore.ops(), active.sessionId) || pointQueue.size(active.sessionId) > 0;
+      if (!stillPending) {
+        try {
+          await sessions.close(active.sessionId, endedAt);
+          await sessions.finishWorkOrder(active.workOrderId, body);
+          onDone(); return;
+        } catch (err) { if (!isNetworkError(err)) throw err; }
+      }
+      // Sin señal (o jornada aún no sincronizada): el cierre queda en cola, ordenado tras el inicio y los puntos.
+      outboxStore.add(
+        { kind: 'session_close', sessionId: active.sessionId, endedAt },
+        { kind: 'wo_finish', sessionId: active.sessionId, body, ...(active.workOrderId ? { workOrderId: active.workOrderId } : {}) },
+      );
       onDone();
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };
@@ -245,5 +298,21 @@ function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flus
         <button type="button" onClick={onCancel} disabled={busy}>Seguir en jornada</button>
       </form>
     </div>
+  );
+}
+
+const LABEL: Record<Op['kind'], string> = { wo_create: 'Crear parte de trabajo', session_start: 'Iniciar jornada', session_close: 'Cerrar jornada', wo_finish: 'Registrar horómetro y combustible final' };
+
+function PendingOps({ ops, syncing, online, onRetry }: { ops: Op[]; syncing: boolean; online: boolean; onRetry: () => void }) {
+  return (
+    <section className="card stack" aria-label="Pendientes de sincronizar">
+      <h2>Pendientes de sincronizar ({ops.length})</h2>
+      {ops.map((o, i) => (
+        <div key={`${o.sessionId}-${o.kind}-${i}`} className="row">
+          <div><strong>{LABEL[o.kind]}</strong><small>{o.error ? `Rechazada: ${o.error}` : online ? 'En espera' : 'Sin conexión'}</small></div>
+        </div>
+      ))}
+      <button onClick={onRetry} disabled={syncing}>{syncing ? 'Sincronizando…' : 'Reintentar ahora'}</button>
+    </section>
   );
 }

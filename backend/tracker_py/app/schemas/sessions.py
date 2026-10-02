@@ -11,6 +11,7 @@ class SessionsDayOut(BaseModel):
     points_count: int
     sessions_count: int
 class SessionStart(BaseModel):
+    id: Optional[uuid.UUID] = None  # id generado por el cliente: hace idempotente el reintento sin señal
     machine_id: int
     driver_id: Optional[int] = None
     cost_center_id: Optional[int] = None

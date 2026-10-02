@@ -60,7 +60,15 @@ def start_session(
     cc_id = payload.cost_center_id or (work_order.cost_center_id if work_order else None) or machine.cost_center_id
     assert_cost_center_access(db, current, cc_id)
 
+    # Reintento idempotente (jornada iniciada sin señal): mismo id => se devuelve la sesión ya creada.
+    if payload.id is not None:
+        existing = db.query(TrackingSession).get(payload.id)
+        if existing is not None:
+            _assert_session_allowed(db, current, existing)
+            return existing
+
     session_obj = TrackingSession(
+        id=payload.id or uuid.uuid4(),
         machine_id=payload.machine_id,
         driver_id=payload.driver_id,
         cost_center_id=cc_id,

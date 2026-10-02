@@ -87,10 +87,10 @@ export const sessions = {
   createWorkOrder: (body: WorkOrderIn) => api<WorkOrder>('/work_orders', { method: 'POST', body: JSON.stringify(body) }),
   finishWorkOrder: (id: number, body: { hourmeter_final: number | null; fuel_refill_liters: number | null; fuel_tank_end_liters: number | null }) =>
     api<WorkOrder>(`/work_orders/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  start: (body: { machine_id: number; driver_id: number | null; cost_center_id: number | null; work_order_id: number }) =>
+  start: (body: { id?: string; machine_id: number; driver_id: number | null; cost_center_id: number | null; work_order_id: number | null; started_at?: string }) =>
     api<Session>('/sessions/start', { method: 'POST', body: JSON.stringify(body) }),
   points: (id: string, points: PointIn[]) => api<{ inserted: number }>(`/sessions/${id}/points`, { method: 'POST', body: JSON.stringify({ points }) }),
-  close: (id: string) => api<Session>(`/sessions/${id}/close`, { method: 'POST' }),
+  close: (id: string, endedAt?: string) => api<Session>(`/sessions/${id}/close${endedAt ? `?ended_at=${encodeURIComponent(endedAt)}` : ''}`, { method: 'POST' }),
   workOrders: (season: string) => api<WorkOrderSummary[]>(`/work_orders?season=${encodeURIComponent(season)}`),
   mine: (limit = 40) => api<SessionSummary[]>(`/sessions/my?limit=${limit}`),
 };
