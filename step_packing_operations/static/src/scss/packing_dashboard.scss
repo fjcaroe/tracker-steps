@@ -204,3 +204,35 @@ body:has(.o_menu_brand[data-menu-xmlid="step_packing_operations.menu_packing_ope
 .o_packing_shortcuts i { display: grid; flex: 0 0 35px; place-items: center; width: 35px; height: 35px; border-radius: 10px; color: var(--packing-green-2); background: var(--packing-lime); }
 .o_packing_shortcuts span { display: flex; min-width: 0; flex-direction: column; font-weight: 750; }
 .o_packing_shortcuts small { overflow: hidden; color: #71817c; font-size: 10px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+
+// Banner para los catálogos simples de Packing (antes formularios "pelados"
+// heredados de step_packing/Studio: solo name/company_id/sequence/tag_ids).
+.o_packing_master_intro {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin: -2px 0 19px;
+    padding: 14px 17px;
+    border: 1px solid #c9ddd5;
+    border-left: 4px solid var(--packing-green);
+    border-radius: 13px;
+    color: #24453c;
+    background: linear-gradient(105deg, #edf6f1, #fbfdf8);
+
+    > i {
+        display: grid;
+        flex: 0 0 42px;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        color: var(--packing-green-2);
+        background: var(--packing-lime);
+        font-size: 18px;
+    }
+
+    > div { display: flex; min-width: 0; flex-direction: column; }
+    span { color: var(--packing-green); font-size: 9px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    strong { margin-top: 1px; color: #0c3a2e; font-size: 16px; font-weight: 850; }
+    small { margin-top: 2px; color: #667a73; font-size: 11px; line-height: 1.35; }
+}
