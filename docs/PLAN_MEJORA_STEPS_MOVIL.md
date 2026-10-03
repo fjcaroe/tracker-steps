@@ -40,12 +40,12 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque A — Confiabilidad en terreno (primero: sin esto no hay datos reales)
 
-### I1 · Jornada que no se pierde  `[ ]`
+### I1 · Jornada que no se pierde  `[x]` (03-10-2026)
 - **Qué:** al abrir la app consultar al servidor si el usuario tiene una sesión abierta (`GET /sessions/my?status=open`)
   y retomarla (otro teléfono, datos borrados, cierre del navegador). Si la sesión local ya está cerrada en el
   servidor, limpiar y avisar. Reenvío automático al recuperar red y al volver a primer plano
   (`visibilitychange`, `online`). Indicador permanente de "puntos pendientes" y "último envío".
-- **Backend:** ninguno (usar lo existente). Verificar que `status` filtre bien en `/sessions/my`.
+- **Backend:** `status` filtra bien en `/sessions/my`; se agregó (aditivo) `work_order_id` a su respuesta para poder retomar y cerrar el parte.
 - **Aceptación:** matar la pestaña con una jornada abierta, volver a entrar → la jornada sigue, el contador
   conserva el tiempo real y los puntos pendientes se envían. Prueba unitaria de la reconciliación local/servidor.
 
@@ -216,3 +216,4 @@ publicarse cuando ya haya clientes en ellos.
 | Fecha | Iteración | Commit | JS servido | Notas |
 |---|---|---|---|---|
 | 02-10-2026 | Base (web/PWA, jornada, GPS con cola, historial) | `f3355be` | `index-CGTxg_cA.js` | Proyectos Android/iOS generados, sin compilar |
+| 03-10-2026 | I1 Jornada que no se pierde | ver rama `ticket/46-movil-jornada-no-se-pierde` | `index-DgFoI-B_.js` | API: `sessions.py` (+work_order_id en /sessions/my), respaldo `/opt/fernando_odoo18/backups/tracker_py-i1-20261003T201357Z`; front respaldo `steps-truck-frontend.pre-movil-20261003T201428Z`. Sin probar con GPS real en terreno |
