@@ -2,6 +2,7 @@
 # Run from a fresh server checkout of codex/steps-movil, with its exact commit as argument.
 set -euo pipefail
 release=$(pwd)
+chmod 755 "$release"
 expected=${1:?Pass the reviewed release commit}
 test "$(git rev-parse HEAD)" = "$expected"
 test "$(git branch --show-current)" = codex/steps-movil
@@ -72,7 +73,14 @@ PY
 
 rollback() {
   echo 'Restoring prior mobile release after verification failure' >&2
-  sudo rsync -a --delete --exclude='.env' --exclude='.venv' --exclude='__pycache__' "$backup/tracker_py/" "$target/"
+  # Restore only source files changed by this release; keep uploads received since the backup.
+  while IFS= read -r file; do
+    if sudo test -f "$backup/tracker_py/$file"; then
+      sudo cp -a "$backup/tracker_py/$file" "$target/$file"
+    else
+      sudo rm -- "$target/$file"
+    fi
+  done < /tmp/movil-delta-$stamp.txt
   sudo systemctl restart tracker-steps-api.service
   sudo rsync -a --delete "$front.pre-movil-$stamp/" "$front/"
   sudo nginx -t && sudo systemctl reload nginx
