@@ -3,6 +3,7 @@ import type { PointIn } from './api';
 
 const KEY = 'steps_movil_pending';
 const ACTIVE = 'steps_movil_active';
+const LAST_SENT = 'steps_movil_last_sent';
 
 export type Active = {
   sessionId: string; workOrderId: number; machineId: number; machineName: string; startedAt: number;
@@ -17,7 +18,14 @@ export const activeStore = {
   set: (a: Active | null) => { if (a) write(ACTIVE, a); else { try { localStorage.removeItem(ACTIVE); } catch { /* nada */ } } },
 };
 
+export const lastSent = {
+  get: () => read<number | null>(LAST_SENT, null),
+  mark: () => write(LAST_SENT, Date.now()),
+};
+
 export const pointQueue = {
+  /** Descarta lo pendiente de una sesión (p. ej. ya cerrada en el servidor). */
+  drop(sessionId: string) { const q = pointQueue.all(); delete q[sessionId]; write(KEY, q); },
   all: () => read<Record<string, PointIn[]>>(KEY, {}),
   push(sessionId: string, point: PointIn) { const q = pointQueue.all(); (q[sessionId] ||= []).push(point); write(KEY, q); },
   size(sessionId: string) { return pointQueue.all()[sessionId]?.length ?? 0; },
@@ -34,6 +42,7 @@ export const pointQueue = {
       if (!fresh[sessionId].length) delete fresh[sessionId];
       write(KEY, fresh);
       sent += chunk.length;
+      lastSent.mark();
     }
   },
 };

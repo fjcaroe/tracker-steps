@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { acceptFix, haversineMeters, type Fix } from './geo';
-import { formatDuration, parseNumber, pointQueue } from './queue';
+import { formatDuration, parseNumber, pointQueue, type Active } from './queue';
+import { reconcile, sinceText } from './reconcile';
+import type { SessionSummary } from './api';
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -47,5 +49,22 @@ describe('formato', () => {
     expect(formatDuration(3_725_000)).toBe('01:02:05');
     expect(parseNumber('12,5')).toBe(12.5);
     expect(parseNumber('')).toBeNull();
+  });
+});
+
+const local = { sessionId: 'a' } as Active;
+const srv = (id: string, started_at: string) => ({ id, started_at } as SessionSummary);
+describe('reconciliación local/servidor', () => {
+  it('conserva la sesión local si sigue abierta en el servidor', () => { expect(reconcile(local, [srv('a', '2026-10-03T10:00:00Z')]).kind).toBe('keep'); });
+  it('limpia la local si el servidor ya la cerró', () => { expect(reconcile(local, []).kind).toBe('clear'); });
+  it('retoma la más reciente si no hay local', () => {
+    const r = reconcile(null, [srv('x', '2026-10-03T08:00:00Z'), srv('y', '2026-10-03T09:00:00Z')]);
+    expect(r.kind === 'adopt' && r.session.id).toBe('y');
+  });
+  it('sin nada en ninguno lado no hace nada', () => { expect(reconcile(null, []).kind).toBe('keep'); });
+  it('descarta pendientes de una sesión', () => { pointQueue.push('s9', point(1)); pointQueue.drop('s9'); expect(pointQueue.size('s9')).toBe(0); });
+  it('texto de último envío', () => {
+    expect(sinceText(null)).toBe('sin envíos aún');
+    expect(sinceText(1000, 1000 + 5 * 60_000)).toBe('hace 5 min');
   });
 });

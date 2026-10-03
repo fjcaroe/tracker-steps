@@ -897,6 +897,7 @@ def my_sessions(
             ended_at=s.ended_at,
             status=s.status,
             points_count=int(points_count or 0),
+            work_order_id=s.work_order_id,
             last_point_ts=s.last_point_ts,
             last_lat=_f(s.last_lat),
             last_lon=_f(s.last_lon),

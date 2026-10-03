@@ -40,10 +40,11 @@ export type Driver = { id: number; name: string; is_active: boolean };
 export type Implement = { id: number; name: string; is_active: boolean };
 export type Field = { id: number; name: string; cost_center_id: number | null };
 export type Session = { id: string; machine_id: number; started_at: string; ended_at: string | null; status: 'open' | 'closed' };
-export type SessionSummary = Session & { machine_name: string | null; driver_name: string | null; cost_center_name: string | null; points_count: number };
+export type SessionSummary = Session & { machine_name: string | null; driver_name: string | null; cost_center_name: string | null; points_count: number; work_order_id?: number | null };
 export type TokenOut = { access_token: string; token_type: string; user: User; cost_centers: CostCenter[] };
 export type FuelStatus = { last_liters: number | null; tank_capacity_liters: number | null };
 export type WorkOrder = { id: number };
+export type WorkOrderInfo = { id: number; machine_id: number | null; hourmeter_initial: number | null; fuel_tank_start_liters: number | null; hourmeter_final: number | null };
 export type PointIn = { ts: string; lat: number; lon: number; speed_mps: number | null; accuracy_m: number | null };
 
 export async function login(username: string, password: string): Promise<TokenOut> {
@@ -90,5 +91,7 @@ export const sessions = {
     api<Session>('/sessions/start', { method: 'POST', body: JSON.stringify(body) }),
   points: (id: string, points: PointIn[]) => api<{ inserted: number }>(`/sessions/${id}/points`, { method: 'POST', body: JSON.stringify({ points }) }),
   close: (id: string) => api<Session>(`/sessions/${id}/close`, { method: 'POST' }),
+  openMine: () => api<SessionSummary[]>('/sessions/my?status=open&limit=20'),
+  workOrdersOn: (day: string) => api<WorkOrderInfo[]>(`/work_orders?date=${day}`),
   mine: (limit = 40) => api<SessionSummary[]>(`/sessions/my?limit=${limit}`),
 };

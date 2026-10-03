@@ -1,15 +1,56 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { catalogs, sessions, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
+import { catalogs, sessions, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine, type SessionSummary } from '../lib/api';
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
-import { activeStore, formatDuration, parseNumber, pointQueue, type Active } from '../lib/queue';
+import { activeStore, formatDuration, lastSent, parseNumber, pointQueue, type Active } from '../lib/queue';
+import { reconcile, sinceText } from '../lib/reconcile';
 
 type Catalogs = { machines: Machine[]; labors: Labor[]; drivers: Driver[]; implementsList: Implement[]; fields: Field[]; costCenters: CostCenter[] };
 
+async function adoptServerSession(srv: SessionSummary): Promise<Active> {
+  const day = srv.started_at.slice(0, 10);
+  const [wos, machines] = await Promise.all([sessions.workOrdersOn(day).catch(() => []), catalogs.machines().catch(() => [])]);
+  const wo = srv.work_order_id != null ? wos.find((w) => w.id === srv.work_order_id) : undefined;
+  const machine = machines.find((m) => m.id === srv.machine_id);
+  return {
+    sessionId: srv.id, workOrderId: srv.work_order_id ?? 0, machineId: srv.machine_id, machineName: srv.machine_name ?? machine?.name ?? 'Máquina',
+    startedAt: Date.parse(srv.started_at), hourmeterStart: wo?.hourmeter_initial ?? 0, tankStart: wo?.fuel_tank_start_liters ?? 0,
+    tankCapacity: machine?.tank_capacity_liters ?? null, distanceM: 0,
+  };
+}
+
 export default function Journey({ online }: { online: boolean }) {
   const [active, setActive] = useState<Active | null>(activeStore.get);
-  return active
-    ? <Tracking active={active} online={online} onChange={(a) => { activeStore.set(a); setActive(a); }} />
-    : <StartForm onStarted={(a) => { activeStore.set(a); setActive(a); }} />;
+  const [checking, setChecking] = useState(true);
+  const [notice, setNotice] = useState('');
+
+  const set = useCallback((a: Active | null) => { activeStore.set(a); setActive(a); }, []);
+
+  // Al abrir y al volver a primer plano: la verdad es el servidor (otro teléfono, datos borrados, cierre remoto).
+  const sync = useCallback(async () => {
+    try {
+      const open = await sessions.openMine();
+      const local = activeStore.get();
+      const r = reconcile(local, open);
+      if (r.kind === 'clear' && local) { pointQueue.drop(local.sessionId); set(null); setNotice('Tu jornada anterior ya estaba cerrada en el servidor.'); }
+      else if (r.kind === 'adopt') { set(await adoptServerSession(r.session)); setNotice('Retomamos tu jornada abierta.'); }
+    } catch { /* sin red: se conserva lo local */ }
+    setChecking(false);
+  }, [set]);
+
+  useEffect(() => {
+    void sync();
+    const onVisible = () => { if (document.visibilityState === 'visible') void sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [sync]);
+
+  if (checking && !active) return <p role="status" className="muted">Buscando tu jornada…</p>;
+  return (
+    <>
+      {notice && <p className="banner" role="status" onClick={() => setNotice('')}>{notice}</p>}
+      {active ? <Tracking active={active} online={online} onChange={set} /> : <StartForm onStarted={set} />}
+    </>
+  );
 }
 
 function StartForm({ onStarted }: { onStarted: (a: Active) => void }) {
@@ -123,6 +164,11 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   }, [active.sessionId, flush]);
 
   useEffect(() => { if (online) void flush(); }, [online, flush]);
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') void flush(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [flush]);
 
   const km = (activeRef.current.distanceM || active.distanceM) / 1000;
   const speed = fix?.speed_mps != null ? fix.speed_mps * 3.6 : null;
@@ -140,7 +186,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
         </div>
       </article>
       {geoError && <p className="error" role="alert">{geoError}</p>}
-      <p className="muted center">{pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'}</p>
+      <p className="muted center">{pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'} · Último envío: {sinceText(lastSent.get(), now)}</p>
       <button className="danger big" onClick={() => setFinishing(true)}>Finalizar jornada</button>
       {finishing && <FinishSheet active={active} flush={flush} onCancel={() => setFinishing(false)} onDone={() => onChange(null)} />}
     </section>
