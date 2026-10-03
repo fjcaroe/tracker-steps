@@ -3,6 +3,7 @@ import type { PointIn } from './api';
 
 const KEY = 'steps_movil_pending';
 const ACTIVE = 'steps_movil_active';
+const LAST_SENT = 'steps_movil_last_sent';
 
 export type Active = {
   sessionId: string; workOrderId: number; machineId: number; machineName: string; startedAt: number;
@@ -15,6 +16,11 @@ function write(key: string, value: unknown) { try { localStorage.setItem(key, JS
 export const activeStore = {
   get: () => read<Active | null>(ACTIVE, null),
   set: (a: Active | null) => { if (a) write(ACTIVE, a); else { try { localStorage.removeItem(ACTIVE); } catch { /* nada */ } } },
+};
+
+export const lastSentStore = {
+  get: () => read<number | null>(LAST_SENT, null),
+  set: (ts: number) => write(LAST_SENT, ts),
 };
 
 export const pointQueue = {
@@ -34,6 +40,7 @@ export const pointQueue = {
       if (!fresh[sessionId].length) delete fresh[sessionId];
       write(KEY, fresh);
       sent += chunk.length;
+      lastSentStore.set(Date.now());
     }
   },
 };

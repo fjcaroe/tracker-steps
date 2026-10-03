@@ -40,10 +40,11 @@ export type Driver = { id: number; name: string; is_active: boolean };
 export type Implement = { id: number; name: string; is_active: boolean };
 export type Field = { id: number; name: string; cost_center_id: number | null };
 export type Session = { id: string; machine_id: number; started_at: string; ended_at: string | null; status: 'open' | 'closed' };
-export type SessionSummary = Session & { machine_name: string | null; driver_name: string | null; cost_center_name: string | null; points_count: number };
+export type SessionSummary = Session & { work_order_id?: number | null; machine_name: string | null; driver_name: string | null; cost_center_name: string | null; points_count: number };
 export type TokenOut = { access_token: string; token_type: string; user: User; cost_centers: CostCenter[] };
 export type FuelStatus = { last_liters: number | null; tank_capacity_liters: number | null };
 export type WorkOrder = { id: number };
+export type WorkOrderFull = WorkOrder & { hourmeter_initial: number | null; fuel_tank_start_liters: number | null };
 export type PointIn = { ts: string; lat: number; lon: number; speed_mps: number | null; accuracy_m: number | null };
 
 export async function login(username: string, password: string): Promise<TokenOut> {
@@ -84,6 +85,7 @@ export type WorkOrderIn = {
 };
 export const sessions = {
   createWorkOrder: (body: WorkOrderIn) => api<WorkOrder>('/work_orders', { method: 'POST', body: JSON.stringify(body) }),
+  workOrdersOf: (isoDate: string) => api<WorkOrderFull[]>(`/work_orders?date=${encodeURIComponent(isoDate)}`),
   finishWorkOrder: (id: number, body: { hourmeter_final: number | null; fuel_refill_liters: number | null; fuel_tank_end_liters: number | null }) =>
     api<WorkOrder>(`/work_orders/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   start: (body: { machine_id: number; driver_id: number | null; cost_center_id: number | null; work_order_id: number }) =>
@@ -91,4 +93,5 @@ export const sessions = {
   points: (id: string, points: PointIn[]) => api<{ inserted: number }>(`/sessions/${id}/points`, { method: 'POST', body: JSON.stringify({ points }) }),
   close: (id: string) => api<Session>(`/sessions/${id}/close`, { method: 'POST' }),
   mine: (limit = 40) => api<SessionSummary[]>(`/sessions/my?limit=${limit}`),
+  open: () => api<SessionSummary[]>('/sessions/my?status=open&limit=100'),
 };

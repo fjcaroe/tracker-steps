@@ -1,15 +1,62 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { catalogs, sessions, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
+import { catalogs, sessions, type SessionSummary, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
-import { activeStore, formatDuration, parseNumber, pointQueue, type Active } from '../lib/queue';
+import { activeStore, formatDuration, lastSentStore, parseNumber, pointQueue, type Active } from '../lib/queue';
+import { activeFromServer, reconcile } from '../lib/reconcile';
 
 type Catalogs = { machines: Machine[]; labors: Labor[]; drivers: Driver[]; implementsList: Implement[]; fields: Field[]; costCenters: CostCenter[] };
 
 export default function Journey({ online }: { online: boolean }) {
   const [active, setActive] = useState<Active | null>(activeStore.get);
+  const [offers, setOffers] = useState<SessionSummary[]>([]);
+  const [notice, setNotice] = useState('');
+  const [resuming, setResuming] = useState(false);
+  const change = (a: Active | null) => { activeStore.set(a); setActive(a); };
+
+  // Reconcilia con el servidor al abrir, al volver a primer plano y al recuperar la red.
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      if (!navigator.onLine) return;
+      let open: SessionSummary[];
+      try { open = await sessions.open(); } catch { return; }
+      if (!alive) return;
+      const r = reconcile(activeStore.get(), open);
+      if (r.action === 'clear') { change(null); setNotice('Tu jornada anterior ya estaba cerrada en el servidor. Puedes iniciar una nueva.'); }
+      setOffers(r.action === 'offer' ? r.sessions : []);
+    };
+    void run();
+    const onVisible = () => { if (document.visibilityState === 'visible') void run(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { alive = false; document.removeEventListener('visibilitychange', onVisible); };
+  }, [online]);
+
+  const resume = async (s: SessionSummary) => {
+    setResuming(true); setNotice('');
+    try {
+      const [orders, machines] = await Promise.all([sessions.workOrdersOf(s.started_at), catalogs.machines()]);
+      const a = activeFromServer(s, orders.find((o) => o.id === s.work_order_id), machines.find((m) => m.id === s.machine_id));
+      if (!a) setNotice('No se pudo recuperar el parte de esa jornada. Pide ayuda a un administrador.'); else { setOffers([]); change(a); }
+    } catch (e) { setNotice((e as Error).message); } finally { setResuming(false); }
+  };
+
   return active
-    ? <Tracking active={active} online={online} onChange={(a) => { activeStore.set(a); setActive(a); }} />
-    : <StartForm onStarted={(a) => { activeStore.set(a); setActive(a); }} />;
+    ? <Tracking active={active} online={online} onChange={change} />
+    : <>
+        {notice && <p className="banner" role="status">{notice}</p>}
+        {offers.length > 0 && (
+          <section className="card stack" aria-label="Jornadas abiertas">
+            <h2>Jornada abierta en el servidor</h2>
+            <p className="muted">Si esta jornada es tuya, retómala para seguir registrando la ruta.</p>
+            {offers.map((s) => (
+              <button key={s.id} className="primary" disabled={resuming} onClick={() => void resume(s)}>
+                Retomar {s.machine_name ?? `máquina ${s.machine_id}`} · desde {new Date(s.started_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+              </button>
+            ))}
+          </section>
+        )}
+        <StartForm onStarted={change} />
+      </>;
 }
 
 function StartForm({ onStarted }: { onStarted: (a: Active) => void }) {
@@ -90,6 +137,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   const [geoError, setGeoError] = useState('');
   const [pending, setPending] = useState(pointQueue.size(active.sessionId));
   const [finishing, setFinishing] = useState(false);
+  const [lastSent, setLastSent] = useState(lastSentStore.get);
   const last = useRef<Fix | null>(null);
   const lastSaved = useRef(0);
   const activeRef = useRef(active);
@@ -98,6 +146,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   const flush = useCallback(async () => {
     await pointQueue.flush(active.sessionId, (p) => sessions.points(active.sessionId, p));
     setPending(pointQueue.size(active.sessionId));
+    setLastSent(lastSentStore.get());
   }, [active.sessionId]);
 
   useEffect(() => {
@@ -123,6 +172,11 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
   }, [active.sessionId, flush]);
 
   useEffect(() => { if (online) void flush(); }, [online, flush]);
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') void flush(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [flush]);
 
   const km = (activeRef.current.distanceM || active.distanceM) / 1000;
   const speed = fix?.speed_mps != null ? fix.speed_mps * 3.6 : null;
@@ -140,7 +194,7 @@ function Tracking({ active, online, onChange }: { active: Active; online: boolea
         </div>
       </article>
       {geoError && <p className="error" role="alert">{geoError}</p>}
-      <p className="muted center">{pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'}</p>
+      <p className="muted center" role="status">{pending ? `${pending} puntos por enviar${online ? '' : ' (sin conexión)'}` : 'Ruta al día con el servidor'}{lastSent ? ` · último envío ${new Date(lastSent).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}` : ''}</p>
       <button className="danger big" onClick={() => setFinishing(true)}>Finalizar jornada</button>
       {finishing && <FinishSheet active={active} flush={flush} onCancel={() => setFinishing(false)} onDone={() => onChange(null)} />}
     </section>

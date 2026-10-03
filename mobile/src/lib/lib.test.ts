@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { acceptFix, haversineMeters, type Fix } from './geo';
-import { formatDuration, parseNumber, pointQueue } from './queue';
+import { activeFromServer, reconcile } from './reconcile';
+import type { SessionSummary } from './api';
+import { formatDuration, lastSentStore, parseNumber, pointQueue } from './queue';
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -47,5 +49,31 @@ describe('formato', () => {
     expect(formatDuration(3_725_000)).toBe('01:02:05');
     expect(parseNumber('12,5')).toBe(12.5);
     expect(parseNumber('')).toBeNull();
+  });
+});
+
+describe('reconciliación con el servidor', () => {
+  const srv = (id: string): SessionSummary => ({ id, machine_id: 3, started_at: '2026-10-03T12:00:00Z', ended_at: null, status: 'open', machine_name: 'Tractor 1', driver_name: null, cost_center_name: null, points_count: 0, work_order_id: 9 });
+  const local = { sessionId: 'a', workOrderId: 9, machineId: 3, machineName: 'T', startedAt: 0, hourmeterStart: 1, tankStart: 2, tankCapacity: null, distanceM: 0 };
+  it('mantiene, limpia u ofrece según el servidor', () => {
+    expect(reconcile(local, [srv('a')]).action).toBe('keep');
+    expect(reconcile(local, [srv('b')]).action).toBe('clear');
+    expect(reconcile(local, []).action).toBe('clear');
+    expect(reconcile(null, [srv('b')])).toEqual({ action: 'offer', sessions: [srv('b')] });
+    expect(reconcile(null, []).action).toBe('none');
+  });
+  it('reconstruye la jornada con el reloj real', () => {
+    const a = activeFromServer(srv('a'), { id: 9, hourmeter_initial: 100, fuel_tank_start_liters: 50 }, undefined);
+    expect(a?.startedAt).toBe(Date.parse('2026-10-03T12:00:00Z'));
+    expect(a?.hourmeterStart).toBe(100);
+    expect(activeFromServer(srv('a'), undefined, undefined)).toBeNull();
+  });
+});
+
+describe('último envío', () => {
+  it('se registra al enviar puntos', async () => {
+    pointQueue.push('s1', point(1));
+    await pointQueue.flush('s1', async () => {});
+    expect(lastSentStore.get()).toBeGreaterThan(0);
   });
 });
