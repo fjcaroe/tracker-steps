@@ -2,7 +2,7 @@
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.2.1';
 
 export class ApiError extends Error {
   status: number;
@@ -112,7 +112,9 @@ export const sessions = {
     api<Session>('/sessions/start', { method: 'POST', body: JSON.stringify(body) }),
   points: (id: string, points: PointIn[]) => api<{ inserted: number }>(`/sessions/${id}/points`, { method: 'POST', body: JSON.stringify({ points }) }),
   close: (id: string, endedAt?: string) => api<Session>(`/sessions/${id}/close${endedAt ? `?ended_at=${encodeURIComponent(endedAt)}` : ''}`, { method: 'POST' }),
-  workOrders: (season: string) => api<WorkOrderSummary[]>(`/work_orders?season=${encodeURIComponent(season)}`),
+  workOrdersOn: (day: string) => api<WorkOrderSummary[]>(`/work_orders?date=${encodeURIComponent(day)}`),
+  get: (id: string) => api<Session>(`/sessions/${id}`),
+  open: () => api<SessionSummary[]>('/sessions/my?status=open&limit=100'),
   active: () => api<ActiveSession[]>('/sessions_active'),
   mine: (limit = 40) => api<SessionSummary[]>(`/sessions/my?limit=${limit}`),
 };

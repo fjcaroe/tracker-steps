@@ -77,6 +77,10 @@ describe('reconciliación con el servidor', () => {
     expect(a).toMatchObject({ sessionId: 'a', workOrderId: 55, hourmeterStart: 120.5, tankStart: 40, distanceM: 1200 });
     expect(a.startedAt).toBe(Date.parse('2026-10-02T12:00:00Z'));
   });
+  it('no inventa horómetro y combustible si falta el parte original', () => {
+    expect(() => buildActive(remote('a', 'open'), null, null)).toThrow('parte');
+    expect(() => buildActive(remote('a', 'open'), { id: 99, hourmeter_initial: 1, fuel_tank_start_liters: 2 }, null)).toThrow('parte');
+  });
 });
 
 describe('último envío', () => {

@@ -20,6 +20,9 @@ export function reconcile(local: Active | null, remote: SessionSummary[]): Recon
 
 /** Reconstruye la jornada activa de un teléfono nuevo a partir de datos del servidor. */
 export function buildActive(s: SessionSummary, wo: WorkOrderSummary | null, machine: Machine | null): Active {
+  if (!wo || (s.work_order_id != null && wo.id !== s.work_order_id)) {
+    throw new Error('No pudimos recuperar el parte de esta jornada. Reintenta con señal antes de continuar.');
+  }
   return {
     sessionId: s.id,
     workOrderId: s.work_order_id ?? wo?.id ?? 0,

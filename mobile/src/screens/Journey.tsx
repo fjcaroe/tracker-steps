@@ -45,30 +45,37 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
   // Al abrir (y al recuperar red) se consulta al servidor: retomar jornada abierta o limpiar una ya cerrada.
   const check = useCallback(async () => {
     try {
-      const remote = await sessions.mine(100);
       const local = activeStore.get();
+      // Una jornada local se consulta por ID: no asumir cierre por quedar fuera de una lista limitada.
+      if (local && startPending(outboxStore.ops(), local.sessionId)) return;
+      const remote = local ? [await sessions.get(local.sessionId) as SessionSummary] : await sessions.open();
       const r = reconcile(local, remote);
       if (r.kind === 'closed' && local) {
-        pointQueue.clear(local.sessionId);
         activeStore.set(null); setActive(null);
+        setConfirmed(false);
         setNotice('La jornada que tenías abierta ya fue cerrada en el servidor. Se limpió este teléfono.');
       }
       setOpen(r.kind === 'choose' ? r.candidates : []);
     } catch { /* sin red: se reintenta al volver */ }
   }, []);
   useEffect(() => { if (online) void check(); }, [online, check]);
+  useEffect(() => {
+    const visible = () => { if (document.visibilityState === 'visible') void sync().then(check); };
+    document.addEventListener('visibilitychange', visible);
+    return () => document.removeEventListener('visibilitychange', visible);
+  }, [sync, check]);
 
   const resume = async (s: SessionSummary) => {
     setResuming(s.id);
     try {
       const [machines, wos] = await Promise.all([
         catalogs.machines().catch(() => []),
-        sessions.workOrders(String(new Date(s.started_at).getFullYear())).catch(() => []),
+        sessions.workOrdersOn(s.started_at.slice(0, 10)),
       ]);
       setConfirmed(false);
       change(buildActive(s, wos.find((w) => w.id === s.work_order_id) ?? null, machines.find((m) => m.id === s.machine_id) ?? null));
       setNotice(''); setOpen([]);
-    } finally { setResuming(''); }
+    } catch (err) { setNotice((err as Error).message); } finally { setResuming(''); }
   };
 
   return (
@@ -268,7 +275,7 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
       if (next.ts - lastSaved.current < 4000) return;
       if (last.current) {
         const d = haversineMeters(last.current, next);
-        if (d > 1) { const a = { ...activeRef.current, distanceM: activeRef.current.distanceM + d }; activeStore.set(a); }
+        if (d > 1) { const a = { ...activeRef.current, distanceM: activeRef.current.distanceM + d }; activeRef.current = a; onChange(a); }
       }
       last.current = next; lastSaved.current = next.ts;
       routeStore.push(active.sessionId, { ts: next.ts, lat: next.lat, lon: next.lon, speed_mps: next.speed_mps });
@@ -385,20 +392,12 @@ function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flus
       const points = routeStore.get(active.sessionId);
       const finished: Finished = { machine: active.machineName, points, summary: summarize(points, active.startedAt, Date.now(), { start: active.tankStart, end: tankEnd as number, refill: ref }) };
       const done = () => { routeStore.clear(active.sessionId); try { localStorage.removeItem(`steps_movil_checked_${active.sessionId}`); } catch { /* nada */ } onDone(finished); };
-      await flush();
-      const stillPending = startPending(outboxStore.ops(), active.sessionId) || pointQueue.size(active.sessionId) > 0;
-      if (!stillPending) {
-        try {
-          await sessions.close(active.sessionId, endedAt);
-          await sessions.finishWorkOrder(active.workOrderId, body);
-          done(); return;
-        } catch (err) { if (!isNetworkError(err)) throw err; }
-      }
-      // Sin señal (o jornada aún no sincronizada): el cierre queda en cola, ordenado tras el inicio y los puntos.
+      // Guardar ambas operaciones antes de enviarlas: un fallo después del cierre no pierde el parte final.
       outboxStore.add(
         { kind: 'session_close', sessionId: active.sessionId, endedAt },
         { kind: 'wo_finish', sessionId: active.sessionId, body, ...(active.workOrderId ? { workOrderId: active.workOrderId } : {}) },
       );
+      await flush();
       done();
     } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
   };

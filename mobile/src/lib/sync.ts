@@ -37,7 +37,8 @@ export function syncAll(): Promise<number> {
       await pointQueue.flush(sessionId, (p) => sessions.points(sessionId, p));
       return pointQueue.size(sessionId) === 0;
     };
-    const result = await runOutbox(outboxStore.ops(), outboxStore.resolved(), {
+    const snapshot = outboxStore.ops();
+    const result = await runOutbox(snapshot, outboxStore.resolved(), {
       createWorkOrder: sessions.createWorkOrder,
       startSession: (id, workOrderId, body, startedAt) => sessions.start({ ...body, id, work_order_id: workOrderId, started_at: startedAt }),
       flushPoints,
@@ -45,14 +46,18 @@ export function syncAll(): Promise<number> {
       finishWorkOrder: sessions.finishWorkOrder,
       post: (path, body) => api(`/mobile/${path}`, { method: 'POST', body: JSON.stringify(body) }),
     });
-    write(OPS, result.ops);
+    // Registros agregados mientras una petición estaba en vuelo deben sobrevivir al resultado.
+    write(OPS, [...result.ops, ...outboxStore.ops().slice(snapshot.length)]);
     write(RESOLVED, result.resolved);
     // Cuando la jornada activa ya existe en el servidor, adoptar el id de su parte para cerrarla después.
     const active = activeStore.get();
     if (active) {
       const id = result.resolved[active.sessionId];
       if (id && active.workOrderId !== id) activeStore.set({ ...active, workOrderId: id });
-      if (!startPending(result.ops, active.sessionId)) await flushPoints(active.sessionId);
+    }
+    // También quedan puntos de jornadas cerradas o ya retiradas de la pantalla activa.
+    for (const id of Object.keys(pointQueue.all())) {
+      if (!startPending(outboxStore.ops(), id)) await flushPoints(id);
     }
     // Señal de vida para soporte: versión de la app, pendientes y última sincronización.
     const last = syncStore.get();

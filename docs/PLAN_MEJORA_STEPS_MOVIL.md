@@ -11,8 +11,10 @@ se toma una, se implementa, se prueba, se despliega y se marca aquí.
 ## Reglas de trabajo (para cada iteración)
 
 1. **Una iteración por corrida.** Tomar la primera sin marcar (`[ ]`) cuyo prerrequisito esté cumplido.
-2. Rama `ticket/<id>-movil-<slug>` desde `codex/steps-movil` (código en `mobile/`; backend en
-   `backend/tracker_py/`; módulo Odoo en `step_tracker_portal/` solo si la iteración lo pide).
+2. Actualizar primero desde `origin/codex/steps-movil`, la rama canónica consolidada.
+   Si se crea una rama de trabajo, integrar su resultado de vuelta a esa rama antes de desplegar.
+   Código en `mobile/`; backend en `backend/tracker_py/`; módulo Odoo en `step_tracker_portal/`
+   solo si la iteración lo pide. Las ramas históricas `ticket/46-*` no se despliegan por separado.
 3. Pruebas: `cd mobile && npx tsc -b && npx vitest run`; backend `cd backend/tracker_py && python -m pytest -q`.
    La lógica nueva (cola, validaciones, reglas) lleva prueba. Para la interfaz usar `scripts/mock-api.mjs`
    y verificar en ancho 375 px.
@@ -186,19 +188,25 @@ disponga de las cuentas de tienda.
 ## Procedimiento de despliegue a producción (`/truck/`)
 
 ```bash
-cd mobile
-npx tsc -b && npx vitest run && npx vite build
-(cd dist && tar czf ../movil.tgz .)
-gcloud compute scp --zone us-central1-c --project stepsconsulting movil.tgz odoo-new:/tmp/movil.tgz
-gcloud compute ssh --zone us-central1-c --project stepsconsulting odoo-new --command '
-  set -e; stamp=$(date -u +%Y%m%dT%H%M%SZ)
-  sudo cp -a /var/www/steps-truck-frontend /var/www/steps-truck-frontend.pre-movil-$stamp
-  rm -rf /tmp/movil && mkdir /tmp/movil && tar xzf /tmp/movil.tgz -C /tmp/movil
-  sudo rsync -a --delete --chown=www-data:www-data /tmp/movil/ /var/www/steps-truck-frontend/
-  sudo nginx -t && sudo systemctl reload nginx; rm -rf /tmp/movil /tmp/movil.tgz; echo BACKUP=$stamp'
-curl -s https://stepsapp.cl/truck/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'   # debe coincidir con el build
-rm movil.tgz
+# Local: pruebas, commit e integración de la entrega en codex/steps-movil.
+git push origin codex/steps-movil
+# Registrar el SHA exacto publicado; usarlo como argumento del script remoto.
+git rev-parse origin/codex/steps-movil
+
+# Servidor odoo-new (stepsconsulting / us-central1-c):
+release=$(mktemp -d /tmp/steps-movil-release-XXXXXXXX)
+git clone --branch codex/steps-movil --no-single-branch --depth 1 \
+  https://github.com/fjcaroe/tracker-steps.git "$release"
+cd "$release"
+bash scripts/deploy-steps-movil.sh SHA_EXACTO_REVISADO
 ```
+
+El script compara fuentes con las variantes conocidas antes de tocar producción, compila y prueba
+la app, respalda base/API/frontend, verifica el esquema en una copia PostgreSQL, publica la API
+antes de la app y compara SHA-256 del JS servido. Si falla la verificación de publicación,
+restaura la entrega anterior. Conserva `.env`, `.venv` y archivos de datos del servidor.
+No usa las variables de Google Maps del Web Tracker: Steps Móvil usa Leaflet y una URL pública
+de API. El procedimiento de `/web_tracker/` sigue siendo independiente.
 
 Si la iteración cambia la API: `backend/tracker_py` se despliega siguiendo `docs/DEPLOY_WEB_TRACKER.md`
 (respaldo de la base y del código, `rsync` excluyendo `.env` y `.venv`, reinicio de
