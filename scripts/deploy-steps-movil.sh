@@ -61,6 +61,7 @@ trap cleanup EXIT
 sudo cat "$backup/tracker_steps.dump" | sudo -u postgres pg_restore --no-owner -d "$qa"
 sudo -u postgres env DATABASE_URL="postgresql+psycopg2:///$qa" JWT_SECRET=test-only-secret PYTHONPATH="$release/backend/tracker_py" "$target/.venv/bin/python" - <<'PY'
 from sqlalchemy import select
+from app.main import app  # Register every related model as production startup does.
 from app.db.session import SessionLocal
 from app.models.sessions import TrackingSession
 from app.models.work_orders import WorkOrder
