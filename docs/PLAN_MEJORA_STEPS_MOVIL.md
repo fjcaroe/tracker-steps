@@ -136,7 +136,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   retrasos; cierre de servicio con manifiesto firmado (conductor) y novedades.
 - **Aceptación:** el coordinador ve en la web el avance del servicio y los retrasos en tiempo casi real.
 
-### I12 · Seguridad del pasajero y del conductor  `[~]` 02-10-2026 parcial: SOS con ubicación y aviso de exceso de velocidad hechos; faltan pausas de conducción y contactos de emergencia configurables
+### I12 · Seguridad del pasajero y del conductor  `[~]` 02-10-2026 parcial: SOS con ubicación, aviso de exceso de velocidad y pausas de conducción configurables hechos; faltan contactos de emergencia configurables
 - **Qué:** botón SOS (aviso inmediato con ubicación a contactos y a la web), registro de exceso de velocidad
   y de pausas de conducción/descanso (jornada), números de emergencia configurables. Reutiliza incidentes
   y política de protección existentes; **no** habilita control físico del vehículo (bloqueado hasta E4).
@@ -146,7 +146,7 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque D — Gestión ligera (jefe de flota desde el teléfono)
 
-### I13 · Vista de supervisor  `[x]` 02-10-2026 (falta: última posición por vehículo y auditoría explícita de quién atendió, hoy `handled_by`)
+### I13 · Vista de supervisor  `[x]` 02-10-2026 (flota con última posición incluida en mejoras; auditoría disponible mediante `handled_by`, falta presentación explícita en la web)
 - **Qué:** para roles manager/operator del puente Odoo: lista de vehículos con última posición y estado,
   jornadas abiertas, incidentes pendientes y atender/cerrar un incidente. Sin duplicar la web: solo lo urgente.
 - **Aceptación:** un supervisor atiende un incidente desde el teléfono y queda en la auditoría.
@@ -229,4 +229,6 @@ publicarse cuando ya haya clientes en ellos.
 | 02-10-2026 | I4–I8, I12 (parcial), I13, I14 (parcial), I15 (parcial): admin ve todos los centros, renovación de token, checklist, incidentes con foto, gastos con boleta, Mis tareas, resumen y ruta, SOS, supervisor, ajustes de terreno, diagnóstico. **No hechas:** I3 (necesita Android Studio/Xcode y cuentas), I9–I11 (pasajeros: I9 exige confirmar arquitectura), I16 (tiendas) | ver rama `ticket/46-movil-i4-i15` | ver nota del ticket | Migración aditiva `20261002_movil_field_ops.up.sql`. Sin verificar en dispositivo real |
 | 02-10-2026 | I12 parcial: pausa de conducción sugerida (configurable, 240 min por defecto) | ver rama ticket/46-movil-i12-pausas | `index-pJKsYmXK.js` | Solo frontend; respaldo /var/www/steps-truck-frontend.pre-movil-20261002T113700Z. Sin verificar en terreno |
 | 02-10-2026 | Mejoras tras prueba en terreno: la jornada abierta ya no parte sola (confirmación), pestaña Hoy con jornada y mapa, mapa real (Leaflet/OSM) en jornada, Hoy y Supervisor, rutas asignadas a máquinas con avance y alerta de desvío, flota en vivo, reportar robo | rama ticket/46-movil-mejoras | `index-BUjfcEpg.js` | API: tabla mobile_routes (migración aditiva 20261002_mobile_routes); respaldos /opt/fernando_odoo18/backups/tracker_steps-mejoras-20261002T114933Z.dump, tracker_py-mejoras-20261002T114917Z y /var/www/steps-truck-frontend.pre-movil-20261002T115008Z |
-| 03-10-2026 | Restauración del build de `ticket/46-movil-mejoras` (I1–I15 parcial) | `e40c0fa` | `index-BUjfcEpg.js` | La corrida de la mañana desplegó por error un build de `codex/steps-movil` (I1 reimplementado, `index-DTpmu0dy.js`) que pisó lo ya publicado. Restaurado el build de la rama `mejoras`; respaldo del estado erróneo: `steps-truck-frontend.pre-movil-20261003T161339Z`. La rama `ticket/46-movil-jornada-persistente` queda obsoleta. Las siguientes iteraciones deben partir de `ticket/46-movil-mejoras`, no de `codex/steps-movil`. |
+| 03-10-2026 | Restauración del build de `ticket/46-movil-mejoras` (I1–I15 parcial) | `e40c0fa` | `index-BUjfcEpg.js` | La corrida de la mañana desplegó por error un build de `codex/steps-movil` (I1 reimplementado, `index-DTpmu0dy.js`) que pisó lo ya publicado. Restaurado el build de la rama `mejoras`; respaldo del estado erróneo: `steps-truck-frontend.pre-movil-20261003T161339Z`. La rama `ticket/46-movil-jornada-persistente` queda obsoleta. Recomendación histórica sustituida el 03-10 por la consolidación en `codex/steps-movil`. |
+
+| 03-10-2026 | Consolidación de ocho ramas del ticket 46, I1 adaptada sin perder I2–I15 parciales y correcciones de sincronización | `fd1d870` | `index-zbpnCxRX.js` | Canonical: `codex/steps-movil`. Vitest 34/34, pytest 52/52 y ensayo PostgreSQL correctos; JS verificado por SHA-256. Respaldos: `movil-consolidado-20261003T230318Z` y `steps-truck-frontend.pre-movil-20261003T230318Z`. No probado en teléfono físico. |

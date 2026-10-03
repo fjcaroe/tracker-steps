@@ -9,10 +9,10 @@ from zoneinfo import ZoneInfo
 
 
 def git(*args, cwd=None):
-    result = subprocess.run(['git', *args], cwd=cwd, capture_output=True, text=True, encoding='utf-8', errors='replace')
+    result = subprocess.run(['git', '-c', 'core.quotepath=false', *args], cwd=cwd, capture_output=True, text=True, encoding='utf-8', errors='replace')
     if result.returncode:
         raise RuntimeError(result.stderr.strip())
-    return result.stdout.strip()
+    return result.stdout.rstrip('\r\n')
 
 
 def main():
@@ -58,6 +58,7 @@ def main():
     lines += ['', '## Cambios locales fuera de Git', '',
               'Se revisaron todos los worktrees registrados. No se añadieron masivamente archivos temporales, documentos ni respaldos al repositorio público.', '',
               '| Worktree / rama | Archivos versionados modificados | Archivos no versionados |', '|---|---:|---:|']
+    details = []
     for item in git('worktree', 'list', '--porcelain').split('\n\n'):
         parts = item.splitlines()
         if not parts:
@@ -68,10 +69,11 @@ def main():
         untracked = git('ls-files', '--others', '--exclude-standard', cwd=path).splitlines()
         lines.append(f'| `{branch}` ({Path(path).parent.name}/{Path(path).name}) | {len(changed)} | {len(untracked)} |')
         if changed:
-            lines += [f'\nCambios versionados en `{branch}`: ' + ', '.join(f'`{line[3:]}`' for line in changed) + '.', '']
+            details += [f'\nCambios versionados en `{branch}`: ' + ', '.join(f'`{line[3:]}`' for line in changed) + '.', '']
         if untracked:
             roots = Counter(p.split('/')[0] for p in untracked)
-            lines += [f'\nNo versionados en `{branch}`: ' + ', '.join(f'`{root}` ({n})' for root, n in roots.most_common()) + '.', '']
+            details += [f'\nNo versionados en `{branch}`: ' + ', '.join(f'`{root}` ({n})' for root, n in roots.most_common()) + '.', '']
+    lines += details
     lines += ['', '## Siguientes consolidaciones por producto', '',
               '- Productores / inventario / packing: T35 como base de T30/T38/T40 y T41 sobre T40; revisar los PR #4, #8, #10, #11 y #12 como conjunto.',
               '- Nómina: T44 y T47 son cambios independientes pendientes de integrar con sus pruebas de remuneraciones.',
