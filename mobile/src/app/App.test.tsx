@@ -219,6 +219,28 @@ describe('Movilización en pantalla', () => {
   });
 });
 
+describe('Tracker integrado', () => {
+  it('se abre como módulo con su propio acceso y se puede volver al inicio sin perder la sesión de Steps', async () => {
+    const p = server.addPerson('t@example.test'); server.grant(p.id, 'org-a', ['tracker', 'operador']);
+    render(<App runtime={build()} />);
+    await submitLogin('t@example.test');
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir Tracker' }));
+    // El Tracker conserva su propio ingreso (usuario Tracker), distinto del de Steps.
+    expect(await screen.findByLabelText('Usuario')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /Volver al inicio de Steps/ }));
+    expect(await screen.findByRole('button', { name: 'Abrir Tracker' })).toBeTruthy();
+    expect(screen.getByText('Empresa A')).toBeTruthy();
+  });
+
+  it('sin permiso de Tracker el módulo no existe en la portada', async () => {
+    const p = server.addPerson('t@example.test'); server.grant(p.id, 'org-a', ['colaciones', 'persona']);
+    render(<App runtime={build()} />);
+    await submitLogin('t@example.test');
+    await screen.findByText('Empresa A');
+    expect(screen.queryByRole('button', { name: 'Abrir Tracker' })).toBeNull();
+  });
+});
+
 describe('perfil y sincronización', () => {
   it('muestra datos de otra cuenta guardados en el teléfono sin enviarlos', async () => {
     const a = server.addPerson('a@example.test'), b = server.addPerson('b@example.test');

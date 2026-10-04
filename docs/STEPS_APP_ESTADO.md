@@ -54,7 +54,7 @@ Leyenda: ✅ comprobada · 🟡 implementada, pendiente de validación · 🔶 p
 | --- | --- |
 | Odoo 18 real, base nueva, instalando los 4 addons: `--test-tags /step_mobile_portal,/step_mobile_portal_colaciones,/step_mobile_portal_mobilization` | **59 pruebas, 0 fallos** (37 portal + 9 Colaciones + 13 Movilización) |
 | Recorrido E2E cliente real ↔ Odoo real (`run_demo.sh`) | **8 pasos aprobados**, repetido desde base nueva varias veces |
-| `cd mobile && npm test` | **154 pruebas, 15 archivos, aprobadas**; `npm run build` correcto |
+| `cd mobile && npm test` | **156 pruebas, 15 archivos, aprobadas**; `npm run build` correcto |
 | `python -m pytest -q tools/tests` | **22 aprobadas** |
 | Reproductor PR #15 | Falla en `8797edb`, correcto en la rama (ver evidencia) |
 | `npx cap sync android/ios`, `npx cap doctor` | Correctos / Xcode ausente |
