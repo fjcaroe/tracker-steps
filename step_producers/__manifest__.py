@@ -1,7 +1,7 @@
 {
     "name": "Steps - Productores",
     "summary": "Productores, fundos, estimaciones, tarifas y liquidaciones",
-    "version": "18.0.1.4.0",
+    "version": "18.0.1.5.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
@@ -15,6 +15,7 @@
         "views/producer_contract_views.xml",
         "views/purchase_order_views.xml",
         "views/preliquidation_price_views.xml",
+        "views/grower_tariff_views.xml",
         "views/menu.xml",
     ],
     "assets": {

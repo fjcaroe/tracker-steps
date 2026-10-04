@@ -31,9 +31,23 @@ class TestProducerDeliveryBalance(TransactionCase):
             "line_ids": [(0, 0, {
                 "variety_id": variety.id,
                 "uom_id": self.env.ref("uom.product_uom_kgm").id,
-                "price": 5.5, "estimated_cost_usd_per_kg": 2.5,
-                "cost_confirmed": True,
+                "price": 5.5,
             })],
+        })
+        fixed_item = self.env["step.export.grower.discount"].create({
+            "name": "Costos operacionales T38",
+        })
+        margin_item = self.env["step.export.grower.discount"].create({
+            "name": "Margen operacional T38",
+        })
+        self.env["step.export.grower.rate"].create({
+            "name": "Tarifa ejemplo T38", "company_id": self.env.company.id,
+            "producer_id": producer.id, "season_id": season.id,
+            "species_id": species.id,
+            "preliq_line_ids": [
+                (0, 0, {"item_id": fixed_item.id, "value_type": "usd_kg", "value": 2.06}),
+                (0, 0, {"item_id": margin_item.id, "value_type": "fob_fraction", "value": 0.08}),
+            ],
         })
         estimate = self.env["step.export.estimate"].create({
             "name": "Estimación preliq T38", "producer_id": producer.id,

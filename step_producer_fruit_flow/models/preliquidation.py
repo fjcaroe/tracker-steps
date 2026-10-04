@@ -48,9 +48,6 @@ class ProducerPreliquidation(models.Model):
             raise UserError(_("Indique variedad en la estimación o tarja antes de calcular la preliquidación."))
         price_line = self.env["step.producer.preliq.price"].resolve_price(
             self.company_id, self.season_id, self.species_id, variety, when, product=product)
-        if not price_line.cost_confirmed:
-            raise UserError(_("Confirme el gasto USD/kg de la línea de precio %s.") %
-                            price_line.display_name)
         kg_uom = self.env.ref("uom.product_uom_kgm")
         if price_line.uom_id.category_id != kg_uom.category_id:
             raise UserError(_("El precio de preliquidación debe usar una unidad de peso."))
@@ -59,7 +56,11 @@ class ProducerPreliquidation(models.Model):
             raise UserError(_("La unidad del precio no tiene conversión válida a kg."))
         price_usd = price_line.currency_id._convert(
             price_line.price, self.usd_currency_id, self.company_id, when)
-        return price_usd / kg_per_price_unit, price_line.estimated_cost_usd_per_kg
+        price_per_kg = price_usd / kg_per_price_unit
+        cost_per_kg = self.env["step.export.grower.rate"].resolve_preliq_cost(
+            self.company_id, self.season_id, self.species_id, self.producer_id,
+            variety, product, price_per_kg)
+        return price_per_kg, cost_per_kg
 
     def _line_values(self, phase, variety, product, source_kg, export_percent,
                      boxes=0, package=False, actual_fob=False, actual_return=False):

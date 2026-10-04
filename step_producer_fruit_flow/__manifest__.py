@@ -1,7 +1,7 @@
 {
     "name": "Steps - Flujo de fruta de Productores",
     "summary": "Saldo, recepción y preliquidación de productores",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",

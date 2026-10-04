@@ -49,3 +49,37 @@ class TestPreliquidationPrice(TransactionCase):
             resolver(*args, "2026-11-12", uom=self.uom)
         with self.assertRaises(UserError):
             resolver(*args, "2027-01-01", uom=self.uom)
+
+    def test_tariff_cost_prefers_producer_and_rejects_equal_concepts(self):
+        producer = self.env["res.partner"].create({"name": "Los Cedros T38"})
+        other = self.env["res.partner"].create({"name": "Otro productor T38"})
+        item = self.env["step.export.grower.discount"].create({
+            "name": "Costos T38",
+        })
+        rates = self.env["step.export.grower.rate"]
+        rates.create({
+            "name": "General T38", "company_id": self.env.company.id,
+            "season_id": self.season.id, "species_id": self.species.id,
+            "preliq_line_ids": [(0, 0, {
+                "item_id": item.id, "value": 1.0,
+            })],
+        })
+        specific = rates.create({
+            "name": "Los Cedros T38", "company_id": self.env.company.id,
+            "producer_id": producer.id, "season_id": self.season.id,
+            "species_id": self.species.id,
+            "preliq_line_ids": [(0, 0, {
+                "item_id": item.id, "value": 2.06,
+            })],
+        })
+        args = (self.env.company, self.season, self.species, producer,
+                self.variety, self.product, 5.5)
+        self.assertAlmostEqual(rates.resolve_preliq_cost(*args), 2.06)
+        self.assertAlmostEqual(rates.resolve_preliq_cost(
+            self.env.company, self.season, self.species, other,
+            self.variety, self.product, 5.5), 1.0)
+        specific.preliq_line_ids = [(0, 0, {
+            "item_id": item.id, "value": 2.5,
+        })]
+        with self.assertRaisesRegex(UserError, "igual de específicos"):
+            rates.resolve_preliq_cost(*args)
