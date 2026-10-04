@@ -1,0 +1,169 @@
+[
+  {
+    "branch": "codex/web-tracker-redesign",
+    "path": "tools/qa/tracker/tracker-preflight.sh",
+    "sha256": "f62865ab5b2fc33139f091ecd968b1a08d3b5288e7540bfd6ca9c1eea4965160"
+  },
+  {
+    "branch": "codex/web-tracker-redesign",
+    "path": "tools/qa/tracker/tracker-final-http.sh",
+    "sha256": "50a91066ba43617e257347495a1d8aefc155545b6ee7c442677325a20f7b8f01"
+  },
+  {
+    "branch": "codex/web-tracker-redesign",
+    "path": "tools/qa/tracker/tracker-live-api-check.py",
+    "sha256": "61ba3b67179f9f3885ec49f240be284daa1fcfc2780c99c39bfb806999a86116"
+  },
+  {
+    "branch": "codex/web-tracker-redesign",
+    "path": "tools/qa/tracker/tracker-navigation-http-check.py",
+    "sha256": "9545154a968a6657cff61cb7ad8696c8501f15c91229b9d1eac21cf0fb213ce6"
+  },
+  {
+    "branch": "codex/web-tracker-redesign",
+    "path": "tools/qa/tracker/tracker-pg-constraints.py",
+    "sha256": "6d630a2d89f639b9a1a1a60fcde6c0852cf0653fb737cf977d2619c61aae1525"
+  },
+  {
+    "branch": "ticket/35-exportaciones",
+    "path": "tools/history/t35/cleanup_test_clones.sh",
+    "sha256": "e0eee1693d84e4c31c883eda66f331c0068fa4139be02e7e2387dc38806fddcf"
+  },
+  {
+    "branch": "ticket/35-exportaciones",
+    "path": "tools/history/t35/deploy_t35_producers.sh",
+    "sha256": "554ea3a9f3e3b649b293219ba6cb9dec88057920bdb3688e46342a36b4d48a77"
+  },
+  {
+    "branch": "ticket/35-exportaciones",
+    "path": "tools/history/t35/run_t35_isolated.sh",
+    "sha256": "d21b7cdecdfbf933e75136784b9334e45911579c5d15d6613c089e347416146f"
+  },
+  {
+    "branch": "ticket/35-exportaciones",
+    "path": "tools/history/t35/run_t35_test_only.sh",
+    "sha256": "b892bf6882dd71b8e75ba8a8b4d62642de54c1706b04aae294214def5ebb2874"
+  },
+  {
+    "branch": "ticket/35-exportaciones",
+    "path": "tools/history/t35/test_other_envs.sh",
+    "sha256": "db86e4a3152ecaba301a29c3663d9b61aff8f39027031468fe9919998d62170e"
+  },
+  {
+    "branch": "ticket/35-exportaciones",
+    "path": "tools/assets/draw_producer_icon.py",
+    "sha256": "0ad78cffa3dbac9d922429bc8d54abecff5edfa9d28d3a8b15b9ddfc87e1550f"
+  },
+  {
+    "branch": "codex/t39-sii-tax-parser",
+    "path": "tools/history/t39/deploy_t39_demo.sh",
+    "sha256": "f62c247f49938e3f98c98e2d9d798cebafbb1112911aef17be609bbf2deb64f9"
+  },
+  {
+    "branch": "codex/t39-sii-tax-parser",
+    "path": "tools/history/t39/retest_t39_demo.sh",
+    "sha256": "7bc5a7975f55c6883bb7fb2d9a371f1578ef5135c22335f553a345afd23ec063"
+  },
+  {
+    "branch": "codex/t39-sii-tax-parser",
+    "path": "tools/history/t39/verify_t39_demo.py",
+    "sha256": "37acada3a1442fc2e075d7542b38e28bbb711676c4e27b394fef1522c0ddc265"
+  },
+  {
+    "branch": "codex/t41-packing-operations",
+    "path": "tools/qa/t41_runtime_check.py",
+    "sha256": "8a296066be5dc1cb7d769938d31d3fb6d16ab2dfc0577ee6dee8d472d30c78bb"
+  },
+  {
+    "branch": "codex/home-commercial-20261001",
+    "path": ".worktrees/home-commercial/tools/history/home/validate_seo_20260911.py",
+    "sha256": "9d0e0cfc14240a7f9ded13da830804754470a1559c8bb8970be3f0cf73835c39"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "tools/documents/map_docx_pages.py",
+    "sha256": "5fe8344913fa11a63ec5e8a5a810639203c4c2c14e22a3d47630867d8cea7ae1"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "tools/qa/check_steps_public_apps.py",
+    "sha256": "4bf02660194b92df5b0ce14a0c7e63bdd3d74021f0f318ef397d6ce5a3f350b4"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "docs/CLAUDE_CIERRE_PROACTIVO_TICKETS_2026-09-27.md",
+    "sha256": "c4c445aacd0f04e1b04912fced2152ebd333dff01cc2111233ba42670a76ba91"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "docs/CLAUDE_INTEGRACION_COSTOS_TRACKER_2026-09-30.md",
+    "sha256": "b4d6a5915ddccc49c835bd7a261517221a0ecefd28fb6f4f578e40f5da067348"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "docs/IMPLEMENTACION_STEPS_TRACKER_LAYOUT_Y_PROTECCION.md",
+    "sha256": "ddaf14bb97071a40bb78903ad1fa10f44a7c305b1d42d136f6f315c7be692166"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "docs/INFRA_ODOO_GCP_2026-09-23.md",
+    "sha256": "a33dc04243e7d9670af92c1fd8dfd6c62facd3b2327a7174975e457f9a88e3f3"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "docs/PLAN_STEPS_TRACKER_GPS_COMERCIAL.md",
+    "sha256": "952a2ac3de9223d2e767a6acd80822c1d5891749de155c610e2af858bf83226d"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/README.md",
+    "sha256": "d504c7cd2521e8fa535154f70319bada57009bf12a2ab52d5888eeab52b53568"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/__init__.py",
+    "sha256": "4a7a9eb8b157e3162b9aead67a032b1d7a1ca2ae34cb18374e3ad7676f323dd6"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/__manifest__.py",
+    "sha256": "5427c82dc134f9277d16c0af2e576932eef5e2fc6c2ecc67afb8a14b1003850c"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/controllers/redirect.py",
+    "sha256": "0763b536a47060446b68aaf3006fbed130c151d4240c36efc8fd154eb62d37ff"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/controllers/__init__.py",
+    "sha256": "33f85da36e956463144e5b07f03b2713effe11d94abe27f027ebff0230e97e33"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/views/menu.xml",
+    "sha256": "b739c55464d371b5ede304ae7b1057d91eb7c497987ed7550477d63e32d44f56"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/static/description/icon.png",
+    "sha256": "1cd713cdb727b759b60239acb09cbccadd74dfedc09dbe8a1508eca91445ee69"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "step_harvest_launcher/static/description/icon.svg",
+    "sha256": "7c975b77e45088f3400621b5fa8ad00756238b729ee8bde62ae368ca80095913"
+  },
+  {
+    "branch": "codex/cierre-cambios-locales",
+    "path": "tools/helpdesk/download_attachments.py",
+    "sha256": "42cdface242796ef4ed27b4f70627dff6f316d66469a3c5e25de1b3146d1faf5",
+    "derived_from_local_experiment": true
+  },
+  {
+    "branch": "codex/t39-sii-tax-parser",
+    "path": "tools/qa/t39/inspect_published_tables.py",
+    "sha256": "6a9c1cfbd3767425d51fc0dc8271a8955c2fd6d892394af527bdf1f3a4036174",
+    "derived_from_local_experiment": true
+  }
+]

@@ -31,6 +31,14 @@ Se guardó una copia verificable de cada archivo original en
 Los hashes SHA-256 se verificaron contra el ZIP y el archivo local antes de
 retirar cada original sin versionar. Los archivos recuperados permanecen en Git.
 
+Se verificaron 1.445 archivos originales y se retiraron 1.426 archivos sin
+versionar después de conservar o recuperar las fuentes útiles. El inventario
+clasifica 244 copias de contenido ya alcanzable desde ramas, 929 archivos de
+datos/resultados/adjuntos, 236 experimentos o herramientas históricas privadas,
+31 fuentes recuperadas y cinco archivos modificados ya seguidos por Git. Las
+herramientas parametrizadas de adjuntos y del parser se añadieron como derivados
+de los experimentos recuperados.
+
 Las copias antiguas de módulos, previews y paquetes generados no sustituyeron
 fuentes vigentes. Adjuntos, datos de clientes, resultados de nómina/contabilidad,
 scripts específicos de operaciones ya hechas y fuentes descargadas de terceros
