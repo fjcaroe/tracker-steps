@@ -50,7 +50,7 @@ function TripList({ runtime, onOpen }: Pick<ModuleProps, 'runtime'> & { onOpen: 
       {trips.length === 0
         ? <Card><Empty title="No tienes servicios asignados" hint="Cuando el despachador te asigne uno, aparecerá aquí." /><Button onClick={load}>Actualizar</Button></Card>
         : trips.map((t) => (
-          <Button key={t.id} className="ui-card--tap" onClick={() => onOpen(t.id)}>
+          <Button key={t.id} className="ui-card--tap ui-service-list" onClick={() => onOpen(t.id)}>
             <div className="ui-row"><strong>{t.route}</strong><Chip tone={t.state === 'open' ? 'ok' : 'info'}>{t.state === 'open' ? 'En curso' : 'Por iniciar'}</Chip></div>
             <small>{t.name} · {DIRECTION[t.direction] ?? t.direction} · {t.vehicle}</small>
           </Button>))}
