@@ -22,7 +22,7 @@ Lee todo el documento, incluida su tabla y las imágenes incrustadas. Las imáge
 
 Código local de trabajo: `C:\Users\tito4\Documents\Odoo`.
 
-No copies, reemplaces ni mezcles bases. Demo-SyS debe conservar toda la información y adaptaciones SyS/SimpleDigital. No hagas `git push`, no publiques secretos y no ejecutes pagos, transferencias, archivos bancarios reales, correos ni integraciones externas.
+No copies, reemplaces ni mezcles bases. Demo-SyS debe conservar toda la información y adaptaciones SyS/SimpleDigital. La restricción original de no hacer `git push` aplicaba a la fase inicial; las solicitudes posteriores de Fernando para implementar y publicar autorizan commit, push y despliegue en el ambiente indicado, con pruebas y respaldo, sin pedir otra aprobación por cada paso. No publiques secretos ni ejecutes pagos, transferencias, archivos bancarios reales, correos ni integraciones externas sin instrucción específica.
 
 ## 3. Regla inicial de concurrencia
 
@@ -285,7 +285,8 @@ No uses datos personales reales en fixtures ni dejes registros de prueba en las 
 Después de pruebas verdes:
 
 1. Desarrollo;
-2. validación completa y aprobación técnica;
+2. validación técnica completa ejecutada por el agente, sin pedir otra
+   aprobación para continuar el despliegue ya solicitado;
 3. Demo;
 4. validación completa;
 5. Demo-SyS con adaptadores compatibles, sin alterar datos SyS.

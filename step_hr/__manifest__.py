@@ -1,8 +1,8 @@
 # © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
 # -*- coding: utf-8 -*-
 {
-    'name': "Steps Operaciones y Tracker",
-    'summary': "Operación agrícola, personal, flota y seguimiento de maquinaria",
+    'name': "Steps Actividades, Operaciones y Tracker",
+    'summary': "Actividades, operación agrícola, personal, flota y seguimiento de maquinaria",
     'description': """
         Integra la operación agrícola y forestal de Steps con Odoo.
         Incluye actividades, personal, partes diarios y una aplicación nativa

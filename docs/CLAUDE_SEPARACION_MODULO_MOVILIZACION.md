@@ -16,10 +16,13 @@ Trabaja primero en el código local de:
 C:\Users\tito4\Documents\Odoo
 ```
 
-No hagas `git push`, no despliegues, no actualices bases remotas y no envíes
-documentos o notificaciones reales salvo autorización expresa posterior del
-usuario. La entrega inicial debe quedar implementada y probada localmente, con
-un runbook de migración y despliegue reproducible.
+La limitación original de trabajo solo local correspondía a la primera fase de
+este encargo. La autorización operativa posterior de Fernando, documentada en
+`CLAUDE.md`, permite `git push` y despliegue cuando solicite implementar o
+publicar Movilización en un ambiente concreto. Preparar pruebas, respaldo y
+runbook reproducible y continuar hasta verificar la entrega, sin pedir permiso
+otra vez para cada paso. El envío de notificaciones reales a terceros requiere
+una instrucción específica.
 
 ## Objetivo funcional
 
@@ -679,9 +682,9 @@ filestore del mismo punto temporal.
 - favoritos o URLs antiguas muestran el nuevo destino o un mensaje controlado;
 - no aparecen nuevos `ERROR`, `CRITICAL` ni `Traceback`.
 
-## Despliegue posterior, sólo con autorización
+## Despliegue de una entrega autorizada
 
-Si el usuario autoriza desplegar, lee primero:
+Cuando el usuario solicite implementar y publicar o desplegar, lee primero:
 
 ```text
 C:\Users\tito4\Documents\Odoo\docs\AUDITORIA_HOMOLOGACION_ODOO_2026-08-24.md
@@ -757,5 +760,6 @@ Al finalizar informa de forma concreta:
 - estrategia de migración y conteos;
 - pruebas ejecutadas y resultados;
 - limitaciones o asuntos legales pendientes;
-- pasos exactos aún no autorizados, como despliegue o publicación móvil.
+- despliegue realizado, verificaciones posteriores y cualquier decisión de
+  negocio o publicación móvil que sí requiera una instrucción adicional.
 

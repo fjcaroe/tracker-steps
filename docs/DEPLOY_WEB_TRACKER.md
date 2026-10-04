@@ -5,6 +5,11 @@ persona) sepa desplegar sin tener que redescubrir el proceso cada vez. Si estás
 leyendo esto porque el usuario pidió "sube los cambios al servidor" o "despliega
 esto", seguí los pasos de abajo tal cual.
 
+Ese pedido autoriza el `git push`, la copia de archivos, la compilación y la
+recarga de los servicios que correspondan a la entrega. Preparar respaldo y
+verificar cada componente, pero no pedir una aprobación nueva entre pasos. Si
+el cambio afecta solo el frontend, no actualizar por rutina la API ni Odoo.
+
 ## De un vistazo
 
 - **Repo:** `https://github.com/fjcaroe/tracker-steps` (público)
