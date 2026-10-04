@@ -180,8 +180,8 @@ export class FakeSteps {
     if (path === '/colaciones/me') {
       const { membership } = this.auth(headers, true); this.require(membership!, 'colaciones.read_own');
       if (!membership!.employee) return { ok: true, linked: false };
-      const mine = [...this.registrations.values()].filter((r) => r.orgUid === membership!.orgUid && r.employee === `E${membership!.employee}`);
-      return { ok: true, linked: true, employee: `Trabajador ${membership!.employee}`, eligible: true, today: { registered: mine.length > 0, registration: mine[0]?.code ?? null, event_datetime: null }, recent: mine.map((r) => ({ registration: r.code, meal_date: r.day, product: 'Almuerzo' })) };
+      const mine = [...this.registrations.values()].filter((r) => r.orgUid === membership!.orgUid && r.employee === `E${membership!.employee}`).sort((a, b) => b.day.localeCompare(a.day));
+      return { ok: true, linked: true, employee: `Trabajador ${membership!.employee}`, eligible: true, today: { registered: mine[0]?.day === this.iso().slice(0, 10), registration: mine[0]?.code ?? null, event_datetime: null }, recent: mine.map((r) => ({ registration: r.code, meal_date: r.day, product: 'Almuerzo' })) };
     }
     if (path === '/colaciones/totems') {
       const { membership } = this.auth(headers, true); this.require(membership!, 'colaciones.register');

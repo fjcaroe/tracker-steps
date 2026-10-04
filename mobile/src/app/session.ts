@@ -69,7 +69,11 @@ export class SessionManager {
   can(permission: string): boolean { return mayStartProtectedAction(this.snap.access) && this.permissions().has(permission); }
 
   // ---- Arranque ----
-  async boot(): Promise<void> {
+  /** Idempotente: llamarlo de nuevo devuelve el mismo arranque (no reinicia el estado mientras la persona ya está usando la app). */
+  boot(): Promise<void> { return (this.booting ??= this.doBoot()); }
+  private booting: Promise<void> | null = null;
+
+  private async doBoot(): Promise<void> {
     const raw = await this.deps.secure.get(TOKENS_KEY);
     let tokens: SessionTokens | null = null;
     try { tokens = raw ? (JSON.parse(raw) as SessionTokens) : null; } catch { tokens = null; }

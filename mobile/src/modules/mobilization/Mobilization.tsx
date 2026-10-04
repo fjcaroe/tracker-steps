@@ -6,6 +6,7 @@ import type { Trip } from '../../shared/contracts';
 import type { QueueOp } from '../../sync/queue';
 import { currentPosition } from '../../platform/geo';
 import { Banner, Button, Card, Chip, Confirm, Empty, Field, Sheet, TopBar } from '../../shared/ui';
+import ScanField from '../../shared/ui/ScanField';
 import { buildEvent, buildIncident, buildVoid, groupFor, mobilizationApi, MODULE, rejectionText, type EventPayload, type IncidentPayload, type VoidPayload } from './service';
 import type { IncidentCategory } from '../../shared/contracts';
 
@@ -148,7 +149,7 @@ function TripView({ runtime, tripId }: Pick<ModuleProps, 'runtime'> & { tripId: 
               <Button aria-pressed={type === 'boarding'} onClick={() => setType('boarding')}>Subida</Button>
               <Button aria-pressed={type === 'alighting'} onClick={() => setType('alighting')}>Bajada</Button>
             </div>
-            <Field label="Código del pasajero" hint="Escribe o escanea con un lector."><input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoFocus autoCapitalize="none" autoComplete="off" /></Field>
+            <ScanField label="Código del pasajero" hint="Escribe, usa un lector o, si tu teléfono lo permite, la cámara." value={identifier} onChange={setIdentifier} />
             <button className="ui-btn ui-btn--primary" disabled={busy || !identifier.trim()}>{busy ? 'Guardando…' : 'Registrar marca'}</button>
           </form>
           <Button variant="danger" disabled={busy} onClick={() => setConfirmClose(true)}>Finalizar servicio</Button>

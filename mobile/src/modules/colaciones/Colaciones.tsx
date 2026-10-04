@@ -5,6 +5,7 @@ import { messageFor } from '../../app/messages';
 import type { ColacionesMe, Totem } from '../../shared/contracts';
 import type { QueueOp } from '../../sync/queue';
 import { Banner, Button, Card, Chip, Empty, Field, TopBar } from '../../shared/ui';
+import ScanField from '../../shared/ui/ScanField';
 import { buildRegistration, colacionesApi, groupFor, MODULE, rejectionText, type RegisterPayload } from './service';
 
 type View = 'persona' | 'operador';
@@ -93,7 +94,7 @@ function OperatorView({ runtime }: Pick<ModuleProps, 'runtime'>) {
         <h2>Registrar entrega</h2>
         {totems.length > 1 && <Field label="Tótem"><select value={totemId ?? ''} onChange={(e) => setTotemId(Number(e.target.value))}>{totems.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field>}
         <small>{totem?.product} · identificación por {totem?.identification_method === 'pin' ? 'NIP' : totem?.identification_method === 'nfc' ? 'NFC' : 'código de barras'}</small>
-        <Field label="Código del trabajador" hint="Escribe o escanea con un lector. La cámara llegará en una próxima versión."><input value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoFocus autoCapitalize="none" inputMode="text" autoComplete="off" /></Field>
+        <ScanField label="Código del trabajador" hint="Escribe, usa un lector o, si tu teléfono lo permite, la cámara." value={identifier} onChange={setIdentifier} />
         {error && <Banner tone="bad">{error}</Banner>}
         {saved && <Banner tone="ok">{saved}</Banner>}
         <button className="ui-btn ui-btn--primary" disabled={busy || !identifier.trim()}>{busy ? 'Guardando…' : 'Registrar'}</button>
