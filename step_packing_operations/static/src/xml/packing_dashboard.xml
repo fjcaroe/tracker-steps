@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_packing_operations.Dashboard">
+        <main class="o_packing_dashboard">
+            <header class="o_packing_hero">
+                <div>
+                    <span>GESTIÓN AGRÍCOLA</span>
+                    <h1>Packing</h1>
+                    <p t-if="state.data">Planificación y proceso de embalaje de <strong t-esc="state.data.company_name"/>.</p>
+                </div>
+                <div class="o_packing_hero_actions">
+                    <button type="button" class="btn btn-light" t-on-click="() => this.openAction('step_packing_operations.action_packing_order')">
+                        <i class="fa fa-plus me-1"/> Nueva orden de proceso
+                    </button>
+                    <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_packing_operations.action_packing_mobile')">
+                        <i class="fa fa-qrcode me-1"/> Packing móvil
+                    </button>
+                </div>
+            </header>
+
+            <div t-if="state.loading" class="o_packing_loading"><i class="fa fa-spinner fa-spin"/> Preparando la información…</div>
+            <div t-elif="state.error" class="o_packing_empty">
+                <i class="fa fa-exclamation-circle me-1"/> <t t-esc="state.error"/>
+                <button type="button" class="btn btn-primary ms-2" t-on-click="() => this.loadDashboard()">Reintentar</button>
+            </div>
+            <t t-elif="state.data">
+                <section class="o_packing_kpis">
+                    <button t-on-click="() => this.openAction('step_packing_operations.action_packing_order')">
+                        <span>Órdenes de proceso abiertas</span>
+                        <strong t-esc="state.data.kpis.open_orders"/>
+                        <small>Planificación (OP)</small>
+                    </button>
+                    <button t-on-click="() => this.openAction('step_packing_operations.action_packing_production')">
+                        <span>Órdenes de trabajo abiertas</span>
+                        <strong t-esc="state.data.kpis.open_productions"/>
+                        <small>Creadas o validadas</small>
+                    </button>
+                    <article>
+                        <span>Kilos a proceso</span>
+                        <strong><t t-esc="formatNumber(state.data.kpis.input_kg, 1)"/> kg</strong>
+                        <small>OT abiertas</small>
+                    </article>
+                    <article>
+                        <span>Kilos exportación</span>
+                        <strong><t t-esc="formatNumber(state.data.kpis.export_kg, 1)"/> kg</strong>
+                        <small>Tarjas E resultantes</small>
+                    </article>
+                </section>
+
+                <div class="o_packing_grid">
+                    <section class="o_packing_panel">
+                        <header>
+                            <div><span>RECIENTES</span><h2>Últimas órdenes de trabajo</h2></div>
+                            <button class="btn btn-link" t-on-click="() => this.openAction('step_packing_operations.action_packing_production')">Ver todas</button>
+                        </header>
+                        <div t-if="state.data.recent_productions.length" class="o_packing_recent">
+                            <button t-foreach="state.data.recent_productions" t-as="row" t-key="row.id" t-on-click="() => this.openProduction(row.id)">
+                                <i t-att-class="'is-' + row.state"/>
+                                <span><b t-esc="row.name"/><small><t t-esc="row.order"/> · <t t-esc="row.product"/></small></span>
+                                <em><t t-esc="formatNumber(row.input_kg, 1)"/> kg</em>
+                                <strong t-att-class="'is-' + row.state" t-esc="row.state_label"/>
+                            </button>
+                        </div>
+                        <div t-else="" class="o_packing_empty">Aún no hay órdenes de trabajo.</div>
+                    </section>
+                    <aside class="o_packing_panel o_packing_attention">
+                        <header><div><span>CONTROL OPERATIVO</span><h2>Qué requiere atención</h2></div></header>
+                        <button t-on-click="() => this.openAction('step_packing_operations.action_packing_production')">
+                            <i class="fa fa-check-circle-o"/>
+                            <span><b><t t-esc="state.data.attention.productions_to_close"/> OT listas para cerrar</b><small>Validadas, con tarjas cuadradas.</small></span>
+                        </button>
+                        <button t-on-click="() => this.openAction('step_packing_operations.action_packing_production')">
+                            <i class="fa fa-clock-o"/>
+                            <span><b><t t-esc="state.data.attention.productions_to_validate"/> OT por validar</b><small>Creadas, esperando tarjas de entrada/salida.</small></span>
+                        </button>
+                        <button t-on-click="() => this.openAction('step_packing_operations.action_packing_order')">
+                            <i class="fa fa-exclamation-triangle"/>
+                            <span><b><t t-esc="state.data.attention.orders_without_materials"/> OP sin materiales calculados</b><small>Validadas, falta "Calcular materiales".</small></span>
+                        </button>
+                    </aside>
+                </div>
+
+                <section class="o_packing_panel">
+                    <header><div><span>PLANIFICACIÓN</span><h2>Últimas órdenes de proceso</h2></div>
+                        <button class="btn btn-link" t-on-click="() => this.openAction('step_packing_operations.action_packing_order')">Ver todas</button></header>
+                    <div t-if="state.data.recent_orders.length" class="o_packing_recent">
+                        <button t-foreach="state.data.recent_orders" t-as="row" t-key="row.id" t-on-click="() => this.openOrder(row.id)">
+                            <i t-att-class="'is-' + row.state"/>
+                            <span><b t-esc="row.name"/></span>
+                            <em><t t-esc="formatNumber(row.boxes, 0)"/> cajas · <t t-esc="formatNumber(row.kg, 1)"/> kg</em>
+                            <strong t-att-class="'is-' + row.state" t-esc="row.state_label"/>
+                        </button>
+                    </div>
+                    <div t-else="" class="o_packing_empty">Aún no hay órdenes de proceso.</div>
+                </section>
+
+                <section class="o_packing_shortcuts">
+                    <button t-on-click="() => this.openAction('step_packing_operations.action_packing_order')">
+                        <i class="fa fa-calendar"/><span>Planificación<small>Órdenes de proceso (OP)</small></span></button>
+                    <button t-on-click="() => this.openAction('step_packing_operations.action_packing_production')">
+                        <i class="fa fa-cogs"/><span>Proceso<small>Órdenes de trabajo (OT)</small></span></button>
+                    <button t-on-click="() => this.openAction('step_packing_operations.action_packing_repack')">
+                        <i class="fa fa-random"/><span>Repaletizado<small>Traslado entre tarjas</small></span></button>
+                    <button t-on-click="() => this.openAction('step_packing_operations.action_packing_mobile')">
+                        <i class="fa fa-qrcode"/><span>Packing móvil<small>Registro de tarjas en terreno</small></span></button>
+                </section>
+            </t>
+        </main>
+    </t>
+</templates>

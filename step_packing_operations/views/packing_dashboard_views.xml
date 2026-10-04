@@ -1,0 +1,6 @@
+<odoo>
+    <record id="action_packing_dashboard" model="ir.actions.client">
+        <field name="name">Packing</field>
+        <field name="tag">step_packing_operations.dashboard</field>
+    </record>
+</odoo>

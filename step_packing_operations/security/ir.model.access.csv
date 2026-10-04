@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_packing_order_user,step.packing.order user,model_step_packing_order,stock.group_stock_user,1,1,1,1
+access_step_packing_order_line_user,step.packing.order.line user,model_step_packing_order_line,stock.group_stock_user,1,1,1,1
+access_step_packing_material_need_user,step.packing.material.need user,model_step_packing_material_need,stock.group_stock_user,1,1,1,1
+access_step_packing_production_user,step.packing.production user,model_step_packing_production,stock.group_stock_user,1,1,1,1
+access_step_packing_repack_user,step.packing.repack user,model_step_packing_repack,stock.group_stock_user,1,1,1,1
+access_step_packing_repack_line_user,step.packing.repack.line user,model_step_packing_repack_line,stock.group_stock_user,1,1,1,1
