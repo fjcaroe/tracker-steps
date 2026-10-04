@@ -3,7 +3,7 @@ import { catalogs, mobile, sessions, type AssignedRoute, type Task, type Session
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
 import { activeStore, formatDuration, parseNumber, pointQueue, syncStore, type Active } from '../lib/queue';
 import { buildActive, reconcile } from '../lib/reconcile';
-import { isNetworkError, startPending, type FinishBody, type Op } from '../lib/outbox';
+import { closingIds, isNetworkError, startPending, type FinishBody, type Op } from '../lib/outbox';
 import { outboxStore, syncAll } from '../lib/sync';
 import { continuousDrivingMs, routeStore, summarize, type RoutePoint, type Summary } from '../lib/route';
 import { beep, loadSettings } from '../lib/settings';
@@ -20,7 +20,12 @@ type Catalogs = { machines: Machine[]; labors: Labor[]; drivers: Driver[]; imple
 
 export default function Journey({ online, preset, onPresetUsed }: { online: boolean; preset: Task | null; onPresetUsed: () => void }) {
   const [finished, setFinished] = useState<Finished | null>(null);
-  const [active, setActive] = useState<Active | null>(activeStore.get);
+  const [active, setActive] = useState<Active | null>(() => {
+    // La app pudo cerrarse justo al terminar la jornada: si su cierre ya está en cola, no se vuelve a ofrecer como activa (ni sin señal).
+    const a = activeStore.get();
+    if (a && closingIds(outboxStore.ops()).has(a.sessionId)) { activeStore.set(null); return null; }
+    return a;
+  });
   const [notice, setNotice] = useState('');
   const [open, setOpen] = useState<SessionSummary[]>([]);
   const [resuming, setResuming] = useState('');
@@ -45,11 +50,17 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
   // Al abrir (y al recuperar red) se consulta al servidor: retomar jornada abierta o limpiar una ya cerrada.
   const check = useCallback(async () => {
     try {
+      const closingBefore = closingIds(outboxStore.ops());
       const local = activeStore.get();
+      if (local && reconcile(local, [], closingBefore).kind === 'finished') {
+        activeStore.set(null); setActive(null); setConfirmed(false);
+        return;
+      }
       // Una jornada local se consulta por ID: no asumir cierre por quedar fuera de una lista limitada.
       if (local && startPending(outboxStore.ops(), local.sessionId)) return;
       const remote = local ? [await sessions.get(local.sessionId) as SessionSummary] : await sessions.open();
-      const r = reconcile(local, remote);
+      // Mientras la consulta viajaba, la sincronización pudo enviar el cierre: se suman los cierres vistos antes y después.
+      const r = reconcile(local, remote, new Set([...closingBefore, ...closingIds(outboxStore.ops())]));
       if (r.kind === 'closed' && local) {
         activeStore.set(null); setActive(null);
         setConfirmed(false);

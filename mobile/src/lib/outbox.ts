@@ -27,6 +27,15 @@ export const isNetworkError = (e: unknown): boolean => {
   return status === 0 || (typeof status === 'number' && status >= 500);
 };
 
+/**
+ * El servidor entendió el envío y lo rechazó de forma definitiva (jornada cerrada o inexistente, datos inválidos).
+ * Reintentar no cambia el resultado. Quedan fuera 401 (vuelve a entrar), 403 (puede otorgarse el acceso), 408 y 429.
+ */
+export const isPermanentRejection = (e: unknown): boolean => [400, 404, 409, 410, 422].includes((e as { status?: number })?.status ?? -1);
+
+/** Jornadas que la persona ya terminó en este teléfono y cuyo cierre aún no llegó al servidor. */
+export const closingIds = (ops: Op[]): Set<string> => new Set(ops.filter((o) => o.kind === 'session_close').map((o) => o.sessionId));
+
 export type RunResult = { ops: Op[]; resolved: Record<string, number>; done: number };
 
 /**

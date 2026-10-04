@@ -19,3 +19,9 @@ en `backend/tracker_py/`. No subir `.env`, tokens ni archivos de respaldo.
 La lista `/sessions/my` se filtra por centros de costo, no por autor.
 Retomar requiere selección y confirmación. Una ausencia en esa lista nunca
 autoriza borrar una jornada local ni sus puntos pendientes.
+
+Un rechazo permanente del servidor a los puntos (400/404/409/410/422, p. ej. jornada
+ya cerrada por otro dispositivo) no se reintenta ni bloquea el cierre: el lote se
+guarda aparte en `steps_movil_points_rejected` (tope 5000) y no cuenta como pendiente.
+Red caída, 401, 403, 408, 429 y 5xx siguen siendo reintentos. Las jornadas con cierre
+ya encolado en el teléfono no se ofrecen para retomar ni quedan como activas.
