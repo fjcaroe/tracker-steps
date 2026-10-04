@@ -165,5 +165,71 @@
     "path": "tools/qa/t39/inspect_published_tables.py",
     "sha256": "6a9c1cfbd3767425d51fc0dc8271a8955c2fd6d892394af527bdf1f3a4036174",
     "derived_from_local_experiment": true
+  },
+  {
+    "branch": "codex/web-tracker-redesign",
+    "path": "tools/documents/build_tracker_manual.py",
+    "sha256": "ace54bbd3cfdf47040a0144285cdcadecb55faa1909a723c50df101bab74e42b",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/helpdesk-layout-canonical",
+    "path": "tools/history/helpdesk/audit_escaped_notes.py",
+    "sha256": "0d5815d959aad4e055e3288c0d31c1825b467c88a1e1948889d5bca133b31a7c",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/helpdesk-layout-canonical",
+    "path": "tools/history/helpdesk/audit_ticket_comments.py",
+    "sha256": "c18b1e60097d49134bd3a1381f0541dcb00ef9035f3d66661dc53d623a56911f",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/helpdesk-layout-canonical",
+    "path": "tools/history/helpdesk/find_internal_notes.py",
+    "sha256": "20aefb5fdcba1111f940f228db52d6dda38444a4f8cfa264ba0cc894a4d37706",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/helpdesk-layout-canonical",
+    "path": "tools/history/helpdesk/format_escaped_notes.py",
+    "sha256": "d65dccf15cd318d2c460ec2e1061379dd06406aece221c9f1a1b085916ad6c64",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/helpdesk-layout-canonical",
+    "path": "tools/history/helpdesk/inspect_comment_markup.py",
+    "sha256": "5890395dcf20d32fb521cdcb66fd15e1f80fdac5d1bebb0b6608e4744b064114",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/helpdesk-layout-canonical",
+    "path": "tools/history/helpdesk/refine_note_titles.py",
+    "sha256": "23b1c7d8aa8fe1b6a77cc9d701ab7e10634ee939e8469fcdcda07292864b61a7",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/t38-producers-completion",
+    "path": "tools/history/t38/run_t38_qa.sh",
+    "sha256": "0e33f36287402e37cd6d7a7441ada833ba24e9ced17048fc23a681dd507e61a8",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/t38-producers-completion",
+    "path": "tools/history/t38/run_t38_flow_qa.sh",
+    "sha256": "24e0e61c48bbccdf8f28d6c49e15a9c6dc67dc426f0cce9c91f85303a5f7922c",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/t40-inventory-packing",
+    "path": "tools/history/t40/install_t40_qa.sh",
+    "sha256": "d1e320fb6e5460aeae731e0bec3c51ee7a5ff8586e78008a35cdd49a47626d50",
+    "recovered_from_ignored_directory": true
+  },
+  {
+    "branch": "codex/t40-inventory-packing",
+    "path": "tools/history/t40/run_t40_qa.sh",
+    "sha256": "2788ad97c76e58e77ef7ab5d86fe4ca84602fd6baa3a607cec90795a40557455",
+    "recovered_from_ignored_directory": true
   }
 ]
