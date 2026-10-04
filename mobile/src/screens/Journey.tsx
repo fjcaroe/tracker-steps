@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { catalogs, mobile, sessions, type AssignedRoute, type Task, type SessionSummary, type CostCenter, type Driver, type Field, type Implement, type Labor, type Machine } from '../lib/api';
 import { acceptFix, haversineMeters, keepAwake, watchPosition, type Fix } from '../lib/geo';
-import { activeStore, formatDuration, parseNumber, pointQueue, syncStore, type Active } from '../lib/queue';
-import { buildActive, reconcile } from '../lib/reconcile';
+import { activeStore, finishedStore, formatDuration, parseNumber, pointQueue, syncStore, type Active } from '../lib/queue';
+import { buildActive, isStale, reconcile } from '../lib/reconcile';
 import { closingIds, isNetworkError, startPending, type FinishBody, type Op } from '../lib/outbox';
 import { outboxStore, syncAll } from '../lib/sync';
 import { continuousDrivingMs, routeStore, summarize, type RoutePoint, type Summary } from '../lib/route';
@@ -23,7 +23,7 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
   const [active, setActive] = useState<Active | null>(() => {
     // La app pudo cerrarse justo al terminar la jornada: si su cierre ya está en cola, no se vuelve a ofrecer como activa (ni sin señal).
     const a = activeStore.get();
-    if (a && closingIds(outboxStore.ops()).has(a.sessionId)) { activeStore.set(null); return null; }
+    if (a && (closingIds(outboxStore.ops()).has(a.sessionId) || finishedStore.ids().includes(a.sessionId))) { activeStore.set(null); return null; }
     return a;
   });
   const [notice, setNotice] = useState('');
@@ -50,18 +50,22 @@ export default function Journey({ online, preset, onPresetUsed }: { online: bool
   // Al abrir (y al recuperar red) se consulta al servidor: retomar jornada abierta o limpiar una ya cerrada.
   const check = useCallback(async () => {
     try {
-      const closingBefore = closingIds(outboxStore.ops());
+      const closed = () => new Set([...closingIds(outboxStore.ops()), ...finishedStore.ids()]);
       const local = activeStore.get();
-      if (local && reconcile(local, [], closingBefore).kind === 'finished') {
+      if (local && reconcile(local, [], closed()).kind === 'finished') {
         activeStore.set(null); setActive(null); setConfirmed(false);
         return;
       }
       // Una jornada local se consulta por ID: no asumir cierre por quedar fuera de una lista limitada.
       if (local && startPending(outboxStore.ops(), local.sessionId)) return;
       const remote = local ? [await sessions.get(local.sessionId) as SessionSummary] : await sessions.open();
-      // Mientras la consulta viajaba, la sincronización pudo enviar el cierre: se suman los cierres vistos antes y después.
-      const r = reconcile(local, remote, new Set([...closingBefore, ...closingIds(outboxStore.ops())]));
-      if (r.kind === 'closed' && local) {
+      // La respuesta puede ser antigua: si la jornada local cambió mientras viajaba, se descarta entera.
+      if (isStale(local, activeStore.get())) return;
+      // Se recalculan los cierres DESPUÉS de esperar: un cierre encolado y enviado durante la consulta queda en el historial.
+      const r = reconcile(local, remote, closed());
+      if (r.kind === 'finished' && local) {
+        activeStore.set(null); setActive(null); setConfirmed(false);
+      } else if (r.kind === 'closed' && local) {
         activeStore.set(null); setActive(null);
         setConfirmed(false);
         setNotice('La jornada que tenías abierta ya fue cerrada en el servidor. Se limpió este teléfono.');
@@ -403,6 +407,7 @@ function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flus
       const points = routeStore.get(active.sessionId);
       const finished: Finished = { machine: active.machineName, points, summary: summarize(points, active.startedAt, Date.now(), { start: active.tankStart, end: tankEnd as number, refill: ref }) };
       const done = () => { routeStore.clear(active.sessionId); try { localStorage.removeItem(`steps_movil_checked_${active.sessionId}`); } catch { /* nada */ } onDone(finished); };
+      finishedStore.add(active.sessionId);
       // Guardar ambas operaciones antes de enviarlas: un fallo después del cierre no pierde el parte final.
       outboxStore.add(
         { kind: 'session_close', sessionId: active.sessionId, endedAt },

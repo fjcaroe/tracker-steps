@@ -42,3 +42,6 @@ export function buildActive(s: SessionSummary, wo: WorkOrderSummary | null, mach
     distanceM: Number(s.total_distance_m ?? 0),
   };
 }
+
+/** Una respuesta del servidor es obsoleta si la jornada local cambió mientras viajaba la consulta. */
+export const isStale = (startedWith: Active | null, now: Active | null): boolean => (startedWith?.sessionId ?? null) !== (now?.sessionId ?? null);

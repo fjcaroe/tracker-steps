@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { acceptFix, haversineMeters, type Fix } from './geo';
-import { formatDuration, parseNumber, pointQueue, syncStore, type Active } from './queue';
-import { buildActive, reconcile } from './reconcile';
+import { finishedStore, formatDuration, parseNumber, pointQueue, storageHealth, syncStore, type Active } from './queue';
+import { buildActive, isStale, reconcile } from './reconcile';
 import type { SessionSummary } from './api';
 
 const store = new Map<string, string>();
+/** Simula fallos de escritura (cuota llena o corte): `failing(key)` decide qué claves no se pueden guardar. */
+let failing: (key: string) => boolean = () => false;
 beforeEach(() => {
   store.clear();
+  failing = () => false;
   (globalThis as { localStorage?: unknown }).localStorage = {
     getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
+    setItem: (k: string, v: string) => { if (failing(k)) throw new DOMException('quota', 'QuotaExceededError'); store.set(k, v); },
     removeItem: (k: string) => void store.delete(k),
   };
 });
@@ -60,10 +63,48 @@ describe('rechazos del servidor al enviar puntos', () => {
     expect(pointQueue.size('s1')).toBe(3);
     expect(pointQueue.rejected()).toEqual({});
   });
-  it('lo guardado aparte tiene tope para no llenar el almacenamiento del teléfono', async () => {
+  it('no descarta puntos rechazados por ningún límite (5.001 puntos de una jornada)', async () => {
+    store.set('steps_movil_pending', JSON.stringify({ s1: Array.from({ length: 5001 }, (_, i) => point(i)) }));
+    await pointQueue.flush('s1', async () => { throw rejected(400); }, 500);
+    expect(pointQueue.size('s1')).toBe(0);
+    expect(pointQueue.rejected().s1).toHaveLength(5001);
+    expect(pointQueue.rejected().s1[0].ts).toBe(point(0).ts);
+  });
+  it('si no se pueden guardar aparte (cuota llena) el lote sigue pendiente y no se pierde', async () => {
     for (let i = 0; i < 3; i++) pointQueue.push('s1', point(i));
-    await pointQueue.flush('s1', async () => { throw rejected(400); }, 50, 2);
-    expect(pointQueue.rejected().s1.map((p) => p.ts)).toEqual([point(1).ts, point(2).ts]);
+    failing = (k) => k === 'steps_movil_points_rejected';
+    await pointQueue.flush('s1', async () => { throw rejected(400); });
+    expect(pointQueue.size('s1')).toBe(3);
+    expect(pointQueue.rejectedTotal()).toBe(0);
+    expect(storageHealth.hasProblem()).toBe(true);
+    failing = () => false;
+    // Con espacio otra vez, un segundo intento aparta el lote una sola vez.
+    await pointQueue.flush('s1', async () => { throw rejected(400); });
+    await pointQueue.flush('s1', async () => { throw rejected(400); });
+    expect(pointQueue.size('s1')).toBe(0);
+    expect(pointQueue.rejected().s1).toHaveLength(3);
+    expect(storageHealth.hasProblem()).toBe(false);
+  });
+  it('un corte entre apartar y quitar de la cola duplica, nunca pierde ni cuenta dos veces', async () => {
+    for (let i = 0; i < 2; i++) pointQueue.push('s1', point(i));
+    let first = true;
+    failing = (k) => { if (k === 'steps_movil_pending' && first) { first = false; return true; } return false; };
+    await pointQueue.flush('s1', async () => { throw rejected(400); });
+    await pointQueue.flush('s1', async () => { throw rejected(400); });
+    expect(pointQueue.rejected().s1).toHaveLength(2);
+  });
+  it('devolver a la cola los puntos apartados permite reintentarlos', async () => {
+    for (let i = 0; i < 2; i++) pointQueue.push('s1', point(i));
+    await pointQueue.flush('s1', async () => { throw rejected(400); });
+    expect(pointQueue.requeueRejected('s1')).toBe(2);
+    expect(pointQueue.size('s1')).toBe(2);
+    expect(pointQueue.rejectedTotal()).toBe(0);
+    expect(await pointQueue.flush('s1', async () => {})).toBe(2);
+  });
+  it('la copia de exportación incluye todos los puntos apartados', async () => {
+    pointQueue.push('s1', point(0));
+    await pointQueue.flush('s1', async () => { throw rejected(422); });
+    expect(JSON.parse(pointQueue.exportRejected()).points.s1).toHaveLength(1);
   });
 });
 
@@ -127,5 +168,24 @@ describe('último envío', () => {
     pointQueue.push('s1', point(1));
     pointQueue.clear('s1');
     expect(pointQueue.size('s1')).toBe(0);
+  });
+});
+
+describe('respuestas atrasadas del servidor', () => {
+  it('una jornada cerrada que ya consta en el historial no se vuelve a ofrecer aunque su cierre ya no esté en la cola', () => {
+    finishedStore.add('a');
+    const closing = new Set(finishedStore.ids());
+    const r = reconcile(null, [remote('a', 'open')], closing);
+    expect(r).toEqual({ kind: 'keep' });
+  });
+  it('el historial de jornadas terminadas no repite ni pierde identificadores', () => {
+    finishedStore.add('a'); finishedStore.add('b'); finishedStore.add('a');
+    expect(finishedStore.ids()).toEqual(['b', 'a']);
+  });
+  it('si la jornada local cambió mientras viajaba la consulta, la respuesta se descarta', () => {
+    expect(isStale(local('a'), local('a'))).toBe(false);
+    expect(isStale(local('a'), null)).toBe(true);
+    expect(isStale(null, local('b'))).toBe(true);
+    expect(isStale(null, null)).toBe(false);
   });
 });
