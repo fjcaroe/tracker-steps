@@ -1,6 +1,6 @@
 # Steps App unificada — estado real (actualizado 04-10-2026, segunda sesión)
 
-Rama de integración: **`codex/steps-movil`** (publicada). Todo lo de abajo distingue lo **comprobado**, lo pendiente de validación y lo bloqueado.
+Rama de integración: **`codex/steps-movil`** (publicada) · PR draft [fjcaroe/tracker-steps#16](https://github.com/fjcaroe/tracker-steps/pull/16) hacia `develop` (la PR #15 queda reemplazada por esta rama; no se cerró). Todo lo de abajo distingue lo **comprobado**, lo pendiente de validación y lo bloqueado.
 
 ## 1. Diagnóstico al comenzar esta sesión (lo que dijo la entrega anterior vs la realidad)
 
