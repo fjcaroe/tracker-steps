@@ -6,7 +6,7 @@ import RejectedPoints from '../../modules/tracker/screens/RejectedPoints';
 
 export const STATE_LABEL: Record<QueueOp['state'], { text: string; tone: 'info' | 'ok' | 'warn' | 'bad' }> = {
   pending: { text: 'Pendiente', tone: 'warn' }, sending: { text: 'Enviando', tone: 'warn' }, confirmed: { text: 'Confirmada', tone: 'ok' },
-  auth_required: { text: 'Requiere acceso', tone: 'bad' }, rejected: { text: 'Rechazada', tone: 'bad' },
+  auth_required: { text: 'Requiere acceso', tone: 'bad' }, rejected: { text: 'Rechazada', tone: 'bad' }, blocked: { text: 'Detenida', tone: 'bad' },
 };
 
 function download(name: string, text: string) {
@@ -22,7 +22,7 @@ export default function SyncScreen() {
   const sync = useSyncState();
   const [ops, setOps] = useState<QueueOp[]>([]);
   useEffect(() => { void runtime.ops().then(setOps); }, [runtime, sync.version]);
-  const problems = ops.filter((o) => o.state === 'rejected' || o.state === 'auth_required');
+  const problems = ops.filter((o) => o.state === 'rejected' || o.state === 'auth_required' || o.state === 'blocked');
   const waiting = ops.filter((o) => o.state === 'pending' || o.state === 'sending');
 
   return (
@@ -32,6 +32,7 @@ export default function SyncScreen() {
         <div className="ui-row"><span>Por enviar</span><Chip tone={sync.pending ? 'warn' : 'ok'}>{sync.pending}</Chip></div>
         <div className="ui-row"><span>Con problema</span><Chip tone={problems.length ? 'bad' : 'ok'}>{problems.length}</Chip></div>
         <small>{sync.lastSyncAt ? `Último envío: ${new Date(sync.lastSyncAt).toLocaleString('es-CL')}` : 'Aún no se ha enviado nada en esta sesión.'}</small>
+        {sync.storageProblem && <Banner tone="bad">El teléfono no pudo guardar el estado de tus operaciones (poco espacio o almacenamiento bloqueado). Lo ya guardado sigue ahí. Libera espacio y reintenta; si insiste, guarda una copia.</Banner>}
         {sync.lastHalt === 'network' && <Banner tone="warn">Sin conexión con el servidor: se reintentará solo al volver la señal.</Banner>}
         {sync.lastHalt === 'auth' && <Banner tone="bad">Tu sesión o tus permisos necesitan atención. Lo guardado no se perdió.</Banner>}
         <Button variant="primary" disabled={sync.syncing} onClick={() => void runtime.retry()}>{sync.syncing ? 'Enviando…' : 'Reintentar ahora'}</Button>

@@ -5,8 +5,9 @@ import { messageFor } from '../../app/messages';
 import type { Trip } from '../../shared/contracts';
 import type { QueueOp } from '../../sync/queue';
 import { currentPosition } from '../../platform/geo';
-import { Banner, Button, Card, Chip, Confirm, Empty, Field, TopBar } from '../../shared/ui';
-import { buildEvent, groupFor, mobilizationApi, MODULE, rejectionText, type EventPayload } from './service';
+import { Banner, Button, Card, Chip, Confirm, Empty, Field, Sheet, TopBar } from '../../shared/ui';
+import { buildEvent, buildIncident, buildVoid, groupFor, mobilizationApi, MODULE, rejectionText, type EventPayload, type IncidentPayload, type VoidPayload } from './service';
+import type { IncidentCategory } from '../../shared/contracts';
 
 type View = 'servicios' | 'supervisor';
 
@@ -76,6 +77,9 @@ function TripView({ runtime, tripId }: Pick<ModuleProps, 'runtime'> & { tripId: 
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [correcting, setCorrecting] = useState<QueueOp | null>(null);
+  const [category, setCategory] = useState<IncidentCategory>('delay');
+  const [incidentText, setIncidentText] = useState('');
   const group = groupFor(tripId);
 
   const load = useCallback(() => { api.trip(tripId).then((r) => setTrip(r.trip)).catch((e) => setError(messageFor(e))); }, [tripId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -84,10 +88,25 @@ function TripView({ runtime, tripId }: Pick<ModuleProps, 'runtime'> & { tripId: 
 
   const state = useMemo(() => (trip ? localView(trip, ops) : null), [trip, ops]);
   const events = ops.filter((o) => o.kind === 'event');
+  const voids = ops.filter((o) => o.kind === 'event_void' && o.state !== 'rejected');
+  const voidOf = (key: string) => voids.find((o) => (o.payload as VoidPayload).idempotency_key === key);
+  const incidentOps = ops.filter((o) => o.kind === 'incident');
 
   const enqueue = async (kind: string, payload: unknown) => { await runtime.enqueue({ module: MODULE, kind, group, payload }); };
   const start = async () => { setBusy(true); setError(''); try { await enqueue('trip_open', { tripId }); setInfo('Inicio guardado. Se enviará solo.'); } catch (e) { setError(messageFor(e)); } finally { setBusy(false); } };
   const finish = async () => { setConfirmClose(false); setBusy(true); setError(''); try { await enqueue('trip_close', { tripId }); setInfo('Cierre guardado. Se enviará después de tus marcas.'); } catch (e) { setError(messageFor(e)); } finally { setBusy(false); } };
+  const correct = async (op: QueueOp, reason: string) => {
+    setCorrecting(null); setBusy(true); setError(''); setInfo('');
+    try { await enqueue('event_void', buildVoid((op.payload as EventPayload).event, tripId, reason)); setInfo('Corrección guardada. Se enviará solo.'); }
+    catch (err) { setError(messageFor(err)); } finally { setBusy(false); }
+  };
+  const reportIncident = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!incidentText.trim() || busy) return;
+    setBusy(true); setError(''); setInfo('');
+    try { await enqueue('incident', buildIncident(tripId, category, incidentText)); setIncidentText(''); setInfo('Incidencia guardada. Se enviará solo.'); }
+    catch (err) { setError(messageFor(err)); } finally { setBusy(false); }
+  };
   const mark = async (e: FormEvent) => {
     e.preventDefault();
     if (!trip || !identifier.trim() || busy) return;
@@ -113,6 +132,8 @@ function TripView({ runtime, tripId }: Pick<ModuleProps, 'runtime'> & { tripId: 
         <div className="grid3"><div><strong>{aboard}</strong>A bordo</div><div><strong>{trip.boarded_count}</strong>Subidas</div><div><strong>{trip.alighted_count}</strong>Bajadas</div></div>
         <small>Capacidad {trip.capacity}. Las cifras confirmadas llegan del servidor; tus marcas pendientes se suman al enviarse.</small>
         {trip.overcapacity && <Banner tone="warn">Sobrecupo registrado en este servicio.</Banner>}
+        {!!trip.stops?.length && <small>Paradas: {trip.stops.map((st) => st.name).join(' → ')}</small>}
+        {!!trip.aboard?.length && <small>A bordo (confirmados): {trip.aboard.join(', ')}</small>}
         {state.rejectedOpen && <Banner tone="bad">No se pudo iniciar el servicio: {rejectionText(state.rejectedOpen.error)}</Banner>}
       </Card>
       {error && <Banner tone="bad">{error}</Banner>}
@@ -136,20 +157,45 @@ function TripView({ runtime, tripId }: Pick<ModuleProps, 'runtime'> & { tripId: 
 
       <Card label="Marcas de este teléfono">
         <h3>Marcas de este teléfono</h3>
-        {events.length === 0 ? <Empty title="Aún no marcas pasajeros" /> : <ul className="ui-list">{[...events].reverse().map((o) => <EventRow key={o.id} op={o} />)}</ul>}
+        {events.length === 0 ? <Empty title="Aún no marcas pasajeros" /> : <ul className="ui-list">{[...events].reverse().map((o) => <EventRow key={o.id} op={o} voided={voidOf((o.payload as EventPayload).event.idempotency_key)} canCorrect={state.opened && !state.closed && o.state !== 'rejected'} onCorrect={() => setCorrecting(o)} />)}</ul>}
       </Card>
+      {state.opened && !state.closed && (
+        <form className="ui-card" onSubmit={reportIncident}>
+          <h3>Reportar incidencia</h3>
+          <Field label="Tipo"><select value={category} onChange={(e) => setCategory(e.target.value as IncidentCategory)}>
+            <option value="delay">Atraso</option><option value="breakdown">Falla del vehículo</option><option value="passenger">Pasajero</option><option value="safety">Seguridad</option><option value="other">Otra</option></select></Field>
+          <Field label="Qué pasó"><input value={incidentText} onChange={(e) => setIncidentText(e.target.value)} maxLength={500} /></Field>
+          <button className="ui-btn" disabled={busy || !incidentText.trim()}>Guardar incidencia</button>
+        </form>
+      )}
+      {(incidentOps.length > 0 || !!trip.incidents?.length) && (
+        <Card label="Incidencias"><h3>Incidencias</h3>
+          <ul className="ui-list">
+            {incidentOps.map((o) => { const p = o.payload as IncidentPayload; return <li key={o.id}><span>{p.text}<small>{o.state === 'rejected' ? rejectionText(o.error) : 'Este teléfono'}</small></span><Chip tone={o.state === 'confirmed' ? 'ok' : o.state === 'rejected' ? 'bad' : 'warn'}>{o.state === 'confirmed' ? 'Enviada' : o.state === 'rejected' ? 'Rechazada' : 'Pendiente'}</Chip></li>; })}
+          </ul>
+        </Card>
+      )}
+      {correcting && <Sheet title="Corregir marca" onClose={() => setCorrecting(null)}>
+        <p>La marca no se borra: queda anulada con el motivo, para que se pueda auditar.</p>
+        {['Pasajero equivocado', 'Marca duplicada', 'Otro motivo'].map((r) => <Button key={r} onClick={() => void correct(correcting, r)}>{r}</Button>)}
+      </Sheet>}
       {confirmClose && <Confirm danger title="¿Finalizar el servicio?" body={<p>No podrás marcar más pasajeros en este servicio. Las marcas pendientes se envían antes del cierre.</p>} confirmLabel="Finalizar" onCancel={() => setConfirmClose(false)} onConfirm={() => void finish()} />}
     </>
   );
 }
 
-function EventRow({ op }: { op: QueueOp }) {
+function EventRow({ op, voided, canCorrect, onCorrect }: { op: QueueOp; voided?: QueueOp; canCorrect: boolean; onCorrect: () => void }) {
   const p = op.payload as EventPayload;
   const time = new Date(p.event.device_datetime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
   const what = `${p.label} · ${time}`;
+  if (voided) return <li><span><s>{what}</s><small>{voided.state === 'confirmed' ? 'Anulada' : 'Anulación pendiente de envío'}</small></span><Chip tone={voided.state === 'confirmed' ? 'info' : 'warn'}>{voided.state === 'confirmed' ? 'Anulada' : 'Por anular'}</Chip></li>;
+  if (canCorrect && (op.state === 'confirmed' || op.state === 'pending')) {
+    return <li><span>{what}<small>{op.state === 'confirmed' ? 'Confirmada' : 'Se enviará al volver la señal'}</small></span><Button onClick={onCorrect}>Corregir</Button></li>;
+  }
   if (op.state === 'confirmed') return <li><span>{what}</span><Chip tone="ok">Confirmada</Chip></li>;
   if (op.state === 'rejected') return <li><span>{what}<small>{rejectionText(op.error)}</small></span><Chip tone="bad">Rechazada</Chip></li>;
   if (op.state === 'auth_required') return <li><span>{what}<small>Requiere que vuelvas a entrar o que se revise tu acceso.</small></span><Chip tone="bad">Requiere acceso</Chip></li>;
+  if (op.state === 'blocked') return <li><span>{what}<small>Se detuvo tras varios intentos. Toca «Reintentar» en Sincronización.</small></span><Chip tone="bad">Detenida</Chip></li>;
   return <li><span>{what}<small>Se enviará al volver la señal</small></span><Chip tone="warn">Pendiente</Chip></li>;
 }
 
@@ -168,6 +214,7 @@ function SupervisorView({ runtime }: Pick<ModuleProps, 'runtime'>) {
         <Card key={t.id} label={t.name}>
           <div className="ui-row"><div><strong>{t.route}</strong><small>{t.name} · Chofer: {t.driver ?? '—'}</small></div><Chip tone={t.state === 'open' ? 'ok' : 'info'}>{t.state}</Chip></div>
           <div className="grid3"><div><strong>{t.aboard_count}</strong>A bordo</div><div><strong>{t.boarded_count}</strong>Subidas</div><div><strong>{t.alighted_count}</strong>Bajadas</div></div>
+          {(t.incidents ?? []).length > 0 && <ul className="ui-list">{t.incidents!.map((i) => <li key={i.key}><span><strong>Incidencia:</strong> {i.text}<small>{i.by}</small></span></li>)}</ul>}
           {(t.events ?? []).length > 0 && <ul className="ui-list">{t.events!.slice(-8).map((e) => <li key={e.idempotency_key}><span>{e.passenger}<small>{e.event_type === 'boarding' ? 'Subió' : 'Bajó'} · registrado por {e.by ?? '—'}</small></span></li>)}</ul>}
         </Card>))}
     </>

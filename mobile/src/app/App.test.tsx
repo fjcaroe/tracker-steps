@@ -54,6 +54,40 @@ describe('bienvenida y registro', () => {
   });
 });
 
+describe('recuperación de acceso', () => {
+  it('pide el código, define la contraseña nueva, cierra sesiones viejas y permite ingresar', async () => {
+    const p = server.addPerson('ana@example.test'); server.grant(p.id, 'org-a', ['colaciones', 'persona']);
+    const old = build(); await old.session.boot(); await old.session.login('ana@example.test', 'clave-segura-2026'); // «teléfono perdido»
+    render(<App runtime={build()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Recuperar' }));
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'ana@example.test' } });
+    fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);
+    expect(await screen.findByText(/te enviamos un código/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Código de recuperación'), { target: { value: server.recoveryCodes['ana@example.test'] } });
+    fireEvent.change(screen.getByLabelText(/Contraseña nueva/), { target: { value: 'una-clave-nueva-2027' } });
+    fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);
+    expect(await screen.findByText(/ya puedes ingresar con tu nueva contraseña/)).toBeTruthy();
+    await expect(old.session.api.devices()).rejects.toMatchObject({ status: 401 });
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'ana@example.test' } });
+    fireEvent.change(screen.getByLabelText(/Contraseña/), { target: { value: 'una-clave-nueva-2027' } });
+    fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);
+    expect(await screen.findByText('Empresa A')).toBeTruthy();
+  });
+
+  it('un código incorrecto muestra un mensaje claro', async () => {
+    server.addPerson('ana@example.test');
+    render(<App runtime={build()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Recuperar' }));
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'ana@example.test' } });
+    fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);
+    await screen.findByLabelText('Código de recuperación');
+    fireEvent.change(screen.getByLabelText('Código de recuperación'), { target: { value: 'inventado' } });
+    fireEvent.change(screen.getByLabelText(/Contraseña nueva/), { target: { value: 'una-clave-nueva-2027' } });
+    fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);
+    expect(await screen.findByText(/código de recuperación no es válido/)).toBeTruthy();
+  });
+});
+
 describe('portada por permisos', () => {
   it('muestra solo los módulos autorizados y el contexto de empresa', async () => {
     const p = server.addPerson('ana@example.test'); server.grant(p.id, 'org-a', ['colaciones', 'persona']);

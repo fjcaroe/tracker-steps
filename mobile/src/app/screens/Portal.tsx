@@ -4,7 +4,9 @@ import { Banner, Button, Card, Chip, Empty } from '../../shared/ui';
 
 export function SyncChip() {
   const s = useSyncState();
+  if (s.storageProblem) return <Chip tone="bad">Sin espacio para guardar</Chip>;
   if (s.authRequired) return <Chip tone="bad">Requiere acceso</Chip>;
+  if (s.blocked) return <Chip tone="bad">{s.blocked} detenidas</Chip>;
   if (s.rejected) return <Chip tone="bad">{s.rejected} con problema</Chip>;
   if (s.syncing) return <Chip tone="warn">Enviando…</Chip>;
   if (s.pending) return <Chip tone="warn">{s.pending} por enviar</Chip>;

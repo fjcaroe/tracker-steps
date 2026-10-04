@@ -6,7 +6,7 @@ import { memorySecureStore } from '../platform/secureStore';
 import { memoryKv } from '../shared/storage';
 import { FakeSteps } from '../testing/fakeServer';
 import { buildRegistration, colacionesApi, colacionesHandlers, groupFor as colGroup } from './colaciones/service';
-import { buildEvent, groupFor as tripGroup, mobilizationApi, mobilizationHandlers } from './mobilization/service';
+import { buildEvent, buildIncident, buildVoid, groupFor as tripGroup, mobilizationApi, mobilizationHandlers } from './mobilization/service';
 import { DurableQueue } from '../sync/queue';
 import type { ModuleManifest } from './registry';
 
@@ -239,5 +239,48 @@ describe('Movilización: asignación en Odoo → conductor → eventos con y sin
     // Tras revalidar, la app ya no tiene empresa activa: no llega a pedir nada al servidor.
     expect(c.session.getSnapshot().orgUid).toBeNull();
     await expect(mobilizationApi(c.session.api).trips()).rejects.toMatchObject({ code: 'organization_required' });
+  });
+
+  it('corregir una marca y reportar una incidencia sin señal: llegan en orden, una sola vez, y la marca queda anulada (no borrada)', async () => {
+    const d = server.addPerson('conductor@example.test'); server.grant(d.id, 'org-a', ['mobilization', 'conductor']);
+    const trip = server.addTrip('org-a', d.id, 'open');
+    const c = await device('conductor@example.test');
+    const g = tripGroup(trip.id);
+    server.offline = true;
+    const wrong = buildEvent({ type: 'boarding', method: 'barcode', identifier: 'BR0001' });
+    await c.runtime.enqueue({ module: 'mobilization', kind: 'event', group: g, payload: { tripId: trip.id, tripName: trip.name, event: wrong, label: 'Subida' } });
+    await c.runtime.enqueue({ module: 'mobilization', kind: 'event_void', group: g, payload: buildVoid(wrong, trip.id, 'Pasajero equivocado') });
+    const incident = buildIncident(trip.id, 'breakdown', 'Pinchazo en el km 12');
+    await c.runtime.enqueue({ module: 'mobilization', kind: 'incident', group: g, payload: incident });
+    await c.runtime.enqueue({ module: 'mobilization', kind: 'incident', group: g, payload: incident, id: (await c.runtime.ops('mobilization')).at(-1)!.id }); // doble pulsación
+    server.offline = false;
+    await c.runtime.sync();
+    expect(c.runtime.getSnapshot()).toMatchObject({ pending: 0, rejected: 0 });
+    expect(server.events.size).toBe(0);            // la marca equivocada quedó anulada en el servidor
+    expect(server.voided.size).toBe(1);
+    expect(server.incidents.size).toBe(1);
+    const paths = server.requests.map((r) => r.path).filter((p) => p.includes('/trips/'));
+    expect(paths.indexOf(`/mobilization/trips/${trip.id}/events`)).toBeLessThan(paths.indexOf(`/mobilization/trips/${trip.id}/events/void`)); // primero la marca, después su corrección
+    // Reenviar la corrección no duplica ni falla.
+    const q = c.runtime.queue()!;
+    await q.update(Object.fromEntries((await q.list()).filter((o) => o.kind !== 'event').map((o) => [o.id, { state: 'pending' as const }])));
+    await c.runtime.sync();
+    expect(c.runtime.getSnapshot()).toMatchObject({ pending: 0, rejected: 0 });
+    expect(server.incidents.size).toBe(1);
+  });
+
+  it('corregir una marca de OTRO conductor o inexistente se rechaza y se conserva el motivo', async () => {
+    const a = server.addPerson('a@example.test'), b = server.addPerson('b@example.test');
+    server.grant(a.id, 'org-a', ['mobilization', 'conductor']); server.grant(b.id, 'org-a', ['mobilization', 'conductor']);
+    const trip = server.addTrip('org-a', a.id, 'open');
+    const ca = await device('a@example.test');
+    const ev = buildEvent({ type: 'boarding', method: 'barcode', identifier: 'BR0001' });
+    await ca.runtime.enqueue({ module: 'mobilization', kind: 'event', group: tripGroup(trip.id), payload: { tripId: trip.id, tripName: trip.name, event: ev, label: 'x' } });
+    await ca.runtime.sync();
+    await ca.runtime.enqueue({ module: 'mobilization', kind: 'event_void', group: tripGroup(trip.id), payload: buildVoid({ ...ev, idempotency_key: 'no-existe' }, trip.id, 'x') });
+    await ca.runtime.sync();
+    const last = (await ca.runtime.ops('mobilization')).at(-1)!;
+    expect(last).toMatchObject({ state: 'rejected', error: 'event_not_found' });
+    expect(server.events.size).toBe(1);
   });
 });

@@ -47,6 +47,13 @@ export type Trip = {
   scheduled_time: string | null; route: string; direction: string; vehicle: string; capacity: number; aboard_count: number; boarded_count: number; alighted_count: number; overcapacity: boolean;
   events?: { idempotency_key: string; passenger: string; event_type: 'boarding' | 'alighting'; device_datetime: string; state: string; by: string | null }[];
   driver?: string;
+  stops?: { name: string; lat: number | null; lon: number | null }[];
+  aboard?: string[];
+  incidents?: { key: string; category: IncidentCategory; text: string; device_datetime: string; by: string }[];
 };
+export type IncidentCategory = 'breakdown' | 'delay' | 'passenger' | 'safety' | 'other';
 export type PassengerEvent = { idempotency_key: string; method: 'pin' | 'barcode' | 'nfc' | 'manual'; identifier?: string; passenger_id?: number; event_type: 'boarding' | 'alighting'; device_datetime: string; latitude?: number; longitude?: number; accuracy?: number; location_source?: 'gps' | 'network' | 'manual' };
 export type EventResult = { idempotency_key: string | null; status: 'created' | 'duplicate' | 'rejected' | 'retry'; message?: string; terminal: boolean };
+
+export type ContractOut = { ok: true; module: string; contract_version: number; extensions: string[] };
+export type SimpleResult = { ok: true; status: 'created' | 'duplicate' | 'voided' | 'rejected'; message?: string; terminal: boolean };

@@ -3,7 +3,8 @@
 // cuota o límite; el rechazo definitivo se conserva para diagnóstico, exportación y reintento.
 import { readJson, StorageError, writeJson, type KeyValueStore } from '../shared/storage';
 
-export type OpState = 'pending' | 'sending' | 'confirmed' | 'auth_required' | 'rejected';
+/** `blocked`: se agotaron los reintentos automáticos; la operación se conserva y solo una acción de la persona la reanuda. */
+export type OpState = 'pending' | 'sending' | 'confirmed' | 'auth_required' | 'rejected' | 'blocked';
 export type Scope = { personId: number; orgUid: string };
 
 export type QueueOp<P = unknown> = {
@@ -17,6 +18,8 @@ export type QueueOp<P = unknown> = {
   createdAt: string;
   state: OpState;
   attempts: number;
+  /** No se reintenta automáticamente antes de esta hora (espera progresiva). Un «Reintentar» manual la ignora. */
+  nextAttemptAt?: string;
   code?: string;
   error?: string;
   settledAt?: string;
@@ -77,16 +80,22 @@ export class DurableQueue {
       const ops = await this.read();
       let n = 0;
       const next = ops.map((o) => {
-        if ((o.state === 'rejected' || o.state === 'auth_required') && (!ids || ids.includes(o.id))) {
+        if ((o.state === 'rejected' || o.state === 'auth_required' || o.state === 'blocked') && (!ids || ids.includes(o.id))) {
           n += 1;
-          const { error: _e, code: _c, settledAt: _s, ...rest } = o;
-          return { ...rest, state: 'pending' as const };
+          const { error: _e, code: _c, settledAt: _s, nextAttemptAt: _n, ...rest } = o;
+          return { ...rest, state: 'pending' as const, attempts: 0 };
         }
         return o;
       });
       if (n) await writeJson(this.kv, this.key, next);
       return n;
     });
+  }
+
+  /** «Reintentar ahora»: reanuda lo detenido o en espera de acceso, sin repetir lo que el servidor ya rechazó por una regla de negocio. */
+  async requeueRecoverable(): Promise<number> {
+    const ids = (await this.read()).filter((o) => o.state === 'blocked' || o.state === 'auth_required').map((o) => o.id);
+    return ids.length ? this.requeue(ids) : 0;
   }
 
   /** Reanuda las operaciones que solo esperaban una sesión válida (no las bloqueadas por permisos ni las rechazadas). */
@@ -108,10 +117,10 @@ export class DurableQueue {
     return JSON.stringify({ exportedAt: new Date().toISOString(), scope: this.scope, ops: await this.read() }, null, 2);
   }
 
-  async counts(): Promise<{ pending: number; rejected: number; authRequired: number; confirmed: number }> {
+  async counts(): Promise<{ pending: number; rejected: number; authRequired: number; blocked: number; confirmed: number }> {
     const ops = await this.list();
     const c = (s: OpState) => ops.filter((o) => o.state === s).length;
-    return { pending: c('pending') + c('sending'), rejected: c('rejected'), authRequired: c('auth_required'), confirmed: c('confirmed') };
+    return { pending: c('pending') + c('sending'), rejected: c('rejected'), authRequired: c('auth_required'), blocked: c('blocked'), confirmed: c('confirmed') };
   }
 }
 
@@ -123,7 +132,7 @@ export async function foreignQueues(kv: KeyValueStore, current: Scope | null): P
     const scope = { personId: Number(personId), orgUid: org.join('.') };
     if (current && scope.personId === current.personId && scope.orgUid === current.orgUid) continue;
     const ops = await readJson<QueueOp[]>(kv, key, []);
-    const pending = ops.filter((o) => o.state !== 'confirmed' && o.state !== 'rejected').length;
+    const pending = ops.filter((o) => o.state !== 'confirmed' && o.state !== 'rejected').length; // pendiente, enviando, bloqueada o esperando acceso
     const rejected = ops.filter((o) => o.state === 'rejected').length;
     if (pending || rejected) result.push({ scope, pending, rejected });
   }

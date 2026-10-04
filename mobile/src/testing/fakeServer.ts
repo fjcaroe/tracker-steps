@@ -34,6 +34,7 @@ export class FakeSteps {
   registrations = new Map<string, { employee: string; orgUid: string; operator: number; day: string; code: string }>();
   trips: { id: number; orgUid: string; driver: number; state: string; name: string }[] = [];
   events = new Map<string, { tripId: number; passenger: string; type: string; by: number }>();
+  recoveryCodes: Record<string, string> = {};
 
   // ---- utilidades de prueba ----
   addPerson(email: string, password = 'clave-segura-2026', name = email.split('@')[0]) {
@@ -116,6 +117,18 @@ export class FakeSteps {
       if (!p || p.password !== body.password) this.fail(401, 'invalid_credentials');
       return { ok: true, ...this.pair(p.id, String((body.device as Json).uuid)) };
     }
+    if (path === '/auth/recover/request') {
+      const p = this.people.find((x) => x.email === String(body.email).toLowerCase());
+      if (p) this.recoveryCodes[p.email] = `rec-${++this.seq}`; // en el servidor real viaja por correo
+      return { ok: true }; // misma respuesta exista o no la cuenta
+    }
+    if (path === '/auth/recover/confirm') {
+      const email = String(body.email).toLowerCase(); const p = this.people.find((x) => x.email === email);
+      if (!p || this.recoveryCodes[email] !== body.code) this.fail(400, 'invalid_recovery');
+      if (String(body.password).length < 10) this.fail(422, 'weak_password');
+      p.password = String(body.password); delete this.recoveryCodes[email]; this.revokeSessions(p.id);
+      return { ok: true };
+    }
     if (path === '/auth/refresh') {
       const s = this.sessions.find((x) => x.refresh === body.refresh_token || x.prevRefresh === body.refresh_token);
       if (!s || s.revoked) this.fail(401, 'session_invalid');
@@ -195,7 +208,7 @@ export class FakeSteps {
       return { ok: true, results };
     }
     // ---- Movilización ----
-    const tripMatch = path.match(/^\/mobilization\/trips\/(\d+)(\/\w+)?$/);
+    const tripMatch = path.match(/^\/mobilization\/trips\/(\d+)(\/[\w/]+)?$/);
     if (path === '/mobilization/trips') {
       const { person, membership } = this.auth(headers, true); this.require(membership!, 'mobilization.drive');
       return { ok: true, server_time: this.iso(), trips: this.trips.filter((t) => t.driver === person.id && t.orgUid === membership!.orgUid && ['draft', 'open'].includes(t.state)).map((t) => this.tripOut(t)) };
@@ -206,6 +219,8 @@ export class FakeSteps {
       if (!trip) this.fail(404, 'trip_not_found');
       if (tripMatch[2] === '/open') { this.require(membership!, 'mobilization.drive'); if (trip.state === 'draft') trip.state = 'open'; return { ok: true, trip: this.tripOut(trip) }; }
       if (tripMatch[2] === '/close') { this.require(membership!, 'mobilization.drive'); if (trip.state === 'open') trip.state = 'closed'; return { ok: true, trip: this.tripOut(trip) }; }
+      if (tripMatch[2] === '/events/void') return this.voidEvent(trip, membership!, person.id, body);
+      if (tripMatch[2] === '/incidents') return this.incident(trip, membership!, person.id, body);
       if (tripMatch[2] === '/events') {
         const results = (body.events as Json[]).map((e) => {
           const key = `${trip.id}:${e.idempotency_key}`;
@@ -223,16 +238,41 @@ export class FakeSteps {
       this.require(membership!, 'mobilization.drive');
       return { ok: true, trip: this.tripOut(trip, true) };
     }
+    if (path === '/mobilization/contract') { this.auth(headers, true); return { ok: true, module: 'mobilization', contract_version: 1, extensions: ['events', 'events_void', 'incidents', 'stops'] }; }
     if (path === '/mobilization/supervisor/trips') {
       const { membership } = this.auth(headers, true); this.require(membership!, 'mobilization.supervise');
       return { ok: true, date: '2026-10-04', trips: this.trips.filter((t) => t.orgUid === membership!.orgUid).map((t) => ({ ...this.tripOut(t, true), driver: this.people.find((p) => p.id === t.driver)?.name })) };
     }
     this.fail(404, 'not_found');
   }
+  voided = new Set<string>();
+  incidents = new Map<string, { tripId: number; text: string; by: number }>();
+  private voidEvent(trip: { id: number; state: string }, m: Membership, personId: number, body: Json): Json {
+    const at = Date.parse(String(body.device_datetime));
+    const why = this.okAt(m, 'mobilization', 'conductor', at);
+    if (why) return { ok: true, status: 'rejected', message: why, terminal: true };
+    const key = `${trip.id}:${body.idempotency_key}`; const ev = this.events.get(key);
+    if (this.voided.has(key)) return { ok: true, status: 'duplicate', terminal: true };
+    if (!ev || ev.by !== personId) return { ok: true, status: 'rejected', message: 'event_not_found', terminal: true };
+    if (trip.state !== 'open') return { ok: true, status: 'rejected', message: 'trip_not_open', terminal: true };
+    this.voided.add(key); this.events.delete(key);
+    return { ok: true, status: 'voided', terminal: true };
+  }
+  private incident(trip: { id: number }, m: Membership, personId: number, body: Json): Json {
+    const key = `${trip.id}:${body.key}`;
+    if (this.incidents.has(key)) return { ok: true, status: 'duplicate', terminal: true };
+    const why = this.okAt(m, 'mobilization', 'conductor', Date.parse(String(body.device_datetime)));
+    if (why) return { ok: true, status: 'rejected', message: why, terminal: true };
+    this.incidents.set(key, { tripId: trip.id, text: String(body.text), by: personId });
+    return { ok: true, status: 'created', terminal: true };
+  }
   private tripOut(t: { id: number; state: string; name: string }, withEvents = false): Json {
     const evs = [...this.events.entries()].filter(([, e]) => e.tripId === t.id);
     const boarded = evs.filter(([, e]) => e.type === 'boarding').length, alighted = evs.filter(([, e]) => e.type === 'alighting').length;
     const out: Json = { id: t.id, uuid: `uuid-${t.id}`, name: t.name, state: t.state, date: '2026-10-04', scheduled_time: null, route: 'Ruta prueba', direction: 'ida', vehicle: 'Bus 1', capacity: 2, aboard_count: boarded - alighted, boarded_count: boarded, alighted_count: alighted, overcapacity: boarded - alighted > 2 };
+    out.stops = [{ name: 'Fundo', lat: null, lon: null }, { name: 'Planta', lat: null, lon: null }];
+    if (withEvents) out.incidents = [...this.incidents.entries()].filter(([, i]) => i.tripId === t.id).map(([k, i]) => ({ key: k, category: 'other', text: i.text, device_datetime: this.iso(), by: this.people.find((p) => p.id === i.by)?.name ?? '' }));
+    out.aboard = evs.filter(([, e]) => e.type === 'boarding').map(([, e]) => e.passenger);
     if (withEvents) out.events = evs.map(([k, e]) => ({ idempotency_key: k, passenger: e.passenger, event_type: e.type, device_datetime: this.iso(), state: 'valid', by: this.people.find((p) => p.id === e.by)?.name ?? null }));
     return out;
   }

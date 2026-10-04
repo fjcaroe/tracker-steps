@@ -5,7 +5,7 @@ import { Runtime } from '../src/app/runtime';
 import { SessionManager } from '../src/app/session';
 import { MODULES } from '../src/modules';
 import { buildRegistration, colacionesApi, groupFor as colGroup } from '../src/modules/colaciones/service';
-import { buildEvent, groupFor as tripGroup, mobilizationApi } from '../src/modules/mobilization/service';
+import { buildEvent, buildIncident, buildVoid, groupFor as tripGroup, mobilizationApi } from '../src/modules/mobilization/service';
 import { supportedContracts } from '../src/modules/registry';
 import { memorySecureStore } from '../src/platform/secureStore';
 import { memoryKv } from '../src/shared/storage';
@@ -247,6 +247,27 @@ describe('Recorrido extremo a extremo con Odoo real', () => {
     await back.runtime.sync();
     const [t2b] = await admin.searchRead('step.movi.registry', [['id', '=', tripN]], ['state']);
     expect(t2b.state).toBe('open'); // al volver su dueño, se envía
+  });
+
+  it('Movilización (extensión v1): corregir una marca sin señal y reportar una incidencia; en Odoo la marca queda ANULADA, no borrada', async () => {
+    const multi = await signIn('multi@demo.steps.test', undefined, 'sur');
+    const tripId = S.trips.multi_sur, g = tripGroup(tripId);
+    const contract = await mobilizationApi(multi.session.api).contract();
+    expect(contract.extensions).toEqual(expect.arrayContaining(['events_void', 'incidents']));
+    const mark = buildEvent({ type: 'boarding', method: 'barcode', identifier: S.companies.sur.employee_barcodes['4'] });
+    net.down = true;
+    await multi.runtime.enqueue({ module: 'mobilization', kind: 'event', group: g, payload: { tripId, tripName: 'x', event: mark, label: 'Subida' } });
+    await multi.runtime.enqueue({ module: 'mobilization', kind: 'event_void', group: g, payload: buildVoid(mark, tripId, 'Pasajero equivocado') });
+    await multi.runtime.enqueue({ module: 'mobilization', kind: 'incident', group: g, payload: buildIncident(tripId, 'breakdown', 'Pinchazo en el km 12') });
+    net.down = false;
+    await multi.runtime.sync();
+    expect(multi.runtime.getSnapshot()).toMatchObject({ pending: 0, rejected: 0 });
+    const adminSur = await OdooUser.login(user('admin_sur'), S.password);
+    const events = await adminSur.searchRead('step.mobilization.passenger.event', [['trip_id', '=', tripId]], ['state', 'void_reason']);
+    expect(events).toEqual([expect.objectContaining({ state: 'void', void_reason: 'Pasajero equivocado' })]);
+    const [trip] = await adminSur.searchRead('step.movi.registry', [['id', '=', tripId]], ['boarded_count']);
+    expect(trip.boarded_count).toBe(0); // el contador refleja la anulación
+    expect(await adminSur.searchRead('step.app.mobilization.incident', [['trip_id', '=', tripId]], ['text', 'person_id'])).toHaveLength(1);
   });
 
   it('Recuperación de acceso y dispositivo perdido', async () => {

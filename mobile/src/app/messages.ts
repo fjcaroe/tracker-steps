@@ -11,6 +11,7 @@ const BY_CODE: Record<string, string> = {
   invalid_email: 'Revisa el correo: no parece válido.',
   invalid_invitation: 'El código de invitación no es válido o ya venció.',
   email_not_verified: 'Primero confirma tu correo con el código que te enviamos.',
+  invalid_recovery: 'El código de recuperación no es válido o ya venció. Pide uno nuevo.',
   invalid_verification: 'El código de verificación no es válido o ya venció.',
   invalid_org_code: 'No reconocemos ese código de empresa.',
   organization_not_authorized: 'No tienes acceso activo a esa empresa.',

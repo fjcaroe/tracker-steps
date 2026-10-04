@@ -113,5 +113,6 @@ function OpRow({ op }: { op: QueueOp }) {
   if (op.state === 'confirmed') return <li><span>{result?.employee ?? 'Entrega'}<small>{time} · {p.totemName}{result?.duplicate ? ' · ya estaba registrada' : ''}</small></span><Chip tone="ok">Confirmada</Chip></li>;
   if (op.state === 'rejected') return <li><span>Entrega de las {time}<small>{rejectionText(op.error)}</small></span><Chip tone="bad">Rechazada</Chip></li>;
   if (op.state === 'auth_required') return <li><span>Entrega de las {time}<small>Requiere que vuelvas a entrar o que se revise tu acceso.</small></span><Chip tone="bad">Requiere acceso</Chip></li>;
+  if (op.state === 'blocked') return <li><span>Entrega de las {time}<small>Se detuvo tras varios intentos. Toca «Reintentar» en Sincronización.</small></span><Chip tone="bad">Detenida</Chip></li>;
   return <li><span>Entrega de las {time}<small>{p.totemName} · se enviará al volver la señal</small></span><Chip tone="warn">Pendiente</Chip></li>;
 }
