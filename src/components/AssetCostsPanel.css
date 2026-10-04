@@ -1,0 +1,18 @@
+.asset-costs{margin-top:16px;padding-top:14px;border-top:1px solid #d7ded9}
+.asset-costs h3{margin:0 0 8px;font-size:15px}
+.asset-costs-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;align-items:end}
+.asset-costs-form label{display:grid;gap:3px;font-size:12px}
+.asset-costs-form input,.asset-costs-form select{min-height:36px;width:100%}
+.asset-costs-form button{min-height:36px}
+.asset-costs dl{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,1.4fr);gap:4px 10px;margin:10px 0}
+.asset-costs dt{font-weight:600}
+.asset-costs dd{margin:0;overflow-wrap:anywhere}
+.asset-costs small{display:block;color:#5b6f66}
+.asset-costs-indicators{list-style:none;margin:8px 0;padding:0;display:grid;gap:6px}
+.asset-costs-indicator{display:grid;gap:2px;padding:8px 10px;border-radius:8px;background:#eef3ef}
+.asset-costs-indicator--incomplete{background:#fff6dc}
+.asset-costs-indicator--unavailable{background:#f4e9e7}
+.asset-costs-error{color:#8a1f11}
+.asset-costs-note{font-size:12px;color:#44584f}
+.asset-costs details{margin:6px 0}
+.asset-costs details ul{padding-left:18px;margin:6px 0}

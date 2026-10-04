@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_tracker_usage_user,access.step.tracker.usage.user,model_step_tracker_usage,base.group_user,1,0,0,0
+access_step_tracker_usage_system,access.step.tracker.usage.system,model_step_tracker_usage,base.group_system,1,1,1,1
+access_step_tracker_cost_center_user,access.step.tracker.cost.center.user,model_step_tracker_cost_center,base.group_user,1,0,0,0
+access_step_tracker_cost_center_accounting,access.step.tracker.cost.center.accounting,model_step_tracker_cost_center,account.group_account_manager,1,1,0,0
+access_step_tracker_cost_center_system,access.step.tracker.cost.center.system,model_step_tracker_cost_center,base.group_system,1,1,1,1

@@ -10,11 +10,11 @@ import os
 import math
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, and_, or_
 from sqlalchemy import distinct
 from app.db.session import get_db
 from app.core.security import get_current_user, allowed_cost_center_ids, assert_cost_center_access
-from app.core.utils import haversine_m, _f, duration_hours, estimate_fuel_liters
+from app.core.utils import haversine_m, _f, _to_utc, duration_hours, estimate_fuel_liters
 from app.models.users import User
 from app.models.enums import TrackingStatus
 from app.models.sessions import TrackingSession, TrackingPoint
@@ -31,9 +31,11 @@ from app.schemas.sessions import (
     SessionSummaryOut,
     TrackingPointOut,
     TrackPointOut,
-    TrackResponse
+    TrackResponse,
+    SessionPeriodOut,
 )
 from fastapi import Query
+import base64
 
 router = APIRouter(prefix="", tags=["sessions"])
 
@@ -172,7 +174,9 @@ def search_sessions(
                 id=s.id,
                 machine_id=s.machine_id,
                 machine_name=machine_name,
+                driver_id=s.driver_id,
                 driver_name=driver_name,
+                cost_center_id=s.cost_center_id,
                 cost_center_name=cost_center_name,
                 started_at=s.started_at,
                 ended_at=s.ended_at,
@@ -194,6 +198,145 @@ def search_sessions(
             )
         )
     return out
+
+def _encode_period_cursor(started_at: datetime, session_id: uuid.UUID) -> str:
+    raw = f"{_to_utc(started_at).isoformat()}|{session_id}"
+    return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+def _decode_period_cursor(cursor: str):
+    try:
+        raw = base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)).decode()
+        ts_raw, id_raw = raw.split("|", 1)
+        return datetime.fromisoformat(ts_raw), uuid.UUID(id_raw)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Cursor inválido")
+
+
+def _summary_from_row(
+    s, machine_name, driver_name, cost_center_name, points_count,
+    work_order_id, labor_id, effort_factor, target_speed_kmh, machine_lph, machine_lpkm,
+) -> SessionSummaryOut:
+    dur_h = duration_hours(s.started_at, s.ended_at)
+    ef = _f(effort_factor)
+    eff_h = (dur_h * ef) if (dur_h is not None and ef is not None) else None
+    total_dist_m = _f(s.total_distance_m)
+    est_fuel = estimate_fuel_liters(
+        duration_h=dur_h,
+        total_distance_m=total_dist_m,
+        machine_lph=_f(machine_lph),
+        machine_lpkm=_f(machine_lpkm),
+        effort_factor=ef,
+    )
+    return SessionSummaryOut(
+        id=s.id,
+        machine_id=s.machine_id,
+        machine_name=machine_name,
+        driver_id=s.driver_id,
+        driver_name=driver_name,
+        cost_center_id=s.cost_center_id,
+        cost_center_name=cost_center_name,
+        started_at=s.started_at,
+        ended_at=s.ended_at,
+        status=s.status,
+        points_count=int(points_count or 0),
+        work_order_id=work_order_id,
+        labor_id=labor_id,
+        effort_factor=ef,
+        target_speed_kmh=_f(target_speed_kmh),
+        total_distance_m=total_dist_m,
+        avg_speed_kmh=_f(s.avg_speed_kmh),
+        duration_hours=dur_h,
+        effective_hours=eff_h,
+        estimated_fuel_liters=est_fuel,
+        last_point_ts=s.last_point_ts,
+        last_lat=_f(s.last_lat),
+        last_lon=_f(s.last_lon),
+        last_speed_mps=_f(s.last_speed_mps),
+    )
+
+
+@router.get("/sessions/period", response_model=SessionPeriodOut)
+def sessions_period(
+    # Toca el período toda sesión que empezó antes de `to` y no terminó antes
+    # de `from` (o sigue abierta). A diferencia de /sessions/search, que filtra
+    # por inicio, incluye las sesiones que cruzan el límite inferior.
+    date_from: datetime = Query(..., alias="from"),
+    date_to: datetime = Query(..., alias="to"),
+    cursor: Optional[str] = None,
+    limit: int = Query(500, ge=1, le=1000),
+    status: Optional[TrackingStatus] = None,
+    machine_id: int | None = None,
+    cost_center_id: int | None = None,
+    db: Session = Depends(get_db),
+    current: User = Depends(get_current_user),
+):
+    """Sesiones del período con paginación estable (orden: inicio, id).
+
+    Naive datetimes se interpretan como UTC. La respuesta incluye el total del
+    filtro; `complete` es verdadero únicamente en la última página.
+    """
+    date_from, date_to = _to_utc(date_from), _to_utc(date_to)
+    if date_to <= date_from:
+        raise HTTPException(status_code=400, detail="'to' must be greater than 'from'")
+
+    q = (
+        db.query(
+            TrackingSession,
+            Machine.name.label("machine_name"),
+            Driver.name.label("driver_name"),
+            CostCenter.name.label("cost_center_name"),
+            TrackingSession.points_count.label("points_count"),
+            WorkOrder.id.label("work_order_id"),
+            WorkOrder.labor_id.label("labor_id"),
+            Labor.effort_factor.label("effort_factor"),
+            Labor.target_speed_kmh.label("target_speed_kmh"),
+            Machine.fuel_consumption_lph.label("machine_lph"),
+            Machine.fuel_consumption_lpkm.label("machine_lpkm"),
+        )
+        .outerjoin(Machine, TrackingSession.machine_id == Machine.id)
+        .outerjoin(Driver, TrackingSession.driver_id == Driver.id)
+        .outerjoin(CostCenter, TrackingSession.cost_center_id == CostCenter.id)
+        .outerjoin(WorkOrder, TrackingSession.work_order_id == WorkOrder.id)
+        .outerjoin(Labor, WorkOrder.labor_id == Labor.id)
+        .filter(TrackingSession.started_at < date_to)
+        .filter(or_(TrackingSession.ended_at.is_(None), TrackingSession.ended_at >= date_from))
+    )
+
+    if not current.is_admin:
+        allowed_ids = allowed_cost_center_ids(db, current.id)
+        if not allowed_ids:
+            return SessionPeriodOut(items=[], next_cursor=None, complete=True, total=0)
+        q = q.filter(TrackingSession.cost_center_id.in_(allowed_ids))
+    if status is not None:
+        q = q.filter(TrackingSession.status == status)
+    if cost_center_id is not None:
+        if not current.is_admin and cost_center_id not in set(allowed_cost_center_ids(db, current.id)):
+            raise HTTPException(status_code=403, detail="Not allowed cost center")
+        q = q.filter(TrackingSession.cost_center_id == cost_center_id)
+    if machine_id is not None:
+        q = q.filter(TrackingSession.machine_id == machine_id)
+
+    total = q.count()
+    if cursor:
+        c_ts, c_id = _decode_period_cursor(cursor)
+        q = q.filter(or_(
+            TrackingSession.started_at > c_ts,
+            and_(TrackingSession.started_at == c_ts, TrackingSession.id > c_id),
+        ))
+    rows = q.order_by(TrackingSession.started_at.asc(), TrackingSession.id.asc()).limit(limit + 1).all()
+    page = rows[:limit]
+    next_cursor = None
+    if len(rows) > limit:
+        last = page[-1][0]
+        next_cursor = _encode_period_cursor(last.started_at, last.id)
+    return SessionPeriodOut(
+        items=[_summary_from_row(*row) for row in page],
+        next_cursor=next_cursor,
+        complete=next_cursor is None,
+        total=total,
+    )
+
 
 @router.get("/sessions/days", response_model=List[SessionsDayOut])
 def sessions_days(
@@ -746,7 +889,9 @@ def my_sessions(
             id=s.id,
             machine_id=s.machine_id,
             machine_name=machine_name,
+            driver_id=s.driver_id,
             driver_name=driver_name,
+            cost_center_id=s.cost_center_id,
             cost_center_name=cost_center_name,
             started_at=s.started_at,
             ended_at=s.ended_at,
@@ -791,7 +936,9 @@ def list_active_sessions(
             id=s.id,
             machine_id=s.machine_id,
             machine_name=machine_name,
+            driver_id=s.driver_id,
             driver_name=driver_name,
+            cost_center_id=s.cost_center_id,
             cost_center_name=cost_center_name,
             started_at=s.started_at,
             ended_at=s.ended_at,
@@ -915,7 +1062,9 @@ def list_recent_sessions(
                 id=s.id,
                 machine_id=s.machine_id,
                 machine_name=machine_name,
+                driver_id=s.driver_id,
                 driver_name=driver_name,
+                cost_center_id=s.cost_center_id,
                 cost_center_name=cost_center_name,
                 started_at=s.started_at,
                 ended_at=s.ended_at,

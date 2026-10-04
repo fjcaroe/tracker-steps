@@ -11,7 +11,7 @@ def health():
 def capabilities():
     return {
         "status": "ok",
-        "api_version": "2026.08.20",
+        "api_version": "2026.09.30",
         "capabilities": [
             "odoo_sync_v1",
             "master_drivers_crud",
@@ -20,5 +20,7 @@ def capabilities():
             "master_implements_crud",
             "master_fields_polygon_crud",
             "work_orders_manual_crud",
+            "sessions_period_v1",
+            "session_summary_ids_v1",
         ],
     }
