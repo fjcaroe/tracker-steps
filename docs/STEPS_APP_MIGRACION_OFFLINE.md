@@ -27,7 +27,9 @@ Hacer esto sin red es seguro: la compuerta no necesita servidor.
 - **Ámbito.** Una cola por `(persona, empresa)`; cada operación lleva `module`, `kind` y `group`. Cambiar de empresa o de cuenta no mezcla ni elimina pendientes; las colas ajenas se listan y se pueden exportar pero **nunca se envían con otra sesión** (`runQueue` se niega si `sessionPersonId ≠ scope.personId`).
 - **Persistir antes de anunciar.** `enqueue` escribe y verifica la lectura de vuelta; si falla lanza `StorageError` y la pantalla muestra el error (hay prueba de interfaz: no hay falso éxito).
 - **Idempotencia.** El UUID de la operación nace en el dispositivo y es la clave del servidor. Doble pulsación → misma operación.
-- **Estados.** `pending` → `sending` → `confirmed` | `rejected` | `auth_required`. Un `sending` heredado de un cierre brusco vuelve a `pending`.
+- **Estados.** `pending` → `sending` → `confirmed` | `rejected` | `auth_required` | `blocked` (reintentos agotados). Un `sending` heredado de un cierre brusco vuelve a `pending`. Un problema local de almacenamiento (cuota llena o bloqueado) se informa aparte (`storageProblem`): lo ya guardado no se toca y se reenvía después (el servidor es idempotente).
+- **Reintentos.** Espera progresiva 5 s → 15 min tras fallos del servidor; hasta 8 intentos automáticos y luego `blocked` (se conserva; solo una acción la reanuda). La falta de señal **no** cuenta ni espera: se reintenta al volver la conexión. «Reintentar ahora» ignora la espera y hace un intento real. Un arrendamiento en el almacenamiento reduce el doble envío entre pestañas; la idempotencia del servidor es la red final.
+- **Destino fijo.** Cada envío usa un cliente HTTP acotado a la persona y la empresa de SU cola: cambiar de empresa o cuenta a mitad de camino no cambia su destino (defecto real hallado con Odoo).
 - **Clasificación por contrato.** Un HTTP 400/404/409/422 del lote completo **no** descarta datos: se conserva y reintenta. Solo un `rejected` explícito por registro, o un código de negocio conocido del endpoint (`cannot_open`, `trip_not_found`…), es definitivo. 401/403 → `auth_required` y se detiene todo (no es rechazo del negocio). Red/5xx → se reintenta y detiene el envío.
 - **Un rechazo no bloquea a los demás**: ni a otras jornadas ni a otros módulos. Dentro de un grupo, un fallo transitorio sí detiene lo posterior (no se cierra un viaje antes de enviar sus marcas).
 - **Sin borrados automáticos.** Pendientes y rechazadas nunca se podan; solo se retiran confirmadas con más de 7 días. Cerrar sesión no toca las colas.
@@ -38,6 +40,10 @@ Hacer esto sin red es seguro: la compuerta no necesita servidor.
 ### Puntos GPS del Tracker (PR #15)
 
 El Tracker usa su propia cola de puntos. Se corrigieron (commit `162c3cf`): lote que solo sale de la cola si lo apartado se guardó y **verificó**; sin tope que expulse puntos antiguos; historial persistente de jornadas terminadas que descarta respuestas atrasadas del servidor; aviso, copia y reintento en la interfaz. Sigue en `localStorage`.
+
+### Migración local versionada (`mobile/src/migrations`)
+
+Diario `steps.migration.journal.v1`; pasos idempotentes, ordenados y reanudables. Paso 1 `snapshot_tracker_legacy`: copia las claves `steps_movil_*` (sin la credencial) a `steps.backup.tracker.v1.*`, **verifica cada clave leyéndola de vuelta** y solo entonces escribe el manifiesto; el origen no se toca (el Tracker sigue usándolo). Una interrupción o falta de espacio no deja una copia «válida» y se reintenta al siguiente arranque; repetirla no duplica ni pisa la copia original. `restoreTrackerBackup` recupera claves ausentes (o todas con `overwrite`). No se atribuye ningún dato a ningún usuario. Probado con datos representativos de una instalación 1.2.x (jornada activa, cola, 200 puntos, rechazados, ajustes).
 
 ## 3. Autorización sin conexión
 

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- La autoría de cada entrega registrada desde la app queda visible en la lista y en la ficha. -->
+    <record id="view_colacion_registration_list_steps_app" model="ir.ui.view">
+        <field name="name">step.colacion.registration.list.steps.app</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="inherit_id" ref="step_colaciones.view_colacion_registration_list"/>
+        <field name="arch" type="xml">
+            <field name="totem_id" position="after">
+                <field name="app_operator_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_colacion_registration_form_steps_app" model="ir.ui.view">
+        <field name="name">step.colacion.registration.form.steps.app</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="inherit_id" ref="step_colaciones.view_colacion_registration_form"/>
+        <field name="arch" type="xml">
+            <field name="employee_name_snapshot" position="after">
+                <field name="app_operator_id"/>
+                <field name="app_device_id" groups="step_mobile_portal.group_step_app_manager"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_colacion_registration_search_steps_app" model="ir.ui.view">
+        <field name="name">step.colacion.registration.search.steps.app</field>
+        <field name="model">step.colacion.registration</field>
+        <field name="inherit_id" ref="step_colaciones.view_colacion_registration_search"/>
+        <field name="arch" type="xml">
+            <search position="inside">
+                <field name="app_operator_id"/>
+                <filter name="from_app" string="Registradas desde la app" domain="[('app_operator_id', '!=', False)]"/>
+            </search>
+        </field>
+    </record>
+</odoo>

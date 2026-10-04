@@ -6,6 +6,6 @@
     "author": "Steps Consulting",
     "license": "LGPL-3",
     "depends": ["step_mobile_portal", "step_colaciones", "hr"],
-    "data": ["data/catalog.xml", "views/membership_views.xml"],
+    "data": ["data/catalog.xml", "views/membership_views.xml", "views/registration_views.xml"],
     "installable": True,
 }

@@ -1,36 +1,81 @@
-# Steps App — contrato de interfaz para GPT/Astra
+# Steps App — contrato de interfaz para GPT/Astra (actualizado 04-10-2026)
 
-La capa visual puede cambiar composición, jerarquía, iconografía y apariencia **sin tocar** permisos, migración ni sincronización. Todo lo de abajo ya funciona; no hay pantallas placeholder.
+La capa visual puede cambiar composición, jerarquía, iconografía y apariencia **sin tocar** autenticación, permisos, migración, almacenamiento ni sincronización. Todo lo de abajo ya funciona; no hay pantallas placeholder. Para verlo sin Odoo: `cd mobile && npm run demo` (ver §6).
 
-## 1. Mapa de pantallas
+## 1. Navegación y rutas
 
-| Pantalla | Archivo | Cuándo aparece | Estados que cubre |
+La app no usa URL por pantalla: la navegación es un pequeño estado en `app/App.tsx` (más rápido y compatible con Capacitor). Quien rediseñe puede introducir un router **sin cambiar los servicios**, siempre que respete estas condiciones de entrada:
+
+| Pantalla (id) | Archivo | Condición para mostrarla | Salidas |
 | --- | --- | --- | --- |
-| Bienvenida (ingresar / crear cuenta) | `app/screens/Welcome.tsx` | Sin sesión | error, cargando, aviso de sesión cerrada, botón Google solo si está configurado |
-| Incorporación | `app/screens/Onboarding.tsx` | Sesión sin empresa activa | sin empresa, invitación pendiente, solicitud en revisión, correo sin confirmar, error |
-| Elegir empresa | `app/screens/CompanyPicker.tsx` | Varias empresas activas y ninguna elegida | — |
-| Portada | `app/screens/Portal.tsx` | Empresa activa | validando, sin módulos, módulo incompatible, sin conexión (dentro/fuera de plazo), acciones frecuentes por permiso |
-| Contenedor de módulo | `app/screens/ModuleHost.tsx` | Al abrir un módulo | cargando, fallo del módulo aislado |
-| Colaciones — persona | `modules/colaciones/Colaciones.tsx` | Permiso `colaciones.read_own` | cargando, no vinculada, no habilitada, sin registros, error de red |
-| Colaciones — operador | ídem | Permiso `colaciones.register` | sin tótems, plazo offline vencido, guardado, error de guardado, estado por registro |
-| Movilización — conductor | `modules/mobilization/Mobilization.tsx` | `mobilization.drive` | sin servicios, por iniciar/en curso/finalizado, sobrecupo, ubicación denegada |
-| Movilización — supervisor | ídem | `mobilization.supervise` | sin servicios, error de red |
-| Tracker | `modules/tracker/**` | `tracker.session` | login propio, compuerta de propietario de datos locales |
-| Sincronización | `app/screens/SyncScreen.tsx` | Pestaña | pendientes, con problema, reintento, copia, datos de otra cuenta, puntos GPS rechazados |
-| Perfil | `app/screens/Profile.tsx` | Pestaña | empresa activa, accesos, dispositivos, privacidad, cerrar sesión (con aviso de pendientes), eliminar cuenta |
+| `welcome` | `app/screens/Welcome.tsx` | `session.status === 'signed_out'` | login / registro / recuperar → `onboarding` o `portal` |
+| `onboarding` | `app/screens/Onboarding.tsx` | sesión sin empresa activa y sin `needsOrgChoice` | aceptar invitación, solicitar acceso, confirmar correo |
+| `company-picker` | `app/screens/CompanyPicker.tsx` | `needsOrgChoice` (varias membresías activas) | `session.selectOrg(uid)` |
+| `portal` (tab *Inicio*) | `app/screens/Portal.tsx` | `orgUid` y `catalog` presentes | abrir módulo (`onOpen(id, view?)`) |
+| `module:<id>` | `app/screens/ModuleHost.tsx` | módulo visible por catálogo + permiso | `onExit()` |
+| `sync` (tab *Sincronización*) | `app/screens/SyncScreen.tsx` | empresa lista | reintentar, copia, otras cuentas |
+| `profile` (tab *Perfil*) | `app/screens/Profile.tsx` | sesión iniciada | cambiar empresa, dispositivos, privacidad, cerrar sesión, eliminar cuenta |
 
-## 2. Componentes compartidos y tokens
+Vistas internas de módulo (parámetro `view` de `ModuleProps`): Colaciones `persona` | `registrar`; Movilización `servicios` | `supervisor` (+ detalle de un servicio). Tracker conserva sus propias pestañas (`modules/tracker/**`).
 
-`shared/ui/index.tsx` (Button, Card, Chip, Banner, Empty, Spinner, Field, Sheet, Confirm, TopBar, NavBar). Tokens de espaciado, radios, tipografía, tamaño táctil y tonos en `shared/ui/tokens.css`; los colores base siguen en `styles.css` (`--green`, `--lime`, `--ink`, …). Reglas: objetivos ≥48 px, etiquetas accesibles, modo oscuro por `prefers-color-scheme`, texto adaptable por `--font-scale`.
+## 2. Estados que cada pantalla debe poder mostrar
 
-## 3. Límites entre vistas y servicios
+| Pantalla | Carga | Vacío | Error | Permisos | Offline |
+| --- | --- | --- | --- | --- | --- |
+| Bienvenida | botón «Un momento…» | — | mensaje por código (`app/messages.ts`) | aviso «sesión cerrada» (`notice`) | error de red claro |
+| Incorporación | — | sin empresa | mensaje en `Banner` | explica que crear cuenta no da acceso | requiere red para aceptar/solicitar |
+| Portada | «Validando tu acceso…» | «Aún no tienes módulos habilitados» | `notice` | acciones frecuentes solo con permiso; módulo incompatible → «actualiza la app» | `access`: `offline_valid` (aviso con hora límite) / `offline_expired` (bloquea acciones nuevas, conserva lo guardado) |
+| Colaciones persona | «Cargando…» | «no vinculada a un trabajador» / «sin registros» | reintentar | sin permiso → aviso | error con reintento |
+| Colaciones operador | «Cargando tótems…» | «no tienes tótems autorizados» | error de guardado (no hay falso éxito) | alcance por tótem | guarda en el teléfono; estado por registro |
+| Movilización conductor | «Cargando servicios…» | «no tienes servicios asignados» | reintentar | `driver_not_linked` | servicio por iniciar/en curso/finalizado según lo local |
+| Movilización supervisor | «Cargando…» | «no hay servicios hoy» | aviso | solo con `mobilization.supervise` | actualizar |
+| Sincronización | `syncing` | «No hay nada pendiente» | `storageProblem`, `lastHalt` | `auth_required` | `lastHalt: network` |
+| Perfil | dispositivos «Cargando…» | — | `Banner` | confirmaciones destructivas | cerrar sesión avisa de lo pendiente |
 
-- Las vistas **no** deciden permisos: preguntan `session.can('<permiso>')` y `visibleModules(...)`.
-- Las vistas **no** hablan HTTP directamente: usan `colacionesApi`, `mobilizationApi` y `runtime.enqueue/retry/ops`.
-- Cualquier escritura de campo pasa por `runtime.enqueue`, que **lanza** si no se pudo guardar; la vista debe mostrar ese error y nunca un éxito.
-- El texto de errores sale de `app/messages.ts` y de `rejectionText` de cada módulo (por código estable, no por texto del servidor).
-- Los estados de una operación son `pending | sending | confirmed | auth_required | rejected`; `STATE_LABEL` en `SyncScreen.tsx` los etiqueta.
+## 3. Componentes compartidos (`shared/ui`)
 
-## 4. Datos de demostración
+| Componente | Propiedades | Notas |
+| --- | --- | --- |
+| `Button` | `variant: 'default' \| 'primary' \| 'danger' \| 'quiet'`, props de `<button>` | objetivo ≥ 48 px |
+| `Card` | `label?` | sección con nombre accesible |
+| `Chip` | `tone: 'info' \| 'ok' \| 'warn' \| 'bad'` | estados de operación |
+| `Banner` | `tone` | `role="alert"` si `bad`, si no `status` |
+| `Empty` | `title`, `hint?` | estado vacío |
+| `Spinner` | `label?` | carga |
+| `Field` | `label`, `hint?` | etiqueta accesible + ayuda |
+| `ScanField` | `label`, `hint?`, `value`, `onChange` | teclear/lector/cámara (experimental) con alternativa siempre disponible |
+| `Sheet`, `Confirm` | `title`, `onClose` / `confirmLabel`, `onConfirm`, `onCancel`, `danger?` | hojas modales |
+| `TopBar`, `NavBar` | `title`, `onBack?`, `right?` / `items`, `current`, `onSelect` | `badge` en la pestaña de sincronización |
 
-`src/testing/fakeServer.ts` implementa el contrato `/steps_app/v1` en memoria con empresas «Empresa A/B», operadores, conductores y servicios ficticios. Es la fuente de las pruebas de pantalla (`app/App.test.tsx`) y sirve para capturas reproducibles. **No es evidencia del comportamiento de Odoo.**
+Tokens: `shared/ui/tokens.css` (espaciado, radios, tipografía, tamaño táctil, tonos claro/oscuro); colores base en `styles.css`. Estilos de componentes: `shared/ui/ui.css`.
+
+## 4. Límites entre vistas y servicios (lo que NO debe cambiar)
+
+- **Permisos:** `session.can('<permiso>')`, `visibleModules(...)`. Las vistas no deciden accesos.
+- **HTTP:** solo vía `colacionesApi`, `mobilizationApi`, `runtime.session.api`. Nada de `fetch` en vistas.
+- **Escritura de campo:** siempre `runtime.enqueue(...)`, que **lanza** `StorageError` si no se pudo guardar: mostrar ese error, nunca éxito.
+- **Estados de operación:** `pending | sending | confirmed | auth_required | rejected | blocked` (`STATE_LABEL` en `SyncScreen.tsx`); el motivo legible sale de `rejectionText` de cada módulo y `app/messages.ts`.
+- **Suscripciones:** `useSession()`, `useSyncState()`, `useRuntime()` (`app/context.tsx`).
+
+## 5. Datos de ejemplo y recorridos
+
+Los tipos están en `shared/contracts.ts`. Escenarios ficticios (`src/testing/demo.ts`, `?scenario=`):
+
+| Escenario | Qué muestra |
+| --- | --- |
+| `nuevo` | bienvenida → crear cuenta → incorporación sin empresa |
+| `conductor` | portada con «Mis servicios»; servicio «Ruta prueba» por iniciar |
+| `beneficiaria` | Colaciones persona con 6 registros de historial |
+| `pendientes` | teléfono **sin señal**, 2 entregas pendientes y 1 rechazada («no habilitado») |
+| `multiempresa` | elegir empresa; Norte: Colaciones+Tracker, Sur: Movilización |
+| `supervisor` | servicio en curso con un pasajero y su autor |
+| `sin-modulos` | empresa activa sin módulos |
+
+Recorridos que ya pasan en pruebas de pantalla (`app/App.test.tsx`, `testing/demo.test.tsx`) y contra Odoo real (`mobile/e2e`): registro → incorporación; ingreso → portada por permisos; operar sin señal → confirmada; rechazo con motivo; cambio de empresa; cierre de sesión con pendientes; recuperación de acceso.
+
+## 6. Cómo trabajar la apariencia
+
+1. `cd mobile && npm run demo` → abrir `/?scenario=<nombre>`. Franja roja permanente «MODO DEMOSTRACIÓN».
+2. Editar solo `shared/ui/*`, `styles.css`, y el JSX de `app/screens/*` / `modules/*/Colaciones.tsx|Mobilization.tsx`.
+3. Ejecutar `npm test` (las pruebas de pantalla buscan por **texto y rol accesibles**: si cambias un texto, actualiza la prueba; los roles/etiquetas son parte del contrato).
+4. No tocar `app/session.ts`, `app/api.ts`, `app/runtime.ts`, `sync/*`, `migrations/*`, `platform/*`, `modules/*/service.ts`.

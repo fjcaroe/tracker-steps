@@ -1,57 +1,82 @@
-# Steps App unificada — estado real de la entrega (04-10-2026)
+# Steps App unificada — estado real (actualizado 04-10-2026, segunda sesión)
 
-Rama: `codex/steps-movil`. Lo que sigue distingue **escrito**, **probado** y **pendiente**; no mezcla uno con otro.
+Rama de integración: **`codex/steps-movil`** (publicada). Todo lo de abajo distingue lo **comprobado**, lo pendiente de validación y lo bloqueado.
 
-## Matriz de estado
+## 1. Diagnóstico al comenzar esta sesión (lo que dijo la entrega anterior vs la realidad)
 
-| Capacidad | Implementado | Probado en web/Node | Probado en Odoo real | Probado en Android | Probado en iOS | Pendiente |
-| --- | --- | --- | --- | --- | --- | --- |
-| Núcleo de identidad, sesiones, autorización (puro) | Sí | **Sí** (20 pruebas) | No | — | — | — |
-| Modelos Odoo `step_mobile_portal*`, API y vistas | Sí | Solo sintaxis/pyflakes | **No** (no hay Odoo en el entorno) | — | — | Instalar y correr `odoo -i … --test-tags` |
-| Pruebas Odoo (TransactionCase/HttpCase, 4 módulos) | Escritas | — | **No ejecutadas** | — | — | Ejecutarlas; es probable que revelen ajustes |
-| Cliente: sesión, empresa, portada, onboarding | Sí | **Sí** (servidor falso del contrato) | No | No | No | Probar contra Odoo |
-| Cola durable, idempotencia, aislamiento, offline | Sí | **Sí** | No | No | No | Adaptador SQLite/IndexedDB (ADR-4) |
-| Colaciones (persona + operador) | Sí | **Sí** (recorrido y pantallas) | No | No | No | Cámara/escáner; reserva de colación (no existe en el dominio) |
-| Movilización (conductor + supervisor) | Sí | **Sí** (recorrido y pantallas) | No | No | No | GPS de ruta en segundo plano (no implementado); marcación manual por nombre (API lista, sin pantalla) |
-| Tracker como módulo, con datos conservados | Sí | **Sí** (suite previa + compuerta de propietario) | — | No | No | Unir persona↔usuario Tracker (ADR-6) |
-| PR #15: 3 defectos | Corregidos | **Sí** (regresiones) | — | No | No | — |
-| Google Sign-In | Servidor listo | Contrato del verificador | No | No | No | Client ID OAuth + plugin nativo (PKCE/sistema) |
-| Apple Sign-In | No | — | — | — | No | Requerido por 4.8 si hay registro público/Google en iOS |
-| Almacén seguro nativo | Código | — | — | **No** | **No** | Validar `@aparajita/capacitor-secure-storage` en dispositivo |
-| Proyecto Android/iOS actualizado (`cap sync`) | Sí | — | — | **Sin compilar** (no hay SDK) | **Sin compilar** (no hay macOS) | Compilar y probar |
-
-## Pruebas ejecutadas en esta entrega
-
-- `mobile/`: `npm test` → **117 pruebas, 11 archivos, aprobadas**; `npm run build` (incluye `tsc -b`) → correcto.
-- `python -m pytest -q tools/tests` → **20 aprobadas** (núcleo puro de autorización/sesiones/proveedores).
-- `pyflakes` sobre los cuatro addons: sin nombres indefinidos ni errores.
-- **No ejecutadas:** pruebas Odoo (sin Odoo/PostgreSQL de Odoo en el entorno; el servidor de nightly no es accesible), `backend/tracker_py` (dependencias no instaladas aquí; **sin cambios en backend**), cualquier prueba en Android/iOS. Los recorridos de cliente usan un **servidor falso** del contrato (`src/testing/fakeServer.ts`), que no demuestra que Odoo se comporte igual.
-
-## Cobertura de los criterios de aceptación
-
-| Criterio | Dónde se prueba hoy | Estado |
+| Afirmación de la entrega anterior | Estado real al comprobar | Evidencia |
 | --- | --- | --- |
-| Registro sin empresa no ve datos; invitación habilita solo lo asignado | `app/session.test.ts`, `App.test.tsx`; Odoo: `test_portal.py` | Web ✔ · Odoo escrito |
-| Token externo inválido/expirado; no unir por correo | `tools/tests` (verificador), `session.test.ts`; Odoo: `TestIdentity` | Núcleo ✔ · Odoo escrito |
-| Dos empresas/usuarios: aislamiento API, colas, dispositivos, administración | `journeys.test.ts`; Odoo: `TestAuthorization` | Cliente ✔ · Odoo escrito |
-| Revocación en línea y vencimiento offline | `session.test.ts`, `journeys.test.ts` | Web ✔ |
-| Colaciones: sin duplicados, permisos persona/operador separados | `journeys.test.ts`; `test_colaciones_app.py` | Web ✔ · Odoo escrito |
-| Movilización: conductor ajeno, eventos una vez con autoría | `journeys.test.ts`; `test_mobilization_app.py` | Web ✔ · Odoo escrito |
-| Tracker: cuota/fallos no pierden GPS; jornada cerrada no reaparece | `modules/tracker/lib/*.test.ts` | Web ✔ |
-| Reinicio/actualización/migración | Compuerta de propietario; cola releída tras reinicio simulado | Parcial: **no** se probó una actualización real sobre una instalación con datos |
-| Permisos nativos denegados, pérdida de señal, segundo plano | Ubicación denegada y sin red: sí (web); segundo plano nativo: no | Parcial |
+| Etapa 0: inventario, ADR, matriz, plan de migración | **Solo documentada**, correcta pero sin código que la sostuviera aún | `STEPS_APP_INVENTARIO_Y_ADR.md` |
+| Corrección de los 3 hallazgos de la PR #15 | **Implementada y comprobada** desde el primer momento con regresiones; ahora además con el reproductor oficial: fallan en el head `8797edb` y quedan corregidos | `162c3cf`, `docs/evidence/PR15_REGRESIONES.md`, `tools/reviews/pr15_repro.cjs` |
+| Etapa 1: módulo Odoo `step_mobile_portal` | **Implementada, pero NO había sido ejecutada** (no había Odoo). Al ejecutarla contra Odoo 18 real aparecieron **5 defectos** (fechas vacías = `False`, token de Google mal formado provocaba una petición de red, pruebas que revertían escrituras, `url_open`…) | commit `df51694` |
+| Etapa 2: Colaciones y Movilización con cola offline | **Implementada, comprobada solo contra un servidor falso**. Al integrarla con Odoo real apareció un defecto **serio**: un envío en curso usaba la empresa/cuenta *actual* y no la de su cola | commit `72616b0` |
+| Documentación, contrato visual, cierre Git | **Parcial**: sin demostración reproducible, sin guía, sin Odoo ejecutado | este documento y `STEPS_APP_DEMO.md` |
 
-## Qué falta por configuración o herramientas (acciones concretas)
+Conclusión: la base era correcta en diseño pero **no comprobada de extremo a extremo**; esta sesión la ejecutó contra Odoo real y corrigió lo que falló.
 
-1. **Odoo de prueba:** instalar los módulos y ejecutar sus pruebas (`docs/STEPS_APP_MIGRACION_OFFLINE.md §6`). Hasta entonces, el lado servidor es código revisado pero no ejecutado.
-2. **Google:** crear los ID de cliente OAuth (Web/Android/iOS), cargarlos en `step_app.google_client_ids` y elegir el plugin nativo; asignar `googleIdToken` en `platform/google.ts`.
-3. **Apple:** decidir y construir antes de publicar en iOS si hay registro público.
-4. **Android:** SDK de Android; compilar, instalar, probar almacenamiento seguro, HTTP nativo, ubicación y el comportamiento en segundo plano.
-5. **iOS:** macOS/Xcode o CI macOS; `pod install`, permisos de ubicación y Keychain.
-6. **Correo saliente de Odoo** para el código de verificación (`step_app.send_mail=1`).
-7. **Decisiones de datos:** dónde vive la identidad si hay varias bases Odoo (ADR-7); cómo unir una persona con su usuario Tracker existente (ADR-6); política de privacidad (URL para `VITE_PRIVACY_URL`).
-8. **Almacenamiento transaccional** (SQLite/IndexedDB) antes de añadir GPS continuo a Movilización.
+## 2. Matriz de estado
 
-## Integración y ramas
+Leyenda: ✅ comprobada · 🟡 implementada, pendiente de validación · 🔶 parcial · 📄 solo documentada · ⛔ bloqueada por dependencia externa.
 
-Todo está en `codex/steps-movil` (rama canónica de Steps Móvil), en commits separados: PR #15 corregida → inventario/ADR + núcleo Odoo → puentes Odoo → núcleo del cliente → app unificada → documentación. No se fusionó ninguna rama de otro producto; `step_mobilization` (solo en `develop`/`codex/cierre-cambios-locales`) se declara como dependencia del puente y **no se copió**. La rama de integración propuesta en el encargo (`integration/steps-app`) no se creó porque esta sesión tiene fijada la rama de entrega; puede derivarse sin reescribir historia. Web Tracker (`codex/web-tracker-redesign`) no se tocó. No se desplegó nada ni se publicó en tiendas.
+| Capacidad | Estado | Dónde / evidencia |
+| --- | --- | --- |
+| Núcleo Odoo: personas, identidades, membresías, concesiones, invitaciones, dispositivos, sesiones, auditoría | ✅ | `step_mobile_portal/`; 37 pruebas en Odoo 18 real |
+| Administración (asistente «Asignar módulos y roles», filtros, dispositivos, sesiones, identidades, vencimiento de invitaciones, verificación manual, código de recuperación) | ✅ | vistas validadas por Odoo al instalar; `tests/test_admin.py`; recorrido E2E pasos 1-2 |
+| Reglas por empresa con **usuarios reales** (admin de otra empresa, consulta, sin permisos) | ✅ | `test_admin.py` (15 casos) y E2E con `admin.norte`/`admin.sur`/`sin.acceso` |
+| Registro, ingreso, bloqueo por intentos, renovación rotatoria con detección de reutilización, cierre de sesión | ✅ | `test_portal.py`, `session.test.ts`, E2E |
+| Recuperación de acceso / teléfono perdido (código → contraseña nueva → todas las sesiones cerradas) y revocación de dispositivo (por el dueño o el administrador de su empresa) | ✅ | `TestRecovery`, E2E «Recuperación…», `App.test.tsx` |
+| Verificación de correo | 🔶 | El código solo viaja por correo (`step_app.send_mail=1`); sin correo saliente lo marca un administrador del sistema (auditado). No se probó un envío de correo real. |
+| Google | ⛔ | Verificador de servidor listo y probado (firma/emisor/audiencia/expiración, sin red ante basura); faltan ID de cliente OAuth y plugin nativo. El botón no aparece. |
+| Apple | ⛔📄 | No implementado (guía 4.8). |
+| Catálogo de módulos real (autorización del servidor; módulo deshabilitado corta endpoints y eventos; contrato incompatible → mensaje; módulo desconocido ignorado; respuesta atrasada descartada) | ✅ | `session.test.ts`, bridges `test_*_app.py`, E2E |
+| Colaciones: persona (habilitación e historial propios) y operador (alcance por tótem), duplicados, doble pulsación, no habilitado, tótem archivado, rechazo conservado, revocación | ✅ | `test_colaciones_app.py` (9), `journeys.test.ts`, E2E pasos 3-9 |
+| Colaciones: reservas/solicitudes | 📄 | **No existen en el dominio** (su «plan» es semanal por departamento). No se inventaron. |
+| Colaciones en modo compartido/tótem (emparejamiento propio) | 📄 | Un dispositivo `shared` se rechaza (`shared_device_pairing_required`); el tótem actual sigue con su token y su PWA. Pendiente de diseño. |
+| Movilización: servicios propios, detalle con paradas, abrir/cerrar, marcas por código, corrección de marcas (anular), incidencias, supervisor, autoría, identidad no suplantable | ✅ | `test_mobilization_app.py` (13), `journeys.test.ts`, E2E |
+| Movilización: lista previa de pasajeros autorizados por servicio | 📄 | El dominio no la tiene: se valida en servidor contra empleados activos de la empresa. |
+| Movilización: GPS de ruta en segundo plano | 📄 | No implementado ni afirmado. Posición puntual al marcar, con permiso denegado manejado. |
+| Cola durable: persistir antes de anunciar, estados, aislamiento por persona/empresa/módulo, idempotencia, orden por grupo, rechazo no bloquea a otros, no borra por límite/sesión/cuenta | ✅ | `sync.test.ts`, `hardening.test.ts`, `journeys.test.ts` |
+| Reintentos con espera progresiva y tope («detenida»), «Reintentar» = intento real, bloqueo por almacenamiento, un solo proceso enviando | ✅ | `hardening.test.ts` |
+| Carreras de cambio de empresa/cuenta durante un envío o una consulta | ✅ | `session.test.ts` (fallan sin el arreglo; verificado), E2E paso 10 |
+| Tracker integrado como módulo con sus datos; compuerta de propietario; copia de seguridad verificada; recuperación | ✅ (lógica) / 🟡 (instalación real) | `owner.test.ts`, `migrations.test.ts`, suite previa del Tracker. **No** se probó una actualización real sobre un teléfono con jornadas. |
+| Unir persona ↔ usuario Tracker (SSO) | 📄 | Pendiente de decisión de datos (ADR-6): hoy el Tracker conserva su login. |
+| Lectura de códigos con cámara | 🟡 | `platform/scanner.ts` (API web `BarcodeDetector`), probada con simulación; **sin validar en dispositivo**; la alternativa (teclear/lector) siempre existe. |
+| Interfaz completa (bienvenida, registro, recuperar, incorporación, empresa, inicio, Colaciones, Movilización, Tracker, perfil/dispositivos, sincronización) con carga/vacío/error/permiso/offline | ✅ (web) | `App.test.tsx`, `demo.test.tsx` |
+| Modo demostración con 7 escenarios ficticios | ✅ | `npm run demo`, `testing/demo.ts` |
+| Demostración reproducible contra Odoo real | ✅ | `tools/steps_app_demo/run_demo.sh`; `STEPS_APP_DEMO.md` |
+| Android: compilar/ejecutar | ⛔ | Sin SDK y `dl.google.com` inalcanzable. Instrucciones en `STEPS_APP_NATIVE.md`. |
+| iOS: compilar/ejecutar | ⛔ | Requiere macOS/Xcode. |
+| Almacén seguro nativo, HTTP nativo, segundo plano, permisos en dispositivo | 🟡 | Código y simulación; sin dispositivo. |
+
+## 3. Pruebas ejecutadas en esta sesión
+
+| Qué | Resultado |
+| --- | --- |
+| Odoo 18 real, base nueva, instalando los 4 addons: `--test-tags /step_mobile_portal,/step_mobile_portal_colaciones,/step_mobile_portal_mobilization` | **59 pruebas, 0 fallos** (37 portal + 9 Colaciones + 13 Movilización) |
+| Recorrido E2E cliente real ↔ Odoo real (`run_demo.sh`) | **8 pasos aprobados**, repetido desde base nueva varias veces |
+| `cd mobile && npm test` | **154 pruebas, 15 archivos, aprobadas**; `npm run build` correcto |
+| `python -m pytest -q tools/tests` | **22 aprobadas** |
+| Reproductor PR #15 | Falla en `8797edb`, correcto en la rama (ver evidencia) |
+| `npx cap sync android/ios`, `npx cap doctor` | Correctos / Xcode ausente |
+| **No ejecutado:** `backend/tracker_py` (dependencias no instaladas aquí; sin cambios en backend), Android/iOS, cualquier prueba en dispositivo |
+
+El Odoo usado es 18.0 (rama `18.0` de `odoo/odoo`) con PostgreSQL 16 local, **fuera del repositorio** (`/opt/odoo-env`), más `step_mobilization` de `origin/develop` como dependencia.
+
+## 4. Defectos reales encontrados al ejecutar (y corregidos)
+
+1. Odoo entrega fechas vacías como `False` y el núcleo comparaba con `None` → `TypeError` en vigencias.
+2. Un token de Google mal formado provocaba una petición de red a Google (latencia/DoS) → se descarta localmente.
+3. Deshabilitar un módulo en Odoo no cortaba el registro de eventos capturados antes (las concesiones seguían en la historia).
+4. **El contador de pasajeros del módulo base no se recalculaba al anular una marca** (`step_mobilization`): se redeclaró la dependencia en el puente. Conviene llevarla al módulo base.
+5. **Un envío en curso se hacía con la empresa o la cuenta *actuales***, no las de su cola: podía rechazar como «no encontrado» una operación legítima o mezclar empresas. Corregido con APIs acotadas a persona+empresa y descarte de respuestas atrasadas.
+6. Un arranque doble de la sesión reiniciaba el estado visible.
+
+## 5. Integración y ramas
+
+- **Integrado:** PR #15 (corregida), módulo Odoo + 3 puentes, cliente unificado con Tracker como módulo, demostración y documentación, todo en `codex/steps-movil` (commits `162c3cf` … `b30bda3` y los de cierre de esta sesión).
+- `step_mobilization` (solo en `develop`/`codex/cierre-cambios-locales`) **no se copió**: es dependencia declarada del puente.
+- Web Tracker (`codex/web-tracker-redesign`) no se tocó. **Nada se desplegó** ni se publicó en tiendas; el piloto no sustituye ninguna instalación vigente.
+
+## 6. Pendiente y bloqueos
+
+Ver `STEPS_APP_NATIVE.md §4` (lanzamiento), y: correo saliente real; Google/Apple; SQLite/IndexedDB antes de añadir GPS continuo; modo compartido de tótem; SSO con el usuario Tracker; limitación de tasa por IP; validar la actualización real sobre instalaciones con datos; llevar al módulo base la dependencia del contador.

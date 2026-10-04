@@ -83,3 +83,11 @@ Los tres defectos del informe se reprodujeron sobre el head `8797edb` (el inform
 ## 5. Ramas
 
 Rama de integración: `codex/steps-movil`. Esta sesión tiene fijada esa rama de entrega, por lo que no se creó una rama paralela; el trabajo está en commits separados por tema y puede moverse a `integration/steps-app` sin reescribir historia. No se fusionó ninguna rama completa de otro producto. `step_mobilization` se consume como dependencia declarada, no se copia.
+
+## 6. Adenda (segunda sesión)
+
+- **ADR-9 — Recuperación de acceso y teléfono perdido.** El código de recuperación (2 h) solo viaja por correo o lo emite un administrador **del sistema**; al usarlo se cierran **todas** las sesiones y dispositivos. Un administrador de empresa puede revocar el dispositivo de una persona solo si todos sus accesos están en sus empresas; si trabaja también en otra, decide el administrador del sistema (la revocación es global).
+- **ADR-10 — Destino fijo de cada envío.** El envío de una cola usa un API acotado a (persona, empresa); la sesión actual de la pantalla no puede redirigirlo.
+- **ADR-11 — `android:allowBackup=false`.** Una cola pertenece a un dispositivo y la credencial vive en el Keystore; restaurar por respaldo automático en otro teléfono es incorrecto. Consecuencia documentada en `STEPS_APP_NATIVE.md`.
+- **ADR-12 — Extensión v1 de Movilización** (anular marca propia, incidencias, paradas), versionada y convivencia con `/mobilization/v1` en `STEPS_APP_AUTORIZACION_API.md §3b`.
+- **Corrección de lo afirmado en ADR-4/§1:** el servidor ya **no** se supone correcto por inspección: se ejecutó contra Odoo 18 (ver `STEPS_APP_ESTADO.md §4`).

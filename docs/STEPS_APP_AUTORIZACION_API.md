@@ -38,13 +38,15 @@ JSON plano, `Cache-Control: no-store`, sin cookies ni CSRF (credencial = `Author
 | `POST /auth/refresh` | refresh | Rotación; presentar un refresh ya usado **revoca la sesión** (`session_revoked`). |
 | `POST /auth/logout` | sesión | Revoca la sesión actual. |
 | `POST /auth/link/google` | sesión | Vincula Google a la cuenta **autenticada** (prueba de control), nunca por correo. |
+| `POST /auth/recover/request`, `POST /auth/recover/confirm` | — | Recuperación de acceso: respuesta idéntica exista o no la cuenta; con el código (por correo o emitido por un administrador del sistema, vence en 2 h) se define una contraseña nueva y **se cierran todas las sesiones** (sirve para un teléfono perdido) y se levanta el bloqueo por intentos. |
 | `GET /me` | sesión | Persona, proveedores, membresías, estado de incorporación. |
 | `POST /invitations/accept` | sesión | Requiere código vigente y que el correo invitado esté **verificado** en la cuenta. |
 | `POST /access/request` | sesión | Solicita membresía con el código corto de empresa (no otorga acceso). |
 | `GET /catalog?supported=mod:ver,…` | sesión + org | Módulos autorizados y compatibles; informa los que exigen actualizar la app; `offline_until`. |
 | `GET /devices`, `POST /devices/<id>/revoke`, `POST /account/delete` | sesión | Gestión de dispositivos y solicitud de eliminación. |
-| `GET /colaciones/me`, `GET /colaciones/totems`, `POST /colaciones/register` | sesión + org | Ver §3. |
+| `GET /colaciones/me`, `GET /colaciones/totems`, `POST /colaciones/register` | sesión + org | Ver §3. Sin reservas ni solicitudes: el dominio de Colaciones no las modela (su «plan» es un agregado semanal por departamento, no por persona), así que no se inventó una operación que genere consumos incompatibles. |
 | `GET /mobilization/trips[/<id>]`, `POST …/open`, `…/close`, `…/events`, `GET /mobilization/passengers`, `GET /mobilization/supervisor/trips` | sesión + org | Ver §3. |
+| `POST /mobilization/trips/<id>/events/void`, `POST …/incidents`, `GET /mobilization/contract` | sesión + org | **Extensión v1** (ver §3b). |
 
 Sesiones: acceso 30 min, renovación 30 días rotatoria. Solo se guarda el SHA-256 de cada token. Revocar dispositivo o persona surte efecto en la siguiente llamada en línea.
 
@@ -53,6 +55,16 @@ Sesiones: acceso 30 min, renovación 30 días rotatoria. Solo se guarda el SHA-2
 - **Colaciones:** `client_uuid` por captura; reenviar nunca crea otra (UUID o mismo trabajador/producto/día → `duplicate`, que el cliente trata como confirmada). El lote responde un estado por UUID: `registered`, `duplicate`, `rejected` (definitivo) o `retry` (temporal). El **token del tótem no sale de Odoo** y no sustituye la sesión personal. La autoría del operador queda en `step.colacion.registration.app_operator_id`.
 - **Movilización:** `idempotency_key` por evento y dispositivo (`step.mobilization.passenger.event`, restricción única existente). El pasajero se resuelve en servidor (empleado activo de la empresa del viaje, por código o id): el conductor nunca recibe nóminas. Autoría en `app_person_id`. El dispositivo de la app se registra en `step.mobilization.driver.device` **sin token ni código de emparejamiento**, de modo que la API `/mobilization/v1` heredada no puede usarlo. Las credenciales de la API de dispositivos no se modificaron.
 - **Revocación (ADR-5).** Un evento capturado en `t` se acepta si una concesión (módulo+rol, y alcance si lo hay) estaba vigente en `t` **y** el acceso a la empresa no había terminado antes de `t` (`membership.access_ended_at`). Si no, se rechaza con `grant_not_valid_at_capture`, `access_ended_before_capture` o `resource_out_of_scope`. Para sincronizar tras una suspensión, el endpoint de eventos acepta una membresía ya terminada **solo** para evaluar la política por registro; las lecturas en línea quedan cerradas.
+
+## 3b. Extensión v1 de Movilización y convivencia con los clientes actuales
+
+El contrato existente (`/mobilization/v1`, credenciales de dispositivo) **no se modificó**. La app usa rutas propias `/steps_app/v1/mobilization/*` con sesión personal. Se agregó:
+
+- **Corregir una marca** (`events/void`): el conductor anula una marca **propia** de un servicio abierto; el evento no se borra (queda `void` con motivo, conforme al diseño append-only del módulo) y los contadores del viaje se recalculan. En `step_mobile_portal_mobilization` se redeclara la dependencia del cálculo `_compute_passenger_counts` (el módulo base no recalculaba al anular). *Se recomienda llevar esa dependencia a `step_mobilization`.*
+- **Incidencias** (`incidents`): modelo `step.app.mobilization.incident` (idempotente por viaje+clave, autoría de la persona, categorías acotadas) visible para el supervisor y en Odoo (*Movilización → Operación → Incidencias desde la app*).
+- **Detalle del servicio:** paradas (`hr.route.line`) y pasajeros confirmados a bordo. «Pasajeros autorizados» = empleados activos de la empresa del viaje: el dominio no tiene una lista previa por servicio, por lo que el conductor registra por código o nombre y el servidor valida; el conductor nunca recibe la nómina.
+- **`GET /mobilization/contract`** informa las extensiones del servidor para que un cliente más nuevo degrade con elegancia ante un Odoo más antiguo; un cliente más antiguo simplemente no usa las rutas nuevas. El catálogo ya filtra por versión de contrato (`app_update_required`).
+- La identidad **no viaja en el payload**: ni `chofer_id`, ni `person_id`, ni `trip_id`, ni `device_id` enviados por el cliente cambian el autor o el destino (hay prueba que lo intenta).
 
 ## 4. Configuración (parámetros del sistema, sin secretos en el repositorio)
 
