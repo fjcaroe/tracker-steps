@@ -33,7 +33,11 @@ class PortalCase(TransactionCase):
         return membership
 
     def assertApiError(self, code, func, *args, **kwargs):
-        with self.assertRaises(ApiError) as cm:
+        """No usa assertRaises: el de Odoo revierte con un savepoint lo escrito antes del error, y la API real
+        SÍ conserva esas escrituras (el controlador captura ApiError y la petición se confirma)."""
+        try:
             func(*args, **kwargs)
-        self.assertEqual(cm.exception.code, code)
-        return cm.exception
+        except ApiError as exc:
+            self.assertEqual(exc.code, code)
+            return exc
+        self.fail("No se lanzó ApiError(%s)" % code)

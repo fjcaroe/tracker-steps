@@ -202,7 +202,7 @@ class StepAppApi(models.AbstractModel):
         try:
             claims = providers.verify_google_id_token(id_token, self._google_client_ids())
         except providers.ProviderError as exc:
-            status = 503 if exc.code == "provider_not_configured" else 401
+            status = 503 if exc.code in ("provider_not_configured", "provider_unavailable") else 401
             raise ApiError(exc.code, status, _("No se pudo validar la cuenta de Google."))
         return self._login_external("google", claims, device)
 
@@ -235,7 +235,7 @@ class StepAppApi(models.AbstractModel):
         try:
             claims = providers.verify_google_id_token(id_token, self._google_client_ids())
         except providers.ProviderError as exc:
-            raise ApiError(exc.code, 503 if exc.code == "provider_not_configured" else 401)
+            raise ApiError(exc.code, 503 if exc.code in ("provider_not_configured", "provider_unavailable") else 401)
         Identity = self.env["step.app.identity"].sudo()
         existing = Identity.search([("provider", "=", "google"), ("subject", "=", claims["subject"])], limit=1)
         if existing and existing.person_id != ctx["person"]:

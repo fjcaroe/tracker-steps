@@ -49,8 +49,8 @@ class TestColacionesApp(HttpCase):
     def _call(self, method, path, session, payload=None):
         headers = {"Authorization": "Bearer " + session["access_token"], "X-Steps-Org": self.company.step_app_org_uid,
                    "Content-Type": "application/json"}
-        response = self.url_open("/steps_app/v1/colaciones" + path, data=json.dumps(payload) if payload is not None else None,
-                                 headers=headers, method=method)
+        response = self.url_open("/steps_app/v1/colaciones" + path, data=json.dumps(payload or {}) if method == "POST" else None,
+                                 headers=headers)
         return response.status_code, response.json()
 
     def _batch(self, session, records, totem=None):

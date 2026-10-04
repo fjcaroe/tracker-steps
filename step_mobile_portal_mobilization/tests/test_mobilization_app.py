@@ -51,8 +51,8 @@ class TestMobilizationApp(HttpCase):
     def _call(self, method, path, session, payload=None):
         headers = {"Authorization": "Bearer " + session["access_token"], "X-Steps-Org": self.company.step_app_org_uid,
                    "Content-Type": "application/json"}
-        response = self.url_open("/steps_app/v1/mobilization" + path, data=json.dumps(payload) if payload is not None else None,
-                                 headers=headers, method=method)
+        response = self.url_open("/steps_app/v1/mobilization" + path, data=json.dumps(payload or {}) if method == "POST" else None,
+                                 headers=headers)
         return response.status_code, response.json()
 
     def _event(self, key, when=None, identifier="P001", event_type="boarding"):
@@ -89,7 +89,8 @@ class TestMobilizationApp(HttpCase):
         self.assertEqual([r["status"] for r in body["results"]], ["duplicate", "duplicate"])
         events = trip.passenger_event_ids
         self.assertEqual(len(events), 2)
-        self.assertEqual(events.mapped("app_person_id.email"), ["c2@example.test"] * 2)
+        self.assertEqual(set(events.mapped("app_person_id.email")), {"c2@example.test"})
+        self.assertFalse(events.filtered(lambda e: not e.app_person_id))
 
     def test_pasajero_de_otra_empresa_o_desconocido_se_rechaza(self):
         trip = self._trip(self.driver1)

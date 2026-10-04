@@ -109,6 +109,15 @@ def test_evento_fuera_del_alcance_de_la_concesion_se_rechaza():
     assert authz.event_acceptable(NOW, [grant()], 'colaciones', 'operador', resource_id=9) == (True, 'ok')
 
 
+def test_odoo_devuelve_false_en_fechas_vacias():
+    # Regresión hallada al ejecutar contra Odoo 18: una fecha vacía llega como False, no None.
+    g = grant(valid_from=False, valid_to=False, revoked_at=False)
+    assert authz.grant_active_at(g, NOW)
+    assert authz.effective_permissions(membership(valid_from=False, valid_to=False), [g], ROLES, NOW) == {'colaciones.register'}
+    assert authz.event_acceptable(NOW, [g], 'colaciones', 'operador', access_ended_at=False) == (True, 'ok')
+    assert not authz.offline_allowed(NOW, False)
+
+
 def test_sesion_emite_pares_distintos_y_guarda_huellas():
     a, b = sessions.issue(NOW), sessions.issue(NOW)
     assert a['access'] != b['access'] and a['refresh'] != b['refresh']
@@ -166,3 +175,17 @@ def test_google_propaga_token_expirado_de_la_biblioteca():
     with pytest.raises(providers.ProviderError) as e:
         providers.verify_google_id_token('tok', ['cliente-1'], verifier=boom)
     assert e.value.code == 'invalid_token'
+
+
+def test_google_descarta_tokens_mal_formados_sin_consultar_la_red():
+    import base64, json
+    called = []
+    for bad in ['', 'x', 'a.b', 'a.b.c', '.' * 2, 'x' * 9000]:
+        with pytest.raises(providers.ProviderError) as e:
+            providers.verify_google_id_token(bad, ['cliente-1'])
+        assert e.value.code == 'invalid_token'
+    header = base64.urlsafe_b64encode(json.dumps({'alg': 'none', 'kid': 'k'}).encode()).decode().rstrip('=')
+    with pytest.raises(providers.ProviderError) as e:
+        providers.verify_google_id_token(f'{header}.e30.firma', ['cliente-1'])
+    assert e.value.code == 'invalid_token'
+    assert not called

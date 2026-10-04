@@ -10,7 +10,8 @@ DEFAULT_OFFLINE_HOURS = 72
 
 def _in_window(row, at: datetime) -> bool:
     start, end = row.get('valid_from'), row.get('valid_to')
-    return (start is None or start <= at) and (end is None or at < end)
+    # Odoo devuelve False (no None) para una fecha vacía: se trata como «sin límite».
+    return (not start or start <= at) and (not end or at < end)
 
 
 def membership_active_at(membership: dict, at: datetime) -> bool:
@@ -20,7 +21,7 @@ def membership_active_at(membership: dict, at: datetime) -> bool:
 def grant_active_at(grant: dict, at: datetime) -> bool:
     """Una concesión vale en `at` si estaba en vigencia y no se había revocado todavía."""
     revoked = grant.get('revoked_at')
-    if revoked is not None and revoked <= at:
+    if revoked and revoked <= at:
         return False
     return _in_window(grant, at)
 
@@ -59,7 +60,7 @@ def offline_until(validated_at: datetime, hours: int = DEFAULT_OFFLINE_HOURS) ->
 
 
 def offline_allowed(now: datetime, until) -> bool:
-    return until is not None and now < until
+    return bool(until) and now < until
 
 
 def event_acceptable(captured_at: datetime, grants, module: str, role: str, access_ended_at=None, resource_id=None):
@@ -69,7 +70,7 @@ def event_acceptable(captured_at: datetime, grants, module: str, role: str, acce
     acceso de la persona a la empresa no había terminado todavía, aunque hoy esté revocado o suspendido.
     Devuelve (aceptado, motivo).
     """
-    if access_ended_at is not None and captured_at >= access_ended_at:
+    if access_ended_at and captured_at >= access_ended_at:
         return False, 'access_ended_before_capture'
     candidates = [g for g in grants if g['module'] == module and g['role'] == role]
     if not candidates:
