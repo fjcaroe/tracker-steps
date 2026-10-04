@@ -130,6 +130,21 @@ class TestExportOperations(TransactionCase):
         self.assertAlmostEqual(line.claim_usd, 20)
         self.assertAlmostEqual(line.commission_usd, 125)
         self.assertAlmostEqual(line.fob_usd, 1005)
+        concept = self.env["step.export.exterior.expense.concept"].create({
+            "name": "Flete internacional T35", "company_id": settlement.company_id.id,
+        })
+        self.env["step.export.exterior.expense.line"].create({
+            "settlement_line_id": line.id, "concept_id": concept.id, "amount_usd": 25,
+        })
+        self.assertAlmostEqual(line.calculated_expenses_usd, 125)
+        self.assertAlmostEqual(line.fob_usd, 980)
+        line.write({"use_grade_detail": True, "grade_line_ids": [(0, 0, {
+            "tag_ids": [(6, 0, tag.ids)], "kg_qty": 1,
+            "sales_amount": 1000, "expense_per_kg_usd": 100,
+            "commission_rate": 0.1,
+        })]})
+        self.assertAlmostEqual(line.calculated_expenses_usd, 125)
+        self.assertAlmostEqual(line.fob_usd, 980)
         with self.assertRaises(ValidationError):
             settlement.action_validate()
 

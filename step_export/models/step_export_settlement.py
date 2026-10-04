@@ -176,7 +176,8 @@ class ReceiverSettlement(models.Model):
                         group_kg = sum(row._step_liquidation_kg() for row in grade.tag_ids)
                         grade_fob = grade.fob_usd * tag_kg / group_kg
                         claim_share = line.claim_usd * tag_kg / total_kg
-                        amount = grade_fob - claim_share
+                        expense_share = line.exterior_expenses_usd * tag_kg / total_kg
+                        amount = grade_fob - claim_share - expense_share
                     else:
                         amount = line.fob_usd * tag_kg / total_kg
                     tag_values.append((tag, shipment, tag_kg, amount))
@@ -317,6 +318,12 @@ class ReceiverSettlementLine(models.Model):
     usd_currency_id = fields.Many2one(related="settlement_id.usd_currency_id")
     sales_usd = fields.Monetary(currency_field="usd_currency_id", compute="_compute_amounts", store=True)
     expenses_usd = fields.Monetary(string="Gastos manuales USD", currency_field="usd_currency_id")
+    exterior_expense_line_ids = fields.One2many(
+        "step.export.exterior.expense.line", "settlement_line_id",
+        string="Conceptos de gastos en exterior")
+    exterior_expenses_usd = fields.Monetary(
+        string="Gastos por concepto USD", currency_field="usd_currency_id",
+        compute="_compute_amounts", store=True)
     calculated_expenses_usd = fields.Monetary(string="Gastos exterior USD", currency_field="usd_currency_id",
                                               compute="_compute_amounts", store=True)
     commission_rate = fields.Float(string="Comisión (0 a 1)", digits=(8, 4))
@@ -348,21 +355,26 @@ class ReceiverSettlementLine(models.Model):
             line.claim_usd = amount
 
     @api.depends("sales_amount", "settlement_id.rate_to_usd", "expenses_usd", "commission_rate",
+                 "exterior_expense_line_ids.amount_usd",
                  "use_grade_detail", "grade_line_ids.sales_usd", "grade_line_ids.expenses_usd",
                  "grade_line_ids.commission_usd", "grade_line_ids.fob_usd",
                  "claim_usd", "invoice_id.amount_total", "invoice_id.currency_id", "settlement_id.date")
     def _compute_amounts(self):
         for line in self:
+            line.exterior_expenses_usd = sum(line.exterior_expense_line_ids.mapped("amount_usd"))
             if line.use_grade_detail:
                 line.sales_usd = sum(line.grade_line_ids.mapped("sales_usd"))
-                line.calculated_expenses_usd = sum(line.grade_line_ids.mapped("expenses_usd"))
+                line.calculated_expenses_usd = (sum(line.grade_line_ids.mapped("expenses_usd"))
+                                                + line.exterior_expenses_usd)
                 line.commission_usd = sum(line.grade_line_ids.mapped("commission_usd"))
-                line.fob_usd = sum(line.grade_line_ids.mapped("fob_usd")) - line.claim_usd
+                line.fob_usd = (sum(line.grade_line_ids.mapped("fob_usd"))
+                                - line.claim_usd - line.exterior_expenses_usd)
             else:
                 line.sales_usd = line.sales_amount * line.settlement_id.rate_to_usd
-                line.calculated_expenses_usd = line.expenses_usd
+                line.calculated_expenses_usd = line.expenses_usd + line.exterior_expenses_usd
                 line.commission_usd = line.sales_usd * line.commission_rate
-                line.fob_usd = line.sales_usd - line.claim_usd - line.expenses_usd - line.commission_usd
+                line.fob_usd = (line.sales_usd - line.claim_usd
+                                - line.calculated_expenses_usd - line.commission_usd)
             line.initial_invoice_usd = line.invoice_id.currency_id._convert(
                 line.invoice_id.amount_untaxed, line.usd_currency_id, line.settlement_id.company_id,
                 line.invoice_id.invoice_date or line.settlement_id.date) if line.invoice_id else 0
@@ -382,6 +394,54 @@ class ReceiverSettlementLine(models.Model):
     def unlink(self):
         if any(line.settlement_id.state != "draft" for line in self):
             raise UserError(_("No elimine líneas de liquidación validadas."))
+        return super().unlink()
+
+
+class ExteriorExpenseConcept(models.Model):
+    _name = "step.export.exterior.expense.concept"
+    _description = "Concepto de gasto en exterior"
+    _order = "name"
+
+    name = fields.Char(required=True)
+    company_id = fields.Many2one("res.company", required=True,
+                                 default=lambda self: self.env.company)
+    active = fields.Boolean(default=True)
+
+
+class ExteriorExpenseLine(models.Model):
+    _name = "step.export.exterior.expense.line"
+    _description = "Gasto en exterior de liquidación"
+
+    settlement_line_id = fields.Many2one(
+        "step.export.receiver.settlement.line", required=True, ondelete="cascade")
+    company_id = fields.Many2one(related="settlement_line_id.settlement_id.company_id", store=True)
+    concept_id = fields.Many2one("step.export.exterior.expense.concept", required=True)
+    usd_currency_id = fields.Many2one(related="settlement_line_id.usd_currency_id")
+    amount_usd = fields.Monetary(required=True, currency_field="usd_currency_id")
+
+    @api.constrains("amount_usd", "concept_id", "company_id")
+    def _check_expense(self):
+        for line in self:
+            if line.amount_usd < 0 or line.concept_id.company_id != line.company_id:
+                raise ValidationError(_(
+                    "El gasto debe ser positivo y su concepto pertenecer a la empresa."))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        parents = self.env["step.export.receiver.settlement.line"].browse(
+            [vals["settlement_line_id"] for vals in vals_list if vals.get("settlement_line_id")])
+        if any(parent.settlement_id.state != "draft" for parent in parents):
+            raise UserError(_("No agregue gastos a una liquidación validada."))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals and any(line.settlement_line_id.settlement_id.state != "draft" for line in self):
+            raise UserError(_("No modifique gastos de una liquidación validada."))
+        return super().write(vals)
+
+    def unlink(self):
+        if any(line.settlement_line_id.settlement_id.state != "draft" for line in self):
+            raise UserError(_("No elimine gastos de una liquidación validada."))
         return super().unlink()
 
 

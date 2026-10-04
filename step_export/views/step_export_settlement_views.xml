@@ -23,7 +23,7 @@
             <notebook><page string="Embarques"><field name="line_ids" readonly="state != 'draft'">
                 <list editable="bottom"><field name="shipment_id"/><field name="invoice_id"/>
                     <field name="sales_amount"/><field name="sales_usd"/>
-                    <field name="claim_usd"/><field name="expenses_usd"/><field name="calculated_expenses_usd"/>
+                    <field name="claim_usd"/><field name="expenses_usd"/><field name="exterior_expenses_usd"/><field name="calculated_expenses_usd"/>
                     <field name="commission_rate"/><field name="commission_usd"/>
                     <field name="fob_usd"/><field name="initial_invoice_usd"/>
                     <field name="difference_usd"/><field name="external_adjustment_folio"/>
@@ -39,6 +39,9 @@
                             <field name="expense_per_kg_usd"/><field name="expenses_usd"/>
                             <field name="commission_rate"/><field name="commission_usd"/>
                             <field name="fob_usd"/></list>
+                    </field>
+                    <field name="exterior_expense_line_ids">
+                        <list editable="bottom"><field name="concept_id"/><field name="amount_usd"/></list>
                     </field>
                     <group><field name="claim_usd"/><field name="fob_usd"/>
                         <field name="initial_invoice_usd"/><field name="difference_usd"/></group>
