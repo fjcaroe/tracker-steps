@@ -44,6 +44,17 @@ class HandoffTest(unittest.TestCase):
         self.run_git(self.repo, "commit", "--allow-empty", "-m", "pending")
         self.assertIn("1 commit(s) sin subir", handoff.check(self.repo, True)["problems"][0])
 
+    def test_ignored_source_cannot_hide_in_temporary_folder(self):
+        (self.repo / ".gitignore").write_text("tmp/\n")
+        self.run_git(self.repo, "add", ".gitignore")
+        self.run_git(self.repo, "commit", "-m", "ignore temporary artifacts")
+        (self.repo / "tmp").mkdir()
+        (self.repo / "tmp" / "forgotten.py").write_text("value = 1\n")
+        vendor = self.repo / "tmp" / "node_modules"
+        vendor.mkdir()
+        (vendor / "vendor.js").write_text("// dependency\n")
+        self.assertIn("1 fuente(s) ignorada(s)", handoff.check(self.repo)["problems"][0])
+
     def test_missing_upstream_and_detached(self):
         self.run_git(self.repo, "checkout", "-b", "new")
         self.assertIn("rama sin upstream remoto", handoff.check(self.repo, True)["problems"])
