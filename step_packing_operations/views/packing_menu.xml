@@ -76,34 +76,38 @@
         action="step_export.action_step_export_packaging" sequence="30"/>
 
     <!-- Configuraciones: catálogos ya desarrollados en step_hr/step_export/step_packing -->
+    <menuitem id="menu_packing_config_fruit" name="Fruta"
+        parent="menu_packing_operations_config" sequence="10"/>
+    <menuitem id="menu_packing_config_packing" name="Packing"
+        parent="menu_packing_operations_config" sequence="20"/>
     <menuitem id="menu_packing_config_species" name="Especie"
-        parent="menu_packing_operations_config" action="step_hr.action_step_especie" sequence="10"/>
+        parent="menu_packing_config_fruit" action="step_hr.action_step_especie" sequence="10"/>
     <menuitem id="menu_packing_config_variety_group" name="Grupo variedad"
-        parent="menu_packing_operations_config" action="step_hr.action_step_grupo_variedad" sequence="20"/>
+        parent="menu_packing_config_fruit" action="step_hr.action_step_grupo_variedad" sequence="20"/>
     <menuitem id="menu_packing_config_variety" name="Variedad"
-        parent="menu_packing_operations_config" action="step_hr.action_step_variedad" sequence="30"/>
+        parent="menu_packing_config_fruit" action="step_hr.action_step_variedad" sequence="30"/>
     <menuitem id="menu_packing_config_caliber_group" name="Grupo de calibre"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_fruit"
         action="step_packing.action_step_packing_caliber_group" sequence="40"/>
     <menuitem id="menu_packing_config_fruit_caliber" name="Calibre de fruta"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_fruit"
         action="step_packing.action_step_packing_fruit_caliber" sequence="50"/>
     <menuitem id="menu_packing_config_fruit_category" name="Categoría de fruta"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_fruit"
         action="step_packing.action_step_packing_fruit_category" sequence="60"/>
     <menuitem id="menu_packing_config_process_line" name="Líneas de proceso"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_packing"
         action="step_packing.action_step_packing_line" sequence="70"/>
     <menuitem id="menu_packing_config_process_type" name="Tipo de proceso"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_packing"
         action="step_packing.action_step_packing_process_type" sequence="80"/>
     <menuitem id="menu_packing_config_tag_type" name="Tipo de tarja"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_packing"
         action="step_packing.action_step_packing_tag_type" sequence="90"/>
     <menuitem id="menu_packing_config_tag_state" name="Estado de tarja"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_packing"
         action="step_packing.action_step_packing_tag_state" sequence="100"/>
     <menuitem id="menu_packing_config_stop_reason" name="Causas detención líneas"
-        parent="menu_packing_operations_config"
+        parent="menu_packing_config_packing"
         action="step_packing.action_step_packing_stop_reason" sequence="110"/>
 </odoo>

@@ -197,6 +197,7 @@ class TestPackingOperations(TransactionCase):
         """El cierre de la OT traslada stock real (MP -> Producción -> PT) con
         traslados de Inventario comunes; en ningún momento se crea ni se exige
         una mrp.production para completar el proceso."""
+        existing_manufacturing_ids = set(self.env["mrp.production"].search([]).ids)
         order = self._order()
         order.action_validate()
         bom = self.env["mrp.bom"].create({
@@ -211,14 +212,16 @@ class TestPackingOperations(TransactionCase):
         self._stock(self.carton, 16)
         production = self._production(order, incoming, output, bom=bom)
         production.action_step_packing_validate()
-        self.assertFalse(self.env["mrp.production"].search([]))
+        self.assertEqual(set(self.env["mrp.production"].search([]).ids),
+                         existing_manufacturing_ids)
 
         production.action_step_packing_close()
 
         self.assertEqual(production.state, "closed")
         self.assertEqual(output.step_tag_state, "validated")
         self.assertEqual(incoming.step_tag_state, "processed")
-        self.assertFalse(self.env["mrp.production"].search([]))
+        self.assertEqual(set(self.env["mrp.production"].search([]).ids),
+                         existing_manufacturing_ids)
         self.assertEqual(production.input_picking_id.state, "done")
         self.assertEqual(production.output_picking_id.state, "done")
         self.assertEqual(production.material_picking_id.state, "done")
