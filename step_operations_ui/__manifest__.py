@@ -1,7 +1,7 @@
 {
     "name": "Steps - Experiencia Maquinaria y Fletes",
     "summary": "Portadas y estilo agrícola para Maquinaria y Fletes",
-    "version": "18.0.2.3.0",
+    "version": "18.0.2.4.0",
     "category": "Operations/Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",

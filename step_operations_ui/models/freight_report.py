@@ -15,12 +15,10 @@ def _table_exists(cr, table_name):
 
 
 class StepFreightCostReport(models.Model):
-    """Lectura de las líneas de costeo reales cargadas en Registro de fletes
-    (Studio: x_orden_de_flete_line_72953) con la fecha y el tramo de la orden.
+    """Read costed freight details so each route keeps its own amount.
 
-    Nota: depende de los nombres técnicos actuales de los campos/tablas creados
-    por Studio en x_orden_de_flete. Si esos campos se renombran o se migra el
-    formulario de Registro de fletes a código, esta vista SQL debe actualizarse.
+    The cost sheet groups by service, so its rows cannot identify a route when
+    an order contains multiple routes. Detail rows retain the route and value.
     """
 
     _name = "step.freight.cost.report"
@@ -42,16 +40,26 @@ class StepFreightCostReport(models.Model):
             self.env.cr.execute("""
                 CREATE OR REPLACE VIEW %s AS (
                     SELECT
-                        cost.id AS id,
+                        detail.id AS id,
                         ord.id AS order_id,
                         ord.x_studio_fecha AS order_date,
-                        ord.route_id AS route_id,
+                        detail.x_studio_tramo AS route_id,
                         ord.x_studio_transportista AS carrier_id,
-                        cost.x_studio_servicio_flete AS product_id,
-                        cost.x_studio_costo_flete AS amount,
+                        COALESCE(detail.service_product_id, sole_cost.product_id) AS product_id,
+                        detail.x_studio_valor_del_flete AS amount,
                         ord.company_id AS company_id
-                    FROM x_orden_de_flete_line_72953 cost
-                    JOIN x_orden_de_flete ord ON ord.id = cost.x_orden_de_flete_id
+                    FROM x_orden_de_flete_line_709f3 detail
+                    JOIN x_orden_de_flete ord ON ord.id = detail.x_orden_de_flete_id
+                    LEFT JOIN (
+                        SELECT x_orden_de_flete_id, MIN(x_studio_servicio_flete) AS product_id
+                        FROM x_orden_de_flete_line_72953
+                        GROUP BY x_orden_de_flete_id
+                        HAVING COUNT(DISTINCT x_studio_servicio_flete) = 1
+                    ) sole_cost ON sole_cost.x_orden_de_flete_id = ord.id
+                    WHERE EXISTS (
+                        SELECT 1 FROM x_orden_de_flete_line_72953 cost
+                        WHERE cost.x_orden_de_flete_id = ord.id
+                    )
                 )
             """ % self._table)
         else:

@@ -186,6 +186,26 @@ class TestFreightStudioCosting(TransactionCase):
         self.assertEqual(len(costs), 1, "Las líneas del mismo producto deben agruparse en un solo costeo.")
         self.assertEqual(costs.x_studio_costo_flete, 1000.0 + 2000.0)
 
+    def test_cost_report_keeps_each_detail_route(self):
+        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[
+            (0, 0, {
+                "x_studio_tramo": self.route.id,
+                "service_product_id": self.freight_product.id,
+                "x_studio_cantidad": 2,
+            }),
+            (0, 0, {
+                "x_studio_tramo": self.other_route.id,
+                "service_product_id": self.other_freight_product.id,
+                "x_studio_cantidad": 3,
+            }),
+        ])
+        order.action_cost_freight()
+        self.env.flush_all()
+        rows = self.env["step.freight.cost.report"].search([("order_id", "=", order.id)])
+        self.assertEqual(len(rows), 2)
+        self.assertEqual({(row.route_id.id, row.amount) for row in rows},
+                         {(self.route.id, 2000.0), (self.other_route.id, 90000.0)})
+
     def test_cost_freight_requires_route_on_detail(self):
         order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
             "service_product_id": self.freight_product.id,
