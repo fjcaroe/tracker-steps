@@ -1,18 +1,25 @@
-/* Fuente única de tokens de la app unificada. La capa visual (GPT/Astra) cambia estos valores sin tocar la lógica.
-   Los colores base (--green, --lime, --ink, --muted, --line, --bg, --card, --danger) siguen definidos en styles.css. */
+/* Tokens exclusivos de la presentación compartida; Tracker conserva sus variables. */
 :root {
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
   --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
-  --text-sm: 0.8125rem; --text-md: 1rem; --text-lg: 1.1875rem; --text-xl: 1.5rem;
+  --text-sm: .875rem; --text-md: 1rem; --text-lg: 1.1875rem; --text-xl: 1.5rem;
   --tap-min: 48px;
-  --tone-ok-bg: #e8f6dd; --tone-ok-fg: #285026;
-  --tone-warn-bg: #fff0de; --tone-warn-fg: #855012;
-  --tone-bad-bg: #fdecea; --tone-bad-fg: #b3261e;
+  --ui-accent: #123c33; --ui-on-accent: #fff; --ui-soft: #edf3ef; --ui-focus: #52751c;
+  --ui-shadow: 0 3px 14px #123c3306;
+  --tone-ok-bg: #e8f3e9; --tone-ok-fg: #285026;
+  --tone-warn-bg: #fff0de; --tone-warn-fg: #78480f;
+  --tone-bad-bg: #fdecea; --tone-bad-fg: #a3211b;
   --tone-info-bg: #e9eeec; --tone-info-fg: #345343;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-night=off]) {
+    --ui-accent: #d8ff62; --ui-on-accent: #123c33; --ui-soft: #1b3d32; --ui-focus: #d8ff62;
     --tone-ok-bg: #1f3d24; --tone-ok-fg: #bfe8b3; --tone-warn-bg: #4a3513; --tone-warn-fg: #f4d29a;
     --tone-bad-bg: #4d1c18; --tone-bad-fg: #f5b5ae; --tone-info-bg: #1f3a31; --tone-info-fg: #c3dacd;
   }
+}
+html[data-night=on] {
+  --ui-accent: #d8ff62; --ui-on-accent: #123c33; --ui-soft: #1b3d32; --ui-focus: #d8ff62;
+  --tone-ok-bg: #1f3d24; --tone-ok-fg: #bfe8b3; --tone-warn-bg: #4a3513; --tone-warn-fg: #f4d29a;
+  --tone-bad-bg: #4d1c18; --tone-bad-fg: #f5b5ae; --tone-info-bg: #1f3a31; --tone-info-fg: #c3dacd;
 }
