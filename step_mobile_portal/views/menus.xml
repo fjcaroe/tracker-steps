@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_step_app_root" name="Steps App" sequence="95" groups="group_step_app_user" web_icon="step_mobile_portal,static/description/icon.png"/>
+    <menuitem id="menu_step_app_memberships" name="Accesos" parent="menu_step_app_root" action="action_step_app_membership" sequence="10"/>
+    <menuitem id="menu_step_app_invitations" name="Invitaciones" parent="menu_step_app_root" action="action_step_app_invitation" sequence="20"/>
+    <menuitem id="menu_step_app_people" name="Personas" parent="menu_step_app_root" action="action_step_app_person" sequence="30"/>
+    <menuitem id="menu_step_app_audit" name="Auditoría" parent="menu_step_app_root" action="action_step_app_audit" sequence="40"/>
+    <menuitem id="menu_step_app_config" name="Configuración" parent="menu_step_app_root" sequence="90" groups="base.group_system"/>
+    <menuitem id="menu_step_app_modules" name="Módulos de la app" parent="menu_step_app_config" action="action_step_app_module" sequence="10"/>
+</odoo>

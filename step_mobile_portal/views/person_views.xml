@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_app_person_list" model="ir.ui.view">
+        <field name="name">step.app.person.list</field>
+        <field name="model">step.app.person</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="provider_summary"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_app_person_form" model="ir.ui.view">
+        <field name="name">step.app.person.form</field>
+        <field name="model">step.app.person</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_suspend" type="object" string="Suspender cuenta" invisible="state != 'active'" groups="base.group_system"/>
+                    <button name="action_reactivate" type="object" string="Reactivar" invisible="state != 'suspended'" groups="base.group_system"/>
+                    <button name="action_revoke_sessions" type="object" string="Cerrar todas las sesiones" groups="base.group_system"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="email"/>
+                        <field name="deletion_requested_at" invisible="not deletion_requested_at"/>
+                    </group>
+                    <notebook>
+                        <page string="Membresías">
+                            <field name="membership_ids" readonly="1">
+                                <list>
+                                    <field name="company_id"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="partner_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Identidades">
+                            <field name="identity_ids" readonly="1">
+                                <list>
+                                    <field name="provider"/>
+                                    <field name="email"/>
+                                    <field name="email_verified"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Dispositivos">
+                            <field name="device_ids" readonly="1">
+                                <list>
+                                    <field name="label"/>
+                                    <field name="platform"/>
+                                    <field name="app_version"/>
+                                    <field name="last_seen_at"/>
+                                    <field name="revoked_at"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_app_person" model="ir.actions.act_window">
+        <field name="name">Personas registradas</field>
+        <field name="res_model">step.app.person</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_step_app_audit_list" model="ir.ui.view">
+        <field name="name">step.app.audit.list</field>
+        <field name="model">step.app.audit</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="date"/>
+                <field name="action"/>
+                <field name="person_id"/>
+                <field name="company_id"/>
+                <field name="user_id"/>
+                <field name="detail"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_app_audit" model="ir.actions.act_window">
+        <field name="name">Auditoría de accesos</field>
+        <field name="res_model">step.app.audit</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

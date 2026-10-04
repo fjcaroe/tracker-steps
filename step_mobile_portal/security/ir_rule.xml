@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Un administrador solo ve y modifica lo de las empresas que tiene permitidas. -->
+    <record id="rule_step_app_membership_company" model="ir.rule">
+        <field name="name">Membresías: solo mis empresas</field>
+        <field name="model_id" ref="model_step_app_membership"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_app_grant_company" model="ir.rule">
+        <field name="name">Concesiones: solo mis empresas</field>
+        <field name="model_id" ref="model_step_app_grant"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_app_invitation_company" model="ir.rule">
+        <field name="name">Invitaciones: solo mis empresas</field>
+        <field name="model_id" ref="model_step_app_invitation"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_app_audit_company" model="ir.rule">
+        <field name="name">Auditoría: solo mis empresas</field>
+        <field name="model_id" ref="model_step_app_audit"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <!-- Personas, dispositivos y sesiones: solo quienes tienen alguna membresía en mis empresas. -->
+    <record id="rule_step_app_person_company" model="ir.rule">
+        <field name="name">Personas: con membresía en mis empresas</field>
+        <field name="model_id" ref="model_step_app_person"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('membership_ids.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_app_identity_company" model="ir.rule">
+        <field name="name">Identidades: con membresía en mis empresas</field>
+        <field name="model_id" ref="model_step_app_identity"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('person_id.membership_ids.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_app_device_company" model="ir.rule">
+        <field name="name">Dispositivos: con membresía en mis empresas</field>
+        <field name="model_id" ref="model_step_app_device"/>
+        <field name="groups" eval="[(4, ref('group_step_app_user'))]"/>
+        <field name="domain_force">[('person_id.membership_ids.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_app_session_company" model="ir.rule">
+        <field name="name">Sesiones: con membresía en mis empresas</field>
+        <field name="model_id" ref="model_step_app_session"/>
+        <field name="groups" eval="[(4, ref('group_step_app_manager'))]"/>
+        <field name="domain_force">[('person_id.membership_ids.company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>
