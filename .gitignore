@@ -34,3 +34,7 @@ backend/tracker_py/.env
 .tmp_manual/
 tmp/
 step_harvest_web/
+
+# Checkouts independientes: cada uno se verifica y versiona en su propio Git.
+/.worktrees/
+/step_harvest_web/
