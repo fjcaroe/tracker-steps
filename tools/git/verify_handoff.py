@@ -18,6 +18,15 @@ def check(path, require_pushed=False):
     status = git(path, "status", "--porcelain=v1", "--untracked-files=all")
     if status:
         problems.append(f"{len(status.splitlines())} archivo(s) pendiente(s)")
+    ignored = git(path, "ls-files", "--others", "--ignored", "--exclude-standard",
+                  "--", "tmp/", ".tmp_manual/", ".codex-tmp/", "output/").splitlines()
+    extensions = {".py", ".sh", ".js", ".ts", ".tsx", ".jsx", ".cjs", ".mjs",
+                  ".sql", ".ps1", ".xml", ".html", ".css"}
+    dependencies = {"node_modules", "__pycache__", "venv", ".venv", "site-packages"}
+    ignored_code = [name for name in ignored if Path(name).suffix in extensions
+                    and not set(Path(name).parts).intersection(dependencies)]
+    if ignored_code:
+        problems.append(f"{len(ignored_code)} fuente(s) ignorada(s) en carpetas temporales")
     branch = git(path, "branch", "--show-current")
     if not branch:
         problems.append("HEAD separado de una rama")
@@ -57,7 +66,8 @@ def main():
         print(json.dumps(results, ensure_ascii=False, indent=2))
     else:
         for result in results:
-            state = "; ".join(result["problems"]) or "limpio y publicado" if args.require_pushed else "; ".join(result["problems"]) or "limpio"
+            state = "; ".join(result["problems"]) or (
+                "limpio y publicado" if args.require_pushed else "limpio")
             print(f"{result['branch'] or '(detached)'} | {result['path']} | {state}")
     return int(any(result["problems"] for result in results))
 
