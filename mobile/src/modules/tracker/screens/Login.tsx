@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { login, type User } from '../lib/api';
 
-export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
+export default function Login({ onLogin, onExit }: { onLogin: (u: User) => void; onExit?: () => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -17,7 +17,7 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
 
   return (
     <main className="login">
-      <div className="login__hero"><span className="brand brand--big"><b>S</b>Steps <em>Móvil</em></span><p>Registra tu jornada, tu máquina y tu ruta desde el terreno.</p></div>
+      <div className="login__hero"><span className="brand brand--big"><b>S</b>Tracker</span><p>Registra tu jornada, tu máquina y tu ruta desde el terreno.</p></div>
       <form className="card login__form" onSubmit={submit}>
         <label>Usuario<input autoComplete="username" autoCapitalize="none" value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
         <label>Contraseña
@@ -26,7 +26,7 @@ export default function Login({ onLogin }: { onLogin: (u: User) => void }) {
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <button className="primary" disabled={busy || !username || !password}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
-        <a className="link center" href="/web/login?redirect=/truck/">Entrar con mi cuenta Odoo</a>
+        {onExit && <button type="button" className="link center" onClick={onExit}>‹ Volver al inicio de Steps</button>}
       </form>
     </main>
   );

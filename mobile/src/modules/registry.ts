@@ -5,7 +5,7 @@ import type { Api } from '../app/api';
 import type { Runtime } from '../app/runtime';
 import type { Handler } from '../sync/engine';
 
-export type ModuleProps = { runtime: Runtime; onExit: () => void };
+export type ModuleProps = { runtime: Runtime; onExit: () => void; /** Vista inicial pedida desde una acción frecuente de la portada. */ view?: string };
 
 export type ModuleManifest = {
   /** Identificador estable: coincide con `step.app.module.code` en Odoo. */
@@ -20,6 +20,8 @@ export type ModuleManifest = {
   capabilities: ('camera' | 'gps' | 'background-gps')[];
   /** El módulo se muestra si la persona tiene AL MENOS uno de estos permisos en la empresa activa. */
   requiredPermissions: string[];
+  /** Accesos directos de la portada; se muestran solo si la persona tiene el permiso. */
+  quickActions?: { id: string; label: string; permission: string }[];
   load: () => Promise<{ default: ComponentType<ModuleProps> }>;
   /** Handlers de sincronización, con clave `<módulo>:<tipo de operación>`. */
   handlers?: (api: Api) => Record<string, Handler>;

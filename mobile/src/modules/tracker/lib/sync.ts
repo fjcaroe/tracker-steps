@@ -25,12 +25,17 @@ export function pendingTotal(): number {
 const platform = (): string => { try { return (window as unknown as { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.() ?? 'web'; } catch { return 'web'; } };
 
 let running: Promise<number> | null = null;
+
+/** Compuerta de propietario: mientras devuelva false no se envía nada (datos de otra cuenta o de dueño desconocido). */
+let gate: () => boolean = () => true;
+export function setSyncGate(fn: () => boolean) { gate = fn; }
 let lastBeat = 0;
 let lastBeatPending = -1;
 const BEAT_EVERY_MS = 60_000;
 
 /** Ejecuta la cola y luego envía los puntos de la jornada activa (si ya existe en el servidor). Devuelve operaciones completadas. */
 export function syncAll(): Promise<number> {
+  if (!gate()) return Promise.resolve(0);
   if (running) return running;
   running = (async () => {
     const flushPoints = async (sessionId: string) => {

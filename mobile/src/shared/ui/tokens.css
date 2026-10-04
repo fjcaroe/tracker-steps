@@ -1,0 +1,18 @@
+/* Fuente única de tokens de la app unificada. La capa visual (GPT/Astra) cambia estos valores sin tocar la lógica.
+   Los colores base (--green, --lime, --ink, --muted, --line, --bg, --card, --danger) siguen definidos en styles.css. */
+:root {
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --radius-sm: 10px; --radius-md: 14px; --radius-lg: 20px;
+  --text-sm: 0.8125rem; --text-md: 1rem; --text-lg: 1.1875rem; --text-xl: 1.5rem;
+  --tap-min: 48px;
+  --tone-ok-bg: #e8f6dd; --tone-ok-fg: #285026;
+  --tone-warn-bg: #fff0de; --tone-warn-fg: #855012;
+  --tone-bad-bg: #fdecea; --tone-bad-fg: #b3261e;
+  --tone-info-bg: #e9eeec; --tone-info-fg: #345343;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tone-ok-bg: #1f3d24; --tone-ok-fg: #bfe8b3; --tone-warn-bg: #4a3513; --tone-warn-fg: #f4d29a;
+    --tone-bad-bg: #4d1c18; --tone-bad-fg: #f5b5ae; --tone-info-bg: #1f3a31; --tone-info-fg: #c3dacd;
+  }
+}

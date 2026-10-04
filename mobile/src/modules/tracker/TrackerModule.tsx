@@ -2,13 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { loginWithOdoo, me, refreshToken, setUnauthorizedHandler, tokenStore, type Task, type User } from './lib/api';
 import { activeStore } from './lib/queue';
 import { applySettings, loadSettings, saveSettings } from './lib/settings';
-import { pendingTotal } from './lib/sync';
+import { pendingTotal, setSyncGate } from './lib/sync';
+import { claimLocalData, ownerState, type OwnerState } from './lib/owner';
 import Login from './screens/Login';
 import Journey from './screens/Journey';
 import Tasks from './screens/Tasks';
 import History from './screens/History';
 import Profile, { HelpSheet } from './screens/Profile';
 import Supervisor from './screens/Supervisor';
+import OwnerGate from './screens/OwnerGate';
 
 type Tab = 'journey' | 'tasks' | 'history' | 'supervisor' | 'profile';
 const ALL_TABS: { id: Tab; label: string; icon: string; admin?: boolean }[] = [
@@ -29,13 +31,14 @@ async function renewIfDue() {
   try { await refreshToken(); localStorage.setItem(REFRESHED, String(Date.now())); } catch { /* sin red: se reintenta */ }
 }
 
-export default function App() {
+export default function TrackerModule({ onExit }: { onExit: () => void }) {
   const [user, setUser] = useState<User | null>(null);
   const [booting, setBooting] = useState(true);
   const [tab, setTab] = useState<Tab>('journey');
   const [online, setOnline] = useState(navigator.onLine);
   const [preset, setPreset] = useState<Task | null>(null);
   const [help, setHelp] = useState(false);
+  const [owner, setOwner] = useState<OwnerState>({ kind: 'ok' });
 
   const logout = useCallback(() => { tokenStore.set(null); setUser(null); }, []);
 
@@ -51,6 +54,9 @@ export default function App() {
   }, [logout]);
 
   useEffect(() => { if (user && !loadSettings().seenHelp) setHelp(true); }, [user]);
+  // Los datos locales viejos no se atribuyen solos a quien entre: sin dueño conocido se confirma; de otra cuenta, se bloquea el envío.
+  useEffect(() => { setOwner(user ? ownerState(user) : { kind: 'ok' }); }, [user]);
+  useEffect(() => { setSyncGate(() => owner.kind === 'ok'); return () => setSyncGate(() => true); }, [owner]);
 
   useEffect(() => {
     const on = () => setOnline(true), off = () => setOnline(false);
@@ -70,13 +76,15 @@ export default function App() {
   };
 
   if (booting) return <main className="boot" role="status"><span className="spinner" />Abriendo Steps…</main>;
-  if (!user) return <Login onLogin={setUser} />;
+  if (!user) return <Login onLogin={setUser} onExit={onExit} />;
+  if (owner.kind !== 'ok') return <OwnerGate state={owner} user={user} onClaim={() => { if (claimLocalData(user)) setOwner({ kind: 'ok' }); }} onLogout={logout} onExit={onExit} />;
   const tabs = ALL_TABS.filter((t) => !t.admin || user.is_admin);
 
   return (
     <div className="shell">
       <header className="topbar">
-        <span className="brand"><b>S</b>Steps <em>Móvil</em></span>
+        <button className="link" style={{ color: '#fff' }} onClick={onExit} aria-label="Volver al inicio de Steps">‹ Inicio</button>
+        <span className="brand"><b>S</b>Tracker</span>
         <span className="topbar__user">{user.full_name}</span>
       </header>
       {!online && <p className="banner" role="status">Sin conexión: todo se guarda en el teléfono y se envía al volver la señal.</p>}
