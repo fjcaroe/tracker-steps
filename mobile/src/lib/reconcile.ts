@@ -5,16 +5,23 @@ import type { Active } from './queue';
 export type Reconciled =
   | { kind: 'keep' }
   | { kind: 'closed' }
+  /** La persona ya terminó esta jornada en el teléfono; falta que el cierre llegue al servidor. */
+  | { kind: 'finished' }
   | { kind: 'choose'; candidates: SessionSummary[] };
 
-/** Decide qué hacer con la jornada local según las jornadas que el servidor conoce. */
-export function reconcile(local: Active | null, remote: SessionSummary[]): Reconciled {
+/**
+ * Decide qué hacer con la jornada local según las jornadas que el servidor conoce.
+ * `closing` son las jornadas ya terminadas en este teléfono con cierre pendiente de envío: el servidor
+ * todavía las ve abiertas, pero no deben ofrecerse para retomar ni seguir como activas.
+ */
+export function reconcile(local: Active | null, remote: SessionSummary[], closing: ReadonlySet<string> = new Set()): Reconciled {
   if (local) {
+    if (closing.has(local.sessionId)) return { kind: 'finished' };
     const found = remote.find((s) => s.id === local.sessionId);
     // Si el servidor no la lista (fuera de alcance o histórico antiguo) no se descarta: no perder datos.
     return found && found.status === 'closed' ? { kind: 'closed' } : { kind: 'keep' };
   }
-  const open = remote.filter((s) => s.status === 'open');
+  const open = remote.filter((s) => s.status === 'open' && !closing.has(s.id));
   return open.length ? { kind: 'choose', candidates: open } : { kind: 'keep' };
 }
 

@@ -44,6 +44,29 @@ describe('cola de puntos', () => {
   });
 });
 
+describe('rechazos del servidor al enviar puntos', () => {
+  const rejected = (status: number) => Object.assign(new Error(`HTTP ${status}`), { status });
+  it('un rechazo permanente guarda el lote aparte y sigue con el resto', async () => {
+    for (let i = 0; i < 60; i++) pointQueue.push('s1', point(i));
+    let calls = 0;
+    const sent = await pointQueue.flush('s1', async () => { if (++calls === 1) throw rejected(400); });
+    expect(sent).toBe(10);
+    expect(pointQueue.size('s1')).toBe(0);
+    expect(pointQueue.rejected().s1).toHaveLength(50);
+  });
+  it.each([0, 401, 403, 408, 429, 500, 503])('el estado %i es transitorio: los puntos siguen pendientes', async (status) => {
+    for (let i = 0; i < 3; i++) pointQueue.push('s1', point(i));
+    expect(await pointQueue.flush('s1', async () => { throw rejected(status); })).toBe(0);
+    expect(pointQueue.size('s1')).toBe(3);
+    expect(pointQueue.rejected()).toEqual({});
+  });
+  it('lo guardado aparte tiene tope para no llenar el almacenamiento del teléfono', async () => {
+    for (let i = 0; i < 3; i++) pointQueue.push('s1', point(i));
+    await pointQueue.flush('s1', async () => { throw rejected(400); }, 50, 2);
+    expect(pointQueue.rejected().s1.map((p) => p.ts)).toEqual([point(1).ts, point(2).ts]);
+  });
+});
+
 describe('formato', () => {
   it('duración y números con coma', () => {
     expect(formatDuration(3_725_000)).toBe('01:02:05');
@@ -65,6 +88,16 @@ describe('reconciliación con el servidor', () => {
   });
   it('limpia la jornada local si el servidor ya la cerró', () => {
     expect(reconcile(local('a'), [remote('a', 'closed')])).toEqual({ kind: 'closed' });
+  });
+  it('no ofrece retomar una jornada que el teléfono ya terminó y aún está por cerrar en el servidor', () => {
+    const r = reconcile(null, [remote('a', 'open'), remote('b', 'open')], new Set(['a']));
+    expect(r.kind === 'choose' && r.candidates.map((c) => c.id)).toEqual(['b']);
+    expect(reconcile(null, [remote('a', 'open')], new Set(['a']))).toEqual({ kind: 'keep' });
+  });
+  it('retira la jornada local que ya se terminó en el teléfono aunque el servidor la vea abierta', () => {
+    expect(reconcile(local('a'), [remote('a', 'open')], new Set(['a']))).toEqual({ kind: 'finished' });
+    expect(reconcile(local('a'), [], new Set(['a']))).toEqual({ kind: 'finished' });
+    expect(reconcile(local('a'), [remote('a', 'open')], new Set(['otra']))).toEqual({ kind: 'keep' });
   });
   it('ofrece retomar jornadas abiertas cuando el teléfono no tiene ninguna', () => {
     const r = reconcile(null, [remote('a', 'open'), remote('b', 'closed')]);
