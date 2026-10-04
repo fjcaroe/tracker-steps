@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 
 class StepAppIdentity(models.Model):
@@ -17,5 +18,19 @@ class StepAppIdentity(models.Model):
     locked_until = fields.Datetime()
     verify_token_hash = fields.Char(groups="base.group_system", copy=False)
     verify_expires_at = fields.Datetime(copy=False)
+    reset_token_hash = fields.Char(groups="base.group_system", copy=False)
+    reset_expires_at = fields.Datetime(copy=False)
+
+    def action_issue_recovery_code(self):
+        """Código de recuperación emitido por un administrador del sistema (p. ej. cuando el correo saliente no está configurado).
+        Se muestra una sola vez; solo se guarda su huella. Quien lo use define una contraseña nueva y se cierran todas sus sesiones."""
+        self.ensure_one()
+        if self.provider != "password":
+            raise UserError(_("Solo las cuentas con contraseña se recuperan con código."))
+        token = self.env["step.app.api"]._issue_recovery(self)
+        self.env["step.app.audit"].log("recovery_code_issued", person=self.person_id, detail="emitido por administrador")
+        return {"type": "ir.actions.client", "tag": "display_notification",
+                "params": {"title": _("Código de recuperación"), "sticky": True, "type": "success",
+                           "message": _("Entréguelo a %(name)s por un canal seguro (vence en 2 horas): %(token)s", name=self.person_id.name, token=token)}}
 
     _sql_constraints = [("provider_subject_unique", "unique(provider, subject)", "Esta identidad ya está registrada.")]

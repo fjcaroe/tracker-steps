@@ -84,6 +84,17 @@ class StepsAppController(http.Controller):
         b = read_body()
         return service().verify_email(b.get("email"), b.get("code"))
 
+    @http.route("/steps_app/v1/auth/recover/request", type="http", auth="public", methods=["POST"], csrf=False)
+    @handle
+    def recover_request(self, **kw):
+        return service().recover_request(read_body().get("email"))
+
+    @http.route("/steps_app/v1/auth/recover/confirm", type="http", auth="public", methods=["POST"], csrf=False)
+    @handle
+    def recover_confirm(self, **kw):
+        b = read_body()
+        return service().recover_confirm(b.get("email"), b.get("code"), b.get("password"))
+
     @http.route("/steps_app/v1/auth/login", type="http", auth="public", methods=["POST"], csrf=False)
     @handle
     def login(self, **kw):

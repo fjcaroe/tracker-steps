@@ -5,6 +5,7 @@ from . import identity
 from . import membership
 from . import grant
 from . import invitation
+from . import grant_wizard
 from . import device
 from . import session
 from . import audit

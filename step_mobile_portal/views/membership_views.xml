@@ -20,7 +20,8 @@
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button name="action_approve" type="object" string="Aprobar / reactivar" class="btn-primary" invisible="state not in ('requested', 'invited', 'suspended')"/>
+                    <button name="action_open_assign_wizard" type="object" string="Asignar módulos y roles" class="btn-primary" invisible="state == 'revoked'"/>
+                    <button name="action_approve" type="object" string="Aprobar / reactivar" invisible="state not in ('requested', 'invited', 'suspended')"/>
                     <button name="action_suspend" type="object" string="Suspender" invisible="state != 'active'"/>
                     <button name="action_revoke" type="object" string="Revocar" invisible="state in ('revoked',)" confirm="Se revocarán también todas sus concesiones. ¿Continuar?"/>
                     <field name="state" widget="statusbar"/>
@@ -74,6 +75,14 @@
                 <field name="company_id"/>
                 <filter name="requested" string="Solicitudes" domain="[('state', '=', 'requested')]"/>
                 <filter name="active" string="Activas" domain="[('state', '=', 'active')]"/>
+                <filter name="invited" string="Invitadas" domain="[('state', '=', 'invited')]"/>
+                <filter name="suspended" string="Suspendidas" domain="[('state', '=', 'suspended')]"/>
+                <filter name="revoked" string="Revocadas" domain="[('state', '=', 'revoked')]"/>
+                <filter name="no_grants" string="Activas sin módulos" domain="[('state', '=', 'active'), ('grant_ids', '=', False)]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="by_company" string="Empresa" context="{'group_by': 'company_id'}"/>
+                    <filter name="by_state" string="Estado" context="{'group_by': 'state'}"/>
+                </group>
             </search>
         </field>
     </record>
@@ -116,6 +125,20 @@
                     </field>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <record id="view_step_app_invitation_search" model="ir.ui.view">
+        <field name="name">step.app.invitation.search</field>
+        <field name="model">step.app.invitation</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="email"/>
+                <field name="company_id"/>
+                <filter name="pending" string="Pendientes" domain="[('state', '=', 'pending')]"/>
+                <filter name="expired" string="Vencidas" domain="[('state', '=', 'expired')]"/>
+                <filter name="accepted" string="Aceptadas" domain="[('state', '=', 'accepted')]"/>
+            </search>
         </field>
     </record>
 

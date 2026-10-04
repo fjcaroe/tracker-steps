@@ -120,3 +120,24 @@ class TestColacionesApp(HttpCase):
         membership.action_revoke()
         status, body = self._call("GET", "/totems", session)
         self.assertEqual((status, body["error"]), (403, "organization_not_authorized"))
+
+    def test_beneficiario_no_habilitado_y_doble_pulsacion_en_el_mismo_lote(self):
+        self.env["hr.employee"].create({"name": "Sin colación", "company_id": self.company.id, "meal_eligible": False, "barcode": "BR0009"})
+        session, _m = self._session("op7@example.test", [self.role_op], DEVICE | {"uuid": "dev-op7"})
+        same = {"client_uuid": "dbl-1", "identifier": "BR0001", "offline": False}
+        status, body = self._batch(session, [same, same, {"client_uuid": "ne-1", "identifier": "BR0009", "offline": False},
+                                              {"client_uuid": "ne-2", "identifier": "NOEXISTE", "offline": False}])
+        self.assertEqual([r["status"] for r in body["results"]], ["registered", "duplicate", "rejected", "rejected"])
+        self.assertIn("habilitado", body["results"][2]["message"])
+        self.assertEqual(self.env["step.colacion.registration"].search_count([("client_uuid", "=", "dbl-1")]), 1)
+
+    def test_totem_archivado_y_modulo_deshabilitado(self):
+        session, _m = self._session("op8@example.test", [self.role_op], DEVICE | {"uuid": "dev-op8"})
+        self.totem2.active = False
+        status, body = self._batch(session, [{"client_uuid": "ar-1", "identifier": "BR0001", "offline": False}], self.totem2)
+        self.assertEqual((status, body["error"]), (403, "totem_not_authorized"))
+        self.assertEqual(self._call("GET", "/totems", session)[0], 200)
+        self.role_op.module_id.active = False
+        self.assertEqual(self._call("GET", "/totems", session)[0], 403)
+        self.assertEqual(self._batch(session, [{"client_uuid": "ar-2", "identifier": "BR0001", "offline": False}])[1]["results"][0]["status"], "rejected")
+        self.assertFalse(self.env["step.colacion.registration"].search([("client_uuid", "=", "ar-2")]))

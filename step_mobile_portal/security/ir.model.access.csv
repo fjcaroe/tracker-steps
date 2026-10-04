@@ -26,3 +26,4 @@ access_step_app_session_system,step.app.session system,model_step_app_session,ba
 access_step_app_identity_system,step.app.identity system,model_step_app_identity,base.group_system,1,1,0,0
 access_step_app_module_system,step.app.module system,model_step_app_module,base.group_system,1,1,1,1
 access_step_app_module_role_system,step.app.module.role system,model_step_app_module_role,base.group_system,1,1,1,1
+access_step_app_grant_wizard_manager,step.app.grant.wizard manager,model_step_app_grant_wizard,group_step_app_manager,1,1,1,1

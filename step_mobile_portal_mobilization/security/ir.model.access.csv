@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_app_mobilization_incident_user,step.app.mobilization.incident user,model_step_app_mobilization_incident,step_mobilization.group_mobilization_user,1,0,0,0
+access_step_app_mobilization_incident_operator,step.app.mobilization.incident operator,model_step_app_mobilization_incident,step_mobilization.group_mobilization_operator,1,0,0,0

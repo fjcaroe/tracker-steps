@@ -15,6 +15,8 @@ from odoo.addons.step_mobile_portal.lib.step_app_core.errors import ApiError
 
 MODULE = "mobilization"
 MAX_EVENTS = 200
+INCIDENT_CATEGORIES = ("breakdown", "delay", "passenger", "safety", "other")
+CONTRACT_EXTENSIONS = ["events", "events_void", "incidents", "stops"]
 METHODS = ("pin", "barcode", "nfc", "manual")
 EVENT_TYPES = ("boarding", "alighting")
 
@@ -53,12 +55,17 @@ def _trip_payload(trip, with_events=False):
         "vehicle": trip.vehicle_id.display_name, "capacity": trip.capacity, "aboard_count": trip.aboard_count,
         "boarded_count": trip.boarded_count, "alighted_count": trip.alighted_count, "overcapacity": trip.overcapacity,
     }
+    data["stops"] = [{"name": l.name, "lat": l.latitude or None, "lon": l.longitude or None} for l in trip.recorrido_id.route_line]
     if with_events:
+        data["incidents"] = [{"key": i.key, "category": i.category, "text": i.text, "device_datetime": _iso(i.device_datetime),
+                              "by": i.person_id.name} for i in request.env["step.app.mobilization.incident"].sudo().search([("trip_id", "=", trip.id)], limit=50)]
         data["events"] = [{
             "idempotency_key": e.idempotency_key, "passenger": e.passenger_id.name, "event_type": e.event_type,
             "device_datetime": _iso(e.device_datetime), "state": e.state,
             "by": e.app_person_id.name if e.app_person_id else None,
         } for e in trip.passenger_event_ids.sorted("device_datetime")[-200:]]
+        data["aboard"] = sorted(set(e.passenger_id.name for e in trip.passenger_event_ids.filtered(lambda x: x.state == "valid" and x.event_type == "boarding"))
+                                - set(e.passenger_id.name for e in trip.passenger_event_ids.filtered(lambda x: x.state == "valid" and x.event_type == "alighting")))
     return data
 
 
@@ -209,6 +216,62 @@ class MobilizationAppController(http.Controller):
         except Exception:
             return {"idempotency_key": key, "status": "retry", "message": "server_error", "terminal": False}
         return {"idempotency_key": key, "status": "created", "event_id": event.id, "terminal": True}
+
+    @http.route("/steps_app/v1/mobilization/trips/<int:trip_id>/events/void", type="http", auth="public", methods=["POST"], csrf=False)
+    @handle
+    def void_event(self, trip_id, **kw):
+        """Corrección: el conductor anula una marca PROPIA de un servicio abierto (el evento no se borra: queda anulado con motivo)."""
+        api = service()
+        ctx = authenticate(allow_ended=True)
+        trip = _own_trip(ctx, trip_id)
+        body = read_body()
+        key, reason = str(body.get("idempotency_key") or "").strip()[:64], str(body.get("reason") or "").strip()[:200]
+        if not key or not reason:
+            raise ApiError("invalid_void", 422, _("Indique la marca y el motivo."))
+        # La política de captura aplica al instante de la corrección, no al de la marca original.
+        captured = _parse(body.get("device_datetime")) or ctx["now"]
+        ok, why = api.late_event_ok(ctx, MODULE, "conductor", captured)
+        if not ok:
+            return {"ok": True, "status": "rejected", "message": why, "terminal": True}
+        event = request.env["step.mobilization.passenger.event"].sudo().search(
+            [("trip_id", "=", trip.id), ("idempotency_key", "=", key), ("app_person_id", "=", ctx["person"].id)], limit=1)
+        if not event:
+            return {"ok": True, "status": "rejected", "message": "event_not_found", "terminal": True}
+        if event.state == "void":
+            return {"ok": True, "status": "duplicate", "terminal": True, "trip": _trip_payload(trip)}
+        if trip.state != "open":
+            return {"ok": True, "status": "rejected", "message": "trip_not_open", "terminal": True}
+        event.action_void(reason)
+        return {"ok": True, "status": "voided", "terminal": True, "trip": _trip_payload(trip)}
+
+    @http.route("/steps_app/v1/mobilization/trips/<int:trip_id>/incidents", type="http", auth="public", methods=["POST"], csrf=False)
+    @handle
+    def incident(self, trip_id, **kw):
+        """Incidencias del servicio: idempotentes por clave, con la autoría de la persona (también si se capturan sin conexión)."""
+        api = service()
+        ctx = authenticate(allow_ended=True)
+        trip = _own_trip(ctx, trip_id)
+        body = read_body()
+        key = str(body.get("key") or "").strip()[:64]
+        text = str(body.get("text") or "").strip()[:500]
+        captured = _parse(body.get("device_datetime"))
+        if not key or not text or captured is None or body.get("category") not in INCIDENT_CATEGORIES:
+            return {"ok": True, "status": "rejected", "message": "invalid_incident", "terminal": True}
+        Incident = request.env["step.app.mobilization.incident"].sudo()
+        if Incident.search_count([("trip_id", "=", trip.id), ("key", "=", key)]):
+            return {"ok": True, "status": "duplicate", "terminal": True}
+        ok, why = api.late_event_ok(ctx, MODULE, "conductor", captured)
+        if not ok:
+            return {"ok": True, "status": "rejected", "message": why, "terminal": True}
+        Incident.create({"trip_id": trip.id, "key": key, "person_id": ctx["person"].id, "category": body["category"],
+                         "text": text, "device_datetime": captured})
+        return {"ok": True, "status": "created", "terminal": True}
+
+    @http.route("/steps_app/v1/mobilization/contract", type="http", auth="public", methods=["GET"], csrf=False)
+    @handle
+    def contract(self, **kw):
+        """Extensiones disponibles en este servidor: un cliente más nuevo puede degradar con elegancia ante un Odoo más antiguo."""
+        return {"ok": True, "module": MODULE, "contract_version": 1, "extensions": CONTRACT_EXTENSIONS}
 
     # ---- Supervisor --------------------------------------------------------
     @http.route("/steps_app/v1/mobilization/supervisor/trips", type="http", auth="public", methods=["GET"], csrf=False)

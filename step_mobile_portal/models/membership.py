@@ -69,6 +69,11 @@ class StepAppMembership(models.Model):
                 rec._audit("membership_link", detail="contacto %s → %s" % (old_partner or "-", rec.partner_id.id or "-"))
         return res
 
+    def action_open_assign_wizard(self):
+        self.ensure_one()
+        return {"type": "ir.actions.act_window", "name": _("Asignar módulos y roles"), "res_model": "step.app.grant.wizard",
+                "view_mode": "form", "target": "new", "context": {"default_membership_id": self.id}}
+
     def action_approve(self):
         for rec in self:
             if rec.state not in ("requested", "invited", "suspended"):

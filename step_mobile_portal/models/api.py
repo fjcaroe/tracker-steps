@@ -22,6 +22,7 @@ MAX_DEVICES = 20
 LOCK_AFTER_FAILURES = 5
 LOCK_MINUTES = 15
 VERIFY_HOURS = 48
+RECOVERY_HOURS = 2
 TOUCH_EVERY = timedelta(seconds=60)
 
 
@@ -169,6 +170,48 @@ class StepAppApi(models.AbstractModel):
         return token
 
     @api.model
+    def _issue_recovery(self, identity):
+        token = tokens.new_token(24)
+        identity.sudo().write({"reset_token_hash": tokens.hash_token(token),
+                               "reset_expires_at": self._now() + timedelta(hours=RECOVERY_HOURS)})
+        return token
+
+    @api.model
+    def recover_request(self, email):
+        """Respuesta idéntica exista o no la cuenta: no revela qué correos están registrados. El código solo viaja por correo."""
+        identity = self.env["step.app.identity"].sudo().search(
+            [("provider", "=", "password"), ("subject", "=", passwords.normalize_email(email))], limit=1)
+        if identity and identity.person_id.state == "active":
+            token = self._issue_recovery(identity)
+            if self._param("step_app.send_mail") == "1":
+                self.env["mail.mail"].sudo().create({
+                    "subject": _("Recupere su acceso a Steps"), "email_to": identity.email,
+                    "body_html": _("<p>Su código de recuperación es <b>%s</b>. Vence en %s horas. Si no lo pidió, ignore este mensaje.</p>", token, RECOVERY_HOURS),
+                }).send()
+            else:
+                _logger.info("Código de recuperación no enviado (step_app.send_mail desactivado) para identidad %s", identity.id)
+            self.env["step.app.audit"].log("recovery_requested", person=identity.person_id)
+        return {"ok": True}
+
+    @api.model
+    def recover_confirm(self, email, code, new_password):
+        """Define una contraseña nueva con el código. Cierra TODAS las sesiones y dispositivos activos: sirve también cuando se perdió el teléfono."""
+        email = passwords.normalize_email(email)
+        identity = self.env["step.app.identity"].sudo().search([("provider", "=", "password"), ("subject", "=", email)], limit=1)
+        valid = (identity and tokens.verify_token(code, identity.reset_token_hash)
+                 and identity.reset_expires_at and identity.reset_expires_at >= self._now() and identity.person_id.state == "active")
+        if not valid:
+            raise ApiError("invalid_recovery", 400, _("Código inválido o vencido."))
+        problem = passwords.password_problem(new_password, email)
+        if problem:
+            raise ApiError("weak_password", 422, _("La contraseña no cumple la política (%s).", problem))
+        identity.write({"secret_hash": passwords.hash_password(new_password), "reset_token_hash": False, "reset_expires_at": False,
+                        "failed_attempts": 0, "locked_until": False})
+        identity.person_id._revoke_sessions("password_recovered")
+        self.env["step.app.audit"].log("password_recovered", person=identity.person_id, detail="sesiones cerradas")
+        return {"ok": True}
+
+    @api.model
     def verify_email(self, email, token):
         identity = self.env["step.app.identity"].sudo().search(
             [("provider", "=", "password"), ("subject", "=", passwords.normalize_email(email))], limit=1)
@@ -296,7 +339,7 @@ class StepAppApi(models.AbstractModel):
     def _grant_dicts(self, membership):
         return [{"id": g.id, "membership_id": g.membership_id.id, "module": g.module_id.code, "role": g.role_id.code,
                  "valid_from": g.valid_from, "valid_to": g.valid_to, "revoked_at": g.revoked_at,
-                 "scope_ids": g.scope_ids or []} for g in membership.sudo().grant_ids]
+                 "scope_ids": g.scope_ids or []} for g in membership.sudo().grant_ids if g.module_id.active]
 
     @api.model
     def _role_permissions(self):
@@ -365,7 +408,7 @@ class StepAppApi(models.AbstractModel):
         supported = supported or {}
         now = ctx["now"]
         grants = self._grant_dicts(ctx["membership"])
-        modules = self.env["step.app.module"].sudo().search([])
+        modules = self.env["step.app.module"].sudo().search([])  # solo activos: deshabilitar un módulo lo retira de todos
         installed = {m.code for m in modules}
         enabled = authz.enabled_modules(self._membership_dict(ctx["membership"]), grants, installed, now)
         by_code = {m.code: m for m in modules}
@@ -384,6 +427,8 @@ class StepAppApi(models.AbstractModel):
         hours = ctx["company"].step_app_offline_hours or authz.DEFAULT_OFFLINE_HOURS
         return {"ok": True, "server_time": now.isoformat() + "Z", "organization": {"org_uid": ctx["company"].step_app_org_uid, "name": ctx["company"].name},
                 "modules": result, "incompatible_modules": incompatible,
+                # Módulos instalados (y activos) en ESTE servidor: la app distingue «no autorizado» de «no disponible aquí».
+                "server_modules": sorted(installed),
                 "offline_until": authz.offline_until(now, hours).isoformat() + "Z"}
 
     @api.model

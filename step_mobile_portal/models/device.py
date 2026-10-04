@@ -18,8 +18,9 @@ class StepAppDevice(models.Model):
     _sql_constraints = [("person_uuid_unique", "unique(person_id, uuid)", "Dispositivo duplicado para esta persona.")]
 
     def action_revoke(self):
+        self.person_id._check_admin_scope()
         now = fields.Datetime.now()
-        for device in self:
+        for device in self.sudo():
             device.write({"revoked_at": now})
             sessions = self.env["step.app.session"].sudo().search([("device_id", "=", device.id), ("revoked_at", "=", False)])
             sessions.write({"revoked_at": now, "revoked_reason": "device_revoked"})

@@ -6,6 +6,6 @@
     "author": "Steps Consulting",
     "license": "LGPL-3",
     "depends": ["step_mobile_portal", "step_mobilization", "hr"],
-    "data": ["data/catalog.xml"],
+    "data": ["security/ir.model.access.csv", "security/ir_rule.xml", "data/catalog.xml"],
     "installable": True,
 }

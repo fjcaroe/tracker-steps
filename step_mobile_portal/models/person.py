@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 
 class StepAppPerson(models.Model):
@@ -40,7 +40,19 @@ class StepAppPerson(models.Model):
         self.write({"state": "active"})
         self._audit("person_reactivated")
 
+    def _check_admin_scope(self):
+        """Un administrador de empresa solo cierra sesiones de personas cuyos accesos están todos en SUS empresas;
+        si la persona trabaja también en otra empresa, lo decide un administrador del sistema."""
+        if self.env.user.has_group("base.group_system"):
+            return
+        mine = self.env.user.company_ids
+        for person in self.sudo():
+            foreign = person.membership_ids.filtered(lambda m: m.state in ("active", "suspended", "invited", "requested")).company_id - mine
+            if foreign:
+                raise AccessError(_("%(name)s tiene accesos en otras empresas: pida a un administrador del sistema.", name=person.name))
+
     def action_revoke_sessions(self):
+        self._check_admin_scope()
         self._revoke_sessions("revoked_by_admin")
         self._audit("sessions_revoked")
 

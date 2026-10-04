@@ -144,3 +144,78 @@ class TestMobilizationApp(HttpCase):
         self.assertFalse(mdevice.token_hash)
         response = self.url_open("/mobilization/v1/catalog", headers={"X-Device-UUID": mdevice.device_uuid, "X-Device-Token": "x"})
         self.assertEqual(response.status_code, 401)
+
+    # ---- Extensiones v1: correcciones, incidencias, detalle ----
+    def test_correccion_anula_solo_la_marca_propia_y_no_borra(self):
+        trip = self._trip(self.driver1)
+        s1, _m = self._person("v1@example.test", self.role_driver, self.driver1, "dev-v1")
+        s2, _m = self._person("v2@example.test", self.role_driver, self.driver2, "dev-v2")
+        self._call("POST", "/trips/%d/open" % trip.id, s1)
+        self._call("POST", "/trips/%d/events" % trip.id, s1, {"events": [self._event("e1")]})
+        # El otro conductor ni siquiera ve el servicio.
+        status, body = self._call("POST", "/trips/%d/events/void" % trip.id, s2, {"idempotency_key": "e1", "reason": "x"})
+        self.assertEqual(status, 404)
+        status, body = self._call("POST", "/trips/%d/events/void" % trip.id, s1, {"idempotency_key": "e1", "reason": "Pasajero equivocado"})
+        self.assertEqual((status, body["status"]), (200, "voided"))
+        event = trip.passenger_event_ids
+        self.assertEqual((len(event), event.state, event.void_reason), (1, "void", "Pasajero equivocado"))
+        self.assertEqual(trip.boarded_count, 0)
+        self.assertEqual(self._call("POST", "/trips/%d/events/void" % trip.id, s1, {"idempotency_key": "e1", "reason": "x"})[1]["status"], "duplicate")
+        self.assertEqual(self._call("POST", "/trips/%d/events/void" % trip.id, s1, {"idempotency_key": "nope", "reason": "x"})[1]["message"], "event_not_found")
+        self.assertEqual(self._call("POST", "/trips/%d/events/void" % trip.id, s1, {"idempotency_key": "e1"})[0], 422)
+
+    def test_incidencias_son_idempotentes_y_con_autoria(self):
+        trip = self._trip(self.driver1)
+        session, _m = self._person("i1@example.test", self.role_driver, self.driver1, "dev-i1")
+        self._call("POST", "/trips/%d/open" % trip.id, session)
+        payload = {"key": "inc-1", "category": "breakdown", "text": "Falla de neumático", "device_datetime": _iso(fields.Datetime.now())}
+        self.assertEqual(self._call("POST", "/trips/%d/incidents" % trip.id, session, payload)[1]["status"], "created")
+        self.assertEqual(self._call("POST", "/trips/%d/incidents" % trip.id, session, payload)[1]["status"], "duplicate")
+        self.assertEqual(self._call("POST", "/trips/%d/incidents" % trip.id, session, {**payload, "key": "inc-2", "category": "otra-cosa"})[1]["message"], "invalid_incident")
+        incidents = self.env["step.app.mobilization.incident"].search([("trip_id", "=", trip.id)])
+        self.assertEqual((len(incidents), incidents.person_id.email), (1, "i1@example.test"))
+        sup, _m = self._person("sup2@example.test", self.role_sup, None, "dev-sup2")
+        status, body = self._call("GET", "/supervisor/trips", sup)
+        self.assertEqual(body["trips"][0]["incidents"][0]["text"], "Falla de neumático")
+
+    def test_el_payload_no_puede_cambiar_la_identidad_del_conductor(self):
+        mine, other = self._trip(self.driver1), self._trip(self.driver2)
+        session, _m = self._person("sp@example.test", self.role_driver, self.driver1, "dev-sp")
+        self._call("POST", "/trips/%d/open" % mine.id, session, {"chofer_id": self.driver2.id, "person_id": 999})
+        self.assertEqual(mine.state, "open")
+        spoof = {**self._event("sp1"), "chofer_id": self.driver2.id, "app_person_id": 1, "trip_id": other.id, "device_id": 1}
+        self._call("POST", "/trips/%d/events" % mine.id, session, {"events": [spoof], "chofer_id": self.driver2.id})
+        event = mine.passenger_event_ids
+        self.assertEqual((len(event), event.app_person_id.email), (1, "sp@example.test"))
+        self.assertFalse(other.passenger_event_ids)
+
+    def test_detalle_incluye_paradas_y_pasajeros_a_bordo(self):
+        self.env["hr.route.line"].create({"route_id": self.route.id, "name": "Parada Fundo", "sequence": 1})
+        trip = self._trip(self.driver1)
+        session, _m = self._person("d1@example.test", self.role_driver, self.driver1, "dev-d1")
+        self._call("POST", "/trips/%d/open" % trip.id, session)
+        self._call("POST", "/trips/%d/events" % trip.id, session, {"events": [self._event("b1")]})
+        status, body = self._call("GET", "/trips/%d" % trip.id, session)
+        self.assertEqual(body["trip"]["stops"][0]["name"], "Parada Fundo")
+        self.assertEqual(body["trip"]["aboard"], ["Pasajero Uno"])
+
+    def test_deshabilitar_el_modulo_o_el_rol_corta_los_endpoints_y_una_url_directa_no_salta_permisos(self):
+        trip = self._trip(self.driver1)
+        driver, _m = self._person("m1@example.test", self.role_driver, self.driver1, "dev-m1")
+        sup, _m = self._person("m2@example.test", self.role_sup, None, "dev-m2")
+        self.assertEqual(self._call("GET", "/trips", driver)[0], 200)
+        # URL directa de un endpoint de conductor con sesión de supervisor: 403.
+        self.assertEqual(self._call("POST", "/trips/%d/open" % trip.id, sup)[0], 403)
+        self.assertEqual(self._call("GET", "/trips/%d" % trip.id, sup)[0], 403)
+        self.assertEqual(self._call("GET", "/passengers?q=Pas", sup)[0], 403)
+        # Sin sesión.
+        response = self.url_open("/steps_app/v1/mobilization/trips")
+        self.assertEqual(response.status_code, 401)
+        # Módulo deshabilitado en Odoo.
+        self.role_driver.module_id.active = False
+        for path in ("/trips", "/trips/%d" % trip.id, "/contract"):
+            status, _b = self._call("GET", path, driver)
+            self.assertIn(status, (200, 403))
+        self.assertEqual(self._call("GET", "/trips", driver)[0], 403)
+        self.assertEqual(self._call("POST", "/trips/%d/open" % trip.id, driver)[0], 403)
+        self.assertEqual(self._call("GET", "/supervisor/trips", sup)[0], 403)

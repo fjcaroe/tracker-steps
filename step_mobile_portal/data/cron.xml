@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="cron_step_app_expire_invitations" model="ir.cron">
+        <field name="name">Steps App: vencer invitaciones</field>
+        <field name="model_id" ref="model_step_app_invitation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_expire()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+    </record>
+</odoo>

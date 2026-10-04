@@ -19,7 +19,7 @@ class StepAppInvitation(models.Model):
         [("pending", "Pendiente"), ("accepted", "Aceptada"), ("cancelled", "Cancelada"), ("expired", "Vencida")],
         default="pending", required=True, index=True)
     token_hash = fields.Char(copy=False, groups="base.group_system")
-    expires_at = fields.Datetime(copy=False)
+    expires_at = fields.Datetime(copy=False, index=True)
     membership_id = fields.Many2one("step.app.membership", copy=False, readonly=True)
     line_ids = fields.One2many("step.app.invitation.line", "invitation_id", string="Accesos que otorga")
 
@@ -28,6 +28,13 @@ class StepAppInvitation(models.Model):
         for vals in vals_list:
             vals["email"] = (vals.get("email") or "").strip().lower()
         return super().create(vals_list)
+
+    @api.model
+    def _cron_expire(self):
+        """Marca como vencidas las invitaciones pendientes cuyo plazo pasó y deja de aceptar su código."""
+        late = self.sudo().search([("state", "=", "pending"), ("expires_at", "!=", False), ("expires_at", "<", fields.Datetime.now())])
+        late.write({"state": "expired", "token_hash": False})
+        return len(late)
 
     def issue_token(self):
         """Genera el código de la invitación. El valor en claro se devuelve una sola vez; solo se guarda su huella."""

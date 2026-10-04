@@ -4,6 +4,9 @@
     <menuitem id="menu_step_app_memberships" name="Accesos" parent="menu_step_app_root" action="action_step_app_membership" sequence="10"/>
     <menuitem id="menu_step_app_invitations" name="Invitaciones" parent="menu_step_app_root" action="action_step_app_invitation" sequence="20"/>
     <menuitem id="menu_step_app_people" name="Personas" parent="menu_step_app_root" action="action_step_app_person" sequence="30"/>
+    <menuitem id="menu_step_app_devices" name="Dispositivos" parent="menu_step_app_root" action="action_step_app_device" sequence="32"/>
+    <menuitem id="menu_step_app_identities" name="Identidades vinculadas" parent="menu_step_app_root" action="action_step_app_identity" sequence="34" groups="base.group_system"/>
+    <menuitem id="menu_step_app_sessions" name="Sesiones" parent="menu_step_app_root" action="action_step_app_session" sequence="36" groups="base.group_system"/>
     <menuitem id="menu_step_app_audit" name="Auditoría" parent="menu_step_app_root" action="action_step_app_audit" sequence="40"/>
     <menuitem id="menu_step_app_config" name="Configuración" parent="menu_step_app_root" sequence="90" groups="base.group_system"/>
     <menuitem id="menu_step_app_modules" name="Módulos de la app" parent="menu_step_app_config" action="action_step_app_module" sequence="10"/>

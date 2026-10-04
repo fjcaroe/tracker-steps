@@ -16,6 +16,8 @@ de los módulos viaja en la aplicación.
         "security/security.xml",
         "security/ir.model.access.csv",
         "security/ir_rule.xml",
+        "data/cron.xml",
+        "views/wizard_views.xml",
         "views/person_views.xml",
         "views/membership_views.xml",
         "views/catalog_views.xml",
