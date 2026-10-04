@@ -41,6 +41,8 @@ export class SessionManager {
   private listeners = new Set<() => void>();
   private tokens: SessionTokens | null = null;
   readonly api: Api;
+  /** Se incrementa en cada cambio de empresa o cuenta: una respuesta que llega con otra generación se descarta. */
+  private generation = 0;
   private now: () => number;
 
   constructor(private deps: SessionDeps) {
@@ -113,6 +115,7 @@ export class SessionManager {
 
   /** Cambiar de empresa revalida permisos en el servidor; la cola de la otra empresa queda intacta. */
   async selectOrg(orgUid: string): Promise<void> {
+    this.generation += 1;
     this.set({ orgUid, catalog: null, needsOrgChoice: false });
     await this.revalidate();
   }
@@ -120,8 +123,11 @@ export class SessionManager {
   /** Vuelve a pedir permisos al servidor (al recuperar señal, al volver a primer plano o al cambiar de empresa). */
   async revalidate(): Promise<void> {
     if (!this.tokens) return;
+    const gen = this.generation, org = this.snap.orgUid;
+    const stale = () => gen !== this.generation || org !== this.snap.orgUid || !this.tokens;
     try {
       const me = await this.api.me();
+      if (stale()) return; // llegó tarde: el contexto ya es otro
       this.set({ me });
       const stillMember = me.memberships.some((m) => m.org_uid === this.snap.orgUid && m.state === 'active');
       if (!this.snap.orgUid || !stillMember) {
@@ -132,9 +138,11 @@ export class SessionManager {
         return;
       }
       const catalog = await this.api.catalog(this.deps.supported);
+      if (stale()) return; // una respuesta atrasada no restablece permisos de una empresa anterior
       this.set({ catalog, access: 'online', notice: null });
       await this.persistCache();
     } catch (e) {
+      if (stale()) return;
       if (e instanceof ApiError && (e.status === 0 || e.status >= 500)) {
         const until = this.snap.catalog?.offline_until ?? null;
         this.set({ access: accessMode({ validatedOnline: false, offlineUntil: until, now: this.now() }) });
@@ -153,6 +161,7 @@ export class SessionManager {
   private async startWith(tokens: TokenPair) {
     this.tokens = { ...tokens, personId: -1 };
     const me = await this.api.me(tokens.access_token);
+    this.generation += 1;
     this.tokens = { ...tokens, personId: me.person.id };
     await this.deps.secure.set(TOKENS_KEY, JSON.stringify(this.tokens));
     this.set({ status: 'signed_in', me, notice: null });
@@ -174,6 +183,7 @@ export class SessionManager {
 
   /** Cierra la sesión local. Las colas de operaciones NO se tocan: siguen guardadas por identidad y empresa. */
   private async finishSignOut(notice: string | null) {
+    this.generation += 1;
     const personId = this.snap.me?.person.id ?? this.tokens?.personId;
     this.tokens = null;
     await this.deps.secure.remove(TOKENS_KEY);

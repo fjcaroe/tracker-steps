@@ -25,7 +25,7 @@ export type QueueOp<P = unknown> = {
 };
 
 export const CONFIRMED_KEEP_DAYS = 7;
-export const SESSION_CODES = ['unauthenticated', 'session_invalid', 'session_revoked', 'token_expired'];
+export const SESSION_CODES = ['unauthenticated', 'session_invalid', 'session_revoked', 'token_expired', 'session_changed'];
 const PREFIX = 'steps.queue.v1.';
 export const queueKey = (s: Scope) => `${PREFIX}${s.personId}.${s.orgUid}`;
 export const uuid = (): string => (globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`);

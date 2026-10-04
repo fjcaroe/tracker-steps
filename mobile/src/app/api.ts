@@ -19,10 +19,12 @@ export type HttpDeps = {
   onSignedOut: (reason: string) => void;
 };
 
-export function createApi(deps: HttpDeps) {
+/** Estado compartido entre el API general y los API acotados: una sola renovación de sesión a la vez (un refresh reutilizado revoca la sesión). */
+export type SharedRefresh = { refreshing: Promise<boolean> | null };
+
+export function createApi(deps: HttpDeps, shared: SharedRefresh = { refreshing: null }, bound?: { personId: number }) {
   const base = (deps.baseUrl ?? API_BASE).replace(/\/+$/, '');
   const doFetch = () => deps.fetchImpl ?? platformFetch;
-  let refreshing: Promise<boolean> | null = null;
 
   async function raw<T>(method: string, path: string, opts: { body?: unknown; token?: string | null; org?: string | null } = {}): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' };
@@ -43,8 +45,8 @@ export function createApi(deps: HttpDeps) {
 
   /** Renueva el par de tokens una sola vez aunque varias peticiones lo pidan a la vez. */
   function refresh(): Promise<boolean> {
-    if (refreshing) return refreshing;
-    refreshing = (async () => {
+    if (shared.refreshing) return shared.refreshing;
+    shared.refreshing = (async () => {
       const current = deps.tokens();
       if (!current) return false;
       try {
@@ -55,13 +57,15 @@ export function createApi(deps: HttpDeps) {
         if (e instanceof ApiError && e.status === 401) { await deps.setTokens(null); deps.onSignedOut(e.code); return false; }
         throw e; // sin red o error del servidor: se conserva la sesión
       }
-    })().finally(() => { refreshing = null; });
-    return refreshing;
+    })().finally(() => { shared.refreshing = null; });
+    return shared.refreshing;
   }
 
   async function authed<T>(method: string, path: string, body?: unknown, org = true): Promise<T> {
     const attempt = () => raw<T>(method, path, { body, token: deps.tokens()?.access_token ?? null, org: org ? deps.orgUid() : null });
     if (!deps.tokens()) throw new ApiError('unauthenticated', 401, 'Inicia sesión');
+    // Un API acotado nunca habla con la sesión de OTRA persona (cambio de cuenta durante un envío).
+    if (bound && deps.tokens()?.personId !== bound.personId) throw new ApiError('session_changed', 401, 'La cuenta cambió durante el envío.');
     try { return await attempt(); }
     catch (e) {
       if (e instanceof ApiError && e.status === 401 && e.code === 'token_expired') {
@@ -75,7 +79,11 @@ export function createApi(deps: HttpDeps) {
 
   const tokensFrom = async (p: Promise<TokenPair & { ok: true }>): Promise<TokenPair> => { const { ok: _ok, ...t } = await p; return t; };
 
+  /** API fijado a una empresa y a una persona: lo usa el envío de colas, cuyo destino no puede cambiar si la persona cambia de empresa o de cuenta a mitad de camino. */
+  const scoped = (scope: { orgUid: string; personId: number }) => createApi({ ...deps, orgUid: () => scope.orgUid }, shared, { personId: scope.personId });
+
   return {
+    scoped,
     request: authed,
     health: () => raw<HealthOut>('GET', '/health'),
     register: (b: { email: string; password: string; name: string; device: DeviceInfo }) => tokensFrom(raw('POST', '/auth/register', { body: b })),

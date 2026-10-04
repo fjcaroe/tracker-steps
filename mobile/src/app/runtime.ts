@@ -31,8 +31,10 @@ export class Runtime {
 
   queue(): DurableQueue | null { const scope = this.session.scope(); return scope ? new DurableQueue(this.kv, scope) : null; }
 
-  private handlers(): Record<string, Handler> {
-    return Object.assign({}, ...this.manifests.map((m) => m.handlers?.(this.session.api) ?? {}));
+  /** Handlers atados al ámbito (persona + empresa) de la cola que se envía, no a la empresa «actual» de la pantalla. */
+  private handlers(scope: Scope): Record<string, Handler> {
+    const api = this.session.api.scoped(scope);
+    return Object.assign({}, ...this.manifests.map((m) => m.handlers?.(api) ?? {}));
   }
 
   /** Persiste la operación. Lanza si no quedó guardada: la interfaz nunca debe anunciar éxito antes. */
@@ -75,7 +77,7 @@ export class Runtime {
           await queue.requeueSessionBlocked(); // volver a entrar reanuda lo que esperaba sesión; el resto lo decide la persona
           await this.refresh({ syncing: true });
           try {
-            summary = await runQueue({ queue, handlers: this.handlers(), sessionPersonId: this.session.personId });
+            summary = await runQueue({ queue, handlers: this.handlers(queue.scope), sessionPersonId: this.session.personId });
           } finally {
             await this.refresh({ syncing: false, lastHalt: summary?.halted ?? null, lastSyncAt: summary && summary.confirmed ? new Date().toISOString() : this.snap.lastSyncAt });
             await queue.prune();

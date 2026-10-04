@@ -158,3 +158,80 @@ describe('sesión y sin conexión', () => {
     expect(s.getSnapshot().status).toBe('signed_out');
   });
 });
+
+describe('carreras al cambiar de empresa o de cuenta', () => {
+  // Regresión hallada con el recorrido real contra Odoo: sin estas protecciones fallan.
+  const twoOrgs = () => { const p = server.addPerson('ana@example.test'); server.grant(p.id, 'org-a', ['colaciones', 'operador']); server.grant(p.id, 'org-b', ['mobilization', 'conductor']); return p; };
+
+  it('una respuesta de catálogo atrasada de la empresa anterior no restablece sus permisos', async () => {
+    twoOrgs();
+    const s = manager(); await s.boot(); await s.login('ana@example.test', 'clave-segura-2026');
+    let release!: () => void; const hold = new Promise<void>((r) => { release = r; });
+    await s.selectOrg('org-a');
+    server.gate = async (path) => { if (path.startsWith('/catalog') && server.requests.at(-1)?.org === 'org-a') await hold; };
+    const slow = s.revalidate();              // pide el catálogo de A y se queda esperando
+    await new Promise((r) => setTimeout(r, 10));
+    server.gate = null;
+    await s.selectOrg('org-b');               // la persona cambia a B
+    expect(s.getSnapshot().catalog?.modules.map((m) => m.code)).toEqual(['mobilization']);
+    release(); await slow;                    // llega tarde la respuesta de A
+    expect(s.getSnapshot().orgUid).toBe('org-b');
+    expect(s.getSnapshot().catalog?.modules.map((m) => m.code)).toEqual(['mobilization']);
+    expect(s.can('colaciones.register')).toBe(false);
+  });
+
+  it('un envío en curso conserva SU empresa aunque la persona cambie de empresa a mitad de camino', async () => {
+    const p = twoOrgs();
+    const t = server.addTrip('org-b', p.id);
+    const base = memoryKv();
+    let hold: Promise<void> | null = null;
+    // La cola se lee con retraso: la pasada de envío ya empezó cuando la persona cambia de empresa.
+    const kvx = { ...base, get: async (k: string) => { if (hold && k.startsWith('steps.queue.')) await hold; return base.get(k); } };
+    const s = new SessionManager({ kv: kvx, secure: memorySecureStore(), device: async () => DEVICE, supported: SUPPORTED, fetchImpl: server.fetch, baseUrl: 'https://fake.test/steps_app/v1', now: () => server.now });
+    await s.boot(); await s.login('ana@example.test', 'clave-segura-2026'); await s.selectOrg('org-b');
+    const { Runtime } = await import('./runtime');
+    const { MODULES } = await import('../modules');
+    const rt = new Runtime(s, kvx, MODULES);
+    await rt.queue()!.enqueue({ module: 'mobilization', kind: 'trip_open', group: 'g', payload: { tripId: t.id } });
+    let release!: () => void; hold = new Promise<void>((r) => { release = r; });
+    const sending = rt.sync();
+    await new Promise((r) => setTimeout(r, 10));
+    await s.selectOrg('org-a');               // cambio de empresa con el envío de B todavía sin salir
+    hold = null; release(); await sending;
+    expect(server.requests.find((r) => r.path.endsWith('/open'))?.org).toBe('org-b'); // viajó con la empresa de la cola, no con la actual
+    expect(server.trips.find((x) => x.id === t.id)?.state).toBe('open');
+    expect((await new (await import('../sync/queue')).DurableQueue(kvx, { personId: p.id, orgUid: 'org-b' }).list())[0].state).toBe('confirmed');
+  });
+
+  it('si la cuenta cambia durante un envío, la cola de la cuenta anterior no se envía con la sesión nueva', async () => {
+    const a = twoOrgs(); const b = server.addPerson('beto@example.test'); server.grant(b.id, 'org-b', ['mobilization', 'conductor']);
+    const t = server.addTrip('org-b', a.id);
+    const base = memoryKv();
+    let hold: Promise<void> | null = null;
+    const kvx = { ...base, get: async (k: string) => { if (hold && k.startsWith('steps.queue.')) await hold; return base.get(k); } };
+    const s = new SessionManager({ kv: kvx, secure: memorySecureStore(), device: async () => DEVICE, supported: SUPPORTED, fetchImpl: server.fetch, baseUrl: 'https://fake.test/steps_app/v1', now: () => server.now });
+    await s.boot(); await s.login('ana@example.test', 'clave-segura-2026'); await s.selectOrg('org-b');
+    const { Runtime } = await import('./runtime'); const { MODULES } = await import('../modules');
+    const rt = new Runtime(s, kvx, MODULES);
+    await rt.queue()!.enqueue({ module: 'mobilization', kind: 'trip_open', group: 'g', payload: { tripId: t.id } });
+    let release!: () => void; hold = new Promise<void>((r) => { release = r; });
+    const sending = rt.sync();
+    await new Promise((r) => setTimeout(r, 10));
+    await s.logout(); await s.login('beto@example.test', 'clave-segura-2026');   // otra persona en el mismo teléfono
+    hold = null; release(); await sending;
+    expect(server.trips.find((x) => x.id === t.id)?.state).toBe('draft');
+    const { DurableQueue } = await import('../sync/queue');
+    const [op] = await new DurableQueue(kvx, { personId: a.id, orgUid: 'org-b' }).list();
+    expect(op.state).toBe('pending'); // espera a su dueña; no se rechazó ni se perdió
+  });
+
+  it('un API acotado a una persona se niega a hablar con la sesión de otra', async () => {
+    const a = twoOrgs(); server.addPerson('beto@example.test');
+    const s = manager(); await s.boot(); await s.login('ana@example.test', 'clave-segura-2026');
+    const forAna = s.api.scoped({ orgUid: 'org-a', personId: a.id });
+    await s.logout(); await s.login('beto@example.test', 'clave-segura-2026');
+    const before = server.requests.length;
+    await expect(forAna.request('GET', '/colaciones/totems')).rejects.toMatchObject({ code: 'session_changed' });
+    expect(server.requests.length).toBe(before); // ni siquiera sale la petición
+  });
+});

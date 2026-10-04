@@ -15,7 +15,9 @@ export class FakeSteps {
   now = Date.parse('2026-10-04T12:00:00Z');
   offline = false;
   failNext: { status: number; error?: string } | null = null;
-  requests: { method: string; path: string; body: Json }[] = [];
+  requests: { method: string; path: string; body: Json; org: string | null }[] = [];
+  /** Permite retener una petición en vuelo para probar carreras (cambio de empresa o de cuenta a mitad de un envío). */
+  gate: ((path: string) => Promise<void>) | null = null;
   contract: Record<string, number> = { colaciones: 1, mobilization: 1, tracker: 1 };
   offlineHours = 72;
   private seq = 100;
@@ -56,7 +58,8 @@ export class FakeSteps {
     const path = url.pathname.replace(/^.*\/steps_app\/v1/, '');
     const body: Json = init?.body ? JSON.parse(String(init.body)) : {};
     const headers = new Headers(init?.headers as HeadersInit);
-    this.requests.push({ method: init?.method ?? 'GET', path, body });
+    this.requests.push({ method: init?.method ?? 'GET', path, body, org: headers.get('X-Steps-Org') });
+    if (this.gate) await this.gate(path);
     if (this.failNext) { const f = this.failNext; this.failNext = null; return this.json({ ok: false, error: f.error ?? 'server_error', message: 'fallo', terminal: false }, f.status); }
     try { return this.json(this.route(init?.method ?? 'GET', path, body, headers, url)); }
     catch (e) { if (e instanceof HttpError) return this.json({ ok: false, error: e.code, message: e.code, terminal: e.status < 500 && e.status !== 401 && e.status !== 403 }, e.status); throw e; }

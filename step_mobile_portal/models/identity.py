@@ -21,6 +21,12 @@ class StepAppIdentity(models.Model):
     reset_token_hash = fields.Char(groups="base.group_system", copy=False)
     reset_expires_at = fields.Datetime(copy=False)
 
+    def action_mark_email_verified(self):
+        """Verificación manual por un administrador del sistema (cuando no hay correo saliente configurado). Queda auditada."""
+        for identity in self:
+            identity.write({"email_verified": True, "verify_token_hash": False, "verify_expires_at": False})
+            self.env["step.app.audit"].log("email_verified_by_admin", person=identity.person_id, detail=identity.email or "")
+
     def action_issue_recovery_code(self):
         """Código de recuperación emitido por un administrador del sistema (p. ej. cuando el correo saliente no está configurado).
         Se muestra una sola vez; solo se guarda su huella. Quien lo use define una contraseña nueva y se cierran todas sus sesiones."""

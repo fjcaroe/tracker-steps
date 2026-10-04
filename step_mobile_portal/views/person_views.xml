@@ -47,6 +47,7 @@
                                     <field name="email"/>
                                     <field name="email_verified"/>
                                     <button name="action_issue_recovery_code" type="object" string="Código de recuperación" icon="fa-key" groups="base.group_system" invisible="provider != 'password'"/>
+                                    <button name="action_mark_email_verified" type="object" string="Marcar correo verificado" icon="fa-check" groups="base.group_system" invisible="email_verified"/>
                                 </list>
                             </field>
                         </page>

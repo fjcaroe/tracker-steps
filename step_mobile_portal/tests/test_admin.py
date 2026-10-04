@@ -179,3 +179,19 @@ class TestRecovery(PortalCase):
         catalog = self.api.catalog(ctx, {"demo": 1})
         self.assertEqual(catalog["modules"], [])
         self.assertNotIn("demo", catalog["server_modules"])
+
+
+@tagged("post_install", "-at_install")
+class TestManualVerification(PortalCase):
+    def test_verificacion_manual_es_solo_del_sistema_y_queda_auditada(self):
+        self.register()
+        identity = self.env["step.app.identity"].search([("subject", "=", "ana@example.test")])
+        manager = self.env["res.users"].create({"name": "m", "login": "m@example.test", "company_id": self.company_a.id,
+                                                "company_ids": [(6, 0, [self.company_a.id])],
+                                                "groups_id": [(6, 0, [self.env.ref("base.group_user").id, self.env.ref("step_mobile_portal.group_step_app_manager").id])]})
+        with self.assertRaises(AccessError):
+            identity.with_user(manager).action_mark_email_verified()
+        self.assertFalse(identity.email_verified)
+        identity.action_mark_email_verified()
+        self.assertTrue(identity.email_verified)
+        self.assertTrue(self.env["step.app.audit"].search([("action", "=", "email_verified_by_admin")]))
