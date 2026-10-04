@@ -14,8 +14,12 @@ class TestProducerPurchaseContract(TransactionCase):
         cls.partner = cls.env["res.partner"].create({
             "name": "Productor contrato T30", "is_productor": True,
         })
+        cls.species = cls.env["step.especie"].create({
+            "name": "Cereza T30", "type_especie": "frutal", "group_especie": "fruta_h",
+        })
         cls.product = cls.env["product.product"].create({
             "name": "Anticipo fruta T30", "purchase_ok": True, "type": "consu",
+            "step_export_species_id": cls.species.id,
         })
 
     def _contract(self, quantity=100, scheduled=100):
@@ -24,6 +28,7 @@ class TestProducerPurchaseContract(TransactionCase):
         })
         product_line = self.env["step.producer.purchase.contract.product"].create({
             "contract_id": contract.id, "product_id": self.product.id,
+            "species_id": self.species.id,
             "quantity": quantity, "uom_id": self.product.uom_po_id.id,
             "price_unit": 2,
         })
@@ -32,6 +37,41 @@ class TestProducerPurchaseContract(TransactionCase):
             "quantity": scheduled, "date_due": "2026-12-15",
         })
         return contract, product_line, installment
+
+    def test_variant_price_prefers_specific_line_and_rejects_ties(self):
+        contract, general, _ = self._contract()
+        group = self.env["step.grupo.variedad"].create({
+            "name": "Cerezas T30", "especie_id": self.species.id,
+        })
+        variety = self.env["step.variedad"].create({
+            "name": "Santina T30", "cod_variedad": "T30S",
+            "especie_id": self.species.id, "grupo_variedad_id": group.id,
+        })
+        category = self.env["step.packing.fruit.category"].create({"name": "Cat 1 T30"})
+        model = self.env["step.producer.purchase.contract.product"]
+        specific = model.create({
+            "contract_id": contract.id, "product_id": self.product.id,
+            "species_id": self.species.id, "variety_id": variety.id,
+            "quantity": 10, "uom_id": self.product.uom_po_id.id, "price_unit": 3,
+        })
+        self.assertEqual(model.resolve_variant_price(
+            contract, self.product, self.species, variety), specific)
+        self.assertEqual(model.resolve_variant_price(
+            contract, self.product, self.species), general)
+        model.create({
+            "contract_id": contract.id, "product_id": self.product.id,
+            "species_id": self.species.id, "category_id": category.id,
+            "quantity": 10, "uom_id": self.product.uom_po_id.id, "price_unit": 4,
+        })
+        with self.assertRaisesRegex(UserError, "igual de específicos"):
+            model.resolve_variant_price(contract, self.product, self.species,
+                                        variety, category)
+        with self.assertRaises(ValidationError):
+            model.create({
+                "contract_id": contract.id, "product_id": self.product.id,
+                "species_id": self.species.id, "quantity": 1,
+                "uom_id": self.product.uom_po_id.id, "price_unit": 5,
+            })
 
     def test_products_and_schedule_must_reconcile(self):
         contract, product, installment = self._contract(scheduled=90)

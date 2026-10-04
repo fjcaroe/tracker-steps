@@ -110,6 +110,8 @@ class ProducerPurchaseContract(models.Model):
         if not products or not installments:
             raise ValidationError(_("Agregue productos y un calendario de pago antes de confirmar."))
         for product in products:
+            if not product.species_id:
+                raise ValidationError(_("Indique la especie de cada producto del contrato."))
             allocated = installments.filtered(lambda line: line.product_line_id == product)
             quantity = sum(allocated.mapped("quantity"))
             if float_compare(quantity, product.quantity, precision_digits=4):
@@ -162,6 +164,10 @@ class ProducerPurchaseContract(models.Model):
                 continue
             product_map[old_product.id] = self.env["step.producer.purchase.contract.product"].sudo().create({
                 "contract_id": new_contract.id, "product_id": old_product.product_id.id,
+                "species_id": old_product.species_id.id,
+                "variety_id": old_product.variety_id.id,
+                "category_id": old_product.category_id.id,
+                "caliber_id": old_product.caliber_id.id,
                 "description": old_product.description, "quantity": quantity,
                 "uom_id": old_product.uom_id.id, "price_unit": old_product.price_unit,
                 "analytic_distribution": old_product.analytic_distribution,
@@ -281,6 +287,10 @@ class ProducerPurchaseContractProduct(models.Model):
     currency_id = fields.Many2one(related="contract_id.currency_id", store=True, readonly=True)
     product_id = fields.Many2one("product.product", string="Producto", required=True,
                                  check_company=True)
+    species_id = fields.Many2one("step.especie", string="Especie", index=True)
+    variety_id = fields.Many2one("step.variedad", string="Variedad")
+    category_id = fields.Many2one("step.packing.fruit.category", string="Categoría")
+    caliber_id = fields.Many2one("step.packing.fruit.caliber", string="Calibre")
     description = fields.Char(string="Descripción")
     quantity = fields.Float(string="Cantidad", required=True, digits=(16, 4))
     ordered_quantity = fields.Float(string="Ordenado", compute="_compute_ordered_quantity",
@@ -298,6 +308,7 @@ class ProducerPurchaseContractProduct(models.Model):
     def _onchange_product_id(self):
         for line in self:
             if line.product_id:
+                line.species_id = line.product_id.product_tmpl_id.step_export_species_id
                 line.uom_id = line.product_id.uom_po_id
                 line.description = line.product_id.display_name
                 company = line.contract_id.company_id or self.env.company
@@ -324,9 +335,52 @@ class ProducerPurchaseContractProduct(models.Model):
             if line.quantity <= 0 or line.price_unit < 0:
                 raise ValidationError(_("La cantidad debe ser positiva y el precio no puede ser negativo."))
 
+    @api.constrains("species_id", "variety_id", "category_id", "caliber_id",
+                    "product_id", "contract_id")
+    def _check_variant(self):
+        for line in self:
+            if line.variety_id and line.variety_id.especie_id != line.species_id:
+                raise ValidationError(_("La variedad debe pertenecer a la especie elegida."))
+            if line.caliber_id and line.caliber_id.species_id and line.caliber_id.species_id != line.species_id:
+                raise ValidationError(_("El calibre debe pertenecer a la especie elegida."))
+            key = (line.species_id.id, line.product_id.id, line.variety_id.id,
+                   line.category_id.id, line.caliber_id.id)
+            siblings = line.contract_id.product_line_ids - line
+            if any((other.species_id.id, other.product_id.id, other.variety_id.id,
+                    other.category_id.id, other.caliber_id.id) == key for other in siblings):
+                raise ValidationError(_("Ya existe una línea con la misma combinación de especie, producto, variedad, categoría y calibre."))
+
+    @api.model
+    def resolve_variant_price(self, contract, product, species, variety=False,
+                              category=False, caliber=False):
+        """Return the most specific applicable contract line; refuse equal-ranked ties."""
+        variety_id = variety.id if variety else False
+        category_id = category.id if category else False
+        caliber_id = caliber.id if caliber else False
+        candidates = contract.product_line_ids.filtered(
+            lambda line: line.product_id == product and line.species_id == species
+            and (not line.variety_id or line.variety_id.id == variety_id)
+            and (not line.category_id or line.category_id.id == category_id)
+            and (not line.caliber_id or line.caliber_id.id == caliber_id))
+        if not candidates:
+            raise UserError(_("El contrato no tiene precio para esta combinación de fruta."))
+        ranked = candidates.sorted(
+            key=lambda line: sum(bool(value) for value in
+                                 (line.variety_id, line.category_id, line.caliber_id)),
+            reverse=True)
+        best = ranked[0]
+        score = sum(bool(value) for value in
+                    (best.variety_id, best.category_id, best.caliber_id))
+        if len(ranked) > 1 and sum(bool(value) for value in
+                                   (ranked[1].variety_id, ranked[1].category_id,
+                                    ranked[1].caliber_id)) == score:
+            raise UserError(_("Hay dos precios igual de específicos para esta fruta."))
+        return best
+
     def write(self, vals):
         if any(line.contract_id.state != "draft" for line in self) and set(vals) & {
-                "product_id", "quantity", "uom_id", "price_unit", "analytic_distribution",
+                "product_id", "species_id", "variety_id", "category_id", "caliber_id",
+                "quantity", "uom_id", "price_unit", "analytic_distribution",
                 "description"}:
             raise UserError(_("Cree una revisión para cambiar productos de un contrato confirmado."))
         if "debit_account_id" in vals:

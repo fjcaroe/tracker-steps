@@ -71,7 +71,11 @@
                             <field name="product_line_ids" readonly="state != 'draft'">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
+                                    <field name="species_id" required="1"/>
                                     <field name="product_id"/>
+                                    <field name="variety_id" domain="[('especie_id', '=', species_id)]" optional="show"/>
+                                    <field name="category_id" optional="show"/>
+                                    <field name="caliber_id" domain="['|', ('species_id', '=', False), ('species_id', '=', species_id)]" optional="show"/>
                                     <field name="description" optional="show"/>
                                     <field name="quantity"/>
                                     <field name="ordered_quantity" readonly="1"/>
