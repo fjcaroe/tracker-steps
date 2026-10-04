@@ -250,8 +250,12 @@ class StepAppApi(models.AbstractModel):
     # Autenticación de cada llamada
     # ------------------------------------------------------------------
     @api.model
-    def authenticate(self, access_token, org_uid=None):
-        """Resuelve sesión, persona y (si se indica) membresía activa. Lanza ApiError ante cualquier problema."""
+    def authenticate(self, access_token, org_uid=None, allow_ended=False):
+        """Resuelve sesión, persona y (si se indica) membresía activa. Lanza ApiError ante cualquier problema.
+
+        `allow_ended=True` solo se usa al sincronizar eventos capturados sin conexión: acepta una membresía ya suspendida o
+        revocada y deja a cada módulo decidir con `late_event_ok` según el instante de captura.
+        """
         if not access_token:
             raise ApiError("unauthenticated", 401, _("Falta la sesión."))
         Session = self.env["step.app.session"].sudo()
@@ -275,7 +279,10 @@ class StepAppApi(models.AbstractModel):
             membership = company and self.env["step.app.membership"].sudo().search(
                 [("person_id", "=", person.id), ("company_id", "=", company.id)], limit=1)
             # Misma respuesta para «empresa inexistente» y «sin membresía»: no revela qué empresas existen.
-            if not membership or not authz.membership_active_at(self._membership_dict(membership), now):
+            usable = membership and (
+                authz.membership_active_at(self._membership_dict(membership), now)
+                or (allow_ended and membership.state in ("suspended", "revoked") and membership.access_ended_at))
+            if not usable:
                 raise ApiError("organization_not_authorized", 403, _("No tiene acceso activo a esa empresa."))
             ctx.update(membership=membership, company=company)
         return ctx
@@ -307,6 +314,13 @@ class StepAppApi(models.AbstractModel):
     def require(self, ctx, permission):
         if permission not in self.permissions(ctx):
             raise ApiError("forbidden", 403, _("No tiene permiso para esta acción."))
+
+    @api.model
+    def late_event_ok(self, ctx, module, role, captured_at, resource_id=None):
+        """¿Se acepta un evento capturado en `captured_at`? Usa la historia de concesiones y el fin de acceso (ADR-5)."""
+        membership = ctx["membership"]
+        return authz.event_acceptable(captured_at, self._grant_dicts(membership), module, role,
+                                      membership.access_ended_at or None, resource_id)
 
     @api.model
     def grants_for(self, ctx, module):

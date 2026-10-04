@@ -56,9 +56,9 @@ def service():
     return request.env["step.app.api"].sudo()
 
 
-def authenticate(need_org=True):
+def authenticate(need_org=True, allow_ended=False):
     org = request.httprequest.headers.get("X-Steps-Org")
-    ctx = service().authenticate(bearer(), org_uid=org if need_org else None)
+    ctx = service().authenticate(bearer(), org_uid=org if need_org else None, allow_ended=allow_ended)
     if need_org and not org:
         raise ApiError("organization_required", 400)
     return ctx

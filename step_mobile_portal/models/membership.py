@@ -19,6 +19,9 @@ class StepAppMembership(models.Model):
         "res.partner", string="Contacto / conductor vinculado", tracking=True,
         help="Vínculo explícito con un contacto existente (p. ej. conductor). Nunca se asigna por nombre o correo coincidente.")
     request_note = fields.Text(readonly=True)
+    access_ended_at = fields.Datetime(
+        readonly=True, copy=False,
+        help="Instante en que el acceso terminó (suspensión o revocación). Sirve para decidir qué eventos capturados sin conexión se aceptan.")
     grant_ids = fields.One2many("step.app.grant", "membership_id", string="Concesiones")
 
     _sql_constraints = [("person_company_unique", "unique(person_id, company_id)", "La persona ya tiene una membresía en esta empresa.")]
@@ -45,12 +48,17 @@ class StepAppMembership(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("state") in ("suspended", "revoked"):
+                vals["access_ended_at"] = fields.Datetime.now()
         records = super().create(vals_list)
         records._audit("membership_created", detail=", ".join(records.mapped("state")))
         return records
 
     def write(self, vals):
         before = {rec.id: (rec.state, rec.partner_id.id) for rec in self}
+        if "state" in vals:
+            vals = dict(vals, access_ended_at=fields.Datetime.now() if vals["state"] in ("suspended", "revoked") else False)
         res = super().write(vals)
         for rec in self:
             old_state, old_partner = before[rec.id]

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="step_app_module_colaciones" model="step.app.module">
+        <field name="code">colaciones</field>
+        <field name="name">Colaciones</field>
+        <field name="icon">restaurant</field>
+        <field name="sequence">10</field>
+        <field name="contract_version">1</field>
+    </record>
+    <record id="step_app_role_colaciones_persona" model="step.app.module.role">
+        <field name="module_id" ref="step_app_module_colaciones"/>
+        <field name="code">persona</field>
+        <field name="name">Persona (consulta propia)</field>
+        <field name="permissions">colaciones.read_own</field>
+    </record>
+    <record id="step_app_role_colaciones_operador" model="step.app.module.role">
+        <field name="module_id" ref="step_app_module_colaciones"/>
+        <field name="code">operador</field>
+        <field name="name">Operador (registra entregas)</field>
+        <field name="permissions">colaciones.register</field>
+    </record>
+</odoo>

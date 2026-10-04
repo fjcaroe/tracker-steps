@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="step_app_module_mobilization" model="step.app.module">
+        <field name="code">mobilization</field>
+        <field name="name">Movilización</field>
+        <field name="icon">directions_bus</field>
+        <field name="sequence">20</field>
+        <field name="contract_version">1</field>
+    </record>
+    <record id="step_app_role_mobilization_conductor" model="step.app.module.role">
+        <field name="module_id" ref="step_app_module_mobilization"/>
+        <field name="code">conductor</field>
+        <field name="name">Conductor (sus servicios)</field>
+        <field name="permissions">mobilization.drive</field>
+    </record>
+    <record id="step_app_role_mobilization_supervisor" model="step.app.module.role">
+        <field name="module_id" ref="step_app_module_mobilization"/>
+        <field name="code">supervisor</field>
+        <field name="name">Supervisor (consulta de la empresa)</field>
+        <field name="permissions">mobilization.supervise</field>
+    </record>
+</odoo>

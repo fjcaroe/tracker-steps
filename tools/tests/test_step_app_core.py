@@ -95,6 +95,20 @@ def test_evento_capturado_antes_de_la_revocacion_se_acepta():
     assert authz.event_acceptable(NOW, g, 'colaciones', 'persona') == (False, 'no_grant')
 
 
+def test_evento_capturado_despues_del_fin_de_acceso_se_rechaza():
+    g = [grant(valid_from=NOW - 10 * H)]  # la concesión no se revocó, pero la membresía se suspendió en NOW
+    assert authz.event_acceptable(NOW - H, g, 'colaciones', 'operador', access_ended_at=NOW) == (True, 'ok')
+    assert authz.event_acceptable(NOW, g, 'colaciones', 'operador', access_ended_at=NOW) == (False, 'access_ended_before_capture')
+    assert authz.event_acceptable(NOW + H, g, 'colaciones', 'operador', access_ended_at=NOW) == (False, 'access_ended_before_capture')
+
+
+def test_evento_fuera_del_alcance_de_la_concesion_se_rechaza():
+    g = [grant(scope_ids=[7])]
+    assert authz.event_acceptable(NOW, g, 'colaciones', 'operador', resource_id=7) == (True, 'ok')
+    assert authz.event_acceptable(NOW, g, 'colaciones', 'operador', resource_id=9) == (False, 'resource_out_of_scope')
+    assert authz.event_acceptable(NOW, [grant()], 'colaciones', 'operador', resource_id=9) == (True, 'ok')
+
+
 def test_sesion_emite_pares_distintos_y_guarda_huellas():
     a, b = sessions.issue(NOW), sessions.issue(NOW)
     assert a['access'] != b['access'] and a['refresh'] != b['refresh']

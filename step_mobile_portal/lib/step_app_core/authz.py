@@ -62,15 +62,21 @@ def offline_allowed(now: datetime, until) -> bool:
     return until is not None and now < until
 
 
-def event_acceptable(captured_at: datetime, grants, module: str, role: str):
+def event_acceptable(captured_at: datetime, grants, module: str, role: str, access_ended_at=None, resource_id=None):
     """Política del servidor para eventos capturados sin conexión.
 
-    Se acepta si la concesión (módulo+rol) estaba vigente en el instante de captura, aunque hoy esté revocada.
+    Se acepta si una concesión (módulo+rol) estaba vigente en el instante de captura, cubría el recurso (si lo hay) y el
+    acceso de la persona a la empresa no había terminado todavía, aunque hoy esté revocado o suspendido.
     Devuelve (aceptado, motivo).
     """
+    if access_ended_at is not None and captured_at >= access_ended_at:
+        return False, 'access_ended_before_capture'
     candidates = [g for g in grants if g['module'] == module and g['role'] == role]
     if not candidates:
         return False, 'no_grant'
-    if any(grant_active_at(g, captured_at) for g in candidates):
-        return True, 'ok'
-    return False, 'grant_not_valid_at_capture'
+    valid = [g for g in candidates if grant_active_at(g, captured_at)]
+    if not valid:
+        return False, 'grant_not_valid_at_capture'
+    if resource_id is not None and not any(scope_allows(g, resource_id) for g in valid):
+        return False, 'resource_out_of_scope'
+    return True, 'ok'

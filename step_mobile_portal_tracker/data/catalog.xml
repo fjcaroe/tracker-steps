@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- El Tracker no vive en Odoo: conserva su API (FastAPI) y su login. Este registro solo habilita el módulo en la app. -->
+    <record id="step_app_module_tracker" model="step.app.module">
+        <field name="code">tracker</field>
+        <field name="name">Tracker</field>
+        <field name="icon">agriculture</field>
+        <field name="sequence">30</field>
+        <field name="contract_version">1</field>
+    </record>
+    <record id="step_app_role_tracker_operador" model="step.app.module.role">
+        <field name="module_id" ref="step_app_module_tracker"/>
+        <field name="code">operador</field>
+        <field name="name">Operador (jornadas y tareas)</field>
+        <field name="permissions">tracker.session</field>
+    </record>
+    <record id="step_app_role_tracker_supervisor" model="step.app.module.role">
+        <field name="module_id" ref="step_app_module_tracker"/>
+        <field name="code">supervisor</field>
+        <field name="name">Supervisor</field>
+        <field name="permissions">tracker.session,tracker.supervise</field>
+    </record>
+</odoo>
