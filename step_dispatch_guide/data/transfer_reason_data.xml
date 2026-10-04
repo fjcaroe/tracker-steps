@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Indicador tipo de traslado de bienes (SII). noupdate: el nombre y la
+         marca Facturable se pueden ajustar en Configuración. -->
+    <data noupdate="1">
+        <record id="transfer_reason_1" model="step.dispatch.transfer.reason">
+            <field name="code">1</field><field name="sequence">1</field>
+            <field name="name">Operación constituye venta</field>
+            <field name="invoiceable" eval="True"/>
+        </record>
+        <record id="transfer_reason_2" model="step.dispatch.transfer.reason">
+            <field name="code">2</field><field name="sequence">2</field>
+            <field name="name">Ventas por efectuar</field>
+        </record>
+        <record id="transfer_reason_3" model="step.dispatch.transfer.reason">
+            <field name="code">3</field><field name="sequence">3</field>
+            <field name="name">Consignaciones</field>
+        </record>
+        <record id="transfer_reason_4" model="step.dispatch.transfer.reason">
+            <field name="code">4</field><field name="sequence">4</field>
+            <field name="name">Entrega gratuita / productos en demostración</field>
+        </record>
+        <record id="transfer_reason_5" model="step.dispatch.transfer.reason">
+            <field name="code">5</field><field name="sequence">5</field>
+            <field name="name">Traslados internos</field>
+        </record>
+        <record id="transfer_reason_6" model="step.dispatch.transfer.reason">
+            <field name="code">6</field><field name="sequence">6</field>
+            <field name="name">Otros traslados no venta</field>
+        </record>
+        <record id="transfer_reason_7" model="step.dispatch.transfer.reason">
+            <field name="code">7</field><field name="sequence">7</field>
+            <field name="name">Guía de devolución</field>
+        </record>
+        <record id="transfer_reason_8" model="step.dispatch.transfer.reason">
+            <field name="code">8</field><field name="sequence">8</field>
+            <field name="name">Traslado para exportación (no venta)</field>
+        </record>
+        <record id="transfer_reason_9" model="step.dispatch.transfer.reason">
+            <field name="code">9</field><field name="sequence">9</field>
+            <field name="name">Venta para exportación</field>
+        </record>
+    </data>
+</odoo>

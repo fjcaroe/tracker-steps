@@ -1,5 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="action_report_dispatch_guide" model="ir.actions.report"><field name="name">Guía de despacho interna</field><field name="model">step.dispatch.guide</field><field name="report_type">qweb-pdf</field><field name="report_name">step_dispatch_guide.report_dispatch_guide</field><field name="report_file">step_dispatch_guide.report_dispatch_guide</field><field name="binding_model_id" ref="model_step_dispatch_guide"/><field name="binding_type">report</field></record>
-    <template id="report_dispatch_guide"><t t-call="web.html_container"><t t-foreach="docs" t-as="o"><t t-call="web.external_layout"><div class="page"><div class="row"><div class="col-8"><h2>GUÍA DE DESPACHO</h2><p><strong t-field="o.company_id.name"/><br/><span t-field="o.company_id.vat"/><br/><span t-field="o.company_id.contact_address"/></p></div><div class="col-4 border text-center"><h3>Folio <span t-field="o.external_folio"/></h3><small>Documento interno no tributario</small></div></div><hr/><div class="row"><div class="col-6"><strong>Receptor:</strong> <span t-field="o.partner_id"/><br/><strong>RUT:</strong> <span t-field="o.partner_id.vat"/><br/><strong>Giro:</strong> <span t-field="o.receiver_activity"/></div><div class="col-6"><strong>Fecha:</strong> <span t-field="o.date"/><br/><strong>Origen:</strong> <span t-field="o.origin_address"/><br/><strong>Destino:</strong> <span t-field="o.destination_address"/><br/><strong>Motivo:</strong> <span t-field="o.transfer_reason"/></div></div><table class="table table-sm mt-3"><thead><tr><th>Código</th><th>Descripción</th><th>UM</th><th class="text-end">Cantidad</th><th class="text-end">Bins</th><th class="text-end">Kilos</th><th class="text-end">Valor</th></tr></thead><tbody><tr t-foreach="o.line_ids" t-as="l"><td><span t-field="l.product_id.default_code"/></td><td><span t-field="l.description"/></td><td><span t-field="l.product_uom_id"/></td><td class="text-end"><span t-field="l.quantity"/></td><td class="text-end"><span t-field="l.bin_count"/></td><td class="text-end"><span t-field="l.quantity_kg"/></td><td class="text-end"><span t-field="l.subtotal"/></td></tr></tbody></table><div class="row"><div class="col-6"><p><strong>Transportista:</strong> <span t-field="o.carrier_id"/> — <span t-field="o.carrier_id.vat"/><br/><strong>Chofer:</strong> <span t-field="o.driver_id.name"/> — <span t-field="o.driver_id.vat"/><br/><strong>Patente camión:</strong> <span t-field="o.truck_plate"/><br/><strong>Patente carro:</strong> <span t-field="o.trailer_plate"/></p></div><div class="col-6"><p><strong>Total bins:</strong> <span t-field="o.total_bins"/><br/><strong>Total kilos:</strong> <span t-field="o.total_kilos"/><br/><strong>Bins vacíos devolución:</strong> <span t-field="o.empty_bins_return"/></p><p t-if="o.globalgap_certified"><strong>Fruta certificada GLOBALG.A.P.</strong> — GGN <span t-field="o.ggn"/></p><p t-if="o.csg"><strong>CSG:</strong> <span t-field="o.csg"/></p></div></div></div></t></t></t></template>
-</odoo>
+    <record id="paperformat_dispatch_guide" model="report.paperformat">
+        <field name="name">Guía de despacho</field>
+        <field name="format">Letter</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">8</field>
+        <field name="margin_bottom">8</field>
+        <field name="margin_left">7</field>
+        <field name="margin_right">7</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="dpi">90</field>
+    </record>
 
+    <record id="action_report_dispatch_guide" model="ir.actions.report">
+        <field name="name">Guía de despacho</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_dispatch_guide.report_dispatch_guide</field>
+        <field name="report_file">step_dispatch_guide.report_dispatch_guide</field>
+        <field name="print_report_name">'Guia %s' % object.external_folio</field>
+        <field name="paperformat_id" ref="paperformat_dispatch_guide"/>
+        <field name="binding_model_id" ref="model_step_dispatch_guide"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Formato basado en la guía de Agrícola Citripal entregada por el cliente. -->
+    <template id="report_dispatch_guide">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <!-- Encabezado propio (formato Citripal): no depende del diseño de
+                     documentos de la empresa, que cada base puede personalizar. -->
+                <t t-call="web.basic_layout">
+                    <div class="page">
+                        <div class="row">
+                            <div class="col-8">
+                                <img t-if="o.company_id.logo" t-att-src="image_data_uri(o.company_id.logo)" style="max-height: 70px;" alt="Logo"/>
+                                <h4 t-field="o.company_id.name"/>
+                                <div t-field="o.company_id.partner_id"
+                                     t-options="{'widget': 'contact', 'fields': ['address', 'phone'], 'no_marker': True}"/>
+                            </div>
+                            <div class="col-4">
+                                <div class="border border-danger text-center p-2" style="color: #c00;">
+                                    <strong>R.U.T.: <span t-field="o.company_id.vat"/></strong><br/>
+                                    <strong>GUÍA DE DESPACHO ELECTRÓNICA</strong><br/>
+                                    <strong>N° <span t-field="o.external_folio"/></strong>
+                                </div>
+                                <div class="text-center small mt-1" t-if="o.dte_provider == 'third_party'">
+                                    Copia interna. Folio emitido por el proveedor DTE externo.
+                                </div>
+                                <div class="text-end mt-2"><span t-field="o.date"/></div>
+                            </div>
+                        </div>
+                        <div t-if="o.state == 'cancelled'" class="alert alert-danger text-center mt-2">GUÍA ANULADA</div>
+                        <table class="table table-sm table-borderless border mt-3">
+                            <tr><td style="width: 18%;"><strong>Señor(es)</strong></td><td>: <span t-field="o.partner_id.name"/></td>
+                                <td style="width: 18%;"><strong>Razón del traslado</strong></td><td>: <span t-field="o.transfer_reason_id"/></td></tr>
+                            <tr><td><strong>R.U.T.</strong></td><td>: <span t-field="o.partner_vat"/></td>
+                                <td><strong>Tipo despacho</strong></td><td>: <span t-field="o.dispatch_type_id.x_name"/></td></tr>
+                            <tr><td><strong>Giro</strong></td><td>: <span t-field="o.receiver_activity"/></td>
+                                <td><strong>Forma de pago</strong></td><td>: <span t-field="o.payment_term_id"/></td></tr>
+                            <tr><td><strong>Dirección</strong></td><td>: <span t-field="o.partner_street"/></td>
+                                <td><strong>Comuna / Región</strong></td><td>: <span t-field="o.partner_city"/> <span t-field="o.partner_state_id"/></td></tr>
+                            <tr><td><strong>Origen</strong></td><td>: <span t-field="o.origin_address"/></td>
+                                <td><strong>Destino</strong></td><td>: <span t-field="o.destination_address"/></td></tr>
+                            <tr t-if="o.reference or o.contact_id"><td><strong>Referencia</strong></td><td>: <span t-field="o.reference"/></td>
+                                <td><strong>Contacto</strong></td><td>: <span t-field="o.contact_id.name"/></td></tr>
+                        </table>
+                        <table class="table table-sm mt-2">
+                            <thead style="background-color: #3a7d2c; color: white;">
+                                <tr><th>Código</th><th>Descripción</th><th>Empaque</th><th class="text-end">Cant. emp.</th>
+                                    <th>U.M.</th><th class="text-end">Cantidad</th><th class="text-end">Precio unit.</th><th class="text-end">Valor</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="l">
+                                    <td><span t-field="l.product_id.default_code"/></td>
+                                    <td><span t-field="l.description"/><t t-if="l.lot_id"><br/><small>Lote <span t-field="l.lot_id.name"/></small></t></td>
+                                    <td><span t-field="l.packaging_id.name"/></td>
+                                    <td class="text-end"><span t-field="l.bin_count" t-options='{"widget": "float", "precision": 0}'/></td>
+                                    <td><span t-field="l.product_uom_id"/></td>
+                                    <td class="text-end"><span t-field="l.quantity" t-options='{"widget": "float", "precision": 0}'/></td>
+                                    <td class="text-end"><span t-field="l.price_unit"/></td>
+                                    <td class="text-end"><span t-field="l.subtotal"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="row">
+                            <div class="col-7">
+                                <p class="mb-1"><strong>TOTAL BINS <span t-field="o.total_bins" t-options='{"widget": "float", "precision": 0}'/></strong><br/>
+                                    <strong>TOTAL KILOS <span t-field="o.total_kilos" t-options='{"widget": "float", "precision": 0}'/></strong></p>
+                                <p class="mb-1" t-if="o.empty_bins_return"><span t-field="o.empty_bins_return" t-options='{"widget": "float", "precision": 0}'/> BINS VACÍOS DEVOLUCIÓN</p>
+                                <p class="mb-1" t-if="o.globalgap_certified">FRUTA CERTIFICADA GLOBALG.A.P.<t t-if="o.ggn"><br/>GGN <span t-field="o.ggn"/></t></p>
+                                <p class="mb-1" t-if="o.csg">CSG <span t-field="o.csg"/></p>
+                            </div>
+                            <div class="col-5">
+                                <table class="table table-sm">
+                                    <tr><td>Sub total</td><td class="text-end"><span t-field="o.amount_untaxed"/></td></tr>
+                                    <tr><td>Exento</td><td class="text-end"><span t-field="o.amount_exempt"/></td></tr>
+                                    <tr><td>IVA</td><td class="text-end"><span t-field="o.amount_tax"/></td></tr>
+                                    <tr><td><strong>Total</strong></td><td class="text-end"><strong t-field="o.amount_total"/></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        <table class="table table-sm table-borderless border mt-2">
+                            <tr><td colspan="4"><strong>DATOS DEL DESPACHO Y TRANSPORTE</strong></td></tr>
+                            <tr><td style="width: 18%;">Transportista</td><td>: <span t-field="o.carrier_id.name"/><t t-if="o.carrier_vat"> — RUT <span t-field="o.carrier_vat"/></t></td>
+                                <td style="width: 18%;">Paga flete</td><td>: <t t-if="o.freight_paid">Sí<t t-if="o.freight_order_id"> (OT <span t-field="o.freight_order_id.x_name"/>)</t></t><t t-else="">No</t></td></tr>
+                            <tr><td>Chofer</td><td>: <t t-if="o.driver_partner_id"><span t-field="o.driver_partner_id.name"/><t t-if="o.driver_vat"> — RUT <span t-field="o.driver_vat"/></t></t><t t-else=""><span t-field="o.driver_id.name"/> — RUT <span t-field="o.driver_id.vat"/></t></td>
+                                <td>Tramo</td><td>: <span t-field="o.freight_route_id.x_name"/></td></tr>
+                            <tr><td>Patente camión</td><td>: <span t-field="o.truck_plate"/></td>
+                                <td>Patente remolque</td><td>: <span t-field="o.trailer_plate"/></td></tr>
+                            <tr><td>Fecha hora salida</td><td>: <span t-field="o.departure_datetime"/></td>
+                                <td>Fecha hora llegada</td><td>: <span t-field="o.arrival_datetime"/></td></tr>
+                        </table>
+                        <div t-if="o.note" class="mt-2"><strong>Observación:</strong> <div t-field="o.note"/></div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <record id="action_report_dispatch_book" model="ir.actions.report">
+        <field name="name">Libro de guías</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_dispatch_guide.report_dispatch_book</field>
+        <field name="report_file">step_dispatch_guide.report_dispatch_book</field>
+        <field name="print_report_name">'Libro de guias'</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+        <field name="binding_model_id" ref="model_step_dispatch_guide"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- Libro de Guías de Despacho: detalle y resumen del período según el
+         instructivo SII (formato LGD v1.0). Informativo para control interno. -->
+    <template id="report_dispatch_book">
+        <t t-call="web.html_container">
+            <t t-set="book" t-value="docs.get_book_data()"/>
+            <t t-call="web.internal_layout">
+                <div class="page" style="font-size: 11px;">
+                    <h4>Libro de Guías de Despacho</h4>
+                    <p>
+                        <strong>RUT contribuyente:</strong> <span t-esc="book['vat']"/> ·
+                        <strong>Empresa:</strong> <span t-esc="book['company']"/> ·
+                        <strong>Período:</strong> <span t-esc="book['period_from']"/> a <span t-esc="book['period_to']"/>
+                    </p>
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr><th>Folio</th><th>Anul./mod.</th><th>Tipo op.</th><th>Fecha</th><th>RUT receptor</th>
+                                <th>Razón social</th><th class="text-end">Monto neto</th><th class="text-end">Tasa</th>
+                                <th class="text-end">IVA</th><th class="text-end">Monto total</th><th class="text-end">Total modif.</th>
+                                <th>Tipo ref.</th><th>Folio ref.</th><th>Fecha ref.</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="book['lines']" t-as="g">
+                                <td t-esc="g['folio']"/><td t-esc="g['annul']"/><td t-esc="g['operation']"/>
+                                <td t-esc="g['date']"/><td t-esc="g['vat']"/><td t-esc="g['partner']"/>
+                                <td class="text-end" t-esc="g['net']"/><td class="text-end" t-esc="g['rate']"/>
+                                <td class="text-end" t-esc="g['tax']"/><td class="text-end" t-esc="g['total']"/>
+                                <td class="text-end" t-esc="g['modified']"/><td t-esc="g['ref_type']"/>
+                                <td t-esc="g['ref_folio']"/><td t-esc="g['ref_date']"/>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <h5 class="mt-3">Resumen del período</h5>
+                    <table class="table table-sm table-bordered" style="width: 60%;">
+                        <tr><td>Total folios anulados (1)</td><td class="text-end" t-esc="book['annulled_folios']"/></tr>
+                        <tr><td>Total guías anuladas (2)</td><td class="text-end" t-esc="book['annulled_guides']"/></tr>
+                        <tr><td>Total guías de venta</td><td class="text-end" t-esc="book['sales_count']"/></tr>
+                        <tr><td>Monto total guías de venta</td><td class="text-end" t-esc="book['sales_amount']"/></tr>
+                        <tr><td>Monto total modificado</td><td class="text-end" t-esc="book['modified_amount']"/></tr>
+                    </table>
+                    <table class="table table-sm table-bordered" style="width: 60%;" t-if="book['non_sales']">
+                        <thead><tr><th>Código traslado</th><th>Razón</th><th class="text-end">Cantidad guías</th><th class="text-end">Monto guías</th></tr></thead>
+                        <tr t-foreach="book['non_sales']" t-as="row">
+                            <td t-esc="row['code']"/><td t-esc="row['reason']"/>
+                            <td class="text-end" t-esc="row['count']"/><td class="text-end" t-esc="row['amount']"/>
+                        </tr>
+                    </table>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

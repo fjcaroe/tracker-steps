@@ -1,17 +1,445 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="view_dispatch_guide_list" model="ir.ui.view">
-        <field name="name">step.dispatch.guide.list</field><field name="model">step.dispatch.guide</field>
-        <field name="arch" type="xml"><list decoration-muted="state == 'cancelled'" decoration-success="state == 'confirmed'"><field name="name"/><field name="external_folio"/><field name="date"/><field name="partner_id"/><field name="origin_address" optional="hide"/><field name="destination_address"/><field name="total_bins"/><field name="total_kilos"/><field name="state" widget="badge"/><field name="company_id" groups="base.group_multi_company" optional="hide"/></list></field>
+        <field name="name">step.dispatch.guide.list</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancelled'" decoration-success="state == 'confirmed'">
+                <field name="external_folio"/>
+                <field name="name" optional="hide"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="transfer_reason_id" optional="show"/>
+                <field name="dispatch_type_id" optional="hide"/>
+                <field name="origin_address" optional="hide"/>
+                <field name="destination_address" optional="show"/>
+                <field name="carrier_id" optional="hide"/>
+                <field name="truck_plate" optional="hide"/>
+                <field name="total_bins" sum="Total bins" optional="show"/>
+                <field name="total_kilos" sum="Total kilos" optional="show"/>
+                <field name="amount_total" sum="Total" optional="show"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="invoice_status" widget="badge" optional="show"
+                       decoration-warning="invoice_status == 'to_invoice'" decoration-success="invoice_status == 'invoiced'"/>
+                <field name="state" widget="badge" decoration-success="state == 'confirmed'" decoration-muted="state == 'cancelled'"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            </list>
+        </field>
     </record>
-    <record id="view_dispatch_guide_form" model="ir.ui.view">
-        <field name="name">step.dispatch.guide.form</field><field name="model">step.dispatch.guide</field>
-        <field name="arch" type="xml"><form string="Guía de despacho"><header><button name="action_confirm" type="object" string="Confirmar" class="oe_highlight" invisible="state != 'draft'"/><button name="action_cancel" type="object" string="Anular" invisible="state == 'cancelled'"/><button name="action_draft" type="object" string="Volver a borrador" invisible="state != 'cancelled'"/><field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/></header><sheet><div class="oe_title"><label for="external_folio"/><h1><field name="external_folio" placeholder="Folio del proveedor DTE"/></h1><h2><field name="name" readonly="1"/></h2></div><group><group><field name="date"/><field name="partner_id"/><field name="receiver_activity"/><field name="reference"/></group><group><field name="company_id" groups="base.group_multi_company"/><field name="picking_id"/><field name="freight_order_id"/><field name="currency_id" invisible="1"/></group></group><group string="Traslado"><group><field name="origin_address"/><field name="destination_address"/><field name="transfer_reason"/></group><group><field name="carrier_id"/><field name="driver_id"/><field name="truck_plate"/><field name="trailer_plate"/></group></group><notebook><page string="Detalle"><field name="line_ids" readonly="state != 'draft'"><list editable="bottom"><field name="sequence" widget="handle"/><field name="product_id"/><field name="description"/><field name="product_uom_id"/><field name="quantity"/><field name="bin_count"/><field name="quantity_kg"/><field name="price_unit" optional="hide"/><field name="subtotal" optional="hide"/><field name="currency_id" column_invisible="True"/></list></field><group class="oe_subtotal_footer oe_right"><field name="total_bins"/><field name="total_kilos"/><field name="amount_untaxed"/></group></page><page string="Fruta y certificación"><group><field name="empty_bins_return"/><field name="globalgap_certified"/><field name="ggn" invisible="not globalgap_certified"/><field name="csg"/></group></page><page string="Notas"><field name="note"/></page></notebook></sheet><chatter/></form></field>
-    </record>
-    <record id="action_dispatch_guides" model="ir.actions.act_window"><field name="name">Guías de despacho</field><field name="res_model">step.dispatch.guide</field><field name="view_mode">list,form</field></record>
-    <record id="action_dispatch_drivers" model="ir.actions.act_window"><field name="name">Choferes</field><field name="res_model">step.dispatch.driver</field><field name="view_mode">list,form</field></record>
-    <menuitem id="menu_dispatch_root" name="Guías de despacho" sequence="28" web_icon="stock,static/description/icon.png"/>
-    <menuitem id="menu_dispatch_guides" name="Guías" parent="menu_dispatch_root" action="action_dispatch_guides" sequence="10"/>
-    <menuitem id="menu_dispatch_configuration" name="Configuración" parent="menu_dispatch_root" sequence="90" groups="stock.group_stock_manager"/>
-    <menuitem id="menu_dispatch_drivers" name="Choferes" parent="menu_dispatch_configuration" action="action_dispatch_drivers" sequence="10"/>
-</odoo>
 
+    <record id="view_dispatch_guide_form" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.form</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="arch" type="xml">
+            <form string="Guía de despacho">
+                <header>
+                    <button name="action_confirm" type="object" string="Confirmar" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_create_invoice" type="object" string="Facturar" class="oe_highlight"
+                            invisible="invoice_status != 'to_invoice'" groups="account.group_account_invoice"/>
+                    <button name="action_cancel" type="object" string="Anular" invisible="state == 'cancelled'"
+                            confirm="¿Anular esta guía? Quedará informada como anulada en el libro de guías."/>
+                    <button name="action_draft" type="object" string="Volver a borrador" invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_invoice" type="object" class="oe_stat_button" icon="fa-file-text-o"
+                                invisible="not invoice_id">
+                            <field name="invoice_id" widget="statinfo" string="Factura"/>
+                        </button>
+                        <button name="action_view_freight_order" type="object" class="oe_stat_button" icon="fa-truck"
+                                invisible="not freight_order_id">
+                            <div class="o_stat_info"><span class="o_stat_text">OT flete</span></div>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" title="Facturada" invisible="invoice_status != 'invoiced'"/>
+                    <widget name="web_ribbon" title="Anulada" bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
+                    <div class="oe_title">
+                        <div class="text-muted">52 · Guía de despacho electrónica
+                            <span invisible="dte_provider != 'third_party'"> — folio emitido por el proveedor DTE externo; este registro es de uso interno</span>
+                        </div>
+                        <label for="external_folio"/>
+                        <h1><field name="external_folio" placeholder="Número de guía del proveedor DTE" readonly="state != 'draft'"/></h1>
+                        <field name="name" readonly="1" class="text-muted"/>
+                    </div>
+                    <group>
+                        <group string="Cliente / destinatario">
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="partner_vat"/>
+                            <field name="partner_street"/>
+                            <field name="partner_city"/>
+                            <field name="partner_state_id"/>
+                            <field name="contact_id" readonly="state != 'draft'"/>
+                            <field name="receiver_activity"/>
+                        </group>
+                        <group string="Documento">
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="reference"/>
+                            <field name="payment_term_id"/>
+                            <field name="date_due"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="picking_id"/>
+                            <field name="dte_provider" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <group string="Configuración de despacho">
+                        <group>
+                            <field name="transfer_reason_id" required="1" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="transfer_reason" placeholder="Detalle opcional del motivo"/>
+                            <field name="dispatch_type_id" options="{'no_create': True}" readonly="state != 'draft'"/>
+                            <field name="departure_datetime"/>
+                            <field name="arrival_datetime"/>
+                            <field name="origin_address"/>
+                            <field name="destination_address"/>
+                        </group>
+                        <group>
+                            <field name="vehicle_id"/>
+                            <field name="truck_plate"/>
+                            <field name="trailer_vehicle_id"/>
+                            <field name="trailer_plate"/>
+                            <field name="driver_partner_id" required="not driver_id"
+                                   context="{'default_step_chofer': True, 'default_is_company': False}"/>
+                            <field name="driver_vat"/>
+                            <field name="driver_id" invisible="not driver_id" readonly="1"/>
+                            <field name="carrier_id" context="{'default_step_carga': True, 'default_is_company': True}"/>
+                            <field name="carrier_vat"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Detalle" name="lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"/>
+                                    <field name="description"/>
+                                    <field name="packaging_id" optional="show"/>
+                                    <field name="bin_count" optional="show"/>
+                                    <field name="product_uom_id"/>
+                                    <field name="quantity"/>
+                                    <field name="quantity_kg" optional="show"/>
+                                    <field name="price_unit"/>
+                                    <field name="tax_ids" widget="many2many_tags" optional="show"/>
+                                    <field name="lot_id" optional="show" context="{'default_product_id': product_id}"/>
+                                    <field name="analytic_distribution" widget="analytic_distribution" optional="show"
+                                           options="{'product_field': 'product_id'}"/>
+                                    <field name="analytic_precision" column_invisible="True"/>
+                                    <field name="subtotal"/>
+                                    <field name="company_id" column_invisible="True"/>
+                                    <field name="currency_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                            <group>
+                                <group string="Flete">
+                                    <field name="freight_paid" readonly="dispatch_type_id and dispatch_type_id.paga_flete != 'opcional'"/>
+                                    <field name="freight_route_id" invisible="not freight_paid" required="freight_paid and not freight_order_id"/>
+                                    <field name="freight_route_from" invisible="not freight_route_id"/>
+                                    <field name="freight_route_to" invisible="not freight_route_id"/>
+                                    <field name="freight_order_id" invisible="not freight_paid"/>
+                                </group>
+                                <group class="oe_subtotal_footer">
+                                    <field name="total_bins"/>
+                                    <field name="total_kilos"/>
+                                    <field name="amount_untaxed"/>
+                                    <field name="amount_exempt"/>
+                                    <field name="amount_tax"/>
+                                    <field name="amount_total" class="oe_subtotal_footer_separator"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Fruta y certificación" name="fruit">
+                            <group>
+                                <field name="empty_bins_return"/>
+                                <field name="globalgap_certified"/>
+                                <field name="ggn" invisible="not globalgap_certified"/>
+                                <field name="csg"/>
+                            </group>
+                        </page>
+                        <page string="Observación" name="note">
+                            <field name="note" placeholder="Texto libre sobre el despacho"/>
+                        </page>
+                        <page string="Libro de guías" name="book">
+                            <group>
+                                <group>
+                                    <field name="sii_operation_code"/>
+                                    <field name="annul_code"/>
+                                    <field name="amount_modified" invisible="annul_code != '3'"/>
+                                </group>
+                                <group>
+                                    <field name="invoice_status"/>
+                                    <field name="book_ref_type" invisible="not invoice_id"/>
+                                    <field name="book_ref_folio" invisible="not invoice_id"/>
+                                    <field name="book_ref_date" invisible="not invoice_id"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dispatch_guide_search" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.search</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="external_folio"/>
+                <field name="partner_id"/>
+                <field name="carrier_id"/>
+                <field name="driver_partner_id"/>
+                <field name="truck_plate"/>
+                <filter name="draft" string="Borrador" domain="[('state', '=', 'draft')]"/>
+                <filter name="confirmed" string="Confirmadas" domain="[('state', '=', 'confirmed')]"/>
+                <filter name="cancelled" string="Anuladas" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter name="to_invoice" string="Por facturar" domain="[('invoice_status', '=', 'to_invoice')]"/>
+                <filter name="invoiced" string="Facturadas" domain="[('invoice_status', '=', 'invoiced')]"/>
+                <separator/>
+                <filter name="freight_paid" string="Paga flete" domain="[('freight_paid', '=', True)]"/>
+                <filter name="date" string="Fecha" date="date"/>
+                <group expand="0" string="Agrupar por">
+                    <filter name="group_state" string="Estado" context="{'group_by': 'state'}"/>
+                    <filter name="group_partner" string="Cliente" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_reason" string="Razón del traslado" context="{'group_by': 'transfer_reason_id'}"/>
+                    <filter name="group_invoice" string="Facturación" context="{'group_by': 'invoice_status'}"/>
+                    <filter name="group_month" string="Mes" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_dispatch_guide_kanban" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.kanban</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" group_create="false" group_delete="false" group_edit="false" records_draggable="false">
+                <field name="state"/>
+                <field name="currency_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <strong>N° <field name="external_folio"/></strong>
+                            <field name="date"/>
+                        </div>
+                        <field name="partner_id" class="text-truncate"/>
+                        <div class="text-muted small"><field name="transfer_reason_id"/></div>
+                        <div class="d-flex justify-content-between mt-1">
+                            <span><field name="total_kilos"/> kg · <field name="total_bins"/> bins</span>
+                            <field name="amount_total" widget="monetary"/>
+                        </div>
+                        <field name="invoice_status" widget="badge" invisible="invoice_status == 'no'"
+                               decoration-warning="invoice_status == 'to_invoice'" decoration-success="invoice_status == 'invoiced'"/>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_dispatch_guide_pivot" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.pivot</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="arch" type="xml">
+            <pivot string="Estado de guías">
+                <field name="transfer_reason_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="total_kilos" type="measure"/>
+                <field name="amount_total" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_dispatch_guide_graph" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.graph</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="arch" type="xml">
+            <graph string="Guías por mes" type="bar">
+                <field name="date" interval="month"/>
+                <field name="state"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Libro de guías: columnas del detalle del formato SII. -->
+    <record id="view_dispatch_guide_book_list" model="ir.ui.view">
+        <field name="name">step.dispatch.guide.book.list</field>
+        <field name="model">step.dispatch.guide</field>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <list string="Libro de guías" create="false" default_order="date, external_folio">
+                <field name="external_folio" string="Folio"/>
+                <field name="annul_code" string="Anulado/modif."/>
+                <field name="sii_operation_code" string="Tipo operación"/>
+                <field name="date" string="Fecha"/>
+                <field name="partner_vat" string="RUT receptor"/>
+                <field name="partner_id" string="Razón social receptor"/>
+                <field name="amount_untaxed" string="Monto neto" sum="Neto"/>
+                <field name="amount_exempt" string="Exento" sum="Exento" optional="show"/>
+                <field name="tax_rate" string="Tasa"/>
+                <field name="amount_tax" string="IVA" sum="IVA"/>
+                <field name="amount_total" string="Monto total" sum="Total"/>
+                <field name="amount_modified" string="Total modificado" optional="show"/>
+                <field name="book_ref_type"/>
+                <field name="book_ref_folio"/>
+                <field name="book_ref_date"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_dispatch_home" model="ir.actions.act_window">
+        <field name="name">Inicio</field>
+        <field name="res_model">step.dispatch.guide</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_dispatch_guide_search"/>
+        <field name="context">{'search_default_date': 1}</field>
+    </record>
+
+    <record id="action_dispatch_guides" model="ir.actions.act_window">
+        <field name="name">Guías de despacho</field>
+        <field name="res_model">step.dispatch.guide</field>
+        <field name="view_mode">list,kanban,form,pivot,graph</field>
+        <field name="search_view_id" ref="view_dispatch_guide_search"/>
+    </record>
+
+    <record id="action_dispatch_guide_new" model="ir.actions.act_window">
+        <field name="name">Crear guía de despacho</field>
+        <field name="res_model">step.dispatch.guide</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+    <record id="action_dispatch_to_invoice" model="ir.actions.act_window">
+        <field name="name">Facturar guías</field>
+        <field name="res_model">step.dispatch.guide</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_dispatch_guide_search"/>
+        <field name="context">{'search_default_to_invoice': 1, 'search_default_group_partner': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No hay guías por facturar</p>
+            <p>Aparecen aquí las guías confirmadas con razón de traslado facturable (1. Operación constituye venta).
+               Seleccione guías de un mismo cliente y use Acciones → Facturar guías.</p>
+        </field>
+    </record>
+
+    <record id="action_dispatch_status" model="ir.actions.act_window">
+        <field name="name">Estado de guías</field>
+        <field name="res_model">step.dispatch.guide</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="search_view_id" ref="view_dispatch_guide_search"/>
+    </record>
+
+    <record id="action_dispatch_book" model="ir.actions.act_window">
+        <field name="name">Libro de guías</field>
+        <field name="res_model">step.dispatch.guide</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_dispatch_guide_book_list"/>
+        <field name="search_view_id" ref="view_dispatch_guide_search"/>
+        <field name="context">{'search_default_date': 1}</field>
+        <field name="help" type="html">
+            <p>Seleccione las guías del período y use Imprimir → Libro de guías para obtener el detalle y el resumen del período con el formato del SII.</p>
+        </field>
+    </record>
+
+    <record id="action_server_dispatch_invoice" model="ir.actions.server">
+        <field name="name">Facturar guías</field>
+        <field name="model_id" ref="model_step_dispatch_guide"/>
+        <field name="binding_model_id" ref="model_step_dispatch_guide"/>
+        <field name="binding_view_types">list</field>
+        <field name="groups_id" eval="[(4, ref('account.group_account_invoice'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = records.action_create_invoice()</field>
+    </record>
+
+    <record id="action_dispatch_carriers" model="ir.actions.act_window">
+        <field name="name">Transportistas</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('step_carga', '=', True)]</field>
+        <field name="context">{'default_step_carga': True, 'default_is_company': True}</field>
+    </record>
+
+    <record id="action_dispatch_driver_partners" model="ir.actions.act_window">
+        <field name="name">Choferes</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('step_chofer', '=', True)]</field>
+        <field name="context">{'default_step_chofer': True, 'default_is_company': False}</field>
+    </record>
+
+    <record id="action_dispatch_drivers" model="ir.actions.act_window">
+        <field name="name">Choferes (maestro anterior)</field>
+        <field name="res_model">step.dispatch.driver</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_transfer_reason_list" model="ir.ui.view">
+        <field name="name">step.dispatch.transfer.reason.list</field>
+        <field name="model">step.dispatch.transfer.reason</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="invoiceable"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_dispatch_transfer_reasons" model="ir.actions.act_window">
+        <field name="name">Razón del traslado</field>
+        <field name="res_model">step.dispatch.transfer.reason</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
+    <menuitem id="menu_dispatch_root" name="Guías de despacho" sequence="28" web_icon="stock,static/description/icon.png"
+              groups="stock.group_stock_user,account.group_account_invoice"/>
+    <menuitem id="menu_dispatch_home" name="Inicio" parent="menu_dispatch_root" action="action_dispatch_home" sequence="1"/>
+
+    <menuitem id="menu_dispatch_guides_root" name="Guías" parent="menu_dispatch_root" sequence="10"/>
+    <menuitem id="menu_dispatch_guide_new" name="Crear guía de despacho" parent="menu_dispatch_guides_root"
+              action="action_dispatch_guide_new" sequence="1" groups="stock.group_stock_user"/>
+    <menuitem id="menu_dispatch_guides" name="Guías de despacho" parent="menu_dispatch_guides_root"
+              action="action_dispatch_guides" sequence="10"/>
+    <menuitem id="menu_dispatch_to_invoice" name="Facturar guías" parent="menu_dispatch_guides_root"
+              action="action_dispatch_to_invoice" sequence="20" groups="account.group_account_invoice"/>
+
+    <menuitem id="menu_dispatch_reports" name="Informes" parent="menu_dispatch_root" sequence="50"/>
+    <menuitem id="menu_dispatch_status" name="Estado de guías" parent="menu_dispatch_reports" action="action_dispatch_status" sequence="10"/>
+    <menuitem id="menu_dispatch_book" name="Libro de guías" parent="menu_dispatch_reports" action="action_dispatch_book" sequence="20"/>
+
+    <menuitem id="menu_dispatch_masters" name="Maestros" parent="menu_dispatch_root" sequence="70"/>
+    <menuitem id="menu_dispatch_carriers" name="Transportistas" parent="menu_dispatch_masters" action="action_dispatch_carriers" sequence="10"/>
+    <menuitem id="menu_dispatch_driver_partners" name="Choferes" parent="menu_dispatch_masters" action="action_dispatch_driver_partners" sequence="20"/>
+    <menuitem id="menu_dispatch_contacts" name="Contactos" parent="menu_dispatch_masters" action="base.action_partner_form" sequence="30"/>
+
+    <menuitem id="menu_dispatch_configuration" name="Configuración" parent="menu_dispatch_root" sequence="90" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_dispatch_transfer_reasons" name="Razón del traslado" parent="menu_dispatch_configuration"
+              action="action_dispatch_transfer_reasons" sequence="10" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_dispatch_types" name="Tipo de despacho" parent="menu_dispatch_configuration"
+              action="step_operations_ui.action_freight_dispatch_type" sequence="20" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_dispatch_drivers" name="Choferes (maestro anterior)" parent="menu_dispatch_configuration"
+              action="action_dispatch_drivers" sequence="80" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_dispatch_settings" name="Ajustes" parent="menu_dispatch_configuration"
+              action="stock.action_stock_config_settings" sequence="90" groups="base.group_system"/>
+
+    <menuitem id="menu_account_dispatch_to_invoice" name="Facturar guías" parent="account.menu_finance_receivables"
+              action="action_dispatch_to_invoice" sequence="15" groups="account.group_account_invoice"/>
+
+    <record id="view_move_form_dispatch_guides" model="ir.ui.view">
+        <field name="name">account.move.form.dispatch.guides</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_dispatch_guides" type="object" class="oe_stat_button" icon="fa-truck"
+                        invisible="dispatch_guide_count == 0">
+                    <field name="dispatch_guide_count" widget="statinfo" string="Guías"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>
