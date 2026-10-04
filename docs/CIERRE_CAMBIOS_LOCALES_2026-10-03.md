@@ -80,3 +80,26 @@ ramas T46 se avanzan por fast-forward a la base consolidada: no quedan builds
 alternativos detrás de esos nombres. Las reglas compartidas se distribuyen
 a las ramas de los 20 worktrees registrados durante la revisión; el checkout
 temporal de T47 se retira después de publicar su cierre.
+
+## Verificación final
+
+- 28 ramas publicadas sin force-push; 19 worktrees restantes y el repositorio
+  independiente Harvest Web sin cambios pendientes ni commits por subir.
+- Las ocho ramas `ticket/46-*`, `codex/t46-movil-consolidado` y
+  `codex/steps-movil` apuntan a `74290aae` después de integrar las reglas de cierre.
+- Cinco pruebas del comprobador aprobadas. Se verificó sintaxis de 105 fuentes
+  Python/shell de herramientas en los worktrees y XML del módulo recuperado.
+- Siete casos de redirección/configuración de Harvest aprobados con dobles de
+  Odoo. El controlador recuperado coincide por SHA-256 con los instalados en
+  Desarrollo, Demo y Cerro el Plomo:
+  `0763b536a47060446b68aaf3006fbed130c151d4240c36efc8fd154eb62d37ff`.
+- `/truck/` conserva `assets/index-zbpnCxRX.js`, SHA-256
+  `5968cae2b74f118af1d63b379fb14e53161e179b712eff000db46de286890717`.
+  No hay cambios en `mobile/` ni `backend/` respecto del commit desplegado de T46.
+  `tracker-steps-api.service` y nginx están activos; `/health` responde `ok`.
+
+El checkout principal queda en `codex/cierre-cambios-locales`. Para continuar
+Móvil, usar `C:/Users/tito4/Documents/Odoo-tracker-costos` sobre
+`codex/steps-movil`; para Tracker, usar el worktree de
+`codex/web-tracker-redesign`. La elección de rama es por producto, según las
+instrucciones compartidas, aunque otro agente haya dejado un checkout abierto.
