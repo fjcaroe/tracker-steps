@@ -282,3 +282,20 @@ class TestFreightStudioCosting(TransactionCase):
         })
         with self.assertRaises(UserError):
             order.with_user(plain_user).action_post_freight()
+
+
+@tagged("post_install", "-at_install")
+class TestFreightQaFilters(TransactionCase):
+    """T27 QA 2026-10-04: transportista, camión y chofer filtrados."""
+
+    def test_domains(self):
+        env = self.env
+        carrier = env["res.partner"].create({"name": "QA Transportista", "is_freight_carrier": True})
+        plain = env["res.partner"].create({"name": "QA Contacto"})
+        order_field = env["x_orden_de_flete"]._fields["x_studio_transportista"]
+        found = env["res.partner"].search(eval(order_field.domain))
+        self.assertIn(carrier, found)
+        self.assertNotIn(plain, found)
+        detail = env["x_orden_de_flete_line_709f3"]._fields
+        self.assertIn("step_chofer", detail["x_studio_chofer"].domain)
+        self.assertIn("carga", detail["x_studio_camin"].domain)

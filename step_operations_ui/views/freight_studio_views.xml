@@ -128,7 +128,7 @@
                                     <field name="x_studio_gua_referencia"/>
                                     <field name="x_studio_unidad"/>
                                     <field name="x_studio_cantidad"/>
-                                    <field name="x_studio_tarifa" readonly="1"/>
+                                    <field name="x_studio_tarifa"/>
                                     <field name="x_studio_valor_del_flete" readonly="1" sum="Total"/>
                                 </list>
                             </field>
@@ -140,8 +140,7 @@
                                     <field name="x_studio_servicio_flete"/>
                                     <field name="x_studio_costo_flete" sum="Total"/>
                                     <field name="x_studio_cuenta" readonly="1"/>
-                                    <field name="x_studio_modelo_distr_analtica"/>
-                                    <field name="analytic_distribution" widget="analytic_distribution"/>
+                                                                        <field name="analytic_distribution" widget="analytic_distribution"/>
                                 </list>
                             </field>
                         </page>
@@ -204,4 +203,14 @@
     </record>
     <menuitem id="menu_freight_settings" name="Ajustes" action="action_freight_settings"
               parent="menu_freight_configuration" sequence="80" groups="account.group_account_manager"/>
+    <record id="view_partner_form_freight_carrier" model="ir.ui.view">
+        <field name="name">res.partner.form.freight.carrier</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <field name="vat" position="after">
+                <field name="is_freight_carrier"/>
+            </field>
+        </field>
+    </record>
 </odoo>

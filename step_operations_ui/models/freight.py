@@ -33,7 +33,7 @@ class FreightTariff(models.Model):
     _order = "valid_from desc, id desc"
 
     x_name = fields.Char(string="Tarifa", required=True, tracking=True)
-    carrier_id = fields.Many2one("res.partner", string="Transportista", domain="[('supplier_rank', '>', 0)]", tracking=True)
+    carrier_id = fields.Many2one("res.partner", string="Transportista", domain="[('is_freight_carrier', '=', True)]", tracking=True)
     # route_id/price ya no son obligatorios a nivel de encabezado: desde la
     # migración del formulario de Studio (ticket T27, puntos 3 y 4) el tramo y
     # la tarifa se registran por línea (ver x_tarifa_de_fletes_line_57b07 en
@@ -65,12 +65,14 @@ class FreightOrder(models.Model):
         tracking=True,
     )
     x_studio_fundo = fields.Many2one("step.fundo", string="Fundo", tracking=True)
-    x_studio_transportista = fields.Many2one("res.partner", string="Transportista", domain="[('supplier_rank', '>', 0)]", tracking=True)
+    x_studio_transportista = fields.Many2one("res.partner", string="Transportista", domain="[('is_freight_carrier', '=', True)]", tracking=True)
     x_studio_responsable = fields.Many2one("hr.employee", string="Responsable", tracking=True)
     route_id = fields.Many2one("x_tramo_de_flete", string="Tramo")
     tariff_id = fields.Many2one("x_tarifa_de_fletes", string="Tarifa")
     cold_mode_id = fields.Many2one("x_modalidad_de_frio", string="Modalidad de frío")
-    vehicle_id = fields.Many2one("fleet.vehicle", string="Camión")
+    vehicle_id = fields.Many2one(
+        "fleet.vehicle", string="Camión", domain="[('category_id.name', 'ilike', 'carga')]"
+    )
     quantity = fields.Float(string="Cantidad")
     amount = fields.Monetary(string="Valor", compute="_compute_amount", store=True)
     currency_id = fields.Many2one(related="company_id.currency_id", store=True)

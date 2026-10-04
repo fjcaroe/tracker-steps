@@ -25,7 +25,9 @@ class FreightTariff(models.Model):
     x_studio_empresa = fields.Many2one("res.company", string="Empresa")
     x_studio_responsable = fields.Many2one("hr.employee", string="Responsable")
     x_studio_autoriza = fields.Many2one("hr.employee", string="Autoriza")
-    x_studio_transportista = fields.Many2one("res.partner", string="Transportista")
+    x_studio_transportista = fields.Many2one(
+        "res.partner", string="Transportista", domain="[('is_freight_carrier', '=', True)]"
+    )
     x_studio_vigencia_desde = fields.Date(string="Vigente desde")
     x_studio_vigencia_hasta = fields.Date(string="Vigente hasta")
     x_studio_selection_field_8tm_1jhk3i2t3 = fields.Selection(
@@ -242,8 +244,12 @@ class FreightOrderDetail(models.Model):
     x_name = fields.Char(string="Línea", required=True, default="1")
     x_studio_sequence = fields.Integer(string="Secuencia")
     x_orden_de_flete_id = fields.Many2one("x_orden_de_flete", string="Flete", required=True, ondelete="cascade")
-    x_studio_camin = fields.Many2one("fleet.vehicle", string="Camión")
-    x_studio_chofer = fields.Many2one("res.partner", string="Chofer")
+    x_studio_camin = fields.Many2one(
+        "fleet.vehicle", string="Camión", domain="[('category_id.name', 'ilike', 'carga')]"
+    )
+    x_studio_chofer = fields.Many2one(
+        "res.partner", string="Chofer", domain="[('step_chofer', '=', True)]"
+    )
     x_studio_tramo = fields.Many2one("x_tramo_de_flete", string="Tramo")
     x_studio_km_hasta = fields.Float(related="x_studio_tramo.x_studio_km_hasta", string="Km hasta")
     x_studio_detalle_carga = fields.Char(string="Detalle carga")
@@ -303,6 +309,12 @@ class FreightOrderCost(models.Model):
         for cost in self:
             if cost.x_studio_modelo_distr_analtica:
                 cost.analytic_distribution = cost.x_studio_modelo_distr_analtica.analytic_distribution
+
+
+class FreightCarrierPartner(models.Model):
+    _inherit = "res.partner"
+
+    is_freight_carrier = fields.Boolean(string="Transportista de fletes")
 
 
 class FreightCompany(models.Model):
