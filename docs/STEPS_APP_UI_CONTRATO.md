@@ -1,10 +1,10 @@
 # Steps App — contrato de interfaz para GPT/Astra (actualizado 04-10-2026)
 
-La capa visual puede cambiar composición, jerarquía, iconografía y apariencia **sin tocar** autenticación, permisos, migración, almacenamiento ni sincronización. Todo lo de abajo ya funciona; no hay pantallas placeholder. Para verlo sin Odoo: `cd mobile && npm run demo` (ver §6).
+La capa visual puede cambiar composición, jerarquía, iconografía y apariencia **sin tocar** autenticación, permisos, migración, almacenamiento ni sincronización. Este documento describe las pantallas y contratos implementados; no certifica funcionamiento nativo en Android/iOS. Para verlo sin Odoo: `cd mobile && npm run demo` (ver §6). Para un encargo visual acotado, usar [PROMPT_ASTRA_STEPS_APP_VISUAL.md](PROMPT_ASTRA_STEPS_APP_VISUAL.md).
 
 ## 1. Navegación y rutas
 
-La app no usa URL por pantalla: la navegación es un pequeño estado en `app/App.tsx` (más rápido y compatible con Capacitor). Quien rediseñe puede introducir un router **sin cambiar los servicios**, siempre que respete estas condiciones de entrada:
+La app no usa URL por pantalla: la navegación se mantiene en el estado de `mobile/src/app/App.tsx`. Conservar ese mecanismo en esta entrega visual. Las rutas de archivos de las tablas son relativas a `mobile/src/`. Respetar estas condiciones de entrada:
 
 | Pantalla (id) | Archivo | Condición para mostrarla | Salidas |
 | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ Recorridos que ya pasan en pruebas de pantalla (`app/App.test.tsx`, `testing/dem
 ## 6. Cómo trabajar la apariencia
 
 1. `cd mobile && npm run demo` → abrir `/?scenario=<nombre>`. Franja roja permanente «MODO DEMOSTRACIÓN».
-2. Editar solo `shared/ui/*`, `styles.css`, y el JSX de `app/screens/*` / `modules/*/Colaciones.tsx|Mobilization.tsx`.
-3. Ejecutar `npm test` (las pruebas de pantalla buscan por **texto y rol accesibles**: si cambias un texto, actualiza la prueba; los roles/etiquetas son parte del contrato).
-4. No tocar `app/session.ts`, `app/api.ts`, `app/runtime.ts`, `sync/*`, `migrations/*`, `platform/*`, `modules/*/service.ts`.
+2. Editar `mobile/src/shared/ui/*`, `mobile/src/styles.css` y la presentación de las pantallas acordadas. Para la estructura común se permiten clases y JSX en `mobile/src/app/App.tsx`, preservando hooks, condiciones, navegación y callbacks. Las vistas piloto están en `mobile/src/modules/colaciones/Colaciones.tsx` y `mobile/src/modules/mobilization/Mobilization.tsx`.
+3. Conservar textos de acciones, nombres accesibles, roles, estados y significado de confirmaciones. No modificar pruebas para ocultar una regresión. Ejecutar `npm test` y `npm run build` una vez al cerrar; repetir tras una corrección pertinente. Cumplir además las verificaciones requeridas por `AGENTS.md`.
+4. No tocar autenticación, APIs, permisos, hooks de negocio, colas, migraciones, adaptadores nativos, servicios de módulos ni archivos Odoo/backend. No reemplazar comportamientos reales por datos de demostración. El escenario demo conserva su franja identificadora.
+5. Inspeccionar en navegador los escenarios priorizados y registrar límites de validación. Capturas y resultados generados van fuera del checkout; código y documentación útil quedan commiteados y publicados.
