@@ -25,3 +25,11 @@ ya cerrada por otro dispositivo) no se reintenta ni bloquea el cierre: el lote s
 guarda aparte en `steps_movil_points_rejected` (tope 5000) y no cuenta como pendiente.
 Red caída, 401, 403, 408, 429 y 5xx siguen siendo reintentos. Las jornadas con cierre
 ya encolado en el teléfono no se ofrecen para retomar ni quedan como activas.
+
+## App unificada Steps (piloto, 04-10-2026)
+
+`mobile/` ahora es la app unificada: `src/app` (sesión, portada, pantallas), `src/modules/*` (Colaciones, Movilización y el Tracker
+existente sin cambios de formato), `src/shared`, `src/platform`, `src/sync`. Documentación: `docs/STEPS_APP_*.md`.
+Pruebas: `npm test && npm run build` (117 pruebas). Las pruebas de recorrido usan `src/testing/fakeServer.ts`, un servidor
+falso del contrato: no sustituyen las pruebas de Odoo (`step_mobile_portal*/tests`) ni las de dispositivo.
+No cambiar `cl.stepsapp.movil` ni las claves `steps_movil_*` del Tracker sin plan de migración.

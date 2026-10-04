@@ -1,4 +1,5 @@
 // Cliente HTTP de /steps_app/v1: Bearer + empresa activa (X-Steps-Org), renovación de sesión de un solo vuelo y errores con código estable.
+import { platformFetch } from '../platform/http';
 import type { CatalogOut, DeviceInfo, DeviceOut, ErrorBody, HealthOut, MeOut, TokenPair } from '../shared/contracts';
 
 export const API_BASE = ((import.meta.env.VITE_STEPS_API_BASE as string | undefined) || 'https://stepsapp.cl/steps_app/v1').replace(/\/+$/, '');
@@ -20,7 +21,7 @@ export type HttpDeps = {
 
 export function createApi(deps: HttpDeps) {
   const base = (deps.baseUrl ?? API_BASE).replace(/\/+$/, '');
-  const doFetch = () => deps.fetchImpl ?? fetch;
+  const doFetch = () => deps.fetchImpl ?? platformFetch;
   let refreshing: Promise<boolean> | null = null;
 
   async function raw<T>(method: string, path: string, opts: { body?: unknown; token?: string | null; org?: string | null } = {}): Promise<T> {
