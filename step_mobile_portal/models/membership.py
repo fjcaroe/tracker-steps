@@ -57,7 +57,8 @@ class StepAppMembership(models.Model):
 
     def write(self, vals):
         before = {rec.id: (rec.state, rec.partner_id.id) for rec in self}
-        if "state" in vals:
+        # Solo un cambio real de estado mueve el instante de fin de acceso (repetir «suspender» no amplía la ventana de aceptación).
+        if "state" in vals and any(rec.state != vals["state"] for rec in self):
             vals = dict(vals, access_ended_at=fields.Datetime.now() if vals["state"] in ("suspended", "revoked") else False)
         res = super().write(vals)
         for rec in self:
