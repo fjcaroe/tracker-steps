@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="help_business_queries" model="step.assistant.article">
+        <field name="name">Consultar datos reales: alcance y filtros</field>
+        <field name="published" eval="True"/>
+        <field name="keywords">asientos saldos contabilidad facturas pagos ventas compras inventario datos reales tesorería consultas</field>
+        <field name="provenance">step_support_assistant/models/business.py: catálogo de consultas</field>
+        <field name="content">El botón Consultar datos reales busca registros de las aplicaciones disponibles con tus permisos en la compañía actual. Selecciona aplicación, referencia y fechas. También puedes escribir últimos asientos o saldo cuenta 110101 hasta 2026-09-30. Las búsquedas muestran como máximo 20 registros; no representan totales del negocio. Los saldos usan el código exacto de la cuenta y suman solamente asientos publicados visibles con tus permisos, en moneda de la compañía. Sin fecha inicial muestran el saldo acumulado hasta la fecha final (hoy si la omites). Con fecha inicial muestran el movimiento neto del período, sin saldo de apertura. El saldo es Debe menos Haber; los borradores quedan excluidos. Una regla que restrinja registros puede mostrar una parte del libro. Abre el registro para revisar el detalle. Para filtros por cliente, proveedor o estado usa las pantallas de la aplicación. Los datos de negocio se procesan en Odoo y no se envían a OpenAI. El asistente no crea, publica, valida, elimina ni modifica operaciones.</field>
+    </record>
+</odoo>

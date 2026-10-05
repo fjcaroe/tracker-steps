@@ -22,3 +22,16 @@
     @media (max-width: 900px) { .steps-assistant-layout { grid-template-columns: minmax(0, 1fr); } .steps-assistant-library { max-width: none; } }
     @media (max-width: 600px) { padding: 12px; .steps-assistant-header { align-items: flex-start; gap: 8px; } h1 { font-size: 23px; } .steps-assistant-header .btn { font-size: 12px; flex-shrink: 0; padding: 8px; } .steps-assistant-header p { font-size: 13px; } .steps-assistant-transcript { padding: 12px; height: 42vh; } .steps-assistant-message { max-width: 100%; padding: 12px; } .steps-assistant-composer { padding: 12px; } }
 }
+.steps-assistant-data-form { display: grid; gap: 8px; label { flex: 1; min-width: 0; } }
+.steps-assistant-bubble { position: fixed; right: 20px; bottom: 20px; z-index: 1034; border: 0; border-radius: 30px; background: #123c33; color: white; padding: 14px 20px; box-shadow: 0 4px 18px #0003; display: flex; align-items: center; gap: 10px; i { font-size: 24px; } &:focus-visible { outline: 3px solid #62af8b; outline-offset: 3px; } }
+.steps-assistant-panel { position: fixed; right: 20px; bottom: 86px; z-index: 1035; width: 520px; max-width: calc(100vw - 24px); height: 78vh; max-height: 760px; border: 1px solid #c7d9ce; border-radius: 16px; box-shadow: 0 8px 35px #0003; background: white; overflow: hidden; display: flex; flex-direction: column;
+    .steps-assistant-panel-bar { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: #123c33; color: white; .btn { color: white; } }
+    .steps-assistant { flex: 1; padding: 12px; }
+    .steps-assistant-header { gap: 8px; align-items: flex-start; h1 { font-size: 22px; } .btn { font-size: 12px; padding: 6px; } p { font-size: 12px; } }
+    .steps-assistant-layout { display: block; }
+    .steps-assistant-transcript { height: 30vh; min-height: 180px; padding: 12px; }
+    .steps-assistant-message { max-width: 100%; padding: 12px; }
+    .steps-assistant-welcome { margin: 16px auto; }
+    .steps-assistant-library { margin-top: 16px; }
+    @media (max-width: 600px) { right: 12px; bottom: 80px; height: 78vh; }
+}

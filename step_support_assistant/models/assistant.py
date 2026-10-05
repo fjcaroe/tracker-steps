@@ -64,7 +64,7 @@ class SupportAssistant(models.AbstractModel):
         return {"ready": bool(config["enabled"] and config["key"]),
                 "articles": [{"id": source["id"], "title": source["title"]} for source in sources],
                 "support_url": "https://soporte.stepsapp.cl",
-                "notice": "Las preguntas y los fragmentos de ayuda necesarios se envían a OpenAI. Evita incluir contraseñas o datos personales. El asistente puede equivocarse; revisa las fuentes."}
+                "notice": "Los datos reales se consultan dentro de Odoo. Las preguntas de ayuda y sus guías se envían a OpenAI solo si la IA está habilitada. Evita incluir contraseñas o datos personales y revisa las fuentes."}
 
     def _reserve_usage(self, config):
         # Serializes reservations across workers for a base-wide daily cap.
@@ -90,6 +90,9 @@ class SupportAssistant(models.AbstractModel):
                 not isinstance(item, str) or len(item) > 2000 for item in previous_questions):
             raise ValidationError(_("El contexto de la conversación no es válido."))
         question = question.strip()
+        business = self._business_question(question)
+        if business is not None:
+            return business
         sources = rank_sources(question, self.env["step.assistant.article"]._available_sources(), previous_questions)
         if not sources:
             return {"status": "no_evidence", "answer": NO_EVIDENCE, "sources": []}

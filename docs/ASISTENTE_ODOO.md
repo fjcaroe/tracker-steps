@@ -10,8 +10,11 @@ productos ni se despliegan sus ramas. Primera instalación: Desarrollo,
 
 ## Uso
 
-Abrir **Ayuda Steps → Consultar al asistente**, o el icono de conversación de
-la barra superior. Escribir aplicación, tarea y mensaje de error. Enter envía;
+Abrir el globo **Ayuda** en la esquina inferior derecha de cualquier aplicación,
+el icono de la barra superior o **Ayuda Steps → Consultar al asistente**.
+El globo no carga ayuda ni llama a OpenAI hasta abrirlo. Cerrar y reabrir conserva
+la conversación en memoria; recargar la página la elimina.
+Escribir aplicación, tarea y mensaje de error. Enter envía;
 Shift+Enter agrega una línea. **Nueva consulta** limpia la conversación.
 Las preguntas anteriores se mantienen solo mientras está abierta la pantalla;
 no se guarda el contenido del chat en una tabla ni en el almacenamiento del
@@ -22,7 +25,7 @@ soporte abre `https://soporte.stepsapp.cl`; no envía mensajes ni crea tickets.
 
 ## Fuentes y alcance
 
-- `step_support_assistant` instala siete guías verificadas: alcance del
+- `step_support_assistant` instala ocho guías verificadas: alcance del
   asistente, reporte de problemas, permisos y cuatro procesos de Colaciones.
   Las guías de Colaciones se ofrecen solo si el módulo está instalado y el
   usuario tiene permiso de lectura en sus registros.
@@ -57,8 +60,45 @@ alcance cuando corresponda. El servidor valida estructura, IDs autorizados y
 citas literales; rechaza citas inventadas y respuestas incompletas. Estas
 verificaciones no demuestran automáticamente que cada afirmación sea correcta:
 hay que revisar las fuentes y evaluar consultas reales antes de ampliar el uso.
-El asistente es de consulta y no ejecuta acciones ni accede a saldos, estados,
-registros de RRHH u otros documentos operacionales.
+El asistente es de consulta y no ejecuta acciones que modifiquen operaciones.
+
+## Consultas de datos reales (sin API)
+
+**Consultar datos reales** ofrece únicamente aplicaciones presentes y legibles
+con los permisos del usuario: asientos, facturas, pagos, ventas, compras,
+transferencias de inventario, fabricación, tareas, Colaciones, flujos de
+Tesorería y proformas de proveedores. Es un catálogo explícito y extensible;
+no abre todos los modelos arbitrariamente. No incluye sueldos, RUT, contactos,
+contraseñas, adjuntos ni notas privadas.
+
+Las consultas usan el ORM sin elevar permisos, ACL, reglas de registros y
+permisos de campos, restringidas a la compañía actual incluso si hay varias
+compañías seleccionadas. No aceptan modelos, SQL, dominios ni acciones del
+usuario/modelo de IA. La referencia, fechas y campos admitidos son fijos.
+Cada búsqueda devuelve como máximo veinte registros, con estado, fecha,
+importes/moneda cuando corresponde y enlace al documento. No suma monedas ni
+presenta una lista recortada como total. Las relaciones también requieren
+permiso antes de mostrar su nombre.
+
+Los saldos requieren el código exacto de una cuenta visible de la compañía.
+Suman Debe, Haber y saldo de líneas de asientos **publicados**, excluyendo
+borradores y respetando reglas de registros. Sin inicio son acumulados hasta
+la fecha final (hoy si se omite); con inicio representan el movimiento neto
+del período, sin apertura. Se expresan en moneda de la compañía e informan
+que permisos parciales pueden mostrar solo parte del libro contable.
+
+Ejemplos: `últimos asientos`, `facturas desde 2026-09-01 hasta 2026-09-30`,
+`saldo cuenta 110101 hasta 2026-09-30`. El reconocedor local es conservador:
+no interpreta filtros libres por cliente/proveedor/estado ni fechas escritas
+como «septiembre»; pide usar el formulario o la aplicación correspondiente.
+Para referencias de documentos usar el campo del formulario o `referencia`.
+
+**Los registros de negocio no se envían a OpenAI.** Se consultan, calculan y
+formatean dentro de Odoo, sin consumir tokens y aunque la IA esté desactivada.
+La generación con IA se reserva a ayuda documental. Sin consultas de IA no
+hay llamadas, tareas periódicas, embeddings ni almacenes remotos en esta
+implementación. La facturación de la API depende de los tokens utilizados:
+[precios oficiales](https://developers.openai.com/api/docs/pricing).
 
 ## Configuración y secretos
 
@@ -125,7 +165,7 @@ datos y código propios en `/opt/steps-assistant-validation`. Las pruebas
 mockean OpenAI; no requieren clave ni envían datos al proveedor.
 
 Validación del 05-10-2026 UTC: 15 pruebas locales de búsqueda/respuestas y
-16 casos funcionales de Odoo (11 del asistente y 5 de Conocimiento) pasaron.
+20 casos funcionales de Odoo (11 de ayuda, 4 de datos y 5 de Conocimiento) pasaron.
 Se verificaron aislamiento entre compañías, grupos, borradores, archivos,
 revocación de permisos, límites y rechazo de citas inventadas. Las llamadas
 del proveedor están simuladas: falta prueba real de IA hasta configurar la clave.
@@ -151,8 +191,26 @@ El despliegue compila los estilos con el libsass del servidor antes de copiarlos
 y espera la disponibilidad HTTP después del reinicio. Las unidades de alto
 en `vh` se limitan mediante `max-height`, compatible con el compilador de Odoo.
 
-No instala automáticamente en Demo, SyS, producción u otras bases. Probar luego
-chat, apertura de fuentes, pantalla pequeña, permisos y consultas sin evidencia.
+Por autorización del usuario se despliega además a Demo, Demo-SyS, Cerro El
+Plomo y producción Steps. `deploy_environment.sh` reemplaza el script específico
+de Desarrollo para esta entrega. `environments.sh` es la lista explícita de
+cinco destinos; SyS real es un servicio diferente y no está incluido.
+`preflight_all.sh` revisa estado y módulos de todos antes de modificar código.
+Se respalda cada base y los dos directorios, se comprueba el SHA, se compila
+SCSS y se instala/actualiza solo el asistente. El puente se instala únicamente
+donde Conocimiento ya está instalado. No se instala Conocimiento por arrastre.
+El script usa el usuario y Python del servicio, lo detiene durante la
+actualización y vuelve a iniciarlo también ante error. Los respaldos permiten
+revisión/recuperación; no hay restauración destructiva automática.
+
+```bash
+bash /tmp/deploy_environment.sh <desarrollo|demo|demo-sys|cerroelplomo|produccion> /tmp/steps_assistant_release.tar.gz <SHA256>
+```
+
+Producción Steps y Desarrollo comparten el directorio de addons. El respaldo
+de Desarrollo preserva la versión anterior de ese directorio compartido;
+cada base se actualiza por separado. El Python de producción es su venv.
+Probar luego chat, apertura de fuentes, pantalla pequeña, permisos y consultas sin evidencia.
 Después de configurar la clave, ejecutar consultas reales y casos de intento
 de cambio de tema/instrucciones antes de activar el acceso general.
 

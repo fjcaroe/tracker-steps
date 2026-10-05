@@ -18,11 +18,11 @@ if ! sudo -u postgres psql -Atc "SELECT 1 FROM pg_database WHERE datname='$DB';"
     sudo -u postgres createdb -O "$DB_ROLE" "$DB"
 fi
 sudo -u odoo /usr/bin/python3.10 /opt/odoo18/odoo-bin -c /etc/dev_odoo18.conf \
-    -d "$DB" -i step_support_assistant,step_support_assistant_knowledge -u step_support_assistant,step_support_assistant_knowledge \
+    -d "$DB" -i account,step_support_assistant,step_support_assistant_knowledge -u step_support_assistant,step_support_assistant_knowledge \
     --addons-path="$ROOT/addons,$ADDONS" --data-dir="$ROOT/data" \
     --workers=0 --max-cron-threads=0 --no-http --stop-after-init \
     --http-interface=127.0.0.1 --http-port=0 \
     --without-demo=all --test-enable --test-tags /step_support_assistant,/step_support_assistant_knowledge \
     --logfile="$RUN_LOG"
-sudo grep -E 'Starting AssistantTests|Starting KnowledgeSourceTests|0 failed|ERROR|FAIL|modules loaded' "$RUN_LOG" | tail -n 50
+sudo grep -E 'Starting AssistantTests|Starting BusinessTests|Starting KnowledgeSourceTests|0 failed|ERROR|FAIL|modules loaded' "$RUN_LOG" | tail -n 65
 printf 'ASSISTANT_TEST_RUN_OK\nLOG=%s\n' "$RUN_LOG"
