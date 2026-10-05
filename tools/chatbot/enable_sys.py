@@ -1,4 +1,5 @@
 """Activate SyS with whitelisted demo settings and its existing runtime key."""
+import argparse
 import json
 import os
 from pathlib import Path
@@ -9,6 +10,9 @@ from inspect_sys import process_environment, query
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--diagnostic', action='store_true', help='Classify a failure without activating IA')
+    args = parser.parse_args()
     assert os.geteuid() == 0, 'Run as root'
     reference = process_environment('odoo18-demo-sys.service')
     target = process_environment('odoo18-sys.service')
@@ -21,7 +25,8 @@ def main():
     assert source['enabled'] in ('True', 'true', '1'), 'Reference IA must be enabled'
     assert re.fullmatch(r'[a-zA-Z0-9._-]{1,100}', source['model']), 'Invalid model setting'
     assert 1 <= int(source['hourly_limit']) <= 200 and 1 <= int(source['daily_limit']) <= 10000
-    script = 'SOURCE_CONFIG = ' + repr(source) + '\n' + (Path(__file__).parent / 'enable_sys_in_odoo.py').read_text()
+    filename = 'diagnose_sys_in_odoo.py' if args.diagnostic else 'enable_sys_in_odoo.py'
+    script = 'SOURCE_CONFIG = ' + repr(source) + '\n' + (Path(__file__).parent / filename).read_text()
     runtime = os.environ.copy()
     runtime['OPENAI_API_KEY'] = key
     command = ['sudo', '-n', '--preserve-env=OPENAI_API_KEY', '-u', 'odoo',
