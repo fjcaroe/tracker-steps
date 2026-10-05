@@ -4,7 +4,7 @@
         <field name="report_name">step_producers.report_season_statement</field><field name="binding_model_id" ref="model_step_producer_season_statement"/>
         <field name="binding_type">report</field></record>
     <template id="report_season_statement"><t t-call="web.html_container"><t t-foreach="docs" t-as="doc"><t>
-        <div class="page"><strong><span t-field="doc.company_id.name"/></strong><h2>Consolidado de temporada</h2><p><span t-field="doc.name"/> — <span t-field="doc.producer_id"/> — <span t-field="doc.season_id"/></p>
+        <div class="page"><strong><span t-field="doc.company_id.name"/></strong><h2>Consolidado de temporada</h2><p><span t-field="doc.name"/> — <span t-field="doc.producer_id"/> — <span t-field="doc.season_id"/> / <span t-field="doc.species_id"/></p>
         <table class="table table-sm"><thead><tr><th>Liquidación</th><th>Recibidor</th><th>Kilos</th><th>Bruto USD</th><th>Descuentos USD</th><th>Neto USD</th><th>Estado</th></tr></thead>
             <tbody><tr t-foreach="doc.settlement_ids" t-as="line"><td><span t-field="line.name"/></td><td><span t-field="line.receiver_settlement_id.receiver_id"/></td>
                 <td><span t-field="line.total_kg"/></td><td><span t-field="line.gross_usd"/></td><td><span t-field="line.discount_usd"/></td>

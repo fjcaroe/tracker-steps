@@ -1,0 +1,4 @@
+<odoo>
+    <menuitem id="menu_season_statement" name="Consolidados de temporada" parent="step_producers.menu_step_producers_root" action="action_season_statement" sequence="52"/>
+    <menuitem id="menu_season_generate" name="Generar consolidados" parent="step_producers.menu_step_producers_root" action="action_season_statement_generate" sequence="53" groups="account.group_account_user"/>
+</odoo>

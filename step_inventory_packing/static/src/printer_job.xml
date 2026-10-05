@@ -1,0 +1,7 @@
+<templates xml:space="preserve"><t t-name="step_inventory_packing.PrinterJob"><div class="p-4">
+    <h2>Impresión de tarja</h2><p t-esc="profile.name"/>
+    <p>Seleccione la impresora conectada. El perfil debe coincidir con el lenguaje ZPL y la conexión del equipo.</p>
+    <button class="btn btn-primary" t-on-click="print" t-att-disabled="state.busy || state.sent">Conectar y enviar etiqueta</button>
+    <p class="mt-3" role="status" t-esc="state.message"/>
+    <button t-if="state.sent" class="btn btn-secondary" t-on-click="prepareReprint">Preparar reimpresión</button>
+</div></t></templates>

@@ -180,6 +180,8 @@ class TestExportOperations(TransactionCase):
 
     def test_receiver_and_producer_accounting(self):
         company = self.env.company
+        company.step_export_liquidation_journal_id = self.env['account.journal'].create({
+            'name': 'Provisión IVV QA', 'code': 'QIVV', 'type': 'general', 'company_id': company.id})
         account_domain = [("account_type", "=", "income")]
         if "company_ids" in self.env["account.account"]._fields:
             account_domain.append(("company_ids", "in", company.id))
@@ -248,7 +250,20 @@ class TestExportOperations(TransactionCase):
         settlement.action_validate()
         self.assertEqual(self.shipment.state, "settled")
         self.assertEqual(len(settlement.producer_settlement_ids), 1)
+        settlement.action_provision_ivv()
+        provision = settlement.provision_move_ids
+        self.assertEqual(provision.state, 'posted')
+        self.assertFalse(settlement.adjustment_move_ids)
+        settlement.action_provision_ivv()
+        self.assertEqual(settlement.provision_move_ids, provision)
+        settlement.adjustment_date = date(2026, 11, 22)
         settlement.action_account()
+        self.assertEqual(len(settlement.provision_move_ids), 2)
+        self.assertAlmostEqual(sum(settlement.provision_move_ids.line_ids.filtered(
+            lambda line: line.account_id.account_type == 'income').mapped('balance')), 0)
+        self.assertTrue(provision.line_ids.filtered(lambda line: line.account_id.account_type == 'asset_receivable').reconciled)
+        settlement.action_account()
+        self.assertEqual(len(settlement.provision_move_ids), 2)
         self.assertEqual(settlement.adjustment_move_ids.state, "posted")
         self.assertEqual(settlement.adjustment_move_ids.move_type, "entry")
         receivable_line = settlement.adjustment_move_ids.line_ids.filtered(
@@ -333,6 +348,11 @@ class TestExportOperations(TransactionCase):
         })
         self.assertAlmostEqual(credit_settlement.total_difference_usd, -20)
         credit_settlement.action_validate()
+        credit_settlement.adjustment_date = date(2026, 11, 23)
+        credit_settlement.action_provision_ivv()
+        self.assertAlmostEqual(sum(credit_settlement.provision_move_ids.line_ids.filtered(
+            lambda line: line.account_id.account_type == 'asset_receivable').mapped('amount_currency')), -20)
         credit_settlement.action_account()
+        self.assertEqual(len(credit_settlement.provision_move_ids), 2)
         self.assertEqual(credit_settlement.adjustment_move_ids.move_type, "out_refund")
         self.assertEqual(credit_settlement.adjustment_move_ids.l10n_latam_document_type_id.code, "112")

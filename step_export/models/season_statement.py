@@ -20,6 +20,7 @@ class SeasonStatement(models.Model):
     company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
     producer_id = fields.Many2one('res.partner', string='Productor', required=True)
     season_id = fields.Many2one('step.temporada', string='Temporada', required=True, check_company=True)
+    species_id = fields.Many2one('step.especie', string='Especie', readonly=True)
     date_start = fields.Date('Desde')
     date_end = fields.Date('Hasta')
     transport_type = fields.Selection([('sea', 'Marítimo'), ('air', 'Aéreo'), ('land', 'Terrestre')], string='Transporte')
@@ -53,15 +54,16 @@ class SeasonStatement(models.Model):
             vals['name'] = self.env['ir.sequence'].next_by_code(self._name) or 'Nuevo'
         return super().create(vals_list)
 
-    @api.constrains('settlement_ids', 'company_id', 'producer_id', 'season_id', 'date_start', 'date_end')
+    @api.constrains('settlement_ids', 'company_id', 'producer_id', 'season_id', 'species_id', 'date_start', 'date_end')
     def _check_scope(self):
         for record in self:
             if record.date_start and record.date_end and record.date_end < record.date_start:
                 raise ValidationError(_('Revise el período del consolidado.'))
             for settlement in record.settlement_ids:
                 if (settlement.company_id != record.company_id or settlement.producer_id != record.producer_id or
-                    settlement.receiver_settlement_id.season_id != record.season_id):
-                    raise ValidationError(_('Todas las liquidaciones deben corresponder al productor, empresa y temporada.'))
+                    settlement.season_id != record.season_id or
+                    record.species_id and settlement.species_id != record.species_id):
+                    raise ValidationError(_('Todas las liquidaciones deben corresponder al productor, empresa, temporada y especie.'))
                 if settlement.state not in ('validated', 'accounted', 'closed'):
                     raise ValidationError(_('Valide cada liquidación antes de consolidarla.'))
 
@@ -98,7 +100,7 @@ class SeasonStatement(models.Model):
             raise UserError(_('Use las acciones de confirmación y cierre.'))
         if vals.keys() - {'state'} and any(row.state != 'draft' for row in self):
             raise UserError(_('Un consolidado confirmado conserva su selección. Genere otro para ampliar el alcance.'))
-        if {'scope_key', 'company_id', 'producer_id', 'season_id', 'settlement_ids'} & vals.keys():
+        if {'scope_key', 'company_id', 'producer_id', 'season_id', 'species_id', 'settlement_ids'} & vals.keys():
             raise UserError(_('La selección se genera desde el asistente; no se cambia manualmente.'))
         return super().write(vals)
 
@@ -114,9 +116,10 @@ class SeasonStatementWizard(models.TransientModel):
 
     company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
     season_id = fields.Many2one('step.temporada', string='Temporada', required=True)
+    species_id = fields.Many2one('step.especie', string='Especie')
     producer_ids = fields.Many2many('res.partner', string='Productores', domain="[('is_productor','=',True)]")
-    date_start = fields.Date('Liquidación desde')
-    date_end = fields.Date('Liquidación hasta')
+    date_start = fields.Date('Embarque desde')
+    date_end = fields.Date('Embarque hasta')
     transport_type = fields.Selection([('sea', 'Marítimo'), ('air', 'Aéreo'), ('land', 'Terrestre')], string='Transporte')
     variety_ids = fields.Many2many('step.variedad', string='Variedades')
     shipment_ids = fields.Many2many('step.export.export', string='Embarques')
@@ -127,19 +130,21 @@ class SeasonStatementWizard(models.TransientModel):
             raise UserError(_('Seleccione una empresa habilitada.'))
         if self.date_start and self.date_end and self.date_end < self.date_start:
             raise ValidationError(_('Revise el período seleccionado.'))
-        domain = [('company_id', '=', self.company_id.id), ('receiver_settlement_id.season_id', '=', self.season_id.id),
+        domain = [('company_id', '=', self.company_id.id), ('season_id', '=', self.season_id.id),
                   ('state', 'in', ['validated', 'accounted', 'closed'])]
         if self.producer_ids:
             domain.append(('producer_id', 'in', self.producer_ids.ids))
-        if self.date_start:
-            domain.append(('receiver_settlement_id.date', '>=', self.date_start))
-        if self.date_end:
-            domain.append(('receiver_settlement_id.date', '<=', self.date_end))
+        if self.species_id:
+            domain.append(('species_id', '=', self.species_id.id))
         settlements = self.env['step.export.producer.settlement'].search(domain)
         selected = self.env['step.export.producer.settlement']
         for settlement in settlements:
             tags = settlement.line_ids.mapped('tag_id')
             shipments = settlement.receiver_settlement_id.line_ids.filtered(lambda line: bool(line.shipment_id.tag_ids & tags)).mapped('shipment_id')
+            if self.date_start and (not shipments or any(not row.date or row.date < self.date_start for row in shipments)):
+                continue
+            if self.date_end and (not shipments or any(not row.date or row.date > self.date_end for row in shipments)):
+                continue
             if self.variety_ids and any(tag.variedad_id not in self.variety_ids for tag in tags):
                 continue
             if self.shipment_ids and (not shipments or any(row not in self.shipment_ids for row in shipments)):
@@ -154,17 +159,19 @@ class SeasonStatementWizard(models.TransientModel):
         with self.env.cr.savepoint():
             self.env.cr.execute('SELECT id FROM res_company WHERE id=%s FOR UPDATE', [self.company_id.id])
             for producer in selected.mapped('producer_id'):
-                group = selected.filtered(lambda row: row.producer_id == producer)
-                key = hashlib.sha256(json.dumps((producer.id, self.season_id.id, sorted(group.ids))).encode()).hexdigest()
-                statement = statements.search([('company_id', '=', self.company_id.id), ('scope_key', '=', key)], limit=1)
-                if not statement:
-                    statement = statements.create({
-                        'company_id': self.company_id.id, 'producer_id': producer.id, 'season_id': self.season_id.id,
-                        'scope_key': key, 'date_start': self.date_start, 'date_end': self.date_end,
-                        'transport_type': self.transport_type, 'variety_ids': [(6, 0, self.variety_ids.ids)],
-                        'shipment_ids': [(6, 0, self.shipment_ids.ids)], 'settlement_ids': [(6, 0, group.ids)],
-                    })
-                statements |= statement
+                producer_rows = selected.filtered(lambda row: row.producer_id == producer)
+                for species in producer_rows.mapped('species_id'):
+                    group = producer_rows.filtered(lambda row: row.species_id == species)
+                    key = hashlib.sha256(json.dumps((producer.id, self.season_id.id, species.id, sorted(group.ids))).encode()).hexdigest()
+                    statement = statements.search([('company_id', '=', self.company_id.id), ('scope_key', '=', key)], limit=1)
+                    if not statement:
+                        statement = statements.create({
+                            'company_id': self.company_id.id, 'producer_id': producer.id, 'season_id': self.season_id.id,
+                            'species_id': species.id, 'scope_key': key, 'date_start': self.date_start, 'date_end': self.date_end,
+                            'transport_type': self.transport_type, 'variety_ids': [(6, 0, self.variety_ids.ids)],
+                            'shipment_ids': [(6, 0, self.shipment_ids.ids)], 'settlement_ids': [(6, 0, group.ids)],
+                        })
+                    statements |= statement
         return {'type': 'ir.actions.act_window', 'name': _('Consolidados generados'),
                 'res_model': statements._name, 'view_mode': 'list,form', 'domain': [('id', 'in', statements.ids)]}
 

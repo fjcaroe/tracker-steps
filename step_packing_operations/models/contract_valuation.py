@@ -143,7 +143,7 @@ class MonthlyFruitBill(models.TransientModel):
         journal = self.company_id.step_packing_purchase_journal_id
         if not journal:
             raise UserError(_('Configure el diario Compra fruta exportación en los parámetros contables.'))
-        domain = [('company_id', '=', self.company_id.id), ('state', '=', 'closed'),
+        domain = [('company_id', '=', self.company_id.id), ('state', 'in', ['closed', 'costed', 'accounted']),
                   ('date', '>=', self.date_start), ('date', '<=', self.date_end), ('contract_id', '!=', False)]
         if self.producer_ids:
             domain.append(('fruit_grower_id', 'in', self.producer_ids.ids))

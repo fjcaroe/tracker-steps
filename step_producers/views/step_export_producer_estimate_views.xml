@@ -3,7 +3,7 @@
     <record id="view_step_export_estimate_t35_list" model="ir.ui.view">
         <field name="name">step.export.estimate.t35.list</field>
         <field name="model">step.export.estimate</field>
-        <field name="inherit_id" ref="step_export.view_step_export_estimate_list"/>
+        <field name="inherit_id" ref="step_producers.view_step_export_estimate_list"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="series_code"/>
@@ -18,7 +18,7 @@
     <record id="view_step_export_estimate_t35_form" model="ir.ui.view">
         <field name="name">step.export.estimate.t35.form</field>
         <field name="model">step.export.estimate</field>
-        <field name="inherit_id" ref="step_export.view_step_export_estimate_form"/>
+        <field name="inherit_id" ref="step_producers.view_step_export_estimate_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="before">
                 <header>

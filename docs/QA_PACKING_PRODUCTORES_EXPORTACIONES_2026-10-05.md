@@ -1,5 +1,8 @@
 # Packing, Productores y Exportaciones — integración para QA
 
+Esta nota registra la entrega inicial. Su costeo, separación de Productores y
+perfiles de equipos se amplían en la [continuación de pendientes](QA_AGRO_PENDIENTES_2026-10-05.md).
+
 Rama de entrega: `codex/packing-productores-exportaciones-qa`. Se consolidan
 `codex/t35-exterior-expenses-20261004` (79b612b) y
 `codex/t41-menu-groups-20261004` (14aee04), conservando los avances T30, T38 y T40.

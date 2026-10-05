@@ -1,0 +1,61 @@
+<odoo>
+    <record id="view_packing_costing_form" model="ir.ui.view">
+        <field name="name">packing.costing.form</field><field name="model">step.packing.production</field>
+        <field name="inherit_id" ref="view_packing_production_control"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_import_material_costs" type="object" string="Importar costo embalajes" invisible="state != 'closed'" groups="stock.group_stock_manager"/>
+                <button name="action_approve_costs" type="object" string="Aprobar costeo" invisible="state != 'closed'" groups="stock.group_stock_manager"/>
+                <button name="action_reopen_costs" type="object" string="Reabrir costeo" invisible="state != 'costed'" groups="stock.group_stock_manager"/>
+                <button name="action_capitalize_costs" type="object" string="Capitalizar costos" invisible="state != 'costed'" groups="account.group_account_user" confirm="Se agregará el costo aprobado al inventario propio E y se publicará su asiento contable. ¿Continuar?"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside"><page string="Costeo por OT">
+                <p>Registre costos directos o use Asignación de costos para distribuir gastos compartidos. El porcentaje capitalizable corresponde a fruta E propia; N conserva la propiedad del productor. El consumo de embalajes ya registrado en stock debe incluirse una sola vez con su cuenta de contrapartida.</p>
+                <field name="currency_id" invisible="1"/>
+                <field name="default_export_cost_percent" invisible="1"/>
+                <field name="cost_ids" readonly="state != 'closed'" context="{'default_export_percent': default_export_cost_percent}">
+                    <list editable="bottom"><field name="name"/><field name="product_id" domain="[('type','=','service')]"/>
+                        <field name="amount"/><field name="export_percent"/><field name="capitalizable_amount"/>
+                        <field name="credit_account_id"/><field name="source_line_id" domain="[('company_id','=',parent.company_id),('parent_state','=','posted'),('balance','&gt;',0)]"/>
+                        <field name="source_reference"/><field name="allocation_id" optional="hide"/>
+                        <field name="currency_id" column_invisible="True"/></list>
+                </field>
+                <group><group><field name="fruit_stock_cost"/><field name="transformation_cost"/><field name="total_process_cost"/>
+                    <field name="capitalizable_cost"/><field name="cost_per_export_kg"/></group>
+                    <group><field name="cost_approved_by"/><field name="cost_approved_at"/><field name="landed_cost_id"/></group></group>
+            </page></xpath>
+        </field>
+    </record>
+    <record id="view_cost_allocation_list" model="ir.ui.view"><field name="name">packing.cost.allocation.list</field>
+        <field name="model">step.packing.cost.allocation</field><field name="arch" type="xml"><list>
+            <field name="name"/><field name="basis"/><field name="amount"/><field name="state"/><field name="company_id"/>
+            <field name="currency_id" column_invisible="True"/></list></field></record>
+    <record id="view_cost_allocation_form" model="ir.ui.view"><field name="name">packing.cost.allocation.form</field>
+        <field name="model">step.packing.cost.allocation</field><field name="arch" type="xml"><form><header>
+            <button name="action_allocate" type="object" string="Asignar a OT" invisible="state != 'draft'" class="btn-primary"/>
+            <button name="action_reopen" type="object" string="Reabrir asignación" invisible="state != 'allocated'"/>
+            <field name="state" widget="statusbar"/></header><sheet><group readonly="state != 'draft'">
+                <field name="name"/><field name="company_id"/><field name="production_ids" widget="many2many_tags" domain="[('state','=','closed'),('company_id','=',company_id)]"/>
+                <field name="basis"/><field name="amount"/><field name="currency_id" invisible="1"/>
+                <field name="product_id" domain="[('type','=','service')]"/><field name="credit_account_id"/>
+                <field name="source_line_id" domain="[('company_id','=',company_id),('parent_state','=','posted'),('balance','&gt;',0)]"/><field name="source_reference"/>
+            </group><field name="cost_ids" readonly="1"><list><field name="production_id"/><field name="amount"/>
+                <field name="export_percent"/><field name="capitalizable_amount"/><field name="currency_id" column_invisible="True"/></list></field>
+            </sheet><chatter/></form></field></record>
+    <record id="action_cost_allocation" model="ir.actions.act_window"><field name="name">Asignación de costos</field>
+        <field name="res_model">step.packing.cost.allocation</field><field name="view_mode">list,form</field></record>
+    <menuitem id="menu_packing_cost_allocation" name="Asignación de costos" parent="menu_packing_operations_process" action="action_cost_allocation" sequence="70" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_packing_scale_profiles" name="Perfiles de balanza USB / Bluetooth" parent="menu_packing_operations_config" action="step_inventory_packing.action_step_scale_profiles" sequence="30" groups="stock.group_stock_manager"/>
+    <menuitem id="menu_packing_printer_profiles" name="Perfiles de impresora USB / Bluetooth" parent="menu_packing_operations_config" action="step_inventory_packing.action_printer_profiles" sequence="40" groups="stock.group_stock_manager"/>
+    <record id="rule_packing_cost_company" model="ir.rule"><field name="name">Packing costo: empresa</field>
+        <field name="model_id" ref="model_step_packing_cost"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+    <record id="rule_cost_allocation_company" model="ir.rule"><field name="name">Packing asignación: empresa</field>
+        <field name="model_id" ref="model_step_packing_cost_allocation"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+    <record id="view_company_costing" model="ir.ui.view"><field name="name">packing.company.costing</field><field name="model">res.company</field>
+        <field name="inherit_id" ref="step_export.view_step_export_accounting_company_form"/><field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside"><group string="Costeo y capitalización Packing">
+                <field name="lc_journal_id" domain="[('company_id','=',id),('type','=','general')]"/>
+                <field name="step_packing_material_cost_service_id" domain="[('type','=','service')]"/>
+                <field name="step_packing_material_cost_account_id"/>
+            </group></xpath></field></record>
+</odoo>

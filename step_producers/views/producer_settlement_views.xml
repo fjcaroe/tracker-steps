@@ -3,7 +3,7 @@
         <field name="name">step.export.producer.settlement.list</field>
         <field name="model">step.export.producer.settlement</field>
         <field name="arch" type="xml"><list><field name="name"/><field name="producer_id"/>
-            <field name="receiver_settlement_id"/><field name="total_kg"/>
+            <field name="date"/><field name="season_id"/><field name="species_id"/><field name="total_kg"/>
             <field name="net_usd"/><field name="state"/></list></field>
     </record>
     <record id="view_export_producer_settlement_form" model="ir.ui.view">
@@ -16,7 +16,7 @@
             <button name="action_close" type="object" string="Cerrar" class="btn-primary" invisible="state != 'accounted'"/>
             <field name="state" widget="statusbar"/>
         </header><sheet><group><field name="name"/><field name="producer_id"/>
-            <field name="receiver_settlement_id"/><field name="rate_id"/>
+            <field name="date"/><field name="season_id"/><field name="species_id"/><field name="rate_id"/>
             <field name="payout_mode" readonly="state != 'draft'"/>
             <field name="fob_transfer_percent" readonly="state != 'draft'"
                    invisible="payout_mode != 'fob'"/>
@@ -29,7 +29,7 @@
             <field name="usd_currency_id" invisible="1"/>
             <field name="company_id"/></group>
             <notebook><page string="Tarjas"><field name="line_ids" readonly="state != 'draft'">
-                <list editable="bottom"><field name="tag_id"/><field name="kg_qty"/>
+                <list editable="bottom"><field name="tag_id"/><field name="description"/><field name="kg_qty"/>
                     <field name="allocated_fob_usd"/><field name="amount_usd"/></list></field></page>
                 <page string="Descuentos"><field name="discount_line_ids" readonly="state != 'draft'">
                     <list editable="bottom"><field name="item_id"/><field name="amount_usd"/></list>

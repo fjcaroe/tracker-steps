@@ -1,8 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
 <odoo noupdate="1">
-    <record id="seq_export_shipment_sea" model="ir.sequence"><field name="name">Embarque marítimo</field><field name="code">step.export.shipment.sea</field><field name="prefix">EM-M/</field><field name="padding">5</field></record>
-    <record id="seq_export_shipment_air" model="ir.sequence"><field name="name">Embarque aéreo</field><field name="code">step.export.shipment.air</field><field name="prefix">EM-A/</field><field name="padding">5</field></record>
-    <record id="seq_export_shipment_land" model="ir.sequence"><field name="name">Embarque terrestre</field><field name="code">step.export.shipment.land</field><field name="prefix">EM-T/</field><field name="padding">5</field></record>
-    <record id="seq_export_receiver_settlement" model="ir.sequence"><field name="name">Liquidación recibidor</field><field name="code">step.export.receiver.settlement</field><field name="prefix">LQ-R/</field><field name="padding">5</field></record>
-    <record id="seq_export_producer_settlement" model="ir.sequence"><field name="name">Liquidación productor</field><field name="code">step.export.producer.settlement</field><field name="prefix">LQ-P/</field><field name="padding">5</field></record>
-    <record id="seq_export_packing_list" model="ir.sequence"><field name="name">Packing List</field><field name="code">step.export.packing.list</field><field name="prefix">PL/</field><field name="padding">5</field></record>
+  <record id="seq_export_shipment_sea" model="ir.sequence">
+    <field name="name">Embarque marítimo</field>
+    <field name="code">step.export.shipment.sea</field>
+    <field name="prefix">EM-M/</field>
+    <field name="padding">5</field>
+  </record>
+  <record id="seq_export_shipment_air" model="ir.sequence">
+    <field name="name">Embarque aéreo</field>
+    <field name="code">step.export.shipment.air</field>
+    <field name="prefix">EM-A/</field>
+    <field name="padding">5</field>
+  </record>
+  <record id="seq_export_shipment_land" model="ir.sequence">
+    <field name="name">Embarque terrestre</field>
+    <field name="code">step.export.shipment.land</field>
+    <field name="prefix">EM-T/</field>
+    <field name="padding">5</field>
+  </record>
+  <record id="seq_export_receiver_settlement" model="ir.sequence">
+    <field name="name">Liquidación recibidor</field>
+    <field name="code">step.export.receiver.settlement</field>
+    <field name="prefix">LQ-R/</field>
+    <field name="padding">5</field>
+  </record>
+  <record id="seq_export_packing_list" model="ir.sequence">
+    <field name="name">Packing List</field>
+    <field name="code">step.export.packing.list</field>
+    <field name="prefix">PL/</field>
+    <field name="padding">5</field>
+  </record>
 </odoo>

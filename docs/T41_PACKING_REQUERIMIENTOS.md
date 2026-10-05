@@ -380,11 +380,15 @@ Los requisitos originales de las secciones anteriores se conservan._
 
 ### 4.3 Etapas separadas
 
-- Costeo completo de procesos, asignación e informes de costos: Etapa 2.
+- Etapa 2 implementada en `step_packing_operations` 18.0.2.7.0: costos por OT,
+  importación de consumos valorados, asignación por kilos/horas/horas-persona,
+  revisión e informe. Capitalización explícita de fruta E propia mediante
+  costos en destino nativos; revisar porcentajes y cuentas en QA.
 - Informe de proceso al productor solicitado como documento independiente:
   el original lo marca pendiente. Los informes actuales son de OT/consolidado.
-- Independencia de Productores respecto de Exportaciones: Fase B de T38,
-  requiere migración específica; no forma parte de esta consolidación.
+- Fase B de T38 implementada en Productores 18.0.1.7.0: migración de metadatos
+  conservando modelos, tablas y aliases de XML IDs. Se probó instalación sin
+  Exportaciones. Ver [continuación para QA](QA_AGRO_PENDIENTES_2026-10-05.md).
 
 ## 5. Archivos originales
 

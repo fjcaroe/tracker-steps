@@ -2,7 +2,7 @@
     <record id="view_grower_tariff_preliq_form" model="ir.ui.view">
         <field name="name">step.export.grower.rate.preliq.form</field>
         <field name="model">step.export.grower.rate</field>
-        <field name="inherit_id" ref="step_export.view_step_export_grower_rate_form"/>
+        <field name="inherit_id" ref="step_producers.view_step_export_grower_rate_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='season_id']" position="after">
                 <field name="preliq_producer_ids" widget="many2many_tags"/>

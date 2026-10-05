@@ -30,8 +30,8 @@ def main():
     subprocess.run(['systemctl', 'is-active', '--quiet', service], check=True)
     code = '''
 import importlib, json
-expected = {'step_export': '18.0.2.7.0', 'step_producers': '18.0.1.6.0',
-    'step_inventory_packing': '18.0.1.1.0', 'step_packing_operations': '18.0.2.6.0',
+expected = {'step_export': '18.0.2.8.0', 'step_producers': '18.0.1.7.0',
+    'step_inventory_packing': '18.0.1.2.0', 'step_packing_operations': '18.0.2.7.0',
     'step_producer_fruit_flow': '18.0.1.2.0'}
 try:
     versions = {}
@@ -51,11 +51,20 @@ try:
         ('step.packing.monthly.fruit.bill', 'step_packing_operations.view_monthly_fruit_bill'),
         ('step.producer.season.statement', 'step_producers.view_season_statement_form'),
         ('step.producer.season.statement.wizard', 'step_producers.view_season_statement_wizard'),
+        ('step.export.producer.settlement', 'step_producers.view_export_producer_settlement_form'),
+        ('step.export.receiver.settlement', 'step_export.view_export_receiver_settlement_form'),
+        ('step.packing.cost.allocation', 'step_packing_operations.view_cost_allocation_form'),
+        ('step.printer.profile', 'step_inventory_packing.view_printer_profile_form'),
+        ('step.printer.job.wizard', 'step_inventory_packing.view_printer_job_wizard'),
+        ('step.scale.profile', 'step_inventory_packing.view_step_scale_profile_form'),
     )
     for model, xmlid in forms:
         assert env[model].get_view(view_id=env.ref(xmlid).id, view_type='form')['arch']
     reservation_menu = env.ref('step_packing_operations.menu_packing_stock_reservation')
     assert reservation_menu.active and reservation_menu.action == env.ref('step_export.action_step_export_stock_reservation')
+    assert env.ref('step_export.action_export_producer_settlement') == env.ref('step_producers.action_export_producer_settlement')
+    assert env['ir.module.module'].search([('name','=','stock_landed_costs')]).state == 'installed'
+    assert 'step_export' not in env['ir.module.module'].search([('name','=','step_producers')]).dependencies_id.mapped('name')
     print('AGRO_QA_REGISTRY_OK ' + json.dumps({'database': env.cr.dbname, 'versions': versions, 'compiled_forms': len(forms)}))
 finally:
     env.cr.rollback()

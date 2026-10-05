@@ -1,4 +1,5 @@
 from . import test_producer_app
 from . import test_preliquidation_price
 from . import test_purchase_contract
-from . import test_season_statement
+from . import test_producer_estimate
+from . import test_independent_core

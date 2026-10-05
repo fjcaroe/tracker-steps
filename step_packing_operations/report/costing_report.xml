@@ -1,0 +1,17 @@
+<odoo>
+    <record id="action_report_packing_costing" model="ir.actions.report"><field name="name">Costeo de OT</field>
+        <field name="model">step.packing.production</field><field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_packing_operations.report_packing_costing</field>
+        <field name="binding_model_id" ref="model_step_packing_production"/><field name="binding_type">report</field></record>
+    <template id="report_packing_costing"><t t-call="web.html_container"><t t-foreach="docs" t-as="doc"><div class="page">
+        <strong t-field="doc.company_id.name"/><h2>Costeo de OT: <span t-field="doc.name"/></h2>
+        <p><span t-field="doc.date"/> / <span t-field="doc.fruit_grower_id"/> / <span t-field="doc.fruit_variety_id"/></p>
+        <table class="table table-sm"><thead><tr><th>Concepto</th><th>Respaldo</th><th>Costo OT</th><th>% E</th><th>Capitalizable E</th></tr></thead>
+            <tbody><tr t-foreach="doc.cost_ids" t-as="line"><td><span t-field="line.name"/></td><td><span t-field="line.source_reference"/> <span t-field="line.source_line_id.move_id.name"/></td>
+                <td><span t-field="line.amount"/></td><td><span t-field="line.export_percent"/></td><td><span t-field="line.capitalizable_amount"/></td></tr></tbody></table>
+        <p>Valor inicial de fruta E: <span t-field="doc.fruit_stock_cost"/>. Transformación: <span t-field="doc.transformation_cost"/>. Costo total OT: <span t-field="doc.total_process_cost"/>.</p>
+        <p>Costo a capitalizar: <span t-field="doc.capitalizable_cost"/>. Costo por kg E: <span t-field="doc.cost_per_export_kg"/>.</p>
+        <p>Revisión: <span t-field="doc.cost_approved_by"/> / <span t-field="doc.cost_approved_at"/>. Capitalización: <span t-field="doc.landed_cost_id.name"/>.</p>
+        <p>La fruta nacional permanece en propiedad del productor. Este informe no crea facturas ni asientos; la capitalización se ejecuta desde la OT aprobada.</p>
+    </div></t></t></template>
+</odoo>

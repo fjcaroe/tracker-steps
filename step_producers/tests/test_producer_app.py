@@ -30,12 +30,15 @@ class TestProducerApp(TransactionCase):
         root = self.env.ref("step_producers.menu_step_producers_root")
         self.assertEqual(root.action, self.env.ref("step_producers.action_step_producers_dashboard"))
         pairs = {
-            "step_producers.menu_step_producers_estimates": "step_export.action_step_export_estimate",
-            "step_producers.menu_step_producers_rates": "step_export.action_step_export_grower_rate",
-            "step_producers.menu_step_producers_settlements": "step_export.action_export_producer_settlement",
-            "step_export.menu_step_export_packing_line": "step_packing.action_step_packing_line",
-            "step_export.menu_step_export_packing_tag_type": "step_packing.action_step_packing_tag_type",
+            "step_producers.menu_step_producers_estimates": "step_producers.action_step_export_estimate",
+            "step_producers.menu_step_producers_rates": "step_producers.action_step_export_grower_rate",
+            "step_producers.menu_step_producers_settlements": "step_producers.action_export_producer_settlement",
         }
+        if self.env.registry.get('step.export.sales.program'):
+            pairs.update({
+                "step_export.menu_step_export_packing_line": "step_packing.action_step_packing_line",
+                "step_export.menu_step_export_packing_tag_type": "step_packing.action_step_packing_tag_type",
+            })
         for menu_xmlid, action_xmlid in pairs.items():
             self.assertEqual(self.env.ref(menu_xmlid).action,
                              self.env.ref(action_xmlid), menu_xmlid)
@@ -46,4 +49,5 @@ class TestProducerApp(TransactionCase):
         tree = etree.fromstring(arch.encode())
         self.assertTrue(tree.xpath("//page[@name='productor']//field[@name='productor_name']"))
         self.assertFalse(tree.xpath("//page[@name='agri']//field[@name='productor_name']"))
-        self.assertTrue(tree.xpath("//page[@name='step_export_partner']//field[@name='step_export']"))
+        if self.env.registry.get('step.export.sales.program'):
+            self.assertTrue(tree.xpath("//page[@name='step_export_partner']//field[@name='step_export']"))

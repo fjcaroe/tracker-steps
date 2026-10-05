@@ -4,18 +4,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_is_zero
 
-
-class StockQuantPackage(models.Model):
-    _inherit = "stock.quant.package"
-
-    def _step_liquidation_kg(self):
-        self.ensure_one()
-        return self.kilos_total
-
-    def _step_producer_shares(self):
-        self.ensure_one()
-        return [(self.owner_id, 1.0)] if self.owner_id else []
-
+_RECEIVER_TRANSITION = object()
 
 class ReceiverSettlement(models.Model):
     _name = "step.export.receiver.settlement"
@@ -59,6 +48,8 @@ class ReceiverSettlement(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            if vals.get('state', 'draft') != 'draft':
+                raise UserError(_('La liquidación de recibidor se crea en borrador.'))
             if vals.get("name", "Nuevo") == "Nuevo":
                 vals["name"] = self.env["ir.sequence"].next_by_code(
                     "step.export.receiver.settlement") or "Nuevo"
@@ -85,6 +76,8 @@ class ReceiverSettlement(models.Model):
             record.total_difference_usd = sum(record.line_ids.mapped("difference_usd"))
 
     def write(self, vals):
+        if 'state' in vals and self.env.context.get('_receiver_transition') is not _RECEIVER_TRANSITION:
+            raise UserError(_('Use las acciones de validación y contabilización de la liquidación.'))
         locked = {"receiver_id", "sales_program_id", "currency_id", "rate_to_usd",
                   "line_ids", "date", "company_id", "producer_price_mode"}
         if locked.intersection(vals) and any(r.state != "draft" for r in self):
@@ -127,7 +120,7 @@ class ReceiverSettlement(models.Model):
                     raise ValidationError(_("Todas las tarjas deben tener kilos positivos para distribuir la liquidación."))
                 shipment.write({"settlement_id": record.id, "state": "settled"})
                 shipment.tag_ids.write({"step_export_settlement_ids": [(4, record.id)]})
-            record.state = "validated"
+            record.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'validated'})
             record._generate_producer_settlements()
         return True
 
@@ -231,7 +224,7 @@ class ReceiverSettlement(models.Model):
                         record._post_odoo_adjustment(line, invoice_line)
             if any(move.state != "posted" for move in record.adjustment_move_ids):
                 raise UserError(_("Publique todas las notas de ajuste antes de cerrar la liquidación."))
-            record.state = "accounted"
+            record.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'accounted'})
         return True
 
     def _post_external_adjustment(self, line, invoice_line):
@@ -244,10 +237,10 @@ class ReceiverSettlement(models.Model):
         if not journal or not receivable:
             raise UserError(_("Configure un diario general y una cuenta por cobrar para registrar la nota externa."))
         amount = self.usd_currency_id._convert(
-            abs(line.difference_usd), self.company_id.currency_id, self.company_id, self.date)
+            abs(line.difference_usd), self.company_id.currency_id, self.company_id, self.adjustment_date or self.date)
         positive = line.difference_usd > 0
         move = self.env["account.move"].create({
-            "move_type": "entry", "date": self.date, "journal_id": journal.id,
+            "move_type": "entry", "date": self.adjustment_date or self.date, "journal_id": journal.id,
             "company_id": self.company_id.id,
             "ref": "%s / IVV %s / DTE externo %s / factura %s" % (
                 self.name, line.shipment_id.ivv_folio, line.external_adjustment_folio,
@@ -281,7 +274,7 @@ class ReceiverSettlement(models.Model):
             "move_type": move_type, "partner_id": self.receiver_id.id,
             "company_id": self.company_id.id,
             "journal_id": (self.company_id.step_export_sale_journal_id or line.invoice_id.journal_id).id,
-            "currency_id": self.usd_currency_id.id, "invoice_date": self.date,
+            "currency_id": self.usd_currency_id.id, "invoice_date": self.adjustment_date or self.date,
             "invoice_origin": line.invoice_id.name,
             "ref": "%s / IVV %s" % (self.name, line.shipment_id.ivv_folio),
             "step_export_shipment_id": line.shipment_id.id,
@@ -387,11 +380,23 @@ class ReceiverSettlementLine(models.Model):
                 raise ValidationError(_("La factura debe pertenecer al embarque seleccionado."))
 
     def write(self, vals):
-        if vals and any(line.settlement_id.state != "draft" for line in self):
+        self.settlement_id._lock_ivv()
+        if 'settlement_id' in vals:
+            raise UserError(_('La línea conserva su liquidación de origen.'))
+        if vals and any(line.settlement_id.state != "draft" for line in self) and set(vals) != {'external_adjustment_folio'}:
             raise UserError(_("No modifique líneas de liquidación validadas."))
         return super().write(vals)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        parents = self.env['step.export.receiver.settlement'].browse([row['settlement_id'] for row in vals_list if row.get('settlement_id')])
+        parents._lock_ivv()
+        if any(parent.state != 'draft' for parent in parents):
+            raise UserError(_('No agregue embarques a una liquidación validada.'))
+        return super().create(vals_list)
+
     def unlink(self):
+        self.settlement_id._lock_ivv()
         if any(line.settlement_id.state != "draft" for line in self):
             raise UserError(_("No elimine líneas de liquidación validadas."))
         return super().unlink()

@@ -12,27 +12,29 @@
         <field name="arch" type="xml"><form><header>
             <button name="action_validate" type="object" string="Validar" class="btn-primary" invisible="state != 'draft'"/>
             <button name="action_prepare_grade_lines" type="object" string="Distribuir por calibre" invisible="state != 'draft'"/>
+            <button name="action_provision_ivv" type="object" string="Provisionar IVV revisado" invisible="state != 'validated' or ivv_provisioned" groups="account.group_account_user"/>
             <button name="action_account" type="object" string="Contabilizar notas" class="btn-primary" invisible="state != 'validated'"/>
             <field name="state" widget="statusbar"/>
         </header><sheet><group><group><field name="name"/><field name="receiver_id"/>
             <field name="sales_program_id"/><field name="season_id"/><field name="species_id"/>
             <field name="receiver_reference"/></group>
             <group><field name="date"/><field name="currency_id"/><field name="rate_to_usd"/>
+                <field name="ivv_provisioned"/><field name="adjustment_date" readonly="state == 'accounted'"/>
                 <field name="producer_price_mode" readonly="state != 'draft'"/>
                 <field name="usd_currency_id" invisible="1"/><field name="company_id"/></group></group>
-            <notebook><page string="Embarques"><field name="line_ids" readonly="state != 'draft'">
-                <list editable="bottom"><field name="shipment_id"/><field name="invoice_id"/>
-                    <field name="sales_amount"/><field name="sales_usd"/>
-                    <field name="claim_usd"/><field name="expenses_usd"/><field name="exterior_expenses_usd"/><field name="calculated_expenses_usd"/>
-                    <field name="commission_rate"/><field name="commission_usd"/>
+            <notebook><page string="Embarques"><field name="line_ids" readonly="state == 'accounted'">
+                <list editable="bottom"><field name="shipment_id" readonly="parent.state != 'draft'"/><field name="invoice_id" readonly="parent.state != 'draft'"/>
+                    <field name="sales_amount" readonly="parent.state != 'draft'"/><field name="sales_usd"/>
+                    <field name="claim_usd"/><field name="expenses_usd" readonly="parent.state != 'draft'"/><field name="exterior_expenses_usd"/><field name="calculated_expenses_usd"/>
+                    <field name="commission_rate" readonly="parent.state != 'draft'"/><field name="commission_usd"/>
                     <field name="fob_usd"/><field name="initial_invoice_usd"/>
                     <field name="difference_usd"/><field name="external_adjustment_folio"/>
-                    <field name="use_grade_detail"/></list>
-                <form><sheet><group><field name="shipment_id"/><field name="invoice_id"/>
-                    <field name="sales_amount"/><field name="expenses_usd"/>
-                    <field name="commission_rate"/><field name="use_grade_detail"/>
+                    <field name="use_grade_detail" readonly="parent.state != 'draft'"/></list>
+                <form><sheet><group><field name="shipment_id" readonly="parent.state != 'draft'"/><field name="invoice_id" readonly="parent.state != 'draft'"/>
+                    <field name="sales_amount" readonly="parent.state != 'draft'"/><field name="expenses_usd" readonly="parent.state != 'draft'"/>
+                    <field name="commission_rate" readonly="parent.state != 'draft'"/><field name="use_grade_detail" readonly="parent.state != 'draft'"/>
                     <field name="external_adjustment_folio"/></group>
-                    <field name="grade_line_ids" invisible="not use_grade_detail">
+                    <field name="grade_line_ids" invisible="not use_grade_detail" readonly="parent.state != 'draft'">
                         <list editable="bottom"><field name="category_id"/><field name="caliber_id"/>
                             <field name="tag_ids" widget="many2many_tags"/><field name="kg_qty"/>
                             <field name="sales_amount"/><field name="sales_usd"/>
@@ -40,7 +42,7 @@
                             <field name="commission_rate"/><field name="commission_usd"/>
                             <field name="fob_usd"/></list>
                     </field>
-                    <field name="exterior_expense_line_ids">
+                    <field name="exterior_expense_line_ids" readonly="parent.state != 'draft'">
                         <list editable="bottom"><field name="concept_id"/><field name="amount_usd"/></list>
                     </field>
                     <group><field name="claim_usd"/><field name="fob_usd"/>
@@ -48,6 +50,7 @@
                 </sheet></form></field></page>
                 <page string="Productores"><field name="producer_settlement_ids"/></page>
                 <page string="Notas de ajuste"><field name="adjustment_move_ids"/></page>
+                <page string="Provisión IVV"><field name="provision_move_ids" readonly="1"/></page>
             </notebook><group><field name="total_sales_usd"/><field name="total_fob_usd"/>
                 <field name="total_difference_usd"/></group></sheet><chatter/></form></field>
     </record>

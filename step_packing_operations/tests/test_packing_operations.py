@@ -410,3 +410,70 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(national.quant_ids.filtered(lambda row: row.quantity > 0).location_id.usage, 'customer')
         with self.assertRaises(UserError):
             production.action_return_national_fruit()
+
+    def test_costing_capitalizes_only_owned_export_and_is_idempotent(self):
+        expense = self.env['account.account'].search([('company_ids', 'in', self.company.id), ('account_type', '=', 'expense')], limit=1)
+        valuation = self.env['account.account'].create({'name': 'Inventario costeo QA', 'code': 'QAT41VAL',
+            'account_type': 'asset_current', 'company_ids': [(6, 0, self.company.ids)]})
+        journal = self.env['account.journal'].create({'name': 'Valoración costeo QA', 'code': 'QCST', 'type': 'general', 'company_id': self.company.id})
+        category = self.env['product.category'].create({'name': 'FIFO costeo QA', 'property_cost_method': 'fifo',
+            'property_valuation': 'real_time', 'property_stock_valuation_account_id': valuation.id,
+            'property_stock_account_input_categ_id': expense.id, 'property_stock_account_output_categ_id': expense.id,
+            'property_stock_journal': journal.id})
+        self.finished.categ_id = category
+        self.company.lc_journal_id = journal
+        service = self.env['product.product'].create({'name': 'Transformación QA', 'type': 'service', 'grupo_labor': 'pack'})
+        bom = self.env['mrp.bom'].create({'product_tmpl_id': self.finished.product_tmpl_id.id, 'product_qty': 1,
+            'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})]})
+        order = self._order()
+        order.action_validate()
+        incoming = self._tag('QA-COST-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        export = self._tag('QA-COST-E', 'E', self.finished, 80, 16, 'export')
+        national = self._tag('QA-COST-N', 'N', self.national, 20, 20, 'commercial')
+        self.env['stock.quant']._update_available_quantity(self.raw, self.location, 100, package_id=incoming, owner_id=self.producer)
+        self._stock(self.carton, 16)
+        production = self._production(order, incoming, export | national, bom)
+        production.action_step_packing_validate()
+        production.action_prepare_materials()
+        production.action_approve_materials()
+        production.action_step_packing_close()
+        pool = self.env['step.packing.cost.allocation'].create({'name': 'Mano de obra QA', 'production_ids': [(6, 0, production.ids)],
+            'amount': 100, 'basis': 'kg', 'product_id': service.id, 'credit_account_id': expense.id, 'source_reference': 'PLANILLA-QA'})
+        pool.action_allocate()
+        pool.action_allocate()
+        self.assertEqual(len(production.cost_ids), 1)
+        self.assertAlmostEqual(production.transformation_cost, 100)
+        self.assertAlmostEqual(production.capitalizable_cost, 80)
+        pool.action_reopen()
+        self.assertFalse(production.cost_ids)
+        pool.action_allocate()
+        production.action_approve_costs()
+        with self.assertRaises(UserError):
+            pool.action_reopen()
+        production.action_reopen_costs()
+        self.assertEqual(production.state, 'closed')
+        production.action_approve_costs()
+        with self.assertRaises(UserError):
+            production.cost_ids.write({'amount': 200})
+        before = sum(production._export_cost_moves().stock_valuation_layer_ids.mapped('value'))
+        production.action_capitalize_costs()
+        landed = production.landed_cost_id
+        self.assertEqual(landed.state, 'done')
+        self.assertEqual(landed.account_move_id.state, 'posted')
+        self.assertAlmostEqual(sum(landed.stock_valuation_layer_ids.mapped('value')), 80)
+        self.assertAlmostEqual(sum(production._export_cost_moves().stock_valuation_layer_ids.mapped('value')) - before, 80)
+        self.assertNotIn(self.national, landed.valuation_adjustment_lines.product_id)
+        self.assertEqual(national.quant_ids.filtered(lambda row: row.quantity > 0).owner_id, self.producer)
+        production.action_capitalize_costs()
+        self.assertEqual(production.landed_cost_id, landed)
+        html, _ = self.env['ir.actions.report']._render_qweb_html('step_packing_operations.report_packing_costing', production.ids)
+        self.assertIn(b'Costeo de OT', html)
+        with self.assertRaises(UserError):
+            landed.cost_lines.write({'price_unit': 999})
+        with self.assertRaises(UserError):
+            production.with_context(_packing_cost=True).write({'landed_cost_id': False})
+        with self.assertRaises(UserError):
+            production.action_reopen_costs()
+        with self.assertRaises(UserError):
+            landed.account_move_id.button_draft()

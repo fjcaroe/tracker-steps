@@ -3,6 +3,8 @@ set -euo pipefail
 ARCHIVE=${1:?archive}
 SHA=${2:?sha256}
 LABEL=${3:?development or demo}
+SUFFIX=${4:-}
+case "$SUFFIX" in '') ;; PHASEB) ;; *) exit 2 ;; esac
 case "$LABEL" in
   development) SOURCE=LAB_TAREAS; CONFIG=/etc/dev_odoo18.conf; ROLE=dev_odoo18; SERVICE=odoo18-dev.service; DATA=/opt/dev_odoo18/.local/share/Odoo ;;
   demo) SOURCE=STEPS_DEMO; CONFIG=/etc/demo_odoo18.conf; ROLE=demo_odoo18; SERVICE=odoo18-demo.service; DATA=/opt/demo_odoo18/.local/share/Odoo ;;
@@ -11,6 +13,10 @@ esac
 test "$(sha256sum "$ARCHIVE" | cut -d ' ' -f1)" = "$SHA"
 DB=AGRO_INTEGRATION_QA_20261005_${LABEL^^}
 ROOT=/opt/steps-agro-qa/$LABEL
+if [ "$SUFFIX" = PHASEB ]; then
+  DB=${DB}_PHASEB
+  ROOT=$ROOT/phaseb
+fi
 RUN_USER=$(systemctl show --value --property=User "$SERVICE")
 test -n "$RUN_USER" && test "$RUN_USER" != root
 RUN_GROUP=$(id -gn "$RUN_USER")
@@ -36,6 +42,10 @@ fi
     sudo chown -R "$RUN_USER:$RUN_GROUP" "$ROOT/data/filestore/$DB"
   fi
 LOG="$ROOT/tests-$(date -u +%Y%m%dT%H%M%SZ).log"
+if [ "$SUFFIX" = PHASEB ] && ! sudo test -s "$ROOT/migration-before.json"; then
+  sudo install -m 0600 -o postgres -g postgres /dev/null "$ROOT/migration-before.json"
+  sudo -u postgres /usr/bin/python3.10 /tmp/check_migration_preservation.py "$LABEL" before
+fi
 BASE_ADDONS=$(/usr/bin/python3.10 -c 'import configparser,sys; c=configparser.ConfigParser(interpolation=None); c.read(sys.argv[1]); print(c["options"]["addons_path"])' "$CONFIG")
 MODULES=step_export,step_producers,step_inventory_packing,step_producer_fruit_flow,step_packing_operations
 set +e
@@ -54,4 +64,7 @@ if [ "$RESULT" -ne 0 ]; then
   exit "$RESULT"
 fi
 sudo grep -E '0 failed|ERROR|FAIL|modules loaded' "$LOG" | tail -n 35
+if [ "$SUFFIX" = PHASEB ]; then
+  sudo -u postgres /usr/bin/python3.10 /tmp/check_migration_preservation.py "$LABEL" after
+fi
 printf 'AGRO_QA_TEST_OK DB=%s LOG=%s\n' "$DB" "$LOG"

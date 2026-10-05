@@ -10,3 +10,6 @@ access_packing_downtime_user,packing.downtime.user,model_step_packing_downtime,s
 access_monthly_fruit_bill_account,packing.monthly.fruit.bill.account,model_step_packing_monthly_fruit_bill,account.group_account_user,1,1,1,1
 access_packing_instruction_user,packing.instruction.user,model_step_packing_instruction,stock.group_stock_user,1,1,1,1
 access_packing_inspection_user,packing.inspection.user,model_step_packing_inspection,stock.group_stock_user,1,1,1,1
+access_packing_cost_read,packing.cost.read,model_step_packing_cost,stock.group_stock_user,1,0,0,0
+access_packing_cost_manager,packing.cost.manager,model_step_packing_cost,stock.group_stock_manager,1,1,1,1
+access_cost_allocation_manager,packing.cost.allocation.manager,model_step_packing_cost_allocation,stock.group_stock_manager,1,1,1,1

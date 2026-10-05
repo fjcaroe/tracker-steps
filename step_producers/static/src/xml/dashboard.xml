@@ -9,7 +9,7 @@
                     <p>Una vista del productor desde sus fundos y estimaciones hasta la tarifa y la liquidación final.</p>
                     <div class="o_export_hero__actions">
                         <button type="button" class="btn btn-light" t-on-click="() => this.openAction('step_producers.action_step_producers_partner')"><i class="fa fa-users me-2"/> Ver productores</button>
-                        <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_export.action_step_export_estimate')"><i class="fa fa-calendar me-2"/> Estimaciones</button>
+                        <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_producers.action_step_export_estimate')"><i class="fa fa-calendar me-2"/> Estimaciones</button>
                     </div>
                 </div>
                 <div class="o_export_hero__art" aria-hidden="true">
@@ -22,8 +22,8 @@
                 <div class="o_export_metrics">
                     <button type="button" t-on-click="() => this.openAction('step_producers.action_step_producers_partner')"><i class="fa fa-users"/><span>Productores</span><strong t-esc="count('producers')"/><small>Contactos activos <i class="fa fa-arrow-right"/></small></button>
                     <button type="button" t-on-click="() => this.openAction('step_producers.action_step_producers_fundo')"><i class="fa fa-map-marker"/><span>Fundos</span><strong t-esc="count('farms')"/><small>Origen de la fruta <i class="fa fa-arrow-right"/></small></button>
-                    <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_estimate')"><i class="fa fa-line-chart"/><span>Estimaciones vigentes</span><strong t-esc="count('estimates')"/><small>Fruta esperada <i class="fa fa-arrow-right"/></small></button>
-                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_producer_settlement')"><i class="fa fa-file-text-o"/><span>Liquidaciones abiertas</span><strong t-esc="count('settlements')"/><small>Por revisar o contabilizar <i class="fa fa-arrow-right"/></small></button>
+                    <button type="button" t-on-click="() => this.openAction('step_producers.action_step_export_estimate')"><i class="fa fa-line-chart"/><span>Estimaciones vigentes</span><strong t-esc="count('estimates')"/><small>Fruta esperada <i class="fa fa-arrow-right"/></small></button>
+                    <button type="button" t-on-click="() => this.openAction('step_producers.action_export_producer_settlement')"><i class="fa fa-file-text-o"/><span>Liquidaciones abiertas</span><strong t-esc="count('settlements')"/><small>Por revisar o contabilizar <i class="fa fa-arrow-right"/></small></button>
                 </div>
             </section>
             <div class="o_export_columns">
@@ -31,15 +31,15 @@
                     <div class="o_export_section__heading"><div><span>TRAZABILIDAD</span><h2 id="producer-flow-title">Del origen al resultado</h2></div></div>
                     <div class="o_export_flow">
                         <button type="button" t-on-click="() => this.openAction('step_producers.action_step_producers_partner')"><b>01</b><i class="fa fa-user"/><span><strong>Registrar productor</strong><small>Contacto y fundos de origen</small></span><i class="fa fa-arrow-right"/></button>
-                        <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_estimate')"><b>02</b><i class="fa fa-calendar"/><span><strong>Estimar fruta</strong><small>Volúmenes, variedad y semanas de entrega</small></span><i class="fa fa-arrow-right"/></button>
+                        <button type="button" t-on-click="() => this.openAction('step_producers.action_step_export_estimate')"><b>02</b><i class="fa fa-calendar"/><span><strong>Estimar fruta</strong><small>Volúmenes, variedad y semanas de entrega</small></span><i class="fa fa-arrow-right"/></button>
                         <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_grower_rate')"><b>03</b><i class="fa fa-money"/><span><strong>Configurar tarifa</strong><small>Valor contractual por temporada y especie</small></span><i class="fa fa-arrow-right"/></button>
-                        <button type="button" t-on-click="() => this.openAction('step_export.action_export_producer_settlement')"><b>04</b><i class="fa fa-balance-scale"/><span><strong>Liquidar</strong><small>Tarjas, descuentos y facturas previas</small></span><i class="fa fa-arrow-right"/></button>
+                        <button type="button" t-on-click="() => this.openAction('step_producers.action_export_producer_settlement')"><b>04</b><i class="fa fa-balance-scale"/><span><strong>Liquidar</strong><small>Tarjas, descuentos y facturas previas</small></span><i class="fa fa-arrow-right"/></button>
                     </div>
                 </section>
                 <aside class="o_export_panel o_export_panel--guide">
                     <div class="o_export_section__heading"><div><span>DATOS A REVISAR</span><h2>Antes de liquidar</h2></div></div>
                     <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_grower_rate')"><i class="fa fa-money"/><span><strong>Tarifa contractual</strong><small>Productor, temporada, especie y valor acordado</small></span><i class="fa fa-arrow-right"/></button>
-                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_producer_settlement')"><i class="fa fa-file-text-o"/><span><strong>Liquidación final</strong><small>Revisar tarjas, descuentos y documentos previos</small></span><i class="fa fa-arrow-right"/></button>
+                    <button type="button" t-on-click="() => this.openAction('step_producers.action_export_producer_settlement')"><i class="fa fa-file-text-o"/><span><strong>Liquidación final</strong><small>Revisar tarjas, descuentos y documentos previos</small></span><i class="fa fa-arrow-right"/></button>
                     <div class="o_export_tip"><i class="fa fa-info-circle"/><p>Las liquidaciones usan los datos de Exportaciones y la integración contable multimoneda de Steps. No se duplican tarifas ni registros de packing.</p></div>
                 </aside>
             </div>

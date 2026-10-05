@@ -4,8 +4,8 @@
         <field name="name">Liquidación de productor</field>
         <field name="model">step.export.producer.settlement</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">step_export.report_producer_settlement</field>
-        <field name="report_file">step_export.report_producer_settlement</field>
+        <field name="report_name">step_producers.report_producer_settlement</field>
+        <field name="report_file">step_producers.report_producer_settlement</field>
         <field name="binding_model_id" ref="model_step_export_producer_settlement"/>
         <field name="binding_type">report</field>
         <field name="print_report_name">'Liquidacion_Productor_%s' % object.name</field>
@@ -21,9 +21,9 @@
                             <tbody>
                                 <tr><th>Productor</th><td><span t-field="doc.producer_id.name"/></td>
                                     <th>Empresa</th><td><span t-field="doc.company_id.name"/></td></tr>
-                                <tr><th>Temporada</th><td><span t-field="doc.receiver_settlement_id.season_id.name"/></td>
-                                    <th>Especie</th><td><span t-field="doc.receiver_settlement_id.species_id.name"/></td></tr>
-                                <tr><th>Recibidor</th><td><span t-field="doc.receiver_settlement_id.receiver_id.name"/></td>
+                                <tr><th>Temporada</th><td><span t-field="doc.season_id.name"/></td>
+                                    <th>Especie</th><td><span t-field="doc.species_id.name"/></td></tr>
+                                <tr t-if="'receiver_settlement_id' in doc._fields and doc.receiver_settlement_id"><th>Recibidor</th><td><span t-field="doc.receiver_settlement_id.receiver_id.name"/></td>
                                     <th>Liquidación recibidor</th><td><span t-field="doc.receiver_settlement_id.name"/></td></tr>
                                 <tr><th>Estado</th><td><span t-field="doc.state"/></td>
                                     <th>Fecha de entrega</th><td><span t-field="doc.delivery_date"/></td></tr>

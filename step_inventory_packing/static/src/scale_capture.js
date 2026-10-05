@@ -91,27 +91,31 @@ export class ScaleCapture extends Component {
             const service = await server.getPrimaryService(profile.service);
             const characteristic = await service.getCharacteristic(profile.characteristic);
             if (characteristic.properties.read) {
-                return this.decode(await characteristic.readValue());
+                const raw = this.decode(await characteristic.readValue());
+                if (parseScaleWeight(raw, profile.pattern, profile.factor) !== null) return raw;
             }
             if (!characteristic.properties.notify) {
                 throw new Error(_t("La característica BLE no permite leer ni recibir notificaciones."));
             }
-            await characteristic.startNotifications();
-            return await new Promise((resolve, reject) => {
-                const timer = setTimeout(() => {
-                    characteristic.removeEventListener("characteristicvaluechanged", onValue);
-                    reject(new Error(_t("La balanza no envió una lectura en 15 segundos.")));
-                }, 15000);
-                const onValue = (event) => {
-                    const raw = this.decode(event.target.value);
-                    if (parseScaleWeight(raw, profile.pattern, profile.factor) !== null) {
-                        clearTimeout(timer);
-                        characteristic.removeEventListener("characteristicvaluechanged", onValue);
-                        resolve(raw);
-                    }
+            let buffer = "", timer, onValue;
+            const reading = new Promise((resolve, reject) => {
+                timer = setTimeout(() => reject(new Error(_t("La balanza no envió una lectura en 15 segundos."))), 15000);
+                onValue = (event) => {
+                    buffer = (buffer + this.decode(event.target.value)).slice(-1024);
+                    if (parseScaleWeight(buffer, profile.pattern, profile.factor) !== null) resolve(buffer);
                 };
                 characteristic.addEventListener("characteristicvaluechanged", onValue);
             });
+            reading.catch(() => {});
+            try {
+                // Register first: some scales send the initial frame immediately.
+                await characteristic.startNotifications();
+                return await reading;
+            } finally {
+                clearTimeout(timer);
+                characteristic.removeEventListener("characteristicvaluechanged", onValue);
+                if (device.gatt.connected) await characteristic.stopNotifications().catch(() => {});
+            }
         } finally {
             if (device.gatt.connected) {
                 device.gatt.disconnect();

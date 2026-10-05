@@ -1,6 +1,8 @@
 from odoo import fields
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
+from ..models.step_export_settlement import _RECEIVER_TRANSITION
+from odoo.addons.step_producers.migration_helpers import transfer_ownership
 
 
 @tagged('post_install', '-at_install', 'step_producers')
@@ -30,7 +32,7 @@ class TestSeasonStatement(TransactionCase):
             'date': '2026-11-20',
         })
         # Fixture for an already reviewed receiver; export tests cover its invoice gates.
-        receiver.state = 'validated'
+        receiver.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'validated'})
         tag_vals = {'name': 'QA-CONS-%s' % number, 'is_fruit_tag': True, 'owner_id': self.producer.id}
         if 'step_tag_kind' in self.env['stock.quant.package']._fields:
             tag_vals.update({'step_tag_kind': 'E', 'step_producer_id': self.producer.id,
@@ -75,3 +77,45 @@ class TestSeasonStatement(TransactionCase):
         wizard.write({'date_start': '2026-11-01', 'date_end': '2026-10-01'})
         with self.assertRaises(ValidationError):
             wizard.action_generate()
+
+    def test_period_uses_shipment_date_and_species_is_part_of_scope(self):
+        settlement = self._settlement(3, 100)
+        receiver = settlement.receiver_settlement_id
+        shipment = self.env['step.export.export'].create({'name': 'Embarque consolidado QA',
+            'date': '2026-11-04', 'sales_program_id': self.program.id,
+            'tag_ids': [(6, 0, settlement.line_ids.tag_id.ids)]})
+        invoice = self.env['account.move'].create({'move_type': 'out_invoice', 'partner_id': self.receiver.id,
+            'step_export_shipment_id': shipment.id})
+        # Receiver fixture deliberately has a different date from its shipment.
+        receiver.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'draft'})
+        self.env['step.export.receiver.settlement.line'].create({'settlement_id': receiver.id,
+            'shipment_id': shipment.id, 'invoice_id': invoice.id, 'sales_amount': 100})
+        receiver.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'validated'})
+        wizard = self.env['step.producer.season.statement.wizard'].create({'season_id': self.season.id,
+            'species_id': self.species.id, 'date_start': '2026-11-01', 'date_end': '2026-11-10',
+            'producer_ids': [(6, 0, self.producer.ids)]})
+        action = wizard.action_generate()
+        statement = self.env['step.producer.season.statement'].browse(action['domain'][0][2])
+        self.assertEqual(statement.species_id, self.species)
+        self.assertEqual(statement.settlement_ids, settlement)
+        wizard.date_start = '2026-11-10'
+        with self.assertRaises(UserError):
+            wizard.action_generate()
+
+    def test_historical_dimensions_backfill_keeps_ids_and_amounts(self):
+        settlement = self._settlement(4, 100)
+        original_id, amount, line_ids = settlement.id, settlement.net_usd, settlement.line_ids.ids
+        self.env.flush_all()
+        # Reproduce the old schema's missing standalone dimensions inside this
+        # transaction. DDL and fixture data are rolled back by TransactionCase.
+        for column in ('date', 'season_id', 'species_id'):
+            self.env.cr.execute('ALTER TABLE step_export_producer_settlement ALTER COLUMN %s DROP NOT NULL' % column)
+        self.env.cr.execute('UPDATE step_export_producer_settlement SET date=NULL,season_id=NULL,species_id=NULL WHERE id=%s', [settlement.id])
+        transfer_ownership(self.env.cr)
+        settlement.invalidate_recordset()
+        self.assertEqual(settlement.id, original_id)
+        self.assertEqual(settlement.line_ids.ids, line_ids)
+        self.assertEqual(settlement.net_usd, amount)
+        self.assertEqual(settlement.date, settlement.receiver_settlement_id.date)
+        self.assertEqual(settlement.species_id, self.species)
+        self.assertEqual(settlement.season_id, self.season)
