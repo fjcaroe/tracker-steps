@@ -9,6 +9,7 @@ import subprocess
 import tarfile
 import time
 from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
 
 from lxml import html
 
@@ -22,8 +23,17 @@ def fingerprint(root):
 
 
 def public_home():
-    with urlopen('https://sys.stepsapp.cl/', timeout=60) as response:
-        return response.read()
+    for attempt in range(30):
+        try:
+            with urlopen('https://sys.stepsapp.cl/', timeout=15) as response:
+                return response.read()
+        except HTTPError as error:
+            if error.code not in {500, 502, 503, 504}:
+                raise
+        except URLError:
+            pass
+        time.sleep(1)
+    raise RuntimeError('SyS public site did not become ready after restarting')
 
 
 def main():

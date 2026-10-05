@@ -24,8 +24,8 @@ Conocimiento ya está instalado en la base destino; SyS no lo tiene instalado.
 El proceso de SyS carga el archivo privado existente
 `/etc/steps/assistant-demo-sys.env`, propiedad de root y modo 0600, mediante
 `/etc/systemd/system/odoo18-sys.service.d/steps-assistant.conf`.
-El archivo de la clave no se modifica ni se duplica. Ambos servicios referencian
-el mismo archivo; al rotarlo, reiniciar los servicios que lo usan.
+La activación normal no modifica ni duplica el archivo de la clave. Ambos
+servicios referencian el mismo archivo; al rotarlo, reiniciar los servicios que lo usan.
 La clave no se imprime, no queda en argumentos, base de Odoo, código ni Git.
 
 Se copian exclusivamente cuatro parámetros validados de Demo-SyS:
@@ -74,6 +74,23 @@ después de pasar las comprobaciones. Si fallan, revisar el error y mantener
 la IA deshabilitada mientras se corrige. No se restaura automáticamente la base.
 El cierre comprueba clave compartida en los procesos, fuente Demo-SyS intacta,
 plantillas y texto del home de SyS intactos, archivos de entrega y acceso HTTP.
+
+### Corrección del formato de la credencial existente
+
+La primera prueba recibió HTTP 401 `invalid_api_key`. Se comprobó sin imprimir
+valores que el entorno de Demo-SyS contenía caracteres adicionales alrededor
+de una sola credencial completa. Esa credencial ya existente autenticó
+correctamente contra OpenAI. `probe_existing_key.py` permite comprobar ese caso
+sin guardar respuestas ni consumir tokens de generación.
+
+`repair_key_format.py` admite exclusivamente esa corrección: exige una única
+credencial identificable, autenticación HTTP 200, archivo de root modo 0600 y
+ausencia de otras variables. Respalda el archivo original con modo 0600 dentro
+de un directorio privado 0700, reemplaza atómicamente solo el formato y recarga
+los servicios que todavía usen el valor anterior. No crea ni rota una clave.
+Demo-SyS se reinició para cargar esa misma clave correctamente; su código y
+datos de negocio no se modificaron. El despliegue posterior compara Demo-SyS
+contra ese estado corregido.
 
 ## Uso y recuperación
 
