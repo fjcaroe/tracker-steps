@@ -146,6 +146,11 @@ Tras revisar un resultado de pruebas correcto, `deploy_dev.sh`:
 bash /tmp/deploy_dev.sh /tmp/steps_assistant_release.tar.gz <SHA256>
 ```
 
+Transferir también `tools/chatbot/validate_assets.py` junto a `deploy_dev.sh`.
+El despliegue compila los estilos con el libsass del servidor antes de copiarlos
+y espera la disponibilidad HTTP después del reinicio. Las unidades de alto
+en `vh` se limitan mediante `max-height`, compatible con el compilador de Odoo.
+
 No instala automáticamente en Demo, SyS, producción u otras bases. Probar luego
 chat, apertura de fuentes, pantalla pequeña, permisos y consultas sin evidencia.
 Después de configurar la clave, ejecutar consultas reales y casos de intento

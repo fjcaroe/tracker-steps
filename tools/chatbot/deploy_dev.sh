@@ -30,6 +30,7 @@ else
 fi
 STAGING=$(mktemp -d /tmp/steps-assistant-code.XXXXXX)
 tar -xzf "$ARCHIVE" -C "$STAGING" --no-same-owner
+/usr/bin/python3.10 "$(dirname "$0")/validate_assets.py" "$STAGING"
 sudo install -d -m 0755 "$TARGET/$MODULE"
 # No deletion of existing files. Show exactly what will be copied before applying it.
 sudo rsync -ani --exclude '__pycache__/' --exclude '*.pyc' "$STAGING/$MODULE/" "$TARGET/$MODULE/"
@@ -42,6 +43,7 @@ sudo -u odoo /usr/bin/python3.10 /opt/odoo18/odoo-bin -c "$CONFIG" -d "$DB" \
     --without-demo=all --logfile=/tmp/steps-assistant-dev-install.log
 sudo systemctl restart "$SERVICE"
 sudo systemctl is-active --quiet "$SERVICE"
-curl --fail --silent --output /dev/null https://desarrollo.stepsapp.cl/web/login
+curl --fail --silent --retry 12 --retry-delay 3 --retry-connrefused --retry-all-errors \
+    --connect-timeout 5 --max-time 15 --output /dev/null https://desarrollo.stepsapp.cl/web/login
 sudo -u postgres psql -d "$DB" -Atc "SELECT name,state,latest_version FROM ir_module_module WHERE name IN ('$MODULE','$BRIDGE');"
 printf 'ASSISTANT_DEV_DEPLOY_OK\nBACKUP=%s\n' "$BACKUP"

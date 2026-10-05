@@ -8,7 +8,7 @@
     .steps-assistant-header p { margin: 0; color: #596e65; }
     .steps-assistant-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; max-width: 1280px; margin: auto; }
     .steps-assistant-conversation { border: 1px solid #dbe5df; border-radius: 18px; background: white; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
-    .steps-assistant-transcript { height: min(52vh, 650px); min-height: 280px; padding: 22px; overflow-y: auto; overscroll-behavior: contain; }
+    .steps-assistant-transcript { height: 52vh; max-height: 650px; min-height: 280px; padding: 22px; overflow-y: auto; overscroll-behavior: contain; }
     .steps-assistant-welcome { max-width: 480px; margin: 45px auto; text-align: center; color: #526d61; i { font-size: 42px; color: #123c33; margin-bottom: 18px; } }
     .steps-assistant-message { max-width: 90%; border-radius: 14px; padding: 16px 20px; margin: 0 0 16px; overflow-wrap: anywhere; &.assistant { background: #f0f5f1; } &.user { margin-left: auto; background: #123c33; color: white; } }
     .steps-assistant-text { white-space: pre-wrap; margin: 8px 0 0; }
