@@ -25,10 +25,6 @@ GROUPS = {
     "demo": [("odoo18-demo", "/etc/demo_odoo18.conf", "STEPS_DEMO", "demo_odoo18", "/usr/bin/python3.10")],
     "demo-sys": [("odoo18-demo-sys", "/etc/odoo18-demo-sys.conf", "STEPS_DEMO_SYS", "demosys_odoo18", "/usr/bin/python3.10")],
     "cerro": [("odoo18-cerroelplomo", "/etc/odoo18-cerroelplomo.conf", "CERRO_EL_PLOMO", "cerro_odoo18", "/usr/bin/python3.10")],
-    "admin": [
-        ("odoo18-admin", "/etc/odoo18-admin.conf", "steps_dev", "odoo", "/opt/odoo18/venv/bin/python"),
-        ("odoo18-admin", "/etc/odoo18-admin.conf", "steps_qa", "odoo", "/opt/odoo18/venv/bin/python"),
-    ],
 }
 FIELDS = {
     "step_hr/models/step_centro_costo.py": "has_cost",
@@ -95,6 +91,7 @@ def main():
     patches = {}
     for service, conf, db, user, python in entries:
         assert sql(db, "SELECT state FROM ir_module_module WHERE name='step_hr'") == "installed", db
+        assert sql(db, "SELECT count(*) FROM information_schema.columns WHERE (table_name='account_analytic_account' AND column_name='has_cost') OR (table_name='step_cuartel_line' AND column_name='has_cuartel')") == "2", f"Unsupported legacy schema: {db}"
         config = configparser.ConfigParser(interpolation=None)
         config.read(conf)
         roots = [Path(p.strip()) for p in config["options"]["addons_path"].split(",")]
@@ -125,11 +122,14 @@ def main():
         for _, _, db, _, _ in entries:
             with (backup / (db + ".dump")).open("wb") as stream:
                 run(["sudo", "-u", "postgres", "pg_dump", "-Fc", db], stdout=stream)
+        # Complete schema migrations before exposing Float code. If one database
+        # rejects the migration, the original code remains in place.
+        for _, _, db, _, _ in entries:
+            print(db + " " + migration(db), flush=True)
         for path, (original, updated) in patches.items():
             assert path.read_text() == original, f"Concurrent change: {path}"
             path.write_text(updated)
         for service, conf, db, user, python in entries:
-            print(db + " " + migration(db), flush=True)
             command = ["sudo", "-u", user, python, "/opt/odoo18/odoo-bin", "shell", "-c", conf, "-d", db,
                        "--no-http", "--max-cron-threads=0", "--logfile=/dev/stderr"]
             check = subprocess.run(command, input=Path(__file__).with_name("verify_odoo.py").read_text(), text=True, capture_output=True)

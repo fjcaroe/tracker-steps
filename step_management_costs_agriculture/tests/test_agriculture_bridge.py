@@ -251,4 +251,4 @@ class TestAgricultureBridge(ManagementCostsCommon):
         for model, field in [("account.analytic.account", "has_cost"),
                              ("step.cuartel.line", "has_cuartel"),
                              ("step.management.cost.center", "agri_hectares")]:
-            self.assertEqual(self.env[model].fields_get([field])[field]["digits"], (16, 2))
+            self.assertEqual(tuple(self.env[model].fields_get([field])[field]["digits"]), (16, 2))
