@@ -143,7 +143,7 @@ class PackingProduction(models.Model):
         for record in self:
             if record.state not in ('created', 'validated') or record.material_review_state == 'approved':
                 raise UserError(_('Solo se preparan materiales de una OT abierta sin aprobación.'))
-            record.material_line_ids.unlink()
+            record.material_line_ids.with_context(_packing_control=_INTERNAL).unlink()
             for tag in record.step_packing_output_tag_ids.filtered(lambda row: row.step_packing_result == 'export'):
                 for detail in tag.step_tag_line_ids:
                     bom = (record.bom_id if record.bom_id.product_tmpl_id == detail.product_id.product_tmpl_id
@@ -153,7 +153,7 @@ class PackingProduction(models.Model):
                     factor = detail.product_id.uom_id._compute_quantity(detail.quantity, bom.product_uom_id) / bom.product_qty
                     for component in bom.bom_line_ids:
                         qty = component.product_uom_id._compute_quantity(component.product_qty * factor, component.product_id.uom_id)
-                        self.env['step.packing.material.consumption'].create({
+                        self.env['step.packing.material.consumption'].with_context(_packing_control=_INTERNAL).create({
                             'production_id': record.id, 'package_id': tag.id, 'product_id': component.product_id.id,
                             'planned_qty': qty, 'quantity': qty,
                         })
@@ -278,13 +278,14 @@ class PackingProduction(models.Model):
         return super().unlink()
 
     def write(self, vals):
+        self._lock_process()
         internal = self.env.context.get('_packing_control') is _INTERNAL
         if not internal and {'state', 'input_picking_id', 'output_picking_id', 'material_picking_id', 'return_picking_id'} & vals.keys():
             raise UserError(_('Use las acciones de validación y cierre para mover inventario.'))
         if not internal and {'material_review_state', 'material_approved_by', 'material_approved_at', 'material_signature'} & vals.keys():
             raise UserError(_('Use los botones de revisión y aprobación de materiales.'))
         protected = {'company_id', 'product_id', 'bom_id', 'step_packing_order_id',
-                     'step_packing_input_tag_ids', 'step_packing_output_tag_ids'}
+                     'step_packing_input_tag_ids', 'step_packing_output_tag_ids', 'contract_id', 'required_inspection'}
         if protected & vals.keys() and any(record.state != 'created' for record in self):
             raise UserError(_('La cuadratura validada conserva sus productos, tarjas y planificación.'))
         if not internal and any(record.state in ('closed', 'costed', 'accounted') for record in self):
@@ -322,6 +323,8 @@ class MaterialConsumption(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        if self.env.context.get('_packing_control') is not _INTERNAL:
+            raise UserError(_('Prepare los materiales desde la OT; solo se ajusta el consumo y su motivo.'))
         parents = self.env['step.packing.production'].browse([row['production_id'] for row in vals_list])
         parents._lock_process()
         if any(row.state not in ('created', 'validated') or row.material_review_state == 'approved' for row in parents):
@@ -335,6 +338,8 @@ class MaterialConsumption(models.Model):
         return super().write(vals)
 
     def unlink(self):
+        if self.env.context.get('_packing_control') is not _INTERNAL:
+            raise UserError(_('Recalcule materiales desde la OT; no se elimina el consumo calculado manualmente.'))
         self._check_editable()
         return super().unlink()
 

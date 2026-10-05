@@ -1,5 +1,14 @@
 # T35 — Exportaciones
 
+## Integración agrícola para QA, 05-10-2026
+
+La versión 18.0.2.7.0 consolida los gastos exteriores y avances existentes con
+Packing y Productores. Agrega restricciones de productor/variedad al programa
+versionado y las verifica al procesar/despachar tarjas. Ver el
+[acta de integración y prueba funcional](QA_PACKING_PRODUCTORES_EXPORTACIONES_2026-10-05.md)
+para destinos, versiones y evidencia de esta entrega. Los resultados históricos
+que siguen corresponden a las entregas anteriores.
+
 Ticket: http://35.222.25.110:8069/odoo/helpdesk/action-543/35
 
 ## Alcance implementado

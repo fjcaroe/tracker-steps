@@ -1,5 +1,16 @@
 # T38 — Productores (2026-09-29)
 
+## Actualización de integración, 05-10-2026
+
+El consolidado de temporada, sus filtros, generación masiva y PDF ya están
+implementados para QA en `step_producers` 18.0.1.6.0. Agrupan liquidaciones
+completas y validadas sin duplicar documentos contables; la confirmación
+conserva la selección y bloquea su reapertura individual. Ver el
+[acta de integración y prueba funcional](QA_PACKING_PRODUCTORES_EXPORTACIONES_2026-10-05.md).
+Los pendientes y resultados de septiembre que siguen abajo son históricos.
+La aceptación con un caso real y la migración arquitectónica Fase B siguen
+separadas de esta entrega.
+
 ## Implementado
 
 - `step_producers` existente en T35 conserva productores, fundos, estimaciones, tarifas y liquidaciones. Se integraron los contratos de T30 al módulo.

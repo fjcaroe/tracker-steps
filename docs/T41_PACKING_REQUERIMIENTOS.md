@@ -335,95 +335,56 @@ Confirmar que cada uno de estos modelos ya existe antes de crear accesos
 
 ## 4. Estado de implementación (actualizar aquí, no arriba)
 
-_Última actualización: 02-10-2026, tras la reescritura arquitectónica de
-T41 (eliminar dependencia de `mrp.production` y de las vistas de Studio) y
-el agregado de portada/ícono propio. Pendiente: todo lo demás listado abajo._
+_Actualización: 05-10-2026. Integración en la rama
+`codex/packing-productores-exportaciones-qa` para Desarrollo y Demo. Ver
+[alcance, preparación y evidencia de QA](QA_PACKING_PRODUCTORES_EXPORTACIONES_2026-10-05.md).
+Los requisitos originales de las secciones anteriores se conservan._
 
-### 4.1 Hecho
+### 4.1 Implementado para QA
 
-- [x] OP (`step.packing.order` + `step.packing.order.line`): cabecera,
-  detalle, instructivo (como campo Html), restricciones de productor/
-  variedad **a nivel de OP** (no de Programa de Ventas como pide el doc —
-  revisar si corresponde mover), necesidad de materiales
-  (`action_refresh_materials`, usa BOM como referencia).
-- [x] OT (`step.packing.production`): modelo propio (ya no
-  `_inherit mrp.production`), tarjas C de entrada / E-N de salida,
-  cuadratura (kg input/export/comercial/precalibre/desecho/merma),
-  validar/cerrar. Cierre mueve stock real con 3 traslados directos
-  (consumo MP, consumo material de embalaje agregado por BOM, salida de
-  producto terminado) — sin crear `mrp.production`.
-- [x] Repaletizado (`step.packing.repack`): completo, coincide con la hoja.
-- [x] Reservas de stock: extensión de `step.export.stock.reservation`
-  (reservar/liberar), vinculada a la Orden de Proceso.
-- [x] Reporte PDF por OT individual (`report_packing_process`).
-- [x] App móvil única para registrar tarjas C/E/N por escaneo (cubre en una
-  sola pantalla lo que el doc describe como dos apps).
-- [x] Portada ejecutiva (dashboard OWL) + ícono propio + menú como app
-  independiente (ya no cuelga de "Packing Fruta"/Studio).
-- [x] Permisos propios (`stock.group_stock_user`, ya no requiere acceso a
-  Fabricación).
+- [x] OP/OT propias, cuadratura C/E/N, repaletizado, stock nativo sin crear
+  `mrp.production`, app móvil, dashboard e Inventario como permiso operativo.
+- [x] Accesos a recepciones, envases, despachos, instructivos, Packing List,
+  maestros y catálogos existentes. Reservas por instructivo en Planificación.
+- [x] Restricciones de productor/variedad en OP y Programa de Ventas versionado;
+  controles en OT y despacho.
+- [x] Control de envases, cuenta corriente, saldos e inventario inicial.
+- [x] Tipo de proceso/fruta, planta, cliente, turno, dotación, inicio/término,
+  estándar, detenciones e indicadores de rendimiento, permanencia y cosecha.
+  Productor/fundo y trazabilidad conservan los modelos existentes; los lotes
+  nativos se indican en las líneas de salida cuando el producto es rastreado.
+- [x] Desglose de kilos por resultado/calibre y porcentaje 2J+ por catálogo.
+- [x] Materiales por tarja de salida, ajuste con motivo, aprobación de Inventario,
+  bloqueo de cambios calculados por RPC y cierre atómico ante falta de stock.
+- [x] Fruta E valorada al contrato confirmado mediante valoración nativa
+  AVCO/FIFO; diario configurable y compra mensual en borrador, idempotente.
+- [x] Devolución de fruta N mediante traslado real al productor y propietario
+  conservado, sin permitir una segunda devolución.
+- [x] Importación de recepciones desde Excel y preparación separada de sus
+  movimientos nativos; no valida automáticamente la recepción.
+- [x] PDF individual y consolidado de OT; versiones aprobadas de instructivo,
+  vínculo obligatorio en nuevas reservas e informe de fruta reservada.
+- [x] Inspecciones internas/SAG, revisión inmutable y control de despacho.
+  Son registros internos y referencia a certificado externo; no emiten
+  certificados oficiales ni conectan con SAG. Exigencia desactivada por defecto.
 
-### 4.2 Falta — accesos de menú a funcionalidad que YA EXISTE en otros módulos (bajo esfuerzo, alto impacto en la percepción de "módulo incompleto")
+### 4.2 Validaciones funcionales aún pendientes
 
-- [ ] Recepciones → Fruta a proceso / Fruta embalada (pasar a RG/RE de
-  Inventario-T40).
-- [ ] Procesos → Informes (falta el consolidado, ver 4.3) y exponer
-  Reservas de Stock con su propio menú (hoy solo vía Exportaciones).
-- [ ] Despacho → Instructivo Embarque / Embarque-Despacho / Packing List
-  (pasar a las pantallas ya existentes en `step_export`).
-- [ ] Maestros → Productores / Productos / Embalajes (pasar a los ya
-  existentes).
-- [ ] Configuraciones → Fruta / Especie / Grupo variedad / Variedad /
-  Grupo de calibre / Calibre de fruta / Categoría de fruta / Packing /
-  Líneas de proceso / Tipo de proceso / Tipo de tarja / Estado de tarja
-  (pasar a los catálogos existentes; confirmar ubicación exacta de cada
-  uno antes de enlazar).
+- [ ] Homologar equipos físicos de balanza/impresora con los perfiles existentes.
+- [ ] Revisar con el cliente la matriz completa de estados por tipo de tarja.
+  El modelo permite despacho C/E/N, procesado solo C y liquidación solo E;
+  no se ha inventado un proceso contable de liquidación de fruta C/N ni una
+  anulación de stock como simple cambio de etiqueta.
+- [ ] Revisar folios, impuestos, cuentas, contratos y formato de informes con un
+  caso real en QA. Las pruebas técnicas no sustituyen esta aceptación.
 
-### 4.3 Falta — funcionalidad nueva real (esfuerzo medio/alto)
+### 4.3 Etapas separadas
 
-- [ ] **Control de Envases con productores** (hoja CE): modelo nuevo
-  completo — movimientos entrada/salida, cuenta corriente por productor
-  (ubicación virtual), informe de saldo, campo "Es envases cosecha" en
-  producto, app de carga de inventario inicial.
-- [ ] **Campos de la OT que faltan** (hoja PROC): Tipo Proceso, Tipo Fruta,
-  Fundo/SDP, Exportadora, Cliente, Lote, Turno, Dotación, Hora
-  inicio/fin, Rendimiento estándar de línea, Horas efectivas, Total horas.
-- [ ] **Causas de detención de línea**: catálogo + sub-tabla en la OT
-  (causa, hora inicio, hora fin, total, comentario).
-- [ ] **Indicadores calculados de la OT**: kg/trabajador, kg/hora,
-  kg/hora-hombre efectiva, % hora ociosa, % calibres 2J+, peso promedio
-  caja cosecha, días de permanencia del lote, días desde cosecha.
-- [ ] **Desglose de kilos por calibre** en la cuadratura de la OT.
-- [ ] **Consumo de materiales por pallet** (hoy es agregado por toda la
-  OT — el Excel pide desglose por cada tarja/pallet de salida).
-- [ ] **Paso de revisión/aprobación del consumo de materiales** antes de
-  generar el consumo final (hoy se genera y valida de una sola vez).
-- [ ] **Valorización de la fruta de exportación** al precio de contrato
-  del productor + diario "Compra fruta exportación" + facturación mensual
-  del productor.
-- [ ] **Devolución al productor** de fruta comercial/precalibre/desecho
-  (modelar la salida hacia el productor, no solo el ingreso a bodega
-  propia).
-- [ ] **Carga de recepciones (RG/RE) desde Excel** (pedido explícito en
-  ambas hojas) — aunque RG/RE sean de Inventario/T40, el pedido de carga
-  masiva por Excel es nuevo.
-- [ ] **Informe consolidado de procesos** (resumen + detalle de varias OT,
-  no solo el PDF individual por OT).
-- [ ] **Vincular la reserva de stock al Instructivo de Embalaje** puntual
-  (hoy se referencia la OP completa) + informe de fruta reservada.
-- [ ] Revisar la **matriz de estados por tipo de tarja** (sección 3.9)
-  contra el modelo real: falta confirmar "Desp/Emb" para tarjas C y el
-  ciclo completo de "Liquidada"/"Nula" para los tres tipos.
-- [ ] **Inspecciones** (SAG, Interna): el propio documento dice
-  "pendiente" pero la tabla de etapas lo marca Etapa 1 — **confirmar con
-  el cliente** antes de invertir esfuerzo aquí.
-
-### 4.4 Explícitamente fuera de alcance por ahora
-
-- Costeo de procesos (Etapa 2 completa): costos directos, asignación de
-  costos, informes de costeo.
-- Informe de proceso al productor en PDF (el propio docx lo marca
-  "pendiente").
+- Costeo completo de procesos, asignación e informes de costos: Etapa 2.
+- Informe de proceso al productor solicitado como documento independiente:
+  el original lo marca pendiente. Los informes actuales son de OT/consolidado.
+- Independencia de Productores respecto de Exportaciones: Fase B de T38,
+  requiere migración específica; no forma parte de esta consolidación.
 
 ## 5. Archivos originales
 

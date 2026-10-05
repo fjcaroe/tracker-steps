@@ -59,10 +59,16 @@ finally:
     env.cr.rollback()
 '''
     code = 'ROOT = ' + repr(root) + '\n' + code
-    subprocess.run(['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin',
+    result = subprocess.run(['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin',
                     'shell', '-c', config_path, '-d', database, '--no-http',
                     '--workers=0', '--max-cron-threads=0', '--log-level=error'],
-                   input=code, text=True, check=True)
+                   input=code, text=True, capture_output=True)
+    if result.returncode:
+        print('\n'.join((result.stdout + result.stderr).splitlines()[-40:]))
+        raise SystemExit(result.returncode)
+    registry_result = [line for line in result.stdout.splitlines() if line.startswith('AGRO_QA_REGISTRY_OK ')]
+    assert len(registry_result) == 1, 'Registry verification did not complete'
+    print(registry_result[0], flush=True)
     with urllib.request.urlopen(url + '/web/login?db=' + database, timeout=30) as response:
         assert response.status == 200
         assert b'password' in response.read()

@@ -291,6 +291,15 @@ class TestPackingOperations(TransactionCase):
         output = self._tag('QA-REVIEW-E', 'E', self.finished, 80, 16, 'export')
         production = self._production(order, incoming, output, bom)
         production.action_prepare_materials()
+        with self.assertRaises(UserError):
+            production.material_line_ids.unlink()
+        with self.assertRaises(UserError):
+            self.env['step.packing.material.consumption'].with_context(_packing_control=True).create({
+                'production_id': production.id, 'package_id': output.id, 'product_id': self.carton.id,
+                'planned_qty': 1, 'quantity': 1,
+            })
+        production.action_prepare_materials()
+        self.assertEqual(production.material_line_ids.planned_qty, 16)
         production.material_line_ids.quantity = 17
         with self.assertRaises(ValidationError):
             production.action_approve_materials()
