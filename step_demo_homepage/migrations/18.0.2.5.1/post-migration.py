@@ -28,10 +28,11 @@ def migrate(cr, version):
                 ('active', '=', True),
             ])
             # Builder copies and es_CL translations can otherwise keep the old home.
-            views.with_context(lang='en_US').write(values)
-            for language in sorted(languages - {'en_US'}):
-                views.with_context(lang=language).write(values)
             for view in views:
+                # ir.ui.view.write keeps arch_prev and requires one view per write.
+                view.with_context(lang='en_US').write(values)
+                for language in sorted(languages - {'en_US'}):
+                    view.with_context(lang=language).write(values)
                 for language in languages:
                     actual = view.with_context(lang=language).arch_db
                     assert etree.tostring(etree.fromstring(actual.encode()), method='c14n') == \
