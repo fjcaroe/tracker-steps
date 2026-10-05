@@ -5,3 +5,8 @@ access_step_packing_material_need_user,step.packing.material.need user,model_ste
 access_step_packing_production_user,step.packing.production user,model_step_packing_production,stock.group_stock_user,1,1,1,1
 access_step_packing_repack_user,step.packing.repack user,model_step_packing_repack,stock.group_stock_user,1,1,1,1
 access_step_packing_repack_line_user,step.packing.repack.line user,model_step_packing_repack_line,stock.group_stock_user,1,1,1,1
+access_packing_material_consumption_user,packing.material.consumption.user,model_step_packing_material_consumption,stock.group_stock_user,1,1,1,1
+access_packing_downtime_user,packing.downtime.user,model_step_packing_downtime,stock.group_stock_user,1,1,1,1
+access_monthly_fruit_bill_account,packing.monthly.fruit.bill.account,model_step_packing_monthly_fruit_bill,account.group_account_user,1,1,1,1
+access_packing_instruction_user,packing.instruction.user,model_step_packing_instruction,stock.group_stock_user,1,1,1,1
+access_packing_inspection_user,packing.inspection.user,model_step_packing_inspection,stock.group_stock_user,1,1,1,1

@@ -1,0 +1,24 @@
+<odoo>
+    <record id="view_packing_inspection_list" model="ir.ui.view"><field name="name">packing.inspection.list</field><field name="model">step.packing.inspection</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="production_id"/><field name="kind"/><field name="date"/>
+            <field name="inspector_id"/><field name="state"/><field name="certificate_reference"/></list></field></record>
+    <record id="view_packing_inspection_form" model="ir.ui.view"><field name="name">packing.inspection.form</field><field name="model">step.packing.inspection</field>
+        <field name="arch" type="xml"><form><header>
+            <button name="action_approve" type="object" string="Registrar aprobación" groups="stock.group_stock_manager" invisible="state != 'draft'"/>
+            <button name="action_reject" type="object" string="Registrar rechazo" groups="stock.group_stock_manager" invisible="state != 'draft'"/>
+            <field name="state" widget="statusbar"/></header><sheet>
+            <div class="alert alert-info" invisible="kind != 'sag'">Registre aquí el resultado y la referencia del certificado emitido externamente por SAG.</div>
+            <group><field name="name"/><field name="production_id"/><field name="kind"/><field name="date"/>
+                <field name="inspector_id"/><field name="certificate_reference"/>
+                <field name="package_ids" widget="many2many_tags" domain="[('id','in',output_package_ids)]"/>
+                <field name="output_package_ids" invisible="1"/>
+                <field name="reviewed_by"/><field name="reviewed_at"/></group>
+            <field name="observations"/></sheet></form></field></record>
+    <record id="view_packing_production_inspections" model="ir.ui.view"><field name="name">packing.production.inspections</field><field name="model">step.packing.production</field>
+        <field name="inherit_id" ref="view_packing_production_control"/><field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside"><page string="Inspecciones"><field name="required_inspection" readonly="state != 'created'"/>
+                <field name="inspection_ids"><list><field name="name"/><field name="kind"/><field name="date"/><field name="state"/>
+                    <field name="certificate_reference"/></list></field></page></xpath></field></record>
+    <record id="action_packing_inspection" model="ir.actions.act_window"><field name="name">Inspecciones internas y SAG</field>
+        <field name="res_model">step.packing.inspection</field><field name="view_mode">list,form</field></record>
+</odoo>

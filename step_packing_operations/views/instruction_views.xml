@@ -1,0 +1,29 @@
+<odoo>
+    <record id="view_packing_instruction_form" model="ir.ui.view"><field name="name">packing.instruction.form</field><field name="model">step.packing.instruction</field>
+        <field name="arch" type="xml"><form><header><button name="action_approve" type="object" string="Aprobar instructivo"
+            groups="stock.group_stock_manager" invisible="state != 'draft'"/><field name="state" widget="statusbar"/></header><sheet>
+            <group><field name="name"/><field name="order_id" readonly="id"/><field name="version"/>
+                <field name="approved_by"/><field name="approved_at"/></group>
+            <field name="instruction" widget="html" readonly="state != 'draft'"/></sheet></form></field></record>
+    <record id="view_packing_order_instructions" model="ir.ui.view"><field name="name">packing.order.instructions</field><field name="model">step.packing.order</field>
+        <field name="inherit_id" ref="view_packing_order_form"/>
+        <field name="arch" type="xml"><xpath expr="//page[@name='instruction']" position="inside">
+            <field name="instruction_ids" readonly="state == 'closed'"><list><field name="name"/><field name="version"/>
+                <field name="state"/><field name="approved_by"/><field name="approved_at"/></list></field>
+        </xpath></field></record>
+    <record id="view_packing_reservation_instruction" model="ir.ui.view"><field name="name">packing.reservation.instruction</field><field name="model">step.export.stock.reservation</field>
+        <field name="inherit_id" ref="view_stock_reservation_packing"/><field name="arch" type="xml">
+            <xpath expr="//field[@name='step_packing_order_id']" position="after"><field name="step_instruction_id"
+                domain="[('order_id','=',step_packing_order_id),('state','=','approved')]" readonly="step_reservation_state != 'draft'"/></xpath>
+        </field></record>
+    <record id="action_report_reserved_fruit" model="ir.actions.report"><field name="name">Fruta reservada por instructivo</field><field name="model">step.export.stock.reservation</field>
+        <field name="report_type">qweb-pdf</field><field name="report_name">step_packing_operations.report_reserved_fruit</field>
+        <field name="binding_model_id" ref="step_export.model_step_export_stock_reservation"/><field name="binding_type">report</field></record>
+    <template id="report_reserved_fruit"><t t-call="web.html_container"><t t-foreach="docs" t-as="doc"><div class="page">
+        <strong><span t-field="doc.company_id.name"/></strong><h2>Fruta reservada por instructivo</h2>
+        <p><span t-field="doc.name"/> — <span t-field="doc.step_packing_order_id"/> — <span t-field="doc.step_instruction_id"/> — <span t-field="doc.step_reservation_state"/></p>
+        <table class="table table-sm"><thead><tr><th>Tarja</th><th>Productor</th><th>Variedad</th><th>Kilos</th></tr></thead>
+            <tbody><tr t-foreach="doc.step_package_ids" t-as="tag"><td><span t-field="tag.name"/></td>
+                <td><span t-field="tag.step_producer_id"/></td><td><span t-field="tag.variedad_id"/></td><td><span t-field="tag.step_actual_kg"/></td></tr></tbody></table>
+    </div></t></t></template>
+</odoo>

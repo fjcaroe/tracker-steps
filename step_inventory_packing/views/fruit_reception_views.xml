@@ -50,10 +50,13 @@
                 <button name="action_step_import_fruit_tags" type="object"
                         string="Importar tarjas Excel" class="btn-secondary"
                         invisible="not step_fruit_reception_kind or state == 'done'"/>
+                <button name="action_prepare_fruit_stock" type="object" string="Preparar stock desde tarjas"
+                        class="btn-secondary" invisible="not step_fruit_reception_kind or state in ('done','cancel') or move_ids"/>
             </field>
             <field name="kilos" position="after">
                 <field name="package_id"/>
                 <field name="product_id"/>
+                <field name="stock_lot_id" domain="[('product_id','=',product_id),('company_id','=',parent.company_id)]" optional="hide"/>
                 <field name="step_scale_profile_id" column_invisible="True"/>
                 <field name="step_scale_protocol" column_invisible="True"/>
                 <field name="step_scale_service_uuid" column_invisible="True"/>

@@ -48,6 +48,8 @@ class StepExportSalesProgram(models.Model):
     rate_to_usd = fields.Float(string="USD por unidad de moneda", digits=(16, 6),
                                help="Tipo de cambio guardado en esta versión; se toma de Contabilidad al crearla.")
     line_ids = fields.One2many("step.export.sales.program.line", "program_id", string="Semanas", copy=True)
+    forbidden_producer_ids = fields.Many2many('res.partner', relation='step_sales_program_forbidden_producer_rel', string='Productores restringidos')
+    forbidden_variety_ids = fields.Many2many('step.variedad', relation='step_sales_program_forbidden_variety_rel', string='Variedades restringidas')
     container_qty = fields.Float(string="Contenedores", compute="_compute_totals", store=True)
     pallet_qty = fields.Float(string="Pallets", compute="_compute_totals", store=True)
     box_qty = fields.Float(string="Cajas", compute="_compute_totals", store=True)
@@ -119,6 +121,7 @@ class StepExportSalesProgram(models.Model):
             "packaging_id", "package_type_id", "container_size", "pallets_per_container",
             "boxes_per_pallet", "kg_per_box", "date_start", "date_end", "currency_id",
             "rate_to_usd", "line_ids",
+            "forbidden_producer_ids", "forbidden_variety_ids",
         }
         if business_fields.intersection(vals) and any(r.state in ("current", "replaced") for r in self):
             raise UserError(_("Cree una versión nueva para modificar un programa vigente o reemplazado."))

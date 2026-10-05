@@ -2,7 +2,7 @@
 {
     "name": "Steps - Exportaciones",
     "summary": "Programa comercial, embarques y liquidaciones de exportación Steps",
-    "version": "18.0.2.6.0",
+    "version": "18.0.2.7.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",

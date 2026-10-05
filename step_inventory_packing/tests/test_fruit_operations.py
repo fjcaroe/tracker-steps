@@ -144,6 +144,13 @@ class TestFruitOperations(TransactionCase):
         self.assertEqual(package.step_tag_state, "created")
         with self.assertRaises(ValidationError):
             picking._check_step_fruit_reception()  # aún falta asignar a operaciones de stock
+        picking.action_prepare_fruit_stock()
+        self.assertEqual(picking.move_ids.product_uom_qty, 10)
+        self.assertEqual(picking.move_line_ids.result_package_id, package)
+        self.assertNotEqual(picking.state, 'done')
+        self.assertFalse(package.quant_ids)
+        with self.assertRaises(ValidationError):
+            picking.action_prepare_fruit_stock()
 
     def test_reception_validates_stock_and_tag_detail(self):
         package = self.env["stock.quant.package"].create({

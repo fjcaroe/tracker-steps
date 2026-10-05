@@ -18,6 +18,8 @@
         parent="menu_packing_operations_root" sequence="90"/>
 
     <!-- Planificación -->
+    <menuitem id="menu_packing_monthly_purchase" name="Compra mensual de fruta" parent="menu_packing_operations_process"
+        action="action_monthly_fruit_bill" sequence="80" groups="account.group_account_user"/>
     <menuitem id="menu_packing_order" name="Órdenes de proceso"
         parent="menu_packing_operations_planning" action="action_packing_order" sequence="10"/>
 
@@ -54,6 +56,7 @@
         parent="menu_packing_operations_process" action="action_packing_production_summary" sequence="40"/>
 
     <!-- Despacho: ya desarrollado en Exportaciones; se enlaza también desde Packing -->
+    <menuitem id="menu_packing_inspection" name="Inspecciones internas y SAG" parent="menu_packing_operations_dispatch" action="action_packing_inspection" sequence="5"/>
     <menuitem id="menu_packing_dispatch_shipping_instruction" name="Instructivo Embarque"
         parent="menu_packing_operations_dispatch"
         action="step_export.action_step_export_shipping_instruction" sequence="10"/>

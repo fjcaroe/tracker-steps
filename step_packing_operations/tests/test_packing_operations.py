@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
+from odoo.tests.common import new_test_user
 
 from ..controllers import mobile
 
@@ -101,9 +102,8 @@ class TestPackingOperations(TransactionCase):
         production.action_step_packing_validate()
         self.assertEqual(production.state, "validated")
         self.assertEqual(production.fruit_grower_id, self.producer)
-        with self.assertRaises(ValidationError):
-            # No hay existencias reales detrás de las tarjas: el cierre debe
-            # fallar por falta de stock, no por depender de Fabricación.
+        with self.assertRaises(UserError):
+            # La revisión de materiales es obligatoria antes de mover stock.
             production.action_step_packing_close()
 
     def test_overproduction_and_forbidden_producer(self):
@@ -185,8 +185,13 @@ class TestPackingOperations(TransactionCase):
             "name": "T41 reserva especial", "step_packing_order_id": order.id,
             "step_package_ids": [(6, 0, package.ids)],
         })
+        instruction = self.env['step.packing.instruction'].create({'order_id': order.id, 'name': 'Instructivo QA', 'instruction': '<p>Reservar para exportación</p>'})
+        instruction.action_approve()
+        reservation.step_instruction_id = instruction
         reservation.action_step_reserve()
         self.assertEqual(reservation.step_reservation_state, "reserved")
+        with self.assertRaises(UserError):
+            instruction.write({'instruction': '<p>Otra versión</p>'})
         self.assertEqual(reservation.step_picking_id.move_line_ids.package_id, package)
         self.assertEqual(quant._get_available_quantity(self.finished, self.location, package_id=package, strict=True), 0)
         reservation.action_step_release()
@@ -215,6 +220,11 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(set(self.env["mrp.production"].search([]).ids),
                          existing_manufacturing_ids)
 
+        production.action_prepare_materials()
+        self.assertEqual(production.material_line_ids.quantity, 16)
+        with self.assertRaises(UserError):
+            production.action_step_packing_close()
+        production.action_approve_materials()
         production.action_step_packing_close()
 
         self.assertEqual(production.state, "closed")
@@ -241,8 +251,72 @@ class TestPackingOperations(TransactionCase):
         output = self._tag("T41-NOSTOCK-E", "E", self.finished, 80, 16, "export")
         production = self._production(order, incoming, output)
         production.action_step_packing_validate()
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(UserError):
             production.action_step_packing_close()
+
+    def test_material_shortage_rolls_back_consumed_fruit(self):
+        order = self._order()
+        order.action_validate()
+        bom = self.env['mrp.bom'].create({
+            'product_tmpl_id': self.finished.product_tmpl_id.id, 'product_qty': 1,
+            'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})],
+        })
+        incoming = self._tag('QA-SHORT-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag('QA-SHORT-E', 'E', self.finished, 80, 16, 'export')
+        self._stock(self.raw, 100, incoming)
+        production = self._production(order, incoming, output, bom)
+        production.action_step_packing_validate()
+        production.action_prepare_materials()
+        production.action_approve_materials()
+        with self.assertRaises(UserError):
+            production.material_line_ids.write({'quantity': 0})
+        with self.assertRaises(UserError):
+            production.action_step_packing_close()
+        self.assertEqual(production.state, 'validated')
+        self.assertFalse(production.input_picking_id)
+        self.assertEqual(self.env['stock.quant']._get_available_quantity(
+            self.raw, self.location, package_id=incoming, strict=True), 100)
+        self.assertEqual(incoming.step_tag_state, 'validated')
+
+    def test_material_review_detects_changed_pallet_and_requires_reason(self):
+        order = self._order()
+        order.action_validate()
+        bom = self.env['mrp.bom'].create({
+            'product_tmpl_id': self.finished.product_tmpl_id.id, 'product_qty': 1,
+            'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})],
+        })
+        incoming = self._tag('QA-REVIEW-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag('QA-REVIEW-E', 'E', self.finished, 80, 16, 'export')
+        production = self._production(order, incoming, output, bom)
+        production.action_prepare_materials()
+        production.material_line_ids.quantity = 17
+        with self.assertRaises(ValidationError):
+            production.action_approve_materials()
+        production.material_line_ids.reason = 'Caja dañada'
+        operator = new_test_user(self.env, login='qa-packing-operator', groups='stock.group_stock_user')
+        with self.assertRaises(UserError):
+            production.with_user(operator).action_approve_materials()
+        production.action_approve_materials()
+        output.step_tag_line_ids.quantity = 15
+        production.action_step_packing_validate()
+        with self.assertRaises(UserError):
+            production.action_step_packing_close()
+        with self.assertRaises(UserError):
+            production.write({'state': 'closed'})
+
+    def test_effective_hours_and_overlapping_stops(self):
+        order = self._order()
+        production = self._production(order, self.env['stock.quant.package'], self.env['stock.quant.package'])
+        reason = self.env['step.packing.stop.reason'].create({'name': 'Revisión QA'})
+        production.write({'workers': 4, 'started_at': '2026-11-09 08:00:00', 'finished_at': '2026-11-09 12:00:00',
+                          'downtime_ids': [(0, 0, {'reason_id': reason.id, 'started_at': '2026-11-09 09:00:00', 'finished_at': '2026-11-09 09:30:00'})]})
+        self.assertEqual(production.effective_hours, 3.5)
+        self.assertEqual(production.idle_percent, 12.5)
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env['step.packing.downtime'].create({'production_id': production.id, 'reason_id': reason.id,
+                'started_at': '2026-11-09 09:15:00', 'finished_at': '2026-11-09 09:45:00'})
 
     def test_mobile_scan_is_idempotent(self):
         order = self._order()
@@ -267,3 +341,63 @@ class TestPackingOperations(TransactionCase):
             self.assertIn("/report/pdf/", result["report_url"])
             self.assertEqual(len(production.step_packing_output_tag_ids), 1)
             self.assertEqual(production.step_packing_output_tag_ids.step_actual_kg, 80)
+
+    def test_contract_value_monthly_bill_and_national_return(self):
+        category = self.env['product.category'].create({'name': 'Fruta AVCO QA', 'property_cost_method': 'average'})
+        self.finished.categ_id = category
+        account = self.env['account.account'].search([('company_ids', 'in', self.company.id), ('account_type', '=', 'expense')], limit=1)
+        contract = self.env['step.producer.purchase.contract'].create({'partner_id': self.producer.id})
+        contract_line = self.env['step.producer.purchase.contract.product'].create({
+            'contract_id': contract.id, 'product_id': self.finished.id, 'species_id': self.species.id,
+            'quantity': 16, 'uom_id': self.finished.uom_id.id, 'price_unit': 2, 'debit_account_id': account.id})
+        self.env['step.producer.purchase.contract.installment'].create({
+            'contract_id': contract.id, 'product_line_id': contract_line.id, 'quantity': 16, 'date_due': '2026-11-30'})
+        contract.action_confirm()
+        bom = self.env['mrp.bom'].create({'product_tmpl_id': self.finished.product_tmpl_id.id, 'product_qty': 1,
+            'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})]})
+        order = self._order()
+        order.action_validate()
+        incoming = self._tag('QA-CTR-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        export = self._tag('QA-CTR-E', 'E', self.finished, 80, 16, 'export')
+        national = self._tag('QA-CTR-N', 'N', self.national, 20, 20, 'commercial')
+        self.env['stock.quant']._update_available_quantity(self.raw, self.location, 100, package_id=incoming, owner_id=self.producer)
+        self._stock(self.carton, 16)
+        production = self._production(order, incoming, export | national, bom)
+        production.write({'contract_id': contract.id, 'date': '2026-11-09', 'required_inspection': 'sag'})
+        production.action_step_packing_validate()
+        production.action_prepare_materials()
+        production.action_approve_materials()
+        production.action_step_packing_close()
+        self.assertEqual(production.contract_amount, 32)
+        self.assertAlmostEqual(sum(production.output_picking_id.move_ids.filtered(lambda row: row.product_id == self.finished).stock_valuation_layer_ids.mapped('value')), 32)
+        self.assertEqual(national.quant_ids.filtered(lambda row: row.quantity > 0).owner_id, self.producer)
+        shipment = self.env['step.export.export'].create({'name': 'Embarque inspección QA', 'tag_ids': [(6, 0, export.ids)]})
+        with self.assertRaises(UserError):
+            shipment._check_tag_load()
+        inspection = self.env['step.packing.inspection'].create({'name': 'Inspección SAG QA', 'production_id': production.id,
+            'kind': 'sag', 'inspector_id': self.producer.id, 'package_ids': [(6, 0, export.ids)]})
+        with self.assertRaises(UserError):
+            inspection.action_approve()
+        inspection.certificate_reference = 'CERTIFICADO-PRUEBA-QA'
+        inspection.action_approve()
+        shipment._check_tag_load()
+        with self.assertRaises(UserError):
+            inspection.write({'certificate_reference': 'OTRA-REFERENCIA'})
+        rejected = inspection.copy({'name': 'Reevaluación QA', 'certificate_reference': False, 'observations': 'Calidad rechazada QA'})
+        rejected.action_reject()
+        with self.assertRaises(UserError):
+            shipment._check_tag_load()
+        self.company.step_packing_purchase_journal_id = self.env['account.journal'].create({
+            'name': 'Compra fruta QA', 'code': 'QAFP', 'type': 'purchase', 'company_id': self.company.id})
+        wizard = self.env['step.packing.monthly.fruit.bill'].create({'date_start': '2026-11-01', 'date_end': '2026-11-30', 'producer_ids': [(6, 0, self.producer.ids)]})
+        action = wizard.action_prepare_bills()
+        self.assertEqual(production.purchase_bill_id.state, 'draft')
+        self.assertEqual(production.purchase_bill_id.amount_untaxed, 32)
+        self.assertEqual(wizard.action_prepare_bills()['domain'], action['domain'])
+        production.action_return_national_fruit()
+        self.assertEqual(production.return_picking_id.state, 'done')
+        self.assertEqual(national.step_tag_state, 'dispatched')
+        self.assertEqual(national.quant_ids.filtered(lambda row: row.quantity > 0).location_id.usage, 'customer')
+        with self.assertRaises(UserError):
+            production.action_return_national_fruit()

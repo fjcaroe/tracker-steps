@@ -132,6 +132,9 @@ class PackingProduction(models.Model):
                     raise ValidationError(_("El productor está restringido por el programa."))
                 if inputs[0].variedad_id in order.forbidden_variety_ids:
                     raise ValidationError(_("La variedad está restringida por el programa."))
+                program = order.sales_program_id
+                if producers & set(program.forbidden_producer_ids.ids) or inputs[0].variedad_id in program.forbidden_variety_ids:
+                    raise ValidationError(_("El programa de ventas restringe al productor o la variedad."))
                 if order.company_id != production.company_id:
                     raise ValidationError(_("La orden de proceso pertenece a otra empresa."))
             if float_compare(production.step_packing_input_kg, 0, precision_digits=2) <= 0:
@@ -183,7 +186,8 @@ class PackingProduction(models.Model):
         """lines: list of (product, qty, source_package_or_False, result_package_or_False)."""
         self.ensure_one()
         grouped = {}
-        for product, qty, src_pkg, dst_pkg in lines:
+        for line in lines:
+            product, qty, src_pkg, dst_pkg = line[:4]
             grouped.setdefault(product, 0.0)
             grouped[product] += qty
         picking = self.env["stock.picking"].create({
@@ -196,10 +200,15 @@ class PackingProduction(models.Model):
                 "name": product.display_name, "product_id": product.id,
                 "product_uom_qty": qty, "product_uom": product.uom_id.id,
                 "location_id": source.id, "location_dest_id": dest.id,
+                **self._packing_move_extra_values(product, qty, source, dest, lines),
             }) for product, qty in grouped.items()],
         })
         picking.action_confirm()
-        for product, qty, src_pkg, dst_pkg in lines:
+        # Remove any generic allocation before assigning the exact packages.
+        picking.do_unreserve()
+        for line in lines:
+            product, qty, src_pkg, dst_pkg = line[:4]
+            lot, owner = line[4:] if len(line) == 6 else (False, False)
             move = picking.move_ids.filtered(lambda row: row.product_id == product)
             if len(move) != 1:
                 raise ValidationError(_("No se encontró un movimiento único para %s.") % product.display_name)
@@ -209,11 +218,16 @@ class PackingProduction(models.Model):
                 "quantity": qty, "location_id": source.id, "location_dest_id": dest.id,
                 "package_id": src_pkg.id if src_pkg else False,
                 "result_package_id": dst_pkg.id if dst_pkg else False,
+                "lot_id": lot.id if lot else False,
+                "owner_id": owner.id if owner else False,
             })
         picking.button_validate()
         if picking.state != "done":
             raise UserError(_("No se pudo completar el movimiento de Packing en Inventario."))
         return picking
+
+    def _packing_move_extra_values(self, product, qty, source, dest, lines):
+        return {}
 
     def _consume_packaging_materials(self, warehouse, location, production_location):
         """Usa la BOM solo como dato de referencia (igual que step_export), sin crear
@@ -242,6 +256,7 @@ class PackingProduction(models.Model):
         for production in self:
             if production.state != "validated":
                 raise UserError(_("Valide la OT antes de cerrarla."))
+            production._check_packing_tags()
             warehouse = self.env["stock.warehouse"].search([
                 ("company_id", "=", production.company_id.id)], limit=1)
             if not warehouse:
@@ -265,7 +280,10 @@ class PackingProduction(models.Model):
             produce_lines = []
             for tag in production.step_packing_output_tag_ids:
                 for line in tag.step_tag_line_ids:
-                    produce_lines.append((line.product_id, line.quantity, False, tag))
+                    if line.product_id.tracking != 'none' and not line.lot_id:
+                        raise ValidationError(_("Indique el lote del producto en la tarja de salida."))
+                    owner = line.producer_id if tag.step_tag_kind == 'N' else False
+                    produce_lines.append((line.product_id, line.quantity, False, tag, line.lot_id, owner))
             output_picking = production._create_packing_move(warehouse, production_location, location, produce_lines)
 
             for tag in production.step_packing_output_tag_ids:

@@ -20,6 +20,8 @@ class StockQuantPackage(models.Model):
     step_producer_code = fields.Char(related="step_producer_id.ref", string="Código productor", store=True)
     step_sdp_code = fields.Char(related="fundo_id.sdp_code", string="Código SDP", store=True)
     step_shipment = fields.Char(string="Embarque")
+    harvest_date = fields.Date('Fecha de cosecha')
+    received_at = fields.Datetime('Recepción registrada', readonly=True, copy=False)
     step_dispatch_guide = fields.Char(string="Guía SII")
     step_dus = fields.Char(string="DUS")
     step_invoice = fields.Char(string="Factura")
@@ -78,7 +80,9 @@ class StockQuantPackage(models.Model):
         return True
 
     def write(self, vals):
-        locked = {"step_tag_kind", "step_producer_id", "fundo_id", "box_count", "step_tag_line_ids"}
+        locked = {"step_tag_kind", "step_producer_id", "fundo_id", "box_count", "step_tag_line_ids",
+                  "harvest_date", "received_at", "especie_id", "variedad_id", "fruit_type",
+                  "fruit_category_id", "fruit_caliber_id", "step_packing_result"}
         if locked.intersection(vals) and any(
                 package.is_fruit_tag and package.step_tag_state not in ("created", "void")
                 for package in self):

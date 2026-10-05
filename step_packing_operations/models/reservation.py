@@ -11,6 +11,7 @@ class PackingStockReservation(models.Model):
     _inherit = "step.export.stock.reservation"
 
     step_packing_order_id = fields.Many2one("step.packing.order", string="Orden de proceso")
+    step_instruction_id = fields.Many2one('step.packing.instruction', string='Instructivo de embalaje')
     step_package_ids = fields.Many2many("stock.quant.package", relation="step_packing_reserved_package_rel",
         string="Tarjas reservadas")
     step_reservation_state = fields.Selection([
@@ -19,6 +20,22 @@ class PackingStockReservation(models.Model):
     step_picking_id = fields.Many2one("stock.picking", string="Reserva en Inventario", readonly=True, copy=False)
 
     def action_step_reserve(self):
+        self._lock_reservation()
+        with self.env.cr.savepoint():
+            return self._reserve()
+
+    def _lock_reservation(self):
+        self.check_access('write')
+        if not self:
+            return
+        self.env.cr.execute('SELECT id FROM step_export_stock_reservation WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(self.ids))])
+        self.invalidate_recordset()
+        packages = self.step_package_ids
+        if packages:
+            self.env.cr.execute('SELECT id FROM stock_quant_package WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(packages.ids))])
+            packages.invalidate_recordset()
+
+    def _reserve(self):
         for reservation in self:
             if reservation.step_reservation_state != "draft" or not reservation.step_packing_order_id:
                 raise UserError(_("Seleccione una orden de Packing en una reserva creada."))
@@ -26,6 +43,9 @@ class PackingStockReservation(models.Model):
                 raise ValidationError(_("La orden debe estar validada y tener tarjas para reservar."))
             if reservation.step_packing_order_id.company_id != reservation.company_id:
                 raise ValidationError(_("La reserva y la orden pertenecen a distintas empresas."))
+            instruction = reservation.step_instruction_id
+            if not instruction or instruction.order_id != reservation.step_packing_order_id or instruction.state != 'approved':
+                raise ValidationError(_("Seleccione una versión aprobada del instructivo de esta OP."))
             packages = reservation.step_package_ids
             if any(not tag.is_fruit_tag or tag.step_tag_state != "validated" for tag in packages):
                 raise ValidationError(_("Solo se reservan tarjas de fruta validadas."))
@@ -76,6 +96,7 @@ class PackingStockReservation(models.Model):
         return True
 
     def action_step_release(self):
+        self._lock_reservation()
         for reservation in self:
             if reservation.step_reservation_state != "reserved" or not reservation.step_picking_id:
                 raise UserError(_("La reserva no está activa."))
@@ -84,7 +105,7 @@ class PackingStockReservation(models.Model):
         return True
 
     def write(self, vals):
-        locked = {"step_packing_order_id", "step_package_ids", "company_id", "step_picking_id"}
+        locked = {"step_packing_order_id", "step_instruction_id", "step_package_ids", "company_id", "step_picking_id"}
         if locked.intersection(vals) and any(record.step_reservation_state != "draft" for record in self):
             raise UserError(_("Una reserva utilizada no se modifica."))
         return super().write(vals)

@@ -90,6 +90,14 @@ class StockPicking(models.Model):
 
     def button_validate(self):
         self._check_step_fruit_reception()
+        for picking in self.filtered(lambda row: row.step_fruit_reception_kind == 'process' and row.state != 'done'):
+            producer = picking.fruit_fundo_id.partner_id
+            if not producer:
+                raise ValidationError(_("El fundo debe identificar al propietario de la fruta a proceso."))
+            # Raw fruit remains the producer's property; it is bought only as export output.
+            if any(line.owner_id and line.owner_id != producer for line in picking.move_line_ids):
+                raise ValidationError(_("El propietario de la materia prima debe coincidir con el productor."))
+            picking.move_line_ids.write({'owner_id': producer.id})
         result = super().button_validate()
         for picking in self.filtered(lambda record: record.step_fruit_reception_kind and record.state == "done"):
             producer = picking.fruit_fundo_id.partner_id
@@ -103,6 +111,7 @@ class StockPicking(models.Model):
                         "step_export_season_id": picking.fruit_season_id.id,
                         "especie_id": picking.fruit_species_id.id,
                         "variedad_id": picking.fruit_variety_id.id,
+                        "received_at": fields.Datetime.now(),
                     })
                 if not package.step_tag_line_ids:
                     products = package.quant_ids.mapped("product_id")
@@ -136,6 +145,36 @@ class StockPicking(models.Model):
             "target": "new", "context": {"default_picking_id": self.id},
         }
 
+    def action_prepare_fruit_stock(self):
+        self.ensure_one()
+        self.check_access('write')
+        self.env.cr.execute('SELECT id FROM stock_picking WHERE id=%s FOR UPDATE', [self.id])
+        self.invalidate_recordset()
+        if self.state in ('done', 'cancel') or not self.step_fruit_reception_kind or self.move_ids:
+            raise ValidationError(_('Prepare solo una recepción de fruta abierta sin movimientos previos.'))
+        if not self.fruit_tag_line_ids or not self.fruit_fundo_id.partner_id:
+            raise ValidationError(_('Importe las tarjas y seleccione su fundo antes de preparar stock.'))
+        with self.env.cr.savepoint():
+            for line in self.fruit_tag_line_ids:
+                if not line.product_id or not line.package_id or line.quantity <= 0 or line.package_id.step_tag_state != 'created':
+                    raise ValidationError(_('Cada tarja debe estar creada, con producto y cantidad positiva.'))
+                if line.product_id.tracking != 'none' and not line.stock_lot_id:
+                    raise ValidationError(_('Indique el lote en cada tarja con producto rastreado.'))
+                move = self.env['stock.move'].create({
+                    'name': line.tag_number, 'picking_id': self.id, 'company_id': self.company_id.id,
+                    'product_id': line.product_id.id, 'product_uom': line.product_id.uom_id.id,
+                    'product_uom_qty': line.quantity, 'location_id': self.location_id.id,
+                    'location_dest_id': self.location_dest_id.id})
+                move._action_confirm()
+                move._do_unreserve()
+                self.env['stock.move.line'].create({
+                    'move_id': move.id, 'picking_id': self.id, 'product_id': line.product_id.id,
+                    'product_uom_id': line.product_id.uom_id.id, 'quantity': line.quantity,
+                    'location_id': self.location_id.id, 'location_dest_id': self.location_dest_id.id,
+                    'result_package_id': line.package_id.id, 'lot_id': line.stock_lot_id.id,
+                    'owner_id': self.fruit_fundo_id.partner_id.id if self.step_fruit_reception_kind == 'process' else False})
+        return True
+
 
 class StepPackingPickingTagLine(models.Model):
     _inherit = "step.packing.picking.tag.line"
@@ -158,6 +197,13 @@ class StepPackingPickingTagLine(models.Model):
 
     package_id = fields.Many2one("stock.quant.package", string="Paquete de stock")
     product_id = fields.Many2one("product.product", string="Producto")
+    stock_lot_id = fields.Many2one('stock.lot', string='Lote de stock')
+
+    @api.constrains('stock_lot_id', 'product_id', 'picking_id')
+    def _check_stock_lot(self):
+        for line in self:
+            if line.stock_lot_id and (line.stock_lot_id.product_id != line.product_id or line.stock_lot_id.company_id != line.picking_id.company_id):
+                raise ValidationError(_('El lote debe pertenecer al producto y a la empresa de la recepción.'))
     gross_kg = fields.Float(string="Peso bruto kg", digits="Stock Weight")
     tare_kg = fields.Float(string="Destare kg", digits="Stock Weight")
     net_kg = fields.Float(string="Peso neto kg", compute="_compute_step_net_kg", digits="Stock Weight")

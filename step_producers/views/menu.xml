@@ -19,4 +19,6 @@
               action="step_export.action_export_producer_settlement" sequence="50"/>
     <menuitem id="menu_step_producers_contracts" name="Contratos de compra" parent="menu_step_producers_root"
               action="action_step_producer_purchase_contract" sequence="60"/>
+    <menuitem id="menu_season_statement" name="Consolidados de temporada" parent="menu_step_producers_root" action="action_season_statement" sequence="52"/>
+    <menuitem id="menu_season_generate" name="Generar consolidados" parent="menu_step_producers_root" action="action_season_statement_generate" sequence="53" groups="account.group_account_user"/>
 </odoo>

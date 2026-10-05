@@ -123,6 +123,11 @@ class ExportShipment(models.Model):
 
     def _check_tag_load(self):
         for record in self:
+            program = record.sales_program_id
+            for tag in record.tag_ids:
+                if tag.variedad_id in program.forbidden_variety_ids or any(
+                        producer in program.forbidden_producer_ids for producer, _share in tag._step_producer_shares()):
+                    raise ValidationError(_("Una tarja pertenece a un productor o variedad restringidos por el programa."))
             if not record.tag_ids:
                 raise ValidationError(_("Asocie las tarjas reales del embarque."))
             if any(not tag.is_fruit_tag for tag in record.tag_ids):
