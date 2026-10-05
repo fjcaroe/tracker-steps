@@ -219,7 +219,7 @@ respaldado. Si es necesaria restauración de la base, revisar primero el respald
 y los cambios posteriores; no restaurarla automáticamente, pues reemplazaría
 operaciones hechas después del despliegue.
 
-## Evidencia de instalación del 05-10-2026 UTC
+## Evidencia de instalación inicial del 05-10-2026 UTC
 
 - Ambos addons instalados en Desarrollo, versión `18.0.1.0.0`; siete guías
   activas y aprobadas. La IA sigue desactivada y pendiente de configuración
@@ -245,3 +245,43 @@ cuenta/proyecto de OpenAI, confirmar dónde se escribe la clave, instalarla en
 el entorno privado del servicio y probar la generación real y los intentos de
 salir del alcance. Los artículos existentes de Conocimiento requieren aprobación
 explícita del editor antes de usarlos; no se publicaron automáticamente.
+
+## Entrega de consultas reales y globo, 05-10-2026 UTC
+
+Producto desplegado: commit `6cf1902`, asistente `18.0.1.1.0`, puente
+`18.0.1.0.0`. SHA-256 del paquete:
+`b62372e1b818bf0f62fcb9c58a08232b4b2ef122aea4107bbecb15aa5aa34740`.
+
+| Ambiente | Base | Puente Conocimiento | Respaldo |
+|---|---|---|---|
+| Desarrollo | LAB_TAREAS | Instalado | `/opt/backups/steps-assistant-desarrollo-20261005T005437Z` |
+| Demo | STEPS_DEMO | Instalado | `/opt/backups/steps-assistant-demo-20261005T005652Z` |
+| Demo-SyS | STEPS_DEMO_SYS | No instalado | `/opt/backups/steps-assistant-demo-sys-20261005T005858Z` |
+| Cerro El Plomo | CERRO_EL_PLOMO | No instalado | `/opt/backups/steps-assistant-cerroelplomo-20261005T005958Z` |
+| Producción Steps | karo_consultorias | No instalado | `/opt/backups/steps-assistant-produccion-20261005T010112Z` |
+
+Todos los servicios activos, sin módulos pendientes y con HTTP 200. Los 33
+archivos desplegados coinciden byte a byte con el paquete en los cinco
+destinos. `verify_release.py` y `postflight_all.sh` reproducen la comprobación.
+`smoke_environment.sh` probó las aplicaciones visibles y un saldo por base
+con un usuario contable existente, sin crear usuarios/operaciones y con
+OpenAI bloqueado por mock. Su salida muestra solo metadatos/cantidades, nunca
+referencias, nombres ni importes de negocio.
+
+Pruebas Odoo finales: 20 casos, 0 fallas, 0 errores;
+`/opt/steps-assistant-validation/tests-20261005T005333Z.log`. Pruebas locales:
+15 casos, sintaxis JS y Python/XML del paquete correctas; SCSS compilado en
+el servidor en cada despliegue.
+
+Navegador Desarrollo: globo visible desde Inicio, apertura por globo y barra
+superior, consulta de asientos, filtros de fechas, enlace al asiento original,
+consulta real de saldo y reinicio de conversación. En 390×844 el panel mide
+366 px, contenido/scrollWidth 349 px; guías y composición accesibles mediante
+scroll vertical. Se restableció el viewport normal.
+
+Las consultas de datos están habilitadas. La IA documental permanece
+desactivada en las cinco bases: falta el retorno del selector seguro con
+cuenta/proyecto y la confirmación de destino para provisionar la clave.
+No se hizo ninguna llamada real a OpenAI ni se consumieron tokens en esta
+entrega. SyS real (`odoo18-sys.service`) no se modificó; Demo-SyS es la copia
+aislada solicitada por el usuario.

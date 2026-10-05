@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 source "$(dirname "$0")/environments.sh" "${1:?Environment required}"
+sudo /usr/bin/python3.10 "$(dirname "$0")/verify_release.py" /tmp/steps_assistant_release.tar.gz "$TARGET"
 RUN_USER=$(sudo systemctl show "$SERVICE" -p User --value)
 PYTHON=/usr/bin/python3.10
 if test "$1" = produccion; then PYTHON=/opt/odoo18/venv/bin/python; fi
