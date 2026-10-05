@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_assistant" model="ir.actions.client">
+        <field name="name">Asistente Steps</field>
+        <field name="tag">step_support_assistant.chat</field>
+    </record>
+    <menuitem id="menu_assistant_root" name="Ayuda Steps" action="action_assistant"
+              groups="base.group_user" sequence="95" web_icon="step_support_assistant,static/description/icon.png"/>
+    <menuitem id="menu_assistant_chat" name="Consultar al asistente" parent="menu_assistant_root" action="action_assistant" sequence="1"/>
+    <menuitem id="menu_assistant_articles" name="Artículos de ayuda" parent="menu_assistant_root" action="action_articles" sequence="2"/>
+    <menuitem id="menu_assistant_usage" name="Consumo" parent="menu_assistant_root" action="action_usage" groups="base.group_system" sequence="90"/>
+    <menuitem id="menu_assistant_settings" name="Ajustes" parent="menu_assistant_root" action="action_settings" groups="base.group_system" sequence="99"/>
+</odoo>
