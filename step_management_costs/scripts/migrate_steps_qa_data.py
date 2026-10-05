@@ -11,7 +11,7 @@ The addon itself does not depend on these records and remains portable.
 def migrate(env):
     company = env.company
     Group = env["step.management.budget.group"]
-    Center = env["step.management.cost.center"]
+    Center = env["account.analytic.account"]
     Template = env["step.management.budget.template"]
 
     group_values = [

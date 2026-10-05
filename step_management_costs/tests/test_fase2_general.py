@@ -19,11 +19,9 @@ class TestFase2General(ManagementCostsCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.center_ops = cls.env["step.management.cost.center"].create({
-            "code": "OPS01", "name": "Administración central",
-            "company_id": cls.company_a.id, "cost_type": "administrative",
-            "hectares": 0.0, "analytic_account_id": cls.aa_a.id,
-        })
+        cls.center_ops = cls._make_center(
+            "OPS01", "Administración central", cost_type="administrative", hectares=0.0,
+        )
 
     def _general_budget(self, with_lines=True):
         vals = {

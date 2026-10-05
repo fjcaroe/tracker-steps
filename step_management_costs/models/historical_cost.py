@@ -17,7 +17,7 @@ class StepManagementHistoricalCost(models.Model):
     )
     date = fields.Date(string="Mes / fecha", required=True, index=True)
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo", required=True,
+        "account.analytic.account", string="Centro de costo", required=True,
         index=True, check_company=True,
     )
     group_id = fields.Many2one(

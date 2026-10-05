@@ -136,9 +136,9 @@ class StepManagementCropProgram(models.Model):
         help="Fuente del precio unitario al aprobar. Se congela en el snapshot.",
     )
     center_ids = fields.Many2many(
-        "step.management.cost.center", "step_management_crop_program_center_rel",
+        "account.analytic.account", "step_management_crop_program_center_rel",
         "program_id", "center_id", string="Centros de costo",
-        domain="[('company_id', '=', company_id)]",
+        domain="[('company_id', 'in', [False, company_id])]",
         help="Centros de costo de la temporada. El cuartel es un atributo "
              "del centro (campo «Cuartel»), no una unidad seleccionable "
              "aparte. Todos los centros de un mismo programa deben "
@@ -661,7 +661,7 @@ class StepManagementCropProgramApplication(models.Model):
         required=True, ondelete="cascade", check_company=True, index=True,
     )
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo / cuartel",
+        "account.analytic.account", string="Centro de costo / cuartel",
         required=True, check_company=True, index=True,
     )
     product_id = fields.Many2one(

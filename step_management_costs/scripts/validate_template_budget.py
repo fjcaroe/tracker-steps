@@ -11,7 +11,7 @@ from datetime import date
 
 def validate(env):
     Template = env["step.management.budget.template"]
-    Center = env["step.management.cost.center"]
+    Center = env["account.analytic.account"]
     Budget = env["step.management.operational.budget"]
 
     template = Template.search([("name", "=", "Plantilla Ara MBO T2526")], limit=1)

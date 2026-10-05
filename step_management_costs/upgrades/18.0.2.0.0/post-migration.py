@@ -57,6 +57,11 @@ def migrate(cr, version):
     )
 
     # 4. Inventario de cuentas analíticas de centro (solo informe).
+    cr.execute("SELECT to_regclass('step_management_cost_center')")
+    if not cr.fetchone()[0]:
+        # T51: el maestro propio ya no existe (el centro es la cuenta analítica).
+        return
+
     cr.execute("""
         SELECT cc.code, cc.name, cc.company_id, cc.analytic_account_id,
                aa.company_id AS account_company_id

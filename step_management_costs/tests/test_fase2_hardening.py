@@ -13,14 +13,7 @@ from .test_management_costs import ManagementCostsCommon
 class TestFase2Hardening(ManagementCostsCommon):
 
     def _general_direct_budget(self):
-        center = self.env["step.management.cost.center"].create({
-            "code": "GD01", "name": "General directo",
-            "company_id": self.company_a.id, "cost_type": "administrative",
-            "analytic_account_id": self.env["account.analytic.account"].create(dict({
-                "name": "AA General directo", "plan_id": self.plan.id,
-                "company_id": self.company_a.id,
-            }, **self._extra_analytic_account_vals(self.company_a))).id,
-        })
+        center = self._make_center("GD01", "General directo", cost_type="administrative")
         return self.env["step.management.operational.budget"].create({
             "description": "General monto directo", "season": "2026/2027",
             "budget_type": "general", "company_id": self.company_a.id,

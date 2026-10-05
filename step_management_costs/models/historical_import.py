@@ -404,7 +404,7 @@ class StepManagementHistoricalImportBatch(models.Model):
         ) % {"total": self.line_count, "err": self.error_count, "dup": self.duplicate_count})
 
     def _parse_row(self, row_number, mapped, mapped_formula):
-        Center = self.env["step.management.cost.center"]
+        Center = self.env["account.analytic.account"]
         Group = self.env["step.management.budget.group"]
         company = self.company_id
         kind = self.dataset_kind
@@ -470,12 +470,12 @@ class StepManagementHistoricalImportBatch(models.Model):
             errors.append(_("Falta el centro de costos."))
         else:
             centers = Center.search([
-                ("company_id", "=", company.id),
+                ("company_id", "in", [False, company.id]),
                 "|", ("code", "=", raw_center), ("name", "=", raw_center),
             ], limit=2)
             if not centers:
                 norm_target = _norm(raw_center)
-                all_centers = Center.search([("company_id", "=", company.id)])
+                all_centers = Center.search([("company_id", "in", [False, company.id])])
                 centers = all_centers.filtered(
                     lambda c: _norm(c.name) == norm_target or _norm(c.code) == norm_target
                 )
@@ -792,7 +792,7 @@ class StepManagementHistoricalImportLine(models.Model):
     variety = fields.Char()
     cost_center_type_label = fields.Char()
     center_label = fields.Char()
-    center_id = fields.Many2one("step.management.cost.center", check_company=True)
+    center_id = fields.Many2one("account.analytic.account", check_company=True)
     origin_label = fields.Char()
     budget_group_label = fields.Char()
     group_id = fields.Many2one("step.management.budget.group", check_company=True)

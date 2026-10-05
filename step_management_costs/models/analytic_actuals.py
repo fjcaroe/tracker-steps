@@ -25,7 +25,6 @@ cambio acotado a este archivo:
 import re
 
 from odoo import fields, models, _
-from odoo.exceptions import UserError
 
 from .budget_import import MONTH_KEY_BY_NUMBER
 
@@ -52,17 +51,7 @@ class StepManagementOperationalBudgetActuals(models.Model):
             date_to = date_to or d_to
 
         centers = self.allocation_ids.center_id | self.line_ids.center_id
-        duplicates = self._duplicate_analytic_centers()
-        if duplicates:
-            raise UserError(_(
-                "No es posible comparar con el real porque varios centros del "
-                "presupuesto comparten una cuenta analítica: %s"
-            ) % "; ".join(
-                ", ".join(group.mapped("display_name")) for group in duplicates
-            ))
-        account_to_center = {
-            c.analytic_account_id.id: c for c in centers if c.analytic_account_id
-        }
+        account_to_center = {center.id: center for center in centers}
         if not account_to_center:
             return []
 

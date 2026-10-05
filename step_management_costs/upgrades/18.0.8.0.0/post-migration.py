@@ -15,6 +15,11 @@ def migrate(cr, version):
     if not version:
         return
 
+    cr.execute("SELECT to_regclass('step_management_cost_center')")
+    if not cr.fetchone()[0]:
+        # T51: el maestro propio ya no existe (el centro es la cuenta analítica).
+        return
+
     cr.execute("""
         UPDATE step_management_cost_center
            SET plants = 0
