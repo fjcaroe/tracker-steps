@@ -74,3 +74,21 @@ de recuperación controlada; antes de usarlo se debe evaluar el impacto de resta
 todos los datos. Los respaldos contienen información privada y quedan en el servidor.
 
 Cerrar con `python tools/git/verify_handoff.py --require-pushed`.
+
+## Despliegue verificado — 4 de octubre de 2026, Chile
+
+- Código publicado: `066cb151e7cf30515b480e6aa439165bb103cb66`.
+- Paquete SHA-256: `e2d7b283c89fcea53b698ac39110a1ffd369917d2782b497f2f5e089c10f91e0`.
+- Respaldo: `/opt/steps_backups/home-sys-production-20261005T014429Z` (fecha UTC).
+- Módulo instalado en SyS: `18.0.2.5.1`; servicio activo.
+- Comparación pública: texto, encabezados, enlaces e imágenes idénticos;
+  20 soluciones, tres paquetes, cinco apps y siete preguntas frecuentes.
+- Estilos cargados y portada, contacto, ingreso y cuatro rutas de soluciones
+  responden HTTP 200. Código y vistas del sitio de referencia permanecen intactos.
+- Navegador: escritorio y móvil de 390 px revisados, imágenes cargadas,
+  sin desbordamiento horizontal, menú móvil desplegable y resumen de demo operativo.
+
+La primera actualización detectó que `ir.ui.view.write` requiere una sola vista
+al conservar `arch_prev`. Se repuso el código anterior y reinició el servicio;
+la migración corregida escribe cada vista individualmente y el segundo despliegue
+pasó todas las comprobaciones. No se restauró ni reemplazó la base de negocio.
