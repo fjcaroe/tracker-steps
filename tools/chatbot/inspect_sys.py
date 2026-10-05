@@ -3,6 +3,7 @@ import configparser
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 import tarfile
 
@@ -41,6 +42,13 @@ def main():
                           'config': filename, 'port': config['options'].get('http_port'),
                           'addons_path': config['options'].get('addons_path'),
                           'service': service, 'api_key_available': bool(key),
+                          'key_format_valid': bool(re.fullmatch(r'sk-[A-Za-z0-9_-]{20,}', key)),
+                          'key_has_complete_candidate': bool(re.search(r'sk-[A-Za-z0-9_-]{20,}', key)),
+                          'key_has_assignment_wrapper': key.startswith('OPENAI_API_KEY='),
+                          'key_has_literal_quote_wrapper': len(key) > 2 and key[0] == key[-1]
+                          and key[0] in {'"', "'", '`'},
+                          'key_has_whitespace': any(char.isspace() for char in key),
+                          'key_has_non_ascii': bool(key and not key.isascii()),
                           'same_key_as_demo': bool(key and key == source_key)}))
         for sql in (
             "SELECT name,state,latest_version FROM ir_module_module WHERE name IN "
