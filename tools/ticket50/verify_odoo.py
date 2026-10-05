@@ -5,6 +5,8 @@ from odoo.tests import Form
 from odoo.exceptions import ValidationError
 
 try:
+    module = env["ir.module.module"].search([("name", "=", "step_management_costs_agriculture")])
+    assert module.state == "installed" and module.latest_version == "18.0.1.1.0"
     model = env["step.management.estimation"]
     for name, catalog in [("season_id", "step.temporada"), ("species_id", "step.especie"), ("variety_id", "step.variedad")]:
         assert model._fields[name].type == "many2one"
@@ -13,14 +15,25 @@ try:
     arch = etree.fromstring(view["arch"])
     for name in ("season_id", "species_id", "variety_id"):
         assert arch.xpath("//sheet/group/group/field[@name='%s']" % name), name
-    company = env.company
-    season = env["step.temporada"].search([("company_id", "=", company.id)], limit=1)
+    season = env["step.temporada"].search([]).filtered(
+        lambda row: env["step.especie"].search_count([("company_id", "=", row.company_id.id)])
+    )[:1]
+    assert season, "Expected client season and species catalogs"
+    company = season.company_id
+    model = model.with_company(company)
+    env = model.env
     species = env["step.especie"].search([("company_id", "=", company.id)], limit=1)
     assert season and species, "Expected existing client catalogs"
-    variety = env["step.variedad"].search([("company_id", "=", company.id), ("especie_id", "=", species.id)], limit=1)
+    variety = env["step.variedad"].search([("company_id", "=", company.id), ("especie_id.company_id", "=", company.id)], limit=1)
+    if variety:
+        species = variety.especie_id
     version = env["step.management.estimation.version"].create({"name": "T50 rollback verification", "code": "T50-VERIFY-ROLLBACK", "season_id": season.id})
     unit = env["step.management.estimation.unit"].search([("company_id", "=", company.id)], limit=1)
-    assert unit, "Expected estimation units"
+    if not unit:
+        unit = env["step.management.estimation.unit"].create({
+            "name": "T50 rollback unit", "code": "T50-VERIFY-UNIT", "kg_factor": 1,
+            "company_id": company.id,
+        })
     with Form(model) as form:
         form.version_id = version
         assert form.season_id == season
