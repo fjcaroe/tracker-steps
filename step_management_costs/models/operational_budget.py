@@ -351,23 +351,13 @@ class StepManagementOperationalBudget(models.Model):
         return self.line_ids.filtered(lambda line: not line.distribution_complete)
 
     def _centers_without_analytic(self):
-        problems = self.env["step.management.cost.center"]
+        """Centros (cuentas analíticas) de otra empresa distinta a la del
+        presupuesto. El centro de costo ES la cuenta analítica (T51), así que
+        ya no existe «centro sin cuenta»; una cuenta sin empresa es válida."""
         centers = self.allocation_ids.center_id | self.line_ids.center_id
-        for center in centers:
-            account = center.analytic_account_id
-            if not account or (account.company_id and account.company_id != self.company_id):
-                problems |= center
-        return problems
-
-    def _duplicate_analytic_centers(self):
-        """Return center groups that share one analytic account in this budget."""
-        self.ensure_one()
-        by_account = {}
-        centers = self.allocation_ids.center_id | self.line_ids.center_id
-        for center in centers.filtered("analytic_account_id"):
-            by_account.setdefault(center.analytic_account_id.id, self.env[center._name])
-            by_account[center.analytic_account_id.id] |= center
-        return [group for group in by_account.values() if len(group) > 1]
+        return centers.filtered(
+            lambda center: center.company_id and center.company_id != self.company_id
+        )
 
     def _line_centers_outside_allocations(self):
         self.ensure_one()
@@ -467,8 +457,8 @@ class StepManagementOperationalBudget(models.Model):
             missing = record._centers_without_analytic()
             if missing:
                 raise UserError(_(
-                    "Los siguientes centros de costo no tienen una cuenta "
-                    "analítica de la empresa %(company)s y no pueden aprobarse:\n%(detail)s"
+                    "Los siguientes centros de costo pertenecen a otra empresa "
+                    "distinta de %(company)s y no pueden aprobarse:\n%(detail)s"
                 ) % {
                     "company": record.company_id.display_name,
                     "detail": "\n".join("· %s" % c.display_name for c in missing),
@@ -479,19 +469,6 @@ class StepManagementOperationalBudget(models.Model):
                     "Las líneas usan centros que no están en la pestaña «Centros "
                     "de costo»: %(centers)s. Agréguelos antes de aprobar."
                 ) % {"centers": ", ".join(outside.mapped("display_name"))})
-            duplicates = record._duplicate_analytic_centers()
-            if duplicates:
-                detail = "; ".join(
-                    "%s → %s" % (
-                        group[0].analytic_account_id.display_name,
-                        ", ".join(group.mapped("display_name")),
-                    )
-                    for group in duplicates
-                )
-                raise UserError(_(
-                    "No se puede atribuir el gasto real: una misma cuenta analítica "
-                    "está vinculada a más de un centro del presupuesto: %s"
-                ) % detail)
             record._check_segregation()
             snapshot = record._build_approval_snapshot()
             record.write({
@@ -677,9 +654,9 @@ class StepManagementBudgetCenter(models.Model):
         related="budget_id.company_id", string="Empresa", store=True, index=True,
     )
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo", required=True,
+        "account.analytic.account", string="Centro de costo", required=True,
         check_company=True,
-        domain="[('company_id', '=', parent.company_id)]",
+        domain="[('company_id', 'in', [False, parent.company_id])]",
     )
     registered_hectares = fields.Float(
         related="center_id.hectares", string="Hectáreas registradas", readonly=True
@@ -726,7 +703,7 @@ class StepManagementBudgetLine(models.Model):
     conversion_rate_type = fields.Selection(related="budget_id.conversion_rate_type")
     conversion_date = fields.Date(related="budget_id.date")
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo", required=True,
+        "account.analytic.account", string="Centro de costo", required=True,
         index=True, check_company=True,
     )
     template_line_id = fields.Many2one(

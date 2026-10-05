@@ -124,9 +124,9 @@ class StepManagementCropProgramImport(models.Model):
         PRICE_POLICIES, string="Política de precio", required=True, default="standard",
     )
     center_ids = fields.Many2many(
-        "step.management.cost.center", "step_management_crop_program_import_center_rel",
+        "account.analytic.account", "step_management_crop_program_import_center_rel",
         "import_id", "center_id", string="Centros de costo",
-        domain="[('company_id', '=', company_id)]",
+        domain="[('company_id', 'in', [False, company_id])]",
         help="Centros de costo de la temporada; todos deben compartir la "
              "misma variedad, igual que en el programa.",
     )

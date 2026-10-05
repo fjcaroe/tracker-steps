@@ -77,7 +77,7 @@ class StepManagementProductionOrder(models.Model):
     species = fields.Char(string="Especie", tracking=True)
     species_key = fields.Char(compute="_compute_species_key", store=True)
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo", required=True,
+        "account.analytic.account", string="Centro de costo", required=True,
         check_company=True, tracking=True,
     )
 

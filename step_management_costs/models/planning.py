@@ -39,7 +39,10 @@ class StepManagementPlan(models.Model):
         [("manual", "Manual"), ("budget", "Desde presupuesto")],
         string="Origen", default="manual", tracking=True,
     )
-    center_ids = fields.Many2many("step.management.cost.center", string="Centros de costo")
+    center_ids = fields.Many2many(
+        "account.analytic.account", "step_management_cost_center_step_management_plan_rel",
+        "step_management_plan_id", "step_management_cost_center_id", string="Centros de costo",
+    )
     date_start = fields.Date(string="Inicio", required=True, tracking=True)
     date_end = fields.Date(string="Término", required=True, tracking=True)
     week_reference = fields.Char(string="Semana / referencia")
@@ -252,7 +255,7 @@ class StepManagementPlanLine(models.Model):
     sequence = fields.Integer(default=10)
     date = fields.Date(string="Fecha", required=True)
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo", check_company=True,
+        "account.analytic.account", string="Centro de costo", check_company=True,
     )
     indicator = fields.Char(string="Tarea / indicador", required=True)
     responsible_id = fields.Many2one("res.users", string="Responsable")

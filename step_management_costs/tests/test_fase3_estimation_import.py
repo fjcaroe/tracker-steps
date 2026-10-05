@@ -68,7 +68,7 @@ class TestFase3EstimationImport(ManagementCostsCommon):
         cls.center_a.write({"plants": 1000.0, "farm": "Fundo A", "plot": "C1",
                             "species": "Cerezo", "variety": "Santina"})
         cls.center_a2.write({"plants": 500.0})
-        cls.center_a_no_aa.write({"plants": 0.0})
+        cls.center_a3.write({"plants": 0.0})
 
     @classmethod
     def _mk_curve(cls, curve_type, code, lines):
@@ -118,7 +118,7 @@ class TestFase3EstimationImport(ManagementCostsCommon):
         self.assertAlmostEqual(ca01.yield_ue, 1.2)
         self.assertAlmostEqual(ca01.total_ue, 1200.0)
         self.assertAlmostEqual(ca01.total_kg, 480000.0)  # 1200 * 400, factor una vez
-        ca03 = est.line_ids.filtered(lambda l: l.center_id == self.center_a_no_aa)
+        ca03 = est.line_ids.filtered(lambda l: l.center_id == self.center_a3)
         self.assertAlmostEqual(ca03.plants, 0.0)  # heredado del centro
 
     def test_import_hectares_overrides_center(self):

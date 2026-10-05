@@ -46,7 +46,7 @@ class TestFase7Hardening(ManagementCostsCommon):
         super().setUpClass()
         cls.center_a.write({"variety": "Reina"})
         cls.center_a2.write({"variety": "Reina"})
-        cls.center_a_no_aa.write({"variety": "Otra"})
+        cls.center_a3.write({"variety": "Otra"})
 
         cls.uom_unit = cls.env.ref("uom.product_uom_unit")
         cls.uom_kg = cls.env.ref("uom.product_uom_kgm")
@@ -380,14 +380,8 @@ class TestFase7Hardening(ManagementCostsCommon):
     # R4 — coherencia completa de variedad
     # ------------------------------------------------------------------
     def test_r4_case_and_whitespace_do_not_conflict(self):
-        c1 = self.env["step.management.cost.center"].create({
-            "code": "R4C1", "name": "R4 centro 1", "company_id": self.company_a.id,
-            "hectares": 2.0, "variety": " reina ",
-        })
-        c2 = self.env["step.management.cost.center"].create({
-            "code": "R4C2", "name": "R4 centro 2", "company_id": self.company_a.id,
-            "hectares": 3.0, "variety": "REINA",
-        })
+        c1 = self._make_center("R4C1", "R4 centro 1", hectares=2.0, variety=" reina ")
+        c2 = self._make_center("R4C2", "R4 centro 2", hectares=3.0, variety="REINA")
         program = self._program(centers=[c1, c2], compute=False)
         self.assertTrue(program)
 
@@ -396,22 +390,13 @@ class TestFase7Hardening(ManagementCostsCommon):
             self._program(centers=[self.center_a], variety="Otra", compute=False)
 
     def test_r4_mixed_blank_and_informed_centers_rejected(self):
-        blank = self.env["step.management.cost.center"].create({
-            "code": "R4C3", "name": "R4 centro sin variedad",
-            "company_id": self.company_a.id, "hectares": 2.0,
-        })
+        blank = self._make_center("R4C3", "R4 centro sin variedad", hectares=2.0)
         with self.assertRaises(ValidationError):
             self._program(centers=[self.center_a, blank], compute=False)
 
     def test_r4_all_blank_saves_draft_but_blocks_approval(self):
-        b1 = self.env["step.management.cost.center"].create({
-            "code": "R4C4", "name": "R4 blanco 1", "company_id": self.company_a.id,
-            "hectares": 2.0,
-        })
-        b2 = self.env["step.management.cost.center"].create({
-            "code": "R4C5", "name": "R4 blanco 2", "company_id": self.company_a.id,
-            "hectares": 3.0,
-        })
+        b1 = self._make_center("R4C4", "R4 blanco 1", hectares=2.0)
+        b2 = self._make_center("R4C5", "R4 blanco 2", hectares=3.0)
         program = self._program(centers=[b1, b2])  # compute=True por defecto
         self.assertEqual(program.state, "draft")
         with self.assertRaises(UserError):

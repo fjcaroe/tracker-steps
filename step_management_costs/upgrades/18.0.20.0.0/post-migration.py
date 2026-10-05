@@ -14,8 +14,12 @@ _logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
-    cr.execute("SELECT COUNT(*) FROM step_management_cost_center WHERE active")
-    (centers,) = cr.fetchone()
+    cr.execute("SELECT to_regclass('step_management_cost_center')")
+    if cr.fetchone()[0]:
+        cr.execute("SELECT COUNT(*) FROM step_management_cost_center WHERE active")
+        (centers,) = cr.fetchone()
+    else:
+        centers = 0  # T51: el centro ahora es la cuenta analítica
     cr.execute("SELECT COUNT(*) FROM step_management_historical_cost")
     (costs,) = cr.fetchone()
     _logger.info(

@@ -155,9 +155,9 @@ class StepManagementEstimation(models.Model):
                "('state', '=', 'validated'), ('active', '=', True)]",
     )
     center_ids = fields.Many2many(
-        "step.management.cost.center", "step_management_estimation_center_rel",
+        "account.analytic.account", "step_management_estimation_center_rel",
         "estimation_id", "center_id", string="Centros de costo / cuarteles",
-        domain="[('company_id', '=', company_id)]",
+        domain="[('company_id', 'in', [False, company_id])]",
     )
     line_ids = fields.One2many(
         "step.management.estimation.line", "estimation_id", string="Detalle", copy=True,
@@ -622,7 +622,7 @@ class StepManagementEstimationLine(models.Model):
         related="estimation_id.company_id", string="Empresa", store=True, index=True,
     )
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo / cuartel",
+        "account.analytic.account", string="Centro de costo / cuartel",
         required=True, check_company=True, index=True,
     )
     # Snapshot reproducible copiado del centro de costo.
