@@ -28,6 +28,6 @@ class StepManagementCostCenter(models.Model):
     agri_plants = fields.Integer(
         related="analytic_account_id.plant_cost", string="Plantas (maestro agrícola)",
     )
-    agri_hectares = fields.Float(digits=(16, 4),
+    agri_hectares = fields.Float(digits=(16, 2),
         related="analytic_account_id.has_cost", string="Hectáreas (maestro agrícola)",
     )

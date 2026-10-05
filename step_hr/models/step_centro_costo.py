@@ -95,7 +95,7 @@ class AccountAnalyticAccount(models.Model):
     date_plant = fields.Date(string='Año Plantación')
     date_prod = fields.Date(string='Año Producción')
     date_prodtivos = fields.Date(string='Años Productivos')
-    has_cost = fields.Float(string='Has CCosto', digits=(16, 4))
+    has_cost = fields.Float(string='Has CCosto', digits=(16, 2))
     plant_cost = fields.Integer(string='Plantas CCosto')
     date_init_co = fields.Date(string='Fecha Ini Cosecha')
     date_end_co = fields.Date(string='Fecha Fin Cosecha')

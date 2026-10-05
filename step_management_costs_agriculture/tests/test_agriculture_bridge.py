@@ -235,8 +235,20 @@ class TestAgricultureBridge(ManagementCostsCommon):
 
     def test_hectares_accept_decimals(self):
         """T49: las hectáreas por centro de costo y cuartel admiten decimales."""
-        self.account_center.has_cost = 12.5
+        self.account_center.has_cost = 1.14
+        self.account_center.flush_recordset(["has_cost"])
         self.account_center.invalidate_recordset()
-        self.assertAlmostEqual(self.account_center.has_cost, 12.5)
+        self.assertAlmostEqual(self.account_center.has_cost, 1.14)
         self.center_center.invalidate_recordset()
-        self.assertAlmostEqual(self.center_center.agri_hectares, 12.5)
+        self.assertAlmostEqual(self.center_center.agri_hectares, 1.14)
+        cuartel = self.env["step.cuartel.line"].create({
+            "name": "T49 decimal", "centro_id": self.account_center.id,
+            "has_cuartel": 0.27,
+        })
+        cuartel.flush_recordset(["has_cuartel"])
+        cuartel.invalidate_recordset()
+        self.assertAlmostEqual(cuartel.has_cuartel, 0.27)
+        for model, field in [("account.analytic.account", "has_cost"),
+                             ("step.cuartel.line", "has_cuartel"),
+                             ("step.management.cost.center", "agri_hectares")]:
+            self.assertEqual(self.env[model].fields_get([field])[field]["digits"], (16, 2))

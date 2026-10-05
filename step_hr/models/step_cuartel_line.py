@@ -11,7 +11,7 @@ class StepCuartelLine(models.Model):
         comodel_name='account.analytic.account',
         string="Centro de costo",
         required=True, ondelete='cascade', index=True, copy=False)
-    has_cuartel = fields.Float(string='Has Cuartel', digits=(16, 4))
+    has_cuartel = fields.Float(string='Has Cuartel', digits=(16, 2))
     plant_cuartel = fields.Integer(string='Plantas Cuartel')
     hilera_cuartel = fields.Integer(string='Hileras Cuartel')
     dis_plant = fields.Char(string='Distancia Plantación')
