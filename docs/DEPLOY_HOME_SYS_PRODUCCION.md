@@ -43,8 +43,9 @@ generar el paquete. El script actual valida explícitamente `18.0.2.5.1`.
 
 ## Publicación
 
-Generar fuera del checkout un `git archive` del commit publicado que incluya
-`step_demo_homepage` y `tools/home`. Copiarlo a `/tmp/` de `odoo-new` y comprobar
+Generar fuera del checkout un `git -c core.autocrlf=false archive` del commit
+publicado que incluya `step_demo_homepage` y `tools/home`. Esto conserva los
+saltos LF de Bash al empaquetar desde Windows. Copiarlo a `/tmp/` de `odoo-new` y comprobar
 su SHA-256. Ejecutar en esa instancia:
 
 ```bash
