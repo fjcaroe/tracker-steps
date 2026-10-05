@@ -3,7 +3,8 @@
 Rama: `codex/packing-productores-exportaciones-qa`. Esta continuación amplía
 la [entrega anterior](QA_PACKING_PRODUCTORES_EXPORTACIONES_2026-10-05.md).
 El destino autorizado es Desarrollo y Demo para aceptación funcional antes
-de producción. Estado de despliegue: pendiente de completar las verificaciones.
+de producción. Desplegado y verificado en ambos QA el 05-10-2026;
+la aceptación funcional sigue pendiente.
 
 ## Documento funcional revisado
 
@@ -115,6 +116,46 @@ siguen usando los campos de escaneo existentes.
 
 ## Evidencia y cierre
 
-Pendiente de registrar resultados finales de clones, instalación independiente,
-respaldo, commit exacto y verificación de ambos QA. Producción queda fuera de
-esta publicación; requiere aceptación funcional de cuentas, folios y equipos.
+Código de la entrega: `88c7ad123dc4bbf5e3f82ff22eaed9bfe4d8f3b9`.
+Paquete: `agro-pending-16.tar.gz`, 222 archivos, SHA-256
+`b98c5d17f90131f3e85550e457f26b41f3b202015027e8184dfdf373804dd500`.
+`tools/agro_qa/verify_release_commit.py` comprobó cada archivo contra ese commit,
+normalizando únicamente CRLF en fuentes de texto.
+
+| Validación | Resultado | Evidencia en `odoo-new` |
+|---|---|---|
+| Clon Desarrollo | 58 pruebas, 0 fallos / 0 errores | `/opt/steps-agro-qa/development/phaseb/tests-20261005T220635Z.log` |
+| Clon Demo | 58 pruebas, 0 fallos / 0 errores | `/opt/steps-agro-qa/demo/phaseb/tests-20261005T220636Z.log` |
+| Productores independiente | 7 pruebas, 0 fallos / 0 errores; Exportaciones no instalado y sin modelo de recibidor | `/opt/steps-agro-qa/producers-standalone/standalone.log`, ejecución 22:08 UTC |
+| Dispositivos simulados | Lecturas y escrituras serie/BLE/WebUSB, tramas fragmentadas, errores y limpieza aprobados | `node tools/agro_qa/test_devices.mjs` |
+
+Los clones conservan los 49 XML IDs originales y las filas de nueve tablas
+verificadas antes y después de migrar. Desarrollo contiene una tarifa y dos
+descuentos; las otras tablas comprobadas están vacías en estos QA. La prueba
+automatizada adicional construye una liquidación histórica y comprueba el
+relleno de fecha, temporada y especie sin cambiar IDs ni importes. Esto no
+reemplaza la aceptación con liquidaciones reales. Existe un aviso previo de
+fuente faltante de `steps_api` en los dos ambientes, ajeno a estos cinco módulos.
+
+| QA publicado | Base | Respaldo de base y configuración |
+|---|---|---|
+| [Desarrollo](https://desarrollo.stepsapp.cl/web) | `LAB_TAREAS` | `/opt/backups/agro-qa-development-20261005T220824Z` |
+| [Demo](https://demo.stepsapp.cl/web) | `STEPS_DEMO` | `/opt/backups/agro-qa-demo-20261005T220826Z` |
+
+Los addons se publicaron en `/opt/steps-agro-qa/releases/<environment>/`
+seguido del commit exacto. Se conservan las rutas anteriores de addons;
+la raíz compartida con producción no se sobrescribió. Las configuraciones
+restringen cada servicio a su base QA. `deploy_qa.py` confirmó ambos servicios
+activos y acceso local; `verify_qa.py` comprobó origen del código, las cinco
+versiones, 14 formularios compilados por ambiente, aliases, dependencia nativa
+de capitalización y login público HTTPS con respuesta 200. Los logs de
+actualización quedan en cada release y en su respaldo.
+
+La actualización también registra referencias Studio previas a
+`x_studio_has_cuartel` ausente en `x_planificar_cosecha`. No impidieron cargar
+el registro ni las comprobaciones de esta integración; no se corrigieron
+vistas ajenas al alcance. No se afirma aceptación de todas las aplicaciones
+del ambiente ni de equipos físicos a partir de estas pruebas técnicas.
+
+Producción queda fuera de esta publicación; requiere aceptación funcional de
+cuentas, folios y equipos. No se han homologado balanzas ni impresoras físicas.
