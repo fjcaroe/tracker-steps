@@ -8,6 +8,9 @@ rama de entrega: `codex/odoo-support-chatbot`. No se reemplaza código de otros
 productos ni se despliegan sus ramas. Primera instalación: Desarrollo,
 `LAB_TAREAS`, servicio `odoo18-dev.service`.
 
+La publicación posterior en **SyS producción** con la clave ya existente de
+Demo-SyS se documenta en [ASISTENTE_SYS_PRODUCCION.md](ASISTENTE_SYS_PRODUCCION.md).
+
 ## Uso
 
 Abrir el globo **Ayuda** en la esquina inferior derecha de cualquier aplicación,

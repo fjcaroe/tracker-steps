@@ -10,7 +10,7 @@ sudo systemctl is-active --quiet "$SERVICE"
 RUN_USER=$(sudo systemctl show "$SERVICE" -p User --value)
 test -n "$RUN_USER"
 PYTHON=/usr/bin/python3.10
-if test "$ENV" = produccion; then PYTHON=/opt/odoo18/venv/bin/python; fi
+if [[ "$ENV" = produccion || "$ENV" = sys-produccion ]]; then PYTHON=/opt/odoo18/venv/bin/python; fi
 sudo -u "$RUN_USER" "$PYTHON" -c 'import requests, sass'
 PENDING=$(sudo -u postgres psql -d "$DB" -Atc "SELECT COUNT(*) FROM ir_module_module WHERE state IN ('to install','to upgrade','to remove');")
 test "$PENDING" = 0
