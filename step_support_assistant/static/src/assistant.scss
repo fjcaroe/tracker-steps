@@ -1,0 +1,24 @@
+.steps-assistant {
+    height: 100%; min-height: 0; overflow-y: auto; touch-action: pan-y;
+    background: #f3f6f4; color: #183b32; padding: 24px;
+    .steps-assistant-header { display: flex; gap: 20px; justify-content: space-between; align-items: center; max-width: 1280px; margin: 0 auto 20px; }
+    h1 { font-size: 28px; font-weight: 700; margin: 5px 0; }
+    h2 { font-size: 20px; font-weight: 600; }
+    .steps-assistant-eyebrow { font-size: 11px; letter-spacing: 1.5px; font-weight: 700; }
+    .steps-assistant-header p { margin: 0; color: #596e65; }
+    .steps-assistant-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 22px; max-width: 1280px; margin: auto; }
+    .steps-assistant-conversation { border: 1px solid #dbe5df; border-radius: 18px; background: white; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+    .steps-assistant-transcript { height: min(52vh, 650px); min-height: 280px; padding: 22px; overflow-y: auto; overscroll-behavior: contain; }
+    .steps-assistant-welcome { max-width: 480px; margin: 45px auto; text-align: center; color: #526d61; i { font-size: 42px; color: #123c33; margin-bottom: 18px; } }
+    .steps-assistant-message { max-width: 90%; border-radius: 14px; padding: 16px 20px; margin: 0 0 16px; overflow-wrap: anywhere; &.assistant { background: #f0f5f1; } &.user { margin-left: auto; background: #123c33; color: white; } }
+    .steps-assistant-text { white-space: pre-wrap; margin: 8px 0 0; }
+    .steps-assistant-sources { margin-top: 16px; padding-top: 10px; border-top: 1px solid #d3e0d8; font-size: 13px; > span { display: block; margin-bottom: 8px; font-weight: 600; } blockquote { border-left: 3px solid #b7ccbc; padding-left: 10px; color: #536c60; margin: 6px 0 14px; white-space: pre-wrap; } }
+    .steps-assistant-composer { border-top: 1px solid #dbe5df; padding: 18px; }
+    .steps-assistant-input-row { display: flex; align-items: stretch; gap: 12px; textarea { flex: 1; min-width: 0; border: 1px solid #bccfc2; border-radius: 10px; padding: 12px; resize: vertical; max-height: 180px; } }
+    .btn-primary { background: #123c33; border-color: #123c33; &:hover { background: #245747; } }
+    .steps-assistant-notice { display: block; font-size: 11px; color: #63776c; margin-top: 10px; }
+    .steps-assistant-library { padding: 10px 0; h2 { margin-bottom: 10px; } > p { color: #62786c; font-size: 13px; } }
+    .steps-assistant-article { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; margin-bottom: 10px; text-align: left; background: white; border: 1px solid #dbe5df; border-radius: 10px; color: #244f3f; span { flex: 1; } &:hover { border-color: #759e85; background: #eef5ed; } }
+    @media (max-width: 900px) { .steps-assistant-layout { grid-template-columns: minmax(0, 1fr); } .steps-assistant-library { max-width: none; } }
+    @media (max-width: 600px) { padding: 12px; .steps-assistant-header { align-items: flex-start; gap: 8px; } h1 { font-size: 23px; } .steps-assistant-header .btn { font-size: 12px; flex-shrink: 0; padding: 8px; } .steps-assistant-header p { font-size: 13px; } .steps-assistant-transcript { padding: 12px; height: 42vh; } .steps-assistant-message { max-width: 100%; padding: 12px; } .steps-assistant-composer { padding: 12px; } }
+}

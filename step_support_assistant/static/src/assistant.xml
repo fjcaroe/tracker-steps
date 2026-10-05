@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_support_assistant.Launcher">
+        <div class="o_systray_item"><button type="button" class="btn border-0" title="Ayuda Steps" aria-label="Consultar al asistente Steps" t-on-click="open"><i class="fa fa-comments-o" aria-hidden="true"/></button></div>
+    </t>
+    <t t-name="step_support_assistant.Chat">
+        <div class="steps-assistant">
+            <header class="steps-assistant-header">
+                <div><span class="steps-assistant-eyebrow">AYUDA PARA NUESTRO ODOO</span><h1>Asistente Steps</h1><p>Resuelve tus dudas con las guías de nuestro ambiente.</p></div>
+                <button type="button" class="btn btn-outline-secondary" t-on-click="newConversation" t-att-disabled="state.busy">Nueva consulta</button>
+            </header>
+            <div class="steps-assistant-layout">
+                <section class="steps-assistant-conversation" aria-label="Conversación de ayuda">
+                    <div t-if="state.loading" class="p-3" role="status">Cargando ayuda…</div>
+                    <div t-if="!state.loading and !state.ready" class="alert alert-info m-3" role="status">La ayuda está disponible. Las respuestas con IA están pendientes de habilitación.</div>
+                    <div class="steps-assistant-transcript" t-ref="transcript" aria-live="polite" role="log" aria-label="Mensajes">
+                        <div t-if="!state.messages.length" class="steps-assistant-welcome">
+                            <i class="fa fa-comments-o" aria-hidden="true"/><h2>¿En qué necesitas ayuda?</h2>
+                            <p>Cuéntame qué quieres hacer, en qué aplicación estás y qué mensaje aparece.</p>
+                            <p class="text-muted">Las respuestas incluyen las fuentes utilizadas. Si falta información, te orientaré para consultar a soporte.</p>
+                        </div>
+                        <article t-foreach="state.messages" t-as="message" t-key="message.id" t-att-class="'steps-assistant-message ' + message.role">
+                            <strong t-esc="message.role === 'user' ? 'Tú' : 'Asistente Steps'"/>
+                            <p class="steps-assistant-text" t-esc="message.text"/>
+                            <div t-if="message.sources.length" class="steps-assistant-sources">
+                                <span>Fuentes de ayuda</span>
+                                <div t-foreach="message.sources" t-as="source" t-key="source.id">
+                                    <button type="button" class="btn btn-link text-start p-0" t-on-click="() => this.openArticle(source.id)"><i class="fa fa-file-text-o me-1" aria-hidden="true"/><t t-esc="source.title"/></button>
+                                    <blockquote t-if="source.quote" t-esc="source.quote"/>
+                                </div>
+                            </div>
+                        </article>
+                        <p t-if="state.busy" class="steps-assistant-thinking" role="status"><i class="fa fa-spinner fa-spin me-2" aria-hidden="true"/>Revisando las fuentes de ayuda…</p>
+                    </div>
+                    <form class="steps-assistant-composer" t-on-submit.prevent="submit">
+                        <div t-if="state.error" class="alert alert-danger" role="alert" t-esc="state.error"/>
+                        <label for="steps-assistant-question" class="visually-hidden">Escribe tu consulta</label>
+                        <div class="steps-assistant-input-row">
+                            <textarea id="steps-assistant-question" t-ref="composer" t-model="state.question" t-on-keydown="onKeydown" rows="2" maxlength="2000" placeholder="Escribe una duda sobre nuestro Odoo…" t-att-disabled="state.busy or state.loading"/>
+                            <button type="submit" class="btn btn-primary" t-att-disabled="state.busy or state.loading or !state.question.trim()">Enviar</button>
+                        </div>
+                        <small class="steps-assistant-notice" t-esc="state.notice"/>
+                    </form>
+                </section>
+                <aside class="steps-assistant-library" aria-label="Guías disponibles">
+                    <h2>Guías de este ambiente</h2>
+                    <p>También puedes consultarlas directamente.</p>
+                    <button t-foreach="state.articles" t-as="article" t-key="article.id" type="button" class="steps-assistant-article" t-on-click="() => this.openArticle(article.id)"><i class="fa fa-file-text-o" aria-hidden="true"/><span t-esc="article.title"/><i class="fa fa-angle-right" aria-hidden="true"/></button>
+                    <p t-if="!state.loading and !state.articles.length">Aún no hay guías publicadas para tus permisos.</p>
+                    <a href="https://soporte.stepsapp.cl" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary mt-3">Contactar a soporte <i class="fa fa-external-link ms-1" aria-hidden="true"/></a>
+                </aside>
+            </div>
+        </div>
+    </t>
+</templates>

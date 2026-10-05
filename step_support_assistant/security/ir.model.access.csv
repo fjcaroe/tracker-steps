@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_assistant_article_reader,assistant.article.reader,model_step_assistant_article,base.group_user,1,0,0,0
+access_assistant_article_manager,assistant.article.manager,model_step_assistant_article,step_support_assistant.group_assistant_manager,1,1,1,1
+access_assistant_usage_admin,assistant.usage.admin,model_step_assistant_usage,base.group_system,1,0,0,0

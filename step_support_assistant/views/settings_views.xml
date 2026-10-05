@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="settings_assistant" model="ir.ui.view">
+        <field name="name">res.config.settings.steps.assistant</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="Asistente Steps" name="step_support_assistant" groups="base.group_system">
+                    <block title="Atención de consultas sobre nuestro Odoo">
+                        <setting string="Activar respuestas con IA" help="Envía la pregunta y fuentes permitidas a OpenAI. La clave se configura únicamente en el entorno del servidor.">
+                            <field name="step_assistant_enabled"/>
+                            <div class="content-group"><field name="step_assistant_key_available" readonly="1"/></div>
+                        </setting>
+                        <setting string="Modelo"><field name="step_assistant_model"/></setting>
+                        <setting string="Límite por usuario y hora"><field name="step_assistant_hourly_limit"/></setting>
+                        <setting string="Límite diario para esta base"><field name="step_assistant_daily_limit"/></setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+    <record id="action_settings" model="ir.actions.act_window">
+        <field name="name">Ajustes del asistente</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'step_support_assistant'}</field>
+    </record>
+</odoo>

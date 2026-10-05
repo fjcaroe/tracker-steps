@@ -1,0 +1,25 @@
+{
+    "name": "Steps · Asistente de ayuda",
+    "summary": "Consultas sobre nuestro Odoo con fuentes aprobadas y permisos por usuario",
+    "version": "18.0.1.0.0",
+    "category": "Productivity",
+    "author": "Steps Consulting",
+    "license": "LGPL-3",
+    "depends": ["base", "web"],
+    "external_dependencies": {"python": ["requests"]},
+    "data": [
+        "security/assistant_security.xml",
+        "security/ir.model.access.csv",
+        "data/help_articles.xml",
+        "views/article_views.xml",
+        "views/settings_views.xml",
+        "views/menus.xml",
+    ],
+    "assets": {"web.assets_backend": [
+        "step_support_assistant/static/src/assistant.js",
+        "step_support_assistant/static/src/assistant.xml",
+        "step_support_assistant/static/src/assistant.scss",
+    ]},
+    "application": True,
+    "installable": True,
+}
