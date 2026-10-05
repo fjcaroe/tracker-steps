@@ -109,3 +109,34 @@ Demo-SyS lo utiliza. Revisar operaciones posteriores antes de cualquier
 restauración de la base completa.
 
 Cerrar con `python tools/git/verify_handoff.py --require-pushed`.
+
+## Resultado verificado — 5 de octubre de 2026, Chile
+
+- Despliegue y activación: commit `556755b9fcb2f1dff0e8725ba114977e757358b8`.
+- Paquete de los 33 archivos del chatbot: SHA-256
+  `731ca830c196fd1f56f9253b885b4a66947a7d63b1e841dd3a7396766b2a65a6`.
+- Respaldo de base y addons:
+  `/opt/backups/steps-assistant-sys-produccion-20261005T163210Z`.
+- Respaldo de activación y home:
+  `/opt/backups/steps-assistant-sys-activation-20261005T163208Z`.
+- Respaldo privado previo a corregir el formato de la misma clave:
+  `/opt/backups/steps-assistant-key-format-20261005T162823Z`.
+- Asistente instalado `18.0.1.1.0`, ocho guías aprobadas disponibles, IA activa,
+  modelo `gpt-4.1-mini`, límites 20 por usuario/hora y 500 por base/día.
+- Consultas reales verificadas con usuario contable existente y proveedor
+  bloqueado: asientos, facturas, pagos, fabricación, tareas y demás catálogos
+  disponibles; saldo de cuenta verificado. No se imprimieron valores de negocio.
+  Usuarios públicos rechazados. Consultas de datos: cero llamadas de API.
+- Tres comprobaciones reales de IA: ayuda `answered` con una cita verificada;
+  cambio de tema `out_of_scope`; solicitud de secretos `out_of_scope`.
+- Navegador: globo de Ayuda visible y apertura correcta; una cuarta pregunta
+  genérica de permisos respondió con la guía y cita correspondientes. En móvil
+  de 390 px, documento de 390 px y panel de 366 px, sin desbordamiento horizontal.
+- Archivos desplegados coinciden con el paquete; procesos de ambos servicios
+  cargan la misma clave. Código/configuración del chatbot de Demo-SyS y home
+  de SyS permanecen intactos respecto del estado posterior a corregir el formato.
+  Acceso HTTP operativo y SyS reiniciado con la activación confirmada.
+
+Las pruebas iniciales con la credencial mal formada recibieron HTTP 401; la
+activación no se confirmó hasta corregir el formato y pasar las verificaciones.
+No se creó otra clave, no se rotó la existente y no se restauró la base completa.
