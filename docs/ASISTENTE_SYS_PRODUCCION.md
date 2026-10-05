@@ -175,3 +175,26 @@ ni envía documentos financieros. Mantiene clave, modelo y límites, textos
 existentes, home de SyS y versión/configuración/proceso de Demo-SyS.
 Para volver al enfoque general usar **Ayuda Steps → Ajustes** y recargar el
 navegador. No requiere desactivar IA ni restaurar la base.
+
+Resultado de la actualización:
+
+- Commit desplegado: `cddcb53a71681df060b42587a00afd615a394bf6`.
+- Paquete de 35 archivos: SHA-256
+  `c2b8db8de712cc0591ac7e42327bb80befe0bcb381dc0714426ee2562bd9a78f`.
+- Respaldo de base/addons:
+  `/opt/backups/steps-assistant-sys-produccion-20261005T165225Z`.
+- Metadata previa del perfil:
+  `/opt/backups/steps-assistant-sys-accounting-20261005T165225Z`.
+- Versión instalada `18.0.1.2.0`; el usuario contable de verificación ve doce
+  guías: ocho contables y cuatro generales. Ninguna de Colaciones.
+- Quince pruebas locales y veintiuna pruebas Odoo en base aislada pasaron,
+  incluyendo exclusión de fuentes ajenas al perfil en biblioteca/proveedor,
+  aislamiento por compañía y preservación de guías propias.
+- Pregunta genérica sobre saldo acumulado y fecha Desde: `answered`, dos
+  citas verificadas, incluida la guía nueva de saldos. Consultas de asientos,
+  facturas y pagos verificadas con proveedor bloqueado: cero llamadas de API.
+- Navegador de producción: título contable y orden correcto de las doce
+  guías; apertura de la guía de saldos con su texto y clasificación correctos.
+  Captura guardada fuera del checkout en `~/.codex/local-artifacts/`.
+- Archivos coincidentes con el paquete; clave y cuatro parámetros de IA,
+  textos/aprobación de guías anteriores, home y Demo-SyS preservados.
