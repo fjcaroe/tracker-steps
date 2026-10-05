@@ -1,0 +1,68 @@
+<odoo>
+    <template id="mobile_packing_page" name="Packing móvil">
+        <html lang="es">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta name="theme-color" content="#185f54"/>
+                <title>Packing móvil</title>
+                <link rel="manifest" href="/step_packing_operations/static/src/mobile.webmanifest"/>
+                <link rel="stylesheet" href="/step_packing_operations/static/src/mobile.css"/>
+                <script defer="defer" src="/step_packing_operations/static/src/mobile.js"/>
+            </head>
+            <body t-att-data-user-id="user_id">
+                <main>
+                    <header><h1>Packing móvil</h1><p id="connection">Comprobando conexión…</p></header>
+                    <section aria-labelledby="order-heading">
+                        <h2 id="order-heading">Orden de trabajo</h2>
+                        <label for="production">OT activa</label>
+                        <select id="production"><option value="">Seleccione una OT</option></select>
+                        <p id="order-detail"></p>
+                        <button type="button" id="refresh-orders">Actualizar órdenes</button>
+                    </section>
+                    <section aria-labelledby="tag-heading">
+                        <h2 id="tag-heading">Registrar tarja</h2>
+                        <form id="scan-form">
+                            <label for="kind">Tipo</label><select id="kind" required="required">
+                                <option value="C">Cosecha C</option>
+                                <option value="E">Exportación E</option>
+                                <option value="N">Nacional N</option>
+                            </select>
+                            <label for="code">Número de tarja o código escaneado</label>
+                            <div class="scan-row"><input id="code" maxlength="80" required="required" autocomplete="off"/>
+                                <button type="button" id="camera-button">Escanear</button></div>
+                            <video id="camera" playsinline="playsinline" muted="muted" hidden="hidden"></video>
+                            <div id="new-tag-fields" hidden="hidden">
+                                <p>Si la tarja E/N aún no existe, ingrese su contenido. Si ya existe, estos datos se ignoran.</p>
+                                <label for="quantity">Cantidad de producto</label><input id="quantity" type="number" min="0.001" step="0.001"/>
+                                <label for="boxes">Cajas</label><input id="boxes" type="number" min="1" step="1"/>
+                                <label for="kilos">Kilos</label><input id="kilos" type="number" min="0.001" step="0.001"/>
+                                <div id="national-fields" hidden="hidden">
+                                    <label for="product-code">Código de producto nacional</label>
+                                    <input id="product-code" autocomplete="off"/>
+                                    <label for="result">Resultado</label>
+                                    <select id="result"><option value="commercial">Comercial</option>
+                                        <option value="precaliber">Precalibre</option><option value="waste">Desecho</option></select>
+                                </div>
+                            </div>
+                            <button type="submit" class="primary">Guardar tarja</button>
+                        </form>
+                    </section>
+                    <section aria-labelledby="queue-heading">
+                        <h2 id="queue-heading">Pendientes de sincronizar <span id="queue-count">0</span></h2>
+                        <p>Los registros sin conexión quedan en este dispositivo hasta sincronizar.</p>
+                        <ul id="queue-list"></ul>
+                        <button type="button" id="sync-button">Sincronizar ahora</button>
+                    </section>
+                    <p id="message" role="status"></p>
+                    <div id="print-link"></div>
+                </main>
+            </body>
+        </html>
+    </template>
+    <record id="action_packing_mobile" model="ir.actions.act_url">
+        <field name="name">Packing móvil</field>
+        <field name="url">/packing/mobile</field>
+        <field name="target">self</field>
+    </record>
+</odoo>

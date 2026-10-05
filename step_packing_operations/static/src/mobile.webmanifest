@@ -1,0 +1,9 @@
+{
+  "name": "Steps Packing móvil",
+  "short_name": "Packing",
+  "start_url": "/packing/mobile",
+  "scope": "/packing/mobile",
+  "display": "standalone",
+  "background_color": "#f2f5f2",
+  "theme_color": "#185f54"
+}
