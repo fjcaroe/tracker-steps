@@ -13,7 +13,7 @@ class StepCosecha(models.Model):
     cost_id = fields.Many2one(
         'account.analytic.account', "Centro de Costo",
     )
-    has_cost = fields.Integer(string='Has CCosto')
+    has_cost = fields.Float(string='Has CCosto', digits=(16, 4))
     plant_cost = fields.Integer(string='Plantas CCosto')
     labor_id = fields.Many2one(
         comodel_name='product.template',

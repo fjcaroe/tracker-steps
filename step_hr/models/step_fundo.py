@@ -22,10 +22,10 @@ class StepFundo(models.Model):
     csg_code = fields.Char(string='Código CSG')
     sdp_code = fields.Char(string='Código SDP')
     ggn_code = fields.Char(string='Código GGN')
-    hec_total = fields.Integer(string='Hectáreas Totales')
-    hec_disp = fields.Integer(string='Hectáreas Disponibles')
-    hec_plant = fields.Integer(string='Hectáreas Plantadas')
-    hec_otro = fields.Integer(string='Hectáreas otros usos')
+    hec_total = fields.Float(string='Hectáreas Totales', digits=(16, 4))
+    hec_disp = fields.Float(string='Hectáreas Disponibles', digits=(16, 4))
+    hec_plant = fields.Float(string='Hectáreas Plantadas', digits=(16, 4))
+    hec_otro = fields.Float(string='Hectáreas otros usos', digits=(16, 4))
     sector_id = fields.Many2one('res.sector', copy=False, tracking=True,
                                 string='Sector')
     schedule_id = fields.Many2one('step.work.schedule', copy=False, tracking=True,

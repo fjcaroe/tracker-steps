@@ -232,3 +232,11 @@ class TestAgricultureBridge(ManagementCostsCommon):
             line.write({"yield_source": "manipulado"})
         with self.assertRaises(UserError):
             line.write({"plants_source": "manipulado"})
+
+    def test_hectares_accept_decimals(self):
+        """T49: las hectáreas por centro de costo y cuartel admiten decimales."""
+        self.account_center.has_cost = 12.5
+        self.account_center.invalidate_recordset()
+        self.assertAlmostEqual(self.account_center.has_cost, 12.5)
+        self.center_center.invalidate_recordset()
+        self.assertAlmostEqual(self.center_center.agri_hectares, 12.5)
