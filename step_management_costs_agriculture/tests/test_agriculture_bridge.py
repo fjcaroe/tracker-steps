@@ -1,10 +1,10 @@
-"""Corte V2 D — puente con los maestros agrícolas reales de `step_hr`.
+"""Corte V2 D â€” puente con los maestros agrÃ­colas reales de `step_hr`.
 
-Sólo se instala (y sólo estas pruebas corren) cuando `step_hr` está
-presente — `auto_install` exige ambas dependencias. Verifica la precedencia
-de rendimiento estándar (centro → variedad → grupo de variedad), la fuente
-de plantas, el snapshot/procedencia congelados al validar, y que el método
-"Kilos" del núcleo sigue sin aplicar rendimiento (D05, sin cambios).
+SÃ³lo se instala (y sÃ³lo estas pruebas corren) cuando `step_hr` estÃ¡
+presente â€” `auto_install` exige ambas dependencias. Verifica la precedencia
+de rendimiento estÃ¡ndar (centro â†’ variedad â†’ grupo de variedad), la fuente
+de plantas, el snapshot/procedencia congelados al validar, y que el mÃ©todo
+"Kilos" del nÃºcleo sigue sin aplicar rendimiento (D05, sin cambios).
 """
 
 from odoo.exceptions import UserError
@@ -49,12 +49,12 @@ class TestAgricultureBridge(ManagementCostsCommon):
                 "plant_cost": 500, "has_cost": 10,
             })
 
-        # Centro 1: tiene línea propia de rendimiento -> debe ganar sobre
-        # variedad y grupo aunque ambas también tengan línea.
+        # Centro 1: tiene lÃ­nea propia de rendimiento -> debe ganar sobre
+        # variedad y grupo aunque ambas tambiÃ©n tengan lÃ­nea.
         cls.account_center = _account("AA centro V2D", variedad=cls.variedad, grupo=cls.grupo)
-        # Centro 2: sin línea propia, sólo variedad (y grupo, que no debe usarse).
+        # Centro 2: sin lÃ­nea propia, sÃ³lo variedad (y grupo, que no debe usarse).
         cls.account_variety = _account("AA variedad V2D", variedad=cls.variedad, grupo=cls.grupo)
-        # Centro 3: sin variedad asignada, sólo grupo.
+        # Centro 3: sin variedad asignada, sÃ³lo grupo.
         cls.account_group = _account("AA grupo V2D", variedad=False, grupo=cls.grupo)
 
         cls.center_center = cls.env["step.management.cost.center"].create({
@@ -91,7 +91,7 @@ class TestAgricultureBridge(ManagementCostsCommon):
             "company_id": cls.company_a.id,
         })
         cls.version = cls.env["step.management.estimation.version"].create({
-            "code": "V2D", "name": "Estimación V2D", "season": "2026/2027",
+            "code": "V2D", "name": "EstimaciÃ³n V2D", "season": "2026/2027",
             "company_id": cls.company_a.id,
         })
         cls.week_curve = cls.env["step.management.estimation.curve"].create({
@@ -169,7 +169,7 @@ class TestAgricultureBridge(ManagementCostsCommon):
             [self.center_center], harvest_labor=other_labor, default_yield=3.0,
         )
         line = self._line_for(est, self.center_center)
-        self.assertAlmostEqual(line.yield_ue, 3.0)  # default_yield_ue del núcleo, sin tocar
+        self.assertAlmostEqual(line.yield_ue, 3.0)  # default_yield_ue del nÃºcleo, sin tocar
         self.assertIn("manual", line.yield_source.lower())
 
     def test_no_harvest_labor_keeps_core_behavior(self):
@@ -195,10 +195,10 @@ class TestAgricultureBridge(ManagementCostsCommon):
         est = self._estimation([core_only], harvest_labor=self.labor)
         line = self._line_for(est, core_only)
         self.assertAlmostEqual(line.plants, 250.0)
-        self.assertIn("núcleo", line.plants_source.lower())
+        self.assertIn("nÃºcleo", line.plants_source.lower())
 
     # ------------------------------------------------------------------
-    # Dos compañías; método Kilos sin doble rendimiento; snapshot inmutable
+    # Dos compaÃ±Ã­as; mÃ©todo Kilos sin doble rendimiento; snapshot inmutable
     # ------------------------------------------------------------------
     def test_two_companies_do_not_cross_link(self):
         fundo_b = self.env["step.fundo"].create({
@@ -209,8 +209,8 @@ class TestAgricultureBridge(ManagementCostsCommon):
             "type_costo": "fruta", "etapa_costo": "ope", "tipo_fruta": "conven",
             "fundo_id": fundo_b.id, "plant_cost": 999,
         })
-        # `check_company=True` (ya existente en el núcleo) rechaza enlazar un
-        # centro de la empresa A con una cuenta analítica de la empresa B.
+        # `check_company=True` (ya existente en el nÃºcleo) rechaza enlazar un
+        # centro de la empresa A con una cuenta analÃ­tica de la empresa B.
         with self.assertRaises(Exception):
             self.center_a.write({"analytic_account_id": account_b.id})
 
@@ -221,7 +221,7 @@ class TestAgricultureBridge(ManagementCostsCommon):
         line = self._line_for(est, self.center_center)
         line.total_kg_input = 12345.0
         self.assertAlmostEqual(line.total_kg, 12345.0)
-        # aunque haya rendimiento estándar real disponible, "Kilos" lo ignora
+        # aunque haya rendimiento estÃ¡ndar real disponible, "Kilos" lo ignora
         self.assertAlmostEqual(line.total_kg, 12345.0)
 
     def test_snapshot_freezes_source_fields(self):
@@ -232,3 +232,23 @@ class TestAgricultureBridge(ManagementCostsCommon):
             line.write({"yield_source": "manipulado"})
         with self.assertRaises(UserError):
             line.write({"plants_source": "manipulado"})
+
+    def test_hectares_accept_decimals(self):
+        """T49: las hectÃ¡reas por centro de costo y cuartel admiten decimales."""
+        self.account_center.has_cost = 1.14
+        self.account_center.flush_recordset(["has_cost"])
+        self.account_center.invalidate_recordset()
+        self.assertAlmostEqual(self.account_center.has_cost, 1.14)
+        self.center_center.invalidate_recordset()
+        self.assertAlmostEqual(self.center_center.agri_hectares, 1.14)
+        cuartel = self.env["step.cuartel.line"].create({
+            "name": "T49 decimal", "centro_id": self.account_center.id,
+            "has_cuartel": 0.27,
+        })
+        cuartel.flush_recordset(["has_cuartel"])
+        cuartel.invalidate_recordset()
+        self.assertAlmostEqual(cuartel.has_cuartel, 0.27)
+        for model, field in [("account.analytic.account", "has_cost"),
+                             ("step.cuartel.line", "has_cuartel"),
+                             ("step.management.cost.center", "agri_hectares")]:
+            self.assertEqual(self.env[model].fields_get([field])[field]["digits"], (16, 2))

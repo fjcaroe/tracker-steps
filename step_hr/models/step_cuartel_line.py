@@ -1,4 +1,4 @@
-# © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
+# Â© 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
 # -*- coding: utf-8 -*-
 
 from odoo import api, Command, fields, models, _
@@ -11,10 +11,10 @@ class StepCuartelLine(models.Model):
         comodel_name='account.analytic.account',
         string="Centro de costo",
         required=True, ondelete='cascade', index=True, copy=False)
-    has_cuartel = fields.Integer(string='Has Cuartel')
+    has_cuartel = fields.Float(string='Has Cuartel', digits=(16, 2))
     plant_cuartel = fields.Integer(string='Plantas Cuartel')
     hilera_cuartel = fields.Integer(string='Hileras Cuartel')
-    dis_plant = fields.Char(string='Distancia Plantación')
+    dis_plant = fields.Char(string='Distancia PlantaciÃ³n')
     clon = fields.Char(string='Clon')
-    conduc = fields.Char(string='Conducción')
-    patron = fields.Char(string='Patrón')
+    conduc = fields.Char(string='ConducciÃ³n')
+    patron = fields.Char(string='PatrÃ³n')
