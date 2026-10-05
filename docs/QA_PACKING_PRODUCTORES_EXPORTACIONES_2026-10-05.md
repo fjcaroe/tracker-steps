@@ -66,7 +66,9 @@ Rama de entrega: `codex/packing-productores-exportaciones-qa`. Se consolidan
    productos rastreados, indicar el lote en el detalle antes de preparar stock.
 5. Crear/validar OP y OT; seleccionar contrato, tarjas C/E/N, tiempos y requisito
    de inspección. Preparar materiales, justificar ajustes y aprobar. Cerrar la
-   OT y comprobar quants, tres traslados y valoración de fruta E.
+   OT y comprobar quants, tres traslados y valoración de fruta E. Si se reservan
+   tarjas, crear y aprobar primero una versión del instructivo de la OP; acceder
+   a **Packing → Planificación → Reservas por instructivo** y seleccionarla.
 6. Registrar la inspección exigida y comprobar que el despacho se bloquea si
    falta aprobación o si la última revisión de cualquier tipo fue rechazada.
    Devolver las tarjas N al productor desde la OT cerrada cuando corresponda.
@@ -116,3 +118,33 @@ Contienen `database.dump`, configuración anterior, metadatos de la entrega y
 registro de actualización. Ante una falla, conservar el respaldo y diagnosticar
 la base exacta antes de recuperar; el script no elimina ni restaura bases de
 usuarios automáticamente.
+
+## Evidencia de la entrega, 05-10-2026
+
+Commit de aplicación desplegado en ambos QA:
+`3c104abafa1d001d05af0fea714949acf8a58fca`.
+Paquete de 198 archivos, SHA256:
+`beee8473257cf5c0967fef6ad6fb7f673806e4f041073a773d604e87fd7ae368`.
+Se verificó el contenido contra el commit, normalizando únicamente finales
+de línea de Windows/Linux. Los commits posteriores de documentación/herramientas
+no cambian el código agrícola desplegado.
+
+| Ambiente | Pruebas en copia aislada | Servicio actualizado | Verificación final |
+|---|---|---|---|
+| Desarrollo / `LAB_TAREAS` | 53, 0 fallos, 0 errores; 17:47:55 UTC | `odoo18-dev.service` | Cinco versiones correctas, código del commit, ocho formularios compilados, menú de reservas y acceso HTTPS 200 |
+| Demo / `STEPS_DEMO` | 53, 0 fallos, 0 errores; 17:47:59 UTC | `odoo18-demo.service` | Cinco versiones correctas, código del commit, ocho formularios compilados, menú de reservas y acceso HTTPS 200 |
+
+Registros finales de prueba:
+
+- `/opt/steps-agro-qa/development/tests-20261005T174635Z.log`
+- `/opt/steps-agro-qa/demo/tests-20261005T174646Z.log`
+
+Respaldos inmediatamente anteriores a la versión final:
+
+- `/opt/backups/agro-qa-development-20261005T174832Z/`
+- `/opt/backups/agro-qa-demo-20261005T174943Z/`
+
+Los servicios productivos `odoo18.service` y `odoo18-sys.service` permanecieron
+activos, con inicio previo a estos despliegues. No se actualizó ninguna base
+productiva. Los diarios, cuentas, folios y contratos reales quedan para la
+prueba funcional del responsable contable, sin publicar facturas de prueba.

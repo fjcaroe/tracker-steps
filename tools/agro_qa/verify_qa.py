@@ -2,7 +2,6 @@
 import argparse
 import configparser
 import json
-from pathlib import Path
 import re
 import subprocess
 import urllib.request
@@ -46,6 +45,7 @@ try:
     forms = (
         ('step.packing.production', 'step_packing_operations.view_packing_production_form'),
         ('step.packing.order', 'step_packing_operations.view_packing_order_form'),
+        ('step.export.stock.reservation', 'step_export.view_step_export_stock_reservation_form'),
         ('step.packing.inspection', 'step_packing_operations.view_packing_inspection_form'),
         ('step.packing.instruction', 'step_packing_operations.view_packing_instruction_form'),
         ('step.packing.monthly.fruit.bill', 'step_packing_operations.view_monthly_fruit_bill'),
@@ -54,6 +54,8 @@ try:
     )
     for model, xmlid in forms:
         assert env[model].get_view(view_id=env.ref(xmlid).id, view_type='form')['arch']
+    reservation_menu = env.ref('step_packing_operations.menu_packing_stock_reservation')
+    assert reservation_menu.active and reservation_menu.action == env.ref('step_export.action_step_export_stock_reservation')
     print('AGRO_QA_REGISTRY_OK ' + json.dumps({'database': env.cr.dbname, 'versions': versions, 'compiled_forms': len(forms)}))
 finally:
     env.cr.rollback()
