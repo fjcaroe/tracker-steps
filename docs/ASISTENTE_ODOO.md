@@ -160,3 +160,30 @@ Para revertir la entrega, desactivar IA desde Ajustes y restaurar el código
 respaldado. Si es necesaria restauración de la base, revisar primero el respaldo
 y los cambios posteriores; no restaurarla automáticamente, pues reemplazaría
 operaciones hechas después del despliegue.
+
+## Evidencia de instalación del 05-10-2026 UTC
+
+- Ambos addons instalados en Desarrollo, versión `18.0.1.0.0`; siete guías
+  activas y aprobadas. La IA sigue desactivada y pendiente de configuración
+  segura de la clave. No se hicieron llamadas reales a OpenAI.
+- Código de producto desplegado: commit `847eea2`, paquete SHA-256
+  `04d4c9637380c801cd6453864a70adb54effd4022a25a284b9e53a24795cf0cb`.
+- Respaldo final: `/opt/backups/steps-assistant-dev-20261005T003944Z`.
+- Postflight: módulos `installed`, servicio activo y `/web/login` responde.
+  `tools/chatbot/postflight.sh` conserva la verificación reproducible.
+- Navegador: chat visible, consulta de Colaciones muestra fuentes relacionadas,
+  apertura del artículo correcta y consulta sobre capitales sin respuesta general.
+- Móvil 390 × 844: ancho de documento 390 px; ancho y scrollWidth del asistente
+  375 px; scroll vertical del asistente cambia de 0 a 588 px. Se restauró el
+  tamaño normal del navegador.
+- El registro de inicio de Desarrollo advierte que falta el addon instalado
+  `steps_api`. Estos cambios no incluyen ni modifican ese addon. La advertencia
+  no impidió cargar y probar Ayuda Steps; su revisión corresponde al producto
+  móvil y no se considera resuelta por esta entrega.
+- [PR draft #18](https://github.com/fjcaroe/tracker-steps/pull/18), hacia `develop`.
+
+Para finalizar la activación todavía se debe completar la selección segura de
+cuenta/proyecto de OpenAI, confirmar dónde se escribe la clave, instalarla en
+el entorno privado del servicio y probar la generación real y los intentos de
+salir del alcance. Los artículos existentes de Conocimiento requieren aprobación
+explícita del editor antes de usarlos; no se publicaron automáticamente.
