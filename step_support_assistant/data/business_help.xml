@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <record id="help_business_queries" model="step.assistant.article">
+        <field name="sequence">90</field>
         <field name="name">Consultar datos reales: alcance y filtros</field>
         <field name="published" eval="True"/>
         <field name="keywords">asientos saldos contabilidad facturas pagos ventas compras inventario datos reales tesorería consultas</field>

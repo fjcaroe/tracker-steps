@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="1">
     <record id="help_assistant_scope" model="step.assistant.article">
+        <field name="sequence">190</field>
         <field name="name">Qué puede resolver el Asistente Steps</field>
         <field name="published" eval="True"/>
         <field name="keywords">asistente chatbot ayuda alcance consultas fuentes inteligencia</field>
@@ -8,6 +9,7 @@
         <field name="content">El Asistente Steps atiende dudas de uso y procedimientos documentados de nuestro Odoo. Cada respuesta con IA incluye artículos de ayuda y un fragmento que puedes revisar. Las fuentes dependen de tu compañía actual, tus grupos y los módulos instalados. El asistente no modifica registros. El botón Consultar datos reales muestra registros y saldos con tus permisos en la compañía actual; consulta la guía Consultar datos reales: alcance y filtros. Cuando la información aprobada no alcanza, indica que necesita más antecedentes y ofrece acceso a soporte. Para preguntar, indica la aplicación, la pantalla, la tarea y el mensaje de error. Evita incluir contraseñas o datos personales. Puedes abrir directamente las guías disponibles aunque las respuestas con IA estén desactivadas.</field>
     </record>
     <record id="help_support_request" model="step.assistant.article">
+        <field name="sequence">180</field>
         <field name="name">Cómo pedir ayuda para un error en Odoo</field>
         <field name="published" eval="True"/>
         <field name="keywords">error soporte ticket consulta problema falla captura mensaje</field>
@@ -15,6 +17,7 @@
         <field name="content">Para resolver una duda o reportar un problema en nuestro Odoo, describe qué aplicación estás usando, qué tarea quieres completar, qué pasos hiciste y qué mensaje aparece. Indica el ambiente y la compañía con la que trabajas. Una captura de pantalla puede ayudar, ocultando contraseñas y datos personales que no sean necesarios. El botón Contactar a soporte abre el portal de soporte Steps. El asistente no crea ni envía tickets automáticamente; revisa la información antes de enviarla desde el portal. Si no existe una guía que explique el problema, solicita revisión de soporte en lugar de repetir operaciones que puedan duplicar registros.</field>
     </record>
     <record id="help_permissions" model="step.assistant.article">
+        <field name="sequence">170</field>
         <field name="name">No veo una aplicación o tengo un error de permisos</field>
         <field name="published" eval="True"/>
         <field name="keywords">permisos acceso aplicación menu invisible compañía empresa autorizado denegado</field>
@@ -22,6 +25,7 @@
         <field name="content">Las aplicaciones y los registros visibles en nuestro Odoo dependen de los permisos del usuario y de la compañía seleccionada. Si no ves una aplicación o aparece un mensaje de acceso denegado, comprueba primero que estás trabajando en el ambiente y la compañía correctos. Informa a tu administrador o a soporte el nombre de la aplicación, la pantalla y el mensaje exacto. El administrador debe revisar los grupos autorizados para esa función. El asistente no concede permisos ni recomienda usar la cuenta de otra persona. Una guía disponible no reemplaza los permisos necesarios para realizar una operación.</field>
     </record>
     <record id="help_colaciones_start" model="step.assistant.article">
+        <field name="category">colaciones</field><field name="sequence">200</field>
         <field name="name">Colaciones: preparación y registro</field>
         <field name="published" eval="True"/>
         <field name="module_name">step_colaciones</field>
@@ -31,6 +35,7 @@
         <field name="content">La aplicación Colaciones permite registrar, planificar y valorizar colaciones de trabajadores. Antes de operar, el administrador debe marcar los productos como Es colación, marcar los proveedores como Es proveedor de colaciones, habilitar a los trabajadores y configurar su credencial, NIP o NFC. También debe crear una tarifa, agregar productos y activarla. Los registros manuales se consultan en Colaciones, Operación, Registros de colación. Para usar el tótem, el administrador configura el producto, proveedor y método de identificación y abre su URL. Validar un registro fija la tarifa y el costo aplicable. El grupo Colaciones / Usuario accede a registros e informes; Colaciones / Administrador gestiona validación, planificación, tarifas, tótems y configuración.</field>
     </record>
     <record id="help_colaciones_duplicate" model="step.assistant.article">
+        <field name="category">colaciones</field><field name="sequence">200</field>
         <field name="name">Colaciones: mensaje de registro duplicado</field>
         <field name="published" eval="True"/>
         <field name="module_name">step_colaciones</field>
@@ -40,6 +45,7 @@
         <field name="content">Colaciones impide registrar dos veces el mismo producto para un trabajador durante el mismo día y en la misma compañía, incluso si las marcaciones llegan desde tótems distintos. El mensaje La colación ya estaba registrada hoy indica que ya existe ese registro; no es necesario volver a enviarlo. Revisa en Colaciones, Operación, Registros de colación el trabajador, producto, día y compañía. Si detectas un error en esos datos, solicita revisión al administrador de Colaciones. Puedes consultar registros visibles desde Consultar datos reales. El asistente no elimina duplicados.</field>
     </record>
     <record id="help_colaciones_offline" model="step.assistant.article">
+        <field name="category">colaciones</field><field name="sequence">200</field>
         <field name="name">Colaciones: tótem sin conexión y sincronización</field>
         <field name="published" eval="True"/>
         <field name="module_name">step_colaciones</field>
@@ -49,6 +55,7 @@
         <field name="content">El tótem de Colaciones es una aplicación instalable. Debe abrirse al menos una vez con conexión para que pueda cargar su interfaz sin red. Las marcaciones hechas sin conexión se guardan en ese navegador y se transmiten cuando vuelve la conexión. Cada evento usa un identificador único para que los reintentos no creen registros repetidos. Al sincronizar, el servidor vuelve a validar trabajador, producto, fecha, antigüedad y duplicidad; trabajar sin conexión no elimina esas reglas. Si aparece un error al sincronizar, conserva el mensaje y consulta a soporte. NFC admite lector USB como teclado; Web NFC depende del dispositivo y del navegador.</field>
     </record>
     <record id="help_colaciones_tariff" model="step.assistant.article">
+        <field name="category">colaciones</field><field name="sequence">200</field>
         <field name="name">Colaciones: no existe una tarifa vigente</field>
         <field name="published" eval="True"/>
         <field name="module_name">step_colaciones</field>

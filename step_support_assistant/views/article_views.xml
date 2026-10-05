@@ -5,7 +5,9 @@
         <field name="model">step.assistant.article</field>
         <field name="arch" type="xml">
             <list string="Artículos de ayuda">
+                <field name="sequence" widget="handle"/>
                 <field name="name"/>
+                <field name="category"/>
                 <field name="published" widget="boolean_toggle" groups="step_support_assistant.group_assistant_manager"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <field name="module_name" optional="hide"/>
@@ -34,6 +36,8 @@
                             <field name="group_ids" widget="many2many_tags"/>
                         </group>
                         <group>
+                            <field name="category"/>
+                            <field name="sequence"/>
                             <field name="keywords"/>
                             <field name="module_name"/>
                             <field name="required_model"/>

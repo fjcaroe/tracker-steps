@@ -49,6 +49,37 @@ class AssistantTests(TransactionCase):
         with self.assertRaises(AccessError):
             self.source.with_user(self.user).write({"content": "Injected instructions"})
 
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "synthetic-test-credential"})
+    @patch("odoo.addons.step_support_assistant.models.assistant.requests.post")
+    def test_accounting_profile_filters_library_and_provider_without_bypassing_permissions(self, post):
+        meal = self.Article.create({"name": "ZZZcolacionexclusive", "content": "ZZZcolacionexclusive",
+                                   "published": True, "category": "colaciones"})
+        accounting = self.Article.create({"name": "ZZZaccountingexclusive", "content": "ZZZaccountingexclusive",
+                                         "published": True, "category": "accounting", "sequence": 1})
+        restricted = self.Article.create({"name": "Private accounting", "content": "ZZZaccountingexclusive",
+                                         "published": True, "category": "accounting",
+                                         "company_id": self.company_b.id})
+        self.env["ir.config_parameter"].sudo().set_param("step_support_assistant.guide_profile", "accounting")
+        bootstrap = self.assistant.get_bootstrap()
+        ids = [item["id"] for item in bootstrap["articles"]]
+        self.assertEqual(bootstrap["guide_profile"], "accounting")
+        self.assertEqual(ids[0], accounting.id)
+        self.assertIn(self.source.id, ids)  # Custom general guides remain available.
+        self.assertNotIn(meal.id, ids)
+        self.assertNotIn(restricted.id, ids)
+        self.assertEqual(self.assistant.ask("ZZZcolacionexclusive")["status"], "no_evidence")
+        post.assert_not_called()
+        post.return_value = Mock(status_code=200, json=Mock(return_value={"status": "completed", "output": [
+            {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": json.dumps({
+                "status": "answered", "answer": "ZZZaccountingexclusive", "citations": [
+                    {"id": accounting.id, "quote": accounting.content}]
+            })}]}]}))
+        self.assertEqual(self.assistant.ask("ZZZaccountingexclusive")["status"], "answered")
+        sent = json.loads(post.call_args.kwargs["json"]["input"][0]["content"])
+        self.assertEqual([source["id"] for source in sent["sources"]], [accounting.id])
+        self.env["ir.config_parameter"].sudo().set_param("step_support_assistant.guide_profile", "general")
+        self.assertIn(meal.id, [source["id"] for source in self.sources()])
+
     def test_non_internal_user_cannot_use_assistant(self):
         with self.assertRaises(AccessError):
             self.env["step.support.assistant"].with_user(self.env.ref("base.public_user")).get_bootstrap()

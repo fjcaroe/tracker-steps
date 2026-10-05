@@ -28,10 +28,18 @@ soporte abre `https://soporte.stepsapp.cl`; no envía mensajes ni crea tickets.
 
 ## Fuentes y alcance
 
-- `step_support_assistant` instala ocho guías verificadas: alcance del
-  asistente, reporte de problemas, permisos y cuatro procesos de Colaciones.
+- `step_support_assistant` instala dieciséis guías verificadas: ocho sobre
+  contabilidad y tesorería, cuatro de ayuda general/consultas y cuatro procesos de Colaciones.
   Las guías de Colaciones se ofrecen solo si el módulo está instalado y el
   usuario tiene permiso de lectura en sus registros.
+- En **Ayuda Steps → Ajustes → Enfoque de las guías**, el administrador puede
+  elegir **Contabilidad y tesorería**. Ese perfil muestra los temas contables
+  y generales, excluyendo Colaciones tanto de la biblioteca como de las fuentes
+  de ayuda enviadas a la IA. Los artículos se ordenan por **Orden**; **Tema**
+  permite clasificar nuevas guías. Los artículos propios siguen requiriendo
+  aprobación y conservan sus restricciones de compañía, grupos, módulos y ACL.
+  Las consultas de datos de otras aplicaciones siguen disponibles con los
+  permisos del usuario. El perfil predeterminado admite todas las aplicaciones.
 - **Artículos de ayuda** permite redactar y mantener instrucciones propias.
   Los editores revisan los pasos y marcan **Aprobado para el asistente**.
   Un artículo puede limitarse por compañía, grupos, módulo instalado y ACL

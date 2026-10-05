@@ -140,3 +140,38 @@ Cerrar con `python tools/git/verify_handoff.py --require-pushed`.
 Las pruebas iniciales con la credencial mal formada recibieron HTTP 401; la
 activación no se confirmó hasta corregir el formato y pasar las verificaciones.
 No se creó otra clave, no se rotó la existente y no se restauró la base completa.
+
+## Perfil contable de SyS — 5 de octubre de 2026
+
+La versión `18.0.1.2.0` incorpora ocho guías verificadas sobre asientos/apuntes,
+saldos y movimiento del período, facturas/notas de crédito, pagos,
+cuentas por cobrar/pagar, bancos/conciliación, flujos de caja y proformas.
+Se revisaron los menús de la base SyS y el código de Tesorería antes de redactarlas.
+Las guías explican los límites de las consultas y remiten a las pantallas de
+Odoo para filtros, informes y acciones que el asistente no ejecuta.
+
+Se activa exclusivamente en SyS el parámetro
+`step_support_assistant.guide_profile=accounting`. La biblioteca se titula
+**Guías de contabilidad y tesorería**, con las guías contables primero y
+ayuda general después. Colaciones conserva sus artículos pero queda fuera
+de las fuentes documentales de ese perfil; su consulta de registros sigue
+disponible según permisos. La migración clasifica y ordena solo las guías
+estándar, preservando textos, aprobación y fuentes propias.
+
+Para repetir esta actualización, generar el paquete y subir herramientas
+desde un commit publicado según el procedimiento anterior; ejecutar:
+
+```bash
+sudo -n python3 /tmp/HERRAMIENTAS/tools/chatbot/deploy_sys_accounting_guides.py \
+  /tmp/steps_assistant_sys_accounting.tar.gz SHA256 COMMIT_PUBLICADO
+```
+
+Esta rutina no exige igualar el código de Demo-SyS: SyS recibe una nueva
+versión de guías. Respalda metadata del perfil en un directorio privado y usa
+el instalador para respaldar base/addons antes de actualizar. Comprueba
+archivos, consultas locales sin API y una pregunta genérica de ayuda contable
+con cita de la guía nueva; solo esa pregunta consume tokens. No copia registros
+ni envía documentos financieros. Mantiene clave, modelo y límites, textos
+existentes, home de SyS y versión/configuración/proceso de Demo-SyS.
+Para volver al enfoque general usar **Ayuda Steps → Ajustes** y recargar el
+navegador. No requiere desactivar IA ni restaurar la base.

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="help_accounting_entries" model="step.assistant.article">
+        <field name="name">Contabilidad: consultar asientos y apuntes</field>
+        <field name="sequence">10</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">account</field>
+        <field name="required_model">account.move</field>
+        <field name="keywords">asientos apuntes contables diario fecha borrador publicado debe haber referencia</field>
+        <field name="provenance">account/views/account_menuitem.xml; step_support_assistant/models/business.py</field>
+        <field name="content">Para consultar asientos reales abre Consultar datos reales y elige Asientos. Puedes filtrar por el número del asiento y por fechas contables, o escribir últimos asientos. Esta consulta muestra asientos de tipo entrada de diario; las facturas y notas de crédito se consultan en Facturas. Se muestran como máximo 20 registros, con número, fecha, estado y referencia; no es el total del libro. Abre un registro para revisar sus apuntes, cuentas, Debe y Haber. En la aplicación Facturando, sección Contabilidad, puedes acceder a Asientos contables y Apuntes contables, según tus permisos. Comprueba la compañía seleccionada, el diario, las fechas y el estado antes de comparar resultados. El saldo del asistente incluye solo asientos publicados; un borrador puede aparecer en la lista de asientos y quedar excluido del saldo. El asistente no publica ni modifica asientos.</field>
+    </record>
+    <record id="help_accounting_balance" model="step.assistant.article">
+        <field name="name">Contabilidad: saldo de una cuenta y movimiento del período</field>
+        <field name="sequence">20</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">account</field>
+        <field name="required_model">account.move.line</field>
+        <field name="keywords">saldo saldos cuenta código acumulado movimiento período balance debe haber apertura diferencia</field>
+        <field name="provenance">step_support_assistant/models/business.py: _account_balance</field>
+        <field name="content">Para consultar el saldo abre Consultar datos reales, selecciona Saldo de una cuenta contable e ingresa el código exacto de la cuenta en Referencia o código de cuenta. Usa el código de tu plan de cuentas, no el nombre. Por ejemplo: saldo cuenta 110101 hasta 2026-09-30; reemplaza ese código y fecha por los que necesitas. Sin fecha Desde, se obtiene el saldo acumulado desde el inicio de los registros hasta Hasta; si omites Hasta se usa hoy. Con fecha Desde, se calcula únicamente el movimiento neto del período y no se agrega el saldo de apertura. La respuesta muestra Debe, Haber y saldo Debe menos Haber, en moneda de la compañía actual. Solo incluye apuntes de asientos publicados y visibles con tus permisos. Para investigar una diferencia revisa la compañía, código exacto, fechas, estado de los asientos y permisos; una restricción puede mostrar solo parte del libro. La lista de 20 asientos no permite verificar por sí sola el saldo acumulado. El asistente consulta datos; no determina tratamientos contables ni cambia registros.</field>
+    </record>
+    <record id="help_accounting_invoices" model="step.assistant.article">
+        <field name="name">Contabilidad: facturas, notas de crédito y pendientes</field>
+        <field name="sequence">30</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">account</field>
+        <field name="required_model">account.move</field>
+        <field name="keywords">facturas factura notas crédito clientes proveedores pendiente residual pagada vencida cobro deuda</field>
+        <field name="provenance">account/views/account_menuitem.xml; step_support_assistant/models/business.py: CATALOG facturas</field>
+        <field name="content">En Consultar datos reales selecciona Facturas para ver facturas y notas de crédito de clientes y proveedores de la compañía actual. Filtra por el número del documento y por fecha de factura. La tabla muestra estado del documento, estado del pago, importe total, importe residual y moneda. Abre el documento para revisar sus líneas, vencimientos y pagos relacionados. Para separar clientes de proveedores o filtrar documentos pendientes, pagados, vencidos o por contacto, usa las listas de Facturando: Clientes, Facturas; o Proveedores, Facturas de proveedor. Esos filtros no están disponibles en el formulario de datos del asistente. La búsqueda del asistente muestra hasta 20 documentos; sumar esa tabla no da la deuda total. No uses esta consulta para confirmar aceptación de un documento electrónico por una autoridad externa: revisa el estado específico en la aplicación. El asistente no emite documentos ni registra pagos.</field>
+    </record>
+    <record id="help_accounting_payments" model="step.assistant.article">
+        <field name="name">Contabilidad: revisar pagos de clientes y proveedores</field>
+        <field name="sequence">40</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">account</field>
+        <field name="required_model">account.payment</field>
+        <field name="keywords">pagos pago cliente proveedor cobro abono ingreso egreso banco estado factura</field>
+        <field name="provenance">account/views/account_menuitem.xml; step_support_assistant/models/business.py: CATALOG pagos</field>
+        <field name="content">Abre Consultar datos reales y selecciona Pagos. Filtra por número del pago y por fecha del pago. La tabla muestra número, fecha, estado, tipo de pago, importe y moneda de hasta 20 registros visibles en la compañía actual. Abre el pago para revisar el diario y sus documentos relacionados. Para filtrar por cliente, proveedor o estado, usa las pantallas de pagos de Facturando. Si tienes acceso a Tesorería, también puedes abrir Ingresos, Pagos de clientes; o Egresos, Pagos de proveedores. Para saber si una factura sigue pendiente revisa su importe residual y estado de pago, además del registro del pago. No concluyas que está saldada únicamente porque existe un pago por el mismo importe. La consulta del asistente es de lectura y no registra, confirma ni concilia pagos.</field>
+    </record>
+    <record id="help_treasury_receivables" model="step.assistant.article">
+        <field name="name">Tesorería: cuentas por cobrar, por pagar y vencimientos</field>
+        <field name="sequence">50</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">step_account_treasury</field>
+        <field name="required_model">step.cashflow</field>
+        <field name="keywords">tesorería cuentas cobrar pagar vencidas vencimientos deuda antigüedad contacto corriente proveedores clientes</field>
+        <field name="provenance">step_account_treasury/views/treasury_menus.xml</field>
+        <field name="content">En Tesorería, Informes, están Cuentas corrientes, Cuentas por cobrar vencidas y Cuentas por pagar vencidas, según tus permisos. Selecciona la compañía y revisa la fecha del informe y los filtros disponibles antes de comparar importes. Abre el detalle del contacto o documento desde el informe para investigar un vencimiento. Estos informes reutilizan las acciones contables de Odoo. El asistente puede consultar facturas y mostrar su residual y estado de pago, pero devuelve hasta 20 registros y no calcula un informe de antigüedad de deuda ni el total por cliente o proveedor. Para obtener esos totales usa el informe de la aplicación con sus filtros. Si no ves un informe, solicita revisión de permisos al administrador; no utilices la cuenta de otra persona.</field>
+    </record>
+    <record id="help_treasury_reconciliation" model="step.assistant.article">
+        <field name="name">Tesorería: revisar bancos y conciliación bancaria</field>
+        <field name="sequence">60</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">step_account_treasury</field>
+        <field name="required_model">step.cashflow</field>
+        <field name="keywords">conciliación conciliar bancaria banco bancos efectivo extracto transacción movimiento pago diferencia</field>
+        <field name="provenance">step_account_treasury/views/treasury_menus.xml: menu_treasury_bank</field>
+        <field name="content">En Tesorería, Conciliación bancaria, puedes abrir Bancos y efectivo para acceder al tablero de diarios, o Conciliación bancaria para revisar el informe disponible. Comprueba la compañía, el diario bancario y las fechas; revisa en la aplicación las transacciones y los documentos relacionados antes de aplicar una conciliación. Las acciones disponibles dependen de tus permisos. El asistente puede mostrar pagos y saldos contables, pero no consulta un catálogo de transacciones de extracto ni confirma por sí solo que un movimiento bancario quedó conciliado. La existencia de un pago y un saldo contable no sustituye la revisión de la conciliación en Odoo. Ante una diferencia, informa a soporte el diario, período, documento y mensaje de error, ocultando datos sensibles innecesarios. El asistente no importa extractos ni ejecuta conciliaciones.</field>
+    </record>
+    <record id="help_treasury_cashflow" model="step.assistant.article">
+        <field name="name">Tesorería: consultar el flujo de caja y su detalle</field>
+        <field name="sequence">70</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">step_account_treasury</field>
+        <field name="required_model">step.cashflow</field>
+        <field name="keywords">flujo flujos caja tesorería proyección semanas horizonte saldo inicial ingresos egresos actualizar aprobado</field>
+        <field name="provenance">step_account_treasury/views/cashflow_views.xml y views/treasury_menus.xml</field>
+        <field name="content">Abre Tesorería, Planificación, Flujos de Caja para revisar un flujo existente. Comprueba compañía, inicio, término, moneda, bancos y saldo inicial. El formulario contiene hojas de Clientes, N Venta, Otras Recaudaciones, Proveedores, O Compra, Proformas y Otros pagos; Resumen muestra la proyección y permite abrir el detalle que respalda las cifras. También puedes usar Planificación, Proyección por semana. Un flujo proyecta cinco semanas y no equivale al saldo acumulado de una cuenta contable. Actualizar datos está disponible en estado Nuevo o En progreso y depende de los permisos; un flujo Aprobado requiere la acción Reabrir de un usuario autorizado antes de continuar su edición. El asistente no ejecuta estas acciones. En Consultar datos reales selecciona Flujos de tesorería para listar hasta 20 flujos, por número y fechas de inicio, y abrir el formulario con su detalle. La tabla del asistente no calcula la proyección ni sus totales.</field>
+    </record>
+    <record id="help_treasury_proformas" model="step.assistant.article">
+        <field name="name">Tesorería: proformas de proveedor y estado de facturación</field>
+        <field name="sequence">80</field><field name="category">accounting</field>
+        <field name="published" eval="True"/><field name="module_name">step_account_treasury</field>
+        <field name="required_model">step.vendor.proforma</field>
+        <field name="keywords">proformas proforma proveedor aprobación aprobada borrador facturada factura final flujo caja</field>
+        <field name="provenance">step_account_treasury/models/vendor_proforma.py; views/vendor_proforma_views.xml</field>
+        <field name="content">En Consultar datos reales selecciona Proformas de proveedores para revisar número, fecha, vencimiento, estado, total y moneda de hasta 20 proformas de la compañía actual. Filtra por número y por fecha de la proforma; abre un registro para revisar proveedor, líneas y notas. Los usuarios con permisos de configuración pueden acceder también a Tesorería, Configuración, Proformas de proveedor. Los estados son Borrador, Aprobada, Facturada y Anulada. Para aprobar desde la aplicación, la proforma debe estar en borrador y tener al menos una línea. Solo las proformas aprobadas sin factura final vinculada se consideran pendientes para la proyección del flujo. La acción Marcar facturada cambia el estado y no emite una factura real. Revisa la factura final vinculada antes de dar por completada la documentación. El asistente no aprueba proformas ni genera facturas.</field>
+    </record>
+</odoo>

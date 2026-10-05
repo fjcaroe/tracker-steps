@@ -65,7 +65,7 @@
                     </form>
                 </section>
                 <aside class="steps-assistant-library" aria-label="Guías disponibles">
-                    <h2>Guías de este ambiente</h2>
+                    <h2 t-esc="state.guideProfile === 'accounting' ? 'Guías de contabilidad y tesorería' : 'Guías de este ambiente'"/>
                     <p>También puedes consultarlas directamente.</p>
                     <button t-foreach="state.articles" t-as="article" t-key="article.id" type="button" class="steps-assistant-article" t-on-click="() => this.openArticle(article.id)"><i class="fa fa-file-text-o" aria-hidden="true"/><span t-esc="article.title"/><i class="fa fa-angle-right" aria-hidden="true"/></button>
                     <p t-if="!state.loading and !state.articles.length">Aún no hay guías publicadas para tus permisos.</p>

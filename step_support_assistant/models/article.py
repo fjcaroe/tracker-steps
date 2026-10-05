@@ -5,9 +5,14 @@ from odoo.exceptions import ValidationError
 class AssistantArticle(models.Model):
     _name = "step.assistant.article"
     _description = "Fuente aprobada de ayuda Steps"
-    _order = "name, id"
+    _order = "sequence, name, id"
 
     name = fields.Char("Título", required=True, index=True)
+    sequence = fields.Integer("Orden", default=100)
+    category = fields.Selection([
+        ("general", "Ayuda general"), ("accounting", "Contabilidad y tesorería"),
+        ("colaciones", "Colaciones"),
+    ], string="Tema", default="general", required=True, index=True)
     content = fields.Text("Instrucciones para usuarios", required=True)
     keywords = fields.Char("Palabras de búsqueda")
     provenance = fields.Char("Referencia de revisión", help="Documento o módulo usado para verificar estas instrucciones. No incluya secretos.")
@@ -29,13 +34,21 @@ class AssistantArticle(models.Model):
             if article.module_name and not re.fullmatch(r"[a-z][a-z0-9_]*", article.module_name):
                 raise ValidationError(_("Use un nombre técnico de módulo válido."))
 
+    def _guide_profile(self):
+        profile = self.env["ir.config_parameter"].sudo().get_param(
+            "step_support_assistant.guide_profile", "general")
+        return "accounting" if profile == "accounting" else "general"
+
     def _available_sources(self):
         """Record rules apply before retrieving text. Never elevate article reads."""
-        articles = self.search([
+        domain = [
             ("published", "=", True), ("active", "=", True),
             "|", ("company_id", "=", False), ("company_id", "=", self.env.company.id),
             "|", ("group_ids", "=", False), ("group_ids", "in", self.env.user.groups_id.ids),
-        ])
+        ]
+        if self._guide_profile() == "accounting":
+            domain.append(("category", "in", ["general", "accounting"]))
+        articles = self.search(domain)
         required = set(articles.mapped("module_name")) - {False, ""}
         # Module state is technical metadata; article permissions remain those of the caller.
         installed = set(self.env["ir.module.module"].sudo().search([

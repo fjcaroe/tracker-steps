@@ -1,7 +1,7 @@
 {
     "name": "Steps · Asistente de ayuda",
     "summary": "Consultas sobre nuestro Odoo con fuentes aprobadas y permisos por usuario",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "category": "Productivity",
     "author": "Steps Consulting",
     "license": "LGPL-3",
@@ -12,6 +12,7 @@
         "security/ir.model.access.csv",
         "data/help_articles.xml",
         "data/business_help.xml",
+        "data/accounting_help.xml",
         "views/article_views.xml",
         "views/settings_views.xml",
         "views/menus.xml",

@@ -62,6 +62,7 @@ class SupportAssistant(models.AbstractModel):
         config = self._config()
         sources = self.env["step.assistant.article"]._available_sources()
         return {"ready": bool(config["enabled"] and config["key"]),
+                "guide_profile": self.env["step.assistant.article"]._guide_profile(),
                 "articles": [{"id": source["id"], "title": source["title"]} for source in sources],
                 "support_url": "https://soporte.stepsapp.cl",
                 "notice": "Los datos reales se consultan dentro de Odoo. Las preguntas de ayuda y sus guías se envían a OpenAI solo si la IA está habilitada. Evita incluir contraseñas o datos personales y revisa las fuentes."}

@@ -12,11 +12,11 @@ export class StepsAssistant extends Component {
         this.action = useService("action");
         this.transcript = useRef("transcript");
         this.composer = useRef("composer");
-        this.state = useState({ loading: true, busy: false, ready: false, error: "", question: "", messages: [], articles: [], notice: "", catalog: [], dataOpen: false, app: "", reference: "", dateFrom: "", dateTo: "" });
+        this.state = useState({ loading: true, busy: false, ready: false, guideProfile: "general", error: "", question: "", messages: [], articles: [], notice: "", catalog: [], dataOpen: false, app: "", reference: "", dateFrom: "", dateTo: "" });
         onWillStart(async () => {
             try {
                 const data = await this.orm.call("step.support.assistant", "get_bootstrap", []);
-                Object.assign(this.state, { ready: data.ready, articles: data.articles, notice: data.notice });
+                Object.assign(this.state, { ready: data.ready, articles: data.articles, notice: data.notice, guideProfile: data.guide_profile });
                 this.state.catalog = await this.orm.call("step.support.assistant", "get_business_catalog", []);
                 this.state.app = this.state.catalog[0]?.key || "";
             } catch {

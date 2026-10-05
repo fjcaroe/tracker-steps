@@ -8,6 +8,9 @@
             <xpath expr="//form" position="inside">
                 <app string="Asistente Steps" name="step_support_assistant" groups="base.group_system">
                     <block title="Atención de consultas sobre nuestro Odoo">
+                        <setting string="Enfoque de las guías" help="El perfil contable muestra guías de contabilidad, tesorería y ayuda general. También limita las fuentes de ayuda enviadas a la IA. Las consultas de datos siguen dependiendo de los permisos del usuario.">
+                            <field name="step_assistant_guide_profile"/>
+                        </setting>
                         <setting string="Activar respuestas con IA" help="Envía la pregunta y fuentes permitidas a OpenAI. La clave se configura únicamente en el entorno del servidor.">
                             <field name="step_assistant_enabled"/>
                             <div class="content-group"><field name="step_assistant_key_available" readonly="1"/></div>
