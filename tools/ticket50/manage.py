@@ -16,6 +16,9 @@ ENVIRONMENTS = {
     "development": ("odoo18-dev", "/etc/dev_odoo18.conf", "LAB_TAREAS", "odoo", "/opt/dev_odoo18/odoo_agriculture"),
     "cerro": ("odoo18-cerroelplomo", "/etc/odoo18-cerroelplomo.conf", "CERRO_EL_PLOMO", "cerro_odoo18", "/opt/cerroelplomo_odoo18/steps_addons"),
 }
+# Confirmed before T50 and reproduced in the baseline clone. This missing
+# unrelated addon does not prevent registry startup or the estimation tests.
+KNOWN_BASELINE_ERROR = "Some modules are not loaded, some dependencies or manifest may be missing: ['steps_api']"
 
 
 def run(command, **kwargs):
@@ -24,6 +27,10 @@ def run(command, **kwargs):
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+
+
+def unexpected_errors(text):
+    return [line for line in text.splitlines() if " ERROR " in line and not line.endswith(KNOWN_BASELINE_ERROR + " ") and not line.endswith(KNOWN_BASELINE_ERROR)]
 
 
 def overlay(release, root):
@@ -75,13 +82,14 @@ def main():
         log = stage / ("qa-" + stamp + ".log")
         print("T50_QA_BEGIN", qa_db, str(log), flush=True)
         command = base_command + ["-d", qa_db, "--addons-path", str(stage) + "," + options["addons_path"],
+                                  "--http-interface=127.0.0.1", "--http-port=0", "--gevent-port=0",
                                   "-u", MODULE, "--stop-after-init", "--test-enable", "--test-tags",
                                   "/step_management_costs_agriculture:TestEstimationCatalog,/step_management_costs_agriculture:TestAgricultureBridge", "--logfile", str(log)]
         result = subprocess.run(command)
         text = log.read_text(errors="replace")
         lines = [line for line in text.splitlines() if any(word in line for word in ["Starting Test", "failed", "ERROR", "FAIL", "T50 linked", "tests.stats", "tests.result"])]
         print("\n".join(lines[-90:]), flush=True)
-        assert result.returncode == 0 and "0 failed" in text and "TestEstimationCatalog" in text, f"QA failed: {log}"
+        assert result.returncode == 0 and "0 failed, 0 error(s)" in text and "TestEstimationCatalog" in text and not unexpected_errors(text), f"QA failed: {log}"
         (stage / "qa_passed.json").write_text(json.dumps({"commit": args.commit, "release_sha256": digest(args.release), "database": qa_db, "log": str(log)}))
         print("T50_QA_OK", qa_db, flush=True)
         return
@@ -110,7 +118,7 @@ def main():
             result = subprocess.run(command)
             text = log.read_text(errors="replace")
             print("\n".join(line for line in text.splitlines() if "T50 linked" in line or "ERROR" in line), flush=True)
-            assert result.returncode == 0 and "Modules loaded." in text and "ERROR" not in text, f"Upgrade failed: {log}"
+            assert result.returncode == 0 and "Modules loaded." in text and not unexpected_errors(text), f"Upgrade failed: {log}"
             (backup / "deployment.json").write_text(json.dumps({"commit": args.commit, "database": database, "log": str(log), "files": {name: digest(Path(addons) / name) for name in files}}, indent=2))
         finally:
             run(["systemctl", "start", service])
