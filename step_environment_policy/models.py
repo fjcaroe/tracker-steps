@@ -16,18 +16,26 @@ class View(models.Model):
                 archive.create({'source_model':'ir.ui.view','source_id':view.id,'payload':{'arch':view.arch_db}})
             view.with_context(lang=None).write({'arch_db':etree.tostring(arch,encoding='unicode')})
 
-        for xmlid in ('web.external_layout_standard','web.external_layout_boxed','web.external_layout_bold','web.external_layout_striped','web.external_layout_wave'):
-            view=self.env.ref(xmlid,raise_if_not_found=False)
-            if view:
-                arch=etree.fromstring(view.with_context(lang=None).arch_db)
-                nodes=arch.xpath('//*[@t-field="doc.x_name"]')
-                for node in nodes: node.set('t-field','company.name')
-                if nodes: save(view,arch)
+        roots=[self.env.ref(x,raise_if_not_found=False) for x in ('web.external_layout_standard','web.external_layout_boxed','web.external_layout_bold','web.external_layout_striped','web.external_layout_wave')]
+        layouts=self.sudo().browse([v.id for v in roots if v])
+        while True:
+            descendants=self.sudo().search([('active','=',True),('inherit_id','in',layouts.ids)])
+            newer=layouts | descendants
+            if newer==layouts: break
+            layouts=newer
+        for view in layouts:
+            arch=etree.fromstring(view.with_context(lang=None).arch_db)
+            nodes=arch.xpath('//*[@t-field="doc.x_name"]')
+            for node in nodes: node.set('t-field','company.name')
+            if nodes: save(view,arch)
         owned=self.env['ir.model.data'].sudo().search([('module','=','studio_customization'),('model','=','ir.ui.view')]).mapped('res_id')
         for view in self.sudo().browse(owned).exists().filtered(lambda v:v.active and v.model=='hr.employee'):
             arch=etree.fromstring(view.with_context(lang=None).arch_db)
             changed=False
-            for field in arch.xpath('//field[@name="step_work_schedule"]'):
+            for field in arch.xpath('//field[@name]'):
+                metadata=self.env['hr.employee']._fields.get(field.get('name'))
+                if not metadata or getattr(metadata,'comodel_name',None)!='step.work.schedule':
+                    continue
                 for nested in list(field):
                     if nested.tag in ('list','tree','form') and nested.xpath('.//field[@name="employee_id"]'):
                         field.remove(nested)
