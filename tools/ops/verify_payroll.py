@@ -1,11 +1,22 @@
 """Check the effective payroll registry/forms; every probe rolls back."""
 import json
+import importlib
+from pathlib import Path
 from odoo.exceptions import UserError
 
 assert env.cr.dbname == EXPECTED_DATABASE
 try:
     installed = env['ir.module.module'].search([('state', '=', 'installed')]).mapped('name')
     assert 'l10n_cl_simpledigital_payroll' in installed
+    versions = {}
+    for name, expected in EXPECTED_VERSIONS.items():
+        if name not in installed:
+            continue
+        actual = env['ir.module.module'].search([('name', '=', name)]).latest_version
+        assert actual == expected, (name, actual, expected)
+        source = Path(importlib.import_module('odoo.addons.' + name).__file__).resolve()
+        assert source.is_relative_to(Path(EXPECTED_ROOT).resolve()), (name, str(source))
+        versions[name] = actual
     assert not any(n.startswith('l10n_cl_hr') or n in ('step_hr_previred_blueminds','step_hr_contract_lifecycle_agriculture') for n in installed)
     for model in ('hr.afp','hr.indicadores','hr.isapre'):
         assert model not in env.registry.models, model
@@ -54,6 +65,6 @@ try:
             pass
         else:
             raise AssertionError('Legacy calculation not blocked')
-    print('PAYROLL_REGISTRY_OK '+json.dumps({'database':env.cr.dbname,'simpledigital':True,'legacy_engine_removed':True,'archive_records':archived}))
+    print('PAYROLL_REGISTRY_OK '+json.dumps({'database':env.cr.dbname,'simpledigital':True,'legacy_engine_removed':True,'archive_records':archived,'versions':versions}))
 finally:
     env.cr.rollback()

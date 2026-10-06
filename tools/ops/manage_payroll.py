@@ -113,7 +113,11 @@ def main():
             command = ['nice', '-n', '10', *command]
         log = stage/(label+'-'+stamp+'.log')
         if shell:
-            result = subprocess.run(command+['--log-level=error'],input='EXPECTED_DATABASE='+repr(db)+'\n'+shell,text=True,capture_output=True)
+            header = 'EXPECTED_DATABASE=' + repr(db) + '\n'
+            if label in ('verify', 'live-verify'):
+                header += 'EXPECTED_VERSIONS=' + repr(proof['versions']) + '\n'
+                header += 'EXPECTED_ROOT=' + repr(paths.split(',')[0]) + '\n'
+            result = subprocess.run(command+['--log-level=error'],input=header+shell,text=True,capture_output=True)
             log.write_text(result.stdout+result.stderr)
             assert result.returncode==0 and 'Traceback' not in result.stderr, str(log)+'\n'+result.stderr[-1800:]
             print(result.stdout[-1200:],flush=True)
