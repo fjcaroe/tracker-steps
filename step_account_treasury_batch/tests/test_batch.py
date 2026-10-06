@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import base64
+import io
+import zipfile
 
 from odoo import Command, fields
 from odoo.exceptions import UserError
@@ -53,3 +55,154 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
         })
         with self.assertRaises(UserError):
             batch.action_export_treasury_review_csv()
+
+    def _bancoestado_batch(self, bank_code="012", method="01"):
+        journal = self.company_data["default_journal_bank"]
+        partner = self.partner_a
+        partner.write({"vat": "76.123.456-7", "email": "pagos@example.cl"})
+        bank = self.env["res.bank"].create({"name": "Banco exportación", "bic": bank_code})
+        partner_bank = self.env["res.partner.bank"].create({
+            "partner_id": partner.id, "bank_id": bank.id,
+            "acc_number": "00123456789", "step_bancoestado_payment_method": method,
+        })
+        method_line = journal.outbound_payment_method_line_ids[:1]
+        payment = self.env["account.payment"].create({
+            "payment_type": "outbound", "partner_type": "supplier",
+            "partner_id": partner.id, "amount": 125000, "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_method_line_id": method_line.id,
+            "partner_bank_id": partner_bank.id,
+        })
+        batch = self.env["account.batch.payment"].create({
+            "batch_type": "outbound", "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_ids": [Command.set(payment.ids)],
+        })
+        return batch
+
+    def test_bancoestado_export_is_real_xlsx_with_seven_columns(self):
+        batch = self._bancoestado_batch()
+        action = batch.action_export_bancoestado_xlsx()
+        attachment_id = int(action["url"].split("/web/content/")[1].split("?")[0])
+        payload = base64.b64decode(self.env["ir.attachment"].browse(attachment_id).datas)
+        self.assertTrue(payload.startswith(b"PK"))
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            shared = archive.read("xl/sharedStrings.xml").decode()
+        self.assertIn("MONTO DEL PAGO", shared)
+        self.assertIn("761234567", shared)
+        self.assertIn("00123456789", shared)
+
+    def test_savings_method_rejects_non_bancoestado(self):
+        batch = self._bancoestado_batch(bank_code="037", method="02")
+        with self.assertRaises(UserError):
+            batch.action_export_bancoestado_xlsx()
+
+    def test_bank_code_must_have_three_digits(self):
+        batch = self._bancoestado_batch(bank_code="INVALIDO")
+        with self.assertRaises(UserError):
+            batch.action_export_bancoestado_xlsx()
+
+    def test_payment_without_bank_account_falls_back_to_partners_only_account(self):
+        """Ticket 28: "el proveedor si tiene cuenta bancaria" pero el pago no
+        la trae seleccionada. Esto pasa en la práctica cuando la cuenta se
+        registra en Contactos DESPUÉS de crear el pago: Odoo sólo calcula
+        `partner_bank_id` una vez (depende de partner_id/company_id, no de
+        las cuentas del proveedor) y no lo recalcula al agregar la cuenta.
+        No debe fallar con "no tiene cuenta bancaria" si el proveedor termina
+        con una sola cuenta: se usa esa, sin ambigüedad."""
+        journal = self.company_data["default_journal_bank"]
+        partner = self.partner_a
+        partner.write({"vat": "76.123.456-7", "bank_ids": [Command.clear()]})
+        method_line = journal.outbound_payment_method_line_ids[:1]
+        payment = self.env["account.payment"].create({
+            "payment_type": "outbound", "partner_type": "supplier",
+            "partner_id": partner.id, "amount": 1000, "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_method_line_id": method_line.id,
+        })
+        self.assertFalse(payment.partner_bank_id)
+        # La cuenta se agrega DESPUÉS de crear el pago, como en el caso real.
+        bank = self.env["res.bank"].create({"name": "Banco exportación", "bic": "012"})
+        self.env["res.partner.bank"].create({
+            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00123456789",
+        })
+        self.assertFalse(payment.partner_bank_id, (
+            "Precondición del caso real: Odoo no recalcula partner_bank_id "
+            "sólo porque se agregó una cuenta nueva al proveedor."))
+        batch = self.env["account.batch.payment"].create({
+            "batch_type": "outbound", "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_ids": [Command.set(payment.ids)],
+        })
+        action = batch.action_export_bancoestado_xlsx()
+        self.assertIn("/web/content/", action["url"])
+
+    def test_payment_without_bank_account_and_no_partner_accounts_fails_clearly(self):
+        journal = self.company_data["default_journal_bank"]
+        partner = self.partner_a
+        partner.write({"vat": "76.123.456-7", "bank_ids": [Command.clear()]})
+        method_line = journal.outbound_payment_method_line_ids[:1]
+        payment = self.env["account.payment"].create({
+            "payment_type": "outbound", "partner_type": "supplier",
+            "partner_id": partner.id, "amount": 1000, "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_method_line_id": method_line.id,
+        })
+        batch = self.env["account.batch.payment"].create({
+            "batch_type": "outbound", "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_ids": [Command.set(payment.ids)],
+        })
+        with self.assertRaises(UserError):
+            batch.action_export_bancoestado_xlsx()
+
+    def test_payment_without_bank_account_and_multiple_partner_accounts_asks_to_choose(self):
+        journal = self.company_data["default_journal_bank"]
+        partner = self.partner_a
+        partner.write({"vat": "76.123.456-7", "bank_ids": [Command.clear()]})
+        method_line = journal.outbound_payment_method_line_ids[:1]
+        payment = self.env["account.payment"].create({
+            "payment_type": "outbound", "partner_type": "supplier",
+            "partner_id": partner.id, "amount": 1000, "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_method_line_id": method_line.id,
+        })
+        self.assertFalse(payment.partner_bank_id)
+        bank = self.env["res.bank"].create({"name": "Banco exportación", "bic": "012"})
+        self.env["res.partner.bank"].create({
+            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00123456789",
+        })
+        self.env["res.partner.bank"].create({
+            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00198765432",
+        })
+        batch = self.env["account.batch.payment"].create({
+            "batch_type": "outbound", "date": fields.Date.today(),
+            "journal_id": journal.id, "payment_ids": [Command.set(payment.ids)],
+        })
+        with self.assertRaises(UserError):
+            batch.action_export_bancoestado_xlsx()
+
+    def test_batch_above_threshold_requires_approval_before_export(self):
+        company = self.company_data["default_journal_bank"].company_id
+        company.treasury_batch_approval_threshold = 100000
+        company.treasury_batch_approver_id = self.env.user
+        batch = self._bancoestado_batch()  # amount 125000 > 100000
+        self.assertTrue(batch.approval_required)
+        with self.assertRaises(UserError):
+            batch.action_export_bancoestado_xlsx()
+        batch.action_approve_batch()
+        self.assertEqual(batch.approved_by_id, self.env.user)
+        action = batch.action_export_bancoestado_xlsx()
+        self.assertIn("/web/content/", action["url"])
+
+    def test_batch_below_threshold_does_not_require_approval(self):
+        company = self.company_data["default_journal_bank"].company_id
+        company.treasury_batch_approval_threshold = 1000000
+        batch = self._bancoestado_batch()  # amount 125000 < 1000000
+        self.assertFalse(batch.approval_required)
+        action = batch.action_export_bancoestado_xlsx()
+        self.assertIn("/web/content/", action["url"])
+
+    def test_only_configured_approver_can_approve(self):
+        company = self.company_data["default_journal_bank"].company_id
+        company.treasury_batch_approval_threshold = 100000
+        other_user = self.env["res.users"].create({
+            "name": "Otro usuario", "login": "otro_aprobador_t28@example.com",
+        })
+        company.treasury_batch_approver_id = other_user
+        batch = self._bancoestado_batch()
+        with self.assertRaises(UserError):
+            batch.action_approve_batch()

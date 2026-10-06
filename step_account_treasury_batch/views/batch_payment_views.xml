@@ -6,6 +6,12 @@
         <field name="inherit_id" ref="account_batch_payment.view_batch_payment_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header/button[@id='validate_button']" position="after">
+                <button name="action_export_bancoestado_xlsx" type="object"
+                        string="Exportar BancoEstado" class="oe_highlight"
+                        invisible="not payment_ids or batch_type != 'outbound' or (approval_required and not approved_by_id)"/>
+                <button name="action_approve_batch" type="object"
+                        string="Aprobar lote" class="oe_highlight"
+                        invisible="not approval_required or approved_by_id"/>
                 <button name="action_export_treasury_review_csv" type="object"
                         string="Revisión interna (no banco)" class="btn-secondary"
                         invisible="not payment_ids"/>
@@ -13,9 +19,31 @@
             <xpath expr="//sheet/group" position="before">
                 <div class="alert alert-info" role="alert">
                     <strong>Formatos bancarios:</strong>
-                    no hay un adaptador chileno aprobado. La revisión interna es
-                    sólo para control humano y no puede cargarse a un banco.
+                    BancoEstado usa el formato Pago 7 Columnas (.xlsx). Revise RUT,
+                    banco, forma de pago y cuenta antes de cargarlo. La revisión
+                    interna sigue siendo sólo para control humano.
                 </div>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not approval_required">
+                    Este lote supera el tope configurado en Tesorería y requiere
+                    aprobación antes de exportarse al banco.
+                </div>
+            </xpath>
+            <xpath expr="//sheet/group" position="after">
+                <group string="Aprobación" invisible="not approval_required">
+                    <field name="approved_by_id" readonly="1"/>
+                    <field name="approved_date" readonly="1"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_partner_bank_form_bancoestado" model="ir.ui.view">
+        <field name="name">res.partner.bank.form.bancoestado</field>
+        <field name="model">res.partner.bank</field>
+        <field name="inherit_id" ref="base.view_partner_bank_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='bank_id']" position="after">
+                <field name="step_bancoestado_payment_method"/>
             </xpath>
         </field>
     </record>
