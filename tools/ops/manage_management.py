@@ -124,6 +124,9 @@ def main():
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
     if args.action == 'qa':
+        # Catch import/API compatibility errors before restoring a whole clone.
+        import_probe = "import sys,importlib.util\nsys.path.insert(0,'/opt/odoo18')\nspec=importlib.util.spec_from_file_location('odoo.addons.step_agriculture_catalogs.models.catalogs',%r)\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nprint('CATALOG_IMPORT_OK')\n" % str(staged / 'step_agriculture_catalogs/models/catalogs.py')
+        run('/usr/bin/python3.10', '-c', import_probe)
         assert not query('postgres', "SELECT 1 FROM pg_database WHERE datname='%s'" % qa_db), 'Use a fresh run_id'
         (stage / 'baseline.json').write_text(json.dumps(baseline, indent=2))
         before = snapshot(database)

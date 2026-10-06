@@ -2,7 +2,7 @@
 from odoo import api, Command, fields, models, _
 from odoo.exceptions import ValidationError
 from odoo.models import to_company_ids
-from odoo.tools import unquote
+from odoo.tools.misc import unquote
 
 CATALOGS = ('step.temporada', 'step.especie', 'step.variedad', 'step.grupo.variedad')
 _INSTALL_SCOPE = object()
