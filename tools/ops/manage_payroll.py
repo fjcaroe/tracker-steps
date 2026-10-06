@@ -216,6 +216,8 @@ def main():
                     if Path(arg).name=='odoo-bin': assert not any(a in ('-u','-i','--update','--init') or a.startswith(('--update=','--init=')) for a in argv[i+1:]), 'Concurrent upgrade '+path.parent.name
             assert not release.exists()
             shutil.copytree(staged,release)
+            for path in [release, *release.rglob('*')]:
+                os.chown(path, identity.pw_uid, identity.pw_gid)
             backup=Path('/opt/steps_backups')/('payroll_'+args.environment+'_'+stamp)
             backup.mkdir(mode=0o700)
             shutil.copy2(conf,backup/'odoo.conf')
