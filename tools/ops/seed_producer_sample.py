@@ -118,7 +118,7 @@ def seed(env):
     finished = product('finished', 'Cereza Santina caja 5 kg', unit, 5)
     carton = product('carton', 'Caja de embalaje', unit, 0.2, False)
     pallet = create('pallet_type', 'stock.package.type', {'name': LABEL + 'Pallet 80 cajas', 'step_export_boxes_per_pallet': 80})
-    packaging = create('packaging', 'product.packaging', {'name': LABEL + 'Caja 5 kg', 'product_id': finished.id,
+    packaging = create('packaging', 'product.packaging', {'name': LABEL + 'Caja 5 kg', 'company_id': company.id, 'product_id': finished.id,
                                                           'qty': 1, 'step_export_kg_per_box': 5})
     bom = create('bom', 'mrp.bom', {'product_tmpl_id': finished.product_tmpl_id.id, 'product_id': finished.id,
         'company_id': company.id, 'product_qty': 1, 'product_uom_id': unit.id, 'step_export_fruit': True,
@@ -129,8 +129,12 @@ def seed(env):
                                              ('account_type', '=', 'liability_current')], order='code,id')
     provision = accounts.filtered(lambda row: '210331' in row.code)[:1]
     assert provision, 'Existing contract provision account is required'
-    journal = create('advance_journal', 'account.journal', {'name': LABEL + 'Anticipos Productores',
-        'code': 'QAPRO', 'type': 'general', 'company_id': company.id, 'currency_id': usd.id})
+    journals = env['account.journal'].search([('company_id', '=', company.id), ('type', '=', 'general')], order='id')
+    journal = journals.filtered(lambda row: not row.l10n_latam_use_documents and
+        (not company.step_producer_advance_account_id.allowed_journal_ids or
+         row in company.step_producer_advance_account_id.allowed_journal_ids) and
+        (not provision.allowed_journal_ids or row in provision.allowed_journal_ids))[:1]
+    assert journal, 'Reuse an approved non-fiscal contract journal without changing allowed journals'
     fixed = create('fixed_cost', 'step.export.grower.discount', {'name': LABEL + 'Embalaje y operación',
                 'company_id': company.id, 'code': 'QA-EMB', 'account_id': expense.id})
     margin = create('margin_cost', 'step.export.grower.discount', {'name': LABEL + 'Gestión comercial',
@@ -247,7 +251,7 @@ def seed(env):
         'fruit_species_id': species.id, 'step_packing_input_tag_ids': [Command.set(raw_tags[1:].ids)],
         'step_packing_output_tag_ids': [Command.set(waiting_output.ids)]})
     pending.action_step_packing_validate(); pending.action_prepare_materials(); pending.action_approve_materials()
-    income = env['account.account'].search([('company_ids', 'in', company.ids), ('deprecated', '=', False),
+    income = env['account.account'].search([('company_ids', 'in', company.ids), ('deprecated', '=', False), ('allowed_journal_ids', '=', False),
                                           ('account_type', '=', 'income')], order='code,id', limit=1)
     assert income
     sales_journal = create('sales_journal', 'account.journal', {'name': LABEL + 'Ventas internas QA (sin DTE)',
@@ -309,6 +313,7 @@ def seed(env):
     receiver_settlement.action_validate()
     liquidated = receiver_settlement.producer_settlement_ids
     assert len(liquidated) == 1 and liquidated.producer_id == producers[0]
+    liquidated.name = 'PRUEBA/LIQ/01'
     liquidated.discount_line_ids = [Command.create({'item_id': fixed.id, 'amount_usd': 120})]
     liquidated.fob_transfer_percent = 90
     liquidated.action_validate(); remember('producer_settlement_validated', liquidated)

@@ -107,9 +107,9 @@ def main():
     parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception'), default='management')
     args = parser.parse_args()
-    SETTINGS = args.kind == 'settings'
+    SETTINGS = args.kind in ('settings', 'fruit-reception')
     PRODUCERS = args.kind == 'producers'
     if PRODUCERS:
         assert args.environment == 'development', 'Producer revisions are QA-only'
@@ -117,8 +117,8 @@ def main():
         BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename IN ('res_company','res_partner','res_partner_bank','product_template','product_product','mrp_bom','mrp_bom_line','ir_config_parameter')) ORDER BY tablename").splitlines())
     if SETTINGS:
         assert args.environment == 'development', 'Settings repair is QA-only'
-        MODULES = ('step_account_treasury_batch', 'step_dispatch_guide')
-        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename IN ('res_company','res_partner','res_partner_bank','fleet_vehicle','ir_config_parameter')) ORDER BY tablename").splitlines())
+        MODULES = ('step_inventory_packing',) if args.kind == 'fruit-reception' else ('step_account_treasury_batch', 'step_dispatch_guide')
+        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename IN ('res_company','res_partner','res_partner_bank','fleet_vehicle','ir_config_parameter')) ORDER BY tablename").splitlines())
     assert args.environment != 'steps' or args.kind == 'homepage'
     if args.kind == 'homepage':
         MODULES = ('step_demo_homepage',)
@@ -326,7 +326,7 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
-    probe = (HERE / ('verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    probe = (HERE / ('verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
     names = installed if SETTINGS or PRODUCERS or export or homepage else {*installed, 'step_agriculture_catalogs'}
     header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)

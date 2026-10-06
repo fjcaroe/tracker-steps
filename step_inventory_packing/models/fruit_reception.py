@@ -165,7 +165,9 @@ class StockPicking(models.Model):
                     'product_id': line.product_id.id, 'product_uom': line.product_id.uom_id.id,
                     'product_uom_qty': line.quantity, 'location_id': self.location_id.id,
                     'location_dest_id': self.location_dest_id.id})
-                move._action_confirm()
+                # Keep each received tag's move alive. Native merging can
+                # unlink this move when another tag contains the same product.
+                move._action_confirm(merge=False)
                 move._do_unreserve()
                 self.env['stock.move.line'].create({
                     'move_id': move.id, 'picking_id': self.id, 'product_id': line.product_id.id,

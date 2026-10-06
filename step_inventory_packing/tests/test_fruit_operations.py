@@ -152,6 +152,28 @@ class TestFruitOperations(TransactionCase):
         with self.assertRaises(ValidationError):
             picking.action_prepare_fruit_stock()
 
+    def test_same_product_in_two_tags_prepares_and_validates_each_package(self):
+        species = self.env['step.especie'].create({
+            'name': 'Cerezas recepción múltiple QA', 'type_especie': 'frutal', 'group_especie': 'baya'})
+        tags = self.env['stock.quant.package'].create([
+            {'name': 'QA-MULTI-%s' % n, 'is_fruit_tag': True, 'step_tag_kind': 'E'} for n in (1, 2)])
+        picking = self.env['stock.picking'].create({
+            'partner_id': self.producer.id, 'picking_type_id': self.warehouse.in_type_id.id,
+            'location_id': self.warehouse.in_type_id.default_location_src_id.id,
+            'location_dest_id': self.warehouse.lot_stock_id.id, 'step_fruit_reception_kind': 'packed',
+            'fruit_fundo_id': self.fundo.id, 'fruit_species_id': species.id, 'step_fruit_gross_kg': 150,
+            'fruit_tag_line_ids': [(0, 0, {'tag_number': tag.name, 'package_id': tag.id,
+                'product_id': self.product.id, 'quantity': qty, 'kilos': qty * 5, 'box_count': qty})
+                for tag, qty in zip(tags, (10, 20))]})
+        picking.action_prepare_fruit_stock()
+        self.assertEqual(len(picking.move_ids), 2)
+        self.assertEqual(set(picking.move_line_ids.result_package_id.ids), set(tags.ids))
+        picking.button_validate()
+        self.assertEqual(picking.state, 'done')
+        self.assertEqual(tags.mapped('step_tag_state'), ['validated', 'validated'])
+        self.assertEqual([sum(tag.quant_ids.mapped('quantity')) for tag in tags], [10, 20])
+        self.assertEqual(tags.mapped('step_actual_kg'), [50, 100])
+
     def test_reception_validates_stock_and_tag_detail(self):
         package = self.env["stock.quant.package"].create({
             "name": "T40-RECEPCION-1", "is_fruit_tag": True,

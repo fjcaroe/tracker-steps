@@ -48,9 +48,10 @@ def main():
     passed = json.loads((args.clone_stage / 'qa_passed.json').read_text())
     clone = passed['database']; assert clone.startswith('MANAGEMENT_QA_DEVELOPMENT_')
     assert json.loads((args.clone_stage / 'addons/release.json').read_text())['commit'] == passed['commit']
+    addon_paths = ([str(args.clone_stage / 'addons')] if args.mode == 'rehearse' else []) + opts['addons_path'].split(',')
     sources = {}
     for name in MODULES:
-        source = next(Path(root.strip()) / name for root in opts['addons_path'].split(',')
+        source = next(Path(root.strip()) / name for root in addon_paths
                       if (Path(root.strip()) / name / '__manifest__.py').exists())
         sources[name] = {str(file.relative_to(source)): digest(file) for file in sorted(source.rglob('*'))
                          if file.is_file() and file.suffix in ('.py', '.xml', '.csv') and '__pycache__' not in file.parts}
@@ -111,6 +112,7 @@ except BaseException:
                    '--no-http', '--workers=0', '--max-cron-threads=0', '--logfile=' + str(log)]
         if args.mode == 'rehearse':
             command.append('--data-dir=' + str(args.clone_stage / 'data'))
+            command.append('--addons-path=' + ','.join(addon_paths))
         result = subprocess.run(command, input=header + seed_source + tail, text=True, capture_output=True)
         output = args.stage / (args.mode + '-' + stamp + '-result.log')
         output.write_text(result.stdout + result.stderr)
