@@ -39,6 +39,11 @@ try:
     for line in env['step.producer.purchase.contract.product'].search([]):
         assert not line.display_name.startswith('step.producer.purchase.contract.product,'), line.id
     assert env.ref('step_producer_fruit_flow.menu_producer_packing_tags').action == env.ref('step_packing_operations.action_packing_production')
+    estimate_arch = env['step.export.estimate'].get_view(view_type='form')['arch']
+    estimate_tree = etree.fromstring(estimate_arch.encode())
+    assert len(estimate_tree.xpath("//group[@name='estimate_header']/group")) == 2
+    assert not estimate_tree.xpath("//field[@name='date_start'] | //field[@name='date_stop'] | //field[@name='export_kg_total'] | //field[@name='stage_id']")
+    assert len(estimate_tree.xpath("//group[@name='estimate_header']//field[@name='fundo_id'] | //group[@name='estimate_header']//field[@name='season_id']")) == 2
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'versions': EXPECTED, 'menus': checked}, ensure_ascii=False))
 finally:
     env.cr.rollback()

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import date
+from lxml import etree
 
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import TransactionCase
@@ -71,3 +72,40 @@ class TestProducerEstimate(TransactionCase):
         estimate.estimate_line_ids.week_line_ids[0].export_kg = 39999
         with self.assertRaises(ValidationError):
             estimate.action_validate_estimate()
+
+    def test_excess_weekly_kilos_are_rejected_and_balance_is_visible(self):
+        estimate = self._estimate()
+        line = estimate.estimate_line_ids
+        self.assertEqual(line.weekly_export_kg, 100000)
+        self.assertEqual(line.weekly_export_difference, 0)
+        line.week_line_ids[0].export_kg = 40001
+        self.assertEqual(line.weekly_export_difference, 1)
+        with self.assertRaises(ValidationError):
+            estimate.action_validate_estimate()
+        self.assertEqual(estimate.state, 'created')
+
+    def test_weekly_shortage_cannot_be_offset_by_another_fruit_line(self):
+        estimate = self._estimate()
+        first = estimate.estimate_line_ids
+        second = first.copy({'estimate_id': estimate.id})
+        first.week_line_ids[0].export_kg = 39999
+        second.week_line_ids[0].export_kg = 40001
+        self.assertEqual(first.weekly_export_kg + second.weekly_export_kg, estimate.export_kg_total)
+        self.assertEqual(first.weekly_export_difference, -1)
+        self.assertEqual(second.weekly_export_difference, 1)
+        with self.assertRaises(ValidationError):
+            estimate.action_validate_estimate()
+
+    def test_revision_three_effective_estimate_header(self):
+        arch = self.env['step.export.estimate'].get_view(
+            view_id=self.env.ref('step_producers.view_step_export_estimate_form').id, view_type='form')['arch']
+        tree = etree.fromstring(arch.encode())
+        header = tree.xpath("//group[@name='estimate_header']")[0]
+        self.assertEqual(len(header.xpath('./group')), 2)
+        self.assertEqual(len(header.xpath(".//field[@name='date'] | .//field[@name='delivery_start'] | .//field[@name='delivery_end']")), 3)
+        self.assertEqual(len(header.xpath(".//field[@name='fundo_id'] | .//field[@name='season_id'] | .//field[@name='producer_id']")), 3)
+        removed = {'date_start', 'date_stop', 'export_kg_total', 'sequence', 'stage_id', 'priority', 'color',
+                   'tag_ids', 'sector_id', 'cost_center_id', 'approved_by_id', 'estimate_version', 'yield_kg', 'image'}
+        self.assertFalse(removed.intersection(tree.xpath('.//field/@name')))
+        self.assertTrue(removed.issubset(self.env['step.export.estimate']._fields))
+        self.assertTrue(tree.xpath("//field[@name='weekly_export_difference']"))

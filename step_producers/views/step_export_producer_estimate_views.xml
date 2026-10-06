@@ -31,19 +31,31 @@
                     <field name="state" widget="statusbar" statusbar_visible="created,validated,current,replaced"/>
                 </header>
             </xpath>
-            <xpath expr="//field[@name='name']" position="after">
-                <field name="series_code"/>
-                <field name="version_number"/>
-                <field name="previous_version_id" invisible="not previous_version_id"/>
-                <field name="producer_id" domain="[('is_productor', '=', True)]"
-                       readonly="state in ('current', 'replaced')"/>
-                <field name="packing_partner_id" domain="[('step_export_packing', '=', True)]"
-                       readonly="state in ('current', 'replaced')"/>
-                <field name="delivery_start" readonly="state in ('current', 'replaced')"/>
-                <field name="delivery_end" readonly="state in ('current', 'replaced')"/>
-                <field name="export_kg_total"/>
+            <xpath expr="//sheet/group" position="replace">
+                <group name="estimate_header">
+                    <group name="estimate_identity">
+                        <field name="name" readonly="state in ('current', 'replaced')"/>
+                        <field name="series_code"/>
+                        <field name="version_number"/>
+                        <field name="producer_id" domain="[('is_productor', '=', True)]"
+                               readonly="state in ('current', 'replaced')"/>
+                        <field name="packing_partner_id" domain="[('step_export_packing', '=', True)]"
+                               readonly="state in ('current', 'replaced')"/>
+                        <field name="user_id"/>
+                        <field name="previous_version_id" invisible="not previous_version_id"/>
+                    </group>
+                    <group name="estimate_period">
+                        <field name="date" readonly="state in ('current', 'replaced')"/>
+                        <field name="delivery_start" string="Fecha desde" readonly="state in ('current', 'replaced')"/>
+                        <field name="delivery_end" string="Fecha hasta" readonly="state in ('current', 'replaced')"/>
+                        <field name="fundo_id" domain="[('partner_id', '=', producer_id)]"
+                               readonly="state in ('current', 'replaced')"/>
+                        <field name="season_id" readonly="state in ('current', 'replaced')"/>
+                        <field name="company_id" groups="base.group_multi_company" readonly="state in ('current', 'replaced')"/>
+                    </group>
+                </group>
             </xpath>
-            <xpath expr="//sheet/group" position="after">
+            <xpath expr="//sheet/group[@name='estimate_header']" position="after">
                 <notebook>
                     <page name="step_export_estimate_lines" string="Fruta y distribución semanal">
                         <field name="estimate_line_ids" readonly="state in ('current', 'replaced')">
@@ -86,11 +98,19 @@
                                             <field name="export_kg" sum="Kilos"/>
                                         </list>
                                     </field>
+                                    <group>
+                                        <field name="weekly_export_kg"/>
+                                        <field name="weekly_export_difference"/>
+                                    </group>
+                                    <div class="alert alert-warning" role="alert" invisible="weekly_export_difference == 0">
+                                        Los kilos de las semanas deben cuadrar con los kilos de exportación de esta línea para validar la estimación.
+                                    </div>
                                 </sheet>
                             </form>
                         </field>
                     </page>
                 </notebook>
+                <group><field name="notes"/></group>
             </xpath>
         </field>
     </record>

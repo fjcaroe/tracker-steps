@@ -51,7 +51,7 @@ class StepExportProducerEstimate(models.Model):
     def write(self, vals):
         business_fields = {
             "name", "producer_id", "fundo_id", "packing_partner_id", "season_id",
-            "delivery_start", "delivery_end", "estimate_line_ids", "company_id",
+            "date", "delivery_start", "delivery_end", "estimate_line_ids", "company_id",
         }
         if business_fields.intersection(vals) and any(r.state in ("current", "replaced") for r in self):
             raise UserError(_("Cree otra versión para modificar una estimación vigente o reemplazada."))
@@ -74,7 +74,8 @@ class StepExportProducerEstimate(models.Model):
                     raise ValidationError(_("El porcentaje de exportación debe ser mayor a 0 y menor o igual a 100 %."))
                 weekly_total = sum(line.week_line_ids.mapped("export_kg"))
                 if float_compare(weekly_total, line.export_kg, precision_digits=3):
-                    raise ValidationError(_("Distribuya todos los kilos de cada línea entre sus semanas."))
+                    raise ValidationError(_("Los kilos de las semanas de %(product)s deben sumar %(kilos).3f kg, igual que el detalle de fruta.",
+                                            product=line.product_id.display_name, kilos=line.export_kg))
             record.state = "validated"
         return True
 
@@ -138,6 +139,15 @@ class StepExportProducerEstimateLine(models.Model):
     export_box_qty = fields.Float(string="Cajas exportación", compute="_compute_quantities", store=True)
     export_pallet_qty = fields.Float(string="Pallets exportación", compute="_compute_quantities", store=True)
     week_line_ids = fields.One2many("step.export.estimate.week", "line_id", string="Distribución semanal", copy=True)
+    weekly_export_kg = fields.Float(string="Kilos distribuidos por semana", digits=(16, 3), compute="_compute_weekly_export_balance")
+    weekly_export_difference = fields.Float(string="Diferencia con detalle (kg)", digits=(16, 3), compute="_compute_weekly_export_balance")
+
+    @api.depends("week_line_ids.export_kg", "export_kg")
+    def _compute_weekly_export_balance(self):
+        for line in self:
+            total = sum(line.week_line_ids.mapped("export_kg"))
+            line.weekly_export_kg = total
+            line.weekly_export_difference = total - line.export_kg if float_compare(total, line.export_kg, precision_digits=3) else 0
 
     @api.onchange("packaging_id", "package_type_id")
     def _onchange_packing_quantities(self):
