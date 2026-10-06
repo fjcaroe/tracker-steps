@@ -25,7 +25,8 @@ from manage_management import run, query, digest, tree_hash, errors
 
 HERE = Path(__file__).parent
 VENDOR = Path('/opt/rrhh/l10n_cl_simpledigital_payroll')
-MODULES = ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book')
+MODULES = ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book', 'step_inventory_packing', 'step_packing_operations')
+OPTIONAL = {'step_inventory_packing', 'step_packing_operations'}
 
 
 def history(database):
@@ -84,7 +85,7 @@ def main():
         archive.extractall(staged)
     vendor_hash = tree_hash(VENDOR)
     shutil.copytree(VENDOR,staged/VENDOR.name,dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.bak*'))
-    all_modules = [VENDOR.name,*MODULES]
+    all_modules = [VENDOR.name,*[m for m in MODULES if m not in OPTIONAL]]
     addons = str(staged)+','+opts['addons_path']
     installed = json.loads(query(database,"SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'") or '{}')
     baseline = {'config':digest(conf),'vendor':vendor_hash,'modules':{}}
@@ -127,6 +128,7 @@ def main():
         execute(db,paths,data,'engine-install',install=[n for n in all_modules if n not in existing],update=[n for n in MODULES if n in existing],tests=tests)
         execute(db,paths,data,'contract-mapping',shell=(HERE/'migrate_payroll_contracts.py').read_text())
         policy = "env['ir.config_parameter'].sudo().set_param('steps.environment.payroll_engine','l10n_cl_simpledigital_payroll')\n"
+        policy += "env.cr.execute(\"UPDATE hr_contract SET step_payroll_migration_review=true WHERE state IN ('draft','open') AND (analytic_account_id IS NULL OR health_institution IS NULL OR pension_option IS NULL OR has_gratification IS NULL OR is_retired_elderly IS NULL)\")\n"
         if args.environment == 'demo-sys':
             roots = ['base.menu_administration','base.menu_management','hr_work_entry_contract_enterprise.menu_hr_payroll_root','hr.menu_hr_root','hr_attendance.menu_hr_attendance_root','hr_holidays.menu_hr_holidays_root','hr_expense.menu_hr_expense_root','contacts.menu_contacts','documents.menu_root','sign.menu_document','mail.menu_root_discuss','helpdesk.menu_helpdesk_root','step_support_assistant.menu_assistant_root']
             policy += "env['ir.config_parameter'].sudo().set_param('steps.environment.menu_root_xmlids',"+repr(json.dumps(roots))+")\n"

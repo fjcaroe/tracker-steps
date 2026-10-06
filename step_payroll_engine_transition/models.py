@@ -48,4 +48,9 @@ class Payslip(models.Model):
             raise UserError(_('Esta liquidación conserva la estructura del motor anterior. No se recalcula; revise la estructura para una nueva liquidación.'))
         if any(s.contract_id.step_payroll_migration_review for s in self):
             raise UserError(_('El contrato requiere revisar sus parámetros de Simple Digital antes de calcular una nueva liquidación.'))
+        for slip in self:
+            if slip.struct_id.get_external_id().get(slip.struct_id.id) == 'l10n_cl_simpledigital_payroll.structure_chile':
+                contract = slip.contract_id
+                if any(not contract[name] for name in ('analytic_account_id','health_institution','pension_option','work_schedule_id','income_tax_type','contract_type_id')):
+                    raise UserError(_('Complete los parámetros de Simple Digital del contrato antes de calcular.'))
         return super().compute_sheet()

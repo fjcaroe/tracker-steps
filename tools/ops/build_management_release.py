@@ -24,7 +24,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
     commit = subprocess.check_output(['git', 'rev-parse', args.commit + '^{commit}'], cwd=root, text=True).strip()
-    modules = MODULES if args.kind == 'management' else ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book')
+    modules = MODULES if args.kind == 'management' else ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book', 'step_inventory_packing', 'step_packing_operations')
     raw = subprocess.check_output(['git', 'archive', '--format=tar', commit, *modules], cwd=root)
     entries = {}
     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:

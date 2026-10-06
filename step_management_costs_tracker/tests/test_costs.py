@@ -239,7 +239,9 @@ class TestCenterCosts(CostCase):
         result = self._compute(first, period=(date(2026, 9, 1), date(2026, 9, 30)))
         self.assertEqual(first, second)
         self.assertFalse(result['shared_account'])
-        self.assertTrue(result['budget']['available'])
+        # No approved budget was created for this new native account.
+        self.assertFalse(result['budget']['available'])
+        self.assertIn('No hay presupuesto aprobado', result['budget']['reason'])
 
     def test_new_native_center_reports_zero_real_cost(self):
         center = self.env['account.analytic.account'].create({'name': 'Nuevo centro', 'code': 'CQX', 'plan_id': self.analytic_1.plan_id.id, 'company_id': self.company.id})
