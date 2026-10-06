@@ -23,7 +23,7 @@ def main():
     assert passed['sha256'] == digest(args.release)
     proof = json.loads((stage / 'addons/release.json').read_text())
     assert proof['commit'] == passed['commit']
-    assert proof['versions']['step_operations_ui'] == '18.0.2.6.0'
+    assert tuple(map(int, proof['versions']['step_operations_ui'].split('.'))) >= (18, 0, 2, 6, 0)
     database = passed['database'] if args.clone else target['database']
     source = stage / 'addons' if args.clone else Path('/opt/steps-managed/freight/development') / passed['commit']
     cfg = configparser.ConfigParser(interpolation=None)

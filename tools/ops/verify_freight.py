@@ -54,6 +54,23 @@ try:
         for previous in user_model.search([('id', '!=', record.id)]):
             assert previous._get_thread_with_access(previous.id) == previous
         checked.append({'model': model, 'form_id': form_id, 'menu_id': menu.id, 'create_and_chatter': True})
+    # Exercise the same nested read as web_save, including widget dependencies
+    # on an empty Costeo tab; a successful create() did not detect T27's crash.
+    orders = env['step.freight.order'].with_user(operator)
+    order_view = env.ref('step_operations_ui.view_freight_order_code_form')
+    order_action = env.ref('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')
+    assert dict((kind, view) for view, kind in order_action.views)['form'] == order_view.id
+    form = Form(orders, view=order_view)
+    form.description = 'Validación registro de fletes'
+    order = form.save()
+    specification = {'name': {}, 'description': {}, 'cost_ids': {'fields': {
+        'freight_cost': {}, 'analytic_distribution': {}, 'analytic_precision': {},
+    }}}
+    result = order.web_save({'description': 'Validación registro editado'}, specification)[0]
+    assert result['description'] == 'Validación registro editado' and result['cost_ids'] == []
+    assert order.web_read(specification)[0]['id'] == order.id
+    checked.append({'model': 'step.freight.order', 'form_id': order_view.id,
+                    'create_edit_reopen_web_save': True, 'internal_user': True})
     print('FREIGHT_REGISTRY_OK ' + json.dumps({'database': env.cr.dbname, 'version': EXPECTED, 'checks': checked}))
 finally:
     env.cr.rollback()

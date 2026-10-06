@@ -1,4 +1,5 @@
 from odoo.exceptions import UserError, ValidationError
+from odoo.tests import Form
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -117,6 +118,67 @@ class TestFreightStudioCosting(TransactionCase):
         }
         vals.update(values)
         return self.env["step.freight.order"].create(vals)
+
+    def _web_specification(self):
+        # The analytic widget requests this dependency even if Costeo is empty
+        # or its tab has never been opened. ORM create() alone misses the bug.
+        return {
+            "name": {}, "description": {}, "freight_total": {},
+            "detail_ids": {"fields": {"route_id": {}, "quantity": {}, "freight_value": {}}},
+            "cost_ids": {"fields": {
+                "service_product_id": {}, "freight_cost": {},
+                "analytic_distribution": {}, "analytic_precision": {},
+            }},
+        }
+
+    def test_web_save_empty_cost_tab_and_reopen(self):
+        orders = self.env["step.freight.order"]
+        saved = orders.web_save({"description": "QA navegador sin costeo"}, self._web_specification())[0]
+        order = orders.browse(saved["id"])
+        self.assertEqual(saved["cost_ids"], [])
+        self.assertEqual(order.web_read(self._web_specification())[0]["id"], order.id)
+        edited = order.web_save({"description": "QA editado"}, self._web_specification())[0]
+        self.assertEqual(edited["description"], "QA editado")
+
+    def test_order_form_save_cost_and_post_web_read(self):
+        form = Form(self.env["step.freight.order"],
+                    view=self.env.ref("step_operations_ui.view_freight_order_code_form"))
+        form.date = "2026-10-01"
+        form.price_list_id = self.tariff
+        form.cold_mode_id = self.cold_mode
+        with form.detail_ids.new() as detail:
+            detail.route_id = self.route
+            detail.service_product_id = self.freight_product
+            detail.quantity = 2
+        order = form.save()
+        self.assertEqual(order.freight_carrier_id, self.carrier)
+        self.assertEqual(order.web_read(self._web_specification())[0]["cost_ids"], [])
+        order.action_cost_freight()
+        saved = order.web_read(self._web_specification())[0]
+        self.assertEqual(saved["cost_ids"][0]["freight_cost"], 3000)
+        self.assertEqual(saved["cost_ids"][0]["analytic_precision"],
+                         self.env["decimal.precision"].precision_get("Percentage Analytic"))
+        self.assertEqual(order.cost_ids.company_id, self.company)
+        order.action_post_freight()
+        self.assertEqual(order.web_read(self._web_specification())[0]["id"], order.id)
+        self.assertEqual(order.freight_move_id.state, "posted")
+
+    def test_web_save_manual_cost_analytic_distribution(self):
+        order = self._order()
+        plan = self.env["account.analytic.plan"].create({"name": "QA plan flete"})
+        analytic = self.env["account.analytic.account"].create({
+            "name": "QA centro flete", "plan_id": plan.id, "company_id": self.company.id,
+        })
+        distribution = {str(analytic.id): 100.0}
+        result = order.web_save({"cost_ids": [(0, 0, {
+            "service_product_id": self.freight_product.id,
+            "freight_cost": 1000, "analytic_distribution": distribution,
+        })]}, self._web_specification())[0]
+        self.assertEqual(result["cost_ids"][0]["analytic_distribution"], distribution)
+        order.action_post_freight()
+        debit = order.freight_move_id.line_ids.filtered(lambda line: line.debit)
+        self.assertEqual(debit.analytic_distribution, distribution)
+        self.assertEqual(debit.analytic_line_ids.account_id, analytic)
 
     # --- Tarifas (punto 3): tramo, modalidad de frío y servicio de flete ---
 

@@ -285,12 +285,14 @@ class FreightOrderDetail(models.Model):
 
 class FreightOrderCost(models.Model):
     _name = "step.freight.order.cost"
+    _inherit = "analytic.mixin"
     _description = "Costeo de orden de flete"
     _order = "sequence, id"
 
     name = fields.Char(string="Línea", required=True, default="1")
     sequence = fields.Integer(string="Secuencia")
     order_id = fields.Many2one("step.freight.order", string="Flete", required=True, ondelete="cascade")
+    company_id = fields.Many2one(related="order_id.company_id", string="Empresa")
     service_product_id = fields.Many2one("product.template", string="Servicio flete")
     freight_cost = fields.Float(string="Costo flete")
     expense_account_id = fields.Many2one(
@@ -304,7 +306,7 @@ class FreightOrderCost(models.Model):
     )
     analytic_distribution = fields.Json(string="Distribución analítica")
 
-    @api.depends("service_product_id")
+    @api.depends("service_product_id", "order_id.company_id")
     def _compute_expense_account(self):
         for cost in self:
             product = cost.service_product_id.with_company(cost.order_id.company_id)
