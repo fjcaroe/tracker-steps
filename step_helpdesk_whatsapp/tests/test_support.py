@@ -52,7 +52,7 @@ class TestSupport(TransactionCase):
 
     def test_ambiguous_cases_wait_for_classification(self):
         first=self.process([self.incoming()]);c=first.conversation_id
-        self.env['helpdesk.ticket'].create({'name':'Otro caso','team_id':self.team.id,'step_wa_conversation_id':c.id})
+        self.env['helpdesk.ticket'].with_context(_wa_private=PRIVATE).create({'name':'Otro caso','team_id':self.team.id,'step_wa_conversation_id':c.id})
         messages=self.process([self.incoming('msg-2')]);self.assertFalse(messages[-1].ticket_id)
         choice=self.process([self.incoming('msg-3',text='caso #'+str(first.ticket_id.id))])
         self.assertEqual(choice[-1].ticket_id,first.ticket_id)

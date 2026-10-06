@@ -41,6 +41,7 @@ def normalize(payload, account, phone):
                     raise ValueError('incomplete_message')
                 content = message.get(kind, {})
                 events.append({'kind':'incoming', 'external_id':message['id'], 'sender':message['from'],
+                    'sender_phone':next(('+'+c['wa_id'] for c in value.get('contacts',[]) if c.get('wa_id')==message['from'] and re.fullmatch(r'\d{8,15}',c['wa_id'])),None),
                     'timestamp':message.get('timestamp'), 'type':kind,
                     'text':content.get('body', content.get('caption', '')),
                     'media_id':content.get('id'), 'mime':content.get('mime_type'), 'filename':content.get('filename'),
@@ -84,6 +85,8 @@ class MetaCloudProvider:
             result = response.json()
         except ValueError:
             raise ProviderError('invalid_provider_response', uncertain=sending) from None
+        if not isinstance(result,dict):
+            raise ProviderError('invalid_provider_response',uncertain=sending)
         if result.get('error'):
             raise ProviderError('provider_rejected')
         return result

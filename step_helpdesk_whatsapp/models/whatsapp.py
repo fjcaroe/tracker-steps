@@ -43,7 +43,7 @@ class Channel(models.Model):
         for c in self:
             c.callback_url=c.get_base_url()+'/whatsapp/webhook/'+c.route_key
 
-    @api.constrains('enabled','provider','company_id','team_id','access_token','app_secret','account_id','phone_number_id','graph_version','max_media_mb','retention_days')
+    @api.constrains('enabled','provider','company_id','team_id','access_token','app_secret','verify_token','app_id','account_id','phone_number_id','graph_version','max_media_mb','retention_days')
     def _check_configuration(self):
         for c in self:
             if c.team_id.company_id!=c.company_id or not 1<=c.max_media_mb<=16 or not 1<=c.retention_days<=365:
@@ -204,14 +204,14 @@ class Event(models.Model):
         if not conversation:
             # Never identify by a visible name. Ambiguous phone matches stay unlinked.
             partner=self.env['res.partner']
-            if re.fullmatch(r'\d{8,15}',data['sender']):
-                candidates=self.env['res.partner'].sudo().search([('company_id','in',[False,channel.company_id.id]),('phone_sanitized','=','+'+data['sender'])],limit=2)
+            if re.fullmatch(r'\+\d{8,15}',data.get('sender_phone') or ''):
+                candidates=self.env['res.partner'].sudo().search([('company_id','in',[False,channel.company_id.id]),('phone_sanitized','=',data['sender_phone'])],limit=2)
                 if len(candidates)==1:partner=candidates
             conversation=Conversation.create({'channel_id':channel.id,'sender_id':data['sender'],'partner_id':partner.id})
         when=datetime.utcfromtimestamp(int(data.get('timestamp') or 0))
         if not conversation.last_incoming or when>conversation.last_incoming:
             conversation.last_incoming=min(when,fields.Datetime.now())
-        Ticket=self.env['helpdesk.ticket'].sudo().with_company(channel.company_id)
+        Ticket=self.env['helpdesk.ticket'].sudo().with_company(channel.company_id).with_context(_wa_private=PRIVATE)
         tickets=Ticket.search([('step_wa_conversation_id','=',conversation.id),('team_id','=',channel.team_id.id),('stage_id.fold','=',False)])
         target=self.env['helpdesk.ticket']
         previous=self.env['helpdesk.ticket']
@@ -335,6 +335,9 @@ class Message(models.Model):
 
     def _fetch_media(self):
         for message in self:
+            self.env.cr.execute("SELECT id FROM step_helpdesk_wa_message WHERE id=%s AND media_state='pending' FOR UPDATE SKIP LOCKED",[message.id])
+            if not self.env.cr.fetchone():continue
+            message.invalidate_recordset(['media_state','attachment_id'])
             if not message.channel_id.enabled or message.media_state!='pending':continue
             try:
                 if message.mime not in MIME.get(message.kind,set()):raise ProviderError('unsupported_media_type')
@@ -360,6 +363,17 @@ class Ticket(models.Model):
     step_wa_conversation_id=fields.Many2one('step.helpdesk.wa.conversation',readonly=True)
     step_wa_previous_ticket_id=fields.Many2one('helpdesk.ticket',readonly=True)
     step_wa_message_ids=fields.One2many('step.helpdesk.wa.message','ticket_id',readonly=True)
+
+    @api.model_create_multi
+    def create(self, values):
+        if any(v.get('step_wa_conversation_id') for v in values) and self.env.context.get('_wa_private') is not PRIVATE:
+            raise AccessError(_('La conversación se vincula mediante el receptor o el asistente de clasificación.'))
+        return super().create(values)
+
+    def write(self, values):
+        if 'step_wa_conversation_id' in values and self.env.context.get('_wa_private') is not PRIVATE:
+            raise AccessError(_('La conversación se vincula mediante el receptor o el asistente de clasificación.'))
+        return super().write(values)
 
     def action_respond_whatsapp(self):
         self.ensure_one();self.check_access('write')
@@ -428,7 +442,7 @@ class Classify(models.TransientModel):
         ticket=self.ticket_id
         if self.new_case:
             self.env['helpdesk.ticket'].check_access_rights('create')
-            ticket=self.env['helpdesk.ticket'].create({'name':(message.text or 'Soporte WhatsApp')[:100],
+            ticket=self.env['helpdesk.ticket'].with_context(_wa_private=PRIVATE).create({'name':(message.text or 'Soporte WhatsApp')[:100],
                 'team_id':message.team_id.id,'step_wa_conversation_id':conversation.id})
         ticket.check_access('write')
         if not ticket or ticket.step_wa_conversation_id!=conversation or ticket.team_id!=message.team_id or ticket.stage_id.fold:
