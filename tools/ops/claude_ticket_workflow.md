@@ -84,6 +84,9 @@ Después verificar versión, hash/origen, servicio, HTTPS, formulario real y flu
 Commit, push y verificación de entrega son obligatorios. No stash, código
 ignorado, barridos de commits ajenos ni eliminación forzada de worktrees.
 Los artefactos y adjuntos privados van en `~/.codex/local-artifacts/`.
+Los reportes automáticos que reproducen tickets, mensajes o datos del cliente
+van en `~/.codex/local-artifacts/tickets/`, nunca en `docs/tickets-procesados/`.
+Solo versionar una síntesis de alcance y evidencia sin contenido privado.
 Ejecutar `python tools/git/verify_handoff.py --require-pushed` en el worktree propio.
 
 El ticket solo se cierra cuando el resultado está aplicado y verificado en el
