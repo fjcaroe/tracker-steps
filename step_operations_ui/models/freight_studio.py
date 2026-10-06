@@ -15,6 +15,13 @@ class FreightRoute(models.Model):
 
     x_studio_km_desde = fields.Float(string="Km desde")
     x_studio_km_hasta = fields.Float(string="Km hasta")
+    x_studio_sequence = fields.Integer(string="Secuencia")
+    x_studio_fundo = fields.Many2one("step.fundo", string="Fundo")
+    # Compatibility aliases for existing imports, views and tariff references.
+    # The pre-migration refuses ambiguous values before consolidating columns.
+    x_studio_lugar_desde = fields.Char(related="origin", store=True, readonly=False)
+    x_studio_lugar_hasta = fields.Char(related="destination", store=True, readonly=False)
+    x_studio_empresa = fields.Many2one(related="company_id", store=True, readonly=False)
 
 
 class FreightTariff(models.Model):

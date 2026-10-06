@@ -5,6 +5,8 @@ from odoo.exceptions import ValidationError
 class FreightRoute(models.Model):
     _name = "x_tramo_de_flete"
     _description = "Tramo de flete"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _rec_name = "x_name"
     _order = "x_name"
 
     x_name = fields.Char(string="Tramo", required=True)
@@ -18,12 +20,17 @@ class FreightRoute(models.Model):
 class FreightColdMode(models.Model):
     _name = "x_modalidad_de_frio"
     _description = "Modalidad de frío"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _rec_name = "x_name"
     _order = "x_name"
 
     x_name = fields.Char(string="Modalidad", required=True)
     min_temperature = fields.Float(string="Temperatura mínima")
     max_temperature = fields.Float(string="Temperatura máxima")
     x_active = fields.Boolean(string="Activa", default=True)
+    # Keep the original columns and IDs; these fields are now owned by Python.
+    x_studio_cdigo = fields.Char(string="Código")
+    x_studio_sequence = fields.Integer(string="Secuencia")
 
 
 class FreightTariff(models.Model):
