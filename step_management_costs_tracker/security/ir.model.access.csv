@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_step_tracker_asset_link_user,step.tracker.asset.link.user,model_step_tracker_asset_link,base.group_user,1,0,0,0
+access_step_tracker_asset_link_manager,step.tracker.asset.link.manager,model_step_tracker_asset_link,step_tracker_portal.group_tracker_manager,1,1,1,0
+access_step_tracker_asset_link_system,step.tracker.asset.link.system,model_step_tracker_asset_link,base.group_system,1,1,1,1
+access_step_tracker_cost_wizard_user,step.tracker.cost.wizard.user,model_step_tracker_cost_wizard,base.group_user,1,1,1,1
+access_step_tracker_cost_wizard_line_user,step.tracker.cost.wizard.line.user,model_step_tracker_cost_wizard_line,base.group_user,1,1,1,1

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Quien administra los vínculos activo ↔ vehículo necesita leer la flota (solo lectura, con sus reglas de compañía). -->
+    <record id="step_tracker_portal.group_tracker_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('step_expense_tracker.group_expense_vehicle'))]"/>
+    </record>
+</odoo>

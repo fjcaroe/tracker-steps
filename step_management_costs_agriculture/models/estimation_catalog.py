@@ -20,7 +20,7 @@ def find_master(env, key, text, company_id, species_id=False):
     model, code = CATALOGS[key]
     if not text:
         return env[model]
-    domain = [("company_id", "=", company_id)]
+    domain = env[model]._check_company_domain([company_id])
     if key == "variety" and species_id:
         domain.append(("especie_id", "=", species_id))
     token = str(text).strip().casefold()
@@ -69,7 +69,7 @@ class EstimationVersion(models.Model):
 
     season_id = fields.Many2one(
         "step.temporada", string="Temporada", check_company=True, ondelete="restrict",
-        domain="[('company_id', '=', company_id)]",
+        domain="['|', ('company_ids', '=', False), ('company_ids', 'in', [company_id])]",
     )
 
     @api.onchange("season_id")
@@ -91,15 +91,15 @@ class Estimation(models.Model):
 
     season_id = fields.Many2one(
         "step.temporada", string="Temporada", check_company=True, ondelete="restrict",
-        domain="[('company_id', '=', company_id)]", tracking=True,
+        domain="['|', ('company_ids', '=', False), ('company_ids', 'in', [company_id])]", tracking=True,
     )
     species_id = fields.Many2one(
         "step.especie", string="Especie", check_company=True, ondelete="restrict",
-        domain="[('company_id', '=', company_id)]", tracking=True,
+        domain="['|', ('company_ids', '=', False), ('company_ids', 'in', [company_id])]", tracking=True,
     )
     variety_id = fields.Many2one(
         "step.variedad", string="Variedad", check_company=True, ondelete="restrict",
-        domain="[('company_id', '=', company_id), ('especie_id', '=', species_id)]", tracking=True,
+        domain="['|', ('company_ids', '=', False), ('company_ids', 'in', [company_id]), ('especie_id', '=', species_id)]", tracking=True,
     )
 
     @api.onchange("version_id")

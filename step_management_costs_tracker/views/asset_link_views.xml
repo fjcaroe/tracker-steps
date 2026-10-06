@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_tracker_asset_link_list" model="ir.ui.view">
+        <field name="name">step.tracker.asset.link.list</field>
+        <field name="model">step.tracker.asset.link</field>
+        <field name="arch" type="xml">
+            <list>
+                <header>
+                    <button name="action_sync_from_tracker" type="object" string="Sincronizar desde Tracker" display="always"
+                            groups="step_tracker_portal.group_tracker_manager,base.group_system"/>
+                </header>
+                <field name="vehicle_id"/>
+                <field name="asset_id"/>
+                <field name="asset_name"/>
+                <field name="asset_plate"/>
+                <field name="source" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="active" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_asset_link_form" model="ir.ui.view">
+        <field name="name">step.tracker.asset.link.form</field>
+        <field name="model">step.tracker.asset.link</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archivado" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <group string="Correspondencia explícita">
+                            <field name="company_id" groups="base.group_multi_company" readonly="id"/>
+                            <field name="asset_id" readonly="id" placeholder="ID del activo (UUID) en Tracker"/>
+                            <field name="vehicle_id" options="{'no_create': True}"/>
+                            <field name="source"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Datos informativos del activo">
+                            <field name="asset_name"/>
+                            <field name="asset_plate"/>
+                            <field name="note"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">
+                        El activo se verifica contra Tracker con la identidad firmada de la empresa. Nunca se asocia por
+                        nombre ni por patente.
+                    </div>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_tracker_asset_link" model="ir.actions.act_window">
+        <field name="name">Vínculos de activos Tracker</field>
+        <field name="res_model">step.tracker.asset.link</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Aún no hay activos de Tracker vinculados a vehículos.</p>
+            <p>Use «Sincronizar desde Tracker» para los activos importados desde Flota o cree un vínculo manual.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_step_tracker_asset_links" name="Vínculos de activos"
+              action="action_step_tracker_asset_link" parent="step_tracker_odoo.menu_step_tracker_masters" sequence="45"/>
+</odoo>

@@ -1,7 +1,7 @@
 {
     "name": "Steps - Gestión y Costos (puente de maquinaria)",
     "summary": "Enlaza Gestión y Costos con el costeo real de maquinaria de step_machinery",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "author": "Steps Consulting",
     "category": "Operations/Planning",
     "license": "LGPL-3",

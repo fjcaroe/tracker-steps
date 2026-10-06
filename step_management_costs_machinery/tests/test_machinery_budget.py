@@ -263,7 +263,7 @@ class TestMachineryBudget(ManagementCostsCommon):
         })
         self.env["step.hrs.machinery.line"].create({
             "machinery_id": registry.id, "machinery_ids": self.vehicle_a.id,
-            "cost_id": self.center_a.analytic_account_id.id,
+            "cost_id": self.center_a.id,
             "labor_id": self.labor.id, "hrs_maquina": 7.0,
         })
         registry.action_progress()

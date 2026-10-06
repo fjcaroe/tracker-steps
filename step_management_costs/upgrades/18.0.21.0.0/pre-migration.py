@@ -51,7 +51,7 @@ def migrate(cr, version):
     """)
     centers = cr.fetchall()
 
-    cr.execute("CREATE TEMP TABLE t51_center_map (old_id integer PRIMARY KEY, new_id integer NOT NULL) ON COMMIT DROP")
+    cr.execute("CREATE TEMP TABLE IF NOT EXISTS t51_center_map (old_id integer PRIMARY KEY, new_id integer NOT NULL) ON COMMIT DROP")
     plan_id = None
     created = reused = 0
     seen_accounts = {}
@@ -64,11 +64,7 @@ def migrate(cr, version):
         if account_id:
             reused += 1
             if account_id in seen_accounts:
-                _logger.warning(
-                    "T51: los centros %s y %s compartían la cuenta analítica %s; "
-                    "se fusionan en esa cuenta (se conservan los datos del primero).",
-                    seen_accounts[account_id], center_id, account_id,
-                )
+                raise RuntimeError("T51: varios centros comparten una cuenta analítica; revisar sus valores y relaciones antes de fusionarlos.")
             else:
                 seen_accounts[account_id] = center_id
                 # No se pisa un dato de gestión que la cuenta ya tuviera.
@@ -109,7 +105,8 @@ def migrate(cr, version):
             )
             account_id = cr.fetchone()[0]
             created += 1
-        cr.execute("INSERT INTO t51_center_map VALUES (%s, %s)", (center_id, account_id))
+        cr.execute("INSERT INTO t51_center_map VALUES (%s, %s) ON CONFLICT (old_id) DO UPDATE SET new_id=EXCLUDED.new_id", (center_id, account_id))
+        cr.execute("UPDATE step_management_cost_center SET analytic_account_id=%s WHERE id=%s", (account_id, center_id))
 
     cr.execute("""
         SELECT c.conname, c.conrelid::regclass::text, a.attname
@@ -124,6 +121,15 @@ def migrate(cr, version):
             % {"t": table, "c": column}
         )
         _logger.info("T51: %s.%s reapuntada del centro antiguo a la cuenta analítica.", table, column)
+
+    # Update inherited view metadata before the core form changes its model;
+    # installed bridges must not temporarily validate against a removed model.
+    cr.execute("UPDATE ir_ui_view SET model='account.analytic.account' WHERE model='step.management.cost.center'")
+    cr.execute("UPDATE ir_act_window SET res_model='account.analytic.account' WHERE res_model='step.management.cost.center'")
+    cr.execute("""
+        UPDATE ir_model_data d SET model='account.analytic.account',res_id=m.new_id
+          FROM t51_center_map m WHERE d.model='step.management.cost.center' AND d.res_id=m.old_id
+    """)
 
     _logger.info(
         "T51: %s centro(s) migrados a cuentas analíticas (%s existentes, %s creadas).",
