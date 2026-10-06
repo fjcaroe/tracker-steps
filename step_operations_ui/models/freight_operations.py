@@ -297,7 +297,7 @@ class FreightOrderCost(models.Model):
         "account.account", string="Cuenta de cargo", compute="_compute_expense_account", store=True
     )
     legacy_distribution_model_id = fields.Many2one(
-        "account.analytic.distribution.model", string="Distribución analítica (Studio)"
+        "account.analytic.distribution.model", string="Distribución analítica anterior"
     )
     distribution_model_id = fields.Many2one(
         "account.analytic.distribution.model", string="Modelo de distribución analítica"

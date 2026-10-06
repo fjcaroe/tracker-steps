@@ -52,4 +52,7 @@
     <menuitem id="menu_freight_trucks" name="Camiones" action="step_operations_ui.camiones_1bffc703-8cbf-4682-a0a9-a351661d8620" parent="menu_freight_configuration" sequence="50" />
     <menuitem id="menu_freight_cold_modes" name="Modalidad de frío" action="action_freight_cold_mode" parent="menu_freight_configuration" sequence="60" />
     <menuitem id="menu_freight_dispatch_types" name="Tipo de despacho" action="action_freight_dispatch_type" parent="menu_freight_configuration" sequence="70" />
+
+<record id="view_freight_accounting_form" model="ir.ui.view"><field name="name">step.freight.accounting.form</field><field name="model">step.freight.accounting</field><field name="priority">5</field><field name="arch" type="xml"><form><sheet><group><field name="name"/><field name="order_id"/><field name="accounting_date"/><field name="move_id"/><field name="amount"/><field name="currency_id" invisible="1"/><field name="company_id" groups="base.group_multi_company"/></group></sheet><chatter/></form></field></record>
+<record id="view_freight_tracking_form" model="ir.ui.view"><field name="name">step.freight.tracking.form</field><field name="model">step.freight.tracking</field><field name="priority">5</field><field name="arch" type="xml"><form><sheet><group><field name="name"/><field name="order_id"/><field name="event_datetime"/><field name="latitude"/><field name="longitude"/><field name="note"/></group></sheet></form></field></record>
 </odoo>
