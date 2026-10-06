@@ -97,8 +97,9 @@ class MetaCloudProvider:
         if message.kind == 'text':
             payload['text'] = {'body':message.text, 'preview_url':False}
         elif message.kind == 'template':
-            payload['template'] = {'name':message.template_id.name, 'language':{'code':message.template_id.language},
-                'components':[{'type':'body', 'parameters':[{'type':'text','text':str(p)} for p in message.template_parameters or []]}]}
+            payload['template'] = {'name':message.template_id.name, 'language':{'code':message.template_id.language}}
+            if message.template_parameters:
+                payload['template']['components']=[{'type':'body', 'parameters':[{'type':'text','text':str(p)} for p in message.template_parameters]}]
         else:
             attachment = message.attachment_id
             upload = self.request('POST', self.channel.phone_number_id+'/media',

@@ -18,7 +18,7 @@ class Webhook(http.Controller):
             return request.make_response(str(params.get('hub.challenge',''))[:256],status=200)
         if (request.httprequest.content_length or 0)>262144:
             return request.make_response('Too large',status=413)
-        raw=request.httprequest.get_data()
+        raw=request.httprequest.stream.read(262145)
         if len(raw)>262144:
             return request.make_response('Too large',status=413)
         if not signature_valid(raw,request.httprequest.headers.get('X-Hub-Signature-256'),channel.app_secret):

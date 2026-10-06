@@ -1,11 +1,12 @@
 from datetime import timedelta
 import time
+from types import SimpleNamespace
 from unittest.mock import patch
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged, new_test_user
 from ..models.whatsapp import PRIVATE
-from ..provider import MockWhatsAppProvider, ProviderError, normalize, signature_valid, event_key
+from ..provider import MetaCloudProvider, MockWhatsAppProvider, ProviderError, normalize, signature_valid, event_key
 
 
 @tagged('post_install','-at_install')
@@ -175,3 +176,14 @@ class TestSupport(TransactionCase):
         with self.assertRaises(ValueError):normalize(payload,'a','wrong')
         self.assertFalse(signature_valid(b'{}','sha256='+'0'*64,'secret'))
         self.assertEqual(event_key(self.incoming()),event_key(self.incoming(text='later')))
+
+    def test_meta_template_contract_no_network(self):
+        transport=MetaCloudProvider(SimpleNamespace(graph_version='v26.0',access_token='fixture',phone_number_id='fixture'))
+        message=SimpleNamespace(kind='template',local_id='fixture',conversation_id=SimpleNamespace(sender_id='fixture'),
+            template_id=SimpleNamespace(name='support_followup',language='es'),template_parameters=[])
+        response=SimpleNamespace(ok=True,status_code=200,json=lambda:{'messages':[{'id':'fixture.accepted'}]})
+        with patch('requests.request',return_value=response) as request:
+            self.assertEqual(transport.send(message),'fixture.accepted')
+            payload=request.call_args.kwargs['json']
+            self.assertNotIn('components',payload['template'])
+            self.assertEqual(payload['biz_opaque_callback_data'],'fixture')
