@@ -98,8 +98,19 @@ def main():
     # Shared lease required by deployment runbooks for both coding agents.
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        processes = subprocess.check_output(['ps', '-eo', 'args'], text=True)
-        assert not any('odoo-bin' in p and re.search(r'\s(-u|-i|--update|--init)(\s|=)', p) for p in processes.splitlines()), 'An addon upgrade is already running'
+        upgrades = []
+        for command in Path('/proc').glob('[0-9]*/cmdline'):
+            try:
+                argv = command.read_bytes().decode(errors='replace').split('\x00')
+            except (OSError, PermissionError):
+                continue
+            for index, arg in enumerate(argv):
+                if Path(arg).name == 'odoo-bin' and any(
+                    option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init='))
+                    for option in argv[index + 1:]
+                ):
+                    upgrades.append(command.parent.name)
+        assert not upgrades, 'An addon upgrade is already running; PIDs: ' + ', '.join(upgrades)
         backup = Path('/opt/steps_backups') / ('canonical_ports_' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
         backup.mkdir(mode=0o700, parents=True)
         originals = {}
