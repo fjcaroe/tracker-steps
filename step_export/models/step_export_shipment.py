@@ -84,6 +84,14 @@ class ExportShipment(models.Model):
             record.box_qty = sum(record.line_ids.mapped("box_qty"))
             record.kg_qty = sum(record.line_ids.mapped("kg_qty"))
 
+    @api.onchange("sales_program_id")
+    def _onchange_sales_program_instruction(self):
+        for record in self:
+            if record.sales_program_id:
+                record.receiver_id = record.sales_program_id.partner_id
+                record.season_id = record.sales_program_id.season_id
+                record.species_id = record.sales_program_id.species_id
+
     def action_validate_shipment(self):
         for record in self:
             if record.state != "draft" or not record.sales_program_id or not record.line_ids:
@@ -123,6 +131,11 @@ class ExportShipment(models.Model):
 
     def _check_tag_load(self):
         for record in self:
+            program = record.sales_program_id
+            for tag in record.tag_ids:
+                if tag.variedad_id in program.forbidden_variety_ids or any(
+                        producer in program.forbidden_producer_ids for producer, _share in tag._step_producer_shares()):
+                    raise ValidationError(_("Una tarja pertenece a un productor o variedad restringidos por el programa."))
             if not record.tag_ids:
                 raise ValidationError(_("Asocie las tarjas reales del embarque."))
             if any(not tag.is_fruit_tag for tag in record.tag_ids):

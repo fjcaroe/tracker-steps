@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_estimation_version_catalog_form" model="ir.ui.view">
+        <field name="name">step.management.estimation.version.catalog.form</field>
+        <field name="model">step.management.estimation.version</field>
+        <field name="inherit_id" ref="step_management_costs.view_estimation_version_form"/>
+        <field name="arch" type="xml">
+            <field name="season" position="replace">
+                <field name="season_id" required="1" options="{'no_quick_create': True}"/>
+                <field name="season" invisible="1"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_estimation_catalog_form" model="ir.ui.view">
+        <field name="name">step.management.estimation.catalog.form</field>
+        <field name="model">step.management.estimation</field>
+        <field name="inherit_id" ref="step_management_costs.view_estimation_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group/group/field[@name='season']" position="replace">
+                <field name="season_id" required="state == 'draft'" readonly="state != 'draft'" options="{'no_quick_create': True}"/>
+                <field name="season" string="Temporada registrada" readonly="1" invisible="season_id or not season"/>
+            </xpath>
+            <xpath expr="//sheet/group/group/field[@name='species']" position="replace">
+                <field name="species_id" readonly="state != 'draft'" options="{'no_quick_create': True}"/>
+                <field name="species" string="Especie registrada" readonly="1" invisible="species_id or not species"/>
+            </xpath>
+            <xpath expr="//sheet/group/group/field[@name='variety']" position="replace">
+                <field name="variety_id" readonly="state != 'draft'" options="{'no_quick_create': True}"/>
+                <field name="variety" string="Variedad registrada" readonly="1" invisible="variety_id or not variety"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_estimation_catalog_search" model="ir.ui.view">
+        <field name="name">step.management.estimation.catalog.search</field>
+        <field name="model">step.management.estimation</field>
+        <field name="inherit_id" ref="step_management_costs.view_estimation_search"/>
+        <field name="arch" type="xml">
+            <field name="season" position="replace"><field name="season_id"/></field>
+            <field name="species" position="replace"><field name="species_id"/><field name="variety_id"/></field>
+        </field>
+    </record>
+</odoo>

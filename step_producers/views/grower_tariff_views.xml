@@ -1,0 +1,30 @@
+<odoo>
+    <record id="view_grower_tariff_preliq_form" model="ir.ui.view">
+        <field name="name">step.export.grower.rate.preliq.form</field>
+        <field name="model">step.export.grower.rate</field>
+        <field name="inherit_id" ref="step_producers.view_step_export_grower_rate_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='season_id']" position="after">
+                <field name="preliq_producer_ids" widget="many2many_tags"/>
+            </xpath>
+            <xpath expr="//sheet/group" position="after">
+                <notebook>
+                    <page string="Conceptos de gasto para preliquidación">
+                        <field name="preliq_line_ids">
+                            <list editable="bottom">
+                                <field name="sequence" widget="handle"/>
+                                <field name="item_id"/>
+                                <field name="variety_id"/>
+                                <field name="product_id"/>
+                                <field name="packaging_id"/>
+                                <field name="value_type"/>
+                                <field name="value"/>
+                            </list>
+                        </field>
+                        <div class="text-muted">Para un margen de 8 % del FOB ingrese 0,08 como fracción del FOB.</div>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -14,6 +14,21 @@ from .common import PreviredCase, make_row
 @tagged("post_install", "-at_install")
 class TestDataset(PreviredCase):
 
+    def _make_cost_center(self, model, values):
+        """Supply synthetic agricultural masters only when that app requires them."""
+        for name in ('type_costo', 'etapa_costo', 'tipo_fruta'):
+            field = model._fields.get(name)
+            if field and field.required:
+                values[name] = field.get_values(self.env)[0]
+        field = model._fields.get('fundo_id')
+        if field and field.required:
+            farm = self.env[field.comodel_name].create({
+                'name': 'Fundo Previred de prueba',
+                'company_id': self.company.id,
+            })
+            values['fundo_id'] = farm.id
+        return model.create(values)
+
     def _add_worked_days(self, payslip, code, days, is_leave=False):
         entry_type = self.env["hr.work.entry.type"].search(
             [("code", "=", code)], limit=1
@@ -34,25 +49,25 @@ class TestDataset(PreviredCase):
 
     def test_v98_uses_only_attendance_for_worked_days(self):
         """Caso real: 1 día de asistencia + 30 de licencia informa 1."""
-        employee = self.make_employee("Marcelo Soto", "12345678-9",
+        employee = self.make_employee("Marcelo Soto", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         payslip.worked_days_line_ids.unlink()
         self._add_worked_days(payslip, "WORK100", 1)
         self._add_worked_days(payslip, "LIC_TEST", 30, is_leave=True)
 
-        dataset = self.build([make_row()], spec_version="84")
+        dataset = self.build([make_row(dv="5")], spec_version="84")
 
         row = dataset.records[0].principal
         self.assertEqual(row[previred.F_WORKED_DAYS - 1], "1")
 
     def test_v98_workday_type_comes_from_calendar_configuration(self):
-        employee = self.make_employee("Jornada Parcial", "12345678-9",
+        employee = self.make_employee("Jornada Parcial", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         payslip.contract_id.resource_calendar_id.previred_workday_type = "2"
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
@@ -119,14 +134,14 @@ class TestDataset(PreviredCase):
     def test_workday_type_40_hours_is_full(self):
         """40 h semanales o más es jornada completa (campo 93 = 1): Previred
         exige el sueldo mínimo legal en el campo 27."""
-        employee = self.make_employee("Jornada Completa", "12345678-9",
+        employee = self.make_employee("Jornada Completa", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         calendar = payslip.contract_id.resource_calendar_id
         calendar.previred_workday_type = False
         calendar.full_time_required_hours = 40
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "1")
@@ -167,7 +182,7 @@ class TestDataset(PreviredCase):
             contract_model._fields else "cost_center_id"
         if field_name not in contract_model._fields:
             self.skipTest("El motor instalado no aporta centro de costo")
-        employee = self.make_employee("Centro Costo", "12345678-9",
+        employee = self.make_employee("Centro Costo", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         analytic_model = self.env[contract_model._fields[
@@ -178,10 +193,10 @@ class TestDataset(PreviredCase):
                 "name": "Plan Previred",
             })
             values["plan_id"] = plan.id
-        center = analytic_model.create(values)
+        center = self._make_cost_center(analytic_model, values)
         payslip.contract_id[field_name] = center
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         self.assertEqual(
             dataset.records[0].principal[previred.F_COST_CENTER - 1],
@@ -198,7 +213,7 @@ class TestDataset(PreviredCase):
             contract_model._fields else "cost_center_id"
         if field_name not in contract_model._fields:
             self.skipTest("El motor instalado no aporta centro de costo")
-        employee = self.make_employee("Centro Costo Tilde", "12345678-9",
+        employee = self.make_employee("Centro Costo Tilde", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         analytic_model = self.env[contract_model._fields[
@@ -211,10 +226,10 @@ class TestDataset(PreviredCase):
                 "name": "Plan Previred",
             })
             values["plan_id"] = plan.id
-        center = analytic_model.create(values)
+        center = self._make_cost_center(analytic_model, values)
         payslip.contract_id[field_name] = center
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         value = dataset.records[0].principal[previred.F_COST_CENTER - 1]
         self.assertEqual(value, "Administracion")
@@ -759,10 +774,10 @@ class TestDataset(PreviredCase):
     def test_no_rima_leaves_employer_contributions_untouched(self):
         """Sin RIMA y con días trabajados normales: el recálculo de licencia
         médica no toca ningún campo ni emite avisos."""
-        employee = self.make_employee("Sin Licencia", "12345678-9",
+        employee = self.make_employee("Sin Licencia", "12345678-5",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
-        row = make_row(overrides={
+        row = make_row(dv="5", overrides={
             previred.F_AFP_CODE: "8",
             previred.F_AFP_TAXABLE: "800000",
             previred.F_SIS_CONTRIBUTION: "11111",

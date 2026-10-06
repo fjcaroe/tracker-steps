@@ -43,6 +43,7 @@ class TestV2CCommitted(ManagementCostsCommon):
 
     def _invoice_line(self, po_line, quantity, post=True):
         move = self.env["account.move"].create({
+            'journal_id': self.purchase_journal.id,
             "move_type": "in_invoice", "partner_id": po_line.order_id.partner_id.id,
             "invoice_date": fields.Date.today(),
             "invoice_line_ids": [(0, 0, {

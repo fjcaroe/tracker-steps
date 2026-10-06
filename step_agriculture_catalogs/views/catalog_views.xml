@@ -1,0 +1,82 @@
+<odoo>
+    <record id="view_temporada_form_companies" model="ir.ui.view">
+        <field name="name">step.temporada.form.companies</field>
+        <field name="model">step.temporada</field>
+        <field name="inherit_id" ref="step_hr.view_temporada_form"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_temporada_list_companies" model="ir.ui.view">
+        <field name="name">step.temporada.list.companies</field>
+        <field name="model">step.temporada</field>
+        <field name="inherit_id" ref="step_hr.view_step_temporada_list"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_especie_form_companies" model="ir.ui.view">
+        <field name="name">step.especie.form.companies</field>
+        <field name="model">step.especie</field>
+        <field name="inherit_id" ref="step_hr.view_step_especie_form"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_especie_list_companies" model="ir.ui.view">
+        <field name="name">step.especie.list.companies</field>
+        <field name="model">step.especie</field>
+        <field name="inherit_id" ref="step_hr.view_step_especie_list"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_variedad_form_companies" model="ir.ui.view">
+        <field name="name">step.variedad.form.companies</field>
+        <field name="model">step.variedad</field>
+        <field name="inherit_id" ref="step_hr.view_step_variedad_form"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_variedad_list_companies" model="ir.ui.view">
+        <field name="name">step.variedad.list.companies</field>
+        <field name="model">step.variedad</field>
+        <field name="inherit_id" ref="step_hr.view_step_variedad_list"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_grupo_variedad_form_companies" model="ir.ui.view">
+        <field name="name">step.grupo.variedad.form.companies</field>
+        <field name="model">step.grupo.variedad</field>
+        <field name="inherit_id" ref="step_hr.view_step_grupo_variedad_form"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_grupo_variedad_list_companies" model="ir.ui.view">
+        <field name="name">step.grupo.variedad.list.companies</field>
+        <field name="model">step.grupo.variedad</field>
+        <field name="inherit_id" ref="step_hr.view_step_grupo_variedad_list"/>
+        <field name="arch" type="xml">
+            <field name="company_id" position="replace">
+                <field name="company_ids" widget="many2many_tags" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+</odoo>

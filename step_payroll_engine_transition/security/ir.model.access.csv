@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_legacy_snapshot,Archivo nómina anterior,model_step_payroll_legacy_snapshot,base.group_system,1,0,0,0

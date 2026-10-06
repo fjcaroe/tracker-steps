@@ -89,10 +89,7 @@ class TestSeasonComparison(ManagementCostsCommon):
         # Dos centros con temporada anterior distinta de cero: si se
         # promediaran los % de fila (100% y -50%), el total daría 25%; el
         # correcto (desde los totales: 1500 vs 1500) es 0%.
-        center_b_center = self.env["step.management.cost.center"].create({
-            "code": "SF01", "name": "Centro sin fundo", "company_id": self.company_a.id,
-            "hectares": 3.0, "analytic_account_id": self.aa_a.id,
-        })
+        center_b_center = self._make_center("SF01", "Centro sin fundo", hectares=3.0)
         self._cost("2026/2027", actual=1000.0, center_id=self.center_a.id, center_label="Centro A")
         self._cost("2025/2026", actual=500.0, center_id=self.center_a.id, center_label="Centro A")
         self._cost("2026/2027", actual=500.0, center_id=center_b_center.id, center_label="Centro B")
@@ -160,31 +157,17 @@ class TestOutOfOp(ManagementCostsCommon):
         }, **extra_product_vals(cls.env)))
         cls.product.categ_id.management_budget_group_id = cls.group_a.id
         cls.vendor = cls.env["res.partner"].create({"name": "Proveedor V2F"})
-        # `center_a2` comparte la cuenta analítica de `center_a` (fixture
-        # compartida del núcleo, a propósito para otros tests de esa
-        # ambigüedad). El clasificador ahora la detecta y la rechaza
-        # (`cost_center.py::account_to_center_map`, mismo criterio que
-        # `_duplicate_analytic_centers` del núcleo) — correcto para
-        # cualquier lectura real de gasto, pero rompería estos tests si
-        # `center_a2` quedara activa sin que a ellos les importe. Se
-        # desactiva sólo en esta clase (no toca el fixture compartido).
-        cls.center_a2.active = False
-        aa_other = cls.env["account.analytic.account"].create(dict({
-            "name": "AA Centro sin OP", "plan_id": cls.plan.id, "company_id": cls.company_a.id,
-        }, **cls._extra_analytic_account_vals(cls.company_a)))
-        cls.center_no_op = cls.env["step.management.cost.center"].create({
-            "code": "NOP01", "name": "Centro sin OP", "company_id": cls.company_a.id,
-            "hectares": 2.0, "analytic_account_id": aa_other.id,
-        })
+        cls.center_no_op = cls._make_center("NOP01", "Centro sin OP", hectares=2.0)
 
     def _bill(self, amount, center=None, date="2026-06-15", post=True):
         center = center or self.center_a
         move = self.env["account.move"].create({
+            'journal_id': self.purchase_journal.id,
             "move_type": "in_invoice", "partner_id": self.vendor.id,
             "invoice_date": date, "date": date, "company_id": center.company_id.id,
             "invoice_line_ids": [(0, 0, {
                 "product_id": self.product.id, "quantity": 1, "price_unit": amount,
-                "analytic_distribution": {str(center.analytic_account_id.id): 100.0},
+                "analytic_distribution": {str(center.id): 100.0},
             })],
         })
         if post:
@@ -195,6 +178,7 @@ class TestOutOfOp(ManagementCostsCommon):
         vals = {
             "company_id": self.company_a.id,
             "date_from": "2026-05-01", "date_to": "2027-04-30",
+            "center_ids": [(6, 0, (self.center_a | self.center_no_op).ids)],
         }
         vals.update(kw)
         return self.env["step.management.out.of.op.wizard"].create(vals)
@@ -263,12 +247,14 @@ class TestOutOfOp(ManagementCostsCommon):
         self.assertEqual(len(wiz.line_ids), 1)
         self.assertFalse(wiz.line_ids.backed_by_op)
 
-    def test_shared_analytic_account_raises(self):
-        self.center_a2.active = True  # reactivada sólo para este test
+    def test_cost_is_attributed_to_the_analytic_account_center(self):
+        """T51: el centro es la cuenta analítica, así que la atribución del
+        gasto real a un centro es inequívoca."""
         self._bill(1000.0)
         wiz = self._wizard()
-        with self.assertRaises(UserError):
-            wiz.action_compute()
+        wiz.action_compute()
+        self.assertEqual(wiz.line_ids.center_id, self.center_a)
+        self.assertAlmostEqual(sum(wiz.line_ids.mapped("amount")), 1000.0)
 
     def test_draft_bill_not_counted(self):
         self._bill(1000.0, post=False)
@@ -295,19 +281,23 @@ class TestOutOfOp(ManagementCostsCommon):
 @tagged("post_install", "-at_install")
 class TestDashboardExtension(ManagementCostsCommon):
     def test_hectares_by_farm_species_and_variety(self):
+        Model = self.env['step.management.operational.budget'].with_company(self.company_a)
+        previous = Model.get_management_dashboard()
+        before_variety = {row['variety']: row['hectares'] for row in previous['hectares_by_variety']}
+        before_farm = {(row['farm'], row['species']): row['hectares'] for row in previous['hectares_by_farm_species']}
         self.center_a.write({"farm": "Fundo Uno", "species": "Cerezo", "variety": "Bing"})
         self.center_a2.write({"farm": "Fundo Uno", "species": "Cerezo", "variety": "Lapins"})
         data = self.env["step.management.operational.budget"].with_company(
             self.company_a
         ).get_management_dashboard()
         farm_species = {(row["farm"], row["species"]): row["hectares"] for row in data["hectares_by_farm_species"]}
-        self.assertAlmostEqual(farm_species[("Fundo Uno", "Cerezo")], 15.0)  # 10 + 5
+        self.assertAlmostEqual(farm_species[("Fundo Uno", "Cerezo")] - before_farm.get(("Fundo Uno", "Cerezo"), 0), 15.0)
         variety = {row["variety"]: row["hectares"] for row in data["hectares_by_variety"]}
-        self.assertAlmostEqual(variety["Bing"], 10.0)
-        self.assertAlmostEqual(variety["Lapins"], 5.0)
+        self.assertAlmostEqual(variety["Bing"] - before_variety.get('Bing', 0), 10.0)
+        self.assertAlmostEqual(variety["Lapins"] - before_variety.get('Lapins', 0), 5.0)
         self.assertIn("stock", data)
-        self.assertEqual(data["stock"]["line_count"], 0)
-        self.assertAlmostEqual(data["stock"]["needs"], 0.0)
+        self.assertEqual(data["stock"]["line_count"], previous['stock']['line_count'])
+        self.assertAlmostEqual(data["stock"]["needs"], previous['stock']['needs'])
 
     def test_costs_block_variance_percent_zero_safe(self):
         # Prueba unitaria directa sobre el helper (no sobre

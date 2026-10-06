@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="rule_export_grower_rate_company" model="ir.rule">
+    <field name="name">Exportaciones: tarifas productor por empresa</field>
+    <field name="model_id" ref="model_step_export_grower_rate" />
+    <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+  </record>
+  <record id="rule_export_estimate_company" model="ir.rule">
+    <field name="name">Exportaciones: estimaciones por empresa</field>
+    <field name="model_id" ref="model_step_export_estimate" />
+    <field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field>
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+  </record>
+  <record id="rule_export_estimate_line_company" model="ir.rule">
+    <field name="name">Exportaciones: fruta estimada por empresa</field>
+    <field name="model_id" ref="model_step_export_estimate_line" />
+    <field name="domain_force">[('estimate_id.company_id','in',company_ids)]</field>
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+  </record>
+  <record id="rule_export_producer_settlement_company" model="ir.rule">
+    <field name="name">Exportaciones: liquidaciones productor por empresa</field>
+    <field name="model_id" ref="model_step_export_producer_settlement" />
+    <field name="domain_force">[('company_id','in',company_ids)]</field>
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+  </record>
+  <record id="rule_export_producer_line_company" model="ir.rule">
+    <field name="name">Exportaciones: tarjas liquidadas por empresa</field>
+    <field name="model_id" ref="model_step_export_producer_settlement_line" />
+    <field name="domain_force">[('settlement_id.company_id','in',company_ids)]</field>
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+  </record>
+  <record id="rule_export_producer_discount_company" model="ir.rule">
+    <field name="name">Exportaciones: descuentos productor por empresa</field>
+    <field name="model_id" ref="model_step_export_producer_settlement_discount" />
+    <field name="domain_force">[('settlement_id.company_id','in',company_ids)]</field>
+    <field name="groups" eval="[(4, ref('base.group_user'))]" />
+  </record>
+</odoo>

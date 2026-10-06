@@ -1,0 +1,8 @@
+<odoo>
+    <record id="view_producer_settlement_receiver_form" model="ir.ui.view"><field name="name">producer.settlement.receiver.form</field>
+        <field name="model">step.export.producer.settlement</field><field name="inherit_id" ref="step_producers.view_export_producer_settlement_form"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='rate_id']" position="before"><field name="receiver_settlement_id" readonly="state != 'draft'"/></xpath></field></record>
+    <record id="view_producer_settlement_receiver_list" model="ir.ui.view"><field name="name">producer.settlement.receiver.list</field>
+        <field name="model">step.export.producer.settlement</field><field name="inherit_id" ref="step_producers.view_export_producer_settlement_list"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='producer_id']" position="after"><field name="receiver_settlement_id" optional="show"/></xpath></field></record>
+</odoo>

@@ -37,7 +37,7 @@ class StepManagementEstimation(models.Model):
         """(rendimiento, fuente) según la precedencia D13, o `(None, None)`
         si no hay labor elegida o ninguna fuente tiene una línea para ella."""
         self.ensure_one()
-        account = center.analytic_account_id
+        account = center
         labor = self.harvest_labor_id
         if not account or not labor:
             return None, None
@@ -71,7 +71,7 @@ class StepManagementEstimation(models.Model):
         for record in self:
             for line in record.line_ids:
                 center = line.center_id
-                account = center.analytic_account_id
+                account = center
                 updates = {}
 
                 if account and account.plant_cost:

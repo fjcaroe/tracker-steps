@@ -29,6 +29,32 @@ class StepsOperationsDashboard extends Component {
         }
     }
 
+    async safeReadGroup(model, domain, fields, groupby, options = {}) {
+        try {
+            return await this.orm.readGroup(model, domain, fields, groupby, options);
+        } catch {
+            return [];
+        }
+    }
+
+    formatCurrency(value) {
+        return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 })
+            .format(value || 0);
+    }
+
+    /** Lunes (00:00) de la semana que contiene `date`. */
+    startOfWeek(date) {
+        const d = new Date(date);
+        const day = (d.getDay() + 6) % 7; // 0 = lunes
+        d.setDate(d.getDate() - day);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    toDateString(date) {
+        return date.toISOString().slice(0, 10);
+    }
+
     openAction(xmlId) {
         return this.action.doAction(xmlId);
     }
@@ -95,6 +121,11 @@ export class MachineryDashboard extends StepsOperationsDashboard {
 export class FreightDashboard extends StepsOperationsDashboard {
     static template = "step_operations_ui.FreightDashboard";
 
+    setup() {
+        super.setup();
+        this.weekState = useState({ offset: 0 });
+    }
+
     async loadDashboard() {
         this.state.loading = true;
         try {
@@ -107,15 +138,59 @@ export class FreightDashboard extends StepsOperationsDashboard {
             const recent = await this.safeRead(
                 "x_orden_de_flete",
                 [],
-                ["x_name", "x_studio_fecha", "x_studio_selection_field_4ag_1jhk4c7s5", "x_studio_fundo", "x_studio_transportista", "x_studio_responsable"],
+                ["x_name", "x_studio_fecha", "x_studio_selection_field_4ag_1jhk4c7s5", "x_studio_fundo", "x_studio_transportista", "x_studio_responsable", "route_id"],
                 { limit: 6, order: "x_studio_fecha desc, id desc" }
             );
+            // El valor real del flete se carga en la hoja "Detalles" de Studio
+            // (x_orden_de_flete_line_709f3), no en el campo "amount" del código.
+            if (recent.length) {
+                const sums = await this.safeReadGroup(
+                    "x_orden_de_flete_line_709f3",
+                    [["x_orden_de_flete_id", "in", recent.map((r) => r.id)]],
+                    ["x_studio_valor_del_flete:sum"],
+                    ["x_orden_de_flete_id"]
+                );
+                const byOrder = {};
+                for (const row of sums) {
+                    const orderId = Array.isArray(row.x_orden_de_flete_id)
+                        ? row.x_orden_de_flete_id[0]
+                        : row.x_orden_de_flete_id;
+                    byOrder[orderId] = row.x_studio_valor_del_flete;
+                }
+                for (const row of recent) {
+                    row.freight_value = byOrder[row.id] || 0;
+                }
+            }
+            await this.loadWeekComparison();
             this.state.data = { orders, accounting, tariffs, tracking, routes, coldModes, recent };
         } catch {
             this.state.error = "No fue posible cargar el resumen de Fletes.";
         } finally {
             this.state.loading = false;
         }
+    }
+
+    async loadWeekComparison() {
+        const monday = this.startOfWeek(new Date());
+        monday.setDate(monday.getDate() + this.weekState.offset * 7);
+        const sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+        this.weekState.label = `${this.formatDate(this.toDateString(monday))} — ${this.formatDate(this.toDateString(sunday))}`;
+        const rows = await this.safeReadGroup(
+            "step.freight.plan.vs.actual",
+            [["week_start", "=", this.toDateString(monday)]],
+            ["planned_amount:sum", "real_amount:sum"],
+            []
+        );
+        const totals = rows[0] || {};
+        this.weekState.planned = totals.planned_amount || 0;
+        this.weekState.real = totals.real_amount || 0;
+        this.weekState.diff = this.weekState.real - this.weekState.planned;
+    }
+
+    async changeWeek(delta) {
+        this.weekState.offset += delta;
+        await this.loadWeekComparison();
     }
 
     stateLabel(state) {

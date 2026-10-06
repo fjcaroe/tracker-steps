@@ -1,0 +1,115 @@
+{
+  "instance": "odoo-new",
+  "project": "stepsconsulting",
+  "zone": "us-central1-c",
+  "public_ip": "35.222.25.110",
+  "listen_ip": "10.0.0.3",
+  "environments": {
+    "development": {
+      "label": "Desarrollo",
+      "url": "https://desarrollo.stepsapp.cl",
+      "port": 8075,
+      "database": "LAB_TAREAS",
+      "service": "odoo18-dev.service",
+      "config": "/etc/dev_odoo18.conf",
+      "role": "qa",
+      "min_db_connections": 16,
+      "deploy_enabled": true
+    },
+    "demo": {
+      "label": "Demo",
+      "url": "https://demo.stepsapp.cl",
+      "port": 8080,
+      "database": "STEPS_DEMO",
+      "service": "odoo18-demo.service",
+      "config": "/etc/demo_odoo18.conf",
+      "role": "legacy",
+      "deploy_enabled": false
+    },
+    "demo-sys": {
+      "label": "Demo SyS",
+      "url": "https://demo-sys.stepsapp.cl",
+      "port": 8090,
+      "database": "STEPS_DEMO_SYS",
+      "service": "odoo18-demo-sys.service",
+      "config": "/etc/odoo18-demo-sys.conf",
+      "role": "sys-replica",
+      "scope_reference": "sys",
+      "min_db_connections": 16,
+      "deploy_enabled": true
+    },
+    "cerro": {
+      "label": "Cerro El Plomo",
+      "url": "https://cerroelplomo.stepsapp.cl",
+      "port": 8082,
+      "database": "CERRO_EL_PLOMO",
+      "service": "odoo18-cerroelplomo.service",
+      "config": "/etc/odoo18-cerroelplomo.conf",
+      "role": "production",
+      "deploy_enabled": true
+    },
+    "steps": {
+      "label": "Steps",
+      "url": "https://stepsapp.cl",
+      "port": 8069,
+      "database": "karo_consultorias",
+      "service": "odoo18.service",
+      "config": "/etc/odoo18.conf",
+      "role": "production",
+      "deploy_enabled": true
+    },
+    "sys": {
+      "label": "SyS",
+      "url": "https://sys.stepsapp.cl",
+      "port": 8070,
+      "database": "SyS",
+      "service": "odoo18-sys.service",
+      "config": "/etc/odoo18-sys.conf",
+      "role": "production",
+      "deploy_enabled": true
+    },
+    "admin": {
+      "label": "Admin Studio",
+      "url": "https://admin.stepsapp.cl",
+      "port": 8068,
+      "database": null,
+      "service": "odoo18-admin.service",
+      "config": "/etc/odoo18-admin.conf",
+      "role": "legacy",
+      "deploy_enabled": false
+    },
+    "everfruit": {
+      "label": "Everfruit",
+      "url": "https://everfruit.stepsapp.cl",
+      "port": 8078,
+      "database": "Everfruit",
+      "service": "odoo18-everfruit.service",
+      "config": "/etc/odoo18-everfruit.conf",
+      "role": "legacy",
+      "deploy_enabled": false
+    }
+  },
+  "policy": {
+    "qa": "development",
+    "payroll_engine": "l10n_cl_simpledigital_payroll",
+    "production": [
+      "sys",
+      "steps",
+      "cerro"
+    ],
+    "restricted": {
+      "demo-sys": [
+        "sys-installed-modules",
+        "payroll-simpledigital"
+      ]
+    },
+    "mirrors": {
+      "demo-sys": "sys"
+    },
+    "legacy": [
+      "demo",
+      "admin",
+      "everfruit"
+    ]
+  }
+}

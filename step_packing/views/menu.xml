@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_step_packing_root" name="Packing Campo" sequence="60"/>
+    <menuitem id="menu_step_packing_root" name="Packing Campo" sequence="60" web_icon="step_packing,static/description/icon.png"/>
     <menuitem id="menu_step_packing_ops" name="Operaciones" parent="menu_step_packing_root" sequence="10"/>
     <menuitem id="menu_step_packing_config" name="Configuración" parent="menu_step_packing_root" sequence="90"/>
     <menuitem id="menu_step_packing_fruit_category" name="Categoría de Fruta" parent="menu_step_packing_config" action="action_step_packing_fruit_category"/>
@@ -34,5 +34,4 @@
     <menuitem id="menu_step_packing_campo_stage" name="Packing Campo (etapa)" parent="menu_step_packing_config" action="action_step_packing_campo_stage"/>
     <menuitem id="menu_step_packing_reception_stage" name="Recepción a Granel (etapa)" parent="menu_step_packing_config" action="action_step_packing_reception_stage"/>
     <menuitem id="menu_step_packing_campo" name="Packing Campo" parent="menu_step_packing_ops" action="action_step_packing_campo"/>
-    <menuitem id="menu_step_packing_reception" name="Recepción a Granel" parent="menu_step_packing_ops" action="action_step_packing_reception"/>
 </odoo>

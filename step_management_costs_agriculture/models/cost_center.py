@@ -1,33 +1,48 @@
-"""Puente D13 — el dato "verdadero" de fundo/especie/variedad/plantas vive
-en `step_hr` cuando el centro está enlazado a una cuenta analítica real
-(`step.management.cost.center.analytic_account_id`, ya opcional en el
-núcleo). Nunca se sustituye el `Char`/`Float` del núcleo por completo (D13:
-fallback portable); se agregan campos `agri_*` de sólo lectura que reflejan
-el maestro real cuando la relación existe, y se dejan disponibles para que
-`estimation.py` (este mismo puente) los use con procedencia explícita."""
+"""Puente D13 — el dato "verdadero" de fundo/especie/variedad/superficie y
+plantas vive en `step_hr` (Actividades / Configuración / Centro de Costo).
 
-from odoo import fields, models
+Desde T51 el centro de costo de Gestión y Costos ES la cuenta analítica, de
+modo que no hay un maestro paralelo que sincronizar: con `step_hr` instalado,
+los campos de gestión de la cuenta (`farm`, `species`, `variety`, `hectares`,
+`plants`, `cost_type`) se calculan desde sus datos agrícolas reales y quedan
+editables (`readonly=False`) para los casos sin dato agrícola. Un valor ya
+informado nunca se borra: si el maestro agrícola está vacío se conserva el
+valor manual."""
+
+from odoo import api, fields, models
+
+COST_TYPE_BY_TYPE_COSTO = {
+    "fruta": "crop",
+    "cultivo": "crop",
+    "maquinaria": "machinery",
+    "operacional": "operational",
+    "admin": "administrative",
+}
 
 
-class StepManagementCostCenter(models.Model):
-    _inherit = "step.management.cost.center"
+class AccountAnalyticAccount(models.Model):
+    _inherit = "account.analytic.account"
 
-    agri_farm_id = fields.Many2one(
-        related="analytic_account_id.fundo_id", string="Fundo (maestro agrícola)",
+    farm = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    species = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    variety = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    hectares = fields.Float(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    # A default on one field suppresses initial computation of the whole shared
+    # compute group. Plants must come from plant_cost before the first insert.
+    plants = fields.Float(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True, default=None)
+    cost_type = fields.Selection(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+
+    @api.depends(
+        "fundo_id.name", "especie_id.name", "variedad_id.name",
+        "has_cost", "plant_cost", "type_costo",
     )
-    agri_species_id = fields.Many2one(
-        related="analytic_account_id.especie_id", string="Especie (maestro agrícola)",
-    )
-    agri_variety_id = fields.Many2one(
-        related="analytic_account_id.variedad_id", string="Variedad (maestro agrícola)",
-    )
-    agri_variety_group_id = fields.Many2one(
-        related="analytic_account_id.grupo_variedad_id",
-        string="Grupo de variedad (maestro agrícola)",
-    )
-    agri_plants = fields.Integer(
-        related="analytic_account_id.plant_cost", string="Plantas (maestro agrícola)",
-    )
-    agri_hectares = fields.Integer(
-        related="analytic_account_id.has_cost", string="Hectáreas (maestro agrícola)",
-    )
+    def _compute_management_from_agriculture(self):
+        for account in self:
+            account.farm = account.fundo_id.name or account.farm
+            account.species = account.especie_id.name or account.species
+            account.variety = account.variedad_id.name or account.variety
+            account.hectares = account.has_cost or account.hectares
+            account.plants = float(account.plant_cost) if account.plant_cost else account.plants
+            account.cost_type = (
+                COST_TYPE_BY_TYPE_COSTO.get(account.type_costo) or account.cost_type
+            )

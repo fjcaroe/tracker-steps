@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        App "Packing Fruta" (ticket 34): misma estructura que la app Studio
+        de steps_qa. Planificacion (Estimaciones), Reserva de stock, Orden de
+        despacho y Naves los agrega step_export; Traslado lotes lo agrega
+        step_packing_batch. Un submenu sin hijos visibles no se muestra.
+    -->
+    <menuitem id="menu_packing_fruta_root" name="Packing Fruta" sequence="59"
+              web_icon="step_packing,static/src/img/packing_fruta.png"/>
+
+    <menuitem id="menu_packing_fruta_planning" name="Planificación" parent="menu_packing_fruta_root" sequence="10"/>
+
+    <menuitem id="menu_packing_fruta_receptions" name="Recepciones" parent="menu_packing_fruta_root" sequence="20"/>
+    <menuitem id="menu_packing_fruta_reception" name="Recepción fruta" parent="menu_packing_fruta_receptions"
+              action="action_step_packing_fruit_reception" sequence="10" groups="stock.group_stock_user"/>
+    <menuitem id="menu_step_packing_reception" name="Recepción a Granel" parent="menu_packing_fruta_receptions"
+              action="action_step_packing_reception" sequence="20"/>
+
+    <menuitem id="menu_packing_fruta_operations" name="Operaciones" parent="menu_packing_fruta_root" sequence="30"/>
+    <menuitem id="menu_packing_fruta_production" name="Orden de fabricación" parent="menu_packing_fruta_operations"
+              action="mrp.mrp_production_action" sequence="10" groups="mrp.group_mrp_user"/>
+    <menuitem id="menu_packing_fruta_stock_move" name="Movimiento stock" parent="menu_packing_fruta_operations"
+              action="stock.stock_move_action" sequence="20" groups="stock.group_stock_user"/>
+
+    <menuitem id="menu_packing_fruta_inspections" name="Inspecciones" parent="menu_packing_fruta_root" sequence="40"/>
+    <menuitem id="menu_packing_fruta_inspection_sag" name="Inspección SAG" parent="menu_packing_fruta_inspections"
+              action="action_step_packing_inspection_sag" sequence="10"/>
+    <menuitem id="menu_packing_fruta_inspection_usda" name="Inspección USDA" parent="menu_packing_fruta_inspections"
+              action="action_step_packing_inspection_usda" sequence="20"/>
+    <menuitem id="menu_packing_fruta_temperature" name="Control de temperatura" parent="menu_packing_fruta_inspections"
+              action="action_step_packing_temperature_control" sequence="30"/>
+
+    <menuitem id="menu_packing_fruta_dispatch_root" name="Despacho" parent="menu_packing_fruta_root" sequence="50"/>
+    <menuitem id="menu_packing_fruta_dispatch" name="Despacho" parent="menu_packing_fruta_dispatch_root"
+              action="action_step_packing_fruit_dispatch" sequence="20" groups="stock.group_stock_user"/>
+
+    <menuitem id="menu_packing_fruta_config" name="Configuración" parent="menu_packing_fruta_root" sequence="90"/>
+
+    <menuitem id="menu_packing_fruta_config_packing" name="Configuración de Packing" parent="menu_packing_fruta_config" sequence="10"/>
+    <menuitem id="menu_packing_fruta_fundo" name="Productor - Fundo" parent="menu_packing_fruta_config_packing"
+              action="step_hr.action_step_fundo" sequence="10"/>
+    <menuitem id="menu_packing_fruta_line" name="Líneas de Proceso" parent="menu_packing_fruta_config_packing"
+              action="action_step_packing_line" sequence="20"/>
+    <menuitem id="menu_packing_fruta_process_type" name="Tipo de proceso" parent="menu_packing_fruta_config_packing"
+              action="action_step_packing_process_type" sequence="30"/>
+    <menuitem id="menu_packing_fruta_tag_type" name="Tipo Tarjas" parent="menu_packing_fruta_config_packing"
+              action="action_step_packing_tag_type" sequence="40"/>
+    <menuitem id="menu_packing_fruta_tag_state" name="Estados de tarjas" parent="menu_packing_fruta_config_packing"
+              action="action_step_packing_tag_state" sequence="50"/>
+    <menuitem id="menu_packing_fruta_stop_reason" name="Detención Líneas" parent="menu_packing_fruta_config_packing"
+              action="action_step_packing_stop_reason" sequence="60"/>
+    <menuitem id="menu_packing_fruta_correction_reason" name="Causa corrección de procesos" parent="menu_packing_fruta_config_packing"
+              action="action_step_packing_correction_reason" sequence="70"/>
+
+    <menuitem id="menu_packing_fruta_config_product" name="Producto" parent="menu_packing_fruta_config" sequence="20"/>
+    <menuitem id="menu_packing_fruta_species" name="Especie" parent="menu_packing_fruta_config_product"
+              action="step_hr.action_step_especie" sequence="10"/>
+    <menuitem id="menu_packing_fruta_variety_group" name="Grupo Variedad" parent="menu_packing_fruta_config_product"
+              action="step_hr.action_step_grupo_variedad" sequence="20"/>
+    <menuitem id="menu_packing_fruta_variety" name="Variedad" parent="menu_packing_fruta_config_product"
+              action="step_hr.action_step_variedad" sequence="30"/>
+    <menuitem id="menu_packing_fruta_fruit_category" name="Categoría de fruta" parent="menu_packing_fruta_config_product"
+              action="action_step_packing_fruit_category" sequence="40"/>
+    <menuitem id="menu_packing_fruta_fruit_class" name="Clase de fruta" parent="menu_packing_fruta_config_product"
+              action="action_step_packing_fruit_class" sequence="50"/>
+    <menuitem id="menu_packing_fruta_caliber_group" name="Grupo Calibre" parent="menu_packing_fruta_config_product"
+              action="action_step_packing_caliber_group" sequence="60"/>
+    <menuitem id="menu_packing_fruta_fruit_caliber" name="Calibre de fruta" parent="menu_packing_fruta_config_product"
+              action="action_step_packing_fruit_caliber" sequence="70"/>
+
+    <menuitem id="menu_packing_fruta_config_activities" name="Configuración Actividades" parent="menu_packing_fruta_config" sequence="30"/>
+    <menuitem id="menu_packing_fruta_activity" name="Actividades" parent="menu_packing_fruta_config_activities"
+              action="action_step_packing_activity" sequence="10"/>
+    <menuitem id="menu_packing_fruta_labor" name="Labores" parent="menu_packing_fruta_config_activities"
+              action="action_step_packing_labor" sequence="20"/>
+
+    <menuitem id="menu_packing_fruta_config_export" name="Configuración Exportaciones" parent="menu_packing_fruta_config" sequence="40"/>
+
+    <menuitem id="menu_packing_fruta_config_reception" name="Recepción a Granel" parent="menu_packing_fruta_config" sequence="50"/>
+    <menuitem id="menu_packing_fruta_reception_stage" name="Etapas" parent="menu_packing_fruta_config_reception"
+              action="action_step_packing_reception_stage" sequence="10"/>
+    <menuitem id="menu_packing_fruta_reception_tag" name="Etiquetas" parent="menu_packing_fruta_config_reception"
+              action="action_step_packing_reception_tag" sequence="20"/>
+</odoo>

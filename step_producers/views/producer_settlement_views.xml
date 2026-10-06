@@ -1,0 +1,59 @@
+<odoo>
+    <record id="view_export_producer_settlement_list" model="ir.ui.view">
+        <field name="name">step.export.producer.settlement.list</field>
+        <field name="model">step.export.producer.settlement</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="producer_id"/>
+            <field name="date"/><field name="season_id"/><field name="species_id"/><field name="total_kg"/>
+            <field name="net_usd"/><field name="state"/></list></field>
+    </record>
+    <record id="view_export_producer_settlement_form" model="ir.ui.view">
+        <field name="name">step.export.producer.settlement.form</field>
+        <field name="model">step.export.producer.settlement</field>
+        <field name="arch" type="xml"><form><header>
+            <button name="action_validate" type="object" string="Validar" class="btn-primary" invisible="state != 'draft'"/>
+            <button name="action_reopen" type="object" string="Volver a generada" invisible="state != 'validated'"/>
+            <button name="action_account" type="object" string="Entregar y contabilizar" class="btn-primary" invisible="state != 'validated'"/>
+            <button name="action_close" type="object" string="Cerrar" class="btn-primary" invisible="state != 'accounted'"/>
+            <field name="state" widget="statusbar"/>
+        </header><sheet><group><field name="name"/><field name="producer_id"/>
+            <field name="date"/><field name="season_id"/><field name="species_id"/><field name="rate_id"/>
+            <field name="payout_mode" readonly="state != 'draft'"/>
+            <field name="fob_transfer_percent" readonly="state != 'draft'"
+                   invisible="payout_mode != 'fob'"/>
+            <field name="bill_id"/><field name="bill_currency_id"/>
+            <field name="delivery_date"/><field name="closed_date"/>
+            <field name="purchase_journal_id"/>
+            <field name="supplier_document_code"/><field name="supplier_invoice_folio"/>
+            <field name="initial_bill_ids" widget="many2many_tags"/>
+            <field name="initial_bills_reviewed"/>
+            <field name="usd_currency_id" invisible="1"/>
+            <field name="company_id"/></group>
+            <notebook><page string="Tarjas"><field name="line_ids" readonly="state != 'draft'">
+                <list editable="bottom"><field name="tag_id"/><field name="description"/><field name="kg_qty"/>
+                    <field name="allocated_fob_usd"/><field name="amount_usd"/></list></field></page>
+                <page string="Descuentos"><field name="discount_line_ids" readonly="state != 'draft'">
+                    <list editable="bottom"><field name="item_id"/><field name="amount_usd"/></list>
+                </field></page></notebook>
+            <group><field name="total_kg"/><field name="gross_usd"/>
+                <field name="discount_usd"/><field name="net_usd"/>
+                <field name="initial_billed_usd"/><field name="adjustment_usd"/></group>
+        </sheet><chatter/></form></field>
+    </record>
+    <record id="action_export_producer_settlement" model="ir.actions.act_window">
+        <field name="name">Liquidaciones de productores</field>
+        <field name="res_model">step.export.producer.settlement</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="view_export_grower_rate_form_t35" model="ir.ui.view">
+        <field name="name">step.export.grower.rate.t35.form</field>
+        <field name="model">step.export.grower.rate</field>
+        <field name="inherit_id" ref="view_step_export_grower_rate_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="producer_id"/><field name="rate_type"/>
+                <field name="rate_value"/><field name="expense_account_id"/>
+                <field name="purchase_tax_ids" widget="many2many_tags"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

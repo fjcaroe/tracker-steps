@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models
+from odoo import models, fields
 
 
 class HrContract(models.Model):
@@ -11,6 +11,25 @@ class HrContract(models.Model):
     SimpleDigital se tocan aquí."""
 
     _inherit = "hr.contract"
+
+    # Historical/draft contracts can be incomplete. Validate before computing
+    # payroll rather than inventing fiscal settings to satisfy a SQL upgrade.
+    analytic_account_id = fields.Many2one(required=False)
+    health_institution = fields.Selection(required=False)
+    pension_option = fields.Selection(required=False)
+    has_gratification = fields.Boolean(required=False)
+    is_retired_elderly = fields.Boolean(required=False)
+    contract_type_id = fields.Many2one(required=False)
+
+
+class HrEmployee(models.Model):
+    _inherit = 'hr.employee'
+
+    hr_commune = fields.Many2one(required=False)
+
+
+class HrContractPayload(models.Model):
+    _inherit = 'hr.contract'
 
     def _selection_label(self, field_name, value):
         if not value:

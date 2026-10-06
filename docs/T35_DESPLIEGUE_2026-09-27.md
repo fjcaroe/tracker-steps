@@ -52,3 +52,45 @@ empresa; esos valores pueden ajustarse en cada tarifa antes de liquidar.
 - Respaldo previo de las cuatro bases, sus filestores y los addons anteriores:
   `/opt/steps_backups/t35_export_20260927_060113/` en la instancia `odoo-new`.
 - Código versionado en la rama `ticket/35-exportaciones`, commit `e315c81`.
+
+## Identidad visual y portada de Exportaciones — 27 de septiembre de 2026
+
+Se añadió un icono propio al lanzador Odoo y una pantalla **Inicio** para
+Exportaciones. La portada usa el mismo lenguaje visual de las otras aplicaciones
+Steps, muestra programas vigentes, embarques abiertos, forecasts y liquidaciones
+de recibidor pendientes, y ofrece accesos al flujo comercial. Los contadores
+respetan los registros visibles para el usuario y sus empresas activas.
+
+El Home público compartido incorpora **Exportaciones** como la solución 07 de
+Recursos y logística, con sus capacidades y un acceso al módulo a través del
+login HTTPS. La página `/soluciones/recursos-y-logistica` también la presenta.
+Desarrollo, Demo y Cerro El Plomo sirven ahora la misma portada editorial de
+Steps Agro, con 13 soluciones. Las versiones instaladas son
+`step_export 18.0.2.2.0` y `step_demo_homepage 18.0.2.4.1`.
+
+| Entorno | Respaldo previo de base y addons | Verificación |
+|---|---|---|
+| Desarrollo | `/opt/steps_backups/t35_branding_dev_20260927T064002Z/` | Home 200, 13 soluciones, icono y fotografía 200 |
+| Demo | `/opt/steps_backups/t35_branding_demo_20260927T064050Z/` | Home 200, 13 soluciones, icono y fotografía 200 |
+| Cerro El Plomo | `/opt/steps_backups/t35_branding_cerro_20260927T064136Z/` | Home 200, 13 soluciones, icono y fotografía 200 |
+
+Cerro tenía dos copias de `step_demo_homepage`: la vista de base se actualizó
+desde `steps_addons`, pero la ruta estática leía la copia antigua en
+`odoo_agriculture`. Se respaldó y sincronizó esa copia para servir las imágenes;
+respaldo adicional:
+`/opt/steps_backups/t35_branding_cerro_static_20260927T064212Z/`.
+
+En los tres dominios se verificaron `/`, `/soluciones/recursos-y-logistica`,
+los recursos del icono y la fotografía, y el destino público
+`/web/login?redirect=%2Fodoo%2Faction-step_export.action_step_export_dashboard`:
+HTTP 200 sin redirección a HTTP. Los estilos SCSS de Exportaciones y Home
+compilaron correctamente en las tres instalaciones. El menú raíz tiene icono
+y acción configurados. Se revisó visualmente la portada de Cerro, incluido el
+filtro Recursos y logística y la tarjeta expandida de Exportaciones.
+
+La primera actualización de Desarrollo se detuvo antes de terminar por una
+referencia de vista incorrecta en la migración; se corrigió, se repitió con
+respaldo nuevo y quedó instalada. Una comprobación SQL final también necesitó
+ajustarse porque Odoo almacena nombres de menú como JSON; no afectó la
+actualización ya completada. El commit de entrega es `47e692a` en la rama
+`ticket/35-exportaciones`.

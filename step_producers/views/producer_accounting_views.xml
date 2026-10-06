@@ -1,0 +1,10 @@
+<odoo>
+    <record id="view_producer_accounting_form" model="ir.ui.view"><field name="name">producer.accounting.settings</field><field name="model">res.company</field>
+        <field name="arch" type="xml"><form create="0" delete="0"><sheet><group><field name="name"/><field name="currency_id"/></group>
+            <group string="Compra y liquidación de fruta"><field name="step_export_purchase_journal_id"/>
+                <field name="step_export_purchase_account_id"/><field name="step_export_purchase_tax_id"/></group>
+        </sheet></form></field></record>
+    <record id="action_producer_accounting" model="ir.actions.act_window"><field name="name">Parámetros contables de Productores</field><field name="res_model">res.company</field>
+        <field name="view_mode">list,form</field><field name="view_id" ref="view_producer_accounting_form"/>
+        <field name="domain">[('id','in',allowed_company_ids)]</field></record>
+</odoo>

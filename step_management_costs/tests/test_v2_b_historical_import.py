@@ -57,10 +57,7 @@ class TestV2BHistoricalImport(ManagementCostsCommon):
     def setUpClass(cls):
         super().setUpClass()
         cls.center_a.write({"cost_type": "crop"})
-        cls.center_operational = cls.env["step.management.cost.center"].create({
-            "code": "OPV2B", "name": "Operacional V2B", "company_id": cls.company_a.id,
-            "cost_type": "operational", "hectares": 0.0,
-        })
+        cls.center_operational = cls._make_center("OPV2B", "Operacional V2B", cost_type="operational", hectares=0.0)
 
     def _budget_row(self, version="1", season="2425", year=2024, month=11,
                      farm="Fundo A", species="Cerezo", variety="Bing",
@@ -193,12 +190,8 @@ class TestV2BHistoricalImport(ManagementCostsCommon):
         self.assertIn("no encontrado", batch.line_ids.error.lower())
 
     def test_ambiguous_center_is_row_error(self):
-        self.env["step.management.cost.center"].create({
-            "code": "AMBV2B1", "name": "Ambiguo V2B", "company_id": self.company_a.id,
-        })
-        self.env["step.management.cost.center"].create({
-            "code": "AMBV2B2", "name": "ambiguo v2b", "company_id": self.company_a.id,
-        })
+        self._make_center("AMBV2B1", "Ambiguo V2B")
+        self._make_center("AMBV2B2", "ambiguo v2b")
         row = self._budget_row()
         row[8] = "AMBIGUO V2B"  # no calza exacto con ninguno; normalizado calza con ambos
         b64 = _xlsx(BUDGET_HEADERS, [row])

@@ -1,5 +1,24 @@
 # Instrucciones compartidas y autorización operativa para Claude Code
 
+Desarrollo es el único QA. Demo-SYS replica exclusivamente el alcance instalado
+de SyS, incluida Nómina Simple Digital; no recibe aplicaciones de otros productos.
+Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
+fuera del circuito de publicación, conservando datos. Toda mejora se revisa en
+Desarrollo antes de promover el mismo paquete a la producción solicitada.
+
+Leer `docs/OPERACION_ODOO_CANONICA.md`. El destino se resuelve con
+`tools/ops/environments.json` y se confirma por SSH. Los puertos son aliases
+de dominios HTTPS, no ambientes ambiguos. Gestión usa la base consolidada
+`origin/codex/ambientes-canonicos-reparacion`. La publicación exige prueba
+funcional del paquete exacto, ausencia de downgrade/cambios concurrentes y
+exclusión compartida. No reemplazar maestros por texto ni parchar Studio para
+simular una implementación. No cerrar un ticket antes de verificar su destino.
+
+No crear ni ampliar desarrollos Studio. Implementar modelos, campos, vistas,
+reportes y automatizaciones en código versionado. Un tablero Python que todavía
+consulta un modelo manual es una migración parcial; registrar esa dependencia.
+No retirar Studio ni sus registros sin migración comprobada y conservación de datos.
+
 Leer y cumplir `AGENTS.md` y `docs/WORKFLOW_GIT_COMPARTIDO.md` antes de cambiar
 código. Cada tarea termina con código útil en commits, rama subida y
 `python tools/git/verify_handoff.py --require-pushed` correcto. No dejar cambios
@@ -18,7 +37,7 @@ Informar el avance y el resultado con evidencia, sin convertir el aviso en una
 solicitud de permiso.
 
 - El ambiente objetivo sale del pedido o del ticket y sus comentarios vigentes.
-  Si no está indicado, probar y desplegar primero en Desarrollo o Demo; no
+  Si no está indicado, probar y desplegar primero únicamente en Desarrollo; no
   asumir que «desplegar» significa Producción. Una petición explícita de
   Producción autoriza también ese despliegue tras las verificaciones técnicas.
 - Antes de publicar, comprobar destino, rama y versión, pruebas relevantes,

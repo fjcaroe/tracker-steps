@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_producer_settlement" model="ir.actions.report">
+        <field name="name">Liquidación de productor</field>
+        <field name="model">step.export.producer.settlement</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_producers.report_producer_settlement</field>
+        <field name="report_file">step_producers.report_producer_settlement</field>
+        <field name="binding_model_id" ref="model_step_export_producer_settlement"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'Liquidacion_Productor_%s' % object.name</field>
+    </record>
+    <template id="report_producer_settlement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Liquidación de productor <span t-field="doc.name"/></h2>
+                        <p t-if="doc.state == 'draft'" class="text-muted"><strong>BORRADOR - SIN VALIDAR</strong></p>
+                        <table class="table table-sm table-borderless">
+                            <tbody>
+                                <tr><th>Productor</th><td><span t-field="doc.producer_id.name"/></td>
+                                    <th>Empresa</th><td><span t-field="doc.company_id.name"/></td></tr>
+                                <tr><th>Temporada</th><td><span t-field="doc.season_id.name"/></td>
+                                    <th>Especie</th><td><span t-field="doc.species_id.name"/></td></tr>
+                                <tr t-if="'receiver_settlement_id' in doc._fields and doc.receiver_settlement_id"><th>Recibidor</th><td><span t-field="doc.receiver_settlement_id.receiver_id.name"/></td>
+                                    <th>Liquidación recibidor</th><td><span t-field="doc.receiver_settlement_id.name"/></td></tr>
+                                <tr><th>Estado</th><td><span t-field="doc.state"/></td>
+                                    <th>Fecha de entrega</th><td><span t-field="doc.delivery_date"/></td></tr>
+                                <tr><th>Modalidad</th><td><span t-field="doc.payout_mode"/></td>
+                                    <th>FOB al productor</th><td>
+                                        <t t-if="doc.payout_mode == 'fob'"><span t-esc="'%.2f' % doc.fob_transfer_percent"/> %</t>
+                                        <t t-else="">No aplica</t>
+                                    </td></tr>
+                            </tbody>
+                        </table>
+                        <h4>Fruta liquidada</h4>
+                        <table class="table table-sm table-bordered">
+                            <thead><tr><th>Tarja</th><th>Variedad</th><th>Categoría / calibre</th>
+                                <th class="text-end">Kilos</th><th class="text-end">FOB asignado USD</th>
+                                <th class="text-end">Retorno USD</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="doc.line_ids" t-as="line">
+                                    <td><span t-field="line.tag_id.name"/></td>
+                                    <td><span t-field="line.tag_id.variedad_id.name"/></td>
+                                    <td><span t-field="line.tag_id.fruit_category_id.name"/> /
+                                        <span t-field="line.tag_id.fruit_caliber_id.name"/></td>
+                                    <td class="text-end"><span t-esc="'%.2f' % line.kg_qty"/></td>
+                                    <td class="text-end"><span t-esc="'%.2f' % line.allocated_fob_usd"/></td>
+                                    <td class="text-end"><span t-field="line.amount_usd"/></td>
+                                </tr>
+                            </tbody>
+                            <tfoot><tr><th colspan="3">Total fruta</th>
+                                <th class="text-end"><span t-field="doc.total_kg"/></th>
+                                <th></th><th class="text-end"><span t-field="doc.gross_usd"/></th></tr></tfoot>
+                        </table>
+                        <h4>Descuentos y resultado</h4>
+                        <table class="table table-sm table-bordered">
+                            <thead><tr><th>Concepto</th><th class="text-end">Importe USD</th></tr></thead>
+                            <tbody>
+                                <tr t-foreach="doc.discount_line_ids" t-as="discount">
+                                    <td><span t-field="discount.item_id.name"/></td>
+                                    <td class="text-end"><span t-field="discount.amount_usd"/></td>
+                                </tr>
+                                <tr><th>Total descuentos</th><td class="text-end"><span t-field="doc.discount_usd"/></td></tr>
+                                <tr><th>Retorno neto</th><td class="text-end"><strong t-field="doc.net_usd"/></td></tr>
+                                <tr><th>Facturado previamente</th><td class="text-end"><span t-field="doc.initial_billed_usd"/></td></tr>
+                                <tr><th>Ajuste documental</th><td class="text-end"><span t-field="doc.adjustment_usd"/></td></tr>
+                            </tbody>
+                        </table>
+                        <p t-if="doc.bill_id">Documento contable: <span t-field="doc.bill_id.name"/>
+                            - Folio productor: <span t-field="doc.supplier_invoice_folio"/></p>
+                        <div class="row mt-5" t-if="doc.state in ('accounted', 'closed')">
+                            <div class="col-6 text-center">_________________________<br/>Productor</div>
+                            <div class="col-6 text-center">_________________________<br/>Exportadora</div>
+                        </div>
+                        <p class="text-muted mt-4">Montos expresados en dólares estadounidenses. Documento generado desde los registros de Exportaciones y Contabilidad.</p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

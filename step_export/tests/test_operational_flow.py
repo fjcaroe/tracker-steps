@@ -48,6 +48,28 @@ class TestExportOperations(TransactionCase):
                                   "pallet_qty": 1, "boxes_per_pallet": 10, "kg_per_box": 5})],
         })
 
+    def test_producer_rate_uses_receiver_company(self):
+        other_company = self.env["res.company"].create({"name": "Otra empresa T35"})
+        wrong_rate = self.env["step.export.grower.rate"].create({
+            "name": "Tarifa otra empresa T35", "producer_id": self.producer.id,
+            "company_id": other_company.id, "season_id": self.season.id,
+            "species_id": self.species.id, "rate_value": 9,
+        })
+        expected_rate = self.env["step.export.grower.rate"].create({
+            "name": "Tarifa empresa actual T35", "producer_id": self.producer.id,
+            "company_id": self.env.company.id, "season_id": self.season.id,
+            "species_id": self.species.id, "rate_value": 1,
+        })
+        receiver = self.env["step.export.receiver.settlement"].create({
+            "receiver_id": self.receiver.id, "sales_program_id": self.program.id,
+            "date": date(2026, 11, 20), "rate_to_usd": 1,
+        })
+        producer = self.env["step.export.producer.settlement"].create({
+            "receiver_settlement_id": receiver.id, "producer_id": self.producer.id,
+        })
+        self.assertNotEqual(producer.rate_id, wrong_rate)
+        self.assertEqual(producer.rate_id, expected_rate)
+
     def test_shipment_validation_and_document_gate(self):
         self.assertEqual(self.shipment.kg_qty, 50)
         self.shipment.action_validate_shipment()
@@ -108,6 +130,21 @@ class TestExportOperations(TransactionCase):
         self.assertAlmostEqual(line.claim_usd, 20)
         self.assertAlmostEqual(line.commission_usd, 125)
         self.assertAlmostEqual(line.fob_usd, 1005)
+        concept = self.env["step.export.exterior.expense.concept"].create({
+            "name": "Flete internacional T35", "company_id": settlement.company_id.id,
+        })
+        self.env["step.export.exterior.expense.line"].create({
+            "settlement_line_id": line.id, "concept_id": concept.id, "amount_usd": 25,
+        })
+        self.assertAlmostEqual(line.calculated_expenses_usd, 125)
+        self.assertAlmostEqual(line.fob_usd, 980)
+        line.write({"use_grade_detail": True, "grade_line_ids": [(0, 0, {
+            "tag_ids": [(6, 0, tag.ids)], "kg_qty": 1,
+            "sales_amount": 1000, "expense_per_kg_usd": 100,
+            "commission_rate": 0.1,
+        })]})
+        self.assertAlmostEqual(line.calculated_expenses_usd, 125)
+        self.assertAlmostEqual(line.fob_usd, 980)
         with self.assertRaises(ValidationError):
             settlement.action_validate()
 
@@ -143,6 +180,8 @@ class TestExportOperations(TransactionCase):
 
     def test_receiver_and_producer_accounting(self):
         company = self.env.company
+        company.step_export_liquidation_journal_id = self.env['account.journal'].create({
+            'name': 'Provisión IVV QA', 'code': 'QIVV', 'type': 'general', 'company_id': company.id})
         account_domain = [("account_type", "=", "income")]
         if "company_ids" in self.env["account.account"]._fields:
             account_domain.append(("company_ids", "in", company.id))
@@ -211,13 +250,27 @@ class TestExportOperations(TransactionCase):
         settlement.action_validate()
         self.assertEqual(self.shipment.state, "settled")
         self.assertEqual(len(settlement.producer_settlement_ids), 1)
+        settlement.action_provision_ivv()
+        provision = settlement.provision_move_ids
+        self.assertEqual(provision.state, 'posted')
+        self.assertFalse(settlement.adjustment_move_ids)
+        settlement.action_provision_ivv()
+        self.assertEqual(settlement.provision_move_ids, provision)
+        settlement.adjustment_date = date(2026, 11, 22)
         settlement.action_account()
+        self.assertEqual(len(settlement.provision_move_ids), 2)
+        self.assertAlmostEqual(sum(settlement.provision_move_ids.line_ids.filtered(
+            lambda line: line.account_id.account_type == 'income').mapped('balance')), 0)
+        self.assertTrue(provision.line_ids.filtered(lambda line: line.account_id.account_type == 'asset_receivable').reconciled)
+        settlement.action_account()
+        self.assertEqual(len(settlement.provision_move_ids), 2)
         self.assertEqual(settlement.adjustment_move_ids.state, "posted")
         self.assertEqual(settlement.adjustment_move_ids.move_type, "entry")
         receivable_line = settlement.adjustment_move_ids.line_ids.filtered(
             lambda line: line.account_id.account_type == "asset_receivable")
         self.assertAlmostEqual(receivable_line.amount_currency, 50)
         producer_settlement = settlement.producer_settlement_ids
+        producer_settlement.payout_mode = "rate"  # conserva la fórmula histórica de este caso
         self.assertAlmostEqual(producer_settlement.net_usd, 50)
         initial_bill = self.env["account.move"].create({
             "move_type": "in_invoice", "company_id": company.id,
@@ -245,6 +298,16 @@ class TestExportOperations(TransactionCase):
         producer_settlement.action_validate()
         producer_settlement.action_account()
         self.assertEqual(producer_settlement.bill_id.state, "posted")
+        self.assertEqual(producer_settlement.state, "accounted")
+        self.assertTrue(producer_settlement.delivery_date)
+        producer_settlement.action_close()
+        self.assertEqual(producer_settlement.state, "closed")
+        self.assertTrue(producer_settlement.closed_date)
+        report = self.env.ref("step_export.action_report_producer_settlement")
+        html, _ = report._render_qweb_html(
+            report.report_name, [producer_settlement.id])
+        self.assertIn(b"Liquidaci", html)
+        self.assertIn(b"T35-TAG-ACCOUNTING", html)
         self.assertAlmostEqual(producer_settlement.bill_id.amount_untaxed,
                                self.env.ref("base.USD")._convert(
                                    30, company.currency_id, company, date(2026, 11, 20)), places=2)
@@ -285,6 +348,11 @@ class TestExportOperations(TransactionCase):
         })
         self.assertAlmostEqual(credit_settlement.total_difference_usd, -20)
         credit_settlement.action_validate()
+        credit_settlement.adjustment_date = date(2026, 11, 23)
+        credit_settlement.action_provision_ivv()
+        self.assertAlmostEqual(sum(credit_settlement.provision_move_ids.line_ids.filtered(
+            lambda line: line.account_id.account_type == 'asset_receivable').mapped('amount_currency')), -20)
         credit_settlement.action_account()
+        self.assertEqual(len(credit_settlement.provision_move_ids), 2)
         self.assertEqual(credit_settlement.adjustment_move_ids.move_type, "out_refund")
         self.assertEqual(credit_settlement.adjustment_move_ids.l10n_latam_document_type_id.code, "112")

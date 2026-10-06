@@ -32,6 +32,10 @@ class StepManagementOutOfOpWizard(models.TransientModel):
     date_from = fields.Date(string="Desde", required=True)
     date_to = fields.Date(string="Hasta", required=True)
     only_out_of_op = fields.Boolean(string="Sólo fuera de OP")
+    center_ids = fields.Many2many(
+        "account.analytic.account", string="Centros de costo",
+        domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
+    )
     computed = fields.Boolean(default=False)
     line_ids = fields.One2many("step.management.out.of.op.line", "wizard_id", string="Detalle")
     total_in_op = fields.Monetary(compute="_compute_totals", currency_field="currency_id")
@@ -58,14 +62,12 @@ class StepManagementOutOfOpWizard(models.TransientModel):
         todos los centros con cuenta analítica de la empresa. Agrupa por
         (centro, temporada derivada de la fecha, grupo)."""
         self.ensure_one()
-        centers = self.env["step.management.cost.center"].search([
-            ("company_id", "=", self.company_id.id), ("analytic_account_id", "!=", False),
-        ])
-        # `account_to_center_map()` exige 1 cuenta analítica = 1 centro y
-        # levanta `UserError` si dos centros la comparten — nunca atribuye
-        # en silencio al que gane una colisión de iteración (ver
-        # `cost_center.py::account_to_center_map`).
-        account_to_center = centers.account_to_center_map()
+        centers = self.env["account.analytic.account"].search([
+            ("company_id", "in", [False, self.company_id.id]),
+        ] + ([("id", "in", self.center_ids.ids)] if self.center_ids else []))
+        # El centro de costo es la propia cuenta analítica (T51): la
+        # correspondencia cuenta → centro es 1 a 1 por construcción.
+        account_to_center = {center.id: center for center in centers}
         if not account_to_center:
             return {}
         move_lines = self.env["account.move.line"].search([
@@ -158,7 +160,7 @@ class StepManagementOutOfOpLine(models.TransientModel):
         "step.management.out.of.op.wizard", required=True, ondelete="cascade",
     )
     currency_id = fields.Many2one(related="wizard_id.currency_id")
-    center_id = fields.Many2one("step.management.cost.center", string="Centro")
+    center_id = fields.Many2one("account.analytic.account", string="Centro")
     season = fields.Char(string="Temporada")
     group_id = fields.Many2one("step.management.budget.group", string="Grupo")
     group_label = fields.Char(compute="_compute_group_label", string="Grupo")

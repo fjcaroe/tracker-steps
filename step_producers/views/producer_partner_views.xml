@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_producer_partner_form" model="ir.ui.view">
+        <field name="name">step.producer.partner.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="step_hr.step_view_res_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='agri']//field[@name='productor_name']" position="replace"/>
+            <xpath expr="//page[@name='productor']" position="inside">
+                <group string="Identificación comercial"><field name="productor_name"/></group>
+                <field name="step_export_fundo_ids"><list editable="bottom"><field name="name"/>
+                    <field name="fundo_code"/><field name="company_id"/></list></field>
+            </xpath>
+            <xpath expr="//page[@name='agri']" position="after">
+                <page name="step_export_packing" string="Packing"><group><field name="step_export_packing"/>
+                    <field name="step_export_packing_type" invisible="not step_export_packing"/></group></page>
+            </xpath>
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_step_producer_fundos" type="object" class="oe_stat_button"
+                        icon="fa-map-marker" invisible="not is_productor">
+                    <field name="step_producer_fundo_count" widget="statinfo" string="Fundos"/>
+                </button>
+                <button name="action_step_producer_estimates" type="object" class="oe_stat_button"
+                        icon="fa-line-chart" invisible="not is_productor">
+                    <field name="step_producer_estimate_count" widget="statinfo" string="Estimaciones"/>
+                </button>
+                <button name="action_step_producer_rates" type="object" class="oe_stat_button"
+                        icon="fa-money" invisible="not is_productor">
+                    <field name="step_producer_rate_count" widget="statinfo" string="Tarifas"/>
+                </button>
+                <button name="action_step_producer_settlements" type="object" class="oe_stat_button"
+                        icon="fa-file-text-o" invisible="not is_productor">
+                    <field name="step_producer_settlement_count" widget="statinfo" string="Liquidaciones"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_step_producers_partner" model="ir.actions.act_window">
+        <field name="name">Productores</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('is_productor', '=', True)]</field>
+        <field name="context">{'default_is_productor': True, 'default_supplier_rank': 1}</field>
+    </record>
+    <record id="action_step_producers_fundo" model="ir.actions.act_window">
+        <field name="name">Fundos de productores</field>
+        <field name="res_model">step.fundo</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('partner_id.is_productor', '=', True)]</field>
+    </record>
+</odoo>

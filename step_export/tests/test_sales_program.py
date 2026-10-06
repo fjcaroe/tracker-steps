@@ -47,6 +47,18 @@ class TestExportSalesProgram(TransactionCase):
         self.assertEqual(program.amount_currency, 18400 * 7 + 36800 * 6)
         self.assertAlmostEqual(program.amount_usd, program.amount_currency * 1.2)
 
+    def test_program_restrictions_are_versioned(self):
+        producer = self.env['res.partner'].create({'name': 'Productor restringido QA'})
+        program = self._program(forbidden_producer_ids=[(6, 0, producer.ids)])
+        program.action_validate()
+        program.action_activate()
+        with self.assertRaises(UserError):
+            program.write({'forbidden_producer_ids': [(5, 0, 0)]})
+        new = self.env['step.export.sales.program'].browse(program.action_new_version()['res_id'])
+        self.assertEqual(new.forbidden_producer_ids, producer)
+        new.forbidden_producer_ids = False
+        self.assertEqual(program.forbidden_producer_ids, producer)
+
     def test_version_replaces_current_and_preserves_history(self):
         program = self._program()
         program.action_validate()

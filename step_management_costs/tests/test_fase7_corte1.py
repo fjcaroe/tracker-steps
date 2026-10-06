@@ -43,7 +43,7 @@ class TestFase7Corte1(ManagementCostsCommon):
         # Corte 1: los centros de un programa deben compartir variedad.
         cls.center_a.write({"variety": "Reina"})
         cls.center_a2.write({"variety": "Reina"})
-        cls.center_a_no_aa.write({"variety": "Otra"})
+        cls.center_a3.write({"variety": "Otra"})
 
         uom = cls.env.ref("uom.product_uom_unit")
         cls.prod_a = cls.env["product.product"].create(dict({
@@ -192,18 +192,12 @@ class TestFase7Corte1(ManagementCostsCommon):
     def test_program_mixed_variety_centers_rejected(self):
         with self.assertRaises(ValidationError):
             self._program(
-                centers=[self.center_a, self.center_a_no_aa], compute=False,
+                centers=[self.center_a, self.center_a3], compute=False,
             )
 
     def test_program_blank_variety_centers_do_not_conflict(self):
-        blank_a = self.env["step.management.cost.center"].create({
-            "code": "CABLANK1", "name": "Sin variedad 1", "company_id": self.company_a.id,
-            "hectares": 2.0,
-        })
-        blank_b = self.env["step.management.cost.center"].create({
-            "code": "CABLANK2", "name": "Sin variedad 2", "company_id": self.company_a.id,
-            "hectares": 3.0,
-        })
+        blank_a = self._make_center("CABLANK1", "Sin variedad 1", hectares=2.0)
+        blank_b = self._make_center("CABLANK2", "Sin variedad 2", hectares=3.0)
         program = self._program(centers=[blank_a, blank_b], compute=False)
         self.assertTrue(program)
 

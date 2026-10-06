@@ -1,0 +1,5 @@
+<odoo><record id="task_agriculture_scope" model="ir.ui.view"><field name="name">project.task.agriculture.scope</field><field name="model">project.task</field><field name="inherit_id" ref="step_hr.step_project_task_view_inherit"/><field name="arch" type="xml">
+  <xpath expr="//field[@name='grupo_variedad_id']" position="before"><field name="step_agricultural_task" invisible="1"/></xpath>
+  <xpath expr="//field[@name='grupo_variedad_id']" position="attributes"><attribute name="required">step_agricultural_task</attribute></xpath>
+  <xpath expr="//field[@name='variedad_id']" position="attributes"><attribute name="required">step_agricultural_task</attribute></xpath>
+</field></record></odoo>

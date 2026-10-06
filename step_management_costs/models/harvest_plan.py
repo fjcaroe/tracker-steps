@@ -408,7 +408,7 @@ class StepManagementHarvestPlanLine(models.Model):
         related="harvest_plan_id.company_id", string="Empresa", store=True, index=True,
     )
     center_id = fields.Many2one(
-        "step.management.cost.center", string="Centro de costo", check_company=True,
+        "account.analytic.account", string="Centro de costo", check_company=True,
         index=True,
         help="Nuevo en V2 A. Vacío en planes generados antes de este corte "
              "(no se asigna retroactivamente sin una fuente que lo demuestre).",

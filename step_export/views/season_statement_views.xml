@@ -1,0 +1,38 @@
+<odoo>
+    <record id="sequence_season_statement" model="ir.sequence"><field name="name">Consolidado temporada</field>
+        <field name="code">step.producer.season.statement</field><field name="prefix">TEMP/</field><field name="padding">6</field></record>
+    <record id="view_season_statement_list" model="ir.ui.view"><field name="name">season.statement.list</field><field name="model">step.producer.season.statement</field>
+        <field name="arch" type="xml"><list create="0"><field name="name"/><field name="producer_id"/><field name="season_id"/><field name="species_id"/>
+            <field name="state"/><field name="total_kg"/><field name="gross_usd"/><field name="discount_usd"/><field name="net_usd"/>
+            <field name="usd_currency_id" column_invisible="True"/></list></field></record>
+    <record id="view_season_statement_form" model="ir.ui.view"><field name="name">season.statement.form</field><field name="model">step.producer.season.statement</field>
+        <field name="arch" type="xml"><form create="0"><header>
+            <button name="action_confirm" type="object" string="Confirmar" invisible="state != 'draft'" groups="account.group_account_user"/>
+            <button name="action_close" type="object" string="Cerrar temporada" invisible="state != 'confirmed'" groups="account.group_account_user"/>
+            <field name="state" widget="statusbar"/></header><sheet>
+            <h1><field name="name"/></h1>
+            <div class="alert alert-info">Este consolidado reúne liquidaciones completas. Las facturas y su revisión se gestionan en cada liquidación individual.</div>
+            <group><group><field name="producer_id" readonly="1"/><field name="season_id" readonly="1"/><field name="species_id" readonly="1"/>
+                <field name="company_id" readonly="1" groups="base.group_multi_company"/>
+                <field name="date_start" readonly="1"/><field name="date_end" readonly="1"/>
+                <field name="transport_type" readonly="1"/><field name="variety_ids" widget="many2many_tags" readonly="1"/>
+                <field name="shipment_ids" widget="many2many_tags" readonly="1"/></group>
+                <group><field name="usd_currency_id" invisible="1"/><field name="total_kg"/><field name="gross_usd"/>
+                    <field name="discount_usd"/><field name="net_usd"/></group></group>
+            <field name="settlement_ids" readonly="1"><list><field name="name"/><field name="receiver_settlement_id"/>
+                <field name="state"/><field name="total_kg"/><field name="gross_usd"/><field name="discount_usd"/><field name="net_usd"/>
+                <field name="usd_currency_id" column_invisible="True"/></list></field>
+            <field name="bill_ids" readonly="1" widget="many2many_tags"/>
+        </sheet><chatter/></form></field></record>
+    <record id="action_season_statement" model="ir.actions.act_window"><field name="name">Consolidados de temporada</field>
+        <field name="res_model">step.producer.season.statement</field><field name="view_mode">list,form</field></record>
+    <record id="view_season_statement_wizard" model="ir.ui.view"><field name="name">season.statement.wizard</field><field name="model">step.producer.season.statement.wizard</field>
+        <field name="arch" type="xml"><form string="Generar consolidados"><group>
+            <field name="company_id" groups="base.group_multi_company"/><field name="season_id"/><field name="species_id"/><field name="producer_ids" widget="many2many_tags"/>
+            <field name="date_start"/><field name="date_end"/><field name="transport_type"/><field name="variety_ids" widget="many2many_tags"/>
+            <field name="shipment_ids" widget="many2many_tags"/>
+        </group><p>Se incluyen liquidaciones validadas completas. Si una liquidación mezcla embarques o variedades fuera del filtro, se excluye completa.</p>
+        <footer><button name="action_generate" type="object" string="Generar" class="btn-primary"/><button special="cancel" string="Cancelar"/></footer></form></field></record>
+    <record id="action_season_statement_generate" model="ir.actions.act_window"><field name="name">Generar consolidados</field>
+        <field name="res_model">step.producer.season.statement.wizard</field><field name="view_mode">form</field><field name="target">new</field></record>
+</odoo>

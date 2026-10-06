@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from psycopg2 import IntegrityError
 
@@ -81,46 +82,51 @@ def extra_analytic_account_vals(env, company):
     return vals
 
 
+def make_center(env, plan, code, name, company, **vals):
+    """T51: el centro de costo ES una cuenta analítica. Crea una con los
+    obligatorios de cualquier puente instalado (`extra_analytic_account_vals`)."""
+    values = {"code": code, "name": name, "plan_id": plan.id, "company_id": company.id}
+    values.update(extra_analytic_account_vals(env, company))
+    values.update(vals)
+    return env["account.analytic.account"].create(values)
+
+
+def make_purchase_journal(env, company):
+    """Test bills must not use a customer's restricted production journal."""
+    values = {'name': 'QA Compras Gestión', 'code': 'Q' + uuid.uuid4().hex[:4],
+              'type': 'purchase', 'company_id': company.id}
+    if 'l10n_latam_use_documents' in env['account.journal']._fields:
+        values['l10n_latam_use_documents'] = False
+    return env['account.journal'].create(values)
+
+
+@tagged('post_install', '-at_install')
 class ManagementCostsCommon(TransactionCase):
     @classmethod
     def _extra_analytic_account_vals(cls, company):
         return extra_analytic_account_vals(cls.env, company)
 
     @classmethod
+    def _make_center(cls, code, name, company=None, **vals):
+        return make_center(cls.env, cls.plan, code, name, company or cls.company_a, **vals)
+
+    @classmethod
     def setUpClass(cls):
         super().setUpClass()
         cls.company_a = cls.env.ref("base.main_company")
+        cls.purchase_journal = make_purchase_journal(cls.env, cls.company_a)
         cls.company_b = cls.env["res.company"].create(dict(
             {"name": "MC Company B"}, **extra_company_vals(cls.env),
         ))
 
         cls.plan = cls.env["account.analytic.plan"].create({"name": "MC Plan"})
-        cls.aa_a = cls.env["account.analytic.account"].create(dict({
-            "name": "MC Analytic A", "plan_id": cls.plan.id, "company_id": cls.company_a.id,
-        }, **cls._extra_analytic_account_vals(cls.company_a)))
-        cls.aa_b = cls.env["account.analytic.account"].create(dict({
-            "name": "MC Analytic B", "plan_id": cls.plan.id, "company_id": cls.company_b.id,
-        }, **cls._extra_analytic_account_vals(cls.company_b)))
-
         cls.group_a = cls.env["step.management.budget.group"].create({
             "code": "MOA", "name": "Mano de obra A", "company_id": cls.company_a.id,
         })
-        cls.center_a = cls.env["step.management.cost.center"].create({
-            "code": "CA01", "name": "Centro A", "company_id": cls.company_a.id,
-            "hectares": 10.0, "analytic_account_id": cls.aa_a.id,
-        })
-        cls.center_a2 = cls.env["step.management.cost.center"].create({
-            "code": "CA02", "name": "Centro A2", "company_id": cls.company_a.id,
-            "hectares": 5.0, "analytic_account_id": cls.aa_a.id,
-        })
-        cls.center_a_no_aa = cls.env["step.management.cost.center"].create({
-            "code": "CA03", "name": "Centro A sin cuenta", "company_id": cls.company_a.id,
-            "hectares": 4.0,
-        })
-        cls.center_b = cls.env["step.management.cost.center"].create({
-            "code": "CB01", "name": "Centro B", "company_id": cls.company_b.id,
-            "hectares": 8.0, "analytic_account_id": cls.aa_b.id,
-        })
+        cls.center_a = cls._make_center("CA01", "Centro A", hectares=10.0)
+        cls.center_a2 = cls._make_center("CA02", "Centro A2", hectares=5.0)
+        cls.center_a3 = cls._make_center("CA03", "Centro A3", hectares=4.0)
+        cls.center_b = cls._make_center("CB01", "Centro B", cls.company_b, hectares=8.0)
 
         cls.template = cls._make_template("Plantilla mensual", {"jun": 12.0})
         cls.template_incomplete = cls._make_template(
@@ -184,7 +190,7 @@ class TestMultiCompany(ManagementCostsCommon):
             self._new_budget(centers=[self.center_b])
 
     def test_global_rule_isolates_centers(self):
-        centers = self.env["step.management.cost.center"].with_user(self.user_operator).search([])
+        centers = self.env["account.analytic.account"].with_user(self.user_operator).search([])
         self.assertIn(self.center_a, centers)
         self.assertNotIn(self.center_b, centers, "La regla global no aísla la compañía B")
 
@@ -257,9 +263,22 @@ class TestRolesAndTransitions(ManagementCostsCommon):
         with self.assertRaises(Exception):
             budget.with_user(self.user_readonly).write({"description": "x"})
 
-    def test_approve_requires_analytic_account(self):
-        budget = self._new_budget(centers=[self.center_a_no_aa])
+    def test_center_is_the_analytic_account(self):
+        """T51: el centro de costo es `account.analytic.account`; ya no existe
+        un maestro propio ni «centro sin cuenta analítica»."""
+        self.assertEqual(self.center_a._name, "account.analytic.account")
+        self.assertNotIn("step.management.cost.center", self.env)
+        budget = self._new_budget(centers=[self.center_a3])
+        self.assertFalse(budget._centers_without_analytic())
         budget.action_generate_lines()
+        budget.with_user(self.user_approver).action_approve()
+        self.assertEqual(budget.state, "approved")
+
+    def test_center_from_other_company_cannot_be_approved(self):
+        budget = self._new_budget()
+        budget.action_generate_lines()
+        self.center_a.sudo().company_id = self.company_b
+        self.assertEqual(budget._centers_without_analytic(), self.center_a)
         with self.assertRaises(UserError):
             budget.with_user(self.user_approver).action_approve()
 

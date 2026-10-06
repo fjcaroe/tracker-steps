@@ -277,7 +277,7 @@ class StepManagementBudgetImport(models.Model):
         ) % {"total": self.line_count, "err": self.error_count})
 
     def _parse_row(self, row_number, mapped):
-        Center = self.env["step.management.cost.center"]
+        Center = self.env["account.analytic.account"]
         Group = self.env["step.management.budget.group"]
         Product = self.env["product.product"]
         Uom = self.env["uom.uom"]
@@ -322,7 +322,7 @@ class StepManagementBudgetImport(models.Model):
             errors.append(_("Falta el centro de costos."))
         else:
             centers = Center.search([
-                ("company_id", "=", company.id),
+                ("company_id", "in", [False, company.id]),
                 "|", ("code", "=", raw_center), ("name", "=", raw_center),
             ], limit=2)
             if not centers:
@@ -470,7 +470,7 @@ class StepManagementBudgetImport(models.Model):
         alloc_cmds, line_cmds = [], []
         for key, bucket_rows in buckets.items():
             center_id, group_id, category, product_id, activity, indicator, uom_id = key
-            center = self.env["step.management.cost.center"].browse(center_id)
+            center = self.env["account.analytic.account"].browse(center_id)
             if center_id not in allocation_seen:
                 allocation_seen.add(center_id)
                 alloc_cmds.append((0, 0, {
@@ -562,7 +562,7 @@ class StepManagementBudgetImportLine(models.Model):
     season = fields.Char()
     year = fields.Integer()
     month = fields.Selection(MONTH_SELECTION)
-    center_id = fields.Many2one("step.management.cost.center", check_company=True)
+    center_id = fields.Many2one("account.analytic.account", check_company=True)
     group_id = fields.Many2one("step.management.budget.group", check_company=True)
     category = fields.Selection(
         [("labor", "Mano de obra"), ("input", "Insumo agrícola"),

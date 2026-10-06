@@ -1,0 +1,24 @@
+<odoo>
+    <record id="view_printer_profile_list" model="ir.ui.view"><field name="name">printer.profile.list</field><field name="model">step.printer.profile</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="protocol"/><field name="company_id"/><field name="active"/></list></field></record>
+    <record id="view_printer_profile_form" model="ir.ui.view"><field name="name">printer.profile.form</field><field name="model">step.printer.profile</field>
+        <field name="arch" type="xml"><form><header><button name="action_test_label" string="Preparar etiqueta de prueba" type="object" invisible="protocol == 'pdf'"/></header><sheet>
+            <group><field name="name"/><field name="company_id"/><field name="active"/><field name="protocol"/><field name="language" invisible="protocol == 'pdf'"/></group>
+            <group invisible="protocol != 'serial'"><field name="baud_rate"/><field name="serial_service_uuid"/></group>
+            <group invisible="protocol != 'ble'"><field name="service_uuid"/><field name="characteristic_uuid"/><field name="chunk_size"/></group>
+            <group invisible="protocol != 'usb'"><field name="usb_vendor_id"/><field name="usb_product_id"/><field name="usb_configuration"/><field name="usb_interface"/><field name="usb_endpoint"/></group>
+            <group><field name="label_width"/><field name="label_height"/><field name="notes"/></group>
+            <p>PDF utiliza el controlador del sistema. La impresión directa requiere un equipo compatible con ZPL y los parámetros de su fabricante. USB serie y Bluetooth SPP usan el puerto del sistema; BLE usa UUID de servicio y escritura; WebUSB necesita interfaz y endpoint OUT compatibles con el navegador.</p>
+        </sheet></form></field></record>
+    <record id="action_printer_profiles" model="ir.actions.act_window"><field name="name">Perfiles de impresora</field>
+        <field name="res_model">step.printer.profile</field><field name="view_mode">list,form</field></record>
+    <record id="view_printer_job_wizard" model="ir.ui.view"><field name="name">printer.job.wizard</field><field name="model">step.printer.job.wizard</field>
+        <field name="arch" type="xml"><form><group><field name="package_id" readonly="1"/><field name="profile_id"/></group>
+            <footer><button name="action_prepare" type="object" string="Preparar impresión" class="btn-primary"/><button special="cancel" string="Cancelar"/></footer></form></field></record>
+    <record id="view_tag_label_printer" model="ir.ui.view"><field name="name">fruit.tag.label.printer</field><field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="view_quant_package_form_steps_fruit"/><field name="arch" type="xml">
+            <xpath expr="//button[@name='action_step_validate_tag']" position="after"><button name="action_choose_label_printer" type="object" string="Imprimir USB / Bluetooth / PDF"/></xpath>
+        </field></record>
+    <record id="rule_printer_profile_company" model="ir.rule"><field name="name">Impresoras por empresa</field><field name="model_id" ref="model_step_printer_profile"/>
+        <field name="domain_force">[('company_id','in',company_ids)]</field></record>
+</odoo>

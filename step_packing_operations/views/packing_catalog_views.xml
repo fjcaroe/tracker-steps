@@ -1,0 +1,20 @@
+<odoo>
+    <record id="view_package_form_packing_result" model="ir.ui.view">
+        <field name="name">stock.quant.package.form.packing.result</field>
+        <field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="step_inventory_fruit_tag.view_quant_package_form_fruit_tag"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='is_fruit_tag']" position="after">
+                <field name="step_packing_result" invisible="not is_fruit_tag or step_tag_kind == 'C'"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_process_type_form_category" model="ir.ui.view">
+        <field name="name">step.packing.process.type.form.category</field>
+        <field name="model">step.packing.process.type</field>
+        <field name="inherit_id" ref="step_packing.view_step_packing_process_type_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after"><field name="step_category"/></xpath>
+        </field>
+    </record>
+</odoo>

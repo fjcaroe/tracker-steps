@@ -1,0 +1,31 @@
+{
+    "name": "Steps - Inventario de fruta para Packing",
+    "summary": "Recepciones diferenciadas, tarjas C/E/N y pesaje de fruta",
+    "version": "18.0.1.2.1",
+    "category": "Inventory/Inventory",
+    "author": "Steps Consulting",
+    "license": "LGPL-3",
+    "depends": ["step_packing", "step_inventory_fruit_tag", "step_producers", "step_export"],
+    "data": [
+        "security/ir.model.access.csv",
+        "security/container_rules.xml",
+        "data/container_transfer_sequence.xml",
+        "views/settings_views.xml",
+        "views/fruit_package_views.xml",
+        "views/fruit_reception_views.xml",
+        "views/harvest_container_views.xml",
+        "views/scale_profile_views.xml",
+        "views/printer_profile_views.xml",
+        "wizard/fruit_reception_import_views.xml",
+    ],
+    "assets": {
+        "web.assets_backend": [
+            "step_inventory_packing/static/src/scale_capture.js",
+            "step_inventory_packing/static/src/scale_capture.xml",
+            "step_inventory_packing/static/src/printer_job.js",
+            "step_inventory_packing/static/src/printer_job.xml",
+        ],
+    },
+    "installable": True,
+    "application": False,
+}

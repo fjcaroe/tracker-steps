@@ -1,0 +1,30 @@
+<odoo>
+    <record id="view_packing_contract_valuation" model="ir.ui.view"><field name="name">packing.contract.valuation</field>
+        <field name="model">step.packing.production</field><field name="inherit_id" ref="view_packing_production_form"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='bom_id']" position="after">
+            <field name="contract_id" readonly="state != 'created'" domain="[('company_id','=',company_id),('state','=','confirmed')]"/>
+            <field name="contract_currency_id" invisible="1"/><field name="contract_amount"/>
+            <field name="purchase_bill_id" readonly="1" groups="account.group_account_user"/>
+        </xpath></field></record>
+    <record id="view_packing_company_valuation" model="ir.ui.view"><field name="name">packing.company.valuation</field>
+        <field name="model">res.company</field><field name="inherit_id" ref="step_export.view_step_export_accounting_company_form"/>
+        <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Compra fruta de Packing">
+            <field name="step_packing_require_contract"/>
+            <field name="step_packing_purchase_journal_id" domain="[('company_id','=',id),('type','=','purchase')]"/>
+        </group></xpath></field></record>
+    <record id="view_inventory_contract_category" model="ir.ui.view"><field name="name">inventory.contract.category</field>
+        <field name="model">step.management.fruit.category</field><field name="inherit_id" ref="step_management_costs.view_fruit_category_list"/>
+        <field name="arch" type="xml"><xpath expr="//list" position="inside"><field name="step_contract_category_id"/></xpath></field></record>
+    <record id="view_inventory_contract_caliber" model="ir.ui.view"><field name="name">inventory.contract.caliber</field>
+        <field name="model">step.management.fruit.caliber</field><field name="inherit_id" ref="step_management_costs.view_fruit_caliber_list"/>
+        <field name="arch" type="xml"><xpath expr="//list" position="inside"><field name="step_contract_caliber_id"/><field name="step_2j_plus"/></xpath></field></record>
+    <record id="view_monthly_fruit_bill" model="ir.ui.view"><field name="name">packing.monthly.fruit.bill</field><field name="model">step.packing.monthly.fruit.bill</field>
+        <field name="arch" type="xml"><form string="Facturas mensuales de fruta"><group>
+            <field name="company_id" groups="base.group_multi_company"/><field name="date_start"/><field name="date_end"/>
+            <field name="producer_ids" widget="many2many_tags"/></group>
+            <p>Se preparan facturas en borrador usando los precios guardados al cerrar cada OT. Revise impuestos y folio del proveedor antes de publicar. En la liquidación final, vincule estas facturas como documentos previos.</p>
+            <footer><button name="action_prepare_bills" type="object" string="Preparar borradores" class="btn-primary"/>
+                <button special="cancel" string="Cancelar"/></footer></form></field></record>
+    <record id="action_monthly_fruit_bill" model="ir.actions.act_window"><field name="name">Preparar compra mensual de fruta</field>
+        <field name="res_model">step.packing.monthly.fruit.bill</field><field name="view_mode">form</field><field name="target">new</field></record>
+</odoo>

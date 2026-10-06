@@ -31,3 +31,4 @@ access_step_packing_campo_stage_user,step_packing_campo_stage.user,model_step_pa
 access_step_packing_reception_stage_user,step_packing_reception_stage.user,model_step_packing_reception_stage,base.group_user,1,1,1,0
 access_step_packing_campo_user,step_packing_campo.user,model_step_packing_campo,base.group_user,1,1,1,0
 access_step_packing_reception_user,step_packing_reception.user,model_step_packing_reception,base.group_user,1,1,1,0
+access_step_packing_picking_tag_line_user,step_packing_picking_tag_line.user,model_step_packing_picking_tag_line,base.group_user,1,1,1,1

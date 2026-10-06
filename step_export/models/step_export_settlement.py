@@ -4,6 +4,7 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_is_zero
 
+_RECEIVER_TRANSITION = object()
 
 class ReceiverSettlement(models.Model):
     _name = "step.export.receiver.settlement"
@@ -28,6 +29,9 @@ class ReceiverSettlement(models.Model):
                                   default=lambda self: self.env.ref("base.USD"))
     usd_currency_id = fields.Many2one("res.currency", default=lambda self: self.env.ref("base.USD"))
     rate_to_usd = fields.Float(string="USD por unidad", digits=(16, 6), required=True)
+    producer_price_mode = fields.Selection([
+        ("individual", "Por productor"), ("pool", "Pool"),
+    ], string="Modalidad de precio productor", required=True, default="individual")
     line_ids = fields.One2many("step.export.receiver.settlement.line", "settlement_id", string="Embarques")
     producer_settlement_ids = fields.One2many("step.export.producer.settlement", "receiver_settlement_id",
                                               string="Liquidaciones productores")
@@ -44,6 +48,8 @@ class ReceiverSettlement(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            if vals.get('state', 'draft') != 'draft':
+                raise UserError(_('La liquidación de recibidor se crea en borrador.'))
             if vals.get("name", "Nuevo") == "Nuevo":
                 vals["name"] = self.env["ir.sequence"].next_by_code(
                     "step.export.receiver.settlement") or "Nuevo"
@@ -70,8 +76,10 @@ class ReceiverSettlement(models.Model):
             record.total_difference_usd = sum(record.line_ids.mapped("difference_usd"))
 
     def write(self, vals):
+        if 'state' in vals and self.env.context.get('_receiver_transition') is not _RECEIVER_TRANSITION:
+            raise UserError(_('Use las acciones de validación y contabilización de la liquidación.'))
         locked = {"receiver_id", "sales_program_id", "currency_id", "rate_to_usd",
-                  "line_ids", "date", "company_id"}
+                  "line_ids", "date", "company_id", "producer_price_mode"}
         if locked.intersection(vals) and any(r.state != "draft" for r in self):
             raise UserError(_("Una liquidación validada no puede modificarse."))
         return super().write(vals)
@@ -99,20 +107,20 @@ class ReceiverSettlement(models.Model):
                     if any(grade.sales_amount <= 0 for grade in line.grade_line_ids):
                         raise ValidationError(_("Ingrese las ventas por categoría y calibre."))
                     if not float_is_zero(sum(line.grade_line_ids.mapped("kg_qty")) -
-                                         sum(shipment.tag_ids.mapped("kilos_total")),
+                                         sum(tag._step_liquidation_kg() for tag in shipment.tag_ids),
                                          precision_rounding=0.001):
                         raise ValidationError(_("Los kilos por calibre deben coincidir con las tarjas."))
                 if line.fob_usd < 0:
                     raise ValidationError(_("El FOB no puede ser negativo."))
                 if line.invoice_id.state != "posted" or line.invoice_id.move_type != "out_invoice":
                     raise ValidationError(_("Seleccione una factura de cliente publicada."))
-                if any(not tag.owner_id for tag in shipment.tag_ids):
+                if any(not tag._step_producer_shares() for tag in shipment.tag_ids):
                     raise ValidationError(_("Todas las tarjas deben identificar al productor para generar su liquidación."))
-                if any(tag.kilos_total <= 0 for tag in shipment.tag_ids):
+                if any(tag._step_liquidation_kg() <= 0 for tag in shipment.tag_ids):
                     raise ValidationError(_("Todas las tarjas deben tener kilos positivos para distribuir la liquidación."))
                 shipment.write({"settlement_id": record.id, "state": "settled"})
                 shipment.tag_ids.write({"step_export_settlement_ids": [(4, record.id)]})
-            record.state = "validated"
+            record.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'validated'})
             record._generate_producer_settlements()
         return True
 
@@ -124,7 +132,7 @@ class ReceiverSettlement(models.Model):
                 if line.grade_line_ids:
                     continue
                 tags = line.shipment_id.tag_ids
-                total_kg = sum(tags.mapped("kilos_total"))
+                total_kg = sum(tag._step_liquidation_kg() for tag in tags)
                 if not total_kg:
                     raise ValidationError(_("El embarque necesita tarjas con kilos para detallar la liquidación."))
                 groups = {}
@@ -133,7 +141,7 @@ class ReceiverSettlement(models.Model):
                     groups.setdefault(key, self.env["stock.quant.package"])
                     groups[key] |= tag
                 for (category_id, caliber_id), group_tags in groups.items():
-                    kg = sum(group_tags.mapped("kilos_total"))
+                    kg = sum(tag._step_liquidation_kg() for tag in group_tags)
                     self.env["step.export.receiver.settlement.grade"].create({
                         "line_id": line.id, "category_id": category_id or False,
                         "caliber_id": caliber_id or False,
@@ -148,27 +156,53 @@ class ReceiverSettlement(models.Model):
     def _generate_producer_settlements(self):
         for record in self:
             allocation = {}
+            tag_values = []
             for line in record.line_ids:
                 shipment = line.shipment_id
-                tags = shipment.tag_ids.filtered(lambda tag: tag.owner_id and tag.kilos_total > 0)
-                total_kg = sum(tags.mapped("kilos_total"))
+                tags = shipment.tag_ids.filtered(
+                    lambda tag: tag._step_producer_shares() and tag._step_liquidation_kg() > 0)
+                total_kg = sum(tag._step_liquidation_kg() for tag in tags)
                 for tag in tags:
-                    key = tag.owner_id.id
+                    tag_kg = tag._step_liquidation_kg()
                     if line.use_grade_detail:
                         grade = line.grade_line_ids.filtered(lambda row: tag in row.tag_ids)
-                        group_kg = sum(grade.tag_ids.mapped("kilos_total"))
-                        grade_fob = grade.fob_usd * tag.kilos_total / group_kg
-                        claim_share = line.claim_usd * tag.kilos_total / total_kg
-                        amount = grade_fob - claim_share
+                        group_kg = sum(row._step_liquidation_kg() for row in grade.tag_ids)
+                        grade_fob = grade.fob_usd * tag_kg / group_kg
+                        claim_share = line.claim_usd * tag_kg / total_kg
+                        expense_share = line.exterior_expenses_usd * tag_kg / total_kg
+                        amount = grade_fob - claim_share - expense_share
                     else:
-                        amount = line.fob_usd * tag.kilos_total / total_kg
-                    allocation.setdefault(key, []).append((tag, amount))
+                        amount = line.fob_usd * tag_kg / total_kg
+                    tag_values.append((tag, shipment, tag_kg, amount))
+            pool_rates = {}
+            if record.producer_price_mode == "pool":
+                for tag, shipment, kg, amount in tag_values:
+                    key = record._step_pool_key(tag, shipment)
+                    current_kg, current_amount = pool_rates.get(key, (0.0, 0.0))
+                    pool_rates[key] = (current_kg + kg, current_amount + amount)
+            for tag, shipment, tag_kg, amount in tag_values:
+                if record.producer_price_mode == "pool":
+                    pool_kg, pool_fob = pool_rates[record._step_pool_key(tag, shipment)]
+                    amount = tag_kg * pool_fob / pool_kg
+                for producer, share in tag._step_producer_shares():
+                    allocation.setdefault(producer.id, []).append(
+                        (tag, amount * share, tag_kg * share))
             for producer_id, entries in allocation.items():
                 self.env["step.export.producer.settlement"].create({
                     "receiver_settlement_id": record.id, "producer_id": producer_id,
-                    "line_ids": [(0, 0, {"tag_id": tag.id, "allocated_fob_usd": amount})
-                                 for tag, amount in entries],
+                    "line_ids": [(0, 0, {"tag_id": tag.id, "allocated_fob_usd": amount,
+                                          "kg_qty": kg})
+                                 for tag, amount, kg in entries],
                 })
+
+    def _step_pool_key(self, tag, shipment):
+        """Las siete dimensiones comerciales del anexo de Productores."""
+        self.ensure_one()
+        when = shipment.departure_date or shipment.date
+        week = fields.Date.to_date(when).isocalendar()[:2]
+        return (tag.variedad_id.id, week, shipment.transport_type,
+                tag.package_type_id.id, tag.fruit_caliber_id.id,
+                tag.fruit_category_id.id, tag.fruit_type)
 
     def action_account(self):
         for record in self:
@@ -190,7 +224,7 @@ class ReceiverSettlement(models.Model):
                         record._post_odoo_adjustment(line, invoice_line)
             if any(move.state != "posted" for move in record.adjustment_move_ids):
                 raise UserError(_("Publique todas las notas de ajuste antes de cerrar la liquidación."))
-            record.state = "accounted"
+            record.with_context(_receiver_transition=_RECEIVER_TRANSITION).write({'state': 'accounted'})
         return True
 
     def _post_external_adjustment(self, line, invoice_line):
@@ -203,10 +237,10 @@ class ReceiverSettlement(models.Model):
         if not journal or not receivable:
             raise UserError(_("Configure un diario general y una cuenta por cobrar para registrar la nota externa."))
         amount = self.usd_currency_id._convert(
-            abs(line.difference_usd), self.company_id.currency_id, self.company_id, self.date)
+            abs(line.difference_usd), self.company_id.currency_id, self.company_id, self.adjustment_date or self.date)
         positive = line.difference_usd > 0
         move = self.env["account.move"].create({
-            "move_type": "entry", "date": self.date, "journal_id": journal.id,
+            "move_type": "entry", "date": self.adjustment_date or self.date, "journal_id": journal.id,
             "company_id": self.company_id.id,
             "ref": "%s / IVV %s / DTE externo %s / factura %s" % (
                 self.name, line.shipment_id.ivv_folio, line.external_adjustment_folio,
@@ -240,7 +274,7 @@ class ReceiverSettlement(models.Model):
             "move_type": move_type, "partner_id": self.receiver_id.id,
             "company_id": self.company_id.id,
             "journal_id": (self.company_id.step_export_sale_journal_id or line.invoice_id.journal_id).id,
-            "currency_id": self.usd_currency_id.id, "invoice_date": self.date,
+            "currency_id": self.usd_currency_id.id, "invoice_date": self.adjustment_date or self.date,
             "invoice_origin": line.invoice_id.name,
             "ref": "%s / IVV %s" % (self.name, line.shipment_id.ivv_folio),
             "step_export_shipment_id": line.shipment_id.id,
@@ -277,6 +311,12 @@ class ReceiverSettlementLine(models.Model):
     usd_currency_id = fields.Many2one(related="settlement_id.usd_currency_id")
     sales_usd = fields.Monetary(currency_field="usd_currency_id", compute="_compute_amounts", store=True)
     expenses_usd = fields.Monetary(string="Gastos manuales USD", currency_field="usd_currency_id")
+    exterior_expense_line_ids = fields.One2many(
+        "step.export.exterior.expense.line", "settlement_line_id",
+        string="Conceptos de gastos en exterior")
+    exterior_expenses_usd = fields.Monetary(
+        string="Gastos por concepto USD", currency_field="usd_currency_id",
+        compute="_compute_amounts", store=True)
     calculated_expenses_usd = fields.Monetary(string="Gastos exterior USD", currency_field="usd_currency_id",
                                               compute="_compute_amounts", store=True)
     commission_rate = fields.Float(string="Comisión (0 a 1)", digits=(8, 4))
@@ -308,21 +348,26 @@ class ReceiverSettlementLine(models.Model):
             line.claim_usd = amount
 
     @api.depends("sales_amount", "settlement_id.rate_to_usd", "expenses_usd", "commission_rate",
+                 "exterior_expense_line_ids.amount_usd",
                  "use_grade_detail", "grade_line_ids.sales_usd", "grade_line_ids.expenses_usd",
                  "grade_line_ids.commission_usd", "grade_line_ids.fob_usd",
                  "claim_usd", "invoice_id.amount_total", "invoice_id.currency_id", "settlement_id.date")
     def _compute_amounts(self):
         for line in self:
+            line.exterior_expenses_usd = sum(line.exterior_expense_line_ids.mapped("amount_usd"))
             if line.use_grade_detail:
                 line.sales_usd = sum(line.grade_line_ids.mapped("sales_usd"))
-                line.calculated_expenses_usd = sum(line.grade_line_ids.mapped("expenses_usd"))
+                line.calculated_expenses_usd = (sum(line.grade_line_ids.mapped("expenses_usd"))
+                                                + line.exterior_expenses_usd)
                 line.commission_usd = sum(line.grade_line_ids.mapped("commission_usd"))
-                line.fob_usd = sum(line.grade_line_ids.mapped("fob_usd")) - line.claim_usd
+                line.fob_usd = (sum(line.grade_line_ids.mapped("fob_usd"))
+                                - line.claim_usd - line.exterior_expenses_usd)
             else:
                 line.sales_usd = line.sales_amount * line.settlement_id.rate_to_usd
-                line.calculated_expenses_usd = line.expenses_usd
+                line.calculated_expenses_usd = line.expenses_usd + line.exterior_expenses_usd
                 line.commission_usd = line.sales_usd * line.commission_rate
-                line.fob_usd = line.sales_usd - line.claim_usd - line.expenses_usd - line.commission_usd
+                line.fob_usd = (line.sales_usd - line.claim_usd
+                                - line.calculated_expenses_usd - line.commission_usd)
             line.initial_invoice_usd = line.invoice_id.currency_id._convert(
                 line.invoice_id.amount_untaxed, line.usd_currency_id, line.settlement_id.company_id,
                 line.invoice_id.invoice_date or line.settlement_id.date) if line.invoice_id else 0
@@ -335,13 +380,73 @@ class ReceiverSettlementLine(models.Model):
                 raise ValidationError(_("La factura debe pertenecer al embarque seleccionado."))
 
     def write(self, vals):
-        if vals and any(line.settlement_id.state != "draft" for line in self):
+        self.settlement_id._lock_ivv()
+        if 'settlement_id' in vals:
+            raise UserError(_('La línea conserva su liquidación de origen.'))
+        if vals and any(line.settlement_id.state != "draft" for line in self) and set(vals) != {'external_adjustment_folio'}:
             raise UserError(_("No modifique líneas de liquidación validadas."))
         return super().write(vals)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        parents = self.env['step.export.receiver.settlement'].browse([row['settlement_id'] for row in vals_list if row.get('settlement_id')])
+        parents._lock_ivv()
+        if any(parent.state != 'draft' for parent in parents):
+            raise UserError(_('No agregue embarques a una liquidación validada.'))
+        return super().create(vals_list)
+
     def unlink(self):
+        self.settlement_id._lock_ivv()
         if any(line.settlement_id.state != "draft" for line in self):
             raise UserError(_("No elimine líneas de liquidación validadas."))
+        return super().unlink()
+
+
+class ExteriorExpenseConcept(models.Model):
+    _name = "step.export.exterior.expense.concept"
+    _description = "Concepto de gasto en exterior"
+    _order = "name"
+
+    name = fields.Char(required=True)
+    company_id = fields.Many2one("res.company", required=True,
+                                 default=lambda self: self.env.company)
+    active = fields.Boolean(default=True)
+
+
+class ExteriorExpenseLine(models.Model):
+    _name = "step.export.exterior.expense.line"
+    _description = "Gasto en exterior de liquidación"
+
+    settlement_line_id = fields.Many2one(
+        "step.export.receiver.settlement.line", required=True, ondelete="cascade")
+    company_id = fields.Many2one(related="settlement_line_id.settlement_id.company_id", store=True)
+    concept_id = fields.Many2one("step.export.exterior.expense.concept", required=True)
+    usd_currency_id = fields.Many2one(related="settlement_line_id.usd_currency_id")
+    amount_usd = fields.Monetary(required=True, currency_field="usd_currency_id")
+
+    @api.constrains("amount_usd", "concept_id", "company_id")
+    def _check_expense(self):
+        for line in self:
+            if line.amount_usd < 0 or line.concept_id.company_id != line.company_id:
+                raise ValidationError(_(
+                    "El gasto debe ser positivo y su concepto pertenecer a la empresa."))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        parents = self.env["step.export.receiver.settlement.line"].browse(
+            [vals["settlement_line_id"] for vals in vals_list if vals.get("settlement_line_id")])
+        if any(parent.settlement_id.state != "draft" for parent in parents):
+            raise UserError(_("No agregue gastos a una liquidación validada."))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals and any(line.settlement_line_id.settlement_id.state != "draft" for line in self):
+            raise UserError(_("No modifique gastos de una liquidación validada."))
+        return super().write(vals)
+
+    def unlink(self):
+        if any(line.settlement_line_id.settlement_id.state != "draft" for line in self):
+            raise UserError(_("No elimine gastos de una liquidación validada."))
         return super().unlink()
 
 

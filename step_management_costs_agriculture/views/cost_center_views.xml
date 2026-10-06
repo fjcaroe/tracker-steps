@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- T51: con step_hr, el centro de costo de Gestión y Costos se administra
+         con el mismo formulario/listado de Actividades / Configuración /
+         Centro de Costo (pestañas Rendimientos, Datos Agrícolas, Cuarteles). -->
+    <record id="step_management_costs.action_cost_center" model="ir.actions.act_window">
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('step_hr.step_view_account_analytic_account_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('step_hr.step_view_account_analytic_account_form')})]"/>
+    </record>
+</odoo>

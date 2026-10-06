@@ -20,6 +20,7 @@
                 <sheet>
                     <h1><field name="name" readonly="1"/></h1>
                     <group string="Diarios">
+                        <field name="step_export_liquidation_journal_id" domain="[('company_id','=',id),('type','=','general')]"/>
                         <field name="step_export_sale_journal_id" domain="[('company_id', '=', id), ('type', '=', 'sale')]"/>
                         <field name="step_export_purchase_journal_id" domain="[('company_id', '=', id), ('type', '=', 'purchase')]"/>
                         <field name="step_export_adjustment_journal_id" domain="[('company_id', '=', id), ('type', '=', 'general')]"/>

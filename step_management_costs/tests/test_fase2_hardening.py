@@ -13,14 +13,7 @@ from .test_management_costs import ManagementCostsCommon
 class TestFase2Hardening(ManagementCostsCommon):
 
     def _general_direct_budget(self):
-        center = self.env["step.management.cost.center"].create({
-            "code": "GD01", "name": "General directo",
-            "company_id": self.company_a.id, "cost_type": "administrative",
-            "analytic_account_id": self.env["account.analytic.account"].create(dict({
-                "name": "AA General directo", "plan_id": self.plan.id,
-                "company_id": self.company_a.id,
-            }, **self._extra_analytic_account_vals(self.company_a))).id,
-        })
+        center = self._make_center("GD01", "General directo", cost_type="administrative")
         return self.env["step.management.operational.budget"].create({
             "description": "General monto directo", "season": "2026/2027",
             "budget_type": "general", "company_id": self.company_a.id,
@@ -91,11 +84,14 @@ class TestFase2Hardening(ManagementCostsCommon):
         with self.assertRaises(UserError):
             budget.with_user(self.user_approver).action_new_revision()
 
-    def test_shared_analytic_account_blocks_approval(self):
+    def test_native_centers_approve_without_parallel_aliases(self):
         budget = self._new_budget(centers=[self.center_a, self.center_a2])
         budget.action_generate_lines()
-        with self.assertRaises(UserError):
-            budget.with_user(self.user_approver).action_approve()
+        expected_total = budget.total_amount
+        budget.with_user(self.user_approver).action_approve()
+        self.assertEqual(budget.state, 'approved')
+        self.assertAlmostEqual(budget.total_amount, expected_total)
+        self.assertEqual(len(budget.allocation_ids.center_id), 2)
 
     def test_line_center_must_be_in_allocations(self):
         budget = self._general_direct_budget()

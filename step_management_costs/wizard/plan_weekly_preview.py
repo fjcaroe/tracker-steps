@@ -88,7 +88,7 @@ class StepManagementPlanWeeklyPreviewWizardLine(models.TransientModel):
         "step.management.plan.weekly.preview.wizard", ondelete="cascade",
     )
     date = fields.Date(string="Fecha")
-    center_id = fields.Many2one("step.management.cost.center", string="Centro de costo")
+    center_id = fields.Many2one("account.analytic.account", string="Centro de costo")
     indicator = fields.Char(string="Tarea / indicador")
     quantity = fields.Float(string="Cantidad", digits=(16, 4))
     uom_id = fields.Many2one("uom.uom", string="UdM")

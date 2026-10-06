@@ -115,7 +115,7 @@ class StepManagementBudgetVarianceLine(models.TransientModel):
 
     wizard_id = fields.Many2one("step.management.budget.variance.wizard", required=True, ondelete="cascade")
     currency_id = fields.Many2one(related="wizard_id.currency_id")
-    center_id = fields.Many2one("step.management.cost.center", string="Centro")
+    center_id = fields.Many2one("account.analytic.account", string="Centro")
     group_id = fields.Many2one("step.management.budget.group", string="Grupo")
     group_label = fields.Char(compute="_compute_group_label", string="Grupo")
     month = fields.Selection(MONTH_SELECTION, string="Mes")

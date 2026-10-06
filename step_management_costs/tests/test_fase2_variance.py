@@ -2,7 +2,7 @@ from odoo import Command
 from odoo.tests import tagged
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 
-from .test_management_costs import extra_analytic_account_vals
+from .test_management_costs import extra_analytic_account_vals, make_center
 
 
 @tagged("post_install", "-at_install")
@@ -15,17 +15,13 @@ class TestFase2Variance(AccountTestInvoicingCommon):
         cls.env.user.company_id = cls.company
 
         cls.plan = cls.env["account.analytic.plan"].create({"name": "MC Plan"})
-        cls.aa = cls.env["account.analytic.account"].create(dict({
-            "name": "AA Centro", "plan_id": cls.plan.id, "company_id": cls.company.id,
-        }, **extra_analytic_account_vals(cls.env, cls.company)))
         cls.group = cls.env["step.management.budget.group"].create({
             "code": "MOA", "name": "Mano de obra", "company_id": cls.company.id,
             "flow_type": "cost",
         })
-        cls.center = cls.env["step.management.cost.center"].create({
-            "code": "C1", "name": "Centro 1", "company_id": cls.company.id,
-            "hectares": 10.0, "analytic_account_id": cls.aa.id,
-        })
+        cls.center = make_center(
+            cls.env, cls.plan, "C1", "Centro 1", cls.company, hectares=10.0,
+        )
         cls.product_a.categ_id.management_budget_group_id = cls.group.id
 
         cls.budget = cls.env["step.management.operational.budget"].create({
@@ -51,7 +47,7 @@ class TestFase2Variance(AccountTestInvoicingCommon):
                 "product_id": product.id,
                 "quantity": 1,
                 "price_unit": price,
-                "analytic_distribution": {str(self.aa.id): 100.0},
+                "analytic_distribution": {str(self.center.id): 100.0},
             })],
         })
         if post:

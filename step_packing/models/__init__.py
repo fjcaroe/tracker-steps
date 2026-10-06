@@ -30,3 +30,6 @@ from . import step_packing_campo_stage
 from . import step_packing_reception_stage
 from . import step_packing_campo
 from . import step_packing_reception
+from . import step_packing_picking_tag_line
+from . import stock_picking
+from . import mrp_production

@@ -1,0 +1,60 @@
+<odoo>
+    <record id="view_packing_order_list" model="ir.ui.view">
+        <field name="name">step.packing.order.list</field>
+        <field name="model">step.packing.order</field>
+        <field name="arch" type="xml">
+            <list><field name="name"/><field name="week_start"/><field name="week_end"/>
+                <field name="packing_partner_id"/><field name="sales_program_id"/>
+                <field name="planned_boxes"/><field name="planned_kg"/><field name="state"/></list>
+        </field>
+    </record>
+    <record id="view_packing_order_form" model="ir.ui.view">
+        <field name="name">step.packing.order.form</field>
+        <field name="model">step.packing.order</field>
+        <field name="arch" type="xml">
+            <form string="Orden de proceso Packing">
+                <header>
+                    <button name="action_validate" type="object" string="Validar" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_refresh_materials" type="object" string="Calcular materiales" invisible="state == 'closed'"/>
+                    <button name="action_close" type="object" string="Cerrar" invisible="state != 'validated'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <group><group><field name="company_id" groups="base.group_multi_company"/>
+                        <field name="week_start"/><field name="week_end"/><field name="packing_partner_id"/></group>
+                        <group><field name="sales_program_id"/><field name="planned_boxes"/><field name="planned_kg"/></group></group>
+                    <notebook>
+                        <page string="Productos" name="products"><field name="line_ids" readonly="state != 'draft'">
+                            <list editable="bottom"><field name="sequence" widget="handle"/><field name="product_id"/>
+                                <field name="species_id"/><field name="variety_id"/><field name="packaging_id"/>
+                                <field name="bom_id"/><field name="label"/><field name="caliber_id"/>
+                                <field name="category_id"/><field name="boxes"/><field name="kilos"/>
+                                <field name="inspection_type"/>
+                                <button name="action_create_production" type="object" string="Crear OT" icon="fa-cogs"/></list>
+                        </field></page>
+                        <page string="Instructivo" name="instruction"><field name="instruction" widget="html"/></page>
+                        <page string="Restricciones" name="restrictions"><group>
+                            <field name="forbidden_producer_ids" widget="many2many_tags" readonly="state != 'draft'"/>
+                            <field name="forbidden_variety_ids" widget="many2many_tags" readonly="state != 'draft'"/>
+                        </group></page>
+                        <page string="Materiales" name="materials"><field name="material_need_ids" readonly="1">
+                            <list><field name="product_id"/><field name="required_qty"/><field name="available_qty"/>
+                                <field name="shortage_qty"/><field name="uom_id"/></list>
+                        </field></page>
+                        <page string="OT" name="productions"><field name="production_ids" readonly="1">
+                            <list><field name="name"/><field name="product_id"/><field name="product_qty"/>
+                                <field name="state"/></list>
+                        </field></page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="action_packing_order" model="ir.actions.act_window">
+        <field name="name">Órdenes de proceso</field>
+        <field name="res_model">step.packing.order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

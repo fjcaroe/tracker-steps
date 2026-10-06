@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cost_center_form_step_tracker" model="ir.ui.view">
+        <field name="name">account.analytic.account.form.step.tracker</field>
+        <field name="model">account.analytic.account</field>
+        <field name="inherit_id" ref="step_management_costs.view_cost_center_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_tracker_costs" type="object" class="oe_stat_button" icon="fa-calculator"
+                        string="Costos Tracker" groups="step_management_costs.group_management_readonly"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_cost_center_form_management" model="ir.ui.view">
+        <field name="name">step.tracker.cost_center.form.management</field>
+        <field name="model">step.tracker.cost_center</field>
+        <field name="inherit_id" ref="step_tracker_usage.view_step_tracker_cost_center_form"/>
+        <field name="arch" type="xml">
+            <field name="analytic_account_id" position="after">
+                <field name="management_center_id" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_step_tracker_cost_center_list_management" model="ir.ui.view">
+        <field name="name">step.tracker.cost_center.list.management</field>
+        <field name="model">step.tracker.cost_center</field>
+        <field name="inherit_id" ref="step_tracker_usage.view_step_tracker_cost_center_list"/>
+        <field name="arch" type="xml">
+            <field name="analytic_account_id" position="after">
+                <field name="management_center_id" optional="show"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -1,5 +1,23 @@
 # Instrucciones compartidas para Codex y Claude
 
+Desarrollo es el único QA. Demo-SYS replica exclusivamente el alcance instalado
+de SyS, incluida Nómina Simple Digital; no recibe aplicaciones de otros productos.
+Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
+fuera del circuito de publicación, conservando datos. Leer la política vigente
+en `docs/OPERACION_ODOO_CANONICA.md` antes de instalar o promover un módulo.
+
+Para Odoo, leer `docs/OPERACION_ODOO_CANONICA.md` y resolver el destino con
+`tools/ops/environments.json`. No desplegar migraciones o cerrar tickets con
+solo sintaxis/HTTP; exigir pruebas funcionales del mismo paquete en una copia
+del destino. No sustituir maestros existentes por textos ni tablas paralelas.
+Rechazar downgrades y cambios concurrentes; usar exclusión y overlays privados.
+
+Desarrollos nuevos y ampliaciones solo en código versionado; no crear modelos,
+campos, vistas, reportes ni automatizaciones Studio. Una portada o tablero que
+consulta modelos manuales no acredita su migración. Inventariar también campos
+heredados, líneas, reportes, reglas y automatizaciones; preservar los históricos.
+No desinstalar Studio hasta probar el retiro de sus dependencias en una copia.
+
 ## Rama, concurrencia y cierre obligatorio
 
 - Leer `docs/WORKFLOW_GIT_COMPARTIDO.md` antes de cambiar código.

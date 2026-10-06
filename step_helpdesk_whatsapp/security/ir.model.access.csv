@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+channel_manager,channel.manager,model_step_helpdesk_wa_channel,base.group_system,1,1,1,0
+channel_agent,channel.agent,model_step_helpdesk_wa_channel,helpdesk.group_helpdesk_user,1,0,0,0
+conversation_manager,conversation.manager,model_step_helpdesk_wa_conversation,base.group_system,1,1,0,0
+conversation_agent,conversation.agent,model_step_helpdesk_wa_conversation,helpdesk.group_helpdesk_user,1,1,0,0
+message_manager,message.manager,model_step_helpdesk_wa_message,base.group_system,1,1,0,0
+message_agent,message.agent,model_step_helpdesk_wa_message,helpdesk.group_helpdesk_user,1,0,0,0
+event_manager,event.manager,model_step_helpdesk_wa_event,base.group_system,1,1,0,0
+template_manager,template.manager,model_step_helpdesk_wa_template,base.group_system,1,1,1,0
+template_agent,template.agent,model_step_helpdesk_wa_template,helpdesk.group_helpdesk_user,1,0,0,0
+compose_agent,compose.agent,model_step_helpdesk_wa_compose,helpdesk.group_helpdesk_user,1,1,1,1
+classify_agent,classify.agent,model_step_helpdesk_wa_classify,helpdesk.group_helpdesk_user,1,1,1,1

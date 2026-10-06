@@ -10,25 +10,16 @@ class ExportAccountingCompany(models.Model):
     step_export_sale_journal_id = fields.Many2one(
         "account.journal", string="Diario facturas exportación",
         domain="[('type', '=', 'sale')]")
-    step_export_purchase_journal_id = fields.Many2one(
-        "account.journal", string="Diario compras productores",
-        domain="[('type', '=', 'purchase')]")
     step_export_adjustment_journal_id = fields.Many2one(
         "account.journal", string="Diario ajustes DTE externos",
         domain="[('type', '=', 'general')]")
     step_export_income_account_id = fields.Many2one(
         "account.account", string="Cuenta ventas exportación",
         domain="[('account_type', '=', 'income')]")
-    step_export_purchase_account_id = fields.Many2one(
-        "account.account", string="Cuenta compra fruta productores",
-        domain="[('account_type', 'in', ['expense', 'expense_direct_cost'])]")
     step_export_sale_tax_id = fields.Many2one(
         "account.tax", string="Impuesto venta exportación",
         domain="[('type_tax_use', '=', 'sale')]",
         help="Vacío: las facturas de exportación se crean sin impuesto de venta.")
-    step_export_purchase_tax_id = fields.Many2one(
-        "account.tax", string="Impuesto compra fruta",
-        domain="[('type_tax_use', '=', 'purchase')]")
 
     @api.constrains(
         "step_export_sale_journal_id", "step_export_purchase_journal_id",

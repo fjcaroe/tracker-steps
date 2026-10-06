@@ -1,6 +1,6 @@
 {
     "name": "Steps - Gestión Contractual y Finiquitos (Adaptador SimpleDigital)",
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "category": "Human Resources/Employees",
     "summary": "Adaptador de step_hr_contract_lifecycle para l10n_cl_simpledigital_payroll",
     "description": """

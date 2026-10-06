@@ -31,10 +31,10 @@ class TestFase3Estimation(ManagementCostsCommon):
             "company_id": cls.company_a.id,
         })
         cls.cg1 = cls.env["step.management.caliber.group"].create({
-            "name": "Jumbo", "code": "J", "company_id": cls.company_a.id,
+            "name": "Jumbo", "code": "QA-EST-J", "company_id": cls.company_a.id,
         })
         cls.cg2 = cls.env["step.management.caliber.group"].create({
-            "name": "Large", "code": "L", "company_id": cls.company_a.id,
+            "name": "Large", "code": "QA-EST-L", "company_id": cls.company_a.id,
         })
 
         cls.week_curve = cls._mk_curve("week", "WK", [
@@ -129,10 +129,7 @@ class TestFase3Estimation(ManagementCostsCommon):
         self.assertAlmostEqual(est.total_kg, 12345.0)
 
     def test_kg_ratios_never_divide_by_zero(self):
-        c0 = self.env["step.management.cost.center"].create({
-            "code": "CZERO", "name": "Sin datos", "company_id": self.company_a.id,
-            "hectares": 0.0, "plants": 0.0,
-        })
+        c0 = self._make_center("CZERO", "Sin datos", hectares=0.0, plants=0.0)
         est = self._mk_estimation("kilos", centers=[c0])
         est.line_ids.total_kg_input = 500.0
         self.assertEqual(est.line_ids.kg_per_ha, 0.0)
@@ -371,8 +368,8 @@ class TestFase3Estimation(ManagementCostsCommon):
     # Upgrade / campo no destructivo
     # ------------------------------------------------------------------
     def test_cost_center_plants_field_defaults_zero(self):
-        self.assertEqual(self.center_a_no_aa.plants, 0.0)
-        self.center_a_no_aa.plants = 25.0
-        self.assertEqual(self.center_a_no_aa.plants, 25.0)
+        self.assertEqual(self.center_a3.plants, 0.0)
+        self.center_a3.plants = 25.0
+        self.assertEqual(self.center_a3.plants, 25.0)
         with self.assertRaises(ValidationError):
-            self.center_a_no_aa.plants = -1.0
+            self.center_a3.plants = -1.0

@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Steps - Packing",
-    "summary": "Packing de campo, recepcion a granel y catalogos de proceso "
-                "(puerto desde Studio, ticket 33 Cerro El Plomo).",
-    "version": "18.0.1.0.0",
+    "summary": "Apps Packing Campo y Packing Fruta: recepcion de fruta, recepcion a granel, "
+                "inspecciones, despacho y catalogos de proceso (puerto desde Studio, tickets 33 y 34).",
+    "version": "18.0.1.1.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
     "depends": ["base", "mail", "step_hr", "product", "mrp", "stock"],
     "data": [
         "security/ir.model.access.csv",
+        "data/stages.xml",
         "views/step_packing_fruit_category_views.xml",
         "views/step_packing_fruit_class_views.xml",
         "views/step_packing_caliber_group_views.xml",
@@ -42,7 +43,10 @@
         "views/step_packing_reception_stage_views.xml",
         "views/step_packing_campo_views.xml",
         "views/step_packing_reception_views.xml",
+        "views/stock_picking_views.xml",
+        "views/mrp_production_views.xml",
         "views/menu.xml",
+        "views/packing_fruta_menu.xml",
     ],
     "application": True,
     "installable": True,

@@ -63,7 +63,7 @@ class StepManagementDashboard(models.Model):
             [("date_start", ">=", start)] if days else []
         )
         costs = self.env["step.management.historical.cost"].search(domain)
-        centers = self.env["step.management.cost.center"].search([("active", "=", True)])
+        centers = self.env["account.analytic.account"].search([("active", "=", True)])
         templates = self.env["step.management.budget.template"].search([("state", "=", "active")])
         company = self.env.company
         stock_line_domain = [("company_id", "=", company.id), ("requirement_id.active", "=", True)]

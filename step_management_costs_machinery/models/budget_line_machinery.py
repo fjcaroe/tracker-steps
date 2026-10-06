@@ -64,11 +64,11 @@ class StepManagementBudgetLine(models.Model):
     def _compute_machinery_actual_hours(self):
         Line = self.env["step.hrs.machinery.line"].sudo()
         for line in self:
-            if line.category != "machinery" or not line.machinery_vehicle_id or not line.center_id.analytic_account_id:
+            if line.category != "machinery" or not line.machinery_vehicle_id or not line.center_id:
                 line.machinery_actual_hours = 0.0
                 continue
             actual = Line.search([
-                ("cost_id", "=", line.center_id.analytic_account_id.id),
+                ("cost_id", "=", line.center_id.id),
                 ("machinery_ids", "=", line.machinery_vehicle_id.id),
                 ("state", "in", ("done", "costed", "accounted")),
             ])

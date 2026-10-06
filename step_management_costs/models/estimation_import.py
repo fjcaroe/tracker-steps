@@ -303,7 +303,7 @@ class StepManagementEstimationImport(models.Model):
         ) % {"total": self.line_count, "err": self.error_count})
 
     def _parse_row(self, row_number, mapped):
-        Center = self.env["step.management.cost.center"]
+        Center = self.env["account.analytic.account"]
         company = self.company_id
 
         raw = {
@@ -328,7 +328,7 @@ class StepManagementEstimationImport(models.Model):
             errors.append(_("Falta el centro de costo / cuartel."))
         else:
             centers = Center.search([
-                ("company_id", "=", company.id),
+                ("company_id", "in", [False, company.id]),
                 "|", ("code", "=", raw_center), ("name", "=", raw_center),
             ], limit=2)
             if not centers:
@@ -495,7 +495,7 @@ class StepManagementEstimationImportLine(models.Model):
     raw_variety = fields.Char(string="Variedad (texto)")
 
     season = fields.Char()
-    center_id = fields.Many2one("step.management.cost.center", check_company=True)
+    center_id = fields.Many2one("account.analytic.account", check_company=True)
     hectares = fields.Float(digits=(16, 4))
     plants = fields.Float(digits=(16, 2))
     yield_ue = fields.Float(digits=(16, 6))

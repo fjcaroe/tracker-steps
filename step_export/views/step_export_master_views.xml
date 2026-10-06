@@ -1,117 +1,118 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <odoo>
-    <record id="view_step_export_partner_form" model="ir.ui.view">
-        <field name="name">step.export.partner.form</field>
-        <field name="model">res.partner</field>
-        <field name="inherit_id" ref="step_hr.step_view_res_partner_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//page[@name='agri']" position="after">
-                <page name="step_export_partner" string="Exportación">
-                    <group>
-                        <field name="step_export"/>
-                        <field name="step_export_receiver"/>
-                    </group>
-                </page>
-                <page name="step_export_packing" string="Packing">
-                    <group>
-                        <field name="step_export_packing"/>
-                        <field name="step_export_packing_type" invisible="not step_export_packing"/>
-                    </group>
-                </page>
-            </xpath>
-            <xpath expr="//page[@name='productor']" position="inside">
-                <field name="step_export_fundo_ids">
-                    <list editable="bottom">
-                        <field name="name"/>
-                        <field name="fundo_code"/>
-                        <field name="company_id"/>
-                    </list>
-                </field>
-            </xpath>
-        </field>
-    </record>
-
-    <record id="view_step_export_product_template_form" model="ir.ui.view">
-        <field name="name">step.export.product.template.form</field>
-        <field name="model">product.template</field>
-        <field name="inherit_id" ref="step_hr.step_view_product_template_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//page[@name='agricola']" position="inside">
-                <group string="Exportación">
-                    <field name="step_export_budget_cost"/>
-                    <field name="step_export_enabled" invisible="not is_fruta"/>
-                    <field name="step_export_fruit_category_id" invisible="not is_fruta"/>
-                    <field name="step_export_base_product_id" invisible="not is_fruta"/>
-                    <field name="step_export_species_id" invisible="not is_fruta"/>
-                    <field name="step_export_payment_concept_id" invisible="not is_fruta"/>
-                </group>
-            </xpath>
-        </field>
-    </record>
-
-    <record id="view_step_export_package_type_list" model="ir.ui.view">
-        <field name="name">step.export.package.type.list</field>
-        <field name="model">stock.package.type</field>
-        <field name="arch" type="xml">
-            <list string="Tipos de pallet">
-                <field name="name"/>
-                <field name="step_export_boxes_per_pallet"/>
-                <field name="step_export_pallets_20"/>
-                <field name="step_export_pallets_40"/>
-            </list>
-        </field>
-    </record>
-    <record id="view_step_export_package_type_form" model="ir.ui.view">
-        <field name="name">step.export.package.type.form</field>
-        <field name="model">stock.package.type</field>
-        <field name="arch" type="xml">
-            <form string="Tipo de pallet">
-                <sheet><group>
-                    <field name="name"/>
-                    <field name="step_export_boxes_per_pallet"/>
-                    <field name="step_export_pallets_20"/>
-                    <field name="step_export_pallets_40"/>
-                </group></sheet>
-            </form>
-        </field>
-    </record>
-    <record id="action_step_export_package_type" model="ir.actions.act_window">
-        <field name="name">Tipos de pallet</field>
-        <field name="res_model">stock.package.type</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_step_export_package_type_list')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_step_export_package_type_form')})]"/>
-    </record>
-
-    <record id="view_step_export_packaging_list" model="ir.ui.view">
-        <field name="name">step.export.packaging.list</field>
-        <field name="model">product.packaging</field>
-        <field name="arch" type="xml">
-            <list string="Embalajes">
-                <field name="name"/>
-                <field name="product_id"/>
-                <field name="qty"/>
-                <field name="step_export_kg_per_box"/>
-            </list>
-        </field>
-    </record>
-    <record id="view_step_export_packaging_form" model="ir.ui.view">
-        <field name="name">step.export.packaging.form</field>
-        <field name="model">product.packaging</field>
-        <field name="arch" type="xml">
-            <form string="Embalaje">
-                <sheet><group>
-                    <field name="name"/>
-                    <field name="product_id"/>
-                    <field name="qty"/>
-                    <field name="step_export_kg_per_box"/>
-                </group></sheet>
-            </form>
-        </field>
-    </record>
-    <record id="action_step_export_packaging" model="ir.actions.act_window">
-        <field name="name">Embalajes de exportación</field>
-        <field name="res_model">product.packaging</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_step_export_packaging_list')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_step_export_packaging_form')})]"/>
-    </record>
+  <record id="view_step_export_partner_form" model="ir.ui.view">
+    <field name="name">step.export.partner.form</field>
+    <field name="model">res.partner</field>
+    <field name="inherit_id" ref="step_producers.view_step_producer_partner_form" />
+    <field name="arch" type="xml">
+      <xpath expr="//page[@name='agri']//field[@name='step_export']" position="replace" />
+      <xpath expr="//page[@name='agri']" position="after">
+        <page name="step_export_partner" string="Exportación">
+          <group>
+            <field name="step_export" />
+            <field name="step_export_receiver" />
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_step_export_product_template_form" model="ir.ui.view">
+    <field name="name">step.export.product.template.form</field>
+    <field name="model">product.template</field>
+    <field name="inherit_id" ref="step_hr.step_view_product_template_form" />
+    <field name="arch" type="xml">
+      <xpath expr="//page[@name='agricola']" position="inside">
+        <group string="Exportación">
+          <field name="step_export_budget_cost" />
+          <field name="step_export_enabled" invisible="not is_fruta" />
+          <field name="step_export_fruit_category_id" invisible="not is_fruta" />
+          <field name="step_export_base_product_id" invisible="not is_fruta" />
+          <field name="step_export_species_id" invisible="not is_fruta" />
+          <field name="step_export_payment_concept_id" invisible="not is_fruta" />
+        </group>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_step_export_package_type_list" model="ir.ui.view">
+    <field name="name">step.export.package.type.list</field>
+    <field name="model">stock.package.type</field>
+    <field name="arch" type="xml">
+      <list string="Tipos de pallet">
+        <field name="name" />
+        <field name="step_export_boxes_per_pallet" />
+        <field name="step_export_pallets_20" />
+        <field name="step_export_pallets_40" />
+      </list>
+    </field>
+  </record>
+  <record id="view_step_export_package_type_form" model="ir.ui.view">
+    <field name="name">step.export.package.type.form</field>
+    <field name="model">stock.package.type</field>
+    <field name="arch" type="xml">
+      <form string="Tipo de pallet">
+        <sheet>
+          <group>
+            <field name="name" />
+            <field name="step_export_boxes_per_pallet" />
+            <field name="step_export_pallets_20" />
+            <field name="step_export_pallets_40" />
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="action_step_export_package_type" model="ir.actions.act_window">
+    <field name="name">Tipos de pallet</field>
+    <field name="res_model">stock.package.type</field>
+    <field name="view_mode">list,form</field>
+    <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_step_export_package_type_list')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_step_export_package_type_form')})]" />
+  </record>
+  <record id="view_step_export_packaging_list" model="ir.ui.view">
+    <field name="name">step.export.packaging.list</field>
+    <field name="model">product.packaging</field>
+    <field name="arch" type="xml">
+      <list string="Embalajes">
+        <field name="name" />
+        <field name="product_id" />
+        <field name="qty" />
+        <field name="step_export_kg_per_box" />
+      </list>
+    </field>
+  </record>
+  <record id="view_step_export_packaging_form" model="ir.ui.view">
+    <field name="name">step.export.packaging.form</field>
+    <field name="model">product.packaging</field>
+    <field name="arch" type="xml">
+      <form string="Embalaje">
+        <sheet>
+          <group>
+            <field name="name" />
+            <field name="product_id" />
+            <field name="qty" />
+            <field name="step_export_kg_per_box" />
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="action_step_export_packaging" model="ir.actions.act_window">
+    <field name="name">Embalajes de exportación</field>
+    <field name="res_model">product.packaging</field>
+    <field name="view_mode">list,form</field>
+    <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('view_step_export_packaging_list')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_step_export_packaging_form')})]" />
+  </record>
+  <record id="action_step_export_product_templates" model="ir.actions.act_window">
+    <field name="name">Productos exportables</field>
+    <field name="res_model">product.template</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('step_export_enabled', '=', True)]</field>
+    <field name="context">{'default_is_fruta': True, 'default_step_export_enabled': True}</field>
+  </record>
+  <record id="action_step_export_contacts" model="ir.actions.act_window">
+    <field name="name">Contactos de exportación</field>
+    <field name="res_model">res.partner</field>
+    <field name="view_mode">kanban,list,form</field>
+    <field name="domain">['|', ('step_export', '=', True), ('step_export_receiver', '=', True)]</field>
+    <field name="context">{'default_step_export': True}</field>
+  </record>
 </odoo>
