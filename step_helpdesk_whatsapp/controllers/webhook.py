@@ -13,9 +13,10 @@ class Webhook(http.Controller):
         if not channel:
             return request.make_response('Not found', status=404)
         if request.httprequest.method=='GET':
-            if params.get('hub.mode')!='subscribe' or not hmac.compare_digest(params.get('hub.verify_token',''), channel.verify_token or ''):
+            if params.get('hub.mode')!='subscribe' or not hmac.compare_digest(params.get('hub.verify_token','').encode(), (channel.verify_token or '').encode()):
                 return request.make_response('Forbidden',status=403)
-            return request.make_response(str(params.get('hub.challenge',''))[:256],status=200)
+            return request.make_response(str(params.get('hub.challenge',''))[:256],status=200,
+                headers=[('Content-Type','text/plain; charset=utf-8'),('Cache-Control','no-store')])
         if (request.httprequest.content_length or 0)>262144:
             return request.make_response('Too large',status=413)
         if request.httprequest.content_length is None:

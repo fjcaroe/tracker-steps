@@ -103,8 +103,24 @@ El recorrido para aceptación está en [Revisión del jueves](REVISION_CLIENTE_2
 Incluye Actividades/Task, Cosecha/Harvest, Gestión y Costos, Contabilidad,
 costeo/capitalización por OT, liquidación de productores y gastos/IVV de exportación.
 Falta aceptación funcional del cliente y homologación con balanzas/impresoras
-físicas. El paquete agrícola y la nueva Gestión de Cerro no se promocionan a
-producción como si ya tuvieran esa aceptación.
+físicas del flujo agrícola. Gestión y Costos se publicó después en Cerro por
+instrucción explícita del usuario, tras comprobar su migración en una copia
+actual. Esa publicación no acredita aceptación del flujo agrícola completo.
+
+## Publicación de T50 a T53 en Cerro El Plomo
+
+Publicado y verificado el mismo paquete `6ffa057758a46f24b3e408cb17f77d2514e85ed2`
+que Desarrollo: Gestión y Costos `18.0.21.1.0`, selectores a maestros nativos,
+centro analítico único y selección de varias empresas. Los catálogos actuales
+de Cerro quedaron compartidos con todas las empresas, según la respuesta del
+cliente. No se actualizaron a ciegas los módulos antiguos de Exportaciones.
+
+- Compatibilidad actual: `MANAGEMENT_QA_CERRO_r10c`, 305 pruebas sin fallos/errores.
+- Respaldo: `/opt/steps_backups/management_cerro_20261006T113045Z`.
+- Comprobación efectiva: `MANAGEMENT_REGISTRY_OK` y `MANAGEMENT_VERIFY_OK cerro`.
+- Publicados comentarios breves en T50–T53 para confirmar la revisión en Cerro,
+  y en T27/T30/T35/T38/T41 para solicitar casos concretos en Desarrollo.
+  Los comentarios no cerraron automáticamente ningún ticket.
 
 ## Diferencias preexistentes que no se ocultan
 

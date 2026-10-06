@@ -16,6 +16,7 @@ class TestWebhook(HttpCase):
     def test_challenge_and_signature(self):
         path='/whatsapp/webhook/'+self.channel.route_key
         self.assertEqual(self.url_open(path+'?hub.mode=subscribe&hub.verify_token=wrong&hub.challenge=123').status_code,403)
+        self.assertEqual(self.url_open(path+'?hub.mode=subscribe&hub.verify_token=%C3%91&hub.challenge=123').status_code,403)
         valid=self.url_open(path+'?hub.mode=subscribe&hub.verify_token=fixture_verify&hub.challenge=123')
         self.assertEqual(valid.status_code,200);self.assertEqual(valid.text,'123')
         data=json.dumps({'entry':[{'id':'fixture_account','changes':[{'field':'messages','value':{

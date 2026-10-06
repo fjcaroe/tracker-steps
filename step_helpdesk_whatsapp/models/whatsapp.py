@@ -123,6 +123,7 @@ class Channel(models.Model):
 class Conversation(models.Model):
     _name='step.helpdesk.wa.conversation'
     _description='Conversación de soporte WhatsApp'
+    _rec_name='sender_id'
     channel_id=fields.Many2one('step.helpdesk.wa.channel',required=True,ondelete='restrict')
     company_id=fields.Many2one(related='channel_id.company_id',store=True)
     team_id=fields.Many2one(related='channel_id.team_id',store=True)
@@ -181,6 +182,14 @@ class Event(models.Model):
     next_attempt=fields.Datetime()
     error=fields.Char()
     _sql_constraints=[('event_unique','unique(channel_id,dedupe_key)','El evento ya se recibió.')]
+
+    def action_retry(self):
+        self.check_access('write')
+        for event in self:
+            if event.state!='failed' or not event.payload:
+                raise UserError(_('Solo se reintentan eventos pendientes de revisión que conservan su contenido.'))
+        self.write({'state':'pending','attempts':0,'next_attempt':False,'error':False})
+        return True
 
     def _process(self):
         self.ensure_one();data=self.payload

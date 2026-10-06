@@ -57,7 +57,7 @@ def unpack(package,destination):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action',choices=['qa','compatibility','diagnose','deploy','verify'])
+    p.add_argument('action',choices=['qa','compatibility','resume-preflight','diagnose','deploy','verify'])
     p.add_argument('environment',choices=['development','steps'])
     p.add_argument('package',type=Path);p.add_argument('run_id');a=p.parse_args()
     assert os.geteuid()==0 and re.fullmatch('[a-z0-9_]{1,20}',a.run_id)
@@ -80,6 +80,17 @@ def main():
     installed=sql(db,"SELECT latest_version FROM ir_module_module WHERE name='%s' AND state='installed'"%module)
     if installed:assert tuple(map(int,proof['version'].split('.')))>=tuple(map(int,installed.split('.')))
     baseline={'config_sha256':sha(conf),'installed':installed,'source':None,'scope_version':sql(db,"SELECT latest_version FROM ir_module_module WHERE name='%s' AND state='installed'"%scope_module)}
+    baseline['dependencies']={}
+    for name in ['helpdesk','mail','phone_validation','project','step_hr','step_environment_policy']:
+        source=next((Path(root.strip())/name for root in opts['addons_path'].split(',') if (Path(root.strip())/name/'__manifest__.py').exists()),None)
+        if source:
+            digest=hashlib.sha256()
+            for f in sorted(source.rglob('*')):
+                if f.is_file() and f.suffix in ['.py','.xml','.csv','.js','.scss'] and '__pycache__' not in f.parts:
+                    digest.update(str(f.relative_to(source)).encode());digest.update(f.read_bytes().replace(b'\r\n',b'\n'))
+            baseline['dependencies'][name]={'path':str(source),'sha256':digest.hexdigest()}
+    module_flag='-u' if installed else '-i'
+    scope_flag='-u' if baseline['scope_version'] else '-i'
     if baseline['scope_version']:assert tuple(map(int,expected[scope_module].split('.')))>=tuple(map(int,baseline['scope_version'].split('.')))
     for root in opts['addons_path'].split(','):
         source=Path(root.strip())/module
@@ -94,7 +105,7 @@ def main():
     def verify(database,source):
         script="import importlib,json\nfrom lxml import etree\ntry:\n m=env['ir.module.module'].search([('name','=',%r)])\n assert m.state=='installed' and m.latest_version==%r\n assert importlib.import_module('odoo.addons.'+%r).__file__.startswith(%r+'/')\n for model in ('step.helpdesk.wa.channel','step.helpdesk.wa.message','step.helpdesk.wa.compose'):\n  etree.fromstring(env[model].get_view(view_type='form')['arch'])\n assert 'action_respond_whatsapp' in env['helpdesk.ticket'].get_view(view_type='form')['arch']\n assert not env['step.helpdesk.wa.channel'].search_count([('enabled','=',True),('provider','=','meta_cloud')])\n print('WHATSAPP_REGISTRY_OK')\nfinally:env.cr.rollback()\n"%(module,proof['version'],module,str(source))
         if scope_needed:
-            script=script.replace(" print('WHATSAPP_REGISTRY_OK')", " assert not env['project.task']._fields['variedad_id'].required\n assert not env['project.task']._fields['grupo_variedad_id'].required\n assert importlib.import_module('odoo.addons.step_project_agriculture_scope').__file__.startswith(%r+'/')\n print('WHATSAPP_REGISTRY_OK')"%str(source))
+            script=script.replace(" print('WHATSAPP_REGISTRY_OK')", " s=env['ir.module.module'].search([('name','=','step_project_agriculture_scope')])\n assert s.state=='installed' and s.latest_version==%r\n assert not env['project.task']._fields['variedad_id'].required\n assert not env['project.task']._fields['grupo_variedad_id'].required\n assert importlib.import_module('odoo.addons.step_project_agriculture_scope').__file__.startswith(%r+'/')\n print('WHATSAPP_REGISTRY_OK')"%(expected[scope_module],str(source)))
         result=subprocess.run(base+['shell','-c',str(conf),'-d',database,'--db-filter=^'+database+'$','--addons-path='+str(source)+','+opts['addons_path'],'--no-http','--workers=0','--max-cron-threads=0','--log-level=error'],input=script,text=True,capture_output=True)
         (stage/('verify-'+database+'.log')).write_text(result.stdout+result.stderr)
         assert result.returncode==0 and 'WHATSAPP_REGISTRY_OK' in result.stdout,'See private registry log'
@@ -110,14 +121,23 @@ def main():
         print('\n'.join(s for s in text.splitlines() if 'tests.result' in s or 'ERROR:' in s or 'FAIL:' in s)[-4000:],flush=True)
         assert result.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',text) and not errors(text),'See private diagnostic log'
         print('WHATSAPP_DIAGNOSIS_OK; fresh clone required before promotion',flush=True);return
-    if a.action in ['qa','compatibility']:
-        assert not sql('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone)
-        (stage/'baseline.json').write_text(json.dumps(baseline))
-        before=snapshots(db);(stage/'business_before.json').write_text(json.dumps(before))
-        with (stage/'source.dump').open('wb') as stream:run('sudo','-u','postgres','pg_dump','-Fc',db,stdout=stream)
-        run('sudo','-u','postgres','createdb','-O',opts['db_user'],clone)
-        with (stage/'source.dump').open('rb') as stream:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',opts['db_user'],'-d',clone,stdin=stream)
-        sql(clone,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
+    if a.action in ['qa','compatibility','resume-preflight']:
+        if a.action=='resume-preflight':
+            assert sql('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone)
+            assert json.loads((stage/'baseline.json').read_text())==baseline
+            logs=list(stage.glob('scope-*.log'));assert len(logs)==1
+            assert 'odoo.modules.loading' not in logs[0].read_text(), 'Never resume a failed migration as fresh QA'
+            assert not sql(clone,"SELECT 1 FROM ir_module_module WHERE name IN ('step_helpdesk_whatsapp','step_project_agriculture_scope') AND state!='uninstalled'")
+            before=json.loads((stage/'business_before.json').read_text())
+            restored=snapshots(clone,before);assert all(restored.get(k)==v for k,v in before.items())
+        else:
+            assert not sql('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone)
+            (stage/'baseline.json').write_text(json.dumps(baseline))
+            before=snapshots(db);(stage/'business_before.json').write_text(json.dumps(before))
+            with (stage/'source.dump').open('wb') as stream:run('sudo','-u','postgres','pg_dump','-Fc',db,stdout=stream)
+            run('sudo','-u','postgres','createdb','-O',opts['db_user'],clone)
+            with (stage/'source.dump').open('rb') as stream:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',opts['db_user'],'-d',clone,stdin=stream)
+            sql(clone,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         data=stage/'data';store=Path(opts['data_dir'])/'filestore'/db
         if store.exists():
             destination=data/'filestore'/clone;destination.mkdir(parents=True,exist_ok=True)
@@ -132,7 +152,7 @@ def main():
             # generic support tasks must not acquire global crop NOT NULLs.
             scope_log=stage/('scope-'+stamp+'.log')
             scope_result=subprocess.run(base+['-c',str(conf),'-d',clone,'--db-filter=^'+clone+'$','--addons-path='+str(addon)+','+opts['addons_path'],
-                '--data-dir='+str(data),'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',scope_module,
+                '--data-dir='+str(data),'--http-interface=127.0.0.1','--http-port='+str(port),'--workers=0','--max-cron-threads=0','--without-demo=all',scope_flag,scope_module,
                 '--test-enable','--test-tags=/'+scope_module,'--stop-after-init','--logfile='+str(scope_log)])
             scope_text=scope_log.read_text(errors='replace')
             print('\n'.join(s for s in scope_text.splitlines() if 'tests.result' in s or ' ERROR ' in s)[-2000:],flush=True)
@@ -140,7 +160,7 @@ def main():
         print('WHATSAPP_QA_BEGIN '+json.dumps({'database':clone,'log':str(log)}),flush=True)
         result=subprocess.run(base+['-c',str(conf),'-d',clone,'--db-filter=^'+clone+'$','--addons-path='+str(addon)+','+opts['addons_path'],
             '--data-dir='+str(data),'--http-interface=127.0.0.1','--http-port='+str(port),'--workers=0','--max-cron-threads=0','--without-demo=all',
-            '-i',module,'--test-enable','--test-tags=/'+module,'--stop-after-init','--logfile='+str(log)])
+            module_flag,module,'--test-enable','--test-tags=/'+module,'--stop-after-init','--logfile='+str(log)])
         text=log.read_text(errors='replace')
         print('\n'.join(s for s in text.splitlines() if 'tests.result' in s or ' ERROR ' in s or ' FAIL' in s)[-4000:],flush=True)
         assert result.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',text) and not errors(text),'See private QA log'
@@ -170,9 +190,9 @@ def main():
                 log=stage/('deploy-'+stamp+'.log')
                 if scope_needed:
                     scope_log=stage/('deploy-scope-'+stamp+'.log')
-                    scoped=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',scope_module,'--stop-after-init','--logfile='+str(scope_log)])
+                    scoped=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all',scope_flag,scope_module,'--stop-after-init','--logfile='+str(scope_log)])
                     assert scoped.returncode==0 and not errors(scope_log.read_text(errors='replace')),'See private scope deployment log'
-                result=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',module,'--stop-after-init','--logfile='+str(log)])
+                result=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all',module_flag,module,'--stop-after-init','--logfile='+str(log)])
                 text=log.read_text(errors='replace');assert result.returncode==0 and 'Modules loaded.' in text and not errors(text),'See private deployment log'
                 after=snapshots(db,before);assert all(after.get(k)==v for k,v in before.items())
                 (backup/'deployment.json').write_text(json.dumps({'commit':proof['commit'],'sha256':package_sha,'before':before,'after':after}))
