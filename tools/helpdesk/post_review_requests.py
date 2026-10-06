@@ -23,9 +23,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--send', action='store_true', help='Only with explicit user authorization')
     parser.add_argument('--messages', type=Path, help='Explicitly reviewed mapping of ticket IDs to text')
+    parser.add_argument('--replace-message', type=int, help='Edit one existing comment authored by this integration')
     args = parser.parse_args()
     requests = REQUESTS if not args.messages else {int(k):v for k,v in json.loads(args.messages.read_text(encoding='utf-8-sig')).items()}
     assert all(k>0 and isinstance(v,str) and 0<len(v)<=3000 for k,v in requests.items())
+    assert not args.replace_message or (args.send and len(requests) == 1)
     if not args.send:
         for ticket, body in requests.items():
             print(json.dumps({'ticket': ticket, 'body': body}, ensure_ascii=False))
@@ -39,6 +41,17 @@ def main():
         return rpc.execute_kw(cfg['db'], uid, cfg['api_key'], model, method, values, kwargs or {})
     for ticket, text in requests.items():
         body = ''.join('<p>'+html.escape(p)+'</p>' for p in text.split('\n'))
+        if args.replace_message:
+            message = call('mail.message', 'read', [[args.replace_message]],
+                           {'fields': ['model', 'res_id', 'author_id', 'message_type']})[0]
+            author = call('res.users', 'read', [[uid]], {'fields': ['partner_id']})[0]['partner_id'][0]
+            assert message['model'] == 'helpdesk.ticket' and message['res_id'] == ticket
+            assert message['message_type'] == 'comment' and message['author_id'][0] == author
+            call('mail.message', 'write', [[args.replace_message], {'body': body}])
+            saved = call('mail.message', 'read', [[args.replace_message]], {'fields': ['body']})[0]
+            assert plain(saved['body']) == plain(body)
+            print(json.dumps({'ticket': ticket, 'result': 'edited_and_verified', 'message': args.replace_message}))
+            continue
         previous = call('mail.message', 'search_read', [[('model','=','helpdesk.ticket'), ('res_id','=',ticket), ('message_type','=','comment')]], {'fields':['id','body'], 'order':'id desc', 'limit':100})
         matches = [m['id'] for m in previous if plain(m['body']) == plain(body)]
         if matches:

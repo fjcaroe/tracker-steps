@@ -108,3 +108,64 @@ apuntes analíticos se verificaron en las pruebas de la copia aislada.
 Se dejó el aviso breve de revisión en T27 (mensaje 9182), sin cerrar el ticket.
 El código de los dos módulos de la entrega sigue siendo exactamente el del
 paquete probado; los commits posteriores de documentación no cambian sus bytes.
+
+Terminación del flujo y menú estándar
+-----------------------------------
+
+Se leyó el error enlazado en el comentario 8950 de T27 y el documento V2 con
+las respuestas del cliente. El error adjunto era ``analytic_precision``;
+también se abrió en pantalla el flete del ejercicio de ese documento, con su
+costeo y asiento existentes, sin modificarlo ni reproducir el fallo.
+
+Fletes utiliza ahora la barra y las vistas internas estándar de Odoo, como
+Packing. En el navegador ambas barras coincidieron en fondo blanco, colores
+de texto, menús y altura de 46 px. Se retiraron los estilos de Fletes sobre
+la navegación; la portada conserva su contenido propio.
+
+Elegir la tarifa después de introducir los detalles actualiza precio,
+servicio y unidad. Los cambios de frío, fecha o empresa actualizan las líneas
+sin recalcular documentos contabilizados. Una única modalidad aplicable de
+la tarifa se completa automáticamente. El precio manual positivo de Detalles
+se conserva durante el costeo; las líneas sin precio importadas usan la tarifa.
+Las tarifas genéricas sin servicio admiten el servicio elegido en el detalle.
+
+La numeración se ejecuta en ``create()`` nativo. La migración adopta el mismo
+contador y sus rangos, sin reiniciarlo; desactiva únicamente la automatización
+histórica reconocida por su código exacto. Se conservan los folios importados,
+editar no renumera y duplicar genera otro folio. La comparación incorpora las
+filas y columnas del contador y sus rangos.
+
+Crear guía desde Fletes toma el tramo, camión y chofer de Detalles. Los despachos
+con varios tramos o vehículos requieren separarse y reciben una validación
+clara. El ensayo en copia crea y confirma la guía vinculada.
+
+La comprobación del navegador descubrió otra causa de bloqueo: Tab desde la
+última columna podía agregar y guardar una fila vacía. Se descartan únicamente
+las creaciones de filas sin información y con sus valores predeterminados.
+Las filas existentes se conservan; las vacías no impiden el costeo. Una fila
+con datos ingresados permanece y exige completar sus campos.
+
+Paquete final: ``4b248373783b859b5b056a7b3cf607a1d7ec3b4e``; SHA-256
+``f88f38f111c88758201821b170c7119bb5c20b79c7e3feb65609bc3a58810d99``.
+Fletes 18.0.2.7.1 y Guías 18.0.2.0.3 pasaron 66 pruebas sin fallos ni errores
+en ``FREIGHT_QA_completion_1006b``, con preservación de registros e importes.
+Publicado y sondeado en Desarrollo bajo el bloqueo compartido; respaldo
+``/opt/steps_backups/freight_development_20261006T153001Z`` y evidencias en
+``/opt/steps-validation/freight_development_completion_1006b``.
+Los assets se renovaron primero en la copia y luego en el destino, comprobando
+la URL nueva y la apariencia del menú en el navegador.
+
+En Desarrollo se verificó la carga de tarifa después del tramo, el guardado
+con precio manual, folio generado en código y reapertura desde el listado.
+El flete QA con una fila vacía existente costeó 57.000 sin borrarla. El ejercicio
+final usando Tab guardó una sola línea y conservó 56.500 al costear y reabrir.
+La guía se abrió con las direcciones, tramo, camión y chofer del flete; se
+descartó ese borrador de prueba. Las órdenes QA se conservan sin contabilizar.
+La captura final es ``fletes-completo-menu-limpio.jpg`` en el directorio local
+de evidencias de T27. La contabilización se verificó en la copia de pruebas.
+
+El cliente confirmó en el comentario 9183: registro, costeo, contabilización
+y enlace con guía de despacho OK. El comentario propio 9184 se actualizó para
+reconocer esa respuesta y el menú corregido, sin repetir la petición de validar
+los mismos pasos. No se cambió la etapa del ticket ni se publicaron estos módulos
+en otros ambientes.
