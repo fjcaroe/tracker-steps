@@ -23,7 +23,14 @@ class TestOutputs(PreviredCase):
         for employee, department in ((agri, self.dep_agri),
                                      (agri2, self.dep_agri),
                                      (admin, self.dep_admin)):
-            self.make_payslip(employee, department)
+            slip=self.make_payslip(employee, department)
+            # Parity requires a coherent source: the fake engine reports 30
+            # days, so do not inherit the live company's 21-day calendar.
+            slip.worked_days_line_ids.unlink()
+            entry=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+            if not entry:
+                entry=self.env['hr.work.entry.type'].create({'name':'Asistencia QA','code':'WORK100','is_leave':False})
+            self.env['hr.payslip.worked_days'].create({'payslip_id':slip.id,'work_entry_type_id':entry.id,'number_of_days':30,'number_of_hours':240})
         return [
             make_row(rut="11111111", dv="1"),
             make_row(rut="11111111", dv="1",
