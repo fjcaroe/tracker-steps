@@ -41,7 +41,7 @@ class TestDataset(PreviredCase):
         self._add_worked_days(payslip, "WORK100", 1)
         self._add_worked_days(payslip, "LIC_TEST", 30, is_leave=True)
 
-        dataset = self.build([make_row()], spec_version="84")
+        dataset = self.build([make_row(dv="5")], spec_version="84")
 
         row = dataset.records[0].principal
         self.assertEqual(row[previred.F_WORKED_DAYS - 1], "1")
@@ -52,7 +52,7 @@ class TestDataset(PreviredCase):
         payslip = self.make_payslip(employee, self.dep_agri)
         payslip.contract_id.resource_calendar_id.previred_workday_type = "2"
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
@@ -126,7 +126,7 @@ class TestDataset(PreviredCase):
         calendar.previred_workday_type = False
         calendar.full_time_required_hours = 40
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "1")
@@ -181,7 +181,7 @@ class TestDataset(PreviredCase):
         center = analytic_model.create(values)
         payslip.contract_id[field_name] = center
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         self.assertEqual(
             dataset.records[0].principal[previred.F_COST_CENTER - 1],
@@ -214,7 +214,7 @@ class TestDataset(PreviredCase):
         center = analytic_model.create(values)
         payslip.contract_id[field_name] = center
 
-        dataset = self.build([make_row()], spec_version="98")
+        dataset = self.build([make_row(dv="5")], spec_version="98")
 
         value = dataset.records[0].principal[previred.F_COST_CENTER - 1]
         self.assertEqual(value, "Administracion")
@@ -762,7 +762,7 @@ class TestDataset(PreviredCase):
         employee = self.make_employee("Sin Licencia", "12345678-5",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
-        row = make_row(overrides={
+        row = make_row(dv="5", overrides={
             previred.F_AFP_CODE: "8",
             previred.F_AFP_TAXABLE: "800000",
             previred.F_SIS_CONTRIBUTION: "11111",
