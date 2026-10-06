@@ -1,0 +1,7 @@
+<odoo>
+    <record id="rule_legacy_company" model="ir.rule">
+        <field name="name">Archivo de nómina por empresa</field>
+        <field name="model_id" ref="model_step_payroll_legacy_snapshot"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

@@ -19,11 +19,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
+    parser.add_argument('--kind', choices=('management', 'payroll'), default='management')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
     commit = subprocess.check_output(['git', 'rev-parse', args.commit + '^{commit}'], cwd=root, text=True).strip()
-    raw = subprocess.check_output(['git', 'archive', '--format=tar', commit, *MODULES], cwd=root)
+    modules = MODULES if args.kind == 'management' else ('step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book')
+    raw = subprocess.check_output(['git', 'archive', '--format=tar', commit, *modules], cwd=root)
     entries = {}
     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
         for member in archive.getmembers():
@@ -35,7 +37,7 @@ def main():
             elif member.name.endswith(('.xml', '.svg')):
                 ET.fromstring(data)
             entries[member.name] = data
-    versions = {name: ast.literal_eval(entries[name + '/__manifest__.py'].decode())['version'] for name in MODULES}
+    versions = {name: ast.literal_eval(entries[name + '/__manifest__.py'].decode())['version'] for name in modules}
     proof = {'commit': commit, 'versions': versions, 'files': {name: hashlib.sha256(data).hexdigest() for name, data in entries.items()}}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tarfile.open(args.output, 'w:gz') as archive:
