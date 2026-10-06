@@ -85,11 +85,15 @@ def main():
     global MODULES, BUSINESS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
-    parser.add_argument('environment', choices=('development', 'cerro'))
+    parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage'), default='management')
     args = parser.parse_args()
+    assert args.environment != 'steps' or args.kind == 'homepage'
+    if args.kind == 'homepage':
+        MODULES = ('step_demo_homepage',)
+        BUSINESS = ('account_move', 'account_move_line')
     if args.kind == 'export':
         MODULES = ('step_export',)
         BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_export_%' OR tablename IN ('account_move','account_move_line')) ORDER BY tablename").splitlines())
@@ -144,6 +148,9 @@ def main():
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):
+        if args.kind == 'homepage':
+            from verify_home_heading_http import capture_before
+            capture_before(target['url'], stage)
         # Catch import/API compatibility errors before restoring a whole clone.
         import_probe = "import sys,importlib.util\nsys.path.insert(0,'/opt/odoo18')\nspec=importlib.util.spec_from_file_location('odoo.addons.step_agriculture_catalogs.models.catalogs',%r)\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nprint('CATALOG_IMPORT_OK')\n" % str(staged / 'step_agriculture_catalogs/models/catalogs.py')
         if args.kind == 'management':
@@ -183,7 +190,7 @@ def main():
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
-        assert result.returncode == 0 and results and not errors(text), 'QA failed: ' + str(log)
+        assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text), 'QA failed: ' + str(log)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
         verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
         (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log)}))
@@ -253,13 +260,17 @@ def main():
 
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
-    probe = (HERE / ('verify_export_navigation.py' if export else 'verify_management.py')).read_text()
-    names = installed if export else {*installed, 'step_agriculture_catalogs'}
+    homepage = MODULES == ('step_demo_homepage',)
+    probe = (HERE / ('verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    names = installed if export or homepage else {*installed, 'step_agriculture_catalogs'}
     header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
     print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK')), flush=True)
+    if homepage:
+        from verify_home_heading_http import verify_http
+        verify_http(base, options, database, source, opts, stage)
 
 
 if __name__ == '__main__':

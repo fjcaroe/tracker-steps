@@ -12,14 +12,14 @@ import xml.etree.ElementTree as ET
 MODULES = ('step_management_costs', 'step_management_costs_agriculture',
            'step_management_costs_machinery', 'step_management_costs_tracker',
            'step_agriculture_catalogs', 'step_management_costs_producers')
-SUFFIXES = {'.py', '.xml', '.csv', '.js', '.scss', '.css', '.svg', '.png', '.jpg', '.md', '.rst'}
+SUFFIXES = {'.py', '.xml', '.csv', '.js', '.scss', '.css', '.svg', '.png', '.jpg', '.webp', '.avif', '.md', '.rst'}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -30,6 +30,8 @@ def main():
         modules = ('step_export',)
     if args.kind == 'freight':
         modules = ('step_operations_ui',)
+    if args.kind == 'homepage':
+        modules = ('step_demo_homepage',)
     if args.environment == 'demo-sys':
         if args.kind != 'payroll':
             parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')

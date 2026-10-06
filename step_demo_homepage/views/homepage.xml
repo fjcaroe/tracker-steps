@@ -54,7 +54,7 @@
 <t t-call="step_demo_homepage.nav"/>
 <section class="steps-hero" aria-labelledby="steps-title"><div class="steps-container steps-hero__grid">
     <div class="steps-hero__copy"><div class="steps-eyebrow"><span class="steps-status-dot"/> STEPS AGRO · DEL TERRENO A LA GESTIÓN</div>
-        <h1 id="steps-title">Tu campo, bajo control.<br/><em>Tu negocio, conectado.</em></h1><p>Conecta el trabajo de tus cuadrillas, la cosecha y la maquinaria con las remuneraciones y los costos. Menos transcripción. Más claridad para decidir.</p>
+        <h1 id="steps-title">ERP agrícola para gestionar<br/> <em>tu campo en Chile</em></h1><p>Conecta el trabajo de tus cuadrillas, la cosecha y la maquinaria con las remuneraciones y los costos. Menos transcripción. Más claridad para decidir.</p>
         <div class="steps-hero__actions"><a class="steps-button steps-button--dark" href="#conversemos">Arma tu demo <span aria-hidden="true">↗</span></a><a class="steps-text-link" href="#planes">Encuentra tu punto de partida <span aria-hidden="true">↓</span></a></div><div class="steps-hero__note"><span class="steps-mini-mark">s.</span><span>ERP agrícola sobre Odoo.<br/><strong>Modular. Multiempresa. Hecho para Chile.</strong></span></div></div>
     <div class="steps-hero__visual"><picture>
         <source type="image/avif" srcset="/step_demo_homepage/static/src/img/orchard-hero-768.avif 768w, /step_demo_homepage/static/src/img/orchard-hero.avif 1536w" sizes="(max-width: 600px) 100vw, (max-width: 1100px) 50vw, 720px"/>
