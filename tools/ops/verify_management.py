@@ -28,7 +28,10 @@ try:
     for field in ('season_id', 'species_id', 'variety_id'):
         assert effective.xpath('//field[@name="%s"]' % field), field
     for field in ('season', 'species', 'variety'):
-        assert all(node.get('invisible') in ('1', 'True') or node.get('readonly') in ('1', 'True') for node in effective.xpath('//field[@name="%s"]' % field)), 'Editable text input remains: ' + field
+        # Nested one2many fields belong to estimation.line, not this header;
+        # those snapshots have their own lifecycle and freeze checks.
+        nodes=effective.xpath('//sheet/group/group/field[@name="%s"]' % field)
+        assert all(node.get('invisible') in ('1', 'True') or node.get('readonly') in ('1', 'True') for node in nodes), 'Editable header text input remains: ' + field
     models = ('step.temporada', 'step.especie', 'step.variedad', 'step.grupo.variedad')
     for name in models:
         assert env[name]._fields['company_ids'].type == 'many2many'

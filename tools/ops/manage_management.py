@@ -83,7 +83,7 @@ def errors(text):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('qa', 'compatibility', 'deploy', 'verify'))
+    parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
@@ -126,6 +126,18 @@ def main():
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
+    if args.action == 'certify':
+        # Retry read-only post-test checks without repeating an unchanged suite.
+        assert json.loads((stage / 'baseline.json').read_text()) == baseline
+        logs=sorted(stage.glob('qa-*.log'))
+        assert len(logs)==1
+        text=logs[0].read_text(errors='replace')
+        assert re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(qa_db)+"'",text) and not errors(text)
+        assert snapshot(qa_db)==json.loads((stage/'business_before.json').read_text())
+        verify(base,options,qa_db,staged,opts,proof,stage,{*installed,*install})
+        (stage/'qa_passed.json').write_text(json.dumps({'commit':proof['commit'],'release_sha256':release_sha,'database':qa_db,'log':str(logs[0])}))
+        print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
+        return
     if args.action in ('qa', 'compatibility'):
         # Catch import/API compatibility errors before restoring a whole clone.
         import_probe = "import sys,importlib.util\nsys.path.insert(0,'/opt/odoo18')\nspec=importlib.util.spec_from_file_location('odoo.addons.step_agriculture_catalogs.models.catalogs',%r)\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nprint('CATALOG_IMPORT_OK')\n" % str(staged / 'step_agriculture_catalogs/models/catalogs.py')
@@ -234,9 +246,9 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     probe = (HERE / 'verify_management.py').read_text()
     header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in [*installed, 'step_agriculture_catalogs']}) + '\n'
-    result = run(*(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error']), input=header + probe, text=True, capture_output=True)
+    result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
-    assert 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
+    assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
     print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK')), flush=True)
 
 
