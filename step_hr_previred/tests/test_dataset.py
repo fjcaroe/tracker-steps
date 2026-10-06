@@ -1,8 +1,8 @@
-"""Pruebas del dataset canónico.
+"""Pruebas del dataset canÃ³nico.
 
-Cubre los casos 2 (dos departamentos y trabajador con líneas 00/01/02/03),
-3 (trabajador sin departamento), 4 (departamentos homónimos en dos compañías)
-y 11 (un único dataset por acción).
+Cubre los casos 2 (dos departamentos y trabajador con lÃ­neas 00/01/02/03),
+3 (trabajador sin departamento), 4 (departamentos homÃ³nimos en dos compaÃ±Ã­as)
+y 11 (un Ãºnico dataset por acciÃ³n).
 """
 
 from odoo.tests.common import tagged
@@ -33,8 +33,8 @@ class TestDataset(PreviredCase):
         })
 
     def test_v98_uses_only_attendance_for_worked_days(self):
-        """Caso real: 1 día de asistencia + 30 de licencia informa 1."""
-        employee = self.make_employee("Marcelo Soto", "12345678-9",
+        """Caso real: 1 dÃ­a de asistencia + 30 de licencia informa 1."""
+        employee = self.make_employee("Marcelo Soto", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         payslip.worked_days_line_ids.unlink()
@@ -47,7 +47,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(row[previred.F_WORKED_DAYS - 1], "1")
 
     def test_v98_workday_type_comes_from_calendar_configuration(self):
-        employee = self.make_employee("Jornada Parcial", "12345678-9",
+        employee = self.make_employee("Jornada Parcial", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         payslip.contract_id.resource_calendar_id.previred_workday_type = "2"
@@ -58,8 +58,8 @@ class TestDataset(PreviredCase):
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
 
     def test_workday_type_part_time_under_40_hours_is_partial(self):
-        """Ticket EMCA 2026-08, RUT 12588103-3: un horario cuyo «Tiempo
-        completo de la empresa» es inferior a 40 h semanales es jornada
+        """Ticket EMCA 2026-08, RUT 12588103-3: un horario cuyo Â«Tiempo
+        completo de la empresaÂ» es inferior a 40 h semanales es jornada
         parcial (campo 93 = 2), aunque no tenga `previred_workday_type`."""
         employee = self.make_employee("Karen Flies", "12588103-3",
                                       self.dep_agri)
@@ -75,7 +75,7 @@ class TestDataset(PreviredCase):
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
 
     def test_part_time_hours_override_stale_full_time_configuration(self):
-        """Una migración antigua no debe convertir 24 h en jornada completa."""
+        """Una migraciÃ³n antigua no debe convertir 24 h en jornada completa."""
         employee = self.make_employee("Karen Flies migrada", "12588103-3",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
@@ -91,13 +91,13 @@ class TestDataset(PreviredCase):
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "2")
 
     def test_mutual_contribution_uses_taxable_and_company_rate(self):
-        """Ticket #15: 438.229 × 0,93 % = 4.076, no 4.159."""
+        """Ticket #15: 438.229 Ã— 0,93 % = 4.076, no 4.159."""
         if "rate_base" not in self.company._fields:
-            self.skipTest("La localización no aporta las tasas Mutual")
+            self.skipTest("La localizaciÃ³n no aporta las tasas Mutual")
         self.company.rate_base = 0.93
         if "rate_additional" in self.company._fields:
             self.company.rate_additional = 0
-        employee = self.make_employee("Celestina Peñaloza", "12359103-8",
+        employee = self.make_employee("Celestina PeÃ±aloza", "12359103-8",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
         row = make_row(rut="12359103", dv="8", overrides={
@@ -117,9 +117,9 @@ class TestDataset(PreviredCase):
                       [issue.code for issue in dataset.issues])
 
     def test_workday_type_40_hours_is_full(self):
-        """40 h semanales o más es jornada completa (campo 93 = 1): Previred
-        exige el sueldo mínimo legal en el campo 27."""
-        employee = self.make_employee("Jornada Completa", "12345678-9",
+        """40 h semanales o mÃ¡s es jornada completa (campo 93 = 1): Previred
+        exige el sueldo mÃ­nimo legal en el campo 27."""
+        employee = self.make_employee("Jornada Completa", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         calendar = payslip.contract_id.resource_calendar_id
@@ -132,8 +132,8 @@ class TestDataset(PreviredCase):
             dataset.records[0].principal[previred.F_WORKDAY_TYPE - 1], "1")
 
     def test_workday_type_is_propagated_to_annex_lines(self):
-        """Ticket EMCA 2026-08: las líneas 01/02/03 deben repetir el campo
-        93 de su línea principal 00, aunque el motor entregue otro valor."""
+        """Ticket EMCA 2026-08: las lÃ­neas 01/02/03 deben repetir el campo
+        93 de su lÃ­nea principal 00, aunque el motor entregue otro valor."""
         employee = self.make_employee("Filomena Munoz", "12358793-6",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
@@ -167,7 +167,7 @@ class TestDataset(PreviredCase):
             contract_model._fields else "cost_center_id"
         if field_name not in contract_model._fields:
             self.skipTest("El motor instalado no aporta centro de costo")
-        employee = self.make_employee("Centro Costo", "12345678-9",
+        employee = self.make_employee("Centro Costo", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         analytic_model = self.env[contract_model._fields[
@@ -189,21 +189,21 @@ class TestDataset(PreviredCase):
 
     def test_v98_cost_center_strips_accents(self):
         """Ticket PreviRed 2026-08 (Los Lingues / Megafrut): un centro de
-        costo con tilde («Administración») se rechazaba con «Error de
-        formato en el campo Centro de Costos» porque el archivo UTF-8 se
-        releía como Latin-1 («AdministraciÃ³n»). El campo 105 debe quedar en
+        costo con tilde (Â«AdministraciÃ³nÂ») se rechazaba con Â«Error de
+        formato en el campo Centro de CostosÂ» porque el archivo UTF-8 se
+        releÃ­a como Latin-1 (Â«AdministraciÃƒÂ³nÂ»). El campo 105 debe quedar en
         ASCII puro."""
         contract_model = self.env["hr.contract"]
         field_name = "analytic_account_id" if "analytic_account_id" in \
             contract_model._fields else "cost_center_id"
         if field_name not in contract_model._fields:
             self.skipTest("El motor instalado no aporta centro de costo")
-        employee = self.make_employee("Centro Costo Tilde", "12345678-9",
+        employee = self.make_employee("Centro Costo Tilde", "12345678-5",
                                       self.dep_agri)
         payslip = self.make_payslip(employee, self.dep_agri)
         analytic_model = self.env[contract_model._fields[
             field_name].comodel_name]
-        values = {"name": "Administración", "company_id": self.company.id}
+        values = {"name": "AdministraciÃ³n", "company_id": self.company.id}
         if "plan_id" in analytic_model._fields:
             plan = self.env["account.analytic.plan"].search(
                 [("name", "=", "Plan Previred")], limit=1
@@ -223,7 +223,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(value.encode("utf-8"), value.encode("latin-1"))
 
     def test_annexes_stay_with_their_principal(self):
-        """Caso 2: un trabajador con líneas 00/01/02/03 forma UN registro."""
+        """Caso 2: un trabajador con lÃ­neas 00/01/02/03 forma UN registro."""
         employee = self.make_employee("Ana Rojas", "11111111-1",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
@@ -241,7 +241,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(len(dataset.records), 1)
         record = dataset.records[0]
         self.assertEqual(len(record.annexes), 3)
-        self.assertEqual(record.department, "Agrícola")
+        self.assertEqual(record.department, "AgrÃ­cola")
         self.assertEqual(
             [row[previred.F_LINE_TYPE - 1] for row in record.rows],
             ["00", "01", "02", "03"])
@@ -250,7 +250,7 @@ class TestDataset(PreviredCase):
 
     def test_two_departments_are_separated(self):
         agri = self.make_employee("Ana Rojas", "11111111-1", self.dep_agri)
-        admin = self.make_employee("Luis Díaz", "22222222-2", self.dep_admin)
+        admin = self.make_employee("Luis DÃ­az", "22222222-2", self.dep_admin)
         self.make_payslip(agri, self.dep_agri)
         self.make_payslip(admin, self.dep_admin)
         dataset = self.build([
@@ -265,7 +265,7 @@ class TestDataset(PreviredCase):
 
     def test_homonymous_departments_in_same_company_are_separated_by_id(self):
         duplicate = self.env["hr.department"].create({
-            "name": "Agrícola", "company_id": self.company.id})
+            "name": "AgrÃ­cola", "company_id": self.company.id})
         first = self.make_employee("Primero", "10111111-3", self.dep_agri)
         second = self.make_employee("Segundo", "10222222-9", duplicate)
         self.make_payslip(first, self.dep_agri)
@@ -285,7 +285,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(selected.records[0].department_id, duplicate.id)
 
     def test_worker_without_department_blocks_by_default(self):
-        """Caso 3: por defecto bloquea; sólo una opción explícita lo permite."""
+        """Caso 3: por defecto bloquea; sÃ³lo una opciÃ³n explÃ­cita lo permite."""
         employee = self.make_employee("Sin Depto", "33333333-3")
         self.make_payslip(employee)
         rows = [make_row(rut="33333333", dv="3")]
@@ -303,7 +303,7 @@ class TestDataset(PreviredCase):
                          previred.NO_DEPARTMENT_CODE)
 
     def test_homonymous_departments_do_not_collide(self):
-        """Caso 4: «Agrícola» de dos compañías produce códigos distintos."""
+        """Caso 4: Â«AgrÃ­colaÂ» de dos compaÃ±Ã­as produce cÃ³digos distintos."""
         here = self.make_employee("Ana Rojas", "11111111-1", self.dep_agri)
         self.make_payslip(here, self.dep_agri)
         there = self.make_employee("Otro Ana", "44444444-4",
@@ -316,8 +316,8 @@ class TestDataset(PreviredCase):
         theirs = self.build([make_row(rut="44444444", dv="4")],
                             company=self.other_company)
 
-        self.assertEqual(mine.records[0].department, "Agrícola")
-        self.assertEqual(theirs.records[0].department, "Agrícola")
+        self.assertEqual(mine.records[0].department, "AgrÃ­cola")
+        self.assertEqual(theirs.records[0].department, "AgrÃ­cola")
         self.assertNotEqual(mine.records[0].department_code,
                             theirs.records[0].department_code)
         self.assertNotEqual(
@@ -327,11 +327,11 @@ class TestDataset(PreviredCase):
                                   theirs.records[0].department_code))
 
     def test_other_company_rows_are_dropped(self):
-        """Corrección deliberada: el motor no filtraba compañía, el core sí.
+        """CorrecciÃ³n deliberada: el motor no filtraba compaÃ±Ã­a, el core sÃ­.
 
         El generador de Blueminds busca por fecha y devuelve liquidaciones de
         cualquier empresa. El core descarta lo que no corresponde a la
-        compañía del lote, porque Previred es un archivo **por empresa**.
+        compaÃ±Ã­a del lote, porque Previred es un archivo **por empresa**.
         """
         outsider = self.make_employee("Ajeno", "55555555-5",
                                       self.dep_agri_other,
@@ -344,10 +344,10 @@ class TestDataset(PreviredCase):
                       [issue.code for issue in dataset.warnings])
         self.assertEqual(dataset.dropped_count, 1)
 
-    # -- estados exportables (condición 3 del encargo) -----------------------
+    # -- estados exportables (condiciÃ³n 3 del encargo) -----------------------
 
     def test_draft_payslips_are_never_exported(self):
-        """Un borrador no está calculado: no puede declararse."""
+        """Un borrador no estÃ¡ calculado: no puede declararse."""
         employee = self.make_employee("Borrador", "66666666-6", self.dep_agri)
         self.make_payslip(employee, self.dep_agri, state="draft")
         dataset = self.build([make_row(rut="66666666", dv="6")])
@@ -362,7 +362,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(dataset.records, [])
 
     def test_forbidden_states_are_stripped_even_if_requested(self):
-        """Pedir «draft» explícitamente no lo habilita."""
+        """Pedir Â«draftÂ» explÃ­citamente no lo habilita."""
         employee = self.make_employee("Borrador", "66666666-6", self.dep_agri)
         self.make_payslip(employee, self.dep_agri, state="draft")
         dataset = self.build([make_row(rut="66666666", dv="6")],
@@ -395,7 +395,7 @@ class TestDataset(PreviredCase):
                                       self.dep_admin)
         self.make_payslip(employee, self.dep_agri)
         dataset = self.build([make_row(rut="11111111", dv="1")])
-        self.assertEqual(dataset.records[0].department, "Agrícola")
+        self.assertEqual(dataset.records[0].department, "AgrÃ­cola")
         self.assertNotIn("department_from_employee",
                          [issue.code for issue in dataset.warnings])
 
@@ -403,8 +403,8 @@ class TestDataset(PreviredCase):
         """Sin departamento en el contrato se cae al siguiente nivel, avisando.
 
         En Odoo 18 `hr.payslip.department_id` es un campo relacionado del
-        trabajador, así que en la práctica el nivel que responde es el de la
-        liquidación; lo que importa es que el departamento se resuelva y que
+        trabajador, asÃ­ que en la prÃ¡ctica el nivel que responde es el de la
+        liquidaciÃ³n; lo que importa es que el departamento se resuelva y que
         quede constancia de que **no** vino del contrato, que es la fuente
         que manda.
         """
@@ -412,7 +412,7 @@ class TestDataset(PreviredCase):
                                       self.dep_admin)
         self.make_payslip(employee, department=None)
         dataset = self.build([make_row(rut="11111111", dv="1")])
-        self.assertEqual(dataset.records[0].department, "Administración")
+        self.assertEqual(dataset.records[0].department, "AdministraciÃ³n")
         codes = [issue.code for issue in dataset.warnings]
         self.assertTrue(
             {"department_from_payslip", "department_from_employee"}
@@ -432,7 +432,7 @@ class TestDataset(PreviredCase):
                       [issue.code for issue in dataset.errors])
 
     def test_duplicate_principal_is_reported(self):
-        """Un solo contrato con dos líneas principales sigue siendo error."""
+        """Un solo contrato con dos lÃ­neas principales sigue siendo error."""
         employee = self.make_employee("Ana Rojas", "11111111-1",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
@@ -456,14 +456,14 @@ class TestDataset(PreviredCase):
                        previred.F_PROTECTED_RETURN: ""})], spec_version="98")
         row = dataset.records[0].principal
         self.assertEqual(row[previred.F_WORKDAY_TYPE - 1], "1")
-        # Tasa CEV 0,72 % desde 2026-08 (corte 2): 1.000.000 × 0,72 % = 7.200.
+        # Tasa CEV 0,72 % desde 2026-08 (corte 2): 1.000.000 Ã— 0,72 % = 7.200.
         self.assertEqual(row[previred.F_LIFE_EXPECTANCY - 1], "7200")
         self.assertEqual(row[previred.F_PROTECTED_RETURN - 1], "9000")
         self.assertFalse(dataset.errors)
 
     def test_without_ccaf_moves_afp_family_allowance_to_field_73(self):
-        """Ticket S&S #19: la condición es «empresa Sin CCAF», incluso si la
-        trabajadora está afiliada a AFP como Valentina en el caso real."""
+        """Ticket S&S #19: la condiciÃ³n es Â«empresa Sin CCAFÂ», incluso si la
+        trabajadora estÃ¡ afiliada a AFP como Valentina en el caso real."""
         employee = self.make_employee("Ana AFP", "18656818-4", self.dep_admin)
         self.make_payslip(employee, self.dep_admin)
         row = make_row(rut="18656818", dv="4", overrides={
@@ -483,7 +483,7 @@ class TestDataset(PreviredCase):
 
     def test_with_ccaf_keeps_family_allowance_in_field_22(self):
         """Una empresa adherida a CCAF conserva el campo 22, sea cual sea el
-        régimen previsional individual del trabajador."""
+        rÃ©gimen previsional individual del trabajador."""
         employee = self.make_employee("Caro AFP CCAF", "18656818-4",
                                       self.dep_admin)
         self.make_payslip(employee, self.dep_admin)
@@ -501,7 +501,7 @@ class TestDataset(PreviredCase):
 
     def test_department_filter_narrows_the_batch(self):
         agri = self.make_employee("Ana Rojas", "11111111-1", self.dep_agri)
-        admin = self.make_employee("Luis Díaz", "22222222-2", self.dep_admin)
+        admin = self.make_employee("Luis DÃ­az", "22222222-2", self.dep_admin)
         self.make_payslip(agri, self.dep_agri)
         self.make_payslip(admin, self.dep_admin)
         dataset = self.build(
@@ -509,16 +509,16 @@ class TestDataset(PreviredCase):
              make_row(rut="22222222", dv="2")],
             departments=self.dep_agri)
         self.assertEqual(len(dataset.records), 1)
-        self.assertEqual(dataset.records[0].department, "Agrícola")
+        self.assertEqual(dataset.records[0].department, "AgrÃ­cola")
         self.assertIn("scope_filtered",
                       [issue.code for issue in dataset.warnings])
 
     def test_medical_leave_rebases_employer_contributions_on_rima(self):
         """Ticket Somed 2026-09, RUT 17.932.663-9: mes completo de licencia
-        médica; el motor informa la RIMA (campo 92) y el imponible del mes es
+        mÃ©dica; el motor informa la RIMA (campo 92) y el imponible del mes es
         0. Las cotizaciones de cargo del empleador se recalculan sobre
         imponible + RIMA con la tasa estatutaria, contra los valores que
-        confirmó el cliente."""
+        confirmÃ³ el cliente."""
         employee = self.make_employee("Carolina Medel", "17932663-9",
                                       self.dep_admin)
         self.make_payslip(employee, self.dep_admin)
@@ -532,7 +532,7 @@ class TestDataset(PreviredCase):
             previred.F_PROTECTED_RETURN: "0",
             previred.F_MUTUAL_CODE: "00",
             # El motor real deja el campo 71 en 0 en licencia de mes completo
-            # (empleador ISL «Sin Mutual»); debe recalcularse igual.
+            # (empleador ISL Â«Sin MutualÂ»); debe recalcularse igual.
             previred.F_ISL_ACCIDENT: "0",
             previred.F_UNEMPLOYMENT_TAXABLE: "1205761",
             previred.F_UNEMPLOYMENT_EMPLOYER: "29903",
@@ -553,7 +553,7 @@ class TestDataset(PreviredCase):
 
     def test_medical_leave_partial_month_rebases_taxable_plus_rima(self):
         """Ticket Serv. Bienestar 2026-09, RUT 18.656.818-4: mes parcial (con
-        imponible propio) más RIMA informada por el motor. La base es la suma
+        imponible propio) mÃ¡s RIMA informada por el motor. La base es la suma
         y las cotizaciones patronales usan esa base; la mutualidad no."""
         employee = self.make_employee("Valentina Parada", "18656818-4",
                                       self.dep_admin)
@@ -581,8 +581,8 @@ class TestDataset(PreviredCase):
         self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
 
     def test_medical_leave_isl_employer_zeroes_mutual_fields(self):
-        """Ticket Serv. Bienestar: quien cotiza en INP/ISL (campo 96 vacío) no
-        lleva mutualidad — el motor deja el campo 97 con monto y debe quedar
+        """Ticket Serv. Bienestar: quien cotiza en INP/ISL (campo 96 vacÃ­o) no
+        lleva mutualidad â€” el motor deja el campo 97 con monto y debe quedar
         en 0, y el campo 71 se recalcula sobre imponible + RIMA."""
         employee = self.make_employee("INP Parada", "18656818-4",
                                       self.dep_admin)
@@ -604,7 +604,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
 
     def test_medical_leave_without_motor_rima_warns_and_keeps_fields(self):
-        """Licencia médica, el motor no informó la RIMA y tampoco se puede
+        """Licencia mÃ©dica, el motor no informÃ³ la RIMA y tampoco se puede
         calcular (sin sueldo base en el contrato): no se recalcula nada y
         queda un aviso trazable."""
         employee = self.make_employee("Sin RIMA", "18656818-4", self.dep_admin)
@@ -629,9 +629,9 @@ class TestDataset(PreviredCase):
 
     def test_medical_leave_computes_rima_from_contract_when_motor_omits_it(self):
         """Ticket #18, RUT 18.656.818-4: el motor no informa la RIMA. La
-        extracción la calcula = (sueldo base 420.000 + gratificación 105.000)
-        / 30 × 20 días de licencia = 350.000, y rebasa las cotizaciones sobre
-        192.500 + 350.000 = 542.500. Verificado contra la liquidación real de
+        extracciÃ³n la calcula = (sueldo base 420.000 + gratificaciÃ³n 105.000)
+        / 30 Ã— 20 dÃ­as de licencia = 350.000, y rebasa las cotizaciones sobre
+        192.500 + 350.000 = 542.500. Verificado contra la liquidaciÃ³n real de
         SyS (agosto 2026)."""
         employee = self.make_employee("Valentina Parada", "18656818-4",
                                       self.dep_admin)
@@ -662,7 +662,7 @@ class TestDataset(PreviredCase):
                       [issue.code for issue in dataset.issues])
 
     def test_medical_leave_additional_line_zeroes_13_71_and_92(self):
-        """Ticket #18 revisión 2: la línea 01 de Valentina no replica días
+        """Ticket #18 revisiÃ³n 2: la lÃ­nea 01 de Valentina no replica dÃ­as
         trabajados, accidente ISL ni RIMA; el resto de sus campos se conserva.
         """
         employee = self.make_employee("Valentina Parada", "18656818-4",
@@ -698,16 +698,16 @@ class TestDataset(PreviredCase):
         self.assertEqual(record.annexes[0][previred.F_WORKED_DAYS - 1], "0")
         self.assertEqual(record.annexes[0][previred.F_ISL_ACCIDENT - 1], "0")
         self.assertEqual(record.annexes[0][previred.F_RIMA - 1], "0")
-        # Un campo ajeno a la revisión mantiene la normalización general.
+        # Un campo ajeno a la revisiÃ³n mantiene la normalizaciÃ³n general.
         self.assertEqual(record.annexes[0][previred.F_WORKDAY_TYPE - 1], "1")
         self.assertIn("medical_leave_annex_zeroed",
                       [issue.code for issue in dataset.issues])
 
     def test_medical_leave_full_month_computes_rima_capped_by_imm(self):
         """Ticket #17, RUT 17.932.663-9: mes completo de licencia, sin RIMA
-        del motor. gratificación = min(25 % de 986.646, 4,75 × 553.553 / 12)
-        = 219.114; RIMA = (986.646 + 219.114) / 30 × 30 = 1.205.761.
-        Verificado contra la liquidación real de SyS."""
+        del motor. gratificaciÃ³n = min(25 % de 986.646, 4,75 Ã— 553.553 / 12)
+        = 219.114; RIMA = (986.646 + 219.114) / 30 Ã— 30 = 1.205.761.
+        Verificado contra la liquidaciÃ³n real de SyS."""
         employee = self.make_employee("Carolina Medel", "17932663-9",
                                       self.dep_admin)
         payslip = self.make_payslip(employee, self.dep_admin)
@@ -732,8 +732,8 @@ class TestDataset(PreviredCase):
             principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "28938")
 
     def test_medical_leave_without_imm_table_entry_warns(self):
-        """Sin IMM del período en la tabla no se calcula la RIMA: aviso
-        trazable, sin recálculo."""
+        """Sin IMM del perÃ­odo en la tabla no se calcula la RIMA: aviso
+        trazable, sin recÃ¡lculo."""
         employee = self.make_employee("Sin IMM", "17932663-9", self.dep_admin)
         payslip = self.make_payslip(employee, self.dep_admin)
         payslip.contract_id.wage = 986646
@@ -757,9 +757,9 @@ class TestDataset(PreviredCase):
                       [issue.code for issue in dataset.issues])
 
     def test_no_rima_leaves_employer_contributions_untouched(self):
-        """Sin RIMA y con días trabajados normales: el recálculo de licencia
-        médica no toca ningún campo ni emite avisos."""
-        employee = self.make_employee("Sin Licencia", "12345678-9",
+        """Sin RIMA y con dÃ­as trabajados normales: el recÃ¡lculo de licencia
+        mÃ©dica no toca ningÃºn campo ni emite avisos."""
+        employee = self.make_employee("Sin Licencia", "12345678-5",
                                       self.dep_agri)
         self.make_payslip(employee, self.dep_agri)
         row = make_row(overrides={
@@ -791,5 +791,5 @@ class TestDataset(PreviredCase):
         second = self.build(rows).sorted_records()
         order = [record.rut for record in first]
         self.assertEqual(order, [record.rut for record in second])
-        # Administración antes que Agrícola; dentro, el RUT menor primero.
+        # AdministraciÃ³n antes que AgrÃ­cola; dentro, el RUT menor primero.
         self.assertEqual(order, ["11111111", "9999999", "10000000"])

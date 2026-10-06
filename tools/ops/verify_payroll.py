@@ -17,6 +17,7 @@ try:
     for name in ('afp_option','health_institution','step_payroll_migration_review'):
         assert 'name="'+name+'"' in form, name
     assert env['hr.payslip'].get_view(view_type='form')['arch']
+    assert env['hr.employee'].get_view(view_type='form')['arch']
     for name in ('step_hr_contract_days','step_hr_previred_simpledigital','step_hr_contract_lifecycle_simpledigital'):
         assert name in installed, name
     archived = env['step.payroll.legacy.snapshot'].search_count([])

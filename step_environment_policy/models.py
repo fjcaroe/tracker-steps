@@ -1,6 +1,39 @@
 import json
+from lxml import etree
 from odoo import api, models, _
 from odoo.exceptions import UserError
+
+
+class View(models.Model):
+    _inherit = 'ir.ui.view'
+
+    @api.model
+    def _step_repair_legacy_view_references(self):
+        archive=self.env['step.payroll.legacy.snapshot'].sudo()
+
+        def save(view, arch):
+            if not archive.search_count([('source_model','=','ir.ui.view'),('source_id','=',view.id)]):
+                archive.create({'source_model':'ir.ui.view','source_id':view.id,'payload':{'arch':view.arch_db}})
+            view.with_context(lang=None).write({'arch_db':etree.tostring(arch,encoding='unicode')})
+
+        for xmlid in ('web.external_layout_standard','web.external_layout_boxed','web.external_layout_bold','web.external_layout_striped','web.external_layout_wave'):
+            view=self.env.ref(xmlid,raise_if_not_found=False)
+            if view:
+                arch=etree.fromstring(view.with_context(lang=None).arch_db)
+                nodes=arch.xpath('//*[@t-field="doc.x_name"]')
+                for node in nodes: node.set('t-field','company.name')
+                if nodes: save(view,arch)
+        owned=self.env['ir.model.data'].sudo().search([('module','=','studio_customization'),('model','=','ir.ui.view')]).mapped('res_id')
+        for view in self.sudo().browse(owned).exists().filtered(lambda v:v.active and v.model=='hr.employee'):
+            arch=etree.fromstring(view.with_context(lang=None).arch_db)
+            changed=False
+            for field in arch.xpath('//field[@name="step_work_schedule"]'):
+                for nested in list(field):
+                    if nested.tag in ('list','tree','form') and nested.xpath('.//field[@name="employee_id"]'):
+                        field.remove(nested)
+                        changed=True
+            if changed: save(view,arch)
+        return True
 
 
 class Module(models.Model):

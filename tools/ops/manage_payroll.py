@@ -62,7 +62,7 @@ def main():
     cfg = configparser.ConfigParser(interpolation=None)
     cfg.read(conf)
     opts = cfg['options']
-    assert opts.get('db_name') in (None, '', database) and int(opts['http_port']) == target['port']
+    assert opts.get('db_name') in (None, '', database) and int(opts.get('http_port',opts.get('xmlrpc_port','8069'))) == target['port']
     user = subprocess.check_output(['systemctl','show','--value','--property=User',service],text=True).strip()
     assert user and user != 'root'
     identity = pwd.getpwnam(user)
@@ -105,9 +105,9 @@ def main():
         command = base + (['shell'] if shell else []) + options + ['-d',db,'--db-filter=^'+db+'$','--addons-path='+paths,'--data-dir='+str(data)]
         log = stage/(label+'-'+stamp+'.log')
         if shell:
-            result = run(*command,'--log-level=error',input='EXPECTED_DATABASE='+repr(db)+'\n'+shell,text=True,capture_output=True)
+            result = subprocess.run(command+['--log-level=error'],input='EXPECTED_DATABASE='+repr(db)+'\n'+shell,text=True,capture_output=True)
             log.write_text(result.stdout+result.stderr)
-            assert 'Traceback' not in result.stderr, str(log)
+            assert result.returncode==0 and 'Traceback' not in result.stderr, str(log)+'\n'+result.stderr[-1800:]
             print(result.stdout[-1200:],flush=True)
         else:
             if install: command += ['-i',','.join(install)]
@@ -123,6 +123,11 @@ def main():
             result = subprocess.run(command)
             text = log.read_text(errors='replace')
             issues=errors(text)
+            # Confirmed pre-existing missing legacy API addons are unrelated
+            # to payroll; they remain visible as limitations in the audit.
+            known_missing="Some modules are not loaded, some dependencies or manifest may be missing: ['steps_transport']"
+            if args.environment=='steps':
+                issues=[line for line in issues if not line.rstrip().endswith(known_missing)]
             # New provider columns cannot be SQL-required on old drafts. The
             # adapter relaxes them later in the same graph and computation is
             # guarded until an administrator verifies the parameters.
@@ -135,7 +140,8 @@ def main():
         return log
 
     def transition(db, paths, data, tests=False):
-        execute(db,paths,data,'archive-install',install=['step_payroll_engine_transition'])
+        execute(db,paths,data,'archive-install',install=['step_payroll_engine_transition','step_environment_policy'])
+        execute(db,paths,data,'layout-repair',shell="env['ir.ui.view']._step_repair_legacy_view_references()\nenv.cr.commit()\nprint('PAYROLL_LAYOUT_REPAIRED')\n")
         execute(db,paths,data,'retire',shell=(HERE/'transition_payroll.py').read_text())
         execute(db,paths,data,'native-report',shell=(HERE/'repair_native_payroll_report.py').read_text())
         existing = set(json.loads(query(db,"SELECT json_agg(name) FROM ir_module_module WHERE state='installed'") or '[]'))
