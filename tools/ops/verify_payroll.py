@@ -20,6 +20,12 @@ try:
     assert not any(n.startswith('l10n_cl_hr') or n in ('step_hr_previred_blueminds','step_hr_contract_lifecycle_agriculture') for n in installed)
     for model in ('hr.afp','hr.indicadores','hr.isapre'):
         assert model not in env.registry.models, model
+    retired = {'hr.causal.termino', 'hr.afp', 'hr.indicadores', 'hr.isapre'}
+    menus = env['ir.ui.menu'].sudo().with_context(**{'ir.ui.menu.full_list': True}).search([
+        ('action', '!=', False),
+    ])
+    assert not menus.filtered(lambda m: m.action._name == 'ir.actions.act_window' and
+                              m.action.res_model in retired), 'Menu still targets a retired payroll master'
     contract = env['hr.contract']
     for field in ('analytic_account_id','health_institution','pension_option','has_gratification','is_retired_elderly','contract_type_id'):
         assert not contract._fields[field].required, 'Incomplete historical contract cannot load: '+field

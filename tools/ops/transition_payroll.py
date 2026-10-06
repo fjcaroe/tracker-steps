@@ -60,6 +60,22 @@ if legacy:
         env['ir.attachment'].sudo().create({'name':'Liquidación anterior %s.pdf'%slip.id,'res_model':'hr.payslip','res_id':slip.id,'mimetype':'application/pdf','raw':pdf,'public':False})
     contracts = env['hr.contract'].with_context(active_test=False).search([])
     contracts.write({'step_payroll_migration_review': True})
+    # Studio created menus outside the legacy engine's XML ownership. Their
+    # actions survive uninstall and trigger missing-model errors for ordinary
+    # users. Keep the original menu configuration, then retire these accesses;
+    # native lifecycle masters remain available through their own menus.
+    menus = env['ir.ui.menu'].sudo().with_context(**{'ir.ui.menu.full_list': True}).search([
+        ('action', '!=', False),
+    ]).filtered(lambda m: m.action._name == 'ir.actions.act_window' and
+                m.action.res_model in ('hr.causal.termino', 'hr.afp', 'hr.indicadores', 'hr.isapre'))
+    for menu in menus:
+        env.cr.execute('SELECT to_jsonb(m) FROM ir_ui_menu m WHERE id=%s', (menu.id,))
+        payload = env.cr.fetchone()[0]
+        env['step.payroll.legacy.snapshot'].sudo().create({
+            'source_model': 'ir.ui.menu', 'source_id': menu.id, 'payload': payload,
+        })
+    menus.write({'active': False})
+    print('PAYROLL_RETIRED_MENUS_ARCHIVED count=' + str(len(menus)), flush=True)
     for record in keep:
         record.write({'module': 'step_payroll_legacy_archive', 'name': record.module + '__' + record.name, 'noupdate': True})
     profiles = env['step.previred.profile'].with_context(active_test=False).search([('engine', '=', 'l10n_cl_hr')]) if 'step.previred.profile' in env else []
