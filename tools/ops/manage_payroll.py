@@ -122,7 +122,14 @@ def main():
                 query(db,"UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'"%private_port)
             result = subprocess.run(command)
             text = log.read_text(errors='replace')
-            assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), 'Payroll failure: '+str(log)
+            issues=errors(text)
+            # New provider columns cannot be SQL-required on old drafts. The
+            # adapter relaxes them later in the same graph and computation is
+            # guarded until an administrator verifies the parameters.
+            if label=='engine-install' and VENDOR.name in install:
+                transitional=re.compile(r"odoo.schema: Table '(?:hr_contract|hr_employee)': unable to set NOT NULL on column '(?:analytic_account_id|health_institution|pension_option|has_gratification|is_retired_elderly|contract_type_id|hr_commune)'\s*$")
+                issues=[line for line in issues if not transitional.search(line)]
+            assert result.returncode == 0 and 'Modules loaded.' in text and not issues, 'Payroll failure: '+str(log)
             if tests:
                 assert re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(db)+"'",text), 'Tests failed '+str(log)
         return log
@@ -130,6 +137,7 @@ def main():
     def transition(db, paths, data, tests=False):
         execute(db,paths,data,'archive-install',install=['step_payroll_engine_transition'])
         execute(db,paths,data,'retire',shell=(HERE/'transition_payroll.py').read_text())
+        execute(db,paths,data,'native-report',shell=(HERE/'repair_native_payroll_report.py').read_text())
         existing = set(json.loads(query(db,"SELECT json_agg(name) FROM ir_module_module WHERE state='installed'") or '[]'))
         execute(db,paths,data,'engine-install',install=[n for n in all_modules if n not in existing],update=[n for n in MODULES if n in existing],tests=tests)
         execute(db,paths,data,'contract-mapping',shell=(HERE/'migrate_payroll_contracts.py').read_text())

@@ -10,6 +10,9 @@ try:
     for model in ('hr.afp','hr.indicadores','hr.isapre'):
         assert model not in env.registry.models, model
     contract = env['hr.contract']
+    for field in ('analytic_account_id','health_institution','pension_option','has_gratification','is_retired_elderly','contract_type_id'):
+        assert not contract._fields[field].required, 'Incomplete historical contract cannot load: '+field
+    assert not env['hr.employee']._fields['hr_commune'].required
     form = contract.get_view(view_type='form')['arch']
     for name in ('afp_option','health_institution','step_payroll_migration_review'):
         assert 'name="'+name+'"' in form, name

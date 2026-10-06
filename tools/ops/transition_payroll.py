@@ -53,6 +53,11 @@ if legacy:
     })
     structures = env['hr.payroll.structure'].browse(keep.filtered(lambda r: r.model == 'hr.payroll.structure').mapped('res_id')).exists()
     structures.write({'step_legacy_payroll': True})
+    # Keep a printable original for settled slips before removing its fields.
+    settled=env['hr.payslip'].search([('state','in',['done','paid'])])
+    for slip in settled:
+        pdf,_=env['ir.actions.report']._render_qweb_pdf('hr_payroll.action_report_payslip',res_ids=slip.ids)
+        env['ir.attachment'].sudo().create({'name':'Liquidación anterior %s.pdf'%slip.id,'res_model':'hr.payslip','res_id':slip.id,'mimetype':'application/pdf','raw':pdf,'public':False})
     contracts = env['hr.contract'].with_context(active_test=False).search([])
     contracts.write({'step_payroll_migration_review': True})
     for record in keep:

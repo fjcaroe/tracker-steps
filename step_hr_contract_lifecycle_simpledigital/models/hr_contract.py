@@ -19,6 +19,17 @@ class HrContract(models.Model):
     pension_option = fields.Selection(required=False)
     has_gratification = fields.Boolean(required=False)
     is_retired_elderly = fields.Boolean(required=False)
+    contract_type_id = fields.Many2one(required=False)
+
+
+class HrEmployee(models.Model):
+    _inherit = 'hr.employee'
+
+    hr_commune = fields.Many2one(required=False)
+
+
+class HrContractPayload(models.Model):
+    _inherit = 'hr.contract'
 
     def _selection_label(self, field_name, value):
         if not value:
