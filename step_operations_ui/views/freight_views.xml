@@ -44,12 +44,13 @@
     <menuitem id="menu_freight_reports" name="Informes" parent="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" sequence="30" />
     <menuitem id="menu_freight_reports_orders" name="Análisis de fletes" action="step_operations_ui.informe_de_fletes_2d134967-2a6f-4953-9ade-9e7f4d1d8dba" parent="menu_freight_reports" sequence="10" />
     <menuitem id="menu_freight_reports_plan_vs_actual" name="Planificado vs. real" action="action_freight_plan_vs_actual" parent="menu_freight_reports" sequence="20" />
+    <menuitem id="menu_freight_masters" name="Maestros" parent="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" sequence="35" />
     <menuitem id="menu_freight_configuration" name="Configuración" parent="step_operations_ui.fletes_7a210622-1359-4a28-a824-530c3f9e78a7" sequence="40" />
-    <menuitem id="menu_freight_tariffs" name="Tarifas" action="step_operations_ui.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d" parent="menu_freight_configuration" sequence="10" />
+    <menuitem id="menu_freight_tariffs" name="Tarifas" action="step_operations_ui.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d" parent="menu_freight_masters" sequence="10" />
     <menuitem id="menu_freight_routes" name="Tramos" action="step_operations_ui.tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e" parent="menu_freight_configuration" sequence="20" />
-    <menuitem id="menu_freight_carriers" name="Transportistas" action="step_operations_ui.transportistas_2c1977c3-a30e-4b17-b0f5-b339cac43c54" parent="menu_freight_configuration" sequence="30" />
+    <menuitem id="menu_freight_carriers" name="Transportistas" action="step_operations_ui.transportistas_2c1977c3-a30e-4b17-b0f5-b339cac43c54" parent="menu_freight_masters" sequence="20" />
     <menuitem id="menu_freight_service_products" name="Servicios de fletes" action="action_freight_service_products" parent="menu_freight_configuration" sequence="40" />
-    <menuitem id="menu_freight_trucks" name="Camiones" action="step_operations_ui.camiones_1bffc703-8cbf-4682-a0a9-a351661d8620" parent="menu_freight_configuration" sequence="50" />
+    <menuitem id="menu_freight_trucks" name="Camiones" action="step_operations_ui.camiones_1bffc703-8cbf-4682-a0a9-a351661d8620" parent="menu_freight_masters" sequence="30" />
     <menuitem id="menu_freight_cold_modes" name="Modalidad de frío" action="action_freight_cold_mode" parent="menu_freight_configuration" sequence="60" />
     <menuitem id="menu_freight_dispatch_types" name="Tipo de despacho" action="action_freight_dispatch_type" parent="menu_freight_configuration" sequence="70" />
 

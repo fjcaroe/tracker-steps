@@ -22,6 +22,21 @@ try:
         'company_id': env.company.id, 'company_ids': [(6, 0, [env.company.id])],
     })
     checked = []
+    masters = env.ref('step_operations_ui.menu_freight_masters')
+    configuration = env.ref('step_operations_ui.menu_freight_configuration')
+    assert masters.active and masters.parent_id == configuration.parent_id
+    expected_menus = {
+        'menu_freight_tariffs': 'tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d',
+        'menu_freight_carriers': 'transportistas_2c1977c3-a30e-4b17-b0f5-b339cac43c54',
+        'menu_freight_trucks': 'camiones_1bffc703-8cbf-4682-a0a9-a351661d8620',
+    }
+    assert set(masters.child_id.ids) == {
+        env.ref('step_operations_ui.' + name).id for name in expected_menus}
+    for name, action in expected_menus.items():
+        menu = env.ref('step_operations_ui.' + name)
+        assert menu.active and menu.parent_id == masters
+        assert menu.action == env.ref('step_operations_ui.' + action)
+    checked.append({'masters_menu': masters.id, 'existing_actions_preserved': True})
     for model, prefix, action_id, menu_id in (
         ('step.freight.route', 'route', 'tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e', 'menu_freight_routes'),
         ('step.freight.cold.mode', 'cold_mode', 'action_freight_cold_mode', 'menu_freight_cold_modes'),
