@@ -35,7 +35,9 @@ def run(*command, **kwargs):
 
 
 def query(database, sql):
-    return subprocess.check_output(['sudo', '-u', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-d', database, '-Atc', sql], text=True).strip()
+    # stdin also supports the large preservation query without argv limits.
+    return subprocess.run(['sudo', '-u', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-d', database, '-At'],
+                          input=sql, text=True, check=True, stdout=subprocess.PIPE).stdout.strip()
 
 
 def digest(path):
@@ -52,13 +54,17 @@ def tree_hash(path):
 
 
 def snapshot(database):
-    result = {}
+    existing = set(query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public'").splitlines())
+    statements = []
     for table in BUSINESS:
-        if query(database, "SELECT to_regclass('%s')" % table):
+        assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
+        if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
             condition = " WHERE key <> 'web.base.url'" if (SETTINGS or PRODUCERS) and table == 'ir_config_parameter' else ''
-            result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) FROM %s t%s" % (row, row, table, condition))
-    return result
+            statements.append("SELECT '%s',json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),'')))::text FROM %s t%s" % (table, row, row, table, condition))
+    # One SQL statement sees a consistent MVCC snapshot across every table.
+    # It preserves the same row normalization and hashes as the former loop.
+    return dict(line.split('|', 1) for line in query(database, ' UNION ALL '.join(statements)).splitlines()) if statements else {}
 
 
 def extract(release, target):
@@ -214,14 +220,16 @@ def main():
             run('/usr/bin/python3.10', '-c', import_probe)
         assert not query('postgres', "SELECT 1 FROM pg_database WHERE datname='%s'" % qa_db), 'Use a fresh run_id'
         (stage / 'baseline.json').write_text(json.dumps(baseline, indent=2))
-        before = snapshot(database)
-        (stage / 'business_before.json').write_text(json.dumps(before, indent=2))
         with (stage / 'source.dump').open('wb') as stream:
             run('sudo', '-u', 'postgres', 'pg_dump', '-Fc', database, stdout=stream)
         run('sudo', '-u', 'postgres', 'createdb', '-O', opts['db_user'], qa_db)
         query(qa_db, 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
         with (stage / 'source.dump').open('rb') as stream:
             run('sudo', '-u', 'postgres', 'pg_restore', '--no-owner', '--no-acl', '--no-comments', '--role', opts['db_user'], '-d', qa_db, stdin=stream)
+        # Compare the exact immutable dump restored for this run. The live QA
+        # service can legitimately receive edits while pg_dump is running.
+        before = snapshot(qa_db)
+        (stage / 'business_before.json').write_text(json.dumps(before, indent=2))
         query(qa_db, 'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         data = stage / 'data'
         source_store = Path(opts['data_dir']) / 'filestore' / database
