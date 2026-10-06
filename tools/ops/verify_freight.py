@@ -11,7 +11,7 @@ try:
         assert installed.state == 'installed' and installed.latest_version == expected
         assert importlib.import_module('odoo.addons.' + addon).__file__.startswith(ROOT + '/')
     assert env['step.dispatch.guide']._fields['freight_order_id'].comodel_name == 'step.freight.order'
-    assert env['step.dispatch.guide']._fields['route_id'].comodel_name == 'step.freight.route'
+    assert env['step.dispatch.guide']._fields['freight_route_id'].comodel_name == 'step.freight.route'
     module = env['ir.module.module'].search([('name', '=', 'step_operations_ui')])
     assert module.state == 'installed' and module.latest_version == EXPECTED
     assert importlib.import_module('odoo.addons.step_operations_ui').__file__.startswith(ROOT + '/')

@@ -7,6 +7,12 @@ def migrate(cr, version):
     spec = importlib.util.spec_from_file_location('freight_native_schema', Path(__file__).parents[2] / 'native_schema.py')
     schema = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(schema)
+    # Stored related model names also occur in automation, document and mail
+    # metadata. Updating only ir.model leaves their references stale.
+    cr.execute("""SELECT table_name,column_name FROM information_schema.columns
+        WHERE table_schema='public' AND data_type IN ('character varying','text')
+          AND column_name IN ('model','model_name','res_model','res_model_name')""")
+    model_references = cr.fetchall()
     for old, new in schema.MODELS.items():
         table = new.replace('.', '_')
         cr.execute('SELECT to_regclass(%s),to_regclass(%s)', (old, table))
@@ -59,6 +65,9 @@ def migrate(cr, version):
                                  ('mail_followers','res_model'),('mail_activity','res_model'),
                                  ('ir_attachment','res_model'),('ir_model_data','model')):
             cr.execute(f'UPDATE "{metadata}" SET "{column}"=%s WHERE "{column}"=%s', (new, old))
+        for metadata, column in model_references:
+            cr.execute(f'UPDATE "{metadata}" SET "{column}"=%s WHERE "{column}"=%s', (new, old))
+        cr.execute('UPDATE ir_sequence SET code=%s WHERE code=%s', (new, old))
         replacements = {**schema.FIELDS, **{'default_' + key: 'default_' + value for key, value in schema.FIELDS.items()}}
         cr.execute('SELECT id,domain,context FROM ir_act_window WHERE res_model=%s', (new,))
         for action_id, domain, context in cr.fetchall():

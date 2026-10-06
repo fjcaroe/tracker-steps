@@ -27,6 +27,8 @@ class TestFreightMasters(TransactionCase):
             self.assertNotIn(old, self.env.registry.models)
             self.assertFalse([name for name in self.env[model]._fields if name.startswith('x_')], model)
             self.assertFalse(self.env['ir.model.fields'].search([('model', '=', model), ('state', '=', 'manual')]), model)
+        for action in self.env['ir.actions.server'].search([('model_id.model', 'in', list(MODELS.values()))]):
+            self.assertEqual(action.model_name, action.model_id.model, 'Automation still points to an old model')
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
