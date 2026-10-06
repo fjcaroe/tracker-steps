@@ -102,7 +102,9 @@ def seed(env):
                                               'step_export_packing_type': 'third_party'})
     receiver = create('receiver', 'res.partner', {'name': LABEL + 'Importadora de fruta', 'is_company': True,
                                                 'company_id': company.id, 'country_id': env.ref('base.us').id})
-    driver = create('driver', 'res.partner', {'name': LABEL + 'Chofer demostración', 'company_id': company.id})
+    driver = create('driver', 'res.partner', {'name': LABEL + 'Chofer demostración', 'company_id': company.id, 'step_chofer': True})
+    carrier = create('carrier', 'res.partner', {'name': LABEL + 'Transporte demostración', 'is_company': True,
+                                               'company_id': company.id, 'step_carga': True, 'is_freight_carrier': True})
     category = create('product_category', 'product.category', {'name': LABEL + 'Productos demostración',
                                                               'property_valuation': 'manual_periodic'})
 
@@ -269,7 +271,7 @@ def seed(env):
         reason = env['step.dispatch.transfer.reason'].search([], limit=1)
     assert len(reason) == 1
     guide = create('dispatch_guide', 'step.dispatch.guide', {'company_id': company.id,
-        'external_folio': 'PRUEBA-SIN-VALOR-01', 'partner_id': receiver.id, 'driver_partner_id': driver.id,
+        'external_folio': 'PRUEBA-SIN-VALOR-01', 'partner_id': receiver.id, 'driver_partner_id': driver.id, 'carrier_id': carrier.id,
         'origin_address': 'Planta ficticia de demostración', 'destination_address': 'Destino ficticio de QA',
         'truck_plate': 'QA0000', 'transfer_reason_id': reason.id,
         'reference': LABEL + 'Sin documento tributario ni transmisión externa',
