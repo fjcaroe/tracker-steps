@@ -76,7 +76,7 @@ with open('/run/lock/steps-environments.lock', 'a') as lock:
         saved.chmod(0o600)
         assert path.read_bytes() == raw, 'QA PID changed'
         os.kill(pid, signal.SIGTERM)
-        for _ in range(20):
+        for _ in range(40):
             if not path.exists():
                 break
             time.sleep(1)
