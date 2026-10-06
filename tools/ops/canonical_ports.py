@@ -82,7 +82,7 @@ def main():
         cfg = configparser.ConfigParser(interpolation=None)
         cfg.read(target['config'])
         options = cfg['options']
-        assert int(options.get('http_port', '8069')) == target['port']
+        assert int(options.get('http_port', options.get('xmlrpc_port', '8069'))) == target['port']
         if options.get('db_name') and options.get('db_name') != 'False':
             assert options.get('db_name') == target['database']
         run('systemctl', 'is-active', '--quiet', target['service'])
@@ -90,6 +90,12 @@ def main():
     if args.action == 'verify':
         for target in targets.values():
             redirect(ip, target)
+            if target.get('deploy_enabled'):
+                cfg = configparser.ConfigParser(interpolation=None)
+                cfg.read(target['config'])
+                assert cfg['options'].get('db_name') == target['database']
+                assert cfg['options'].get('dbfilter') == '^' + re.escape(target['database']) + '$'
+                assert cfg['options'].getboolean('list_db') is False
         print('CANONICAL_VERIFY_OK environments=' + str(len(targets)))
         return
     print('CANONICAL_PREFLIGHT_OK environments=' + str(len(targets)), flush=True)
@@ -135,6 +141,12 @@ def main():
                 text = originals[name].decode()
                 text = setting(text, 'http_interface', '127.0.0.1')
                 text = setting(text, 'proxy_mode', 'True')
+                if target.get('deploy_enabled'):
+                    # Each active service belongs to exactly one customer/QA
+                    # database; copied validation databases must never appear.
+                    text = setting(text, 'db_name', target['database'])
+                    text = setting(text, 'dbfilter', '^' + re.escape(target['database']) + '$')
+                    text = setting(text, 'list_db', 'False')
                 url_changed = False
                 touched.append(name)
                 if target['database']:
