@@ -17,6 +17,13 @@ try:
     for name in ('step_hr_contract_days','step_hr_previred_simpledigital','step_hr_contract_lifecycle_simpledigital'):
         assert name in installed, name
     archived = env['step.payroll.legacy.snapshot'].search_count([])
+    packing=env.ref('step_packing_operations.menu_packing_operations_root',raise_if_not_found=False)
+    if packing:
+        for xmlid in ('step_packing.menu_step_packing_root','step_packing.menu_packing_fruta_root'):
+            old=env.ref(xmlid,raise_if_not_found=False)
+            assert not old or old.parent_id==env.ref('step_environment_policy.packing_history')
+    if env.ref('step_cosecha.menu_step_cosecha_root',raise_if_not_found=False):
+        assert env.ref('step_environment_policy.harvest_master_variedad').action.res_model=='step.variedad'
     blocked = env['ir.module.module'].search([('name','=','l10n_cl_hr')])
     if blocked:
         try:

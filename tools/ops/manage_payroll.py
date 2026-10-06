@@ -138,7 +138,7 @@ def main():
         if args.environment == 'demo-sys':
             roots = ['base.menu_administration','base.menu_management','hr_work_entry_contract_enterprise.menu_hr_payroll_root','hr.menu_hr_root','hr_attendance.menu_hr_attendance_root','hr_holidays.menu_hr_holidays_root','hr_expense.menu_hr_expense_root','contacts.menu_contacts','documents.menu_root','sign.menu_document','mail.menu_root_discuss','helpdesk.menu_helpdesk_root','step_support_assistant.menu_assistant_root']
             policy += "env['ir.config_parameter'].sudo().set_param('steps.environment.menu_root_xmlids',"+repr(json.dumps(roots))+")\n"
-        execute(db,paths,data,'policy',shell=policy+"env.cr.commit()\nprint('PAYROLL_POLICY_OK')\n")
+        execute(db,paths,data,'policy',shell=policy+"env['ir.ui.menu']._step_normalize_agriculture_menus()\nenv.cr.commit()\nprint('PAYROLL_POLICY_OK')\n")
         execute(db,paths,data,'verify',shell=(HERE/'verify_payroll.py').read_text())
 
     if args.action in ('qa','compatibility'):

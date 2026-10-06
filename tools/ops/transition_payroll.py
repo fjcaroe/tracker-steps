@@ -57,7 +57,7 @@ if legacy:
     contracts.write({'step_payroll_migration_review': True})
     for record in keep:
         record.write({'module': 'step_payroll_legacy_archive', 'name': record.module + '__' + record.name, 'noupdate': True})
-    profiles = env['step.previred.profile'].with_context(active_test=False).search([('engine', '=', 'blueminds')]) if 'step.previred.profile' in env else []
+    profiles = env['step.previred.profile'].with_context(active_test=False).search([('engine', '=', 'l10n_cl_hr')]) if 'step.previred.profile' in env else []
     if profiles:
         profiles.write({'active': False})
     env.cr.commit()
