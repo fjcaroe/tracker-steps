@@ -59,13 +59,14 @@ Pendientes concretos
    manuales, tablas de materiales/personal/maquinaria y válvulas, maestros,
    informes y automatizaciones Studio. Completar esas relaciones y cálculos;
    no simplificar las tablas existentes a campos de texto.
-7. Desarrollo / Fletes: después del inventario inicial, la entrega T27
-   18.0.2.5.0 pasó Tramos y Modalidad de frío a Python y vistas XML propios,
-   preservando registros, relaciones y columnas compatibles. Sus campos ya
-   no son manuales y sus vistas Studio están archivadas. Quedan por revisar
-   Contabilizaciones, automatización de folios e informe anterior. El detalle
-   de esta actualización está en ``T27_FREIGHT_MASTERS_2026-10-06.rst``; los
-   totales de la tabla anterior corresponden al inventario previo a ella.
+7. Desarrollo / Fletes: la entrega T27 18.0.2.6.0 cambia los doce modelos
+   operativos a nombres propios ``step.freight.*`` y retira los campos ``x_``.
+   Usa vistas XML propias y archiva sus vistas Studio. Guías de despacho se
+   adapta al mismo paquete para conservar el enlace con Fletes. El detalle está
+   en ``T27_NATIVE_FREIGHT_2026-10-06.rst``. Queda trasladar la automatización
+   histórica de folios a lógica Python y revisar el retiro definitivo de las
+   plantillas/alias anteriores. Los totales de la tabla corresponden al
+   inventario previo a estas entregas.
 8. Desarrollo / extensiones compartidas: Unidad de Negocio en Nómina,
    empleados/contratos, productos y plaguicidas/EPP, temporadas, tarifas de
    cosecha, centros analíticos y contactos. Productores y Packing tienen núcleo

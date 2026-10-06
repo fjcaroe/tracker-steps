@@ -49,8 +49,11 @@ Decisión del usuario, 06-10-2026: no crear ni ampliar desarrollos Studio.
 Todo nuevo desarrollo se implementa en código versionado. El inventario de
 retiro comprende modelos, campos, vistas, reportes, automatizaciones y permisos;
 una portada propia no convierte el modelo manual que todavía consulta.
-Los nombres técnicos `x_` pueden conservarse cuando ya están definidos en
-Python, para preservar IDs y relaciones. Los campos dinámicos nativos de
+Para la migración de Fletes, la decisión vigente retira los nombres técnicos
+`x_`: usar modelos `step.freight.*` y campos descriptivos propios, renombrando
+tablas y referencias mediante migración. Conservar los IDs cuando sea posible,
+sin crear maestros paralelos. Esta convención se aplica a nuevos desarrollos.
+Los campos dinámicos nativos de
 planes analíticos y reportes de nómina no se eliminan por ser `manual`.
 
 - Relacionar temporada, especie, variedad, cuenta, productor, fundo y centro
