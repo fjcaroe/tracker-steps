@@ -23,12 +23,14 @@ COST_TYPE_BY_TYPE_COSTO = {
 class AccountAnalyticAccount(models.Model):
     _inherit = "account.analytic.account"
 
-    farm = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False)
-    species = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False)
-    variety = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False)
-    hectares = fields.Float(compute="_compute_management_from_agriculture", store=True, readonly=False)
-    plants = fields.Float(compute="_compute_management_from_agriculture", store=True, readonly=False)
-    cost_type = fields.Selection(compute="_compute_management_from_agriculture", store=True, readonly=False)
+    farm = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    species = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    variety = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    hectares = fields.Float(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
+    # A default on one field suppresses initial computation of the whole shared
+    # compute group. Plants must come from plant_cost before the first insert.
+    plants = fields.Float(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True, default=None)
+    cost_type = fields.Selection(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
 
     @api.depends(
         "fundo_id.name", "especie_id.name", "variedad_id.name",

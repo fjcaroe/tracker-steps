@@ -279,19 +279,23 @@ class TestOutOfOp(ManagementCostsCommon):
 @tagged("post_install", "-at_install")
 class TestDashboardExtension(ManagementCostsCommon):
     def test_hectares_by_farm_species_and_variety(self):
+        Model = self.env['step.management.operational.budget'].with_company(self.company_a)
+        previous = Model.get_management_dashboard()
+        before_variety = {row['variety']: row['hectares'] for row in previous['hectares_by_variety']}
+        before_farm = {(row['farm'], row['species']): row['hectares'] for row in previous['hectares_by_farm_species']}
         self.center_a.write({"farm": "Fundo Uno", "species": "Cerezo", "variety": "Bing"})
         self.center_a2.write({"farm": "Fundo Uno", "species": "Cerezo", "variety": "Lapins"})
         data = self.env["step.management.operational.budget"].with_company(
             self.company_a
         ).get_management_dashboard()
         farm_species = {(row["farm"], row["species"]): row["hectares"] for row in data["hectares_by_farm_species"]}
-        self.assertAlmostEqual(farm_species[("Fundo Uno", "Cerezo")], 15.0)  # 10 + 5
+        self.assertAlmostEqual(farm_species[("Fundo Uno", "Cerezo")] - before_farm.get(("Fundo Uno", "Cerezo"), 0), 15.0)
         variety = {row["variety"]: row["hectares"] for row in data["hectares_by_variety"]}
-        self.assertAlmostEqual(variety["Bing"], 10.0)
-        self.assertAlmostEqual(variety["Lapins"], 5.0)
+        self.assertAlmostEqual(variety["Bing"] - before_variety.get('Bing', 0), 10.0)
+        self.assertAlmostEqual(variety["Lapins"] - before_variety.get('Lapins', 0), 5.0)
         self.assertIn("stock", data)
-        self.assertEqual(data["stock"]["line_count"], 0)
-        self.assertAlmostEqual(data["stock"]["needs"], 0.0)
+        self.assertEqual(data["stock"]["line_count"], previous['stock']['line_count'])
+        self.assertAlmostEqual(data["stock"]["needs"], previous['stock']['needs'])
 
     def test_costs_block_variance_percent_zero_safe(self):
         # Prueba unitaria directa sobre el helper (no sobre

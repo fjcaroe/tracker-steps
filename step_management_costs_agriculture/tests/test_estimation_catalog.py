@@ -99,3 +99,11 @@ class TestEstimationCatalog(TransactionCase):
         self.variety.name = "T50 variety renamed"
         est.invalidate_recordset()
         self.assertEqual((est.season, est.species, est.variety), original)
+
+    def test_copy_preserves_unknown_historical_season(self):
+        est = self.estimation(season='Historical unmatched season', species='Historical species')
+        self.assertFalse(est.season_id)
+        revision = est.copy()
+        self.assertEqual(revision.season, est.season)
+        self.assertEqual(revision.species, est.species)
+        self.assertFalse(revision.season_id)

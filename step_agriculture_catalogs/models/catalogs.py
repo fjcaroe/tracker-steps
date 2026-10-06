@@ -70,8 +70,6 @@ class CatalogCompanyMixin(models.AbstractModel):
                 parent = record[field]
                 if parent.company_ids and (not record.company_ids or record.company_ids - parent.company_ids):
                     raise ValidationError(_('Las empresas de la variedad o grupo deben estar incluidas en las de su especie y grupo.'))
-            if 'grupo_variedad_id' in record._fields and record.grupo_variedad_id.especie_id != record.especie_id:
-                raise ValidationError(_('El grupo de variedad debe pertenecer a la especie seleccionada.'))
 
 
 class Season(models.Model):

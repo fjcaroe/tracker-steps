@@ -2,7 +2,7 @@ from odoo import Command
 from odoo.tests import tagged
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 
-from .test_management_costs import extra_analytic_account_vals
+from .test_management_costs import extra_analytic_account_vals, make_center
 
 
 @tagged("post_install", "-at_install")

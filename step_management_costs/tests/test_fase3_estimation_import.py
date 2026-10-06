@@ -53,7 +53,7 @@ class TestFase3EstimationImport(ManagementCostsCommon):
             "company_id": cls.company_a.id,
         })
         cls.cg1 = cls.env["step.management.caliber.group"].create({
-            "name": "Jumbo", "code": "J", "company_id": cls.company_a.id,
+            "name": "Jumbo", "code": "QA-IMPORT-J", "company_id": cls.company_a.id,
         })
         cls.week_curve = cls._mk_curve("week", "WK", [
             {"week_number": 45, "percentage": 50.0},

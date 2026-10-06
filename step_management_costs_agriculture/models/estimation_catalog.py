@@ -39,7 +39,9 @@ def catalog_values(record, values, keys):
         model = CATALOGS[key][0]
         if field in values:
             master = record.env[model].browse(values[field]).exists()
-            values[key] = master.name if master else False
+            # Copies include empty relation IDs alongside historical labels.
+            # Preserve those labels; an explicit clear with no label still clears.
+            values[key] = master.name if master else values.get(key, False)
         elif key in values:
             master = find_master(record.env, key, values[key], company_id, selected.get("species"))
             values[field] = master.id or False

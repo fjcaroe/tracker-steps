@@ -31,10 +31,10 @@ class TestFase3Estimation(ManagementCostsCommon):
             "company_id": cls.company_a.id,
         })
         cls.cg1 = cls.env["step.management.caliber.group"].create({
-            "name": "Jumbo", "code": "J", "company_id": cls.company_a.id,
+            "name": "Jumbo", "code": "QA-EST-J", "company_id": cls.company_a.id,
         })
         cls.cg2 = cls.env["step.management.caliber.group"].create({
-            "name": "Large", "code": "L", "company_id": cls.company_a.id,
+            "name": "Large", "code": "QA-EST-L", "company_id": cls.company_a.id,
         })
 
         cls.week_curve = cls._mk_curve("week", "WK", [

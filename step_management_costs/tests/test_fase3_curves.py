@@ -20,7 +20,7 @@ class TestFase3EstimationCurves(ManagementCostsCommon):
             "company_id": cls.company_a.id, "use_harvest": True,
         })
         cls.caliber_group = cls.env["step.management.caliber.group"].create({
-            "name": "Jumbo", "code": "J", "company_id": cls.company_a.id,
+            "name": "Jumbo", "code": "QA-CURVE-J", "company_id": cls.company_a.id,
         })
 
     def _curve(self, curve_type, lines, code=None):

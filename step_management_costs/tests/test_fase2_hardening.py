@@ -84,11 +84,14 @@ class TestFase2Hardening(ManagementCostsCommon):
         with self.assertRaises(UserError):
             budget.with_user(self.user_approver).action_new_revision()
 
-    def test_shared_analytic_account_blocks_approval(self):
+    def test_native_centers_approve_without_parallel_aliases(self):
         budget = self._new_budget(centers=[self.center_a, self.center_a2])
         budget.action_generate_lines()
-        with self.assertRaises(UserError):
-            budget.with_user(self.user_approver).action_approve()
+        expected_total = budget.total_amount
+        budget.with_user(self.user_approver).action_approve()
+        self.assertEqual(budget.state, 'approved')
+        self.assertAlmostEqual(budget.total_amount, expected_total)
+        self.assertEqual(len(budget.allocation_ids.center_id), 2)
 
     def test_line_center_must_be_in_allocations(self):
         budget = self._general_direct_budget()
