@@ -100,7 +100,7 @@ class Menu(models.Model):
     @api.model
     def _step_normalize_agriculture_menus(self):
         """Keep previous screens recoverable, separate from native operations."""
-        Model = self.sudo().with_context(active_test=False)
+        Model = self.sudo().with_context(active_test=False, **{'ir.ui.menu.full_list': True})
 
         def history(root, key):
             xmlid = 'step_environment_policy.' + key
@@ -144,5 +144,8 @@ class Menu(models.Model):
         if not configured:
             return visible
         roots = [self.env.ref(xmlid, raise_if_not_found=False) for xmlid in json.loads(configured)]
-        allowed = self.sudo().with_context(active_test=False).search([('id','child_of',[r.id for r in roots if r])])
+        # Odoo filters menu search() through this method even with sudo.
+        # Its internal full-list context prevents recursive visibility calls;
+        # intersecting with super's result still enforces ACLs/menu groups.
+        allowed = self.sudo().with_context(active_test=False, **{'ir.ui.menu.full_list': True}).search([('id','child_of',[r.id for r in roots if r])])
         return visible & set(allowed.ids)
