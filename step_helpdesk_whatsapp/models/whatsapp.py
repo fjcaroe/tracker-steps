@@ -5,7 +5,6 @@ import mimetypes
 import re
 import threading
 import uuid
-from psycopg2 import IntegrityError
 from psycopg2.extras import Json
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -310,6 +309,7 @@ class Message(models.Model):
 
     def _send(self):
         self.ensure_one()
+        self.flush_recordset(['state'])
         self.env.cr.execute('SELECT state FROM step_helpdesk_wa_message WHERE id=%s FOR UPDATE SKIP LOCKED',[self.id])
         row=self.env.cr.fetchone()
         if not row or row[0]!='pending':return
@@ -318,7 +318,12 @@ class Message(models.Model):
         except UserError:
             self.write({'state':'failed','error':'window_or_scope_invalid'});return
         self.write({'state':'processing','attempted_at':fields.Datetime.now(),'attempts':self.attempts+1})
-        if not getattr(threading.current_thread(),'testing',False):self.env.cr.commit()
+        # Odoo caches writes. Persist the lease before a remote side effect;
+        # an interrupted process must never leave the send looking pending.
+        self.flush_recordset(['state','attempted_at','attempts'])
+        if not getattr(threading.current_thread(),'testing',False):
+            self.env.flush_all()
+            self.env.cr.commit()
         try:
             external=self.channel_id._transport().send(self)
             self.invalidate_recordset(['state'])

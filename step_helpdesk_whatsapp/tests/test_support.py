@@ -106,6 +106,15 @@ class TestSupport(TransactionCase):
         self.assertEqual(out.state,'uncertain')
         with patch.object(MockWhatsAppProvider,'send',side_effect=AssertionError('No resend')):out._send()
 
+    def test_claim_is_persisted_before_provider_side_effect(self):
+        out=self.outgoing(self.process([self.incoming()]))
+        def send(message):
+            self.env.cr.execute('SELECT state FROM step_helpdesk_wa_message WHERE id=%s',[message.id])
+            self.assertEqual(self.env.cr.fetchone()[0],'processing')
+            return 'mock.claim'
+        with patch.object(MockWhatsAppProvider,'send',side_effect=send):out._send()
+        self.assertEqual(out.state,'accepted')
+
     def test_retry_backoff(self):
         out=self.outgoing(self.process([self.incoming()]))
         with patch.object(MockWhatsAppProvider,'send',side_effect=ProviderError('429',retry=True)):out._send()
