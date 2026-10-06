@@ -67,7 +67,13 @@ o publicar Odoo. Si ese documento falta en un checkout antiguo, leerlo con
 git show origin/codex/ambientes-canonicos-reparacion:docs/OPERACION_ODOO_CANONICA.md.
 No elegir la base por el checkout abierto. Usar worktree propio y respetar
 las decisiones vigentes: Desarrollo es el único QA y lugar de revisión.
-Demo-SYS solo Nómina Simple Digital y soporte de Luis. Producción únicamente
+Demo-SYS replica solo el alcance actual instalado de SyS, incluida Nómina
+Simple Digital y soporte de Luis. No copiar el alcance de Desarrollo ni Steps.
+Comprobar tools/ops/demo_sys_scope.py antes de enviar cualquier paquete:
+ningún addon ajeno a SyS, tampoco opcional dentro de una entrega de Nómina.
+No instalar allí Packing, Productores, Exportaciones, Maquinaria ni Gestión.
+Conservar datos de los extras anteriores y probar su retiro en copia antes
+de desinstalarlos; ocultar menús no acredita su retirada. Producción únicamente
 SyS, Steps / karo_consultorias y Cerro El Plomo. Demo, Admin y Everfruit quedan
 fuera del circuito de publicación; preservar datos, no usarlos como QA.
 las ramas canónicas de los productos. Los puertos tienen dominios HTTPS:
