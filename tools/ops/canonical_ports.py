@@ -74,6 +74,7 @@ def redirect(ip, target):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('preflight', 'apply', 'verify'))
+    parser.add_argument('--bind-only', action='store_true', help='Bind tenant databases first; defer pool capacity changes')
     args = parser.parse_args()
     assert os.geteuid() == 0
     registry = json.loads((ROOT / 'environments.json').read_text())
@@ -89,7 +90,8 @@ def main():
         minimum = target.get('min_db_connections', 0)
         if minimum:
             assert int(options.get('workers', '0')) == 0, 'Review worker/process capacity separately'
-            capacity_delta += 2 * max(0, minimum - int(options.get('db_maxconn', '64')))
+            if not args.bind_only:
+                capacity_delta += 2 * max(0, minimum - int(options.get('db_maxconn', '64')))
         assert int(options.get('http_port', options.get('xmlrpc_port', '8069'))) == target['port']
         if options.get('db_name') and options.get('db_name') != 'False':
             assert options.get('db_name') == target['database']
@@ -108,7 +110,8 @@ def main():
                 assert cfg['options'].get('db_name') == target['database']
                 assert cfg['options'].get('dbfilter') == '^' + re.escape(target['database']) + '$'
                 assert cfg['options'].getboolean('list_db') is False
-                assert int(cfg['options'].get('db_maxconn', '64')) >= target.get('min_db_connections', 0)
+                if not args.bind_only:
+                    assert int(cfg['options'].get('db_maxconn', '64')) >= target.get('min_db_connections', 0)
         print('CANONICAL_VERIFY_OK environments=' + str(len(targets)))
         return
     print('CANONICAL_PREFLIGHT_OK environments=' + str(len(targets)), flush=True)
@@ -166,7 +169,7 @@ def main():
                     text = setting(text, 'db_name', target['database'])
                     text = setting(text, 'dbfilter', '^' + re.escape(target['database']) + '$')
                     text = setting(text, 'list_db', 'False')
-                if target.get('min_db_connections'):
+                if target.get('min_db_connections') and not args.bind_only:
                     cfg = configparser.ConfigParser(interpolation=None)
                     cfg.read_string(text)
                     current = int(cfg['options'].get('db_maxconn', '64'))
@@ -211,10 +214,10 @@ def main():
             result = {'backup': str(backup), 'restarted': changed, 'registry_sha256': hashlib.sha256((ROOT / 'environments.json').read_bytes()).hexdigest()}
             # Verify the observed startup burst, not just one sequential login.
             for target in targets.values():
-                if target.get('min_db_connections'):
+                if target.get('min_db_connections') and not args.bind_only:
                     with ThreadPoolExecutor(max_workers=12) as pool:
                         list(pool.map(lambda _: login(target), range(12)))
-            result['concurrent_logins'] = 12
+            result['concurrent_logins'] = 0 if args.bind_only else 12
             (backup / 'verified.json').write_text(json.dumps(result, indent=2))
             print('CANONICAL_APPLY_OK ' + json.dumps(result), flush=True)
         except Exception:
