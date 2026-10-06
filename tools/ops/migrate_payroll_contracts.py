@@ -18,6 +18,9 @@ simple = {
     'isapre_cotizacion_uf':'isapre_uf_valor', 'isapre_moneda':'isapre_calc_type',
 }
 for record in snapshots.search([('source_model','=','hr.contract')]):
+    contract = env['hr.contract'].with_context(active_test=False).browse(record.source_id).exists()
+    if not contract or contract.step_payroll_migration_mapped:
+        continue
     payload = record.payload
     values = {new:payload[old] for old,new in simple.items() if old in payload and payload[old] is not None}
     if payload.get('structure_type_id') in old_types:
@@ -31,6 +34,7 @@ for record in snapshots.search([('source_model','=','hr.contract')]):
             if len(matches)==1:
                 values[field] = matches[0]
                 if field=='afp_option' and values[field]!='00 - 100': values['pension_option']='afp'
+    values['step_payroll_migration_mapped'] = True
     if values:
         statement=sql.SQL('UPDATE hr_contract SET {} WHERE id=%s').format(sql.SQL(',').join(sql.SQL('{}=%s').format(sql.Identifier(k)) for k in values))
         env.cr.execute(statement,[*values.values(),record.source_id])

@@ -25,7 +25,7 @@ from manage_management import run, query, digest, tree_hash, errors
 
 HERE = Path(__file__).parent
 VENDOR = Path('/opt/rrhh/l10n_cl_simpledigital_payroll')
-MODULES = ('step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book')
+MODULES = ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book')
 
 
 def history(database):
@@ -126,6 +126,11 @@ def main():
         existing = set(json.loads(query(db,"SELECT json_agg(name) FROM ir_module_module WHERE state='installed'") or '[]'))
         execute(db,paths,data,'engine-install',install=[n for n in all_modules if n not in existing],update=[n for n in MODULES if n in existing],tests=tests)
         execute(db,paths,data,'contract-mapping',shell=(HERE/'migrate_payroll_contracts.py').read_text())
+        policy = "env['ir.config_parameter'].sudo().set_param('steps.environment.payroll_engine','l10n_cl_simpledigital_payroll')\n"
+        if args.environment == 'demo-sys':
+            roots = ['base.menu_administration','base.menu_management','hr_work_entry_contract_enterprise.menu_hr_payroll_root','hr.menu_hr_root','hr_attendance.menu_hr_attendance_root','hr_holidays.menu_hr_holidays_root','hr_expense.menu_hr_expense_root','contacts.menu_contacts','documents.menu_root','sign.menu_document','mail.menu_root_discuss','helpdesk.menu_helpdesk_root','step_support_assistant.menu_assistant_root']
+            policy += "env['ir.config_parameter'].sudo().set_param('steps.environment.menu_root_xmlids',"+repr(json.dumps(roots))+")\n"
+        execute(db,paths,data,'policy',shell=policy+"env.cr.commit()\nprint('PAYROLL_POLICY_OK')\n")
         execute(db,paths,data,'verify',shell=(HERE/'verify_payroll.py').read_text())
 
     if args.action in ('qa','compatibility'):

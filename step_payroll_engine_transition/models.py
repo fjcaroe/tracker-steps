@@ -24,6 +24,7 @@ class Contract(models.Model):
     _inherit = 'hr.contract'
 
     step_payroll_migration_review = fields.Boolean(string='Revisar migración de nómina', readonly=True, copy=False)
+    step_payroll_migration_mapped = fields.Boolean(readonly=True, copy=False)
 
     def action_confirm_payroll_migration(self):
         if not self.env.user.has_group('hr_payroll.group_hr_payroll_manager'):
