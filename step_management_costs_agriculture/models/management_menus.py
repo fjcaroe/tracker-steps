@@ -3,7 +3,7 @@ from odoo import api, models
 
 
 class ManagementDashboard(models.Model):
-    _inherit = 'step.management.dashboard'
+    _inherit = 'step.management.operational.budget'
 
     @api.model
     def _normalize_management_menus(self):
