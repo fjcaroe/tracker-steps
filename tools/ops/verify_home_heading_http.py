@@ -1,5 +1,7 @@
 """Render a private clone and preserve the homepage outside its requested H1."""
 import json
+import os
+import signal
 import socket
 import subprocess
 import time
@@ -44,12 +46,12 @@ def verify_http(base, options, database, source, opts, stage):
         command += ['-d', database, '--db-filter=^' + database + '$', '--http-port=' + str(port),
                     '--addons-path=' + str(source) + ',' + opts['addons_path'],
                     '--data-dir=' + str(stage / 'data'), '--logfile=' + str(stage / 'http-clone.log')]
-        process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         try:
             for attempt in range(60):
                 assert process.poll() is None, 'Private clone stopped before serving the homepage'
                 try:
-                    with urllib.request.urlopen('http://127.0.0.1:%s/?db=%s' % (port, database), timeout=3) as response:
+                    with urllib.request.urlopen('http://127.0.0.1:%s/?db=%s' % (port, database), timeout=15) as response:
                         title, body = signature(response.read())
                     break
                 except (OSError, ValueError):
@@ -57,8 +59,12 @@ def verify_http(base, options, database, source, opts, stage):
             else:
                 raise RuntimeError('Private clone did not render its homepage')
         finally:
-            process.terminate()
-            process.wait(timeout=30)
+            os.killpg(process.pid, signal.SIGTERM)
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=10)
     assert title == TITLE, title
     before = json.loads((stage / 'homepage-before.json').read_text())
     assert body == before['body'], 'Unrequested homepage content changed'

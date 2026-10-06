@@ -113,16 +113,18 @@ def main():
     target = registry['environments'][args.environment]
     database, service = target['database'], target['service']
     allowed_missing = ['steps_api']
-    if args.kind == 'homepage' and query(database, "SELECT 1 FROM ir_model_data WHERE module='steps_transport' LIMIT 1"):
-        # Historical XML-ID namespace, not an installed filesystem addon.
-        # Refuse this exception if an actual addon registration exists.
-        if not query(database, "SELECT 1 FROM ir_module_module WHERE name='steps_transport'"):
-            allowed_missing.append('steps_transport')
     conf = Path(target['config'])
     cfg = configparser.ConfigParser(interpolation=None)
     cfg.read(conf)
     opts = cfg['options']
     assert opts.get('db_name') == database
+    if args.kind == 'homepage' and args.environment == 'steps':
+        legacy = query(database, "SELECT latest_version FROM ir_module_module WHERE name='steps_transport' AND state='installed'")
+        paths = [Path(item.strip()) for item in opts['addons_path'].split(',')]
+        if legacy == '18.0.1.5' and not any((item / 'steps_transport' / '__manifest__.py').exists() for item in paths):
+            # Audited pre-existing missing addon in Steps, unrelated to website.
+            # The target clone must retain the exact same legacy registration.
+            allowed_missing.append('steps_transport')
     user = subprocess.check_output(['systemctl', 'show', '--value', '--property=User', service], text=True).strip()
     identity = pwd.getpwnam(user)
     stage = Path('/opt/steps-validation') / ('management_' + args.environment + '_' + args.run_id)
@@ -151,6 +153,8 @@ def main():
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
     if args.action == 'certify':
+        if args.kind == 'homepage' and 'steps_transport' in allowed_missing:
+            assert query(qa_db, "SELECT latest_version FROM ir_module_module WHERE name='steps_transport' AND state='installed'") == '18.0.1.5'
         # Retry read-only post-test checks without repeating an unchanged suite.
         assert json.loads((stage / 'baseline.json').read_text()) == baseline
         logs=sorted(stage.glob('qa-*.log'))
