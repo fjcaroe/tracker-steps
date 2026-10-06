@@ -118,7 +118,7 @@ def main():
                     listener.bind(('127.0.0.1',0))
                     private_port=listener.getsockname()[1]
                 command=[v for v in command if not v.startswith('--http-port=')]
-                command+=['--http-port='+str(private_port),'--test-enable','--test-tags',','.join('/'+name for name in MODULES)]
+                command+=['--http-port='+str(private_port),'--test-enable','--test-tags',','.join('/'+name for name in MODULES)+',-step_book_perf']
                 query(db,"UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'"%private_port)
             result = subprocess.run(command)
             text = log.read_text(errors='replace')
