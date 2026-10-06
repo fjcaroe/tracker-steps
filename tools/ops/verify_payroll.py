@@ -38,6 +38,16 @@ try:
     for name in ('step_hr_contract_days','step_hr_previred_simpledigital','step_hr_contract_lifecycle_simpledigital'):
         assert name in installed, name
     archived = env['step.payroll.legacy.snapshot'].search_count([])
+    historical = env['hr.payslip'].search([
+        ('struct_id.step_legacy_payroll', '=', True), ('state', 'in', ['done', 'paid']),
+    ])
+    for slip in historical:
+        original = env['ir.attachment'].sudo().search([
+            ('res_model', '=', 'hr.payslip'), ('res_id', '=', slip.id),
+            ('name', '=', 'Liquidación anterior %s.pdf' % slip.id),
+        ], limit=1)
+        assert original and not original.public and original.mimetype == 'application/pdf'
+        assert original.raw.startswith(b'%PDF-'), 'Invalid original payslip PDF'
     packing=env.ref('step_packing_operations.menu_packing_operations_root',raise_if_not_found=False)
     if packing:
         for xmlid in ('step_packing.menu_step_packing_root','step_packing.menu_packing_fruta_root'):

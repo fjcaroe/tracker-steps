@@ -9,7 +9,7 @@ y soporte de Luis. Producciones: SyS, Steps / Karo y Cerro El Plomo.
 
 | Área | Entrada en Desarrollo | Caso que debe revisar el responsable |
 |---|---|---|
-| Nómina | Nómina / Empleados / Contratos | Parámetros de Simple Digital, días de contrato y atrasos; comparar una liquidación nueva de prueba. No recalcular una pagada. |
+| Nómina | Nómina / Empleados / Contratos | Parámetros de Simple Digital, días de contrato y atrasos; comparar una liquidación nueva de prueba. Revisar una liquidación del motor anterior con su PDF original adjunto. No recalcular una pagada. |
 | Actividades y App | Actividades y `/task/` | Maestros del ERP, cuadrilla, OT, cantidad/horas, envío y recepción en consola. Comprobar reintento sin duplicar. |
 | Cosecha y App | Cosecha y `/cosecha/` | Fundo, especie, variedad y centro existentes; registro, kilos/envases, envío y recepción. Verificar saldo y propietario. |
 | Gestión y Costos | Gestión y Costos | Presupuesto → plan → OP; estimación con temporada/especie/variedad seleccionadas; costo real y comparación por centro analítico. |
