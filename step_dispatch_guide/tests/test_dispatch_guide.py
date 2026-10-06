@@ -20,10 +20,10 @@ class TestDispatchGuide(TransactionCase):
         })
         cls.reason_sale = cls.env.ref("step_dispatch_guide.transfer_reason_1")
         cls.reason_internal = cls.env.ref("step_dispatch_guide.transfer_reason_5")
-        cls.route = cls.env["x_tramo_de_flete"].create({
-            "x_name": "Hijuelas - Buin T25", "origin": "Hijuelas", "destination": "Buin"})
-        cls.type_no_freight = cls.env["x_tipo_despacho"].create({"x_name": "Retira cliente T25", "paga_flete": "no"})
-        cls.type_freight = cls.env["x_tipo_despacho"].create({"x_name": "Despacho a cliente T25", "paga_flete": "si"})
+        cls.route = cls.env["step.freight.route"].create({
+            "name": "Hijuelas - Buin T25", "origin": "Hijuelas", "destination": "Buin"})
+        cls.type_no_freight = cls.env["step.freight.dispatch.type"].create({"name": "Retira cliente T25", "paga_flete": "no"})
+        cls.type_freight = cls.env["step.freight.dispatch.type"].create({"name": "Despacho a cliente T25", "paga_flete": "si"})
         cls.vehicle = cls.env["fleet.vehicle"].create({
             "model_id": cls.env["fleet.vehicle.model"].create({
                 "name": "Camión T25",
@@ -107,7 +107,7 @@ class TestDispatchGuide(TransactionCase):
         order = guide.freight_order_id
         self.assertTrue(order)
         self.assertEqual(order.route_id, self.route)
-        self.assertEqual(order.x_studio_transportista, self.carrier)
+        self.assertEqual(order.freight_carrier_id, self.carrier)
         self.assertEqual(order.vehicle_id, self.vehicle)
         self.assertEqual(order.dispatch_guide_ids, guide)
 

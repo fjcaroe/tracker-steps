@@ -26,6 +26,7 @@ from manage_management import digest, errors, query, run, tree_hash
 
 HERE = Path(__file__).resolve().parent
 MODULE = 'step_operations_ui'
+MODULES = (MODULE, 'step_dispatch_guide')
 NATIVE_SCHEMA = None
 
 
@@ -33,12 +34,12 @@ def extract(release, target):
     with tarfile.open(release) as archive:
         proof = json.loads(archive.extractfile('release.json').read())
         assert re.fullmatch('[0-9a-f]{40}', proof['commit'])
-        assert set(proof['versions']) == {MODULE}
+        assert set(proof['versions']) == set(MODULES)
         found = set()
         for member in archive.getmembers():
             path = Path(member.name)
             assert member.isfile() and not path.is_absolute() and '..' not in path.parts
-            assert member.name == 'release.json' or path.parts[0] == MODULE
+            assert member.name == 'release.json' or path.parts[0] in MODULES
             assert member.name not in found
             found.add(member.name)
             if member.name != 'release.json':
@@ -53,6 +54,7 @@ def snapshot(database, schema=None):
         freight_tables = set(NATIVE_SCHEMA.MODELS) | {name.replace('.', '_') for name in NATIVE_SCHEMA.MODELS.values()}
         tables = json.loads(query(database, """SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables
             WHERE schemaname='public' AND (tablename IN (%s)
+            OR tablename LIKE 'step_dispatch_guide%%'
             OR tablename IN ('account_move','account_move_line','mail_message','mail_followers','mail_activity','ir_attachment'))"""
             % ','.join("'%s'" % table for table in sorted(freight_tables))))
         schema = {table: json.loads(query(database, "SELECT json_agg(column_name ORDER BY ordinal_position) "
@@ -81,13 +83,14 @@ def snapshot(database, schema=None):
         condition = (" WHERE %s IN (%s)" % (column, ','.join("'%s'" % name for name in [
                      *NATIVE_SCHEMA.MODELS, *NATIVE_SCHEMA.MODELS.values()]))
                      if table in ('mail_message','mail_followers','mail_activity','ir_attachment') else '')
+        order = 't.id' if 'id' in columns else '(' + expression + ')::text'
         result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE("
-                              "string_agg((%s)::text,'|' ORDER BY t.id),''))) FROM %s t%s" % (expression, actual_table, condition))
+                              "string_agg((%s)::text,'|' ORDER BY %s),''))) FROM %s t%s" % (expression, order, actual_table, condition))
     return {'schema': schema, 'rows': result}
 
 
 def verify(base, options, database, source, opts, proof, stage):
-    header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr(proof['versions'][MODULE]) + '\n'
+    header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr(proof['versions'][MODULE]) + '\nEXPECTED_ALL=' + repr(proof['versions']) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$',
         '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'],
         input=header + (HERE / 'verify_freight.py').read_text(), text=True, capture_output=True)
@@ -127,8 +130,11 @@ def main():
     spec.loader.exec_module(NATIVE_SCHEMA)
     for path in [stage, staged, *staged.rglob('*')]:
         os.chown(path, identity.pw_uid, identity.pw_gid)
-    installed = query(database, "SELECT latest_version FROM ir_module_module WHERE name='step_operations_ui' AND state='installed'")
-    assert installed and tuple(map(int, proof['versions'][MODULE].split('.'))) >= tuple(map(int, installed.split('.')))
+    installed = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module "
+                          "WHERE name IN ('step_operations_ui','step_dispatch_guide') AND state='installed'"))
+    assert set(installed) == set(MODULES), 'Only upgrade the existing freight/dispatch bridge'
+    for name, version in installed.items():
+        assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, version.split('.'))), 'Downgrade refused: ' + name
     dependencies = ast.literal_eval((staged / MODULE / '__manifest__.py').read_text())['depends']
     baseline = {'config_sha256': digest(conf), 'installed_version': installed, 'sources': {}}
     shared_modules = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module "
@@ -201,7 +207,7 @@ def main():
             log = stage / ('qa-' + stamp + '.log')
             print('FREIGHT_QA_BEGIN ' + json.dumps({'database': qa_db, 'log': str(log), 'commit': proof['commit']}), flush=True)
             result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'],
-                '--data-dir=' + str(data), '-u', MODULE, '--test-enable', '--test-tags=/' + MODULE,
+                '--data-dir=' + str(data), '-u', ','.join(MODULES), '--test-enable', '--test-tags=' + ','.join('/' + name for name in MODULES),
                 '--stop-after-init', '--logfile=' + str(log)])
             text = log.read_text(errors='replace')
             print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-6000:], flush=True)
@@ -241,7 +247,7 @@ def main():
                 assert count == 1
                 conf.write_text(changed)
                 log = stage / ('deploy-' + stamp + '.log')
-                result = subprocess.run(base + options + ['-d', database, '-u', MODULE, '--stop-after-init', '--logfile=' + str(log)])
+                result = subprocess.run(base + options + ['-d', database, '-u', ','.join(MODULES), '--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), str(log)
                 assert snapshot(database, before['schema']) == before, 'Original business records not preserved'

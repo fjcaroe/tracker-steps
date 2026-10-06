@@ -29,7 +29,7 @@ def main():
     if args.kind == 'export':
         modules = ('step_export',)
     if args.kind == 'freight':
-        modules = ('step_operations_ui',)
+        modules = ('step_operations_ui', 'step_dispatch_guide')
     if args.environment == 'demo-sys':
         if args.kind != 'payroll':
             parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')

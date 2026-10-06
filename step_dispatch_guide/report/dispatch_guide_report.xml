@@ -57,7 +57,7 @@
                             <tr><td style="width: 18%;"><strong>Señor(es)</strong></td><td>: <span t-field="o.partner_id.name"/></td>
                                 <td style="width: 18%;"><strong>Razón del traslado</strong></td><td>: <span t-field="o.transfer_reason_id"/></td></tr>
                             <tr><td><strong>R.U.T.</strong></td><td>: <span t-field="o.partner_vat"/></td>
-                                <td><strong>Tipo despacho</strong></td><td>: <span t-field="o.dispatch_type_id.x_name"/></td></tr>
+                                <td><strong>Tipo despacho</strong></td><td>: <span t-field="o.dispatch_type_id.name"/></td></tr>
                             <tr><td><strong>Giro</strong></td><td>: <span t-field="o.receiver_activity"/></td>
                                 <td><strong>Forma de pago</strong></td><td>: <span t-field="o.payment_term_id"/></td></tr>
                             <tr><td><strong>Dirección</strong></td><td>: <span t-field="o.partner_street"/></td>
@@ -105,9 +105,9 @@
                         <table class="table table-sm table-borderless border mt-2">
                             <tr><td colspan="4"><strong>DATOS DEL DESPACHO Y TRANSPORTE</strong></td></tr>
                             <tr><td style="width: 18%;">Transportista</td><td>: <span t-field="o.carrier_id.name"/><t t-if="o.carrier_vat"> — RUT <span t-field="o.carrier_vat"/></t></td>
-                                <td style="width: 18%;">Paga flete</td><td>: <t t-if="o.freight_paid">Sí<t t-if="o.freight_order_id"> (OT <span t-field="o.freight_order_id.x_name"/>)</t></t><t t-else="">No</t></td></tr>
+                                <td style="width: 18%;">Paga flete</td><td>: <t t-if="o.freight_paid">Sí<t t-if="o.freight_order_id"> (OT <span t-field="o.freight_order_id.name"/>)</t></t><t t-else="">No</t></td></tr>
                             <tr><td>Chofer</td><td>: <t t-if="o.driver_partner_id"><span t-field="o.driver_partner_id.name"/><t t-if="o.driver_vat"> — RUT <span t-field="o.driver_vat"/></t></t><t t-else=""><span t-field="o.driver_id.name"/> — RUT <span t-field="o.driver_id.vat"/></t></td>
-                                <td>Tramo</td><td>: <span t-field="o.freight_route_id.x_name"/></td></tr>
+                                <td>Tramo</td><td>: <span t-field="o.freight_route_id.name"/></td></tr>
                             <tr><td>Patente camión</td><td>: <span t-field="o.truck_plate"/></td>
                                 <td>Patente remolque</td><td>: <span t-field="o.trailer_plate"/></td></tr>
                             <tr><td>Fecha hora salida</td><td>: <span t-field="o.departure_datetime"/></td>

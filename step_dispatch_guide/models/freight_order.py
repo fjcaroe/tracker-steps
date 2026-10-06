@@ -2,7 +2,7 @@ from odoo import _, fields, models
 
 
 class FreightOrder(models.Model):
-    _inherit = "x_orden_de_flete"
+    _inherit = "step.freight.order"
 
     dispatch_guide_ids = fields.One2many(
         "step.dispatch.guide", "freight_order_id", string="Guías de despacho",
@@ -22,12 +22,12 @@ class FreightOrder(models.Model):
                 "default_freight_order_id": self.id,
                 "default_freight_paid": True,
                 "default_freight_route_id": self.route_id.id,
-                "default_date": self.x_studio_fecha,
-                "default_carrier_id": self.x_studio_transportista.id,
+                "default_date": self.date,
+                "default_carrier_id": self.freight_carrier_id.id,
                 "default_vehicle_id": self.vehicle_id.id,
                 "default_origin_address": self.route_id.origin,
                 "default_destination_address": self.route_id.destination,
-                "default_reference": self.x_name,
+                "default_reference": self.name,
             },
         }
 

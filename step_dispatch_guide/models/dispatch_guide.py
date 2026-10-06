@@ -77,7 +77,7 @@ class StepDispatchGuide(models.Model):
         "step.dispatch.transfer.reason", string="Razón del traslado", tracking=True,
     )
     transfer_reason = fields.Char(string="Detalle del motivo")
-    dispatch_type_id = fields.Many2one("x_tipo_despacho", string="Tipo despacho", tracking=True)
+    dispatch_type_id = fields.Many2one("step.freight.dispatch.type", string="Tipo despacho", tracking=True)
     departure_datetime = fields.Datetime(string="Fecha hora salida")
     arrival_datetime = fields.Datetime(string="Fecha hora llegada")
     origin_address = fields.Char(string="Dirección de origen", required=True)
@@ -102,10 +102,10 @@ class StepDispatchGuide(models.Model):
 
     # Flete
     freight_paid = fields.Boolean(string="Paga flete", tracking=True)
-    freight_route_id = fields.Many2one("x_tramo_de_flete", string="Tramo")
+    freight_route_id = fields.Many2one("step.freight.route", string="Tramo")
     freight_route_from = fields.Char(related="freight_route_id.origin", string="Tramo desde")
     freight_route_to = fields.Char(related="freight_route_id.destination", string="Tramo hasta")
-    freight_order_id = fields.Many2one("x_orden_de_flete", string="OT flete", copy=False)
+    freight_order_id = fields.Many2one("step.freight.order", string="OT flete", copy=False)
 
     picking_id = fields.Many2one("stock.picking", string="Operación de inventario", copy=False)
     line_ids = fields.One2many("step.dispatch.guide.line", "guide_id", string="Detalle", copy=True)
@@ -261,9 +261,9 @@ class StepDispatchGuide(models.Model):
     def _prepare_freight_order_vals(self):
         self.ensure_one()
         return {
-            "x_name": _("Flete guía %s", self.external_folio),
-            "x_studio_fecha": self.date,
-            "x_studio_transportista": self.carrier_id.id,
+            "name": _("Flete guía %s", self.external_folio),
+            "date": self.date,
+            "freight_carrier_id": self.carrier_id.id,
             "route_id": self.freight_route_id.id,
             "vehicle_id": self.vehicle_id.id,
             "quantity": 1.0,
@@ -274,7 +274,7 @@ class StepDispatchGuide(models.Model):
     def action_confirm(self):
         self._check_ready_to_confirm()
         for guide in self.filtered(lambda g: g.freight_paid and not g.freight_order_id):
-            guide.freight_order_id = self.env["x_orden_de_flete"].create(
+            guide.freight_order_id = self.env["step.freight.order"].create(
                 guide._prepare_freight_order_vals())
         self.write({"state": "confirmed"})
         return True
@@ -373,7 +373,7 @@ class StepDispatchGuide(models.Model):
     def action_view_freight_order(self):
         self.ensure_one()
         return {
-            "type": "ir.actions.act_window", "res_model": "x_orden_de_flete",
+            "type": "ir.actions.act_window", "res_model": "step.freight.order",
             "res_id": self.freight_order_id.id, "view_mode": "form",
         }
 
