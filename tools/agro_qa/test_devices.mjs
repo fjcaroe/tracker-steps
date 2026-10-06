@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 function exported(file, names) {
     const source = fs.readFileSync(path.join(root, file), 'utf8').replace(/^import .*;\r?$/gm, '').replace(/export /g, '');
-    return Function('Component', 'registry', 'standardFieldProps', source + '\nreturn {' + names + '};')(
-        class {}, { category: () => ({ add() {} }) }, {});
+    return Function('Component', 'registry', 'standardFieldProps', 'luxon', source + '\nreturn {' + names + '};')(
+        class {}, { category: () => ({ add() {} }) }, {}, {DateTime: {utc: () => 'QA_TIMESTAMP'}});
 }
 const { sendPrinterJob } = exported('step_inventory_packing/static/src/printer_job.js', 'sendPrinterJob');
 const { parseScaleWeight, ScaleCapture } = exported('step_inventory_packing/static/src/scale_capture.js', 'parseScaleWeight, ScaleCapture');

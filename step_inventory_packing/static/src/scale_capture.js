@@ -5,7 +5,7 @@ import { registry } from "@web/core/registry";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
-import { DateTime } from "luxon";
+const { DateTime } = luxon;
 
 const WEIGHT_FIELDS = [
     ["step_fruit_gross_kg", "Peso bruto"],

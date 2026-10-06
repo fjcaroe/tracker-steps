@@ -1,7 +1,7 @@
 {
     "name": "Steps - Inventario de fruta para Packing",
     "summary": "Recepciones diferenciadas, tarjas C/E/N y pesaje de fruta",
-    "version": "18.0.1.2.0",
+    "version": "18.0.1.2.1",
     "category": "Inventory/Inventory",
     "author": "Steps Consulting",
     "license": "LGPL-3",

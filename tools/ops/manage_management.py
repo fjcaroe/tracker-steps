@@ -78,7 +78,7 @@ def extract(release, target):
 
 def errors(text):
     return [line for line in text.splitlines() if (' ERROR ' in line or ' CRITICAL ' in line) and
-            not line.endswith("Some modules are not loaded, some dependencies or manifest may be missing: ['steps_api']")]
+            not line.rstrip().endswith("Some modules are not loaded, some dependencies or manifest may be missing: ['steps_api']")]
 
 
 def main():

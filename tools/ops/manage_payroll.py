@@ -25,8 +25,8 @@ from manage_management import run, query, digest, tree_hash, errors
 
 HERE = Path(__file__).parent
 VENDOR = Path('/opt/rrhh/l10n_cl_simpledigital_payroll')
-MODULES = ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book', 'step_inventory_packing', 'step_packing_operations')
-OPTIONAL = {'step_inventory_packing', 'step_packing_operations'}
+MODULES = ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book', 'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow')
+OPTIONAL = {'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow'}
 
 
 def history(database):
@@ -99,7 +99,7 @@ def main():
     qa_db = 'PAYROLL_COMPAT_' + args.environment.upper().replace('-','_') + '_' + args.run_id
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo','-u',user,'/usr/bin/python3.10','/opt/odoo18/odoo-bin']
-    options = ['-c',str(conf),'--no-http','--workers=0','--max-cron-threads=0','--http-interface=127.0.0.1','--gevent-port=0','--without-demo=all']
+    options = ['-c',str(conf),'--no-http','--http-port=0','--workers=0','--max-cron-threads=0','--http-interface=127.0.0.1','--gevent-port=0','--without-demo=all']
 
     def execute(db, paths, data, label, install=(), update=(), shell=None, tests=False):
         command = base + (['shell'] if shell else []) + options + ['-d',db,'--db-filter=^'+db+'$','--addons-path='+paths,'--data-dir='+str(data)]
@@ -113,7 +113,13 @@ def main():
             if install: command += ['-i',','.join(install)]
             if update: command += ['-u',','.join(update)]
             command += ['--stop-after-init','--logfile='+str(log)]
-            if tests: command += ['--test-enable','--test-tags',','.join('/'+name for name in MODULES)]
+            if tests:
+                with socket.socket() as listener:
+                    listener.bind(('127.0.0.1',0))
+                    private_port=listener.getsockname()[1]
+                command=[v for v in command if not v.startswith('--http-port=')]
+                command+=['--http-port='+str(private_port),'--test-enable','--test-tags',','.join('/'+name for name in MODULES)]
+                query(db,"UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'"%private_port)
             result = subprocess.run(command)
             text = log.read_text(errors='replace')
             assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), 'Payroll failure: '+str(log)
