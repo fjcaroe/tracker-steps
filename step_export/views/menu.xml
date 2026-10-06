@@ -3,19 +3,20 @@
     <field name="name">Notas de venta y proformas</field>
     <field name="res_model">sale.order</field>
     <field name="view_mode">list,form</field>
+    <field name="domain">['|',('step_export_shipment_id','!=',False),('step_export_sales_program_id','!=',False)]</field>
   </record>
   <record id="action_export_invoices" model="ir.actions.act_window">
     <field name="name">Facturas de clientes</field>
     <field name="res_model">account.move</field>
     <field name="view_mode">list,form</field>
-    <field name="domain">[('move_type','=','out_invoice')]</field>
+    <field name="domain">[('move_type','=','out_invoice'),('partner_id.step_export_receiver','=',True)]</field>
     <field name="context">{'default_move_type': 'out_invoice'}</field>
   </record>
   <record id="action_export_payments" model="ir.actions.act_window">
     <field name="name">Pagos de clientes</field>
     <field name="res_model">account.payment</field>
     <field name="view_mode">list,form</field>
-    <field name="domain">[('partner_type','=','customer')]</field>
+    <field name="domain">[('partner_type','=','customer'),('partner_id.step_export_receiver','=',True)]</field>
     <field name="context">{'default_partner_type': 'customer'}</field>
   </record>
   <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61" action="action_step_export_dashboard" web_icon="step_export,static/description/icon.png" />
@@ -60,9 +61,9 @@
   <menuitem id="menu_step_export_grower_discount" name="Ítem Productor (Descuento Liquidación)" parent="menu_step_export_config_export" action="action_step_export_grower_discount" sequence="40" />
   <menuitem id="menu_step_export_grower_rate" name="Tarifa Productor" parent="menu_step_export_masters" action="action_step_export_grower_rate" sequence="30" />
   <menuitem id="menu_step_export_shipping_instruction" name="Instructivo de Embarque" parent="menu_step_export_shipments" action="action_export_shipping_instructions" sequence="50" />
-  <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_shipments" action="action_step_export_dispatch_order" sequence="60" />
+  <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_shipments" action="action_export_dispatch_shipments" sequence="60" />
   <menuitem id="menu_step_export_customer_claim" name="Reclamo de Clientes" parent="menu_step_export_receivers" action="action_step_export_customer_claim" sequence="40" />
-  <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_shipments" action="action_step_export_stock_reservation" sequence="70" />
+  <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_shipments" action="action_export_stock_reservations" sequence="70" />
   <menuitem id="menu_step_export_vessel_tag" name="Nave (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_vessel_tag" groups="base.group_no_one" />
   <menuitem id="menu_step_export_sale_mode_tag" name="Modalidad de Venta (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_sale_mode_tag" groups="base.group_no_one" />
   <menuitem id="menu_step_export_grower_discount_tag" name="Ítem Productor (Descuento Liquidación) (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_grower_discount_tag" groups="base.group_no_one" />
@@ -93,4 +94,6 @@
   <menuitem id="menu_step_export_incoterms" name="Incoterms" parent="menu_step_export_config_export" action="action_export_incoterms" sequence="26" />
   <menuitem id="menu_step_export_currencies" name="Monedas" parent="menu_step_export_config_export" action="action_export_currencies" sequence="27" />
   <menuitem id="menu_step_export_legacy_instructions" name="Instructivos históricos" parent="menu_step_export_config_technical" action="action_step_export_shipping_instruction" groups="base.group_no_one" sequence="1" />
+  <menuitem id="menu_step_export_legacy_dispatch_order" name="Archivo dispatch order" parent="menu_step_export_config_technical" action="action_step_export_dispatch_order" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_legacy_stock_reservation" name="Archivo stock reservation" parent="menu_step_export_config_technical" action="action_step_export_stock_reservation" groups="base.group_no_one" />
 </odoo>

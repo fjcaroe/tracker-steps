@@ -102,4 +102,16 @@
     <field name="res_model">res.currency</field>
     <field name="view_mode">list,form</field>
   </record>
+  <record id="action_export_dispatch_shipments" model="ir.actions.act_window">
+    <field name="name">Orden de despacho por embarque</field>
+    <field name="res_model">step.export.export</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('state','in',['validated','dispatched'])]</field>
+  </record>
+  <record id="action_export_stock_reservations" model="ir.actions.act_window">
+    <field name="name">Reservas de stock de exportación</field>
+    <field name="res_model">stock.picking</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('picking_type_code','=','outgoing'),('partner_id.step_export_receiver','=',True),('state','not in',['done','cancel'])]</field>
+  </record>
 </odoo>
