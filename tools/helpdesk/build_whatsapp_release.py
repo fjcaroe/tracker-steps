@@ -15,11 +15,13 @@ def main():
     root=Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
     commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
-    names=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,'step_helpdesk_whatsapp'],cwd=root,text=True).splitlines()
+    modules=['step_helpdesk_whatsapp','step_project_agriculture_scope']
+    names=subprocess.check_output(['git','ls-tree','-r','--name-only',commit,*modules],cwd=root,text=True).splitlines()
     files={name:subprocess.check_output(['git','show',commit+':'+name],cwd=root).replace(b'\r\n',b'\n') for name in names}
     assert files and all('__pycache__' not in n and not n.endswith('.pyc') for n in files)
     version=ast.literal_eval(files['step_helpdesk_whatsapp/__manifest__.py'].decode())['version']
-    proof={'commit':commit,'module':'step_helpdesk_whatsapp','version':version,'files':{n:hashlib.sha256(v).hexdigest() for n,v in files.items()}}
+    versions={n:ast.literal_eval(files[n+'/__manifest__.py'].decode())['version'] for n in modules}
+    proof={'commit':commit,'module':'step_helpdesk_whatsapp','version':version,'versions':versions,'files':{n:hashlib.sha256(v).hexdigest() for n,v in files.items()}}
     args.output.parent.mkdir(parents=True,exist_ok=True)
     files['release.json']=json.dumps(proof).encode()
     with tarfile.open(args.output,'w:gz') as archive:

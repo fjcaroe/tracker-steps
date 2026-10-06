@@ -25,11 +25,14 @@ def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def snapshots(db, original=None):
     output={}
-    for table in ['helpdesk_ticket','mail_message','ir_attachment']:
+    for table in ['helpdesk_ticket','mail_message','ir_attachment','project_task']:
         if not sql(db,"SELECT to_regclass('%s')"%table):continue
         maximum=original.get(table,{}).get('max_id') if original is not None else None
         maximum=maximum if maximum is not None else int(sql(db,'SELECT COALESCE(max(id),0) FROM '+table))
-        digest=sql(db,"SELECT md5(COALESCE(string_agg((to_jsonb(t)-ARRAY['step_wa_conversation_id','step_wa_previous_ticket_id','step_wa_inbound'])::text,'|' ORDER BY id),'')) FROM %s t WHERE id<=%s"%(table,maximum))
+        # Odoo regenerates public CSS/JS bundles during HTTP tests. They are
+        # disposable UI cache, distinct from every customer/business attachment.
+        extra=" AND NOT COALESCE(res_model='ir.ui.view' AND public=true AND url LIKE '/web/assets/%' AND mimetype IN ('text/css','application/javascript','text/javascript'),false)" if table=='ir_attachment' else ''
+        digest=sql(db,"SELECT md5(COALESCE(string_agg((to_jsonb(t)-ARRAY['step_wa_conversation_id','step_wa_previous_ticket_id','step_wa_inbound'])::text,'|' ORDER BY id),'')) FROM %s t WHERE id<=%s"%(table,maximum)+extra)
         output[table]={'max_id':maximum,'digest':digest}
     return output
 
@@ -38,11 +41,13 @@ def unpack(package,destination):
     with tarfile.open(package) as archive:
         proof=json.loads(archive.extractfile('release.json').read())
         assert proof['module']=='step_helpdesk_whatsapp' and re.fullmatch('[a-f0-9]{40}',proof['commit'])
+        allowed={'step_helpdesk_whatsapp','step_project_agriculture_scope'}
+        assert set(proof.get('versions',{proof['module']:proof['version']}))<=allowed
         seen=set()
         for item in archive.getmembers():
             path=Path(item.name)
             assert item.isfile() and not path.is_absolute() and '..' not in path.parts and item.name not in seen
-            assert item.name=='release.json' or path.parts[0]=='step_helpdesk_whatsapp'
+            assert item.name=='release.json' or path.parts[0] in allowed
             seen.add(item.name)
             if item.name!='release.json':assert hashlib.sha256(archive.extractfile(item).read()).hexdigest()==proof['files'][item.name]
         assert seen==set(proof['files'])|{'release.json'}
@@ -68,9 +73,14 @@ def main():
     proof=unpack(a.package,addon);package_sha=sha(a.package)
     for file in [stage,addon,*addon.rglob('*')]:os.chown(file,identity.pw_uid,identity.pw_gid)
     module=proof['module']
+    scope_module='step_project_agriculture_scope'
+    scope_needed=bool(sql(db,"SELECT 1 FROM ir_module_module WHERE name='step_hr' AND state='installed'"))
+    expected={module:proof['version']}
+    if scope_needed:expected[scope_module]=proof['versions'][scope_module]
     installed=sql(db,"SELECT latest_version FROM ir_module_module WHERE name='%s' AND state='installed'"%module)
     if installed:assert tuple(map(int,proof['version'].split('.')))>=tuple(map(int,installed.split('.')))
-    baseline={'config_sha256':sha(conf),'installed':installed,'source':None}
+    baseline={'config_sha256':sha(conf),'installed':installed,'source':None,'scope_version':sql(db,"SELECT latest_version FROM ir_module_module WHERE name='%s' AND state='installed'"%scope_module)}
+    if baseline['scope_version']:assert tuple(map(int,expected[scope_module].split('.')))>=tuple(map(int,baseline['scope_version'].split('.')))
     for root in opts['addons_path'].split(','):
         source=Path(root.strip())/module
         if source.exists():
@@ -83,6 +93,8 @@ def main():
         return [s for s in text.splitlines() if (' ERROR ' in s or ' CRITICAL ' in s) and not s.rstrip().endswith(known)]
     def verify(database,source):
         script="import importlib,json\nfrom lxml import etree\ntry:\n m=env['ir.module.module'].search([('name','=',%r)])\n assert m.state=='installed' and m.latest_version==%r\n assert importlib.import_module('odoo.addons.'+%r).__file__.startswith(%r+'/')\n for model in ('step.helpdesk.wa.channel','step.helpdesk.wa.message','step.helpdesk.wa.compose'):\n  etree.fromstring(env[model].get_view(view_type='form')['arch'])\n assert 'action_respond_whatsapp' in env['helpdesk.ticket'].get_view(view_type='form')['arch']\n assert not env['step.helpdesk.wa.channel'].search_count([('enabled','=',True),('provider','=','meta_cloud')])\n print('WHATSAPP_REGISTRY_OK')\nfinally:env.cr.rollback()\n"%(module,proof['version'],module,str(source))
+        if scope_needed:
+            script=script.replace(" print('WHATSAPP_REGISTRY_OK')", " assert not env['project.task']._fields['variedad_id'].required\n assert not env['project.task']._fields['grupo_variedad_id'].required\n assert importlib.import_module('odoo.addons.step_project_agriculture_scope').__file__.startswith(%r+'/')\n print('WHATSAPP_REGISTRY_OK')"%str(source))
         result=subprocess.run(base+['shell','-c',str(conf),'-d',database,'--db-filter=^'+database+'$','--addons-path='+str(source)+','+opts['addons_path'],'--no-http','--workers=0','--max-cron-threads=0','--log-level=error'],input=script,text=True,capture_output=True)
         (stage/('verify-'+database+'.log')).write_text(result.stdout+result.stderr)
         assert result.returncode==0 and 'WHATSAPP_REGISTRY_OK' in result.stdout,'See private registry log'
@@ -115,6 +127,16 @@ def main():
         with socket.socket() as listener:listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
         sql(clone,"UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'"%port)
         log=stage/('qa-'+stamp+'.log')
+        if scope_needed:
+            # Load scope compatibility before project_helpdesk auto-installs;
+            # generic support tasks must not acquire global crop NOT NULLs.
+            scope_log=stage/('scope-'+stamp+'.log')
+            scope_result=subprocess.run(base+['-c',str(conf),'-d',clone,'--db-filter=^'+clone+'$','--addons-path='+str(addon)+','+opts['addons_path'],
+                '--data-dir='+str(data),'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',scope_module,
+                '--test-enable','--test-tags=/'+scope_module,'--stop-after-init','--logfile='+str(scope_log)])
+            scope_text=scope_log.read_text(errors='replace')
+            print('\n'.join(s for s in scope_text.splitlines() if 'tests.result' in s or ' ERROR ' in s)[-2000:],flush=True)
+            assert scope_result.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',scope_text) and not errors(scope_text),'See private scope QA log'
         print('WHATSAPP_QA_BEGIN '+json.dumps({'database':clone,'log':str(log)}),flush=True)
         result=subprocess.run(base+['-c',str(conf),'-d',clone,'--db-filter=^'+clone+'$','--addons-path='+str(addon)+','+opts['addons_path'],
             '--data-dir='+str(data),'--http-interface=127.0.0.1','--http-port='+str(port),'--workers=0','--max-cron-threads=0','--without-demo=all',
@@ -146,6 +168,10 @@ def main():
                 before=snapshots(db)
                 updated,count=re.subn(r'(?m)^\s*addons_path\s*=.*$','addons_path = '+str(release)+','+opts['addons_path'],conf.read_text());assert count==1;conf.write_text(updated)
                 log=stage/('deploy-'+stamp+'.log')
+                if scope_needed:
+                    scope_log=stage/('deploy-scope-'+stamp+'.log')
+                    scoped=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',scope_module,'--stop-after-init','--logfile='+str(scope_log)])
+                    assert scoped.returncode==0 and not errors(scope_log.read_text(errors='replace')),'See private scope deployment log'
                 result=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',module,'--stop-after-init','--logfile='+str(log)])
                 text=log.read_text(errors='replace');assert result.returncode==0 and 'Modules loaded.' in text and not errors(text),'See private deployment log'
                 after=snapshots(db,before);assert all(after.get(k)==v for k,v in before.items())
