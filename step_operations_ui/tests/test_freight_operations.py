@@ -286,6 +286,33 @@ class TestFreightStudioCosting(TransactionCase):
         explicit = self.env["step.freight.order"].create({"name": "QA importado"})
         self.assertEqual(explicit.name, "QA importado")
 
+    def test_web_save_ignores_new_blank_tab_row(self):
+        order = self._order()
+        result = order.web_save({"detail_ids": [
+            (0, 0, {"route_id": self.route.id, "quantity": 2}),
+            (0, 0, {"name": "1", "quantity": 1, "unit_rate": 0, "freight_value": 0}),
+        ]}, self._web_specification())[0]
+        self.assertEqual(len(result["detail_ids"]), 1)
+        order.action_cost_freight()
+        self.assertEqual(order.cost_ids.freight_cost, 2000)
+
+    def test_create_preserves_incomplete_row_with_real_input(self):
+        order = self._order(detail_ids=[
+            (0, 0, {"name": "1", "quantity": 1}),
+            (0, 0, {"cargo_description": "QA carga sin tramo"}),
+        ])
+        self.assertEqual(len(order.detail_ids), 1)
+        with self.assertRaisesRegex(UserError, "Seleccione un tramo"):
+            order.action_cost_freight()
+
+    def test_costing_existing_blank_row_preserves_it_without_blocking(self):
+        order = self._order(detail_ids=[(0, 0, {"route_id": self.route.id, "quantity": 2})])
+        blank = self.env["step.freight.order.line"].create({"order_id": order.id})
+        order.action_cost_freight()
+        self.assertTrue(blank.exists())
+        self.assertEqual(blank.freight_value, 0)
+        self.assertEqual(order.cost_ids.freight_cost, 2000)
+
     # --- Tarifas (punto 3): tramo, modalidad de frío y servicio de flete ---
 
     def test_tariff_line_exposes_route_cold_mode_and_service(self):

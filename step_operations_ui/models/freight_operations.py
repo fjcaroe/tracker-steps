@@ -90,6 +90,22 @@ class FreightOrder(models.Model):
         string="Valor total del flete", compute="_compute_freight_total", currency_field="currency_id"
     )
 
+    @api.model
+    def _without_blank_detail_creates(self, values):
+        values = dict(values)
+        if "detail_ids" in values:
+            Detail = self.env["step.freight.order.line"]
+            values["detail_ids"] = [command for command in values["detail_ids"]
+                if not (command[0] == fields.Command.CREATE and Detail._is_blank_values(command[2]))]
+        return values
+
+    @api.model_create_multi
+    def create(self, values_list):
+        return super().create([self._without_blank_detail_creates(values) for values in values_list])
+
+    def write(self, values):
+        return super().write(self._without_blank_detail_creates(values))
+
     @api.depends("detail_ids.freight_value")
     def _compute_freight_total(self):
         for order in self:
@@ -152,12 +168,13 @@ class FreightOrder(models.Model):
         for order in self:
             if order.freight_move_id:
                 raise UserError(_("El flete ya está contabilizado y no se puede recalcular el costeo."))
-            if not order.detail_ids:
+            details = order.detail_ids.filtered(lambda line: not line._is_blank_detail())
+            if not details:
                 raise UserError(_("Agregue al menos una línea en Detalles antes de costear."))
             old_costs = order.cost_ids
             totals = defaultdict(float)
             date = order.date or fields.Date.context_today(order)
-            for detail in order.detail_ids:
+            for detail in details:
                 tariff_line = order._tariff_line_for_detail(detail)
                 product = detail.service_product_id or tariff_line.service_product_id
                 if not product and len(old_costs) == 1:
@@ -283,6 +300,32 @@ class FreightOrderDetail(models.Model):
     unit_rate = fields.Float(string="Tarifa")
     freight_value = fields.Float(string="Valor del flete")
     service_product_id = fields.Many2one("product.template", string="Servicio de flete", domain="[('is_flete', '=', True)]")
+
+    @api.model
+    def _is_blank_values(self, values):
+        # Only ignore a new row with untouched defaults. A row with any real
+        # input must remain visible and go through the usual validations.
+        defaults = {"name": "1", "quantity": 1.0}
+        non_business = {"id", "order_id", "sequence"}
+        for key, value in values.items():
+            if key in defaults:
+                if value not in (False, None, defaults[key]):
+                    return False
+                if key == "quantity" and value != 1.0:
+                    return False
+            elif key in non_business:
+                if key == "sequence" and value:
+                    return False
+            elif value:
+                return False
+        return True
+
+    def _is_blank_detail(self):
+        self.ensure_one()
+        return self._is_blank_values({name: self[name] for name in (
+            "name", "quantity", "sequence", "vehicle_id", "driver_id", "route_id",
+            "service_product_id", "cargo_description", "delivery_reference", "uom_id",
+            "unit_rate", "freight_value")})
 
     @api.onchange("route_id", "service_product_id")
     def _onchange_route_service(self):
