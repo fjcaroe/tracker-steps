@@ -76,9 +76,18 @@ def extract(release, target):
     return proof
 
 
-def errors(text):
-    return [line for line in text.splitlines() if (' ERROR ' in line or ' CRITICAL ' in line) and
-            not line.rstrip().endswith("Some modules are not loaded, some dependencies or manifest may be missing: ['steps_api']")]
+def errors(text, allowed_missing=('steps_api',)):
+    found = []
+    marker = 'Some modules are not loaded, some dependencies or manifest may be missing: '
+    for line in text.splitlines():
+        if ' ERROR ' not in line and ' CRITICAL ' not in line:
+            continue
+        if marker in line:
+            missing = ast.literal_eval(line.split(marker, 1)[1].strip())
+            if set(missing) <= set(allowed_missing):
+                continue
+        found.append(line)
+    return found
 
 
 def main():
@@ -103,6 +112,12 @@ def main():
     assert args.action != 'compatibility' or args.environment in registry['policy']['production']
     target = registry['environments'][args.environment]
     database, service = target['database'], target['service']
+    allowed_missing = ['steps_api']
+    if args.kind == 'homepage' and query(database, "SELECT 1 FROM ir_model_data WHERE module='steps_transport' LIMIT 1"):
+        # Historical XML-ID namespace, not an installed filesystem addon.
+        # Refuse this exception if an actual addon registration exists.
+        if not query(database, "SELECT 1 FROM ir_module_module WHERE name='steps_transport'"):
+            allowed_missing.append('steps_transport')
     conf = Path(target['config'])
     cfg = configparser.ConfigParser(interpolation=None)
     cfg.read(conf)
@@ -141,7 +156,8 @@ def main():
         logs=sorted(stage.glob('qa-*.log'))
         assert len(logs)==1
         text=logs[0].read_text(errors='replace')
-        assert re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(qa_db)+"'",text) and not errors(text)
+        successful = 'Modules loaded.' in text if args.kind == 'homepage' else re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(qa_db)+"'",text)
+        assert successful and not errors(text, allowed_missing)
         assert snapshot(qa_db)==json.loads((stage/'business_before.json').read_text())
         verify(base,options,qa_db,staged,opts,proof,stage,{*installed,*install})
         (stage/'qa_passed.json').write_text(json.dumps({'commit':proof['commit'],'release_sha256':release_sha,'database':qa_db,'log':str(logs[0])}))
@@ -190,7 +206,7 @@ def main():
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
-        assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text), 'QA failed: ' + str(log)
+        assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text, allowed_missing), 'QA failed: ' + str(log)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
         verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
         (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log)}))
@@ -236,7 +252,7 @@ def main():
                 init_options = ['-i', ','.join(install)] if install else []
                 result = subprocess.run(base + options + ['-d', database] + init_options + ['-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
-                assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), str(log)
+                assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
                 assert snapshot(database) == before, 'Business migration check failed'
                 # T52 explicitly asks that current Cerro catalog entries be shared.
                 if args.environment == 'cerro':
