@@ -84,6 +84,14 @@ class ExportShipment(models.Model):
             record.box_qty = sum(record.line_ids.mapped("box_qty"))
             record.kg_qty = sum(record.line_ids.mapped("kg_qty"))
 
+    @api.onchange("sales_program_id")
+    def _onchange_sales_program_instruction(self):
+        for record in self:
+            if record.sales_program_id:
+                record.receiver_id = record.sales_program_id.partner_id
+                record.season_id = record.sales_program_id.season_id
+                record.species_id = record.sales_program_id.species_id
+
     def action_validate_shipment(self):
         for record in self:
             if record.state != "draft" or not record.sales_program_id or not record.line_ids:

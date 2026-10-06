@@ -82,12 +82,17 @@ def errors(text):
 
 
 def main():
+    global MODULES, BUSINESS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
+    parser.add_argument('--kind', choices=('management', 'export'), default='management')
     args = parser.parse_args()
+    if args.kind == 'export':
+        MODULES = ('step_export',)
+        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_export_%' OR tablename IN ('account_move','account_move_line')) ORDER BY tablename").splitlines())
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
@@ -114,8 +119,8 @@ def main():
     for name, old in installed.items():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
     update = [name for name in MODULES if name in installed]
-    install = ['step_agriculture_catalogs']
-    if query(database, "SELECT 1 FROM ir_module_module WHERE name='step_producers' AND state='installed'"):
+    install = ['step_agriculture_catalogs'] if args.kind == 'management' else []
+    if args.kind == 'management' and query(database, "SELECT 1 FROM ir_module_module WHERE name='step_producers' AND state='installed'"):
         install.append('step_management_costs_producers')
     addon_paths = opts['addons_path'].split(',')
     baseline = {'config_sha256': digest(conf), 'modules': {}}
@@ -141,7 +146,8 @@ def main():
     if args.action in ('qa', 'compatibility'):
         # Catch import/API compatibility errors before restoring a whole clone.
         import_probe = "import sys,importlib.util\nsys.path.insert(0,'/opt/odoo18')\nspec=importlib.util.spec_from_file_location('odoo.addons.step_agriculture_catalogs.models.catalogs',%r)\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nprint('CATALOG_IMPORT_OK')\n" % str(staged / 'step_agriculture_catalogs/models/catalogs.py')
-        run('/usr/bin/python3.10', '-c', import_probe)
+        if args.kind == 'management':
+            run('/usr/bin/python3.10', '-c', import_probe)
         assert not query('postgres', "SELECT 1 FROM pg_database WHERE datname='%s'" % qa_db), 'Use a fresh run_id'
         (stage / 'baseline.json').write_text(json.dumps(baseline, indent=2))
         before = snapshot(database)
@@ -172,7 +178,8 @@ def main():
         query(qa_db, "UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'" % private_port)
         print('MANAGEMENT_QA_BEGIN ' + json.dumps({'database': qa_db, 'log': str(log), 'commit': proof['commit']}), flush=True)
         tags = ','.join('/' + name for name in [*update, *install])
-        result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data), '-i', ','.join(install), '-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
+        init_options = ['-i', ','.join(install)] if install else []
+        result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)] + init_options + ['-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
@@ -219,7 +226,8 @@ def main():
                 assert count == 1
                 conf.write_text(changed)
                 log = stage / ('deploy-' + stamp + '.log')
-                result = subprocess.run(base + options + ['-d', database, '-i', ','.join(install), '-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
+                init_options = ['-i', ','.join(install)] if install else []
+                result = subprocess.run(base + options + ['-d', database] + init_options + ['-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), str(log)
                 assert snapshot(database) == before, 'Business migration check failed'
@@ -244,8 +252,10 @@ def main():
 
 
 def verify(base, options, database, source, opts, proof, stage, installed):
-    probe = (HERE / 'verify_management.py').read_text()
-    header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in [*installed, 'step_agriculture_catalogs']}) + '\n'
+    export = MODULES == ('step_export',)
+    probe = (HERE / ('verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    names = installed if export else {*installed, 'step_agriculture_catalogs'}
+    header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]

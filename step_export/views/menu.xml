@@ -1,77 +1,96 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="action_export_sale_orders" model="ir.actions.act_window">
-        <field name="name">Notas de venta y proformas</field><field name="res_model">sale.order</field>
-        <field name="view_mode">list,form</field>
-    </record>
-    <record id="action_export_invoices" model="ir.actions.act_window">
-        <field name="name">Facturas de clientes</field><field name="res_model">account.move</field>
-        <field name="view_mode">list,form</field><field name="domain">[('move_type','=','out_invoice')]</field>
-        <field name="context">{'default_move_type': 'out_invoice'}</field>
-    </record>
-    <record id="action_export_payments" model="ir.actions.act_window">
-        <field name="name">Pagos de clientes</field><field name="res_model">account.payment</field>
-        <field name="view_mode">list,form</field><field name="domain">[('partner_type','=','customer')]</field>
-        <field name="context">{'default_partner_type': 'customer'}</field>
-    </record>
-    <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61" action="action_step_export_dashboard" web_icon="step_export,static/description/icon.png"/>
-    <menuitem id="menu_step_export_dashboard" name="Inicio" parent="menu_step_export_root" sequence="0" action="action_step_export_dashboard"/>
-    <menuitem id="menu_step_export_ops" name="Operaciones" parent="menu_step_export_root" sequence="10"/>
-    <menuitem id="menu_step_export_config" name="Configuración" parent="menu_step_export_root" sequence="90"/>
-    <menuitem id="menu_step_export_accounting_config" name="Parámetros contables" parent="menu_step_export_config" action="action_step_export_accounting_config" sequence="1" groups="account.group_account_manager"/>
-    <menuitem id="menu_step_export_exterior_expense_concept" name="Conceptos de gastos en exterior" parent="menu_step_export_config" action="action_step_export_exterior_expense_concept" sequence="12" groups="account.group_account_manager"/>
-    <menuitem id="menu_step_export_sales_program" name="Programas de ventas" parent="menu_step_export_ops" action="action_step_export_sales_program" sequence="1"/>
-    <menuitem id="menu_step_export_sales_program_all" name="Historial de programas" parent="menu_step_export_ops" action="action_step_export_sales_program_all" sequence="2"/>
-    <menuitem id="menu_step_export_packaging_program" name="Programas de embalajes" parent="menu_step_export_ops" action="action_export_packaging_program" sequence="3"/>
-    <menuitem id="menu_step_export_forecast" name="Forecast" parent="menu_step_export_ops" action="action_export_forecast" sequence="4"/>
-    <menuitem id="menu_step_export_packing_list" name="Packing Lists" parent="menu_step_export_ops" action="action_export_packing_list" sequence="14"/>
-    <menuitem id="menu_step_export_fruit_bom" name="Listas de materiales de fruta" parent="menu_step_export_config" action="action_export_fruit_bom" sequence="15"/>
-    <menuitem id="menu_step_export_receiver_settlement" name="Liquidaciones recibidores" parent="menu_step_export_ops" action="action_export_receiver_settlement" sequence="30"/>
-    <menuitem id="menu_step_export_producer_settlement" name="Liquidaciones productores" parent="menu_step_export_ops" action="action_export_producer_settlement" sequence="31"/>
-    <menuitem id="menu_step_export_sale_orders" name="Notas de venta y proformas" parent="menu_step_export_ops" action="action_export_sale_orders" sequence="20"/>
-    <menuitem id="menu_step_export_invoices" name="Facturas de clientes" parent="menu_step_export_ops" action="action_export_invoices" sequence="21"/>
-    <menuitem id="menu_step_export_receivables" name="Cuenta corriente recibidores" parent="menu_step_export_ops" action="action_export_receivables" sequence="23"/>
-    <menuitem id="menu_step_export_payments" name="Pagos de clientes" parent="menu_step_export_ops" action="action_export_payments" sequence="22"/>
-    <menuitem id="menu_step_export_package_type" name="Tipos de pallet" parent="menu_step_export_config" action="action_step_export_package_type"/>
-    <menuitem id="menu_step_export_packaging" name="Embalajes" parent="menu_step_export_config" action="action_step_export_packaging"/>
-    <menuitem id="menu_step_export_contacts" name="Contactos de exportación" parent="menu_step_export_config" action="action_step_export_contacts" sequence="16"/>
-    <menuitem id="menu_step_export_products" name="Productos exportables" parent="menu_step_export_config" action="action_step_export_product_templates" sequence="17"/>
-    <!-- Los maestros de proceso y tarja pertenecen a Packing Fruta; ambos menús abren los mismos registros. -->
-    <menuitem id="menu_step_export_packing_masters" name="Maestros de packing" parent="menu_step_export_config" sequence="60"/>
-    <menuitem id="menu_step_export_packing_line" name="Líneas de proceso" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_line" sequence="10"/>
-    <menuitem id="menu_step_export_packing_process_type" name="Tipos de proceso" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_process_type" sequence="20"/>
-    <menuitem id="menu_step_export_packing_tag_type" name="Tipos de tarja" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_tag_type" sequence="30"/>
-    <menuitem id="menu_step_export_packing_tag_state" name="Estados de tarja" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_tag_state" sequence="40"/>
-    <menuitem id="menu_step_export_packing_stop_reason" name="Causas de detención" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_stop_reason" sequence="50"/>
-    <menuitem id="menu_step_export_packing_correction_reason" name="Causas de corrección" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_correction_reason" sequence="60"/>
-    <menuitem id="menu_step_export_vessel" name="Nave" parent="menu_step_export_config" action="action_step_export_vessel"/>
-    <menuitem id="menu_step_export_sale_mode" name="Modalidad de Venta" parent="menu_step_export_config" action="action_step_export_sale_mode"/>
-    <menuitem id="menu_step_export_payment_concept" name="Concepto de Pago Productor" parent="menu_step_export_config" action="action_step_export_payment_concept"/>
-    <menuitem id="menu_step_export_grower_discount" name="Ítem Productor (Descuento Liquidación)" parent="menu_step_export_config" action="action_step_export_grower_discount"/>
-    <menuitem id="menu_step_export_grower_rate" name="Tarifa Productor" parent="menu_step_export_config" action="action_step_export_grower_rate"/>
-    <menuitem id="menu_step_export_shipping_instruction" name="Instructivo de Embarque" parent="menu_step_export_config" action="action_step_export_shipping_instruction"/>
-    <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_config" action="action_step_export_dispatch_order"/>
-    <menuitem id="menu_step_export_customer_claim" name="Reclamo de Clientes" parent="menu_step_export_config" action="action_step_export_customer_claim"/>
-    <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_config" action="action_step_export_stock_reservation"/>
-    <menuitem id="menu_step_export_vessel_tag" name="Nave (etiqueta)" parent="menu_step_export_config" action="action_step_export_vessel_tag"/>
-    <menuitem id="menu_step_export_sale_mode_tag" name="Modalidad de Venta (etiqueta)" parent="menu_step_export_config" action="action_step_export_sale_mode_tag"/>
-    <menuitem id="menu_step_export_grower_discount_tag" name="Ítem Productor (Descuento Liquidación) (etiqueta)" parent="menu_step_export_config" action="action_step_export_grower_discount_tag"/>
-    <menuitem id="menu_step_export_grower_rate_tag" name="Tarifa Productor (etiqueta)" parent="menu_step_export_config" action="action_step_export_grower_rate_tag"/>
-    <menuitem id="menu_step_export_shipping_instruction_tag" name="Instructivo de Embarque (etiqueta)" parent="menu_step_export_config" action="action_step_export_shipping_instruction_tag"/>
-    <menuitem id="menu_step_export_export_tag" name="Exportación (etiqueta)" parent="menu_step_export_config" action="action_step_export_export_tag"/>
-    <menuitem id="menu_step_export_estimate_tag" name="Estimación de Cosecha (etiqueta)" parent="menu_step_export_config" action="action_step_export_estimate_tag"/>
-    <menuitem id="menu_step_export_export_stage" name="Exportación (etapa)" parent="menu_step_export_config" action="action_step_export_export_stage"/>
-    <menuitem id="menu_step_export_estimate_stage" name="Estimación de Cosecha (etapa)" parent="menu_step_export_config" action="action_step_export_estimate_stage"/>
-    <menuitem id="menu_step_export_export" name="Exportación" parent="menu_step_export_ops" action="action_step_export_export"/>
-    <menuitem id="menu_step_export_estimate" name="Estimación de Cosecha" parent="menu_step_export_ops" action="action_step_export_estimate"/>
-
-    <!-- App Packing Fruta (ticket 34): piezas de Studio que viven en este modulo. -->
-    <menuitem id="menu_packing_fruta_estimate" name="Estimaciones" parent="step_packing.menu_packing_fruta_planning"
-              action="action_step_export_estimate" sequence="10"/>
-    <menuitem id="menu_packing_fruta_stock_reservation" name="Reservar Stock" parent="step_packing.menu_packing_fruta_receptions"
-              action="action_step_export_stock_reservation" sequence="30"/>
-    <menuitem id="menu_packing_fruta_dispatch_order" name="Orden de despacho" parent="step_packing.menu_packing_fruta_dispatch_root"
-              action="action_step_export_dispatch_order" sequence="10"/>
-    <menuitem id="menu_packing_fruta_vessel" name="Naves" parent="step_packing.menu_packing_fruta_config_export"
-              action="action_step_export_vessel" sequence="10"/>
+  <record id="action_export_sale_orders" model="ir.actions.act_window">
+    <field name="name">Notas de venta y proformas</field>
+    <field name="res_model">sale.order</field>
+    <field name="view_mode">list,form</field>
+  </record>
+  <record id="action_export_invoices" model="ir.actions.act_window">
+    <field name="name">Facturas de clientes</field>
+    <field name="res_model">account.move</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('move_type','=','out_invoice')]</field>
+    <field name="context">{'default_move_type': 'out_invoice'}</field>
+  </record>
+  <record id="action_export_payments" model="ir.actions.act_window">
+    <field name="name">Pagos de clientes</field>
+    <field name="res_model">account.payment</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('partner_type','=','customer')]</field>
+    <field name="context">{'default_partner_type': 'customer'}</field>
+  </record>
+  <menuitem id="menu_step_export_root" name="Exportaciones" sequence="61" action="action_step_export_dashboard" web_icon="step_export,static/description/icon.png" />
+  <menuitem id="menu_step_export_dashboard" name="Inicio" parent="menu_step_export_root" sequence="0" action="action_step_export_dashboard" />
+  <menuitem id="menu_step_export_ops" name="Planificación" parent="menu_step_export_root" sequence="10" />
+  <menuitem id="menu_step_export_shipments" name="Embarque" parent="menu_step_export_root" sequence="20" />
+  <menuitem id="menu_step_export_receivers" name="Recibidor" parent="menu_step_export_root" sequence="30" />
+  <menuitem id="menu_step_export_expenses" name="Gastos exportación" parent="menu_step_export_root" sequence="40" />
+  <menuitem id="menu_step_export_masters" name="Maestros" parent="menu_step_export_root" sequence="50" />
+  <menuitem id="menu_step_export_config_fruit" name="Fruta" parent="menu_step_export_config" sequence="10" />
+  <menuitem id="menu_step_export_config_export" name="Exportaciones" parent="menu_step_export_config" sequence="20" />
+  <menuitem id="menu_step_export_config_technical" name="Archivo técnico" parent="menu_step_export_config" sequence="99" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_config" name="Configuraciones" parent="menu_step_export_root" sequence="90" />
+  <menuitem id="menu_step_export_accounting_config" name="Parámetros contables" parent="menu_step_export_config" action="action_step_export_accounting_config" sequence="1" groups="account.group_account_manager" />
+  <menuitem id="menu_step_export_exterior_expense_concept" name="Conceptos de gastos en exterior" parent="menu_step_export_config_export" action="action_step_export_exterior_expense_concept" sequence="50" groups="account.group_account_manager" />
+  <menuitem id="menu_step_export_sales_program" name="Programas de ventas" parent="menu_step_export_ops" action="action_step_export_sales_program" sequence="10" />
+  <menuitem id="menu_step_export_sales_program_all" name="Historial de programas" parent="menu_step_export_ops" action="action_step_export_sales_program_all" sequence="50" />
+  <menuitem id="menu_step_export_packaging_program" name="Programas de embalajes" parent="menu_step_export_ops" action="action_export_packaging_program" sequence="20" />
+  <menuitem id="menu_step_export_forecast" name="Forecast" parent="menu_step_export_ops" action="action_export_forecast" sequence="40" />
+  <menuitem id="menu_step_export_packing_list" name="Packing Lists" parent="menu_step_export_shipments" action="action_export_packing_list" sequence="40" />
+  <menuitem id="menu_step_export_fruit_bom" name="Listas de materiales de fruta" parent="menu_step_export_masters" action="action_export_fruit_bom" sequence="40" />
+  <menuitem id="menu_step_export_receiver_settlement" name="Liquidaciones recibidores" parent="menu_step_export_receivers" action="action_export_receiver_settlement" sequence="30" />
+  <menuitem id="menu_step_export_producer_settlement" name="Liquidaciones productores" parent="menu_step_export_receivers" action="action_export_producer_settlement" sequence="50" />
+  <menuitem id="menu_step_export_sale_orders" name="Notas de venta y proformas" parent="menu_step_export_shipments" action="action_export_sale_orders" sequence="20" />
+  <menuitem id="menu_step_export_invoices" name="Facturas de clientes" parent="menu_step_export_shipments" action="action_export_invoices" sequence="30" />
+  <menuitem id="menu_step_export_receivables" name="Cuenta corriente recibidores" parent="menu_step_export_receivers" action="action_export_receivables" sequence="10" />
+  <menuitem id="menu_step_export_payments" name="Pagos de clientes" parent="menu_step_export_receivers" action="action_export_payments" sequence="20" />
+  <menuitem id="menu_step_export_package_type" name="Tipos de pallet" parent="menu_step_export_masters" action="action_step_export_package_type" sequence="50" />
+  <menuitem id="menu_step_export_packaging" name="Embalajes" parent="menu_step_export_packing_masters" action="action_step_export_packaging" sequence="70" />
+  <menuitem id="menu_step_export_contacts" name="Contactos exportación" parent="menu_step_export_masters" action="action_step_export_contacts" sequence="10" />
+  <menuitem id="menu_step_export_products" name="Productos exportables" parent="menu_step_export_masters" action="action_step_export_product_templates" sequence="20" />
+  <menuitem id="menu_step_export_packing_masters" name="Packing" parent="menu_step_export_config" sequence="30" />
+  <menuitem id="menu_step_export_packing_line" name="Líneas de proceso" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_line" sequence="10" />
+  <menuitem id="menu_step_export_packing_process_type" name="Tipos de proceso" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_process_type" sequence="20" />
+  <menuitem id="menu_step_export_packing_tag_type" name="Tipos de tarja" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_tag_type" sequence="30" />
+  <menuitem id="menu_step_export_packing_tag_state" name="Estados de tarja" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_tag_state" sequence="40" />
+  <menuitem id="menu_step_export_packing_stop_reason" name="Causas de detención" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_stop_reason" sequence="50" />
+  <menuitem id="menu_step_export_packing_correction_reason" name="Causas de corrección" parent="menu_step_export_packing_masters" action="step_packing.action_step_packing_correction_reason" sequence="60" />
+  <menuitem id="menu_step_export_vessel" name="Nave" parent="menu_step_export_config_export" action="action_step_export_vessel" sequence="10" />
+  <menuitem id="menu_step_export_sale_mode" name="Modalidad de Venta" parent="menu_step_export_config_export" action="action_step_export_sale_mode" sequence="20" />
+  <menuitem id="menu_step_export_payment_concept" name="Concepto de Pago Productor" parent="menu_step_export_config_export" action="action_step_export_payment_concept" sequence="30" />
+  <menuitem id="menu_step_export_grower_discount" name="Ítem Productor (Descuento Liquidación)" parent="menu_step_export_config_export" action="action_step_export_grower_discount" sequence="40" />
+  <menuitem id="menu_step_export_grower_rate" name="Tarifa Productor" parent="menu_step_export_masters" action="action_step_export_grower_rate" sequence="30" />
+  <menuitem id="menu_step_export_shipping_instruction" name="Instructivo de Embarque" parent="menu_step_export_shipments" action="action_export_shipping_instructions" sequence="50" />
+  <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_shipments" action="action_step_export_dispatch_order" sequence="60" />
+  <menuitem id="menu_step_export_customer_claim" name="Reclamo de Clientes" parent="menu_step_export_receivers" action="action_step_export_customer_claim" sequence="40" />
+  <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_shipments" action="action_step_export_stock_reservation" sequence="70" />
+  <menuitem id="menu_step_export_vessel_tag" name="Nave (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_vessel_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_sale_mode_tag" name="Modalidad de Venta (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_sale_mode_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_grower_discount_tag" name="Ítem Productor (Descuento Liquidación) (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_grower_discount_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_grower_rate_tag" name="Tarifa Productor (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_grower_rate_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_shipping_instruction_tag" name="Instructivo de Embarque (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_shipping_instruction_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_export_tag" name="Exportación (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_export_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_estimate_tag" name="Estimación de Cosecha (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_estimate_tag" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_export_stage" name="Exportación (etapa)" parent="menu_step_export_config_technical" action="action_step_export_export_stage" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_estimate_stage" name="Estimación de Cosecha (etapa)" parent="menu_step_export_config_technical" action="action_step_export_estimate_stage" groups="base.group_no_one" />
+  <menuitem id="menu_step_export_export" name="Exportación" parent="menu_step_export_shipments" action="action_step_export_export" sequence="10" />
+  <menuitem id="menu_step_export_estimate" name="Estimación de Cosecha" parent="menu_step_export_ops" action="action_step_export_estimate" sequence="30" />
+  <menuitem id="menu_packing_fruta_estimate" name="Estimaciones" parent="step_packing.menu_packing_fruta_planning" action="action_step_export_estimate" sequence="10" />
+  <menuitem id="menu_packing_fruta_stock_reservation" name="Reservar Stock" parent="step_packing.menu_packing_fruta_receptions" action="action_step_export_stock_reservation" sequence="30" />
+  <menuitem id="menu_packing_fruta_dispatch_order" name="Orden de despacho" parent="step_packing.menu_packing_fruta_dispatch_root" action="action_step_export_dispatch_order" sequence="10" />
+  <menuitem id="menu_packing_fruta_vessel" name="Naves" parent="step_packing.menu_packing_fruta_config_export" action="action_step_export_vessel" sequence="10" />
+  <menuitem id="menu_step_export_clients" name="Clientes" parent="menu_step_export_masters" action="action_export_clients" sequence="5" />
+  <menuitem id="menu_step_export_shipment_report" name="Informe embarques" parent="menu_step_export_shipments" action="action_export_shipment_overview" sequence="45" />
+  <menuitem id="menu_step_export_traceability" name="Trazabilidad" parent="menu_step_export_receivers" action="action_export_traceability" sequence="45" />
+  <menuitem id="menu_step_export_shipment_expenses" name="Gastos por embarques" parent="menu_step_export_expenses" action="action_export_shipment_expenses" sequence="10" />
+  <menuitem id="menu_step_export_concept_expenses" name="Gastos por conceptos" parent="menu_step_export_expenses" action="action_export_concept_expenses" sequence="20" />
+  <menuitem id="menu_step_export_species" name="Especie" parent="menu_step_export_config_fruit" action="step_hr.action_step_especie" sequence="10" />
+  <menuitem id="menu_step_export_variety_group" name="Grupo variedad" parent="menu_step_export_config_fruit" action="step_hr.action_step_grupo_variedad" sequence="20" />
+  <menuitem id="menu_step_export_variety" name="Variedad" parent="menu_step_export_config_fruit" action="step_hr.action_step_variedad" sequence="30" />
+  <menuitem id="menu_step_export_caliber_group" name="Grupo de calibre" parent="menu_step_export_config_fruit" action="step_management_costs.action_caliber_group" sequence="40" />
+  <menuitem id="menu_step_export_caliber" name="Calibre de fruta" parent="menu_step_export_config_fruit" action="step_management_costs.action_fruit_caliber" sequence="50" />
+  <menuitem id="menu_step_export_category" name="Categoría de fruta" parent="menu_step_export_config_fruit" action="step_management_costs.action_fruit_category" sequence="60" />
+  <menuitem id="menu_step_export_payment_terms" name="Términos de pago" parent="menu_step_export_config_export" action="action_export_payment_terms" sequence="25" />
+  <menuitem id="menu_step_export_incoterms" name="Incoterms" parent="menu_step_export_config_export" action="action_export_incoterms" sequence="26" />
+  <menuitem id="menu_step_export_currencies" name="Monedas" parent="menu_step_export_config_export" action="action_export_currencies" sequence="27" />
+  <menuitem id="menu_step_export_legacy_instructions" name="Instructivos históricos" parent="menu_step_export_config_technical" action="action_step_export_shipping_instruction" groups="base.group_no_one" sequence="1" />
 </odoo>
