@@ -2,9 +2,12 @@
 
 Rama: `codex/packing-productores-exportaciones-qa`. Esta continuación amplía
 la [entrega anterior](QA_PACKING_PRODUCTORES_EXPORTACIONES_2026-10-05.md).
-El destino autorizado es Desarrollo y Demo para aceptación funcional antes
-de producción. Desplegado y verificado en ambos QA el 05-10-2026;
-la aceptación funcional sigue pendiente.
+La publicación del 05-10-2026 usó Desarrollo y Demo. **La decisión del cliente
+del 06-10-2026 la reemplaza: Desarrollo es el único QA y Demo queda fuera del
+circuito de publicación.** Los respaldos/evidencias de Demo que aparecen abajo
+son históricos. La aceptación funcional sigue pendiente.
+Consultar [operación vigente](OPERACION_ODOO_CANONICA.md) y
+[recorrido del jueves](REVISION_CLIENTE_2026-10-08.md) antes de publicar.
 
 ## Documento funcional revisado
 

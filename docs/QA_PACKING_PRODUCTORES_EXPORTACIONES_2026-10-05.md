@@ -3,6 +3,10 @@
 Esta nota registra la entrega inicial. Su costeo, separación de Productores y
 perfiles de equipos se amplían en la [continuación de pendientes](QA_AGRO_PENDIENTES_2026-10-05.md).
 
+**Política vigente desde el 06-10-2026: Desarrollo es el único QA.** Las
+publicaciones y respaldos de Demo mencionados en esta nota son históricos;
+no autorizan nuevas entregas allí. Leer [operación vigente](OPERACION_ODOO_CANONICA.md).
+
 Rama de entrega: `codex/packing-productores-exportaciones-qa`. Se consolidan
 `codex/t35-exterior-expenses-20261004` (79b612b) y
 `codex/t41-menu-groups-20261004` (14aee04), conservando los avances T30, T38 y T40.
@@ -51,8 +55,8 @@ Rama de entrega: `codex/packing-productores-exportaciones-qa`. Se consolidan
 
 ## Preparación de la prueba funcional
 
-1. Entrar a [Desarrollo](https://desarrollo.stepsapp.cl/web) o
-   [Demo](https://demo.stepsapp.cl/web) con permisos de Inventario. La aprobación
+1. Entrar a [Desarrollo](https://desarrollo.stepsapp.cl/web)
+   con permisos de Inventario. La aprobación
    de materiales, instructivos e inspecciones requiere administrador de Inventario;
    los consolidados y facturas requieren Contabilidad. Para operar ambas partes,
    el usuario necesita ambos permisos.
