@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 MODULES = ('step_management_costs', 'step_management_costs_agriculture',
            'step_management_costs_machinery', 'step_management_costs_tracker',
-           'step_agriculture_catalogs', 'step_producers')
+           'step_agriculture_catalogs', 'step_management_costs_producers')
 SUFFIXES = {'.py', '.xml', '.csv', '.js', '.scss', '.css', '.svg', '.png', '.jpg', '.md', '.rst'}
 
 

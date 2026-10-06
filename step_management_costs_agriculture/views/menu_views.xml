@@ -1,0 +1,9 @@
+<odoo>
+    <menuitem id="menu_config_season" name="Temporadas" action="step_hr.action_step_temporada" parent="step_management_costs.menu_management_configuration" sequence="10"/>
+    <menuitem id="menu_config_species" name="Especies" action="step_hr.action_step_especie" parent="step_management_costs.menu_management_configuration" sequence="20"/>
+    <menuitem id="menu_config_variety_group" name="Grupos de variedad" action="step_hr.action_step_grupo_variedad" parent="step_management_costs.menu_management_configuration" sequence="30"/>
+    <menuitem id="menu_config_variety" name="Variedades" action="step_hr.action_step_variedad" parent="step_management_costs.menu_management_configuration" sequence="40"/>
+    <menuitem id="menu_config_farm" name="Fundos" action="step_hr.action_step_fundo" parent="step_management_costs.menu_management_configuration" sequence="50"/>
+    <menuitem id="menu_config_sector" name="Sectores" action="step_hr.action_res_sector" parent="step_management_costs.menu_management_configuration" sequence="60"/>
+    <function model="step.management.dashboard" name="_normalize_management_menus"/>
+</odoo>

@@ -90,6 +90,7 @@ def make_center(env, plan, code, name, company, **vals):
     return env["account.analytic.account"].create(values)
 
 
+@tagged('post_install', '-at_install')
 class ManagementCostsCommon(TransactionCase):
     @classmethod
     def _extra_analytic_account_vals(cls, company):

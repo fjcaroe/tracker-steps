@@ -7,7 +7,7 @@
     "license": "LGPL-3",
     "depends": ["step_management_costs", "step_hr", "step_agriculture_catalogs"],
     "auto_install": True,
-    "data": ["views/estimation_catalog_views.xml", "views/cost_center_views.xml"],
+    "data": ["views/estimation_catalog_views.xml", "views/cost_center_views.xml", "views/menu_views.xml"],
     "installable": True,
     "application": False,
 }

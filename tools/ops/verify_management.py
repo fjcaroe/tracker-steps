@@ -34,7 +34,7 @@ try:
         assert env[name]._fields['company_ids'].type == 'many2many'
         assert not env[name]._fields['company_id'].required
         assert 'company_ids' in env[name].get_view(view_type='form')['arch']
-    if 'step_producers' in EXPECTED:
+    if 'step_management_costs_producers' in EXPECTED:
         assert env['step.export.estimate']._fields['cost_center_id'].comodel_name == 'account.analytic.account'
     if 'step_management_costs_tracker' in EXPECTED:
         assert env['step.tracker.cost_center']._fields['management_center_id'].comodel_name == 'account.analytic.account'

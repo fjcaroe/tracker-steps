@@ -21,7 +21,7 @@ import urllib.request
 
 HERE = Path(__file__).resolve().parent
 MODULES = ('step_management_costs', 'step_management_costs_agriculture', 'step_management_costs_machinery',
-           'step_management_costs_tracker', 'step_agriculture_catalogs', 'step_producers')
+           'step_management_costs_tracker', 'step_agriculture_catalogs', 'step_management_costs_producers')
 BUSINESS = ('step_management_operational_budget', 'step_management_budget_line', 'step_management_budget_center',
             'step_management_estimation', 'step_management_estimation_line', 'step_management_historical_cost',
             'step_management_plan', 'step_management_production_order', 'step_management_crop_program')
@@ -111,6 +111,9 @@ def main():
     for name, old in installed.items():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
     update = [name for name in MODULES if name in installed]
+    install = ['step_agriculture_catalogs']
+    if query(database, "SELECT 1 FROM ir_module_module WHERE name='step_producers' AND state='installed'"):
+        install.append('step_management_costs_producers')
     addon_paths = opts['addons_path'].split(',')
     baseline = {'config_sha256': digest(conf), 'modules': {}}
     for name in installed:
@@ -130,7 +133,7 @@ def main():
         run('sudo', '-u', 'postgres', 'createdb', '-O', opts['db_user'], qa_db)
         query(qa_db, 'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
         with (stage / 'source.dump').open('rb') as stream:
-            run('sudo', '-u', 'postgres', 'pg_restore', '--no-owner', '--role', opts['db_user'], '-d', qa_db, stdin=stream)
+            run('sudo', '-u', 'postgres', 'pg_restore', '--no-owner', '--no-comments', '--role', opts['db_user'], '-d', qa_db, stdin=stream)
         query(qa_db, 'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         data = stage / 'data'
         source_store = Path(opts['data_dir']) / 'filestore' / database
@@ -142,13 +145,13 @@ def main():
             os.chown(path, identity.pw_uid, identity.pw_gid)
         log = stage / ('qa-' + stamp + '.log')
         print('MANAGEMENT_QA_BEGIN ' + json.dumps({'database': qa_db, 'log': str(log), 'commit': proof['commit']}), flush=True)
-        tags = ','.join('/' + name for name in [*update, 'step_agriculture_catalogs'])
-        result = subprocess.run(base + options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data), '-i', 'step_agriculture_catalogs', '-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
+        tags = ','.join('/' + name for name in [*update, *install])
+        result = subprocess.run(base + options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data), '-i', ','.join(install), '-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         assert result.returncode == 0 and '0 failed, 0 error(s)' in text and not errors(text), 'QA failed: ' + str(log)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
-        verify(base, options, qa_db, staged, opts, proof, stage, installed)
+        verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
         (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log)}))
         print('MANAGEMENT_QA_OK ' + args.environment, flush=True)
         return
@@ -177,7 +180,7 @@ def main():
                 assert count == 1
                 conf.write_text(changed)
                 log = stage / ('deploy-' + stamp + '.log')
-                result = subprocess.run(base + options + ['-d', database, '-i', 'step_agriculture_catalogs', '-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
+                result = subprocess.run(base + options + ['-d', database, '-i', ','.join(install), '-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), str(log)
                 assert snapshot(database) == before, 'Business migration check failed'
@@ -194,7 +197,7 @@ def main():
             finally:
                 run('systemctl', 'start', service)
             print('MANAGEMENT_DEPLOY_OK backup=' + str(backup), flush=True)
-    verify(base, options, database, release_root, opts, proof, stage, installed)
+    verify(base, options, database, release_root, opts, proof, stage, {*installed, *install})
     run('systemctl', 'is-active', '--quiet', service)
     with urllib.request.urlopen(target['url'] + '/web/login?db=' + database, timeout=30) as response:
         assert response.status == 200 and b'password' in response.read()

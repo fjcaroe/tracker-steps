@@ -30,7 +30,7 @@ class StepExportEstimate(models.Model):
     species_id = fields.Many2one('step.especie', string='Especie')
     variety_group_id = fields.Many2one('step.grupo.variedad', string='Grupo Variedad')
     variety_id = fields.Many2one('step.variedad', string='Variedad')
-    cost_center_id = fields.Many2one('account.analytic.account', string='Centro de Costos', check_company=True)
+    cost_center_id = fields.Many2one('step.management.cost.center', string='Centro de Costos')
     season_id = fields.Many2one('step.temporada', string='Temporada')
     approved_by_id = fields.Many2one('hr.employee', string='Autoriza')
     estimate_version = fields.Char(string='Versión estimación')
