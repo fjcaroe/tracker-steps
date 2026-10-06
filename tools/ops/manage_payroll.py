@@ -176,7 +176,9 @@ def main():
             with (stage/'source.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
             run('sudo','-u','postgres','createdb','-O',opts['db_user'],qa_db)
             query(qa_db,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
-            with (stage/'source.dump').open('rb') as stream: run('sudo','-u','postgres','pg_restore','--no-owner','--no-comments','--role',opts['db_user'],'-d',qa_db,stdin=stream)
+            # Clones must not restore source-role ACLs/default privileges. The
+            # isolated database owner supplies all privileges required by Odoo.
+            with (stage/'source.dump').open('rb') as stream: run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',opts['db_user'],'-d',qa_db,stdin=stream)
             query(qa_db,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         data = stage/'data'
         source = Path(opts['data_dir'])/'filestore'/database
