@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class FreightRoute(models.Model):
@@ -32,10 +33,16 @@ class FreightTariff(models.Model):
     _order = "valid_from desc, id desc"
 
     x_name = fields.Char(string="Tarifa", required=True, tracking=True)
-    carrier_id = fields.Many2one("res.partner", string="Transportista", domain="[('supplier_rank', '>', 0)]", tracking=True)
-    route_id = fields.Many2one("x_tramo_de_flete", string="Tramo", required=True)
+    carrier_id = fields.Many2one("res.partner", string="Transportista", domain="[('is_freight_carrier', '=', True)]", tracking=True)
+    # route_id/price ya no son obligatorios a nivel de encabezado: desde la
+    # migración del formulario de Studio (ticket T27, puntos 3 y 4) el tramo y
+    # la tarifa se registran por línea (ver x_tarifa_de_fletes_line_57b07 en
+    # freight_studio.py). El formulario code-owned (prioridad 5) no expone
+    # estos dos campos de encabezado, así que si siguieran siendo required=True
+    # sería imposible guardar una tarifa nueva desde esa pantalla.
+    route_id = fields.Many2one("x_tramo_de_flete", string="Tramo")
     cold_mode_id = fields.Many2one("x_modalidad_de_frio", string="Modalidad de frío")
-    price = fields.Monetary(string="Valor", required=True, tracking=True)
+    price = fields.Monetary(string="Valor", tracking=True)
     valid_from = fields.Date(string="Vigente desde", default=fields.Date.context_today)
     valid_to = fields.Date(string="Vigente hasta")
     x_active = fields.Boolean(string="Activa", default=True)
@@ -58,12 +65,14 @@ class FreightOrder(models.Model):
         tracking=True,
     )
     x_studio_fundo = fields.Many2one("step.fundo", string="Fundo", tracking=True)
-    x_studio_transportista = fields.Many2one("res.partner", string="Transportista", domain="[('supplier_rank', '>', 0)]", tracking=True)
+    x_studio_transportista = fields.Many2one("res.partner", string="Transportista", domain="[('is_freight_carrier', '=', True)]", tracking=True)
     x_studio_responsable = fields.Many2one("hr.employee", string="Responsable", tracking=True)
     route_id = fields.Many2one("x_tramo_de_flete", string="Tramo")
     tariff_id = fields.Many2one("x_tarifa_de_fletes", string="Tarifa")
     cold_mode_id = fields.Many2one("x_modalidad_de_frio", string="Modalidad de frío")
-    vehicle_id = fields.Many2one("fleet.vehicle", string="Camión")
+    vehicle_id = fields.Many2one(
+        "fleet.vehicle", string="Camión", domain="[('category_id.name', 'ilike', 'carga')]"
+    )
     quantity = fields.Float(string="Cantidad")
     amount = fields.Monetary(string="Valor", compute="_compute_amount", store=True)
     currency_id = fields.Many2one(related="company_id.currency_id", store=True)
@@ -102,3 +111,106 @@ class FreightTracking(models.Model):
     latitude = fields.Float(string="Latitud", digits=(10, 7))
     longitude = fields.Float(string="Longitud", digits=(10, 7))
     note = fields.Char(string="Observación")
+
+
+class FreightDispatchType(models.Model):
+    _name = "x_tipo_despacho"
+    _description = "Tipo de despacho"
+    _order = "x_name"
+
+    x_name = fields.Char(string="Tipo de despacho", required=True)
+    paga_flete = fields.Selection(
+        [("no", "No"), ("opcional", "Opcional"), ("si", "Sí")],
+        string="¿Paga flete?",
+        default="no",
+        required=True,
+    )
+    x_active = fields.Boolean(string="Activo", default=True)
+    company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
+
+
+class FreightPlan(models.Model):
+    _name = "x_planificacion_de_flete"
+    _description = "Planificación de flete"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _order = "x_studio_fecha desc, id desc"
+
+    x_name = fields.Char(string="Planificación", required=True, default="Nueva planificación", tracking=True)
+    x_studio_fecha = fields.Date(string="Fecha", default=fields.Date.context_today, tracking=True)
+    date_from = fields.Date(string="Fecha desde", tracking=True)
+    date_to = fields.Date(string="Fecha hasta", tracking=True)
+    x_studio_fundo = fields.Many2one("step.fundo", string="Fundo", tracking=True)
+    x_studio_responsable = fields.Many2one("hr.employee", string="Responsable", tracking=True)
+    state = fields.Selection(
+        [("draft", "Creado"), ("validated", "Validado")],
+        string="Estado",
+        default="draft",
+        required=True,
+        tracking=True,
+    )
+    line_ids = fields.One2many("x_planificacion_de_flete_linea", "plan_id", string="Líneas de flete")
+    amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
+    currency_id = fields.Many2one(related="company_id.currency_id", store=True)
+    company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
+
+    @api.constrains("date_from", "date_to")
+    def _check_date_range(self):
+        for plan in self:
+            if plan.date_from and plan.date_to and plan.date_from > plan.date_to:
+                raise ValidationError("La fecha desde no puede ser posterior a la fecha hasta.")
+
+    @api.depends("line_ids.amount_total", "line_ids.currency_id", "company_id", "x_studio_fecha")
+    def _compute_amount_total(self):
+        for plan in self:
+            conversion_date = plan.x_studio_fecha or fields.Date.context_today(plan)
+            total = 0.0
+            for line in plan.line_ids:
+                if line.currency_id and line.currency_id != plan.currency_id:
+                    total += line.currency_id._convert(
+                        line.amount_total, plan.currency_id, plan.company_id, conversion_date
+                    )
+                else:
+                    total += line.amount_total
+            plan.amount_total = total
+
+    def action_validate(self):
+        for plan in self:
+            if not plan.line_ids:
+                raise ValidationError("No se puede validar una planificación sin líneas de flete.")
+            plan.state = "validated"
+
+    def action_reset_to_draft(self):
+        self.state = "draft"
+
+
+class FreightPlanLine(models.Model):
+    _name = "x_planificacion_de_flete_linea"
+    _description = "Línea de planificación de flete"
+    _order = "id"
+
+    plan_id = fields.Many2one("x_planificacion_de_flete", string="Planificación", required=True, ondelete="cascade")
+    description = fields.Char(string="Descripción")
+    product_id = fields.Many2one(
+        "product.template", string="Producto", required=True, domain="[('is_flete', '=', True)]"
+    )
+    uom_id = fields.Many2one(related="product_id.uom_id", string="Unidad de flete", store=True)
+    quantity = fields.Float(string="Cantidad", default=1.0)
+    price = fields.Monetary(string="Precio")
+    currency_id = fields.Many2one(
+        "res.currency", string="Moneda", default=lambda self: self.env.company.currency_id.id
+    )
+    amount_total = fields.Monetary(string="Total flete", compute="_compute_amount_total", store=True)
+
+    @api.depends("quantity", "price")
+    def _compute_amount_total(self):
+        for line in self:
+            line.amount_total = (line.quantity or 0.0) * (line.price or 0.0)
+
+    @api.constrains("product_id")
+    def _check_product_is_flete(self):
+        for line in self:
+            if line.product_id and not line.product_id.is_flete:
+                raise ValidationError(
+                    "El producto de la línea de flete debe estar marcado como "
+                    "'Es flete?' en el maestro de productos."
+                )

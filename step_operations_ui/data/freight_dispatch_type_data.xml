@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="freight_dispatch_type_retira_cliente" model="x_tipo_despacho">
+        <field name="x_name">Retira cliente</field>
+        <field name="paga_flete">no</field>
+    </record>
+    <record id="freight_dispatch_type_despacho_cliente" model="x_tipo_despacho">
+        <field name="x_name">Despacho a cliente</field>
+        <field name="paga_flete">opcional</field>
+    </record>
+    <record id="freight_dispatch_type_despacho_tercero" model="x_tipo_despacho">
+        <field name="x_name">Despacho a tercero</field>
+        <field name="paga_flete">opcional</field>
+    </record>
+</odoo>
