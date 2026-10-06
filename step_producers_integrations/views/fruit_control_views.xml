@@ -1,0 +1,62 @@
+<odoo>
+    <record id="view_producer_packing_control" model="ir.ui.view">
+        <field name="name">step.fruit.package.line.producer.packing.list</field>
+        <field name="model">step.fruit.package.line</field>
+        <field name="arch" type="xml"><list create="0" edit="0" delete="0">
+            <field name="control_process_date"/><field name="producer_id"/>
+            <field name="control_species_id"/><field name="control_variety_id"/>
+            <field name="control_caliber_id"/><field name="control_process_ids" widget="many2many_tags"/>
+            <field name="lot_id"/><field name="product_id" string="Embalaje"/>
+            <field name="package_id" string="Tarja"/>
+            <field name="boxes" string="Envases" sum="Total envases"/>
+            <field name="kilos" string="Kilos exportación" sum="Total kilos"/>
+            <field name="control_tag_state"/><field name="control_pending_kg" sum="Kilos por exportar"/>
+            <button name="action_open_control_tag" type="object" string="Ver tarja" icon="fa-external-link"/>
+        </list></field>
+    </record>
+    <record id="view_producer_shipment_control" model="ir.ui.view">
+        <field name="name">step.fruit.package.line.producer.shipment.list</field>
+        <field name="model">step.fruit.package.line</field>
+        <field name="arch" type="xml"><list create="0" edit="0" delete="0">
+            <field name="control_shipment_folio"/><field name="control_shipment_date"/>
+            <field name="control_shipment_ids" widget="many2many_tags" optional="hide"/>
+            <field name="package_id" string="Pallet / tarja"/><field name="control_tag_date"/>
+            <field name="producer_id"/><field name="lot_id"/><field name="control_variety_id"/>
+            <field name="product_id"/><field name="uom_id"/><field name="control_packaging_id"/>
+            <field name="control_label"/><field name="control_category_id"/><field name="control_caliber_id"/>
+            <field name="control_pallet_qty" sum="Total pallets"/>
+            <field name="boxes" sum="Total cajas"/><field name="kilos" sum="Total kilos"/>
+            <field name="control_fob_unit_usd"/><field name="control_fob_usd" sum="FOB liquidado USD"/>
+            <field name="control_tag_state"/><field name="control_settlement_ids" widget="many2many_tags"/>
+            <button name="action_open_control_tag" type="object" string="Ver tarja" icon="fa-external-link"/>
+        </list></field>
+    </record>
+    <record id="view_producer_fruit_control_search" model="ir.ui.view">
+        <field name="name">step.fruit.package.line.producer.control.search</field>
+        <field name="model">step.fruit.package.line</field>
+        <field name="arch" type="xml"><search>
+            <field name="producer_id"/><field name="package_id"/><field name="control_process_ids"/>
+            <field name="control_shipment_ids"/><field name="product_id"/><field name="control_variety_id"/>
+            <filter name="pending" string="Por exportar" domain="[('package_id.step_tag_state','=','validated')]"/>
+            <filter name="liquidated" string="Liquidadas" domain="[('package_id.step_tag_state','=','liquidated')]"/>
+            <group><filter name="producer" string="Productor" context="{'group_by':'producer_id'}"/>
+                <filter name="tag" string="Tarja" context="{'group_by':'package_id'}"/>
+                <filter name="product" string="Producto" context="{'group_by':'product_id'}"/></group>
+        </search></field>
+    </record>
+    <record id="action_producer_packing_control" model="ir.actions.act_window">
+        <field name="name">Procesos de packing</field><field name="res_model">step.fruit.package.line</field>
+        <field name="view_mode">list</field><field name="view_id" ref="view_producer_packing_control"/>
+        <field name="search_view_id" ref="view_producer_fruit_control_search"/>
+        <field name="domain">[('package_id.is_fruit_tag','=',True),('package_id.step_tag_kind','=','E'),('control_process_ids.company_id','in',allowed_company_ids),('package_id.step_tag_state','in',['validated','dispatched','liquidated'])]</field>
+    </record>
+    <record id="action_producer_shipment_control" model="ir.actions.act_window">
+        <field name="name">Embarques por productor</field><field name="res_model">step.fruit.package.line</field>
+        <field name="view_mode">list</field><field name="view_id" ref="view_producer_shipment_control"/>
+        <field name="search_view_id" ref="view_producer_fruit_control_search"/>
+        <field name="domain">[('package_id.is_fruit_tag','=',True),('package_id.step_tag_kind','=','E'),('control_shipment_ids.company_id','in',allowed_company_ids),('control_shipment_ids.state','in',['dispatched','shipped','invoiced','settled'])]</field>
+    </record>
+    <record id="step_producer_fruit_flow.menu_producer_shipments" model="ir.ui.menu">
+        <field name="action" ref="action_producer_shipment_control"/>
+    </record>
+</odoo>

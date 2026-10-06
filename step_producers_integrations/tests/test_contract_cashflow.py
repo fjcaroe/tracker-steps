@@ -81,6 +81,6 @@ class TestContractCashflow(TransactionCase):
         contract.accounting_move_id.button_draft()
         self.assertFalse([l for l in self._flow()._collect_vendor() if l["source_model"] == contract._name and l["source_id"] == contract.id])
 
-    def test_packing_menu_opens_existing_work_orders(self):
+    def test_packing_menu_opens_original_tag_content(self):
         self.assertEqual(self.env.ref("step_producer_fruit_flow.menu_producer_packing_tags").action,
-                         self.env.ref("step_packing_operations.action_packing_production"))
+                         self.env.ref("step_producers_integrations.action_producer_packing_control"))

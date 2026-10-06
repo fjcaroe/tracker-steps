@@ -1,5 +1,5 @@
 <odoo>
     <record id="step_producer_fruit_flow.menu_producer_packing_tags" model="ir.ui.menu">
-        <field name="action" ref="step_packing_operations.action_packing_production"/>
+        <field name="action" ref="action_producer_packing_control"/>
     </record>
 </odoo>

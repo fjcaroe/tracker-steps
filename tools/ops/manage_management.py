@@ -114,7 +114,7 @@ def main():
     if PRODUCERS:
         assert args.environment == 'development', 'Producer revisions are QA-only'
         MODULES = ('step_producers', 'step_producer_fruit_flow', 'step_export', 'step_producers_integrations')
-        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename IN ('res_company','res_partner','res_partner_bank','product_template','product_product','mrp_bom','mrp_bom_line','ir_config_parameter')) ORDER BY tablename").splitlines())
+        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename IN ('res_company','res_partner','res_partner_bank','mrp_bom','mrp_bom_line','ir_config_parameter')) ORDER BY tablename").splitlines())
     if SETTINGS:
         assert args.environment == 'development', 'Settings repair is QA-only'
         MODULES = ('step_inventory_packing',) if args.kind == 'fruit-reception' else ('step_account_treasury_batch', 'step_dispatch_guide')

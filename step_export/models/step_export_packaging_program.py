@@ -9,6 +9,38 @@ class ExportBOM(models.Model):
 
     step_export_fruit = fields.Boolean(string="Lista para embalaje de fruta")
     step_export_boxes_per_pallet = fields.Float(string="Cajas por pallet")
+    step_export_packaging_category_id = fields.Many2one(
+        'product.category', compute='_compute_packaging_category', string='Categoría de materiales')
+
+    @api.model
+    def _packaging_material_domain(self):
+        # The functional document's "6" is the category label, not a database ID.
+        categories = self.env['product.category'].search([('name', 'in', [
+            '6 Materiales de embalaje', '6 Materiales de embalajes',
+            'Materiales de embalaje', 'Materiales de embalajes'])])
+        roots = categories.filtered(lambda category: not any(
+            category.parent_path.startswith(other.parent_path)
+            for other in categories if other != category))
+        if len(roots) > 1:
+            raise ValidationError(_('Hay varias categorías de materiales de embalaje. Unifique el maestro antes de seleccionar componentes.'))
+        return [('categ_id', 'child_of', roots.ids)]
+
+    def _compute_packaging_category(self):
+        category_ids = self._packaging_material_domain()[0][2]
+        for bom in self:
+            bom.step_export_packaging_category_id = category_ids[0] if category_ids else False
+
+
+class PackagingMaterialAction(models.Model):
+    _inherit = 'product.product'
+
+    @api.model
+    def action_producer_packaging_materials(self):
+        return {
+            'type': 'ir.actions.act_window', 'name': _('Materiales de embalajes'),
+            'res_model': 'product.product', 'view_mode': 'list,form',
+            'domain': self.env['mrp.bom']._packaging_material_domain(),
+        }
 
 
 class ExportBOMLine(models.Model):

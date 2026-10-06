@@ -8,6 +8,12 @@
         <field name="view_mode">list,form</field>
         <field name="domain">[('bom_line_ids.bom_id.step_export_fruit', '=', True)]</field>
     </record>
-    <menuitem id="menu_producer_packaging_materials" name="Materiales de embalajes" parent="step_producers.menu_step_producers_masters_group" action="action_producer_packaging_materials" sequence="30"/>
+    <record id="action_producer_packaging_materials_category" model="ir.actions.server">
+        <field name="name">Materiales de embalajes</field>
+        <field name="model_id" ref="product.model_product_product"/>
+        <field name="state">code</field>
+        <field name="code">action = env['product.product'].action_producer_packaging_materials()</field>
+    </record>
+    <menuitem id="menu_producer_packaging_materials" name="Materiales de embalajes" parent="step_producers.menu_step_producers_masters_group" action="action_producer_packaging_materials_category" sequence="30"/>
     <menuitem id="menu_producer_fruit_bom" name="Lista de materiales" parent="step_producers.menu_step_producers_masters_group" action="action_export_fruit_bom" sequence="40" groups="mrp.group_mrp_user"/>
 </odoo>

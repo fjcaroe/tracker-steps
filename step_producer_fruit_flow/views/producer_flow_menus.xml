@@ -11,13 +11,15 @@
         <field name="name">Recepciones para proceso</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">list,form</field>
-        <field name="domain">[('step_fruit_reception_kind', '=', 'process'), ('state', '=', 'done')]</field>
+        <field name="domain">[('step_fruit_reception_kind', '=', 'process'), ('picking_type_code', '=', 'incoming')]</field>
+        <field name="context">{'default_step_fruit_reception_kind': 'process'}</field>
     </record>
     <record id="action_producer_packed_receptions" model="ir.actions.act_window">
         <field name="name">Recepciones embaladas</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">list,form</field>
-        <field name="domain">[('step_fruit_reception_kind', '=', 'packed'), ('state', '=', 'done')]</field>
+        <field name="domain">[('step_fruit_reception_kind', '=', 'packed'), ('picking_type_code', '=', 'incoming')]</field>
+        <field name="context">{'default_step_fruit_reception_kind': 'packed'}</field>
     </record>
     <record id="action_producer_packing_tags" model="ir.actions.act_window">
         <field name="name">Fruta embalada en packing</field>
