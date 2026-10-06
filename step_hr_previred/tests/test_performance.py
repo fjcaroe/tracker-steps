@@ -69,12 +69,18 @@ class TestPerformance(PreviredCase):
             """, (cls.company.id, uid, uid, count - 1))
         resource_ids = [row[0] for row in cr.fetchall()]
 
+        # Colaciones is optional and is not a dependency of Previred. Supply
+        # its required default only when that extension has a stored column.
+        cr.execute("""SELECT 1 FROM information_schema.columns
+                      WHERE table_name='hr_employee'
+                        AND column_name='meal_distribution_mode'""")
+        meals_installed = bool(cr.fetchone())
         cr.execute(
             """
             INSERT INTO hr_employee
                 (name, identification_id, company_id, department_id,
                  resource_id, employee_type, marital,
-                 distance_home_work_unit, meal_distribution_mode, active,
+                 distance_home_work_unit, {meal_column} active,
                  create_uid, create_date, write_uid, write_date)
             SELECT 'Trabajador ' || (r.ord - 1),
                    -- `WITH ORDINALITY` empieza en 1: el desplazamiento debe
@@ -82,11 +88,13 @@ class TestPerformance(PreviredCase):
                    (%s + r.ord - 1)::text || '-1',
                    %s,
                    CASE WHEN (r.ord - 1) %% 2 = 1 THEN %s ELSE %s END,
-                   r.id, 'employee', 'single', 'kilometers', 'employee', TRUE,
+                   r.id, 'employee', 'single', 'kilometers', {meal_value} TRUE,
                    %s, now(), %s, now()
             FROM unnest(%s::int[]) WITH ORDINALITY AS r(id, ord)
             RETURNING id
-            """, (first, cls.company.id, cls.dep_agri.id, cls.dep_admin.id,
+            """.format(meal_column='meal_distribution_mode,' if meals_installed else '',
+                       meal_value="'employee'," if meals_installed else ''),
+            (first, cls.company.id, cls.dep_agri.id, cls.dep_admin.id,
                   uid, uid, resource_ids))
         employee_ids = [row[0] for row in cr.fetchall()]
 
