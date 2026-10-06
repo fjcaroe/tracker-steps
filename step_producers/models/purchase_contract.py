@@ -4,6 +4,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare
 
+_PROVISION_LINK = object()
+
 
 class ProducerPurchaseContract(models.Model):
     _name = "step.producer.purchase.contract"
@@ -73,6 +75,8 @@ class ProducerPurchaseContract(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        if any(vals.get("accounting_move_id") for vals in vals_list):
+            raise UserError(_("El asiento se genera con Contabilizar contrato."))
         for vals in vals_list:
             if vals.get("name", _("Nuevo")) == _("Nuevo"):
                 vals["name"] = self.env["ir.sequence"].next_by_code(
@@ -93,6 +97,8 @@ class ProducerPurchaseContract(models.Model):
             contract.scheduled_total = sum(contract.installment_ids.filtered("active").mapped("amount"))
 
     def write(self, vals):
+        if "accounting_move_id" in vals and self.env.context.get("_producer_provision_link") is not _PROVISION_LINK:
+            raise UserError(_("El asiento se vincula únicamente al contabilizar el contrato."))
         if "state" in vals and not self.env.su:
             raise UserError(_("Cambie el estado con los botones del contrato."))
         frozen = {"partner_id", "currency_id", "company_id", "date_start", "date_end"}
@@ -262,9 +268,9 @@ class ProducerPurchaseContract(models.Model):
                 "ref": contract.name, "line_ids": lines,
             })
             move.action_post()
-            contract.accounting_move_id = move
+            contract.with_context(_producer_provision_link=_PROVISION_LINK).accounting_move_id = move
             for installment in installments:
-                installment.provision_line_id = move.line_ids.filtered(
+                installment.with_context(_producer_provision_link=_PROVISION_LINK).provision_line_id = move.line_ids.filtered(
                     lambda line: line.step_producer_installment_id == installment
                     and line.account_id == contract.provision_account_id)
         return True
@@ -415,6 +421,12 @@ class ProducerPurchaseContractInstallment(models.Model):
     _order = "contract_id, sequence, date_due, id"
     _check_company_auto = True
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        if any(vals.get("provision_line_id") for vals in vals_list):
+            raise UserError(_("El apunte de provisión se genera al contabilizar el contrato."))
+        return super().create(vals_list)
+
     contract_id = fields.Many2one("step.producer.purchase.contract", required=True,
                                   ondelete="cascade", index=True)
     company_id = fields.Many2one(related="contract_id.company_id", store=True, readonly=True)
@@ -464,6 +476,8 @@ class ProducerPurchaseContractInstallment(models.Model):
                 raise ValidationError(_("La cantidad de la cuota debe ser positiva."))
 
     def write(self, vals):
+        if "provision_line_id" in vals and self.env.context.get("_producer_provision_link") is not _PROVISION_LINK:
+            raise UserError(_("El apunte se vincula únicamente al contabilizar el contrato."))
         if "state" in vals and not self.env.su:
             raise UserError(_("Cambie el estado con las acciones de la cuota."))
         if "active" in vals and not self.env.su:

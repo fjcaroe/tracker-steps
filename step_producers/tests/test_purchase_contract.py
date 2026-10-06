@@ -115,6 +115,10 @@ class TestProducerPurchaseContract(TransactionCase):
             contract.installment_ids.with_user(user).write({"state": "accounted"})
         with self.assertRaises(UserError):
             contract.product_line_ids.with_user(user).write({"debit_account_id": False})
+        with self.assertRaises(UserError):
+            contract.installment_ids.with_user(user).write({"provision_line_id": False})
+        with self.assertRaises(UserError):
+            contract.with_user(user).write({"accounting_move_id": False})
         action = contract.with_user(user).action_revise()
         self.assertEqual(contract.browse(action["res_id"]).version, 2)
 
