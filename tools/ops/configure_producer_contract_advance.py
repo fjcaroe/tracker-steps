@@ -6,7 +6,7 @@ validate in the target clone before applying to Desarrollo. No accounts,
 products, journal types or user permissions are created or replaced.
 """
 def configure_advance(company_id, product_id, account_id, account_code,
-                      journal_id, provision_account_id):
+                      journal_id, provision_account_id, reclassify_empty_contract_journal=False):
     assert env.cr.dbname == 'LAB_TAREAS' or env.cr.dbname.startswith('MANAGEMENT_QA_DEVELOPMENT_')
     company = env['res.company'].browse(company_id).exists()
     product = env['product.product'].browse(product_id).exists()
@@ -21,6 +21,15 @@ def configure_advance(company_id, product_id, account_id, account_code,
     assert company in provision.company_ids and not provision.deprecated
     assert provision.account_type.startswith('liability_')
     assert journal.company_id == company and journal.type in ('general', 'purchase')
+    if reclassify_empty_contract_journal:
+        # A never-used contract journal can become a general journal without
+        # replacing the master or changing any fiscal/posted documents.
+        assert not env['account.move'].search_count([('journal_id', '=', journal.id)])
+        for name, field in company._fields.items():
+            if field.type == 'many2one' and field.comodel_name == 'account.journal':
+                assert company[name] != journal, 'Journal already used by company setting: ' + name
+        journal.write({'type': 'general', 'l10n_latam_use_documents': False})
+    assert not journal.l10n_latam_use_documents, 'Provisions must use a journal without fiscal documents'
     assert company.step_producer_advance_account_id in (account, env['account.account'])
     assert company.step_producer_advance_product_id in (product, env['product.product'])
     # Extend a nonempty whitelist only with the client-approved advance account.
