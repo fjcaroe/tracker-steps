@@ -68,8 +68,8 @@
                     <section class="o_steps_ops_panel">
                         <header><div><span>OPERACIÓN RECIENTE</span><h2>Últimas órdenes de flete</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')">Ver todas</button></header>
                         <div t-if="state.data.recent.length" class="o_steps_ops_recent">
-                            <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRecord('x_orden_de_flete', row.id)">
-                                <i class="fa fa-truck"/><span><b t-esc="row.x_name || 'Orden sin folio'"/><small><t t-esc="many2oneName(row.x_studio_fundo, 'Sin fundo')"/> · <t t-esc="many2oneName(row.x_studio_transportista, 'Sin transportista')"/> · <t t-esc="many2oneName(row.route_id, 'Sin tramo')"/></small></span><strong class="o_steps_ops_amount" t-esc="formatCurrency(row.freight_value)"/><strong t-esc="stateLabel(row.x_studio_selection_field_4ag_1jhk4c7s5)"/><time t-esc="formatDate(row.x_studio_fecha)"/>
+                            <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRecord('step.freight.order', row.id)">
+                                <i class="fa fa-truck"/><span><b t-esc="row.name || 'Orden sin folio'"/><small><t t-esc="many2oneName(row.fundo_id, 'Sin fundo')"/> · <t t-esc="many2oneName(row.freight_carrier_id, 'Sin transportista')"/> · <t t-esc="many2oneName(row.route_id, 'Sin tramo')"/></small></span><strong class="o_steps_ops_amount" t-esc="formatCurrency(row.freight_value)"/><strong t-esc="stateLabel(row.freight_state)"/><time t-esc="formatDate(row.date)"/>
                             </button>
                         </div>
                         <div t-else="" class="o_steps_ops_empty">Aún no hay órdenes de flete registradas.</div>

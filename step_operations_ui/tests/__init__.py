@@ -1,5 +1,5 @@
 from . import test_freight_plan
 from . import test_freight_dispatch_type
 from . import test_freight_report
-from . import test_freight_studio
+from . import test_freight_operations
 from . import test_freight_masters

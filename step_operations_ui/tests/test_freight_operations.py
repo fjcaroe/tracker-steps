@@ -7,7 +7,7 @@ class TestFreightStudioCosting(TransactionCase):
     """Puntos 3 y 4 del documento T27 (migración del formulario Studio a código):
     Tarifas por tramo/modalidad de frío/servicio de flete, y el costeo +
     contabilización del Registro de fletes (botones Calcular costeo /
-    Contabilizar en x_orden_de_flete).
+    Contabilizar en step.freight.order).
     """
 
     @classmethod
@@ -50,18 +50,18 @@ class TestFreightStudioCosting(TransactionCase):
         })
         cls.company.freight_provision_journal_id = cls.journal.id
 
-        cls.route = cls.env["x_tramo_de_flete"].create({
-            "x_name": "QA Ruta Norte",
+        cls.route = cls.env["step.freight.route"].create({
+            "name": "QA Ruta Norte",
             "origin": "Planta",
             "destination": "Puerto",
         })
-        cls.other_route = cls.env["x_tramo_de_flete"].create({
-            "x_name": "QA Ruta Sur",
+        cls.other_route = cls.env["step.freight.route"].create({
+            "name": "QA Ruta Sur",
             "origin": "Planta",
             "destination": "Frontera",
         })
-        cls.cold_mode = cls.env["x_modalidad_de_frio"].create({
-            "x_name": "QA Refrigerado",
+        cls.cold_mode = cls.env["step.freight.cold.mode"].create({
+            "name": "QA Refrigerado",
             "min_temperature": -2,
             "max_temperature": 4,
         })
@@ -82,121 +82,121 @@ class TestFreightStudioCosting(TransactionCase):
             else cls.expense_account.id,
         })
 
-        cls.tariff = cls.env["x_tarifa_de_fletes"].create({
-            "x_name": "Tarifa QA",
-            "x_studio_transportista": cls.carrier.id,
-            "x_studio_vigencia_desde": "2026-01-01",
-            "x_studio_one2many_field_61q_1jhk3j03r": [
+        cls.tariff = cls.env["step.freight.tariff"].create({
+            "name": "Tarifa QA",
+            "freight_carrier_id": cls.carrier.id,
+            "effective_from": "2026-01-01",
+            "tariff_line_ids": [
                 (0, 0, {
-                    "x_studio_tramo_de_flete": cls.route.id,
+                    "route_id": cls.route.id,
                     "service_product_id": cls.freight_product.id,
-                    "x_studio_modalidad_de_tarifa": "Por UdM",
-                    "x_studio_tarifa_flete": 1000.0,
+                    "tariff_basis": "Por UdM",
+                    "freight_rate": 1000.0,
                 }),
                 (0, 0, {
-                    "x_studio_tramo_de_flete": cls.route.id,
-                    "x_studio_modalidad_de_fro": cls.cold_mode.id,
+                    "route_id": cls.route.id,
+                    "cold_mode_id": cls.cold_mode.id,
                     "service_product_id": cls.freight_product.id,
-                    "x_studio_modalidad_de_tarifa": "Por UdM",
-                    "x_studio_tarifa_flete": 1500.0,
+                    "tariff_basis": "Por UdM",
+                    "freight_rate": 1500.0,
                 }),
                 (0, 0, {
-                    "x_studio_tramo_de_flete": cls.other_route.id,
+                    "route_id": cls.other_route.id,
                     "service_product_id": cls.other_freight_product.id,
-                    "x_studio_modalidad_de_tarifa": "Por viaje",
-                    "x_studio_tarifa_flete": 90000.0,
+                    "tariff_basis": "Por viaje",
+                    "freight_rate": 90000.0,
                 }),
             ],
         })
 
     def _order(self, **values):
         vals = {
-            "x_name": "Orden QA",
-            "x_studio_fecha": "2026-10-01",
-            "x_studio_lista_de_tarifa_flete": self.tariff.id,
+            "name": "Orden QA",
+            "date": "2026-10-01",
+            "price_list_id": self.tariff.id,
         }
         vals.update(values)
-        return self.env["x_orden_de_flete"].create(vals)
+        return self.env["step.freight.order"].create(vals)
 
     # --- Tarifas (punto 3): tramo, modalidad de frío y servicio de flete ---
 
     def test_tariff_line_exposes_route_cold_mode_and_service(self):
-        line = self.tariff.x_studio_one2many_field_61q_1jhk3j03r[0]
-        self.assertEqual(line.x_studio_tramo_de_flete, self.route)
+        line = self.tariff.tariff_line_ids[0]
+        self.assertEqual(line.route_id, self.route)
         self.assertEqual(line.service_product_id, self.freight_product)
-        self.assertEqual(line.x_studio_km_desde, self.route.x_studio_km_desde)
+        self.assertEqual(line.km_from, self.route.km_from)
 
     # --- Costeo (punto 4): action_cost_freight ---
 
     def test_cost_freight_computes_value_as_quantity_times_rate(self):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
-            "x_studio_tramo": self.route.id,
+        order = self._order(detail_ids=[(0, 0, {
+            "route_id": self.route.id,
             "service_product_id": self.freight_product.id,
-            "x_studio_cantidad": 3,
+            "quantity": 3,
         })])
         order.action_cost_freight()
-        detail = order.x_studio_one2many_field_9na_1jhk4lspn
-        self.assertEqual(detail.x_studio_tarifa, 1000.0)
-        self.assertEqual(detail.x_studio_valor_del_flete, 3000.0)
-        costs = order.x_studio_one2many_field_8gj_1jhk6aj15
+        detail = order.detail_ids
+        self.assertEqual(detail.unit_rate, 1000.0)
+        self.assertEqual(detail.freight_value, 3000.0)
+        costs = order.cost_ids
         self.assertEqual(len(costs), 1)
-        self.assertEqual(costs.x_studio_servicio_flete, self.freight_product)
-        self.assertEqual(costs.x_studio_costo_flete, 3000.0)
-        self.assertEqual(costs.x_studio_cuenta, self.expense_account)
+        self.assertEqual(costs.service_product_id, self.freight_product)
+        self.assertEqual(costs.freight_cost, 3000.0)
+        self.assertEqual(costs.expense_account_id, self.expense_account)
 
     def test_cost_freight_picks_tariff_line_by_cold_mode(self):
-        order = self._order(cold_mode_id=self.cold_mode.id, x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
-            "x_studio_tramo": self.route.id,
+        order = self._order(cold_mode_id=self.cold_mode.id, detail_ids=[(0, 0, {
+            "route_id": self.route.id,
             "service_product_id": self.freight_product.id,
-            "x_studio_cantidad": 2,
+            "quantity": 2,
         })])
         order.action_cost_freight()
-        detail = order.x_studio_one2many_field_9na_1jhk4lspn
+        detail = order.detail_ids
         # Debe tomar la línea de tarifa en frío (1500), no la estándar (1000).
-        self.assertEqual(detail.x_studio_tarifa, 1500.0)
-        self.assertEqual(detail.x_studio_valor_del_flete, 3000.0)
+        self.assertEqual(detail.unit_rate, 1500.0)
+        self.assertEqual(detail.freight_value, 3000.0)
 
     def test_cost_freight_per_trip_mode_ignores_quantity(self):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
-            "x_studio_tramo": self.other_route.id,
+        order = self._order(detail_ids=[(0, 0, {
+            "route_id": self.other_route.id,
             "service_product_id": self.other_freight_product.id,
-            "x_studio_cantidad": 7,
+            "quantity": 7,
         })])
         order.action_cost_freight()
-        detail = order.x_studio_one2many_field_9na_1jhk4lspn
-        self.assertEqual(detail.x_studio_tarifa, 90000.0)
+        detail = order.detail_ids
+        self.assertEqual(detail.unit_rate, 90000.0)
         # Modalidad "Por viaje": el valor no se multiplica por la cantidad.
-        self.assertEqual(detail.x_studio_valor_del_flete, 90000.0)
+        self.assertEqual(detail.freight_value, 90000.0)
 
     def test_cost_freight_groups_lines_by_product(self):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[
+        order = self._order(detail_ids=[
             (0, 0, {
-                "x_studio_tramo": self.route.id,
+                "route_id": self.route.id,
                 "service_product_id": self.freight_product.id,
-                "x_studio_cantidad": 1,
+                "quantity": 1,
             }),
             (0, 0, {
-                "x_studio_tramo": self.route.id,
+                "route_id": self.route.id,
                 "service_product_id": self.freight_product.id,
-                "x_studio_cantidad": 2,
+                "quantity": 2,
             }),
         ])
         order.action_cost_freight()
-        costs = order.x_studio_one2many_field_8gj_1jhk6aj15
+        costs = order.cost_ids
         self.assertEqual(len(costs), 1, "Las líneas del mismo producto deben agruparse en un solo costeo.")
-        self.assertEqual(costs.x_studio_costo_flete, 1000.0 + 2000.0)
+        self.assertEqual(costs.freight_cost, 1000.0 + 2000.0)
 
     def test_cost_report_keeps_each_detail_route(self):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[
+        order = self._order(detail_ids=[
             (0, 0, {
-                "x_studio_tramo": self.route.id,
+                "route_id": self.route.id,
                 "service_product_id": self.freight_product.id,
-                "x_studio_cantidad": 2,
+                "quantity": 2,
             }),
             (0, 0, {
-                "x_studio_tramo": self.other_route.id,
+                "route_id": self.other_route.id,
                 "service_product_id": self.other_freight_product.id,
-                "x_studio_cantidad": 3,
+                "quantity": 3,
             }),
         ])
         order.action_cost_freight()
@@ -207,9 +207,9 @@ class TestFreightStudioCosting(TransactionCase):
                          {(self.route.id, 2000.0), (self.other_route.id, 90000.0)})
 
     def test_cost_freight_requires_route_on_detail(self):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
+        order = self._order(detail_ids=[(0, 0, {
             "service_product_id": self.freight_product.id,
-            "x_studio_cantidad": 1,
+            "quantity": 1,
         })])
         with self.assertRaises(UserError):
             order.action_cost_freight()
@@ -222,10 +222,10 @@ class TestFreightStudioCosting(TransactionCase):
     # --- Contabilización (punto 4): action_post_freight ---
 
     def _costed_order(self, quantity=3):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
-            "x_studio_tramo": self.route.id,
+        order = self._order(detail_ids=[(0, 0, {
+            "route_id": self.route.id,
             "service_product_id": self.freight_product.id,
-            "x_studio_cantidad": quantity,
+            "quantity": quantity,
         })])
         order.action_cost_freight()
         return order
@@ -244,10 +244,10 @@ class TestFreightStudioCosting(TransactionCase):
         self.assertEqual(sum(credit_lines.mapped("credit")), 3000.0)
         self.assertTrue(all(line.partner_id == self.carrier for line in move.line_ids))
         self.assertEqual(
-            order.x_studio_selection_field_4ag_1jhk4c7s5, "status3",
+            order.freight_state, "status3",
             "La orden debe quedar marcada como Contabilizado.",
         )
-        accounting = self.env["x_contabilizacion_de_f"].search([("order_id", "=", order.id)])
+        accounting = self.env["step.freight.accounting"].search([("order_id", "=", order.id)])
         self.assertEqual(len(accounting), 1)
         self.assertEqual(accounting.move_id, move)
 
@@ -256,13 +256,13 @@ class TestFreightStudioCosting(TransactionCase):
         order.action_post_freight()
         with self.assertRaises(UserError):
             order.action_post_freight()
-        self.assertEqual(self.env["account.move"].search_count([("ref", "=", order.x_name)]), 1)
+        self.assertEqual(self.env["account.move"].search_count([("ref", "=", order.name)]), 1)
 
     def test_post_freight_requires_costing_first(self):
-        order = self._order(x_studio_one2many_field_9na_1jhk4lspn=[(0, 0, {
-            "x_studio_tramo": self.route.id,
+        order = self._order(detail_ids=[(0, 0, {
+            "route_id": self.route.id,
             "service_product_id": self.freight_product.id,
-            "x_studio_cantidad": 1,
+            "quantity": 1,
         })])
         with self.assertRaises(UserError):
             order.action_post_freight()
@@ -283,8 +283,8 @@ class TestFreightStudioCosting(TransactionCase):
 
     def test_post_freight_without_carrier_raises(self):
         order = self._costed_order()
-        order.x_studio_transportista = False
-        self.tariff.x_studio_transportista = False
+        order.freight_carrier_id = False
+        self.tariff.freight_carrier_id = False
         with self.assertRaises(UserError):
             order.action_post_freight()
 
@@ -312,10 +312,10 @@ class TestFreightQaFilters(TransactionCase):
         env = self.env
         carrier = env["res.partner"].create({"name": "QA Transportista", "is_freight_carrier": True})
         plain = env["res.partner"].create({"name": "QA Contacto"})
-        order_field = env["x_orden_de_flete"]._fields["x_studio_transportista"]
+        order_field = env["step.freight.order"]._fields["freight_carrier_id"]
         found = env["res.partner"].search(eval(order_field.domain))
         self.assertIn(carrier, found)
         self.assertNotIn(plain, found)
-        detail = env["x_orden_de_flete_line_709f3"]._fields
-        self.assertIn("step_chofer", detail["x_studio_chofer"].domain)
-        self.assertIn("carga", detail["x_studio_camin"].domain)
+        detail = env["step.freight.order.line"]._fields
+        self.assertIn("step_chofer", detail["driver_id"].domain)
+        self.assertIn("carga", detail["vehicle_id"].domain)

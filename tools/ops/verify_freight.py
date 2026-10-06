@@ -17,8 +17,8 @@ try:
     })
     checked = []
     for model, prefix, action_id, menu_id in (
-        ('x_tramo_de_flete', 'route', 'tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e', 'menu_freight_routes'),
-        ('x_modalidad_de_frio', 'cold_mode', 'action_freight_cold_mode', 'menu_freight_cold_modes'),
+        ('step.freight.route', 'route', 'tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e', 'menu_freight_routes'),
+        ('step.freight.cold.mode', 'cold_mode', 'action_freight_cold_mode', 'menu_freight_cold_modes'),
     ):
         action = env.ref('step_operations_ui.' + action_id)
         menu = env.ref('step_operations_ui.' + menu_id)
@@ -34,12 +34,12 @@ try:
         assert not env['ir.ui.view'].browse(data.mapped('res_id')).exists().filtered(
             lambda view: view.active and view.model == model)
         form = Form(user_model, view=env['ir.ui.view'].browse(form_id))
-        form.x_name = 'Validación de ' + prefix
+        form.name = 'Validación de ' + prefix
         if prefix == 'route':
             form.origin, form.destination = 'Origen validación', 'Destino validación'
-            form.x_studio_km_desde, form.x_studio_km_hasta = 19, 29
+            form.km_from, form.km_to = 19, 29
         else:
-            form.x_studio_cdigo = '05'
+            form.code = '05'
         record = form.save()
         assert record.display_name == 'Validación de ' + prefix
         assert record._get_thread_with_access(record.id) == record

@@ -6,7 +6,7 @@ from odoo import fields, models, tools
 # automáticos): las vistas SQL de este archivo lo comprueban antes de leerla
 # y se degradan a una vista vacía si no está, para no romper la instalación
 # del módulo en esas bases.
-STUDIO_COSTEO_LINE_TABLE = "x_orden_de_flete_line_72953"
+STUDIO_COSTEO_LINE_TABLE = "step_freight_order_cost"
 
 
 def _table_exists(cr, table_name):
@@ -26,9 +26,9 @@ class StepFreightCostReport(models.Model):
     _auto = False
     _order = "order_date desc, id desc"
 
-    order_id = fields.Many2one("x_orden_de_flete", string="Orden de flete", readonly=True)
+    order_id = fields.Many2one("step.freight.order", string="Orden de flete", readonly=True)
     order_date = fields.Date(string="Fecha", readonly=True)
-    route_id = fields.Many2one("x_tramo_de_flete", string="Tramo", readonly=True)
+    route_id = fields.Many2one("step.freight.route", string="Tramo", readonly=True)
     carrier_id = fields.Many2one("res.partner", string="Transportista", readonly=True)
     product_id = fields.Many2one("product.template", string="Servicio de flete", readonly=True)
     amount = fields.Float(string="Valor del flete", readonly=True)
@@ -42,23 +42,23 @@ class StepFreightCostReport(models.Model):
                     SELECT
                         detail.id AS id,
                         ord.id AS order_id,
-                        ord.x_studio_fecha AS order_date,
-                        detail.x_studio_tramo AS route_id,
-                        ord.x_studio_transportista AS carrier_id,
+                        ord.date AS order_date,
+                        detail.route_id AS route_id,
+                        ord.freight_carrier_id AS carrier_id,
                         COALESCE(detail.service_product_id, sole_cost.product_id) AS product_id,
-                        detail.x_studio_valor_del_flete AS amount,
+                        detail.freight_value AS amount,
                         ord.company_id AS company_id
-                    FROM x_orden_de_flete_line_709f3 detail
-                    JOIN x_orden_de_flete ord ON ord.id = detail.x_orden_de_flete_id
+                    FROM step_freight_order_line detail
+                    JOIN step_freight_order ord ON ord.id = detail.order_id
                     LEFT JOIN (
-                        SELECT x_orden_de_flete_id, MIN(x_studio_servicio_flete) AS product_id
-                        FROM x_orden_de_flete_line_72953
-                        GROUP BY x_orden_de_flete_id
-                        HAVING COUNT(DISTINCT x_studio_servicio_flete) = 1
-                    ) sole_cost ON sole_cost.x_orden_de_flete_id = ord.id
+                        SELECT order_id, MIN(service_product_id) AS product_id
+                        FROM step_freight_order_cost
+                        GROUP BY order_id
+                        HAVING COUNT(DISTINCT service_product_id) = 1
+                    ) sole_cost ON sole_cost.order_id = ord.id
                     WHERE EXISTS (
-                        SELECT 1 FROM x_orden_de_flete_line_72953 cost
-                        WHERE cost.x_orden_de_flete_id = ord.id
+                        SELECT 1 FROM step_freight_order_cost cost
+                        WHERE cost.order_id = ord.id
                     )
                 )
             """ % self._table)
@@ -81,7 +81,7 @@ class StepFreightPlanVsActual(models.Model):
     (Registro de fletes, hoja Costeo) y calcula la diferencia.
 
     Igual que StepFreightCostReport, el lado "real" depende de los campos
-    técnicos de Studio en x_orden_de_flete_line_72953; si esa tabla no existe
+    técnicos de Studio en step_freight_order_cost; si esa tabla no existe
     todavía en la base, el lado "real" queda en cero (solo se compara contra
     lo planificado) en lugar de romper la instalación del módulo.
     """
@@ -102,14 +102,14 @@ class StepFreightPlanVsActual(models.Model):
         real_source = (
             """
                     SELECT
-                        (date_trunc('week', ord.x_studio_fecha::timestamp))::date AS week_start,
-                        cost.x_studio_servicio_flete AS product_id,
+                        (date_trunc('week', ord.date::timestamp))::date AS week_start,
+                        cost.service_product_id AS product_id,
                         0.0 AS planned_amount,
-                        cost.x_studio_costo_flete AS real_amount
-                    FROM x_orden_de_flete_line_72953 cost
-                    JOIN x_orden_de_flete ord ON ord.id = cost.x_orden_de_flete_id
-                    WHERE ord.x_studio_fecha IS NOT NULL
-                      AND cost.x_studio_servicio_flete IS NOT NULL
+                        cost.freight_cost AS real_amount
+                    FROM step_freight_order_cost cost
+                    JOIN step_freight_order ord ON ord.id = cost.order_id
+                    WHERE ord.date IS NOT NULL
+                      AND cost.service_product_id IS NOT NULL
             """
             if _table_exists(self.env.cr, STUDIO_COSTEO_LINE_TABLE)
             else """
@@ -130,13 +130,13 @@ class StepFreightPlanVsActual(models.Model):
                     SUM(real_amount) - SUM(planned_amount) AS diff_amount
                 FROM (
                     SELECT
-                        (date_trunc('week', plan.x_studio_fecha::timestamp))::date AS week_start,
+                        (date_trunc('week', plan.date::timestamp))::date AS week_start,
                         line.product_id AS product_id,
                         line.amount_total AS planned_amount,
                         0.0 AS real_amount
-                    FROM x_planificacion_de_flete_linea line
-                    JOIN x_planificacion_de_flete plan ON plan.id = line.plan_id
-                    WHERE plan.x_studio_fecha IS NOT NULL
+                    FROM step_freight_plan_line line
+                    JOIN step_freight_plan plan ON plan.id = line.plan_id
+                    WHERE plan.date IS NOT NULL
 
                     UNION ALL
                     %s

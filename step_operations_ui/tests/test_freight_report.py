@@ -20,9 +20,9 @@ class TestFreightReport(TransactionCase):
             "name": "Flete transporte fruta (reporte)",
             "is_flete": True,
         })
-        self.env["x_planificacion_de_flete"].create({
-            "x_name": "Planificación reporte",
-            "x_studio_fecha": "2026-10-05",
+        self.env["step.freight.plan"].create({
+            "name": "Planificación reporte",
+            "date": "2026-10-05",
             "line_ids": [(0, 0, {
                 "product_id": freight_product.id,
                 "quantity": 2,

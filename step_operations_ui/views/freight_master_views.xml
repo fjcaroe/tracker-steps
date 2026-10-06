@@ -1,81 +1,81 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <odoo>
     <record id="view_freight_route_list" model="ir.ui.view">
         <field name="priority">5</field>
         <field name="arch" type="xml">
-            <list><field name="x_name"/><field name="origin"/><field name="destination"/>
-                <field name="x_studio_km_desde"/><field name="x_studio_km_hasta"/>
-                <field name="distance_km" optional="hide"/><field name="x_studio_fundo" optional="hide"/>
-                <field name="x_active"/><field name="company_id" groups="base.group_multi_company" optional="hide"/>
+            <list><field name="name" /><field name="origin" /><field name="destination" />
+                <field name="km_from" /><field name="km_to" />
+                <field name="distance_km" optional="hide" /><field name="fundo_id" optional="hide" />
+                <field name="active" /><field name="company_id" groups="base.group_multi_company" optional="hide" />
             </list>
         </field>
     </record>
     <record id="view_freight_route_form" model="ir.ui.view">
         <field name="name">x.tramo.flete.form.steps</field>
-        <field name="model">x_tramo_de_flete</field>
+        <field name="model">step.freight.route</field>
         <field name="priority">5</field>
         <field name="arch" type="xml">
             <form string="Tramo de flete"><sheet>
-                <div class="oe_title"><label for="x_name"/><h1><field name="x_name"/></h1></div>
-                <group><group><field name="origin"/><field name="destination"/>
-                    <field name="x_studio_km_desde"/><field name="x_studio_km_hasta"/><field name="distance_km"/>
-                </group><group><field name="x_studio_fundo"/><field name="company_id" groups="base.group_multi_company"/>
-                    <field name="x_active"/>
+                <div class="oe_title"><label for="name" /><h1><field name="name" /></h1></div>
+                <group><group><field name="origin" /><field name="destination" />
+                    <field name="km_from" /><field name="km_to" /><field name="distance_km" />
+                </group><group><field name="fundo_id" /><field name="company_id" groups="base.group_multi_company" />
+                    <field name="active" />
                 </group></group>
-            </sheet><chatter/></form>
+            </sheet><chatter /></form>
         </field>
     </record>
     <record id="view_freight_cold_mode_list" model="ir.ui.view">
         <field name="priority">5</field>
         <field name="arch" type="xml">
-            <list><field name="x_studio_cdigo"/><field name="x_name"/><field name="min_temperature"/>
-                <field name="max_temperature"/><field name="x_active"/></list>
+            <list><field name="code" /><field name="name" /><field name="min_temperature" />
+                <field name="max_temperature" /><field name="active" /></list>
         </field>
     </record>
     <record id="view_freight_cold_mode_form" model="ir.ui.view">
         <field name="priority">5</field>
         <field name="arch" type="xml">
             <form string="Modalidad de frío"><sheet>
-                <div class="oe_title"><label for="x_name"/><h1><field name="x_name"/></h1></div>
-                <group><group><field name="x_studio_cdigo"/><field name="x_active"/></group>
-                    <group><field name="min_temperature"/><field name="max_temperature"/></group></group>
-            </sheet><chatter/></form>
+                <div class="oe_title"><label for="name" /><h1><field name="name" /></h1></div>
+                <group><group><field name="code" /><field name="active" /></group>
+                    <group><field name="min_temperature" /><field name="max_temperature" /></group></group>
+            </sheet><chatter /></form>
         </field>
     </record>
     <record id="view_freight_route_search" model="ir.ui.view">
-        <field name="name">x.tramo.flete.search.steps</field><field name="model">x_tramo_de_flete</field>
+        <field name="name">x.tramo.flete.search.steps</field><field name="model">step.freight.route</field>
         <field name="priority">5</field><field name="arch" type="xml"><search>
-            <field name="x_name"/><field name="origin"/><field name="destination"/><field name="x_studio_fundo"/>
-            <filter name="active_routes" string="Activos" domain="[('x_active','=',True)]"/>
+            <field name="name" /><field name="origin" /><field name="destination" /><field name="fundo_id" />
+            <filter name="active_routes" string="Activos" domain="[('active','=',True)]" />
         </search></field>
     </record>
     <record id="view_freight_cold_mode_search" model="ir.ui.view">
-        <field name="name">x.modalidad.frio.search.steps</field><field name="model">x_modalidad_de_frio</field>
+        <field name="name">x.modalidad.frio.search.steps</field><field name="model">step.freight.cold.mode</field>
         <field name="priority">5</field><field name="arch" type="xml"><search>
-            <field name="x_name"/><field name="x_studio_cdigo"/>
-            <filter name="active_modes" string="Activas" domain="[('x_active','=',True)]"/>
+            <field name="name" /><field name="code" />
+            <filter name="active_modes" string="Activas" domain="[('active','=',True)]" />
         </search></field>
     </record>
     <record id="tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e" model="ir.actions.act_window">
-        <field name="view_id" ref="view_freight_route_list"/><field name="search_view_id" ref="view_freight_route_search"/>
+        <field name="view_id" ref="view_freight_route_list" /><field name="search_view_id" ref="view_freight_route_search" />
     </record>
     <record id="action_freight_cold_mode" model="ir.actions.act_window">
-        <field name="view_id" ref="view_freight_cold_mode_list"/><field name="search_view_id" ref="view_freight_cold_mode_search"/>
+        <field name="view_id" ref="view_freight_cold_mode_list" /><field name="search_view_id" ref="view_freight_cold_mode_search" />
     </record>
     <record id="action_freight_route_list_view" model="ir.actions.act_window.view">
-        <field name="sequence">1</field><field name="view_mode">list</field><field name="view_id" ref="view_freight_route_list"/>
-        <field name="act_window_id" ref="tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e"/>
+        <field name="sequence">1</field><field name="view_mode">list</field><field name="view_id" ref="view_freight_route_list" />
+        <field name="act_window_id" ref="tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e" />
     </record>
     <record id="action_freight_route_form_view" model="ir.actions.act_window.view">
-        <field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="view_freight_route_form"/>
-        <field name="act_window_id" ref="tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e"/>
+        <field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="view_freight_route_form" />
+        <field name="act_window_id" ref="tramo_de_flete_0d34e499-bb52-47a3-a65e-9ac00a4c336e" />
     </record>
     <record id="action_freight_cold_list_view" model="ir.actions.act_window.view">
-        <field name="sequence">1</field><field name="view_mode">list</field><field name="view_id" ref="view_freight_cold_mode_list"/>
-        <field name="act_window_id" ref="action_freight_cold_mode"/>
+        <field name="sequence">1</field><field name="view_mode">list</field><field name="view_id" ref="view_freight_cold_mode_list" />
+        <field name="act_window_id" ref="action_freight_cold_mode" />
     </record>
     <record id="action_freight_cold_form_view" model="ir.actions.act_window.view">
-        <field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="view_freight_cold_mode_form"/>
-        <field name="act_window_id" ref="action_freight_cold_mode"/>
+        <field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="view_freight_cold_mode_form" />
+        <field name="act_window_id" ref="action_freight_cold_mode" />
     </record>
 </odoo>

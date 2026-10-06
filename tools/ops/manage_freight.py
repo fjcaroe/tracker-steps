@@ -9,6 +9,7 @@ import configparser
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -25,6 +26,7 @@ from manage_management import digest, errors, query, run, tree_hash
 
 HERE = Path(__file__).resolve().parent
 MODULE = 'step_operations_ui'
+NATIVE_SCHEMA = None
 
 
 def extract(release, target):
@@ -48,34 +50,39 @@ def extract(release, target):
 
 def snapshot(database, schema=None):
     if schema is None:
+        freight_tables = set(NATIVE_SCHEMA.MODELS) | {name.replace('.', '_') for name in NATIVE_SCHEMA.MODELS.values()}
         tables = json.loads(query(database, """SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables
-            WHERE schemaname='public' AND (tablename LIKE 'x_%flete%' OR tablename='x_modalidad_de_frio'
-            OR tablename IN ('account_move','account_move_line','mail_message','mail_followers','mail_activity','ir_attachment'))"""))
+            WHERE schemaname='public' AND (tablename IN (%s)
+            OR tablename IN ('account_move','account_move_line','mail_message','mail_followers','mail_activity','ir_attachment'))"""
+            % ','.join("'%s'" % table for table in sorted(freight_tables))))
         schema = {table: json.loads(query(database, "SELECT json_agg(column_name ORDER BY ordinal_position) "
                   "FROM information_schema.columns WHERE table_schema='public' AND table_name='%s'" % table))
                   for table in tables}
     result = {}
     for table, columns in schema.items():
         assert re.fullmatch('[a-z0-9_]+', table) and all(re.fullmatch('[a-z0-9_]+', column) for column in columns)
-        expression = 'to_jsonb(t)'
-        if table == 'x_tramo_de_flete':
-            parts = []
-            for canonical, legacy in (('origin', 'x_studio_lugar_desde'), ('destination', 'x_studio_lugar_hasta'),
-                                      ('company_id', 'x_studio_empresa')):
-                if canonical in columns and legacy in columns:
-                    empty = "NULLIF(t.%s,'')" if canonical != 'company_id' else 't.%s'
-                    value = 'COALESCE(%s,%s)' % (empty % canonical, empty % legacy)
-                    parts += ["'%s',%s" % (canonical, value), "'%s',%s" % (legacy, value)]
-            if parts:
-                expression += ' || jsonb_build_object(' + ','.join(parts) + ')'
-        expression = "(SELECT jsonb_object_agg(key,value) FROM jsonb_each(%s) WHERE key=ANY(ARRAY[%s]))" % (
-            expression, ','.join("'%s'" % column for column in columns))
+        actual_table = table
+        if not query(database, "SELECT to_regclass('%s')" % table):
+            actual_table = NATIVE_SCHEMA.MODELS[table].replace('.', '_')
+        present = set(json.loads(query(database, "SELECT json_agg(column_name) FROM information_schema.columns "
+                                    "WHERE table_schema='public' AND table_name='%s'" % actual_table)))
+        parts = []
+        for column in columns:
+            actual = column if column in present else NATIVE_SCHEMA.FIELDS.get(column, column)
+            assert actual in present, (actual_table, column)
+            value = "to_jsonb(t)->'%s'" % actual
+            if table in ('mail_message','mail_followers','mail_activity','ir_attachment') and column in ('model','res_model'):
+                value = 'to_jsonb(CASE t."%s" %s ELSE t."%s" END)' % (actual,
+                    ' '.join("WHEN '%s' THEN '%s'" % (new, old) for old, new in NATIVE_SCHEMA.MODELS.items()), actual)
+            parts.append("'%s',%s" % (column, value))
+        expression = ' || '.join('jsonb_build_object(' + ','.join(parts[start:start + 40]) + ')'
+                                 for start in range(0, len(parts), 40))
         column = 'model' if table == 'mail_message' else 'res_model'
-        condition = (" WHERE %s IN ('x_tramo_de_flete','x_modalidad_de_frio','x_tarifa_de_fletes',"
-                     "'x_orden_de_flete','x_planificacion_de_flete','x_contabilizacion_de_f')" % column
+        condition = (" WHERE %s IN (%s)" % (column, ','.join("'%s'" % name for name in [
+                     *NATIVE_SCHEMA.MODELS, *NATIVE_SCHEMA.MODELS.values()]))
                      if table in ('mail_message','mail_followers','mail_activity','ir_attachment') else '')
         result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE("
-                              "string_agg((%s)::text,'|' ORDER BY t.id),''))) FROM %s t%s" % (expression, table, condition))
+                              "string_agg((%s)::text,'|' ORDER BY t.id),''))) FROM %s t%s" % (expression, actual_table, condition))
     return {'schema': schema, 'rows': result}
 
 
@@ -90,6 +97,7 @@ def verify(base, options, database, source, opts, proof, stage):
 
 
 def main():
+    global NATIVE_SCHEMA
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'certify', 'deploy', 'verify'))
     parser.add_argument('release', type=Path)
@@ -114,6 +122,9 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
+    spec = importlib.util.spec_from_file_location('freight_native_schema', staged / MODULE / 'native_schema.py')
+    NATIVE_SCHEMA = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(NATIVE_SCHEMA)
     for path in [stage, staged, *staged.rglob('*')]:
         os.chown(path, identity.pw_uid, identity.pw_gid)
     installed = query(database, "SELECT latest_version FROM ir_module_module WHERE name='step_operations_ui' AND state='installed'")

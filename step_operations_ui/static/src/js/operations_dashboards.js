@@ -129,33 +129,33 @@ export class FreightDashboard extends StepsOperationsDashboard {
     async loadDashboard() {
         this.state.loading = true;
         try {
-            const orders = await this.safeCount("x_orden_de_flete");
-            const accounting = await this.safeCount("x_contabilizacion_de_f");
-            const tariffs = await this.safeCount("x_tarifa_de_fletes", [["x_active", "=", true]]);
-            const tracking = await this.safeCount("x_rastreo_camiones");
-            const routes = await this.safeCount("x_tramo_de_flete", [["x_active", "=", true]]);
-            const coldModes = await this.safeCount("x_modalidad_de_frio", [["x_active", "=", true]]);
+            const orders = await this.safeCount("step.freight.order");
+            const accounting = await this.safeCount("step.freight.accounting");
+            const tariffs = await this.safeCount("step.freight.tariff", [["active", "=", true]]);
+            const tracking = await this.safeCount("step.freight.tracking");
+            const routes = await this.safeCount("step.freight.route", [["active", "=", true]]);
+            const coldModes = await this.safeCount("step.freight.cold.mode", [["active", "=", true]]);
             const recent = await this.safeRead(
-                "x_orden_de_flete",
+                "step.freight.order",
                 [],
-                ["x_name", "x_studio_fecha", "x_studio_selection_field_4ag_1jhk4c7s5", "x_studio_fundo", "x_studio_transportista", "x_studio_responsable", "route_id"],
-                { limit: 6, order: "x_studio_fecha desc, id desc" }
+                ["name", "date", "freight_state", "fundo_id", "freight_carrier_id", "responsible_id", "route_id"],
+                { limit: 6, order: "date desc, id desc" }
             );
             // El valor real del flete se carga en la hoja "Detalles" de Studio
-            // (x_orden_de_flete_line_709f3), no en el campo "amount" del código.
+            // (step.freight.order.line), no en el campo "amount" del código.
             if (recent.length) {
                 const sums = await this.safeReadGroup(
-                    "x_orden_de_flete_line_709f3",
-                    [["x_orden_de_flete_id", "in", recent.map((r) => r.id)]],
-                    ["x_studio_valor_del_flete:sum"],
-                    ["x_orden_de_flete_id"]
+                    "step.freight.order.line",
+                    [["order_id", "in", recent.map((r) => r.id)]],
+                    ["freight_value:sum"],
+                    ["order_id"]
                 );
                 const byOrder = {};
                 for (const row of sums) {
-                    const orderId = Array.isArray(row.x_orden_de_flete_id)
-                        ? row.x_orden_de_flete_id[0]
-                        : row.x_orden_de_flete_id;
-                    byOrder[orderId] = row.x_studio_valor_del_flete;
+                    const orderId = Array.isArray(row.order_id)
+                        ? row.order_id[0]
+                        : row.order_id;
+                    byOrder[orderId] = row.freight_value;
                 }
                 for (const row of recent) {
                     row.freight_value = byOrder[row.id] || 0;
