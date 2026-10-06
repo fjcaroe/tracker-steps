@@ -50,7 +50,7 @@ def snapshot(database, schema=None):
     if schema is None:
         tables = json.loads(query(database, """SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables
             WHERE schemaname='public' AND (tablename LIKE 'x_%flete%' OR tablename='x_modalidad_de_frio'
-            OR tablename IN ('account_move','account_move_line'))"""))
+            OR tablename IN ('account_move','account_move_line','mail_message','mail_followers','mail_activity','ir_attachment'))"""))
         schema = {table: json.loads(query(database, "SELECT json_agg(column_name ORDER BY ordinal_position) "
                   "FROM information_schema.columns WHERE table_schema='public' AND table_name='%s'" % table))
                   for table in tables}
@@ -70,8 +70,12 @@ def snapshot(database, schema=None):
                 expression += ' || jsonb_build_object(' + ','.join(parts) + ')'
         expression = "(SELECT jsonb_object_agg(key,value) FROM jsonb_each(%s) WHERE key=ANY(ARRAY[%s]))" % (
             expression, ','.join("'%s'" % column for column in columns))
-        result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(" 
-                              "string_agg((%s)::text,'|' ORDER BY t.id),''))) FROM %s t" % (expression, table))
+        column = 'model' if table == 'mail_message' else 'res_model'
+        condition = (" WHERE %s IN ('x_tramo_de_flete','x_modalidad_de_frio','x_tarifa_de_fletes',"
+                     "'x_orden_de_flete','x_planificacion_de_flete','x_contabilizacion_de_f')" % column
+                     if table in ('mail_message','mail_followers','mail_activity','ir_attachment') else '')
+        result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE("
+                              "string_agg((%s)::text,'|' ORDER BY t.id),''))) FROM %s t%s" % (expression, table, condition))
     return {'schema': schema, 'rows': result}
 
 
@@ -101,6 +105,8 @@ def main():
     cfg.read(conf)
     opts = cfg['options']
     assert opts['db_name'] == database
+    assert not query(database, "SELECT name FROM ir_module_module WHERE state IN ('to upgrade','to install','to remove')"), \
+        'Pending upgrades in source database; reconcile before testing/promoting'
     user = subprocess.check_output(['systemctl', 'show', '--value', '--property=User', service], text=True).strip()
     identity = pwd.getpwnam(user)
     stage = Path('/opt/steps-validation') / ('freight_development_' + args.run_id)
@@ -114,9 +120,19 @@ def main():
     assert installed and tuple(map(int, proof['versions'][MODULE].split('.'))) >= tuple(map(int, installed.split('.')))
     dependencies = ast.literal_eval((staged / MODULE / '__manifest__.py').read_text())['depends']
     baseline = {'config_sha256': digest(conf), 'installed_version': installed, 'sources': {}}
-    for name in [MODULE, *dependencies]:
-        source = next(Path(path.strip()) / name for path in opts['addons_path'].split(',')
-                      if (Path(path.strip()) / name / '__manifest__.py').exists())
+    shared_modules = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module "
+                   "WHERE state='installed' AND (name LIKE 'step%' OR name IN ('web_studio','studio_customization'))"))
+    baseline['shared_versions'] = shared_modules
+    for name in sorted({MODULE, *dependencies, *shared_modules}):
+        # Missing legacy steps_api is audited separately; the service already
+        # reports that exact exception and no promotion may add another.
+        candidates = [Path(path.strip()) / name for path in opts['addons_path'].split(',')
+                      if (Path(path.strip()) / name / '__manifest__.py').exists()]
+        if name == 'steps_api' and not candidates:
+            baseline['sources'][name] = {'missing_legacy': True}
+            continue
+        assert candidates, 'Missing source: ' + name
+        source = candidates[0]
         baseline['sources'][name] = {'path': str(source), 'sha256': tree_hash(source)}
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo', '-u', user, 'nice', '-n', '15', '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']

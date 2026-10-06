@@ -10,6 +10,7 @@ class TestFreightMasters(TransactionCase):
         super().setUpClass()
         cls.operator = cls.env['res.users'].create({
             'name': 'QA Fletes operador', 'login': 'qa_freight_master_operator',
+            'email': 'qa-freight@example.invalid',
             'groups_id': [(6, 0, [cls.env.ref('base.group_user').id])],
             'company_id': cls.env.company.id,
             'company_ids': [(6, 0, [cls.env.company.id])],

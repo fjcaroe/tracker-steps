@@ -11,6 +11,7 @@ try:
     assert importlib.import_module('odoo.addons.step_operations_ui').__file__.startswith(ROOT + '/')
     operator = env['res.users'].create({
         'name': 'Validación Fletes', 'login': 'qa_freight_probe_' + env.cr.dbname,
+        'email': 'qa-freight-probe@example.invalid',
         'groups_id': [(6, 0, [env.ref('base.group_user').id])],
         'company_id': env.company.id, 'company_ids': [(6, 0, [env.company.id])],
     })
