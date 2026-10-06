@@ -78,7 +78,7 @@
                         <header><div><span>GESTIÓN LOGÍSTICA</span><h2>Accesos de control</h2></div></header>
                         <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.action_freight_tracking_console')"><i class="fa fa-location-arrow"/><span><b>Rastreo de camiones</b><small>Consola del Web Tracker.</small></span></button>
                         <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.informe_de_fletes_2d134967-2a6f-4953-9ade-9e7f4d1d8dba')"><i class="fa fa-bar-chart"/><span><b>Informe de fletes</b><small>Consulta consolidada de la operación.</small></span></button>
-                        <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>La portada resume la información existente y mantiene intactos los flujos de Studio.</p></div>
+                        <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>Consulte las operaciones registradas y use los accesos para gestionar su información.</p></div>
                     </aside>
                 </div>
                 <section class="o_steps_ops_panel o_steps_ops_week_compare">
