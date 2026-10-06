@@ -1,23 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <odoo>
-    <menuitem id="menu_step_producers_root" name="Productores" sequence="62"
-              action="action_step_producers_dashboard"
-              web_icon="step_producers,static/description/icon.png"/>
-    <menuitem id="menu_step_producers_home" name="Inicio" parent="menu_step_producers_root"
-              action="action_step_producers_dashboard" sequence="0"/>
-    <menuitem id="menu_step_producers_registry" name="Productores" parent="menu_step_producers_root"
-              action="action_step_producers_partner" sequence="10"/>
-    <menuitem id="menu_step_producers_fundos" name="Fundos" parent="menu_step_producers_root"
-              action="action_step_producers_fundo" sequence="20"/>
-    <menuitem id="menu_step_producers_estimates" name="Estimaciones" parent="menu_step_producers_root"
-              action="step_producers.action_step_export_estimate" sequence="30"/>
-    <menuitem id="menu_step_producers_rates" name="Tarifas" parent="menu_step_producers_root"
-              action="step_producers.action_step_export_grower_rate" sequence="40"/>
-    <menuitem id="menu_step_producers_preliq_price" name="Precios preliquidación"
-              parent="menu_step_producers_root" action="action_preliq_price" sequence="45"/>
-    <menuitem id="menu_step_producers_settlements" name="Liquidaciones" parent="menu_step_producers_root"
-              action="step_producers.action_export_producer_settlement" sequence="50"/>
-    <menuitem id="menu_step_producers_contracts" name="Contratos de compra" parent="menu_step_producers_root"
-              action="action_step_producer_purchase_contract" sequence="60"/>
-    <menuitem id="menu_producer_accounting" name="Configuración contable" parent="menu_step_producers_root" action="action_producer_accounting" sequence="90" groups="account.group_account_manager"/>
+    <menuitem id="menu_step_producers_root" name="Productores" sequence="62" action="action_step_producers_dashboard" web_icon="step_producers,static/description/icon.png"/>
+    <menuitem id="menu_step_producers_config_group" name="Configuraciones" parent="menu_step_producers_root" sequence="60"/><menuitem id="menu_step_producers_masters_group" name="Maestros" parent="menu_step_producers_root" sequence="50"/><menuitem id="menu_step_producers_settlement_group" name="Liquidación" parent="menu_step_producers_root" sequence="40"/><menuitem id="menu_step_producers_fruit_group" name="Control fruta" parent="menu_step_producers_root" sequence="30"/><menuitem id="menu_step_producers_contracts_group" name="Control Contratos" parent="menu_step_producers_root" sequence="20"/><menuitem id="menu_step_producers_planning_group" name="Planificación" parent="menu_step_producers_root" sequence="10"/><menuitem id="menu_step_producers_home" name="Inicio" parent="menu_step_producers_root" action="action_step_producers_dashboard" sequence="0"/>
+    <menuitem id="menu_step_producers_registry" name="Productores" parent="menu_step_producers_masters_group" action="action_step_producers_partner" sequence="10"/>
+    <menuitem id="menu_step_producers_fundos" name="Fundos" parent="menu_step_producers_config_group" action="action_step_producers_fundo" sequence="20"/>
+    <menuitem id="menu_step_producers_estimates" name="Estimaciones" parent="menu_step_producers_planning_group" action="step_producers.action_step_export_estimate" sequence="10"/>
+    <menuitem id="menu_step_producers_rates" name="Tarifas" parent="menu_step_producers_settlement_group" action="step_producers.action_step_export_grower_rate" sequence="10"/>
+    <menuitem id="menu_step_producers_preliq_price" name="Precios preliquidación" parent="menu_step_producers_contracts_group" action="action_preliq_price" sequence="20"/>
+    <menuitem id="menu_step_producers_settlements" name="Liquidaciones" parent="menu_step_producers_settlement_group" action="step_producers.action_export_producer_settlement" sequence="30"/>
+    <menuitem id="menu_step_producers_contracts" name="Contratos de compra" parent="menu_step_producers_planning_group" action="action_step_producer_purchase_contract" sequence="30"/>
+    <menuitem id="menu_producer_accounting" name="Ajustes contables" parent="menu_step_producers_config_group" action="action_producer_accounting" sequence="10" groups="account.group_account_manager"/>
 </odoo>

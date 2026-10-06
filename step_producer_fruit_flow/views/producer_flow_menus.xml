@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <odoo>
     <record id="action_producer_account_lines" model="ir.actions.act_window">
         <field name="name">Cuenta corriente productores</field>
@@ -37,19 +37,11 @@
         <field name="view_mode">list,form</field>
         <field name="domain">[('is_fruit_tag', '=', True), ('step_tag_kind', '=', 'E'), ('step_tag_state', '=', 'liquidated')]</field>
     </record>
-    <menuitem id="menu_producer_account_lines" name="Cuenta corriente" parent="step_producers.menu_step_producers_root"
-              action="action_producer_account_lines" sequence="35" groups="account.group_account_readonly"/>
-    <menuitem id="menu_producer_preliquidation" name="Preliquidaciones"
-              parent="step_producers.menu_step_producers_root"
-              action="action_producer_preliquidation" sequence="47" groups="account.group_account_readonly"/>
-    <menuitem id="menu_producer_process_receptions" name="Recepción a proceso" parent="step_producers.menu_step_producers_root"
-              action="action_producer_process_receptions" sequence="70" groups="stock.group_stock_user"/>
-    <menuitem id="menu_producer_packed_receptions" name="Recepción embalada" parent="step_producers.menu_step_producers_root"
-              action="action_producer_packed_receptions" sequence="71" groups="stock.group_stock_user"/>
-    <menuitem id="menu_producer_packing_tags" name="Proceso de packing" parent="step_producers.menu_step_producers_root"
-              action="action_producer_packing_tags" sequence="72" groups="stock.group_stock_user"/>
-    <menuitem id="menu_producer_shipments" name="Embarques por productor" parent="step_producers.menu_step_producers_root"
-              action="action_producer_shipments" sequence="73" groups="stock.group_stock_user"/>
-    <menuitem id="menu_producer_liquidated_tags" name="Embarques liquidados" parent="step_producers.menu_step_producers_root"
-              action="action_producer_liquidated_tags" sequence="74" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_account_lines" name="Cuenta corriente" parent="step_producers.menu_step_producers_contracts_group" action="action_producer_account_lines" sequence="10" groups="account.group_account_readonly"/>
+    <menuitem id="menu_producer_preliquidation" name="Preliquidaciones" parent="step_producers.menu_step_producers_contracts_group" action="action_producer_preliquidation" sequence="30" groups="account.group_account_readonly"/>
+    <menuitem id="menu_producer_process_receptions" name="Recepción a proceso" parent="step_producers.menu_step_producers_fruit_group" action="action_producer_process_receptions" sequence="70" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_packed_receptions" name="Recepción embalada" parent="step_producers.menu_step_producers_fruit_group" action="action_producer_packed_receptions" sequence="71" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_packing_tags" name="Procesos de packing" parent="step_producers.menu_step_producers_fruit_group" action="action_producer_packing_tags" sequence="72" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_shipments" name="Embarques por productor" parent="step_producers.menu_step_producers_fruit_group" action="action_producer_shipments" sequence="73" groups="stock.group_stock_user"/>
+    <menuitem id="menu_producer_liquidated_tags" name="Embarques liquidados" parent="step_producers.menu_step_producers_settlement_group" action="action_producer_liquidated_tags" sequence="20" groups="stock.group_stock_user"/>
 </odoo>

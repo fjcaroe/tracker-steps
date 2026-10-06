@@ -80,14 +80,8 @@
                                     <field name="quantity"/>
                                     <field name="ordered_quantity" readonly="1"/>
                                     <field name="uom_id"/>
-                                    <field name="analytic_distribution" widget="analytic_distribution"
-                                           groups="analytic.group_analytic_accounting"
-                                           options="{'product_field': 'product_id', 'business_domain': 'purchase_order', 'amount_field': 'amount'}"
-                                           optional="show"/>
                                     <field name="price_unit"/>
                                     <field name="amount" sum="Neto"/>
-                                    <field name="debit_account_id" optional="hide"
-                                           groups="account.group_account_user"/>
                                 </list>
                             </field>
                             <group class="oe_subtotal_footer">
@@ -99,7 +93,9 @@
                             <field name="installment_ids" context="{'default_active': True}">
                                 <list editable="bottom" decoration-muted="not active">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="product_line_id" domain="[('contract_id', '=', parent.id)]"
+                                    <field name="advance_description" readonly="1"/>
+                                    <field name="advance_product_id" optional="hide" readonly="1"/>
+                                    <field name="product_line_id" string="Fruta de referencia" domain="[('contract_id', '=', parent.id)]"
                                            readonly="parent.state != 'draft'"/>
                                     <field name="quantity" readonly="parent.state != 'draft'"/>
                                     <field name="uom_id"/>
@@ -107,7 +103,7 @@
                                     <field name="amount" sum="Neto a pago"/>
                                     <field name="date_due" readonly="parent.state != 'draft'"/>
                                     <field name="validation_criteria" readonly="parent.state != 'draft'"/>
-                                    <field name="state" widget="badge" readonly="1"/>
+                                    <field name="state" string="Estado" widget="badge" readonly="1"/>
                                     <field name="payment_move_id" optional="hide"
                                            groups="account.group_account_user"/>
                                     <field name="reversal_move_id" optional="hide"
@@ -140,17 +136,7 @@
                                     <div class="text-muted">El contador registra el pago y la reversa parcial de cada cuota en Contabilidad. Vincule ambos asientos en el calendario antes de marcarla contabilizada.</div>
                                 </group>
                             </group>
-                            <div class="text-muted">La cuenta de cargo y la distribución analítica se configuran en cada línea de Productos. Contabilizar contrato usa esas cuentas y la cuenta de provisión indicada aquí.</div>
-                            <group string="Cuentas de cargo por producto">
-                                <field name="product_line_ids" readonly="bool(accounting_move_id)">
-                                    <list editable="bottom" create="false" delete="false">
-                                        <field name="product_id" readonly="1"/>
-                                        <field name="amount" readonly="1"/>
-                                        <field name="debit_account_id" required="1"/>
-                                    </list>
-                                </field>
-                                <div class="text-muted">Contabilidad puede corregir la cuenta de cargo hasta generar el asiento. Si el diario restringe cuentas, debe permitir tanto las cuentas de cargo como la cuenta de provisión.</div>
-                            </group>
+                            <div class="text-muted">Se contabiliza cada cuota activa del calendario con su vencimiento. El cargo utiliza la cuenta de anticipo configurada en Ajustes contables de Productores; el abono utiliza la cuenta de provisión del contrato. No se contabilizan los productos ni su distribución analítica.</div>
                         </page>
                     </notebook>
                 </sheet>

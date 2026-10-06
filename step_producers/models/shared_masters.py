@@ -13,6 +13,7 @@ class ResPartner(models.Model):
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
+    step_export_enabled = fields.Boolean(string='Es exportación')
     step_export_species_id = fields.Many2one('step.especie', string='Especie')
 
 

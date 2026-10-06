@@ -5,6 +5,22 @@ from odoo.exceptions import ValidationError
 
 class ProducerAccountingCompany(models.Model):
     _inherit = 'res.company'
+    step_producer_advance_product_id = fields.Many2one(
+        'product.product', string='Concepto de anticipo de contrato', check_company=True)
+    step_producer_advance_account_id = fields.Many2one(
+        'account.account', string='Cuenta de anticipo de contrato', check_company=True,
+        domain="[('account_type', 'in', ['asset_current', 'asset_non_current', 'asset_prepayments']), ('deprecated', '=', False)]")
+
+    @api.constrains('step_producer_advance_product_id', 'step_producer_advance_account_id')
+    def _check_contract_advance_company(self):
+        for company in self:
+            product = company.step_producer_advance_product_id
+            account = company.step_producer_advance_account_id
+            if product.company_id and product.company_id != company:
+                raise ValidationError(_('El concepto de anticipo debe pertenecer a la empresa o ser compartido.'))
+            if account and (company not in account.company_ids or account.deprecated or
+                            account.account_type not in ('asset_current', 'asset_non_current', 'asset_prepayments')):
+                raise ValidationError(_('Configure una cuenta de activo vigente para el anticipo de contrato de esta empresa.'))
     step_export_purchase_journal_id = fields.Many2one('account.journal', string='Diario compras productores', domain="[('type','=','purchase')]")
     step_export_purchase_account_id = fields.Many2one('account.account', string='Cuenta compra fruta productores', domain="[('account_type','in',['expense','expense_direct_cost'])]")
     step_export_purchase_tax_id = fields.Many2one('account.tax', string='Impuesto compra fruta', domain="[('type_tax_use','=','purchase')]")

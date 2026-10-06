@@ -1,6 +1,8 @@
 <odoo>
     <record id="view_producer_accounting_form" model="ir.ui.view"><field name="name">producer.accounting.settings</field><field name="model">res.company</field>
         <field name="arch" type="xml"><form create="0" delete="0"><sheet><group><field name="name"/><field name="currency_id"/></group>
+            <group string="Anticipos de contratos"><field name="step_producer_advance_product_id"/>
+                <field name="step_producer_advance_account_id"/></group>
             <group string="Compra y liquidación de fruta"><field name="step_export_purchase_journal_id"/>
                 <field name="step_export_purchase_account_id"/><field name="step_export_purchase_tax_id"/></group>
         </sheet></form></field></record>

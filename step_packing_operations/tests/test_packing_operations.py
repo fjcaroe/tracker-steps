@@ -352,6 +352,7 @@ class TestPackingOperations(TransactionCase):
             self.assertEqual(production.step_packing_output_tag_ids.step_actual_kg, 80)
 
     def test_contract_value_monthly_bill_and_national_return(self):
+        self.finished.step_export_enabled = True
         category = self.env['product.category'].create({'name': 'Fruta AVCO QA', 'property_cost_method': 'average'})
         self.finished.categ_id = category
         account = self.env['account.account'].search([('company_ids', 'in', self.company.id), ('account_type', '=', 'expense')], limit=1)

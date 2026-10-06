@@ -19,7 +19,7 @@ class TestProducerPurchaseContract(TransactionCase):
         })
         cls.product = cls.env["product.product"].create({
             "name": "Anticipo fruta T30", "purchase_ok": True, "type": "consu",
-            "step_export_species_id": cls.species.id,
+            "step_export_species_id": cls.species.id, "step_export_enabled": True,
         })
 
     def _contract(self, quantity=100, scheduled=100):
@@ -133,7 +133,7 @@ class TestProducerPurchaseContract(TransactionCase):
             "company_id": company.id,
         })
         contract, product, _ = self._contract()
-        product.debit_account_id = debit
+        company.write({"step_producer_advance_product_id": self.product.id, "step_producer_advance_account_id": debit.id})
         contract.write({"journal_id": journal.id, "provision_account_id": credit.id})
         contract.action_confirm()
         accountant = self.env["res.users"].with_context(no_reset_password=True).create({
@@ -151,7 +151,7 @@ class TestProducerPurchaseContract(TransactionCase):
         with self.assertRaises(UserError):
             contract.with_user(accountant).action_account()
 
-    def test_confirmed_contract_can_correct_debit_before_posting(self):
+    def test_advance_account_overrides_fruit_expense_and_respects_journal(self):
         company = self.env.company
         wrong = self.env["account.account"].create({
             "code": "T30W001", "name": "Costo automático no aprobado T30",
@@ -172,12 +172,13 @@ class TestProducerPurchaseContract(TransactionCase):
         })
         contract, product, _ = self._contract()
         product.debit_account_id = wrong
+        company.write({"step_producer_advance_product_id": self.product.id, "step_producer_advance_account_id": debit.id})
         contract.write({"journal_id": journal.id, "provision_account_id": credit.id})
         contract.action_confirm()
         with self.assertRaisesRegex(UserError, "Cuentas rechazadas"):
             contract.action_account()
         self.assertFalse(contract.accounting_move_id)
-        product.debit_account_id = debit
+        company.write({"step_producer_advance_product_id": self.product.id, "step_producer_advance_account_id": debit.id})
         with self.assertRaisesRegex(UserError, "Cuentas rechazadas"):
             contract.action_account()
         journal.account_control_ids = [(6, 0, (credit | debit).ids)]
@@ -209,3 +210,33 @@ class TestProducerPurchaseContract(TransactionCase):
             view_type="form")["arch"]
         pages = etree.fromstring(arch.encode()).xpath("//notebook/page/@name")
         self.assertEqual(pages[:4], ["products", "payment_schedule", "notes", "accounting"])
+
+    def test_no_analytic_widget_and_export_products_only(self):
+        contract, product, installment = self._contract()
+        arch = self.env[contract._name].get_view(
+            view_id=self.env.ref("step_producers.view_step_producer_purchase_contract_form").id,
+            view_type="form")["arch"]
+        tree = etree.fromstring(arch.encode())
+        self.assertFalse(tree.xpath("//field[@name='analytic_distribution']"))
+        self.assertFalse(tree.xpath("//field[@name='debit_account_id']"))
+        self.assertIn("step_export_enabled", str(product._fields["product_id"].domain))
+        self.assertIn(self.product.name, product.display_name)
+        self.assertEqual(installment.advance_description, "Anticipo contrato " + contract.name)
+        nonexport = self.env["product.product"].create({"name": "No exportable", "type": "consu"})
+        with self.assertRaisesRegex(ValidationError, "Es exportación"):
+            product.product_id = nonexport
+
+    def test_company_advance_must_be_asset_and_same_company(self):
+        expense = self.env["account.account"].create({
+            "code": "T30EXP", "name": "Gasto fruta", "account_type": "expense",
+            "company_ids": [(6, 0, self.env.company.ids)],
+        })
+        with self.assertRaisesRegex(ValidationError, "activo"):
+            self.env.company.step_producer_advance_account_id = expense
+        other = self.env["res.company"].create({"name": "Otra empresa anticipo T30"})
+        asset = self.env["account.account"].create({
+            "code": "T30OTHER", "name": "Anticipo otra empresa", "account_type": "asset_current",
+            "company_ids": [(6, 0, other.ids)],
+        })
+        with self.assertRaises(ValidationError):
+            self.env.company.step_producer_advance_account_id = asset
