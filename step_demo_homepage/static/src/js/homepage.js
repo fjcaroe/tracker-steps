@@ -5,6 +5,36 @@
         var root = document.querySelector(".step-demo-home");
         if (!root || root.dataset.stepsReady) return;
         root.dataset.stepsReady = "true";
+        var interest = root.querySelector("#steps-interest");
+        var team = root.querySelector("#steps-team");
+        var season = root.querySelector("#steps-season");
+        var brief = root.querySelector("[data-brief-summary]");
+        var send = root.querySelector("[data-brief-send]");
+        var note = root.querySelector("[data-brief-note]");
+        if (interest && team && season && brief && send) {
+            var names = { campo: "Campo", personas: "Campo + Personas", integral: "Gestión integral" };
+            function updateBrief() {
+                var name = names[interest.value] || names.campo;
+                brief.textContent = name + " · " + team.value + " · " + season.value;
+                var body = "Hola, equipo Steps:\n\nQuiero una demo para evaluar " + name + ".\n" +
+                    "Personas en la operación: " + team.value + ".\n" +
+                    "Temporada: " + season.value + ".\n\n" +
+                    "Me gustaría revisar el proceso, la carga inicial, la capacitación y el soporte, " +
+                    "y recibir una cotización con licencias, implementación e integraciones detalladas.\n\n" +
+                    "Empresa:\nNombre y teléfono de contacto:\n";
+                send.href = "mailto:contacto@stepsapp.cl?subject=" + encodeURIComponent("Demo Steps · " + name) + "&body=" + encodeURIComponent(body);
+                send.setAttribute("aria-label", "Preparar correo para solicitar una demo de " + name);
+            }
+            [interest, team, season].forEach(function (field) { field.addEventListener("change", updateBrief); });
+            root.querySelectorAll("[data-plan]").forEach(function (link) {
+                link.addEventListener("click", function () {
+                    if (names[link.dataset.plan]) interest.value = link.dataset.plan;
+                    updateBrief();
+                });
+            });
+            if (note) note.textContent = "Abre tu aplicación de correo con el resumen. Revisa y envía cuando quieras; esta página no envía tus datos.";
+            updateBrief();
+        }
         var filters = root.querySelector(".steps-filters");
         var products = Array.from(root.querySelectorAll(".steps-product"));
         var status = root.querySelector("[data-filter-status]");

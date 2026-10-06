@@ -76,20 +76,33 @@ def extract(release, target):
     return proof
 
 
-def errors(text):
-    return [line for line in text.splitlines() if (' ERROR ' in line or ' CRITICAL ' in line) and
-            not line.rstrip().endswith("Some modules are not loaded, some dependencies or manifest may be missing: ['steps_api']")]
+def errors(text, allowed_missing=('steps_api',)):
+    found = []
+    marker = 'Some modules are not loaded, some dependencies or manifest may be missing: '
+    for line in text.splitlines():
+        if ' ERROR ' not in line and ' CRITICAL ' not in line:
+            continue
+        if marker in line:
+            missing = ast.literal_eval(line.split(marker, 1)[1].strip())
+            if set(missing) <= set(allowed_missing):
+                continue
+        found.append(line)
+    return found
 
 
 def main():
     global MODULES, BUSINESS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
-    parser.add_argument('environment', choices=('development', 'cerro'))
+    parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage'), default='management')
     args = parser.parse_args()
+    assert args.environment != 'steps' or args.kind == 'homepage'
+    if args.kind == 'homepage':
+        MODULES = ('step_demo_homepage',)
+        BUSINESS = ('account_move', 'account_move_line')
     if args.kind == 'export':
         MODULES = ('step_export',)
         BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_export_%' OR tablename IN ('account_move','account_move_line')) ORDER BY tablename").splitlines())
@@ -99,11 +112,19 @@ def main():
     assert args.action != 'compatibility' or args.environment in registry['policy']['production']
     target = registry['environments'][args.environment]
     database, service = target['database'], target['service']
+    allowed_missing = ['steps_api']
     conf = Path(target['config'])
     cfg = configparser.ConfigParser(interpolation=None)
     cfg.read(conf)
     opts = cfg['options']
     assert opts.get('db_name') == database
+    if args.kind == 'homepage' and args.environment == 'steps':
+        legacy = query(database, "SELECT latest_version FROM ir_module_module WHERE name='steps_transport' AND state='installed'")
+        paths = [Path(item.strip()) for item in opts['addons_path'].split(',')]
+        if legacy == '18.0.1.5' and not any((item / 'steps_transport' / '__manifest__.py').exists() for item in paths):
+            # Audited pre-existing missing addon in Steps, unrelated to website.
+            # The target clone must retain the exact same legacy registration.
+            allowed_missing.append('steps_transport')
     user = subprocess.check_output(['systemctl', 'show', '--value', '--property=User', service], text=True).strip()
     identity = pwd.getpwnam(user)
     stage = Path('/opt/steps-validation') / ('management_' + args.environment + '_' + args.run_id)
@@ -132,18 +153,24 @@ def main():
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
     if args.action == 'certify':
+        if args.kind == 'homepage' and 'steps_transport' in allowed_missing:
+            assert query(qa_db, "SELECT latest_version FROM ir_module_module WHERE name='steps_transport' AND state='installed'") == '18.0.1.5'
         # Retry read-only post-test checks without repeating an unchanged suite.
         assert json.loads((stage / 'baseline.json').read_text()) == baseline
         logs=sorted(stage.glob('qa-*.log'))
         assert len(logs)==1
         text=logs[0].read_text(errors='replace')
-        assert re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(qa_db)+"'",text) and not errors(text)
+        successful = 'Modules loaded.' in text if args.kind == 'homepage' else re.search(r"0 failed, 0 error\(s\) of [1-9][0-9]* tests when loading database '"+re.escape(qa_db)+"'",text)
+        assert successful and not errors(text, allowed_missing)
         assert snapshot(qa_db)==json.loads((stage/'business_before.json').read_text())
         verify(base,options,qa_db,staged,opts,proof,stage,{*installed,*install})
         (stage/'qa_passed.json').write_text(json.dumps({'commit':proof['commit'],'release_sha256':release_sha,'database':qa_db,'log':str(logs[0])}))
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):
+        if args.kind == 'homepage':
+            from verify_home_heading_http import capture_before
+            capture_before(target['url'], stage)
         # Catch import/API compatibility errors before restoring a whole clone.
         import_probe = "import sys,importlib.util\nsys.path.insert(0,'/opt/odoo18')\nspec=importlib.util.spec_from_file_location('odoo.addons.step_agriculture_catalogs.models.catalogs',%r)\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nprint('CATALOG_IMPORT_OK')\n" % str(staged / 'step_agriculture_catalogs/models/catalogs.py')
         if args.kind == 'management':
@@ -183,7 +210,7 @@ def main():
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
-        assert result.returncode == 0 and results and not errors(text), 'QA failed: ' + str(log)
+        assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text, allowed_missing), 'QA failed: ' + str(log)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
         verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
         (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log)}))
@@ -229,7 +256,7 @@ def main():
                 init_options = ['-i', ','.join(install)] if install else []
                 result = subprocess.run(base + options + ['-d', database] + init_options + ['-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
-                assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text), str(log)
+                assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
                 assert snapshot(database) == before, 'Business migration check failed'
                 # T52 explicitly asks that current Cerro catalog entries be shared.
                 if args.environment == 'cerro':
@@ -253,13 +280,17 @@ def main():
 
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
-    probe = (HERE / ('verify_export_navigation.py' if export else 'verify_management.py')).read_text()
-    names = installed if export else {*installed, 'step_agriculture_catalogs'}
+    homepage = MODULES == ('step_demo_homepage',)
+    probe = (HERE / ('verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    names = installed if export or homepage else {*installed, 'step_agriculture_catalogs'}
     header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
     print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK')), flush=True)
+    if homepage:
+        from verify_home_heading_http import verify_http
+        verify_http(base, options, database, source, opts, stage)
 
 
 if __name__ == '__main__':
