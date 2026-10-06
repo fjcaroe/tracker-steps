@@ -3,6 +3,9 @@
     <record id="view_treasury_batch_approval_settings_form" model="ir.ui.view">
         <field name="name">res.config.settings.form.treasury.batch.approval</field>
         <field name="model">res.config.settings</field>
+        <!-- This dialog is selected explicitly by its own action. It must
+             never replace the shared settings form of other applications. -->
+        <field name="priority" eval="99"/>
         <field name="arch" type="xml">
             <form string="Aprobación de lotes de pago">
                 <group>

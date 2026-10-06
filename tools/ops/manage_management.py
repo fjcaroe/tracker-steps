@@ -26,6 +26,7 @@ MODULES = ('step_management_costs', 'step_management_costs_agriculture', 'step_m
 BUSINESS = ('step_management_operational_budget', 'step_management_budget_line', 'step_management_budget_center',
             'step_management_estimation', 'step_management_estimation_line', 'step_management_historical_cost',
             'step_management_plan', 'step_management_production_order', 'step_management_crop_program')
+SETTINGS = False
 
 
 def run(*command, **kwargs):
@@ -53,7 +54,9 @@ def snapshot(database):
     result = {}
     for table in BUSINESS:
         if query(database, "SELECT to_regclass('%s')" % table):
-            result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg((to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])::text,'|' ORDER BY (to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])::text),''))) FROM %s t" % table)
+            row = 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
+            condition = " WHERE key <> 'web.base.url'" if SETTINGS and table == 'ir_config_parameter' else ''
+            result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) FROM %s t%s" % (row, row, table, condition))
     return result
 
 
@@ -91,14 +94,19 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global MODULES, BUSINESS
+    global MODULES, BUSINESS, SETTINGS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings'), default='management')
     args = parser.parse_args()
+    SETTINGS = args.kind == 'settings'
+    if SETTINGS:
+        assert args.environment == 'development', 'Settings repair is QA-only'
+        MODULES = ('step_account_treasury_batch', 'step_dispatch_guide')
+        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename IN ('res_company','res_partner','res_partner_bank','fleet_vehicle','ir_config_parameter')) ORDER BY tablename").splitlines())
     assert args.environment != 'steps' or args.kind == 'homepage'
     if args.kind == 'homepage':
         MODULES = ('step_demo_homepage',)
@@ -137,6 +145,9 @@ def main():
         os.chown(path, identity.pw_uid, identity.pw_gid)
     release_sha = digest(args.release)
     installed = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
+    if SETTINGS:
+        assert set(installed) == set(MODULES), 'Repair only existing modules'
+        assert not query(database, "SELECT name FROM ir_module_module WHERE state IN ('to upgrade','to install','to remove')"), 'Pending upgrades'
     for name, old in installed.items():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
     update = [name for name in MODULES if name in installed]
@@ -148,6 +159,12 @@ def main():
     for name in installed:
         source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
         baseline['modules'][name] = {'source': str(source), 'sha256': tree_hash(source), 'version': installed[name]}
+    if SETTINGS:
+        shared = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed' AND name LIKE 'step%'"))
+        baseline['shared_modules'] = {}
+        for name, version in shared.items():
+            source = next((Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists()), None)
+            baseline['shared_modules'][name] = {'version': version, 'sha256': tree_hash(source) if source else None}
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
@@ -168,6 +185,16 @@ def main():
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):
+        if SETTINGS:
+            settings_lease = open('/run/lock/steps-environments.lock', 'a')
+            fcntl.flock(settings_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            for command in Path('/proc').glob('[0-9]*/cmdline'):
+                try:
+                    argv = command.read_bytes().decode(errors='replace').split('\x00')
+                except OSError:
+                    continue
+                if any(Path(arg).name == 'odoo-bin' for arg in argv):
+                    assert not any(arg in ('-u', '-i', '--update', '--init') or arg.startswith(('--update=', '--init=')) for arg in argv), 'Concurrent Odoo upgrade'
         if args.kind == 'homepage':
             from verify_home_heading_http import capture_before
             capture_before(target['url'], stage)
@@ -281,8 +308,8 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
-    probe = (HERE / ('verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
-    names = installed if export or homepage else {*installed, 'step_agriculture_catalogs'}
+    probe = (HERE / ('verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    names = installed if SETTINGS or export or homepage else {*installed, 'step_agriculture_catalogs'}
     header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)

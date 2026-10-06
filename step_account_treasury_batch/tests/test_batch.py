@@ -13,6 +13,17 @@ from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 @tagged("post_install", "-at_install")
 class TestTreasuryBatchReview(AccountTestInvoicingCommon):
 
+    def test_batch_approval_dialog_does_not_replace_application_settings(self):
+        settings = self.env['res.config.settings']
+        standard = self.env.ref('base.res_config_settings_view_form')
+        self.assertEqual(settings.get_view(view_type='form')['id'], standard.id)
+        self.assertIn('js_class="base_settings"', settings.get_view(view_type='form')['arch'])
+        action = self.env.ref('step_account_treasury_batch.action_treasury_batch_approval_settings')
+        specific = self.env.ref('step_account_treasury_batch.view_treasury_batch_approval_settings_form')
+        self.assertEqual(dict((kind, view) for view, kind in action.views)['form'], specific.id)
+        self.assertIn('treasury_batch_approval_threshold', settings.get_view(view_id=specific.id, view_type='form')['arch'])
+        self.assertGreater(specific.priority, standard.priority)
+
     def test_adapter_is_disabled_until_a_bank_format_is_approved(self):
         adapter = self.env["step.treasury.bank.export.adapter"]
         self.assertFalse(adapter.adapter_metadata()["enabled"])

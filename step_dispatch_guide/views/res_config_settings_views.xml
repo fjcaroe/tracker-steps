@@ -15,5 +15,16 @@
             </xpath>
         </field>
     </record>
+    <record id="action_dispatch_settings" model="ir.actions.act_window">
+        <field name="name">Ajustes de guías de despacho</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="base.res_config_settings_view_form"/>
+        <field name="target">inline</field>
+        <field name="context">{'module': 'step_dispatch_guide', 'bin_size': False}</field>
+    </record>
+    <record id="menu_dispatch_settings" model="ir.ui.menu">
+        <field name="action" ref="action_dispatch_settings"/>
+    </record>
 </odoo>
 

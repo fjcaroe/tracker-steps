@@ -10,7 +10,7 @@ Incluye el proceso que genera un lote de pago a partir de la planificación:
 toma los egresos vencidos y de la semana 1 del flujo, deja elegir qué documentos
 se pagan, crea un pago por factura con `account.payment.register` y los agrupa en
 un único lote saliente.""",
-    "version": "18.0.1.4.0",
+    "version": "18.0.1.4.1",
     "category": "Accounting/Accounting",
     "author": "Steps Consulting",
     "license": "LGPL-3",
