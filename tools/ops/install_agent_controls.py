@@ -46,6 +46,10 @@ Leer ~/.odoo/environments.json y docs/OPERACION_ODOO_CANONICA.md antes de cambia
 o publicar Odoo. Si ese documento falta en un checkout antiguo, leerlo con
 git show origin/codex/ambientes-canonicos-reparacion:docs/OPERACION_ODOO_CANONICA.md.
 No elegir la base por el checkout abierto. Usar worktree propio y respetar
+las decisiones vigentes: Desarrollo es el único QA y lugar de revisión.
+Demo-SYS solo Nómina Simple Digital y soporte de Luis. Producción únicamente
+SyS, Steps / karo_consultorias y Cerro El Plomo. Demo, Admin y Everfruit quedan
+fuera del circuito de publicación; preservar datos, no usarlos como QA.
 las ramas canónicas de los productos. Los puertos tienen dominios HTTPS:
 8075 es Desarrollo, 8070 SyS, 8069 Steps; consultar el registro para los demás.
 Hay acceso SSH documentado; no declarar inaccesible un ambiente solo por un

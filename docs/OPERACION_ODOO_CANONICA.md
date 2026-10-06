@@ -6,6 +6,22 @@ la identificación y comprobación del ambiente real.
 
 ## Identificar antes de intervenir
 
+Definición vigente del cliente, 06-10-2026:
+
+- **Desarrollo es el único QA** y destino de revisión funcional.
+- **Demo-SYS: solo Nómina Simple Digital y soporte de Luis.**
+- Producción: **SyS (Luis), Steps / karo_consultorias y Cerro El Plomo**.
+- Demo, Admin Studio y Everfruit son instalaciones legadas, fuera de QA y
+  promoción. Conservar datos y respaldos; no eliminarlas ni distribuir mejoras
+  allí. Su retiro de infraestructura requiere inventario y conservación previa.
+
+Primero instalar y probar en Desarrollo. Las copias privadas de una producción
+pueden validar compatibilidad, pero no son otros QA públicos. Promover el mismo
+paquete revisado. Nómina oficial: Simple Digital; no instalar el motor anterior
+ni recalcular liquidaciones pagadas al cambiar de motor. El retiro de un motor
+requiere migración comprobada de estructuras/reglas e históricos antes de
+desinstalar dependencias que puedan borrar registros.
+
 La fuente de puertos, bases, servicios y dominios es
 [`tools/ops/environments.json`](../tools/ops/environments.json). Por ejemplo,
 `http://35.222.25.110:8075/odoo` es Desarrollo / `LAB_TAREAS`, y `8070` es

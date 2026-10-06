@@ -7,7 +7,6 @@ SUFFIX=${4:-}
 case "$SUFFIX" in '') ;; PHASEB) ;; *) exit 2 ;; esac
 case "$LABEL" in
   development) SOURCE=LAB_TAREAS; CONFIG=/etc/dev_odoo18.conf; ROLE=dev_odoo18; SERVICE=odoo18-dev.service; DATA=/opt/dev_odoo18/.local/share/Odoo ;;
-  demo) SOURCE=STEPS_DEMO; CONFIG=/etc/demo_odoo18.conf; ROLE=demo_odoo18; SERVICE=odoo18-demo.service; DATA=/opt/demo_odoo18/.local/share/Odoo ;;
   *) exit 2 ;;
 esac
 test "$(sha256sum "$ARCHIVE" | cut -d ' ' -f1)" = "$SHA"

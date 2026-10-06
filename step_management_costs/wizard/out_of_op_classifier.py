@@ -32,6 +32,10 @@ class StepManagementOutOfOpWizard(models.TransientModel):
     date_from = fields.Date(string="Desde", required=True)
     date_to = fields.Date(string="Hasta", required=True)
     only_out_of_op = fields.Boolean(string="Sólo fuera de OP")
+    center_ids = fields.Many2many(
+        "account.analytic.account", string="Centros de costo",
+        domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]",
+    )
     computed = fields.Boolean(default=False)
     line_ids = fields.One2many("step.management.out.of.op.line", "wizard_id", string="Detalle")
     total_in_op = fields.Monetary(compute="_compute_totals", currency_field="currency_id")
@@ -60,7 +64,7 @@ class StepManagementOutOfOpWizard(models.TransientModel):
         self.ensure_one()
         centers = self.env["account.analytic.account"].search([
             ("company_id", "in", [False, self.company_id.id]),
-        ])
+        ] + ([("id", "in", self.center_ids.ids)] if self.center_ids else []))
         # El centro de costo es la propia cuenta analítica (T51): la
         # correspondencia cuenta → centro es 1 a 1 por construcción.
         account_to_center = {center.id: center for center in centers}

@@ -1,5 +1,10 @@
 # Instrucciones compartidas para Codex y Claude
 
+Desarrollo es el único QA. Demo-SYS solo Nómina Simple Digital y soporte de Luis.
+Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
+fuera del circuito de publicación, conservando datos. Leer la política vigente
+en `docs/OPERACION_ODOO_CANONICA.md` antes de instalar o promover un módulo.
+
 Para Odoo, leer `docs/OPERACION_ODOO_CANONICA.md` y resolver el destino con
 `tools/ops/environments.json`. No desplegar migraciones o cerrar tickets con
 solo sintaxis/HTTP; exigir pruebas funcionales del mismo paquete en una copia

@@ -1,5 +1,10 @@
 # Instrucciones compartidas y autorización operativa para Claude Code
 
+Desarrollo es el único QA. Demo-SYS solo Nómina Simple Digital y soporte de Luis.
+Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
+fuera del circuito de publicación, conservando datos. Toda mejora se revisa en
+Desarrollo antes de promover el mismo paquete a la producción solicitada.
+
 Leer `docs/OPERACION_ODOO_CANONICA.md`. El destino se resuelve con
 `tools/ops/environments.json` y se confirma por SSH. Los puertos son aliases
 de dominios HTTPS, no ambientes ambiguos. Gestión usa la base consolidada

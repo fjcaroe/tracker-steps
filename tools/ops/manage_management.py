@@ -83,13 +83,15 @@ def errors(text):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('qa', 'deploy', 'verify'))
-    parser.add_argument('environment', choices=('development', 'demo', 'cerro'))
+    parser.add_argument('action', choices=('qa', 'compatibility', 'deploy', 'verify'))
+    parser.add_argument('environment', choices=('development', 'cerro'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
     args = parser.parse_args()
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
+    assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
+    assert args.action != 'compatibility' or args.environment in registry['policy']['production']
     target = registry['environments'][args.environment]
     database, service = target['database'], target['service']
     conf = Path(target['config'])
@@ -124,7 +126,7 @@ def main():
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
-    if args.action == 'qa':
+    if args.action in ('qa', 'compatibility'):
         # Catch import/API compatibility errors before restoring a whole clone.
         import_probe = "import sys,importlib.util\nsys.path.insert(0,'/opt/odoo18')\nspec=importlib.util.spec_from_file_location('odoo.addons.step_agriculture_catalogs.models.catalogs',%r)\nmodule=importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nprint('CATALOG_IMPORT_OK')\n" % str(staged / 'step_agriculture_catalogs/models/catalogs.py')
         run('/usr/bin/python3.10', '-c', import_probe)
@@ -172,9 +174,21 @@ def main():
     assert passed['commit'] == proof['commit'] and passed['release_sha256'] == release_sha
     release_root = Path('/opt/steps-managed/releases') / args.environment / proof['commit']
     if args.action == 'deploy':
+        if args.environment != registry['policy']['qa']:
+            qa_root = Path('/opt/steps-managed/releases/development') / proof['commit']
+            assert (qa_root / 'release.json').exists(), 'First deliver this package to Desarrollo for review'
+            assert json.loads((qa_root / 'release.json').read_text()) == proof
         assert json.loads((stage / 'baseline.json').read_text()) == baseline, 'Concurrent source/config change; repeat QA from current baseline'
         with open('/run/lock/steps-environments.lock', 'a') as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            for command in Path('/proc').glob('[0-9]*/cmdline'):
+                try:
+                    argv = command.read_bytes().decode(errors='replace').split('\x00')
+                except OSError:
+                    continue
+                for index, arg in enumerate(argv):
+                    if Path(arg).name == 'odoo-bin':
+                        assert not any(option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init=')) for option in argv[index + 1:]), 'Concurrent upgrade PID ' + command.parent.name
             assert not release_root.exists(), 'Release already exists'
             release_root.mkdir(parents=True)
             extract(args.release, release_root)

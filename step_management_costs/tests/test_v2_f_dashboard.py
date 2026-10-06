@@ -178,6 +178,7 @@ class TestOutOfOp(ManagementCostsCommon):
         vals = {
             "company_id": self.company_a.id,
             "date_from": "2026-05-01", "date_to": "2027-04-30",
+            "center_ids": [(6, 0, (self.center_a | self.center_no_op).ids)],
         }
         vals.update(kw)
         return self.env["step.management.out.of.op.wizard"].create(vals)

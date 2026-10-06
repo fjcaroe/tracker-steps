@@ -27,7 +27,15 @@ Nunca enviar credenciales por el acceso HTTP a IP/puerto esperando que el client
 siga la redirección. Consultar configuración real antes de concluir falta de acceso.
 
 El destino sale del pedido vigente y de los comentarios recientes autorizados.
-Una petición sin ambiente se prueba primero en Desarrollo/Demo. SyS conserva
+Desarrollo es el único QA y el único destino para revisión del cliente. Demo-SYS
+solo admite Nómina Simple Digital y soporte de Luis; no publicar allí módulos
+agrícolas, Packing, Productores, Exportaciones ni Gestión. Producciones activas:
+SyS (Luis), Steps / karo_consultorias y Cerro El Plomo. Demo, Admin y Everfruit
+son instalaciones legadas fuera del circuito de publicación: conservar sus datos
+y respaldos, no instalar mejoras ni usarlas como QA. Toda producción recibe el
+mismo paquete validado primero en Desarrollo, con revisión funcional cuando
+el encargo la pide. Una copia aislada del destino sirve para comprobar la
+compatibilidad de la migración, no reemplaza QA en Desarrollo. SyS conserva
 sus exigencias de autorización explícita de Fernando o del administrador
 identificado y respaldo. Si mueve montos declarados al Estado, conservar la
 validación humana del resultado antes de producción. No registrar pagos,

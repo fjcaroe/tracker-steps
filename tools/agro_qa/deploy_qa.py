@@ -19,7 +19,6 @@ import urllib.request
 
 TARGETS = {
     'development': ('LAB_TAREAS', '/etc/dev_odoo18.conf', 'odoo18-dev.service', 8075),
-    'demo': ('STEPS_DEMO', '/etc/demo_odoo18.conf', 'odoo18-demo.service', 8080),
 }
 MODULES = ('step_export', 'step_producers', 'step_inventory_packing', 'step_producer_fruit_flow', 'step_packing_operations')
 

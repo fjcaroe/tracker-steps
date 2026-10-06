@@ -1,9 +1,11 @@
 """Entrega B: vínculo activo ↔ vehículo y endpoint de costos del portal."""
 from datetime import date
 from unittest.mock import MagicMock, patch
+from psycopg2 import IntegrityError
 
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import HttpCase, tagged
+from odoo.tools import mute_logger
 
 from .common import CostCase
 
@@ -67,9 +69,9 @@ class TestAssetLink(CostCase):
     def test_one_active_link_per_vehicle_and_per_asset_with_history(self):
         with patch.object(type(self.Link), '_gps_get', lambda *a, **k: gps_response({'name': 'x', 'plate': None})):
             link = self._links(self.manager).create({'asset_id': ASSET, 'vehicle_id': self.vehicle.id, 'company_id': self.company.id})
-            with self.assertRaises(Exception), self.env.cr.savepoint():
+            with mute_logger('odoo.sql_db'), self.assertRaises(IntegrityError), self.env.cr.savepoint():
                 self._links(self.manager).create({'asset_id': FOREIGN_ASSET, 'vehicle_id': self.vehicle.id, 'company_id': self.company.id})
-            with self.assertRaises(Exception), self.env.cr.savepoint():
+            with mute_logger('odoo.sql_db'), self.assertRaises(IntegrityError), self.env.cr.savepoint():
                 self._links(self.manager).create({'asset_id': ASSET, 'vehicle_id': self.other_vehicle.id, 'company_id': self.company.id})
             link.with_user(self.manager).active = False
             self.env.flush_all()
