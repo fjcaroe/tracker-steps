@@ -52,7 +52,7 @@ def unpack(package,destination):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action',choices=['qa','compatibility','deploy','verify'])
+    p.add_argument('action',choices=['qa','compatibility','diagnose','deploy','verify'])
     p.add_argument('environment',choices=['development','steps'])
     p.add_argument('package',type=Path);p.add_argument('run_id');a=p.parse_args()
     assert os.geteuid()==0 and re.fullmatch('[a-z0-9_]{1,20}',a.run_id)
@@ -78,11 +78,26 @@ def main():
     base=['sudo','-u',user,'nice','-n','15','/usr/bin/python3.10','/opt/odoo18/odoo-bin']
     stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     clone='WHATSAPP_QA_'+a.environment.upper()+'_'+a.run_id
+    def errors(text):
+        known = "Some modules are not loaded, some dependencies or manifest may be missing: " + repr(['steps_api'] if a.environment=='development' else ['steps_transport'])
+        return [s for s in text.splitlines() if (' ERROR ' in s or ' CRITICAL ' in s) and not s.rstrip().endswith(known)]
     def verify(database,source):
         script="import importlib,json\nfrom lxml import etree\ntry:\n m=env['ir.module.module'].search([('name','=',%r)])\n assert m.state=='installed' and m.latest_version==%r\n assert importlib.import_module('odoo.addons.'+%r).__file__.startswith(%r+'/')\n for model in ('step.helpdesk.wa.channel','step.helpdesk.wa.message','step.helpdesk.wa.compose'):\n  etree.fromstring(env[model].get_view(view_type='form')['arch'])\n assert 'action_respond_whatsapp' in env['helpdesk.ticket'].get_view(view_type='form')['arch']\n assert not env['step.helpdesk.wa.channel'].search_count([('enabled','=',True),('provider','=','meta_cloud')])\n print('WHATSAPP_REGISTRY_OK')\nfinally:env.cr.rollback()\n"%(module,proof['version'],module,str(source))
         result=subprocess.run(base+['shell','-c',str(conf),'-d',database,'--db-filter=^'+database+'$','--addons-path='+str(source)+','+opts['addons_path'],'--no-http','--workers=0','--max-cron-threads=0','--log-level=error'],input=script,text=True,capture_output=True)
         (stage/('verify-'+database+'.log')).write_text(result.stdout+result.stderr)
         assert result.returncode==0 and 'WHATSAPP_REGISTRY_OK' in result.stdout,'See private registry log'
+    if a.action=='diagnose':
+        assert sql('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone)
+        assert json.loads((stage/'baseline.json').read_text())==baseline
+        with socket.socket() as listener:listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
+        log=stage/('diagnose-'+stamp+'.log')
+        result=subprocess.run(base+['-c',str(conf),'-d',clone,'--db-filter=^'+clone+'$','--addons-path='+str(addon)+','+opts['addons_path'],
+            '--data-dir='+str(stage/'data'),'--http-interface=127.0.0.1','--http-port='+str(port),'--workers=0','--max-cron-threads=0','--without-demo=all',
+            '-u',module,'--test-enable','--test-tags=/'+module,'--stop-after-init','--logfile='+str(log)])
+        text=log.read_text(errors='replace')
+        print('\n'.join(s for s in text.splitlines() if 'tests.result' in s or 'ERROR:' in s or 'FAIL:' in s)[-4000:],flush=True)
+        assert result.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',text) and not errors(text),'See private diagnostic log'
+        print('WHATSAPP_DIAGNOSIS_OK; fresh clone required before promotion',flush=True);return
     if a.action in ['qa','compatibility']:
         assert not sql('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone)
         (stage/'baseline.json').write_text(json.dumps(baseline))
@@ -106,7 +121,7 @@ def main():
             '-i',module,'--test-enable','--test-tags=/'+module,'--stop-after-init','--logfile='+str(log)])
         text=log.read_text(errors='replace')
         print('\n'.join(s for s in text.splitlines() if 'tests.result' in s or ' ERROR ' in s or ' FAIL' in s)[-4000:],flush=True)
-        assert result.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',text) and not any(' ERROR ' in s for s in text.splitlines() if "missing: ['steps_api']" not in s),'See private QA log'
+        assert result.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',text) and not errors(text),'See private QA log'
         after=snapshots(clone,before);assert all(after.get(k)==v for k,v in before.items()),'Existing support records changed'
         verify(clone,addon)
         (stage/'qa_passed.json').write_text(json.dumps({'commit':proof['commit'],'sha256':package_sha,'database':clone,'log':str(log)}))
@@ -132,7 +147,7 @@ def main():
                 updated,count=re.subn(r'(?m)^\s*addons_path\s*=.*$','addons_path = '+str(release)+','+opts['addons_path'],conf.read_text());assert count==1;conf.write_text(updated)
                 log=stage/('deploy-'+stamp+'.log')
                 result=subprocess.run(base+['-c',str(conf),'-d',db,'--no-http','--workers=0','--max-cron-threads=0','--without-demo=all','-i',module,'--stop-after-init','--logfile='+str(log)])
-                text=log.read_text(errors='replace');assert result.returncode==0 and 'Modules loaded.' in text and not any(' ERROR ' in s for s in text.splitlines() if "missing: ['steps_api']" not in s),'See private deployment log'
+                text=log.read_text(errors='replace');assert result.returncode==0 and 'Modules loaded.' in text and not errors(text),'See private deployment log'
                 after=snapshots(db,before);assert all(after.get(k)==v for k,v in before.items())
                 (backup/'deployment.json').write_text(json.dumps({'commit':proof['commit'],'sha256':package_sha,'before':before,'after':after}))
             finally:run('systemctl','start',target['service'])

@@ -6,6 +6,7 @@ import re
 import threading
 import uuid
 from psycopg2 import IntegrityError
+from psycopg2.extras import Json
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import plaintext2html
@@ -67,12 +68,13 @@ class Channel(models.Model):
         Event=self.env['step.helpdesk.wa.event'].sudo()
         for event in events:
             key=event_key(event)
-            try:
-                with self.env.cr.savepoint():
-                    Event.create({'channel_id':self.id,'dedupe_key':key,'payload':event,'kind':event['kind']})
-            except IntegrityError:
-                if not Event.search_count([('channel_id','=',self.id),('dedupe_key','=',key)]):
-                    raise
+            self.env.cr.execute('''INSERT INTO step_helpdesk_wa_event
+                (channel_id,company_id,team_id,dedupe_key,payload,kind,state,attempts,create_uid,write_uid,create_date,write_date)
+                VALUES (%s,%s,%s,%s,%s,%s,'pending',0,%s,%s,%s,%s)
+                ON CONFLICT (channel_id,dedupe_key) DO NOTHING''',[
+                self.id,self.company_id.id,self.team_id.id,key,Json(event),event['kind'],
+                self.env.uid,self.env.uid,fields.Datetime.now(),fields.Datetime.now()])
+        Event.invalidate_model()
 
     def action_sync_templates(self):
         self.ensure_one();self.check_access('write')
@@ -285,10 +287,11 @@ class Message(models.Model):
         self.ensure_one()
         if self.mail_message_id:return
         message=self.ticket_id.with_context(_wa_private=PRIVATE,mail_notify_noemail=True,mail_post_autofollow=False).message_post(
-            body=plaintext2html(self.text or _('Archivo de WhatsApp pendiente de descarga.')),
+            body=plaintext2html(self.text or _('Archivo de WhatsApp (estado en la pestaña WhatsApp).')),
             message_type='email',subtype_xmlid='mail.mt_comment',author_id=self.conversation_id.partner_id.id or False,
-            email_from='WhatsApp <whatsapp-incoming@invalid>',step_wa_inbound=True,
+            email_from='WhatsApp <whatsapp-incoming@invalid>',
             attachment_ids=self.attachment_id.ids)
+        message.with_context(_wa_private=PRIVATE).write({'step_wa_inbound':True,'date':self.occurred_at})
         self.mail_message_id=message
 
     def _window_open(self):
@@ -390,6 +393,11 @@ class MailMessage(models.Model):
         if any(v.get('step_wa_inbound') for v in values) and self.env.context.get('_wa_private') is not PRIVATE:
             raise AccessError(_('La marca de entrada WhatsApp pertenece al receptor firmado.'))
         return super().create(values)
+
+    def write(self, values):
+        if values.get('step_wa_inbound') and self.env.context.get('_wa_private') is not PRIVATE:
+            raise AccessError(_('La marca de entrada WhatsApp pertenece al receptor firmado.'))
+        return super().write(values)
 
 
 class Compose(models.TransientModel):
