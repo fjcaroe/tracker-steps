@@ -59,6 +59,20 @@ def migrate(cr, version):
                                  ('mail_followers','res_model'),('mail_activity','res_model'),
                                  ('ir_attachment','res_model'),('ir_model_data','model')):
             cr.execute(f'UPDATE "{metadata}" SET "{column}"=%s WHERE "{column}"=%s', (new, old))
+        replacements = {**schema.FIELDS, **{'default_' + key: 'default_' + value for key, value in schema.FIELDS.items()}}
+        cr.execute('SELECT id,domain,context FROM ir_act_window WHERE res_model=%s', (new,))
+        for action_id, domain, context in cr.fetchall():
+            cr.execute('UPDATE ir_act_window SET domain=%s,context=%s WHERE id=%s',
+                       (schema.replace_tokens(domain, replacements) if domain else domain,
+                        schema.replace_tokens(context, replacements) if context else context, action_id))
+        cr.execute('SELECT id,domain,context FROM ir_filters WHERE model_id=%s', (old,))
+        for filter_id, domain, context in cr.fetchall():
+            cr.execute('UPDATE ir_filters SET model_id=%s,domain=%s,context=%s WHERE id=%s',
+                       (new, schema.replace_tokens(domain, replacements) if domain else domain,
+                        schema.replace_tokens(context, replacements) if context else context, filter_id))
+        cr.execute("""UPDATE ir_act_report_xml SET binding_model_id=NULL WHERE model=%s AND
+            EXISTS (SELECT 1 FROM ir_model_data d WHERE d.model='ir.actions.report'
+                    AND d.res_id=ir_act_report_xml.id AND d.module='studio_customization')""", (new,))
         cr.execute('SELECT id,code FROM ir_act_server WHERE model_id=%s', (model_id,))
         for action_id, code in cr.fetchall():
             if code:

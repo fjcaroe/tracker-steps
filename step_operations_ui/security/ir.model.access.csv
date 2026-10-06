@@ -10,6 +10,6 @@ access_freight_plan_user,Planificación de fletes,model_step_freight_plan,base.g
 access_freight_plan_line_user,Líneas de planificación de fletes,model_step_freight_plan_linea,base.group_user,1,1,1,1
 access_freight_cost_report_user,Análisis de fletes (costeo real),model_step_freight_cost_report,base.group_user,1,0,0,0
 access_freight_plan_vs_actual_user,Fletes planificado vs real,model_step_freight_plan_vs_actual,base.group_user,1,0,0,0
-access_freight_tariff_line_user,Líneas de tarifa de flete,model_step_freight_tariff_line_57b07,base.group_user,1,1,1,1
-access_freight_order_detail_user,Detalles de orden de flete,model_step_freight_order_line_709f3,base.group_user,1,1,1,1
-access_freight_order_cost_user,Costeo de orden de flete,model_step_freight_order_line_72953,base.group_user,1,1,1,1
+access_freight_tariff_line_user,Líneas de tarifa de flete,model_step_freight_tariff_line,base.group_user,1,1,1,1
+access_freight_order_detail_user,Detalles de orden de flete,model_step_freight_order_line,base.group_user,1,1,1,1
+access_freight_order_cost_user,Costeo de orden de flete,model_step_freight_order_cost,base.group_user,1,1,1,1
