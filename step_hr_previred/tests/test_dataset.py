@@ -14,6 +14,21 @@ from .common import PreviredCase, make_row
 @tagged("post_install", "-at_install")
 class TestDataset(PreviredCase):
 
+    def _make_cost_center(self, model, values):
+        """Supply synthetic agricultural masters only when that app requires them."""
+        for name in ('type_costo', 'etapa_costo', 'tipo_fruta'):
+            field = model._fields.get(name)
+            if field and field.required:
+                values[name] = field.get_values(self.env)[0]
+        field = model._fields.get('fundo_id')
+        if field and field.required:
+            farm = self.env[field.comodel_name].create({
+                'name': 'Fundo Previred de prueba',
+                'company_id': self.company.id,
+            })
+            values['fundo_id'] = farm.id
+        return model.create(values)
+
     def _add_worked_days(self, payslip, code, days, is_leave=False):
         entry_type = self.env["hr.work.entry.type"].search(
             [("code", "=", code)], limit=1
@@ -178,7 +193,7 @@ class TestDataset(PreviredCase):
                 "name": "Plan Previred",
             })
             values["plan_id"] = plan.id
-        center = analytic_model.create(values)
+        center = self._make_cost_center(analytic_model, values)
         payslip.contract_id[field_name] = center
 
         dataset = self.build([make_row(dv="5")], spec_version="98")
@@ -211,7 +226,7 @@ class TestDataset(PreviredCase):
                 "name": "Plan Previred",
             })
             values["plan_id"] = plan.id
-        center = analytic_model.create(values)
+        center = self._make_cost_center(analytic_model, values)
         payslip.contract_id[field_name] = center
 
         dataset = self.build([make_row(dv="5")], spec_version="98")
