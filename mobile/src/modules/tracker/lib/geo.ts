@@ -17,12 +17,25 @@ export function acceptFix(prev: Fix | null, next: Fix, maxAccuracyM = 60, maxSpe
 }
 
 export type Stop = () => void;
-export type GeoError = 'denied' | 'unavailable';
+export type GeoError = 'denied' | 'unavailable' | 'notifications';
 
 /** Observa la posición. En Android/iOS usa el plugin nativo; en web, la API del navegador. */
-export async function watchPosition(onFix: (f: Fix) => void, onError: (e: GeoError) => void): Promise<Stop> {
-  const { Capacitor } = await import('@capacitor/core');
+export async function watchPosition(onFix: (f: Fix) => void, onError: (e: GeoError) => void,
+  options: { profile?: 'precise' | 'balanced'; onMode?: (mode: 'background' | 'foreground') => void } = {}): Promise<Stop> {
+  const { Capacitor, registerPlugin } = await import('@capacitor/core');
   if (Capacitor.isNativePlatform()) {
+    if (Capacitor.isPluginAvailable('BackgroundGeolocation')) {
+      try {
+        const { startBackgroundWatcher } = await import('./background');
+        const notification = Capacitor.getPlatform() === 'android'
+          ? (await import('@capacitor/local-notifications')).LocalNotifications : null;
+        const stop = await startBackgroundWatcher(registerPlugin('BackgroundGeolocation'), notification,
+          options.profile ?? 'precise', onFix, onError);
+        if (stop) options.onMode?.('background');
+        return stop ?? (() => {});
+      } catch { onError('unavailable'); return () => {}; }
+    }
+    options.onMode?.('foreground');
     const { Geolocation } = await import('@capacitor/geolocation');
     const perm = await Geolocation.requestPermissions();
     if (perm.location !== 'granted') { onError('denied'); return () => {}; }
@@ -32,6 +45,7 @@ export async function watchPosition(onFix: (f: Fix) => void, onError: (e: GeoErr
     });
     return () => { void Geolocation.clearWatch({ id }); };
   }
+  options.onMode?.('foreground');
   if (!('geolocation' in navigator)) { onError('unavailable'); return () => {}; }
   const id = navigator.geolocation.watchPosition(
     (pos) => onFix({ ts: pos.timestamp, lat: pos.coords.latitude, lon: pos.coords.longitude, speed_mps: pos.coords.speed, accuracy_m: pos.coords.accuracy }),

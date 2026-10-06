@@ -10,11 +10,11 @@ export function HelpSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Cómo usar Steps Móvil" onClose={onClose}>
       <ol className="steps">
-        <li><strong>Permite la ubicación.</strong> Al iniciar la jornada el teléfono pedirá permiso: elige «Permitir mientras se usa la app» y mantén el GPS activo.</li>
+        <li><strong>Permite la ubicación.</strong> En Android/iOS habilita la ubicación en segundo plano y los avisos de registro. Mantén el GPS activo.</li>
         <li><strong>Inicia la jornada</strong> con la máquina, la labor y el horómetro. Si tu supervisor te asignó una tarea, ábrela desde «Hoy».</li>
         <li><strong>Revisa tu máquina</strong> con «Revisión previa» y reporta cualquier falla con foto.</li>
         <li><strong>Sin señal no pasa nada:</strong> todo queda guardado en el teléfono y se envía solo al volver la conexión.</li>
-        <li><strong>Mantén la pantalla encendida</strong> o la app abierta: si el teléfono la cierra, el registro de ruta se detiene.</li>
+        <li><strong>Registro de ruta.</strong> En el navegador mantén la app abierta. En la aplicación Android/iOS el registro puede continuar con la pantalla apagada; evita forzar su cierre.</li>
         <li><strong>Al terminar</strong> toca «Finalizar jornada» e ingresa horómetro y litros.</li>
       </ol>
     </Sheet>
@@ -70,6 +70,9 @@ export default function Profile({ user, onLogout }: { user: User; onLogout: () =
       <article className="card">
         <h3>Ubicación</h3>
         <p className="muted">La app registra tu posición solo mientras tienes una jornada en curso. Si el navegador o el teléfono bloquea el permiso, actívalo en los ajustes del sitio o de la aplicación.</p>
+        <label>Registro de ruta en Android/iOS<select value={s.gpsProfile} onChange={(e) => update({ gpsProfile: e.target.value as Settings['gpsProfile'] })}>
+          <option value="precise">Mayor detalle</option><option value="balanced">Ahorro de batería</option>
+        </select></label>
         <button onClick={() => setHelp(true)}>Ayuda de primer uso</button>
       </article>
       <article className="card stack">

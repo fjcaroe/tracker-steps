@@ -1,6 +1,6 @@
 // Preferencias de terreno (I14): letra, modo noche, botones grandes (guantes), sonidos y límite de velocidad.
-export type Settings = { fontScale: number; night: 'auto' | 'on' | 'off'; gloves: boolean; sound: boolean; speedLimitKmh: number; breakAfterMin: number; seenHelp: boolean };
-export const DEFAULTS: Settings = { fontScale: 1, night: 'auto', gloves: false, sound: true, speedLimitKmh: 30, breakAfterMin: 240, seenHelp: false };
+export type Settings = { fontScale: number; night: 'auto' | 'on' | 'off'; gloves: boolean; sound: boolean; speedLimitKmh: number; breakAfterMin: number; seenHelp: boolean; gpsProfile: 'precise' | 'balanced' };
+export const DEFAULTS: Settings = { fontScale: 1, night: 'auto', gloves: false, sound: true, speedLimitKmh: 30, breakAfterMin: 240, seenHelp: false, gpsProfile: 'precise' };
 const KEY = 'steps_movil_settings';
 
 export function loadSettings(): Settings {

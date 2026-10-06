@@ -4,6 +4,10 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Steps Móvil usa tu ubicación para registrar la ruta mientras tienes una jornada en curso.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Steps Móvil registra la ruta de tu jornada también con la pantalla apagada. El registro termina al cerrar la jornada.</string>
+	<key>UIBackgroundModes</key>
+	<array><string>location</string></array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>

@@ -1,8 +1,9 @@
 // Cliente de la API Tracker (JWT). El mismo código corre en web, Android e iOS.
+import { platformFetch } from '../../../platform/http';
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
-export const APP_VERSION = '1.2.1';
+export const APP_VERSION = '1.2.2';
 
 export class ApiError extends Error {
   status: number;
@@ -23,7 +24,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token) headers.set('Authorization', `Bearer ${token}`);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   let response: Response;
-  try { response = await fetch(API_BASE + path, { ...init, headers }); }
+  try { response = await platformFetch(API_BASE + path, { ...init, headers }); }
   catch { throw new ApiError('Sin conexión con el servidor', 0); }
   if (response.status === 401) { tokenStore.set(null); onUnauthorized(); throw new ApiError('Tu sesión expiró. Vuelve a entrar.', 401); }
   if (!response.ok) {

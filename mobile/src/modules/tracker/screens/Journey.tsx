@@ -254,6 +254,8 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
   const [now, setNow] = useState(Date.now());
   const [fix, setFix] = useState<Fix | null>(null);
   const [geoError, setGeoError] = useState('');
+  const [gpsMode, setGpsMode] = useState<'background' | 'foreground'>('foreground');
+  const gpsStartedAt = useRef(Date.now());
   const [pending, setPending] = useState(pointQueue.size(active.sessionId));
   const [finishing, setFinishing] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(syncStore.get);
@@ -285,6 +287,7 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
     const sync = setInterval(() => { void flush(); }, 15000);
     let stop = () => {}; let release = () => {}; let cancelled = false;
     void watchPosition((next) => {
+      if (cancelled) return;
       setGeoError(''); setFix(next);
       if (!acceptFix(last.current, next)) return;
       if (next.ts - lastSaved.current < 4000) return;
@@ -315,7 +318,8 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
         setOffRoute(dev != null && dev > 150 ? dev : null);
         if (dev != null && dev > 150 && next.ts - lastOff.current > 120000) { lastOff.current = next.ts; beep(settings.current.sound); }
       }
-    }, (e) => setGeoError(e === 'denied' ? 'Permiso de ubicación denegado: actívalo para registrar la ruta.' : 'No se pudo obtener la ubicación. ¿Tienes GPS activo?'))
+    }, (e) => { if (!cancelled) setGeoError(e === 'denied' ? 'Permiso de ubicación denegado: actívalo para registrar la ruta.' : e === 'notifications' ? 'Habilita las notificaciones de Steps para registrar la ruta con la pantalla apagada.' : 'No se pudo obtener la ubicación. ¿Tienes GPS activo?'); },
+    { profile: settings.current.gpsProfile, onMode: (mode) => { if (!cancelled) setGpsMode(mode); } })
       .then((s) => { if (cancelled) s(); else stop = s; });
     void keepAwake().then((r) => { if (cancelled) r(); else release = r; });
     void flush();
@@ -351,6 +355,9 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
       </article>
       <MapView me={fix} track={track} route={wps} reached={reached} fields={fields} height={280} />
       {geoError && <p className="error" role="alert">{geoError}</p>}
+      {!geoError && ((!fix && now - gpsStartedAt.current > 120000) || (fix && (fix.speed_mps ?? 0) > 0.5 && now - fix.ts > 120000)) &&
+        <p className="banner" role="status">La ruta lleva más de 2 minutos sin recibir ubicación. Revisa el GPS y los permisos del teléfono.</p>}
+      <small className="muted">{gpsMode === 'background' ? 'Ubicación en segundo plano activada para esta jornada.' : 'Mantén la app abierta para registrar la ubicación.'}</small>
       {settings.current.breakAfterMin > 0 && drivingMin >= settings.current.breakAfterMin && <p className="banner" role="status">Llevas {Math.floor(drivingMin / 60)} h {drivingMin % 60} min conduciendo sin pausa. Detente a descansar al menos 15 minutos.</p>}
       {speedAlert && <p className="error" role="alert">Vas sobre el límite de {settings.current.speedLimitKmh} km/h. Reduce la velocidad.</p>}
       {toast && <p className="banner" role="status">{toast}</p>}

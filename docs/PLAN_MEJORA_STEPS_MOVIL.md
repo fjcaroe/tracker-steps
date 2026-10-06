@@ -60,12 +60,20 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 - **Aceptación:** modo avión → iniciar, mover, cerrar → al reconectar queda un solo parte y una sola sesión.
   Pruebas de la cola de operaciones (orden, reintento, idempotencia).
 
-### I3 · GPS en segundo plano (Android/iOS)  `[ ]`
+### I3 · GPS en segundo plano (Android/iOS)  `[~]` 06-10-2026: implementación y pruebas simuladas; falta validación nativa/terreno
 - **Qué:** plugin nativo de ubicación en segundo plano (p. ej. `@capacitor-community/background-geolocation`)
   con notificación persistente "Steps está registrando tu ruta", permisos "siempre", ahorro de batería
   configurable y *fallback* a web. Detectar y avisar cuando el sistema mata la app.
 - **Requisito externo:** Android Studio / Xcode y cuentas de desarrollador (ver Bloque F).
 - **Aceptación:** jornada de 1 hora con pantalla apagada en un teléfono real, sin huecos > 2 min en la ruta.
+- Implementado: plugin compatible con Capacitor 7, notificación/permisos, perfil
+  de batería, descarte de posiciones antiguas, HTTP nativo y cierre del watcher.
+  La navegación entre pestañas conserva el registro; salir del módulo o cerrar
+  sesión lo detiene. Los datos previos y claves locales se conservan.
+- Android sincronizado; proyectos Android/iOS preparados. Este equipo no tiene
+  Java/SDK Android ni Xcode. No se ha generado un APK/IPA ni certificado la hora
+  de recorrido físico. La versión unificada sigue siendo un piloto: no publicar
+  todo ese piloto sobre `/truck/` solo para instalar el plugin nativo.
 
 ### I4 · Sesión y permisos sin fricción  `[x]` 02-10-2026
 - **Qué:** que los **administradores Odoo vean todos los centros de costo** sin asignarlos a mano

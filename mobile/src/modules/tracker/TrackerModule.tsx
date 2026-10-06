@@ -89,7 +89,8 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
       </header>
       {!online && <p className="banner" role="status">Sin conexión: todo se guarda en el teléfono y se envía al volver la señal.</p>}
       <main className="content">
-        {tab === 'journey' && <Journey online={online} preset={preset} onPresetUsed={() => setPreset(null)} />}
+        {/* Keep the journey watcher alive while viewing tasks/history/profile. */}
+        <div hidden={tab !== 'journey'}><Journey online={online} preset={preset} onPresetUsed={() => setPreset(null)} /></div>
         {tab === 'tasks' && <Tasks onStart={startTask} onOpenJourney={() => setTab('journey')} />}
         {tab === 'history' && <History />}
         {tab === 'supervisor' && user.is_admin && <Supervisor />}
