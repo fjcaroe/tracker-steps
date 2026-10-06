@@ -33,6 +33,7 @@ def history(database):
     # Monetary detail, states and accounting links must survive verbatim.
     result = {}
     columns = {
+        'hr_contract': ('id','employee_id','company_id','wage','date_start','date_end','state'),
         'hr_payslip': ('id','employee_id','contract_id','struct_id','date_from','date_to','state','move_id'),
         'hr_payslip_line': ('id','slip_id','salary_rule_id','code','amount','quantity','rate','total'),
         'hr_payslip_worked_days': ('id','payslip_id','work_entry_type_id','number_of_days','number_of_hours','amount'),
