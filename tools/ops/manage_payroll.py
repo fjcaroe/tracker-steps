@@ -50,7 +50,7 @@ def history(database):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('qa','compatibility','retry-tests','deploy','verify'))
+    p.add_argument('action', choices=('qa','compatibility','retry-tests','verify-clone','deploy','verify'))
     p.add_argument('environment', choices=('development','demo-sys','steps','sys','cerro'))
     p.add_argument('archive', type=Path)
     p.add_argument('run_id')
@@ -201,6 +201,12 @@ def main():
         return
     passed = json.loads((stage/'passed.json').read_text())
     assert passed['commit']==proof['commit'] and passed['sha256']==digest(args.archive) and passed['vendor']==vendor_hash
+    if args.action == 'verify-clone':
+        assert json.loads((stage/'baseline.json').read_text()) == baseline
+        assert history(qa_db) == json.loads((stage/'history_before.json').read_text())
+        execute(qa_db, addons, stage/'data', 'verify', shell=(HERE/'verify_payroll.py').read_text())
+        print('PAYROLL_CLONE_VERIFY_OK ' + args.environment, flush=True)
+        return
     release=Path('/opt/steps-managed/payroll')/args.environment/proof['commit']
     if args.action == 'deploy':
         if args.environment != 'development':
