@@ -9,5 +9,5 @@
     <menuitem id="menu_step_producers_preliq_price" name="Precios preliquidación" parent="menu_step_producers_contracts_group" action="action_preliq_price" sequence="20"/>
     <menuitem id="menu_step_producers_settlements" name="Liquidaciones" parent="menu_step_producers_settlement_group" action="step_producers.action_export_producer_settlement" sequence="30"/>
     <menuitem id="menu_step_producers_contracts" name="Contratos de compra" parent="menu_step_producers_planning_group" action="action_step_producer_purchase_contract" sequence="30"/>
-    <menuitem id="menu_producer_accounting" name="Ajustes contables" parent="menu_step_producers_config_group" action="action_producer_accounting" sequence="10" groups="account.group_account_manager"/>
+    <menuitem id="menu_producer_accounting" name="Ajustes contables" parent="menu_step_producers_config_group" action="action_producer_accounting_current_company" sequence="10" groups="account.group_account_manager"/>
 </odoo>

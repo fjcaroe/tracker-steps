@@ -5,6 +5,19 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged("post_install", "-at_install", "step_producers")
 class TestProducerApp(TransactionCase):
+    def test_accounting_settings_open_active_company_without_creating_records(self):
+        menu = self.env.ref('step_producers.menu_producer_accounting')
+        count = self.env['res.company'].search_count([])
+        action = menu.action.run()
+        self.assertEqual(action['res_id'], self.env.company.id)
+        self.assertEqual(action['views'], [(self.env.ref('step_producers.view_producer_accounting_form').id, 'form')])
+        self.assertEqual(self.env['res.company'].search_count([]), count)
+        other = self.env['res.company'].create({'name': 'Empresa ajustes activos QA'})
+        self.assertEqual(menu.with_company(other).action.run()['res_id'], other.id)
+        self.assertGreater(self.env.ref('step_producers.view_producer_accounting_form').priority,
+                           self.env.ref('base.view_company_form').priority)
+        self.assertEqual(self.env.ref('step_producers.action_producer_accounting').views[0][1], 'list')
+
     def test_producer_uses_existing_farms_rates_and_estimates(self):
         producer = self.env["res.partner"].create({
             "name": "Productor prueba Productores", "is_productor": True,

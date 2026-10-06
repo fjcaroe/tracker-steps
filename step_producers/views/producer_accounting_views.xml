@@ -1,5 +1,6 @@
 <odoo>
     <record id="view_producer_accounting_form" model="ir.ui.view"><field name="name">producer.accounting.settings</field><field name="model">res.company</field>
+        <field name="priority">99</field>
         <field name="arch" type="xml"><form create="0" delete="0"><sheet><group><field name="name"/><field name="currency_id"/></group>
             <group string="Anticipos de contratos"><field name="step_producer_advance_product_id"/>
                 <field name="step_producer_advance_account_id"/></group>
@@ -7,6 +8,14 @@
                 <field name="step_export_purchase_account_id"/><field name="step_export_purchase_tax_id"/></group>
         </sheet></form></field></record>
     <record id="action_producer_accounting" model="ir.actions.act_window"><field name="name">Parámetros contables de Productores</field><field name="res_model">res.company</field>
-        <field name="view_mode">list,form</field><field name="view_id" ref="view_producer_accounting_form"/>
+        <field name="view_mode">list,form</field><field name="view_id" eval="False"/>
+        <field name="view_ids" eval="[(5, 0, 0), (0, 0, {'view_mode': 'list', 'view_id': ref('base.view_company_tree')}), (0, 0, {'view_mode': 'form', 'view_id': ref('view_producer_accounting_form')})]"/>
+        <field name="context">{'create': False, 'delete': False}</field>
         <field name="domain">[('id','in',allowed_company_ids)]</field></record>
+    <record id="action_producer_accounting_current_company" model="ir.actions.server">
+        <field name="name">Ajustes contables de Productores</field>
+        <field name="model_id" ref="base.model_res_company"/>
+        <field name="state">code</field>
+        <field name="code">action = env.company.action_step_producer_accounting()</field>
+    </record>
 </odoo>

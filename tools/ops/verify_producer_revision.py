@@ -15,6 +15,12 @@ try:
     checked = []
     for menu in env['ir.ui.menu'].search([('id', 'child_of', root.id)]):
         action = menu.action
+        if menu == env.ref('step_producers.menu_producer_accounting'):
+            result = action.run()
+            assert result['res_id'] == env.company.id
+            assert result['views'] == [(env.ref('step_producers.view_producer_accounting_form').id, 'form')]
+            env['res.company'].get_view(view_id=result['views'][0][0], view_type='form')
+            checked.append(menu.complete_name)
         if action and action._name == 'ir.actions.act_window':
             model = env[action.res_model]
             variables = {'uid': env.uid, 'context': env.context, 'allowed_company_ids': env.companies.ids}

@@ -5,6 +5,13 @@ from odoo.exceptions import ValidationError
 
 class ProducerAccountingCompany(models.Model):
     _inherit = 'res.company'
+
+    def action_step_producer_accounting(self):
+        company = self.env.company
+        view = self.env.ref('step_producers.view_producer_accounting_form')
+        return {'type': 'ir.actions.act_window', 'name': _('Ajustes contables de Productores'),
+                'res_model': 'res.company', 'res_id': company.id,
+                'view_mode': 'form', 'views': [(view.id, 'form')], 'target': 'current'}
     step_producer_advance_product_id = fields.Many2one(
         'product.product', string='Concepto de anticipo de contrato', check_company=True)
     step_producer_advance_account_id = fields.Many2one(
