@@ -1,5 +1,11 @@
 # Instrucciones compartidas para Codex y Claude
 
+Para Odoo, leer `docs/OPERACION_ODOO_CANONICA.md` y resolver el destino con
+`tools/ops/environments.json`. No desplegar migraciones o cerrar tickets con
+solo sintaxis/HTTP; exigir pruebas funcionales del mismo paquete en una copia
+del destino. No sustituir maestros existentes por textos ni tablas paralelas.
+Rechazar downgrades y cambios concurrentes; usar exclusión y overlays privados.
+
 ## Rama, concurrencia y cierre obligatorio
 
 - Leer `docs/WORKFLOW_GIT_COMPARTIDO.md` antes de cambiar código.

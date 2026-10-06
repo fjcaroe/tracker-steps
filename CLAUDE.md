@@ -1,5 +1,13 @@
 # Instrucciones compartidas y autorización operativa para Claude Code
 
+Leer `docs/OPERACION_ODOO_CANONICA.md`. El destino se resuelve con
+`tools/ops/environments.json` y se confirma por SSH. Los puertos son aliases
+de dominios HTTPS, no ambientes ambiguos. Gestión usa la base consolidada
+`origin/codex/ambientes-canonicos-reparacion`. La publicación exige prueba
+funcional del paquete exacto, ausencia de downgrade/cambios concurrentes y
+exclusión compartida. No reemplazar maestros por texto ni parchar Studio para
+simular una implementación. No cerrar un ticket antes de verificar su destino.
+
 Leer y cumplir `AGENTS.md` y `docs/WORKFLOW_GIT_COMPARTIDO.md` antes de cambiar
 código. Cada tarea termina con código útil en commits, rama subida y
 `python tools/git/verify_handoff.py --require-pushed` correcto. No dejar cambios
