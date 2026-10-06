@@ -93,7 +93,7 @@ class FreightOrder(models.Model):
     @api.model
     def _without_blank_detail_creates(self, values):
         values = dict(values)
-        if "detail_ids" in values:
+        if values.get("detail_ids"):
             Detail = self.env["step.freight.order.line"]
             values["detail_ids"] = [command for command in values["detail_ids"]
                 if not (command[0] == fields.Command.CREATE and Detail._is_blank_values(command[2]))]
