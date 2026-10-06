@@ -123,6 +123,11 @@ def main():
     shared_modules = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module "
                    "WHERE state='installed' AND (name LIKE 'step%' OR name IN ('web_studio','studio_customization'))"))
     baseline['shared_versions'] = shared_modules
+    baseline['studio_metadata_digest'] = query(database, """SELECT md5(COALESCE(string_agg(row::text,'|' ORDER BY row::text),''))
+        FROM (SELECT to_jsonb(v) AS row FROM ir_ui_view v JOIN ir_model_data d ON d.res_id=v.id
+              WHERE d.model='ir.ui.view' AND d.module='studio_customization'
+              UNION ALL SELECT to_jsonb(f) FROM ir_model_fields f JOIN ir_model_data d ON d.res_id=f.id
+              WHERE d.model='ir.model.fields' AND d.module='studio_customization') metadata""")
     for name in sorted({MODULE, *dependencies, *shared_modules}):
         # Missing legacy steps_api is audited separately; the service already
         # reports that exact exception and no promotion may add another.
@@ -130,6 +135,9 @@ def main():
                       if (Path(path.strip()) / name / '__manifest__.py').exists()]
         if name == 'steps_api' and not candidates:
             baseline['sources'][name] = {'missing_legacy': True}
+            continue
+        if name == 'studio_customization' and not candidates:
+            baseline['sources'][name] = {'database_customization': True}
             continue
         assert candidates, 'Missing source: ' + name
         source = candidates[0]
