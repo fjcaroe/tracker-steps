@@ -52,6 +52,8 @@ def login(target):
         if target['label'] != 'Admin Studio' or error.code != 500:
             raise
         print('KNOWN_BASELINE_HTTP_500 environment=admin', flush=True)
+    except (TimeoutError, OSError) as error:
+        raise RuntimeError('Login unavailable: ' + target['label'] + ' ' + target['url']) from error
 
 
 def redirect(ip, target):
@@ -92,7 +94,11 @@ def main():
         if options.get('db_name') and options.get('db_name') != 'False':
             assert options.get('db_name') == target['database']
         run('systemctl', 'is-active', '--quiet', target['service'])
-        login(target)
+        if target.get('deploy_enabled'):
+            if minimum and int(options.get('db_maxconn', '64')) < minimum and args.action == 'apply':
+                print('BASELINE_CAPACITY_TOO_LOW environment=' + target['label'], flush=True)
+            else:
+                login(target)
     if args.action == 'verify':
         for target in targets.values():
             redirect(ip, target)
@@ -102,6 +108,7 @@ def main():
                 assert cfg['options'].get('db_name') == target['database']
                 assert cfg['options'].get('dbfilter') == '^' + re.escape(target['database']) + '$'
                 assert cfg['options'].getboolean('list_db') is False
+                assert int(cfg['options'].get('db_maxconn', '64')) >= target.get('min_db_connections', 0)
         print('CANONICAL_VERIFY_OK environments=' + str(len(targets)))
         return
     print('CANONICAL_PREFLIGHT_OK environments=' + str(len(targets)), flush=True)
@@ -146,6 +153,8 @@ def main():
         touched = []
         try:
             for name, target in targets.items():
+                if not target.get('deploy_enabled'):
+                    continue
                 path = Path(target['config'])
                 assert path.read_bytes() == originals[name], 'Concurrent config change: ' + name
                 text = originals[name].decode()
@@ -190,14 +199,15 @@ def main():
                         if attempt == 14:
                             raise
                         time.sleep(1)
-                for attempt in range(15):
-                    try:
-                        login(target)
-                        break
-                    except Exception:
-                        if attempt == 14:
-                            raise
-                        time.sleep(2)
+                if target.get('deploy_enabled'):
+                    for attempt in range(15):
+                        try:
+                            login(target)
+                            break
+                        except Exception:
+                            if attempt == 14:
+                                raise
+                            time.sleep(2)
             result = {'backup': str(backup), 'restarted': changed, 'registry_sha256': hashlib.sha256((ROOT / 'environments.json').read_bytes()).hexdigest()}
             # Verify the observed startup burst, not just one sequential login.
             for target in targets.values():
