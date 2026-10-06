@@ -7,7 +7,7 @@ access_freight_route_user,Tramos de flete,model_step_freight_route,base.group_us
 access_freight_cold_mode_user,Modalidades de frío,model_step_freight_cold_mode,base.group_user,1,1,1,1
 access_freight_dispatch_type_user,Tipos de despacho,model_step_freight_dispatch_type,base.group_user,1,1,1,1
 access_freight_plan_user,Planificación de fletes,model_step_freight_plan,base.group_user,1,1,1,1
-access_freight_plan_line_user,Líneas de planificación de fletes,model_step_freight_plan_linea,base.group_user,1,1,1,1
+access_freight_plan_line_user,Líneas de planificación de fletes,model_step_freight_plan_line,base.group_user,1,1,1,1
 access_freight_cost_report_user,Análisis de fletes (costeo real),model_step_freight_cost_report,base.group_user,1,0,0,0
 access_freight_plan_vs_actual_user,Fletes planificado vs real,model_step_freight_plan_vs_actual,base.group_user,1,0,0,0
 access_freight_tariff_line_user,Líneas de tarifa de flete,model_step_freight_tariff_line,base.group_user,1,1,1,1
