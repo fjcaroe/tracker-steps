@@ -50,7 +50,7 @@ def history(database):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('qa','compatibility','deploy','verify'))
+    p.add_argument('action', choices=('qa','compatibility','retry-tests','deploy','verify'))
     p.add_argument('environment', choices=('development','demo-sys','steps','sys','cerro'))
     p.add_argument('archive', type=Path)
     p.add_argument('run_id')
@@ -71,8 +71,13 @@ def main():
     stage.mkdir(parents=True,exist_ok=True,mode=0o750)
     staged = stage/'addons'
     staged.mkdir(exist_ok=True)
+    previous=json.loads((staged/'release.json').read_text()) if (staged/'release.json').exists() else None
     with tarfile.open(args.archive) as archive:
         proof = json.loads(archive.extractfile('release.json').read())
+        if args.action=='retry-tests':
+            assert previous and previous['versions']==proof['versions']
+            production=lambda rows:{k:v for k,v in rows.items() if '/tests/' not in k}
+            assert production(previous['files'])==production(proof['files']), 'Only test fixture changes can reuse this migrated clone'
         assert set(proof['versions']) == set(MODULES)
         seen = set()
         for member in archive.getmembers():
@@ -156,19 +161,26 @@ def main():
         execute(db,paths,data,'policy',shell=policy+"env['ir.ui.menu']._step_normalize_agriculture_menus()\nenv.cr.commit()\nprint('PAYROLL_POLICY_OK')\n")
         execute(db,paths,data,'verify',shell=(HERE/'verify_payroll.py').read_text())
 
-    if args.action in ('qa','compatibility'):
-        assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%qa_db), 'Fresh run_id required'
-        (stage/'baseline.json').write_text(json.dumps(baseline))
-        before = history(database)
-        (stage/'history_before.json').write_text(json.dumps(before))
-        with (stage/'source.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
-        run('sudo','-u','postgres','createdb','-O',opts['db_user'],qa_db)
-        query(qa_db,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
-        with (stage/'source.dump').open('rb') as stream: run('sudo','-u','postgres','pg_restore','--no-owner','--no-comments','--role',opts['db_user'],'-d',qa_db,stdin=stream)
-        query(qa_db,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
+    if args.action in ('qa','compatibility','retry-tests'):
+        if args.action=='retry-tests':
+            assert json.loads((stage/'baseline.json').read_text())==baseline
+            before=json.loads((stage/'history_before.json').read_text())
+            assert history(qa_db)==before, 'The prior test run left historical changes'
+            installed_clone=set(json.loads(query(qa_db,"SELECT json_agg(name) FROM ir_module_module WHERE state='installed'") or '[]'))
+            assert VENDOR.name in installed_clone and 'l10n_cl_hr' not in installed_clone, 'Migration is incomplete; use a fresh clone'
+        else:
+            assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%qa_db), 'Fresh run_id required'
+            (stage/'baseline.json').write_text(json.dumps(baseline))
+            before = history(database)
+            (stage/'history_before.json').write_text(json.dumps(before))
+            with (stage/'source.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
+            run('sudo','-u','postgres','createdb','-O',opts['db_user'],qa_db)
+            query(qa_db,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
+            with (stage/'source.dump').open('rb') as stream: run('sudo','-u','postgres','pg_restore','--no-owner','--no-comments','--role',opts['db_user'],'-d',qa_db,stdin=stream)
+            query(qa_db,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         data = stage/'data'
         source = Path(opts['data_dir'])/'filestore'/database
-        if source.exists():
+        if source.exists() and args.action!='retry-tests':
             dest=data/'filestore'/qa_db
             dest.mkdir(parents=True,exist_ok=True)
             run('rsync','-a',str(source)+'/',str(dest)+'/')
