@@ -2,10 +2,22 @@ from odoo import Command
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import TransactionCase, tagged
 from odoo.tools import mute_logger
+from odoo.tools.safe_eval import safe_eval
+from lxml import etree
 
 
 @tagged("post_install", "-at_install", "step_dispatch_guide")
 class TestDispatchGuide(TransactionCase):
+    def test_settings_menu_opens_dispatch_section_after_all_xml_is_loaded(self):
+        action = self.env.ref('step_dispatch_guide.menu_dispatch_settings').action
+        context = safe_eval(action.context)
+        self.assertEqual(context.get('module'), 'step_dispatch_guide')
+        view = self.env['res.config.settings'].with_context(**context).get_view(
+            view_id=action.view_id.id, view_type='form')
+        arch = etree.fromstring(view['arch'])
+        self.assertEqual(arch.get('js_class'), 'base_settings')
+        self.assertTrue(arch.xpath("//app[@name='step_dispatch_guide']//field[@name='dispatch_dte_provider']"))
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

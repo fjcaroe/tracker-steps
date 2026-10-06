@@ -23,8 +23,5 @@
         <field name="target">inline</field>
         <field name="context">{'module': 'step_dispatch_guide', 'bin_size': False}</field>
     </record>
-    <record id="menu_dispatch_settings" model="ir.ui.menu">
-        <field name="action" ref="action_dispatch_settings"/>
-    </record>
 </odoo>
 

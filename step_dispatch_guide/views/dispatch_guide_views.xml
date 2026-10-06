@@ -424,7 +424,7 @@
     <menuitem id="menu_dispatch_drivers" name="Choferes (maestro anterior)" parent="menu_dispatch_configuration"
               action="action_dispatch_drivers" sequence="80" groups="stock.group_stock_manager"/>
     <menuitem id="menu_dispatch_settings" name="Ajustes" parent="menu_dispatch_configuration"
-              action="stock.action_stock_config_settings" sequence="90" groups="base.group_system"/>
+              action="action_dispatch_settings" sequence="90" groups="base.group_system"/>
 
     <menuitem id="menu_account_dispatch_to_invoice" name="Facturar guías" parent="account.menu_finance_receivables"
               action="action_dispatch_to_invoice" sequence="15" groups="account.group_account_invoice"/>
