@@ -16,6 +16,32 @@ class View(models.Model):
                 archive.create({'source_model':'ir.ui.view','source_id':view.id,'payload':{'arch':view.arch_db}})
             view.with_context(lang=None).write({'arch_db':etree.tostring(arch,encoding='unicode')})
 
+        def detach_epp_layout(view, root):
+            # An EPP document replaced the article of EVERY standard report.
+            # Keep that design as a dedicated layout used only by its model.
+            snapshot=archive.search([('source_model','=','ir.ui.view'),('source_id','=',view.id)],limit=1)
+            original=snapshot.payload['arch'] if snapshot else view.with_context(lang=None).arch_db
+            if not snapshot:
+                archive.create({'source_model':'ir.ui.view','source_id':view.id,'payload':{'arch':original}})
+            def template(key, parent, content):
+                xmlid='step_environment_policy.'+key
+                existing=self.env.ref(xmlid,raise_if_not_found=False)
+                if existing: return existing
+                created=self.sudo().create({'name':key,'key':xmlid,'type':'qweb','mode':'primary','inherit_id':parent.id,'arch_db':content})
+                self.env['ir.model.data'].sudo().create({'module':'step_environment_policy','name':key,'model':'ir.ui.view','res_id':created.id,'noupdate':True})
+                return created
+            layout=template('legacy_epp_layout',root,original)
+            wrapper=template('legacy_epp_external',self.env.ref('web.external_layout'),'<data><xpath expr="//t[@t-call]" position="attributes"><attribute name="t-call">step_environment_policy.legacy_epp_layout</attribute></xpath></data>')
+            models=[name for name,model in self.env.registry.models.items() if 'x_studio_one2many_field_26t_1jhjvls6e' in model._fields]
+            for report in self.env['ir.actions.report'].sudo().search([('model','in',models)]):
+                report_view=self.env.ref(report.report_name,raise_if_not_found=False) or self.search([('key','=',report.report_name)],limit=1)
+                if report_view:
+                    report_arch=etree.fromstring(report_view.with_context(lang=None).arch_db)
+                    calls=report_arch.xpath('//*[@t-call="web.external_layout"]')
+                    for node in calls: node.set('t-call','step_environment_policy.legacy_epp_external')
+                    if calls: save(report_view,report_arch)
+            view.write({'active':False})
+
         roots=[self.env.ref(x,raise_if_not_found=False) for x in ('web.external_layout_standard','web.external_layout_boxed','web.external_layout_bold','web.external_layout_striped','web.external_layout_wave')]
         layouts=self.sudo().browse([v.id for v in roots if v])
         while True:
@@ -25,6 +51,11 @@ class View(models.Model):
             layouts=newer
         for view in layouts:
             arch=etree.fromstring(view.with_context(lang=None).arch_db)
+            if view.mode=='extension' and 'x_studio_one2many_field_26t_1jhjvls6e' in view.arch_db and 'doc.x_' in view.arch_db:
+                detach_epp_layout(view,self.env.ref('web.external_layout_standard'))
+                continue
+            if view.mode=='primary' and view.id not in [v.id for v in roots if v]:
+                continue
             nodes=arch.xpath('//*[@t-field="doc.x_name"]')
             for node in nodes: node.set('t-field','company.name')
             if nodes: save(view,arch)
