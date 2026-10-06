@@ -52,6 +52,8 @@ try:
     bom_tree = etree.fromstring(env['mrp.bom'].get_view(
         view_id=env.ref('step_export.view_export_fruit_bom_form').id, view_type='form')['arch'].encode())
     assert 'step_export_packaging_category_id' in bom_tree.xpath("//field[@name='bom_line_ids']//field[@name='product_id']")[0].get('domain')
+    assert env.ref('step_export.action_export_fruit_bom').views[0][1] == 'list'
+    assert env['mrp.bom'].default_get(['step_export_packaging_category_id'])['step_export_packaging_category_id']
     # The completed QA walkthrough exercises the full source flows, not fake report rows.
     if env['ir.config_parameter'].get_param('steps.qa.productores.walkthrough.v1'):
         producer = env['res.partner'].search([('name','=','PRUEBA - Agrícola Valle Claro')])

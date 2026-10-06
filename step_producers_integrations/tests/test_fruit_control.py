@@ -58,4 +58,8 @@ class TestProducerFruitControl(TransactionCase):
         self.assertNotIn(fruit, products)
         bom = self.env['mrp.bom'].create({'product_tmpl_id': fruit.product_tmpl_id.id, 'step_export_fruit': True})
         self.assertEqual(bom.step_export_packaging_category_id, root)
+        self.assertEqual(self.env['mrp.bom'].default_get(['step_export_packaging_category_id'])[
+            'step_export_packaging_category_id'], root.id)
+        self.assertEqual(self.env['mrp.bom'].new({'step_export_fruit': True}).step_export_packaging_category_id, root)
+        self.assertEqual(self.env.ref('step_export.action_export_fruit_bom').views[0][1], 'list')
         self.assertFalse(material.bom_line_ids)

@@ -10,7 +10,8 @@ class ExportBOM(models.Model):
     step_export_fruit = fields.Boolean(string="Lista para embalaje de fruta")
     step_export_boxes_per_pallet = fields.Float(string="Cajas por pallet")
     step_export_packaging_category_id = fields.Many2one(
-        'product.category', compute='_compute_packaging_category', string='Categoría de materiales')
+        'product.category', compute='_compute_packaging_category', string='Categoría de materiales',
+        default=lambda self: next(iter(self._packaging_material_domain()[0][2]), False))
 
     @api.model
     def _packaging_material_domain(self):
@@ -25,6 +26,7 @@ class ExportBOM(models.Model):
             raise ValidationError(_('Hay varias categorías de materiales de embalaje. Unifique el maestro antes de seleccionar componentes.'))
         return [('categ_id', 'child_of', roots.ids)]
 
+    @api.depends('step_export_fruit')
     def _compute_packaging_category(self):
         category_ids = self._packaging_material_domain()[0][2]
         for bom in self:
