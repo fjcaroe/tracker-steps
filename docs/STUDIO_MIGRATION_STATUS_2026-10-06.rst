@@ -59,10 +59,13 @@ Pendientes concretos
    manuales, tablas de materiales/personal/maquinaria y válvulas, maestros,
    informes y automatizaciones Studio. Completar esas relaciones y cálculos;
    no simplificar las tablas existentes a campos de texto.
-7. Desarrollo / Fletes: el núcleo tiene definición Python, pero Tramos,
-   Contabilizaciones y Modalidad de frío aún usan formularios/campos Studio;
-   también quedan automatización de folios e informe anterior. Revisar las
-   relaciones existentes a lugares, fundo y empresa antes de retirar campos.
+7. Desarrollo / Fletes: después del inventario inicial, la entrega T27
+   18.0.2.5.0 pasó Tramos y Modalidad de frío a Python y vistas XML propios,
+   preservando registros, relaciones y columnas compatibles. Sus campos ya
+   no son manuales y sus vistas Studio están archivadas. Quedan por revisar
+   Contabilizaciones, automatización de folios e informe anterior. El detalle
+   de esta actualización está en ``T27_FREIGHT_MASTERS_2026-10-06.rst``; los
+   totales de la tabla anterior corresponden al inventario previo a ella.
 8. Desarrollo / extensiones compartidas: Unidad de Negocio en Nómina,
    empleados/contratos, productos y plaguicidas/EPP, temporadas, tarifas de
    cosecha, centros analíticos y contactos. Productores y Packing tienen núcleo

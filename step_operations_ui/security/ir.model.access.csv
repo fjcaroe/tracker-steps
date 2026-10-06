@@ -5,3 +5,11 @@ access_freight_tariff_user,Tarifas de flete,model_x_tarifa_de_fletes,base.group_
 access_freight_tracking_user,Rastreo de camiones,model_x_rastreo_camiones,base.group_user,1,1,1,1
 access_freight_route_user,Tramos de flete,model_x_tramo_de_flete,base.group_user,1,1,1,1
 access_freight_cold_mode_user,Modalidades de frío,model_x_modalidad_de_frio,base.group_user,1,1,1,1
+access_freight_dispatch_type_user,Tipos de despacho,model_x_tipo_despacho,base.group_user,1,1,1,1
+access_freight_plan_user,Planificación de fletes,model_x_planificacion_de_flete,base.group_user,1,1,1,1
+access_freight_plan_line_user,Líneas de planificación de fletes,model_x_planificacion_de_flete_linea,base.group_user,1,1,1,1
+access_freight_cost_report_user,Análisis de fletes (costeo real),model_step_freight_cost_report,base.group_user,1,0,0,0
+access_freight_plan_vs_actual_user,Fletes planificado vs real,model_step_freight_plan_vs_actual,base.group_user,1,0,0,0
+access_freight_tariff_line_user,Líneas de tarifa de flete,model_x_tarifa_de_fletes_line_57b07,base.group_user,1,1,1,1
+access_freight_order_detail_user,Detalles de orden de flete,model_x_orden_de_flete_line_709f3,base.group_user,1,1,1,1
+access_freight_order_cost_user,Costeo de orden de flete,model_x_orden_de_flete_line_72953,base.group_user,1,1,1,1

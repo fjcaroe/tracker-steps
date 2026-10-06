@@ -69,18 +69,33 @@
                         <header><div><span>OPERACIÓN RECIENTE</span><h2>Últimas órdenes de flete</h2></div><button class="btn btn-link" t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')">Ver todas</button></header>
                         <div t-if="state.data.recent.length" class="o_steps_ops_recent">
                             <button t-foreach="state.data.recent" t-as="row" t-key="row.id" t-on-click="() => this.openRecord('x_orden_de_flete', row.id)">
-                                <i class="fa fa-truck"/><span><b t-esc="row.x_name || 'Orden sin folio'"/><small><t t-esc="many2oneName(row.x_studio_fundo, 'Sin fundo')"/> · <t t-esc="many2oneName(row.x_studio_transportista, 'Sin transportista')"/></small></span><strong t-esc="stateLabel(row.x_studio_selection_field_4ag_1jhk4c7s5)"/><time t-esc="formatDate(row.x_studio_fecha)"/>
+                                <i class="fa fa-truck"/><span><b t-esc="row.x_name || 'Orden sin folio'"/><small><t t-esc="many2oneName(row.x_studio_fundo, 'Sin fundo')"/> · <t t-esc="many2oneName(row.x_studio_transportista, 'Sin transportista')"/> · <t t-esc="many2oneName(row.route_id, 'Sin tramo')"/></small></span><strong class="o_steps_ops_amount" t-esc="formatCurrency(row.freight_value)"/><strong t-esc="stateLabel(row.x_studio_selection_field_4ag_1jhk4c7s5)"/><time t-esc="formatDate(row.x_studio_fecha)"/>
                             </button>
                         </div>
                         <div t-else="" class="o_steps_ops_empty">Aún no hay órdenes de flete registradas.</div>
                     </section>
                     <aside class="o_steps_ops_panel o_steps_ops_status">
                         <header><div><span>GESTIÓN LOGÍSTICA</span><h2>Accesos de control</h2></div></header>
-                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.rastreo_camiones_21c02a4d-bbcb-47b3-8681-9c9e593af9d0')"><i class="fa fa-location-arrow"/><span><b>Rastreo de camiones</b><small>Seguimiento de viajes y ubicación.</small></span></button>
+                        <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.action_freight_tracking_console')"><i class="fa fa-location-arrow"/><span><b>Rastreo de camiones</b><small>Consola del Web Tracker.</small></span></button>
                         <button class="o_steps_ops_control" t-on-click="() => this.openAction('step_operations_ui.informe_de_fletes_2d134967-2a6f-4953-9ade-9e7f4d1d8dba')"><i class="fa fa-bar-chart"/><span><b>Informe de fletes</b><small>Consulta consolidada de la operación.</small></span></button>
-                        <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>La portada resume la información existente y mantiene intactos los flujos de Studio.</p></div>
+                        <div class="o_steps_ops_note"><i class="fa fa-info-circle"/><p>Consulte las operaciones registradas y use los accesos para gestionar su información.</p></div>
                     </aside>
                 </div>
+                <section class="o_steps_ops_panel o_steps_ops_week_compare">
+                    <header>
+                        <div><span>PRESUPUESTO VS. REAL</span><h2>Comparación semanal de fletes</h2></div>
+                        <div class="o_steps_ops_week_nav">
+                            <button class="btn btn-link" t-on-click="() => this.changeWeek(-1)"><i class="fa fa-chevron-left"/></button>
+                            <span t-esc="weekState.label"/>
+                            <button class="btn btn-link" t-on-click="() => this.changeWeek(1)"><i class="fa fa-chevron-right"/></button>
+                        </div>
+                    </header>
+                    <div class="o_steps_ops_week_totals">
+                        <article><span>Planificado</span><strong t-esc="formatCurrency(weekState.planned)"/></article>
+                        <article><span>Real</span><strong t-esc="formatCurrency(weekState.real)"/></article>
+                        <article t-attf-class="{{ weekState.diff > 0 ? 'is-over' : 'is-under' }}"><span>Diferencia</span><strong t-esc="formatCurrency(weekState.diff)"/></article>
+                    </div>
+                </section>
                 <section class="o_steps_ops_shortcuts">
                     <button t-on-click="() => this.openAction('step_operations_ui.orden_de_flete_104802ff-cd72-4d5a-886e-66109a2b7833')"><i class="fa fa-file-text-o"/><span>Órdenes de flete<small>Registro y coordinación</small></span></button>
                     <button t-on-click="() => this.openAction('step_operations_ui.tarifa_de_fletes_dcc8390a-9e92-4f69-b5cc-2dcb3e27bb2d')"><i class="fa fa-money"/><span>Tarifas<small>Vigencias y transportistas</small></span></button>
