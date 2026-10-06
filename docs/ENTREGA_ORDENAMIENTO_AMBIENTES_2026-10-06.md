@@ -138,6 +138,44 @@ bundle de esos commits fue verificado. No contienen una implementación pendient
 que deba reemplazar el paquete actual. El control de Claude ahora exige guardar
 los reportes privados de tickets fuera de los checkouts del producto.
 
+## Aislamiento y capacidad del servidor
+
+Los cinco servicios vigentes quedaron fijados a su base exacta mediante
+`db_name`, `dbfilter` anclado y `list_db=False`. SYS antes no declaraba una base
+única; Steps no tenía filtro HTTP explícito. Se mantuvieron los dominios y los
+listeners de redirección existentes. El verificador aprobó los ocho puertos
+internos, GET/POST, y los logins HTTPS de los cinco destinos activos.
+
+Se encontró `The Connection Pool Is Full` al iniciar el cliente web de Desarrollo.
+Desarrollo y Demo-SYS tenían un límite de seis conexiones: se amplió a dieciséis
+después de comprobar la reserva disponible en PostgreSQL. Ambos aprobaron doce
+logins concurrentes. La interfaz de Gestión y Costos cargó después con sus menús
+ordenados y estilos; las llamadas de inicio dejaron de producir los errores
+observados antes del ajuste.
+
+- Respaldo de la fijación de bases:
+  `/opt/steps_backups/canonical_ports_20261006T075939Z`.
+- Respaldo y prueba de capacidad:
+  `/opt/steps_backups/canonical_ports_20261006T080030Z`.
+- `canonical_ports.py verify`: `CANONICAL_VERIFY_OK environments=8`.
+
+El proceso de Admin estaba abriendo conexiones a múltiples copias de pruebas
+y a SYS. Su cron global quedó deshabilitado (`max_cron_threads=0`); conserva
+su configuración y sus definiciones de tareas como referencia legada. No se
+cambiaron intervalos de tareas ni se habilitaron correos en Demo-SYS.
+
+Se detuvo de forma gradual el servidor privado antiguo de
+`T_SYS_REFRESH_20260929`, puerto local 18091. Ese proceso también mantenía una
+conexión a Demo-SYS. Sus argumentos originales quedaron en un respaldo privado;
+su base y archivos no fueron eliminados. La revisión posterior no encontró el
+servidor antiguo ni conexiones Odoo a esas copias de QA.
+
+La primera espera de cierre agotó veinte segundos; el proceso terminó después
+de ese plazo. Se comprobó su ausencia y se repitió la verificación de forma
+idempotente, sin forzar la terminación. Resultado final:
+`RUNTIME_SCOPE_OK`, respaldo `/opt/steps_backups/runtime_scope_20261006T081216Z`.
+Tras estos cambios se repitió `PAYROLL_VERIFY_OK` en los cinco servicios.
+
 Los logs completos, datos de clientes, paquetes privados y respaldos quedan
 fuera de Git. Este documento registra el alcance técnico; no sustituye la
 aceptación funcional ni declara cerrados los pendientes anteriores.
