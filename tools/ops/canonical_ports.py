@@ -6,6 +6,7 @@ private address (GCP NAT); nginx's HTTPS proxies keep using 127.0.0.1.
 """
 import argparse
 import configparser
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -78,10 +79,15 @@ def main():
     interfaces = json.loads(subprocess.check_output(['ip', '-j', 'address', 'show'], text=True))
     assert ip in {item['local'] for interface in interfaces for item in interface.get('addr_info', [])}
     targets = registry['environments']
+    capacity_delta = 0
     for target in targets.values():
         cfg = configparser.ConfigParser(interpolation=None)
         cfg.read(target['config'])
         options = cfg['options']
+        minimum = target.get('min_db_connections', 0)
+        if minimum:
+            assert int(options.get('workers', '0')) == 0, 'Review worker/process capacity separately'
+            capacity_delta += 2 * max(0, minimum - int(options.get('db_maxconn', '64')))
         assert int(options.get('http_port', options.get('xmlrpc_port', '8069'))) == target['port']
         if options.get('db_name') and options.get('db_name') != 'False':
             assert options.get('db_name') == target['database']
@@ -117,6 +123,10 @@ def main():
                 ):
                     upgrades.append(command.parent.name)
         assert not upgrades, 'An addon upgrade is already running; PIDs: ' + ', '.join(upgrades)
+        if capacity_delta:
+            limit = int(query('postgres', 'SHOW max_connections'))
+            used = int(query('postgres', 'SELECT count(*) FROM pg_stat_activity'))
+            assert used + capacity_delta + 10 < limit, 'Insufficient PostgreSQL connection reserve'
         backup = Path('/opt/steps_backups') / ('canonical_ports_' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
         backup.mkdir(mode=0o700, parents=True)
         originals = {}
@@ -147,6 +157,11 @@ def main():
                     text = setting(text, 'db_name', target['database'])
                     text = setting(text, 'dbfilter', '^' + re.escape(target['database']) + '$')
                     text = setting(text, 'list_db', 'False')
+                if target.get('min_db_connections'):
+                    cfg = configparser.ConfigParser(interpolation=None)
+                    cfg.read_string(text)
+                    current = int(cfg['options'].get('db_maxconn', '64'))
+                    text = setting(text, 'db_maxconn', str(max(current, target['min_db_connections'])))
                 url_changed = False
                 touched.append(name)
                 if target['database']:
@@ -184,6 +199,12 @@ def main():
                             raise
                         time.sleep(2)
             result = {'backup': str(backup), 'restarted': changed, 'registry_sha256': hashlib.sha256((ROOT / 'environments.json').read_bytes()).hexdigest()}
+            # Verify the observed startup burst, not just one sequential login.
+            for target in targets.values():
+                if target.get('min_db_connections'):
+                    with ThreadPoolExecutor(max_workers=12) as pool:
+                        list(pool.map(lambda _: login(target), range(12)))
+            result['concurrent_logins'] = 12
             (backup / 'verified.json').write_text(json.dumps(result, indent=2))
             print('CANONICAL_APPLY_OK ' + json.dumps(result), flush=True)
         except Exception:

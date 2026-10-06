@@ -13,6 +13,7 @@
       "service": "odoo18-dev.service",
       "config": "/etc/dev_odoo18.conf",
       "role": "qa",
+      "min_db_connections": 16,
       "deploy_enabled": true
     },
     "demo": {
@@ -33,6 +34,7 @@
       "service": "odoo18-demo-sys.service",
       "config": "/etc/odoo18-demo-sys.conf",
       "role": "payroll-support",
+      "min_db_connections": 16,
       "deploy_enabled": true
     },
     "cerro": {
