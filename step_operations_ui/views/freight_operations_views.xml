@@ -126,7 +126,7 @@
                                     <field name="uom_id" />
                                     <field name="quantity" />
                                     <field name="unit_rate" />
-                                    <field name="freight_value" readonly="1" sum="Total" />
+                                    <field name="freight_value" readonly="1" force_save="1" sum="Total" />
                                 </list>
                             </field>
                         </page>

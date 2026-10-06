@@ -280,7 +280,21 @@ class FreightOrderDetail(models.Model):
     @api.onchange("quantity", "unit_rate")
     def _onchange_amount(self):
         for detail in self:
-            detail.freight_value = detail.quantity * detail.unit_rate
+            amount = detail.quantity * detail.unit_rate
+            order = detail.order_id
+            if order and detail.route_id:
+                try:
+                    line = order._tariff_line_for_detail(detail)
+                except UserError:
+                    pass  # Explicit validation remains in Calcular costeo.
+                else:
+                    if line.tariff_basis == "Por viaje":
+                        amount = detail.unit_rate
+                    company = order.company_id or self.env.company
+                    currency = line.currency_id or company.currency_id
+                    amount = currency._convert(amount, company.currency_id, company,
+                                               order.date or fields.Date.context_today(order))
+            detail.freight_value = amount
 
 
 class FreightOrderCost(models.Model):

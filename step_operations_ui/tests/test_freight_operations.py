@@ -152,6 +152,8 @@ class TestFreightStudioCosting(TransactionCase):
             detail.quantity = 2
         order = form.save()
         self.assertEqual(order.freight_carrier_id, self.carrier)
+        self.assertEqual(order.detail_ids.freight_value, 3000)
+        self.assertEqual(order.freight_total, 3000)
         self.assertEqual(order.web_read(self._web_specification())[0]["cost_ids"], [])
         order.action_cost_freight()
         saved = order.web_read(self._web_specification())[0]
@@ -162,6 +164,26 @@ class TestFreightStudioCosting(TransactionCase):
         order.action_post_freight()
         self.assertEqual(order.web_read(self._web_specification())[0]["id"], order.id)
         self.assertEqual(order.freight_move_id.state, "posted")
+
+    def test_form_per_trip_amount_survives_save_and_quantity_edit(self):
+        form = Form(self.env["step.freight.order"],
+                    view=self.env.ref("step_operations_ui.view_freight_order_code_form"))
+        form.date = "2026-10-01"
+        form.price_list_id = self.tariff
+        with form.detail_ids.new() as detail:
+            detail.route_id = self.other_route
+            detail.service_product_id = self.other_freight_product
+            detail.quantity = 7
+            self.assertEqual(detail.freight_value, 90000)
+        order = form.save()
+        self.assertEqual(order.freight_total, 90000)
+        with Form(order, view=self.env.ref("step_operations_ui.view_freight_order_code_form")) as edit:
+            with edit.detail_ids.edit(0) as detail:
+                detail.quantity = 9
+        self.assertEqual(order.detail_ids.quantity, 9)
+        self.assertEqual(order.freight_total, 90000)
+        order.action_cost_freight()
+        self.assertEqual(order.cost_ids.freight_cost, 90000)
 
     def test_web_save_manual_cost_analytic_distribution(self):
         order = self._order()
