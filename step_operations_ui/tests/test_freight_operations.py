@@ -178,7 +178,10 @@ class TestFreightStudioCosting(TransactionCase):
         order.action_post_freight()
         debit = order.freight_move_id.line_ids.filtered(lambda line: line.debit)
         self.assertEqual(debit.analytic_distribution, distribution)
-        self.assertEqual(debit.analytic_line_ids.account_id, analytic)
+        # Additional analytic plans use their own column in Odoo 18; account_id
+        # is reserved for the default plan, not necessarily this QA plan.
+        self.assertEqual(debit.analytic_line_ids[plan._column_name()], analytic)
+        self.assertEqual(sum(debit.analytic_line_ids.mapped("amount")), -1000)
 
     # --- Tarifas (punto 3): tramo, modalidad de frío y servicio de flete ---
 
