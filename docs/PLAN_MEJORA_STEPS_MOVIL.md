@@ -72,8 +72,9 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   sesión lo detiene. Los datos previos y claves locales se conservan.
 - Android sincronizado; proyectos Android/iOS preparados. Este equipo no tiene
   Java/SDK Android ni Xcode. No se ha generado un APK/IPA ni certificado la hora
-  de recorrido físico. La versión unificada sigue siendo un piloto: no publicar
-  todo ese piloto sobre `/truck/` solo para instalar el plugin nativo.
+  de recorrido físico. `/truck/` usa `npm run build:tracker`, con el acceso y
+  datos locales del Tracker actual. La versión unificada sigue siendo un piloto
+  y no se publica como parte de esta mejora.
 
 ### I4 · Sesión y permisos sin fricción  `[x]` 02-10-2026
 - **Qué:** que los **administradores Odoo vean todos los centros de costo** sin asignarlos a mano

@@ -8,7 +8,12 @@ import { installErrorLogging } from './modules/tracker/lib/diag';
 installErrorLogging();
 const root = createRoot(document.getElementById('root')!);
 
-if (import.meta.env.MODE === 'demo') {
+if (import.meta.env.MODE === 'tracker') {
+  // Production /truck/ keeps its existing access and local storage. The
+  // unified portal remains a separate pilot until its server is promoted.
+  void import('./modules/tracker/TrackerModule').then(({ default: Tracker }) => root.render(
+    <StrictMode><Tracker onExit={() => window.location.assign('/')} /></StrictMode>));
+} else if (import.meta.env.MODE === 'demo') {
   // Datos ficticios y servidor falso: la insignia lo deja siempre a la vista para que nadie lo confunda con producción.
   void createDemoRuntime().then(({ runtime, title }) => root.render(
     <StrictMode><div style={{ background: '#7a1510', color: '#fff', padding: '4px 12px', fontSize: 12, textAlign: 'center' }}>MODO DEMOSTRACIÓN · datos ficticios · {title}</div><App runtime={runtime} /></StrictMode>));

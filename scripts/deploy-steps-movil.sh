@@ -44,7 +44,7 @@ cat /tmp/movil-delta-$stamp.txt
 cd "$release/mobile"
 npm ci --no-audit --no-fund
 npm test
-npm run build
+npm run build:tracker
 cd "$release"
 sudo install -d -m 700 "$backup"
 sudo -u postgres pg_dump -Fc tracker_steps | sudo tee "$backup/tracker_steps.dump" >/dev/null
