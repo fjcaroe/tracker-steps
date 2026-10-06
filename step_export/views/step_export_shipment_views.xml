@@ -10,10 +10,10 @@
           <button name="action_dispatch" type="object" string="Registrar despacho" invisible="state != 'validated'" class="btn-primary" />
           <button name="action_ship" type="object" string="Confirmar embarque" invisible="state != 'dispatched'" class="btn-primary" />
           <button name="action_invoice" type="object" string="Confirmar factura" invisible="state != 'shipped'" class="btn-primary" />
-          <field name="state" widget="statusbar" statusbar_visible="draft,validated,dispatched,shipped,invoiced,settled" />
+          <field name="state" widget="statusbar" statusbar_visible="draft,validated,dispatched,shipped,invoiced,settled" string="Estado" />
         </header>
         <sheet>
-          <group col="3">
+          <group col="2">
             <group string="Programa y carga">
               <field name="name" />
               <field name="shipment_number" />
@@ -35,18 +35,12 @@
               <field name="destination_port" />
               <field name="destination_country_id" />
             </group>
-            <group string="Participantes">
-              <field name="consignee_id" />
-              <field name="notify_id" />
-              <field name="freight_forwarder_id" />
-              <field name="customs_agent_id" />
-            </group>
           </group>
           <notebook>
             <page string="Resumen de carga">
               <field name="line_ids" readonly="state not in ['draft','validated']">
                 <list editable="bottom">
-                  <field name="product_id" />
+                  <field name="product_id" string="Producto" />
                   <field name="packaging_id" />
                   <field name="package_type_id" optional="hide" />
                   <field name="variety_id" optional="hide" />
@@ -56,13 +50,13 @@
                   <field name="pallet_qty" />
                   <field name="boxes_per_pallet" />
                   <field name="kg_per_box" />
-                  <field name="box_qty" />
-                  <field name="kg_qty" />
+                  <field name="box_qty" string="Cajas" />
+                  <field name="kg_qty" string="Kilos" />
                 </list>
               </field>
               <group>
-                <field name="box_qty" />
-                <field name="kg_qty" />
+                <field name="box_qty" string="Cajas" />
+                <field name="kg_qty" string="Kilos" />
               </group>
             </page>
             <page string="Tarjas y despachos">
@@ -70,6 +64,14 @@
               <field name="dispatch_guide_ids" widget="many2many_tags" readonly="state in ['shipped','invoiced','settled']" />
               <field name="packing_list_ids" />
               <field name="picking_ids" widget="many2many_tags" />
+            </page>
+            <page string="Participantes">
+              <group string="Participantes" col="2">
+                <field name="consignee_id" />
+                <field name="notify_id" />
+                <field name="freight_forwarder_id" />
+                <field name="customs_agent_id" />
+              </group>
             </page>
             <page string="Documentos">
               <group>
@@ -100,8 +102,8 @@
         <field name="shipment_number" />
         <field name="sales_program_id" />
         <field name="receiver_id" />
-        <field name="kg_qty" />
-        <field name="state" />
+        <field name="kg_qty" string="Kilos" />
+        <field name="state" string="Estado" />
       </xpath>
     </field>
   </record>
