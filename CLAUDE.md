@@ -1,6 +1,7 @@
 # Instrucciones compartidas y autorización operativa para Claude Code
 
-Desarrollo es el único QA. Demo-SYS solo Nómina Simple Digital y soporte de Luis.
+Desarrollo es el único QA. Demo-SYS replica exclusivamente el alcance instalado
+de SyS, incluida Nómina Simple Digital; no recibe aplicaciones de otros productos.
 Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
 fuera del circuito de publicación, conservando datos. Toda mejora se revisa en
 Desarrollo antes de promover el mismo paquete a la producción solicitada.

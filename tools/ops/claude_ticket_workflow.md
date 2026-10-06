@@ -28,8 +28,16 @@ siga la redirección. Consultar configuración real antes de concluir falta de a
 
 El destino sale del pedido vigente y de los comentarios recientes autorizados.
 Desarrollo es el único QA y el único destino para revisión del cliente. Demo-SYS
-solo admite Nómina Simple Digital y soporte de Luis; no publicar allí módulos
-agrícolas, Packing, Productores, Exportaciones ni Gestión. Producciones activas:
+replica exclusivamente el alcance actual instalado de SyS, incluida Nómina
+Simple Digital y soporte de Luis. Consultar ``policy.mirrors`` del registro y
+ejecutar ``tools/ops/demo_sys_scope.py --release PAQUETE`` antes de copiar,
+instalar o actualizar addons. No usar Desarrollo ni Steps como referencia.
+Packing, Productores, Exportaciones, Maquinaria y Gestión no están en el alcance
+actual de SyS: no enviar esos paquetes a Demo-SYS, ni siquiera como addons
+opcionales dentro de una entrega de Nómina. Los módulos extra ya instalados
+requieren retiro probado preservando sus datos; ocultar menús no completa ese
+retiro. Contabilidad, Colaciones y otras apps que sí estén en SyS pertenecen al
+alcance de la réplica, con sus permisos originales. Producciones activas:
 SyS (Luis), Steps / karo_consultorias y Cerro El Plomo. Demo, Admin y Everfruit
 son instalaciones legadas fuera del circuito de publicación: conservar sus datos
 y respaldos, no instalar mejoras ni usarlas como QA. Toda producción recibe el

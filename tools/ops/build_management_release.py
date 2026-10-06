@@ -20,6 +20,7 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
     parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export'), default='management')
+    parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
@@ -29,6 +30,11 @@ def main():
         modules = ('step_export',)
     if args.kind == 'freight':
         modules = ('step_operations_ui',)
+    if args.environment == 'demo-sys':
+        if args.kind != 'payroll':
+            parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')
+        modules = tuple(name for name in modules if name not in (
+            'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow'))
     raw = subprocess.check_output(['git', 'archive', '--format=tar', commit, *modules], cwd=root)
     entries = {}
     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:

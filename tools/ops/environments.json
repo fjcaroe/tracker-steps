@@ -33,7 +33,8 @@
       "database": "STEPS_DEMO_SYS",
       "service": "odoo18-demo-sys.service",
       "config": "/etc/odoo18-demo-sys.conf",
-      "role": "payroll-support",
+      "role": "sys-replica",
+      "scope_reference": "sys",
       "min_db_connections": 16,
       "deploy_enabled": true
     },
@@ -98,9 +99,12 @@
     ],
     "restricted": {
       "demo-sys": [
-        "payroll",
-        "support"
+        "sys-installed-modules",
+        "payroll-simpledigital"
       ]
+    },
+    "mirrors": {
+      "demo-sys": "sys"
     },
     "legacy": [
       "demo",

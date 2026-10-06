@@ -9,7 +9,9 @@ la identificación y comprobación del ambiente real.
 Definición vigente del cliente, 06-10-2026:
 
 - **Desarrollo es el único QA** y destino de revisión funcional.
-- **Demo-SYS: solo Nómina Simple Digital y soporte de Luis.**
+- **Demo-SYS replica exclusivamente el alcance actual de SyS**, incluida Nómina
+  Simple Digital y soporte de Luis. No es una copia de Desarrollo ni de Steps;
+  no instalar allí aplicaciones para igualar todos los ambientes.
 - Producción: **SyS (Luis), Steps / karo_consultorias y Cerro El Plomo**.
 - Demo, Admin Studio y Everfruit son instalaciones legadas, fuera de QA y
   promoción. Conservar datos y respaldos; no eliminarlas ni distribuir mejoras
@@ -83,6 +85,24 @@ Guardar dump y configuración recuperables. Usar una superposición privada de
 addons; no reemplazar una raíz compartida con producción. No copiar bases de
 clientes entre ambientes. Actualizar solo los módulos instalados afectados y
 las dependencias nuevas justificadas.
+
+Para Demo-SYS, comprobar primero los módulos realmente instalados en SyS con
+``tools/ops/demo_sys_scope.py``. Su referencia es ``policy.mirrors`` del registro.
+Un paquete para Demo-SYS no puede incluir addons ajenos a esa referencia, aunque
+no vaya a instalarlos. El publicador de Nómina hace esa comprobación antes de
+copiar addons o intervenir el servicio. Preparar su paquete con
+``build_management_release.py --kind payroll --environment demo-sys``; no usar
+el paquete agrícola combinado. No restringir la definición a dos aplicaciones:
+Contabilidad, Colaciones y las otras aplicaciones que ya estén en SyS también
+pertenecen a su alcance, respetando los permisos de cada usuario.
+
+La auditoría del 06-10-2026 encontró 330 módulos instalados en SyS y 356 en
+Demo-SYS: 26 adicionales, entre ellos Packing, Productores, Exportaciones,
+Maquinaria, Gestión y Calidad. Es una diferencia previa que debe retirarse
+con inventario de registros/dependencias y ensayo en copia, preservando datos.
+Ocultar menús no equivale a desinstalar esos módulos ni a completar la réplica.
+Esta corrección de alcance y publicadores no los desinstala ni cambia las
+aplicaciones de SyS.
 
 Verificar después: origen del código, versión instalada, servicio, URL HTTPS,
 menús, vistas efectivas y un flujo representativo. Registrar qué se probó y

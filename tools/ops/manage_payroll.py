@@ -22,6 +22,7 @@ import tarfile
 import time
 import urllib.request
 from manage_management import run, query, digest, tree_hash, errors
+from demo_sys_scope import check_release, reference_roots
 
 HERE = Path(__file__).parent
 VENDOR = Path('/opt/rrhh/l10n_cl_simpledigital_payroll')
@@ -59,6 +60,11 @@ def main():
     registry = json.loads((HERE/'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa']
     target = registry['environments'][args.environment]
+    scope_check = None
+    if args.environment == 'demo-sys':
+        # This guard runs before staging, service changes or database mutation.
+        scope_check = check_release(args.archive, registry)
+        print('DEMO_SYS_SCOPE_OK ' + json.dumps(scope_check), flush=True)
     database, conf, service = target['database'], Path(target['config']), target['service']
     cfg = configparser.ConfigParser(interpolation=None)
     cfg.read(conf)
@@ -78,14 +84,16 @@ def main():
             assert previous and previous['versions']==proof['versions']
             production=lambda rows:{k:v for k,v in rows.items() if '/tests/' not in k}
             assert production(previous['files'])==production(proof['files']), 'Only test fixture changes can reuse this migrated clone'
-        assert set(proof['versions']) == set(MODULES)
+        expected = set(MODULES) - OPTIONAL if args.environment == 'demo-sys' else set(MODULES)
+        assert set(proof['versions']) == expected, 'Use a payroll-only package for Demo-SYS'
+        package_modules = tuple(name for name in MODULES if name in proof['versions'])
         seen = set()
         for member in archive.getmembers():
             path = Path(member.name)
             assert member.isfile() and not path.is_absolute() and '..' not in path.parts and member.name not in seen
             seen.add(member.name)
             if member.name != 'release.json':
-                assert path.parts[0] in MODULES
+                assert path.parts[0] in package_modules
                 assert hashlib.sha256(archive.extractfile(member).read()).hexdigest() == proof['files'][member.name]
         assert seen == set(proof['files']) | {'release.json'}
         archive.extractall(staged)
@@ -95,7 +103,9 @@ def main():
     addons = str(staged)+','+opts['addons_path']
     installed = json.loads(query(database,"SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'") or '{}')
     baseline = {'config':digest(conf),'vendor':vendor_hash,'modules':{}}
-    for name in MODULES:
+    if scope_check:
+        baseline['sys_scope_digest'] = scope_check['reference_digest']
+    for name in package_modules:
         if name in installed:
             assert tuple(map(int,proof['versions'][name].split('.'))) >= tuple(map(int,installed[name].split('.'))), 'Downgrade '+name
             source = next(Path(path.strip())/name for path in opts['addons_path'].split(',') if (Path(path.strip())/name/'__manifest__.py').exists())
@@ -130,7 +140,7 @@ def main():
                     listener.bind(('127.0.0.1',0))
                     private_port=listener.getsockname()[1]
                 command=[v for v in command if not v.startswith('--http-port=')]
-                command+=['--http-port='+str(private_port),'--test-enable','--test-tags',','.join('/'+name for name in MODULES)+',-step_book_perf']
+                command+=['--http-port='+str(private_port),'--test-enable','--test-tags',','.join('/'+name for name in package_modules)+',-step_book_perf']
                 query(db,"UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'"%private_port)
             result = subprocess.run(command)
             text = log.read_text(errors='replace')
@@ -157,12 +167,12 @@ def main():
         execute(db,paths,data,'retire',shell=(HERE/'transition_payroll.py').read_text())
         execute(db,paths,data,'native-report',shell=(HERE/'repair_native_payroll_report.py').read_text())
         existing = set(json.loads(query(db,"SELECT json_agg(name) FROM ir_module_module WHERE state='installed'") or '[]'))
-        execute(db,paths,data,'engine-install',install=[n for n in all_modules if n not in existing],update=[n for n in MODULES if n in existing],tests=tests)
+        execute(db,paths,data,'engine-install',install=[n for n in all_modules if n not in existing],update=[n for n in package_modules if n in existing],tests=tests)
         execute(db,paths,data,'contract-mapping',shell=(HERE/'migrate_payroll_contracts.py').read_text())
         policy = "env['ir.config_parameter'].sudo().set_param('steps.environment.payroll_engine','l10n_cl_simpledigital_payroll')\n"
         policy += "env.cr.execute(\"UPDATE hr_contract SET step_payroll_migration_review=true WHERE state IN ('draft','open') AND (analytic_account_id IS NULL OR health_institution IS NULL OR pension_option IS NULL OR has_gratification IS NULL OR is_retired_elderly IS NULL)\")\n"
         if args.environment == 'demo-sys':
-            roots = ['base.menu_administration','base.menu_management','hr_work_entry_contract_enterprise.menu_hr_payroll_root','hr.menu_hr_root','hr_attendance.menu_hr_attendance_root','hr_holidays.menu_hr_holidays_root','hr_expense.menu_hr_expense_root','contacts.menu_contacts','documents.menu_root','sign.menu_document','mail.menu_root_discuss','helpdesk.menu_helpdesk_root','step_support_assistant.menu_assistant_root']
+            roots = reference_roots(registry)
             policy += "env['ir.config_parameter'].sudo().set_param('steps.environment.menu_root_xmlids',"+repr(json.dumps(roots))+")\n"
         execute(db,paths,data,'policy',shell=policy+"env['ir.ui.menu']._step_normalize_agriculture_menus()\nenv.cr.commit()\nprint('PAYROLL_POLICY_OK')\n")
         execute(db,paths,data,'verify',shell=(HERE/'verify_payroll.py').read_text())
@@ -215,6 +225,8 @@ def main():
         assert json.loads((stage/'baseline.json').read_text())==baseline, 'Concurrent config/source change'
         with open('/run/lock/steps-environments.lock','a') as lock:
             fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            if scope_check:
+                assert check_release(args.archive, registry) == scope_check, 'SyS scope changed during promotion'
             for path in Path('/proc').glob('[0-9]*/cmdline'):
                 try: argv=path.read_bytes().decode(errors='replace').split('\x00')
                 except OSError: continue
