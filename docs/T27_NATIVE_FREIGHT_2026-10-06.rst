@@ -57,3 +57,54 @@ no se contabilizó. Las capturas están fuera de Git, en
 La retirada completa de Studio en las otras aplicaciones y de las automatizaciones
 históricas sigue el inventario global. Esta entrega no instala Fletes ni Guías
 en Demo-SYS o SyS. Demo-SYS conserva únicamente el alcance permitido de SyS.
+
+Registro de fletes: error al guardar
+----------------------------------
+
+Se reprodujo en el navegador de Desarrollo la creación de una orden con una
+línea de detalle. Al guardar, ``web_save`` crea el registro y luego solicita
+los campos de las líneas de Costeo, incluso si esa pestaña está vacía.
+El widget estándar de distribución analítica solicita ``analytic_precision``;
+el modelo de costeo no lo definía y ``web_read`` lanzaba un ``KeyError``.
+La transacción completa se revertía y la orden no quedaba guardada.
+
+18.0.2.6.1 incorpora ``analytic.mixin`` al mismo modelo de costeo y expone su
+empresa desde la orden. La cuenta de cargo se recalcula también si cambia la
+empresa. No sustituye el maestro analítico ni crea una tabla paralela.
+
+Las regresiones ejercitan ``web_save`` y ``web_read`` con Costeo vacío,
+creación/edición/reapertura, el formulario efectivo con detalles, costeo y
+contabilización, y la distribución guardada hasta el apunte analítico.
+El sondeo operativo prueba además el formulario y el guardado con un usuario
+interno sin permisos de Contabilidad, y revierte todos los datos de prueba.
+
+En el primer ejercicio del navegador también se detectó que el importe
+calculado era un campo de solo lectura y no se enviaba al guardar una orden
+nueva. Además, la vista previa multiplicaba por cantidad las tarifas por viaje.
+18.0.2.6.2 incluye el importe en el guardado del formulario y aplica la misma
+modalidad y conversión de moneda que Calcular costeo. Se cubre con una prueba
+del formulario que crea, guarda y edita la cantidad de un flete por viaje, y
+comprueba que el importe se conserve y coincida con su costeo.
+
+Paquete final de esta corrección: ``b23b2636eac165ca3eb0469c82727442f0e77278``;
+SHA-256 ``b62b57f4f3d9cafc489a7f3946bf331c0ca78a6731ff93d82b2472262196e520``.
+Fletes 18.0.2.6.2 y Guías de despacho 18.0.2.0.2 pasaron 54 pruebas, sin fallos
+ni errores, en la copia nueva ``FREIGHT_QA_register_1006c``. La comparación de
+columnas, filas e importes originales pasó en la copia y en el destino.
+Publicado bajo el bloqueo compartido y con respaldo
+``/opt/steps_backups/freight_development_20261006T145718Z``. Las pruebas,
+huellas, sondeos y registros de publicación están en
+``/opt/steps-validation/freight_development_register_1006c``.
+
+Verificación en el navegador de Desarrollo: se creó una orden nueva, se
+guardó con Costeo vacío, se cambió su cantidad de 3 a 4, se volvió a guardar,
+se calculó su costeo y se reabrió desde el listado. Una tarifa por viaje de
+55.000 conservó ese importe antes y después del guardado, de la edición y del
+costeo. La captura final es ``registro-fletes-verificado.jpg`` en el directorio
+local de evidencias mencionado arriba. Las órdenes marcadas QA quedan como
+ejercicios en Desarrollo; no se contabilizaron allí. La contabilización y sus
+apuntes analíticos se verificaron en las pruebas de la copia aislada.
+
+Se dejó el aviso breve de revisión en T27 (mensaje 9182), sin cerrar el ticket.
+El código de los dos módulos de la entrega sigue siendo exactamente el del
+paquete probado; los commits posteriores de documentación no cambian sus bytes.
