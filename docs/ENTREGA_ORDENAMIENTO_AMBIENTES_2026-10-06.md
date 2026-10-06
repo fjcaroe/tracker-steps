@@ -44,8 +44,8 @@ Evidencia en el servidor:
 
 ## Nómina: paquete y condiciones de migración
 
-Candidato versionado `b2a77581d0b72509ad3d87ca98d1684c8cfb543c`,
-SHA-256 `6b44cd67ec892392124840bb33c5da4126801ab27cb576f66a3d41bdb82b11f4`.
+Candidato versionado `2dc161f26c6d549a00c474bf81e8c3f83e984092`,
+SHA-256 `10f8e05ffdaba7351e4dcfa2130c6f5cb2bf14eb452d0352f6a29637c0950646`.
 El proveedor Simple Digital se copia privadamente desde el servidor; su hash
 queda vinculado a la validación y se exige idéntico antes de publicar.
 
@@ -89,9 +89,13 @@ producción como si ya tuvieran esa aceptación.
 - Desarrollo conserva una referencia instalada a `steps_api` sin fuente disponible,
   registrada también en auditorías anteriores. Las APIs vigentes de Task/Harvest
   son otros componentes; esta referencia no acredita un fallo de esas apps.
-- Steps conserva `steps_transport` instalado sin su fuente y dos modelos sin
-  cargar. Debe recuperarse el addon original o retirarse con una migración que
-  preserve sus registros; no se inventan modelos para silenciar el diagnóstico.
+- Steps conserva `steps_transport` instalado y dos modelos sin cargar. Se localizó
+  su fuente original `1.5` en `/opt/odoo18/custom_addons/steps_transport`, fuera del
+  `addons_path`. Su manifiesto concede CRUD a todos los usuarios internos y no
+  carga reglas multiempresa; no se habilita esa API antigua sin revisar permisos
+  y controladores. La recuperación se conserva como pendiente del flujo de
+  movilización T46, con los registros intactos; no se inventan modelos para
+  silenciar el diagnóstico ni se añade toda la raíz de addons antiguos.
 - En Steps, `step_hr` informa versión instalada `18.0.1.1.0` y su fuente compartida
   es `18.0.1.4.0`. Su actualización requiere la migración coordinada de movilización;
   el cambio de Nómina no actualiza ese módulo a ciegas.
