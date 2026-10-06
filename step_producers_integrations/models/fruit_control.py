@@ -9,17 +9,13 @@ class FruitPackage(models.Model):
         'step.packing.production', relation='step_packing_output_tag_rel',
         column1='stock_quant_package_id', column2='step_packing_production_id',
         string='Núm. proceso', readonly=True)
-    step_producer_shipment_ids = fields.Many2many(
-        'step.export.export', relation='step_export_export_stock_quant_package_rel',
-        column1='stock_quant_package_id', column2='step_export_export_id',
-        string='Embarque', readonly=True)
 
 
 class FruitLine(models.Model):
     _inherit = 'step.fruit.package.line'
 
     control_process_ids = fields.Many2many(related='package_id.step_producer_process_ids', compute_sudo=False)
-    control_shipment_ids = fields.Many2many(related='package_id.step_producer_shipment_ids', compute_sudo=False)
+    control_shipment_ids = fields.Many2many(related='package_id.step_export_shipment_ids', compute_sudo=False)
     control_species_id = fields.Many2one(related='package_id.especie_id', string='Especie')
     control_variety_id = fields.Many2one(related='package_id.variedad_id', string='Variedad')
     control_caliber_id = fields.Many2one(related='package_id.fruit_caliber_id', string='Calibre')
@@ -38,7 +34,8 @@ class FruitLine(models.Model):
     control_fob_usd = fields.Float(compute='_compute_control_fob', string='FOB liquidado USD', digits=(16, 2))
     control_fob_unit_usd = fields.Float(compute='_compute_control_fob', string='FOB unit. liq. USD/kg', digits=(16, 4))
 
-    @api.depends('control_process_ids.date', 'control_shipment_ids.departure_date', 'control_shipment_ids.date')
+    @api.depends('control_process_ids.date', 'control_shipment_ids.departure_date',
+                 'control_shipment_ids.date', 'control_shipment_ids.shipment_number')
     def _compute_control_dates(self):
         for line in self:
             dates = line.control_process_ids.mapped('date')
