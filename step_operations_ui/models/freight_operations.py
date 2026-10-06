@@ -98,10 +98,22 @@ class FreightOrder(models.Model):
     @api.onchange("price_list_id")
     def _onchange_price_list(self):
         for order in self:
+            if order.freight_move_id:
+                continue
             order.tariff_id = order.price_list_id
             tariff = order.price_list_id
             if tariff and tariff.freight_carrier_id:
                 order.freight_carrier_id = tariff.freight_carrier_id
+            modes = tariff.tariff_line_ids.mapped("cold_mode_id")
+            if len(modes) == 1 and all(line.cold_mode_id for line in tariff.tariff_line_ids):
+                order.cold_mode_id = modes
+        self._onchange_tariff_context()
+
+    @api.onchange("cold_mode_id", "date", "company_id")
+    def _onchange_tariff_context(self):
+        for order in self:
+            if not order.freight_move_id:
+                order.detail_ids._onchange_route_service()
 
     def _tariff_line_for_detail(self, detail):
         self.ensure_one()
@@ -120,10 +132,14 @@ class FreightOrder(models.Model):
         lines = tariff.tariff_line_ids.filtered(
             lambda line: line.route_id == detail.route_id
             and (not line.cold_mode_id or line.cold_mode_id == self.cold_mode_id)
-            and (not detail.service_product_id or line.service_product_id == detail.service_product_id)
+            and (not detail.service_product_id or not line.service_product_id
+                 or line.service_product_id == detail.service_product_id)
         )
         if self.cold_mode_id:
             exact = lines.filtered(lambda line: line.cold_mode_id == self.cold_mode_id)
+            lines = exact or lines
+        if detail.service_product_id:
+            exact = lines.filtered(lambda line: line.service_product_id == detail.service_product_id)
             lines = exact or lines
         if len(lines) != 1:
             raise UserError(_(
@@ -153,7 +169,9 @@ class FreightOrder(models.Model):
                 quantity = detail.quantity
                 if quantity <= 0:
                     raise ValidationError(_("La cantidad del detalle debe ser mayor que cero."))
-                price = tariff_line.freight_rate
+                # An explicit rate entered in Detalles is part of the quote.
+                # Rows created by imports without a rate use the tariff rate.
+                price = detail.unit_rate if detail.unit_rate != 0 else tariff_line.freight_rate
                 if price <= 0:
                     raise ValidationError(_("La tarifa del detalle debe ser mayor que cero."))
                 line_amount = price * (quantity if tariff_line.tariff_basis != "Por viaje" else 1)
@@ -276,6 +294,11 @@ class FreightOrderDetail(models.Model):
                     detail.unit_rate = 0.0
                 else:
                     detail.unit_rate = line.freight_rate
+                    if not detail.service_product_id and line.service_product_id:
+                        detail.service_product_id = line.service_product_id
+                    if not detail.uom_id and detail.service_product_id:
+                        detail.uom_id = detail.service_product_id.uom_id
+            detail._onchange_amount()
 
     @api.onchange("quantity", "unit_rate")
     def _onchange_amount(self):

@@ -69,6 +69,7 @@ class TestFreightStudioCosting(TransactionCase):
         cls.carrier = cls.env["res.partner"].create({
             "name": "Transportista QA",
             "supplier_rank": 1,
+            "is_freight_carrier": True,
         })
         cls.freight_product = cls.env["product.template"].create({
             "name": "Flete QA fruta",
@@ -204,6 +205,86 @@ class TestFreightStudioCosting(TransactionCase):
         # is reserved for the default plan, not necessarily this QA plan.
         self.assertEqual(debit.analytic_line_ids[plan._column_name()], analytic)
         self.assertEqual(sum(debit.analytic_line_ids.mapped("amount")), -1000)
+
+    def test_select_tariff_after_details_fills_rate_service_unit_and_unique_cold_mode(self):
+        tariff = self.env["step.freight.tariff"].create({
+            "name": "QA tarifa de frío única", "freight_carrier_id": self.carrier.id,
+            "tariff_line_ids": [(0, 0, {
+                "route_id": self.route.id, "cold_mode_id": self.cold_mode.id,
+                "service_product_id": self.freight_product.id,
+                "tariff_basis": "Por UdM", "freight_rate": 1500,
+            })],
+        })
+        form = Form(self.env["step.freight.order"],
+                    view=self.env.ref("step_operations_ui.view_freight_order_code_form"))
+        with form.detail_ids.new() as detail:
+            detail.route_id = self.route
+            detail.quantity = 2
+            self.assertEqual(detail.unit_rate, 0)
+        form.price_list_id = tariff
+        self.assertEqual(form.cold_mode_id, self.cold_mode)
+        order = form.save()
+        self.assertEqual(order.detail_ids.unit_rate, 1500)
+        self.assertEqual(order.detail_ids.service_product_id, self.freight_product)
+        self.assertEqual(order.detail_ids.uom_id, self.freight_product.uom_id)
+        self.assertEqual(order.freight_total, 3000)
+
+    def test_changing_cold_mode_reprices_existing_detail(self):
+        form = Form(self.env["step.freight.order"],
+                    view=self.env.ref("step_operations_ui.view_freight_order_code_form"))
+        form.date = "2026-10-01"
+        form.price_list_id = self.tariff
+        with form.detail_ids.new() as detail:
+            detail.route_id = self.route
+            detail.quantity = 2
+        self.assertEqual(form.save().freight_total, 2000)
+        form.cold_mode_id = self.cold_mode
+        order = form.save()
+        self.assertEqual(order.detail_ids.unit_rate, 1500)
+        self.assertEqual(order.freight_total, 3000)
+        order.action_cost_freight()
+        self.assertEqual(order.cost_ids.freight_cost, 3000)
+
+    def test_manual_detail_rate_survives_save_and_costing(self):
+        form = Form(self.env["step.freight.order"],
+                    view=self.env.ref("step_operations_ui.view_freight_order_code_form"))
+        form.date = "2026-10-01"
+        form.price_list_id = self.tariff
+        with form.detail_ids.new() as detail:
+            detail.route_id = self.route
+            detail.quantity = 2
+            detail.unit_rate = 2750
+        order = form.save()
+        self.assertEqual(order.freight_total, 5500)
+        order.action_cost_freight()
+        self.assertEqual(order.detail_ids.unit_rate, 2750)
+        self.assertEqual(order.cost_ids.freight_cost, 5500)
+
+    def test_negative_manual_rate_is_rejected(self):
+        order = self._order(detail_ids=[(0, 0, {
+            "route_id": self.route.id, "service_product_id": self.freight_product.id,
+            "quantity": 2, "unit_rate": -1,
+        })])
+        with self.assertRaisesRegex(ValidationError, "mayor que cero"):
+            order.action_cost_freight()
+
+    def test_generic_tariff_accepts_service_selected_on_detail(self):
+        self.tariff.tariff_line_ids.filtered(lambda line: not line.cold_mode_id and line.route_id == self.route).service_product_id = False
+        order = self._costed_order()
+        self.assertEqual(order.cost_ids.service_product_id, self.freight_product)
+        self.assertEqual(order.cost_ids.freight_cost, 3000)
+
+    def test_folios_generated_in_code_and_preserved_on_edit_and_copy(self):
+        orders = self.env["step.freight.order"].create([{}, {}])
+        self.assertEqual(len(set(orders.mapped("name"))), 2)
+        self.assertTrue(all(order.name.startswith("FLE") for order in orders))
+        name = orders[0].name
+        orders[0].description = "QA cambio sin renumerar"
+        self.assertEqual(orders[0].name, name)
+        copied = orders[0].copy()
+        self.assertNotIn(copied.name, orders.mapped("name"))
+        explicit = self.env["step.freight.order"].create({"name": "QA importado"})
+        self.assertEqual(explicit.name, "QA importado")
 
     # --- Tarifas (punto 3): tramo, modalidad de frío y servicio de flete ---
 

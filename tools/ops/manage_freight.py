@@ -55,7 +55,8 @@ def snapshot(database, schema=None):
         tables = json.loads(query(database, """SELECT json_agg(tablename ORDER BY tablename) FROM pg_tables
             WHERE schemaname='public' AND (tablename IN (%s)
             OR tablename LIKE 'step_dispatch_guide%%'
-            OR tablename IN ('account_move','account_move_line','mail_message','mail_followers','mail_activity','ir_attachment'))"""
+            OR tablename IN ('account_move','account_move_line','mail_message','mail_followers','mail_activity','ir_attachment',
+                             'ir_sequence','ir_sequence_date_range'))"""
             % ','.join("'%s'" % table for table in sorted(freight_tables))))
         schema = {table: json.loads(query(database, "SELECT json_agg(column_name ORDER BY ordinal_position) "
                   "FROM information_schema.columns WHERE table_schema='public' AND table_name='%s'" % table))
@@ -83,6 +84,10 @@ def snapshot(database, schema=None):
         condition = (" WHERE %s IN (%s)" % (column, ','.join("'%s'" % name for name in [
                      *NATIVE_SCHEMA.MODELS, *NATIVE_SCHEMA.MODELS.values()]))
                      if table in ('mail_message','mail_followers','mail_activity','ir_attachment') else '')
+        if table == 'ir_sequence':
+            condition = " WHERE code='gastos.fletes'"
+        elif table == 'ir_sequence_date_range':
+            condition = " WHERE sequence_id IN (SELECT id FROM ir_sequence WHERE code='gastos.fletes')"
         order = 't.id' if 'id' in columns else '(' + expression + ')::text'
         result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE("
                               "string_agg((%s)::text,'|' ORDER BY %s),''))) FROM %s t%s" % (expression, order, actual_table, condition))

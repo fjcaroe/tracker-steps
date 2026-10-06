@@ -116,6 +116,46 @@ class TestDispatchGuide(TransactionCase):
         with self.assertRaisesRegex(UserError, "tramo"):
             guide.action_confirm()
 
+    def test_guide_from_freight_uses_detail_route_truck_and_driver(self):
+        order = self.env["step.freight.order"].create({
+            "freight_carrier_id": self.carrier.id,
+            "detail_ids": [Command.create({
+                "route_id": self.route.id, "vehicle_id": self.vehicle.id, "driver_id": self.driver.id,
+            })],
+        })
+        context = order.action_create_dispatch_guide()["context"]
+        self.assertEqual(context["default_freight_route_id"], self.route.id)
+        self.assertEqual(context["default_origin_address"], self.route.origin)
+        self.assertEqual(context["default_destination_address"], self.route.destination)
+        self.assertEqual(context["default_vehicle_id"], self.vehicle.id)
+        self.assertEqual(context["default_driver_partner_id"], self.driver.id)
+        guide = self.env["step.dispatch.guide"].with_context(context).create({
+            "external_folio": "QA-FLETE", "partner_id": self.partner.id,
+            "transfer_reason_id": self.reason_internal.id,
+            "line_ids": [Command.create({
+                "product_id": self.product.id, "description": "QA carga",
+                "product_uom_id": self.product.uom_id.id, "quantity": 1,
+            })],
+        })
+        guide.action_confirm()
+        self.assertEqual(guide.freight_order_id, order)
+        self.assertEqual(order.dispatch_guide_count, 1)
+
+    def test_guide_from_freight_without_route_has_clear_validation(self):
+        order = self.env["step.freight.order"].create({})
+        with self.assertRaisesRegex(UserError, "único tramo"):
+            order.action_create_dispatch_guide()
+
+    def test_guide_from_freight_rejects_multiple_routes(self):
+        other = self.env["step.freight.route"].create({
+            "name": "QA otro tramo", "origin": "Buin", "destination": "Puerto",
+        })
+        order = self.env["step.freight.order"].create({"detail_ids": [
+            Command.create({"route_id": self.route.id}), Command.create({"route_id": other.id}),
+        ]})
+        with self.assertRaisesRegex(UserError, "único tramo"):
+            order.action_create_dispatch_guide()
+
     def test_invoice_several_guides_of_same_customer(self):
         guides = self._guide("401") | self._guide("402")
         guides.action_confirm()

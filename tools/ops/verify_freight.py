@@ -63,12 +63,23 @@ try:
     form = Form(orders, view=order_view)
     form.description = 'Validación registro de fletes'
     order = form.save()
-    specification = {'name': {}, 'description': {}, 'cost_ids': {'fields': {
-        'freight_cost': {}, 'analytic_distribution': {}, 'analytic_precision': {},
-    }}}
+    assert order.name not in ('Nueva orden', '/')
+    assert env.ref('step_operations_ui.sequence_freight_order').code == 'gastos.fletes'
+    if 'base.automation' in env:
+        assert not env['base.automation'].search([('model_name', '=', 'step.freight.order')]).filtered(
+            lambda rule: any('gastos.fletes' in (action.code or '') for action in rule.action_server_ids))
+    specification = {'name': {}, 'description': {}, 'freight_total': {},
+        'detail_ids': {'fields': {name: {} for name in (
+            'vehicle_id', 'driver_id', 'route_id', 'service_product_id',
+            'cargo_description', 'delivery_reference', 'uom_id', 'quantity', 'unit_rate', 'freight_value')}},
+        'cost_ids': {'fields': {name: {} for name in (
+            'service_product_id', 'freight_cost', 'expense_account_id',
+            'analytic_distribution', 'analytic_precision')}}}
     result = order.web_save({'description': 'Validación registro editado'}, specification)[0]
     assert result['description'] == 'Validación registro editado' and result['cost_ids'] == []
     assert order.web_read(specification)[0]['id'] == order.id
+    for previous in orders.search([('id', '!=', order.id)]):
+        assert previous.web_read(specification)[0]['id'] == previous.id
     checked.append({'model': 'step.freight.order', 'form_id': order_view.id,
                     'create_edit_reopen_web_save': True, 'internal_user': True})
     print('FREIGHT_REGISTRY_OK ' + json.dumps({'database': env.cr.dbname, 'version': EXPECTED, 'checks': checked}))

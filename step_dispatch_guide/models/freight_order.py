@@ -1,4 +1,5 @@
 from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 
 class FreightOrder(models.Model):
@@ -15,18 +16,26 @@ class FreightOrder(models.Model):
 
     def action_create_dispatch_guide(self):
         self.ensure_one()
+        route = self.route_id or self.detail_ids.mapped("route_id")
+        vehicles = self.vehicle_id or self.detail_ids.mapped("vehicle_id")
+        drivers = self.detail_ids.mapped("driver_id")
+        if len(route) != 1:
+            raise UserError(_("Para crear una guía, el flete debe tener un único tramo. Separe los despachos con tramos distintos."))
+        if len(vehicles) > 1 or len(drivers) > 1:
+            raise UserError(_("Para crear una guía, las líneas deben usar el mismo camión y chofer. Separe los despachos distintos."))
         return {
             "type": "ir.actions.act_window", "name": _("Nueva guía de despacho"),
             "res_model": "step.dispatch.guide", "view_mode": "form", "target": "current",
             "context": {
                 "default_freight_order_id": self.id,
                 "default_freight_paid": True,
-                "default_freight_route_id": self.route_id.id,
+                "default_freight_route_id": route.id,
                 "default_date": self.date,
                 "default_carrier_id": self.freight_carrier_id.id,
-                "default_vehicle_id": self.vehicle_id.id,
-                "default_origin_address": self.route_id.origin,
-                "default_destination_address": self.route_id.destination,
+                "default_vehicle_id": vehicles.id,
+                "default_driver_partner_id": drivers.id,
+                "default_origin_address": route.origin,
+                "default_destination_address": route.destination,
                 "default_reference": self.name,
             },
         }

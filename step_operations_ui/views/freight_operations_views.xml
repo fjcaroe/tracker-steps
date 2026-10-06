@@ -29,7 +29,7 @@
                     <group>
                         <group>
                             <field name="name" />
-                            <field name="freight_carrier_id" />
+                            <field name="freight_carrier_id" context="{'default_is_freight_carrier': True, 'default_supplier_rank': 1}" />
                             <field name="fundo_id" />
                             <field name="company_id" />
                         </group>
@@ -98,7 +98,7 @@
                             <field name="name" />
                             <field name="description" />
                             <field name="date" />
-                            <field name="freight_carrier_id" />
+                            <field name="freight_carrier_id" context="{'default_is_freight_carrier': True, 'default_supplier_rank': 1}" />
                             <field name="price_list_id" />
                             <field name="cold_mode_id" context="{'form_view_ref': 'step_operations_ui.view_freight_cold_mode_form'}" />
                         </group>

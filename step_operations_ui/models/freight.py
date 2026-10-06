@@ -1,5 +1,5 @@
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError, ValidationError
 
 
 class FreightRoute(models.Model):
@@ -63,7 +63,7 @@ class FreightOrder(models.Model):
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "date desc, id desc"
 
-    name = fields.Char(string="Orden", required=True, default="Nueva orden", tracking=True)
+    name = fields.Char(string="Folio flete", required=True, default="Nueva orden", copy=False, tracking=True)
     date = fields.Date(string="Fecha", default=fields.Date.context_today, tracking=True)
     freight_state = fields.Selection(
         [("status1", "Ingresado"), ("status2", "Autorizado"), ("status3", "Contabilizado"), ("cancel", "Anulado")],
@@ -85,6 +85,18 @@ class FreightOrder(models.Model):
     currency_id = fields.Many2one(related="company_id.currency_id", store=True)
     company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
     notes = fields.Html(string="Observaciones")
+
+    @api.model_create_multi
+    def create(self, values_list):
+        for values in values_list:
+            if not values.get("name") or values["name"] in ("Nueva orden", "/"):
+                company = self.env["res.company"].browse(values.get("company_id")) or self.env.company
+                number = self.env["ir.sequence"].with_company(company).next_by_code(
+                    "gastos.fletes", sequence_date=values.get("date") or fields.Date.context_today(self))
+                if not number:
+                    raise UserError(_("Configure la secuencia de folios de Fletes antes de registrar una orden."))
+                values["name"] = number
+        return super().create(values_list)
 
     @api.depends("tariff_id.price", "quantity")
     def _compute_amount(self):
