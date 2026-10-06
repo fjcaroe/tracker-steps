@@ -109,6 +109,8 @@ def main():
 
     def execute(db, paths, data, label, install=(), update=(), shell=None, tests=False):
         command = base + (['shell'] if shell else []) + options + ['-d',db,'--db-filter=^'+db+'$','--addons-path='+paths,'--data-dir='+str(data)]
+        if db != database:
+            command = ['nice', '-n', '10', *command]
         log = stage/(label+'-'+stamp+'.log')
         if shell:
             result = subprocess.run(command+['--log-level=error'],input='EXPECTED_DATABASE='+repr(db)+'\n'+shell,text=True,capture_output=True)
