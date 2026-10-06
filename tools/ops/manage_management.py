@@ -53,7 +53,7 @@ def snapshot(database):
     result = {}
     for table in BUSINESS:
         if query(database, "SELECT to_regclass('%s')" % table):
-            result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg((to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])::text,'|' ORDER BY id),''))) FROM %s t" % table)
+            result[table] = query(database, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg((to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])::text,'|' ORDER BY (to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])::text),''))) FROM %s t" % table)
     return result
 
 
