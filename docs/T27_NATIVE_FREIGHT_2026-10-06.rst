@@ -169,3 +169,31 @@ y enlace con guía de despacho OK. El comentario propio 9184 se actualizó para
 reconocer esa respuesta y el menú corregido, sin repetir la petición de validar
 los mismos pasos. No se cambió la etapa del ticket ni se publicaron estos módulos
 en otros ambientes.
+
+Maestros solicitado tras la aprobación funcional
+-----------------------------------------------
+
+El comentario 9185 solicita agrupar Tarifas, Transportistas y Camiones en un
+menú superior Maestros. Se movieron los mismos menús y acciones desde
+Configuración; no se crean maestros ni se cambian permisos o registros.
+Configuración conserva Tramos, Servicios de fletes, Modalidad de frío,
+Tipo de despacho y Ajustes. La navegación mantiene el estilo estándar.
+
+Paquete: ``e9d5b15a171a6f4e9cfcd6bb3da1fea87913d1f9``; SHA-256
+``59ee7733ae5f4d49a37288fccba9c44336d714d8e98f2c5d340fd3b0991746d8``.
+Fletes 18.0.2.7.2 y Guías 18.0.2.0.3 pasaron 66 pruebas sin fallos ni errores
+en la copia fresca ``FREIGHT_QA_masters_1006a``, conservando registros e importes.
+El sondeo verifica los tres padres de menú y sus acciones originales en copia
+y destino. Se publicó el mismo paquete en Desarrollo con bloqueo compartido,
+overlay privado y respaldo
+``/opt/steps_backups/freight_development_20261006T155004Z``.
+Evidencias remotas: ``/opt/steps-validation/freight_development_masters_1006a``.
+
+Se renovó la caché compilada de assets en copia y destino para evitar reutilizar
+estilos anteriores debido a las fechas epoch del archivo Git. En el navegador
+se abrió Maestros con sus tres opciones, el listado y formulario de una tarifa,
+Transportistas y Camiones. Se comprobó la ausencia de esos tres accesos en
+Configuración y se reabrió la orden QA existente sin modificarla.
+Captura: ``fletes-maestros-verificado.png`` en las evidencias privadas de T27.
+Se dejó un aviso breve de disponibilidad en el ticket, sin cambiar su etapa
+ni repetir la validación de los flujos ya aprobados por el cliente.
