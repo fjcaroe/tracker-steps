@@ -169,6 +169,8 @@ def seed(env):
                 'package_type_id': pallet.id, 'week_line_ids': [Command.create({
                     'week_start': monday + timedelta(days=7 * n), 'export_kg': quantity / 4}) for n in range(4)]})]})
         estimate.action_validate_estimate(); estimate.action_activate_estimate(); estimates.append(estimate)
+        contract_quantity = quantity if fruit == raw else quantity / 5
+        contract_price = 0.25 if fruit == raw else 1.25
         contract = create('contract_' + str(index), 'step.producer.purchase.contract', {
             'name': 'PRUEBA/CTR/%02d' % (index + 1), 'company_id': company.id, 'partner_id': producer.id,
             'date_start': monday, 'date_end': end, 'currency_id': usd.id, 'operation_type': 'Anticipo demostración',
@@ -176,11 +178,11 @@ def seed(env):
             'provision_account_id': provision.id, 'accounting_date': today,
             'notes': '<p>Contrato ficticio de QA. Dos cuotas de anticipo, sin emisión tributaria.</p>',
             'product_line_ids': [Command.create({'product_id': fruit.id, 'species_id': species.id,
-                'variety_id': variety.id, 'quantity': quantity, 'uom_id': kg.id, 'price_unit': 0.25})]})
+                'variety_id': variety.id, 'quantity': contract_quantity, 'uom_id': fruit.uom_id.id, 'price_unit': contract_price})]})
         for n in range(2):
             env['step.producer.purchase.contract.installment'].create({'contract_id': contract.id,
                 'product_line_id': contract.product_line_ids.id, 'sequence': 10 * (n + 1),
-                'quantity': quantity / 2, 'date_due': monday + timedelta(days=7 + n * 14),
+                'quantity': contract_quantity / 2, 'date_due': monday + timedelta(days=7 + n * 14),
                 'validation_criteria': 'Cuota de anticipo ficticia para demostración'})
         contract.action_confirm(); contracts.append(contract)
     contracts[0].action_account()
