@@ -37,6 +37,8 @@ class Contract(models.Model):
                 raise UserError(_('Simple Digital no está instalado.'))
             if contract.pension_option == 'afp' and not contract.afp_option:
                 raise UserError(_('Seleccione la AFP del contrato.'))
+            if not contract.employee_id.hr_commune:
+                raise UserError(_('Seleccione la comuna del trabajador.'))
         self.write({'step_payroll_migration_review': False})
 
 
@@ -53,4 +55,6 @@ class Payslip(models.Model):
                 contract = slip.contract_id
                 if any(not contract[name] for name in ('analytic_account_id','health_institution','pension_option','work_schedule_id','income_tax_type','contract_type_id')):
                     raise UserError(_('Complete los parámetros de Simple Digital del contrato antes de calcular.'))
+                if not slip.employee_id.hr_commune:
+                    raise UserError(_('Seleccione la comuna del trabajador antes de calcular.'))
         return super().compute_sheet()
