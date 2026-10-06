@@ -154,7 +154,15 @@ def main():
             run('nginx', '-t')
             run('systemctl', 'reload', 'nginx')
             for target in targets.values():
-                redirect(ip, target)
+                # systemctl reload returns before nginx's new workers bind.
+                for attempt in range(15):
+                    try:
+                        redirect(ip, target)
+                        break
+                    except OSError:
+                        if attempt == 14:
+                            raise
+                        time.sleep(1)
                 for attempt in range(15):
                     try:
                         login(target)
