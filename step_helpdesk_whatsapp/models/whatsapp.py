@@ -132,6 +132,8 @@ class Conversation(models.Model):
     consent=fields.Boolean(string='Consentimiento para seguimiento con plantilla')
     consent_by=fields.Many2one('res.users',readonly=True)
     consent_at=fields.Datetime(readonly=True)
+    identity_verified_by=fields.Many2one('res.users',readonly=True)
+    identity_verified_at=fields.Datetime(readonly=True)
     _sql_constraints=[('sender_unique','unique(channel_id,sender_id)','La conversación ya existe.')]
 
     def write(self, values):
@@ -447,6 +449,7 @@ class Classify(models.TransientModel):
     message_id=fields.Many2one('step.helpdesk.wa.message',required=True,readonly=True)
     ticket_id=fields.Many2one('helpdesk.ticket',string='Caso abierto de esta conversación')
     new_case=fields.Boolean(string='Abrir un caso nuevo')
+    identity_verified=fields.Boolean(string='Confirmé que el solicitante es el titular de este caso')
 
     def action_apply(self):
         self.ensure_one();message=self.message_id;message.check_access('read')
@@ -458,8 +461,14 @@ class Classify(models.TransientModel):
             ticket=self.env['helpdesk.ticket'].with_context(_wa_private=PRIVATE).create({'name':(message.text or 'Soporte WhatsApp')[:100],
                 'team_id':message.team_id.id,'step_wa_conversation_id':conversation.id})
         ticket.check_access('write')
-        if not ticket or ticket.step_wa_conversation_id!=conversation or ticket.team_id!=message.team_id or ticket.stage_id.fold:
+        if not ticket or ticket.team_id!=message.team_id or ticket.stage_id.fold:
             raise UserError(_('Seleccione un caso abierto de la misma conversación y equipo.'))
+        if ticket.step_wa_conversation_id and ticket.step_wa_conversation_id!=conversation:
+            raise UserError(_('El caso pertenece a otra conversación.'))
+        if not ticket.step_wa_conversation_id:
+            if not self.identity_verified:raise UserError(_('Verifique la identidad del solicitante antes de vincular un caso recibido por otro canal.'))
+            ticket.with_context(_wa_private=PRIVATE).write({'step_wa_conversation_id':conversation.id})
+            conversation.sudo().write({'identity_verified_by':self.env.user.id,'identity_verified_at':fields.Datetime.now()})
         message.sudo().write({'ticket_id':ticket.id,'mail_message_id':False})
         message.sudo()._post_incoming()
         return {'type':'ir.actions.act_window_close'}

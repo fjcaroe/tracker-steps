@@ -66,6 +66,16 @@ class TestSupport(TransactionCase):
         reply=self.process([self.incoming('msg-3',reply=foreign.external_id)])
         self.assertEqual(reply[-1].ticket_id,own.ticket_id)
 
+    def test_existing_email_case_requires_explicit_identity_review(self):
+        ticket=self.env['helpdesk.ticket'].create({'name':'Caso recibido por correo','team_id':self.team.id})
+        message=self.process([self.incoming(text='caso #'+str(ticket.id))])
+        self.assertFalse(message.ticket_id)
+        wizard=self.env['step.helpdesk.wa.classify'].create({'message_id':message.id,'ticket_id':ticket.id})
+        with self.assertRaises(UserError):wizard.action_apply()
+        wizard.identity_verified=True;wizard.action_apply()
+        self.assertEqual(message.ticket_id,ticket)
+        self.assertEqual(ticket.step_wa_conversation_id,message.conversation_id)
+
     def outgoing(self, incoming, **values):
         return self.env['step.helpdesk.wa.message'].with_context(_wa_private=PRIVATE).create(dict(
             channel_id=self.channel.id,conversation_id=incoming.conversation_id.id,ticket_id=incoming.ticket_id.id,
