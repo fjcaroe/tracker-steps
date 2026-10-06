@@ -70,6 +70,15 @@ componentes, resolver la base en su manifiesto de entrega y runbook.
 
 ## Implementar y comprobar
 
+No crear ni ampliar modelos, campos, vistas, reportes ni automatizaciones Studio.
+Todo nuevo desarrollo va en código versionado. Una portada o tablero propio que
+consulta modelos manuales es una migración parcial. Al revisar su retiro usar
+`run_app_audit.py --inventory` y `--studio` en cada ambiente vigente: incluir
+líneas, maestros, campos heredados, reportes y automatizaciones. Conservar los
+registros, IDs y relaciones; no desinstalar Studio para ocultar los pendientes.
+Los nombres `x_` con definición Python y los campos dinámicos nativos no prueban
+dependencia Studio por sí solos.
+
 Reutilizar modelos existentes: `account.analytic.account` es el centro de
 costos; `step.temporada`, `step.especie`, `step.variedad` y
 `step.grupo.variedad` son los maestros agrícolas. No recrearlos como textos,

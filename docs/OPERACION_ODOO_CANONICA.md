@@ -43,6 +43,14 @@ no una base para copiar ciegamente a los demás ambientes.
 
 ## Contrato funcional
 
+Decisión del usuario, 06-10-2026: no crear ni ampliar desarrollos Studio.
+Todo nuevo desarrollo se implementa en código versionado. El inventario de
+retiro comprende modelos, campos, vistas, reportes, automatizaciones y permisos;
+una portada propia no convierte el modelo manual que todavía consulta.
+Los nombres técnicos `x_` pueden conservarse cuando ya están definidos en
+Python, para preservar IDs y relaciones. Los campos dinámicos nativos de
+planes analíticos y reportes de nómina no se eliminan por ser `manual`.
+
 - Relacionar temporada, especie, variedad, cuenta, productor, fundo y centro
   con los maestros existentes del ERP cuando el documento pide seleccionarlos.
   No reemplazar una tabla por texto ni crear un segundo maestro para simplificar.

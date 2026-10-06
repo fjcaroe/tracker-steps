@@ -75,6 +75,10 @@ las ramas canónicas de los productos. Los puertos tienen dominios HTTPS:
 Hay acceso SSH documentado; no declarar inaccesible un ambiente solo por un
 fallo de API o de acceso a IP/puerto. No imprimir ni cambiar credenciales.
 No sustituir relaciones a maestros por campos de texto ni crear tablas paralelas.
+No crear ni ampliar desarrollos Studio: modelos, campos, vistas, reportes y
+automatizaciones nuevos deben ir en código versionado. Una portada propia
+que consulta modelos manuales no acredita su migración. Inventariar también
+líneas, maestros y dependencias; preservar históricos antes de retirar Studio.
 No parchear Studio manualmente para simular código ni mezclar sus menús con
 una aplicación nueva. Versionar la migración y preservar los registros.
 Una migración/vista/permiso requiere pruebas funcionales en una copia del

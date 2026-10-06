@@ -47,6 +47,7 @@ try:
     modules = ('step_hr', 'step_cosecha', 'step_packing', 'step_packing_operations',
                'step_export', 'step_producers', 'step_sawmill',
                'step_management_costs', 'step_operations_ui')
+    modules += ('step_bpa_irrigation', 'step_labor_protection', 'step_qa')
     for menu in menus.filtered(lambda m: not m.parent_id):
         if any(x.split('.')[0] in modules + ('studio_customization',) for x in xmlids(menu)) or any(
             word in menu.name.lower() for word in ('packing', 'export', 'productor',

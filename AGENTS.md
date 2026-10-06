@@ -11,6 +11,12 @@ solo sintaxis/HTTP; exigir pruebas funcionales del mismo paquete en una copia
 del destino. No sustituir maestros existentes por textos ni tablas paralelas.
 Rechazar downgrades y cambios concurrentes; usar exclusión y overlays privados.
 
+Desarrollos nuevos y ampliaciones solo en código versionado; no crear modelos,
+campos, vistas, reportes ni automatizaciones Studio. Una portada o tablero que
+consulta modelos manuales no acredita su migración. Inventariar también campos
+heredados, líneas, reportes, reglas y automatizaciones; preservar los históricos.
+No desinstalar Studio hasta probar el retiro de sus dependencias en una copia.
+
 ## Rama, concurrencia y cierre obligatorio
 
 - Leer `docs/WORKFLOW_GIT_COMPARTIDO.md` antes de cambiar código.
