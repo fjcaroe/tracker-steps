@@ -122,6 +122,52 @@ cliente. No se actualizaron a ciegas los módulos antiguos de Exportaciones.
   y en T27/T30/T35/T38/T41 para solicitar casos concretos en Desarrollo.
   Los comentarios no cerraron automáticamente ningún ticket.
 
+## Continuación T48: soporte WhatsApp
+
+Instalado en Desarrollo y Steps el mismo paquete `86098e8`, conector propio
+`step_helpdesk_whatsapp` y compatibilidad de tareas generales
+`step_project_agriculture_scope`, ambos `18.0.1.0.0`. Cada copia aprobó 25
+pruebas del conector y 2 de tareas: 54 en total, sin fallos/errores.
+Se comprobaron formularios y versiones efectivas, origen del código y
+preservación de tickets, mensajes, adjuntos de negocio y tareas existentes.
+La exclusión del comparador corresponde solo a CSS/JS públicos de `/web/assets/`
+que Odoo regenera; no excluye documentos del cliente.
+
+- Desarrollo: respaldo `/opt/steps_backups/whatsapp_development_20261006T123044Z`.
+- Steps: respaldo `/opt/steps_backups/whatsapp_steps_20261006T123333Z`.
+- Resultado: `WHATSAPP_DEPLOY_OK` y `WHATSAPP_VERIFY_OK` en ambos ambientes.
+  El primer HTTP de Steps fue 502 mientras arrancaba; la comprobación posterior
+  aprobó servicio, registro y login HTTPS 200.
+- Canal T48 preparado con su equipo/empresa real, deshabilitado y envíos pausados.
+  La configuración y prueba real quedan pendientes de Meta; el usuario solo
+  tiene la aplicación del teléfono. No se migró un número ni se ingresaron tokens.
+- El lector y las instrucciones instaladas de Claude ahora reconocen respuestas
+  humanas WhatsApp por su indicador propio, incluso sin contacto identificado.
+  No confunden estados de entrega con respuestas.
+
+Guía: `tools/helpdesk/WHATSAPP_SETUP.rst`. Las pruebas simuladas no acreditan
+la activación con Meta. No se cerró T48.
+
+## Continuación T46: Tracker y GPS nativo
+
+Publicado `/truck/` desde `1421bd4d835648fca7f1687c074fecb55ee204d5`
+de `codex/steps-movil`, compilación específica del Tracker actual, versión
+visible `1.2.2`. Conserva sus mejoras anteriores sin adelantar el piloto
+unificado a producción. 161 pruebas y compilación aprobadas, ensayo del esquema
+en una copia de PostgreSQL y contrato de API comprobados. No hubo diferencias
+de fuente del backend que reemplazar.
+
+- JS servido: `assets/index-CCX85BHo.js`, SHA-256
+  `dfada1fea6f766cfb69883a37f85d8ff371a5d537df4b512126192035aae92b8`.
+- Respaldo API/base: `/opt/fernando_odoo18/backups/movil-consolidado-20261006T123553Z`.
+- Front anterior: `/var/www/steps-truck-frontend.pre-movil-20261006T123553Z`.
+- Adaptador GPS en segundo plano preparado para Android/iOS, perfiles de
+  precisión, rechazo de ubicaciones antiguas y continuidad al cambiar pestañas.
+  La web sigue usando geolocalización del navegador; esto no le da GPS nativo.
+- Pendiente: compilación/firma APK/IPA y prueba física con pantalla bloqueada.
+  No hay Java/SDK Android ni Xcode disponibles en este equipo. I3 sigue parcial;
+  I16 y la aceptación de terreno siguen abiertos. No se cerró T46.
+
 ## Diferencias preexistentes que no se ocultan
 
 - Desarrollo conserva una referencia instalada a `steps_api` sin fuente disponible,

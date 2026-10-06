@@ -38,6 +38,26 @@ def main():
     replace(HOME / '.odoo/environments.json', (ROOT / 'tools/ops/environments.json').read_bytes())
     replace(HOME / '.claude/scheduled-tasks/correos-fcaro-gestion-costos/SKILL.md',
             (ROOT / 'tools/ops/claude_ticket_workflow.md').read_bytes())
+    # Preserve the installed client's unrelated code; extend only its exact
+    # known read helper. The transport's inbound flag survives missing authors.
+    client = HOME / '.claude/scheduled-tasks/correos-fcaro-gestion-costos/odoo_helpdesk.py'
+    if client.exists():
+        source = client.read_text(encoding='utf-8-sig')
+        before = '''        recs = self.x("mail.message", "search_read", dom,
+                      fields=["id", "author_id", "message_type", "subtype_id",
+                              "body", "date"],
+                      order="date asc")'''
+        after = '''        fields = ["id", "author_id", "message_type", "subtype_id", "body", "date"]
+        available = self.x("mail.message", "fields_get", attributes=["type"])
+        if "step_wa_inbound" in available:
+            fields.append("step_wa_inbound")
+        recs = self.x("mail.message", "search_read", dom,
+                      fields=fields, order="date asc")'''
+        if before in source:
+            assert source.count(before) == 1
+            replace(client, source.replace(before, after).encode('utf-8'))
+        else:
+            assert after in source, 'Review concurrent Helpdesk read helper before modifying'
     global_file = HOME / '.claude/CLAUDE.md'
     old = global_file.read_text(encoding='utf-8-sig') if global_file.exists() else ''
     block = '''
