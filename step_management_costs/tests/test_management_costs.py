@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from psycopg2 import IntegrityError
 
@@ -90,6 +91,15 @@ def make_center(env, plan, code, name, company, **vals):
     return env["account.analytic.account"].create(values)
 
 
+def make_purchase_journal(env, company):
+    """Test bills must not use a customer's restricted production journal."""
+    values = {'name': 'QA Compras Gestión', 'code': 'Q' + uuid.uuid4().hex[:4],
+              'type': 'purchase', 'company_id': company.id}
+    if 'l10n_latam_use_documents' in env['account.journal']._fields:
+        values['l10n_latam_use_documents'] = False
+    return env['account.journal'].create(values)
+
+
 @tagged('post_install', '-at_install')
 class ManagementCostsCommon(TransactionCase):
     @classmethod
@@ -104,6 +114,7 @@ class ManagementCostsCommon(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company_a = cls.env.ref("base.main_company")
+        cls.purchase_journal = make_purchase_journal(cls.env, cls.company_a)
         cls.company_b = cls.env["res.company"].create(dict(
             {"name": "MC Company B"}, **extra_company_vals(cls.env),
         ))

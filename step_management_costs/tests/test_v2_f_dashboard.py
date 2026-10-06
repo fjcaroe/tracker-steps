@@ -162,6 +162,7 @@ class TestOutOfOp(ManagementCostsCommon):
     def _bill(self, amount, center=None, date="2026-06-15", post=True):
         center = center or self.center_a
         move = self.env["account.move"].create({
+            'journal_id': self.purchase_journal.id,
             "move_type": "in_invoice", "partner_id": self.vendor.id,
             "invoice_date": date, "date": date, "company_id": center.company_id.id,
             "invoice_line_ids": [(0, 0, {

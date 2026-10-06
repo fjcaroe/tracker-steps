@@ -90,7 +90,7 @@ class StepTrackerVehicleCost(models.AbstractModel):
         return {
             'expenses': self.env.user.has_group('hr_expense.group_hr_expense_user') and self.env['hr.expense'].has_access('read'),
             'accounting': self.env.user.has_group('account.group_account_readonly') and self.env['account.move.line'].has_access('read'),
-            'management': self.env.user.has_group('step_management_costs.group_management_readonly') and self.env['account.analytic.account'].has_access('read'),
+            'management': (self.env.su or self.env.user.has_group('step_management_costs.group_management_readonly')) and self.env['account.analytic.account'].has_access('read'),
         }
 
     # ------------------------------------------------------------------

@@ -15,6 +15,7 @@ from pathlib import Path
 import pwd
 import re
 import shutil
+import socket
 import subprocess
 import tarfile
 import urllib.request
@@ -147,12 +148,21 @@ def main():
         for path in [data, *data.rglob('*')] if data.exists() else []:
             os.chown(path, identity.pw_uid, identity.pw_gid)
         log = stage / ('qa-' + stamp + '.log')
+        # HTTP tests must use a real private port and must never select the
+        # source service's database through its inherited dbfilter.
+        with socket.socket() as listener:
+            listener.bind(('127.0.0.1', 0))
+            private_port = listener.getsockname()[1]
+        qa_options = [option for option in options if not option.startswith('--http-port=')]
+        qa_options += ['--http-port=' + str(private_port), '--db-filter=^' + qa_db + '$']
+        query(qa_db, "UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'" % private_port)
         print('MANAGEMENT_QA_BEGIN ' + json.dumps({'database': qa_db, 'log': str(log), 'commit': proof['commit']}), flush=True)
         tags = ','.join('/' + name for name in [*update, *install])
-        result = subprocess.run(base + options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data), '-i', ','.join(install), '-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
+        result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data), '-i', ','.join(install), '-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
-        assert result.returncode == 0 and '0 failed, 0 error(s)' in text and not errors(text), 'QA failed: ' + str(log)
+        results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
+        assert result.returncode == 0 and results and not errors(text), 'QA failed: ' + str(log)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
         verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
         (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log)}))
@@ -210,7 +220,7 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     probe = (HERE / 'verify_management.py').read_text()
     header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in [*installed, 'step_agriculture_catalogs']}) + '\n'
-    result = run(*(base + ['shell'] + options + ['-d', database, '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error']), input=header + probe, text=True, capture_output=True)
+    result = run(*(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error']), input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
     print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK')), flush=True)
