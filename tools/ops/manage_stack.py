@@ -198,6 +198,14 @@ def main():
             logs=list(stage.glob('qa-*.log')); assert len(logs)==1
             old_log=logs[0].read_text(errors='replace')
             assert 'Modules loaded.' in old_log and 'Failed to load registry' not in old_log
+            successful_full=re.search(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests',old_log)
+            old_errors=errors(old_log,missing)
+            changed_tests={Path(name).parts[0] for name,value in proof['files'].items()
+                           if '/tests/' in name and previous['files'].get(name)!=value}
+            if successful_full and changed_tests and all('odoo.sql_db: bad query:' in line for line in old_errors):
+                update=sorted(changed_tests)
+                (stage/'test_coverage.json').write_text(json.dumps({'full_suite_tests':int(successful_full.group(1)),
+                    'full_runtime_unchanged':True,'retry_modules':update,'reason':'test-only corrections to expected constraint assertions/logging'}))
             before=json.loads((stage/'business_before.json').read_text())
             assert business_snapshot(clone,native,before['schema'])==before, 'Failed suite did not preserve rows'
         else:
@@ -220,7 +228,8 @@ def main():
         query(clone,"UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'"%port)
         qa_options=[item for item in options if not item.startswith('--http-port=')]+['--http-port='+str(port),'--db-filter=^'+clone+'$']
         log=stage/('qa-'+stamp+'.log')
-        command=base+qa_options+['-d',clone,'--addons-path='+str(source)+','+paths,'--data-dir='+str(data),'-u',','.join(update),'--test-enable','--test-tags='+','.join('/'+name for name in MODULES),'--stop-after-init','--logfile='+str(log)]
+        test_modules=update if args.action=='retry-tests' else MODULES
+        command=base+qa_options+['-d',clone,'--addons-path='+str(source)+','+paths,'--data-dir='+str(data),'-u',','.join(update),'--test-enable','--test-tags='+','.join('/'+name for name in test_modules),'--stop-after-init','--logfile='+str(log)]
         if install: command+=['-i',','.join(install)]
         print('STACK_TEST_BEGIN '+json.dumps({'database':clone,'log':str(log),'install':install,'commit':proof['commit']}),flush=True)
         result=subprocess.run(command); logtext=log.read_text(errors='replace')

@@ -5,6 +5,8 @@ from pathlib import Path
 
 versions = dict(EXPECTED)
 root = ROOT
+env = env(context=dict(env.context, no_reset_password=True, mail_notify_force_send=False,
+                       mail_auto_subscribe_no_notify=True))
 for name, version in versions.items():
     module = env['ir.module.module'].search([('name','=',name)])
     assert module.state=='installed' and module.latest_version==version, (name,module.latest_version)
