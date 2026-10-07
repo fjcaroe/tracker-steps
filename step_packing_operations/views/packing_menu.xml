@@ -22,7 +22,7 @@
         action="action_monthly_fruit_bill" sequence="80" groups="account.group_account_user"/>
     <menuitem id="menu_packing_order" name="Órdenes de proceso"
         parent="menu_packing_operations_planning" action="action_packing_order" sequence="10"/>
-    <menuitem id="menu_packing_stock_reservation" name="Reservas por instructivo"
+    <menuitem id="menu_packing_stock_reservation" name="Reservas"
         parent="menu_packing_operations_planning" action="step_export.action_step_export_stock_reservation" sequence="20"/>
 
     <!-- Recepciones: ya desarrolladas en Inventario (T40); se enlazan también desde Packing -->
