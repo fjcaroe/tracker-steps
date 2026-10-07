@@ -7,6 +7,7 @@
                 <field name="step_packing_production_id" readonly="id"/>
                 <field name="step_packing_result" readonly="step_tag_state != 'created'"/>
                 <field name="step_packaging_id" readonly="step_tag_state != 'created'"/>
+                <field name="step_packing_line_id" readonly="step_tag_state != 'created'"/>
                 <field name="step_reserved_ids" widget="many2many_tags" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='step_tag_line_ids']/list/field[@name='producer_id']" position="before">

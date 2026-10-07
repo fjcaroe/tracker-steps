@@ -65,7 +65,7 @@ def snapshot(database):
                 # preserve every pre-existing row, ID, quantity and value.
                 additions = {
                     'step_packing_production': ['raw_product_id', 'instruction_id', 'sale_order_id'],
-                    'stock_quant_package': ['step_packing_production_id', 'step_packaging_id'],
+                    'stock_quant_package': ['step_packing_production_id', 'step_packaging_id', 'step_packing_line_id'],
                     'step_fruit_package_line': ['source_package_id'],
                     'step_export_stock_reservation': ['destination_country_id', 'sales_program_id', 'species_id', 'variety_id', 'producer_id', 'caliber_id', 'category_id', 'tag_kind'],
                     'step_packing_repack': ['date', 'process_type_id', 'packing_partner_id', 'packing_line_id'],

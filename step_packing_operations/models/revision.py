@@ -73,6 +73,7 @@ class FruitPackage(models.Model):
     step_packing_production_id = fields.Many2one('step.packing.production', string='OT de Packing',
                                                 ondelete='restrict', copy=False, index=True)
     step_packaging_id = fields.Many2one('product.packaging', string='Embalaje')
+    step_packing_line_id = fields.Many2one('step.packing.line', string='Línea de proceso')
     step_result_product_id = fields.Many2one('product.product', compute='_compute_result_product', string='Producto')
     step_reserved_ids = fields.Many2many('step.export.stock.reservation', compute='_compute_reservations', string='Reservas vigentes')
 
@@ -169,6 +170,8 @@ class Repack(models.Model):
     process_type_id = fields.Many2one('step.packing.process.type', string='Tipo de proceso', domain="[('step_category','=','correction')]")
     packing_partner_id = fields.Many2one('res.partner', string='Packing')
     packing_line_id = fields.Many2one('step.packing.line', string='Línea')
+    selected_source_ids = fields.Many2many('stock.quant.package', 'step_packing_repack_selected_rel',
+        string='Seleccionar tarjas que salen', copy=False)
     source_tag_ids = fields.Many2many('stock.quant.package', compute='_compute_tags', string='Tarjas que salen')
     target_tag_ids = fields.Many2many('stock.quant.package', compute='_compute_tags', string='Tarjas que entran')
 
@@ -183,8 +186,32 @@ class Repack(models.Model):
             raise ValidationError(_('El repaletizado pertenece a la categoría Corrección.'))
         return super()._check_repack()
 
+    def action_prepare_distribution(self):
+        self.ensure_one()
+        if self.state != 'draft' or not self.selected_source_ids or self.line_ids:
+            raise UserError(_('Seleccione tarjas vigentes en un repaletizado creado sin distribución previa.'))
+        sources = self.selected_source_ids
+        attributes = ('step_tag_kind', 'especie_id', 'variedad_id', 'fruit_type', 'fruit_quality_id',
+                      'fruit_category_id', 'fruit_caliber_id', 'label', 'package_type_id',
+                      'step_packaging_id', 'step_packing_result')
+        reference = sources[0]
+        if any(tag.step_tag_state != 'validated' or not tag.is_fruit_tag or
+               any(tag[name] != reference[name] for name in attributes) for tag in sources):
+            raise ValidationError(_('Seleccione tarjas validadas del mismo tipo y atributos. El repaletizado conserva el calibre.'))
+        with self.env.cr.savepoint():
+            values = {name: reference[name].id if reference._fields[name].type == 'many2one' else reference[name]
+                      for name in attributes}
+            values.update({'is_fruit_tag': True, 'step_tag_state': 'created',
+                           'step_packing_line_id': self.packing_line_id.id})
+            target = self.env['stock.quant.package'].create(values)
+            self.write({'line_ids': [(0, 0, {'source_package_id': tag.id, 'target_package_id': target.id,
+                'producer_id': detail.producer_id.id, 'product_id': detail.product_id.id,
+                'quantity': detail.quantity, 'boxes': detail.boxes, 'kilos': detail.kilos})
+                for tag in sources for detail in tag.step_tag_line_ids]})
+        return True
+
     def write(self, vals):
-        if {'date', 'process_type_id', 'packing_partner_id', 'packing_line_id'} & vals.keys() and any(row.state == 'done' for row in self):
+        if {'date', 'process_type_id', 'packing_partner_id', 'packing_line_id', 'selected_source_ids'} & vals.keys() and any(row.state == 'done' for row in self):
             raise UserError(_('El repaletizado validado conserva sus datos de proceso.'))
         return super().write(vals)
 

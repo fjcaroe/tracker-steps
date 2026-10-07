@@ -30,6 +30,7 @@
                             <field name="step_packing_order_id"/>
                             <field name="step_packing_line_id"/>
                             <field name="raw_product_id" readonly="state != 'created'"/>
+                            <field name="bom_id" invisible="1"/>
                             <field name="instruction_id" domain="[('order_id','=',step_packing_order_id),('state','=','approved')]"/>
                             <field name="sales_program_id"/>
                             <field name="sale_order_id"/>

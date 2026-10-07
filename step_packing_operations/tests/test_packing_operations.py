@@ -148,6 +148,19 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(target.quant_ids.owner_id, self.producer)
         self.assertEqual(target.quant_ids.lot_id, lot)
 
+    def test_revision_repack_prepares_destination_from_selected_tags(self):
+        source = self._tag('T41-R2-SELECT', 'E', self.finished, 50, 10, 'export')
+        source.action_step_validate_tag()
+        self._stock(self.finished, 10, source)
+        repack = self.env['step.packing.repack'].create({'selected_source_ids': [(6, 0, source.ids)]})
+        repack.action_prepare_distribution()
+        target = repack.line_ids.target_package_id
+        self.assertEqual(target.step_tag_kind, 'E')
+        self.assertEqual(target.variedad_id, source.variedad_id)
+        repack.action_validate()
+        self.assertEqual(target.step_tag_state, 'validated')
+        self.assertEqual(repack.source_tag_ids, source)
+
     def test_order_material_needs_and_creation(self):
         bom = self.env["mrp.bom"].create({
             "product_tmpl_id": self.finished.product_tmpl_id.id,
