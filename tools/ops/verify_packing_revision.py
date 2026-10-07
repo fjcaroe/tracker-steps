@@ -1,6 +1,7 @@
 """Inspect effective Packing forms, menus and user permissions in Odoo shell."""
 import importlib
 import json
+from verify_packing_flow import verify_flow
 from lxml import etree
 from odoo.tests.common import new_test_user
 
@@ -34,8 +35,10 @@ try:
             for mode in action.view_mode.split(','):
                 if mode in ('list', 'form', 'kanban'):
                     env[action.res_model].get_view(view_type=mode)
+    flow = verify_flow(env, operator)
+    menu_id = root.id
     env.cr.rollback()
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'forms': checked, 'operator': 'Inventory User', 'root_menu': root.id}))
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'forms': checked, 'operator': 'Inventory User', 'root_menu': menu_id, 'flow': flow, 'sample_records': 'rolled back'}))
 except Exception:
     env.cr.rollback()
     raise

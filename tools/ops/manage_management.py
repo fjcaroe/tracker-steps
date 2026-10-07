@@ -340,7 +340,7 @@ def verify(base, options, database, source, opts, proof, stage, installed):
     homepage = MODULES == ('step_demo_homepage',)
     probe = (HERE / ('verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
     names = installed if SETTINGS or PRODUCERS or export or homepage else {*installed, 'step_agriculture_catalogs'}
-    header = 'ROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
+    header = 'import sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
