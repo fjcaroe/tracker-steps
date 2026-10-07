@@ -287,6 +287,10 @@ def main():
         run('systemctl','stop',service)
         try:
             with (backup/'database.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
+            store=Path(opts['data_dir'])/'filestore'/database
+            if store.exists():
+                (backup/'filestore').mkdir()
+                run('rsync','-a',str(store)+'/',str(backup/'filestore')+'/')
             before=business_snapshot(database,native); (backup/'business_before.json').write_text(json.dumps(before))
             changed,count=re.subn(r'(?m)^\s*addons_path\s*=.*$','addons_path = '+str(release)+','+paths,conf.read_text()); assert count==1
             conf.write_text(changed)
