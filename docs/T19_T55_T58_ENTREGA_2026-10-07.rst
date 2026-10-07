@@ -1,0 +1,89 @@
+Tickets 19, 55, 56, 57 y 58 — entrega del 07-10-2026
+=================================================
+
+Alcance
+-------
+
+* T19: las descargas TXT/CSV heredadas pasan por el exportador canónico.
+  La asignación familiar sin CCAF se traslada al campo 73, incluido AFP;
+  el campo 22 queda en cero. El generador del proveedor no se modifica.
+* T56: días de asistencia fraccionarios se redondean al entero más próximo
+  en la exportación, con medio día hacia arriba y máximo mensual de 30.
+  Los días e importes de la liquidación se conservan.
+* T57: una asignación negativa con CCAF se declara como reintegro positivo
+  en el campo 24 y deja el campo 22 en cero. Un caso sin CCAF se bloquea con
+  diagnóstico explícito; no se descarta silenciosamente el importe.
+* T58: RUT relacionado al maestro de empleado en formulario y listado de
+  contratos y recibos. No se crea otro maestro ni se copian identificaciones.
+* T55: tarjas con relaciones a embarques, guía SII, factura y documentos
+  DUS/BL del embarque; producción relacionada a OT, OP, proceso, packing y
+  línea existentes. Se conservan los textos históricos como solo lectura.
+  La migración enlaza únicamente documentos ya relacionados de manera
+  inequívoca. El servidor rechaza cruces de compañía y cambios de embarques
+  con despacho/facturación/liquidación. Destino de revisión: Desarrollo.
+
+Paquetes inmutables
+-------------------
+
+Nómina: commit ``afe44757f821ee797a2f658d8122814521f7d53a``;
+SHA-256 ``f3fc4c4174d3688ab6cac9968bb7737ff9a7291587304fe689903873d66c80a0``.
+
+* ``step_hr_previred``: ``18.0.3.8.5``.
+* ``step_hr_previred_simpledigital``: ``18.0.2.4.1``.
+* ``step_hr_contract_lifecycle_simpledigital``: ``18.0.1.1.1``.
+
+Tarja: commit ``8e564010deba5e543013e839b71038d81061da02``;
+SHA-256 ``4b46f8a3a93239e6aff90d5c4ad3b9b1504546476cb69c09b7c4d5e4f5e7e51e``.
+
+* ``step_inventory_packing``: ``18.0.1.2.4``.
+* ``step_packing_operations``: ``18.0.2.8.2``.
+
+Validación
+----------
+
+* Nómina: copias frescas ``management_development_t19565807b`` y
+  ``management_sys_t19565807b``; 156 pruebas en cada una, cero errores y
+  cero fallas. Comparación completa de filas/importes antes y después.
+* Casos reales de septiembre en la copia privada de SyS: ambos casos T19,
+  T56 y T57 generan los campos requeridos sin errores corporativos y sin
+  modificar liquidaciones. Evidencia privada ``actual-flow.log``.
+* Tarja: copia fresca ``management_development_t5507b``; 31 pruebas,
+  cero errores/fallas y preservación de registros/importes.
+* Formularios efectivos y acciones de menú comprobados por registro ORM.
+* Navegador en Desarrollo: listado/formulario de tarjas; selector consulta
+  embarques existentes; una OT seleccionada deriva OP y línea. El borrador
+  se descarta y el listado conserva sus 26 tarjas previas.
+
+Los logs, dumps y casos nominativos permanecen privados en el servidor y
+fuera del repositorio. El registro operativo contiene la URL HTTPS, base y
+servicio de cada destino; no se infieren por el checkout. Cada publicación
+usa respaldo, exclusión compartida y overlay privado de los módulos afectados.
+
+Publicación y comprobación posterior
+-----------------------------------
+
+* Nómina en Desarrollo: respaldo
+  ``/opt/steps_backups/management_development_20261007T193433Z``.
+* Nómina en SyS: respaldo
+  ``/opt/steps_backups/management_sys_20261007T193803Z``.
+* Tarja en Desarrollo: respaldo final
+  ``/opt/steps_backups/management_development_20261007T193935Z``.
+* Las tres publicaciones completan ``MANAGEMENT_DEPLOY_OK``, validación de
+  versión/ruta de carga/vistas/menú, preservación de filas e importes y
+  ``MANAGEMENT_VERIFY_OK`` con los respectivos paquetes inmutables.
+* Casos reales repetidos en SyS después de publicar: los cuatro registros
+  siguen generando los campos requeridos, sin errores corporativos y sin
+  cambiar liquidaciones; evidencia privada ``live-flow.log``.
+* Navegador SyS: columna RUT y valores en contratos y recibos; formulario
+  de contrato con RUT junto al empleado y recibo con RUT en la cabecera.
+* Navegador SyS, compañía T19 y septiembre: descargas reales de ambas rutas
+  heredadas TXT y CSV. Cinco registros de 105 campos; los dos casos requeridos
+  declaran cero en campo 22 y la asignación en campo 73. Los dos archivos
+  son idénticos en contenido y se guardan como evidencia privada.
+* Navegador Desarrollo después de la publicación final: las cinco etiquetas
+  de documentos se muestran junto a sus selectores, sin pérdida de las 26
+  tarjas del listado. Captura privada ``t55-desarrollo-verificado.jpg``.
+
+Fuente de formato: `PreviRed, largo variable por separador
+<https://www.previred.com/documents/FormatosArchivos/FormatoLargoVariablePorSeparador.pdf>`_.
+No se envían declaraciones ni pagos a PreviRed durante estas comprobaciones.
