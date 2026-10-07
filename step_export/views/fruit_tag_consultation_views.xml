@@ -27,7 +27,7 @@
         <field name="name">stock.quant.package.export.consultation.search</field>
         <field name="model">stock.quant.package</field>
         <field name="arch" type="xml">
-            <search class="o_export_fruit_tag_consultation">
+            <search>
                 <field name="name"/><field name="step_export_shipment_ids"/>
                 <field name="owner_id"/><field name="fundo_id"/><field name="especie_id"/><field name="variedad_id"/>
                 <field name="fruit_category_id"/><field name="fruit_caliber_id"/><field name="fruit_quality_id"/>

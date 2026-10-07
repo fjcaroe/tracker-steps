@@ -17,7 +17,8 @@ class ExportFruitTagConsultation(models.Model):
     @api.model
     def _get_view(self, view_id=None, view_type="form", **options):
         arch, view = super()._get_view(view_id, view_type, **options)
-        if view_type in ("list", "search") and arch.get("class") == "o_export_fruit_tag_consultation":
+        if view_type in ("list", "search") and view.name in (
+                "stock.quant.package.export.consultation.list", "stock.quant.package.export.consultation.search"):
             arch = deepcopy(arch)
             extra = ["step_tag_kind", "step_tag_state", "step_export_season_id", "step_producer_id",
                      "step_producer_code", "step_sdp_code", "step_filling", "step_composition",
