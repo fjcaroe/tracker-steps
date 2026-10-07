@@ -204,12 +204,14 @@ class ExportPackingList(models.Model):
     _inherit = ["mail.thread", "mail.activity.mixin"]
 
     name = fields.Char(default="Nuevo", required=True, copy=False, readonly=True)
-    shipment_id = fields.Many2one("step.export.export", required=True, ondelete="restrict")
+    shipment_id = fields.Many2one("step.export.export", string="Embarque", required=True, ondelete="restrict")
+    shipment_number = fields.Char(related="shipment_id.shipment_number", string="Número de embarque")
+    available_guide_ids = fields.Many2many(related="shipment_id.dispatch_guide_ids")
     company_id = fields.Many2one(related="shipment_id.company_id", store=True)
     guide_id = fields.Many2one("step.dispatch.guide", string="Guía de despacho", required=True)
-    date = fields.Date(default=fields.Date.context_today, required=True)
-    container_number = fields.Char(string="Container number")
-    seal_number = fields.Char(string="Seal number")
+    date = fields.Date(string="Fecha", default=fields.Date.context_today, required=True)
+    container_number = fields.Char(string="Número de contenedor")
+    seal_number = fields.Char(string="Número de sello")
     tag_ids = fields.Many2many("stock.quant.package", string="Tarjas")
     box_qty = fields.Integer(compute="_compute_totals")
     kg_qty = fields.Float(compute="_compute_totals")
@@ -221,9 +223,17 @@ class ExportPackingList(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if vals.get("name", "Nuevo") == "Nuevo":
-                vals["name"] = self.env["ir.sequence"].next_by_code("step.export.packing.list") or "Nuevo"
+            if not vals.get("name") or vals["name"] in ("Nuevo", "New"):
+                company = self.env["step.export.export"].browse(vals.get("shipment_id")).company_id
+                vals["name"] = self.env["ir.sequence"].with_company(company).next_by_code("step.export.packing.list")
+                if not vals["name"]:
+                    raise UserError(_("Configure la secuencia Packing List para la empresa del embarque."))
         return super().create(vals_list)
+
+    @api.onchange("shipment_id")
+    def _onchange_shipment_guide(self):
+        if self.guide_id and self.guide_id not in self.shipment_id.dispatch_guide_ids:
+            self.guide_id = False
 
     @api.depends("tag_ids.box_count", "tag_ids.kilos_total")
     def _compute_totals(self):
@@ -242,6 +252,39 @@ class ExportPackingList(models.Model):
     def action_print(self):
         self.ensure_one()
         return self.env.ref("step_export.action_report_export_packing_list").report_action(self)
+
+
+class ExportDispatchGuide(models.Model):
+    _inherit = "step.dispatch.guide"
+
+    step_export_shipment_ids = fields.Many2many(
+        "step.export.export", relation="step_dispatch_guide_step_export_export_rel",
+        column1="step_dispatch_guide_id", column2="step_export_export_id",
+        string="Embarques vinculados", readonly=True)
+    step_export_shipment_id = fields.Many2one(
+        "step.export.export", string="Embarque", compute="_compute_export_shipment",
+        inverse="_inverse_export_shipment", domain="[('company_id', '=', company_id)]",
+        help="Selecciona el embarque usando la relación existente de guías del instructivo.")
+
+    @api.depends("step_export_shipment_ids", "company_id")
+    def _compute_export_shipment(self):
+        for guide in self:
+            shipments = guide.step_export_shipment_ids
+            guide.step_export_shipment_id = shipments if len(shipments) == 1 else False
+
+    def _inverse_export_shipment(self):
+        for guide in self:
+            target = guide.step_export_shipment_id
+            previous = self.env["step.export.export"].search([("dispatch_guide_ids", "in", guide.ids)])
+            if target and target.company_id != guide.company_id:
+                raise ValidationError(_("La guía y el embarque deben pertenecer a la misma empresa."))
+            if previous - target:
+                packing = self.env["step.export.packing.list"].search([("guide_id", "=", guide.id)])
+                if packing:
+                    raise ValidationError(_("La guía tiene un Packing List; no cambie su embarque."))
+                (previous - target).write({"dispatch_guide_ids": [(3, guide.id)]})
+            if target and target not in previous:
+                target.write({"dispatch_guide_ids": [(4, guide.id)]})
 
 
 class ExportSaleOrder(models.Model):

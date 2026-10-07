@@ -5,7 +5,7 @@ from odoo.tools.safe_eval import safe_eval
 
 
 def verify_export_sale(env):
-    user = new_test_user(env, login='qa-t35-export-sale', groups='sales_team.group_sale_salesman,sale.group_proforma_sales')
+    user = new_test_user(env, login='qa-t35-export-sale', groups='sales_team.group_sale_salesman,sale.group_proforma_sales,stock.group_stock_user')
     receiver = env['res.partner'].create({'name': 'QA T35 receiver', 'step_export_receiver': True, 'lang': 'en_US'})
     product = env['product.product'].create({'name': 'QA T35 export product',
         'type': 'service', 'grupo_labor': 'pack', 'step_export_enabled': True})
@@ -44,7 +44,24 @@ def verify_export_sale(env):
         assert ('step_export', '=', True) in domain
     first = env['ir.ui.menu'].search([('parent_id', '=', env.ref('step_export.menu_step_export_shipments').id)], order='sequence,id', limit=1)
     assert first == env.ref('step_export.menu_step_export_shipping_instruction')
+    guide = env['step.dispatch.guide'].with_user(user).create({
+        'external_folio': 'QA-T35-PACKING-FLOW', 'partner_id': receiver.id,
+        'carrier_id': participant.id, 'origin_address': 'QA origin',
+        'destination_address': 'QA destination', 'truck_plate': 'QA0035',
+        'step_export_shipment_id': shipment.id})
+    assert guide in shipment.dispatch_guide_ids
+    guide_tree = etree.fromstring(guide.get_view(view_type='form')['arch'].encode())
+    assert guide_tree.xpath(".//sheet//field[@name='step_export_shipment_id']")
+    packing = env['step.export.packing.list'].with_user(user).create({
+        'shipment_id': shipment.id, 'guide_id': guide.id, 'name': False,
+        'container_number': 'QA-CONTAINER-35', 'seal_number': 'QA-SEAL-35'})
+    assert packing.name.startswith('PL/') and packing.shipment_number == shipment.shipment_number
+    html, _ = env['ir.actions.report'].with_user(user)._render_qweb_html(
+        'step_export.action_report_export_packing_list', packing.ids)
+    assert packing.name.encode() in html and b'QA-CONTAINER-35' in html
     return {'sales_profile': 'Sales User', 'export_draft_in_menu': True,
             'export_product_in_catalog': True, 'ordinary_product_excluded': True,
             'proforma': 'rendered', 'sale': 'confirmed', 'ports': 'native customs master',
-            'participant_filter': True, 'instruction_first': True, 'sample_records': 'rolled back'}
+            'participant_filter': True, 'instruction_first': True,
+            'guide_shipment_link': True, 'packing_list': 'saved, numbered and rendered',
+            'sample_records': 'rolled back'}
