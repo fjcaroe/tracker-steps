@@ -41,7 +41,7 @@ class PackingStockReservation(models.Model):
         for reservation in self:
             if reservation.step_reservation_state != "draft" or not reservation.step_package_ids:
                 raise UserError(_("Seleccione tarjas en una reserva creada."))
-            if not (reservation.destination_country_id or reservation.sales_program_id or reservation.step_packing_order_id):
+            if not (reservation.destination_country_id or reservation.sales_program_id):
                 raise ValidationError(_("Indique mercado/país o programa de ventas para reservar."))
             if reservation.sales_program_id and (reservation.sales_program_id.company_id != reservation.company_id or reservation.sales_program_id.state != 'current'):
                 raise ValidationError(_("Seleccione un programa vigente de esta empresa."))

@@ -275,6 +275,7 @@ class TestPackingOperations(TransactionCase):
         quant = self.env["stock.quant"]
         reservation = self.env["step.export.stock.reservation"].create({
             "name": "T41 reserva especial", "step_packing_order_id": order.id,
+            "destination_country_id": self.env.ref('base.us').id,
             "step_package_ids": [(6, 0, package.ids)],
         })
         instruction = self.env['step.packing.instruction'].create({'order_id': order.id, 'name': 'Instructivo QA', 'instruction': '<p>Reservar para exportación</p>'})

@@ -154,6 +154,8 @@ class Shipment(models.Model):
             reservations = self.env['step.export.stock.reservation'].search([
                 ('step_package_ids', 'in', shipment.tag_ids.ids), ('step_reservation_state', '=', 'reserved')])
             for reservation in reservations:
+                if not (reservation.destination_country_id or reservation.sales_program_id):
+                    raise ValidationError(_('La reserva histórica no tiene destino definido. Libérela y reserve para el mercado o programa correspondiente.'))
                 if reservation.company_id != shipment.company_id or (
                         reservation.sales_program_id and reservation.sales_program_id != shipment.sales_program_id) or (
                         reservation.destination_country_id and reservation.destination_country_id != shipment.destination_country_id):
