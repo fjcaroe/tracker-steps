@@ -13,7 +13,9 @@ try:
         headings = tree.xpath('//h1[@id="steps-title"]')
         assert len(headings) == 1
         assert ' '.join(''.join(headings[0].itertext()).split()) == 'ERP agrícola para gestionar tu campo en Chile'
-        assert len(tree.xpath('//article[@class="steps-product"]')) == 20
+        # 2.5.2 intentionally preserves live site variants. Twenty cards belong
+        # to Development's catalog, not to every customer's existing homepage.
+        assert tree.xpath('//article[@class="steps-product"]'), 'Published product catalog is missing'
     print('MANAGEMENT_REGISTRY_OK homepage ' + module.latest_version)
 finally:
     env.cr.rollback()
