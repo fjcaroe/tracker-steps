@@ -171,7 +171,11 @@ def main():
             for name, expected in proof['files'].items():
                 root=Path(baseline['sources'][Path(name).parts[0]]['root'])
                 actual=root/Path(*Path(name).parts[1:])
-                assert actual.exists() and digest(actual)==expected, ('QA source differs from package',name)
+                assert actual.exists(), ('QA file missing',name)
+                content=actual.read_bytes()
+                if actual.suffix in ('.py','.xml','.csv','.js','.css','.scss','.svg','.md','.rst'):
+                    content=content.replace(b'\r\n',b'\n')
+                assert hashlib.sha256(content).hexdigest()==expected, ('QA source differs from package',name)
         assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone), 'Use fresh run_id'
         (stage/'baseline.json').write_text(json.dumps(baseline,indent=2))
         with (stage/'source.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
