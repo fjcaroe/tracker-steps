@@ -230,7 +230,7 @@ def main():
         qa_options=[item for item in options if not item.startswith('--http-port=')]+['--http-port='+str(port),'--db-filter=^'+clone+'$']
         log=stage/('qa-'+stamp+'.log')
         test_modules=update if args.action=='retry-tests' else MODULES
-        if args.action=='compatibility' or args.action=='qa' and all(versions.get(name)==proof['versions'][name] for name in MODULES if name not in ('step_operations_ui',)):
+        if args.action=='compatibility' or args.action=='qa' and all(versions.get(name)==proof['versions'][name] for name in MODULES if name not in ('step_operations_ui','step_agro_traceability')):
             # The full immutable runtime already passed the sole QA. Repeat
             # target suites for every installation, migration or code change;
             # unchanged payroll still has history preservation and real probes.

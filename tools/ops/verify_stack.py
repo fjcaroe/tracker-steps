@@ -34,6 +34,15 @@ for filename, values in probes:
     print('STACK_PRODUCT_OK '+filename)
 
 checked=[]
+for menu_id, parent_id in (
+    ('menu_step_phyto_restriction_bpa','menu_bpa_operations'),
+    ('menu_step_phyto_restriction_bpa_history','menu_bpa_analytics'),
+):
+    menu=env.ref('step_agro_traceability.'+menu_id)
+    assert menu.parent_id==env.ref('step_bpa_irrigation.'+parent_id)
+    assert menu.action and menu.action.res_model=='step.phyto.restriction'
+env['step.phyto.restriction'].get_view(view_type='form')
+print('STACK_BPA_NATIVE_MENU_OK')
 for model in ('res.partner','sale.order','purchase.order','account.move','account.payment',
               'stock.picking','stock.quant.package','project.task','project.project',
               'fleet.vehicle','step.management.estimation','step.management.budget.line'):
