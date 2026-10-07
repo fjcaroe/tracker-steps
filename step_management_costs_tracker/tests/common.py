@@ -17,8 +17,9 @@ class CostCase(TransactionCase):
         Account = cls.env['account.account']
         cls.expense_account = Account.search([('account_type', '=', 'expense'), ('company_ids', 'in', cls.company.id)], limit=1)
         cls.payable_account = Account.search([('account_type', '=', 'liability_payable'), ('company_ids', 'in', cls.company.id)], limit=1)
-        cls.journal = cls.env['account.journal'].search([('company_id', '=', cls.company.id), ('type', '=', 'general')], limit=1)
-        assert cls.expense_account and cls.payable_account and cls.journal, 'La compañía de prueba necesita plan de cuentas'
+        assert cls.expense_account and cls.payable_account, 'La compañía de prueba necesita plan de cuentas'
+        cls.journal = cls.env['account.journal'].create({
+            'name': 'Diario de costos QA', 'code': 'TCQA', 'type': 'general', 'company_id': cls.company.id})
         cls.plan_a = cls.env['account.analytic.plan'].create({'name': 'Plan QA A'})
         cls.plan_b = cls.env['account.analytic.plan'].create({'name': 'Plan QA B'})
         cls.analytic_1 = cls.env['account.analytic.account'].create({'name': 'Cuartel QA 1', 'plan_id': cls.plan_a.id})

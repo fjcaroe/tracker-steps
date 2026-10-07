@@ -1,0 +1,44 @@
+<odoo>
+    <record id="action_home" model="ir.actions.act_url">
+        <field name="name">Steps Tracker · GPS y flotas</field>
+        <field name="url">/web_tracker/#home</field>
+        <field name="target">self</field>
+    </record>
+    <record id="step_tracker_odoo.menu_step_tracker_gps_root" model="ir.ui.menu">
+        <field name="name">Steps Tracker</field>
+        <field name="action" eval="'ir.actions.act_url,%d' % ref('action_home')"/>
+        <field name="parent_id" eval="False"/>
+        <field name="sequence">8</field>
+    </record>
+    <menuitem id="menu_home" name="Inicio · GPS y flotas" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_home" sequence="0" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+    <record id="action_configuration" model="ir.actions.act_url">
+        <field name="name">GPS, SIM y configuración</field>
+        <field name="url">/web_tracker/#settings</field>
+        <field name="target">self</field>
+    </record>
+    <menuitem id="menu_configuration" name="GPS y SIM" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_configuration" sequence="6" groups="step_tracker_portal.group_tracker_manager,base.group_system"/>
+    <record id="action_fleet" model="ir.actions.act_url">
+        <field name="name">Operación · Steps Tracker</field>
+        <field name="url">/web_tracker/#live</field>
+        <field name="target">new</field>
+    </record>
+    <record id="action_control" model="ir.actions.act_url">
+        <field name="name">Control de flota</field>
+        <field name="url">/web_tracker/#fleet</field>
+        <field name="target">new</field>
+    </record>
+    <record id="action_protection" model="ir.actions.act_url">
+        <field name="name">Steps Protección</field>
+        <field name="url">/web_tracker/#protection</field>
+        <field name="target">new</field>
+    </record>
+    <menuitem id="menu_fleet" name="Mapa de flota" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_fleet" sequence="2" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+    <menuitem id="menu_control" name="Control de flota" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_control" sequence="3" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+    <menuitem id="menu_protection" name="Protección" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_protection" sequence="4" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+    <record id="action_zones" model="ir.actions.act_url">
+        <field name="name">Zonas y actividad</field>
+        <field name="url">/web_tracker/#zones</field>
+        <field name="target">self</field>
+    </record>
+    <menuitem id="menu_zones" name="Zonas y actividad" parent="step_tracker_odoo.menu_step_tracker_gps_root" action="action_zones" sequence="5" groups="step_tracker_portal.group_tracker_viewer,base.group_system"/>
+</odoo>

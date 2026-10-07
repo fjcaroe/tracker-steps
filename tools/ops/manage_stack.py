@@ -122,7 +122,7 @@ def verify(base, options, database, source, paths, proof, stage):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=('qa','compatibility','certify','deploy','verify'))
+    p.add_argument('action', choices=('qa','compatibility','retry-tests','certify','deploy','verify'))
     p.add_argument('environment', choices=('development','cerro'))
     p.add_argument('archive', type=Path)
     p.add_argument('run_id')
@@ -130,6 +130,8 @@ def main():
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}',args.run_id)
     assert args.action != 'qa' or args.environment == 'development'
     assert args.action != 'compatibility' or args.environment == 'cerro'
+    assert args.action != 'retry-tests' or args.environment == 'development', 'Failed production migrations require a fresh clone'
+    lease=check_lease() if args.action in ('qa','compatibility','retry-tests','deploy') else None
     registry = json.loads((HERE/'environments.json').read_text())
     assert registry['policy']['qa']=='development' and 'cerro' in registry['policy']['production']
     target = registry['environments'][args.environment]
@@ -142,7 +144,13 @@ def main():
     stage = Path('/opt/steps-validation')/('stack_'+args.environment+'_'+args.run_id)
     stage.mkdir(parents=True,exist_ok=True,mode=0o750)
     source = stage/'addons'; source.mkdir(exist_ok=True)
+    previous=json.loads((source/'release.json').read_text()) if (source/'release.json').exists() else None
     proof=extract(args.archive,source); archive_sha=digest(args.archive); native=native_schema(source)
+    if args.action=='retry-tests':
+        assert previous and set(previous['versions'])<=set(proof['versions'])
+        for name,value in previous['files'].items():
+            if '/tests/' not in name:
+                assert proof['files'].get(name)==value, ('Runtime changed; require fresh clone',name)
     for path in (source,*source.rglob('*')): os.chown(path,identity.pw_uid,identity.pw_gid)
     versions=json.loads(query(database,"SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'"))
     assert 'l10n_cl_simpledigital_payroll' in versions and not any(name.startswith('l10n_cl_hr') for name in versions), 'Payroll engine must already be canonical'
@@ -164,13 +172,14 @@ def main():
     allowed_virtual={'studio_customization'}
     allowed_missing=allowed_virtual | ({'steps_api'} if args.environment=='development' else set())
     assert set(missing)<=allowed_missing, ('Missing installed addons',missing)
-    if args.action in ('qa','compatibility'):
-        lease=check_lease()
+    if args.action in ('qa','compatibility','retry-tests'):
         if args.environment=='development':
             # The package is already present in the sole QA: attest every file.
             for name, expected in proof['versions'].items():
                 assert versions.get(name)==expected, ('Not yet reviewed in Development',name)
             for name, expected in proof['files'].items():
+                if '/tests/' in name:
+                    continue  # Test fixture portability never changes installed product behavior.
                 root=Path(baseline['sources'][Path(name).parts[0]]['root'])
                 actual=root/Path(*Path(name).parts[1:])
                 assert actual.exists(), ('QA file missing',name)
@@ -180,14 +189,22 @@ def main():
                     content=content.replace(b'\r\n',b'\n')
                     reference=reference.replace(b'\r\n',b'\n')
                 assert content==reference, ('QA source differs from package',name)
-        assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone), 'Use fresh run_id'
-        (stage/'baseline.json').write_text(json.dumps(baseline,indent=2))
-        with (stage/'source.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
-        run('sudo','-u','postgres','createdb','-O',opts['db_user'],clone)
-        query(clone,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
-        with (stage/'source.dump').open('rb') as stream:
-            run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',opts['db_user'],'-d',clone,stdin=stream)
-        before=business_snapshot(clone,native); (stage/'business_before.json').write_text(json.dumps(before))
+        if args.action=='retry-tests':
+            assert not install and json.loads((stage/'baseline.json').read_text())==baseline
+            logs=list(stage.glob('qa-*.log')); assert len(logs)==1
+            old_log=logs[0].read_text(errors='replace')
+            assert 'Modules loaded.' in old_log and 'Failed to load registry' not in old_log
+            before=json.loads((stage/'business_before.json').read_text())
+            assert business_snapshot(clone,native,before['schema'])==before, 'Failed suite did not preserve rows'
+        else:
+            assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='%s'"%clone), 'Use fresh run_id'
+            (stage/'baseline.json').write_text(json.dumps(baseline,indent=2))
+            with (stage/'source.dump').open('wb') as stream: run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
+            run('sudo','-u','postgres','createdb','-O',opts['db_user'],clone)
+            query(clone,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
+            with (stage/'source.dump').open('rb') as stream:
+                run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',opts['db_user'],'-d',clone,stdin=stream)
+            before=business_snapshot(clone,native); (stage/'business_before.json').write_text(json.dumps(before))
         query(clone,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         data=stage/'data'; data.mkdir(exist_ok=True)
         source_store=Path(opts['data_dir'])/'filestore'/database
@@ -227,7 +244,6 @@ def main():
         qa=Path('/opt/steps-validation')/('stack_development_'+args.run_id)/'passed.json'
         qa_proof=json.loads(qa.read_text()); assert qa_proof['sha256']==archive_sha and qa_proof['commit']==proof['commit']
         assert not release.exists(), 'Release exists; use verify for an already applied release'
-        lease=check_lease()
         release.mkdir(parents=True); extract(args.archive,release)
         for path in (release,*release.rglob('*')): os.chown(path,identity.pw_uid,identity.pw_gid)
         backup=Path('/opt/steps_backups')/('stack_cerro_'+stamp); backup.mkdir(mode=0o700)

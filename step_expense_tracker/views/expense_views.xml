@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Rendición: pestaña de uso de vehículo -->
+    <record id="view_hr_expense_sheet_form_step_tracker" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.form.step.tracker</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="step_expense_report.view_hr_expense_sheet_form_step"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='step_vehicle']" position="inside">
+                <div class="d-flex gap-2 mb-2">
+                    <button name="action_import_tracker_usage" type="object" string="Traer desde Tracker"
+                            class="btn-primary" icon="fa-map-o" invisible="state != 'draft'"/>
+                    <button name="action_refresh_tracker_lines" type="object" string="Actualizar desde Tracker"
+                            icon="fa-refresh" invisible="state != 'draft' or tracker_line_count == 0"
+                            confirm="Se actualizarán las líneas importadas que no fueron corregidas a mano. ¿Continuar?"/>
+                    <field name="tracker_line_count" invisible="1"/>
+                </div>
+            </xpath>
+            <xpath expr="//page[@name='step_vehicle']//field[@name='vehicle_line_ids']/list/field[@name='date']" position="before">
+                <field name="usage_id" column_invisible="1"/>
+                <field name="vehicle_id" readonly="usage_id" optional="show"/>
+            </xpath>
+            <xpath expr="//page[@name='step_vehicle']//field[@name='vehicle_line_ids']/list/field[@name='yield_km_l']" position="after">
+                <field name="analytic_account_id" optional="show"/>
+                <field name="source" optional="show"/>
+                <field name="is_modified" optional="show" widget="boolean" string="Corregida"/>
+                <field name="imported_at" optional="hide"/>
+                <field name="liters_source" optional="hide"/>
+                <button name="action_open_usage" type="object" icon="fa-external-link" string="Ver origen"
+                        invisible="not usage_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Gasto: vehículo explícito -->
+    <record id="hr_expense_view_form_step_tracker" model="ir.ui.view">
+        <field name="name">hr.expense.view.form.step.tracker</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="step_expense_report.hr_expense_view_form_step"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='step_doc_number']" position="after">
+                <field name="step_vehicle_id" readonly="not is_editable" options="{'no_create': True}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_expenses_tree_step_tracker" model="ir.ui.view">
+        <field name="name">hr.expense.list.step.tracker</field>
+        <field name="model">hr.expense</field>
+        <field name="inherit_id" ref="step_expense_report.view_expenses_tree_step"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='step_doc_number']" position="after">
+                <field name="step_vehicle_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hr_expense_sheet_form_step_tracker_lines" model="ir.ui.view">
+        <field name="name">hr.expense.sheet.form.step.tracker.lines</field>
+        <field name="model">hr.expense.sheet</field>
+        <field name="inherit_id" ref="step_expense_report.view_hr_expense_sheet_form_step"/>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='expense_line_ids']/list/field[@name='step_doc_number']" position="after">
+                <field name="step_vehicle_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
