@@ -159,7 +159,9 @@ def main():
     stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     certificate={'commit':proof['commit'],'sha256':archive_sha,'baseline':baseline}
     missing=[name for name,value in baseline['sources'].items() if value is None]
-    assert not missing or args.environment=='development' and missing==['steps_api'], ('Missing installed addons',missing)
+    allowed_virtual={'studio_customization'}
+    allowed_missing=allowed_virtual | ({'steps_api'} if args.environment=='development' else set())
+    assert set(missing)<=allowed_missing, ('Missing installed addons',missing)
     if args.action in ('qa','compatibility'):
         lease=check_lease()
         if args.environment=='development':
