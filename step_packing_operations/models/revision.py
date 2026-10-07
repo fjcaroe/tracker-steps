@@ -75,12 +75,14 @@ class FruitPackage(models.Model):
     step_packaging_id = fields.Many2one('product.packaging', string='Embalaje')
     step_packing_line_id = fields.Many2one('step.packing.line', string='Línea de proceso')
     step_result_product_id = fields.Many2one('product.product', compute='_compute_result_product', string='Producto')
+    step_actual_boxes = fields.Float(compute='_compute_result_product', string='Cajas reales', digits='Product Unit of Measure')
     step_reserved_ids = fields.Many2many('step.export.stock.reservation', compute='_compute_reservations', string='Reservas vigentes')
 
-    @api.depends('step_tag_line_ids.product_id')
+    @api.depends('step_tag_line_ids.product_id', 'step_tag_line_ids.boxes')
     def _compute_result_product(self):
         for tag in self:
             tag.step_result_product_id = tag.step_tag_line_ids[:1].product_id
+            tag.step_actual_boxes = sum(tag.step_tag_line_ids.mapped('boxes'))
 
     def _compute_reservations(self):
         active = self.env['step.export.stock.reservation'].search([

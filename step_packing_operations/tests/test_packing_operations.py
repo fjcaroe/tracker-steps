@@ -107,6 +107,8 @@ class TestPackingOperations(TransactionCase):
         self.assertEqual(ot.step_packing_output_tag_ids, tag)
         self.assertEqual(tag.step_packing_production_id, ot)
         self.assertEqual(tag.step_result_product_id, self.finished)
+        self.assertEqual(tag.step_actual_boxes, 10)
+        self.assertFalse(tag.box_count)
 
     def test_revision_reservation_checks_country_at_assignment(self):
         tag = self._tag('T41-R2-RES', 'E', self.finished, 50, 10, 'export')

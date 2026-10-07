@@ -24,7 +24,7 @@
                     <list create="0"><field name="name"/><field name="step_producer_id"/><field name="step_result_product_id"/>
                         <field name="especie_id"/><field name="variedad_id"/><field name="step_packaging_id"/>
                         <field name="fruit_category_id"/><field name="fruit_caliber_id"/>
-                        <field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
+                        <field name="step_actual_boxes" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
                         <field name="step_reserved_ids" widget="many2many_tags"/>
                     </list>
                 </field>

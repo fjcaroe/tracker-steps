@@ -50,7 +50,7 @@
                             <tbody><tr t-foreach="doc.step_packing_output_tag_ids" t-as="tag">
                                 <td><span t-field="tag.name"/></td><td><span t-field="tag.step_tag_kind"/></td>
                                 <td><span t-field="tag.step_packing_result"/></td>
-                                <td><span t-field="tag.box_count"/></td><td><span t-field="tag.step_actual_kg"/></td>
+                                <td><span t-field="tag.step_actual_boxes"/></td><td><span t-field="tag.step_actual_kg"/></td>
                                 <td><span t-field="tag.step_result_product_id"/></td><td><span t-field="tag.step_packaging_id"/></td>
                             </tr></tbody>
                         </table>

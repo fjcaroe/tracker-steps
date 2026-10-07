@@ -23,18 +23,18 @@
                             domain="[('is_fruit_tag','=',True),('step_tag_state','=','validated')]">
                             <list create="0"><field name="name"/><field name="step_producer_id"/><field name="step_tag_kind"/>
                                 <field name="step_result_product_id"/><field name="fruit_caliber_id"/>
-                                <field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/></list>
+                                <field name="step_actual_boxes" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/></list>
                         </field>
                         <button name="action_prepare_distribution" type="object" string="Crear tarja de destino y distribución"
                             class="btn-primary" invisible="state != 'draft' or line_ids"/>
                         <field name="source_tag_ids" readonly="1"><list><field name="name"/><field name="step_producer_id"/>
                             <field name="step_result_product_id"/><field name="step_packaging_id"/><field name="package_type_id"/>
                             <field name="fruit_category_id"/><field name="label"/><field name="fruit_caliber_id"/><field name="variedad_id"/>
-                            <field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/><field name="step_tag_state"/></list></field>
+                            <field name="step_actual_boxes" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/><field name="step_tag_state"/></list></field>
                     </page><page string="Tarjas que entran"><field name="target_tag_ids" readonly="1"><list>
                         <field name="name"/><field name="step_composition"/><field name="step_result_product_id"/>
                         <field name="step_packaging_id"/><field name="fruit_caliber_id"/><field name="variedad_id"/>
-                        <field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/><field name="step_tag_state"/>
+                        <field name="step_actual_boxes" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/><field name="step_tag_state"/>
                     </list></field></page><page string="Distribución y trazabilidad">
                     <field name="line_ids" readonly="state == 'done'">
                         <list editable="bottom"><field name="source_package_id" domain="[('step_tag_state','=','validated')]"/>

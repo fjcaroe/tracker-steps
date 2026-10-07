@@ -51,7 +51,7 @@
                                 <list create="0"><field name="name"/><field name="step_tag_kind"/><field name="step_result_product_id"/>
                                     <field name="step_packaging_id"/><field name="package_type_id"/><field name="fruit_category_id"/>
                                     <field name="label"/><field name="fruit_caliber_id"/><field name="variedad_id"/>
-                                    <field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
+                                    <field name="step_actual_boxes" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
                                     <field name="step_packing_result"/><field name="step_tag_state"/>
                                 </list>
                             </field>
@@ -60,7 +60,7 @@
                             <field name="step_packing_input_tag_ids" readonly="state != 'created'" options="{'no_create': True}"
                                 domain="[('step_tag_kind','=','C'),('step_tag_state','=','validated'),('step_tag_line_ids.product_id','=?',raw_product_id),('step_producer_id','=?',fruit_grower_id),('variedad_id','=?',fruit_variety_id),('fundo_id','=?',fruit_fundo_id)]">
                                 <list create="0"><field name="name"/><field name="received_at"/><field name="step_producer_id"/>
-                                    <field name="variedad_id"/><field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
+                                    <field name="variedad_id"/><field name="step_actual_boxes" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
                                     <field name="fruit_quality_id"/><field name="harvest_date"/>
                                 </list>
                             </field>
