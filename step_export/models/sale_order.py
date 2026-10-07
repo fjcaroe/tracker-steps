@@ -30,6 +30,19 @@ class SaleOrder(models.Model):
             order.step_apr_configured = bool(company and any(
                 company[name] for name in APR_CONFIGURATION if name in company._fields))
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        # The optional legacy APR create casts readings with int(vals.get()).
+        # An ordinary quotation with hidden APR fields must not require them.
+        for vals in vals_list:
+            company = self.env['res.company'].browse(vals.get('company_id')) if vals.get('company_id') else self.env.company
+            configured = any(company[name] for name in APR_CONFIGURATION if name in company._fields)
+            if not configured:
+                for name in ('anterior_apr', 'actual_apr'):
+                    if name in self._fields:
+                        vals.setdefault(name, 0)
+        return super().create(vals_list)
+
     @api.model
     def _get_view(self, view_id=None, view_type='form', **options):
         arch, view = super()._get_view(view_id, view_type, **options)

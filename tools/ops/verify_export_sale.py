@@ -13,11 +13,6 @@ def verify_export_sale(env):
         'type': 'service', 'grupo_labor': 'pack', 'step_export_enabled': False})
     values = {'partner_id': receiver.id, 'order_line': [(0, 0, {
         'product_id': product.id, 'product_uom_qty': 2, 'price_unit': 50})]}
-    # Installed APR's legacy create requires these integer defaults even for
-    # standard sales. Supply only fixture defaults; preserve APR configuration.
-    for name in ('anterior_apr', 'actual_apr'):
-        if name in env['sale.order']._fields:
-            values[name] = 0
     action = env.ref('step_export.action_export_sale_orders')
     context = safe_eval(action.context or '{}')
     order = env['sale.order'].with_user(user).with_context(**context).create(values)

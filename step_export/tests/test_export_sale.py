@@ -8,6 +8,15 @@ from ..models.sale_order import APR_FIELDS
 @tagged('post_install', '-at_install')
 class TestExportSale(TransactionCase):
 
+    def test_create_quote_without_hidden_apr_reading_values(self):
+        company = self.env.company
+        company.write({name: False for name in ('product_fijo', 'product_consu') if name in company._fields})
+        customer = self.env['res.partner'].create({'name': 'Export quote customer QA'})
+        order = self.env['sale.order'].with_context(default_step_export_sale=True).create({'partner_id': customer.id})
+        self.assertEqual(order.state, 'draft')
+        self.assertTrue(order.step_export_sale_context)
+        self.assertFalse(order.step_apr_configured)
+
     def test_selector_preserves_standard_domain_and_filters_export_products(self):
         tree = etree.fromstring(self.env['sale.order'].get_view(view_type='form')['arch'].encode())
         nodes = tree.xpath(".//field[@name='order_line']//field[@name='product_id' or @name='product_template_id'][@domain]")
@@ -26,7 +35,8 @@ class TestExportSale(TransactionCase):
             self.assertFalse(self.env['sale.order'].new({'company_id': company.id}).step_apr_configured)
             return
         company.write({name: False for name in available})
-        order = self.env['sale.order'].new({'company_id': company.id})
+        customer = self.env['res.partner'].create({'name': 'APR visibility customer QA'})
+        order = self.env['sale.order'].create({'company_id': company.id, 'partner_id': customer.id})
         self.assertFalse(order.step_apr_configured)
         product = self.env['product.product'].create({'name': 'APR configuration QA', 'grupo_labor': 'pack'})
         for name in available:
