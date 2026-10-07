@@ -15,6 +15,7 @@ def verify_flow(env, operator):
     env['mrp.bom'].create({'product_tmpl_id': export.product_tmpl_id.id, 'product_qty': 1,
         'bom_line_ids': [(0, 0, {'product_id': carton.id, 'product_qty': 1, 'step_export_qty_per_pallet': 2})]})
     incoming = env['stock.quant.package'].create({'is_fruit_tag': True, 'step_tag_kind': 'C',
+        'fruit_type': 'conventional',
         'step_producer_id': producer.id, 'especie_id': species.id, 'variedad_id': variety.id,
         'step_tag_line_ids': [(0, 0, {'producer_id': producer.id, 'product_id': raw.id,
             'quantity': 100, 'boxes': 100, 'kilos': 100})]})
