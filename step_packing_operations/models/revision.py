@@ -136,12 +136,21 @@ class PackingStockReservation(models.Model):
             raise UserError(_('Libere la reserva antes de cambiar su destino.'))
         return super().write(vals)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        if any(row.get('step_reservation_state', 'draft') != 'draft' or row.get('step_picking_id') for row in vals_list):
+            raise UserError(_('Las reservas se crean pendientes de reservar stock.'))
+        return super().create(vals_list)
+
 
 class Shipment(models.Model):
     _inherit = 'step.export.export'
 
     def _check_reserved_destination(self):
         for shipment in self:
+            if shipment.tag_ids:
+                self.env.cr.execute('SELECT id FROM stock_quant_package WHERE id IN %s ORDER BY id FOR UPDATE',
+                                    [tuple(sorted(shipment.tag_ids.ids))])
             reservations = self.env['step.export.stock.reservation'].search([
                 ('step_package_ids', 'in', shipment.tag_ids.ids), ('step_reservation_state', '=', 'reserved')])
             for reservation in reservations:

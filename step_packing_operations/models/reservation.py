@@ -6,6 +6,8 @@ from odoo import fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare
 
+_RESERVATION_ACTION = object()
+
 
 class PackingStockReservation(models.Model):
     _inherit = "step.export.stock.reservation"
@@ -106,7 +108,7 @@ class PackingStockReservation(models.Model):
                     package_id=quant.package_id, owner_id=quant.owner_id, strict=True)
                 if float_compare(reserved, quant.quantity, precision_rounding=quant.product_id.uom_id.rounding):
                     raise ValidationError(_("No se pudo reservar toda la tarja %s.") % quant.package_id.name)
-            reservation.write({"step_picking_id": picking.id, "step_reservation_state": "reserved"})
+            reservation.with_context(_packing_reservation_action=_RESERVATION_ACTION).write({"step_picking_id": picking.id, "step_reservation_state": "reserved"})
         return True
 
     def action_step_release(self):
@@ -115,11 +117,18 @@ class PackingStockReservation(models.Model):
             if reservation.step_reservation_state != "reserved" or not reservation.step_picking_id:
                 raise UserError(_("La reserva no está activa."))
             reservation.step_picking_id.action_cancel()
-            reservation.step_reservation_state = "released"
+            reservation.with_context(_packing_reservation_action=_RESERVATION_ACTION).write({'step_reservation_state': 'released'})
         return True
 
     def write(self, vals):
+        if {'step_reservation_state', 'step_picking_id'} & vals.keys() and self.env.context.get('_packing_reservation_action') is not _RESERVATION_ACTION:
+            raise UserError(_("Use los botones para reservar o liberar stock."))
         locked = {"step_packing_order_id", "step_instruction_id", "step_package_ids", "company_id", "step_picking_id"}
         if locked.intersection(vals) and any(record.step_reservation_state != "draft" for record in self):
             raise UserError(_("Una reserva utilizada no se modifica."))
         return super().write(vals)
+
+    def unlink(self):
+        if any(row.step_reservation_state != 'draft' for row in self):
+            raise UserError(_("Conserve las reservas utilizadas y su historial de liberación."))
+        return super().unlink()

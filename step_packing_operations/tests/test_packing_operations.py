@@ -28,7 +28,7 @@ class TestPackingOperations(TransactionCase):
         cls.raw = cls.env["product.product"].create({
             "name": "Fruta granel T41", "is_storable": True, "weight": 1.0, "grupo_labor": "pack"})
         cls.finished = cls.env["product.product"].create({
-            "name": "Caja exportación T41", "is_storable": True, "weight": 5.0, "grupo_labor": "pack"})
+            "name": "Caja exportación T41", "default_code": "T41-EXPORT", "is_storable": True, "weight": 5.0, "grupo_labor": "pack"})
         cls.national = cls.env["product.product"].create({
             "name": "Fruta nacional T41", "is_storable": True, "weight": 1.0, "grupo_labor": "pack"})
         cls.carton = cls.env["product.product"].create({
@@ -84,10 +84,11 @@ class TestPackingOperations(TransactionCase):
         national = self._tag('T41-R2-N', 'N', self.national, 15, 15, 'commercial')
         ot.step_packing_output_tag_ids = export | national
         self.env['mrp.bom'].create({'product_tmpl_id': self.finished.product_tmpl_id.id,
-            'product_qty': 1, 'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})]})
-        self._stock(self.carton, 16)
+            'product_qty': 1, 'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1, 'step_export_qty_per_pallet': 2})]})
+        self._stock(self.carton, 18)
         ot.action_step_packing_validate()
         ot.action_prepare_materials()
+        self.assertEqual(ot.material_line_ids.quantity, 18)
         ot.action_approve_materials()
         ot.action_step_packing_close()
         self.assertFalse(ot.product_id)
@@ -436,6 +437,7 @@ class TestPackingOperations(TransactionCase):
             for _ in range(2):
                 result = controller._scan({
                     "production_id": production.id, "code": "T41-MOB-E", "kind": "E",
+                    "product_code": "T41-EXPORT",
                     "quantity": 16, "boxes": 16, "kilos": 80,
                 })
             self.assertIn("/report/pdf/", result["report_url"])

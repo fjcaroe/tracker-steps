@@ -75,12 +75,12 @@ class PackingMobile(http.Controller):
                 raise ValidationError(_("Cantidad, cajas y kilos deben ser números."))
             if min(quantity, boxes, kilos) <= 0:
                 raise ValidationError(_("Cantidad, cajas y kilos deben ser positivos."))
-            product = production.product_id
+            product = request.env['product.product']
             product_code = (payload.get("product_code") or "").strip()
             if product_code:
                 product = request.env["product.product"].search([
                     ("default_code", "=", product_code)], limit=1)
-            if not product or kind == 'N' and not product_code:
+            if not product:
                 raise ValidationError(_("Indique el código del producto resultante."))
             result = "export" if kind == "E" else (payload.get("result") or "")
             if result not in ("export", "commercial", "precaliber", "waste") or (kind == "N" and result == "export"):

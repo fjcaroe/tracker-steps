@@ -152,7 +152,11 @@ class PackingProduction(models.Model):
                         raise UserError(_('Configure una lista de materiales para %s.') % detail.product_id.display_name)
                     factor = detail.product_id.uom_id._compute_quantity(detail.quantity, bom.product_uom_id) / bom.product_qty
                     for component in bom.bom_line_ids:
-                        qty = component.product_uom_id._compute_quantity(component.product_qty * factor, component.product_id.uom_id)
+                        total_boxes = sum(tag.step_tag_line_ids.mapped('boxes'))
+                        pallet_share = detail.boxes / total_boxes if total_boxes else 0
+                        qty = component.product_uom_id._compute_quantity(
+                            component.product_qty * factor + component.step_export_qty_per_pallet * pallet_share,
+                            component.product_id.uom_id)
                         self.env['step.packing.material.consumption'].with_context(_packing_control=_INTERNAL).create({
                             'production_id': record.id, 'package_id': tag.id, 'product_id': component.product_id.id,
                             'planned_qty': qty, 'quantity': qty,
