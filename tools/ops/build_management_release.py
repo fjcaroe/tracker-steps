@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -40,6 +40,8 @@ def main():
         modules = ('step_inventory_packing',)
     if args.kind == 'packing':
         modules = ('step_packing_operations',)
+    if args.kind == 'cerro-stack':
+        from stack_scope import MODULES as modules
     if args.environment == 'demo-sys':
         if args.kind != 'payroll':
             parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')
