@@ -687,9 +687,12 @@ class PreviredExtractor(models.AbstractModel):
           empleador es **Renta Imponible AFP del mes (campo 27) + RIMA
           (campo 92)**. Sobre esa base se recalculan con la tasa estatutaria:
           SIS (29), Acc. Trabajo ISL (71, sólo si la línea usa ISL y no
-          mutual), Expectativa de Vida (94), Rentabilidad Protegida (95),
+          mutual), Expectativa de Vida (94),
           Renta Imponible Seguro Cesantía (100) y Aporte Empleador Seguro
           Cesantía (102).
+        * Ticket #59 (2026-10-07): Rentabilidad Protegida (95) usa sólo el
+          imponible del mes, sin RIMA. Conserva el cálculo que ya efectuó
+          `_set_reform_fields`, incluso en licencia de mes completo.
         * **No** se tocan la cotización adicional AFP del campo 28 (va sólo
           sobre el imponible del mes) ni la mutualidad (campos 97 / 98), que
           no suma RIMA (usuario, 2026-09-08, conflicto tickets #13 vs #15).
@@ -745,7 +748,7 @@ class PreviredExtractor(models.AbstractModel):
                         previred.SEVERITY_WARNING, "medical_leave_rima_missing",
                         _("RUT %(rut)s-%(dv)s: licencia médica y no hay RIMA "
                           "utilizable (el motor no informó el campo 92; "
-                          "%(why)s). Los campos 29, 71, 94, 95, 100 y 102 no "
+                          "%(why)s). Los campos 29, 71, 94, 100 y 102 no "
                           "se recalcularon.",
                           rut=record.rut, dv=record.dv, why=why),
                         record.department_label))
@@ -773,8 +776,6 @@ class PreviredExtractor(models.AbstractModel):
              _contribution(previred.sis_rate(dataset.period)))
         _set(previred.F_LIFE_EXPECTANCY,
              _contribution(previred.life_expectancy_rate(dataset.period)))
-        _set(previred.F_PROTECTED_RETURN,
-             _contribution(previred.protected_return_rate(dataset.period)))
         _set(previred.F_UNEMPLOYMENT_TAXABLE, base)
         _set(previred.F_UNEMPLOYMENT_EMPLOYER,
              _contribution(previred.unemployment_employer_rate(

@@ -127,7 +127,7 @@ def main():
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'tarja'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja'), default='management')
     args = parser.parse_args()
     SETTINGS = args.kind in ('settings', 'fruit-reception', 'packing')
     PRODUCERS = args.kind == 'producers'
@@ -146,15 +146,17 @@ def main():
     if args.kind == 'export':
         MODULES = ('step_export',)
         BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename IN ('res_company','res_partner','sale_order','sale_order_line')) ORDER BY tablename").splitlines())
-    if args.kind in ('payroll-fixes', 'tarja'):
+    if args.kind in ('payroll-fixes', 'previred-fix', 'tarja'):
         TICKET_REVISION = args.kind
-        assert args.environment in (('development', 'sys') if args.kind == 'payroll-fixes' else ('development',)), 'Ticket destination outside approved scope'
+        assert args.environment in (('development', 'sys') if args.kind in ('payroll-fixes', 'previred-fix') else ('development',)), 'Ticket destination outside approved scope'
         SETTINGS = True
         MODULES = ('step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle_simpledigital') if args.kind == 'payroll-fixes' else ('step_inventory_packing', 'step_packing_operations')
+        if args.kind == 'previred-fix':
+            MODULES = ('step_hr_previred',)
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
         BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','ir_config_parameter')) ORDER BY tablename").splitlines())
-    assert args.environment != 'sys' or args.kind == 'payroll-fixes'
+    assert args.environment != 'sys' or args.kind in ('payroll-fixes', 'previred-fix')
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
@@ -216,7 +218,7 @@ def main():
         for name, version in shared.items():
             source = next((Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists()), None)
             baseline['shared_modules'][name] = {'version': version, 'sha256': tree_hash(source) if source else None}
-        if TICKET_REVISION == 'payroll-fixes':
+        if TICKET_REVISION in ('payroll-fixes', 'previred-fix'):
             for name in ('hr_payroll', 'l10n_cl_simpledigital_payroll'):
                 version = query(database, "SELECT latest_version FROM ir_module_module WHERE name='%s' AND state='installed'" % name)
                 source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())

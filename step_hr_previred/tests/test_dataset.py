@@ -575,7 +575,7 @@ class TestDataset(PreviredCase):
         principal = dataset.records[0].principal
         self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "21463")
         self.assertEqual(principal[previred.F_LIFE_EXPECTANCY - 1], "8681")
-        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "10852")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "0")
         self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "11214")
         self.assertEqual(
             principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "1205761")
@@ -606,13 +606,30 @@ class TestDataset(PreviredCase):
         # base = 192.500 + 350.000 = 542.500
         self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "9657")
         self.assertEqual(principal[previred.F_LIFE_EXPECTANCY - 1], "3906")
-        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "4883")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "1733")
         self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "5045")
         self.assertEqual(
             principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "542500")
         self.assertEqual(
             principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "13020")
         self.assertEqual(principal[previred.F_MUTUAL_CONTRIBUTION - 1], "0")
+
+    def test_protected_return_excludes_rima_and_stale_motor_amount(self):
+        """T59: el campo 95 depende del mes trabajado, aunque cambie RIMA."""
+        employee = self.make_employee("Renta protegida T59", "12345678-5",
+                                      self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        for rima in (0, 10000, 350000):
+            with self.subTest(rima=rima):
+                row = make_row(dv="5", overrides={
+                    previred.F_AFP_CODE: "29",
+                    previred.F_AFP_TAXABLE: "192500",
+                    previred.F_RIMA: str(rima),
+                    previred.F_PROTECTED_RETURN: "4883",
+                })
+                dataset = self.build([row], spec_version="98")
+                self.assertEqual(dataset.records[0].principal[
+                    previred.F_PROTECTED_RETURN - 1], "1733")
 
     def test_medical_leave_isl_employer_zeroes_mutual_fields(self):
         """Ticket Serv. Bienestar: quien cotiza en INP/ISL (campo 96 vacío) no
@@ -687,7 +704,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "9657")
         self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "5045")
         self.assertEqual(principal[previred.F_LIFE_EXPECTANCY - 1], "3906")
-        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "4883")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "1733")
         self.assertEqual(
             principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "542500")
         self.assertEqual(
@@ -760,7 +777,7 @@ class TestDataset(PreviredCase):
         self.assertEqual(principal[previred.F_RIMA - 1], "1205761")
         self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "21463")
         self.assertEqual(principal[previred.F_LIFE_EXPECTANCY - 1], "8681")
-        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "10852")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "0")
         self.assertEqual(principal[previred.F_ISL_ACCIDENT - 1], "11214")
         self.assertEqual(
             principal[previred.F_UNEMPLOYMENT_EMPLOYER - 1], "28938")

@@ -1,5 +1,18 @@
 # Changelog
 
+## 18.0.3.8.6
+
+Ticket Helpdesk S&S #59 (EMCA, septiembre 2026).
+
+* Rentabilidad Protegida (campo 95) conserva el cálculo sobre la renta
+  imponible AFP del mes (campo 27), sin sumar RIMA (campo 92). Corrige la
+  sobrescritura posterior por licencias médicas; no recalcula liquidaciones.
+* Sustituye la regla anterior de licencias únicamente para el campo 95.
+  SIS, CEV, ISL y seguro de cesantía mantienen su tratamiento vigente.
+* Pruebas de licencia parcial y de mes completo, con RIMA informada o
+  calculada, y redondeo al peso.
+* Fuente: https://www71.spensiones.cl/portal/institucional/594/w3-article-17114.html
+
 ## 18.0.3.8.4
 
 Tickets Helpdesk S&S #14 y #15 (EMCA, agosto 2026).
