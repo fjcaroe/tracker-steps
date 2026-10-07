@@ -216,6 +216,12 @@ def main():
         for name, version in shared.items():
             source = next((Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists()), None)
             baseline['shared_modules'][name] = {'version': version, 'sha256': tree_hash(source) if source else None}
+        if TICKET_REVISION == 'payroll-fixes':
+            for name in ('hr_payroll', 'l10n_cl_simpledigital_payroll'):
+                version = query(database, "SELECT latest_version FROM ir_module_module WHERE name='%s' AND state='installed'" % name)
+                source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
+                assert version, 'Payroll provider must already be installed'
+                baseline['shared_modules'][name] = {'version': version, 'sha256': tree_hash(source)}
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
