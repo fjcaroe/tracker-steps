@@ -12,6 +12,8 @@ class TestExportNavigation(TransactionCase):
             'Gastos exportación', 'Maestros', 'Configuraciones'])
         instruction = self.env.ref('step_export.action_export_shipping_instructions')
         self.assertEqual(instruction.res_model, 'step.export.export')
+        first = self.env['ir.ui.menu'].search([('parent_id', '=', self.env.ref('step_export.menu_step_export_shipments').id)], order='sequence,id', limit=1)
+        self.assertEqual(first, self.env.ref('step_export.menu_step_export_shipping_instruction'))
         arch = self.env[instruction.res_model].get_view(view_type='form')['arch']
         self.assertIn('action_validate_shipment', arch)
         self.assertIn('name="line_ids"', arch)

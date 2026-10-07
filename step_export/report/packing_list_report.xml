@@ -23,8 +23,8 @@
                                 <th>Dispatch guide</th><td><span t-field="doc.guide_id.external_folio"/></td></tr>
                             <tr><th>Container</th><td><span t-field="doc.container_number"/></td>
                                 <th>Seal</th><td><span t-field="doc.seal_number"/></td></tr>
-                            <tr><th>POL</th><td><span t-field="doc.shipment_id.origin_port"/></td>
-                                <th>POD</th><td><span t-field="doc.shipment_id.destination_port"/></td></tr>
+                            <tr><th>POL</th><td><span t-if="doc.shipment_id.origin_port_id" t-field="doc.shipment_id.origin_port_id"/><span t-else="" t-field="doc.shipment_id.origin_port"/></td>
+                                <th>POD</th><td><span t-if="doc.shipment_id.destination_port_id" t-field="doc.shipment_id.destination_port_id"/><span t-else="" t-field="doc.shipment_id.destination_port"/></td></tr>
                         </table>
                         <table class="table table-sm table-bordered">
                             <thead><tr><th>Pallet / fruit tag</th><th>Producer</th><th>Species</th>

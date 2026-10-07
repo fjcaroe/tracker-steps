@@ -61,7 +61,7 @@
   <menuitem id="menu_step_export_payment_concept" name="Concepto de Pago Productor" parent="menu_step_export_config_export" action="action_step_export_payment_concept" sequence="30" />
   <menuitem id="menu_step_export_grower_discount" name="Ítem Productor (Descuento Liquidación)" parent="menu_step_export_config_export" action="action_step_export_grower_discount" sequence="40" />
   <menuitem id="menu_step_export_grower_rate" name="Tarifa Productor" parent="menu_step_export_masters" action="action_step_export_grower_rate" sequence="30" />
-  <menuitem id="menu_step_export_shipping_instruction" name="Instructivo de Embarque" parent="menu_step_export_shipments" action="action_export_shipping_instructions" sequence="50" />
+  <menuitem id="menu_step_export_shipping_instruction" name="Instructivo de Embarque" parent="menu_step_export_shipments" action="action_export_shipping_instructions" sequence="5" />
   <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_shipments" action="action_export_dispatch_shipments" sequence="60" />
   <menuitem id="menu_step_export_customer_claim" name="Reclamo de Clientes" parent="menu_step_export_receivers" action="action_step_export_customer_claim" sequence="40" />
   <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_shipments" action="action_export_stock_reservations" sequence="70" />

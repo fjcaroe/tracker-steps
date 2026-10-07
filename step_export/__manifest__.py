@@ -2,11 +2,11 @@
 {
     "name": "Steps - Exportaciones",
     "summary": "Programa comercial, embarques y liquidaciones de exportación Steps",
-    "version": "18.0.2.9.5",
+    "version": "18.0.2.9.6",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["step_producers", "base", "mail", "step_hr", "step_management_costs", "step_packing", "step_inventory_fruit_tag", "step_dispatch_guide", "step_accounting_multicurrency", "sale", "mrp", "account", "stock"],
+    "depends": ["step_producers", "base", "mail", "step_hr", "step_management_costs", "step_packing", "step_inventory_fruit_tag", "step_dispatch_guide", "step_accounting_multicurrency", "sale", "mrp", "account", "stock", "l10n_cl_edi_exports"],
     "data": [
         "security/ir.model.access.csv",
         "security/export_rules.xml",

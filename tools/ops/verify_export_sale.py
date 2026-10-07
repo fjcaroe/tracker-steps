@@ -30,6 +30,20 @@ def verify_export_sale(env):
     assert b'QA T35 export product' in html and b'Pro-Forma' in html
     order.action_confirm()
     assert order.state == 'sale' and order.amount_untaxed == 100
+    ports = env['l10n_cl.customs_port'].with_user(user).search([], limit=2)
+    assert ports
+    participant = env['res.partner'].create({'name': 'QA T35 export participant', 'step_export': True})
+    shipment = env['step.export.export'].with_user(user).create({'name': 'QA T35 native port selection',
+        'carrier_id': participant.id, 'consignee_id': participant.id,
+        'origin_port_id': ports[0].id, 'destination_port_id': ports[-1].id})
+    assert shipment.origin_port_id == ports[0] and shipment.destination_port_id == ports[-1]
+    shipment_tree = etree.fromstring(shipment.get_view(view_type='form')['arch'].encode())
+    for name in ('carrier_id', 'consignee_id', 'notify_id', 'freight_forwarder_id', 'customs_agent_id'):
+        node = shipment_tree.xpath(".//field[@name='%s']" % name)[0]
+        assert ('step_export', '=', True) in safe_eval(node.get('domain'))
+    first = env['ir.ui.menu'].search([('parent_id', '=', env.ref('step_export.menu_step_export_shipments').id)], order='sequence,id', limit=1)
+    assert first == env.ref('step_export.menu_step_export_shipping_instruction')
     return {'sales_profile': 'Sales User', 'export_draft_in_menu': True,
             'export_product_in_catalog': True, 'ordinary_product_excluded': True,
-            'proforma': 'rendered', 'sale': 'confirmed', 'sample_records': 'rolled back'}
+            'proforma': 'rendered', 'sale': 'confirmed', 'ports': 'native customs master',
+            'participant_filter': True, 'instruction_first': True, 'sample_records': 'rolled back'}

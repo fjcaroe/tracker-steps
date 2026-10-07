@@ -29,6 +29,8 @@ BUSINESS = ('step_management_operational_budget', 'step_management_budget_line',
 SETTINGS = False
 PRODUCERS = False
 PACKING_INITIAL_MIGRATION = False
+EXPORT_SALE_ADDITION = False
+EXPORT_PORT_ADDITIONS = False
 
 
 def run(*command, **kwargs):
@@ -73,8 +75,10 @@ def snapshot(database):
                 }
                 if table in additions:
                     row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
-            if MODULES == ('step_export',) and table == 'sale_order':
+            if MODULES == ('step_export',) and EXPORT_SALE_ADDITION and table == 'sale_order':
                 row = "(to_jsonb(t)-'step_export_sale')"
+            if MODULES == ('step_export',) and EXPORT_PORT_ADDITIONS and table == 'step_export_export':
+                row = "(to_jsonb(t)-ARRAY['origin_port_id','destination_port_id'])"
             condition = " WHERE key <> 'web.base.url'" if (SETTINGS or PRODUCERS) and table == 'ir_config_parameter' else ''
             statements.append("SELECT '%s',json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),'')))::text FROM %s t%s" % (table, row, row, table, condition))
     # One SQL statement sees a consistent MVCC snapshot across every table.
@@ -116,7 +120,7 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION
+    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
@@ -174,6 +178,10 @@ def main():
     installed = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
     if args.kind == 'packing':
         PACKING_INITIAL_MIGRATION = tuple(map(int, installed['step_packing_operations'].split('.'))) < (18, 0, 2, 8, 0)
+    if args.kind == 'export':
+        old_export = tuple(map(int, installed['step_export'].split('.')))
+        EXPORT_SALE_ADDITION = old_export < (18, 0, 2, 9, 5)
+        EXPORT_PORT_ADDITIONS = old_export < (18, 0, 2, 9, 6)
     if PRODUCERS:
         assert set(installed) >= set(MODULES) - {'step_producers_integrations'}, 'Revise only installed agricultural apps'
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_account_treasury','step_packing_operations') AND state='installed'") == '2', 'Bridge dependencies must already be installed'
