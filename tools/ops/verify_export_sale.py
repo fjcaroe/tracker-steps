@@ -26,8 +26,8 @@ def verify_export_sale(env):
     for node in tree.xpath('.//field'):
         if node.get('name') in apr:
             assert 'not step_apr_configured' in node.get('invisible', '')
-    html, _ = env['ir.actions.report'].with_user(user)._render_qweb_html('sale.report_saleorder', order.ids)
-    assert b'QA T35 export product' in html
+    html, _ = env['ir.actions.report'].with_user(user).with_context(proforma=True, lang='en_US')._render_qweb_html('sale.report_saleorder', order.ids)
+    assert b'QA T35 export product' in html and b'Pro-Forma' in html
     order.action_confirm()
     assert order.state == 'sale' and order.amount_untaxed == 100
     return {'sales_profile': 'Sales User', 'export_draft_in_menu': True,
