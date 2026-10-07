@@ -53,7 +53,17 @@ try:
         view_id=env.ref('step_export.view_export_fruit_bom_form').id, view_type='form')['arch'].encode())
     assert 'step_export_packaging_category_id' in bom_tree.xpath("//field[@name='bom_line_ids']//field[@name='product_id']")[0].get('domain')
     assert env.ref('step_export.action_export_fruit_bom').views[0][1] == 'list'
-    assert env['mrp.bom'].default_get(['step_export_packaging_category_id'])['step_export_packaging_category_id']
+    categories = env['mrp.bom']._packaging_material_domain()[0][2]
+    assert env['mrp.bom'].default_get(['step_export_packaging_category_id'])['step_export_packaging_category_id'] == next(iter(categories), False)
+    # Empty customer catalogs are valid; exercise the selector with rollback-only
+    # native masters, without seeding or renaming the customer's categories.
+    category = env['product.category'].browse(categories) if categories else env['product.category'].create({'name': 'Materiales de embalaje'})
+    child = env['product.category'].create({'name': 'Verificación embalaje', 'parent_id': category.id})
+    component = env['product.product'].create({'name': 'Verificación componente sin BOM', 'categ_id': child.id})
+    result = env.ref('step_export.action_producer_packaging_materials_category').run()
+    assert component in env['product.product'].search(result['domain'])
+    assert not component.bom_line_ids
+    assert env['mrp.bom'].default_get(['step_export_packaging_category_id'])['step_export_packaging_category_id'] == category.id
     # The completed QA walkthrough exercises the full source flows, not fake report rows.
     if env['ir.config_parameter'].get_param('steps.qa.productores.walkthrough.v1'):
         producer = env['res.partner'].search([('name','=','PRUEBA - Agrícola Valle Claro')])
