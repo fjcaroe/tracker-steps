@@ -66,7 +66,7 @@ flags. Monetary/business records retain IDs, original columns and counts.
             "OR tablename LIKE 'product_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'fleet_%' "
             "OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename LIKE 'project_%' "
             "OR tablename LIKE 'mrp_%' OR tablename IN ('res_company','res_partner','res_partner_bank') "
-            "OR tablename IN (%s)) ORDER BY tablename" % ','.join("'%s'" % name for name in native.MODELS)).splitlines()
+            "OR tablename IN (" + ','.join("'%s'" % name for name in native.MODELS) + ")) ORDER BY tablename").splitlines()
         schema = {}
         for table in tables:
             columns = json.loads(query(database, "SELECT json_agg(column_name ORDER BY ordinal_position) FROM "
