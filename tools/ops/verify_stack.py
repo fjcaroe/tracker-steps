@@ -34,6 +34,11 @@ for filename, values in probes:
     print('STACK_PRODUCT_OK '+filename)
 
 checked=[]
+batch_menu=env.ref('step_packing_batch.menu_packing_fruta_batch')
+assert batch_menu.parent_id==env.ref('step_packing_operations.menu_packing_operations_dispatch')
+assert batch_menu.action==env.ref('stock_picking_batch.stock_picking_batch_action')
+env['stock.picking.batch'].get_view(view_type='form')
+print('STACK_PACKING_BATCH_NATIVE_OK')
 for menu_id, parent_id in (
     ('menu_step_phyto_restriction_bpa','menu_bpa_operations'),
     ('menu_step_phyto_restriction_bpa_history','menu_bpa_analytics'),

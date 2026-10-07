@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Steps - Packing Fruta: traslado de lotes",
-    "summary": "Agrega Traslado lotes (transferencias por lotes) a la app Packing Fruta.",
+    "summary": "Traslado de lotes en Packing nativo, preservando la navegación histórica.",
     "description": """
-Puente entre step_packing y stock_picking_batch (ticket 34).
-
-En Studio, la app Packing Fruta tenia el menu Operaciones > Traslado lotes.
-Se deja en un modulo aparte que se instala solo cuando ambos modulos estan
-presentes, para que step_packing no obligue a instalar stock_picking_batch
-en instancias que no lo usan.
+Integra transferencias por lotes con Packing nativo y conserva los menús
+anteriores bajo el historial administrativo definido por la política Steps.
+Se instala automáticamente solo cuando sus dependencias ya están presentes.
 """,
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["step_packing", "stock_picking_batch"],
+    "depends": ["step_packing", "stock_picking_batch", "step_packing_operations", "step_environment_policy"],
     "data": ["views/menu.xml"],
     "auto_install": True,
     "installable": True,

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="menu_packing_fruta_batch" name="Traslado lotes" parent="step_packing.menu_packing_fruta_operations"
+    <menuitem id="menu_packing_fruta_batch" name="Traslado lotes" parent="step_packing_operations.menu_packing_operations_dispatch"
               action="stock_picking_batch.stock_picking_batch_action" sequence="30" groups="stock.group_stock_user"/>
+    <function model="ir.ui.menu" name="_step_normalize_agriculture_menus"/>
 </odoo>
