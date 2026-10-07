@@ -26,6 +26,7 @@ class StockQuantPackage(models.Model):
     step_dus = fields.Char(string="DUS")
     step_invoice = fields.Char(string="Factura")
     step_bl_awb = fields.Char(string="BL / AWB")
+    step_document_company_id = fields.Many2one('res.company', compute='_compute_document_company')
     step_guide_ids = fields.Many2many('step.dispatch.guide', string='Guía SII', check_company=True)
     step_invoice_ids = fields.Many2many('account.move', string='Factura', check_company=True,
                                       domain="[('move_type','in',['out_invoice','out_refund'])]")
@@ -33,6 +34,22 @@ class StockQuantPackage(models.Model):
                                             string='DUS', check_company=True)
     step_bl_shipment_ids = fields.Many2many('step.export.export', relation='step_tag_bl_shipment_rel',
                                            string='BL / AWB', check_company=True)
+
+    @api.depends('company_id')
+    @api.depends_context('company')
+    def _compute_document_company(self):
+        for tag in self:
+            # Native packages acquire company_id from their first real quant.
+            tag.step_document_company_id = tag.company_id or self.env.company
+
+    @api.onchange('step_export_shipment_ids')
+    def _onchange_document_shipments(self):
+        for tag in self:
+            shipments = tag.step_export_shipment_ids
+            tag.step_guide_ids = shipments.dispatch_guide_ids
+            tag.step_invoice_ids = shipments.invoice_ids
+            tag.step_dus_shipment_ids = shipments.filtered('dus_folio')
+            tag.step_bl_shipment_ids = shipments.filtered('bl_folio')
 
     @api.constrains('step_export_shipment_ids', 'step_guide_ids', 'step_invoice_ids',
                     'step_dus_shipment_ids', 'step_bl_shipment_ids', 'company_id')

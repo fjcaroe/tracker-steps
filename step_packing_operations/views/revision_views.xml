@@ -13,7 +13,7 @@
             <field name="packing_plant" position="replace"><field name="step_packing_partner_id" options="{'no_create': True}"/></field>
             <field name="process_line" position="replace"><field name="step_packing_line_id" options="{'no_create': True}" readonly="step_tag_state != 'created'"/></field>
             <field name="op_folio" position="replace"><field name="step_process_order_id" options="{'no_create': True}"/></field>
-            <field name="ot_proceso" position="replace"><field name="step_packing_production_id" string="OT Proceso" options="{'no_create': True}" readonly="id and step_packing_production_id" domain="[('company_id','=',company_id),('state','=','created')]"/></field>
+            <field name="ot_proceso" position="replace"><field name="step_packing_production_id" string="OT Proceso" options="{'no_create': True}" readonly="id and step_packing_production_id" domain="[('company_id','=',step_document_company_id),('state','=','created')]"/></field>
             <xpath expr="//field[@name='quant_ids']" position="before">
                 <group string="Producción histórica" invisible="not (process_type or packing_plant or process_line or op_folio or ot_proceso)">
                     <field name="process_type" readonly="1"/><field name="packing_plant" readonly="1"/>
