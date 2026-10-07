@@ -1,0 +1,66 @@
+T59 — Rentabilidad Protegida en PreviRed
+=======================================
+
+Alcance y resultado
+------------------
+
+Se revisó la descripción, el comentario humano reciente y las cuatro imágenes
+del documento adjunto. El campo 95 ya se calculaba sobre el imponible mensual,
+pero el ajuste posterior de licencias médicas lo sobrescribía sumando RIMA.
+Se eliminó únicamente esa sobrescritura. La regla actual sustituye la regla
+anterior de licencias para el campo 95; las otras cotizaciones conservan su
+tratamiento. No se recalculan liquidaciones.
+
+Fuente oficial consultada:
+https://www71.spensiones.cl/portal/institucional/594/w3-article-17114.html
+
+Paquete publicado
+-----------------
+
+* Módulo único: ``step_hr_previred 18.0.3.8.6``.
+* Commit del paquete: ``17ce3b3555ebf913ab4c75e510ea93af694e4dc3``.
+* SHA-256: ``7f9243a6435a4a485c6c158b76aeb462c99687f9e5ed69f2f066b08c9490602b``.
+* Desarrollo: copia nueva ``MANAGEMENT_QA_DEVELOPMENT_t59_20261007a``;
+  128 pruebas, cero fallos y cero errores de pruebas. La falta previa de
+  ``steps_api`` permanece fuera de este alcance.
+* SyS: copia privada de compatibilidad ``MANAGEMENT_QA_SYS_t59_20261007a``;
+  128 pruebas, cero fallos y cero errores.
+* Las comparaciones completas de registros e importes de negocio pasaron en
+  ambas copias y en la publicación. Se verificaron versión, origen privado
+  del código, vistas efectivas, menú, servicios y dominios HTTPS.
+* Se publicó el mismo paquete probado, primero en Desarrollo y después en
+  SyS, usando respaldo, bloqueo compartido y control de cambios concurrentes.
+
+Respaldos:
+
+* ``/opt/steps_backups/management_development_20261007T235427Z``.
+* ``/opt/steps_backups/management_sys_20261007T235530Z``.
+
+Comprobación funcional en SyS
+----------------------------
+
+EMCA, septiembre de 2026: los cinco ejemplos del adjunto reproducían los
+importes rechazados con la versión anterior. Los cinco coinciden ahora con
+los valores esperados, tanto en la copia de compatibilidad como en SyS.
+La selección de trabajadores contempla empresa y liquidación elegible del
+período cuando existen identificaciones repetidas; no modifica sus fichas.
+
+Se descargó el TXT real antes y después. Ambos contienen 104 líneas de 105
+campos. La comparación de todas sus columnas encontró exactamente cinco
+celdas distintas, todas en el campo 95. Las demás columnas son idénticas.
+Las sondas usan el generador real y revierten sus operaciones; verificaron
+que los días y los importes de las liquidaciones permanecieran iguales.
+
+En el navegador se comprobó el menú y el formulario real. La validación de
+septiembre informa 83 liquidaciones, 83 líneas principales, 21 anexas y cero
+errores. Conserva 17 advertencias de normalizaciones y datos existentes,
+incluida una RIMA sin IMM disponible; no se amplía este ticket a esos casos.
+Esta comprobación no equivale a una nueva aceptación del archivo por el
+portal externo de PreviRed: no se presentó una declaración ni un pago.
+
+SHA-256 del TXT corregido:
+``81d9eb7ad64dfc24df83b66a438e4acc3110a053e7fb10792c6cf3210fd8a865``.
+
+Los adjuntos, RUT, archivos de nómina, capturas y logs con datos personales
+quedan como evidencia privada fuera del repositorio. El cierre del ticket
+se registra con nota interna, sin envío de correo ni notificaciones externas.
