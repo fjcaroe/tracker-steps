@@ -22,6 +22,14 @@ class StepTrackerCostCenter(models.Model):
 class StepManagementCostCenter(models.Model):
     _inherit = 'account.analytic.account'
 
+    # The shared native analytic account also represents non-agricultural
+    # activities. Preserve the existing fields/selections and their values;
+    # an account used by Tracker must not require an invented farm/fruit type.
+    fundo_id = fields.Many2one('step.fundo', required=False)
+    type_costo = fields.Selection(required=False)
+    etapa_costo = fields.Selection(required=False)
+    tipo_fruta = fields.Selection(required=False)
+
     def action_open_tracker_costs(self):
         self.ensure_one()
         return self.env['step.tracker.cost.wizard'].action_open(scope='center', center=self)

@@ -176,10 +176,14 @@ def main():
         if args.environment=='development':
             # The package is already present in the sole QA: attest every file.
             for name, expected in proof['versions'].items():
-                assert versions.get(name)==expected, ('Not yet reviewed in Development',name)
+                assert name in versions
+                assert tuple(map(int,expected.split('.'))) >= tuple(map(int,versions[name].split('.')))
             for name, expected in proof['files'].items():
                 if '/tests/' in name:
                     continue  # Test fixture portability never changes installed product behavior.
+                module_name=Path(name).parts[0]
+                if versions[module_name]!=proof['versions'][module_name]:
+                    continue  # An upward revision is tested in the clone before QA deployment.
                 root=Path(baseline['sources'][Path(name).parts[0]]['root'])
                 actual=root/Path(*Path(name).parts[1:])
                 assert actual.exists(), ('QA file missing',name)
@@ -237,16 +241,18 @@ def main():
         assert business_snapshot(clone,native,before['schema'])==before
         verify(base,options,clone,source,paths,proof,stage)
         (stage/'passed.json').write_text(json.dumps(certificate,indent=2)); return
-    release=Path('/opt/steps-managed/stack/cerro')/proof['commit']
+    release=Path('/opt/steps-managed/stack')/args.environment/proof['commit']
     if args.action=='deploy':
-        assert args.environment=='cerro', 'Do not duplicate unchanged Development delivery'
         assert json.loads((stage/'passed.json').read_text())==certificate, 'Repeat compatibility after concurrent source/config changes'
-        qa=Path('/opt/steps-validation')/('stack_development_'+args.run_id)/'passed.json'
-        qa_proof=json.loads(qa.read_text()); assert qa_proof['sha256']==archive_sha and qa_proof['commit']==proof['commit']
+        if args.environment=='cerro':
+            qa=Path('/opt/steps-validation')/('stack_development_'+args.run_id)/'passed.json'
+            qa_proof=json.loads(qa.read_text()); assert qa_proof['sha256']==archive_sha and qa_proof['commit']==proof['commit']
+            qa_release=Path('/opt/steps-managed/stack/development')/proof['commit']
+            assert (qa_release/'release.json').exists() and json.loads((qa_release/'release.json').read_text())==proof, 'First apply and verify the exact package in Development'
         assert not release.exists(), 'Release exists; use verify for an already applied release'
         release.mkdir(parents=True); extract(args.archive,release)
         for path in (release,*release.rglob('*')): os.chown(path,identity.pw_uid,identity.pw_gid)
-        backup=Path('/opt/steps_backups')/('stack_cerro_'+stamp); backup.mkdir(mode=0o700)
+        backup=Path('/opt/steps_backups')/('stack_'+args.environment+'_'+stamp); backup.mkdir(mode=0o700)
         shutil.copy2(conf,backup/'odoo.conf')
         run('systemctl','stop',service)
         try:

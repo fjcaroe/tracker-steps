@@ -14,7 +14,7 @@ Puente entre Steps Tracker, Gastos (``step_expense_tracker``) y Gestión y Costo
 
 No escribe sobre ``step.management.historical.cost`` ni contabiliza nada.
 """,
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.1.1',
     'category': 'Operations/Planning',
     'author': 'Steps Consulting',
     'license': 'LGPL-3',
