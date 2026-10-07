@@ -47,6 +47,9 @@ class TestProducerFruitControl(TransactionCase):
 
     def test_material_selector_uses_existing_category_including_unused_components(self):
         category_ids = self.env['mrp.bom']._packaging_material_domain()[0][2]
+        if not category_ids:
+            self.env['product.category'].create({'name': 'Materiales de embalaje'})
+            category_ids = self.env['mrp.bom']._packaging_material_domain()[0][2]
         self.assertEqual(len(category_ids), 1)
         root = self.env['product.category'].browse(category_ids)
         child = self.env['product.category'].create({'name': 'Envases control QA', 'parent_id': root.id})

@@ -246,6 +246,15 @@ def main():
                 if actual.suffix in ('.py','.xml','.csv','.js','.css','.scss','.svg','.md','.rst'):
                     current=current.replace(b'\r\n',b'\n'); proposed=proposed.replace(b'\r\n',b'\n')
                 if current!=proposed: targets.add(name)
+            if args.action=='qa':
+                # A package can revise only tests after unchanged runtime passed.
+                # Exercise those suites too, even without a manifest change.
+                for filename in proof['files']:
+                    if '/tests/' not in filename: continue
+                    name=Path(filename).parts[0]
+                    actual=Path(baseline['sources'][name]['root'])/Path(*Path(filename).parts[1:])
+                    if not actual.exists() or actual.read_bytes().replace(b'\r\n',b'\n')!=(source/filename).read_bytes().replace(b'\r\n',b'\n'):
+                        targets.add(name)
             test_modules=sorted(targets)
             assert test_modules
             (stage/'test_coverage.json').write_text(json.dumps({'target_suites':test_modules,

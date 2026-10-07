@@ -225,8 +225,16 @@ class TestDispatchGuide(TransactionCase):
         self.assertEqual(data["non_sales"], [{"code": "5", "reason": "Traslados internos", "count": 1, "amount": "11.000"}])
 
     def test_create_from_internal_picking(self):
-        picking_type = self.env["stock.picking.type"].search([
-            ("code", "=", "internal"), ("company_id", "=", self.env.company.id)], limit=1)
+        locations = self.env['stock.location'].create([
+            {'name': 'Origen traslado QA', 'usage': 'internal', 'company_id': self.env.company.id},
+            {'name': 'Destino traslado QA', 'usage': 'internal', 'company_id': self.env.company.id},
+        ])
+        picking_type = self.env['stock.picking.type'].create({
+            'name': 'Traslado interno QA', 'code': 'internal', 'sequence_code': 'TQA',
+            'company_id': self.env.company.id,
+            'default_location_src_id': locations[0].id,
+            'default_location_dest_id': locations[1].id,
+        })
         picking = self.env["stock.picking"].create({
             "picking_type_id": picking_type.id,
             "location_id": picking_type.default_location_src_id.id,
