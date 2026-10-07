@@ -210,3 +210,8 @@ dos traducciones originales, sin alteraciones fuera del encabezado. No hubo
 comentarios humanos nuevos en T54 al comprobarlo inmediatamente antes de la
 publicación. Código y herramientas guardados y subidos a la rama canónica;
 los resultados privados permanecen fuera del checkout.
+
+Comprobación adicional en Chrome: portada HTTPS con el encabezado actualizado,
+Odoo identificado como Agrícola Cerro El Plomo SpA, panel de Packing nativo,
+menús de operación, Historial anterior y Despacho/Traslado lotes visibles.
+T54 recibió la nota interna de evidencia 9259 y quedó en Solved (etapa 4).
