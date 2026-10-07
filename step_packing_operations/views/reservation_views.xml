@@ -4,7 +4,7 @@
         <field name="model">step.export.stock.reservation</field>
         <field name="inherit_id" ref="step_export.view_step_export_stock_reservation_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//form" position="inside">
+            <xpath expr="//sheet" position="before">
                 <header><button name="action_step_reserve" type="object" string="Reservar tarjas"
                     class="btn-primary" invisible="step_reservation_state != 'draft'"
                     groups="stock.group_stock_user"/>
