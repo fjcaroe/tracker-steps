@@ -3,7 +3,8 @@
     <field name="name">Notas de venta y proformas</field>
     <field name="res_model">sale.order</field>
     <field name="view_mode">list,form</field>
-    <field name="domain">['|',('step_export_shipment_id','!=',False),('step_export_sales_program_id','!=',False)]</field>
+    <field name="domain">['|','|',('step_export_sale','=',True),('step_export_shipment_id','!=',False),('step_export_sales_program_id','!=',False)]</field>
+    <field name="context">{'default_step_export_sale': True}</field>
   </record>
   <record id="action_export_invoices" model="ir.actions.act_window">
     <field name="name">Facturas de clientes</field>

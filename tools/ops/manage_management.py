@@ -73,6 +73,8 @@ def snapshot(database):
                 }
                 if table in additions:
                     row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
+            if MODULES == ('step_export',) and table == 'sale_order':
+                row = "(to_jsonb(t)-'step_export_sale')"
             condition = " WHERE key <> 'web.base.url'" if (SETTINGS or PRODUCERS) and table == 'ir_config_parameter' else ''
             statements.append("SELECT '%s',json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),'')))::text FROM %s t%s" % (table, row, row, table, condition))
     # One SQL statement sees a consistent MVCC snapshot across every table.
@@ -138,7 +140,7 @@ def main():
         BUSINESS = ('account_move', 'account_move_line')
     if args.kind == 'export':
         MODULES = ('step_export',)
-        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_export_%' OR tablename IN ('account_move','account_move_line')) ORDER BY tablename").splitlines())
+        BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename IN ('res_company','res_partner','sale_order','sale_order_line')) ORDER BY tablename").splitlines())
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'

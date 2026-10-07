@@ -2,6 +2,7 @@
 import importlib
 import json
 from odoo.tools.safe_eval import safe_eval
+from verify_export_sale import verify_export_sale
 
 try:
     module = env['ir.module.module'].search([('name', '=', 'step_export')])
@@ -34,6 +35,7 @@ try:
     arch = env['step.export.export'].get_view(view_type='form')['arch']
     for name in ('action_validate_shipment', 'sales_program_id', 'line_ids', 'vessel_id', 'consignee_id'):
         assert 'name="' + name + '"' in arch, name
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'version': module.latest_version, 'menus': checked}, ensure_ascii=False))
+    flow = verify_export_sale(env)
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'version': module.latest_version, 'menus': checked, 'sale_flow': flow}, ensure_ascii=False))
 finally:
     env.cr.rollback()
