@@ -19,9 +19,13 @@ try:
     env['ir.http'].routing_map()
     for case in CASES:
         key = previred.rut_key(case['rut'])
-        employee = env['hr.employee'].with_context(active_test=False).search([('identification_id', '!=', False)]).filtered(
+        employee_domain = [('identification_id', '!=', False)]
+        if case.get('company_id'):
+            employee_domain.append(('company_id', '=', case['company_id']))
+        employee = env['hr.employee'].with_context(active_test=False).search(employee_domain).filtered(
             lambda row: previred.rut_key(row.identification_id) == key)
-        assert len(employee) == 1, 'Expected exactly one employee for the private case'
+        assert len(employee) == 1, ('Expected exactly one employee for the private case',
+                                    case['rut'], employee.ids)
         company = employee.company_id
         scoped = env(context=dict(env.context, allowed_company_ids=company.ids))
         period = datetime.strptime(case['period'], '%m%Y').date()
