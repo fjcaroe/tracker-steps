@@ -80,6 +80,14 @@ Publicación y comprobación posterior
   heredadas TXT y CSV. Cinco registros de 105 campos; los dos casos requeridos
   declaran cero en campo 22 y la asignación en campo 73. Los dos archivos
   son idénticos en contenido y se guardan como evidencia privada.
+* Navegador SyS, septiembre: descarga TXT de T56 con tres registros y el
+  caso solicitado con campo 13 = 30; descarga TXT de T57 con 102 registros
+  y el caso solicitado con campo 22 = 0 y campo 24 = reintegro requerido.
+  Archivos nominativos retenidos exclusivamente como evidencia privada.
+* Navegador SyS: menú Reportes / Previred TXT Remuneraciones abre el
+  asistente canónico. Septiembre seleccionado mediante calendario; validación
+  de la empresa T57 informa período ``202609``, 83 liquidaciones elegibles,
+  102 líneas, cero errores y 17 advertencias informativas del conjunto.
 * Navegador Desarrollo después de la publicación final: las cinco etiquetas
   de documentos se muestran junto a sus selectores, sin pérdida de las 26
   tarjas del listado. Captura privada ``t55-desarrollo-verificado.jpg``.
@@ -87,3 +95,12 @@ Publicación y comprobación posterior
 Fuente de formato: `PreviRed, largo variable por separador
 <https://www.previred.com/documents/FormatosArchivos/FormatoLargoVariablePorSeparador.pdf>`_.
 No se envían declaraciones ni pagos a PreviRed durante estas comprobaciones.
+
+Cierre de soporte
+-----------------
+
+Los cinco tickets quedan en ``Solved`` tras las comprobaciones de destino.
+Notas internas 9262 (T19), 9263 (T55), 9264 (T56), 9265 (T57) y 9266 (T58).
+Las evidencias nominativas no se publican en Git.
+El cierre desactiva tracking para no ejecutar la plantilla automática de
+correo de la etapa; se verifica que no se creen correos salientes.
