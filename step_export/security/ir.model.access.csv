@@ -1,4 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_export_customs_port_read,export customs port read,l10n_cl_edi_exports.model_l10n_cl_customs_port,base.group_user,1,0,0,0
 access_step_export_sales_program_user,step_export_sales_program.user,model_step_export_sales_program,base.group_user,1,1,1,0
 access_step_export_sales_program_line_user,step_export_sales_program_line.user,model_step_export_sales_program_line,base.group_user,1,1,1,1
 access_step_export_shipment_line_user,step_export_shipment_line.user,model_step_export_shipment_line,base.group_user,1,1,1,1

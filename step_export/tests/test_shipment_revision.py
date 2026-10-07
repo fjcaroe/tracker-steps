@@ -2,11 +2,20 @@ import importlib.util
 from pathlib import Path
 from lxml import etree
 from odoo.tests import TransactionCase, tagged
+from odoo.tests.common import new_test_user
 from odoo.tools.safe_eval import safe_eval
 
 
 @tagged('post_install', '-at_install')
 class TestShipmentRevision(TransactionCase):
+
+    def test_export_user_can_read_ports_without_master_write_permissions(self):
+        user = new_test_user(self.env, login='qa-t35-port-read', groups='base.group_user')
+        access = self.env['ir.model.access'].with_user(user)
+        self.assertTrue(access.check('l10n_cl.customs_port', 'read', raise_exception=False))
+        for operation in ('write', 'create', 'unlink'):
+            self.assertFalse(access.check('l10n_cl.customs_port', operation, raise_exception=False))
+        self.assertTrue(self.env['l10n_cl.customs_port'].with_user(user).search([], limit=1))
 
     def test_participant_selectors_use_existing_export_contact_flag(self):
         eligible = self.env['res.partner'].create({'name': 'QA export participant', 'step_export': True})
