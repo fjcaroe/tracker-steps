@@ -90,7 +90,7 @@
   function showKindFields() {
     const kind = $("kind").value;
     $("new-tag-fields").hidden = kind === "C";
-    $("national-fields").hidden = kind !== "N";
+    $("national-fields").hidden = kind === "C";
   }
   async function synchronize() {
     if (!queue.length) { message("No hay registros pendientes."); return; }

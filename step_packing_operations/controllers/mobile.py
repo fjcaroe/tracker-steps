@@ -40,7 +40,7 @@ class PackingMobile(http.Controller):
                 "id": order.id, "name": order.name,
                 "producer": order.fruit_grower_id.display_name or "",
                 "variety": order.fruit_variety_id.display_name or "",
-                "product": order.product_id.display_name,
+                "product": order.raw_product_id.display_name or order.product_id.display_name or "",
             } for order in orders]
         if operation == "scan":
             return self._scan(payload)
@@ -76,19 +76,18 @@ class PackingMobile(http.Controller):
             if min(quantity, boxes, kilos) <= 0:
                 raise ValidationError(_("Cantidad, cajas y kilos deben ser positivos."))
             product = production.product_id
-            if kind == "N":
-                product_code = (payload.get("product_code") or "").strip()
-                if not product_code:
-                    raise ValidationError(_("Indique el código de producto nacional."))
+            product_code = (payload.get("product_code") or "").strip()
+            if product_code:
                 product = request.env["product.product"].search([
                     ("default_code", "=", product_code)], limit=1)
-                if not product:
-                    raise ValidationError(_("No se encontró el producto nacional."))
+            if not product or kind == 'N' and not product_code:
+                raise ValidationError(_("Indique el código del producto resultante."))
             result = "export" if kind == "E" else (payload.get("result") or "")
             if result not in ("export", "commercial", "precaliber", "waste") or (kind == "N" and result == "export"):
                 raise ValidationError(_("Seleccione el resultado comercial, precalibre o desecho."))
             package = package_model.create({
                 "name": code, "is_fruit_tag": True, "step_tag_kind": kind,
+                "step_packing_production_id": production.id,
                 "step_packing_result": result,
                 "step_producer_id": production.fruit_grower_id.id,
                 "fundo_id": production.fruit_fundo_id.id,

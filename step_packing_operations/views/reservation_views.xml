@@ -6,7 +6,7 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <header><button name="action_step_reserve" type="object" string="Reservar tarjas"
-                    class="btn-primary" invisible="not step_packing_order_id or step_reservation_state != 'draft'"
+                    class="btn-primary" invisible="step_reservation_state != 'draft'"
                     groups="stock.group_stock_user"/>
                     <button name="action_step_release" type="object" string="Liberar reserva"
                     invisible="step_reservation_state != 'reserved'" groups="stock.group_stock_user"/>
@@ -14,9 +14,21 @@
                 </header>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="step_packing_order_id"/>
-                <field name="step_package_ids" widget="many2many_tags"
-                    domain="[('is_fruit_tag','=',True),('step_tag_state','=','validated')]"/>
+                <field name="destination_country_id" readonly="step_reservation_state != 'draft'"/>
+                <field name="sales_program_id" readonly="step_reservation_state != 'draft'" domain="[('state','=','current'),('company_id','=',company_id)]"/>
+                <field name="step_packing_order_id" readonly="step_reservation_state != 'draft'"/>
+                <field name="species_id"/><field name="variety_id"/><field name="producer_id"/>
+                <field name="caliber_id"/><field name="category_id"/><field name="tag_kind"/>
+                <field name="step_package_ids" readonly="step_reservation_state != 'draft'" options="{'no_create': True}"
+                    domain="[('is_fruit_tag','=',True),('step_tag_state','=','validated'),('especie_id','=?',species_id),('variedad_id','=?',variety_id),('step_tag_line_ids.producer_id','=?',producer_id),('fruit_caliber_id','=?',caliber_id),('fruit_category_id','=?',category_id),('step_tag_kind','=?',tag_kind)]">
+                    <list create="0"><field name="name"/><field name="step_producer_id"/><field name="step_result_product_id"/>
+                        <field name="especie_id"/><field name="variedad_id"/><field name="step_packaging_id"/>
+                        <field name="fruit_category_id"/><field name="fruit_caliber_id"/>
+                        <field name="box_count" sum="Cajas"/><field name="step_actual_kg" sum="Kilos"/>
+                        <field name="step_reserved_ids" widget="many2many_tags"/>
+                    </list>
+                </field>
+                <field name="boxes_total"/><field name="kilos_total"/>
                 <field name="step_picking_id" readonly="1"/>
             </xpath>
         </field>

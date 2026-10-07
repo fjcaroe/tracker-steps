@@ -70,6 +70,84 @@ class TestPackingOperations(TransactionCase):
             vals["bom_id"] = bom.id
         return self.env["step.packing.production"].create(vals)
 
+    def test_revision_multi_product_output_created_from_ot(self):
+        incoming = self._tag('T41-R2-C', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        self._stock(self.raw, 100, incoming)
+        ot = self.env['step.packing.production'].create({
+            'raw_product_id': self.raw.id, 'fruit_grower_id': self.producer.id,
+            'fruit_species_id': self.species.id, 'fruit_variety_id': self.variety.id,
+            'step_packing_input_tag_ids': [(6, 0, incoming.ids)]})
+        action = ot.action_create_export_tag()
+        self.assertEqual(action['context']['default_step_packing_production_id'], ot.id)
+        export = self._tag('T41-R2-E', 'E', self.finished, 80, 16, 'export')
+        national = self._tag('T41-R2-N', 'N', self.national, 15, 15, 'commercial')
+        ot.step_packing_output_tag_ids = export | national
+        self.env['mrp.bom'].create({'product_tmpl_id': self.finished.product_tmpl_id.id,
+            'product_qty': 1, 'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})]})
+        self._stock(self.carton, 16)
+        ot.action_step_packing_validate()
+        ot.action_prepare_materials()
+        ot.action_approve_materials()
+        ot.action_step_packing_close()
+        self.assertFalse(ot.product_id)
+        self.assertEqual(ot.state, 'closed')
+        self.assertEqual(ot.step_packing_loss_kg, 5)
+        self.assertEqual(set(ot.output_picking_id.move_ids.product_id.ids), {self.finished.id, self.national.id})
+        self.assertEqual(national.quant_ids.owner_id, self.producer)
+
+    def test_revision_output_create_attaches_and_locks_detail(self):
+        ot = self.env['step.packing.production'].create({'fruit_grower_id': self.producer.id,
+            'fruit_species_id': self.species.id, 'fruit_variety_id': self.variety.id})
+        action = ot.action_create_export_tag()
+        tag = self.env['stock.quant.package'].with_context(**action['context']).create({
+            'step_tag_line_ids': [(0, 0, {'producer_id': self.producer.id, 'product_id': self.finished.id,
+                                        'quantity': 10, 'boxes': 10, 'kilos': 50})]})
+        self.assertEqual(ot.step_packing_output_tag_ids, tag)
+        self.assertEqual(tag.step_packing_production_id, ot)
+        self.assertEqual(tag.step_result_product_id, self.finished)
+
+    def test_revision_reservation_checks_country_at_assignment(self):
+        tag = self._tag('T41-R2-RES', 'E', self.finished, 50, 10, 'export')
+        tag.action_step_validate_tag()
+        self._stock(self.finished, 10, tag)
+        country = self.env.ref('base.us')
+        reservation = self.env['step.export.stock.reservation'].create({
+            'name': 'Reserva mercado T41', 'destination_country_id': country.id,
+            'step_package_ids': [(6, 0, tag.ids)]})
+        reservation.action_step_reserve()
+        self.assertEqual(tag.step_reserved_ids, reservation)
+        shipment = self.env['step.export.export'].create({'name': 'Embarque T41 país',
+            'destination_country_id': country.id, 'tag_ids': [(6, 0, tag.ids)]})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            shipment.destination_country_id = self.env.ref('base.cl')
+        with self.assertRaises(UserError):
+            reservation.destination_country_id = self.env.ref('base.cl')
+        reservation.action_step_release()
+        shipment.destination_country_id = self.env.ref('base.cl')
+
+    def test_revision_repack_preserves_lot_owner_and_source(self):
+        self.finished.tracking = 'lot'
+        lot = self.env['stock.lot'].create({'name': 'T41-R2-LOT', 'product_id': self.finished.id,
+                                         'company_id': self.company.id})
+        source = self._tag('T41-R2-SOURCE', 'E', self.finished, 50, 10, 'export')
+        source.step_tag_line_ids.lot_id = lot
+        source.action_step_validate_tag()
+        target = self.env['stock.quant.package'].create({'name': 'T41-R2-TARGET', 'is_fruit_tag': True,
+            'step_tag_kind': 'E', 'step_packing_result': 'export', 'especie_id': self.species.id,
+            'variedad_id': self.variety.id})
+        self.env['stock.quant']._update_available_quantity(self.finished, self.location, 10,
+            lot_id=lot, owner_id=self.producer, package_id=source)
+        repack = self.env['step.packing.repack'].create({'line_ids': [(0, 0, {
+            'source_package_id': source.id, 'target_package_id': target.id,
+            'producer_id': self.producer.id, 'product_id': self.finished.id,
+            'quantity': 10, 'boxes': 10, 'kilos': 50})]})
+        repack.action_validate()
+        self.assertEqual(target.step_tag_line_ids.source_package_id, source)
+        self.assertEqual(target.step_tag_line_ids.lot_id, lot)
+        self.assertEqual(target.quant_ids.owner_id, self.producer)
+        self.assertEqual(target.quant_ids.lot_id, lot)
+
     def test_order_material_needs_and_creation(self):
         bom = self.env["mrp.bom"].create({
             "product_tmpl_id": self.finished.product_tmpl_id.id,

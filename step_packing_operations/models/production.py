@@ -26,7 +26,7 @@ class PackingProcessType(models.Model):
     _inherit = "step.packing.process.type"
 
     step_category = fields.Selection([
-        ("packing", "Embalaje"), ("correction", "Corrección"),
+        ("selection", "Selección"), ("packing", "Embalaje"), ("correction", "Corrección"),
     ], string="Categoría de proceso", default="packing", required=True)
 
 
@@ -46,7 +46,7 @@ class PackingProduction(models.Model):
     company_id = fields.Many2one("res.company", required=True, default=lambda self: self.env.company)
     step_packing_order_id = fields.Many2one("step.packing.order", string="Orden de proceso", index=True)
     step_packing_line_id = fields.Many2one("step.packing.line", string="Línea de proceso")
-    product_id = fields.Many2one("product.product", string="Producto terminado", required=True)
+    product_id = fields.Many2one("product.product", string="Producto planificado de referencia")
     product_qty = fields.Float(string="Cajas planificadas", digits="Product Unit of Measure")
     product_uom_id = fields.Many2one("uom.uom", string="UdM", required=True,
         default=lambda self: self.env.ref("uom.product_uom_unit"))

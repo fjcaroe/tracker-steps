@@ -1,0 +1,17 @@
+<odoo>
+    <record id="view_fruit_tag_revision" model="ir.ui.view">
+        <field name="name">fruit.tag.packing.revision</field><field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='step_tag_kind']" position="after">
+                <field name="step_packing_production_id" readonly="id"/>
+                <field name="step_packing_result" readonly="step_tag_state != 'created'"/>
+                <field name="step_packaging_id" readonly="step_tag_state != 'created'"/>
+                <field name="step_reserved_ids" widget="many2many_tags" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='step_tag_line_ids']/list/field[@name='producer_id']" position="before">
+                <field name="source_package_id" readonly="1" optional="hide"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -37,21 +37,35 @@ class PackingStockReservation(models.Model):
 
     def _reserve(self):
         for reservation in self:
-            if reservation.step_reservation_state != "draft" or not reservation.step_packing_order_id:
-                raise UserError(_("Seleccione una orden de Packing en una reserva creada."))
-            if reservation.step_packing_order_id.state != "validated" or not reservation.step_package_ids:
-                raise ValidationError(_("La orden debe estar validada y tener tarjas para reservar."))
-            if reservation.step_packing_order_id.company_id != reservation.company_id:
+            if reservation.step_reservation_state != "draft" or not reservation.step_package_ids:
+                raise UserError(_("Seleccione tarjas en una reserva creada."))
+            if not (reservation.destination_country_id or reservation.sales_program_id or reservation.step_packing_order_id):
+                raise ValidationError(_("Indique mercado/país o programa de ventas para reservar."))
+            if reservation.sales_program_id and (reservation.sales_program_id.company_id != reservation.company_id or reservation.sales_program_id.state != 'current'):
+                raise ValidationError(_("Seleccione un programa vigente de esta empresa."))
+            if reservation.step_packing_order_id and reservation.step_packing_order_id.state != 'validated':
+                raise ValidationError(_("La orden debe estar validada."))
+            if reservation.step_packing_order_id and reservation.step_packing_order_id.company_id != reservation.company_id:
                 raise ValidationError(_("La reserva y la orden pertenecen a distintas empresas."))
             instruction = reservation.step_instruction_id
-            if not instruction or instruction.order_id != reservation.step_packing_order_id or instruction.state != 'approved':
+            if reservation.step_packing_order_id and (not instruction or instruction.order_id != reservation.step_packing_order_id or instruction.state != 'approved'):
                 raise ValidationError(_("Seleccione una versión aprobada del instructivo de esta OP."))
             packages = reservation.step_package_ids
+            if self.search_count([('id', '!=', reservation.id), ('step_reservation_state', '=', 'reserved'), ('step_package_ids', 'in', packages.ids)]):
+                raise ValidationError(_("Una tarja ya tiene una reserva vigente."))
+            shipments = self.env['step.export.export'].search([('tag_ids', 'in', packages.ids)])
+            for shipment in shipments:
+                if (shipment.company_id != reservation.company_id or
+                        reservation.sales_program_id and shipment.sales_program_id != reservation.sales_program_id or
+                        reservation.destination_country_id and shipment.destination_country_id != reservation.destination_country_id):
+                    raise ValidationError(_("Una tarja ya está asignada a un embarque de otro mercado o programa."))
             if any(not tag.is_fruit_tag or tag.step_tag_state != "validated" for tag in packages):
                 raise ValidationError(_("Solo se reservan tarjas de fruta validadas."))
             if packages & reservation.step_packing_order_id.production_ids.mapped("step_packing_input_tag_ids"):
                 raise ValidationError(_("Libere primero la reserva antes de asignar tarjas a una OT."))
             quants = packages.mapped("quant_ids").filtered(lambda quant: quant.quantity > 0)
+            if any(quant.company_id != reservation.company_id for quant in quants):
+                raise ValidationError(_("Las tarjas deben pertenecer a la empresa de la reserva."))
             locations = quants.mapped("location_id")
             if len(locations) != 1 or locations.usage != "internal":
                 raise ValidationError(_("Las tarjas deben tener existencias en una ubicación interna común."))

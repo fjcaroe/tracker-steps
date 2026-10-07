@@ -56,8 +56,8 @@ class PackingRepack(models.Model):
             raise ValidationError(_("No mezcle tipos de tarja en un proceso."))
         if sources[0].step_tag_kind != targets[0].step_tag_kind:
             raise ValidationError(_("La tarja de destino debe conservar el tipo C, E o N."))
-        attributes = ("step_tag_kind", "variedad_id", "fruit_quality_id", "fruit_category_id",
-                      "fruit_caliber_id", "label", "package_type_id", "step_packing_result")
+        attributes = ("step_tag_kind", "especie_id", "variedad_id", "fruit_type", "fruit_quality_id", "fruit_category_id",
+                      "fruit_caliber_id", "label", "package_type_id", "step_packaging_id", "step_packing_result")
         reference = sources[0]
         for package in sources | targets:
             if not package.is_fruit_tag or any(package[field] != reference[field] for field in attributes):
@@ -89,18 +89,31 @@ class PackingRepack(models.Model):
             for key in expected for i in range(3)
         ):
             raise ValidationError(_("La cantidad, cajas y kilos de origen deben entrar íntegros en otras tarjas."))
-        locations = sources.mapped("quant_ids.location_id")
+        locations = sources.quant_ids.filtered(lambda quant: quant.quantity > 0).location_id
         if len(locations) != 1 or locations.usage != "internal":
             raise ValidationError(_("Las tarjas de origen deben estar en una misma ubicación interna."))
-        quant = self.env["stock.quant"]
+        allocations = defaultdict(float)
         for line in self.line_ids:
-            available = quant._get_available_quantity(
-                line.product_id, locations, package_id=line.source_package_id, strict=True)
-            if float_compare(available, line.quantity, precision_digits=2) < 0:
+            matching = line.source_package_id.step_tag_line_ids.filtered(lambda detail:
+                detail.product_id == line.product_id and detail.producer_id == line.producer_id)
+            if len(matching) != 1:
+                raise ValidationError(_("La distribución necesita un detalle de origen único por producto y productor."))
+            quants = line.source_package_id.quant_ids.filtered(lambda quant:
+                quant.product_id == line.product_id and quant.lot_id == matching.lot_id and quant.quantity > 0)
+            if any(quant.company_id != self.company_id for quant in quants):
+                raise ValidationError(_("La fruta debe pertenecer a la empresa del repaletizado."))
+            allocations[(line.source_package_id.id, line.product_id.id)] += line.quantity
+            available = sum(quant.quantity - quant.reserved_quantity for quant in quants)
+            if float_compare(available, allocations[(line.source_package_id.id, line.product_id.id)], precision_digits=2) < 0:
                 raise ValidationError(_("No hay existencias suficientes en la tarja %s.") % line.source_package_id.name)
         return locations
 
     def action_validate(self):
+        self.check_access('write')
+        packages = self.line_ids.source_package_id | self.line_ids.target_package_id
+        if packages:
+            self.env.cr.execute('SELECT id FROM stock_quant_package WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(packages.ids))])
+            packages.invalidate_recordset()
         for repack in self:
             location = repack._check_repack()
             warehouse = self.env["stock.warehouse"].search([
@@ -116,7 +129,9 @@ class PackingRepack(models.Model):
                 source = repack.line_ids.filtered(lambda line: line.target_package_id == target)[0].source_package_id
                 grouped = defaultdict(lambda: [0.0, 0.0, 0.0])
                 for line in repack.line_ids.filtered(lambda line: line.target_package_id == target):
-                    values = grouped[(line.producer_id.id, line.product_id.id)]
+                    detail = line.source_package_id.step_tag_line_ids.filtered(lambda row:
+                        row.product_id == line.product_id and row.producer_id == line.producer_id)
+                    values = grouped[(line.source_package_id.id, line.producer_id.id, line.product_id.id, detail.lot_id.id)]
                     values[0] += line.quantity
                     values[1] += line.boxes
                     values[2] += line.kilos
@@ -126,9 +141,10 @@ class PackingRepack(models.Model):
                     "box_count": round(sum(line.boxes for line in repack.line_ids.filtered(
                         lambda line: line.target_package_id == target))),
                     "step_tag_line_ids": [(0, 0, {
-                        "producer_id": producer_id, "product_id": product_id,
+                        "source_package_id": source_id, "producer_id": producer_id, "product_id": product_id,
+                        "lot_id": lot_id,
                         "quantity": values[0], "boxes": values[1], "kilos": values[2],
-                    }) for (producer_id, product_id), values in grouped.items()],
+                    }) for (source_id, producer_id, product_id, lot_id), values in grouped.items()],
                 })
             picking = self.env["stock.picking"].create({
                 "picking_type_id": warehouse.int_type_id.id,
@@ -146,21 +162,32 @@ class PackingRepack(models.Model):
                 }) for line in repack.line_ids],
             })
             picking.action_confirm()
+            picking.do_unreserve()
+            allocated = defaultdict(float)
             # action_confirm may merge moves for the same product. Keep one
             # move line per source/target pair so no producer's boxes vanish.
             for line in repack.line_ids:
                 move = picking.move_ids.filtered(lambda row: row.product_id == line.product_id)
                 if len(move) != 1:
                     raise ValidationError(_("No se encontró un movimiento único para %s.") % line.product_id.display_name)
-                self.env["stock.move.line"].create({
-                    "move_id": move.id, "picking_id": picking.id,
-                    "product_id": line.product_id.id,
-                    "product_uom_id": line.product_id.uom_id.id,
-                    "quantity": line.quantity,
-                    "location_id": location.id, "location_dest_id": location.id,
-                    "package_id": line.source_package_id.id,
-                    "result_package_id": line.target_package_id.id,
-                })
+                detail = line.source_package_id.step_tag_line_ids.filtered(lambda row:
+                    row.product_id == line.product_id and row.producer_id == line.producer_id)
+                remaining = line.quantity
+                for quant in line.source_package_id.quant_ids.filtered(lambda row:
+                        row.product_id == line.product_id and row.lot_id == detail.lot_id and row.quantity > 0):
+                    qty = min(remaining, quant.quantity - quant.reserved_quantity - allocated[quant.id])
+                    if qty <= 0:
+                        continue
+                    self.env['stock.move.line'].create({
+                        'move_id': move.id, 'picking_id': picking.id,
+                        'product_id': line.product_id.id, 'product_uom_id': line.product_id.uom_id.id,
+                        'quantity': qty, 'location_id': location.id, 'location_dest_id': location.id,
+                        'package_id': line.source_package_id.id, 'result_package_id': line.target_package_id.id,
+                        'lot_id': quant.lot_id.id, 'owner_id': quant.owner_id.id})
+                    remaining -= qty
+                    allocated[quant.id] += qty
+                if float_compare(remaining, 0, precision_digits=2):
+                    raise ValidationError(_("No se pudo trasladar íntegramente el lote de origen."))
             picking.button_validate()
             if picking.state != "done":
                 raise UserError(_("Complete el traslado de repaletizado en Inventario."))

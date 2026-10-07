@@ -38,7 +38,7 @@
                                 <label for="boxes">Cajas</label><input id="boxes" type="number" min="1" step="1"/>
                                 <label for="kilos">Kilos</label><input id="kilos" type="number" min="0.001" step="0.001"/>
                                 <div id="national-fields" hidden="hidden">
-                                    <label for="product-code">Código de producto nacional</label>
+                                    <label for="product-code">Código del producto resultante</label>
                                     <input id="product-code" autocomplete="off"/>
                                     <label for="result">Resultado</label>
                                     <select id="result"><option value="commercial">Comercial</option>
