@@ -32,6 +32,9 @@ class ExportClaim(models.Model):
         for claim in self:
             if (claim.tag_ids | claim.line_ids.mapped("tag_id")) - claim.shipment_ids.mapped("tag_ids"):
                 raise ValidationError(_("Las tarjas reclamadas deben pertenecer a los embarques indicados."))
+            for tag in claim.line_ids.mapped("tag_id"):
+                if len(claim.shipment_ids.filtered(lambda shipment: tag in shipment.tag_ids)) != 1:
+                    raise ValidationError(_("Cada tarja del detalle debe corresponder a un único embarque del reclamo."))
 
     def action_load_shipment_tags(self):
         self.ensure_one()
@@ -48,7 +51,7 @@ class ExportClaim(models.Model):
                          "accepted_amount_usd": sum(claim.line_ids.mapped("accepted_amount_usd")),
                          "tag_ids": [(6, 0, selected.mapped("tag_id").ids)]})
 
-    @api.onchange("line_ids", "line_ids.claimed_amount_usd", "line_ids.accepted_amount_usd")
+    @api.onchange("line_ids")
     def _onchange_line_amounts(self):
         if self.line_ids:
             self.claimed_amount_usd = sum(self.line_ids.mapped("claimed_amount_usd"))
@@ -123,6 +126,8 @@ class ExportClaimLine(models.Model):
         for line in self:
             if line.tag_id not in line.claim_id.shipment_ids.mapped("tag_ids"):
                 raise ValidationError(_("La tarja debe pertenecer al embarque reclamado."))
+            if len(line.claim_id.shipment_ids.filtered(lambda shipment: line.tag_id in shipment.tag_ids)) != 1:
+                raise ValidationError(_("La tarja del detalle corresponde a más de un embarque del reclamo."))
             if line.claimed_amount_usd < 0 or not 0 <= line.accepted_amount_usd <= line.claimed_amount_usd:
                 raise ValidationError(_("El monto aceptado debe estar entre cero y el reclamado por tarja."))
 

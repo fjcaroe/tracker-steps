@@ -337,11 +337,15 @@ class ReceiverSettlementLine(models.Model):
     ]
 
     @api.depends("shipment_id.claim_ids.state", "shipment_id.claim_ids.accepted_amount_usd",
-                 "shipment_id.claim_ids.shipment_ids", "shipment_id.kg_qty")
+                 "shipment_id.claim_ids.shipment_ids", "shipment_id.kg_qty", "shipment_id.tag_ids",
+                 "shipment_id.claim_ids.line_ids.accepted_amount_usd", "shipment_id.claim_ids.line_ids.tag_id")
     def _compute_claim(self):
         for line in self:
             amount = 0
             for claim in line.shipment_id.claim_ids.filtered(lambda rec: rec.state == "accepted"):
+                if claim.line_ids:
+                    amount += sum(claim.line_ids.filtered(lambda row: row.tag_id in line.shipment_id.tag_ids).mapped("accepted_amount_usd"))
+                    continue
                 total_kg = sum(claim.shipment_ids.mapped("kg_qty"))
                 weight = line.shipment_id.kg_qty / total_kg if total_kg else 1 / len(claim.shipment_ids)
                 amount += claim.accepted_amount_usd * weight

@@ -7,7 +7,7 @@ from odoo.tests import TransactionCase, tagged
 class TestTagClaimRevision(TransactionCase):
     def _fixtures(self):
         receiver = self.env['res.partner'].create({'name': 'QA T35 claim receiver'})
-        tags = self.env['stock.quant.package'].create([
+        tags = self.env['stock.quant.package'].with_context(default_step_tag_kind='E').create([
             {'name': 'QA T35 selected A', 'is_fruit_tag': True, 'box_count': 184},
             {'name': 'QA T35 selected B', 'is_fruit_tag': True, 'box_count': 184},
             {'name': 'QA T35 unrelated', 'is_fruit_tag': True}])
@@ -80,3 +80,19 @@ class TestTagClaimRevision(TransactionCase):
         claim.action_accept()
         self.assertEqual(claim.claimed_amount_usd, 2000)
         self.assertEqual(claim.accepted_amount_usd, 1100)
+
+    def test_settlement_uses_tag_amounts_for_each_shipment(self):
+        tags, first, claim = self._fixtures()
+        first.tag_ids = tags[0]
+        second = self.env['step.export.export'].create({'name': 'QA T35 second shipment', 'tag_ids': [(4, tags[1].id)]})
+        claim.shipment_ids = first | second
+        claim.action_load_shipment_tags()
+        for line in claim.line_ids:
+            line.write({'claimed_amount_usd': 1000, 'accepted_amount_usd': 500 if line.tag_id == tags[0] else 600})
+        claim.action_accept()
+        first_line = self.env['step.export.receiver.settlement.line'].new({'shipment_id': first.id})
+        second_line = self.env['step.export.receiver.settlement.line'].new({'shipment_id': second.id})
+        first_line._compute_claim()
+        second_line._compute_claim()
+        self.assertEqual(first_line.claim_usd, 500)
+        self.assertEqual(second_line.claim_usd, 600)

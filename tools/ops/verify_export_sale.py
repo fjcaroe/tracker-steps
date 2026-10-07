@@ -59,7 +59,7 @@ def verify_export_sale(env):
     html, _ = env['ir.actions.report'].with_user(user)._render_qweb_html(
         'step_export.action_report_export_packing_list', packing.ids)
     assert packing.name.encode() in html and b'QA-CONTAINER-35' in html
-    tags = env['stock.quant.package'].with_user(user).create([
+    tags = env['stock.quant.package'].with_user(user).with_context(default_step_tag_kind='E').create([
         {'name': 'QA T35 CLAIM TAG A', 'is_fruit_tag': True, 'box_count': 184},
         {'name': 'QA T35 CLAIM TAG B', 'is_fruit_tag': True, 'box_count': 184}])
     shipment.tag_ids = tags
