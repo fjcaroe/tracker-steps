@@ -19,7 +19,7 @@ if 'step_hr_previred' in EXPECTED:
     assert menu.action.res_model == 'step.previred.export.wizard'
 else:
     arch = etree.fromstring(env['stock.quant.package'].get_view(view_type='form')['arch'].encode())
-    for name in ('step_export_shipment_ids', 'step_guide_ids', 'step_invoice_ids', 'step_dus_shipment_id', 'step_bl_shipment_id', 'step_packing_production_id', 'step_packing_line_id', 'step_process_type_id', 'step_process_order_id', 'step_packing_partner_id'):
+    for name in ('step_export_shipment_ids', 'step_guide_ids', 'step_invoice_ids', 'step_dus_shipment_ids', 'step_bl_shipment_ids', 'step_packing_production_id', 'step_packing_line_id', 'step_process_type_id', 'step_process_order_id', 'step_packing_partner_id'):
         assert env['stock.quant.package']._fields[name].type in ('many2one', 'many2many')
         assert arch.xpath("//field[@name='%s']" % name), name
     for name in ('step_shipment', 'step_dispatch_guide', 'step_dus', 'step_invoice', 'step_bl_awb', 'process_type', 'packing_plant', 'process_line', 'op_folio', 'ot_proceso'):

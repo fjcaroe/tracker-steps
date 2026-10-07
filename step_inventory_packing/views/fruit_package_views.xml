@@ -25,11 +25,18 @@
                                 class="btn-primary" invisible="step_tag_state != 'created'"/>
                     </group>
                     <group string="Salida / venta">
-                        <field name="step_shipment"/>
-                        <field name="step_dispatch_guide"/>
-                        <field name="step_dus"/>
-                        <field name="step_invoice"/>
-                        <field name="step_bl_awb"/>
+                        <field name="step_export_shipment_ids" widget="many2many_tags" options="{'no_create': True}" domain="[('company_id','=',company_id)]"/>
+                        <field name="step_guide_ids" widget="many2many_tags" options="{'no_create': True}" domain="[('company_id','=',company_id)]"/>
+                        <field name="step_dus_shipment_ids" widget="many2many_tags" options="{'no_create': True}" context="{'step_document_reference':'dus_folio'}" domain="[('id','in',step_export_shipment_ids),('dus_folio','!=',False)]"/>
+                        <field name="step_invoice_ids" widget="many2many_tags" options="{'no_create': True}" domain="[('company_id','=',company_id),('move_type','in',['out_invoice','out_refund'])]"/>
+                        <field name="step_bl_shipment_ids" widget="many2many_tags" options="{'no_create': True}" context="{'step_document_reference':'bl_folio'}" domain="[('id','in',step_export_shipment_ids),('bl_folio','!=',False)]"/>
+                        <group string="Referencias históricas" invisible="not (step_shipment or step_dispatch_guide or step_dus or step_invoice or step_bl_awb)">
+                            <field name="step_shipment" readonly="1"/>
+                            <field name="step_dispatch_guide" readonly="1"/>
+                            <field name="step_dus" readonly="1"/>
+                            <field name="step_invoice" readonly="1"/>
+                            <field name="step_bl_awb" readonly="1"/>
+                        </group>
                     </group>
                     <field name="step_tag_line_ids">
                         <list editable="bottom">

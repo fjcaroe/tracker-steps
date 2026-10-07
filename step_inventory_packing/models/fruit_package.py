@@ -26,6 +26,45 @@ class StockQuantPackage(models.Model):
     step_dus = fields.Char(string="DUS")
     step_invoice = fields.Char(string="Factura")
     step_bl_awb = fields.Char(string="BL / AWB")
+    step_guide_ids = fields.Many2many('step.dispatch.guide', string='Guía SII', check_company=True)
+    step_invoice_ids = fields.Many2many('account.move', string='Factura', check_company=True,
+                                      domain="[('move_type','in',['out_invoice','out_refund'])]")
+    step_dus_shipment_ids = fields.Many2many('step.export.export', relation='step_tag_dus_shipment_rel',
+                                            string='DUS', check_company=True)
+    step_bl_shipment_ids = fields.Many2many('step.export.export', relation='step_tag_bl_shipment_rel',
+                                           string='BL / AWB', check_company=True)
+
+    @api.constrains('step_export_shipment_ids', 'step_guide_ids', 'step_invoice_ids',
+                    'step_dus_shipment_ids', 'step_bl_shipment_ids', 'company_id')
+    def _check_document_links(self):
+        for tag in self:
+            shipments = tag.step_export_shipment_ids
+            company = tag.company_id or self.env.company
+            documents = [*shipments, *tag.step_guide_ids, *tag.step_invoice_ids,
+                         *tag.step_dus_shipment_ids, *tag.step_bl_shipment_ids]
+            if any(record.company_id != company for record in documents):
+                raise ValidationError(_('Los documentos y embarques deben pertenecer a la empresa de la tarja.'))
+            if tag.step_dus_shipment_ids - shipments or tag.step_bl_shipment_ids - shipments:
+                raise ValidationError(_('Seleccione DUS y BL/AWB de los embarques vinculados a la tarja.'))
+            if any(not row.dus_folio for row in tag.step_dus_shipment_ids) or any(not row.bl_folio for row in tag.step_bl_shipment_ids):
+                raise ValidationError(_('El embarque seleccionado debe tener su DUS o BL/AWB registrado.'))
+            if shipments:
+                if tag.step_guide_ids - shipments.dispatch_guide_ids or tag.step_invoice_ids - shipments.invoice_ids:
+                    raise ValidationError(_('Seleccione guías y facturas de los embarques vinculados a la tarja.'))
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._check_document_commands(vals)
+        tags = super().create(vals_list)
+        if any(shipment.state in ('shipped', 'invoiced', 'settled') for shipment in tags.step_export_shipment_ids):
+            raise UserError(_('La carga de un embarque ya embarcado no puede modificarse desde una tarja.'))
+        return tags
+
+    def _check_document_commands(self, vals):
+        for name in ('step_export_shipment_ids', 'step_guide_ids', 'step_invoice_ids', 'step_dus_shipment_ids', 'step_bl_shipment_ids'):
+            if any(command[0] not in (3, 4, 5, 6) for command in vals.get(name, [])):
+                raise UserError(_('Seleccione documentos existentes; no se modifican documentos desde la tarja.'))
     step_tag_line_ids = fields.One2many("step.fruit.package.line", "package_id", string="Detalle por productor")
     step_actual_kg = fields.Float(string="Kilos reales", compute="_compute_step_actual_kg", digits="Stock Weight")
     step_composition = fields.Selection([
@@ -80,6 +119,16 @@ class StockQuantPackage(models.Model):
         return True
 
     def write(self, vals):
+        self._check_document_commands(vals)
+        if 'step_export_shipment_ids' in vals:
+            closed = self.step_export_shipment_ids.filtered(lambda row: row.state in ('shipped', 'invoiced', 'settled'))
+            ids = {command[1] for command in vals['step_export_shipment_ids'] if command[0] == 4}
+            for command in vals['step_export_shipment_ids']:
+                if command[0] == 6:
+                    ids.update(command[2])
+            closed |= self.env['step.export.export'].browse(list(ids)).filtered(lambda row: row.state in ('shipped', 'invoiced', 'settled'))
+            if closed:
+                raise UserError(_('La carga de un embarque ya embarcado no puede modificarse desde una tarja.'))
         locked = {"step_tag_kind", "step_producer_id", "fundo_id", "box_count", "step_tag_line_ids",
                   "harvest_date", "received_at", "especie_id", "variedad_id", "fruit_type",
                   "fruit_category_id", "fruit_caliber_id", "step_packing_result"}

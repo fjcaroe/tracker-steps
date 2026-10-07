@@ -55,6 +55,46 @@ class TestPackingOperations(TransactionCase):
             })],
         })
 
+    def test_tag_document_selectors_link_real_shipment_in_both_directions(self):
+        tag = self._tag('T55 DOC', 'E', self.finished, 50, 10, 'export')
+        shipment = self.env['step.export.export'].create({'name': 'T55 shipment', 'company_id': self.company.id,
+                                                        'dus_folio': 'T55 DUS', 'bl_folio': 'T55 BL'})
+        tag.write({'step_export_shipment_ids': [(4, shipment.id)],
+                   'step_dus_shipment_ids': [(4, shipment.id)], 'step_bl_shipment_ids': [(4, shipment.id)]})
+        self.assertIn(tag, shipment.tag_ids)
+        self.assertEqual(tag.step_dus_shipment_ids, shipment)
+        self.assertIn('T55 DUS', shipment.with_context(step_document_reference='dus_folio').display_name)
+        self.assertIn('T55 BL', shipment.with_context(step_document_reference='bl_folio').display_name)
+        self.assertEqual(tag.step_actual_kg, 50)
+        shipment.state = 'shipped'
+        with self.cr.savepoint(), self.assertRaises(UserError):
+            tag.step_export_shipment_ids = [(5, 0, 0)]
+
+    def test_tag_document_selectors_reject_other_company_and_unrelated_dus(self):
+        tag = self._tag('T55 scope', 'E', self.finished, 50, 10, 'export')
+        other = self.env['res.company'].create({'name': 'T55 other company'})
+        shipment = self.env['step.export.export'].create({'name': 'T55 foreign', 'company_id': other.id})
+        with self.cr.savepoint(), self.assertRaises(ValidationError):
+            tag.step_export_shipment_ids = [(4, shipment.id)]
+        unrelated = self.env['step.export.export'].create({'name': 'T55 unrelated', 'dus_folio': 'DUS'})
+        with self.cr.savepoint(), self.assertRaises(ValidationError):
+            tag.step_dus_shipment_ids = [(4, unrelated.id)]
+
+    def test_tag_origin_production_uses_existing_process_and_order(self):
+        order = self._order()
+        process = self.env['step.packing.process.type'].search([], limit=1)
+        plant = self.env['res.partner'].create({'name': 'T55 plant'})
+        production = self.env['step.packing.production'].create({
+            'step_packing_order_id': order.id, 'packing_partner_id': plant.id, 'process_type_id': process.id})
+        tag = self._tag('T55 origin', 'E', self.finished, 50, 10, 'export')
+        tag.step_packing_production_id = production
+        self.assertIn(tag, production.step_packing_output_tag_ids)
+        self.assertEqual(tag.step_process_order_id, order)
+        self.assertEqual(tag.step_process_type_id, process)
+        self.assertEqual(tag.step_packing_partner_id, plant)
+        with self.cr.savepoint(), self.assertRaises(UserError):
+            tag.step_packing_production_id = False
+
     def _stock(self, product, qty, package=False):
         self.env["stock.quant"]._update_available_quantity(product, self.location, qty, package_id=package or None)
 

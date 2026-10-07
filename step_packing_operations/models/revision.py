@@ -74,6 +74,20 @@ class FruitPackage(models.Model):
                                                 ondelete='restrict', copy=False, index=True)
     step_packaging_id = fields.Many2one('product.packaging', string='Embalaje')
     step_packing_line_id = fields.Many2one('step.packing.line', string='Línea de proceso')
+    step_process_type_id = fields.Many2one(related='step_packing_production_id.process_type_id', string='Tipo de proceso')
+    step_process_order_id = fields.Many2one(related='step_packing_production_id.step_packing_order_id', string='Folio OP')
+    step_packing_partner_id = fields.Many2one(related='step_packing_production_id.packing_partner_id', string='Packing')
+
+    @api.onchange('step_packing_production_id')
+    def _onchange_origin_production(self):
+        for tag in self:
+            tag.step_packing_line_id = tag.step_packing_production_id.step_packing_line_id
+
+    @api.constrains('step_packing_production_id', 'company_id')
+    def _check_origin_company(self):
+        for tag in self.filtered('step_packing_production_id'):
+            if tag.step_packing_production_id.company_id != (tag.company_id or self.env.company):
+                raise ValidationError(_('La OT debe pertenecer a la empresa de la tarja.'))
     step_result_product_id = fields.Many2one('product.product', compute='_compute_result_product', string='Producto')
     step_actual_boxes = fields.Float(compute='_compute_result_product', string='Cajas reales', digits='Product Unit of Measure')
     step_reserved_ids = fields.Many2many('step.export.stock.reservation', compute='_compute_reservations', string='Reservas vigentes')
@@ -109,7 +123,15 @@ class FruitPackage(models.Model):
             ots._lock_process()
             if any(ot.state != 'created' or ot.material_review_state == 'approved' for ot in ots):
                 raise UserError(_('Reabra cuadratura y materiales antes de cambiar una tarja de salida.'))
-        return super().write(vals)
+        result = super().write(vals)
+        if vals.get('step_packing_production_id'):
+            for tag in self:
+                ot = tag.step_packing_production_id
+                ot._lock_process()
+                if ot.state != 'created' or tag.step_tag_kind not in ('E', 'N') or tag.step_tag_state != 'created':
+                    raise ValidationError(_('Vincule tarjas E/N creadas a una OT abierta.'))
+                ot.write({'step_packing_output_tag_ids': [(4, tag.id)]})
+        return result
 
 
 class PackingStockReservation(models.Model):
