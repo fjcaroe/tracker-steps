@@ -229,6 +229,26 @@ def main():
         qa_options=[item for item in options if not item.startswith('--http-port=')]+['--http-port='+str(port),'--db-filter=^'+clone+'$']
         log=stage/('qa-'+stamp+'.log')
         test_modules=update if args.action=='retry-tests' else MODULES
+        if args.action=='compatibility':
+            # The full immutable runtime already passed the sole QA. Repeat
+            # target suites for every installation, migration or code change;
+            # unchanged payroll still has history preservation and real probes.
+            targets=set(install)|{name for name in update if versions[name]!=proof['versions'][name]}
+            for filename in proof['files']:
+                name=Path(filename).parts[0]
+                if name in targets or '/tests/' in filename:
+                    continue
+                actual=Path(baseline['sources'][name]['root'])/Path(*Path(filename).parts[1:])
+                if not actual.exists():
+                    targets.add(name); continue
+                current=actual.read_bytes(); proposed=(source/filename).read_bytes()
+                if actual.suffix in ('.py','.xml','.csv','.js','.css','.scss','.svg','.md','.rst'):
+                    current=current.replace(b'\r\n',b'\n'); proposed=proposed.replace(b'\r\n',b'\n')
+                if current!=proposed: targets.add(name)
+            test_modules=sorted(targets)
+            assert test_modules
+            (stage/'test_coverage.json').write_text(json.dumps({'target_suites':test_modules,
+                'unchanged_modules_verified_by_registry_flow_and_original_row_snapshot':sorted(set(MODULES)-targets)}))
         command=base+qa_options+['-d',clone,'--addons-path='+str(source)+','+paths,'--data-dir='+str(data),'-u',','.join(update),'--test-enable','--test-tags='+','.join('/'+name for name in test_modules),'--stop-after-init','--logfile='+str(log)]
         if install: command+=['-i',','.join(install)]
         print('STACK_TEST_BEGIN '+json.dumps({'database':clone,'log':str(log),'install':install,'commit':proof['commit']}),flush=True)
