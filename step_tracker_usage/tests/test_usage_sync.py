@@ -3,9 +3,11 @@ from datetime import datetime
 from unittest.mock import patch
 
 import requests
+from psycopg2.errors import UniqueViolation
 
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
+from odoo.tools import mute_logger
 
 from .common import FakeTracker, TrackerCase, session_item
 
@@ -106,7 +108,7 @@ class TestStepTrackerUsage(TrackerCase):
         for _i in range(3):
             self._upsert([session_item(7)])
         self.assertEqual(len(self._usage(7)), 1)
-        with self.assertRaises(Exception), self.env.cr.savepoint():
+        with self.assertRaises(UniqueViolation), self.env.cr.savepoint(), mute_logger('odoo.sql_db'):
             self.env['step.tracker.usage'].sudo().create({
                 'session_uuid': '00000000-0000-0000-0000-000000000007', 'company_id': self.company.id,
                 'started_at': datetime(2026, 9, 10, 12)})

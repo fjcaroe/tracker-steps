@@ -3,9 +3,11 @@ from datetime import date, datetime
 from unittest.mock import patch
 
 import requests
+from psycopg2.errors import UniqueViolation
 
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import tagged
+from odoo.tools import mute_logger
 
 from odoo.addons.step_tracker_usage.tests.common import FakeTracker, TrackerCase, session_item
 
@@ -174,8 +176,8 @@ class TestExpenseTrackerImport(TrackerCase):
         self._upsert([session_item(12)])
         self._preview().action_confirm()
         line = self._lines()
-        with self.assertRaises(Exception), self.env.cr.savepoint():
-            line.with_context(step_tracker_import=True).copy({'usage_id': line.usage_id.id, 'sheet_id': self.sheet.id})
+        with self.assertRaises(UniqueViolation), self.env.cr.savepoint(), mute_logger('odoo.sql_db'):
+            line.with_context(step_tracker_import=True).copy({'usage_id': line.usage_id.id, 'sheet_id': self.sheet.id, 'source': 'tracker'})
             self.env.flush_all()
 
     def test_concurrent_loser_is_reported_as_skipped_not_duplicated(self):
