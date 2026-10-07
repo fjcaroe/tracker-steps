@@ -18,19 +18,24 @@ try:
     # Odoo shell has no dispatcher; construct that same routing map first.
     env['ir.http'].routing_map()
     for case in CASES:
+        period = datetime.strptime(case['period'], '%m%Y').date()
+        first = period.replace(day=1)
+        last = period.replace(day=calendar.monthrange(period.year, period.month)[1])
         key = previred.rut_key(case['rut'])
         employee_domain = [('identification_id', '!=', False)]
         if case.get('company_id'):
             employee_domain.append(('company_id', '=', case['company_id']))
         employee = env['hr.employee'].with_context(active_test=False).search(employee_domain).filtered(
             lambda row: previred.rut_key(row.identification_id) == key)
+        if len(employee) > 1:
+            eligible = env['hr.payslip'].search([
+                ('employee_id', 'in', employee.ids), ('date_from', '=', first),
+                ('date_to', '=', last), ('state', 'in', ['verify', 'done', 'paid'])])
+            employee &= eligible.employee_id
         assert len(employee) == 1, ('Expected exactly one employee for the private case',
                                     case['rut'], employee.ids)
         company = employee.company_id
         scoped = env(context=dict(env.context, allowed_company_ids=company.ids))
-        period = datetime.strptime(case['period'], '%m%Y').date()
-        first = period.replace(day=1)
-        last = period.replace(day=calendar.monthrange(period.year, period.month)[1])
         slips = scoped['hr.payslip'].search([('employee_id', '=', employee.id), ('date_from', '=', first),
                                             ('date_to', '=', last), ('state', 'in', ['verify', 'done', 'paid'])])
         assert slips, 'No eligible payslip for the private case'
