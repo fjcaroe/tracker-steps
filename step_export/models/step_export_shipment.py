@@ -207,6 +207,7 @@ class ExportPackingList(models.Model):
     shipment_id = fields.Many2one("step.export.export", string="Embarque", required=True, ondelete="restrict")
     shipment_number = fields.Char(related="shipment_id.shipment_number", string="Número de embarque")
     available_guide_ids = fields.Many2many(related="shipment_id.dispatch_guide_ids")
+    available_tag_ids = fields.Many2many(related="shipment_id.tag_ids")
     company_id = fields.Many2one(related="shipment_id.company_id", store=True)
     guide_id = fields.Many2one("step.dispatch.guide", string="Guía de despacho", required=True)
     date = fields.Date(string="Fecha", default=fields.Date.context_today, required=True)

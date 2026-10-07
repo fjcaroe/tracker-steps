@@ -65,6 +65,7 @@
   <menuitem id="menu_step_export_dispatch_order" name="Orden de Despacho" parent="menu_step_export_shipments" action="action_export_dispatch_shipments" sequence="60" />
   <menuitem id="menu_step_export_customer_claim" name="Reclamo de Clientes" parent="menu_step_export_receivers" action="action_step_export_customer_claim" sequence="40" />
   <menuitem id="menu_step_export_stock_reservation" name="Reserva de Stock" parent="menu_step_export_shipments" action="action_export_stock_reservations" sequence="70" />
+  <menuitem id="menu_step_export_consult_tags" name="Consultar Tarjas" parent="menu_step_export_shipments" action="action_export_consult_tags" sequence="71" groups="stock.group_stock_user"/>
   <menuitem id="menu_step_export_vessel_tag" name="Nave (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_vessel_tag" groups="base.group_no_one" />
   <menuitem id="menu_step_export_sale_mode_tag" name="Modalidad de Venta (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_sale_mode_tag" groups="base.group_no_one" />
   <menuitem id="menu_step_export_grower_discount_tag" name="Ítem Productor (Descuento Liquidación) (etiqueta)" parent="menu_step_export_config_technical" action="action_step_export_grower_discount_tag" groups="base.group_no_one" />

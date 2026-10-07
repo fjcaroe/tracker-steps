@@ -7,13 +7,28 @@
                 <header>
                     <button name="action_accept" type="object" string="Aceptar" class="btn-primary" invisible="state != 'entered'"/>
                     <button name="action_reject" type="object" string="Rechazar" invisible="state != 'entered'"/>
+                    <button name="action_load_shipment_tags" type="object" string="Cargar tarjas del embarque" invisible="state != 'entered'"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet><group><field name="name"/><field name="receiver_id"/>
-                    <field name="claim_date"/><field name="claimed_amount_usd"/>
-                    <field name="accepted_amount_usd"/><field name="usd_currency_id" invisible="1"/>
-                    <field name="shipment_ids" widget="many2many_tags"/><field name="tag_ids" widget="many2many_tags"/>
-                    <field name="description"/></group></sheet><chatter/>
+                    <field name="claim_date"/><field name="claimed_amount_usd" readonly="line_ids or state != 'entered'"/>
+                    <field name="accepted_amount_usd" readonly="line_ids or state != 'entered'"/><field name="usd_currency_id" invisible="1"/>
+                    <field name="shipment_ids" widget="many2many_tags" readonly="state != 'entered'"/>
+                    <field name="available_tag_ids" invisible="1"/>
+                    <field name="tag_ids" widget="many2many_tags" domain="[('id', 'in', available_tag_ids)]" readonly="line_ids or state != 'entered'" context="{'list_view_ref': 'step_export.view_export_fruit_tag_list', 'search_view_ref': 'step_export.view_export_fruit_tag_search'}"/>
+                    <field name="description"/></group>
+                    <field name="line_ids" readonly="state != 'entered'">
+                        <list editable="bottom">
+                            <field name="tag_id" domain="[('id', 'in', parent.available_tag_ids)]" options="{'no_create': True}"/>
+                            <field name="producer_id"/><field name="variety_id"/><field name="category_id"/><field name="caliber_id"/>
+                            <field name="product_id" optional="show"/><field name="uom_id" optional="show"/><field name="packaging_id" optional="show"/><field name="lot_names" optional="show"/>
+                            <field name="box_qty" sum="Cajas"/><field name="kg_qty" sum="Kilos"/>
+                            <field name="usd_currency_id" column_invisible="True"/>
+                            <field name="claimed_amount_usd" sum="Reclamado USD"/><field name="accepted_amount_usd" sum="Aceptado USD"/>
+                            <field name="description"/>
+                        </list>
+                    </field>
+                </sheet><chatter/>
             </xpath>
         </field>
     </record>

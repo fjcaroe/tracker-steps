@@ -14,7 +14,8 @@
             <field name="shipment_id"/><field name="shipment_number"/>
             <field name="available_guide_ids" invisible="1"/>
             <field name="guide_id" domain="[('id', 'in', available_guide_ids)]" options="{'no_create': True}"/><field name="date"/>
-            <field name="tag_ids" widget="many2many_tags"/><field name="box_qty"/>
+            <field name="available_tag_ids" invisible="1"/>
+            <field name="tag_ids" widget="many2many_tags" domain="[('id', 'in', available_tag_ids)]" context="{'list_view_ref': 'step_export.view_export_fruit_tag_list', 'search_view_ref': 'step_export.view_export_fruit_tag_search'}"/><field name="box_qty"/>
             <field name="kg_qty"/></group></sheet><chatter/></form></field>
     </record>
     <record id="view_dispatch_guide_form_export" model="ir.ui.view">

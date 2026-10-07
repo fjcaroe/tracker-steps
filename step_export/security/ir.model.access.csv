@@ -31,3 +31,4 @@ access_step_export_export_user,step_export_export.user,model_step_export_export,
 access_season_statement_user,Consolidado lector,model_step_producer_season_statement,base.group_user,1,0,0,0
 access_season_statement_account,Consolidado contador,model_step_producer_season_statement,account.group_account_user,1,1,1,1
 access_season_statement_wizard,Generar consolidados,model_step_producer_season_statement_wizard,account.group_account_user,1,1,1,1
+access_export_claim_line_user,export claim line user,model_step_export_claim_line,base.group_user,1,1,1,1

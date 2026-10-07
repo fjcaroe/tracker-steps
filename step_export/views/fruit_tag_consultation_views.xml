@@ -1,0 +1,60 @@
+<odoo>
+    <record id="view_export_fruit_tag_list" model="ir.ui.view">
+        <field name="name">stock.quant.package.export.consultation.list</field>
+        <field name="model">stock.quant.package</field>
+        <field name="arch" type="xml">
+            <list class="o_export_fruit_tag_consultation" create="false" edit="false" delete="false">
+                <field name="name" string="Tarja"/><field name="package_type_id"/>
+                <field name="step_export_shipment_numbers"/><field name="step_export_shipment_ids" widget="many2many_tags"/>
+                <field name="owner_id" optional="show"/><field name="fundo_id" optional="show"/>
+                <field name="especie_id" optional="show"/><field name="variedad_id" optional="show"/>
+                <field name="fruit_type" optional="show"/><field name="fruit_category_id" optional="show"/>
+                <field name="fruit_class_id" optional="show"/><field name="fruit_caliber_id" optional="show"/>
+                <field name="fruit_quality_id" optional="show"/><field name="label" optional="show"/>
+                <field name="process_type" optional="show"/><field name="op_folio" optional="show"/>
+                <field name="packing_plant" optional="show"/><field name="ot_proceso" optional="show"/>
+                <field name="box_count" optional="show" sum="Cajas"/><field name="kilos_total" optional="show" sum="Kilos"/>
+                <field name="location_id" optional="show"/><field name="company_id" optional="hide"/>
+                <field name="certificate" optional="hide"/><field name="pack_date" optional="hide"/>
+                <field name="process_line" optional="hide"/><field name="shipping_weight" optional="hide"/>
+                <field name="package_use" optional="hide"/><field name="valid_sscc" optional="hide"/>
+                <field name="step_export_claim_ids" optional="hide" widget="many2many_tags"/>
+                <field name="step_export_settlement_ids" optional="hide" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_export_fruit_tag_search" model="ir.ui.view">
+        <field name="name">stock.quant.package.export.consultation.search</field>
+        <field name="model">stock.quant.package</field>
+        <field name="arch" type="xml">
+            <search class="o_export_fruit_tag_consultation">
+                <field name="name"/><field name="step_export_shipment_ids"/>
+                <field name="owner_id"/><field name="fundo_id"/><field name="especie_id"/><field name="variedad_id"/>
+                <field name="fruit_category_id"/><field name="fruit_caliber_id"/><field name="fruit_quality_id"/>
+                <field name="packing_plant"/><field name="ot_proceso"/><field name="location_id"/>
+                <filter name="with_shipment" string="Con embarque" domain="[('step_export_shipment_ids','!=',False)]"/>
+                <filter name="without_shipment" string="Sin embarque" domain="[('step_export_shipment_ids','=',False)]"/>
+                <group><filter name="by_species" string="Especie" context="{'group_by':'especie_id'}"/>
+                    <filter name="by_variety" string="Variedad" context="{'group_by':'variedad_id'}"/>
+                    <filter name="by_location" string="Ubicación" context="{'group_by':'location_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="view_export_fruit_tag_form" model="ir.ui.view">
+        <field name="name">stock.quant.package.export.shipment.form</field><field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="stock.view_quant_package_form"/>
+        <field name="arch" type="xml"><xpath expr="//sheet" position="inside">
+            <group string="Embarques de exportación" invisible="not is_fruit_tag">
+                <field name="step_export_shipment_ids" widget="many2many_tags" readonly="1"/>
+                <field name="step_export_shipment_numbers"/>
+                <div class="text-muted">La tarja se asigna desde el instructivo de embarque, pestaña Tarjas y despachos.</div>
+            </group>
+        </xpath></field>
+    </record>
+    <record id="action_export_consult_tags" model="ir.actions.act_window">
+        <field name="name">Consultar Tarjas</field><field name="res_model">stock.quant.package</field>
+        <field name="view_mode">list,form</field><field name="view_id" ref="view_export_fruit_tag_list"/>
+        <field name="search_view_id" ref="view_export_fruit_tag_search"/>
+        <field name="domain">[('is_fruit_tag','=',True)]</field>
+    </record>
+</odoo>

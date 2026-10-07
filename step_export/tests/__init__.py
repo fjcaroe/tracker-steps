@@ -6,3 +6,4 @@ from . import test_navigation
 from . import test_export_sale
 from . import test_shipment_revision
 from . import test_packing_list_revision
+from . import test_tag_claim_revision

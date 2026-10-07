@@ -1,0 +1,7 @@
+/* The export-only list identifies the fruit tag dialog, including embedded forms. */
+.modal-dialog:has(th[data-name="step_export_shipment_numbers"]) {
+    max-width: calc(100vw - 32px);
+    width: calc(100vw - 32px);
+    .modal-body { overflow-x: auto; }
+    .o_list_table th, .o_list_table td { white-space: nowrap; }
+}

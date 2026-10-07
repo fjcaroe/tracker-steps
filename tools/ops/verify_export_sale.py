@@ -59,9 +59,30 @@ def verify_export_sale(env):
     html, _ = env['ir.actions.report'].with_user(user)._render_qweb_html(
         'step_export.action_report_export_packing_list', packing.ids)
     assert packing.name.encode() in html and b'QA-CONTAINER-35' in html
+    tags = env['stock.quant.package'].with_user(user).create([
+        {'name': 'QA T35 CLAIM TAG A', 'is_fruit_tag': True, 'box_count': 184},
+        {'name': 'QA T35 CLAIM TAG B', 'is_fruit_tag': True, 'box_count': 184}])
+    shipment.tag_ids = tags
+    assert shipment in tags[0].step_export_shipment_ids
+    assert tags[0].step_export_shipment_numbers == shipment.shipment_number
+    consultation = env.ref('step_export.action_export_consult_tags')
+    tag_tree = etree.fromstring(tags.get_view(view_id=consultation.view_id.id, view_type='list')['arch'].encode())
+    assert tag_tree.xpath(".//field[@name='step_export_shipment_numbers']")
+    if 'step_tag_state' in tags._fields:
+        assert tag_tree.xpath(".//field[@name='step_tag_state']")
+    claim = env['step.export.customer.claim'].with_user(user).create({
+        'name': 'QA T35 detailed claim', 'receiver_id': receiver.id, 'shipment_ids': [(4, shipment.id)]})
+    claim.action_load_shipment_tags()
+    assert len(claim.line_ids) == 2
+    claim.line_ids[0].write({'claimed_amount_usd': 1000, 'accepted_amount_usd': 500})
+    claim.line_ids[1].write({'claimed_amount_usd': 1000, 'accepted_amount_usd': 600})
+    assert claim.claimed_amount_usd == 2000 and claim.accepted_amount_usd == 1100
+    claim.action_accept()
+    assert claim.state == 'accepted' and claim in shipment.claim_ids
     return {'sales_profile': 'Sales User', 'export_draft_in_menu': True,
             'export_product_in_catalog': True, 'ordinary_product_excluded': True,
             'proforma': 'rendered', 'sale': 'confirmed', 'ports': 'native customs master',
             'participant_filter': True, 'instruction_first': True,
             'guide_shipment_link': True, 'packing_list': 'saved, numbered and rendered',
+            'tag_consultation': True, 'claim_per_tag': '2000 claimed, 1100 accepted',
             'sample_records': 'rolled back'}

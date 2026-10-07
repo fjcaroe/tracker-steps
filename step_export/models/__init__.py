@@ -23,3 +23,4 @@ from . import ivv_provision
 from . import step_export_packaging_program
 from . import step_export_forecast
 from . import sale_order
+from . import fruit_tag_consultation
