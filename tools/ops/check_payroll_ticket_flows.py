@@ -14,6 +14,9 @@ from odoo.addons.step_hr_previred.tools import previred
 
 results = []
 try:
+    # A live HTTP request initializes inherited @route metadata before dispatch.
+    # Odoo shell has no dispatcher; construct that same routing map first.
+    env['ir.http'].routing_map()
     for case in CASES:
         key = previred.rut_key(case['rut'])
         employee = env['hr.employee'].with_context(active_test=False).search([('identification_id', '!=', False)]).filtered(
