@@ -54,7 +54,8 @@ try:
         after = [(slip.id, [(line.id, line.total) for line in slip.line_ids],
                   [(line.id, line.number_of_days) for line in slip.worked_days_line_ids]) for slip in slips]
         assert before == after, 'Probe changed payroll'
-        results.append({'ticket':case['ticket'], 'payslip_ids':slips.ids, 'fields':case['fields'],
+        results.append({'ticket':case['ticket'], 'company_id':company.id,
+                        'employee_id':employee.id, 'payslip_ids':slips.ids, 'fields':case['fields'],
                         'corporate_errors':[(issue.code, issue.message) for issue in dataset.errors],
                         'issue_codes': sorted({issue.code for issue in dataset.issues}), 'payroll_preserved': True})
     print('PAYROLL_TICKET_FLOWS ' + json.dumps(results, ensure_ascii=False))
