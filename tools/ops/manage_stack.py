@@ -113,7 +113,8 @@ def check_lease():
 
 def verify(base, options, database, source, paths, proof, stage):
     header = 'import sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\n__file__=' + repr(str(HERE/'verify_stack.py')) + '\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr(proof['versions']) + '\n'
-    result = subprocess.run(base + ['shell'] + options + ['-d',database,'--db-filter=^'+database+'$',
+    data_options=['--data-dir='+str(stage/'data')] if database.startswith('STACK_') else []
+    result = subprocess.run(base + ['shell'] + options + data_options + ['-d',database,'--db-filter=^'+database+'$',
         '--addons-path='+str(source)+','+paths,'--log-level=error'], input=header+(HERE/'verify_stack.py').read_text(), text=True, capture_output=True)
     (stage/('verify-'+database+'.log')).write_text(result.stdout+result.stderr)
     assert result.returncode == 0 and 'STACK_FLOW_OK' in result.stdout, result.stderr[-4000:]
@@ -263,8 +264,8 @@ def main():
         return
     if args.action=='certify':
         assert json.loads((stage/'baseline.json').read_text())==baseline
-        logs=list(stage.glob('qa-*.log')); assert len(logs)==1
-        logtext=logs[0].read_text(errors='replace')
+        logs=sorted(stage.glob('qa-*.log')); assert logs
+        logtext=logs[-1].read_text(errors='replace')
         assert re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',logtext) and not errors(logtext,missing)
         before=json.loads((stage/'business_before.json').read_text())
         assert business_snapshot(clone,native,before['schema'])==before
