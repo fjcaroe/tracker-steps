@@ -10,6 +10,7 @@ try:
         assert env['ir.module.module'].search([('name', '=', name)]).latest_version == version, name
         assert importlib.import_module('odoo.addons.' + name).__file__.startswith(ROOT + '/'), name
     operator = new_test_user(env, login='t41-revision-probe', groups='stock.group_stock_user')
+    manager = new_test_user(env, login='t41-revision-manager-probe', groups='stock.group_stock_manager')
     checked = []
     for model, view in [('step.packing.production', 'view_packing_production_form'),
                         ('step.packing.repack', 'view_packing_repack_form'),
@@ -35,7 +36,7 @@ try:
             for mode in action.view_mode.split(','):
                 if mode in ('list', 'form', 'kanban'):
                     env[action.res_model].get_view(view_type=mode)
-    flow = verify_flow(env, operator)
+    flow = verify_flow(env, operator, manager)
     menu_id = root.id
     env.cr.rollback()
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'forms': checked, 'operator': 'Inventory User', 'root_menu': menu_id, 'flow': flow, 'sample_records': 'rolled back'}))

@@ -2,7 +2,7 @@
 from odoo.exceptions import UserError, ValidationError
 
 
-def verify_flow(env, operator):
+def verify_flow(env, operator, manager):
     location = env['stock.warehouse'].search([('company_id', '=', env.company.id)], limit=1).lot_stock_id
     producer = env['res.partner'].create({'name': 'QA T41 proceso transaccional'})
     species = env['step.especie'].create({'name': 'QA T41 fruta', 'type_especie': 'frutal', 'group_especie': 'fruta_h'})
@@ -40,7 +40,7 @@ def verify_flow(env, operator):
         pass
     else:
         raise AssertionError('Inventory operator must not approve materials')
-    ot.sudo().action_approve_materials()
+    ot.with_user(manager).action_approve_materials()
     ot.action_step_packing_close()
     assert ot.state == 'closed' and ot.step_packing_loss_kg == 5
     assert set(ot.output_picking_id.move_ids.product_id.ids) == {export.id, national.id}
