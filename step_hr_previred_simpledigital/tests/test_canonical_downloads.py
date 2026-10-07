@@ -1,5 +1,6 @@
 """Exercise the legacy HTTP links against the actual canonical extractor."""
 from unittest.mock import patch
+from functools import wraps
 from odoo.http import request
 from odoo.tests.common import HttpCase, new_test_user, tagged
 from odoo.addons.step_hr_previred.tests.common import PreviredCase, make_row
@@ -26,6 +27,7 @@ class TestCanonicalDownloads(PreviredCase, HttpCase):
         cases = [(make_row(rut='18656818', dv='4', overrides={22:'13870', 83:'0'}), '0', '0', '13870'),
                  (make_row(rut='18656818', dv='4', overrides={22:'-6936', 83:'5'}), '0', '6936', '0')]
         for raw, allowance, refund, ips in cases:
+            @wraps(PreviredExportController.download_previred_txt)
             def raw_response(controller, **kwargs):
                 return request.make_response(previred.txt_bytes(';'.join(raw) + '\r\n'))
             with patch.object(PreviredExportController, 'download_previred_txt', raw_response):
@@ -49,4 +51,3 @@ class TestCanonicalDownloads(PreviredCase, HttpCase):
         employee.identification_id = '13789922-1'
         self.assertEqual(slip.step_employee_rut, employee.identification_id)
         self.assertEqual(slip.contract_id.step_employee_rut, employee.identification_id)
-
