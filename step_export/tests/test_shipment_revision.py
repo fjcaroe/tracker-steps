@@ -14,7 +14,8 @@ class TestShipmentRevision(TransactionCase):
         tree = etree.fromstring(self.env['step.export.export'].get_view(view_type='form')['arch'].encode())
         for field in ('carrier_id', 'consignee_id', 'notify_id', 'freight_forwarder_id', 'customs_agent_id'):
             node = tree.xpath(".//field[@name='%s']" % field)[0]
-            choices = self.env['res.partner'].search(safe_eval(node.get('domain')))
+            domain = safe_eval(node.get('domain')) if node.get('domain') else self.env['step.export.export']._fields[field].domain
+            choices = self.env['res.partner'].search(domain)
             self.assertIn(eligible, choices)
             self.assertNotIn(regular, choices)
 

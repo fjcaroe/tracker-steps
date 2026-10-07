@@ -40,7 +40,8 @@ def verify_export_sale(env):
     shipment_tree = etree.fromstring(shipment.get_view(view_type='form')['arch'].encode())
     for name in ('carrier_id', 'consignee_id', 'notify_id', 'freight_forwarder_id', 'customs_agent_id'):
         node = shipment_tree.xpath(".//field[@name='%s']" % name)[0]
-        assert ('step_export', '=', True) in safe_eval(node.get('domain'))
+        domain = safe_eval(node.get('domain')) if node.get('domain') else shipment._fields[name].domain
+        assert ('step_export', '=', True) in domain
     first = env['ir.ui.menu'].search([('parent_id', '=', env.ref('step_export.menu_step_export_shipments').id)], order='sequence,id', limit=1)
     assert first == env.ref('step_export.menu_step_export_shipping_instruction')
     return {'sales_profile': 'Sales User', 'export_draft_in_menu': True,
