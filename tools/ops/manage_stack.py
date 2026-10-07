@@ -60,6 +60,9 @@ New rows are allowed only for the driver's contact migration. Prior contacts
 retain every original column except the two explicitly migrated participant
 flags. Monetary/business records retain IDs, original columns and counts.
 """
+    metadata=json.loads(query(database,"SELECT json_object_agg(table_name,columns) FROM "
+        "(SELECT table_name,json_agg(column_name ORDER BY ordinal_position) AS columns "
+        "FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) t"))
     if schema is None:
         tables = query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
             "(tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' "
@@ -69,8 +72,7 @@ flags. Monetary/business records retain IDs, original columns and counts.
             "OR tablename IN (" + ','.join("'%s'" % name for name in native.MODELS) + ")) ORDER BY tablename").splitlines()
         schema = {}
         for table in tables:
-            columns = json.loads(query(database, "SELECT json_agg(column_name ORDER BY ordinal_position) FROM "
-                "information_schema.columns WHERE table_schema='public' AND table_name='%s'" % table))
+            columns = metadata[table]
             columns = [name for name in columns if name not in ('write_date', 'write_uid')]
             if table == 'res_partner':
                 columns = [name for name in columns if name not in ('step_chofer', 'step_carga')]
@@ -79,13 +81,13 @@ flags. Monetary/business records retain IDs, original columns and counts.
     for table, definition in schema.items():
         assert re.fullmatch('[a-z0-9_]+', table)
         actual_table = table
-        if not query(database, "SELECT to_regclass('%s')" % table):
+        if table not in metadata:
             actual_table = native.MODELS[table].replace('.', '_')
-        present = set(query(database, "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='%s'" % actual_table).splitlines())
+        present = set(metadata[actual_table])
         parts = []
         for column in definition['columns']:
             actual = column if column in present else native.FIELDS.get(column, column)
-            assert re.fullmatch('[a-z0-9_]+', actual) and actual in present, (table, column, actual)
+            assert re.fullmatch('[a-zA-Z0-9_]+', actual) and actual in present, (table, column, actual)
             parts.append("'%s',to_jsonb(t)->'%s'" % (column, actual))
         expression = ' || '.join('jsonb_build_object(' + ','.join(parts[start:start+40]) + ')' for start in range(0,len(parts),40))
         condition = ' WHERE id <= %s' % definition['max_id'] if table == 'res_partner' else ''

@@ -39,12 +39,15 @@ class StackGuards(unittest.TestCase):
 
     def test_snapshot_projects_original_columns_through_native_rename(self):
         seen=[]
+        metadata_calls=0
         def query(database, sql):
+            nonlocal metadata_calls
             seen.append(sql)
+            if 'json_object_agg(table_name' in sql:
+                metadata_calls+=1
+                return json.dumps({'x_orden_de_flete':['id','x_name','word_box_midX','write_date']} if metadata_calls==1 else
+                    {'step_freight_order':['id','name','word_box_midX','write_date','new_column']})
             if 'SELECT tablename' in sql: return 'x_orden_de_flete'
-            if 'json_agg(column_name' in sql: return json.dumps(['id','x_name','write_date'])
-            if 'to_regclass' in sql: return ''
-            if 'SELECT column_name' in sql: return 'id\nname\nwrite_date\nnew_column'
             if 'string_agg' in sql: return 'x_orden_de_flete|{"count":2,"digest":"original"}'
             raise AssertionError(sql)
         native=SimpleNamespace(MODELS={'x_orden_de_flete':'step.freight.order'},FIELDS={'x_name':'name'})
@@ -53,10 +56,11 @@ class StackGuards(unittest.TestCase):
             after=manage_stack.business_snapshot('CLONE',native,before['schema'])
         self.assertEqual(before,after)
         self.assertTrue(any("LIKE 'step_%'" in sql for sql in seen))
-        projection=next(sql for sql in seen if 'string_agg' in sql)
+        projection=[sql for sql in seen if 'string_agg' in sql][-1]
         self.assertIn("'x_name',to_jsonb(t)->'name'",projection)
         self.assertNotIn('new_column',projection)
         self.assertNotIn('write_date',projection)
+        self.assertIn("'word_box_midX'",projection)
 
 
 if __name__=='__main__': unittest.main()
