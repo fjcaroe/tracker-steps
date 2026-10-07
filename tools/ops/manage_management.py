@@ -28,6 +28,7 @@ BUSINESS = ('step_management_operational_budget', 'step_management_budget_line',
             'step_management_plan', 'step_management_production_order', 'step_management_crop_program')
 SETTINGS = False
 PRODUCERS = False
+PACKING_INITIAL_MIGRATION = False
 
 
 def run(*command, **kwargs):
@@ -60,7 +61,7 @@ def snapshot(database):
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
-            if MODULES == ('step_packing_operations',):
+            if MODULES == ('step_packing_operations',) and PACKING_INITIAL_MIGRATION:
                 # Only the versioned migration's added fields are excluded;
                 # preserve every pre-existing row, ID, quantity and value.
                 additions = {
@@ -113,7 +114,7 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global MODULES, BUSINESS, SETTINGS, PRODUCERS
+    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
@@ -169,6 +170,8 @@ def main():
         os.chown(path, identity.pw_uid, identity.pw_gid)
     release_sha = digest(args.release)
     installed = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
+    if args.kind == 'packing':
+        PACKING_INITIAL_MIGRATION = tuple(map(int, installed['step_packing_operations'].split('.'))) < (18, 0, 2, 8, 0)
     if PRODUCERS:
         assert set(installed) >= set(MODULES) - {'step_producers_integrations'}, 'Revise only installed agricultural apps'
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_account_treasury','step_packing_operations') AND state='installed'") == '2', 'Bridge dependencies must already be installed'
