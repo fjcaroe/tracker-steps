@@ -3,3 +3,4 @@ from . import test_freight_dispatch_type
 from . import test_freight_report
 from . import test_freight_operations
 from . import test_freight_masters
+from . import test_cumulative_migration

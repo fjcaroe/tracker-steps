@@ -2,11 +2,7 @@
 
 
 def migrate(cr, version):
-    cr.execute(
-        """
-        UPDATE res_partner SET is_freight_carrier = TRUE
-         WHERE id IN (SELECT x_studio_transportista FROM x_tarifa_de_fletes WHERE x_studio_transportista IS NOT NULL
-                      UNION SELECT x_studio_transportista FROM x_orden_de_flete WHERE x_studio_transportista IS NOT NULL
-                      UNION SELECT transpor_id FROM res_partner WHERE transpor_id IS NOT NULL)
-        """
-    )
+    # All pre-migrations run before post-migrations; a later pre-migration
+    # can already have renamed the tables when this historic step executes.
+    from odoo.addons.step_operations_ui.migration_helpers import mark_freight_carriers
+    mark_freight_carriers(cr)

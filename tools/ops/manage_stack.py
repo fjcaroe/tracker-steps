@@ -75,7 +75,7 @@ flags. Monetary/business records retain IDs, original columns and counts.
             columns = metadata[table]
             columns = [name for name in columns if name not in ('write_date', 'write_uid')]
             if table == 'res_partner':
-                columns = [name for name in columns if name not in ('step_chofer', 'step_carga')]
+                columns = [name for name in columns if name not in ('step_chofer', 'step_carga', 'is_freight_carrier')]
             schema[table] = {'columns': columns, 'max_id': int(query(database, 'SELECT COALESCE(max(id),0) FROM ' + table)) if table == 'res_partner' else None}
     rows, statements = {}, []
     for table, definition in schema.items():
@@ -230,7 +230,7 @@ def main():
         qa_options=[item for item in options if not item.startswith('--http-port=')]+['--http-port='+str(port),'--db-filter=^'+clone+'$']
         log=stage/('qa-'+stamp+'.log')
         test_modules=update if args.action=='retry-tests' else MODULES
-        if args.action=='compatibility':
+        if args.action=='compatibility' or args.action=='qa' and all(versions.get(name)==proof['versions'][name] for name in MODULES if name not in ('step_operations_ui',)):
             # The full immutable runtime already passed the sole QA. Repeat
             # target suites for every installation, migration or code change;
             # unchanged payroll still has history preservation and real probes.
