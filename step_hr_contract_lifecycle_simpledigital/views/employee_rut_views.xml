@@ -1,0 +1,22 @@
+<odoo>
+    <record id="contract_form_employee_rut" model="ir.ui.view">
+        <field name="name">hr.contract.form.employee.rut</field><field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="arch" type="xml"><field name="employee_id" position="after"><field name="step_employee_rut"/></field></field>
+    </record>
+    <record id="contract_list_employee_rut" model="ir.ui.view">
+        <field name="name">hr.contract.list.employee.rut</field><field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_tree"/>
+        <field name="arch" type="xml"><field name="employee_id" position="after"><field name="step_employee_rut" optional="show"/></field></field>
+    </record>
+    <record id="payslip_form_employee_rut" model="ir.ui.view">
+        <field name="name">hr.payslip.form.employee.rut</field><field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="hr_payroll.view_hr_payslip_form"/>
+        <field name="arch" type="xml"><field name="employee_id" position="after"><field name="step_employee_rut"/></field></field>
+    </record>
+    <record id="payslip_list_employee_rut" model="ir.ui.view">
+        <field name="name">hr.payslip.list.employee.rut</field><field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="hr_payroll.view_hr_payslip_tree"/>
+        <field name="arch" type="xml"><field name="employee_id" position="after"><field name="step_employee_rut" optional="show"/></field></field>
+    </record>
+</odoo>

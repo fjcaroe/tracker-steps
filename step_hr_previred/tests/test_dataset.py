@@ -514,6 +514,25 @@ class TestDataset(PreviredCase):
         self.assertNotIn("family_allowance_moved_to_ips",
                          [issue.code for issue in dataset.issues])
 
+    def test_negative_family_allowance_is_ccaf_refund(self):
+        employee = self.make_employee("Refund fixture", "18656818-4", self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        row = make_row(rut="18656818", dv="4", overrides={22: "-6936", 24: "100", 83: "5"})
+        dataset = self.build([row], spec_version="98")
+        exported = dataset.records[0].principal
+        self.assertEqual(exported[21], "0")
+        self.assertEqual(exported[23], "7036")
+        self.assertEqual(exported[72], "0")
+        self.assertFalse(dataset.errors)
+        self.assertIn("family_allowance_refund", [issue.code for issue in dataset.issues])
+
+    def test_negative_family_allowance_without_ccaf_is_not_discarded(self):
+        employee = self.make_employee("IPS refund fixture", "18656818-4", self.dep_admin)
+        self.make_payslip(employee, self.dep_admin)
+        dataset = self.build([make_row(rut="18656818", dv="4", overrides={22: "-6936", 83: "0"})])
+        self.assertEqual(dataset.records[0].principal[21], "-6936")
+        self.assertIn("family_refund_without_ccaf", [issue.code for issue in dataset.errors])
+
     def test_department_filter_narrows_the_batch(self):
         agri = self.make_employee("Ana Rojas", "11111111-1", self.dep_agri)
         admin = self.make_employee("Luis Díaz", "22222222-2", self.dep_admin)

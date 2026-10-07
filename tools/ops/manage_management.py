@@ -31,6 +31,7 @@ PRODUCERS = False
 PACKING_INITIAL_MIGRATION = False
 EXPORT_SALE_ADDITION = False
 EXPORT_PORT_ADDITIONS = False
+TICKET_REVISION = ''
 
 
 def run(*command, **kwargs):
@@ -120,13 +121,13 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS
+    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
-    parser.add_argument('environment', choices=('development', 'cerro', 'steps'))
+    parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'tarja'), default='management')
     args = parser.parse_args()
     SETTINGS = args.kind in ('settings', 'fruit-reception', 'packing')
     PRODUCERS = args.kind == 'producers'
@@ -145,6 +146,15 @@ def main():
     if args.kind == 'export':
         MODULES = ('step_export',)
         BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename IN ('res_company','res_partner','sale_order','sale_order_line')) ORDER BY tablename").splitlines())
+    if args.kind in ('payroll-fixes', 'tarja'):
+        TICKET_REVISION = args.kind
+        assert args.environment in (('development', 'sys') if args.kind == 'payroll-fixes' else ('development',)), 'Ticket destination outside approved scope'
+        SETTINGS = True
+        MODULES = ('step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle_simpledigital') if args.kind == 'payroll-fixes' else ('step_inventory_packing', 'step_packing_operations')
+        registry = json.loads((HERE / 'environments.json').read_text())
+        target_db = registry['environments'][args.environment]['database']
+        BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','ir_config_parameter')) ORDER BY tablename").splitlines())
+    assert args.environment != 'sys' or args.kind == 'payroll-fixes'
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
@@ -329,7 +339,7 @@ def main():
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
                 assert snapshot(database) == before, 'Business migration check failed'
                 # T52 explicitly asks that current Cerro catalog entries be shared.
-                if args.environment == 'cerro':
+                if args.environment == 'cerro' and args.kind == 'management':
                     script = "from odoo import Command\nmodels=('step.temporada','step.especie','step.grupo.variedad','step.variedad')\nfor name in models:\n    records=env[name].search([])\n    records.with_context(_install_scope=__import__('odoo.addons.step_agriculture_catalogs.models.catalogs',fromlist=['_INSTALL_SCOPE'])._INSTALL_SCOPE).write({'company_ids':[Command.clear()]})\nfor name in models:\n    env[name].search([])._check_catalog_scope()\nenv.cr.commit()\nprint('CERRO_CATALOGS_SHARED_OK')\n"
                     result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']), input=script, text=True, capture_output=True)
                     assert 'CERRO_CATALOGS_SHARED_OK' in result.stdout
@@ -351,7 +361,7 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
-    probe = (HERE / ('verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    probe = (HERE / ('verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
     names = installed if SETTINGS or PRODUCERS or export or homepage else {*installed, 'step_agriculture_catalogs'}
     header = 'import sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)

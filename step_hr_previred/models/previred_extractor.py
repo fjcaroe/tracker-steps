@@ -458,6 +458,7 @@ class PreviredExtractor(models.AbstractModel):
         # 73 y no en el 22. Es un traslado entre columnas de un valor ya
         # conciliado por el motor y existe en los perfiles v84 y v98, por lo
         # que se hace antes del corte por versión.
+        self._normalize_family_refund(record, dataset)
         self._relocate_family_allowance_to_ips(record, dataset)
 
         # Los tres campos anteriores existen tanto en el perfil histórico
@@ -551,6 +552,32 @@ class PreviredExtractor(models.AbstractModel):
               "antes de SyS.", rut=record.rut, dv=record.dv, old=current,
               new=expected, taxable=taxable, rate=rate),
             record.department_label))
+
+    def _normalize_family_refund(self, record, dataset):
+        """A negative allowance is a CCAF refund (field 24), not a signed 22."""
+        for row in record.rows:
+            if len(row) != previred.FIELD_COUNT:
+                continue
+            raw = str(row[previred.F_FAMILY_ALLOWANCE - 1] or "0").strip()
+            if not raw.startswith("-") or not raw[1:].isdigit() or int(raw) >= 0:
+                continue
+            ccaf = str(row[previred.F_CCAF_CODE - 1] or "0").strip()
+            existing = str(row[23] or "0").strip()
+            if ccaf in ("", "0", "00") or not existing.isdigit():
+                dataset.issues.append(previred.Issue(
+                    previred.SEVERITY_ERROR, "family_refund_without_ccaf",
+                    _("El reintegro de asignación familiar de %(rut)s-%(dv)s "
+                      "requiere una CCAF y un monto válido en el campo 24; "
+                      "no se descarta el descuento de la liquidación.",
+                      rut=record.rut, dv=record.dv), record.department_label))
+                continue
+            row[23] = str(int(existing) - int(raw))
+            row[previred.F_FAMILY_ALLOWANCE - 1] = "0"
+            dataset.issues.append(previred.Issue(
+                previred.SEVERITY_WARNING, "family_allowance_refund",
+                _("RUT %(rut)s-%(dv)s: asignación familiar %(amount)s "
+                  "informada como reintegro de cargas familiares (campo 24).",
+                  rut=record.rut, dv=record.dv, amount=raw), record.department_label))
 
     # -- asignación familiar por IPS/ex-INP ------------------------------
 
@@ -849,9 +876,8 @@ class PreviredExtractor(models.AbstractModel):
           permisos, ausencias y vacaciones quedan excluidos siempre. Se
           elimina el respaldo genérico que sumaba toda línea no marcada como
           ausencia (podía incluir «Fuera de contrato» y dar un valor falso).
-        * El formato oficial es entero: `6.00` se exporta como `6`. Una
-          fracción no representable no se trunca en silencio: se informa un
-          error auditable.
+        * El formato oficial es entero: se redondea HALF_UP la asistencia
+          total para la declaración, conservando la liquidación original.
         * El mes previsional Previred es de 30 días: la especificación exige
           `0 =< días =< 30` y el propio generador del proveedor acota con
           `min(30, …)`. Si la suma de asistencia supera 30 (p. ej. un mes
@@ -883,27 +909,25 @@ class PreviredExtractor(models.AbstractModel):
         if attendance:
             total = sum(attendance.mapped("number_of_days"))
             amount = Decimal(str(total))
+            days = int(amount.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
             if amount != amount.to_integral_value():
                 dataset.issues.append(previred.Issue(
-                    previred.SEVERITY_ERROR, "worked_days_fraction",
+                    previred.SEVERITY_WARNING, "worked_days_rounded",
                     _("RUT %(rut)s-%(dv)s: los días de asistencia de la "
-                      "liquidación %(slip)s son %(value)s y el campo 13 "
-                      "oficial exige un entero. Revise la línea de asistencia.",
+                      "liquidación %(slip)s son %(value)s; el campo 13 "
+                      "se redondea a %(days)s días para Previred.",
                       rut=record.rut, dv=record.dv,
-                      slip=self._payslip_ref(payslip), value=total)))
-            else:
-                days = int(amount.quantize(
-                    Decimal("1"), rounding=ROUND_HALF_UP))
-                if days > 30:
-                    dataset.issues.append(previred.Issue(
-                        previred.SEVERITY_WARNING, "worked_days_capped",
-                        _("RUT %(rut)s-%(dv)s: la asistencia de la liquidación "
-                          "%(slip)s suma %(days)s días; el mes previsional "
-                          "Previred es de 30 y el campo 13 se acota a 30.",
-                          rut=record.rut, dv=record.dv,
-                          slip=self._payslip_ref(payslip), days=days)))
-                    days = 30
-                value = str(days)
+                      slip=self._payslip_ref(payslip), value=total, days=min(days, 30))))
+            if days > 30:
+                dataset.issues.append(previred.Issue(
+                    previred.SEVERITY_WARNING, "worked_days_capped",
+                    _("RUT %(rut)s-%(dv)s: la asistencia de la liquidación "
+                      "%(slip)s suma %(days)s días; el mes previsional "
+                      "Previred es de 30 y el campo 13 se acota a 30.",
+                      rut=record.rut, dv=record.dv,
+                      slip=self._payslip_ref(payslip), days=days)))
+                days = 30
+            value = str(days)
         elif worked_days_lines:
             non_leave = worked_days_lines.filtered(
                 lambda line: not line.work_entry_type_id.is_leave

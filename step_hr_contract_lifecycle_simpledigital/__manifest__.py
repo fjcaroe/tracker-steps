@@ -1,6 +1,6 @@
 {
     "name": "Steps - Gestión Contractual y Finiquitos (Adaptador SimpleDigital)",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.1.1",
     "category": "Human Resources/Employees",
     "summary": "Adaptador de step_hr_contract_lifecycle para l10n_cl_simpledigital_payroll",
     "description": """
@@ -34,7 +34,7 @@ canónico de finiquito sigue siendo ``hr.severance`` del núcleo.
         "step_hr_contract_lifecycle",
         "l10n_cl_simpledigital_payroll",
     ],
-    "data": [],
+    "data": ["views/employee_rut_views.xml"],
     "post_init_hook": "post_init_hook",
     "installable": True,
     "application": False,

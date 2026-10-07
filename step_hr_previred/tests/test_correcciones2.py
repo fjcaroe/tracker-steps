@@ -127,14 +127,25 @@ class TestCampo13(PreviredCase):
         self.assertEqual(
             dataset.records[0].principal[previred.F_WORKED_DAYS - 1], "6")
 
-    def test_non_representable_fraction_is_reported_not_truncated(self):
+    def test_fraction_rounds_half_up_with_audit(self):
         dataset = self._one([("WORK100", 6.5, "Asistencia")],
                             field13_override="")
-        codes = [i.code for i in dataset.errors]
-        self.assertIn("worked_days_fraction", codes)
+        self.assertFalse(dataset.errors)
+        self.assertIn("worked_days_rounded", [i.code for i in dataset.issues])
         field13 = dataset.records[0].principal[previred.F_WORKED_DAYS - 1]
-        self.assertNotIn(field13, ("6", "7"),
-                         "La fracción no debe truncarse en silencio.")
+        self.assertEqual(field13, "7")
+
+    def test_ticket56_fraction_preserves_original_and_annex_parity(self):
+        dataset = self._one([("WORK100", 29.65, "Asistencia")], annexes=2)
+        record = dataset.records[0]
+        self.assertEqual({row[previred.F_WORKED_DAYS - 1] for row in record.rows}, {"30"})
+        slip = self.env['hr.payslip'].browse(record.payslip_id)
+        self.assertEqual(sum(slip.worked_days_line_ids.mapped('number_of_days')), 29.65)
+        self.assertFalse(dataset.errors)
+
+    def test_fraction_below_half_rounds_down(self):
+        dataset = self._one([("WORK100", 6.49, "Asistencia")])
+        self.assertEqual(dataset.records[0].principal[previred.F_WORKED_DAYS - 1], "6")
 
     def test_same_value_in_principal_and_annex_rows(self):
         """Paridad: el campo 13 va idéntico en principal y anexas."""

@@ -121,16 +121,36 @@ class SecuredPreviredExportController(PreviredExportController):
 
     # -- rutas heredadas -----------------------------------------------------
 
+    def _canonical_response(self, period, company_id, extension):
+        """Legacy links use the same validation/normalization as the wizard."""
+        self._previred_guard(period, company_id)
+        date_from = datetime.strptime(period, "%m%Y").date().replace(day=1)
+        date_to = date_from.replace(day=calendar.monthrange(date_from.year, date_from.month)[1])
+        wizard = request.env["step.previred.export.wizard"].create({
+            "company_id": int(company_id), "date_from": date_from,
+            "date_to": date_to, "allow_without_department": True,
+        })
+        dataset = wizard._build()
+        if dataset.errors:
+            raise UserError("\n".join(issue.message for issue in dataset.errors))
+        from odoo.addons.step_hr_previred.tools import previred
+        payload = previred.txt_bytes(previred.render_records(dataset.records))
+        filename = previred.txt_filename(dataset.company_vat, dataset.period)
+        if extension == "csv":
+            filename = filename.removesuffix(".txt") + ".csv"
+        request.env["step.previred.batch"].record(
+            wizard, dataset, "consolidated", "txt", result="ok")
+        return request.make_response(payload, headers=[
+            ("Content-Type", "text/plain; charset=" + previred.ENCODING),
+            ("Content-Disposition", http.content_disposition(filename)),
+        ])
+
     @http.route()
     def download_previred_txt(self, period=None, company_id=None, **kw):
         """Misma ruta del proveedor, ahora con control de acceso."""
-        self._previred_guard(period, company_id)
-        return super().download_previred_txt(
-            period=period, company_id=company_id, **kw)
+        return self._canonical_response(period, company_id, "txt")
 
     @http.route()
     def download_previred_csv(self, period=None, company_id=None, **kw):
         """La ruta CSV tiene el mismo problema y la misma guardia."""
-        self._previred_guard(period, company_id)
-        return super().download_previred_csv(
-            period=period, company_id=company_id, **kw)
+        return self._canonical_response(period, company_id, "csv")

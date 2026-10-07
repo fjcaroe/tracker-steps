@@ -1,6 +1,6 @@
 {
     "name": "Steps - Previred: motor SimpleDigital",
-    "version": "18.0.2.4.0",
+    "version": "18.0.2.4.1",
     "category": "Human Resources/Payroll",
     "summary": "Conecta el Previred por departamento de Steps con SimpleDigital",
     "description": """

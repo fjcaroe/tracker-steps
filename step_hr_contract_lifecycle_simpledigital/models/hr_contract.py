@@ -12,6 +12,8 @@ class HrContract(models.Model):
 
     _inherit = "hr.contract"
 
+    step_employee_rut = fields.Char(related="employee_id.identification_id", string="RUT", readonly=True)
+
     # Historical/draft contracts can be incomplete. Validate before computing
     # payroll rather than inventing fiscal settings to satisfy a SQL upgrade.
     analytic_account_id = fields.Many2one(required=False)
@@ -26,6 +28,12 @@ class HrEmployee(models.Model):
     _inherit = 'hr.employee'
 
     hr_commune = fields.Many2one(required=False)
+
+
+class HrPayslip(models.Model):
+    _inherit = 'hr.payslip'
+
+    step_employee_rut = fields.Char(related='employee_id.identification_id', string='RUT', readonly=True)
 
 
 class HrContractPayload(models.Model):
