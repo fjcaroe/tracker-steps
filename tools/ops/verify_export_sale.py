@@ -5,8 +5,8 @@ from odoo.tools.safe_eval import safe_eval
 
 
 def verify_export_sale(env):
-    user = new_test_user(env, login='qa-t35-export-sale', groups='sales_team.group_sale_salesman')
-    receiver = env['res.partner'].create({'name': 'QA T35 receiver', 'step_export_receiver': True})
+    user = new_test_user(env, login='qa-t35-export-sale', groups='sales_team.group_sale_salesman,sale.group_proforma_sales')
+    receiver = env['res.partner'].create({'name': 'QA T35 receiver', 'step_export_receiver': True, 'lang': 'en_US'})
     product = env['product.product'].create({'name': 'QA T35 export product',
         'type': 'service', 'grupo_labor': 'pack', 'step_export_enabled': True})
     ordinary = env['product.product'].create({'name': 'QA T35 ordinary product',
@@ -26,7 +26,7 @@ def verify_export_sale(env):
     for node in tree.xpath('.//field'):
         if node.get('name') in apr:
             assert 'not step_apr_configured' in node.get('invisible', '')
-    html, _ = env['ir.actions.report'].with_user(user).with_context(proforma=True, lang='en_US')._render_qweb_html('sale.report_saleorder', order.ids)
+    html, _ = env['ir.actions.report'].with_user(user)._render_qweb_html('sale.report_saleorder_pro_forma', order.ids)
     assert b'QA T35 export product' in html and b'Pro-Forma' in html
     order.action_confirm()
     assert order.state == 'sale' and order.amount_untaxed == 100
