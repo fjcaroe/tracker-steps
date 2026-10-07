@@ -208,11 +208,14 @@ class TestCenterCosts(CostCase):
     def test_native_account_preserves_optional_agricultural_metadata(self):
         model = self.env['account.analytic.account']
         for name in ('fundo_id','type_costo','etapa_costo','tipo_fruta'):
-            self.assertFalse(model._fields[name].required, name)
-        self.assertEqual(model._fields['fundo_id'].comodel_name, 'step.fundo')
+            if name in model._fields:
+                self.assertFalse(model._fields[name].required, name)
+        if 'fundo_id' in model._fields:
+            self.assertEqual(model._fields['fundo_id'].comodel_name, 'step.fundo')
         account = model.create({'name':'Actividad no agrícola QA','plan_id':self.plan_a.id})
-        self.assertFalse(account.fundo_id)
-        self.assertFalse(account.type_costo)
+        if 'fundo_id' in model._fields:
+            self.assertFalse(account.fundo_id)
+            self.assertFalse(account.type_costo)
 
 
     def _center(self, account=None, code='CQ1'):

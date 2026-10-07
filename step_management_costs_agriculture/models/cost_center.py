@@ -23,6 +23,13 @@ COST_TYPE_BY_TYPE_COSTO = {
 class AccountAnalyticAccount(models.Model):
     _inherit = "account.analytic.account"
 
+    # Native analytic accounts include activities outside agriculture. This
+    # bridge loads after step_hr, preserving its master and selection values.
+    fundo_id = fields.Many2one('step.fundo', required=False)
+    type_costo = fields.Selection(required=False)
+    etapa_costo = fields.Selection(required=False)
+    tipo_fruta = fields.Selection(required=False)
+
     farm = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
     species = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
     variety = fields.Char(compute="_compute_management_from_agriculture", store=True, readonly=False, precompute=True)
