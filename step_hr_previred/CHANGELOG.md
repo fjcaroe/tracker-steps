@@ -1,5 +1,19 @@
 # Changelog
 
+## 18.0.3.8.7
+
+Tickets Helpdesk S&S #60 y #61.
+
+* En licencias de mes completo sin RIMA informada, se busca la última renta
+  imponible con días de asistencia dentro de los tres meses anteriores,
+  respetando trabajador, empresa, contrato y liquidaciones calculadas.
+  Si no existe, se usa sueldo base y gratificación del contrato vigente.
+* El IMM se toma del indicador mensual existente; el respaldo histórico sólo
+  se utiliza si falta esa fuente. Se respeta la opción de gratificación del
+  contrato y se preservan las liquidaciones y la regla del campo 95 del T59.
+* Se comprueba la jornada parcial en principal y adicionales por contrato
+  (campo 93, T61); la normalización existente ya resuelve ese caso.
+
 ## 18.0.3.8.6
 
 Ticket Helpdesk S&S #59 (EMCA, septiembre 2026).

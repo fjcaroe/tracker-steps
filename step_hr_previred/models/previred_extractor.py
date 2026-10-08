@@ -18,7 +18,9 @@ cubierta por pruebas.
 
 import logging
 from collections import Counter, defaultdict
+from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
+from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, models
 
@@ -732,7 +734,8 @@ class PreviredExtractor(models.AbstractModel):
         rima = _int(previred.F_RIMA)
         rima_source = "motor (campo 92)"
         if rima <= 0:
-            rima, why = self._compute_medical_leave_rima(payslip, dataset)
+            rima, why = self._compute_medical_leave_rima(
+                payslip, dataset, full_month_leave=full_month_leave)
             if rima > 0:
                 # La RIMA pertenece a la principal 00. En particular, la
                 # línea adicional 01 debe llevar campo 92 = 0 (ticket #18,
@@ -819,12 +822,60 @@ class PreviredExtractor(models.AbstractModel):
         return bool(getattr(entry_type, "is_leave", False)) and (
             "licencia" in name)
 
-    def _compute_medical_leave_rima(self, payslip, dataset):
+    def _medical_leave_minimum_wage(self, payslip, dataset):
+        """Lee el indicador mensual existente; conserva el respaldo histórico."""
+        if "previred.indicator" in self.env:
+            model = self.env["previred.indicator"].sudo()
+            start = datetime.strptime(dataset.period, "%Y%m").date()
+            domain = [("date", ">=", start),
+                      ("date", "<", start + relativedelta(months=1))]
+            if "company_id" in model._fields:
+                domain.append(("company_id", "in", [False, payslip.company_id.id]))
+            indicator = model.search(domain, order="date desc, id desc", limit=1)
+            for name in ("ingreso_minimo_mensual", "sueldo_minimo",
+                         "ingreso_minimo", "trab_dependiente_independiente"):
+                if indicator and name in model._fields and indicator[name] > 0:
+                    return Decimal(str(indicator[name]))
+        return previred.minimum_wage(dataset.period)
+
+    def _medical_leave_previous_taxable(self, payslip, dataset):
+        """T60: última renta con asistencia dentro de los tres meses anteriores.
+
+        GROSS es la renta imponible que declara el motor. Un mes sin días
+        trabajados no sirve como renta de referencia aunque tenga algún haber
+        residual. Se respeta trabajador, empresa, contrato y estado calculado.
+        """
+        start = datetime.strptime(dataset.period, "%Y%m").date()
+        previous = self.env["hr.payslip"].search([
+            ("employee_id", "=", payslip.employee_id.id),
+            ("company_id", "=", payslip.company_id.id),
+            ("contract_id", "=", payslip.contract_id.id),
+            ("date_from", ">=", start - relativedelta(months=3)),
+            ("date_to", "<", start),
+            ("state", "in", ["verify", "done", "paid"]),
+        ], order="date_to desc, id desc")
+        for slip in previous:
+            attendance = slip.worked_days_line_ids.filtered(
+                lambda wd: (wd.number_of_days or 0) > 0 and (
+                    wd.work_entry_type_id.code in previred.ATTENDANCE_CODES
+                    or previred.is_attendance_label(
+                        wd.work_entry_type_id.name, wd.name)))
+            if not attendance:
+                continue
+            taxable = sum(slip.line_ids.filtered(
+                lambda line: line.code == "GROSS").mapped("total"))
+            if taxable > 0:
+                return Decimal(str(taxable)), self._payslip_ref(slip)
+        return Decimal(0), ""
+
+    def _compute_medical_leave_rima(self, payslip, dataset,
+                                    full_month_leave=False):
         """RIMA cuando el motor no la informó en el campo 92.
 
-        Devuelve `(monto, detalle)`; `monto = 0` con el motivo si no se puede
-        calcular (falta el IMM del período o el sueldo base del contrato, o la
-        liquidación no tiene línea de licencia médica).
+        En mes completo, busca renta imponible con asistencia hasta tres meses
+        atrás; si no existe, usa sueldo base más gratificación del contrato.
+        Los importes informados por el motor conservan precedencia. Devuelve
+        `(monto, detalle)`; si falta una fuente necesaria, avisa sin inventarla.
 
         Fórmula (verificada contra liquidaciones reales de SyS, agosto 2026):
         `(sueldo base contrato + gratificación) / 30 × días de licencia médica
@@ -838,15 +889,22 @@ class PreviredExtractor(models.AbstractModel):
         if leave_days <= 0:
             return 0, "sin línea de licencia médica en la liquidación"
         leave_days = min(Decimal(str(leave_days)), Decimal("30"))
-        imm = previred.minimum_wage(dataset.period)
-        if not imm:
-            return 0, ("el IMM del período %s no está en "
-                       "previred.minimum_wage" % dataset.period)
+        if full_month_leave:
+            taxable, source = self._medical_leave_previous_taxable(payslip, dataset)
+            if taxable > 0:
+                return int(taxable.quantize(Decimal("1"), rounding=ROUND_HALF_UP)), (
+                    "renta imponible de %s dentro de los tres meses anteriores" % source)
         wage = Decimal(str(getattr(payslip.contract_id, "wage", 0) or 0))
         if wage <= 0:
             return 0, "el contrato no tiene sueldo base"
-        gratification = min(wage * Decimal("0.25"),
-                            Decimal("4.75") * Decimal(imm) / 12)
+        gratification = Decimal(0)
+        if getattr(payslip.contract_id, "has_gratification", True):
+            imm = self._medical_leave_minimum_wage(payslip, dataset)
+            if not imm:
+                return 0, ("no hay IMM del período %s en el indicador mensual "
+                           "ni en el respaldo histórico" % dataset.period)
+            gratification = min(wage * Decimal("0.25"),
+                                Decimal("4.75") * Decimal(imm) / 12)
         rima = int(((wage + gratification) / 30 * leave_days).quantize(
             Decimal("1"), rounding=ROUND_HALF_UP))
         return rima, (

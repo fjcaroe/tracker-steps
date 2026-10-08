@@ -5,6 +5,10 @@ Cubre los casos 2 (dos departamentos y trabajador con líneas 00/01/02/03),
 y 11 (un único dataset por acción).
 """
 
+import calendar
+from datetime import date
+from unittest.mock import patch
+
 from odoo.tests.common import tagged
 
 from ..tools import previred
@@ -175,6 +179,20 @@ class TestDataset(PreviredCase):
              for row in dataset.records[0].rows],
             ["1", "1", "1", "1"],
         )
+
+    def test_partial_workday_is_propagated_to_every_annex(self):
+        """T61: la jornada 2 del contrato se repite en líneas 01/02/03."""
+        employee = self.make_employee("Jornada parcial T61", "12345678-5",
+                                      self.dep_agri)
+        payslip = self.make_payslip(employee, self.dep_agri)
+        payslip.contract_id.resource_calendar_id.previred_workday_type = "2"
+        rows = [make_row(dv="5", line_type=kind, overrides={
+            previred.F_WORKDAY_TYPE: "1"}) for kind in (
+                previred.LINE_PRINCIPAL, previred.LINE_ADDITIONAL,
+                previred.LINE_SECOND_CONTRACT, previred.LINE_VOLUNTARY)]
+        dataset = self.build(rows, spec_version="98")
+        self.assertEqual([row[previred.F_WORKDAY_TYPE - 1]
+                          for row in dataset.records[0].rows], ["2"] * 4)
 
     def test_v98_cost_center_uses_code_or_name_from_contract(self):
         contract_model = self.env["hr.contract"]
@@ -688,6 +706,8 @@ class TestDataset(PreviredCase):
                                       self.dep_admin)
         payslip = self.make_payslip(employee, self.dep_admin)
         payslip.contract_id.wage = 420000
+        if "has_gratification" in payslip.contract_id._fields:
+            payslip.contract_id.has_gratification = True
         payslip.worked_days_line_ids.unlink()
         self._add_worked_days(payslip, "WORK100", 11)
         self._add_worked_days(payslip, "LIC", 20, is_leave=True)
@@ -720,6 +740,8 @@ class TestDataset(PreviredCase):
                                       self.dep_admin)
         payslip = self.make_payslip(employee, self.dep_admin)
         payslip.contract_id.wage = 420000
+        if "has_gratification" in payslip.contract_id._fields:
+            payslip.contract_id.has_gratification = True
         payslip.worked_days_line_ids.unlink()
         self._add_worked_days(payslip, "WORK100", 11)
         self._add_worked_days(payslip, "LIC", 20, is_leave=True)
@@ -763,6 +785,8 @@ class TestDataset(PreviredCase):
                                       self.dep_admin)
         payslip = self.make_payslip(employee, self.dep_admin)
         payslip.contract_id.wage = 986646
+        if "has_gratification" in payslip.contract_id._fields:
+            payslip.contract_id.has_gratification = True
         payslip.worked_days_line_ids.unlink()
         self._add_worked_days(payslip, "LIC", 30, is_leave=True)
         row = make_row(rut="17932663", dv="9", overrides={
@@ -788,6 +812,8 @@ class TestDataset(PreviredCase):
         employee = self.make_employee("Sin IMM", "17932663-9", self.dep_admin)
         payslip = self.make_payslip(employee, self.dep_admin)
         payslip.contract_id.wage = 986646
+        if "has_gratification" in payslip.contract_id._fields:
+            payslip.contract_id.has_gratification = True
         payslip.worked_days_line_ids.unlink()
         self._add_worked_days(payslip, "LIC", 30, is_leave=True)
         row = make_row(rut="17932663", dv="9", overrides={
@@ -796,16 +822,108 @@ class TestDataset(PreviredCase):
             previred.F_RIMA: "0",
             previred.F_SIS_CONTRIBUTION: "22178",
         })
-        original = dict(previred.MINIMUM_WAGE_BY_PERIOD)
-        previred.MINIMUM_WAGE_BY_PERIOD.clear()
-        try:
+        with patch.object(type(self.env["step.previred.extractor"]),
+                          "_medical_leave_minimum_wage", return_value=None):
             dataset = self.build([row], spec_version="98")
-        finally:
-            previred.MINIMUM_WAGE_BY_PERIOD.update(original)
         principal = dataset.records[0].principal
         self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "22178")
         self.assertIn("medical_leave_rima_missing",
                       [issue.code for issue in dataset.issues])
+
+    def _make_rima_history(self, employee, contract, month, taxable,
+                           attendance=30, state="done"):
+        slip = self.make_payslip(employee, self.dep_admin, contract=contract,
+                                 date_from=date(2026, month, 1),
+                                 date_to=date(2026, month,
+                                              calendar.monthrange(2026, month)[1]),
+                                 state=state)
+        self._add_worked_days(slip, "WORK100" if attendance else "LIC",
+                              attendance or 30, is_leave=not attendance)
+        category = self.env["hr.salary.rule.category"].create({
+            "name": "Imponible histórico sintético", "code": "GROSS_T60"})
+        rule = self.env["hr.salary.rule"].create({
+            "name": "Imponible T60", "code": "GROSS", "sequence": 900,
+            "category_id": category.id, "struct_id": slip.struct_id.id})
+        self.env["hr.payslip.line"].create({
+            "name": "Imponible T60", "code": "GROSS", "sequence": 900,
+            "salary_rule_id": rule.id, "category_id": category.id,
+            "slip_id": slip.id, "employee_id": employee.id,
+            "contract_id": contract.id, "amount": taxable,
+            "quantity": 1, "rate": 100})
+        return slip
+
+    def _make_full_leave_rima_case(self, wage=553553):
+        employee = self.make_employee("Licencia prolongada T60", "12345678-5",
+                                      self.dep_admin)
+        slip = self.make_payslip(employee, self.dep_admin)
+        slip.contract_id.wage = wage
+        if "has_gratification" in slip.contract_id._fields:
+            slip.contract_id.has_gratification = True
+        self._add_worked_days(slip, "LIC", 30, is_leave=True)
+        return employee, slip
+
+    def _build_full_leave_rima_case(self):
+        return self.build([make_row(dv="5", overrides={
+            previred.F_WORKED_DAYS: "0", previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "0", previred.F_RIMA: "0"})],
+            spec_version="98")
+
+    def test_full_leave_uses_nearest_positive_income_within_three_months(self):
+        employee, slip = self._make_full_leave_rima_case()
+        self._make_rima_history(employee, slip.contract_id, 7, 0, attendance=0)
+        self._make_rima_history(employee, slip.contract_id, 6, 800000)
+        self._make_rima_history(employee, slip.contract_id, 5, 900000)
+        # Un borrador más cercano tampoco es renta declarable.
+        self._make_rima_history(employee, slip.contract_id, 7, 1200000,
+                               state="draft")
+        dataset = self._build_full_leave_rima_case()
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_RIMA - 1], "800000")
+        self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "14240")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "0")
+
+    def test_full_leave_ignores_residual_income_and_fourth_month(self):
+        employee, slip = self._make_full_leave_rima_case()
+        self._make_rima_history(employee, slip.contract_id, 7, 9096, attendance=0)
+        self._make_rima_history(employee, slip.contract_id, 4, 1800000)
+        dataset = self._build_full_leave_rima_case()
+        principal = dataset.records[0].principal
+        self.assertEqual(principal[previred.F_RIMA - 1], "691941")
+        self.assertEqual(principal[previred.F_SIS_CONTRIBUTION - 1], "12317")
+        self.assertEqual(principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "691941")
+        self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "0")
+
+    def test_full_leave_reads_monthly_indicator_instead_of_missing_static_imm(self):
+        if "previred.indicator" not in self.env:
+            self.skipTest("El motor no aporta el indicador mensual")
+        model = self.env["previred.indicator"]
+        if "trab_dependiente_independiente" not in model._fields:
+            self.skipTest("El motor usa otro campo para IMM")
+        source = model.search([], limit=1)
+        if not source:
+            self.skipTest("No hay indicador base para copiar en la fixture")
+        source.copy({"date": date(2099, 1, 1),
+                     "trab_dependiente_independiente": 600000})
+        employee, slip = self._make_full_leave_rima_case(wage=2000000)
+        self.date_from = slip.date_from = date(2099, 1, 1)
+        self.date_to = slip.date_to = date(2099, 1, 31)
+        dataset = self.build([make_row(dv="5", period="012099", overrides={
+            previred.F_WORKED_DAYS: "0", previred.F_AFP_CODE: "29",
+            previred.F_AFP_TAXABLE: "0", previred.F_RIMA: "0"})],
+            spec_version="98")
+        self.assertEqual(dataset.records[0].principal[previred.F_RIMA - 1],
+                         "2237500")
+
+    def test_contract_without_gratification_does_not_need_imm(self):
+        employee, slip = self._make_full_leave_rima_case(wage=800000)
+        if "has_gratification" not in slip.contract_id._fields:
+            self.skipTest("El contrato no configura gratificación")
+        slip.contract_id.has_gratification = False
+        with patch.object(type(self.env["step.previred.extractor"]),
+                          "_medical_leave_minimum_wage", return_value=None):
+            dataset = self._build_full_leave_rima_case()
+        self.assertEqual(dataset.records[0].principal[previred.F_RIMA - 1],
+                         "800000")
 
     def test_no_rima_leaves_employer_contributions_untouched(self):
         """Sin RIMA y con días trabajados normales: el recálculo de licencia
