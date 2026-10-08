@@ -38,6 +38,8 @@ try:
         scoped = env(context=dict(env.context, allowed_company_ids=company.ids))
         slips = scoped['hr.payslip'].search([('employee_id', '=', employee.id), ('date_from', '=', first),
                                             ('date_to', '=', last), ('state', 'in', ['verify', 'done', 'paid'])])
+        if case.get('payslip_ids'):
+            slips = slips.filtered(lambda slip: slip.id in case['payslip_ids'])
         assert slips, 'No eligible payslip for the private case'
         before = [(slip.id, [(line.id, line.total) for line in slip.line_ids],
                    [(line.id, line.number_of_days) for line in slip.worked_days_line_ids]) for slip in slips]
@@ -50,7 +52,8 @@ try:
             dataset = wizard._build()
         finally:
             http._request_stack.pop()
-        records = [record for record in dataset.records if record.employee_id == employee.id]
+        records = [record for record in dataset.records
+                   if record.employee_id == employee.id and record.payslip_id in slips.ids]
         assert records, 'Employee absent from canonical export'
         for record in records:
             row = record.principal
@@ -59,6 +62,10 @@ try:
                     slip = slips.filtered(lambda item: item.id == record.payslip_id)
                     expected = int(sum(slip.line_ids.filtered(lambda line: line.code == expected[5:]).mapped('total')))
                 assert row[int(field)-1] == str(expected), (case['ticket'], field, row[int(field)-1], expected)
+            for annex in record.annexes:
+                for field, expected in case.get('annex_fields', {}).items():
+                    assert annex[int(field)-1] == str(expected), (
+                        case['ticket'], 'annex', field, annex[int(field)-1], expected)
         slips.invalidate_recordset()
         after = [(slip.id, [(line.id, line.total) for line in slip.line_ids],
                   [(line.id, line.number_of_days) for line in slip.worked_days_line_ids]) for slip in slips]
