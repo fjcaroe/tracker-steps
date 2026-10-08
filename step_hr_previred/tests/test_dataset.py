@@ -850,7 +850,7 @@ class TestDataset(PreviredCase):
             "salary_rule_id": rule.id, "category_id": category.id,
             "slip_id": slip.id, "employee_id": employee.id,
             "contract_id": contract.id, "amount": taxable,
-            "quantity": 1, "rate": 100})
+            "quantity": 1, "rate": 100, "total": taxable})
         slip.state = state
         self.assertEqual(sum(slip.line_ids.filtered(
             lambda line: line.code == "GROSS").mapped("total")), taxable)
