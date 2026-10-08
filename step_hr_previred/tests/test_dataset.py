@@ -837,6 +837,7 @@ class TestDataset(PreviredCase):
                                  date_to=date(2026, month,
                                               calendar.monthrange(2026, month)[1]),
                                  state=state)
+        slip.worked_days_line_ids.unlink()
         self._add_worked_days(slip, "WORK100" if attendance else "LIC",
                               attendance or 30, is_leave=not attendance)
         category = self.env["hr.salary.rule.category"].create({
@@ -859,6 +860,7 @@ class TestDataset(PreviredCase):
         slip.contract_id.wage = wage
         if "has_gratification" in slip.contract_id._fields:
             slip.contract_id.has_gratification = True
+        slip.worked_days_line_ids.unlink()
         self._add_worked_days(slip, "LIC", 30, is_leave=True)
         return employee, slip
 
