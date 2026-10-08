@@ -1,0 +1,80 @@
+T60 y T61 — Licencias prolongadas y jornada de líneas adicionales
+================================================================
+
+Resultado
+---------
+
+Se leyeron las descripciones, los comentarios humanos recientes y ambos
+documentos adjuntos, incluidas sus cinco imágenes. Se implementa la regla
+operativa indicada en T60: cuando falta RIMA en una licencia de mes completo,
+buscar la última renta imponible con asistencia dentro de los tres meses
+anteriores; si no existe, usar sueldo base y gratificación del contrato.
+La consulta respeta trabajador, empresa, contrato y estados calculados.
+Los haberes residuales de meses sin asistencia no se usan como referencia.
+
+El IMM procede del indicador mensual existente en Nómina. Se conserva el
+respaldo histórico si falta esa fuente y se respeta la opción de gratificación
+del contrato. La renta histórica se prorratea por los días de licencia si
+otras ausencias completan el mes. Los valores de RIMA ya informados por el
+motor mantienen precedencia. No se recalculan liquidaciones.
+
+T61 ya estaba resuelto por la normalización existente del campo 93. Se
+comprobó nuevamente en la descarga real: principal y adicional del contrato
+parcial llevan jornada 2; los otros contratos conservan jornada 1. Se añadió
+una regresión de jornada parcial para todas las clases de líneas anexas.
+
+Paquete y validación
+-------------------
+
+* Módulo único: ``step_hr_previred 18.0.3.8.7``.
+* Commit publicado: ``dcfc7bb0419dfa34b8d6cd34497922007186e3c7``.
+* SHA-256: ``5ffb17008c6d25253960e988e4f9c4ad6be1856a75052a4bbbeb839a493d5104``.
+* Desarrollo: copia nueva ``MANAGEMENT_QA_DEVELOPMENT_t6061_20261008e``;
+  134 pruebas, cero fallos y cero errores de pruebas. La falta previa de
+  ``steps_api`` continúa fuera del alcance de Nómina.
+* SyS: copia privada de compatibilidad ``MANAGEMENT_QA_SYS_t6061_20261008e``;
+  134 pruebas, cero fallos y cero errores.
+* Las comparaciones de registros e importes de negocio pasaron en ambas
+  copias y durante la publicación. Se verificaron versión, origen del código,
+  vistas efectivas, acción del menú, servicios y dominios HTTPS.
+* El mismo paquete probado se publicó primero en Desarrollo y después en
+  SyS, con respaldo, overlay privado, bloqueo compartido, control de versiones
+  y ausencia de upgrades concurrentes.
+
+Respaldos:
+
+* ``/opt/steps_backups/management_development_20261008T004411Z``.
+* ``/opt/steps_backups/management_sys_20261008T004714Z``.
+
+Pruebas reales
+--------------
+
+Las sondas del generador real pasaron en la copia de SyS y en SyS: el caso de
+licencia prolongada coincide con el monto del adjunto y con sus cotizaciones;
+los tres contratos del caso de jornada mantienen su campo 93 en principal y
+anexas. Se identifica cada liquidación explícitamente porque los contratos
+están asociados a fichas distintas con la misma identificación. Se conservaron
+las fichas y se verificó que importes y días de las liquidaciones siguieran iguales.
+
+Los TXT reales antes y después tienen 104 líneas de 105 campos. En el caso
+T60 cambian únicamente cinco celdas: campos 29, 92, 94, 100 y 102. El campo 95
+mantiene la regla del T59. Las siete líneas del caso T61 permanecen idénticas.
+
+La comparación detectó además un cambio del campo 93 en otro contrato.
+Se comprobó por SQL que el contrato había cambiado de calendario antes de
+publicar: última modificación ``2026-10-08T00:47:02.737941Z``, calendario
+actual de 24 horas semanales. La publicación comienza a las ``00:47:14Z``
+y preserva ese cambio ajeno. Las demás celdas del archivo son idénticas.
+
+Se revisaron en el navegador el recibo, el movimiento adicional y el menú y
+formulario de PreviRed. La validación real de septiembre comprende 83
+liquidaciones, 83 principales y 21 anexas, con cero errores y 17 advertencias
+de normalizaciones auditables. No se presentó una declaración ni un pago en
+el portal externo de PreviRed.
+
+SHA-256 del TXT corregido:
+``46a9c3493ec5e73d37d58116535ef66301dd1ff435ab2b6f9d4b9e228702bee4``.
+
+Los adjuntos, datos personales, importes privados, capturas y logs quedan
+fuera del repositorio. El cierre se registra mediante notas internas sin
+correo ni notificaciones externas.
