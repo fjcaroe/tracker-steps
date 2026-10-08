@@ -28,9 +28,12 @@ try:
         employee = env['hr.employee'].with_context(active_test=False).search(employee_domain).filtered(
             lambda row: previred.rut_key(row.identification_id) == key)
         if len(employee) > 1:
-            eligible = env['hr.payslip'].search([
+            eligible_domain = [
                 ('employee_id', 'in', employee.ids), ('date_from', '=', first),
-                ('date_to', '=', last), ('state', 'in', ['verify', 'done', 'paid'])])
+                ('date_to', '=', last), ('state', 'in', ['verify', 'done', 'paid'])]
+            if case.get('payslip_ids'):
+                eligible_domain.append(('id', 'in', case['payslip_ids']))
+            eligible = env['hr.payslip'].search(eligible_domain)
             employee &= eligible.employee_id
         assert len(employee) == 1, ('Expected exactly one employee for the private case',
                                     case['rut'], employee.ids)
