@@ -851,12 +851,18 @@ class TestDataset(PreviredCase):
             "slip_id": slip.id, "employee_id": employee.id,
             "contract_id": contract.id, "amount": taxable,
             "quantity": 1, "rate": 100})
+        slip.state = state
+        self.assertEqual(sum(slip.line_ids.filtered(
+            lambda line: line.code == "GROSS").mapped("total")), taxable)
+        self.assertEqual(sum(slip.worked_days_line_ids.mapped("number_of_days")),
+                         attendance or 30)
         return slip
 
     def _make_full_leave_rima_case(self, wage=553553):
         employee = self.make_employee("Licencia prolongada T60", "12345678-5",
                                       self.dep_admin)
-        slip = self.make_payslip(employee, self.dep_admin)
+        slip = self.make_payslip(employee, self.dep_admin,
+                                 date_from=self.date_from, date_to=self.date_to)
         slip.contract_id.wage = wage
         if "has_gratification" in slip.contract_id._fields:
             slip.contract_id.has_gratification = True
@@ -914,12 +920,12 @@ class TestDataset(PreviredCase):
         source = model.search([], limit=1)
         if not source:
             self.skipTest("No hay indicador base para copiar en la fixture")
-        source.copy({"date": date(2099, 1, 1),
+        source.copy({"date": date(2026, 9, 30),
                      "trab_dependiente_independiente": 600000})
+        self.date_from = date(2026, 9, 1)
+        self.date_to = date(2026, 9, 30)
         employee, slip = self._make_full_leave_rima_case(wage=2000000)
-        self.date_from = slip.date_from = date(2099, 1, 1)
-        self.date_to = slip.date_to = date(2099, 1, 31)
-        dataset = self.build([make_row(dv="5", period="012099", overrides={
+        dataset = self.build([make_row(dv="5", period="092026", overrides={
             previred.F_WORKED_DAYS: "0", previred.F_AFP_CODE: "29",
             previred.F_AFP_TAXABLE: "0", previred.F_RIMA: "0"})],
             spec_version="98")
