@@ -895,6 +895,16 @@ class TestDataset(PreviredCase):
         self.assertEqual(principal[previred.F_UNEMPLOYMENT_TAXABLE - 1], "691941")
         self.assertEqual(principal[previred.F_PROTECTED_RETURN - 1], "0")
 
+    def test_historical_rima_is_proportional_when_other_absences_complete_month(self):
+        employee, slip = self._make_full_leave_rima_case()
+        slip.worked_days_line_ids.unlink()
+        self._add_worked_days(slip, "LIC", 15, is_leave=True)
+        self._add_worked_days(slip, "UNPAID_T60", 15, is_leave=True)
+        self._make_rima_history(employee, slip.contract_id, 7, 800000)
+        dataset = self._build_full_leave_rima_case()
+        self.assertEqual(dataset.records[0].principal[previred.F_RIMA - 1],
+                         "400000")
+
     def test_full_leave_reads_monthly_indicator_instead_of_missing_static_imm(self):
         if "previred.indicator" not in self.env:
             self.skipTest("El motor no aporta el indicador mensual")

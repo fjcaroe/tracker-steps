@@ -892,8 +892,10 @@ class PreviredExtractor(models.AbstractModel):
         if full_month_leave:
             taxable, source = self._medical_leave_previous_taxable(payslip, dataset)
             if taxable > 0:
-                return int(taxable.quantize(Decimal("1"), rounding=ROUND_HALF_UP)), (
-                    "renta imponible de %s dentro de los tres meses anteriores" % source)
+                rima = taxable / 30 * leave_days
+                return int(rima.quantize(Decimal("1"), rounding=ROUND_HALF_UP)), (
+                    "renta imponible de %s dentro de los tres meses anteriores; "
+                    "proporcional a %s días de licencia" % (source, leave_days))
         wage = Decimal(str(getattr(payslip.contract_id, "wage", 0) or 0))
         if wage <= 0:
             return 0, "el contrato no tiene sueldo base"
