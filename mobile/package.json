@@ -16,7 +16,7 @@
     "build:pilot": "node ../tools/ios/check_pilot_config.mjs && tsc -b && vite build --mode pilot",
     "android:pilot": "npm run build:pilot && cap sync android",
     "ios:demo": "npm run build:demo && ruby ../tools/ios/prepare_project.rb && cap sync ios",
-    "ios:pilot": "node ../tools/ios/check_pilot_config.mjs && npm run build && ruby ../tools/ios/prepare_project.rb && cap sync ios",
+    "ios:pilot": "npm run build:pilot && ruby ../tools/ios/prepare_project.rb && cap sync ios",
     "ios": "npm run ios:demo && cap open ios"
   },
   "dependencies": {
