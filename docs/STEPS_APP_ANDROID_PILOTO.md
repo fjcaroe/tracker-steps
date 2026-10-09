@@ -57,14 +57,19 @@ a usuarios internos comunes ni cambia sus empresas permitidas.
 
 ## Instalación y alcance
 
-En Play Console se habilitó una lista de un participante con el correo facilitado
-por el usuario. El correo queda en Play Console, no en este documento público.
+En Play Console se habilitó una lista de dos participantes con los correos
+facilitados por el usuario. El segundo recibió por Gmail el enlace de instalación
+y las instrucciones del piloto. Los correos quedan fuera de este documento público.
 La versión **2.0.0-beta.1 (720)** se publicó en **prueba interna**, segmento activo,
 el 09-10-2026. Play Console confirmó «Disponible para verificadores internos».
 Enlace de incorporación:
 <https://play.google.com/apps/internaltest/4700201383723487402>.
 Durante esta etapa Google puede mostrar `comm.stepsapp.mobile (unreviewed)` como
 nombre temporal y tardar en propagar el lanzamiento. No es publicación pública.
+Se guardó la ficha predeterminada en borrador con el nombre **Steps App** y sus
+descripciones. Faltan icono de tienda, gráfico destacado, capturas y revisión de
+Google para completar la ficha. El identificador de paquete es permanente;
+cambiar el nombre visible no exige cambiarlo ni reinstalar la aplicación.
 Solo quedaron dos recomendaciones de depuración (mapa R8 y símbolos nativos),
 sin errores que bloqueen el lanzamiento.
 La ficha pública y el acceso a producción siguen siendo pasos separados; la
