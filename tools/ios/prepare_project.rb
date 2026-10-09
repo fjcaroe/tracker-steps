@@ -53,6 +53,13 @@ watch.build_configurations.each do |config|
   s['SKIP_INSTALL'] = 'YES'
   s['LD_RUNPATH_SEARCH_PATHS'] = '$(inherited) @executable_path/Frameworks'
 end
+# xcodeproj's default framework reference names a fixed WatchOS SDK version.
+# Resolve Foundation against the SDK selected by Xcode on this Mac instead.
+watch.frameworks_build_phase.files_references.each do |framework|
+  next unless framework.path.end_with?('/Foundation.framework')
+  framework.path = 'System/Library/Frameworks/Foundation.framework'
+  framework.source_tree = 'SDKROOT'
+end
 project.save
 Xcodeproj::XCScheme.new.tap do |scheme|
   scheme.add_build_target(app)

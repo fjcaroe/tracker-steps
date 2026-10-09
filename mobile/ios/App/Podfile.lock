@@ -1,0 +1,67 @@
+PODS:
+  - AparajitaCapacitorSecureStorage (7.1.6):
+    - Capacitor
+    - KeychainSwift (~> 21.0)
+  - Capacitor (7.6.9):
+    - CapacitorCordova
+  - CapacitorBarcodeScanner (2.2.6):
+    - Capacitor
+    - OSBarcodeLib (= 2.0.1)
+  - CapacitorCommunityBackgroundGeolocation (1.2.26):
+    - Capacitor
+  - CapacitorCordova (7.6.9)
+  - CapacitorGeolocation (7.1.8):
+    - Capacitor
+    - IONGeolocationLib (= 1.0.1)
+  - CapacitorLocalNotifications (7.0.7):
+    - Capacitor
+  - IONGeolocationLib (1.0.1)
+  - KeychainSwift (21.0.0)
+  - OSBarcodeLib (2.0.1)
+
+DEPENDENCIES:
+  - "AparajitaCapacitorSecureStorage (from `../../node_modules/@aparajita/capacitor-secure-storage`)"
+  - "Capacitor (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorBarcodeScanner (from `../../node_modules/@capacitor/barcode-scanner`)"
+  - "CapacitorCommunityBackgroundGeolocation (from `../../node_modules/@capacitor-community/background-geolocation`)"
+  - "CapacitorCordova (from `../../node_modules/@capacitor/ios`)"
+  - "CapacitorGeolocation (from `../../node_modules/@capacitor/geolocation`)"
+  - "CapacitorLocalNotifications (from `../../node_modules/@capacitor/local-notifications`)"
+
+SPEC REPOS:
+  trunk:
+    - IONGeolocationLib
+    - KeychainSwift
+    - OSBarcodeLib
+
+EXTERNAL SOURCES:
+  AparajitaCapacitorSecureStorage:
+    :path: "../../node_modules/@aparajita/capacitor-secure-storage"
+  Capacitor:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorBarcodeScanner:
+    :path: "../../node_modules/@capacitor/barcode-scanner"
+  CapacitorCommunityBackgroundGeolocation:
+    :path: "../../node_modules/@capacitor-community/background-geolocation"
+  CapacitorCordova:
+    :path: "../../node_modules/@capacitor/ios"
+  CapacitorGeolocation:
+    :path: "../../node_modules/@capacitor/geolocation"
+  CapacitorLocalNotifications:
+    :path: "../../node_modules/@capacitor/local-notifications"
+
+SPEC CHECKSUMS:
+  AparajitaCapacitorSecureStorage: f0e22d010964f50d57c233754da959a5fcf18915
+  Capacitor: 1194c38ae1cc820671aefd94c59ebcbca2f33b26
+  CapacitorBarcodeScanner: 7fc82d225b4cd1e1de6d2a3cc0b899fc999c2d3e
+  CapacitorCommunityBackgroundGeolocation: 64561a9463d1decd1b58349a5b999327e24bf9ed
+  CapacitorCordova: 2080fc0d6bfbc9dcc0e6d88e77fa624190d343ca
+  CapacitorGeolocation: de4b0ccf90140528184e31676dd5e3a328eb589a
+  CapacitorLocalNotifications: f8ccb7e9c9056a23f415398e51825594e953af3a
+  IONGeolocationLib: 20f9d0248a0b5264511fb57a37e25dd2badf797a
+  KeychainSwift: 4a71a45c802fd9e73906457c2dcbdbdc06c9419d
+  OSBarcodeLib: 57987d2eb1f916f701f4554e20e349b3cb83f023
+
+PODFILE CHECKSUM: 945e1adb47a27a5421da96ddd37eee4b4231b586
+
+COCOAPODS: 1.16.2
