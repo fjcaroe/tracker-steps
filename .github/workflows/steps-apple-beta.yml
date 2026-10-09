@@ -40,15 +40,15 @@ jobs:
           set -o pipefail
           xcodebuild -workspace ios/App/App.xcworkspace -scheme Steps -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/steps-simulator" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/steps-simulator.log" 2>&1 || { tail -100 "$RUNNER_TEMP/steps-simulator.log"; exit 1; }
           ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-simulator.zip"
-      - name: Install and launch on iPhone simulator
-        working-directory: mobile
-        run: |
-          python3 ../tools/ios/simulator_smoke.py "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-iphone.png"
       - name: Compile device archive (unsigned, signing still required)
         working-directory: mobile
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace -scheme Steps -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Steps-demo-unsigned.xcarchive" CODE_SIGNING_ALLOWED=NO archive > "$RUNNER_TEMP/steps-device.log" 2>&1 || { tail -100 "$RUNNER_TEMP/steps-device.log"; exit 1; }
           ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/Steps-demo-unsigned.xcarchive" "$RUNNER_TEMP/Steps-demo-unsigned.zip"
+      - name: Install and launch on iPhone simulator
+        working-directory: mobile
+        run: |
+          python3 ../tools/ios/simulator_smoke.py "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-iphone.png"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,6 +59,7 @@ jobs:
             ${{ runner.temp }}/steps-*.log
           retention-days: 14
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Steps-Xcode-project-${{ github.sha }}
           path: |

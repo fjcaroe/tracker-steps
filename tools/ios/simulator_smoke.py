@@ -9,7 +9,13 @@ import time
 
 
 def sim(*args):
-    return subprocess.check_output(['xcrun', 'simctl', *args], text=True, timeout=180).strip()
+    print('simctl ' + ' '.join(args), flush=True)
+    try:
+        return subprocess.check_output(['xcrun', 'simctl', *args], text=True, timeout=180).strip()
+    except subprocess.TimeoutExpired as error:
+        if error.stdout:
+            print(error.stdout.decode(errors='replace') if isinstance(error.stdout, bytes) else error.stdout, flush=True)
+        raise
 
 
 app, screenshot = sys.argv[1:]
@@ -19,9 +25,14 @@ runtimes = [r for r in json.loads(sim('list', 'runtimes', '--json'))['runtimes']
 if not runtimes:
     raise SystemExit('No available iOS simulator runtime')
 runtime = next((r for r in runtimes if r['version'] == sdk), sorted(runtimes, key=lambda r: tuple(int(v) for v in r['version'].split('.')))[-1])
-device = sim('create', 'Steps beta smoke', 'com.apple.CoreSimulator.SimDeviceType.iPhone-16', runtime['identifier'])
+devices = [d for d in json.loads(sim('list', 'devices', '--json'))['devices'].get(runtime['identifier'], []) if d.get('isAvailable') and d['name'].startswith('iPhone')]
+existing = next((d for d in devices if d['state'] == 'Booted'), devices[0] if devices else None)
+device = existing['udid'] if existing else sim('create', 'Steps beta smoke', 'com.apple.CoreSimulator.SimDeviceType.iPhone-16', runtime['identifier'])
 try:
-    sim('boot', device)
+    subprocess.run(['open', '-g', '-a', 'Simulator', '--args', '-CurrentDeviceUDID', device], check=True, timeout=30)
+    if not existing or existing['state'] != 'Booted':
+        # The Simulator UI may already have started the requested device.
+        subprocess.run(['xcrun', 'simctl', 'boot', device], check=False, timeout=30)
     sim('bootstatus', device, '-b')
     sim('install', device, app)
     result = sim('launch', device, 'cl.stepsapp.movil')
@@ -33,4 +44,5 @@ try:
     print('iPhone simulator installed and launched Steps; screenshot saved.')
 finally:
     subprocess.run(['xcrun', 'simctl', 'shutdown', device], check=False, timeout=30)
-    subprocess.run(['xcrun', 'simctl', 'delete', device], check=False, timeout=30)
+    if not existing:
+        subprocess.run(['xcrun', 'simctl', 'delete', device], check=False, timeout=30)
