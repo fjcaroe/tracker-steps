@@ -11,10 +11,12 @@ concurrency:
   cancel-in-progress: true
 jobs:
   demo-build:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+      - name: Select stable Xcode 26 for current Apple SDK requirements
+        run: python3 tools/ios/select_xcode.py
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

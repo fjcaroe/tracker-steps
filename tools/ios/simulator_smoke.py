@@ -13,11 +13,12 @@ def sim(*args):
 
 
 app, screenshot = sys.argv[1:]
+sdk = subprocess.check_output(['xcrun', '--sdk', 'iphonesimulator', '--show-sdk-version'], text=True, timeout=30).strip()
 runtimes = [r for r in json.loads(sim('list', 'runtimes', '--json'))['runtimes']
-            if r.get('isAvailable') and '.iOS-' in r['identifier']]
+            if r.get('isAvailable') and '.iOS-' in r['identifier'] and r['version'].split('.')[0] == sdk.split('.')[0]]
 if not runtimes:
     raise SystemExit('No available iOS simulator runtime')
-runtime = sorted(runtimes, key=lambda r: tuple(int(v) for v in r['version'].split('.')))[-1]
+runtime = next((r for r in runtimes if r['version'] == sdk), sorted(runtimes, key=lambda r: tuple(int(v) for v in r['version'].split('.')))[-1])
 device = sim('create', 'Steps beta smoke', 'com.apple.CoreSimulator.SimDeviceType.iPhone-16', runtime['identifier'])
 try:
     sim('boot', device)

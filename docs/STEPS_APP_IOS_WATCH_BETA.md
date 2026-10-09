@@ -27,7 +27,7 @@ siete días y sus capacidades tienen restricciones. TestFlight requiere membres�
 [Apple: cuentas y pruebas personales](https://developer.apple.com/help/account/basics/about-your-developer-account).
 
 1. Obtener esta rama en un checkout propio en macOS; instalar Node 22 y CocoaPods
-   (incluye `xcodeproj`). Instalar Xcode y sus plataformas iOS/watchOS.
+   (incluye `xcodeproj`). Instalar Xcode 26 o posterior y sus plataformas iOS/watchOS.
 2. Ejecutar `cd mobile && npm ci && npm run ios:demo`.
 3. Abrir `mobile/ios/App/App.xcworkspace`, esquema **Steps**. En Signing &
    Capabilities asignar el mismo Team a **App** y **StepsWatch**. Mantener
@@ -99,3 +99,9 @@ SSO de Tracker y OAuth si se incluyen en el alcance antes de publicación públi
 
 No afirmar «instalable en tu iPhone» hasta disponer de firma y verificar la
 instalación real. Registrar aquí resultados de macOS/CI y dispositivos al obtenerlos.
+
+El workflow selecciona un Xcode 26 estable y un simulador de la misma generación
+del SDK. La primera compilación con Xcode 16.4 permitió comprobar las fuentes,
+pero no sirve para un envío actual a App Store Connect: Apple exige Xcode 26+
+y SDK iOS/watchOS 26 desde el 28-04-2026.
+[Requisito oficial](https://developer.apple.com/news/upcoming-requirements/).
