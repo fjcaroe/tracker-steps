@@ -105,3 +105,24 @@ del SDK. La primera compilación con Xcode 16.4 permitió comprobar las fuentes,
 pero no sirve para un envío actual a App Store Connect: Apple exige Xcode 26+
 y SDK iOS/watchOS 26 desde el 28-04-2026.
 [Requisito oficial](https://developer.apple.com/news/upcoming-requirements/).
+
+## Evidencia del 09-10-2026
+
+- Código nativo y paquete: `a550be6`; [PR de integración #19](https://github.com/fjcaroe/tracker-steps/pull/19)
+  hacia `codex/steps-movil`, en revisión, sin despliegue del piloto.
+- 169 pruebas móviles, 52 del backend Tracker, 22 de herramientas y 7 de
+  configuración del endpoint aprobadas. Build normal y demostración aprobados.
+- [Ejecución macOS/Xcode 26.6](https://github.com/fjcaroe/tracker-steps/actions/runs/37952429772):
+  compilación iPhone + Watch para simulador **aprobada**; archivo Release para
+  dispositivo **aprobado**, sin firma. Ambos paquetes están en los artefactos
+  `Steps-Apple-demo-a550be6ac76342e055c4f51ca2c7a66f5abf6edb` (retención 14 días).
+- **Arranque en simulador no validado**: dos intentos completos en infraestructura
+  hospedada no llegaron a instalar la app; el último quedó en la migración del
+  sistema `com.apple.locationd.migrator (CoreLocationMigrator.migrator)` hasta
+  agotar el límite. El workflow queda fallido por esta comprobación, aunque
+  conserva ambos binarios. No se ocultó ni convirtió el fallo en aprobación.
+- Revisados en navegador: Colaciones con historial, inicio de servicio de
+  Movilización y Tracker ficticio aislado. No sustituyen pruebas nativas.
+- **Pendiente externo**: cuenta/equipo Apple para firmar y acceso a iPhone/Watch
+  reales. No se generó una IPA firmada, no se instaló en teléfono y no se subió
+  a TestFlight. Tampoco se certificaron GPS de fondo, cámara o conexión del reloj.
