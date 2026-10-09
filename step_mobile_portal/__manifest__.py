@@ -7,7 +7,7 @@ Núcleo de administración de la aplicación móvil unificada Steps. Separa iden
 dispositivo (desde dónde opera). Odoo entrega catálogo y autorizaciones; el código
 de los módulos viaja en la aplicación.
 """,
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.0.1",
     "category": "Operations",
     "author": "Steps Consulting",
     "license": "LGPL-3",
@@ -16,6 +16,7 @@ de los módulos viaja en la aplicación.
         "security/security.xml",
         "security/ir.model.access.csv",
         "security/ir_rule.xml",
+        "data/admin.xml",
         "data/cron.xml",
         "views/wizard_views.xml",
         "views/person_views.xml",

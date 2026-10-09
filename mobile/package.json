@@ -13,6 +13,8 @@
     "cap:sync": "npm run build && cap sync",
     "android": "npm run cap:sync && cap open android",
     "build:demo": "tsc -b && vite build --mode demo",
+    "build:pilot": "node ../tools/ios/check_pilot_config.mjs && tsc -b && vite build --mode pilot",
+    "android:pilot": "npm run build:pilot && cap sync android",
     "ios:demo": "npm run build:demo && ruby ../tools/ios/prepare_project.rb && cap sync ios",
     "ios:pilot": "node ../tools/ios/check_pilot_config.mjs && npm run build && ruby ../tools/ios/prepare_project.rb && cap sync ios",
     "ios": "npm run ios:demo && cap open ios"
@@ -21,6 +23,7 @@
     "@aparajita/capacitor-secure-storage": "^7.1.6",
     "@capacitor-community/background-geolocation": "1.2.26",
     "@capacitor/android": "^7.0.0",
+    "@capacitor/barcode-scanner": "2.2.6",
     "@capacitor/core": "^7.0.0",
     "@capacitor/geolocation": "^7.0.0",
     "@capacitor/ios": "^7.0.0",

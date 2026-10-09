@@ -1,0 +1,54 @@
+name: Steps Android pilot
+on:
+  push:
+    branches: [codex/steps-android-pilot]
+    paths: ['mobile/**', 'tools/android/**', '.github/workflows/steps-android-pilot.yml']
+permissions:
+  contents: read
+concurrency:
+  group: steps-android-pilot-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      VITE_STEPS_API_BASE: https://desarrollo.stepsapp.cl/steps_app/v1
+      STEPS_BUILD_NUMBER: ${{ github.run_number }}20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Verify client and prepare native pilot
+        working-directory: mobile
+        run: |
+          npm ci
+          npm test
+          npm run build
+          npm run android:pilot
+      - name: Compile unsigned release packages and native tests
+        working-directory: mobile/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon testDebugUnitTest assembleDebug assembleRelease bundleRelease > "$RUNNER_TEMP/android-build.log" 2>&1 || { tail -100 "$RUNNER_TEMP/android-build.log"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/android-tools"
+          cp "$ANDROID_HOME/build-tools/36.0.0/lib/apksigner.jar" "$RUNNER_TEMP/android-tools/"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Steps-Android-pilot-${{ github.sha }}
+          path: |
+            mobile/android/app/build/outputs/apk/debug/*.apk
+            mobile/android/app/build/outputs/apk/release/*.apk
+            mobile/android/app/build/outputs/bundle/release/*.aab
+            mobile/android/app/build/reports/tests/
+            ${{ runner.temp }}/android-build.log
+            ${{ runner.temp }}/android-tools/
+          retention-days: 14

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Steps Móvil</string>
-    <string name="title_activity_main">Steps Móvil</string>
+    <string name="app_name">Steps App</string>
+    <string name="title_activity_main">Steps App</string>
     <string name="package_name">cl.stepsapp.movil</string>
     <string name="custom_url_scheme">cl.stepsapp.movil</string>
 </resources>

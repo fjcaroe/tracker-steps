@@ -19,7 +19,7 @@ if (import.meta.env.MODE === 'tracker') {
   void Promise.all([createDemoRuntime(), import('./testing/DemoHeader')]).then(([{ runtime, title }, { default: DemoHeader }]) => root.render(
     <StrictMode><DemoHeader title={title} /><App runtime={runtime} /></StrictMode>));
 } else {
-  root.render(<StrictMode><App runtime={createRuntime()} /></StrictMode>);
+  root.render(<StrictMode>{import.meta.env.MODE === 'pilot' && <aside style={{ background: '#f8df91', color: '#3a2b00', padding: 'calc(6px + env(safe-area-inset-top)) 12px 6px', fontSize: 12 }}>PILOTO · Desarrollo · Usa únicamente registros de prueba.</aside>}<App runtime={createRuntime()} /></StrictMode>);
   // Instalable y con shell sin conexión en la versión web (no aplica dentro del contenedor nativo).
   if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => { void navigator.serviceWorker.register('./sw.js').catch(() => {}); });
