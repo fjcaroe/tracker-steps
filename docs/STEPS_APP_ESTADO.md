@@ -18,6 +18,13 @@ pendientes. La matriz histórica de abajo no certifica esta beta en terreno.
 Ver [STEPS_APP_IOS_WATCH_BETA.md](STEPS_APP_IOS_WATCH_BETA.md) para evidencia,
 instalación y límites; Tracker en demostración usa una simulación aislada.
 
+**Preparación Mac del 09-10-2026:** 171 pruebas del cliente, builds normal/piloto,
+7 comprobaciones HTTPS, 52 pruebas backend Tracker y 22 de herramientas aprobadas
+localmente. `ios:pilot` corregido para conservar el aviso. El Mac 2017 no admite
+oficialmente Xcode 26; firma y pruebas físicas se continuarán en otro Mac.
+La sincronización nativa local terminó con error por Xcode ausente.
+Ver [STEPS_APP_IOS_MAC.md](STEPS_APP_IOS_MAC.md).
+
 Rama de integración: **`codex/steps-movil`** (publicada) · PR draft [fjcaroe/tracker-steps#16](https://github.com/fjcaroe/tracker-steps/pull/16) hacia `develop` (la PR #15 queda reemplazada por esta rama; no se cerró). Todo lo de abajo distingue lo **comprobado**, lo pendiente de validación y lo bloqueado.
 
 ## 1. Diagnóstico al comenzar esta sesión (lo que dijo la entrega anterior vs la realidad)

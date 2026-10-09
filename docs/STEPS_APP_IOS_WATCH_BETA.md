@@ -2,6 +2,16 @@
 
 Fecha: 09-10-2026. Base: `origin/codex/steps-movil` (`b0c3acf`).
 
+## Continuación en Mac del 09-10-2026
+
+El piloto Android actualizado se prepara en `codex/steps-ios-mac`.
+`ios:pilot` usa ahora `build:pilot` y conserva el aviso de Desarrollo.
+El Mac Intel 2017 inspeccionado no soporta oficialmente el macOS necesario para
+Xcode 26; el usuario dispone de otro Mac para compilar y conectar el iPhone.
+Ver [STEPS_APP_IOS_MAC.md](STEPS_APP_IOS_MAC.md) para pruebas, herramientas,
+compilación remota y continuación sin instalar GPT/Codex en el Mac corporativo.
+La firma y validación física siguen pendientes.
+
 ## Entrega y límites
 
 Esta etapa prepara una beta nativa de la aplicación unificada y un acompañante
