@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Steps usa la cámara cuando eliges escanear una credencial o adjuntar una foto a una tarea.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Steps Móvil usa tu ubicación para registrar la ruta mientras tienes una jornada en curso.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

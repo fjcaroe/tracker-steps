@@ -1,5 +1,23 @@
 # Steps App unificada — estado real (actualizado 04-10-2026, segunda sesión)
 
+**Actualización Android del 09-10-2026:** cliente con escáner nativo y API 36,
+paquetes APK/AAB compilados y firmados localmente, arranque Android comprobado.
+Portal 18.0.1.0.2 instalado en Desarrollo después de 60 pruebas en copia y
+comprobación de los registros existentes. Menú y formulario real de accesos
+abiertos con el administrador vigente. La publicación interna y la evidencia
+final se detallan en [STEPS_APP_ANDROID_PILOTO.md](STEPS_APP_ANDROID_PILOTO.md).
+Las limitaciones nativas históricas de abajo ya no describen este piloto.
+
+**Actualización iOS/Apple Watch del 09-10-2026:** primera beta de demostración y
+acompañante SwiftUI implementados en la [PR #19](https://github.com/fjcaroe/tracker-steps/pull/19).
+iPhone y Watch compilaron con Xcode 26.6, incluidos el archivo de dispositivo
+sin firma y el paquete para simulador. Arranque nativo aún sin validar: el
+simulador hospedado quedó detenido en una migración del sistema, antes de
+instalar Steps. Firma, instalación en equipos reales y piloto Odoo siguen
+pendientes. La matriz histórica de abajo no certifica esta beta en terreno.
+Ver [STEPS_APP_IOS_WATCH_BETA.md](STEPS_APP_IOS_WATCH_BETA.md) para evidencia,
+instalación y límites; Tracker en demostración usa una simulación aislada.
+
 Rama de integración: **`codex/steps-movil`** (publicada) · PR draft [fjcaroe/tracker-steps#16](https://github.com/fjcaroe/tracker-steps/pull/16) hacia `develop` (la PR #15 queda reemplazada por esta rama; no se cerró). Todo lo de abajo distingue lo **comprobado**, lo pendiente de validación y lo bloqueado.
 
 ## 1. Diagnóstico al comenzar esta sesión (lo que dijo la entrega anterior vs la realidad)

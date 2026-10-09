@@ -10,7 +10,7 @@ const BY_CODE: Record<string, string> = {
   weak_password: 'La contraseña es muy débil: usa al menos 10 caracteres y que no sea tu correo.',
   invalid_email: 'Revisa el correo: no parece válido.',
   invalid_invitation: 'El código de invitación no es válido o ya venció.',
-  email_not_verified: 'Primero confirma tu correo con el código que te enviamos.',
+  email_not_verified: 'Confirma tu correo con el código recibido o pide a tu administrador que revise tu cuenta.',
   invalid_recovery: 'El código de recuperación no es válido o ya venció. Pide uno nuevo.',
   invalid_verification: 'El código de verificación no es válido o ya venció.',
   invalid_org_code: 'No reconocemos ese código de empresa.',

@@ -62,7 +62,7 @@ describe('recuperación de acceso', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Recuperar' }));
     fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'ana@example.test' } });
     fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);
-    expect(await screen.findByText(/te enviamos un código/)).toBeTruthy();
+    expect(await screen.findByText(/código recibido por correo o entregado por tu administrador/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Código de recuperación'), { target: { value: server.recoveryCodes['ana@example.test'] } });
     fireEvent.change(screen.getByLabelText(/Contraseña nueva/), { target: { value: 'una-clave-nueva-2027' } });
     fireEvent.submit(screen.getByLabelText('Correo').closest('form')!);

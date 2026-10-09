@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 // Cada escenario de demostración muestra la situación que promete (base para capturas y para el trabajo visual).
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../app/App';
 import { createDemoRuntime } from '../app/bootstrap';
 import { SCENARIOS, type ScenarioName } from './demo';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const open = async (name: ScenarioName) => {
   window.history.replaceState({}, '', `/?scenario=${name}`);
   const { runtime } = await createDemoRuntime();
@@ -44,6 +44,22 @@ describe('escenarios de demostración', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Empresa A' }));
     expect(await screen.findByRole('button', { name: 'Abrir Tracker' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Abrir Colaciones' })).toBeTruthy();
+  });
+  it('Tracker demo does not contact production or reuse/mutate an existing token', async () => {
+    const old = localStorage.getItem('steps_movil_token');
+    localStorage.setItem('steps_movil_token', 'existing-test-token');
+    const network = vi.spyOn(globalThis, 'fetch');
+    try {
+      await open('multiempresa');
+      fireEvent.click(await screen.findByRole('button', { name: 'Empresa A' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Abrir Tracker' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Iniciar jornada ficticia' }));
+      expect(await screen.findByText('Jornada ficticia en curso')).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Finalizar jornada ficticia' }));
+      expect(screen.getByText('Jornada ficticia finalizada')).toBeTruthy();
+      expect(network).not.toHaveBeenCalled();
+      expect(localStorage.getItem('steps_movil_token')).toBe('existing-test-token');
+    } finally { if (old === null) localStorage.removeItem('steps_movil_token'); else localStorage.setItem('steps_movil_token', old); }
   });
   it('supervisor: ve el servicio en curso con su pasajero', async () => {
     await open('supervisor');
