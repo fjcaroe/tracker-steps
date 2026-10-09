@@ -7,7 +7,9 @@ Fecha: 09-10-2026. Base: `origin/codex/steps-movil` (`b0c3acf`).
 Esta etapa prepara una beta nativa de la aplicación unificada y un acompañante
 SwiftUI para Apple Watch. El primer paquete es **demostración con datos ficticios**:
 permite elegir los siete recorridos del cliente, sin depender de una instalación
-Odoo ni enviar operaciones empresariales. Tracker conserva su ingreso propio.
+Odoo ni enviar operaciones empresariales. En demostración Tracker usa una
+simulación aislada, sin su API ni almacenamiento antiguos; en el piloto real
+conserva su ingreso propio.
 Cambiar de recorrido reinicia los datos sintéticos; esta modalidad no sirve para
 medir conservación de datos de terreno ni para operar en producción.
 

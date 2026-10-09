@@ -32,7 +32,7 @@ export async function setWatchEnabled(runtime: Runtime, enabled: boolean): Promi
 /** Only an allowlist of presentation data crosses to the watch, never credentials or passenger data. */
 export function watchSnapshot(runtime: Runtime, enabled: boolean, now = Date.now(), counts = { pending: 0, problems: 0, syncing: false }): WatchSnapshot {
   const s = runtime.session.getSnapshot();
-  const locked: WatchSnapshot = { version: 1, issuedAt: now, validUntil: now, scope: '', state: 'locked', company: '', demo: import.meta.env.MODE === 'demo', modules: [], pending: 0, problems: 0, syncing: false };
+  const locked: WatchSnapshot = { version: 1, issuedAt: now, validUntil: now, scope: '', state: 'locked', company: '', demo: runtime.demo, modules: [], pending: 0, problems: 0, syncing: false };
   if (!enabled || s.status !== 'signed_in' || !s.me || !s.orgUid || !s.catalog || s.catalog.organization.org_uid !== s.orgUid || s.access === 'offline_expired') return locked;
   const expires = Date.parse(s.catalog.offline_until);
   if (!Number.isFinite(expires) || expires <= now) return locked;

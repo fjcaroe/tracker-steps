@@ -17,7 +17,7 @@ export async function createDemoRuntime(): Promise<{ runtime: Runtime; email: st
   const name = (new URLSearchParams(location.search).get('scenario') ?? 'conductor') as Parameters<typeof scenario>[0];
   const s = scenario(name);
   const session = new SessionManager({ kv: s.kv, secure: memorySecureStore(), device: async () => ({ uuid: 'demo-device', platform: 'web', label: 'Demo', app_version: 'demo' }), supported: supportedContracts(MODULES), fetchImpl: s.server.fetch, baseUrl: 'https://demo.invalid/steps_app/v1' });
-  const runtime = new Runtime(session, s.kv, MODULES);
+  const runtime = new Runtime(session, s.kv, MODULES, true);
   // Inicia sesión sola para mostrar el escenario; «nuevo» queda en la bienvenida.
   if (s.email && name !== 'nuevo') { await session.boot(); await session.login(s.email, DEMO_PASSWORD); await s.seed(); await runtime.refresh(); }
   return { runtime, email: s.email, title: s.title, password: DEMO_PASSWORD };
