@@ -153,7 +153,9 @@ def main():
         clone_conf.chmod(0o600)
         run(['chown','-R',user+':'+user,str(stage)])
         query(clone, "INSERT INTO ir_config_parameter (key,value) VALUES ('step_app.send_mail','0') ON CONFLICT (key) DO UPDATE SET value='0'")
-        log = odoo(clone_conf,user,clone,paths,stage,'-i',','.join(MODULES),'--test-enable','--test-tags','/step_mobile_portal,/step_mobile_portal_colaciones,/step_mobile_portal_mobilization','--stop-after-init',name='qa')
+        missing = [m for m in MODULES if m not in versions]
+        extra = (['-i',','.join(missing)] if missing else []) + (['-u',','.join(m for m in MODULES if m not in missing)] if len(missing)<len(MODULES) else [])
+        log = odoo(clone_conf,user,clone,paths,stage,*extra,'--test-enable','--test-tags','/step_mobile_portal,/step_mobile_portal_colaciones,/step_mobile_portal_mobilization','--stop-after-init',name='qa')
         summaries = re.findall(r'(\d+) failed, (\d+) error\(s\) of (\d+) tests', log)
         assert summaries and all(a == '0' and b == '0' for a,b,n in summaries) and max(int(n) for a,b,n in summaries) >= 59, 'Odoo functional tests did not pass'
         assert snapshot(clone,before['schema']) == before, 'Existing business records changed'
