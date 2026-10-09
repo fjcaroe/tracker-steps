@@ -4,7 +4,7 @@ android {
     namespace "cl.stepsapp.movil"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "cl.stepsapp.movil"
+        applicationId "comm.stepsapp.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode = Integer.parseInt(System.getenv('STEPS_BUILD_NUMBER') ?: '20')

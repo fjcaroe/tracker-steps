@@ -11,6 +11,7 @@ def main():
     p.add_argument('--jdk', type=Path, required=True)
     p.add_argument('--build', type=Path, required=True)
     p.add_argument('--private', type=Path, required=True)
+    p.add_argument('--build-number', type=int, required=True)
     a = p.parse_args()
     a.private.mkdir(parents=True, exist_ok=True)
     key = a.private/'steps-upload.p12'; password = a.private/'password.txt'
@@ -26,7 +27,7 @@ def main():
     apk = next(a.build.rglob('app-release-unsigned.apk'))
     signer = next(a.build.rglob('apksigner.jar'))
     out = a.private.parent/'signed'; out.mkdir(exist_ok=True)
-    signed_bundle = out/'Steps-App-220.aab'; signed_apk = out/'Steps-App-220.apk'
+    signed_bundle = out/f'Steps-App-{a.build_number}.aab'; signed_apk = out/f'Steps-App-{a.build_number}.apk'
     subprocess.run([str(a.jdk/'bin/jarsigner.exe'), '-keystore', str(key), '-storepass:file', str(password),
         '-keypass:file', str(password), '-signedjar', str(signed_bundle), str(bundle), 'steps-upload'], check=True)
     subprocess.run([str(a.jdk/'bin/jarsigner.exe'), '-verify', str(signed_bundle)], check=True)
