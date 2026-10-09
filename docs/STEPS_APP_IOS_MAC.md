@@ -94,7 +94,8 @@ mayor fuera de esta preparación. Informe local fuera de Git.
 
 La [ejecución 37989604975](https://github.com/fjcaroe/tracker-steps/actions/runs/37989604975)
 terminó **aprobada** sobre el código `164d1c8`, con **Xcode 26.6 estable**.
-Los commits posteriores de esta entrega solo actualizan documentación.
+Los commits inmediatamente posteriores a esa ejecución actualizaron documentación;
+la corrección del Watch sin asociación se registra por separado abajo.
 
 - Piloto real empaquetado contra `https://desarrollo.stepsapp.cl/steps_app/v1`.
 - Compilación Debug iPhone y Watch para simulador aprobada.
@@ -181,3 +182,25 @@ el piloto, Product → Archive y Validate/Distribute desde Organizer con firma.
 Registrar la aplicación existente con su bundle ID, completar las declaraciones
 que correspondan y habilitar los testers en TestFlight cuando Apple procese el
 build. No se generaron certificados, perfiles ni cuentas automáticamente.
+
+## Arranque en simulador sin Watch asociado
+
+El usuario confirmó arranque en su simulador de Xcode. Su log mostró
+`WebView loaded`, pero también `WCSession is not paired` y el rechazo
+`Watch context unavailable` al publicar el resumen. No certifica instalación
+física ni ingreso autenticado; la respuesta HTTP aportada estaba truncada.
+No se guardan aquí cabeceras, cookies ni datos de la sesión del usuario.
+
+El plugin ahora conserva el último resumen y solo intenta transferirlo cuando
+la sesión está activa, hay Watch emparejado y el acompañante está instalado.
+No exige `isReachable` para el contexto: un Watch temporalmente desconectado
+puede recibir la actualización de fondo. Al cambiar el estado de asociación
+o instalación, intenta publicar de nuevo. La ausencia de acompañante no debe
+rechazar la llamada de JavaScript; los errores reales de transferencia siguen
+siendo errores. Los mensajes de sistema sobre UIScene/WebKit no se modifican.
+
+El aviso de UIScene indica una migración futura del ciclo de vida; no es la
+causa de este rechazo y no impidió el arranque observado con el SDK usado.
+Antes de migrar a un SDK que lo exija, adaptar AppDelegate/SceneDelegate y
+volver a validar los enlaces de Capacitor.
+[Guía oficial de UIScene](https://developer.apple.com/documentation/uikit/transitioning-to-the-uikit-scene-based-life-cycle).

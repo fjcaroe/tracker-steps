@@ -15,14 +15,21 @@ final class StepsWatchSession: NSObject, WCSessionDelegate {
 
     func publish(_ value: [String: Any]) throws {
         snapshot = value
-        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
-        try WCSession.default.updateApplicationContext(snapshot)
-        if WCSession.default.isReachable {
-            WCSession.default.sendMessage(["snapshot": snapshot], replyHandler: nil, errorHandler: { _ in })
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        // A phone without the companion (including an unpaired simulator) is
+        // normal. Keep the latest snapshot for activation or installation later.
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { return }
+        try session.updateApplicationContext(snapshot)
+        if session.isReachable {
+            session.sendMessage(["snapshot": snapshot], replyHandler: nil, errorHandler: { _ in })
         }
     }
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
+        DispatchQueue.main.async { try? self.publish(self.snapshot) }
+    }
+    func sessionWatchStateDidChange(_ session: WCSession) {
         DispatchQueue.main.async { try? self.publish(self.snapshot) }
     }
     func sessionDidBecomeInactive(_ session: WCSession) {}
