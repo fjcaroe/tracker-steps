@@ -90,6 +90,33 @@ El preparador evita una ruta fija a WatchOS11.0.sdk para Foundation y usa
 (Vitest y sus dependencias mocker/tinypool); no se aplicó un cambio de versión
 mayor fuera de esta preparación. Informe local fuera de Git.
 
+## Evidencia nativa remota aprobada
+
+La [ejecución 37989604975](https://github.com/fjcaroe/tracker-steps/actions/runs/37989604975)
+terminó **aprobada** sobre el código `164d1c8`, con **Xcode 26.6 estable**.
+Los commits posteriores de esta entrega solo actualizan documentación.
+
+- Piloto real empaquetado contra `https://desarrollo.stepsapp.cl/steps_app/v1`.
+- Compilación Debug iPhone y Watch para simulador aprobada.
+- Archivo Release para dispositivo aprobado, **sin firma**.
+- Instalación y apertura en simulador aprobadas. Se revisó la captura:
+  pantalla de ingreso real, campos vacíos y aviso amarillo del piloto visible,
+  fuera del área del sistema. No es el selector de datos ficticios de demo.
+- El archivo incluye `cl.stepsapp.movil` y su acompañante
+  `cl.stepsapp.movil.watchkitapp`, ambos **2.0.0 (9)**; el plist del Watch apunta
+  al identificador correcto del iPhone.
+- Artefactos `Steps-Apple-pilot-164d1c82f4cf5a430b85907b972ef7f64068ac6e`:
+  `Steps-pilot-simulator.zip`, `Steps-pilot-unsigned.zip`,
+  `Steps-pilot-iphone.png` y logs de ambas compilaciones. Copia local en
+  `~/.codex/local-artifacts/steps-ios-mac/apple-ci/`.
+
+La primera ejecución de esta sesión fue reemplazada al subir la preparación
+nativa final; no se usa su archivo incompleto como evidencia.
+**No se probó ingreso autenticado, permisos físicos, envío real ni emparejamiento
+Watch.** El Watch compilado/embebido no prueba conexión con un reloj.
+Esta evidencia supera el bloqueo histórico del simulador hospedado; no supera
+el bloqueo de Xcode de este Mac ni sustituye la firma en el Mac corporativo.
+
 ## Continuación en el Mac corporativo
 
 1. Instalar un Xcode **estable 26 o posterior compatible con ese macOS** desde

@@ -10,7 +10,11 @@ El Mac Intel 2017 inspeccionado no soporta oficialmente el macOS necesario para
 Xcode 26; el usuario dispone de otro Mac para compilar y conectar el iPhone.
 Ver [STEPS_APP_IOS_MAC.md](STEPS_APP_IOS_MAC.md) para pruebas, herramientas,
 compilación remota y continuación sin instalar GPT/Codex en el Mac corporativo.
-La firma y validación física siguen pendientes.
+La [ejecución 37989604975](https://github.com/fjcaroe/tracker-steps/actions/runs/37989604975)
+aprobó con Xcode 26.6 la compilación iPhone/Watch para simulador, el archivo de
+dispositivo sin firma y **la instalación/apertura real del piloto en simulador**.
+La captura revisada muestra ingreso y aviso de Desarrollo. Código `164d1c8`,
+versión nativa 2.0.0 (9). La firma y validación física siguen pendientes.
 
 ## Entrega y límites
 
@@ -116,7 +120,7 @@ pero no sirve para un envío actual a App Store Connect: Apple exige Xcode 26+
 y SDK iOS/watchOS 26 desde el 28-04-2026.
 [Requisito oficial](https://developer.apple.com/news/upcoming-requirements/).
 
-## Evidencia del 09-10-2026
+## Evidencia inicial del 09-10-2026 (antes de la continuación en Mac)
 
 - Código nativo y paquete: `a550be6`; [PR de integración #19](https://github.com/fjcaroe/tracker-steps/pull/19)
   hacia `codex/steps-movil`, en revisión, sin despliegue del piloto.
@@ -126,7 +130,7 @@ y SDK iOS/watchOS 26 desde el 28-04-2026.
   compilación iPhone + Watch para simulador **aprobada**; archivo Release para
   dispositivo **aprobado**, sin firma. Ambos paquetes están en los artefactos
   `Steps-Apple-demo-a550be6ac76342e055c4f51ca2c7a66f5abf6edb` (retención 14 días).
-- **Arranque en simulador no validado**: dos intentos completos en infraestructura
+- **Arranque en simulador no validado en la entrega inicial**: dos intentos completos en infraestructura
   hospedada no llegaron a instalar la app; el último quedó en la migración del
   sistema `com.apple.locationd.migrator (CoreLocationMigrator.migrator)` hasta
   agotar el límite. El workflow queda fallido por esta comprobación, aunque

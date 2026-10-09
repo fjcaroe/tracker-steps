@@ -11,10 +11,10 @@ Las limitaciones nativas históricas de abajo ya no describen este piloto.
 **Actualización iOS/Apple Watch del 09-10-2026:** primera beta de demostración y
 acompañante SwiftUI implementados en la [PR #19](https://github.com/fjcaroe/tracker-steps/pull/19).
 iPhone y Watch compilaron con Xcode 26.6, incluidos el archivo de dispositivo
-sin firma y el paquete para simulador. Arranque nativo aún sin validar: el
-simulador hospedado quedó detenido en una migración del sistema, antes de
-instalar Steps. Firma, instalación en equipos reales y piloto Odoo siguen
-pendientes. La matriz histórica de abajo no certifica esta beta en terreno.
+sin firma y el paquete para simulador. La entrega inicial no validó el arranque por una migración del simulador;
+la continuación Mac aprobó la instalación/apertura del piloto de Desarrollo en
+simulador con Xcode 26.6 ([37989604975](https://github.com/fjcaroe/tracker-steps/actions/runs/37989604975)).
+Firma, instalación en equipos reales e ingreso/sincronización física siguen pendientes. La matriz histórica de abajo no certifica esta beta en terreno.
 Ver [STEPS_APP_IOS_WATCH_BETA.md](STEPS_APP_IOS_WATCH_BETA.md) para evidencia,
 instalación y límites; Tracker en demostración usa una simulación aislada.
 
@@ -22,7 +22,9 @@ instalación y límites; Tracker en demostración usa una simulación aislada.
 7 comprobaciones HTTPS, 52 pruebas backend Tracker y 22 de herramientas aprobadas
 localmente. `ios:pilot` corregido para conservar el aviso. El Mac 2017 no admite
 oficialmente Xcode 26; firma y pruebas físicas se continuarán en otro Mac.
-La sincronización nativa local terminó con error por Xcode ausente.
+La sincronización nativa local terminó con error por Xcode ausente. En macOS
+hospedado pasaron compilación iPhone/Watch para simulador, archivo de dispositivo
+sin firma e instalación/arranque del piloto (código `164d1c8`, 2.0.0 (9)).
 Ver [STEPS_APP_IOS_MAC.md](STEPS_APP_IOS_MAC.md).
 
 Rama de integración: **`codex/steps-movil`** (publicada) · PR draft [fjcaroe/tracker-steps#16](https://github.com/fjcaroe/tracker-steps/pull/16) hacia `develop` (la PR #15 queda reemplazada por esta rama; no se cerró). Todo lo de abajo distingue lo **comprobado**, lo pendiente de validación y lo bloqueado.
