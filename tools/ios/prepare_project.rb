@@ -40,6 +40,8 @@ end
 watch.build_configurations.each do |config|
   s = config.build_settings
   s['PRODUCT_BUNDLE_IDENTIFIER'] = 'cl.stepsapp.movil.watchkitapp'
+  s['PRODUCT_NAME'] = '$(TARGET_NAME)'
+  s['SWIFT_EMIT_LOC_STRINGS'] = 'YES'
   s['INFOPLIST_FILE'] = 'StepsWatch/Info.plist'
   s['GENERATE_INFOPLIST_FILE'] = 'NO'
   s['SDKROOT'] = 'watchos'
