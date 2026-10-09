@@ -1,0 +1,35 @@
+"""Install and launch the compiled beta on an ephemeral CI iPhone simulator.
+This checks installation/launch and saves UI evidence; it does not certify GPS,
+Keychain durability, Watch pairing or a physical-device signing profile.
+"""
+import json
+import subprocess
+import sys
+import time
+
+
+def sim(*args):
+    return subprocess.check_output(['xcrun', 'simctl', *args], text=True).strip()
+
+
+app, screenshot = sys.argv[1:]
+runtimes = [r for r in json.loads(sim('list', 'runtimes', '--json'))['runtimes']
+            if r.get('isAvailable') and '.iOS-' in r['identifier']]
+if not runtimes:
+    raise SystemExit('No available iOS simulator runtime')
+runtime = sorted(runtimes, key=lambda r: tuple(int(v) for v in r['version'].split('.')))[-1]
+device = sim('create', 'Steps beta smoke', 'com.apple.CoreSimulator.SimDeviceType.iPhone-16', runtime['identifier'])
+try:
+    sim('boot', device)
+    sim('bootstatus', device, '-b')
+    sim('install', device, app)
+    result = sim('launch', device, 'cl.stepsapp.movil')
+    if 'cl.stepsapp.movil:' not in result:
+        raise RuntimeError('Simulator did not report an app process')
+    # The embedded WebView loads local demonstration assets asynchronously.
+    time.sleep(12)
+    sim('io', device, 'screenshot', screenshot)
+    print('iPhone simulator installed and launched Steps; screenshot saved.')
+finally:
+    subprocess.run(['xcrun', 'simctl', 'shutdown', device], check=False)
+    subprocess.run(['xcrun', 'simctl', 'delete', device], check=False)

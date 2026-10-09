@@ -26,6 +26,7 @@ jobs:
           npm ci
           npm test
           npm run build
+          node --test ../tools/ios/check_pilot_config.test.mjs
       - name: Prepare iPhone and Watch demonstration
         working-directory: mobile
         env:
@@ -37,6 +38,10 @@ jobs:
           set -o pipefail
           xcodebuild -workspace ios/App/App.xcworkspace -scheme Steps -configuration Debug -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/steps-simulator" CODE_SIGNING_ALLOWED=NO build > "$RUNNER_TEMP/steps-simulator.log" 2>&1 || { tail -100 "$RUNNER_TEMP/steps-simulator.log"; exit 1; }
           ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-simulator.zip"
+      - name: Install and launch on iPhone simulator
+        working-directory: mobile
+        run: |
+          python3 ../tools/ios/simulator_smoke.py "$RUNNER_TEMP/steps-simulator/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Steps-demo-iphone.png"
       - name: Compile device archive (unsigned, signing still required)
         working-directory: mobile
         run: |
@@ -48,5 +53,13 @@ jobs:
           name: Steps-Apple-demo-${{ github.sha }}
           path: |
             ${{ runner.temp }}/Steps-demo-*.zip
+            ${{ runner.temp }}/Steps-demo-*.png
             ${{ runner.temp }}/steps-*.log
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Steps-Xcode-project-${{ github.sha }}
+          path: |
+            mobile/ios/App/App.xcodeproj/project.pbxproj
+            mobile/ios/App/App.xcodeproj/xcshareddata/xcschemes/Steps.xcscheme
           retention-days: 14
