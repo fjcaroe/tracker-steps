@@ -205,6 +205,19 @@ Antes de migrar a un SDK que lo exija, adaptar AppDelegate/SceneDelegate y
 volver a validar los enlaces de Capacitor.
 [Guía oficial de UIScene](https://developer.apple.com/documentation/uikit/transitioning-to-the-uikit-scene-based-life-cycle).
 
+### Validación de la corrección del Watch
+
+Código `28749b5`: 171 pruebas del cliente aprobadas. La
+[ejecución 37998590522](https://github.com/fjcaroe/tracker-steps/actions/runs/37998590522)
+aprobó la compilación iPhone/Watch para simulador y el archivo Release para
+dispositivo sin firma. La ejecución completa **falló** en `simctl bootstatus`:
+`CoreLocationMigrator.migrator` no terminó dentro de 180 segundos, antes de
+instalar Steps. No demuestra un fallo de arranque de esta versión, pero tampoco
+certifica su arranque remoto. La instalación/apertura de la versión anterior
+sigue comprobada por 37989604975; el usuario también confirmó arranque en su
+simulador local. El emparejamiento físico sigue pendiente. Log de fallo local:
+`~/.codex/local-artifacts/steps-ios-mac/watch-unpaired-ci-failure.log`.
+
 ## Cuenta creada, sin correo de confirmación
 
 El usuario llegó al estado «Tu cuenta está creada» en el simulador y mostró
