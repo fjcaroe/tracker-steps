@@ -40,8 +40,8 @@ def snapshot(db, schema=None):
     result = {}
     for table, columns in schema.items():
         assert re.fullmatch('[a-z0-9_]+', table) and all(re.fullmatch('[a-z0-9_]+', c) for c in columns)
-        projection = ','.join('t."%s"' % c for c in columns)
-        row = query(db, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(row_to_json(t)::text,'|' ORDER BY t.id),''))) FROM (SELECT %s FROM %s) t" % (projection, table))
+        projection = ','.join('"%s"' % c for c in columns)
+        row = query(db, "SELECT json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(row_to_json(t)::text,'|' ORDER BY row_to_json(t)::text),''))) FROM (SELECT %s FROM %s) t" % (projection, table))
         result[table] = json.loads(row)
     return {'schema': schema, 'rows': result}
 
@@ -79,7 +79,7 @@ def odoo(conf, user, database, paths, stage, *extra, script=None, name='odoo'):
     with (stage/(name+'.stdout')).open('w') as log:
         result = subprocess.run(command, input=script, text=True, stdout=log, stderr=subprocess.STDOUT)
     assert result.returncode == 0, 'Odoo failed; inspect private '+str(stage/(name+'.log'))
-    return (stage/(name+'.log')).read_text(errors='replace')
+    return (stage/(name+'.log')).read_text(errors='replace') + '\n' + (stage/(name+'.stdout')).read_text(errors='replace')
 
 def verify(conf, user, db, paths, stage, proof):
     code = 'EXPECTED=' + repr(proof['versions']) + '\n' + """
