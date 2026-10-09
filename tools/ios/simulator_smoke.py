@@ -9,7 +9,7 @@ import time
 
 
 def sim(*args):
-    return subprocess.check_output(['xcrun', 'simctl', *args], text=True).strip()
+    return subprocess.check_output(['xcrun', 'simctl', *args], text=True, timeout=180).strip()
 
 
 app, screenshot = sys.argv[1:]
@@ -31,5 +31,5 @@ try:
     sim('io', device, 'screenshot', screenshot)
     print('iPhone simulator installed and launched Steps; screenshot saved.')
 finally:
-    subprocess.run(['xcrun', 'simctl', 'shutdown', device], check=False)
-    subprocess.run(['xcrun', 'simctl', 'delete', device], check=False)
+    subprocess.run(['xcrun', 'simctl', 'shutdown', device], check=False, timeout=30)
+    subprocess.run(['xcrun', 'simctl', 'delete', device], check=False, timeout=30)
