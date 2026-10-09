@@ -204,3 +204,26 @@ causa de este rechazo y no impidió el arranque observado con el SDK usado.
 Antes de migrar a un SDK que lo exija, adaptar AppDelegate/SceneDelegate y
 volver a validar los enlaces de Capacitor.
 [Guía oficial de UIScene](https://developer.apple.com/documentation/uikit/transitioning-to-the-uikit-scene-based-life-cycle).
+
+## Cuenta creada, sin correo de confirmación
+
+El usuario llegó al estado «Tu cuenta está creada» en el simulador y mostró
+«Confirma tu correo». La documentación del piloto deja el correo saliente
+pendiente; esta sesión no inspeccionó ni cambió la configuración privada de Odoo.
+La falta de un mensaje de correo no invalida el registro de la cuenta.
+
+- Para solicitar acceso, bajar hasta **Solicitar acceso a una empresa** e ingresar
+  el código de empresa de Desarrollo suministrado por su administrador. Ese flujo
+  no requiere correo verificado; la aprobación y los permisos siguen dependiendo
+  del administrador en **Steps App → Accesos**, con asignación de módulos/roles.
+- Para aceptar una invitación sí se exige correo verificado. Cuando no hay correo
+  saliente, un administrador del sistema puede revisar la identidad del titular y
+  usar **Steps App → Personas → cuenta → Identidades → Marcar correo verificado**.
+  El botón requiere `base.group_system`; ser administrador de empresa no basta.
+  La acción conserva una auditoría, sin generar un código falso ni deshabilitar
+  la comprobación de invitaciones.
+- Tras la verificación/aprobación, refrescar el acceso desde la aplicación; si
+  todavía conserva la pantalla anterior, cerrar sesión y volver a ingresar.
+
+No se guardan datos personales de la captura ni se modifica la cuenta del usuario
+en el servidor desde esta tarea.
