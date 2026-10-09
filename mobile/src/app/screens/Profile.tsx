@@ -4,6 +4,7 @@ import { messageFor } from '../messages';
 import { APP_VERSION } from '../version';
 import type { DeviceOut } from '../../shared/contracts';
 import { Banner, Button, Card, Chip, Confirm } from '../../shared/ui';
+import WatchSettings from './WatchSettings';
 
 const PRIVACY_URL = (import.meta.env.VITE_PRIVACY_URL as string | undefined) || '';
 
@@ -49,6 +50,7 @@ export default function Profile() {
         {msg && <Banner tone="bad">{msg}</Banner>}
       </Card>
 
+      <WatchSettings />
       <Card label="Privacidad">
         <h3>Privacidad y datos</h3>
         {PRIVACY_URL ? <a className="btnlink" href={PRIVACY_URL} target="_blank" rel="noreferrer">Política de privacidad</a> : <small>La política de privacidad se publicará con el lanzamiento en tiendas.</small>}

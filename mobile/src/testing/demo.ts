@@ -20,6 +20,7 @@ export const SCENARIOS: Record<ScenarioName, string> = {
 
 export function scenario(name: ScenarioName): Scenario {
   const server = new FakeSteps();
+  server.now = Date.now(); // Native demo authorization must not expire against a fixed historical date.
   const kv = memoryKv();
   let seed = async () => undefined as void;
   let email = `${name}@demo.steps.test`;
