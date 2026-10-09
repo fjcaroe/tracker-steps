@@ -22,3 +22,5 @@ for file in (resources / 'values').glob('*.xml'):
     text = file.read_text()
     if '<color name="ic_launcher_background">' in text:
         file.write_text(re.sub(r'(<color name="ic_launcher_background">)[^<]*(</color>)', r'\1#123c33\2', text))
+for file in (resources / 'mipmap-anydpi-v26').glob('*.xml'):
+    file.write_text(file.read_text().replace('@mipmap/ic_launcher_foreground', '@drawable/ic_launcher_foreground'))

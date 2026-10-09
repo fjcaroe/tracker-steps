@@ -7,7 +7,7 @@ android {
         applicationId "cl.stepsapp.movil"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (System.getenv('STEPS_BUILD_NUMBER') ?: '20').toInteger()
+        versionCode = Integer.parseInt(System.getenv('STEPS_BUILD_NUMBER') ?: '20')
         versionName "2.0.0-beta.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
