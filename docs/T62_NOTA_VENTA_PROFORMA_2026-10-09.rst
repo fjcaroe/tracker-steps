@@ -93,3 +93,5 @@ codex/ambientes-canonicos-reparacion y quedan también en codex/t62-proforma-cer
 El formato está publicado y probado. La configuración de instrucciones
 bancarias queda pendiente de confirmación; el ticket permanece en seguimiento
 por ese punto y no se presenta como una cuenta de cobro ya configurada.
+La nota interna 9295 registra el resultado y el pendiente. T62 quedó en
+In Progress; la nota tiene cero notificaciones y no se envió correo al cliente.
