@@ -203,7 +203,7 @@ def main():
     for path in [staged, *staged.rglob('*')]:
         os.chown(path, identity.pw_uid, identity.pw_gid)
     release_sha = digest(args.release)
-    installed = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
+    installed = json.loads(query(database, "SELECT COALESCE(json_object_agg(name,latest_version),'{}'::json) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
     if args.kind == 'packing':
         PACKING_INITIAL_MIGRATION = tuple(map(int, installed['step_packing_operations'].split('.'))) < (18, 0, 2, 8, 0)
     if args.kind == 'export':
