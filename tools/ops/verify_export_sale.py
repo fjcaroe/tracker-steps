@@ -27,7 +27,8 @@ def verify_export_sale(env):
         if node.get('name') in apr:
             assert 'not step_apr_configured' in node.get('invisible', '')
     html, _ = env['ir.actions.report'].with_user(user)._render_qweb_html('sale.report_saleorder_pro_forma', order.ids)
-    assert b'QA T35 export product' in html and b'Pro-Forma' in html
+    custom_format = 'step_export_sale_format' in order.company_id._fields and order.company_id.step_export_sale_format
+    assert b'QA T35 export product' in html and (b'PROFORMA' if custom_format else b'Pro-Forma') in html
     order.action_confirm()
     assert order.state == 'sale' and order.amount_untaxed == 100
     ports = env['l10n_cl.customs_port'].with_user(user).search([], limit=2)
