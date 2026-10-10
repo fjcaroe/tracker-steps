@@ -1,0 +1,21 @@
+<odoo>
+    <record id="company_form" model="ir.ui.view">
+        <field name="name">res.company.export.sale.format</field><field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Nota de venta / Proforma" name="step_export_report">
+                    <group><field name="step_export_sale_format"/><field name="step_export_bank_id"/></group>
+                    <p>Las instrucciones usan la cuenta bancaria de esta empresa, su titular y el banco relacionado.
+                        SWIFT se configura como BIC y ABA en la ficha del banco. Flete y Seguro son líneas del pedido:
+                        seleccione su tipo en Detalle en Proforma. Kilos y cajas se registran por línea.</p>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    <record id="bank_form" model="ir.ui.view">
+        <field name="name">res.bank.aba.routing</field><field name="model">res.bank</field>
+        <field name="inherit_id" ref="base.view_res_bank_form"/>
+        <field name="arch" type="xml"><field name="bic" position="after"><field name="step_aba_routing"/></field></field>
+    </record>
+</odoo>

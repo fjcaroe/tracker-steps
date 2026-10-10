@@ -32,6 +32,7 @@ PACKING_INITIAL_MIGRATION = False
 EXPORT_SALE_ADDITION = False
 EXPORT_PORT_ADDITIONS = False
 TICKET_REVISION = ''
+SALE_FORMAT_INITIAL = False
 
 
 def run(*command, **kwargs):
@@ -64,6 +65,12 @@ def snapshot(database):
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
+            if TICKET_REVISION == 'sale-format':
+                row = 'to_jsonb(t)'
+                additions = {'sale_order_line': ['step_export_kg', 'step_export_boxes', 'step_export_charge'],
+                             'res_company': ['step_export_sale_format', 'step_export_bank_id'], 'res_bank': ['step_aba_routing']}
+                if SALE_FORMAT_INITIAL and table in additions:
+                    row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
             if MODULES == ('step_packing_operations',) and PACKING_INITIAL_MIGRATION:
                 # Only the versioned migration's added fields are excluded;
                 # preserve every pre-existing row, ID, quantity and value.
@@ -121,13 +128,13 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION
+    global MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format'), default='management')
     args = parser.parse_args()
     SETTINGS = args.kind in ('settings', 'fruit-reception', 'packing')
     PRODUCERS = args.kind == 'producers'
@@ -146,6 +153,15 @@ def main():
     if args.kind == 'export':
         MODULES = ('step_export',)
         BUSINESS = tuple(query('LAB_TAREAS', "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename IN ('res_company','res_partner','sale_order','sale_order_line')) ORDER BY tablename").splitlines())
+    if args.kind == 'sale-format':
+        TICKET_REVISION = args.kind
+        assert args.environment in ('development', 'cerro')
+        MODULES = ('step_sale_export_report',)
+        registry = json.loads((HERE / 'environments.json').read_text())
+        target_db = registry['environments'][args.environment]['database']
+        SALE_FORMAT_INITIAL = not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_sale_export_report' AND state='installed'")
+        assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_export','sale_stock') AND state='installed'") == '2'
+        BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'hr_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_bank')) ORDER BY tablename").splitlines())
     if args.kind in ('payroll-fixes', 'previred-fix', 'tarja'):
         TICKET_REVISION = args.kind
         assert args.environment in (('development', 'sys') if args.kind in ('payroll-fixes', 'previred-fix') else ('development',)), 'Ticket destination outside approved scope'
@@ -199,12 +215,14 @@ def main():
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_account_treasury','step_packing_operations') AND state='installed'") == '2', 'Bridge dependencies must already be installed'
     if SETTINGS:
         assert set(installed) == set(MODULES), 'Repair only existing modules'
-    if SETTINGS or PRODUCERS:
+    if SETTINGS or PRODUCERS or TICKET_REVISION == 'sale-format':
         assert not query(database, "SELECT name FROM ir_module_module WHERE state IN ('to upgrade','to install','to remove')"), 'Pending upgrades'
     for name, old in installed.items():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
     update = [name for name in MODULES if name in installed]
     install = ['step_agriculture_catalogs'] if args.kind == 'management' else ['step_producers_integrations'] if PRODUCERS and 'step_producers_integrations' not in installed else []
+    if args.kind == 'sale-format' and SALE_FORMAT_INITIAL:
+        install = ['step_sale_export_report']
     if args.kind == 'management' and query(database, "SELECT 1 FROM ir_module_module WHERE name='step_producers' AND state='installed'"):
         install.append('step_management_costs_producers')
     addon_paths = opts['addons_path'].split(',')
@@ -212,8 +230,9 @@ def main():
     for name in installed:
         source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
         baseline['modules'][name] = {'source': str(source), 'sha256': tree_hash(source), 'version': installed[name]}
-    if SETTINGS or PRODUCERS:
-        shared = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed' AND name LIKE 'step%'"))
+    if SETTINGS or PRODUCERS or TICKET_REVISION == 'sale-format':
+        condition = "" if TICKET_REVISION == 'sale-format' else " AND name LIKE 'step%'"
+        shared = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'" + condition))
         baseline['shared_modules'] = {}
         for name, version in shared.items():
             source = next((Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists()), None)
@@ -244,7 +263,7 @@ def main():
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):
-        if SETTINGS or PRODUCERS:
+        if SETTINGS or PRODUCERS or TICKET_REVISION == 'sale-format':
             settings_lease = open('/run/lock/steps-environments.lock', 'a')
             fcntl.flock(settings_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
             for command in Path('/proc').glob('[0-9]*/cmdline'):
@@ -294,7 +313,8 @@ def main():
         print('MANAGEMENT_QA_BEGIN ' + json.dumps({'database': qa_db, 'log': str(log), 'commit': proof['commit']}), flush=True)
         tags = ','.join('/' + name for name in [*update, *install])
         init_options = ['-i', ','.join(install)] if install else []
-        result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)] + init_options + ['-u', ','.join(update), '--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
+        update_options = ['-u', ','.join(update)] if update else []
+        result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)] + init_options + update_options + ['--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
@@ -335,6 +355,10 @@ def main():
             try:
                 with (backup / 'database.dump').open('wb') as stream:
                     run('sudo', '-u', 'postgres', 'pg_dump', '-Fc', database, stdout=stream)
+                if TICKET_REVISION == 'sale-format':
+                    store = Path(opts['data_dir']) / 'filestore' / database
+                    if store.exists():
+                        run('rsync', '-a', str(store) + '/', str(backup / 'filestore') + '/')
                 before = snapshot(database)
                 new_paths = str(release_root) + ',' + opts['addons_path']
                 changed, count = re.subn(r'(?m)^\s*addons_path\s*=.*$', 'addons_path = ' + new_paths, conf.read_text())
@@ -342,10 +366,17 @@ def main():
                 conf.write_text(changed)
                 log = stage / ('deploy-' + stamp + '.log')
                 init_options = ['-i', ','.join(install)] if install else []
-                result = subprocess.run(base + options + ['-d', database] + init_options + ['-u', ','.join(update), '--stop-after-init', '--logfile=' + str(log)])
+                update_options = ['-u', ','.join(update)] if update else []
+                result = subprocess.run(base + options + ['-d', database] + init_options + update_options + ['--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
                 assert snapshot(database) == before, 'Business migration check failed'
+                if TICKET_REVISION == 'sale-format':
+                    # Explicit per-company configuration; never copy banking values.
+                    selection = "env.ref('base.main_company')" if args.environment == 'development' else "env['res.company'].search([('vat','=','76943293-0')])"
+                    script = "company=" + selection + "\nassert len(company)==1\ncompany.step_export_sale_format=True\nenv.cr.commit()\nprint('SALE_FORMAT_COMPANY_CONFIGURED_OK')\n"
+                    result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']), input=script, text=True, capture_output=True)
+                    assert 'SALE_FORMAT_COMPANY_CONFIGURED_OK' in result.stdout
                 # T52 explicitly asks that current Cerro catalog entries be shared.
                 if args.environment == 'cerro' and args.kind == 'management':
                     script = "from odoo import Command\nmodels=('step.temporada','step.especie','step.grupo.variedad','step.variedad')\nfor name in models:\n    records=env[name].search([])\n    records.with_context(_install_scope=__import__('odoo.addons.step_agriculture_catalogs.models.catalogs',fromlist=['_INSTALL_SCOPE'])._INSTALL_SCOPE).write({'company_ids':[Command.clear()]})\nfor name in models:\n    env[name].search([])._check_catalog_scope()\nenv.cr.commit()\nprint('CERRO_CATALOGS_SHARED_OK')\n"
@@ -369,10 +400,13 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
-    probe = (HERE / ('verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
-    names = installed if SETTINGS or PRODUCERS or export or homepage else {*installed, 'step_agriculture_catalogs'}
+    probe = (HERE / ('verify_sale_format.py' if TICKET_REVISION == 'sale-format' else 'verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    names = installed if SETTINGS or PRODUCERS or export or homepage or TICKET_REVISION == 'sale-format' else {*installed, 'step_agriculture_catalogs'}
     header = 'import sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
-    result = subprocess.run(base + ['shell'] + options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
+    if TICKET_REVISION == 'sale-format':
+        header += 'OUTPUT=' + repr(str(stage)) + '\n'
+    data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION == 'sale-format' and database.startswith('MANAGEMENT_QA_') else []
+    result = subprocess.run(base + ['shell'] + options + data_options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
     print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK')), flush=True)

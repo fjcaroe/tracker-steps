@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -28,6 +28,8 @@ def main():
     modules = MODULES if args.kind == 'management' else ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book', 'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow')
     if args.kind == 'export':
         modules = ('step_export',)
+    if args.kind == 'sale-format':
+        modules = ('step_sale_export_report',)
     if args.kind == 'freight':
         modules = ('step_operations_ui', 'step_dispatch_guide')
     if args.kind == 'homepage':
