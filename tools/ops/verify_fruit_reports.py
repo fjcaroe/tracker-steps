@@ -20,7 +20,7 @@ try:
     assert parent.parent_id==env.ref('step_producers.menu_step_producers_config_group') and parent.id in visible
     for key,xmlid in masters.items():
         menu=env.ref('step_producer_fruit_reports.config_'+key)
-        assert menu.parent_id==parent and menu.action==env.ref(xmlid) and menu.id in visible
+        assert menu.parent_id==parent and menu.action==env.ref(xmlid) and menu.id in visible, "Master menu not visible: "+key
         env[menu.action.res_model].with_user(user).search([],limit=1)
     forms=[];actions={};totals={};ids=[]
     for kind,producer_menu in [('process','menu_producer_process_receptions'),('packed','menu_producer_packed_receptions')]:

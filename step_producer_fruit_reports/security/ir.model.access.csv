@@ -1,2 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 report_stock,Reporte fruta,model_step_fruit_reception_report,stock.group_stock_user,1,0,0,0
+access_caliber_group_stock,Consulta caliber_group inventario,step_management_costs.model_step_management_caliber_group,stock.group_stock_user,1,0,0,0
+access_fruit_caliber_stock,Consulta fruit_caliber inventario,step_management_costs.model_step_management_fruit_caliber,stock.group_stock_user,1,0,0,0
+access_fruit_category_stock,Consulta fruit_category inventario,step_management_costs.model_step_management_fruit_category,stock.group_stock_user,1,0,0,0

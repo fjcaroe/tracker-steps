@@ -97,3 +97,13 @@ class FruitReportsCase(TransactionCase):
         picking=self.sample();species=picking.fruit_species_id
         self.assertEqual(species.sag_code,'SAG-QA');self.assertEqual(species.base_boxes_per_pallet,60)
         with mute_logger('odoo.sql_db'),self.assertRaises(IntegrityError),self.env.cr.savepoint():species.base_boxes_per_pallet=-1
+
+    def test_stock_profile_can_consult_the_eight_shared_masters(self):
+        user=new_test_user(self.env(context=dict(self.env.context,no_reset_password=True)),login='qa-fruit-catalogs',groups='stock.group_stock_manager',company_id=self.env.company.id,company_ids=[Command.set(self.env.company.ids)])
+        visible=self.env['ir.ui.menu'].with_user(user)._visible_menu_ids()
+        for key in ('species','variety_group','variety','caliber_group','caliber','category','quality','color'):
+            menu=self.env.ref('step_producer_fruit_reports.config_'+key)
+            self.assertIn(menu.id,visible,key)
+            self.env[menu.action.res_model].with_user(user).search([],limit=1)
+        for name in ('step.management.caliber.group','step.management.fruit.caliber','step.management.fruit.category'):
+            self.assertFalse(self.env[name].with_user(user).has_access('write'))
