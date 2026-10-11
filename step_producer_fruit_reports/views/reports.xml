@@ -1,0 +1,109 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="report_pivot" model="ir.ui.view">
+    <field name="name">fruit.reception.report.pivot</field>
+    <field name="model">step.fruit.reception.report</field>
+    <field name="arch" type="xml">
+      <pivot string="Recepciones de fruta">
+        <field name="product_id" type="row"/>
+        <field name="packaging_id" type="row"/>
+        <field name="reception_date" type="col" interval="week"/>
+        <field name="packaging_qty" type="measure"/>
+        <field name="kilos" type="measure"/>
+      </pivot>
+    </field>
+  </record>
+  <record id="report_list" model="ir.ui.view">
+    <field name="name">fruit.reception.report.list</field>
+    <field name="model">step.fruit.reception.report</field>
+    <field name="arch" type="xml">
+      <list create="false" edit="false" delete="false">
+        <field name="picking_id"/>
+        <field name="reception_date"/>
+        <field name="season_id"/>
+        <field name="producer_id"/>
+        <field name="fundo_id"/>
+        <field name="species_id"/>
+        <field name="variety_id"/>
+        <field name="lot_id"/>
+        <field name="product_id"/>
+        <field name="packaging_id"/>
+        <field name="packaging_qty" sum="Total embalajes"/>
+        <field name="kilos" sum="Total kilos"/>
+        <field name="package_id" optional="hide"/>
+        <field name="boxes" optional="hide"/>
+        <field name="uom_id" optional="hide"/>
+        <field name="lot_reference" optional="hide"/>
+        <field name="ambiguous_lot" optional="hide"/>
+        <field name="state" optional="hide"/>
+        <field name="company_id" groups="base.group_multi_company"/>
+      </list>
+    </field>
+  </record>
+  <record id="report_search" model="ir.ui.view">
+    <field name="name">fruit.reception.report.search</field>
+    <field name="model">step.fruit.reception.report</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="season_id"/>
+        <field name="producer_id"/>
+        <field name="fundo_id"/>
+        <field name="species_id"/>
+        <field name="variety_id"/>
+        <field name="lot_id"/>
+        <field name="lot_reference"/>
+        <field name="product_id"/>
+        <field name="packaging_id"/>
+        <field name="picking_id"/>
+        <filter name="done" string="Recepciones hechas" domain="[('state','=','done')]"/>
+        <separator/>
+        <filter name="pending" string="Pendientes" domain="[('state','not in',['done','cancel'])]"/>
+        <separator/>
+        <filter name="cancel" string="Canceladas" domain="[('state','=','cancel')]"/>
+        <separator/>
+        <filter name="ambiguous" string="Tarjas con varios lotes" domain="[('ambiguous_lot','=',True)]"/>
+        <separator/>
+        <filter name="date" string="Fecha recepción" date="reception_date"/>
+        <group>
+          <filter name="by_season_id" string="Temporada" context="{'group_by': 'season_id'}"/>
+          <filter name="by_producer_id" string="Productor" context="{'group_by': 'producer_id'}"/>
+          <filter name="by_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}"/>
+          <filter name="by_species_id" string="Especie" context="{'group_by': 'species_id'}"/>
+          <filter name="by_variety_id" string="Variedad" context="{'group_by': 'variety_id'}"/>
+          <filter name="by_lot_id" string="Lote de stock" context="{'group_by': 'lot_id'}"/>
+          <filter name="by_lot_reference" string="Lote declarado" context="{'group_by': 'lot_reference'}"/>
+          <filter name="by_product_id" string="Producto" context="{'group_by': 'product_id'}"/>
+          <filter name="by_packaging_id" string="Embalaje" context="{'group_by': 'packaging_id'}"/>
+          <filter name="by_reception_date:month" string="Mes" context="{'group_by': 'reception_date:month'}"/>
+          <filter name="by_reception_date:week" string="Semana" context="{'group_by': 'reception_date:week'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+  <record id="action_process" model="ir.actions.act_window">
+    <field name="name">Informe fruta a proceso</field>
+    <field name="res_model">step.fruit.reception.report</field>
+    <field name="view_mode">pivot,list</field>
+    <field name="domain">[('reception_kind', '=', 'process')]</field>
+    <field name="context">{'search_default_done':1}</field>
+    <field name="search_view_id" ref="report_search"/>
+    <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'pivot','view_id':ref('report_pivot')}),(0,0,{'view_mode':'list','view_id':ref('report_list')})]"/>
+  </record>
+  <record id="step_producer_fruit_flow.menu_producer_process_receptions" model="ir.ui.menu">
+    <field name="action" ref="action_process"/>
+  </record>
+  <menuitem id="inventory_process" name="Informe fruta a proceso" parent="stock.menu_warehouse_report" action="action_process" sequence="85" groups="stock.group_stock_user"/>
+  <record id="action_packed" model="ir.actions.act_window">
+    <field name="name">Informe fruta embalada</field>
+    <field name="res_model">step.fruit.reception.report</field>
+    <field name="view_mode">pivot,list</field>
+    <field name="domain">[('reception_kind', '=', 'packed')]</field>
+    <field name="context">{'search_default_done':1}</field>
+    <field name="search_view_id" ref="report_search"/>
+    <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'pivot','view_id':ref('report_pivot')}),(0,0,{'view_mode':'list','view_id':ref('report_list')})]"/>
+  </record>
+  <record id="step_producer_fruit_flow.menu_producer_packed_receptions" model="ir.ui.menu">
+    <field name="action" ref="action_packed"/>
+  </record>
+  <menuitem id="inventory_packed" name="Informe fruta embalada" parent="stock.menu_warehouse_report" action="action_packed" sequence="86" groups="stock.group_stock_user"/>
+</odoo>

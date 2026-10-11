@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <menuitem id="fruit_config_menu" name="Fruta" parent="step_producers.menu_step_producers_config_group" sequence="30"/>
+  <menuitem id="config_species" name="Especie" parent="fruit_config_menu" action="step_hr.action_step_especie" sequence="10"/>
+  <menuitem id="config_variety_group" name="Grupo variedad" parent="fruit_config_menu" action="step_hr.action_step_grupo_variedad" sequence="20"/>
+  <menuitem id="config_variety" name="Variedad" parent="fruit_config_menu" action="step_hr.action_step_variedad" sequence="30"/>
+  <menuitem id="config_caliber_group" name="Grupo de calibre" parent="fruit_config_menu" action="step_management_costs.action_caliber_group" sequence="40"/>
+  <menuitem id="config_caliber" name="Calibre de fruta" parent="fruit_config_menu" action="step_management_costs.action_fruit_caliber" sequence="50"/>
+  <menuitem id="config_category" name="Categoría de fruta" parent="fruit_config_menu" action="step_management_costs.action_fruit_category" sequence="60"/>
+  <menuitem id="config_quality" name="Calidades de fruta" parent="fruit_config_menu" action="step_inventory_fruit_tag.action_fruit_quality" sequence="70"/>
+  <menuitem id="config_color" name="Color de fruta" parent="fruit_config_menu" action="step_export_client_revision.color_action" sequence="80"/>
+  <record id="species_fields_form" model="ir.ui.view">
+    <field name="name">species.sag.pallet.form</field>
+    <field name="model">step.especie</field>
+    <field name="inherit_id" ref="step_hr.view_step_especie_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='cod_especie']" position="after">
+        <field name="sag_code"/>
+      </xpath>
+      <xpath expr="//field[@name='kg_caja']" position="after">
+        <field name="base_boxes_per_pallet"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

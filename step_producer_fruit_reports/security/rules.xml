@@ -1,0 +1,1 @@
+<odoo><record id="company_rule" model="ir.rule"><field name="name">Recepciones fruta por empresa</field><field name="model_id" ref="model_step_fruit_reception_report"/><field name="domain_force">[('company_id','in',company_ids)]</field></record></odoo>
