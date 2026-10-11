@@ -31,6 +31,8 @@ class ContractReportCase(TransactionCase):
 
     def test_schedule_is_reported_once_and_updates_live(self):
         c=self.sample();rows=self.rows(c)
+        self.assertFalse(rows._fields['quantity'].aggregator)
+        self.assertFalse(rows._fields['amount'].aggregator)
         self.assertEqual(len(rows),2);self.assertEqual(sum(rows.mapped('quantity_kg')),100)
         self.assertEqual(sum(rows.mapped('amount_usd')),200)
         self.assertEqual(rows.season_id,c.season_id)

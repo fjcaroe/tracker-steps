@@ -42,7 +42,7 @@ class ContractReport(models.Model):
     product_id = fields.Many2one('product.product', string='Fruta de referencia', readonly=True)
     date_due = fields.Date(string='Vencimiento', readonly=True)
     date_stop = fields.Date(string='Fin vencimiento', readonly=True)
-    quantity = fields.Float(string='Cantidad original', readonly=True)
+    quantity = fields.Float(string='Cantidad original', readonly=True, aggregator=False)
     uom_id = fields.Many2one('uom.uom', string='UdM original', readonly=True)
     quantity_kg = fields.Float(string='Cantidad kilos', readonly=True)
     currency_id = fields.Many2one('res.currency', string='Moneda contrato', readonly=True)
