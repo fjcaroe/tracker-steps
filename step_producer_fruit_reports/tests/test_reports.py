@@ -64,7 +64,10 @@ class FruitReportsCase(TransactionCase):
 
     def test_multiple_stock_lines_do_not_duplicate_tag_quantities(self):
         picking=self.sample();line=picking.fruit_tag_line_ids[0]
-        picking.move_line_ids.filtered(lambda row:row.result_package_id==line.package_id)[0].copy({'quantity':0})
+        move_line=picking.move_line_ids.filtered(lambda row:row.result_package_id==line.package_id)[0]
+        move_line.quantity-=1
+        move_line.copy({'quantity':1})
+        self.assertEqual(sum(picking.move_line_ids.mapped('quantity')),30)
         line.stock_lot_id=False;self.env.flush_all()
         rows=self.rows(picking)
         self.assertEqual(len(rows),2);self.assertEqual(sum(rows.mapped('kilos')),150)
@@ -73,7 +76,10 @@ class FruitReportsCase(TransactionCase):
     def test_ambiguous_lots_are_not_guessed(self):
         picking=self.sample();line=picking.fruit_tag_line_ids[0];line.stock_lot_id=False
         lot=self.env['stock.lot'].create({'name':'QA-LOT-OTHER','product_id':line.product_id.id,'company_id':picking.company_id.id})
-        picking.move_line_ids.filtered(lambda row:row.result_package_id==line.package_id)[0].copy({'quantity':0,'lot_id':lot.id})
+        move_line=picking.move_line_ids.filtered(lambda row:row.result_package_id==line.package_id)[0]
+        move_line.quantity-=1
+        move_line.copy({'quantity':1,'lot_id':lot.id})
+        self.assertEqual(sum(picking.move_line_ids.mapped('quantity')),30)
         self.env.flush_all();row=self.rows(picking).filtered(lambda row:row.tag_line_id==line)
         self.assertTrue(row.ambiguous_lot);self.assertFalse(row.lot_id)
         self.assertEqual(row.kilos,50)
