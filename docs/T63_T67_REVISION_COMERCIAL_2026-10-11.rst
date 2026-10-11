@@ -113,3 +113,12 @@ T45 continúa pendiente de la prueba con una balanza física; T48 depende de
 la activación de Cloud API de Meta; T46 conserva sus pruebas móviles y
 tiendas pendientes. No tienen comentarios humanos nuevos que permitan
 dar por completadas esas condiciones. No se cierran por esta entrega.
+
+Cierre en la ticketera
+---------------------
+
+La lectura final no encontró nuevas respuestas de discusión pendientes de
+incorporar. T63, T64, T65, T66 y T67 quedaron en Solved, con las notas internas
+9323, 9324, 9325, 9326 y 9327 respectivamente. Las notas registran el resultado,
+el ambiente publicado y el uso; tienen cero notificaciones. No se envió correo
+al cliente ni se modificó el cierre humano previo de T62.

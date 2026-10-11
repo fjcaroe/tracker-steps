@@ -28,7 +28,7 @@ def main():
     uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(config['db'],config['username'],config['api_key'],{})
     assert uid;obj=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/object')
     def rpc(model,method,a,k=None):return obj.execute_kw(config['db'],uid,config['api_key'],model,method,a,k or {})
-    recent=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','in',[63,64,65,66,67]),('author_id','=',3),('message_type','in',['comment','email']),('id','>',9322)]],{'fields':['id','res_id']})
+    recent=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','in',[63,64,65,66,67]),('subtype_id','=',1),('message_type','in',['comment','email']),('id','>',9322)]],{'fields':['id','res_id']})
     assert not recent, 'New human feedback requires review before closing: '+str(recent)
     note=rpc('ir.model.data','search_read',[[('module','=','mail'),('name','=','mt_note')]],{'fields':['res_id']})[0]['res_id']
     author=rpc('res.users','read',[[uid]],{'fields':['partner_id']})[0]['partner_id'][0]
