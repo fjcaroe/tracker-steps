@@ -61,3 +61,30 @@ class EstimateReportCase(TransactionCase):
         self.assertFalse(rows.with_user(user).with_context(allowed_company_ids=other.ids).search([('id','in',rows.ids)]))
         with self.assertRaises(AccessError):
             rows.with_user(user).write({'export_kg':10})
+
+    def test_price_specificity_units_and_currency_match_native_conversion(self):
+        estimate,price=self.sample()
+        product=estimate.estimate_line_ids.product_id
+        price.line_ids.copy({'product_id':product.id,'price':3000,'uom_id':self.env.ref('uom.product_uom_ton').id})
+        self.env.flush_all()
+        rows=self.env['step.producer.estimate.report'].search([('estimate_id','=',estimate.id)])
+        self.assertAlmostEqual(sum(rows.mapped('amount_usd')),300)
+        selected=self.env['step.producer.preliq.price'].resolve_price(estimate.company_id,estimate.season_id,estimate.estimate_line_ids.species_id,estimate.estimate_line_ids.variety_id,date(2026,11,2),product=product)
+        self.assertEqual(rows.price_line_id,selected)
+        currency=self.env['res.currency'].create({'name':'Q68','symbol':'Q68','rounding':0.01})
+        usd=self.env.ref('base.USD')
+        self.env['res.currency.rate'].create({'currency_id':currency.id,'name':date(2026,11,1),'rate':2,'company_id':estimate.company_id.id})
+        self.env['res.currency.rate'].create({'currency_id':usd.id,'name':date(2026,11,1),'rate':1,'company_id':estimate.company_id.id})
+        price.currency_id=currency;self.env.flush_all();rows.invalidate_recordset()
+        self.assertAlmostEqual(sum(rows.mapped('amount_usd')),150)
+        self.assertAlmostEqual(rows[0].price_usd_per_kg,currency._convert(3,usd,estimate.company_id,date(2026,11,2),round=False))
+        selected.uom_id=self.env.ref('uom.product_uom_unit');self.env.flush_all();rows.invalidate_recordset()
+        self.assertEqual(set(rows.mapped('valuation_status')),{'unit'})
+
+    def test_packed_delivery_does_not_count_process_kilos_or_bins(self):
+        estimate,price=self.sample();estimate.estimate_line_ids.delivery_kind='packed';self.env.flush_all()
+        rows=self.env['step.producer.estimate.report'].search([('estimate_id','=',estimate.id)])
+        self.assertEqual(sum(rows.mapped('process_kg')),0)
+        self.assertEqual(sum(rows.mapped('bin_qty')),0)
+        self.assertEqual(sum(rows.mapped('export_box_qty')),20)
+        self.assertEqual(sum(rows.mapped('export_pallet_qty')),2)

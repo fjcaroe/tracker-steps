@@ -30,6 +30,9 @@ try:
     gantt=rows.get_gantt_data([('id','in',rows.ids)],['producer_id'],{n:{} for n in ('display_name','producer_id','estimate_id','week_start','week_end','export_kg','amount_usd')},start_date='2026-11-01 00:00:00',stop_date='2026-12-01 00:00:00',scale='month')
     assert len(gantt['records'])==2 and sum(r['amount_usd'] for r in gantt['records'])==200
     assert len(rows.read_group([('id','in',rows.ids)],['export_kg:sum','amount_usd:sum'],['week_start:week']))==2
-    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':68,'versions':EXPECTED,'action_id':action.id,'menu_visible':True,'views':True,'gantt':True,'pivot':True,'company_security_tested':True,'quantities':totals['export_kg'],'amount_usd':totals['amount_usd']}))
+    other=env['res.company'].create({'name':'QA T68 live company separation'})
+    outsider=new_test_user(env,login='qa-t68-outsider',groups='base.group_user',company_id=other.id,company_ids=[(6,0,other.ids)])
+    assert not env[action.res_model].with_user(outsider).with_context(allowed_company_ids=other.ids).search([('id','in',rows.ids)])
+    print('MANAGEMENT_REGISTRY_OK ' +json.dumps({'ticket':68,'versions':EXPECTED,'action_id':action.id,'menu_visible':True,'views':True,'gantt':True,'pivot':True,'company_security_tested':True,'quantities':totals['export_kg'],'amount_usd':totals['amount_usd']}))
 finally:
     env.cr.rollback()
