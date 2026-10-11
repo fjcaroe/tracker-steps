@@ -1,0 +1,137 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="report_gantt" model="ir.ui.view">
+    <field name="name">producer.contract.report.gantt</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="arch" type="xml">
+      <gantt string="Calendario de pago de contratos" date_start="date_due" date_stop="date_stop" default_group_by="producer_id" default_scale="month" scales="week,month,year" create="false" edit="false" delete="false">
+        <field name="contract_id"/>
+        <field name="season_id"/>
+        <field name="species_id"/>
+        <field name="variety_id"/>
+        <field name="producer_id"/>
+        <field name="quantity_kg"/>
+        <field name="amount_usd"/>
+        <field name="valuation_status"/>
+        <field name="unit_status"/>
+        <field name="installment_state"/>
+        <templates>
+          <div t-name="gantt-popover">
+            <div>
+              <strong>Cantidad kilos: </strong>
+              <t t-esc="quantity_kg"/>
+            </div>
+            <div>
+              <strong>Neto a pago USD: </strong>
+              <t t-esc="amount_usd"/>
+            </div>
+            <div>
+              <strong>Vencimiento: </strong>
+              <t t-esc="date_due"/>
+            </div>
+          </div>
+        </templates>
+      </gantt>
+    </field>
+  </record>
+  <record id="report_pivot" model="ir.ui.view">
+    <field name="name">producer.contract.report.pivot</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="arch" type="xml">
+      <pivot string="Contrato productores por vencimiento">
+        <field name="producer_id" type="row"/>
+        <field name="date_due" type="col" interval="week"/>
+        <field name="quantity_kg" type="measure"/>
+        <field name="amount_usd" type="measure"/>
+        <field name="unconverted_qty" type="measure"/>
+        <field name="unconverted_kg_qty" type="measure"/>
+      </pivot>
+    </field>
+  </record>
+  <record id="report_list" model="ir.ui.view">
+    <field name="name">producer.contract.report.list</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="arch" type="xml">
+      <list create="false" edit="false" delete="false">
+        <field name="contract_id"/>
+        <field name="producer_id"/>
+        <field name="season_id"/>
+        <field name="species_id"/>
+        <field name="variety_id"/>
+        <field name="product_id"/>
+        <field name="date_due"/>
+        <field name="quantity_kg" sum="Total"/>
+        <field name="amount_usd" sum="Total"/>
+        <field name="unit_status"/>
+        <field name="valuation_status"/>
+        <field name="installment_state"/>
+        <field name="contract_state"/>
+        <field name="active"/>
+        <field name="quantity" optional="hide"/>
+        <field name="uom_id" optional="hide"/>
+        <field name="amount" optional="hide"/>
+        <field name="currency_id" optional="hide"/>
+        <field name="installment_id" optional="hide"/>
+        <field name="product_line_id" optional="hide"/>
+        <field name="usd_currency_id" column_invisible="True"/>
+        <field name="company_id" groups="base.group_multi_company"/>
+      </list>
+    </field>
+  </record>
+  <record id="report_search" model="ir.ui.view">
+    <field name="name">producer.contract.report.search</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="season_id"/>
+        <field name="species_id"/>
+        <field name="variety_id"/>
+        <field name="producer_id"/>
+        <field name="contract_id"/>
+        <filter name="active" string="Cuotas vigentes" domain="[('active','=',True)]"/>
+        <separator/>
+        <filter name="inactive" string="Historial sustituido" domain="[('active','=',False)]"/>
+        <separator/>
+        <filter name="confirmed" string="Contratos confirmados / cerrados" domain="[('contract_state','in',['confirmed','closed'])]"/>
+        <separator/>
+        <filter name="draft" string="Contratos borrador" domain="[('contract_state','=','draft')]"/>
+        <separator/>
+        <filter name="unconverted" string="Sin tipo de cambio" domain="[('valuation_status','=','rate')]"/>
+        <separator/>
+        <filter name="unit" string="Sin equivalencia a kilos" domain="[('unit_status','=','unit')]"/>
+        <separator/>
+        <filter name="noseason" string="Sin temporada" domain="[('season_id','=',False)]"/>
+        <separator/>
+        <filter name="date" string="Vencimiento" date="date_due"/>
+        <group>
+          <filter name="by_season_id" string="Temporada" context="{'group_by': 'season_id'}"/>
+          <filter name="by_species_id" string="Especie" context="{'group_by': 'species_id'}"/>
+          <filter name="by_variety_id" string="Variedad" context="{'group_by': 'variety_id'}"/>
+          <filter name="by_producer_id" string="Productor" context="{'group_by': 'producer_id'}"/>
+          <filter name="by_contract_id" string="Folio contrato" context="{'group_by': 'contract_id'}"/>
+          <filter name="by_date_due:month" string="Mes" context="{'group_by': 'date_due:month'}"/>
+          <filter name="by_date_due:week" string="Semanas" context="{'group_by': 'date_due:week'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+  <record id="report_action" model="ir.actions.act_window">
+    <field name="name">Informe contratos productores</field>
+    <field name="res_model">step.producer.contract.report</field>
+    <field name="view_mode">gantt,pivot,list</field>
+    <field name="context">{'active_test':False,'search_default_active':1}</field>
+    <field name="search_view_id" ref="report_search"/>
+    <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'gantt','view_id':ref('report_gantt')}),(0,0,{'view_mode':'pivot','view_id':ref('report_pivot')}),(0,0,{'view_mode':'list','view_id':ref('report_list')})]"/>
+  </record>
+  <menuitem id="report_menu" name="Informe contratos productores" parent="step_producers.menu_step_producers_planning_group" action="report_action" sequence="40"/>
+  <record id="contract_season_form" model="ir.ui.view">
+    <field name="name">producer.contract.season.form</field>
+    <field name="model">step.producer.purchase.contract</field>
+    <field name="inherit_id" ref="step_producers.view_step_producer_purchase_contract_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='date_start']" position="before">
+        <field name="season_id" readonly="state != 'draft' and season_id"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>
