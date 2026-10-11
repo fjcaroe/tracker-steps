@@ -8,7 +8,7 @@ import subprocess
 here = Path(__file__).resolve().parent
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('environment', choices=('development', 'cerro'))
-p.add_argument('--probe', choices=('inspect_client_revision.py', 'inspect_gantt_support.py'), default='inspect_client_revision.py')
+p.add_argument('--probe', choices=('inspect_client_revision.py', 'inspect_gantt_support.py', 'inspect_estimate_gantt_template.py'), default='inspect_client_revision.py')
 args = p.parse_args()
 target = json.loads((here/'environments.json').read_text())['environments'][args.environment]
 cfg = configparser.ConfigParser(interpolation=None); cfg.read(target['config'])
