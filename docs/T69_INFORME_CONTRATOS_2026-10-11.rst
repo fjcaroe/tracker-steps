@@ -93,3 +93,13 @@ https://cerroelplomo.stepsapp.cl/odoo/action-1577
 
 Evidencia privada en ~/.codex/local-artifacts/t69/live/, fuera del repositorio.
 No se versionan adjuntos, respaldos ni configuraciones privadas.
+
+Cierre del ticket
+-----------------
+
+Se consultaron nuevamente los comentarios humanos posteriores al 9340; no
+había respuestas nuevas. Ticket 69 en Solved, nota interna 9342, subtipo
+mail.mt_note, sin destinatarios ni notificaciones. El registrador comprobó
+antes la evidencia del mismo paquete publicado en ambos ambientes.
+Cambios guardados y subidos a codex/t69-contratos y a la rama canónica;
+verify_handoff.py --require-pushed aprobado.
