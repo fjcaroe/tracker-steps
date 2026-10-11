@@ -43,7 +43,8 @@ try:
     assert env.ref('step_export.menu_step_export_sale_orders').action == env.ref('step_export.action_export_sale_orders')
     bindings = env['ir.actions.report'].with_user(user).get_bindings('sale.order')['report']
     assert {env.ref('step_sale_export_report.action_sale_note').id, env.ref('step_sale_export_report.action_proforma').id} <= {r['id'] for r in bindings}
-    for action, title in [('action_proforma', b'PROFORMA'), ('action_sale_note', b'NOTA DE VENTA')]:
+    for action, proforma in [('action_proforma', True), ('action_sale_note', False)]:
+        title = order._step_export_report_title(proforma).encode() if hasattr(order, '_step_export_report_title') else (b'PROFORMA' if proforma else b'NOTA DE VENTA')
         if action == 'action_sale_note':
             order.action_confirm()
             assert order.state == 'sale' and order.amount_total == 215

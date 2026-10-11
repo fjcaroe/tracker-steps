@@ -1,0 +1,1 @@
+<odoo><record id="color_company" model="ir.rule"><field name="name">Colores de fruta por empresa</field><field name="model_id" ref="model_step_fruit_color"/><field name="domain_force">[('company_id','in',company_ids)]</field></record></odoo>

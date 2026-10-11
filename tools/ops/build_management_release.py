@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -30,6 +30,8 @@ def main():
         modules = ('step_export',)
     if args.kind == 'sale-format':
         modules = ('step_sale_export_report',)
+    if args.kind == 'client-revision':
+        modules = ('step_sale_export_report', 'step_export_client_revision')
     if args.kind == 'freight':
         modules = ('step_operations_ui', 'step_dispatch_guide')
     if args.kind == 'homepage':

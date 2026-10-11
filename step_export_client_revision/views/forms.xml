@@ -1,0 +1,14 @@
+<odoo>
+    <record id="program_form" model="ir.ui.view"><field name="name">program.transport.type</field><field name="model">step.export.sales.program</field><field name="inherit_id" ref="step_export.view_step_export_sales_program_form"/><field name="arch" type="xml"><field name="company_id" position="after"><field name="transport_type" readonly="state in ('current','replaced')"/></field></field></record>
+    <record id="partner_form" model="ir.ui.view"><field name="name">partner.export.roles</field><field name="model">res.partner</field><field name="inherit_id" ref="step_export.view_step_export_partner_form"/><field name="arch" type="xml"><xpath expr="//page[@name='step_export_partner']/group" position="inside"><field name="step_export_carrier"/><field name="step_export_consignee"/><field name="step_export_notify"/><field name="step_export_forwarder"/><field name="step_export_customs_agent"/></xpath></field></record>
+    <record id="shipment_form" model="ir.ui.view"><field name="name">shipment.participant.filters</field><field name="model">step.export.export</field><field name="inherit_id" ref="step_export.view_step_export_shipment_form"/><field name="arch" type="xml">
+        <field name="carrier_id" position="attributes"><attribute name="domain">[('step_export_carrier','=',True)]</attribute></field>
+        <field name="consignee_id" position="attributes"><attribute name="domain">[('step_export_consignee','=',True)]</attribute></field>
+        <field name="notify_id" position="attributes"><attribute name="domain">[('step_export_notify','=',True)]</attribute></field>
+        <field name="freight_forwarder_id" position="attributes"><attribute name="domain">[('step_export_forwarder','=',True)]</attribute></field>
+        <field name="customs_agent_id" position="attributes"><attribute name="domain">[('step_export_customs_agent','=',True)]</attribute></field>
+    </field></record>
+    <record id="sale_form" model="ir.ui.view"><field name="name">sale.export.commercial.header</field><field name="model">sale.order</field><field name="inherit_id" ref="sale.view_order_form"/><field name="priority">90</field><field name="arch" type="xml">
+        <xpath expr="//field[@name='partner_id']" position="after"><xpath expr="//field[@name='incoterm']" position="move"/><field name="step_export_sale_mode_id" domain="['|',('company_id','=',False),('company_id','=',company_id)]"/></xpath>
+    </field></record>
+</odoo>

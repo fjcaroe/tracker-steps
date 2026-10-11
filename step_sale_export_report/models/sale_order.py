@@ -43,6 +43,9 @@ class SaleOrder(models.Model):
 
     step_export_sale_format = fields.Boolean(related='company_id.step_export_sale_format')
 
+    def _step_export_report_title(self, proforma=False):
+        return 'PROFORMA' if proforma else 'NOTA DE VENTA'
+
     def _step_export_report_values(self):
         self.ensure_one()
         lines = self._get_order_lines_to_report()

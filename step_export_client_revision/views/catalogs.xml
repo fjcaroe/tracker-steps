@@ -1,0 +1,8 @@
+<odoo>
+    <record id="color_list" model="ir.ui.view"><field name="name">step.fruit.color.list</field><field name="model">step.fruit.color</field><field name="arch" type="xml"><list editable="bottom"><field name="sequence" widget="handle"/><field name="code"/><field name="name"/><field name="company_id" groups="base.group_multi_company"/><field name="active" optional="hide"/></list></field></record>
+    <record id="color_action" model="ir.actions.act_window"><field name="name">Color de fruta</field><field name="res_model">step.fruit.color</field><field name="view_mode">list</field></record>
+    <menuitem id="export_quality" name="Calidades de fruta" parent="step_export.menu_step_export_config_fruit" action="step_inventory_fruit_tag.action_fruit_quality" sequence="65"/>
+    <menuitem id="packing_quality" name="Calidades de fruta" parent="step_packing_operations.menu_packing_config_fruit" action="step_inventory_fruit_tag.action_fruit_quality" sequence="65"/>
+    <menuitem id="export_color" name="Color de fruta" parent="step_export.menu_step_export_config_fruit" action="color_action" sequence="66"/>
+    <menuitem id="packing_color" name="Color de fruta" parent="step_packing_operations.menu_packing_config_fruit" action="color_action" sequence="66"/>
+</odoo>

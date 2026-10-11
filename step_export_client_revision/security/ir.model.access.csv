@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+color_read,Color fruta consulta,model_step_fruit_color,base.group_user,1,0,0,0
+color_management,Color fruta gestión,model_step_fruit_color,step_management_costs.group_management_manager,1,1,1,1
+color_stock,Color fruta inventario,model_step_fruit_color,stock.group_stock_manager,1,1,1,1
+color_sales,Color fruta ventas,model_step_fruit_color,sales_team.group_sale_manager,1,1,1,1

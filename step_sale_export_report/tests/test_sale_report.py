@@ -58,16 +58,16 @@ class SaleExportReportCase(TransactionCase):
         order.company_id.step_export_sale_format = True
         html, _ = report._render_qweb_html('sale.report_saleorder_pro_forma', order.ids)
         self.assertIn(b'step_export_document', html)
-        self.assertIn(b'PROFORMA', html)
+        self.assertIn(order._step_export_report_title(True).encode(), html)
         self.assertIn(b'Report test fruit', html)
 
     def test_dedicated_print_actions_and_missing_bank(self):
         order = self.order()
         order.company_id.step_export_bank_id = False
-        for xmlid, title in [('action_sale_note', b'NOTA DE VENTA'), ('action_proforma', b'PROFORMA')]:
+        for xmlid, proforma in [('action_sale_note', False), ('action_proforma', True)]:
             report = self.env.ref('step_sale_export_report.' + xmlid)
             self.assertEqual(report.binding_model_id.model, 'sale.order')
             html, _ = report._render_qweb_html(report.report_name, order.ids)
-            self.assertIn(title, html)
+            self.assertIn(order._step_export_report_title(proforma).encode(), html)
             self.assertIn(b'Wire Instructions:', html)
             self.assertIn(b'pendientes', html)
