@@ -39,6 +39,10 @@ try:
         assert etree.fromstring(lines.get_view(view_id=env.ref(xmlid).id,view_type=kind)['arch'].encode()).tag==kind
     grouped=lines.read_group([('id','in',lines.ids)],['container_qty:sum','kg_qty:sum','amount_usd:sum'],[])[0]
     assert grouped['container_qty']==3 and grouped['kg_qty']==3000 and grouped['amount_usd']==10000
+    gantt=lines.get_gantt_data([('id','in',lines.ids)],['program_id'],
+        {name:{} for name in ('display_name','program_id','week_start','week_end','container_qty','pallet_qty','box_qty','kg_qty','amount_usd')},
+        start_date='2026-11-01 00:00:00',stop_date='2026-12-01 00:00:00',scale='month')
+    assert gantt['length']==1 and len(gantt['records'])==2 and sum(r['amount_usd'] for r in gantt['records'])==10000
     new=env[program._name].browse(program.action_new_version()['res_id']);new.action_validate();new.action_activate()
     current=env['step.export.sales.program.line'].with_user(user).search([('program_id','in',[program.id,new.id]),('program_state','=','current')])
     assert len(current)==2 and set(current.program_id.ids)=={new.id}, 'Do not count replaced versions twice'

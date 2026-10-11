@@ -8,6 +8,7 @@ import subprocess
 here = Path(__file__).resolve().parent
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('environment', choices=('development', 'cerro'))
+p.add_argument('--probe', choices=('inspect_client_revision.py', 'inspect_gantt_support.py'), default='inspect_client_revision.py')
 args = p.parse_args()
 target = json.loads((here/'environments.json').read_text())['environments'][args.environment]
 cfg = configparser.ConfigParser(interpolation=None); cfg.read(target['config'])
@@ -17,7 +18,7 @@ user = subprocess.check_output(['systemctl','show','--value','--property=User',t
 print('ENVIRONMENT', args.environment, target['database'], opts['addons_path'], flush=True)
 result = subprocess.run(['sudo','-u',user,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell','-c',target['config'],
     '-d',target['database'],'--no-http','--workers=0','--max-cron-threads=0','--log-level=error'],
-    input=(here/'inspect_client_revision.py').read_text(),text=True,capture_output=True)
+    input=(here/args.probe).read_text(),text=True,capture_output=True)
 print(result.stdout)
 print(result.stderr[-4000:])
 assert result.returncode == 0

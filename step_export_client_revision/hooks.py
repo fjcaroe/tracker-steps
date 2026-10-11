@@ -14,8 +14,8 @@ def post_init_hook(env):
     env.cr.execute('''UPDATE sale_order o SET step_export_sale_mode_id=s.sale_mode_id
         FROM step_export_export s WHERE o.step_export_shipment_id=s.id
         AND o.step_export_sale_mode_id IS NULL AND s.sale_mode_id IS NOT NULL''')
+    # Populate only the new related column. ORM recomputation here would stamp
+    # historical weeks as edited by the installing user, changing their audit.
+    env.cr.execute('''UPDATE step_export_sales_program_line l SET transport_type=p.transport_type
+        FROM step_export_sales_program p WHERE l.program_id=p.id''')
     env.invalidate_all()
-    # Recompute new report dimensions after the exact transport backfill.
-    lines = env['step.export.sales.program.line'].search([])
-    env.add_to_compute(lines._fields['transport_type'], lines)
-    lines._recompute_recordset(['transport_type'])
