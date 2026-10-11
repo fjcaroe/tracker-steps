@@ -82,3 +82,13 @@ https://cerroelplomo.stepsapp.cl/odoo/action-1576
 La evidencia privada está en ~/.codex/local-artifacts/t68/live/; solo contiene
 pruebas y registros de verificación. No se versionan documentos del cliente,
 respaldos ni configuraciones. No se modificaron otras aplicaciones ni ambientes.
+
+Cierre del ticket
+-----------------
+
+Antes de cerrar se volvió a consultar la conversación: no había comentarios
+humanos nuevos posteriores al mensaje 9336. Ticket 68 en Solved; nota interna
+9341, subtipo mail.mt_note, sin destinatarios ni notificaciones. Registro de
+entrega comprobó la evidencia del mismo paquete publicado en ambos destinos.
+Cambios guardados y subidos a codex/t68-estimaciones y a la base canónica;
+verify_handoff.py --require-pushed aprobado.
