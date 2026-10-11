@@ -11,7 +11,7 @@ try:
         assert module.state=='installed' and module.latest_version==version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
     company=env['res.company'].search([('vat','=','76943293-0')],limit=1) or env.company
-    env=env(context=dict(env.context,allowed_company_ids=company.ids))
+    env=env(context=dict(env.context,allowed_company_ids=company.ids,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
     user=new_test_user(env,login='qa-t69-report',groups='base.group_user',company_id=company.id,company_ids=[(6,0,company.ids)])
     action=env.ref('step_producer_contract_report.report_action');menu=env.ref('step_producer_contract_report.report_menu')
     assert menu.parent_id==env.ref('step_producers.menu_step_producers_planning_group') and menu.action==action

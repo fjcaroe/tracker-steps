@@ -1,7 +1,7 @@
 from datetime import date
 from odoo import Command
 from odoo.tests.common import TransactionCase, new_test_user
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import AccessError, UserError
 
 
 class ContractReportCase(TransactionCase):
@@ -78,13 +78,13 @@ class ContractReportCase(TransactionCase):
 
     def test_read_only_company_rule_and_catalog_scope(self):
         c=self.sample();rows=self.rows(c)
-        user=new_test_user(self.env,login='qa-t69-reader',groups='base.group_user',company_id=c.company_id.id,company_ids=[Command.set(c.company_id.ids)])
+        user=new_test_user(self.env(context=dict(self.env.context,no_reset_password=True)),login='qa-t69-reader',groups='base.group_user',company_id=c.company_id.id,company_ids=[Command.set(c.company_id.ids)])
         with self.assertRaises(AccessError):rows.with_user(user).write({'quantity_kg':999})
         other=self.env['res.company'].create({'name':'QA T69 other'})
-        outsider=new_test_user(self.env,login='qa-t69-outsider',groups='base.group_user',company_id=other.id,company_ids=[Command.set(other.ids)])
+        outsider=new_test_user(self.env(context=dict(self.env.context,no_reset_password=True)),login='qa-t69-outsider',groups='base.group_user',company_id=other.id,company_ids=[Command.set(other.ids)])
         self.assertFalse(rows.with_user(outsider).with_context(allowed_company_ids=other.ids).search([('id','in',rows.ids)]))
         season=self.env['step.temporada'].create({'name':'QA T69 restricted season','company_ids':[Command.set(other.ids)]})
-        with self.assertRaises(ValidationError), self.env.cr.savepoint():c.season_id=season
+        with self.assertRaises(UserError), self.env.cr.savepoint():c.season_id=season
 
     def test_historical_classification_and_sealed_season(self):
         c=self.sample();c.season_id=False;c.action_confirm()
