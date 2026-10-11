@@ -2,6 +2,13 @@
 from .models.revision import ROLES
 
 
+def pre_init_hook(env):
+    # Adding stored related fields uses ORM writes during registry initialization.
+    # Keep the original audit in a transaction-local table, never a second master.
+    env.cr.execute('''CREATE TEMPORARY TABLE step_client_revision_week_audit ON COMMIT DROP AS
+        SELECT id,write_uid,write_date FROM step_export_sales_program_line''')
+
+
 def post_init_hook(env):
     for relation, flag in ROLES.items():
         env.cr.execute('UPDATE res_partner p SET '+flag+'=true WHERE EXISTS '
@@ -18,4 +25,8 @@ def post_init_hook(env):
     # historical weeks as edited by the installing user, changing their audit.
     env.cr.execute('''UPDATE step_export_sales_program_line l SET transport_type=p.transport_type
         FROM step_export_sales_program p WHERE l.program_id=p.id''')
-    env.invalidate_all()
+    env.flush_all()
+    env.cr.execute('''UPDATE step_export_sales_program_line l
+        SET write_uid=a.write_uid,write_date=a.write_date
+        FROM step_client_revision_week_audit a WHERE l.id=a.id''')
+    env.invalidate_all(flush=False)

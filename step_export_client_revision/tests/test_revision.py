@@ -4,6 +4,7 @@ from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase, new_test_user
 from odoo.addons.step_export_client_revision.models.revision import ROLES
+from odoo.addons.step_export_client_revision.hooks import pre_init_hook, post_init_hook
 
 
 @tagged('post_install', '-at_install')
@@ -27,6 +28,16 @@ class ClientRevisionCase(TransactionCase):
         new=self.env[program._name].browse(program.action_new_version()['res_id'])
         self.assertEqual(new.transport_type,'air')
         new.transport_type='land';self.assertEqual(program.transport_type,'air')
+
+    def test_installation_preserves_week_audit(self):
+        program=self.program();line=program.line_ids[0]
+        self.env.flush_all()
+        before=(line.write_uid.id,line.write_date)
+        pre_init_hook(self.env)
+        self.cr.execute("UPDATE step_export_sales_program_line SET write_date='2020-01-01' WHERE id=%s",[line.id])
+        post_init_hook(self.env)
+        self.assertEqual((line.write_uid.id,line.write_date),before)
+        self.assertEqual(line.transport_type,'air')
 
     def test_weekly_report_quantities_usd_and_dimensions(self):
         program=self.program();lines=program.line_ids
