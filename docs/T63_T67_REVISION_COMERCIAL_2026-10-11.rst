@@ -36,6 +36,14 @@ puede tener varios roles. La migración marca los roles ya demostrados por
 relaciones existentes, sin buscar ni inventar coincidencias por nombre.
 Conserva contactos y documentos anteriores.
 
+La prueba con Cerro El Plomo SpA detectó que las secuencias de embarque se
+habían configurado solo para la empresa original: un segundo instructivo
+intentaba repetir Nuevo. Se completan las secuencias nativas que falten por
+empresa y tipo, y la creación usa la empresa del documento. Se parte después
+del mayor sufijo existente, sin cambiar números históricos ni secuencias
+ya configuradas. La prueba nueva verifica dos embarques por cada tipo y la
+conservación de un número histórico.
+
 T67 mueve el Incoterm nativo desde Otra información al encabezado y agrega
 Modalidad de venta relacionada con step.export.sale.mode. No duplica el
 maestro ni mantiene otro Incoterm de texto. El título impreso de Nota de venta
@@ -58,12 +66,12 @@ un segundo maestro ni una tabla permanente de documentos. El comparador sigue
 exigiendo igualdad de todas las columnas originales, incluidos write_uid y
 write_date; no se relajó para aceptar el cambio detectado.
 
-Paquete candidato
+Paquete final en validación
 ------------------
 
-Commit 9bbb102f966165286bc3533f8d5ed5409893bb56.
-SHA256 5f8ea3dfc5f3e9a7723c1f9e118a9f2b8cf7e434bb68198484061f9eefe27251.
-step_sale_export_report 18.0.1.0.1 y step_export_client_revision 18.0.1.0.0.
+Commit 83f22b3fd1d1388eaa0fae529795ad1703b184f8.
+SHA256 2c090ec7a9f8b969d49a576f0a6ec874f85590f849b89bd80d50760f3a9f29e6.
+step_sale_export_report 18.0.1.0.1 y step_export_client_revision 18.0.1.0.1.
 Las herramientas de inspección y verificación están versionadas en tools/ops.
 Las pruebas cubren selección por rol, permisos de colores, versionado del
 transporte, conservación de auditoría, cantidades/ventas USD, arquitectura

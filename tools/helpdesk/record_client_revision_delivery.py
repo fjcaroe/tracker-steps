@@ -48,7 +48,7 @@ def main():
         else:
             title=rpc('helpdesk.ticket','read',[[ticket]],{'fields':['name']})[0]['name'];assert title.startswith('T'+str(ticket))
             body='<h3>'+html.escape(marker)+'</h3><p>'+html.escape(text)+'</p>'
-            body+='<p>Publicado y verificado en Desarrollo y Cerro El Plomo, después de doce pruebas funcionales y conservación exacta de registros en copias frescas de ambos destinos. Se repitieron formularios, menús, flujo de ventas, datos del Gantt, totales USD y ambos PDF en los ambientes publicados. Las muestras de prueba se revirtieron.</p>'
+            body+='<p>Publicado y verificado en Desarrollo y Cerro El Plomo, después de trece pruebas funcionales y conservación exacta de registros en copias frescas de ambos destinos. Se repitieron formularios, menús, flujo de ventas, datos del Gantt, totales USD y ambos PDF en los ambientes publicados. Las muestras de prueba se revirtieron.</p>'
             if ticket==65:
                 body+='<p><a href="https://cerroelplomo.stepsapp.cl/odoo/action-%s">Abrir informe en Cerro</a>.</p>' % proof['cerro']['actions']['program_report']
             body+='<p><a href="https://github.com/fjcaroe/tracker-steps/blob/codex/ambientes-canonicos-reparacion/docs/T63_T67_REVISION_COMERCIAL_2026-10-11.rst">Acta de entrega y uso</a>. Código guardado y subido. Evidencia interna, sin envío de correo.</p>'
