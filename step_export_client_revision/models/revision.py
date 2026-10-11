@@ -1,6 +1,6 @@
 from datetime import timedelta
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 ROLES = {'carrier_id': 'step_export_carrier', 'consignee_id': 'step_export_consignee',
          'notify_id': 'step_export_notify', 'freight_forwarder_id': 'step_export_forwarder',
@@ -53,6 +53,18 @@ class Shipment(models.Model):
     notify_id = fields.Many2one(domain=[('step_export_notify', '=', True)])
     freight_forwarder_id = fields.Many2one(domain=[('step_export_forwarder', '=', True)])
     customs_agent_id = fields.Many2one(domain=[('step_export_customs_agent', '=', True)])
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('shipment_number'):
+                company=self.env['res.company'].browse(vals.get('company_id')) if vals.get('company_id') else self.env.company
+                transport=vals.get('transport_type') or 'sea'
+                number=self.env['ir.sequence'].with_company(company).next_by_code('step.export.shipment.'+transport)
+                if not number:
+                    raise ValidationError(_('Configure la secuencia de embarque para la empresa.'))
+                vals['shipment_number']=number
+        return super().create(vals_list)
 
 
 class Program(models.Model):

@@ -1,5 +1,19 @@
 """Classify only exact historical relations, without guessing contacts or programs."""
 from .models.revision import ROLES
+import re
+
+
+def ensure_shipment_sequences(env):
+    for transport in ('sea','air','land'):
+        code='step.export.shipment.'+transport
+        template=env['ir.sequence'].search([('code','=',code)],limit=1)
+        assert template, 'Missing canonical shipment sequence '+code
+        for company in env['res.company'].search([]):
+            if env['ir.sequence'].search_count([('code','=',code),('company_id','in',[False,company.id])]):
+                continue
+            names=env['step.export.export'].search([('company_id','=',company.id),('transport_type','=',transport)]).mapped('shipment_number')
+            suffixes=[int(match.group(1)) for name in names if name and (match:=re.search(r'(\d+)$',name))]
+            template.copy({'company_id':company.id,'number_next':max(suffixes,default=0)+1})
 
 
 def pre_init_hook(env):
@@ -10,6 +24,7 @@ def pre_init_hook(env):
 
 
 def post_init_hook(env):
+    ensure_shipment_sequences(env)
     for relation, flag in ROLES.items():
         env.cr.execute('UPDATE res_partner p SET '+flag+'=true WHERE EXISTS '
             '(SELECT 1 FROM step_export_export s WHERE s.'+relation+'=p.id)')

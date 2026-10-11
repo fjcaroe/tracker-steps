@@ -4,7 +4,7 @@ from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase, new_test_user
 from odoo.addons.step_export_client_revision.models.revision import ROLES
-from odoo.addons.step_export_client_revision.hooks import pre_init_hook, post_init_hook
+from odoo.addons.step_export_client_revision.hooks import pre_init_hook, post_init_hook, ensure_shipment_sequences
 
 
 @tagged('post_install', '-at_install')
@@ -38,6 +38,21 @@ class ClientRevisionCase(TransactionCase):
         post_init_hook(self.env)
         self.assertEqual((line.write_uid.id,line.write_date),before)
         self.assertEqual(line.transport_type,'air')
+
+    def test_shipment_numbers_use_requested_company_without_renumbering(self):
+        company=self.env['res.company'].create({'name':'QA SHIPPING COMPANY'})
+        historical=self.env['step.export.export'].create({'name':'QA history','company_id':company.id,'shipment_number':'EM-M/00999'})
+        ensure_shipment_sequences(self.env)
+        numbers=[]
+        for transport in ('sea','air','land'):
+            first=self.env['step.export.export'].create({'name':'QA first','company_id':company.id,'transport_type':transport})
+            second=self.env['step.export.export'].create({'name':'QA second','company_id':company.id,'transport_type':transport})
+            self.assertNotEqual(first.shipment_number,'Nuevo')
+            self.assertNotEqual(first.shipment_number,second.shipment_number)
+            self.assertTrue(first.shipment_number.startswith({'sea':'EM-M/','air':'EM-A/','land':'EM-T/'}[transport]))
+            numbers.append(first.shipment_number)
+        self.assertEqual(historical.shipment_number,'EM-M/00999')
+        self.assertTrue(numbers[0].endswith('01000'))
 
     def test_weekly_report_quantities_usd_and_dimensions(self):
         program=self.program();lines=program.line_ids
