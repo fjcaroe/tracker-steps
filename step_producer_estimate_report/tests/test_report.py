@@ -11,7 +11,8 @@ class EstimateReportCase(TransactionCase):
         fundo=env['step.fundo'].create({'name':'QA T68 farm','partner_id':producer.id})
         season=env['step.temporada'].create({'name':'QA T68 season'})
         species=env['step.especie'].create({'name':'QA T68 fruit','type_especie':'frutal','group_especie':'seco'})
-        variety=env['step.variedad'].create({'name':'QA T68 variety','especie_id':species.id})
+        group=env['step.grupo.variedad'].create({'name':'QA T68 group','especie_id':species.id})
+        variety=env['step.variedad'].create({'name':'QA T68 variety','cod_variedad':'QA-T68','especie_id':species.id,'grupo_variedad_id':group.id})
         product=env['product.product'].create({'name':'QA T68 fruit','is_fruta':True,'grupo_labor':'pack'})
         estimate=env['step.export.estimate'].create({'name':'QA T68 estimate','producer_id':producer.id,'packing_partner_id':packing.id,
             'fundo_id':fundo.id,'season_id':season.id,'delivery_start':date(2026,11,2),'delivery_end':date(2026,11,15),

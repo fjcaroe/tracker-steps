@@ -42,7 +42,7 @@ class EstimateReport(models.Model):
                 w.export_kg/nullif(l.kg_per_box,0) AS export_box_qty,
                 w.export_kg/nullif(l.kg_per_box,0)/nullif(l.boxes_per_package,0) AS export_pallet_qty,
                 CASE WHEN l.delivery_kind='process' THEN w.export_kg/nullif(l.export_percentage,0)/nullif(l.kg_per_box,0)/nullif(l.boxes_per_package,0) ELSE 0 END AS bin_qty,
-                usd.id AS usd_currency_id, p.id AS price_line_id,
+                usd.id AS usd_currency_id, CASE WHEN p.matches=1 THEN p.id END AS price_line_id,
                 CASE WHEN p.matches=1 AND pu.category_id=kg.category_id AND (p.currency_id=usd.id OR (sr.rate IS NOT NULL AND ur.rate IS NOT NULL))
                     THEN p.price*pu.factor/kg.factor*CASE WHEN p.currency_id=usd.id THEN 1 ELSE ur.rate/sr.rate END END AS price_usd_per_kg,
                 CASE WHEN p.matches=1 AND pu.category_id=kg.category_id AND (p.currency_id=usd.id OR (sr.rate IS NOT NULL AND ur.rate IS NOT NULL))

@@ -18,7 +18,7 @@
         <field name="bin_qty"/>
         <field name="amount_usd"/>
         <field name="valuation_status"/>
-      </gantt>
+      <templates><div t-name="gantt-popover"><div><strong>Kilos exportación: </strong><t t-esc="export_kg"/></div><div><strong>Kilos a proceso: </strong><t t-esc="process_kg"/></div><div><strong>Cajas exportación: </strong><t t-esc="export_box_qty"/></div><div><strong>Pallets exportación: </strong><t t-esc="export_pallet_qty"/></div><div><strong>Bins: </strong><t t-esc="bin_qty"/></div><div><strong>Valor FOB USD: </strong><t t-esc="amount_usd"/></div></div></templates></gantt>
     </field>
   </record>
   <record id="report_pivot" model="ir.ui.view">
