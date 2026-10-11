@@ -78,6 +78,9 @@ try:
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'tickets':[63,64,65,66,67],
         'quality_shared':True,'color_crud':True,'program_transport':True,'gantt_pivot_list':True,
         'report_quantities_usd':10000,'current_version_only':True,'role_domains':True,
-        'native_incoterm_and_sale_mode':True,'pdf_titles':['Sales Order','Invoice'],'samples':'rolled back'}),flush=True)
+        'native_incoterm_and_sale_mode':True,'pdf_titles':['Sales Order','Invoice'],
+        'actions':{'program_report':env.ref('step_export_client_revision.program_report').id,
+                   'color':env.ref('step_export_client_revision.color_action').id},
+        'samples':'rolled back'}),flush=True)
 finally:
     env.cr.rollback()
