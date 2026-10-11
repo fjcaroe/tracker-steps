@@ -15,8 +15,11 @@ try:
         assert module.state=='installed' and module.latest_version==version
         runtime=importlib.import_module('odoo.addons.'+name)
         assert Path(runtime.__file__).resolve().parent==Path(ROOT)/name
-    user=new_test_user(env,login='qa-t63-t67-client',groups='sales_team.group_sale_manager,sale.group_proforma_sales,stock.group_stock_manager,base.group_multi_company')
-    company=env.company
+    company=env['res.company'].search([('vat','=','76943293-0')],limit=1) or env.company
+    env=env(context=dict(env.context,allowed_company_ids=company.ids))
+    other=env['res.company'].create({'name':'QA T63-T67 SECOND COMPANY'})
+    user=new_test_user(env,login='qa-t63-t67-client',groups='sales_team.group_sale_manager,sale.group_proforma_sales,stock.group_stock_manager,base.group_multi_company',
+        company_id=company.id,company_ids=[(6,0,(company|other).ids)])
     ctx={'allowed_company_ids':company.ids,'tracking_disable':True,'mail_create_nosubscribe':True}
     quality=env.ref('step_inventory_fruit_tag.action_fruit_quality')
     for name,parent in [('export_quality','step_export.menu_step_export_config_fruit'),('packing_quality','step_packing_operations.menu_packing_config_fruit')]:
@@ -29,7 +32,7 @@ try:
         assert env.ref('step_export_client_revision.'+name).action==env.ref('step_export_client_revision.color_action')
     program=ClientRevisionCase.program(SimpleNamespace(env=env)).with_user(user)
     form=etree.fromstring(program.get_view(view_type='form')['arch'].encode())
-    assert form.xpath(".//field[@name='company_id']/following-sibling::field[1][@name='transport_type']")
+    assert form.xpath(".//field[@name='company_id']/following-sibling::field[1][@name='transport_type']"), 'Transport must follow the visible Company in the multi-company form'
     program.action_validate();program.action_activate()
     action=env.ref('step_export_client_revision.program_report')
     assert action.view_mode=='gantt,pivot,list'
