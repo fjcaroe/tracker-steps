@@ -30,6 +30,9 @@ try:
     assert color in env['step.fruit.color'].with_user(user).with_context(**ctx).search([])
     for name in ('export_color','packing_color'):
         assert env.ref('step_export_client_revision.'+name).action==env.ref('step_export_client_revision.color_action')
+    visible=env['ir.ui.menu'].with_user(user).with_context(**ctx)._visible_menu_ids()
+    for name in ('export_quality','packing_quality','export_color','packing_color','program_report_menu'):
+        assert env.ref('step_export_client_revision.'+name).id in visible, 'Menu not visible to the sales/stock profile: '+name
     program=ClientRevisionCase.program(SimpleNamespace(env=env)).with_user(user)
     form=etree.fromstring(program.get_view(view_type='form')['arch'].encode())
     assert form.xpath(".//field[@name='company_id']/following-sibling::field[1][@name='transport_type']"), 'Transport must follow the visible Company in the multi-company form'

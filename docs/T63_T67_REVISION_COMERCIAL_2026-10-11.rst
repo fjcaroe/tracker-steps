@@ -66,7 +66,7 @@ un segundo maestro ni una tabla permanente de documentos. El comparador sigue
 exigiendo igualdad de todas las columnas originales, incluidos write_uid y
 write_date; no se relajó para aceptar el cambio detectado.
 
-Paquete final en validación
+Paquete publicado
 ------------------
 
 Commit 83f22b3fd1d1388eaa0fae529795ad1703b184f8.
@@ -80,4 +80,36 @@ efectiva de Gantt/dinámica, encabezado comercial y ambos títulos impresos.
 El publicador exige copias frescas de Desarrollo y del destino Cerro,
 conservación de registros, verificación funcional, paquete idéntico,
 ausencia de downgrade/cambios concurrentes y respaldo/overlay privado.
-La publicación y el cierre se documentarán al completar esas verificaciones.
+
+Desarrollo y Cerro superaron trece pruebas en las copias frescas
+MANAGEMENT_QA_DEVELOPMENT_t6367d y MANAGEMENT_QA_CERRO_t6367d, y comparación
+exacta de todas las columnas originales. El verificador de perfil comercial
+ejecutó alta/consulta de color, uso del maestro de calidad, versionado del
+programa, API nativa get_gantt_data, agrupación con venta de 10.000 USD,
+exclusión de versiones reemplazadas, creación de instructivo con los roles
+seleccionados, formulario de Nota de venta y generación de ambos PDF.
+
+Se inspeccionaron visualmente los PDF de Desarrollo y los de Cerro El Plomo
+SpA con su logo. El perfil de prueba es ventas/inventario multiempresa;
+los nuevos menús se comprueban con la API de visibilidad del mismo perfil.
+Las muestras se revierten al terminar. Las configuraciones nuevas de
+numeración son registros nativos de ir.sequence, sin renumerar documentos.
+
+Publicado el paquete exacto 83f22b3 en Desarrollo y Cerro, usando el bloqueo
+/run/lock/steps-environments.lock, guardas de concurrencia/downgrade,
+respaldo completo y overlays privados. Ambos servicios están activos y sus
+HTTPS pasaron la verificación; los flujos se repitieron en las bases publicadas.
+
+- Desarrollo: respaldo /opt/steps_backups/management_development_20261011T033439Z.
+- Cerro: respaldo /opt/steps_backups/management_cerro_20261011T034022Z.
+- Overlays: /opt/steps-managed/releases/{development,cerro}/83f22b3fd1d1388eaa0fae529795ad1703b184f8.
+- Informe en Cerro: https://cerroelplomo.stepsapp.cl/odoo/action-1575.
+
+Código y herramientas integrados en codex/ambientes-canonicos-reparacion y
+conservados en codex/t63-t67-cerro. Los certificados, logs y muestras privadas
+quedan en ~/.codex/local-artifacts/t63-t67, fuera del checkout.
+
+T45 continúa pendiente de la prueba con una balanza física; T48 depende de
+la activación de Cloud API de Meta; T46 conserva sus pruebas móviles y
+tiendas pendientes. No tienen comentarios humanos nuevos que permitan
+dar por completadas esas condiciones. No se cierran por esta entrega.
