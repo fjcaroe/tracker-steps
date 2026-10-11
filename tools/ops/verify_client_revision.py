@@ -15,7 +15,7 @@ try:
         assert module.state=='installed' and module.latest_version==version
         runtime=importlib.import_module('odoo.addons.'+name)
         assert Path(runtime.__file__).resolve().parent==Path(ROOT)/name
-    user=new_test_user(env,login='qa-t63-t67-client',groups='sales_team.group_sale_manager,sale.group_proforma_sales,stock.group_stock_manager')
+    user=new_test_user(env,login='qa-t63-t67-client',groups='sales_team.group_sale_manager,sale.group_proforma_sales,stock.group_stock_manager,base.group_multi_company')
     company=env.company
     ctx={'allowed_company_ids':company.ids,'tracking_disable':True,'mail_create_nosubscribe':True}
     quality=env.ref('step_inventory_fruit_tag.action_fruit_quality')
