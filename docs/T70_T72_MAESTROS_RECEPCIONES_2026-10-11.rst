@@ -108,3 +108,13 @@ https://cerroelplomo.stepsapp.cl/odoo/action-1579 (fruta embalada)
 En Desarrollo, las acciones correspondientes son 2212 y 2213.
 Evidencia privada en ~/.codex/local-artifacts/t70-t72/live/, fuera del repositorio.
 No se versionan adjuntos del cliente, respaldos ni configuraciones privadas.
+
+Cierre de tickets
+-----------------
+
+Se volvieron a consultar los comentarios humanos posteriores al 9354; no había
+respuestas nuevas. T70, T71 y T72 en Solved, con notas internas 9356, 9357 y
+9358, subtipo mail.mt_note, sin destinatarios ni notificaciones. El registrador
+comprobó antes la evidencia del mismo paquete en ambos destinos publicados.
+Cambios guardados y subidos a codex/t70-t72-fruta y a la rama canónica;
+verify_handoff.py --require-pushed aprobado.
