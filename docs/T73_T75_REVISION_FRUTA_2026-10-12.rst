@@ -16,7 +16,7 @@ Existe una decisión pendiente de migración: una recepción de Cerro usa la
 clase antigua «A proceso» de una empresa cuya categoría homónima existente
 pertenece a otra empresa. No se debe asignar esa relación entre empresas ni
 suponer que equivale a Materia Prima. Se consultó si corresponde migrar a una
-categoría A proceso en la misma empresa o a Materia Prima. T73 permanece abierto.
+categoría A proceso en la misma empresa o a Materia Prima. T73 permanece abierto, en En Espera.
 No se modificaron sus relaciones, registros ni menús.
 
 Implementación T74 y T75

@@ -30,7 +30,10 @@ for ticket,text in texts.items():
     previous=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','=',ticket),('body','ilike',marker)]],{'fields':['id']})
     if previous:message=previous[0]['id']
     else:
-        assert rpc('helpdesk.ticket','read',[[ticket]],{'fields':['name']})[0]['name'].startswith('T'+str(ticket))
+        current=rpc('helpdesk.ticket','read',[[ticket]],{'fields':['name','write_date']})[0]
+        assert current['name'].startswith('T'+str(ticket))
+        expected_date={74:'2026-10-12 18:48:10',75:'2026-10-12 18:50:34'}[ticket]
+        assert current['write_date']==expected_date,'Ticket changed; reread the current scope before closure'
         body='<h3>'+html.escape(marker)+'</h3><p>'+html.escape(text)+'</p>'
         body+='<p>Publicado y verificado en Desarrollo y Cerro El Plomo. Ocho pruebas aprobadas en copias nuevas de ambos destinos. Se comprobaron menús, formularios, fórmulas de las líneas existentes, informe semanal y creación y activación de nuevas versiones. Se conservaron los kilos, semanas y demás datos originales; las muestras de comprobación se revirtieron.</p>'
         body+='<p>Los grupos y capacidades existentes no se asignaron por su nombre. Configure Grupo paquete y las capacidades en Envases de traslado, y Kg Caja Base y Caja Base x pallet en Especie. Si falta un divisor positivo o el grupo no corresponde, la cantidad calculada es cero.</p>'
@@ -41,3 +44,16 @@ for ticket,text in texts.items():
     assert saved['subtype_id'][0]==note and not saved['notification_ids'] and '<p>' in saved['body'] and '&lt;p&gt;' not in saved['body']
     assert rpc('helpdesk.ticket','read',[[ticket]],{'fields':['stage_id']})[0]['stage_id'][0]==4
     print('TICKET_DELIVERY_OK',ticket,'note',message,'Solved notifications=0')
+
+marker='T73 - decisión pendiente de migración entre maestros'
+previous=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','=',73),('body','ilike',marker)]],{'fields':['id']})
+if not previous:
+    current=rpc('helpdesk.ticket','read',[[73]],{'fields':['write_date']})[0]
+    assert current['write_date']=='2026-10-12 14:26:19','Reread T73 feedback before holding it'
+    body='<h3>'+marker+'</h3><p>Se revisaron el documento y los maestros efectivos de Desarrollo y Cerro El Plomo. En Cerro hay una recepción con la clase antigua A proceso cuya categoría homónima pertenece a otra empresa.</p><p>Se consultó a Fernando si debe migrarse a una categoría A proceso de la misma empresa o asociarse a Materia Prima. La elección define el significado de esa recepción; no se asignará una categoría de otra empresa ni se supondrá una equivalencia. Las relaciones y registros existentes se conservan. Ticket en espera de esa decisión.</p>'
+    message=rpc('mail.message','create',[{'model':'helpdesk.ticket','res_id':73,'message_type':'comment','subtype_id':note,'author_id':author,'body':body,'partner_ids':[(5,0,0)]}])
+    rpc('helpdesk.ticket','write',[[73],{'stage_id':6}],{'context':{'tracking_disable':True,'mail_notrack':True,'mail_create_nosubscribe':True,'mail_auto_subscribe_no_notify':True}})
+    saved=rpc('mail.message','read',[[message]],{'fields':['subtype_id','notification_ids']})[0]
+    assert saved['subtype_id'][0]==note and not saved['notification_ids']
+    assert rpc('helpdesk.ticket','read',[[73]],{'fields':['stage_id']})[0]['stage_id'][0]==6
+    print('TICKET_WAITING_DECISION_OK 73 note',message,'notifications=0')
