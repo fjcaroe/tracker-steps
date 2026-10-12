@@ -1,0 +1,35 @@
+<odoo>
+  <menuitem id="packing_class" name="Clase de fruta" parent="step_packing_operations.menu_packing_config_fruit" action="step_management_costs.action_fruit_class" sequence="61"/>
+  <menuitem id="export_class" name="Clase de fruta" parent="step_export.menu_step_export_config_fruit" action="step_management_costs.action_fruit_class" sequence="61"/>
+  <menuitem id="producer_class" name="Clase de fruta" parent="step_producer_fruit_reports.fruit_config_menu" action="step_management_costs.action_fruit_class" sequence="61"/>
+  <record id="step_packing_operations.menu_packing_config_fruit_category" model="ir.ui.menu"><field name="action" ref="step_management_costs.action_fruit_category"/></record>
+  <record id="step_packing.menu_packing_fruta_fruit_category" model="ir.ui.menu"><field name="action" ref="step_management_costs.action_fruit_category"/></record>
+  <record id="step_packing.menu_step_packing_fruit_category" model="ir.ui.menu"><field name="action" ref="step_management_costs.action_fruit_category"/></record>
+  <record id="step_packing.menu_packing_fruta_fruit_class" model="ir.ui.menu"><field name="action" ref="step_management_costs.action_fruit_class"/></record>
+  <record id="step_packing.menu_step_packing_fruit_class" model="ir.ui.menu"><field name="action" ref="step_management_costs.action_fruit_class"/></record>
+  <record id="category_form" model="ir.ui.view">
+    <field name="name">shared.fruit.category.form</field><field name="model">step.management.fruit.category</field>
+    <field name="arch" type="xml"><form string="Categoría de fruta"><sheet><group><field name="code"/><field name="name"/><field name="company_id" groups="base.group_multi_company"/><field name="active"/></group></sheet></form></field>
+  </record>
+  <record id="class_form" model="ir.ui.view">
+    <field name="name">shared.fruit.class.form</field><field name="model">step.management.fruit.class</field>
+    <field name="arch" type="xml"><form string="Clase de fruta"><sheet><group><field name="code"/><field name="name"/><field name="category_id"/><field name="use_harvest"/><field name="use_packing"/><field name="company_id" groups="base.group_multi_company"/><field name="active"/></group></sheet></form></field>
+  </record>
+  <record id="step_management_costs.action_fruit_category" model="ir.actions.act_window">
+    <field name="view_mode">list,form</field><field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('step_management_costs.view_fruit_category_list')}),(0,0,{'view_mode':'form','view_id':ref('category_form')})]"/>
+  </record>
+  <record id="step_management_costs.action_fruit_class" model="ir.actions.act_window">
+    <field name="view_mode">list,form</field><field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('step_management_costs.view_fruit_class_list')}),(0,0,{'view_mode':'form','view_id':ref('class_form')})]"/>
+  </record>
+  <!-- Direct bookmarks of either former Packing category action resolve to the canonical master. -->
+  <record id="step_packing.action_step_packing_fruit_category" model="ir.actions.act_window">
+    <field name="res_model">step.management.fruit.category</field><field name="view_mode">list,form</field><field name="view_id" eval="False"/><field name="view_ids" eval="[(5,0,0)]"/>
+  </record>
+  <record id="step_packing.action_step_packing_fruit_class" model="ir.actions.act_window">
+    <field name="name">Categoría de fruta</field><field name="res_model">step.management.fruit.category</field><field name="view_mode">list,form</field><field name="view_id" eval="False"/><field name="view_ids" eval="[(5,0,0)]"/>
+  </record>
+  <record id="hide_obsolete_category_bridge" model="ir.ui.view">
+    <field name="name">shared.fruit.category.no.bridge</field><field name="model">step.management.fruit.category</field><field name="inherit_id" ref="step_packing_operations.view_inventory_contract_category"/>
+    <field name="arch" type="xml"><field name="step_contract_category_id" position="replace"/></field>
+  </record>
+</odoo>
