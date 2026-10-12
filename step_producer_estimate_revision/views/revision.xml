@@ -1,0 +1,29 @@
+<odoo>
+  <menuitem id="packing_package_types" name="Tipos de pallets" parent="step_packing_operations.menu_packing_operations_masters" action="step_export.action_step_export_package_type" sequence="40"/>
+  <menuitem id="producer_package_types" name="Tipos de pallet" parent="step_producers.menu_step_producers_masters_group" action="step_export.action_step_export_package_type" sequence="40"/>
+  <record id="package_type_form" model="ir.ui.view">
+    <field name="name">fruit.package.type.form</field><field name="model">stock.package.type</field>
+    <field name="inherit_id" ref="step_export.view_step_export_package_type_form"/>
+    <field name="arch" type="xml"><field name="step_export_boxes_per_pallet" position="after"><field name="fruit_package_group"/><field name="pallets_per_aircraft"/></field></field>
+  </record>
+  <record id="package_type_list" model="ir.ui.view">
+    <field name="name">fruit.package.type.list</field><field name="model">stock.package.type</field>
+    <field name="inherit_id" ref="step_export.view_step_export_package_type_list"/>
+    <field name="arch" type="xml"><field name="step_export_boxes_per_pallet" position="after"><field name="fruit_package_group"/><field name="pallets_per_aircraft"/></field></field>
+  </record>
+  <record id="package_type_stock_form" model="ir.ui.view">
+    <field name="name">fruit.package.type.stock.form</field><field name="model">stock.package.type</field>
+    <field name="inherit_id" ref="stock.stock_package_type_form"/>
+    <field name="arch" type="xml"><field name="name" position="after"><field name="step_export_boxes_per_pallet"/><field name="fruit_package_group"/><field name="pallets_per_aircraft"/></field></field>
+  </record>
+  <record id="estimate_report_list" model="ir.ui.view">
+    <field name="name">estimate.revision.report.list</field><field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_list"/>
+    <field name="arch" type="xml"><field name="bin_qty" position="after"><field name="process_pallet_qty" sum="Total"/></field></field>
+  </record>
+  <record id="estimate_report_pivot" model="ir.ui.view">
+    <field name="name">estimate.revision.report.pivot</field><field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_pivot"/>
+    <field name="arch" type="xml"><field name="bin_qty" position="after"><field name="process_pallet_qty" type="measure"/></field></field>
+  </record>
+</odoo>

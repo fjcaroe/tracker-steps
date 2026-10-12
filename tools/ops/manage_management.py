@@ -70,6 +70,11 @@ def snapshot(database):
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
             if TICKET_REVISION == 'contract-report' and CONTRACT_REPORT_INITIAL and table == 'step_producer_purchase_contract':
                 row = "(to_jsonb(t)-'season_id')"
+            if TICKET_REVISION == 'estimate-revision':
+                additions = {'stock_package_type':['fruit_package_group','pallets_per_aircraft'],
+                             'step_export_estimate_line':['bin_qty','process_pallet_qty','export_box_qty','export_pallet_qty']}
+                if table in additions:
+                    row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
             if TICKET_REVISION == 'fruit-reports' and FRUIT_REPORTS_INITIAL and table == 'step_especie':
                 row = "(to_jsonb(t)-ARRAY['sag_code','base_boxes_per_pallet'])"
             if TICKET_REVISION == 'sale-format':
@@ -149,7 +154,7 @@ def main():
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision'), default='management')
     args = parser.parse_args()
     SETTINGS = args.kind in ('settings', 'fruit-reception', 'packing')
     PRODUCERS = args.kind == 'producers'
@@ -187,11 +192,11 @@ def main():
         required = ('step_export', 'step_packing_operations', 'step_inventory_fruit_tag', 'step_sale_export_report', 'web_gantt')
         assert int(query(target_db, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % n for n in required))) == len(required)
         BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'hr_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_bank')) ORDER BY tablename").splitlines())
-    if args.kind in ('estimate-report','contract-report', 'fruit-reports'):
+    if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision'):
         TICKET_REVISION = args.kind
         SETTINGS = True
         assert args.environment in ('development', 'cerro')
-        MODULES = ({'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',)})[args.kind]
+        MODULES = ({'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',)})[args.kind]
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
         assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producers','web_gantt','step_agriculture_catalogs') AND state='installed'") == '3'
@@ -251,7 +256,7 @@ def main():
     if PRODUCERS:
         assert set(installed) >= set(MODULES) - {'step_producers_integrations'}, 'Revise only installed agricultural apps'
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_account_treasury','step_packing_operations') AND state='installed'") == '2', 'Bridge dependencies must already be installed'
-    if SETTINGS and args.kind not in ('estimate-report','contract-report', 'fruit-reports'):
+    if SETTINGS and args.kind not in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision'):
         assert set(installed) == set(MODULES), 'Repair only existing modules'
     if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
         assert not query(database, "SELECT name FROM ir_module_module WHERE state IN ('to upgrade','to install','to remove')"), 'Pending upgrades'
@@ -259,7 +264,7 @@ def main():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
     update = [name for name in MODULES if name in installed]
     install = ['step_agriculture_catalogs'] if args.kind == 'management' else ['step_producers_integrations'] if PRODUCERS and 'step_producers_integrations' not in installed else []
-    if args.kind in ('estimate-report','contract-report', 'fruit-reports'):
+    if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision'):
         install = [name for name in MODULES if name not in installed]
     if args.kind == 'sale-format' and SALE_FORMAT_INITIAL:
         install = ['step_sale_export_report']
@@ -442,7 +447,7 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
-    probe = (HERE / ('verify_fruit_reports.py' if TICKET_REVISION == 'fruit-reports' else 'verify_contract_report.py' if TICKET_REVISION == 'contract-report' else 'verify_estimate_report.py' if TICKET_REVISION == 'estimate-report' else 'verify_client_revision.py' if TICKET_REVISION == 'client-revision' else 'verify_sale_format.py' if TICKET_REVISION == 'sale-format' else 'verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    probe = (HERE / ('verify_estimate_revision.py' if TICKET_REVISION == 'estimate-revision' else 'verify_fruit_reports.py' if TICKET_REVISION == 'fruit-reports' else 'verify_contract_report.py' if TICKET_REVISION == 'contract-report' else 'verify_estimate_report.py' if TICKET_REVISION == 'estimate-report' else 'verify_client_revision.py' if TICKET_REVISION == 'client-revision' else 'verify_sale_format.py' if TICKET_REVISION == 'sale-format' else 'verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
     names = installed if SETTINGS or PRODUCERS or export or homepage or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports') else {*installed, 'step_agriculture_catalogs'}
     header = 'import sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
     if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
