@@ -36,6 +36,7 @@ SALE_FORMAT_INITIAL = False
 CLIENT_REVISION_INITIAL = False
 CONTRACT_REPORT_INITIAL = False
 FRUIT_REPORTS_INITIAL = False
+ESTIMATE_REVISION_INITIAL = False
 
 
 def run(*command, **kwargs):
@@ -73,6 +74,8 @@ def snapshot(database):
             if TICKET_REVISION == 'estimate-revision':
                 additions = {'stock_package_type':['fruit_package_group','pallets_per_aircraft'],
                              'step_export_estimate_line':['bin_qty','process_pallet_qty','export_box_qty','export_pallet_qty']}
+                if table == 'stock_package_type' and not ESTIMATE_REVISION_INITIAL:
+                    additions.pop('stock_package_type')
                 if table in additions:
                     row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
             if TICKET_REVISION == 'fruit-reports' and FRUIT_REPORTS_INITIAL and table == 'step_especie':
@@ -148,7 +151,7 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
+    global ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
@@ -201,6 +204,9 @@ def main():
         target_db = registry['environments'][args.environment]['database']
         assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producers','web_gantt','step_agriculture_catalogs') AND state='installed'") == '3'
         CONTRACT_REPORT_INITIAL = args.kind == 'contract-report' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_producer_contract_report' AND state='installed'")
+        ESTIMATE_REVISION_INITIAL = args.kind == 'estimate-revision' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_producer_estimate_revision' AND state='installed'")
+        if args.kind == 'estimate-revision':
+            assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producer_fruit_reports','step_producer_estimate_report') AND state='installed'") == '2'
         FRUIT_REPORTS_INITIAL = args.kind == 'fruit-reports' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_producer_fruit_reports' AND state='installed'")
         if args.kind == 'fruit-reports':
             assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producer_fruit_flow','step_export_client_revision') AND state='installed'") == '2'
@@ -258,7 +264,7 @@ def main():
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_account_treasury','step_packing_operations') AND state='installed'") == '2', 'Bridge dependencies must already be installed'
     if SETTINGS and args.kind not in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision'):
         assert set(installed) == set(MODULES), 'Repair only existing modules'
-    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
+    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision'):
         assert not query(database, "SELECT name FROM ir_module_module WHERE state IN ('to upgrade','to install','to remove')"), 'Pending upgrades'
     for name, old in installed.items():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
@@ -277,8 +283,8 @@ def main():
     for name in installed:
         source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
         baseline['modules'][name] = {'source': str(source), 'sha256': tree_hash(source), 'version': installed[name]}
-    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
-        condition = "" if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports') else " AND name LIKE 'step%'"
+    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision'):
+        condition = "" if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision') else " AND name LIKE 'step%'"
         shared = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'" + condition))
         baseline['shared_modules'] = {}
         for name, version in shared.items():
@@ -310,7 +316,7 @@ def main():
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):
-        if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
+        if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision'):
             settings_lease = open('/run/lock/steps-environments.lock', 'a')
             fcntl.flock(settings_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
             for command in Path('/proc').glob('[0-9]*/cmdline'):
@@ -402,7 +408,7 @@ def main():
             try:
                 with (backup / 'database.dump').open('wb') as stream:
                     run('sudo', '-u', 'postgres', 'pg_dump', '-Fc', database, stdout=stream)
-                if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
+                if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision'):
                     store = Path(opts['data_dir']) / 'filestore' / database
                     if store.exists():
                         run('rsync', '-a', str(store) + '/', str(backup / 'filestore') + '/')
@@ -448,11 +454,11 @@ def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
     probe = (HERE / ('verify_estimate_revision.py' if TICKET_REVISION == 'estimate-revision' else 'verify_fruit_reports.py' if TICKET_REVISION == 'fruit-reports' else 'verify_contract_report.py' if TICKET_REVISION == 'contract-report' else 'verify_estimate_report.py' if TICKET_REVISION == 'estimate-report' else 'verify_client_revision.py' if TICKET_REVISION == 'client-revision' else 'verify_sale_format.py' if TICKET_REVISION == 'sale-format' else 'verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
-    names = installed if SETTINGS or PRODUCERS or export or homepage or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports') else {*installed, 'step_agriculture_catalogs'}
+    names = installed if SETTINGS or PRODUCERS or export or homepage or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision') else {*installed, 'step_agriculture_catalogs'}
     header = 'import sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
-    if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports'):
+    if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision'):
         header += 'OUTPUT=' + repr(str(stage)) + '\n'
-    data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports') and database.startswith('MANAGEMENT_QA_') else []
+    data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision') and database.startswith('MANAGEMENT_QA_') else []
     result = subprocess.run(base + ['shell'] + options + data_options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
