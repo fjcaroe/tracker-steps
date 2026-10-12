@@ -105,3 +105,7 @@ relee respuestas posteriores al comentario 9378, contrasta el ticket con el
 estado guardado al retomar y verifica el HTML, la etapa Solved y la ausencia de
 notificaciones. El acta y el código se guardan y suben a la rama de trabajo y
 a codex/ambientes-canonicos-reparacion, con verify_handoff aprobado.
+
+T73 quedó en Solved, con nota interna 9379. Se releyeron la etapa y el mensaje
+guardado: HTML correcto, subtipo Note y cero notificaciones. No hubo otra
+respuesta humana posterior a 9378 antes del cierre.
