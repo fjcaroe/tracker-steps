@@ -61,15 +61,16 @@ class EstimateReport(models.Model):
         self.env.cr.execute("SELECT attname FROM pg_attribute WHERE attrelid=%s::regclass AND attnum>0 AND NOT attisdropped ORDER BY attnum", (self._table,))
         columns = [row[0] for row in self.env.cr.fetchall()]
         formulas = {
-            'export_box_qty': 'COALESCE(r.export_kg / NULLIF(s.kg_caja,0),0)',
-            'export_pallet_qty': 'COALESCE(r.export_kg / NULLIF(s.base_boxes_per_pallet,0),0)',
-            'bin_qty': "CASE WHEN p.fruit_package_group='bins' THEN COALESCE(r.process_kg / NULLIF(p.step_export_boxes_per_pallet,0),0) ELSE 0 END",
+            'process_kg': "CASE WHEN l.delivery_kind='process' AND l.export_percentage>0 THEN r.export_kg/l.export_percentage ELSE 0 END",
+            'export_box_qty': 'CASE WHEN s.kg_caja>0 THEN r.export_kg/s.kg_caja ELSE 0 END',
+            'export_pallet_qty': 'CASE WHEN s.base_boxes_per_pallet>0 THEN r.export_kg/s.base_boxes_per_pallet ELSE 0 END',
+            'bin_qty': "CASE WHEN l.delivery_kind='process' AND l.export_percentage>0 AND p.fruit_package_group='bins' AND p.step_export_boxes_per_pallet>0 THEN r.export_kg/l.export_percentage/p.step_export_boxes_per_pallet ELSE 0 END",
         }
         # Columns are checked against the model before quoting, not supplied
         # by a caller or by any business record.
         assert all(name in self._fields and name.replace('_','').isalnum() for name in columns)
         select = ','.join(formulas.get(name, 'r."'+name+'"')+' AS "'+name+'"' for name in columns)
-        select += ",CASE WHEN p.fruit_package_group='pallet' THEN COALESCE(r.process_kg / NULLIF(p.step_export_boxes_per_pallet,0),0) ELSE 0 END AS process_pallet_qty"
+        select += ",CASE WHEN l.delivery_kind='process' AND l.export_percentage>0 AND p.fruit_package_group='pallet' AND p.step_export_boxes_per_pallet>0 THEN r.export_kg/l.export_percentage/p.step_export_boxes_per_pallet ELSE 0 END AS process_pallet_qty"
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute('CREATE VIEW step_producer_estimate_report AS SELECT '+select+
             ' FROM ('+original+') r JOIN step_export_estimate_line l ON l.id=r.line_id'

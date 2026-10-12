@@ -61,6 +61,18 @@ class EstimateRevisionCase(TransactionCase):
         self.assertEqual(line.export_box_qty,10000)
         self.assertEqual(line.export_pallet_qty,1000)
 
+    def test_report_undefined_and_negative_denominators(self):
+        line=self.sample().estimate_line_ids
+        line.package_type_id.step_export_boxes_per_pallet=0
+        line.species_id.write({'kg_caja':-5,'base_boxes_per_pallet':0})
+        line.export_percentage=0
+        self.env.flush_all()
+        rows=self.env['step.producer.estimate.report'].search([('line_id','=',line.id)])
+        self.assertEqual(len(rows),2)
+        for field in ('process_kg','bin_qty','process_pallet_qty','export_box_qty','export_pallet_qty'):
+            self.assertEqual(line[field],0)
+            self.assertEqual(sum(rows.mapped(field)),0)
+
     def test_weekly_report_matches_line_and_pivot(self):
         line = self.sample(group='pallet').estimate_line_ids
         self.env.flush_all()
