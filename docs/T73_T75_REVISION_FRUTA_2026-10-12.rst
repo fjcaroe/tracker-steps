@@ -1,6 +1,11 @@
 T73 T74 T75 Revisión de maestros y estimaciones de fruta
 ======================================================
 
+Actualización posterior de T73: se incorporó el comentario humano 9378 y se
+publicó la unificación de categorías y los menús de clases en ambos destinos.
+La entrega y verificación están en T73_CATEGORIAS_COMPARTIDAS_2026-10-12.rst.
+Las referencias a En Espera de este acta describen el corte inicial de atención.
+
 Atención de tickets
 ------------------
 

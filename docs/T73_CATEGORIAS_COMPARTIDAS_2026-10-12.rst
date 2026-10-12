@@ -61,6 +61,47 @@ otra empresa a pesar de la propiedad check_company del campo. Se añadió una
 restricción explícita sobre las dos categorías y la empresa de la recepción,
 y una comprobación previa de empresa en la migración. Ese paquete no se publica.
 
-La entrega requiere aprobar una copia nueva de Desarrollo y una copia privada
-de Cerro, publicar el mismo paquete con respaldos y exclusión compartida,
-y repetir versión, formularios, menús y flujos reales en ambos destinos.
+El paquete final aprobó seis pruebas en MANAGEMENT_QA_DEVELOPMENT_t73b y
+MANAGEMENT_QA_CERRO_t73b, con cero fallos y errores. La comparación semántica
+preservó todas las filas y columnas originales, incluidos auditoría e importes,
+normalizando únicamente las relaciones de categoría según su equivalencia.
+Una comprobación del formulario esperaba el campo Empresa para un perfil que
+lo oculta; se corrigió el verificador y se certificó la misma copia aprobada,
+sin repetir la instalación ni cambiar el paquete. Se verificaron los menús,
+formularios efectivos, recepción real validada, selección de precio de contrato,
+permisos y aislamiento de empresas. Las muestras se revirtieron.
+
+Publicación verificada
+----------------------
+
+Paquete 3ca1ca93dfba5e394bb46f12b460e15e6baee276.
+SHA256 f5b4311ff9073cb3a0da35fa065213598dba9e7c443c4535d65cf3433b5959ff.
+Módulo step_fruit_category_unification versión 18.0.1.0.0.
+
+El mismo paquete se publicó en Desarrollo y Cerro El Plomo. Se repitieron
+versión instalada, origen del código, formularios, menús, validación real de
+recepción, selección de precio contractual, relaciones por empresa y retirada
+de referencias activas a maestros antiguos. Ambas instalaciones preservaron
+exactamente los datos según la equivalencia comprobada. Servicios activos y
+acceso HTTPS verificados. Las muestras se revirtieron y no se enviaron correos.
+
+Respaldos completos de base, configuración y filestore:
+
+* /opt/steps_backups/management_development_20261012T213703Z
+* /opt/steps_backups/management_cerro_20261012T213839Z
+
+Superposiciones privadas:
+
+* /opt/steps-managed/releases/development/3ca1ca93dfba5e394bb46f12b460e15e6baee276
+* /opt/steps-managed/releases/cerro/3ca1ca93dfba5e394bb46f12b460e15e6baee276
+
+Se respetaron el bloqueo /run/lock/steps-environments.lock, la ausencia de
+cambios concurrentes y downgrade y las raíces de addons compartidas.
+Categorías/Clases: acciones 1928/1929 en Desarrollo y 1095/1096 en Cerro.
+Evidencia privada fuera del checkout en ~/.codex/local-artifacts/t73/live/.
+
+El registrador de cierre exige la evidencia del mismo paquete en ambos destinos,
+relee respuestas posteriores al comentario 9378, contrasta el ticket con el
+estado guardado al retomar y verifica el HTML, la etapa Solved y la ausencia de
+notificaciones. El acta y el código se guardan y suben a la rama de trabajo y
+a codex/ambientes-canonicos-reparacion, con verify_handoff aprobado.
