@@ -6,6 +6,10 @@ class Picking(models.Model):
     fruit_category_id = fields.Many2one('step.management.fruit.category', string='Categoría de fruta', check_company=True)
     fruit_class_id = fields.Many2one('step.management.fruit.category', string='Categoría de origen', check_company=True)
 
+    @api.constrains('fruit_category_id', 'fruit_class_id', 'company_id')
+    def _check_shared_fruit_categories(self):
+        self._check_company(['fruit_category_id', 'fruit_class_id'])
+
 
 class ReceiptLine(models.Model):
     _inherit = 'step.packing.picking.tag.line'

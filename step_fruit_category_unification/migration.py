@@ -45,6 +45,12 @@ def pre_init_hook(env):
             ids = {row[0] for row in cr.fetchall()}
             if target == 'step_packing_fruit_class' and ids:
                 raise ValueError('Legacy origin classes are still referenced; review the client decision first')
+            if target == 'step_packing_fruit_category' and ids:
+                cr.execute(sql.SQL('SELECT 1 FROM {} document JOIN step_packing_fruit_category old '
+                    'ON old.id=document.{} WHERE document.company_id IS DISTINCT FROM old.company_id LIMIT 1').format(
+                    sql.Identifier(table),sql.Identifier(column)))
+                if cr.fetchone():
+                    raise ValueError('An existing category relation crosses company boundaries; review it before migration')
             required.update(ids)
             plan.append((table, column, constraints))
     mapping = category_mapping(cr, required)
