@@ -10,10 +10,13 @@ import manage_management as manager
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('environment',choices=('development','cerro'));p.add_argument('run_id')
+p.add_argument('--kind',choices=('client-revision','estimate-revision'),default='client-revision')
 a=p.parse_args();assert re.fullmatch('[a-z0-9_]{1,24}',a.run_id)
 stage=Path('/opt/steps-validation')/('management_'+a.environment+'_'+a.run_id)
 before=json.loads((stage/'business_before.json').read_text())
-manager.BUSINESS=tuple(before);manager.TICKET_REVISION='client-revision';manager.CLIENT_REVISION_INITIAL=True
+manager.BUSINESS=tuple(before);manager.TICKET_REVISION=a.kind;manager.CLIENT_REVISION_INITIAL=True
+if a.kind=='estimate-revision':
+    manager.SETTINGS=True;manager.ESTIMATE_REVISION_INITIAL=True
 db='MANAGEMENT_QA_'+a.environment.upper()+'_'+a.run_id
 after=manager.snapshot(db)
 for table in before:

@@ -4,6 +4,7 @@
     'license': 'LGPL-3',
     'depends': ['step_producer_fruit_reports', 'step_producer_estimate_report'],
     'data': ['views/revision.xml'],
+    'pre_init_hook': 'pre_init_hook',
     'post_init_hook': 'post_init_hook',
     'installable': True,
 }
