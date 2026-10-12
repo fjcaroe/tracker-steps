@@ -24,7 +24,7 @@ class EstimateLine(models.Model):
     _inherit = 'step.export.estimate.line'
 
     process_pallet_qty = fields.Float(string='Pallets proceso', compute='_compute_quantities', store=True,
-                                    readonly=True)
+                                    digits=False, readonly=True)
 
     @api.depends('delivery_kind', 'export_kg', 'export_percentage', 'kg_per_box', 'boxes_per_package',
                  'package_type_id.fruit_package_group', 'package_type_id.step_export_boxes_per_pallet',
