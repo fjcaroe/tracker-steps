@@ -27,7 +27,8 @@ try:
         assert menu.id in visible and menu.action==env.ref('step_management_costs.action_fruit_class')
     for key,model in [('category','step.management.fruit.category'),('class','step.management.fruit.class')]:
         arch=etree.fromstring(env[model].with_user(user).get_view(view_id=env.ref('step_fruit_category_unification.'+key+'_form').id,view_type='form')['arch'].encode())
-        assert arch.xpath('.//field[@name="code"]') and arch.xpath('.//field[@name="company_id"]')
+        assert arch.xpath('.//field[@name="code"]') and arch.xpath('.//field[@name="name"]')
+        if key=='class':assert arch.xpath('.//field[@name="category_id"]')
     category_list=etree.fromstring(env[action.res_model].with_user(user).get_view(view_id=env.ref('step_management_costs.view_fruit_category_list').id,view_type='list')['arch'].encode())
     assert not category_list.xpath('.//field[@name="step_contract_category_id"]')
     case=SimpleNamespace(env=env)
