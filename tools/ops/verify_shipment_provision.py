@@ -11,7 +11,11 @@ try:
         module=env['ir.module.module'].search([('name','=',name)])
         assert module.state=='installed' and module.latest_version==version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
-    record=ProvisionCase.sample(SimpleNamespace(env=env))
+    # A standalone shell does not have TransactionCase's test mode. Prevent
+    # Odoo from scheduling a localization install for this rollback-only
+    # fixture company; posting itself runs again with normal context.
+    fixture_env=env(context=dict(env.context,chart_template_load=True))
+    record=ProvisionCase.sample(SimpleNamespace(env=fixture_env)).with_context(chart_template_load=False)
     user=new_test_user(record.env,login='qa-t79-live-accountant',groups='account.group_account_manager,stock.group_stock_manager',company_id=record.company_id.id,company_ids=[(6,0,record.company_id.ids)])
     record=record.with_user(user)
     assert record.env.ref('step_export_shipment_provision.provision_menu').id in record.env['ir.ui.menu']._visible_menu_ids()
