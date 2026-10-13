@@ -2,6 +2,8 @@ from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models, Command, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare
+from odoo.tools.misc import formatLang
+from markupsafe import escape
 
 
 def season_months(season):
@@ -70,6 +72,52 @@ class Template(models.Model):
     base_kg=fields.Float(string='Kilos totales base',digits=(16,4))
     fruit_share_ids=fields.One2many('step.management.budget.fruit.share','template_id',string='Distribución de fruta',copy=True)
     period_ids=fields.One2many('step.management.budget.template.month','template_id',string='Distribución mensual')
+    quantities_matrix=fields.Html(string='Cantidades por año-mes',compute='_compute_matrices',readonly=True)
+    values_matrix=fields.Html(string='Valores por año-mes',compute='_compute_matrices',readonly=True)
+
+    @api.depends('season_id.start_date','season_id.end_date','currency_id','line_ids.indicator','line_ids.uom_id',
+        'line_ids.group_id.flow_type','line_ids.calculation_quantity','line_ids.month_ids.quantity',
+        'line_ids.month_ids.period_date','line_ids.calculation_unit_price')
+    def _compute_matrices(self):
+        for record in self:
+            if not record.season_id or not record.season_id.start_date or not record.season_id.end_date:
+                record.quantities_matrix=record.values_matrix=False
+                continue
+            periods=season_months(record.season_id)
+            headers=''.join('<th class="text-end">'+p.strftime('%Y-%m')+'</th>' for p in periods)
+            def table(mode):
+                title=_('Cantidades') if mode=='quantity' else record.currency_id.name if mode=='amount' else 'USD'
+                result=['<h4>'+str(escape(title))+'</h4><div class="table-responsive"><table class="table table-bordered table-sm"><thead><tr><th>'+str(escape(_('Producto-labor')))+ '</th><th>'+str(escape(_('UdM')))+ '</th>'+headers+'<th>'+str(escape(_('Total')))+ '</th></tr></thead><tbody>']
+                cost=[0.0]*len(periods);income=[0.0]*len(periods);missing=False
+                cost_ok=[True]*len(periods);income_ok=[True]*len(periods)
+                digits=4 if mode=='quantity' else record.currency_id.decimal_places if mode=='amount' else 2
+                def number(value):return str(escape(formatLang(self.env,value,digits=digits)))
+                for line in record.line_ids:
+                    months={m.period_date:m for m in line.month_ids};numbers=[];cells=[];complete=True
+                    for index,period in enumerate(periods):
+                        month=months.get(period)
+                        value=0.0;available=True
+                        if month:
+                            value=month.quantity if mode=='quantity' else month.amount if mode=='amount' else month.amount_usd
+                            available=mode!='usd' or month.rate_available or not month.amount
+                        if not available:missing=True;complete=False
+                        numbers.append(value)
+                        target=income if line.flow_type=='income' else cost
+                        ok=income_ok if line.flow_type=='income' else cost_ok
+                        ok[index]=ok[index] and available
+                        target[index]+=value
+                        cells.append('<td class="text-end">'+(number(value) if available else str(escape(_('Sin tasa'))))+'</td>')
+                    result.append('<tr><th>'+str(escape(line.indicator or ''))+'</th><td>'+str(escape(line.uom_id.name or ''))+'</td>'+''.join(cells)+'<td class="text-end">'+(number(sum(numbers)) if complete else str(escape(_('Sin tasa'))))+'</td></tr>')
+                # Quantities have different units, so they must never be added
+                # across products. Values retain separate income and cost totals.
+                if mode!='quantity':
+                    for label,numbers,flags in ((_('Ingresos'),income,income_ok),(_('Costos'),cost,cost_ok),(_('Margen'),[a-b for a,b in zip(income,cost)],[a and b for a,b in zip(income_ok,cost_ok)])):
+                        result.append('<tr class="table-light"><th colspan="2">'+str(escape(label))+'</th>'+''.join('<td class="text-end">'+(number(v) if ok else str(escape(_('Sin tasa'))))+'</td>' for v,ok in zip(numbers,flags))+'<td class="text-end">'+(number(sum(numbers)) if all(flags) else str(escape(_('Sin tasa'))))+'</td></tr>')
+                result.append('</tbody></table></div>')
+                if missing:result.append('<p class="text-warning">'+str(escape(_('Complete el dólar estimado de los meses sin tasa para obtener todos los valores USD.')))+ '</p>')
+                return ''.join(result)
+            record.quantities_matrix=table('quantity')
+            record.values_matrix=table('amount')+table('usd')
 
     def _check_editable(self):
         if any(r.season_id and r.state!='draft' for r in self):raise UserError(_('Duplique la plantilla aprobada para editar otra.'))
@@ -151,6 +199,7 @@ class FruitShare(models.Model):
 
 class TemplateLine(models.Model):
     _inherit='step.management.budget.template.line'
+    _rec_name='indicator'
     origin_id=fields.Many2one('step.management.budget.origin',string='Origen presupuesto')
     activity_id=fields.Many2one('account.analytic.account',string='Actividad',check_company=True)
     calculation_uom_id=fields.Many2one('step.management.budget.calculation.uom',string='UdM cálculo')

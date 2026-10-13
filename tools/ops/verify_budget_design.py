@@ -20,6 +20,7 @@ try:
     assert all(arch.xpath('.//field[@name="%s"]'%n) for n in ('season_id','calculation_uom_id','calculation_unit_price','period_date'))
     template,budget=BudgetDesignCase.sample(SimpleNamespace(env=env))
     assert template.line_ids.calculation_quantity==15 and template.line_ids.calculation_unit_price==30000
+    assert '2026-09' in template.quantities_matrix and '2027-08' in template.values_matrix
     budget=budget.with_user(user);budget.action_generate_lines();budget.action_approve()
     assert budget.total_amount==1800000 and budget.line_ids.quantity==60 and str(budget.line_ids.month_ids.period_date)=='2026-09-01'
     revision=env[budget._name].browse(budget.action_new_revision()['res_id'])

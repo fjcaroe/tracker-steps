@@ -33,6 +33,7 @@ class BudgetDesignCase(TransactionCase):
     def test_pruning_unitary_quantity_and_hectare_application(self):
         template,budget=self.sample();line=template.line_ids
         self.assertEqual(line.calculation_quantity,15);self.assertEqual(line.calculation_amount,450000);self.assertEqual(line.calculation_unit_price,30000)
+        self.assertIn('2026-09',template.quantities_matrix);self.assertIn('2027-08',template.values_matrix)
         budget.action_generate_lines();self.assertEqual(budget.line_ids.quantity,60);self.assertEqual(budget.total_amount,1800000)
         self.assertEqual(budget.line_ids.month_ids.period_date,template.line_ids.month_ids.period_date)
         self.assertEqual(budget.line_ids.month_ids.conversion_date.year,2026)
