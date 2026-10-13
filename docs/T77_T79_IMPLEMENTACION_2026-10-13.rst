@@ -1,0 +1,88 @@
+T77-T79: presupuesto, planificación diaria y provisión de embarques
+=================================================================
+
+Alcance autorizado
+------------------
+
+* T77: Desarrollo, para pruebas y revisión conforme a los ocho anexos.
+* T78: Desarrollo y Cerro El Plomo, confirmado por Fernando en este chat.
+* T79: Desarrollo y Cerro El Plomo, según la solicitud y sus capturas.
+* T76 está cancelado y no se reactiva.
+
+Los documentos originales y sus imágenes se conservan fuera del repositorio.
+No se copian adjuntos ni datos de clientes al repositorio público.
+
+Implementación
+--------------
+
+``step_budget_design`` amplía los documentos presupuestarios existentes.
+Relaciona temporada, versión, especie, variedad, actividad y origen; conserva
+los textos históricos. La distribución usa fechas año-mes de la temporada,
+ordenadas cronológicamente. Las plantillas calculan cantidad de producto,
+valor total y precio por unidad; para poda, 3.000 plantas / 200 = 15 jornadas,
+3.000 × 150 = 450.000 y 450.000 / 15 = 30.000 por jornada. Aplicar a cuatro
+hectáreas produce 60 jornadas y 1.800.000. La aprobación exige distribución
+completa y mantiene el flujo de revisiones y las protecciones del core.
+
+El importador normalizado conserva el staging, la validación y el control de
+archivos duplicados. Añade la relación al maestro de temporada, el año-mes
+explícito y los montos directos sin cantidad. El importador de plantillas usa
+la estructura de ``datos`` y ``distribución cantidad`` del Anexo 1.6.2.2;
+resuelve nombres o códigos exactos y rechaza ambigüedades. Solo interpreta
+referencias de celdas y aritmética: no ejecuta macros, vínculos ni código.
+Los totales se calculan en Odoo. Las categorías de fruta se seleccionan del
+maestro existente, sin inferirlas por textos parecidos.
+
+Maquinaria tiene horas y componentes mensuales, consumo por hora, tarifa y
+valores directos. La tarifa aprobada de la temporada se puede aplicar a una
+labor de una plantilla. No modifica las tarifas reales del vehículo. Los
+informes Data, Resumen, Jornadas, CCosto y Labor leen los mismos documentos;
+el Resumen evita sumar hectáreas repetidas por cada labor. La comparación
+con gastos reales mantiene la fuente contable publicada del core y usa las
+fechas del maestro de temporada.
+
+``step_producer_daily_estimate`` usa el maestro único de mercados compartido
+entre Productores, Packing y Exportaciones. Mantiene Responsable como relación
+a usuarios, rotulada Agrónomo, y Autoriza como relación a empleados. Tipo
+fruta no se rellena por suposiciones en registros históricos. Mercado se
+selecciona en la línea y las tres dimensiones están en el informe semanal.
+
+La distribución diaria se vincula a la semana y versión originales. Reparte
+las próximas tres semanas desde el lunes elegido entre cinco, seis o siete
+días, con el resto de redondeo en el último día. No sobrescribe distribuciones
+manuales. Los kilos por día pueden ajustarse sin exceder el total semanal.
+Al reemplazar una versión, se conserva la planificación anterior. El informe
+permite agrupar por día, semana, mes, bloques de seis semanas, trimestre y
+año; el filtro Próximas seis semanas es móvil. Los bloques de agrupación
+tienen un ancla explícita de lunes y no se confunden con ese filtro.
+
+``step_export_shipment_provision`` registra gastos usando los maestros de
+ítem productor, productos, proveedores, documentos y monedas del ERP. Su
+flujo es Creado → Validado → Costeado → Contabilizado. El programa y embarque
+deben coincidir en empresa, temporada, especie y recibidor. Costear guarda
+los importes CLP, USD y moneda de empresa con las tasas diarias de esa fecha,
+la cuenta de gasto y la cuenta de provisión configurada en el diario general.
+
+Contabilizar genera un asiento balanceado en ``account.move``, con débito
+al producto o categoría y crédito a la cuenta del diario. Se usan las
+cuentas analíticas existentes de temporada y especie; la cuenta del embarque
+se selecciona del maestro analítico existente en su formulario. Deben ser
+tres planes distintos. No se crea ni adivina un maestro analítico por nombre.
+El control transaccional y las restricciones únicas impiden duplicar el
+asiento; los importes costeados no se recalculan al cambiar posteriormente
+las tasas. No se crean facturas de proveedores ni se contabilizan documentos
+reales de clientes durante las comprobaciones.
+
+Validación y publicación
+-----------------------
+
+Cada módulo se empaqueta desde blobs Git con versión y SHA por archivo. Los
+tipos de entrega ``budget-design``, ``daily-estimate`` y ``shipment-provision``
+usan el publicador canónico con copias privadas, pruebas funcionales,
+comparación de filas originales, bloqueo compartido, respaldo y overlay
+privado. T77 rechaza cualquier destino distinto de Desarrollo.
+
+El cierre requiere pruebas aprobadas, fuente y versión instaladas, menús y
+formularios efectivos, y flujo con el perfil previsto en los destinos
+autorizados. El resultado de cada publicación y las rutas de sus evidencias
+se registrarán aquí una vez verificados. No se cierra por commit o HTTP 200.

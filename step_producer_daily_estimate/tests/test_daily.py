@@ -77,6 +77,7 @@ class DailyCase(TransactionCase):
         action=wizard.with_user(user).action_distribute()
         self.assertEqual(action['res_model'],'step.export.estimate.day')
         self.assertEqual(self.env['step.export.estimate.day'].search_count([('estimate_id','=',estimate.id)]),10)
+        rows=self.env['step.export.estimate.day'].search([('estimate_id','=',estimate.id)])
         other=env['res.company'].create({'name':'QA T78 other'})
         outsider=new_test_user(env,login='qa-t78-other',groups='stock.group_stock_user',company_id=other.id,company_ids=[(6,0,other.ids)])
         self.assertFalse(rows.with_user(outsider).with_context(allowed_company_ids=other.ids).search([('id','in',rows.ids)]))
