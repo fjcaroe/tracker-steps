@@ -98,6 +98,21 @@ class BudgetLine(models.Model):
     calculation_uom_id=fields.Many2one('step.management.budget.calculation.uom',string='UdM cálculo')
     expected_kg=fields.Float(string='Kilos estimados del centro')
 
+    @api.model_create_multi
+    def create(self,vals_list):
+        for vals in vals_list:
+            origin=self.env['step.management.budget.origin'].browse(vals.get('origin_id')) or self.env['step.management.budget.group'].browse(vals.get('group_id')).origin_id
+            if origin:
+                vals.setdefault('origin_id',origin.id)
+                vals.setdefault('category',origin.category)
+        return super().create(vals_list)
+
+    @api.onchange('group_id','origin_id')
+    def _onchange_origin_category(self):
+        for row in self:
+            if not row.origin_id and row.group_id.origin_id:row.origin_id=row.group_id.origin_id
+            if row.origin_id:row.category=row.origin_id.category
+
     def write(self,vals):
         if {'origin_id','activity_id','calculation_uom_id','expected_kg'}.intersection(vals) and any(r.budget_id.state in FROZEN_STATES for r in self):raise UserError(_('Cree una revisión para cambiar el detalle aprobado.'))
         return super().write(vals)
