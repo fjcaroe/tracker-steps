@@ -13,6 +13,22 @@ class Budget(models.Model):
     season_id=fields.Many2one('step.temporada',string='Temporada',check_company=True)
     budget_version_id=fields.Many2one('step.management.budget.version',string='Versión presupuesto',check_company=True)
 
+    @api.model_create_multi
+    def create(self,vals_list):
+        for vals in vals_list:
+            template=self.env['step.management.budget.template'].browse(vals.get('template_id'))
+            season=self.env['step.temporada'].browse(vals.get('season_id')) or template.season_id
+            if season:
+                vals.setdefault('season_id',season.id)
+                vals.setdefault('season',season.name)
+            if template.budget_version_id:vals.setdefault('budget_version_id',template.budget_version_id.id)
+        return super().create(vals_list)
+
+    @api.onchange('season_id')
+    def _onchange_season_snapshot(self):
+        for row in self:
+            if row.season_id:row.season=row.season_id.name
+
     @api.constrains('budget_type','template_id','import_id')
     def _check_budget_type_consistency(self):
         for record in self:
@@ -24,6 +40,7 @@ class Budget(models.Model):
         for row in self:
             if row.template_id.season_id:
                 row.season_id=row.template_id.season_id
+                row.season=row.template_id.season_id.name
                 row.budget_version_id=row.template_id.budget_version_id
 
     def _season_date_range(self):
