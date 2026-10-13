@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+market_read,Mercados lectura,model_step_fruit_market,base.group_user,1,0,0,0
+market_manage,Mercados gestión,model_step_fruit_market,stock.group_stock_manager,1,1,1,1
+daily_read,Estimación diaria lectura,model_step_export_estimate_day,base.group_user,1,0,0,0
+daily_edit,Estimación diaria planificación,model_step_export_estimate_day,stock.group_stock_user,1,1,1,1
+wizard_edit,Distribuir estimación,model_step_export_estimate_daily_wizard,stock.group_stock_user,1,1,1,1

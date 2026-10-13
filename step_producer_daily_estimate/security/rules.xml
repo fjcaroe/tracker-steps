@@ -1,0 +1,6 @@
+<odoo>
+  <record id="daily_company_rule" model="ir.rule">
+    <field name="name">Estimaciones diarias por empresa</field><field name="model_id" ref="model_step_export_estimate_day"/>
+    <field name="domain_force">[('company_id','in',company_ids)]</field>
+  </record>
+</odoo>

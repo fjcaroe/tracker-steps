@@ -1,0 +1,53 @@
+<odoo>
+  <record id="estimate_form" model="ir.ui.view">
+    <field name="name">estimate.daily.dimensions</field><field name="model">step.export.estimate</field>
+    <field name="inherit_id" ref="step_producers.view_step_export_estimate_t35_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//group[@name='estimate_identity']/field[@name='user_id']" position="attributes"><attribute name="string">Agrónomo</attribute><attribute name="readonly">state in ('current','replaced')</attribute></xpath>
+      <xpath expr="//group[@name='estimate_identity']/field[@name='user_id']" position="after">
+        <field name="approved_by_id" string="Autoriza" domain="[('company_id','=',company_id),('active','=',True)]" readonly="state in ('current','replaced')"/>
+        <field name="fruit_type" readonly="state in ('current','replaced')"/>
+      </xpath>
+      <xpath expr="//field[@name='estimate_line_ids']/list/field[@name='variety_id']" position="after"><field name="market_id"/></xpath>
+      <xpath expr="//field[@name='estimate_line_ids']/form//field[@name='variety_id']" position="after"><field name="market_id"/></xpath>
+      <xpath expr="//field[@name='week_line_ids']/list/field[@name='week_start']" position="after"><field name="week_number"/></xpath>
+    </field>
+  </record>
+  <record id="weekly_list" model="ir.ui.view">
+    <field name="name">estimate.report.daily.dimensions.list</field><field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_list"/>
+    <field name="arch" type="xml"><xpath expr="//field[@name='producer_id']" position="after"><field name="agronomist_id"/><field name="fruit_type"/><field name="market_id"/></xpath></field>
+  </record>
+  <record id="weekly_search" model="ir.ui.view">
+    <field name="name">estimate.report.daily.dimensions.search</field><field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_search"/>
+    <field name="arch" type="xml">
+      <xpath expr="//search" position="inside">
+        <field name="agronomist_id"/><field name="fruit_type"/><field name="market_id"/>
+        <group><filter name="agronomist" string="Agrónomo" context="{'group_by':'agronomist_id'}"/><filter name="fruit_type" string="Tipo fruta" context="{'group_by':'fruit_type'}"/><filter name="market" string="Mercado" context="{'group_by':'market_id'}"/></group>
+      </xpath>
+    </field>
+  </record>
+  <record id="market_list" model="ir.ui.view"><field name="name">fruit.market.list</field><field name="model">step.fruit.market</field><field name="arch" type="xml"><list editable="bottom"><field name="code"/><field name="name"/><field name="abbreviation"/><field name="active"/></list></field></record>
+  <record id="market_action" model="ir.actions.act_window"><field name="name">Mercados</field><field name="res_model">step.fruit.market</field><field name="view_mode">list,form</field></record>
+  <menuitem id="producer_markets" name="Mercados" parent="step_producers.menu_step_producers_config_group" action="market_action" sequence="75"/>
+  <menuitem id="packing_markets" name="Mercados" parent="step_packing_operations.menu_packing_config_fruit" action="market_action" sequence="75"/>
+  <menuitem id="export_markets" name="Mercados" parent="step_export.menu_step_export_config_fruit" action="market_action" sequence="75"/>
+  <record id="daily_list" model="ir.ui.view"><field name="name">estimate.day.list</field><field name="model">step.export.estimate.day</field><field name="arch" type="xml">
+    <list editable="bottom" decoration-muted="state != 'current'"><field name="state" column_invisible="True"/><field name="week_id" readonly="id != False" domain="[('line_id.estimate_id.state','=','current')]"/><field name="date" readonly="state != 'current' and id != False"/><field name="week_number"/><field name="producer_id"/><field name="season_id"/><field name="species_id"/><field name="variety_id"/><field name="agronomist_id"/><field name="fruit_type"/><field name="delivery_kind"/><field name="market_id" optional="hide"/><field name="process_kg" sum="Proceso" readonly="state != 'current' and id != False"/><field name="export_kg" sum="Exportación" readonly="state != 'current' and id != False"/><field name="company_id" groups="base.group_multi_company"/></list>
+  </field></record>
+  <record id="daily_pivot" model="ir.ui.view"><field name="name">estimate.day.pivot</field><field name="model">step.export.estimate.day</field><field name="arch" type="xml"><pivot string="Estimación diaria (six week)"><field name="producer_id" type="row"/><field name="date" type="col" interval="day"/><field name="process_kg" type="measure"/><field name="export_kg" type="measure"/></pivot></field></record>
+  <record id="daily_search" model="ir.ui.view"><field name="name">estimate.day.search</field><field name="model">step.export.estimate.day</field><field name="arch" type="xml">
+    <search><field name="producer_id"/><field name="season_id"/><field name="species_id"/><field name="variety_id"/><field name="agronomist_id"/><field name="fruit_type"/><field name="delivery_kind"/><field name="market_id"/>
+      <filter name="current" string="Vigentes" domain="[('state','=','current')]"/><separator/>
+      <filter name="six_weeks" string="Próximas seis semanas" domain="[('date','&gt;=',context_today().strftime('%Y-%m-%d')),('date','&lt;', (context_today()+relativedelta(weeks=6)).strftime('%Y-%m-%d'))]"/><filter name="date" string="Fecha" date="date"/>
+      <group><filter name="season" string="Temporada" context="{'group_by':'season_id'}"/><filter name="species" string="Especie" context="{'group_by':'species_id'}"/><filter name="variety" string="Variedad" context="{'group_by':'variety_id'}"/><filter name="agronomist" string="Agrónomo" context="{'group_by':'agronomist_id'}"/><filter name="fruit" string="Tipo fruta" context="{'group_by':'fruit_type'}"/><filter name="delivery" string="Delivery Kind" context="{'group_by':'delivery_kind'}"/><filter name="producer" string="Productor" context="{'group_by':'producer_id'}"/>
+      <filter name="day" string="Día" context="{'group_by':'date:day'}"/><filter name="week" string="Semana" context="{'group_by':'date:week'}"/><filter name="month" string="Mes" context="{'group_by':'date:month'}"/><filter name="six_week_period" string="Seis semanas" context="{'group_by':'six_week_period'}"/><filter name="quarter" string="Trimestre" context="{'group_by':'date:quarter'}"/><filter name="year" string="Año" context="{'group_by':'date:year'}"/></group>
+    </search>
+  </field></record>
+  <record id="daily_action" model="ir.actions.act_window"><field name="name">Estimación diaria (six week)</field><field name="res_model">step.export.estimate.day</field><field name="view_mode">list,pivot</field><field name="context">{'search_default_current':1}</field></record>
+  <record id="wizard_form" model="ir.ui.view"><field name="name">estimate.daily.wizard.form</field><field name="model">step.export.estimate.daily.wizard</field><field name="arch" type="xml"><form string="Distribución lineal: tres semanas"><group><field name="company_id" groups="base.group_multi_company"/><field name="start_date"/><field name="working_days"/></group><div class="alert alert-info">Distribuye las tres semanas desde el lunes elegido. Conserva las semanas que ya tienen planificación diaria; puede ajustar sus kilos desde la lista.</div><footer><button name="action_distribute" type="object" string="Distribuir" class="btn-primary"/><button string="Cancelar" special="cancel"/></footer></form></field></record>
+  <record id="wizard_action" model="ir.actions.act_window"><field name="name">Distribuir próximas tres semanas</field><field name="res_model">step.export.estimate.daily.wizard</field><field name="view_mode">form</field><field name="target">new</field></record>
+  <menuitem id="daily_menu" name="Estimación diaria (six week)" parent="step_producers.menu_step_producers_planning_group" action="daily_action" sequence="25" groups="stock.group_stock_user"/>
+  <menuitem id="wizard_menu" name="Distribuir estimación diaria" parent="step_producers.menu_step_producers_planning_group" action="wizard_action" sequence="26" groups="stock.group_stock_user"/>
+</odoo>
