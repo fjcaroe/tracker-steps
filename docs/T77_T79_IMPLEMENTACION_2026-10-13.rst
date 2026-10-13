@@ -154,3 +154,15 @@ año-mes de las matrices, sin alterar los registros anteriores.
 
 El código permanece en un overlay privado del mismo commit. No se publicó
 este módulo en Cerro ni en otro destino fuera del alcance del ticket.
+
+Cierre y coexistencia
+--------------------
+
+Tras instalar T77 se repitieron en Desarrollo los flujos de T78 y T79;
+ambos conservaron su versión, código, menús, formularios y funcionamiento.
+Los tres tickets quedaron en ``Solved`` después de verificar las entregas:
+notas internas 9404 (T77), 9405 (T78) y 9406 (T79), con cero notificaciones.
+La última consulta no encontró tickets posteriores al 79. T76 permanece
+cancelado. El código y esta acta están integrados en la rama canónica
+``codex/ambientes-canonicos-reparacion`` y conservados en la rama de trabajo
+``codex/t77-t79-presupuestos``.
