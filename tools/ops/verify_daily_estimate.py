@@ -20,6 +20,9 @@ try:
     assert all(arch.xpath('.//field[@name="%s"]'%n) for n in ('approved_by_id','fruit_type','market_id','week_number'))
     for days in (5,6,7):
         estimate,wizard,rows=DailyCase.sample(SimpleNamespace(env=env),days)
+        rows.unlink()
+        wizard.with_user(user).action_distribute()
+        rows=env['step.export.estimate.day'].with_user(user).search([('estimate_id','=',estimate.id)])
         assert len(rows)==2*days and abs(sum(rows.mapped('export_kg'))-100000)<1e-6 and abs(sum(rows.mapped('process_kg'))-125000)<1e-6
         rows[0].write({'process_kg':1,'export_kg':2})
         before=rows.read(['process_kg','export_kg']);wizard.action_distribute()

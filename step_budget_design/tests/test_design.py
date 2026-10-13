@@ -64,7 +64,10 @@ class BudgetDesignCase(TransactionCase):
         template,budget=self.sample();months=season_months(template.season_id)
         self.assertEqual(str(months[0]),'2026-09-01');self.assertEqual(str(months[-1]),'2027-08-01')
         template.line_ids.month_ids.write({'period_date':'2027-01-01'})
-        self.env['step.management.exchange.rate'].create({'company_id':self.env.company.id,'currency_id':self.env.ref('base.USD').id,'year':2027,'month':'01','company_value_per_unit':900})
+        rates=self.env['step.management.exchange.rate']
+        rate=rates.search([('company_id','=',self.env.company.id),('currency_id','=',self.env.ref('base.USD').id),('year','=',2027),('month','=','01')])
+        if rate:rate.company_value_per_unit=900
+        else:rates.create({'company_id':self.env.company.id,'currency_id':self.env.ref('base.USD').id,'year':2027,'month':'01','company_value_per_unit':900})
         row=template.line_ids.month_ids
         expected=450000 if template.currency_id==self.env.ref('base.USD') else 500
         self.assertAlmostEqual(row.amount_usd,expected)

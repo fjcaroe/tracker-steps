@@ -64,6 +64,7 @@ class BudgetGroup(models.Model):
 
 class Template(models.Model):
     _inherit='step.management.budget.template'
+    line_ids=fields.One2many(copy=True)
     season_id=fields.Many2one('step.temporada',string='Temporada',check_company=True)
     budget_version_id=fields.Many2one('step.management.budget.version',string='Versión presupuesto',check_company=True)
     species_id=fields.Many2one('step.especie',string='Especie',check_company=True)
@@ -77,6 +78,8 @@ class Template(models.Model):
         if any(r.season_id and r.state!='draft' for r in self):raise UserError(_('Duplique la plantilla aprobada para editar otra.'))
 
     def write(self,vals):
+        if vals.get('state')=='active':self.filtered('season_id')._validate_design()
+        if vals.get('state')=='draft' and any(r.season_id and r.state!='draft' for r in self):raise UserError(_('Duplique la plantilla para conservar la aprobada.'))
         if set(vals).intersection({'name','season_id','budget_version_id','species_id','variety_id','base_plants','base_kg','base_hectares','expected_yield_kg_ha','fruit_share_ids','line_ids','period_ids','company_id','currency_id'}):self._check_editable()
         return super().write(vals)
 
@@ -104,6 +107,7 @@ class Template(models.Model):
             if record.fruit_share_ids and float_compare(sum(record.fruit_share_ids.mapped('percentage')),100,precision_digits=4):raise ValidationError(_('Los porcentajes de fruta deben sumar 100 %.'))
             for line in record.line_ids:
                 if not line.calculation_uom_id or not line.product_id or not line.uom_id or not line.origin_id or not line.activity_id:raise ValidationError(_('Complete origen, actividad, producto-labor y unidades de cálculo y producto.'))
+                if line.origin_id.flow_type!=line.group_id.flow_type:raise ValidationError(_('El origen y el grupo deben tener la misma naturaleza: costo o ingreso.'))
                 if line.calculation_uom_id.basis in ('plants','kg') and line.yield_quantity<=0:raise ValidationError(_('El rendimiento debe ser mayor que cero para plantas o kilos.'))
                 if set(line.month_ids.mapped('period_date'))-periods:raise ValidationError(_('La distribución contiene meses fuera de la temporada.'))
                 if float_compare(sum(line.month_ids.mapped('quantity')),line.calculation_quantity,precision_digits=4):raise ValidationError(_('Distribuya el 100 %% de la cantidad de %(line)s.',line=line.indicator))
