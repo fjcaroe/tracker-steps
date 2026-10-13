@@ -109,3 +109,25 @@ ajustes manuales y activación de una versión sucesora.
 Los overlays de ambos destinos usan ese mismo commit bajo
 ``/opt/steps-managed/releases/<ambiente>/``. Se comprobaron servicios y
 dominios HTTPS después de las verificaciones funcionales.
+
+T79 publicado y verificado
+-------------------------
+
+``step_export_shipment_provision`` 18.0.1.0.0, commit
+``d495b23fb5a00af060895b0c5df76b95376d0e74``, SHA-256 del paquete
+``dbd01d26a795ee66403ee0d6695d5c8da818fbb0a219e627df97dc0ca5045add``.
+Seis pruebas aprobadas por destino, preservación de filas y comprobación
+adicional con un usuario de Contabilidad. El ejemplo temporal de 100 USD
+a 900 CLP/USD genera un asiento de 90.000 CLP balanceado. Las tres cuentas
+analíticas se conservan en sus columnas nativas dentro de un solo apunte,
+sin triplicar el gasto. Se verificaron el bloqueo de cambios, la tasa
+conservada y la prevención de un segundo asiento.
+
+* Desarrollo: evidencia ``management_development_t79_current_f``;
+  respaldo ``/opt/steps_backups/management_development_20261013T185246Z``.
+* Cerro: evidencia ``management_cerro_t79_current_cerro_f``;
+  respaldo ``/opt/steps_backups/management_cerro_20261013T185921Z``.
+
+La compañía del ejemplo se revierte al finalizar. Su creación evita la
+carga automática de una localización contable; las acciones de validación,
+costeo y contabilización se ejecutan con el contexto y permisos normales.
