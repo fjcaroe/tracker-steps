@@ -1,0 +1,12 @@
+<odoo noupdate="1">
+  <record id="origin_labor" model="step.management.budget.origin"><field name="code">LABOR</field><field name="name">Mano de obra</field><field name="category">labor</field><field name="flow_type">cost</field></record>
+  <record id="origin_input" model="step.management.budget.origin"><field name="code">INPUT</field><field name="name">Insumos</field><field name="category">input</field><field name="flow_type">cost</field></record>
+  <record id="origin_machine" model="step.management.budget.origin"><field name="code">MACHINE</field><field name="name">Maquinarias</field><field name="category">machinery</field><field name="flow_type">cost</field></record>
+  <record id="origin_service" model="step.management.budget.origin"><field name="code">SERVICE</field><field name="name">Gastos y servicios</field><field name="category">service</field><field name="flow_type">cost</field></record>
+  <record id="origin_income" model="step.management.budget.origin"><field name="code">INCOME</field><field name="name">Ingresos</field><field name="category">other</field><field name="flow_type">income</field></record>
+  <record id="calculation_hectares" model="step.management.budget.calculation.uom"><field name="code">HA</field><field name="name">Hectáreas</field><field name="basis">hectares</field></record>
+  <record id="calculation_plants" model="step.management.budget.calculation.uom"><field name="code">PLANTS</field><field name="name">Plantas</field><field name="basis">plants</field><field name="product_uom_id" ref="uom.product_uom_day"/></record>
+  <record id="calculation_days" model="step.management.budget.calculation.uom"><field name="code">DAYS</field><field name="name">Jornadas</field><field name="basis">days</field><field name="product_uom_id" ref="uom.product_uom_day"/></record>
+  <record id="calculation_units" model="step.management.budget.calculation.uom"><field name="code">UNITS</field><field name="name">Unidad</field><field name="basis">units</field><field name="product_uom_id" ref="uom.product_uom_unit"/></record>
+  <record id="calculation_kg" model="step.management.budget.calculation.uom"><field name="code">KG</field><field name="name">Kilo</field><field name="basis">kg</field><field name="product_uom_id" ref="uom.product_uom_day"/></record>
+</odoo>
