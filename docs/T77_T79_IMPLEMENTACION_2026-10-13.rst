@@ -131,3 +131,26 @@ conservada y la prevención de un segundo asiento.
 La compañía del ejemplo se revierte al finalizar. Su creación evita la
 carga automática de una localización contable; las acciones de validación,
 costeo y contabilización se ejecutan con el contexto y permisos normales.
+
+T77 publicado y verificado
+-------------------------
+
+``step_budget_design`` 18.0.1.0.0, commit
+``1c5635bb68f4f2bfa51034b5b189779a83ea74f1``, SHA-256 del paquete
+``0e30b7688b0a0f792c366ba61d2999b3e818f6fbc2c671b33cc1d90e47094539``.
+Once pruebas aprobadas en la copia de Desarrollo, incluida la matriz de
+meses reales, las fórmulas de poda/cosecha, la aplicación por hectáreas,
+distribución completa, duplicación, aprobación y nueva versión. También
+se probaron monto directo, carga normalizada de dos meses sin cantidad,
+carga de plantilla equivalente al anexo, maquinaria, reportes y perfiles.
+
+La comprobación instalada repitió el flujo de generación, aprobación y
+creación de una nueva revisión con un usuario de Gestión y Costos. Se
+verificaron los formularios, los siete menús de entrega y las columnas
+año-mes de las matrices, sin alterar los registros anteriores.
+
+* Desarrollo: evidencia ``management_development_t77_final_j``;
+  respaldo ``/opt/steps_backups/management_development_20261013T190726Z``.
+
+El código permanece en un overlay privado del mismo commit. No se publicó
+este módulo en Cerro ni en otro destino fuera del alcance del ticket.
