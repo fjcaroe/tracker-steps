@@ -40,13 +40,15 @@ class BudgetImport(models.Model):
         # Resolve existing masters before the core importer mutates anything.
         rows=self.line_ids.filtered(lambda r:r.state=='ok')
         season=self.season_master_id or resolve(self.env,'step.temporada',self.season,self.company_id,('name','code'))
+        version=self.version_master_id or resolve(self.env,'step.management.budget.version',self.budget_version,self.company_id,('name','code'))
+        if not version:raise ValidationError(_('Seleccione la versión del maestro.'))
         periods=set(season_months(season))
         for row in rows:
             period=date(row.year,{v:k for k,v in MONTH_KEY_BY_NUMBER.items()}[row.month],1)
             if period not in periods:raise ValidationError(_('El año-mes importado está fuera de la temporada seleccionada.'))
         action=super().action_import()
         budget=self.budget_id
-        budget.write({'season_id':season.id,'budget_version_id':self.version_master_id.id,'conversion_rate_type':'estimated','budget_type':self.target_budget_type})
+        budget.write({'season_id':season.id,'budget_version_id':version.id,'conversion_rate_type':'estimated','budget_type':self.target_budget_type})
         # Core groups by line identity; match its buckets exactly, including
         # product/units/activity, without loose name matching or guessing.
         for line in budget.line_ids:

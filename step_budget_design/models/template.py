@@ -17,11 +17,8 @@ def season_months(season):
 
 def monthly_usd(env, company, currency, period, amount):
     usd=env.ref('base.USD')
-    if currency==usd:return amount,1.0,True
-    rate=env['step.management.exchange.rate'].search([('company_id','=',company.id),('currency_id','=',usd.id),('year','=',period.year),('month','=',str(period.month).zfill(2))],limit=1)
-    if currency!=company.currency_id:return 0,0,False
-    value=rate.company_value_per_unit
-    return (amount/value,value,True) if value>0 else (0,0,False)
+    result=env['step.management.exchange.rate'].get_conversion(amount,currency,usd,company,period,rate_type='estimated')
+    return result['amount'],1/result['factor'] if result['available'] else 0,result['available']
 
 
 class Origin(models.Model):
@@ -103,6 +100,7 @@ class Template(models.Model):
     def _validate_design(self):
         for record in self:
             periods=set(season_months(record.season_id))
+            if not record.budget_version_id or not record.species_id:raise ValidationError(_('Seleccione versión y especie de los maestros existentes.'))
             if not record.line_ids:raise ValidationError(_('Ingrese las labores de la plantilla.'))
             if record.fruit_share_ids and float_compare(sum(record.fruit_share_ids.mapped('percentage')),100,precision_digits=4):raise ValidationError(_('Los porcentajes de fruta deben sumar 100 %.'))
             for line in record.line_ids:

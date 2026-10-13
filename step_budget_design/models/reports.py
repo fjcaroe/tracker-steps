@@ -39,9 +39,9 @@ class BudgetData(models.Model):
           SELECT m.id,b.id budget_id,b.company_id,b.season_id,b.budget_version_id,b.budget_version legacy_version,b.state,m.period_date,
             l.center_id,COALESCE(c.type_costo,c.cost_type) cost_type,c.fundo_id farm_id,c.especie_id species_id,c.variedad_id variety_id,
             l.origin_id,l.group_id,l.activity_id,l.product_id,l.uom_id,m.quantity,m.currency_id,m.amount,
-            usd.id usd_currency_id,CASE WHEN m.currency_id=usd.id THEN m.amount WHEN m.currency_id=co.currency_id AND r.company_value_per_unit>0 THEN m.amount/r.company_value_per_unit ELSE 0 END amount_usd,
-            CASE WHEN m.currency_id=usd.id THEN 1 ELSE r.company_value_per_unit END exchange_rate,
-            (m.currency_id=usd.id OR m.currency_id=co.currency_id AND r.company_value_per_unit>0) rate_available,
+            usd.id usd_currency_id,CASE WHEN m.currency_id=usd.id THEN m.amount WHEN v.source_value>0 AND v.target_value>0 THEN m.amount*v.source_value/v.target_value ELSE 0 END amount_usd,
+            CASE WHEN m.currency_id=usd.id THEN 1 ELSE v.target_value/nullif(v.source_value,0) END exchange_rate,
+            (m.currency_id=usd.id OR v.source_value>0 AND v.target_value>0) rate_available,
             CASE WHEN o.category='labor' AND (l.uom_id=cu.product_uom_id OR l.uom_id=%s) THEN m.quantity ELSE 0 END jornadas,
             g.flow_type
           FROM step_management_budget_month m JOIN step_management_budget_line l ON l.id=m.budget_line_id
@@ -53,6 +53,10 @@ class BudgetData(models.Model):
           CROSS JOIN res_currency usd
           LEFT JOIN step_management_exchange_rate r ON r.company_id=b.company_id AND r.currency_id=usd.id
             AND r.active AND r.year=EXTRACT(YEAR FROM m.period_date) AND r.month=to_char(m.period_date,'MM')
+          LEFT JOIN step_management_exchange_rate sr ON sr.company_id=b.company_id AND sr.currency_id=m.currency_id
+            AND sr.active AND sr.year=EXTRACT(YEAR FROM m.period_date) AND sr.month=to_char(m.period_date,'MM')
+          CROSS JOIN LATERAL (SELECT CASE WHEN m.currency_id=co.currency_id THEN 1 ELSE sr.company_value_per_unit END source_value,
+              CASE WHEN usd.id=co.currency_id THEN 1 ELSE r.company_value_per_unit END target_value) v
           WHERE usd.id=%s
         ''',(self.env.ref('uom.product_uom_day').id,self.env.ref('base.USD').id))
 
