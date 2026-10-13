@@ -1,0 +1,4 @@
+<odoo>
+  <record id="company_rule" model="ir.rule"><field name="name">Provisiones de embarque por empresa</field><field name="model_id" ref="model_step_export_shipment_provision"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+  <record id="line_company_rule" model="ir.rule"><field name="name">Gastos de embarque por empresa</field><field name="model_id" ref="model_step_export_shipment_provision_line"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+</odoo>

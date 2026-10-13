@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+provision_read,Provisión lectura,model_step_export_shipment_provision,base.group_user,1,0,0,0
+provision_prepare,Provisión preparación,model_step_export_shipment_provision,stock.group_stock_user,1,1,1,1
+provision_account,Provisión contabilidad,model_step_export_shipment_provision,account.group_account_user,1,1,1,1
+line_read,Gastos lectura,model_step_export_shipment_provision_line,base.group_user,1,0,0,0
+line_prepare,Gastos preparación,model_step_export_shipment_provision_line,stock.group_stock_user,1,1,1,1
+line_account,Gastos contabilidad,model_step_export_shipment_provision_line,account.group_account_user,1,1,1,1

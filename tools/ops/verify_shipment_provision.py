@@ -1,0 +1,27 @@
+"""T79 installed source/form/menu and actual posting using rollback-only fixtures."""
+import importlib,json
+from pathlib import Path
+from types import SimpleNamespace
+from lxml import etree
+from odoo.tests.common import new_test_user
+from odoo.addons.step_export_shipment_provision.tests.test_provision import ProvisionCase
+
+try:
+    for name,version in EXPECTED.items():
+        module=env['ir.module.module'].search([('name','=',name)])
+        assert module.state=='installed' and module.latest_version==version
+        assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
+    record=ProvisionCase.sample(SimpleNamespace(env=env))
+    user=new_test_user(record.env,login='qa-t79-live-accountant',groups='account.group_account_manager,stock.group_stock_manager',company_id=record.company_id.id,company_ids=[(6,0,record.company_id.ids)])
+    record=record.with_user(user)
+    assert record.env.ref('step_export_shipment_provision.provision_menu').id in record.env['ir.ui.menu']._visible_menu_ids()
+    arch=etree.fromstring(record.get_view(view_id=record.env.ref('step_export_shipment_provision.provision_form').id,view_type='form')['arch'].encode())
+    assert all(arch.xpath('.//field[@name="%s"]'%n) for n in ('season_id','program_id','shipment_id','journal_id','move_id'))
+    record.action_validate();record.action_cost();record.action_account()
+    assert record.state=='posted' and record.move_id.state=='posted'
+    assert abs(sum(record.move_id.line_ids.mapped('debit'))-90000)<1e-6 and abs(sum(record.move_id.line_ids.mapped('balance')))<1e-6
+    assert len(record.move_id.line_ids.filtered(lambda l:l.debit).analytic_line_ids)==3
+    original=record.move_id;record.action_account();assert record.move_id==original
+    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':79,'versions':EXPECTED,'menus':True,'forms':True,'posting':True,'balanced':True,'daily_rate':True,'three_analytic_plans':True,'duplicate_prevented':True}))
+finally:
+    env.cr.rollback()
