@@ -37,7 +37,8 @@ class BudgetData(models.Model):
         tools.drop_view_if_exists(self.env.cr,self._table)
         self.env.cr.execute('''CREATE VIEW step_management_budget_data_report AS
           SELECT m.id,b.id budget_id,b.company_id,b.season_id,b.budget_version_id,b.budget_version legacy_version,b.state,m.period_date,
-            l.center_id,COALESCE(c.type_costo,c.cost_type) cost_type,c.fundo_id farm_id,c.especie_id species_id,c.variedad_id variety_id,
+            l.center_id,COALESCE(c.type_costo,c.cost_type) cost_type,c.fundo_id farm_id,
+            COALESCE(c.especie_id,t.species_id) species_id,COALESCE(c.variedad_id,t.variety_id) variety_id,
             l.origin_id,l.group_id,l.activity_id,l.product_id,l.uom_id,m.quantity,m.currency_id,m.amount,
             usd.id usd_currency_id,CASE WHEN m.currency_id=usd.id THEN m.amount WHEN v.source_value>0 AND v.target_value>0 THEN m.amount*v.source_value/v.target_value ELSE 0 END amount_usd,
             CASE WHEN m.currency_id=usd.id THEN 1 ELSE v.target_value/nullif(v.source_value,0) END exchange_rate,
@@ -46,6 +47,7 @@ class BudgetData(models.Model):
             g.flow_type
           FROM step_management_budget_month m JOIN step_management_budget_line l ON l.id=m.budget_line_id
           JOIN step_management_operational_budget b ON b.id=l.budget_id
+          LEFT JOIN step_management_budget_template t ON t.id=b.template_id
           JOIN account_analytic_account c ON c.id=l.center_id JOIN res_company co ON co.id=b.company_id
           JOIN step_management_budget_group g ON g.id=l.group_id
           LEFT JOIN step_management_budget_origin o ON o.id=l.origin_id
