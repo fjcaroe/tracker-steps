@@ -8,7 +8,7 @@ class ProvisionCase(TransactionCase):
     def sample(self):
         clp=self.env.ref('base.CLP');usd=self.env.ref('base.USD')
         company=self.env['res.company'].create({'name':'QA T79 company','currency_id':clp.id,'country_id':self.env.ref('base.cl').id})
-        env=self.env(context=dict(self.env.context,allowed_company_ids=company.ids,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True)).with_company(company)
+        env=self.env(context=dict(self.env.context,allowed_company_ids=company.ids,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
         debit=env['account.account'].create({'name':'QA T79 expense','code':'QA7901','account_type':'expense','company_ids':[Command.set(company.ids)]})
         credit=env['account.account'].create({'name':'QA T79 provision','code':'QA7902','account_type':'liability_current','company_ids':[Command.set(company.ids)]})
         journal=env['account.journal'].create({'name':'QA T79 general','code':'QA79','type':'general','company_id':company.id,'default_account_id':credit.id})
