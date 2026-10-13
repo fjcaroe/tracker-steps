@@ -20,7 +20,10 @@ try:
     record.action_validate();record.action_cost();record.action_account()
     assert record.state=='posted' and record.move_id.state=='posted'
     assert abs(sum(record.move_id.line_ids.mapped('debit'))-90000)<1e-6 and abs(sum(record.move_id.line_ids.mapped('balance')))<1e-6
-    assert len(record.move_id.line_ids.filtered(lambda l:l.debit).analytic_line_ids)==3
+    analytic=record.move_id.line_ids.filtered(lambda l:l.debit).analytic_line_ids
+    assert len(analytic)==1 and analytic.amount==-90000
+    for account in record.season_id.cost_id | record.species_id.cost_id | record.shipment_id.provision_analytic_account_id:
+        assert analytic[account.root_plan_id._column_name()]==account
     original=record.move_id;record.action_account();assert record.move_id==original
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':79,'versions':EXPECTED,'menus':True,'forms':True,'posting':True,'balanced':True,'daily_rate':True,'three_analytic_plans':True,'duplicate_prevented':True}))
 finally:

@@ -48,7 +48,11 @@ class ProvisionCase(TransactionCase):
         self.assertEqual(sum(move.line_ids.mapped('debit')),90000)
         self.assertEqual(sum(move.line_ids.mapped('amount_currency')),0)
         self.assertEqual(move.line_ids.filtered(lambda l:l.debit).analytic_distribution,record.analytic_distribution)
-        self.assertEqual(len(move.line_ids.filtered(lambda l:l.debit).analytic_line_ids),3)
+        analytic=move.line_ids.filtered(lambda l:l.debit).analytic_line_ids
+        self.assertEqual(len(analytic),1)
+        self.assertEqual(analytic.amount,-90000)
+        for account in record.season_id.cost_id | record.species_id.cost_id | record.shipment_id.provision_analytic_account_id:
+            self.assertEqual(analytic[account.root_plan_id._column_name()],account)
         record.action_account();self.assertEqual(record.move_id,move)
 
     def test_validation_company_and_sources(self):
@@ -91,6 +95,8 @@ class ProvisionCase(TransactionCase):
         self.assertIn(env.ref('step_export_shipment_provision.provision_menu').id,env['ir.ui.menu'].with_user(user)._visible_menu_ids())
         arch=etree.fromstring(record.with_user(user).get_view(view_id=env.ref('step_export_shipment_provision.provision_form').id,view_type='form')['arch'].encode())
         self.assertTrue(arch.xpath('.//field[@name="shipment_id"]'))
+        shipment_arch=etree.fromstring(env['step.export.export'].with_user(user).get_view(view_type='form')['arch'].encode())
+        self.assertTrue(shipment_arch.xpath('.//field[@name="provision_analytic_account_id"]'))
         record.action_validate();record.action_cost()
         with self.assertRaises(UserError):record.with_user(user).action_account()
         other=env['res.company'].create({'name':'QA T79 other'})
