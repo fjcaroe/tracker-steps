@@ -74,7 +74,13 @@ class Template(models.Model):
     def _check_editable(self):
         if any(r.season_id and r.state!='draft' for r in self):raise UserError(_('Duplique la plantilla aprobada para editar otra.'))
 
+    @api.model_create_multi
+    def create(self,vals):
+        if any(v.get('season_id') and v.get('state','draft')!='draft' for v in vals):raise UserError(_('Cree la plantilla en borrador y use Aprobar.'))
+        return super().create(vals)
+
     def write(self,vals):
+        if vals.get('season_id') and any(r.state!='draft' for r in self):raise UserError(_('Vuelva a borrador antes de asignar temporada a una plantilla histórica.'))
         if vals.get('state')=='active':self.filtered('season_id')._validate_design()
         if vals.get('state')=='draft' and any(r.season_id and r.state!='draft' for r in self):raise UserError(_('Duplique la plantilla para conservar la aprobada.'))
         if set(vals).intersection({'name','season_id','budget_version_id','species_id','variety_id','base_plants','base_kg','base_hectares','expected_yield_kg_ha','fruit_share_ids','line_ids','period_ids','company_id','currency_id'}):self._check_editable()
@@ -136,6 +142,7 @@ class FruitShare(models.Model):
         return super().create(vals)
 
     def write(self,vals):
+        if vals.get('template_id'):self.env['step.management.budget.template'].browse(vals['template_id'])._check_editable()
         self.template_id._check_editable();return super().write(vals)
 
     def unlink(self):
@@ -195,6 +202,7 @@ class TemplateLine(models.Model):
         return super().create(vals)
 
     def write(self,vals):
+        if vals.get('template_id'):self.env['step.management.budget.template'].browse(vals['template_id'])._check_editable()
         self.template_id._check_editable();return super().write(vals)
 
     def unlink(self):
@@ -236,6 +244,7 @@ class TemplateMonth(models.Model):
         return super().create(vals)
 
     def write(self,vals):
+        if vals.get('line_id'):self.env['step.management.budget.template.line'].browse(vals['line_id']).template_id._check_editable()
         self.template_id._check_editable();return super().write(vals)
 
     def unlink(self):

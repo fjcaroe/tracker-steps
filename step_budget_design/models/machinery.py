@@ -75,6 +75,7 @@ class MachineryMonth(models.Model):
         self.env['step.management.machinery.budget'].browse([v['budget_id'] for v in vals if v.get('budget_id')])._check_edit();return super().create(vals)
 
     def write(self,vals):
+        if vals.get('budget_id'):self.env['step.management.machinery.budget'].browse(vals['budget_id'])._check_edit()
         self.budget_id._check_edit();return super().write(vals)
 
     def unlink(self):
@@ -127,6 +128,7 @@ class MachineryComponent(models.Model):
         self.env['step.management.machinery.budget'].browse([v['budget_id'] for v in vals if v.get('budget_id')])._check_edit();return super().create(vals)
 
     def write(self,vals):
+        if vals.get('budget_id'):self.env['step.management.machinery.budget'].browse(vals['budget_id'])._check_edit()
         self.budget_id._check_edit();return super().write(vals)
 
     def unlink(self):
