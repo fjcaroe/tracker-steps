@@ -72,7 +72,11 @@ class DailyCase(TransactionCase):
         arch=etree.fromstring(env['step.export.estimate'].with_user(user).get_view(view_id=env.ref('step_producers.view_step_export_estimate_form').id,view_type='form')['arch'].encode())
         for name in ('approved_by_id','fruit_type','market_id','week_number'):
             self.assertTrue(arch.xpath('.//field[@name="%s"]'%name))
-        other=env['res.company'].create({'name':'QA T78 other'})
         estimate,wizard,rows=self.sample()
+        rows.unlink()
+        action=wizard.with_user(user).action_distribute()
+        self.assertEqual(action['res_model'],'step.export.estimate.day')
+        self.assertEqual(self.env['step.export.estimate.day'].search_count([('estimate_id','=',estimate.id)]),10)
+        other=env['res.company'].create({'name':'QA T78 other'})
         outsider=new_test_user(env,login='qa-t78-other',groups='stock.group_stock_user',company_id=other.id,company_ids=[(6,0,other.ids)])
         self.assertFalse(rows.with_user(outsider).with_context(allowed_company_ids=other.ids).search([('id','in',rows.ids)]))

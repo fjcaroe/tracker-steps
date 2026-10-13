@@ -148,7 +148,7 @@ class DailyWizard(models.TransientModel):
                 'export_kg': export_daily if i < days-1 else week.export_kg-export_daily*(days-1),
             } for i in range(days)])
             created += 1
-        action = self.env.ref('step_producer_daily_estimate.daily_action').read()[0]
+        action = self.env['ir.actions.actions']._for_xml_id('step_producer_daily_estimate.daily_action')
         action['domain'] = [('company_id', '=', self.company_id.id), ('date', '>=', self.start_date), ('date', '<', self.start_date + timedelta(days=21))]
         action['name'] = _('Estimación diaria: %(created)s semanas nuevas; %(skipped)s conservadas', created=created, skipped=skipped)
         return action
