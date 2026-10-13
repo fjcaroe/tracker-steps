@@ -18,7 +18,11 @@ Implementación
 ``step_budget_design`` amplía los documentos presupuestarios existentes.
 Relaciona temporada, versión, especie, variedad, actividad y origen; conserva
 los textos históricos. La distribución usa fechas año-mes de la temporada,
-ordenadas cronológicamente. Las plantillas calculan cantidad de producto,
+ordenadas cronológicamente. Las hojas de cantidades y valores muestran
+matrices con columnas ``YYYY-MM``; las cantidades se editan en la lista
+mensual de la misma hoja. Los valores se presentan en moneda del presupuesto
+y USD, separando ingresos, costos y margen. Un mes sin tasa no se presenta
+como un total USD completo. Las plantillas calculan cantidad de producto,
 valor total y precio por unidad; para poda, 3.000 plantas / 200 = 15 jornadas,
 3.000 × 150 = 450.000 y 450.000 / 15 = 30.000 por jornada. Aplicar a cuatro
 hectáreas produce 60 jornadas y 1.800.000. La aprobación exige distribución
@@ -86,3 +90,22 @@ El cierre requiere pruebas aprobadas, fuente y versión instaladas, menús y
 formularios efectivos, y flujo con el perfil previsto en los destinos
 autorizados. El resultado de cada publicación y las rutas de sus evidencias
 se registrarán aquí una vez verificados. No se cierra por commit o HTTP 200.
+
+T78 publicado y verificado
+-------------------------
+
+``step_producer_daily_estimate`` 18.0.1.0.1, commit
+``4aae93ecd5d17f66719b275968afe9ef14269a69``, SHA-256 del paquete
+``56346746f4e231dec6b5439b7c6836fd3239998976696ea5f6aa44013206ac0b``.
+Seis pruebas aprobadas por destino y comprobación adicional del flujo con
+el perfil de planificación, incluidos menús, formulario, generación diaria,
+ajustes manuales y activación de una versión sucesora.
+
+* Desarrollo: evidencia ``management_development_t78_4aae93e_dev``;
+  respaldo ``/opt/steps_backups/management_development_20261013T180139Z``.
+* Cerro: evidencia ``management_cerro_t78_4aae93e_cerro``;
+  respaldo ``/opt/steps_backups/management_cerro_20261013T180738Z``.
+
+Los overlays de ambos destinos usan ese mismo commit bajo
+``/opt/steps-managed/releases/<ambiente>/``. Se comprobaron servicios y
+dominios HTTPS después de las verificaciones funcionales.

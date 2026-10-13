@@ -31,8 +31,9 @@ s=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/object')
 def rpc(model,method,args,kwargs=None):return s.execute_kw(c['db'],uid,c['api_key'],model,method,args,kwargs or {})
 context={'tracking_disable':True,'mail_notrack':True,'mail_create_nosubscribe':True,'mail_auto_subscribe_no_notify':True}
 tickets=[a.ticket] if a.ticket else [77,78,79]
-recent=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','in',tickets),('message_type','in',['comment','email']),('subtype_id','=',1),('id','>',9402)]],{'fields':['id','res_id']})
-assert not recent,'Review new human feedback before changing tickets: '+str(recent)
+recent=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','in',tickets),('message_type','in',['comment','email']),('id','>',9402)]],{'fields':['id','res_id','body']})
+recent=[m for m in recent if ('T%s - entrega verificada de presupuesto y planificación'%m['res_id']) not in (m.get('body') or '')]
+assert not recent,'Review new human feedback before changing tickets: '+str([(m['id'],m['res_id']) for m in recent])
 if a.action=='start':
     for ticket in rpc('helpdesk.ticket','read',[tickets],{'fields':['id','name','stage_id']}):
         assert ticket['name'].startswith('T'+str(ticket['id']))
