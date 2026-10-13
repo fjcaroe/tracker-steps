@@ -2,7 +2,7 @@
 from datetime import timedelta
 from odoo import api, fields, models, tools, _
 from odoo.exceptions import UserError, ValidationError
-from odoo.tools.float_utils import float_compare
+from odoo.tools.float_utils import float_compare, float_round
 
 FRUIT_TYPES = [('conventional', 'Convencional'), ('organic', 'Orgánico')]
 
@@ -140,9 +140,12 @@ class DailyWizard(models.TransientModel):
                 skipped += 1
                 continue
             process = week.export_kg / week.line_id.export_percentage if week.line_id.delivery_kind == 'process' and week.line_id.export_percentage > 0 else 0
+            process_daily = float_round(process/days, precision_digits=3)
+            export_daily = float_round(week.export_kg/days, precision_digits=3)
             self.env['step.export.estimate.day'].create([{
                 'week_id': week.id, 'date': week.week_start + timedelta(days=i),
-                'process_kg': process/days, 'export_kg': week.export_kg/days,
+                'process_kg': process_daily if i < days-1 else process-process_daily*(days-1),
+                'export_kg': export_daily if i < days-1 else week.export_kg-export_daily*(days-1),
             } for i in range(days)])
             created += 1
         action = self.env.ref('step_producer_daily_estimate.daily_action').read()[0]

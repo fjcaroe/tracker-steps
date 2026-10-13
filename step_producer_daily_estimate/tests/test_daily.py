@@ -50,14 +50,14 @@ class DailyCase(TransactionCase):
         self.assertEqual(new.estimate_line_ids.market_id,estimate.estimate_line_ids.market_id)
         self.assertFalse(new.estimate_line_ids.week_line_ids.mapped('day_ids'))
         new.action_validate_estimate();new.action_activate_estimate()
-        self.assertEqual(rows.mapped('state'),['replaced'])
+        self.assertEqual(set(rows.mapped('state')),{'replaced'})
         with self.assertRaises(UserError):rows[0].export_kg=1
 
     def test_weekly_dimensions_and_daily_pivot(self):
         estimate,wizard,rows=self.sample()
         self.env.flush_all()
         report=self.env['step.producer.estimate.report'].search([('estimate_id','=',estimate.id)])
-        self.assertEqual(report.mapped('fruit_type'),['organic'])
+        self.assertEqual(set(report.mapped('fruit_type')),{'organic'})
         self.assertEqual(report.mapped('market_id'),estimate.estimate_line_ids.market_id)
         total=rows.read_group([('id','in',rows.ids)],['export_kg:sum','process_kg:sum'],[])[0]
         self.assertAlmostEqual(total['process_kg'],125000)

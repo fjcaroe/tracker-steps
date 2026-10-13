@@ -27,7 +27,7 @@ try:
         new=env['step.export.estimate'].browse(estimate.action_new_estimate_version()['res_id'])
         assert new.fruit_type=='organic' and new.estimate_line_ids.market_id==estimate.estimate_line_ids.market_id
         new.action_validate_estimate();new.action_activate_estimate()
-        assert rows.mapped('state')==['replaced']
+        assert set(rows.mapped('state'))=={'replaced'}
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':78,'versions':EXPECTED,'menus':True,'forms':True,'daily_5_6_7':True,'manual_preserved':True,'versions_preserved':True}))
 finally:
     env.cr.rollback()
