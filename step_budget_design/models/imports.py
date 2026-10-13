@@ -3,7 +3,7 @@ from datetime import date
 import openpyxl
 from odoo import fields,models,Command,_
 from odoo.exceptions import ValidationError
-from odoo.addons.step_management_costs.models.budget_import import _norm,MONTH_KEY_BY_NUMBER
+from odoo.addons.step_management_costs.models.budget_import import _norm,_to_float,MONTH_KEY_BY_NUMBER
 from .template import season_months
 from .excel import ExcelValues
 
@@ -21,6 +21,19 @@ class BudgetImport(models.Model):
     _inherit='step.management.budget.import'
     season_master_id=fields.Many2one('step.temporada',string='Temporada del maestro',check_company=True)
     version_master_id=fields.Many2one('step.management.budget.version',string='Versión del maestro',check_company=True)
+    target_budget_type=fields.Selection([('agricultural','Agrícola'),('general','General')],string='Tipo presupuesto',required=True,default='agricultural')
+
+    def _parse_row(self,row_number,mapped):
+        prepared=dict(mapped)
+        direct=self.target_budget_type=='general' and mapped.get('quantity') in (None,'',0,'0') and _to_float(mapped.get('amount')) is not None
+        if direct:prepared.update(quantity=0,amount=0)
+        vals=super()._parse_row(row_number,prepared)
+        if direct:
+            import hashlib
+            vals.update(amount=_to_float(mapped.get('amount')),raw_quantity=str(mapped.get('quantity') or ''),raw_amount=str(mapped.get('amount')))
+            content='|'.join(_norm(mapped.get(k)) for k in sorted(mapped))
+            vals['line_hash']=hashlib.sha256(('%s|%s|%s'%(self.file_hash or '',row_number,content)).encode('utf-8')).hexdigest()
+        return vals
 
     def action_import(self):
         self.ensure_one()
@@ -33,7 +46,7 @@ class BudgetImport(models.Model):
             if period not in periods:raise ValidationError(_('El año-mes importado está fuera de la temporada seleccionada.'))
         action=super().action_import()
         budget=self.budget_id
-        budget.write({'season_id':season.id,'budget_version_id':self.version_master_id.id,'conversion_rate_type':'estimated'})
+        budget.write({'season_id':season.id,'budget_version_id':self.version_master_id.id,'conversion_rate_type':'estimated','budget_type':self.target_budget_type})
         # Core groups by line identity; match its buckets exactly, including
         # product/units/activity, without loose name matching or guessing.
         for line in budget.line_ids:
@@ -47,7 +60,20 @@ class BudgetImport(models.Model):
             line.write({'activity_id':activity.id,'origin_id':origin.id})
             total=sum(bucket.mapped('amount'))
             direct=not line.quantity and total
-            if direct:line.write({'calculation_mode':'direct','direct_amount':total})
+            if direct:
+                # These are newly generated rows in this same transaction.
+                # Recreate the entire monthly distribution atomically so the
+                # core conservation guard never sees a partial new total.
+                months=[]
+                for month in line.month_ids:
+                    match=bucket.filtered(lambda r:r.month==month.month)
+                    years=set(match.mapped('year'))
+                    if len(years)!=1:raise ValidationError(_('Cada mes importado debe tener un año inequívoco.'))
+                    months.append({'month':month.month,'period_date':date(years.pop(),{v:k for k,v in MONTH_KEY_BY_NUMBER.items()}[month.month],1),'direct_amount':sum(match.mapped('amount'))})
+                line.month_ids.unlink()
+                line.write({'calculation_mode':'direct','direct_amount':total})
+                self.env['step.management.budget.month'].create([dict(vals,budget_line_id=line.id) for vals in months])
+                continue
             for month in line.month_ids:
                 match=bucket.filtered(lambda r:r.month==month.month)
                 years=set(match.mapped('year'))

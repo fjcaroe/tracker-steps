@@ -13,6 +13,12 @@ class Budget(models.Model):
     season_id=fields.Many2one('step.temporada',string='Temporada',check_company=True)
     budget_version_id=fields.Many2one('step.management.budget.version',string='Versión presupuesto',check_company=True)
 
+    @api.constrains('budget_type','template_id','import_id')
+    def _check_budget_type_consistency(self):
+        for record in self:
+            if record.budget_type=='general' and record.import_id and not record.template_id:continue
+            super(Budget,record)._check_budget_type_consistency()
+
     @api.onchange('template_id')
     def _onchange_design_template(self):
         for row in self:

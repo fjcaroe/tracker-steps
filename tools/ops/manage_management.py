@@ -96,7 +96,7 @@ def snapshot(database):
                     'step_management_budget_group':['origin_id','phenology_id'],
                     'step_management_operational_budget':['season_id','budget_version_id'],
                     'step_management_budget_line':['origin_id','activity_id','calculation_uom_id','expected_kg'],
-                    'step_management_budget_month':['period_date'], 'step_management_budget_import':['season_master_id','version_master_id']}
+                    'step_management_budget_month':['period_date'], 'step_management_budget_import':['season_master_id','version_master_id','target_budget_type']}
                 if table in additions:
                     row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % name for name in additions[table])
             if TICKET_REVISION == 'shipment-provision' and SHIPMENT_PROVISION_INITIAL:

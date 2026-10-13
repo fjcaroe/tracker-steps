@@ -42,7 +42,7 @@ class BudgetData(models.Model):
             usd.id usd_currency_id,CASE WHEN m.currency_id=usd.id THEN m.amount WHEN m.currency_id=co.currency_id AND r.company_value_per_unit>0 THEN m.amount/r.company_value_per_unit ELSE 0 END amount_usd,
             CASE WHEN m.currency_id=usd.id THEN 1 ELSE r.company_value_per_unit END exchange_rate,
             (m.currency_id=usd.id OR m.currency_id=co.currency_id AND r.company_value_per_unit>0) rate_available,
-            CASE WHEN o.category='labor' AND (l.uom_id=cu.product_uom_id OR cu.basis='days') THEN m.quantity ELSE 0 END jornadas,
+            CASE WHEN o.category='labor' AND (l.uom_id=cu.product_uom_id OR l.uom_id=%s) THEN m.quantity ELSE 0 END jornadas,
             g.flow_type
           FROM step_management_budget_month m JOIN step_management_budget_line l ON l.id=m.budget_line_id
           JOIN step_management_operational_budget b ON b.id=l.budget_id
@@ -54,7 +54,7 @@ class BudgetData(models.Model):
           LEFT JOIN step_management_exchange_rate r ON r.company_id=b.company_id AND r.currency_id=usd.id
             AND r.active AND r.year=EXTRACT(YEAR FROM m.period_date) AND r.month=to_char(m.period_date,'MM')
           WHERE usd.id=%s
-        ''',(self.env.ref('base.USD').id,))
+        ''',(self.env.ref('uom.product_uom_day').id,self.env.ref('base.USD').id))
 
 
 class BudgetSummary(models.Model):
@@ -76,19 +76,25 @@ class BudgetSummary(models.Model):
     margin_per_kg=fields.Float(string='Margen / kg',readonly=True,aggregator=False)
     cost_per_ha=fields.Float(string='Costo / ha',readonly=True,aggregator=False)
     margin_percentage=fields.Float(string='% margen',readonly=True,aggregator=False)
+    jornadas=fields.Float(string='Jornadas estimadas',readonly=True)
+    jornadas_per_ha=fields.Float(string='Jornadas / ha',readonly=True,aggregator=False)
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr,self._table)
         self.env.cr.execute('''CREATE VIEW step_management_budget_summary_report AS
           SELECT r.*,income-"cost" margin,COALESCE(income/nullif(expected_kg,0),0) income_per_kg,
             COALESCE("cost"/nullif(expected_kg,0),0) cost_per_kg,COALESCE((income-"cost")/nullif(expected_kg,0),0) margin_per_kg,
-            COALESCE("cost"/nullif(hectares,0),0) cost_per_ha,COALESCE((income-"cost")/nullif(income,0)*100,0) margin_percentage
+            COALESCE("cost"/nullif(hectares,0),0) cost_per_ha,COALESCE((income-"cost")/nullif(income,0)*100,0) margin_percentage,
+            COALESCE(jornadas/nullif(hectares,0),0) jornadas_per_ha
           FROM (SELECT min(l.id) id,b.id budget_id,b.company_id,b.season_id,l.center_id,b.currency_id,
             max(COALESCE(a.hectares,l.hectares,0)) hectares,max(l.expected_kg) expected_kg,
             sum(CASE WHEN g.flow_type='income' THEN l.amount ELSE 0 END) income,
-            sum(CASE WHEN g.flow_type='cost' THEN l.amount ELSE 0 END) AS "cost"
+            sum(CASE WHEN g.flow_type='cost' THEN l.amount ELSE 0 END) AS "cost",
+            sum(CASE WHEN o.category='labor' AND (l.uom_id=cu.product_uom_id OR l.uom_id=%s) THEN l.quantity ELSE 0 END) jornadas
           FROM step_management_budget_line l JOIN step_management_operational_budget b ON b.id=l.budget_id
           JOIN step_management_budget_group g ON g.id=l.group_id
+          LEFT JOIN step_management_budget_origin o ON o.id=l.origin_id
+          LEFT JOIN step_management_budget_calculation_uom cu ON cu.id=l.calculation_uom_id
           LEFT JOIN step_management_budget_center a ON a.budget_id=b.id AND a.center_id=l.center_id
           GROUP BY b.id,b.company_id,b.season_id,l.center_id,b.currency_id) r
-        ''')
+        ''',(self.env.ref('uom.product_uom_day').id,))

@@ -83,6 +83,7 @@ class BudgetDesignCase(TransactionCase):
         summary=self.env['step.management.budget.summary.report'].search([('budget_id','=',budget.id)])
         self.assertEqual(summary.hectares,4);self.assertEqual(summary.expected_kg,48000);self.assertEqual(summary.cost,1800000)
         self.assertEqual(summary.cost_per_ha,450000)
+        self.assertEqual(summary.jornadas_per_ha,15)
         data=self.env['step.management.budget.data.report'].search([('budget_id','=',budget.id)])
         self.assertEqual(data.quantity,60);self.assertEqual(data.jornadas,60)
 
@@ -114,6 +115,23 @@ class BudgetDesignCase(TransactionCase):
         reader=ExcelValues(book);self.assertEqual(reader.value('datos','B12'),12000);self.assertEqual(reader.value('datos','I27'),15)
         sheet['A1']='=__import__("os").system("whoami")'
         with self.assertRaises(ValidationError):reader.value('datos','A1')
+
+    def test_normalized_excel_direct_amounts_keep_both_months(self):
+        template,budget=self.sample();line=template.line_ids
+        book=openpyxl.Workbook();sheet=book.active
+        sheet.append(['Version Ppto','Temporada','Ano','Mes','Fundo','Especie','Variedad','Tipo CCosto','Centro de costos','Origen','Grupo Presupuesto','Actividad','Producto-labor','UdM','Cantidad','Valor Ppto$','TC Ppto','Valor Ppto US$'])
+        for month,amount in ((9,15000),(10,20000)):
+            sheet.append(['QA',template.season_id.name,2026,month,None,None,None,'Administrativo',budget.allocation_ids.center_id.name,'Mano de obra',line.group_id.name,line.activity_id.name,line.product_id.name,line.uom_id.name,None,amount,900,amount/900])
+        raw=io.BytesIO();book.save(raw)
+        source=self.env['step.management.budget.import'].create({'file':base64.b64encode(raw.getvalue()),'filename':'qa-general.xlsx',
+            'season_master_id':template.season_id.id,'version_master_id':template.budget_version_id.id,'target_budget_type':'general'})
+        source.action_validate();self.assertEqual(source.error_count,0)
+        imported=self.env['step.management.operational.budget'].browse(source.action_import()['res_id'])
+        self.assertEqual(imported.budget_type,'general');self.assertEqual(imported.total_amount,35000)
+        self.assertEqual(imported.line_ids.calculation_mode,'direct')
+        self.assertEqual(sum(imported.line_ids.month_ids.mapped('amount')),35000)
+        self.assertEqual(set(str(d) for d in imported.line_ids.month_ids.mapped('period_date')),{'2026-09-01','2026-10-01'})
+        with self.assertRaises(UserError):source.action_import()
 
     def test_import_equivalent_agricultural_template(self):
         template,budget=self.sample();line=template.line_ids
