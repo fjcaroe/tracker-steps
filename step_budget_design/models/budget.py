@@ -51,7 +51,7 @@ class Budget(models.Model):
                         'month_ids':[Command.create({'month':MONTH_KEY_BY_NUMBER[m.period_date.month],'period_date':m.period_date,
                             'quantity':m.quantity*scale,'unit_price':line.calculation_unit_price}) for m in line.month_ids]}))
             record.line_ids.unlink()
-            record.write({'season_id':template.season_id.id,'season':template.season_id.name,'budget_version_id':template.budget_version_id.id,
+            record.write({'season_id':template.season_id.id,'season':template.season_id.name,'budget_version_id':record.budget_version_id.id or template.budget_version_id.id,
                 'line_ids':commands,'state':'calculated','conversion_rate_type':'estimated'})
         return True
 

@@ -80,13 +80,13 @@ class BudgetSummary(models.Model):
     def init(self):
         tools.drop_view_if_exists(self.env.cr,self._table)
         self.env.cr.execute('''CREATE VIEW step_management_budget_summary_report AS
-          SELECT r.*,income-cost margin,COALESCE(income/nullif(expected_kg,0),0) income_per_kg,
-            COALESCE(cost/nullif(expected_kg,0),0) cost_per_kg,COALESCE((income-cost)/nullif(expected_kg,0),0) margin_per_kg,
-            COALESCE(cost/nullif(hectares,0),0) cost_per_ha,COALESCE((income-cost)/nullif(income,0)*100,0) margin_percentage
+          SELECT r.*,income-"cost" margin,COALESCE(income/nullif(expected_kg,0),0) income_per_kg,
+            COALESCE("cost"/nullif(expected_kg,0),0) cost_per_kg,COALESCE((income-"cost")/nullif(expected_kg,0),0) margin_per_kg,
+            COALESCE("cost"/nullif(hectares,0),0) cost_per_ha,COALESCE((income-"cost")/nullif(income,0)*100,0) margin_percentage
           FROM (SELECT min(l.id) id,b.id budget_id,b.company_id,b.season_id,l.center_id,b.currency_id,
             max(COALESCE(a.hectares,l.hectares,0)) hectares,max(l.expected_kg) expected_kg,
             sum(CASE WHEN g.flow_type='income' THEN l.amount ELSE 0 END) income,
-            sum(CASE WHEN g.flow_type='cost' THEN l.amount ELSE 0 END) cost
+            sum(CASE WHEN g.flow_type='cost' THEN l.amount ELSE 0 END) AS "cost"
           FROM step_management_budget_line l JOIN step_management_operational_budget b ON b.id=l.budget_id
           JOIN step_management_budget_group g ON g.id=l.group_id
           LEFT JOIN step_management_budget_center a ON a.budget_id=b.id AND a.center_id=l.center_id

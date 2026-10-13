@@ -43,6 +43,12 @@ class Provision(models.Model):
 
     _sql_constraints=[('provision_move_unique','unique(move_id)','El asiento ya está asociado a otra provisión.')]
 
+    @api.constrains('clp_currency_id','usd_currency_id')
+    def _check_reporting_currencies(self):
+        for record in self:
+            if record.clp_currency_id!=self.env.ref('base.CLP') or record.usd_currency_id!=self.env.ref('base.USD'):
+                raise ValidationError(_('Las monedas de informe deben ser CLP y USD.'))
+
     @api.depends('line_ids.amount_clp','line_ids.amount_usd')
     def _compute_totals(self):
         for record in self:
@@ -185,11 +191,13 @@ class ProvisionLine(models.Model):
     expense_account_id=fields.Many2one('account.account',string='Cuenta de gasto aplicada',readonly=True,copy=False)
 
     def _check_edit(self):
+        self.provision_id._lock()
         if any(r.provision_id.state!='created' for r in self):raise UserError(_('Los gastos validados quedan conservados.'))
 
     @api.model_create_multi
     def create(self,vals_list):
         parents=self.env['step.export.shipment.provision'].browse([v['provision_id'] for v in vals_list if v.get('provision_id')])
+        parents._lock()
         if any(r.state!='created' for r in parents) or any(set(v).intersection({'amount_company','amount_clp','amount_usd','expense_account_id'}) for v in vals_list):
             raise UserError(_('Ingrese los gastos en una provisión creada.'))
         return super().create(vals_list)
@@ -198,7 +206,9 @@ class ProvisionLine(models.Model):
         if self.env.context.get('_shipment_provision_transition') is not _TRANSITION:
             self._check_edit()
             if set(vals).intersection({'amount_company','amount_clp','amount_usd','expense_account_id'}):raise UserError(_('Use Costear para calcular los importes.'))
-            if vals.get('provision_id') and self.env['step.export.shipment.provision'].browse(vals['provision_id']).state!='created':raise UserError(_('Use una provisión creada.'))
+            if vals.get('provision_id'):
+                target=self.env['step.export.shipment.provision'].browse(vals['provision_id']);target._lock()
+                if target.state!='created':raise UserError(_('Use una provisión creada.'))
         return super().write(vals)
 
     def unlink(self):
