@@ -9,6 +9,11 @@ try:
             'season_account':p.season_id.cost_id.id,'species_account':p.species_id.cost_id.id,
             'shipment_account':p.shipment_id.provision_analytic_account_id.id,
             'line_currencies':p.line_ids.currency_id.mapped('name')},default=str))
+        if 'entry_amount_clp' in p.line_ids._fields:
+            print('PREVIEW',json.dumps({'id':p.id,'total_clp':p.amount_clp,'total_usd':p.amount_usd,
+                'lines':[{'id':line.id,'currency':line.currency_id.name,'amount':line.amount_currency,
+                    'clp':line.entry_amount_clp,'usd':line.entry_amount_usd,'warning':line.exchange_rate_warning}
+                    for line in p.line_ids]},default=str))
     for plan in env['account.analytic.plan'].search([]):
         print('PLAN',plan.id,plan.name,plan.root_id.id)
     print('ACCOUNT_COUNTS', [(p.id,env['account.analytic.account'].search_count([('plan_id','=',p.id)])) for p in env['account.analytic.plan'].search([])])

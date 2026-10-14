@@ -1,4 +1,4 @@
-"""Run a metadata-only client revision inspection via the canonical environment registry."""
+"""Run a read-only client revision inspection via the canonical environment registry."""
 import argparse
 import configparser
 import json
