@@ -15,7 +15,9 @@ class ShippingCase(TransactionCase):
         receiver = env['res.partner'].create({'name':'QA Shipping Receiver','step_export_receiver':True})
         season = env['step.temporada'].create({'name':'QA Shipping Season'})
         species = env['step.especie'].create({'name':'QA Shipping Species','type_especie':'frutal','group_especie':'baya'})
-        variety = env['step.variedad'].create({'name':'QA Shipping Variety','especie_id':species.id})
+        group = env['step.grupo.variedad'].create({'name':'QA Shipping Varieties','especie_id':species.id})
+        variety = env['step.variedad'].create({'name':'QA Shipping Variety','cod_variedad':'QA81',
+            'especie_id':species.id,'grupo_variedad_id':group.id})
         quality = env['step.management.fruit.quality'].create({'name':'QA Shipping Quality','code':'Q81','company_id':company.id})
         product = env['product.product'].create({'name':'QA Shipping Product','is_fruta':True})
         package = env['stock.package.type'].create({'name':'QA Shipping Pallet'})
