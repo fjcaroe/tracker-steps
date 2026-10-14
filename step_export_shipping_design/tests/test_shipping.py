@@ -27,7 +27,7 @@ class ShippingCase(TransactionCase):
         order = env['sale.order'].create({'partner_id':receiver.id,'company_id':company.id,'step_export_sale':True,
             'export_folio':257 if shared else 0, 'order_line':[Command.create({'product_id':product.id,'product_uom_qty':9600,'price_unit':1,
                 'step_export_kg':14400,'step_export_boxes':9600})]})
-        concept = env['step.export.exterior.expense.concept'].create({'name':'QA Shipping Freight','code':'QA81','company_id':company.id})
+        concept = env['step.export.exterior.expense.concept'].create({'name':'QA Shipping Freight','company_id':company.id})
         vals = {'name':'QA Shipping Instruction','company_id':company.id,'sales_program_id':program.id,'season_id':season.id,
             'species_id':species.id,'receiver_id':receiver.id,'booking':'QA BOOKING 81','freight_payment':'collect','temperature':-0.5,
             'ventilation':'15 CBM','thermograph_qty':2,'container_qty':1,'gross_kg':14500,'user_id':env.user.id,
