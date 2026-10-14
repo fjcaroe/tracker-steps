@@ -55,6 +55,9 @@ class ShippingCase(TransactionCase):
         values['journal_id']=journal.id
         invoice=shipment.env['account.move'].create(values)
         self.assertEqual(invoice.export_document_number,'257');self.assertEqual(invoice.name,'/')
+        for report in ('step_sale_export_report.sale_note','step_sale_export_report.proforma'):
+            commercial,_=shipment.env['ir.actions.report']._render_qweb_html(report,order.ids)
+            self.assertIn('257',commercial.decode())
         html,_=shipment.env['ir.actions.report']._render_qweb_html('step_export_shipping_design.instruction',shipment.ids)
         for text in ('QA BOOKING 81','QA Brand','QA Shipping Quality','DOCUMENTACIÓN REQUERIDA','REF'):
             self.assertIn(text,html.decode())
@@ -72,6 +75,7 @@ class ShippingCase(TransactionCase):
         with self.assertRaises(IntegrityError),self.env.cr.savepoint():
             order.copy({'export_folio':257})
         with self.assertRaises(UserError):order.export_folio=258
+        with self.assertRaises(UserError):order.name='258'
         with self.assertRaises(UserError):shipment.shipment_number='258'
         with self.assertRaises(ValidationError):
             order.copy({'export_folio':256})

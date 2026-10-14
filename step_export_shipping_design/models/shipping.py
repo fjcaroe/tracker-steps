@@ -60,6 +60,8 @@ class Order(models.Model):
                 raise ValidationError(_('Ingrese un folio desde el número inicial configurado.'))
 
     def write(self, vals):
+        if 'name' in vals and any(o.export_folio and str(o.export_folio) != vals['name'] for o in self):
+            raise UserError(_('La nota de venta conserva el número de su folio comercial.'))
         if {'export_folio', 'company_id'}.intersection(vals):
             if any(o.export_folio and (o.state in ('sale', 'cancel') or
                     self.env['step.export.export'].search_count([('folio_sale_order_id', '=', o.id)])) for o in self):
