@@ -37,6 +37,11 @@ class Provision(models.Model):
     # even when its distribution is a read-only costing snapshot.
     analytic_precision = fields.Integer(store=False, default=lambda self:
         self.env['decimal.precision'].precision_get('Percentage Analytic'))
+    season_analytic_account_id = fields.Many2one(related='season_id.cost_id', string='Cuenta analítica de temporada', readonly=False)
+    species_analytic_account_id = fields.Many2one(related='species_id.cost_id', string='Cuenta analítica de especie', readonly=False)
+    shipment_analytic_account_id = fields.Many2one(related='shipment_id.provision_analytic_account_id',
+        string='Cuenta analítica de embarque', readonly=False,
+        help='Seleccionar la cuenta existente: guarda la relación en el maestro del embarque.')
     currency_id = fields.Many2one(related='company_id.currency_id')
     clp_currency_id = fields.Many2one('res.currency', default=lambda self:self.env.ref('base.CLP'), required=True)
     usd_currency_id = fields.Many2one('res.currency', default=lambda self:self.env.ref('base.USD'), required=True)
@@ -53,11 +58,11 @@ class Provision(models.Model):
             if record.clp_currency_id!=self.env.ref('base.CLP') or record.usd_currency_id!=self.env.ref('base.USD'):
                 raise ValidationError(_('Las monedas de informe deben ser CLP y USD.'))
 
-    @api.depends('line_ids.amount_clp','line_ids.amount_usd')
+    @api.depends('line_ids.entry_amount_clp','line_ids.entry_amount_usd')
     def _compute_totals(self):
         for record in self:
-            record.amount_clp=sum(record.line_ids.mapped('amount_clp'))
-            record.amount_usd=sum(record.line_ids.mapped('amount_usd'))
+            record.amount_clp=sum(record.line_ids.mapped('entry_amount_clp'))
+            record.amount_usd=sum(record.line_ids.mapped('entry_amount_usd'))
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -78,7 +83,7 @@ class Provision(models.Model):
         if self.env.context.get('_shipment_provision_transition') is not _TRANSITION:
             if {'state','move_id','credit_account_id','analytic_distribution'}.intersection(vals):
                 raise UserError(_('Use las acciones de provisión.'))
-            if set(vals).intersection({'name','company_id','date','season_id','program_id','shipment_id','journal_id','line_ids','clp_currency_id','usd_currency_id'}) and any(r.state!='created' for r in self):
+            if set(vals).intersection({'name','company_id','date','season_id','program_id','shipment_id','journal_id','line_ids','clp_currency_id','usd_currency_id','season_analytic_account_id','species_analytic_account_id','shipment_analytic_account_id'}) and any(r.state!='created' for r in self):
                 raise UserError(_('Los datos validados de la provisión quedan conservados.'))
         return super().write(vals)
 
@@ -109,10 +114,27 @@ class Provision(models.Model):
             record.with_context(_shipment_provision_transition=_TRANSITION).write({'state':'validated'})
         return True
 
+    def action_previous_state(self):
+        self._lock()
+        with self.env.cr.savepoint():
+            for record in self:
+                if record.move_id or record.state not in ('validated','costed'):
+                    raise UserError(_('Puede volver al estado anterior antes de contabilizar. Un asiento publicado requiere su reversión contable.'))
+                target='created' if record.state=='validated' else 'validated'
+                record.line_ids.with_context(_shipment_provision_transition=_TRANSITION).write({
+                    'amount_company':0,'amount_clp':0,'amount_usd':0,'expense_account_id':False})
+                record.with_context(_shipment_provision_transition=_TRANSITION).write({
+                    'state':target,'credit_account_id':False,'analytic_distribution':False})
+        return True
+
     def _get_analytics(self):
         accounts=self.season_id.cost_id | self.species_id.cost_id | self.shipment_id.provision_analytic_account_id
         if not self.season_id.cost_id or not self.species_id.cost_id or not self.shipment_id.provision_analytic_account_id:
-            raise ValidationError(_('Configure las cuentas analíticas de temporada, especie y embarque en sus maestros.'))
+            missing=[]
+            if not self.season_id.cost_id:missing.append(_('temporada'))
+            if not self.species_id.cost_id:missing.append(_('especie'))
+            if not self.shipment_id.provision_analytic_account_id:missing.append(_('embarque'))
+            raise ValidationError(_('Falta vincular la cuenta analítica de: %(missing)s. Revise Cuentas analíticas en la provisión; una cuenta creada también debe estar seleccionada en su maestro.',missing=', '.join(missing)))
         if len(accounts)!=3 or len(accounts.mapped('root_plan_id'))!=3:
             raise ValidationError(_('Temporada, especie y embarque deben tener cuentas de tres planes analíticos distintos.'))
         if any(not a.active or a.company_id and a.company_id!=self.company_id for a in accounts):
@@ -192,7 +214,68 @@ class ProvisionLine(models.Model):
     amount_company=fields.Monetary(currency_field='company_currency_id',readonly=True,copy=False)
     amount_clp=fields.Monetary(string='Monto CLP',currency_field='clp_currency_id',readonly=True,copy=False)
     amount_usd=fields.Monetary(string='Monto USD',currency_field='usd_currency_id',readonly=True,copy=False)
+    entry_amount_clp=fields.Monetary(string='Monto CLP',currency_field='clp_currency_id',
+        compute='_compute_entry_amounts',inverse='_inverse_entry_clp')
+    entry_amount_usd=fields.Monetary(string='Monto USD',currency_field='usd_currency_id',
+        compute='_compute_entry_amounts',inverse='_inverse_entry_usd')
+    exchange_rate_warning=fields.Char(string='Tipo de cambio',compute='_compute_entry_amounts')
     expense_account_id=fields.Many2one('account.account',string='Cuenta de gasto aplicada',readonly=True,copy=False)
+
+    def _preview_conversion(self,target):
+        self.ensure_one()
+        if not target or not self.currency_id or not self.company_id or not self.provision_id.date:
+            return 0,_('Complete moneda, empresa y fecha.')
+        if self.currency_id==target:
+            return self.amount_currency,False
+        for currency in self.currency_id|target:
+            if currency!=self.company_currency_id and not self.env['res.currency.rate'].search_count([
+                ('currency_id','=',currency.id),('name','<=',self.provision_id.date),'|',
+                ('company_id','=',self.company_id.id),('company_id','=',False)]):
+                return 0,_('Sin tasa diaria de %(currency)s para la fecha.',currency=currency.name)
+        return self.currency_id._convert(self.amount_currency,target,self.company_id,self.provision_id.date),False
+
+    @api.depends('amount_currency','currency_id','provision_id.date','provision_id.company_id',
+                 'provision_id.state','amount_clp','amount_usd')
+    def _compute_entry_amounts(self):
+        for line in self:
+            if line.provision_id.state in ('costed','posted'):
+                line.entry_amount_clp=line.amount_clp
+                line.entry_amount_usd=line.amount_usd
+                line.exchange_rate_warning=False
+            else:
+                line.entry_amount_clp,clp_warning=line._preview_conversion(line.clp_currency_id)
+                line.entry_amount_usd,usd_warning=line._preview_conversion(line.usd_currency_id)
+                line.exchange_rate_warning=clp_warning or usd_warning
+
+    def _inverse_entry_clp(self):
+        for line in self:
+            value=line.entry_amount_clp
+            line._check_edit()
+            line.write({'currency_id':line.clp_currency_id.id,'amount_currency':value})
+
+    def _inverse_entry_usd(self):
+        for line in self:
+            value=line.entry_amount_usd
+            line._check_edit()
+            line.write({'currency_id':line.usd_currency_id.id,'amount_currency':value})
+
+    @api.onchange('entry_amount_clp')
+    def _onchange_entry_clp(self):
+        expected,warning=self._preview_conversion(self.clp_currency_id)
+        if self.provision_id.state=='created' and self.clp_currency_id and (warning or
+                not self.clp_currency_id.is_zero(self.entry_amount_clp-expected)):
+            value=self.entry_amount_clp
+            self.currency_id=self.clp_currency_id
+            self.amount_currency=value
+
+    @api.onchange('entry_amount_usd')
+    def _onchange_entry_usd(self):
+        expected,warning=self._preview_conversion(self.usd_currency_id)
+        if self.provision_id.state=='created' and self.usd_currency_id and (warning or
+                not self.usd_currency_id.is_zero(self.entry_amount_usd-expected)):
+            value=self.entry_amount_usd
+            self.currency_id=self.usd_currency_id
+            self.amount_currency=value
 
     def _check_edit(self):
         self.provision_id._lock()

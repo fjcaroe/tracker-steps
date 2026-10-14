@@ -6,6 +6,57 @@ from odoo.tests.common import TransactionCase, new_test_user, tagged
 
 @tagged('post_install', '-at_install')
 class ProvisionCase(TransactionCase):
+    def test_preview_and_manual_clp_usd_before_cost(self):
+        record=self.sample();line=record.line_ids
+        record.shipment_id.provision_analytic_account_id=False
+        self.assertEqual(line.entry_amount_clp,90000)
+        self.assertEqual(line.entry_amount_usd,100)
+        self.assertEqual(record.amount_clp,90000)
+        self.assertFalse(line.exchange_rate_warning)
+        line.entry_amount_clp=180000
+        self.assertEqual(line.currency_id,record.clp_currency_id)
+        self.assertEqual(line.amount_currency,180000)
+        self.assertEqual(line.entry_amount_usd,200)
+        line.entry_amount_usd=50
+        self.assertEqual(line.currency_id,record.usd_currency_id)
+        self.assertEqual(line.amount_currency,50)
+        self.assertEqual(line.entry_amount_clp,45000)
+        record.action_validate()
+        self.assertEqual(record.amount_usd,50)
+
+    def test_back_from_validated_and_costed_recost(self):
+        record=self.sample();shipment_account=record.shipment_analytic_account_id
+        record.shipment_id.provision_analytic_account_id=False
+        record.action_validate()
+        with self.assertRaises(ValidationError):record.action_cost()
+        record.action_previous_state();self.assertEqual(record.state,'created')
+        record.shipment_analytic_account_id=shipment_account
+        self.assertEqual(record.shipment_id.provision_analytic_account_id,shipment_account)
+        record.line_ids.amount_currency=200
+        record.action_validate();record.action_cost()
+        self.assertEqual(record.amount_clp,180000)
+        record.action_previous_state();self.assertEqual(record.state,'validated')
+        self.assertFalse(record.analytic_distribution)
+        self.assertFalse(record.line_ids.expense_account_id)
+        self.assertEqual(record.line_ids.amount_clp,0)
+        self.assertEqual(record.amount_clp,180000)
+        record.action_previous_state();record.line_ids.amount_currency=100
+        record.action_validate();record.action_cost();record.action_account()
+        self.assertEqual(sum(record.move_id.line_ids.mapped('debit')),90000)
+        with self.assertRaises(UserError):record.action_previous_state()
+
+    def test_preview_missing_rate_and_frozen_after_rate_change(self):
+        record=self.sample();line=record.line_ids
+        rate=record.env['res.currency.rate'].search([('company_id','=',record.company_id.id),('currency_id','=',record.usd_currency_id.id)])
+        record.date='1900-01-01'
+        self.assertTrue(line.exchange_rate_warning)
+        record.date='2026-11-02';record.action_validate();record.action_cost()
+        rate.rate=1/1000
+        line.invalidate_recordset(['entry_amount_clp','entry_amount_usd'])
+        self.assertEqual(line.entry_amount_clp,90000)
+        self.assertEqual(line.entry_amount_usd,100)
+        with self.assertRaises(UserError):line.entry_amount_clp=1000
+
     def test_new_form_widget_onchange(self):
         model = self.env['step.export.shipment.provision']
         result = model.onchange({}, [], {

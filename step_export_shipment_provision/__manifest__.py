@@ -1,6 +1,6 @@
 {
     'name': 'Steps - Provisión gastos de embarques',
-    'version': '18.0.1.0.1',
+    'version': '18.0.1.0.2',
     'license': 'LGPL-3',
     'depends': ['step_export', 'l10n_latam_invoice_document'],
     'data': ['security/ir.model.access.csv', 'security/rules.xml', 'views/provision.xml'],

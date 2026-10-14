@@ -26,6 +26,21 @@ try:
         'analytic_distribution': {}, 'analytic_precision': {},
     })
     assert blank['value']['state'] == 'created' and 'analytic_precision' in blank['value']
+    assert all(arch.xpath('.//field[@name="%s"]'%n) for n in ('season_analytic_account_id','species_analytic_account_id','shipment_analytic_account_id','entry_amount_clp','entry_amount_usd'))
+    assert arch.xpath('.//button[@name="action_previous_state"]')
+    assert record.amount_clp==90000 and record.amount_usd==100
+    record.line_ids.entry_amount_clp=180000
+    assert record.line_ids.currency_id==record.clp_currency_id and record.line_ids.amount_currency==180000
+    record.line_ids.entry_amount_usd=100
+    assert record.line_ids.currency_id==record.usd_currency_id and record.line_ids.amount_currency==100
+    account=record.shipment_analytic_account_id
+    record.shipment_id.provision_analytic_account_id=False
+    record.action_validate();record.action_previous_state()
+    assert record.state=='created'
+    record.shipment_analytic_account_id=account
+    record.action_validate();record.action_cost();record.action_previous_state()
+    assert record.state=='validated' and not record.line_ids.expense_account_id
+    record.action_previous_state()
     record.action_validate();record.action_cost();record.action_account()
     assert record.state=='posted' and record.move_id.state=='posted'
     assert abs(sum(record.move_id.line_ids.mapped('debit'))-90000)<1e-6 and abs(sum(record.move_id.line_ids.mapped('balance')))<1e-6
@@ -34,6 +49,6 @@ try:
     for account in record.season_id.cost_id | record.species_id.cost_id | record.shipment_id.provision_analytic_account_id:
         assert analytic[account.root_plan_id._column_name()]==account
     original=record.move_id;record.action_account();assert record.move_id==original
-    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':80,'versions':EXPECTED,'menus':True,'forms':True,'new_form_onchange':True,'posting':True,'balanced':True,'daily_rate':True,'three_analytic_plans':True,'duplicate_prevented':True}))
+    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':82,'versions':EXPECTED,'menus':True,'forms':True,'new_form_onchange':True,'preview_conversion':True,'manual_clp_usd':True,'previous_state':True,'analytic_selector':True,'posting':True,'balanced':True,'daily_rate':True,'three_analytic_plans':True,'duplicate_prevented':True}))
 finally:
     env.cr.rollback()
