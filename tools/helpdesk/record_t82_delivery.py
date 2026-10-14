@@ -10,6 +10,7 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--evidence', type=Path, required=True)
 p.add_argument('--commit', required=True)
 p.add_argument('--last-human-message', type=int, required=True)
+p.add_argument('--complete', action='store_true', help='Require tested and applied analytical relation proofs before closing')
 args = p.parse_args()
 assert re.fullmatch('[0-9a-f]{40}', args.commit)
 required = ('menus', 'forms', 'new_form_onchange', 'preview_conversion',
@@ -26,6 +27,13 @@ for name, db in (('development', 'LAB_TAREAS'), ('cerro', 'CERRO_EL_PLOMO')):
     assert len(rows) == 1
     flow = json.loads(rows[0].split(' ', 1)[1])
     assert flow['ticket'] == 82 and all(flow[key] for key in required)
+    if args.complete:
+        link = json.loads((folder / 'analytics-link.applied.json').read_text(encoding='utf-8'))
+        assert link['spec']['environment'] == name
+        assert link['spec']['dimension'] == ('shipment' if name == 'development' else 'season')
+        assert all(link[k] for k in ('tested', 'costing_checked', 'applied', 'documents_preserved'))
+        assert link['after'] == link['spec']['account_id'] and link['backup'] and link['checked']
+        assert link['version'] == flow['versions']['step_export_shipment_provision']
 
 c = json.loads((Path.home() / '.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
 url = c.get('url', 'https://soporte.stepsapp.cl').rstrip('/')
@@ -36,18 +44,23 @@ s = xmlrpc.client.ServerProxy(url + '/xmlrpc/2/object')
 def rpc(model, method, values, kwargs=None):
     return s.execute_kw(c['db'], uid, c['api_key'], model, method, values, kwargs or {})
 
-marker = 'T82 - correcciones publicadas y verificadas'
+delivery_marker = 'T82 - correcciones publicadas y verificadas'
+completion_marker = 'T82 - relaciones analíticas verificadas y cierre'
+marker = completion_marker if args.complete else delivery_marker
 recent = rpc('mail.message', 'search_read', [[('model', '=', 'helpdesk.ticket'),
     ('res_id', '=', 82), ('message_type', 'in', ['comment', 'email']),
     ('id', '>', args.last_human_message)]], {'fields': ['id', 'body']})
-assert not [m for m in recent if marker not in (m.get('body') or '')], 'Revisar respuestas nuevas antes de actualizar'
+assert not [m for m in recent if not any(label in (m.get('body') or '') for label in (delivery_marker, completion_marker))], 'Revisar respuestas nuevas antes de actualizar'
 ticket = rpc('helpdesk.ticket', 'read', [[82]], {'fields': ['name', 'stage_id']})[0]
-assert ticket['name'].startswith('T82') and ticket['stage_id'][0] in (1, 2, 6)
+assert ticket['name'].startswith('T82') and ticket['stage_id'][0] in (1, 2, 4, 6)
 note = rpc('ir.model.data', 'search_read', [[('module', '=', 'mail'), ('name', '=', 'mt_note')]], {'fields': ['res_id']})[0]['res_id']
 author = rpc('res.users', 'read', [[uid]], {'fields': ['partner_id']})[0]['partner_id'][0]
 body = '<h3>' + html.escape(marker) + '</h3>'
 body += '<p>Publicado en Desarrollo y Cerro El Plomo: cálculo CLP/USD visible antes de costear, ingreso en pesos o dólares con conversión diaria, botón Volver al estado anterior para provisiones validadas o costeadas sin asiento, y selección de las cuentas analíticas existentes desde la provisión. Se conservan los importes costeados y los asientos contabilizados.</p>'
-body += '<p>Las cuentas creadas deben estar vinculadas a sus maestros. La inspección encontró sin relación la cuenta del embarque en Desarrollo y la de temporada en Cerro. Se solicitó identificar las cuentas correctas; no se asignaron por coincidencia de nombre. El ticket sigue en espera de esa definición.</p>'
+if args.complete:
+    body += '<p>Con la identificación confirmada por el usuario, se vincularon las cuentas existentes al embarque de Desarrollo y a la temporada de Cerro El Plomo. La misma configuración pasó primero en copias privadas y luego en cada destino con respaldo. El costeo de las tres provisiones afectadas pasó con las cuentas y tasas reales. Las comprobaciones se revirtieron: los documentos mantienen sus estados, gastos e importes originales y no se contabilizaron automáticamente.</p>'
+else:
+    body += '<p>Las cuentas creadas deben estar vinculadas a sus maestros. La inspección encontró sin relación la cuenta del embarque en Desarrollo y la de temporada en Cerro. Se solicitó identificar las cuentas correctas; no se asignaron por coincidencia de nombre. El ticket sigue en espera de esa definición.</p>'
 body += '<p>Pasaron diez pruebas en cada copia privada y el flujo real de validar, costear, corregir y contabilizar con asiento balanceado y tres planes analíticos en ambos destinos. Publicado el mismo paquete con respaldo, bloqueo compartido y conservación de datos. Las muestras de prueba se descartaron.</p>'
 body += '<p>Paquete ' + html.escape(args.commit) + '. <a href="https://github.com/fjcaroe/tracker-steps/blob/codex/ambientes-canonicos-reparacion/docs/T82_IMPLEMENTACION_2026-10-14.rst">Acta técnica</a>.</p>'
 old = rpc('mail.message', 'search_read', [[('model', '=', 'helpdesk.ticket'), ('res_id', '=', 82), ('body', 'ilike', marker)]], {'fields': ['id']})
@@ -55,6 +68,7 @@ message = old[0]['id'] if old else rpc('mail.message', 'create', [{'model': 'hel
 saved = rpc('mail.message', 'read', [[message]], {'fields': ['subtype_id', 'notification_ids']})[0]
 assert saved['subtype_id'][0] == note and not saved['notification_ids']
 context = {'tracking_disable': True, 'mail_notrack': True, 'mail_create_nosubscribe': True, 'mail_auto_subscribe_no_notify': True}
-rpc('helpdesk.ticket', 'write', [[82], {'stage_id': 6}], {'context': context})
-assert rpc('helpdesk.ticket', 'read', [[82]], {'fields': ['stage_id']})[0]['stage_id'][0] == 6
-print('TICKET_DELIVERY_OK 82 note', message, 'stage=waiting_account_identity notifications=0')
+stage = 4 if args.complete else 6
+rpc('helpdesk.ticket', 'write', [[82], {'stage_id': stage}], {'context': context})
+assert rpc('helpdesk.ticket', 'read', [[82]], {'fields': ['stage_id']})[0]['stage_id'][0] == stage
+print('TICKET_DELIVERY_OK 82 note', message, 'stage=' + str(stage), 'notifications=0')

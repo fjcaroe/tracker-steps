@@ -18,6 +18,16 @@ try:
         print('PLAN',plan.id,plan.name,plan.root_id.id)
     print('ACCOUNT_COUNTS', [(p.id,env['account.analytic.account'].search_count([('plan_id','=',p.id)])) for p in env['account.analytic.plan'].search([])])
     print('RATE_COUNTS',[(c.name,env['res.currency.rate'].search_count([('currency_id','=',c.id)])) for c in env.ref('base.CLP')|env.ref('base.USD')])
+    for p in env['step.export.shipment.provision'].search([],order='id desc',limit=10):
+        journal=p.journal_id
+        print('COST_CONFIGURATION',json.dumps({'provision':p.id,'company':p.company_id.id,
+            'journal':{'id':journal.id,'name':journal.name,'default_account':journal.default_account_id.id},
+            'products':[{'id':line.product_id.id,'name':line.product_id.name,
+                'expense_account':(line.product_id.with_company(p.company_id).property_account_expense_id or
+                    line.product_id.categ_id.with_company(p.company_id).property_account_expense_categ_id).id}
+                for line in p.line_ids]},default=str))
+        print('GENERAL_JOURNALS',[(j.id,j.name,j.default_account_id.id) for j in env['account.journal'].search([('company_id','=',p.company_id.id),('type','=','general')])])
+        print('LIABILITY_ACCOUNTS',[(account.id,account.code,account.name,account.account_type) for account in env['account.account'].with_company(p.company_id).search([('company_ids','in',p.company_id.ids),('deprecated','=',False),('account_type','in',['liability_current','liability_non_current','liability_payable'])])])
     for p in env['step.export.shipment.provision'].search([],order='id desc',limit=1):
         plans=env['account.analytic.plan'].search([('name','in',['Embarque','Project','Proyecto','Temporada'])])
         print('AVAILABLE_ACCOUNTS',[(a.id,a.name,a.plan_id.name,a.company_id.id) for a in env['account.analytic.account'].search([
