@@ -1,13 +1,14 @@
 {
     "name": "Steps - Portada de producto",
-    "summary": "Ecosistema Steps: campo, personas, logística y finanzas",
-    "version": "18.0.2.1.0",
+    "summary": "ERP agrícola en Odoo: campo, personas, logística y finanzas",
+    "version": "18.0.2.4.1",
     "author": "Steps Consulting",
     "category": "Website",
     "license": "LGPL-3",
     "depends": ["website"],
     "data": [
         "views/homepage.xml",
+        "views/solution_pages.xml",
     ],
     "assets": {
         "web.assets_frontend": [

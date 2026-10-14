@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_packing_inspection_sag_list" model="ir.ui.view">
+        <field name="name">step.packing.inspection.sag.list</field>
+        <field name="model">step.packing.inspection.sag</field>
+        <field name="arch" type="xml">
+            <list string="Inspección SAG">
+                    <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_packing_inspection_sag_form" model="ir.ui.view">
+        <field name="name">step.packing.inspection.sag.form</field>
+        <field name="model">step.packing.inspection.sag</field>
+        <field name="arch" type="xml">
+            <form string="Inspección SAG">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="company_id"/>
+                        <field name="sequence"/>
+                        <field name="user_id"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_packing_inspection_sag" model="ir.actions.act_window">
+        <field name="name">Inspección SAG</field>
+        <field name="res_model">step.packing.inspection.sag</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

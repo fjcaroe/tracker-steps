@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_step_producers_root" name="Productores" sequence="62"
+              action="action_step_producers_dashboard"
+              web_icon="step_producers,static/description/icon.png"/>
+    <menuitem id="menu_step_producers_home" name="Inicio" parent="menu_step_producers_root"
+              action="action_step_producers_dashboard" sequence="0"/>
+    <menuitem id="menu_step_producers_registry" name="Productores" parent="menu_step_producers_root"
+              action="action_step_producers_partner" sequence="10"/>
+    <menuitem id="menu_step_producers_fundos" name="Fundos" parent="menu_step_producers_root"
+              action="action_step_producers_fundo" sequence="20"/>
+    <menuitem id="menu_step_producers_estimates" name="Estimaciones" parent="menu_step_producers_root"
+              action="step_export.action_step_export_estimate" sequence="30"/>
+    <menuitem id="menu_step_producers_rates" name="Tarifas" parent="menu_step_producers_root"
+              action="step_export.action_step_export_grower_rate" sequence="40"/>
+    <menuitem id="menu_step_producers_settlements" name="Liquidaciones" parent="menu_step_producers_root"
+              action="step_export.action_export_producer_settlement" sequence="50"/>
+</odoo>

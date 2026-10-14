@@ -1,0 +1,32 @@
+<odoo>
+    <record id="view_export_forecast_list" model="ir.ui.view">
+        <field name="name">step.export.forecast.list</field><field name="model">step.export.forecast</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="season_id"/>
+            <field name="cutoff_week"/><field name="actual_shipped_kg"/>
+            <field name="remaining_kg"/><field name="projected_sales_usd"/>
+            <field name="projected_margin_usd"/></list></field>
+    </record>
+    <record id="view_export_forecast_form" model="ir.ui.view">
+        <field name="name">step.export.forecast.form</field><field name="model">step.export.forecast</field>
+        <field name="arch" type="xml"><form><header>
+            <button name="action_generate" type="object" string="Calcular forecast" class="btn-primary"/>
+        </header><sheet><group><group><field name="name"/><field name="season_id"/>
+            <field name="species_ids" widget="many2many_tags"/><field name="sales_program_ids" widget="many2many_tags"/>
+            <field name="cutoff_week"/><field name="company_id"/><field name="usd_currency_id" invisible="1"/></group>
+            <group><field name="actual_shipped_kg"/><field name="actual_received_kg"/>
+                <field name="actual_sales_usd"/><field name="actual_price_adjustment_usd"/>
+                <field name="actual_purchase_usd"/>
+                <field name="actual_operating_cost_usd"/></group></group>
+            <field name="line_ids" readonly="1"><list><field name="week_start"/>
+                <field name="other_weeks"/><field name="program_kg"/><field name="estimate_purchase_kg"/>
+                <field name="program_sales_usd"/><field name="estimated_purchase_usd"/>
+                <field name="standard_operating_cost_usd"/></list></field>
+            <group><field name="remaining_kg"/><field name="projected_sales_usd"/>
+                <field name="projected_margin_usd"/></group>
+        </sheet><chatter/></form></field>
+    </record>
+    <record id="action_export_forecast" model="ir.actions.act_window">
+        <field name="name">Forecast de exportación</field><field name="res_model">step.export.forecast</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

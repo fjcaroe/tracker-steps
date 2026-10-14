@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_sawmill_impregnation_list" model="ir.ui.view">
+        <field name="name">step.sawmill.impregnation.list</field>
+        <field name="model">step.sawmill.impregnation</field>
+        <field name="arch" type="xml">
+            <list string="Impregnado">
+                <field name="name"/>
+                <field name="process_date"/>
+                <field name="work_order_id"/>
+                <field name="tank"/>
+                <field name="preservative"/>
+                <field name="quantity_m3"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_impregnation_form" model="ir.ui.view">
+        <field name="name">step.sawmill.impregnation.form</field>
+        <field name="model">step.sawmill.impregnation</field>
+        <field name="arch" type="xml">
+            <form string="Impregnado">
+            <header>
+                <button name="action_approve" string="Aprobar" type="object" class="oe_highlight" invisible="state not in ('draft')"/>
+                <button name="action_certify" string="Certificar" type="object" class="oe_highlight" invisible="state not in ('approved')"/>
+                <button name="action_reset" string="Volver a Ingresado" type="object" invisible="state not in ('approved', 'certified')"/>
+                <field name="state" widget="statusbar" statusbar_visible="draft,approved,certified"/>
+            </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group string="Proceso">
+                            <field name="process_date"/>
+                            <field name="work_order_id"/>
+                            <field name="workcenter_id"/>
+                            <field name="operator_id"/>
+                            <field name="tank"/>
+                            <field name="preservative"/>
+                            <field name="wood_category"/>
+                            <field name="product_id"/>
+                            <field name="quantity_m3"/>
+                            <field name="company_id"/>
+                        </group>
+                        <group string="Tiempos">
+                            <field name="date_start"/>
+                            <field name="date_stop"/>
+                            <field name="total_time"/>
+                            <field name="tank_level_initial"/>
+                            <field name="tank_level_final"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Valores objetivo">
+                            <field name="retention_target"/>
+                            <field name="concentration"/>
+                            <field name="absorption_target"/>
+                            <field name="absorption_total_target"/>
+                            <field name="consumption_target"/>
+                        </group>
+                        <group string="Mediciones reales">
+                            <field name="consumption_total_real"/>
+                            <field name="absorption_real"/>
+                            <field name="retention_real"/>
+                            <field name="consumption_real"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Tarjas impregnadas">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="product_id"/>
+                                    <field name="uom_id"/>
+                                    <field name="product_category_id"/>
+                                    <field name="pieces"/>
+                                    <field name="quantity_inches"/>
+                                    <field name="quantity_m3"/>
+                                </list>
+                            </field>
+                        </page>
+
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_step_sawmill_impregnation_search" model="ir.ui.view">
+        <field name="name">step.sawmill.impregnation.search</field>
+        <field name="model">step.sawmill.impregnation</field>
+        <field name="arch" type="xml">
+            <search string="Impregnado">
+                <field name="name"/>
+                <field name="tank"/>
+                <field name="preservative"/>
+                <field name="work_order_id"/>
+            </search>
+        </field>
+    </record>
+    <record id="action_step_sawmill_impregnation" model="ir.actions.act_window">
+        <field name="name">Impregnado</field>
+        <field name="res_model">step.sawmill.impregnation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

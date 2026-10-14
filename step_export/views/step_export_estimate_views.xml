@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_export_estimate_list" model="ir.ui.view">
+        <field name="name">step.export.estimate.list</field>
+        <field name="model">step.export.estimate</field>
+        <field name="arch" type="xml">
+            <list string="Estimación de Cosecha">
+                    <field name="name"/>
+                    <field name="fundo_id"/>
+                    <field name="species_id"/>
+                    <field name="season_id"/>
+                    <field name="stage_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_step_export_estimate_form" model="ir.ui.view">
+        <field name="name">step.export.estimate.form</field>
+        <field name="model">step.export.estimate</field>
+        <field name="arch" type="xml">
+            <form string="Estimación de Cosecha">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="user_id"/>
+                        <field name="company_id"/>
+                        <field name="notes"/>
+                        <field name="date"/>
+                        <field name="date_start"/>
+                        <field name="date_stop"/>
+                        <field name="image"/>
+                        <field name="sequence"/>
+                        <field name="stage_id"/>
+                        <field name="priority"/>
+                        <field name="color"/>
+                        <field name="tag_ids"/>
+                        <field name="fundo_id"/>
+                        <field name="sector_id"/>
+                        <field name="species_id"/>
+                        <field name="variety_group_id"/>
+                        <field name="variety_id"/>
+                        <field name="cost_center_id"/>
+                        <field name="season_id"/>
+                        <field name="approved_by_id"/>
+                        <field name="estimate_version"/>
+                        <field name="yield_kg"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_step_export_estimate" model="ir.actions.act_window">
+        <field name="name">Estimación de Cosecha</field>
+        <field name="res_model">step.export.estimate</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

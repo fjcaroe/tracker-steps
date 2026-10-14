@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="sequence_step_export_sales_program" model="ir.sequence">
+        <field name="name">Programa de Ventas de Exportación</field>
+        <field name="code">step.export.sales.program</field>
+        <field name="prefix">PV/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
+    <record id="sequence_step_export_producer_estimate" model="ir.sequence">
+        <field name="name">Estimación de Productor</field>
+        <field name="code">step.export.estimate</field>
+        <field name="prefix">EP/</field>
+        <field name="padding">5</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

@@ -1,0 +1,48 @@
+<odoo>
+    <record id="action_report_export_packing_list" model="ir.actions.report">
+        <field name="name">Export Packing List</field>
+        <field name="model">step.export.packing.list</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">step_export.report_export_packing_list</field>
+        <field name="report_file">step_export.report_export_packing_list</field>
+        <field name="binding_model_id" ref="model_step_export_packing_list"/>
+        <field name="binding_type">report</field>
+    </record>
+    <template id="report_export_packing_list">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>PACKING LIST</h2>
+                        <table class="table table-sm table-borderless">
+                            <tr><th>Number</th><td><span t-field="doc.name"/></td>
+                                <th>Date</th><td><span t-field="doc.date"/></td></tr>
+                            <tr><th>Shipper</th><td><span t-field="doc.shipment_id.company_id.name"/></td>
+                                <th>Consignee</th><td><span t-field="doc.shipment_id.consignee_id.name"/></td></tr>
+                            <tr><th>Shipment</th><td><span t-field="doc.shipment_id.shipment_number"/></td>
+                                <th>Dispatch guide</th><td><span t-field="doc.guide_id.external_folio"/></td></tr>
+                            <tr><th>Container</th><td><span t-field="doc.container_number"/></td>
+                                <th>Seal</th><td><span t-field="doc.seal_number"/></td></tr>
+                            <tr><th>POL</th><td><span t-field="doc.shipment_id.origin_port"/></td>
+                                <th>POD</th><td><span t-field="doc.shipment_id.destination_port"/></td></tr>
+                        </table>
+                        <table class="table table-sm table-bordered">
+                            <thead><tr><th>Pallet / fruit tag</th><th>Producer</th><th>Species</th>
+                                <th>Variety</th><th>Caliber</th><th>Boxes</th><th>Net kg</th></tr></thead>
+                            <tbody><tr t-foreach="doc.tag_ids" t-as="tag">
+                                <td><span t-field="tag.name"/></td><td><span t-field="tag.owner_id.name"/></td>
+                                <td><span t-field="tag.especie_id.name"/></td><td><span t-field="tag.variedad_id.name"/></td>
+                                <td><span t-field="tag.fruit_caliber_id.name"/></td>
+                                <td class="text-end"><span t-field="tag.box_count"/></td>
+                                <td class="text-end"><span t-field="tag.kilos_total"/></td>
+                            </tr></tbody>
+                            <tfoot><tr><th colspan="5">TOTAL</th>
+                                <th class="text-end"><span t-field="doc.box_qty"/></th>
+                                <th class="text-end"><span t-field="doc.kg_qty"/></th></tr></tfoot>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

@@ -1,0 +1,22 @@
+<odoo>
+    <record id="view_export_packing_list_list" model="ir.ui.view">
+        <field name="name">step.export.packing.list.list</field><field name="model">step.export.packing.list</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="shipment_id"/>
+            <field name="guide_id"/><field name="date"/><field name="container_number"/>
+            <field name="box_qty"/><field name="kg_qty"/></list></field>
+    </record>
+    <record id="view_export_packing_list_form" model="ir.ui.view">
+        <field name="name">step.export.packing.list.form</field><field name="model">step.export.packing.list</field>
+        <field name="arch" type="xml"><form><header>
+            <button name="action_print" type="object" string="Print Packing List" class="btn-primary"/>
+        </header><sheet><group><field name="name"/><field name="shipment_id"/>
+            <field name="guide_id"/><field name="date"/>
+            <field name="container_number"/><field name="seal_number"/>
+            <field name="tag_ids" widget="many2many_tags"/><field name="box_qty"/>
+            <field name="kg_qty"/></group></sheet><chatter/></form></field>
+    </record>
+    <record id="action_export_packing_list" model="ir.actions.act_window">
+        <field name="name">Packing Lists</field><field name="res_model">step.export.packing.list</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

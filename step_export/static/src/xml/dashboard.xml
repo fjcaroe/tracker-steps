@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_export.Dashboard">
+        <main class="o_steps_export_dashboard">
+            <header class="o_export_hero">
+                <div class="o_export_hero__copy">
+                    <span class="o_export_eyebrow">OPERACIÓN COMERCIAL · STEPS AGRO</span>
+                    <h1>Exportaciones</h1>
+                    <p>Del programa de ventas al embarque y la liquidación: una vista para conectar fruta, documentos y resultados.</p>
+                    <div class="o_export_hero__actions">
+                        <button type="button" class="btn btn-light" t-on-click="() => this.openAction('step_export.action_step_export_sales_program')"><i class="fa fa-plus me-2"/> Programa de ventas</button>
+                        <button type="button" class="btn btn-outline-light" t-on-click="() => this.openAction('step_export.action_step_export_export')"><i class="fa fa-ship me-2"/> Ver embarques</button>
+                    </div>
+                </div>
+                <div class="o_export_hero__art" aria-hidden="true">
+                    <div class="o_export_art__orb"><i class="fa fa-globe"/></div>
+                    <div class="o_export_art__box"><i class="fa fa-cube"/><span>DEL CAMPO AL DESTINO</span><i class="fa fa-long-arrow-right"/></div>
+                </div>
+            </header>
+
+            <section class="o_export_section" aria-labelledby="export-overview-title">
+                <div class="o_export_section__heading"><div><span>VISIÓN GENERAL</span><h2 id="export-overview-title">Operación en curso</h2></div><small>Registros visibles para tus empresas activas</small></div>
+                <div class="o_export_metrics">
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_sales_program')"><i class="fa fa-calendar-check-o"/><span>Programas vigentes</span><strong t-esc="count('programs')"/><small>Plan comercial validado <i class="fa fa-arrow-right"/></small></button>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_export')"><i class="fa fa-ship"/><span>Embarques abiertos</span><strong t-esc="count('shipments')"/><small>Hasta su liquidación <i class="fa fa-arrow-right"/></small></button>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_forecast')"><i class="fa fa-line-chart"/><span>Forecast</span><strong t-esc="count('forecasts')"/><small>Proyección comercial <i class="fa fa-arrow-right"/></small></button>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_receiver_settlement')"><i class="fa fa-file-text-o"/><span>Liquidaciones abiertas</span><strong t-esc="count('settlements')"/><small>Recibidores por revisar <i class="fa fa-arrow-right"/></small></button>
+                </div>
+            </section>
+
+            <div class="o_export_columns">
+                <section class="o_export_panel" aria-labelledby="export-flow-title">
+                    <div class="o_export_section__heading"><div><span>TRAZABILIDAD</span><h2 id="export-flow-title">Un flujo, cuatro momentos</h2></div></div>
+                    <div class="o_export_flow">
+                        <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_sales_program')"><b>01</b><i class="fa fa-calendar"/><span><strong>Planificar</strong><small>Programa de ventas, estimaciones y embalaje</small></span><i class="fa fa-arrow-right"/></button>
+                        <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_export')"><b>02</b><i class="fa fa-ship"/><span><strong>Embarcar</strong><small>Tarjas, documentos, carga y Packing List</small></span><i class="fa fa-arrow-right"/></button>
+                        <button type="button" t-on-click="() => this.openAction('step_export.action_export_receivables')"><b>03</b><i class="fa fa-file-text-o"/><span><strong>Cobrar</strong><small>Facturas y cuenta corriente del recibidor</small></span><i class="fa fa-arrow-right"/></button>
+                        <button type="button" t-on-click="() => this.openAction('step_export.action_export_producer_settlement')"><b>04</b><i class="fa fa-balance-scale"/><span><strong>Liquidar</strong><small>Resultado final y pago al productor</small></span><i class="fa fa-arrow-right"/></button>
+                    </div>
+                </section>
+                <aside class="o_export_panel o_export_panel--guide">
+                    <div class="o_export_section__heading"><div><span>ACCESOS RÁPIDOS</span><h2>Seguir trabajando</h2></div></div>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_packaging_program')"><i class="fa fa-cubes"/><span><strong>Programas de embalaje</strong><small>Materiales y valorización</small></span><i class="fa fa-arrow-right"/></button>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_packing_list')"><i class="fa fa-list-alt"/><span><strong>Packing Lists</strong><small>Detalle de la carga exportada</small></span><i class="fa fa-arrow-right"/></button>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_export_receiver_settlement')"><i class="fa fa-globe"/><span><strong>Liquidaciones de recibidor</strong><small>FOB, comisiones y ajustes</small></span><i class="fa fa-arrow-right"/></button>
+                    <button type="button" t-on-click="() => this.openAction('step_export.action_step_export_grower_rate')"><i class="fa fa-money"/><span><strong>Tarifas de productor</strong><small>Valores contractuales por temporada</small></span><i class="fa fa-arrow-right"/></button>
+                    <div class="o_export_tip"><i class="fa fa-info-circle"/><p>Antes de contabilizar, revisa las tarifas contractuales y los parámetros de la empresa en Configuración.</p></div>
+                </aside>
+            </div>
+        </main>
+    </t>
+</templates>

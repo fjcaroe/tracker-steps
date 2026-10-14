@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Mismas etapas que tenian las apps Studio (ticket 34). Editables en
+         Packing Campo > Configuracion > ... (etapa). -->
+    <data noupdate="1">
+        <record id="stage_packing_campo_new" model="step.packing.campo.stage">
+            <field name="name">Nuevo</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="stage_packing_campo_progress" model="step.packing.campo.stage">
+            <field name="name">En progreso</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="stage_packing_campo_done" model="step.packing.campo.stage">
+            <field name="name">Listo</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="stage_packing_reception_new" model="step.packing.reception.stage">
+            <field name="name">Nuevo</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="stage_packing_reception_progress" model="step.packing.reception.stage">
+            <field name="name">En progreso</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="stage_packing_reception_done" model="step.packing.reception.stage">
+            <field name="name">Listo</field>
+            <field name="sequence">30</field>
+        </record>
+    </data>
+</odoo>

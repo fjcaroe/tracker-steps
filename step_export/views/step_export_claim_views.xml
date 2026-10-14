@@ -1,0 +1,20 @@
+<odoo>
+    <record id="view_export_claim_form_t35" model="ir.ui.view">
+        <field name="name">step.export.claim.t35.form</field><field name="model">step.export.customer.claim</field>
+        <field name="inherit_id" ref="view_step_export_customer_claim_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="replace">
+                <header>
+                    <button name="action_accept" type="object" string="Aceptar" class="btn-primary" invisible="state != 'entered'"/>
+                    <button name="action_reject" type="object" string="Rechazar" invisible="state != 'entered'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet><group><field name="name"/><field name="receiver_id"/>
+                    <field name="claim_date"/><field name="claimed_amount_usd"/>
+                    <field name="accepted_amount_usd"/><field name="usd_currency_id" invisible="1"/>
+                    <field name="shipment_ids" widget="many2many_tags"/><field name="tag_ids" widget="many2many_tags"/>
+                    <field name="description"/></group></sheet><chatter/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

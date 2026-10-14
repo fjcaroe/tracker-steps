@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Packing Fruta (ticket 34): datos de fruta en recepciones y despachos. -->
+    <record id="view_picking_form_packing_fruit" model="ir.ui.view">
+        <field name="name">stock.picking.form.step.packing.fruit</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Fruta" name="step_packing_fruit"
+                      invisible="picking_type_code not in ('incoming', 'outgoing')">
+                    <group>
+                        <group string="Origen">
+                            <field name="fruit_fundo_id"/>
+                            <field name="fruit_species_id"/>
+                            <field name="fruit_variety_id"/>
+                            <field name="fruit_category_id"/>
+                            <field name="fruit_class_id"/>
+                            <field name="fruit_type"/>
+                            <field name="fruit_season_id"/>
+                        </group>
+                        <group string="Recepción">
+                            <field name="fruit_lot"/>
+                            <field name="fruit_harvest_date"/>
+                            <field name="fruit_guide_number"/>
+                            <field name="fruit_weighing_type"/>
+                            <field name="fruit_grower_contract"/>
+                        </group>
+                        <group string="Flete">
+                            <field name="fruit_freight_paid"/>
+                            <field name="fruit_carrier_id"/>
+                            <field name="fruit_truck_plate"/>
+                            <field name="fruit_freight_route"/>
+                            <field name="fruit_freight_rate"/>
+                        </group>
+                    </group>
+                    <field name="fruit_tag_line_ids">
+                        <list editable="bottom">
+                            <field name="sequence" widget="handle"/>
+                            <field name="tag_number"/>
+                            <field name="packaging_id"/>
+                            <field name="caliber_id"/>
+                            <field name="category_id"/>
+                            <field name="brand"/>
+                            <field name="quantity" sum="Total embalajes"/>
+                            <field name="kilos" sum="Total kilos"/>
+                            <field name="uom_id"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_picking_search_packing_fruit" model="ir.ui.view">
+        <field name="name">stock.picking.search.step.packing.fruit</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="fruit_fundo_id"/>
+                <field name="fruit_species_id"/>
+                <field name="fruit_lot"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_picking_list_packing_fruit" model="ir.ui.view">
+        <field name="name">stock.picking.list.step.packing.fruit</field>
+        <field name="model">stock.picking</field>
+        <field name="priority">90</field>
+        <field name="arch" type="xml">
+            <list string="Recepción fruta" decoration-muted="state == 'cancel'" decoration-info="state == 'draft'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="fruit_fundo_id"/>
+                <field name="fruit_species_id"/>
+                <field name="fruit_variety_id" optional="show"/>
+                <field name="fruit_lot" optional="show"/>
+                <field name="fruit_harvest_date" optional="show"/>
+                <field name="fruit_guide_number" optional="show"/>
+                <field name="scheduled_date"/>
+                <field name="picking_type_id" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_step_packing_fruit_reception" model="ir.actions.act_window">
+        <field name="name">Recepción fruta</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,kanban,form,calendar,activity</field>
+        <field name="view_id" ref="view_picking_list_packing_fruit"/>
+        <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+        <field name="domain">[('picking_type_code', '=', 'incoming')]</field>
+        <field name="context">{'contact_display': 'partner_address', 'restricted_picking_type_code': 'incoming'}</field>
+    </record>
+
+    <record id="action_step_packing_fruit_dispatch" model="ir.actions.act_window">
+        <field name="name">Despacho</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">list,kanban,form,calendar,activity</field>
+        <field name="view_id" ref="view_picking_list_packing_fruit"/>
+        <field name="search_view_id" ref="stock.view_picking_internal_search"/>
+        <field name="domain">[('picking_type_code', '=', 'outgoing')]</field>
+        <field name="context">{'contact_display': 'partner_address', 'restricted_picking_type_code': 'outgoing'}</field>
+    </record>
+</odoo>

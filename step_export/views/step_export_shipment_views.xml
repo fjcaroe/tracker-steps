@@ -1,0 +1,90 @@
+<odoo>
+    <record id="view_step_export_shipment_form" model="ir.ui.view">
+        <field name="name">step.export.shipment.form</field>
+        <field name="model">step.export.export</field>
+        <field name="inherit_id" ref="view_step_export_export_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="replace">
+                <header>
+                    <button name="action_validate_shipment" type="object" string="Validar instructivo" invisible="state != 'draft'" class="btn-primary"/>
+                    <button name="action_dispatch" type="object" string="Registrar despacho" invisible="state != 'validated'" class="btn-primary"/>
+                    <button name="action_ship" type="object" string="Confirmar embarque" invisible="state != 'dispatched'" class="btn-primary"/>
+                    <button name="action_invoice" type="object" string="Confirmar factura" invisible="state != 'shipped'" class="btn-primary"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,validated,dispatched,shipped,invoiced,settled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/><field name="shipment_number"/>
+                            <field name="sales_program_id" domain="[('state','=','current')]"/>
+                            <field name="transport_type"/><field name="receiver_id" domain="[('step_export_receiver','=',True)]"/>
+                            <field name="season_id"/><field name="species_id"/>
+                            <field name="sale_mode_id"/><field name="incoterm_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/><field name="departure_date"/><field name="arrival_date"/>
+                            <field name="vessel_id"/><field name="carrier_id"/>
+                            <field name="origin_port"/><field name="destination_port"/><field name="destination_country_id"/>
+                            <field name="consignee_id"/><field name="notify_id"/>
+                            <field name="freight_forwarder_id"/><field name="customs_agent_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Resumen de carga">
+                            <field name="line_ids" readonly="state not in ['draft','validated']">
+                                <list editable="bottom"><field name="product_id"/><field name="packaging_id"/>
+                                    <field name="package_type_id"/><field name="variety_id"/><field name="category_id"/>
+                                    <field name="caliber_id"/><field name="label"/><field name="pallet_qty"/>
+                                    <field name="boxes_per_pallet"/><field name="kg_per_box"/>
+                                    <field name="box_qty"/><field name="kg_qty"/></list>
+                            </field>
+                            <group><field name="box_qty"/><field name="kg_qty"/></group>
+                        </page>
+                        <page string="Tarjas y despachos">
+                            <field name="tag_ids" widget="many2many_tags" readonly="state in ['shipped','invoiced','settled']"/>
+                            <field name="dispatch_guide_ids" widget="many2many_tags" readonly="state in ['shipped','invoiced','settled']"/>
+                            <field name="packing_list_ids"/>
+                            <field name="picking_ids" widget="many2many_tags"/>
+                        </page>
+                        <page string="Documentos">
+                            <group><field name="dus_folio"/><field name="bl_folio"/><field name="ivv_folio"/>
+                                <field name="sale_order_ids"/><field name="invoice_ids"/>
+                                <field name="settlement_id"/><field name="claim_ids"/></group>
+                        </page>
+                        <page string="Notas"><field name="notes"/></page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_step_export_shipment_list" model="ir.ui.view">
+        <field name="name">step.export.shipment.list</field><field name="model">step.export.export</field>
+        <field name="inherit_id" ref="view_step_export_export_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="after">
+                <field name="shipment_number"/><field name="sales_program_id"/><field name="receiver_id"/>
+                <field name="kg_qty"/><field name="state"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_export_sale_order_form" model="ir.ui.view">
+        <field name="name">sale.order.export.t35.form</field><field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="step_export_sales_program_id" domain="[('state','=','current')]"/>
+                <field name="step_export_shipment_id" domain="[('state','in',['validated','dispatched','shipped'])]"/>
+            </xpath>
+        </field>
+    </record>
+    <record id="view_export_account_move_form" model="ir.ui.view">
+        <field name="name">account.move.export.t35.form</field><field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_origin']" position="after">
+                <field name="step_export_shipment_id"/><field name="step_export_settlement_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

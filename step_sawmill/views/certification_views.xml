@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_step_sawmill_certification_list" model="ir.ui.view">
+        <field name="name">step.sawmill.certification.list</field>
+        <field name="model">step.sawmill.certification</field>
+        <field name="arch" type="xml">
+            <list string="Certificación">
+                <field name="name"/>
+                <field name="sent_date"/>
+                <field name="laboratory_id"/>
+                <field name="certification_date"/>
+                <field name="retention_result"/>
+                <field name="penetration"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_step_sawmill_certification_form" model="ir.ui.view">
+        <field name="name">step.sawmill.certification.form</field>
+        <field name="model">step.sawmill.certification</field>
+        <field name="arch" type="xml">
+            <form string="Certificación">
+            <header>
+                <button name="action_certify" string="Certificar" type="object" class="oe_highlight" invisible="state not in ('sent')"/>
+                <button name="action_reset" string="Volver a Enviada" type="object" invisible="state not in ('certified')"/>
+                <field name="state" widget="statusbar" statusbar_visible="sent,certified"/>
+            </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group string="Solicitud">
+                            <field name="work_order_id"/>
+                            <field name="impregnation_id"/>
+                            <field name="load_sheet"/>
+                            <field name="sample"/>
+                            <field name="laboratory_id"/>
+                            <field name="sent_date"/>
+                            <field name="company_id"/>
+                        </group>
+                        <group string="Resultado">
+                            <field name="certification_date"/>
+                            <field name="retention_result"/>
+                            <field name="penetration"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Detalle">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="load_sheet"/>
+                                    <field name="preservative"/>
+                                    <field name="impregnation_date"/>
+                                    <field name="product_category"/>
+                                    <field name="product_id"/>
+                                    <field name="thickness"/>
+                                    <field name="width"/>
+                                    <field name="length"/>
+                                    <field name="pieces"/>
+                                    <field name="quantity_inches"/>
+                                    <field name="m3_theoretical"/>
+                                    <field name="m3_real"/>
+                                </list>
+                            </field>
+                        </page>
+
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_step_sawmill_certification_search" model="ir.ui.view">
+        <field name="name">step.sawmill.certification.search</field>
+        <field name="model">step.sawmill.certification</field>
+        <field name="arch" type="xml">
+            <search string="Certificación">
+                <field name="name"/>
+                <field name="load_sheet"/>
+                <field name="sample"/>
+                <field name="laboratory_id"/>
+            </search>
+        </field>
+    </record>
+    <record id="action_step_sawmill_certification" model="ir.actions.act_window">
+        <field name="name">Certificación</field>
+        <field name="res_model">step.sawmill.certification</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

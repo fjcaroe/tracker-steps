@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_step_sawmill" model="ir.module.category">
+        <field name="name">Aserradero</field>
+        <field name="sequence">60</field>
+    </record>
+    <record id="group_sawmill_user" model="res.groups">
+        <field name="name">Aserradero: usuario</field>
+        <field name="category_id" ref="module_category_step_sawmill"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="group_sawmill_manager" model="res.groups">
+        <field name="name">Aserradero: responsable</field>
+        <field name="category_id" ref="module_category_step_sawmill"/>
+        <field name="implied_ids" eval="[(4, ref('group_sawmill_user'))]"/>
+        <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+    </record>
+    <record id="rule_step_sawmill_crew_company" model="ir.rule">
+        <field name="name">step.sawmill.crew: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_crew"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_production_order_company" model="ir.rule">
+        <field name="name">step.sawmill.production.order: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_production_order"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_work_order_company" model="ir.rule">
+        <field name="name">step.sawmill.work.order: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_work_order"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_sawing_company" model="ir.rule">
+        <field name="name">step.sawmill.sawing: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_sawing"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_elaboration_company" model="ir.rule">
+        <field name="name">step.sawmill.elaboration: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_elaboration"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_drying_company" model="ir.rule">
+        <field name="name">step.sawmill.drying: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_drying"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_impregnation_company" model="ir.rule">
+        <field name="name">step.sawmill.impregnation: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_impregnation"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_certification_company" model="ir.rule">
+        <field name="name">step.sawmill.certification: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_certification"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_working_days_company" model="ir.rule">
+        <field name="name">step.sawmill.working.days: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_working_days"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_grade_company" model="ir.rule">
+        <field name="name">step.sawmill.grade: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_grade"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_quality_company" model="ir.rule">
+        <field name="name">step.sawmill.quality: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_quality"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_product_type_company" model="ir.rule">
+        <field name="name">step.sawmill.product.type: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_product_type"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_destination_company" model="ir.rule">
+        <field name="name">step.sawmill.destination: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_destination"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_costing_driver_company" model="ir.rule">
+        <field name="name">step.sawmill.costing.driver: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_costing_driver"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_shift_company" model="ir.rule">
+        <field name="name">step.sawmill.shift: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_shift"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_process_type_company" model="ir.rule">
+        <field name="name">step.sawmill.process.type: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_process_type"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_step_sawmill_process_line_company" model="ir.rule">
+        <field name="name">step.sawmill.process.line: multiempresa</field>
+        <field name="model_id" ref="model_step_sawmill_process_line"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_packing_fruta_batch" name="Traslado lotes" parent="step_packing.menu_packing_fruta_operations"
+              action="stock_picking_batch.stock_picking_batch_action" sequence="30" groups="stock.group_stock_user"/>
+</odoo>
