@@ -35,8 +35,9 @@ try:
             rows.append(env.cr.fetchall())
         return rows
     original = document_snapshot()
-    master.with_context(tracking_disable=True, mail_notrack=True,
-        mail_create_nosubscribe=True, mail_auto_subscribe_no_notify=True).write({field: account.id})
+    if before != account.id:
+        master.with_context(tracking_disable=True, mail_notrack=True,
+            mail_create_nosubscribe=True, mail_auto_subscribe_no_notify=True).write({field: account.id})
     journal_changes = []
     if PARAMS['journal_id']:
         journal = env['account.journal'].browse(PARAMS['journal_id']).exists()

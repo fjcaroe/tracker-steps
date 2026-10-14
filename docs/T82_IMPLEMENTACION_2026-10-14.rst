@@ -34,9 +34,25 @@ Configuración existente
 En Desarrollo las cuentas de temporada y especie estaban vinculadas, pero
 faltaba la cuenta del embarque. En Cerro faltaba la cuenta de temporada. La
 existencia de una cuenta analítica no establece por sí sola esas relaciones.
-Se pidió al usuario identificar las cuentas correctas; la selección queda
-disponible en el formulario. No se modificaron esas relaciones sin identificar
-su destino ni se costeó o contabilizó automáticamente ningún gasto del cliente.
+El usuario confirmó la identidad de ambas cuentas. Se comprobaron primero las
+relaciones en copias privadas, usando cuentas, gastos y tasas del destino.
+En Desarrollo la relación ya estaba elegida al aplicar la comprobación; se
+preservó la provisión que el usuario ya había contabilizado. En Cerro se
+vinculó la cuenta confirmada al maestro original de temporada.
+
+La provisión de Cerro usaba Miscellaneous Operations sin contracuenta, aunque
+existía el diario específico Provisión gastos exportación con su cuenta de
+pasivo configurada. Se corrigió únicamente la selección de diario usando
+Volver al estado anterior, edición y Validar. Conserva identidad, gastos,
+importes de origen y estado Validado. El retorno nativo normaliza a cero los
+campos vacíos de valoración pendiente y actualiza la auditoría de escritura.
+No se alteró el diario genérico ni se crearon cuentas, diarios o asientos.
+
+Las provisiones validadas restantes pasaron el costeo en cada destino real.
+Esos costeos de comprobación se revirtieron; no quedaron contabilizaciones
+automáticas ni cambios en gastos o estados por las pruebas. Las herramientas
+versionadas rechazan relaciones ya elegidas distintas de la solicitada,
+empresas incorrectas y modificaciones inesperadas de documentos.
 
 Paquete y verificación
 ---------------------
@@ -70,5 +86,9 @@ sus estados, gastos ni relaciones pendientes.
 Cerro El Plomo: diez pruebas aprobadas y flujo de destino verificado; respaldo
 en ``/opt/steps_backups/management_cerro_20261014T175235Z``. Ambos destinos
 sirven la versión indicada desde su overlay propio y mantienen el servicio HTTPS.
-El ticket queda en espera de identificar las relaciones analíticas pendientes;
-las correcciones de código están publicadas y verificadas.
+La confirmación del usuario completa las relaciones pendientes. El cierre del
+ticket exige además las pruebas de configuración aplicada en ambos destinos.
+Respaldos previos a la configuración:
+
+* Desarrollo: ``/opt/steps_backups/provision_analytics_development_20261014T194515Z``.
+* Cerro: ``/opt/steps_backups/provision_analytics_cerro_20261014T194712Z``.
