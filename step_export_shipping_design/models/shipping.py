@@ -107,6 +107,7 @@ class Invoice(models.Model):
 
 class Shipment(models.Model):
     _inherit = 'step.export.export'
+    _check_company_auto = True
     freight_payment = fields.Selection(PAYMENT, string='Pago flete')
     booking = fields.Char(string='Booking (reserva)')
     folio_sale_order_id = fields.Many2one('sale.order', string='Nota de venta del folio', check_company=True, copy=False)
@@ -163,18 +164,29 @@ class Shipment(models.Model):
         self.ensure_one()
         return {'sea': 'INSTRUCCIÓN DE EMBARQUE MARÍTIMO', 'air': 'INSTRUCCIÓN DE EMBARQUE AÉREO', 'land': 'INSTRUCCIÓN DE EMBARQUE TERRESTRE'}[self.transport_type]
 
+    @api.constrains('thermograph_qty','container_qty','gross_kg')
+    def _check_shipping_counts(self):
+        if any(min(r.thermograph_qty,r.container_qty,r.gross_kg)<0 for r in self):
+            raise ValidationError(_('Thermos, contenedores y kg brutos no pueden ser negativos.'))
+
 
 class Load(models.Model):
     _inherit = 'step.export.shipment.line'
     quality_id = fields.Many2one('step.management.fruit.quality', string='Calidad')
     label = fields.Char(string='Marca')
 
+    @api.constrains('quality_id','shipment_id')
+    def _check_quality_company(self):
+        if any(r.quality_id.company_id and r.quality_id.company_id != r.shipment_id.company_id for r in self):
+            raise ValidationError(_('La calidad debe pertenecer a la empresa del embarque o ser compartida.'))
+
 
 class Document(models.Model):
     _name = 'step.export.shipping.document'
     _description = 'Seguimiento documental del instructivo'
     _order = 'sequence,id'
-    shipment_id = fields.Many2one('step.export.export', required=True, ondelete='cascade', index=True)
+    _check_company_auto = True
+    shipment_id = fields.Many2one('step.export.export', required=True, ondelete='cascade', index=True, check_company=True)
     company_id = fields.Many2one(related='shipment_id.company_id', store=True)
     sequence = fields.Integer(default=10)
     kind = fields.Selection(DOCUMENTS, string='Documento', required=True)
@@ -196,9 +208,10 @@ class Freight(models.Model):
     _name = 'step.export.shipping.freight'
     _description = 'Desglose de flete del instructivo'
     _order = 'sequence,id'
-    shipment_id = fields.Many2one('step.export.export', required=True, ondelete='cascade', index=True)
+    _check_company_auto = True
+    shipment_id = fields.Many2one('step.export.export', required=True, ondelete='cascade', index=True, check_company=True)
     company_id = fields.Many2one(related='shipment_id.company_id', store=True)
     sequence = fields.Integer(default=10)
-    concept_id = fields.Many2one('step.export.exterior.expense.concept', string='Concepto', required=True)
+    concept_id = fields.Many2one('step.export.exterior.expense.concept', string='Concepto', required=True, check_company=True)
     payment = fields.Selection(PAYMENT, string='Forma de pago', required=True)
     notes = fields.Char(string='Observación')
