@@ -84,12 +84,38 @@ de la versión, formulario, menú y flujo real después de publicar el mismo paq
 La instalación preserva todas las columnas originales de embarques, líneas,
 ventas, documentos contables y empresas, incluida su auditoría.
 
-Estado de comprobación T81
--------------------------
+Comprobación y publicación T81
+-----------------------------
 
-Implementación guardada y en prueba privada de Desarrollo. Pendientes aún la
-revisión visual, la promoción y la comprobación de Cerro. Este estado no es cierre
-del ticket; se completará con los resultados efectivos de la publicación.
+``step_export_shipping_design``: versión ``18.0.1.0.0``.
+Paquete probado y publicado en ambos destinos: commit
+``21a829f2140203ac61f70ec9186283683d39c877``; SHA-256
+``2cde3ac5ce7125562886370fb0df89a01fba9c0c8836197a2603b644e62e664c``.
+
+Pasaron cuatro pruebas en cada copia fresca de destino, sin fallos ni errores:
+folio común y documentos comerciales, numeración independiente y ventas
+ordinarias, unicidad/conservación del folio, y formulario/permisos/aislamiento
+por empresa. La factura borrador mantiene su estado y numeración nativos;
+el vínculo comercial se propaga desde la nota de venta.
+
+La verificación posterior comprobó versiones y archivos efectivos, menú,
+formulario con perfil de ventas, seguimiento, fletes, validación del instructivo,
+origen del folio para Invoice y generación PDF con el convertidor de Odoo en
+ambas bases reales. Se descartaron las muestras. Los snapshots completos de
+columnas originales coincidieron antes/después de instalar en cada destino.
+
+El PDF final se renderizó con Poppler y se inspeccionó visualmente: carta vertical,
+612 × 792 puntos, una página para la muestra completa, sin superposiciones ni
+cortes. Las secciones continúan en la misma hoja cuando hay espacio; tablas
+largas pueden continuar sin una segunda página obligatoria. La herramienta de
+control de navegador no inició; la comprobación de formulario usa su vista
+efectiva y las peticiones/métodos reales de Odoo, sin afirmar inspección del
+navegador.
+
+Respaldos recuperables:
+
+* Desarrollo: ``/opt/steps_backups/management_development_20261014T041020Z``.
+* Cerro: ``/opt/steps_backups/management_cerro_20261014T041450Z``.
 
 Evidencia privada
 -----------------
