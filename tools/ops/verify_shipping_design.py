@@ -13,7 +13,7 @@ try:
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
     fixture=env(context=dict(env.context,chart_template_load=True))
     shipment,order=ShippingCase.sample(SimpleNamespace(env=fixture))
-    user=new_test_user(shipment.env,login='qa-t81-live-operator',groups='stock.group_stock_user,sales_team.group_sale_salesman',company_id=shipment.company_id.id,company_ids=[(6,0,shipment.company_id.ids)])
+    user=new_test_user(shipment.env,login='qa-t81-live-operator',groups='sales_team.group_sale_salesman',company_id=shipment.company_id.id,company_ids=[(6,0,shipment.company_id.ids)])
     record=shipment.with_user(user).with_context(chart_template_load=False)
     assert record.env.ref('step_export.menu_step_export_shipping_instruction').id in record.env['ir.ui.menu']._visible_menu_ids()
     arch=etree.fromstring(record.get_view(view_id=record.env.ref('step_export.view_step_export_export_form').id,view_type='form')['arch'].encode())

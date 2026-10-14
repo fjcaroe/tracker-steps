@@ -1,5 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-document_read,Shipping document read,model_step_export_shipping_document,base.group_user,1,0,0,0
+document_read,Shipping document operator,model_step_export_shipping_document,base.group_user,1,1,1,1
 document_stock,Shipping document stock,model_step_export_shipping_document,stock.group_stock_user,1,1,1,1
-freight_read,Shipping freight read,model_step_export_shipping_freight,base.group_user,1,0,0,0
+freight_read,Shipping freight operator,model_step_export_shipping_freight,base.group_user,1,1,1,1
 freight_stock,Shipping freight stock,model_step_export_shipping_freight,stock.group_stock_user,1,1,1,1

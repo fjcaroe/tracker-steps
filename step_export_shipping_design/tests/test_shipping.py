@@ -24,7 +24,7 @@ class ShippingCase(TransactionCase):
         program = env['step.export.sales.program'].create({'name':'QA Shipping Program','partner_id':receiver.id,'season_id':season.id,
             'species_id':species.id,'product_id':product.id,'package_type_id':package.id,'date_start':'2026-11-02','date_end':'2026-11-16',
             'currency_id':company.currency_id.id,'rate_to_usd':1,'pallets_per_container':20,'boxes_per_pallet':480,'kg_per_box':1.5,
-            'line_ids':[Command.create({'week_start':'2026-11-02','container_qty':1})]})
+            'line_ids':[Command.create({'week_start':'2026-11-02','container_qty':1,'price_per_kg':1})]})
         program.action_validate(); program.action_activate()
         order = env['sale.order'].create({'partner_id':receiver.id,'company_id':company.id,'step_export_sale':True,
             'export_folio':257 if shared else 0, 'order_line':[Command.create({'product_id':product.id,'product_uom_qty':9600,'price_unit':1,
@@ -86,7 +86,7 @@ class ShippingCase(TransactionCase):
 
     def test_company_rules_and_effective_form(self):
         shipment,order=self.sample()
-        user=new_test_user(shipment.env,login='qa-t81-export-operator',groups='stock.group_stock_user,sales_team.group_sale_salesman',company_id=shipment.company_id.id,company_ids=[Command.set(shipment.company_id.ids)])
+        user=new_test_user(shipment.env,login='qa-t81-export-operator',groups='sales_team.group_sale_salesman',company_id=shipment.company_id.id,company_ids=[Command.set(shipment.company_id.ids)])
         record=shipment.with_user(user)
         arch=etree.fromstring(record.get_view(view_id=record.env.ref('step_export.view_step_export_export_form').id,view_type='form')['arch'].encode())
         for name in ('booking','freight_payment','documentation_ids','freight_ids','quality_id','folio_sale_order_id'):
