@@ -1,15 +1,15 @@
 <odoo>
-  <record id="paperformat" model="report.paperformat"><field name="name">Instructivo de embarque carta</field><field name="format">Letter</field><field name="margin_top">12</field><field name="margin_bottom">12</field><field name="margin_left">12</field><field name="margin_right">12</field><field name="dpi">90</field><field name="header_spacing">0</field></record>
+  <record id="paperformat" model="report.paperformat"><field name="name">Instructivo de embarque carta</field><field name="format">Letter</field><field name="orientation">Portrait</field><field name="margin_top">12</field><field name="margin_bottom">12</field><field name="margin_left">12</field><field name="margin_right">12</field><field name="dpi">90</field><field name="header_spacing">0</field></record>
   <record id="instruction_report" model="ir.actions.report"><field name="name">Instructivo de embarque</field><field name="model">step.export.export</field><field name="report_type">qweb-pdf</field><field name="report_name">step_export_shipping_design.instruction</field><field name="binding_model_id" ref="step_export.model_step_export_export"/><field name="paperformat_id" ref="paperformat"/><field name="print_report_name">'Instructivo - %s' % object.shipment_number</field></record>
   <template id="instruction">
     <t t-call="web.html_container"><t t-foreach="docs" t-as="doc"><t t-call="web.basic_layout">
       <style>
-        .shipping {font-family:Arial,sans-serif;font-size:11px;color:#151515;}
+        .shipping {font-family:Arial,sans-serif;font-size:10px;color:#151515;}
         .shipping table {width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 9px;}
-        .shipping td,.shipping th {border:1px solid #b9c9d5;padding:4px;vertical-align:middle;word-wrap:break-word;}
+        .shipping td,.shipping th {border:1px solid #b9c9d5;padding:3px;vertical-align:middle;word-wrap:break-word;}
         .shipping th {background:#edf3f7;text-align:left;font-weight:600;}
         .shipping .section {background:#ed8d18;color:#fff;font-size:12px;font-weight:bold;padding:5px;}
-        .shipping .heading {font-size:16px;font-weight:bold;text-align:center;}
+        .shipping .heading {font-size:15px;font-weight:bold;text-align:center;}
         .shipping .reference {font-size:19px;color:#e7860d;font-weight:bold;text-align:center;}
         .shipping tr {page-break-inside:avoid;}
         .shipping thead {display:table-header-group;}
@@ -28,8 +28,6 @@
         <table><tr><th>FLETE</th><td><span t-field="doc.freight_payment"/></td><th>MODALIDAD DE VENTA</th><td><span t-field="doc.sale_mode_id.name"/></td></tr><tr><th>CLÁUSULA DE VENTA</th><td><span t-field="doc.incoterm_id.name"/></td><th>PUERTO DE EMBARQUE</th><td><span t-field="doc.origin_port_id.name"/></td></tr><tr><th>PUERTO DESTINO</th><td><span t-field="doc.destination_port_id.name"/></td><th>NAVE</th><td><span t-field="doc.vessel_id.name"/></td></tr><tr><th>BOOKING</th><td><span t-field="doc.booking"/></td><th>LÍNEA</th><td><span t-field="doc.carrier_id.name"/></td></tr><tr><th>FECHA ZARPE</th><td><span t-field="doc.departure_date"/></td><th>FECHA LLEGADA</th><td><span t-field="doc.arrival_date"/></td></tr><tr><th>TEMPERATURA °C</th><td><span t-field="doc.temperature"/></td><th>VENTILACIÓN</th><td><span t-field="doc.ventilation"/></td></tr><tr><th>ATMÓSFERA CONTROLADA</th><td><span t-field="doc.controlled_atmosphere"/></td><th>FILTROS</th><td><span t-field="doc.filters"/></td></tr><tr><th>THERMOS</th><td><span t-field="doc.thermograph_qty"/></td><th>CONTENEDOR</th><td><span t-field="doc.container_reference"/></td></tr></table>
         <table><tr><th>TRANSPORTE A PUERTO</th><td><span t-field="doc.port_transport_id.name"/></td><th>FECHA Y HORA CARGA</th><td><span t-field="doc.loading_datetime"/></td></tr><tr><th>PACKING</th><td><span t-field="doc.packing_partner_id.name"/></td><th>CONTACTO TELÉFONO</th><td><span t-field="doc.counterpart_id.name"/><br/><span t-field="doc.counterpart_phone"/></td></tr><tr><th>CONSOLIDACIÓN</th><td><span t-field="doc.consolidation"/></td><th>AGENCIA DE ADUANA</th><td><span t-field="doc.customs_agent_id.name"/></td></tr><tr><th>STAKING</th><td><span t-field="doc.staking"/></td><th>OPERADOR LOGÍSTICO</th><td><span t-field="doc.logistics_operator_id.name"/></td></tr></table>
         <div class="section">OBSERVACIONES</div><div class="observations" t-field="doc.notes"/>
-      </div>
-      <div class="page shipping">
         <table><tr><td class="heading">FLETES Y DOCUMENTACIÓN</td><td style="width:25%" class="reference">REF <span t-field="doc.shipment_number"/></td></tr></table>
         <div class="section">DESGLOSE FLETE</div>
         <table><thead><tr><th style="width:68%">Concepto</th><th>Forma de pago</th></tr></thead><tbody><tr t-foreach="doc.freight_ids" t-as="freight"><td><strong t-field="freight.concept_id.name"/><br/><span t-field="freight.notes"/></td><td t-att-class="'collect' if freight.payment == 'collect' else ''"><span t-field="freight.payment"/></td></tr><tr t-if="not doc.freight_ids"><td colspan="2">Sin desglose registrado</td></tr></tbody></table>
