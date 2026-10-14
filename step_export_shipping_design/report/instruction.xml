@@ -1,0 +1,43 @@
+<odoo>
+  <record id="paperformat" model="report.paperformat"><field name="name">Instructivo de embarque carta</field><field name="format">Letter</field><field name="margin_top">12</field><field name="margin_bottom">12</field><field name="margin_left">12</field><field name="margin_right">12</field><field name="dpi">90</field><field name="header_spacing">0</field></record>
+  <record id="instruction_report" model="ir.actions.report"><field name="name">Instructivo de embarque</field><field name="model">step.export.export</field><field name="report_type">qweb-pdf</field><field name="report_name">step_export_shipping_design.instruction</field><field name="binding_model_id" ref="step_export.model_step_export_export"/><field name="paperformat_id" ref="paperformat"/><field name="print_report_name">'Instructivo - %s' % object.shipment_number</field></record>
+  <template id="instruction">
+    <t t-call="web.html_container"><t t-foreach="docs" t-as="doc"><t t-call="web.basic_layout">
+      <style>
+        .shipping {font-family:Arial,sans-serif;font-size:11px;color:#151515;}
+        .shipping table {width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 9px;}
+        .shipping td,.shipping th {border:1px solid #b9c9d5;padding:4px;vertical-align:middle;word-wrap:break-word;}
+        .shipping th {background:#edf3f7;text-align:left;font-weight:600;}
+        .shipping .section {background:#ed8d18;color:#fff;font-size:12px;font-weight:bold;padding:5px;}
+        .shipping .heading {font-size:16px;font-weight:bold;text-align:center;}
+        .shipping .reference {font-size:19px;color:#e7860d;font-weight:bold;text-align:center;}
+        .shipping tr {page-break-inside:avoid;}
+        .shipping thead {display:table-header-group;}
+        .shipping .collect {background:#ffe2e2;text-align:center;}
+        .shipping .observations {background:#fff9e8;padding:7px;}
+      </style>
+      <div class="page shipping">
+        <table><tr><td style="width:17%;text-align:center"><img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" style="max-height:65px;max-width:100px"/></td><td class="heading" style="width:62%"><span t-out="doc._instruction_title()"/></td><td class="reference">REF<br/><span t-field="doc.shipment_number"/></td></tr></table>
+        <div class="section">DATOS PRINCIPALES</div>
+        <table><tr><th>EXPORTADOR</th><td colspan="3"><strong t-field="doc.company_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.company_id.partner_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>RUT</th><td t-field="doc.company_id.vat"/><th>E MAIL</th><td t-field="doc.company_id.email"/></tr><tr><th>TELÉFONO</th><td colspan="3" t-field="doc.company_id.phone"/></tr></table>
+        <table><tr><th>CONSIGNATARIO</th><td colspan="3" t-field="doc.consignee_id.name"/></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.consignee_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>MAIL</th><td colspan="3" t-field="doc.consignee_id.email"/></tr><tr><th>NOTIFY</th><td colspan="3" t-field="doc.notify_id.name"/></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.notify_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>MAIL</th><td colspan="3" t-field="doc.notify_id.email"/></tr></table>
+        <div class="section">DETALLES DEL PRODUCTO Y CARGA</div>
+        <table><thead><tr><th>Producto y envase</th><th>Variedad y marca</th><th>Calibre y calidad</th><th>Pallets y cajas</th><th>Kg netos</th></tr></thead><tbody><tr t-foreach="doc.line_ids" t-as="line"><td><span t-field="line.product_id.display_name"/><br/><span t-field="line.packaging_id.name"/></td><td><span t-field="line.variety_id.name"/><br/><span t-field="line.label"/></td><td><span t-field="line.caliber_id.name"/><br/><span t-field="line.quality_id.name"/></td><td><span t-field="line.pallet_qty"/> pallets<br/><span t-field="line.box_qty"/> cajas</td><td t-field="line.kg_qty"/></tr></tbody></table>
+        <table><tr><th>CONTENEDORES</th><td t-field="doc.container_qty"/><th>KG BRUTOS</th><td t-field="doc.gross_kg"/></tr><tr><th>CAJAS</th><td t-field="doc.box_qty"/><th>KG NETOS</th><td t-field="doc.kg_qty"/></tr></table>
+        <div class="section">INFORMACIÓN DE TRANSPORTE Y EMBARQUE</div>
+        <table><tr><th>FLETE</th><td t-field="doc.freight_payment"/><th>MODALIDAD DE VENTA</th><td t-field="doc.sale_mode_id.name"/></tr><tr><th>CLÁUSULA DE VENTA</th><td t-field="doc.incoterm_id.name"/><th>PUERTO DE EMBARQUE</th><td t-field="doc.origin_port_id.name"/></tr><tr><th>PUERTO DESTINO</th><td t-field="doc.destination_port_id.name"/><th>NAVE</th><td t-field="doc.vessel_id.name"/></tr><tr><th>BOOKING</th><td t-field="doc.booking"/><th>LÍNEA</th><td t-field="doc.carrier_id.name"/></tr><tr><th>FECHA ZARPE</th><td t-field="doc.departure_date"/><th>FECHA LLEGADA</th><td t-field="doc.arrival_date"/></tr><tr><th>TEMPERATURA °C</th><td t-field="doc.temperature"/><th>VENTILACIÓN</th><td t-field="doc.ventilation"/></tr><tr><th>ATMÓSFERA CONTROLADA</th><td t-field="doc.controlled_atmosphere"/><th>FILTROS</th><td t-field="doc.filters"/></tr><tr><th>THERMOS</th><td t-field="doc.thermograph_qty"/><th>CONTENEDOR</th><td t-field="doc.container_reference"/></tr></table>
+        <table><tr><th>TRANSPORTE A PUERTO</th><td t-field="doc.port_transport_id.name"/><th>FECHA Y HORA CARGA</th><td t-field="doc.loading_datetime"/></tr><tr><th>PACKING</th><td t-field="doc.packing_partner_id.name"/><th>CONTACTO TELÉFONO</th><td><span t-field="doc.counterpart_id.name"/><br/><span t-field="doc.counterpart_phone"/></td></tr><tr><th>CONSOLIDACIÓN</th><td t-field="doc.consolidation"/><th>AGENCIA DE ADUANA</th><td t-field="doc.customs_agent_id.name"/></tr><tr><th>STAKING</th><td t-field="doc.staking"/><th>OPERADOR LOGÍSTICO</th><td t-field="doc.logistics_operator_id.name"/></tr></table>
+        <div class="section">OBSERVACIONES</div><div class="observations" t-field="doc.notes"/>
+      </div>
+      <div class="page shipping">
+        <table><tr><td class="heading">FLETES Y DOCUMENTACIÓN</td><td style="width:25%" class="reference">REF <span t-field="doc.shipment_number"/></td></tr></table>
+        <div class="section">DESGLOSE FLETE</div>
+        <table><thead><tr><th style="width:68%">Concepto</th><th>Forma de pago</th></tr></thead><tbody><tr t-foreach="doc.freight_ids" t-as="freight"><td><strong t-field="freight.concept_id.name"/><br/><span t-field="freight.notes"/></td><td t-att-class="'collect' if freight.payment == 'collect' else ''"><span t-field="freight.payment"/></td></tr><tr t-if="not doc.freight_ids"><td colspan="2">Sin desglose registrado</td></tr></tbody></table>
+        <div class="section">DOCUMENTACIÓN REQUERIDA</div>
+        <table><thead><tr><th style="width:30%">Documento</th><th>Originales y copias e instrucciones</th><th style="width:18%">Estado</th></tr></thead><tbody><tr t-foreach="doc.documentation_ids" t-as="item"><td t-field="item.kind"/><td><span t-field="item.originals"/> originales y <span t-field="item.copies"/> copias<br/><span t-field="item.instructions"/></td><td><span t-field="item.status"/><br/><span t-field="item.date"/></td></tr></tbody></table>
+        <p>ATTE<br/><span t-field="doc.user_id.name"/></p>
+      </div>
+    </t></t></t>
+  </template>
+  <template id="invoice_commercial_number" inherit_id="account.report_invoice_document"><xpath expr="//div[@id='informations']" position="inside"><div t-if="o.export_folio_sale_order_id" class="col"><strong>Folio comercial</strong><div t-field="o.export_document_number"/></div></xpath></template>
+</odoo>
