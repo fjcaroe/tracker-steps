@@ -252,12 +252,18 @@ class ProvisionLine(models.Model):
             value=line.entry_amount_clp
             line._check_edit()
             line.write({'currency_id':line.clp_currency_id.id,'amount_currency':value})
+            # Fields sharing the compute are protected during an inverse;
+            # discard their old preview after changing the source currency.
+            line.invalidate_recordset(['entry_amount_clp','entry_amount_usd','exchange_rate_warning'],flush=False)
+            line.provision_id.invalidate_recordset(['amount_clp','amount_usd'],flush=False)
 
     def _inverse_entry_usd(self):
         for line in self:
             value=line.entry_amount_usd
             line._check_edit()
             line.write({'currency_id':line.usd_currency_id.id,'amount_currency':value})
+            line.invalidate_recordset(['entry_amount_clp','entry_amount_usd','exchange_rate_warning'],flush=False)
+            line.provision_id.invalidate_recordset(['amount_clp','amount_usd'],flush=False)
 
     @api.onchange('entry_amount_clp')
     def _onchange_entry_clp(self):
