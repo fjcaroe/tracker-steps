@@ -4,6 +4,8 @@ from odoo.exceptions import UserError, ValidationError
 PAYMENT = [('collect', 'Collete'), ('prepaid', 'Prepago')]
 DOCUMENTS = [('dus', 'D.U.S. 2do envío'), ('bl', 'Conocimiento de embarque'),
              ('phyto', 'Certificado fitosanitario'), ('origin', 'Certificado de origen'), ('bill', 'Bill of Lading')]
+DOCUMENT_REQUIREMENTS = [('dus',5,0,''), ('bl',3,8,''), ('phyto',1,3,''), ('origin',1,3,''),
+    ('bill',0,0,'SWB emisión en origen. Cambio a SWB emisión en destino con previa confirmación shipper.')]
 
 
 class Company(models.Model):
@@ -142,7 +144,8 @@ class Shipment(models.Model):
                 vals['shipment_number'] = str(source.export_folio)
             elif source:
                 vals['shipment_number'] = str(source.export_folio)
-            vals.setdefault('documentation_ids', [Command.create({'kind': key}) for key, name in DOCUMENTS])
+            vals.setdefault('documentation_ids', [Command.create({'kind': key,'originals': originals,
+                'copies': copies,'instructions': instructions}) for key,originals,copies,instructions in DOCUMENT_REQUIREMENTS])
         return super().create(vals_list)
 
     @api.constrains('folio_sale_order_id', 'shipment_number', 'receiver_id', 'company_id')

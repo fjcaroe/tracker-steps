@@ -34,7 +34,7 @@
         <div class="section">DESGLOSE FLETE</div>
         <table><thead><tr><th style="width:68%">Concepto</th><th>Forma de pago</th></tr></thead><tbody><tr t-foreach="doc.freight_ids" t-as="freight"><td><strong t-field="freight.concept_id.name"/><br/><span t-field="freight.notes"/></td><td t-att-class="'collect' if freight.payment == 'collect' else ''"><span t-field="freight.payment"/></td></tr><tr t-if="not doc.freight_ids"><td colspan="2">Sin desglose registrado</td></tr></tbody></table>
         <div class="section">DOCUMENTACIÓN REQUERIDA</div>
-        <table><thead><tr><th style="width:30%">Documento</th><th>Originales y copias e instrucciones</th><th style="width:18%">Estado</th></tr></thead><tbody><tr t-foreach="doc.documentation_ids" t-as="item"><td t-field="item.kind"/><td><span t-field="item.originals"/> originales y <span t-field="item.copies"/> copias<br/><span t-field="item.instructions"/></td><td><span t-field="item.status"/><br/><span t-field="item.date"/></td></tr></tbody></table>
+        <table><thead><tr><th style="width:30%">Documento</th><th>Originales y copias e instrucciones</th><th style="width:18%">Estado</th></tr></thead><tbody><tr t-foreach="doc.documentation_ids" t-as="item"><td t-field="item.kind"/><td><t t-if="item.originals or item.copies"><span t-field="item.originals"/> originales y <span t-field="item.copies"/> copias<br/></t><span t-field="item.instructions"/></td><td><span t-field="item.status"/><br/><span t-field="item.date"/></td></tr></tbody></table>
         <p>ATTE<br/><span t-field="doc.user_id.name"/></p>
       </div>
     </t></t></t>

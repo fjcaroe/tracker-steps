@@ -3,6 +3,7 @@ from psycopg2 import IntegrityError
 from odoo import Command
 from odoo.exceptions import UserError, ValidationError, AccessError
 from odoo.tests.common import TransactionCase, tagged, new_test_user
+from odoo.tools import mute_logger
 
 
 @tagged('post_install', '-at_install')
@@ -65,6 +66,7 @@ class ShippingCase(TransactionCase):
         second=order.copy();self.assertFalse(second.export_folio)
         self.assertEqual(order.company_id.export_folio_mode,'document')
 
+    @mute_logger('odoo.sql_db')
     def test_folio_unique_and_frozen(self):
         shipment,order=self.sample()
         with self.assertRaises(IntegrityError),self.env.cr.savepoint():
