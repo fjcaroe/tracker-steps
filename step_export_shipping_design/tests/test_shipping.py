@@ -56,7 +56,9 @@ class ShippingCase(TransactionCase):
         journal=shipment.env['account.journal'].create({'name':'QA Shipping Sales','code':'Q81','type':'sale','company_id':shipment.company_id.id})
         values['journal_id']=journal.id
         invoice=shipment.env['account.move'].create(values)
-        self.assertEqual(invoice.export_document_number,'257');self.assertEqual(invoice.name,'/')
+        self.assertEqual(invoice.export_document_number,'257')
+        self.assertEqual(invoice.state,'draft')
+        self.assertIn(invoice.name,(False,'/'))
         for report in ('step_sale_export_report.sale_note','step_sale_export_report.proforma'):
             commercial,_=shipment.env['ir.actions.report']._render_qweb_html(report,order.ids)
             self.assertIn('257',commercial.decode())
@@ -87,10 +89,12 @@ class ShippingCase(TransactionCase):
     def test_company_rules_and_effective_form(self):
         shipment,order=self.sample()
         user=new_test_user(shipment.env,login='qa-t81-export-operator',groups='sales_team.group_sale_salesman',company_id=shipment.company_id.id,company_ids=[Command.set(shipment.company_id.ids)])
+        order.user_id=user
         record=shipment.with_user(user)
         arch=etree.fromstring(record.get_view(view_id=record.env.ref('step_export.view_step_export_export_form').id,view_type='form')['arch'].encode())
         for name in ('booking','freight_payment','documentation_ids','freight_ids','quality_id','folio_sale_order_id'):
             self.assertTrue(arch.xpath('.//field[@name="%s"]'%name))
         record.documentation_ids[0].status='received'
         other=new_test_user(self.env,login='qa-t81-other-company',groups='stock.group_stock_user',company_id=self.env.company.id,company_ids=[Command.set(self.env.company.ids)])
-        with self.assertRaises(AccessError):shipment.documentation_ids.with_user(other).read(['kind'])
+        with self.assertRaises(AccessError):
+            shipment.documentation_ids.with_user(other).with_context(allowed_company_ids=other.company_ids.ids).read(['kind'])

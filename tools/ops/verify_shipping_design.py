@@ -14,12 +14,13 @@ try:
     fixture=env(context=dict(env.context,chart_template_load=True))
     shipment,order=ShippingCase.sample(SimpleNamespace(env=fixture))
     user=new_test_user(shipment.env,login='qa-t81-live-operator',groups='sales_team.group_sale_salesman',company_id=shipment.company_id.id,company_ids=[(6,0,shipment.company_id.ids)])
+    order.user_id=user
     record=shipment.with_user(user).with_context(chart_template_load=False)
     assert record.env.ref('step_export.menu_step_export_shipping_instruction').id in record.env['ir.ui.menu']._visible_menu_ids()
     arch=etree.fromstring(record.get_view(view_id=record.env.ref('step_export.view_step_export_export_form').id,view_type='form')['arch'].encode())
     assert all(arch.xpath('.//field[@name="%s"]'%n) for n in ('booking','freight_payment','documentation_ids','freight_ids','quality_id','folio_sale_order_id'))
     assert record.shipment_number==order.export_document_number=='257'
-    assert order._prepare_invoice()['export_folio_sale_order_id']==order.id
+    assert order.with_user(user)._prepare_invoice()['export_folio_sale_order_id']==order.id
     record.documentation_ids[0].write({'originals':5,'status':'sent','date':'2026-11-13'})
     record.action_validate_shipment(); assert record.state=='validated'
     reports=record.env['ir.actions.report']
