@@ -1,9 +1,10 @@
 from lxml import etree
 from odoo import Command
 from odoo.exceptions import UserError, ValidationError
-from odoo.tests.common import TransactionCase, new_test_user
+from odoo.tests.common import TransactionCase, new_test_user, tagged
 
 
+@tagged('post_install', '-at_install')
 class ProvisionCase(TransactionCase):
     def test_new_form_widget_onchange(self):
         model = self.env['step.export.shipment.provision']
