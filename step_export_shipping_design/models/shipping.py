@@ -167,7 +167,7 @@ class Shipment(models.Model):
 
     def _instruction_title(self):
         self.ensure_one()
-        return {'sea': 'INSTRUCCIÓN DE EMBARQUE MARÍTIMO', 'air': 'INSTRUCCIÓN DE EMBARQUE AÉREO', 'land': 'INSTRUCCIÓN DE EMBARQUE TERRESTRE'}[self.transport_type]
+        return {'sea': 'INSTRUCCIÓN DE EMBARQUE MARÍTIMO', 'air': 'INSTRUCCIÓN DE EMBARQUE AÉREO', 'land': 'INSTRUCCIÓN DE EMBARQUE TERRESTRE'}.get(self.transport_type, 'INSTRUCCIÓN DE EMBARQUE')
 
     @api.constrains('thermograph_qty','container_qty','gross_kg')
     def _check_shipping_counts(self):
