@@ -33,6 +33,10 @@ class Provision(models.Model):
     journal_id = fields.Many2one('account.journal', string='Diario de provisión', required=True, check_company=True, domain="[('type','=','general'),('company_id','=',company_id)]")
     credit_account_id = fields.Many2one('account.account', string='Cuenta de provisión aplicada', readonly=True, copy=False)
     analytic_distribution = fields.Json(string='Distribución analítica aplicada', readonly=True, copy=False)
+    # Native analytic_distribution widget adds this field to the first onchange
+    # even when its distribution is a read-only costing snapshot.
+    analytic_precision = fields.Integer(store=False, default=lambda self:
+        self.env['decimal.precision'].precision_get('Percentage Analytic'))
     currency_id = fields.Many2one(related='company_id.currency_id')
     clp_currency_id = fields.Many2one('res.currency', default=lambda self:self.env.ref('base.CLP'), required=True)
     usd_currency_id = fields.Many2one('res.currency', default=lambda self:self.env.ref('base.USD'), required=True)

@@ -5,6 +5,15 @@ from odoo.tests.common import TransactionCase, new_test_user
 
 
 class ProvisionCase(TransactionCase):
+    def test_new_form_widget_onchange(self):
+        model = self.env['step.export.shipment.provision']
+        result = model.onchange({}, [], {
+            'company_id': {}, 'state': {}, 'date': {},
+            'analytic_distribution': {}, 'analytic_precision': {},
+        })
+        self.assertIn('analytic_precision', result['value'])
+        self.assertEqual(result['value']['state'], 'created')
+
     def sample(self):
         clp=self.env.ref('base.CLP');usd=self.env.ref('base.USD')
         company=self.env['res.company'].create({'name':'QA T79 company','currency_id':clp.id,'country_id':self.env.ref('base.cl').id})

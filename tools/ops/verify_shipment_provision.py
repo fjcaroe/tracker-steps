@@ -21,6 +21,11 @@ try:
     assert record.env.ref('step_export_shipment_provision.provision_menu').id in record.env['ir.ui.menu']._visible_menu_ids()
     arch=etree.fromstring(record.get_view(view_id=record.env.ref('step_export_shipment_provision.provision_form').id,view_type='form')['arch'].encode())
     assert all(arch.xpath('.//field[@name="%s"]'%n) for n in ('season_id','program_id','shipment_id','journal_id','move_id'))
+    blank = record.env['step.export.shipment.provision'].onchange({}, [], {
+        'company_id': {}, 'state': {}, 'date': {},
+        'analytic_distribution': {}, 'analytic_precision': {},
+    })
+    assert blank['value']['state'] == 'created' and 'analytic_precision' in blank['value']
     record.action_validate();record.action_cost();record.action_account()
     assert record.state=='posted' and record.move_id.state=='posted'
     assert abs(sum(record.move_id.line_ids.mapped('debit'))-90000)<1e-6 and abs(sum(record.move_id.line_ids.mapped('balance')))<1e-6
@@ -29,6 +34,6 @@ try:
     for account in record.season_id.cost_id | record.species_id.cost_id | record.shipment_id.provision_analytic_account_id:
         assert analytic[account.root_plan_id._column_name()]==account
     original=record.move_id;record.action_account();assert record.move_id==original
-    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':79,'versions':EXPECTED,'menus':True,'forms':True,'posting':True,'balanced':True,'daily_rate':True,'three_analytic_plans':True,'duplicate_prevented':True}))
+    print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':80,'versions':EXPECTED,'menus':True,'forms':True,'new_form_onchange':True,'posting':True,'balanced':True,'daily_rate':True,'three_analytic_plans':True,'duplicate_prevented':True}))
 finally:
     env.cr.rollback()
