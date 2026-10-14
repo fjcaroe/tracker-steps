@@ -124,3 +124,17 @@ Adjuntos, capturas, paquetes, logs y pruebas quedan fuera del checkout en
 ``~/.codex/local-artifacts/ticket-80`` y ``ticket-81``. Los paquetes se construyen
 desde blobs Git comprometidos. El publicador exige SHA, respaldo, baseline
 sin cambios concurrentes, bloqueo compartido y ausencia de downgrade.
+
+Cierre y coexistencia
+--------------------
+
+Después de instalar T81 se repitió la verificación completa de T80 en las dos
+bases reales: Nuevo, formulario, menú, validación, costeo, asiento balanceado,
+tres planes y prevención de duplicados siguieron pasando. Ambas versiones
+conviven en overlays privados sin sustituir raíces compartidas.
+
+T80 y T81 quedaron en Solved, con notas internas 9416 y 9417 respectivamente,
+sin destinatarios ni notificaciones. El cierre exigió evidencia del paquete
+exacto, QA, publicación y flujo en cada destino; T81 exigió también la revisión
+visual del PDF. Se revisaron respuestas recientes de tickets abiertos y cerrados
+antes del cierre. No había más tickets nuevos después del 81.
