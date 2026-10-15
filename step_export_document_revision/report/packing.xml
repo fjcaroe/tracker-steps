@@ -1,0 +1,34 @@
+<odoo>
+    <record id="packing_paper" model="report.paperformat">
+        <field name="name">Packing List Letter Landscape</field><field name="format">Letter</field><field name="orientation">Landscape</field>
+        <field name="margin_top">10</field><field name="margin_bottom">10</field><field name="margin_left">10</field><field name="margin_right">10</field><field name="dpi">90</field>
+    </record>
+    <record id="step_export.action_report_export_packing_list" model="ir.actions.report"><field name="paperformat_id" ref="packing_paper"/></record>
+    <template id="packing_document" inherit_id="step_export.report_export_packing_list">
+        <xpath expr="//t[@t-call='web.external_layout']" position="replace">
+            <t t-call="web.basic_layout"><div class="page packing_document">
+                <style>
+                    .packing_document {font-family:Arial,sans-serif;font-size:10px;color:#111;}
+                    .packing_document table {width:100%;border-collapse:collapse;table-layout:fixed;}
+                    .packing_document th,.packing_document td {border:1px solid #777;padding:4px;overflow-wrap:break-word;}
+                    .packing_document th {font-weight:bold;background:#eee;}
+                    .packing_document .identity td {border:0;vertical-align:middle;}
+                    .packing_document .metadata td {border:0;padding:0 0 14px;vertical-align:top;}
+                    .packing_document .metadata table td {border:1px solid #777;padding:4px;}
+                    .packing_document .tags thead {display:table-header-group;}
+                    .packing_document .tags tr {page-break-inside:avoid;}
+                    .packing_document .num {text-align:right;}
+                </style>
+                <table class="identity"><tr><td style="width:25%"><img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" style="max-width:110px;max-height:75px"/></td><td style="text-align:center;font-size:22px"><strong>PACKING LIST</strong></td><td style="width:25%;text-align:right"><span t-field="doc.name"/><br/><span t-field="doc.date"/></td></tr></table>
+                <p><strong>Shipment: </strong><span t-field="doc.shipment_number"/> · <strong>Dispatch guide: </strong><span t-field="doc.guide_id.external_folio"/></p>
+                <t t-set="head" t-value="doc._document_header()"/>
+                <table class="metadata"><tr><td style="width:45%"><table><tr t-foreach="head[:7]" t-as="item"><th style="width:30%" t-out="item[0]"/><td t-out="item[1]"/></tr></table></td><td style="width:10%"/><td style="width:45%"><table><tr t-foreach="head[7:]" t-as="item"><th style="width:30%" t-out="item[0]"/><td t-out="item[1]"/></tr></table></td></tr></table>
+                <t t-set="rows" t-value="doc._document_rows()"/>
+                <table class="tags"><thead><tr><th>CSP</th><th style="width:15%">FOLIO PALLET</th><th>VARIETY</th><th>DATE PACKING</th><th>CSG</th><th>BOXES</th><th>NET WEIGHT</th><th>GROSS WEIGHT</th><th>THERMOS</th><th>CALIBRE</th></tr></thead>
+                    <tbody><tr t-foreach="rows" t-as="row"><td t-foreach="row" t-as="value" t-att-class="'num' if value_index in (5,6,7) else ''"><span t-out="value"/></td></tr></tbody>
+                    <tfoot><tr><th colspan="5">TOTAL</th><th t-out="sum(r[5] for r in rows)"/><th t-out="sum(r[6] for r in rows)"/><th t-out="sum(r[7] for r in rows)"/><th/><th/></tr></tfoot>
+                </table>
+            </div></t>
+        </xpath>
+    </template>
+</odoo>

@@ -1,0 +1,59 @@
+<odoo>
+    <record id="sale_document_form" model="ir.ui.view">
+        <field name="name">sale.order.export.document.revision</field><field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/><field name="priority">110</field>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_print_export_proforma" type="object" string="Imprimir PROFORMA" invisible="not step_export_sale_context"/>
+                <button name="action_print_export_invoice" type="object" string="Imprimir INVOICE" invisible="not step_export_sale_context"/>
+                <button name="action_apply_box_pricing" type="object" string="Aplicar cálculo por cajas" invisible="not step_export_sale_context or step_box_pricing or state not in ('draft', 'sent')" confirm="Se usarán las cajas registradas como cantidad y se recalcularán los importes de esta nota. Revise el embalaje de cada producto antes de continuar."/>
+            </xpath>
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="step_box_pricing" invisible="1"/>
+                <field name="step_price_kg" invisible="not step_export_sale_context" readonly="state not in ('draft', 'sent') or not step_box_pricing"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="attributes">
+                <attribute name="column_invisible">parent.step_box_pricing</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="after">
+                <field name="product_uom_qty" string="Cajas" column_invisible="not parent.step_box_pricing"/>
+                <field name="step_document_kg" column_invisible="not parent.step_box_pricing"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="attributes"><attribute name="optional">show</attribute></xpath>
+        </field>
+    </record>
+    <record id="sale_quantities" model="ir.ui.view">
+        <field name="name">sale.order.export.legacy.quantities</field><field name="model">sale.order</field>
+        <field name="inherit_id" ref="step_sale_export_report.sale_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='step_export_kg']" position="attributes"><attribute name="column_invisible">not parent.step_export_sale_format or parent.step_box_pricing</attribute></xpath>
+            <xpath expr="//list/field[@name='step_export_boxes']" position="attributes"><attribute name="column_invisible">not parent.step_export_sale_format or parent.step_box_pricing</attribute></xpath>
+        </field>
+    </record>
+    <record id="packing_list_form" model="ir.ui.view">
+        <field name="name">packing.list.document.revision</field><field name="model">step.export.packing.list</field>
+        <field name="inherit_id" ref="step_export.view_export_packing_list_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_print']" position="after"><button name="action_export_excel" type="object" string="Export Packing List Excel"/></xpath>
+            <field name="box_qty" position="attributes"><attribute name="string">Total Boxes</attribute></field>
+            <field name="kg_qty" position="attributes"><attribute name="string">Net Weight</attribute></field>
+            <field name="tag_ids" position="replace">
+                <field name="tag_ids" domain="[('id', 'in', available_tag_ids)]" options="{'no_create': True}">
+                    <list><field name="name" string="Folio Pallet"/><field name="step_packing_partner_id"/><field name="variedad_id"/>
+                        <field name="step_packing_date"/><field name="step_producer_id"/><field name="box_count"/>
+                        <field name="step_actual_kg" string="Net Weight"/><field name="step_export_gross_kg"/><field name="step_export_thermos"/><field name="fruit_caliber_id"/></list>
+                </field>
+            </field>
+        </field>
+    </record>
+    <record id="contact_csp" model="ir.ui.view">
+        <field name="name">res.partner.packing.csp</field><field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='vat']" position="after"><field name="step_packing_csp"/></xpath></field>
+    </record>
+    <record id="package_weights" model="ir.ui.view">
+        <field name="name">fruit.tag.export.weights</field><field name="model">stock.quant.package</field>
+        <field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/>
+        <field name="arch" type="xml"><xpath expr="//field[@name='box_count']" position="after"><field name="step_packing_date"/><field name="step_export_gross_kg"/><field name="step_export_thermos"/></xpath></field>
+    </record>
+</odoo>
