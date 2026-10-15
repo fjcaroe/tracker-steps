@@ -77,3 +77,25 @@ class BalanceAnalyticCase(TransactionCase):
         self.plan.with_company(other).default_applicability='mandatory'
         self.assertEqual(self.plan.with_company(self.company)._get_applicability(account=income.id,company_id=self.company.id),'optional')
         self.assertEqual(self.plan.with_company(other)._get_applicability(account=income.id,company_id=other.id),'mandatory')
+
+    def test_generated_exchange_adjustment_inherits_only_unique_distribution(self):
+        self.prepare()
+        asset=self.account('asset_current','A')
+        income=self.account('income','I')
+        expense=self.account('expense','E')
+        self.company.expense_currency_exchange_account_id=expense
+        self.company.income_currency_exchange_account_id=income
+        foreign=self.env.ref('base.USD')
+        if foreign==self.company.currency_id:
+            foreign=self.env.ref('base.EUR')
+        foreign.active=True
+        values=self.distribution(income)
+        move=self.move(asset,income,values)
+        move.write({'operational_currency_id':foreign.id,'observed_exchange_rate':2})
+        move.line_ids.filtered(lambda line:line.credit).write({'currency_id':foreign.id,'amount_currency':-70})
+        move._sync_operational_adjustment()
+        adjustment=move.line_ids.filtered('is_operational_exchange_adjustment')
+        self.assertEqual(len(adjustment),1)
+        self.assertEqual(adjustment.analytic_distribution,values)
+        move.action_post()
+        self.assertEqual(move.state,'posted')

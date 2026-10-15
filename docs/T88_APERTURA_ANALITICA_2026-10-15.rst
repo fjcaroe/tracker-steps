@@ -15,6 +15,13 @@ prefijos del código ni se modifican planes, distribuciones, importes o maestros
 No se crean modelos ni objetos Studio. El módulo se publica solamente en
 Desarrollo y Cerro; no se altera el alcance instalado de otros destinos.
 
+La prueba integral detectó además que bimoneda genera una línea de diferencia
+de cambio sin distribución, aunque las líneas de resultados originales estén
+completas. El ajuste generado hereda la distribución existente solo si todas
+las distribuciones no vacías del asiento coinciden. No se elige una entre
+distintas ni se modifica una distribución ya ingresada; se conserva la
+validación nativa del 100 % también en esa línea de resultados.
+
 Pruebas
 -------
 

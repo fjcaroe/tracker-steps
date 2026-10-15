@@ -11,7 +11,7 @@ try:
     case=BalanceAnalyticCase('test_balance_and_equity_can_post_without_analytics')
     case.env=env
     case.cr=env.cr
-    for test in ('test_balance_and_equity_can_post_without_analytics','test_result_still_requires_complete_distribution','test_native_plan_rules_and_company_context_are_preserved'):
+    for test in ('test_balance_and_equity_can_post_without_analytics','test_result_still_requires_complete_distribution','test_native_plan_rules_and_company_context_are_preserved','test_generated_exchange_adjustment_inherits_only_unique_distribution'):
         getattr(case,test)()
         env.cr.rollback()
     form=env['account.move'].get_view(env.ref('account.view_move_form').id,'form')['arch']
@@ -29,8 +29,10 @@ try:
             if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
                 move.with_company(move.company_id).with_context(validate_analytic=True).action_post()
                 assert move.state=='posted'
+                added=move.line_ids.filtered(lambda line:line.id not in {row[0] for row in before})
+                assert all(line.is_operational_exchange_adjustment and not line.balance for line in added)
                 posted=True
-            after=[(line.id,line.account_id.id,line.debit,line.credit,line.analytic_distribution) for line in move.line_ids]
+            after=[(line.id,line.account_id.id,line.debit,line.credit,line.analytic_distribution) for line in move.line_ids if line.id in {row[0] for row in before}]
             assert before==after, 'Amounts or distributions changed'
             opening.append({'id':move.id,'validated':True,'posted_in_copy_only':posted})
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket_id':88,'versions':EXPECTED,'forms':True,'menus':True,
