@@ -29,6 +29,7 @@
             <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="before">
                 <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="move"/>
                 <xpath expr="//field[@name='order_line']/list/field[@name='product_uom']" position="move"/>
+                <xpath expr="//field[@name='order_line']/list/field[@name='step_document_uom_id']" position="move"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_qty']" position="attributes"><attribute name="column_invisible">parent.step_box_pricing</attribute></xpath>
         </field>
