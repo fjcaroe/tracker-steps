@@ -20,6 +20,11 @@
                 <field name="step_document_kg" column_invisible="not parent.step_box_pricing"/>
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="attributes"><attribute name="optional">show</attribute></xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="before">
+                <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_id']" position="move"/>
+                <xpath expr="//field[@name='order_line']/list/field[@name='product_uom']" position="move"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_packaging_qty']" position="attributes"><attribute name="column_invisible">parent.step_box_pricing</attribute></xpath>
         </field>
     </record>
     <record id="sale_quantities" model="ir.ui.view">

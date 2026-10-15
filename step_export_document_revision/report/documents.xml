@@ -27,7 +27,7 @@
                     <td class="title" style="width: 38%;"><span t-out="'INVOICE' if step_is_invoice else 'PROFORMA'"/><br/><br/>N° <span t-field="doc.export_document_number"/><div style="font-size: 11px; margin-top: 8px;" t-field="doc.currency_id.name"/></td>
                 </tr></table>
                 <table><tr>
-                    <td style="width: 62%;"><strong>Customer: </strong><span t-field="doc.partner_id.name"/><br/><br/>Tax ID: <span t-field="doc.partner_id.vat"/><br/>Dirección:
+                    <td style="width: 62%;"><strong>Customer: </strong><span t-field="doc.partner_id.name"/><br/><br/>Tax ID: <span t-field="doc.partner_id.vat"/><br/>Address:
                         <div t-field="doc.partner_id" t-options="{'widget': 'contact', 'fields': ['address'], 'no_marker': True}"/>
                         <div t-if="doc.client_order_ref">Reference: <span t-field="doc.client_order_ref"/></div></td>
                     <td style="width: 38%;"><strong>DATE: </strong><span t-field="doc.date_order" t-options="{'widget': 'date'}"/><br/>

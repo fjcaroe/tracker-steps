@@ -44,7 +44,8 @@ class DocumentCase(TransactionCase):
         self.assertFalse(order.step_price_kg); self.assertEqual(line.step_document_kg, 50)
         self.assertEqual(order.amount_total, 30)
         order.step_price_kg = True; self.assertEqual(order.amount_total, 150)
-        tax = order.env['account.tax'].create({'name': 'QA VAT', 'amount': 19, 'type_tax_use': 'sale'})
+        group = order.env['account.tax.group'].create({'name': 'QA VAT', 'company_id': order.company_id.id})
+        tax = order.env['account.tax'].create({'name': 'QA VAT', 'amount': 19, 'type_tax_use': 'sale', 'tax_group_id': group.id})
         line.write({'tax_id': [Command.set(tax.ids)], 'discount': 10})
         self.assertAlmostEqual(line.price_subtotal, 135); self.assertAlmostEqual(order.amount_total, 160.65)
         vals = line._prepare_invoice_line(); self.assertEqual(vals['price_unit'], 15)
@@ -52,11 +53,14 @@ class DocumentCase(TransactionCase):
         line.product_packaging_id.step_export_kg_per_box = 8
         self.assertEqual(line.step_document_kg, 50); self.assertEqual(line._prepare_invoice_line()['price_unit'], 15)
         self.assertEqual(line.product_uom_qty, 10)
+        line.product_id.invoice_policy = 'order'
+        order.state = 'sale'
+        self.assertAlmostEqual(line.untaxed_amount_to_invoice, 135)
 
     def test_legacy_opt_in_and_confirmed_mode_lock(self):
         order, _ = self.sample()
         order.step_box_pricing = False
-        line = order.order_line; line.write({'product_uom_qty': 50, 'step_export_boxes': 10})
+        line = order.order_line; line.write({'product_uom_qty': 50, 'step_export_boxes': 10, 'price_unit': 3})
         self.assertEqual(order.amount_total, 150)
         order.action_apply_box_pricing(); self.assertEqual(line.product_uom_qty, 10); self.assertEqual(order.amount_total, 30)
         order.state = 'sale'

@@ -63,7 +63,7 @@ class Order(models.Model):
             if order.state not in ('draft', 'sent'):
                 raise UserError(_('Aplique el cálculo en una nota sin confirmar.'))
             for line in order.order_line.filtered(lambda l: not l.display_type and l.step_export_charge == 'product'):
-                line.product_uom_qty = line.step_export_boxes or line.product_uom_qty
+                line.write({'product_uom_qty': line.step_export_boxes or line.product_uom_qty, 'price_unit': line.price_unit})
                 line.step_document_kg_per_box = line.product_packaging_id.step_export_kg_per_box
             order.step_box_pricing = True
         return True
@@ -71,12 +71,12 @@ class Order(models.Model):
     def action_print_export_proforma(self):
         self.ensure_one()
         self._check_commercial_ready()
-        return self.env.ref('step_sale_export_report.action_proforma').report_action(self)
+        return self.env.ref('step_sale_export_report.action_proforma').report_action(self, config=False)
 
     def action_print_export_invoice(self):
         self.ensure_one()
         self._check_commercial_ready()
-        return self.env.ref('step_export_document_revision.action_commercial_invoice').report_action(self)
+        return self.env.ref('step_export_document_revision.action_commercial_invoice').report_action(self, config=False)
 
     def _step_export_report_values(self):
         self._check_commercial_ready()
@@ -118,6 +118,19 @@ class OrderLine(models.Model):
             vals['price_unit'] = self.price_unit * self.step_document_kg_per_box
         return vals
 
+    @api.depends('state', 'product_id', 'untaxed_amount_invoiced', 'qty_delivered', 'product_uom_qty',
+                 'price_unit', 'discount', 'tax_id', 'order_id.step_price_kg', 'order_id.step_box_pricing',
+                 'step_document_kg_per_box', 'step_export_charge')
+    def _compute_untaxed_amount_to_invoice(self):
+        super()._compute_untaxed_amount_to_invoice()
+        for line in self.filtered(lambda l: l.state == 'sale' and l.order_id.step_box_pricing
+                and l.order_id.step_price_kg and l.step_export_charge == 'product' and not l.display_type):
+            qty = line.qty_delivered if line.product_id.invoice_policy == 'delivery' else line.product_uom_qty
+            price = line.price_unit * line.step_document_kg_per_box * (1 - line.discount / 100)
+            subtotal = line.tax_id.compute_all(price, currency=line.currency_id, quantity=qty,
+                product=line.product_id, partner=line.order_id.partner_shipping_id)['total_excluded']
+            line.untaxed_amount_to_invoice = subtotal - line.untaxed_amount_invoiced
+
     @api.constrains('product_packaging_id', 'product_id', 'product_uom_qty', 'order_id', 'step_export_charge', 'step_document_kg_per_box')
     def _check_document_packaging(self):
         for line in self:
@@ -131,6 +144,10 @@ class OrderLine(models.Model):
 
 class PackingList(models.Model):
     _inherit = 'step.export.packing.list'
+
+    def action_print(self):
+        self.ensure_one()
+        return self.env.ref('step_export.action_report_export_packing_list').report_action(self, config=False)
 
     def _document_header(self):
         self.ensure_one()
