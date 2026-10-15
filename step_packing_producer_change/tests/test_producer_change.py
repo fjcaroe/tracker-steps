@@ -27,6 +27,8 @@ class ProducerChangeCase(TransactionCase):
         self.prepare()
         with self.assertRaises(ValidationError), self.cr.savepoint():
             self.repack.action_validate()
+        self.repack.write({'target_tag_ids': [(1,self.target.id,{'commercial_producer_id':self.buyer.id})]})
+        self.assertEqual(self.repack.line_ids.commercial_producer_id,self.buyer)
         self.repack.line_ids.commercial_producer_id = self.buyer
         self.assertEqual(self.target.commercial_producer_id,self.buyer)
         self.repack.action_validate()
