@@ -25,7 +25,7 @@ class ProducerChangeCase(TransactionCase):
 
     def test_change_stock_traceability_and_print(self):
         self.prepare()
-        with self.cr.savepoint(),self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             self.repack.action_validate()
         self.repack.line_ids.commercial_producer_id = self.buyer
         self.assertEqual(self.target.commercial_producer_id,self.buyer)
@@ -37,9 +37,9 @@ class ProducerChangeCase(TransactionCase):
         self.assertEqual(sum(self.target.quant_ids.mapped('quantity')),10)
         self.assertEqual(sum(self.source.quant_ids.mapped('quantity')),0)
         self.assertEqual(self.repack.picking_id.state,'done')
-        with self.cr.savepoint(),self.assertRaises(UserError):
+        with self.assertRaises(UserError), self.cr.savepoint():
             self.target.commercial_producer_id = self.producer
-        with self.cr.savepoint(),self.assertRaises(UserError):
+        with self.assertRaises(UserError), self.cr.savepoint():
             self.repack.line_ids.commercial_producer_id = self.producer
         html,_ = self.env['ir.actions.report']._render_qweb_html('step_inventory_fruit_tag.action_report_fruit_tag', self.target.ids)
         self.assertIn(self.buyer.name,html.decode())
@@ -52,10 +52,10 @@ class ProducerChangeCase(TransactionCase):
         normal = self.env['step.packing.repack'].create({'selected_source_ids':[(6,0,self.target.ids)]})
         normal.action_prepare_distribution()
         self.assertEqual(normal.target_tag_ids.commercial_producer_id,self.buyer)
-        with self.cr.savepoint(),self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             normal.target_tag_ids.commercial_producer_id = self.env['res.partner'].create({'name':'No productor'})
         normal.target_tag_ids.commercial_producer_id = self.producer
-        with self.cr.savepoint(),self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             normal.action_validate()
         normal.target_tag_ids.commercial_producer_id = self.buyer
         normal.action_validate()
@@ -65,7 +65,7 @@ class ProducerChangeCase(TransactionCase):
         self.prepare(national=True)
         foreign_company = self.env['res.company'].create({'name':'Empresa T87'})
         foreign = self.env['res.partner'].create({'name':'Productor ajeno T87','is_productor':True,'company_id':foreign_company.id})
-        with self.cr.savepoint(),self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             self.target.commercial_producer_id = foreign
         self.repack.line_ids.commercial_producer_id = self.buyer
         self.repack.action_validate()

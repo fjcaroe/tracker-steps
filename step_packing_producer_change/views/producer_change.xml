@@ -2,11 +2,19 @@
 <record id="repack_form" model="ir.ui.view"><field name="name">packing.repack.commercial.producer</field><field name="model">step.packing.repack</field><field name="inherit_id" ref="step_packing_operations.view_packing_repack_form"/><field name="arch" type="xml">
 <xpath expr="//field[@name='target_tag_ids']" position="attributes"><attribute name="readonly">state == 'done'</attribute></xpath>
 <xpath expr="//field[@name='target_tag_ids']/list" position="attributes"><attribute name="editable">bottom</attribute><attribute name="create">0</attribute><attribute name="delete">0</attribute></xpath>
-<xpath expr="//field[@name='target_tag_ids']/list/field" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='name']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='step_composition']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='step_result_product_id']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='step_packaging_id']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='fruit_caliber_id']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='variedad_id']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='step_actual_boxes']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='step_actual_kg']" position="attributes"><attribute name="readonly">1</attribute></xpath>
+<xpath expr="//field[@name='target_tag_ids']/list/field[@name='step_tag_state']" position="attributes"><attribute name="readonly">1</attribute></xpath>
 <xpath expr="//field[@name='target_tag_ids']/list/field[@name='name']" position="after"><field name="commercial_producer_id" options="{'no_create': True}"/></xpath>
 <xpath expr="//field[@name='line_ids']/list/field[@name='producer_id']" position="after"><field name="commercial_producer_id" options="{'no_create': True}"/></xpath>
 </field></record>
 <record id="package_form" model="ir.ui.view"><field name="name">fruit.package.commercial.producer</field><field name="model">stock.quant.package</field><field name="inherit_id" ref="step_inventory_packing.view_quant_package_form_steps_fruit"/><field name="arch" type="xml"><field name="step_producer_id" position="after"><field name="commercial_producer_id" readonly="step_tag_state not in ('created','void')" options="{'no_create': True}"/></field></field></record>
 <record id="process_form" model="ir.ui.view"><field name="name">packing.process.commercial.producer</field><field name="model">step.packing.process.type</field><field name="inherit_id" ref="step_packing.view_step_packing_process_type_form"/><field name="arch" type="xml"><field name="name" position="after"><field name="changes_commercial_producer"/></field></field></record>
-<template id="tarja_producer" inherit_id="step_inventory_fruit_tag.report_fruit_tag_document"><xpath expr="//span[contains(@t-esc,'doc.owner_id.name')]" position="attributes"><attribute name="t-esc">(doc.commercial_producer_id or doc.owner_id).name or '—'</attribute></xpath></template>
+<template id="tarja_producer" inherit_id="step_inventory_fruit_tag.report_fruit_tag_document"><xpath expr="//span[contains(@t-esc,'doc.owner_id.name')]" position="attributes"><attribute name="t-esc">(doc.commercial_producer_id or doc.owner_id).name or 'â€”'</attribute></xpath></template>
 </odoo>
