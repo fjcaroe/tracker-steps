@@ -23,7 +23,7 @@ try:
             move.with_company(move.company_id).line_ids.with_context(validate_analytic=True)._validate_analytic_distribution()
             posted=False
             if env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_'):
-                move.with_company(move.company_id).action_post()
+                move.with_company(move.company_id).with_context(validate_analytic=True).action_post()
                 assert move.state=='posted'
                 posted=True
             after=[(line.id,line.account_id.id,line.debit,line.credit,line.analytic_distribution) for line in move.line_ids]

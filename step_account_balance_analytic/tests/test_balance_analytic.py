@@ -20,7 +20,7 @@ class BalanceAnalyticCase(TransactionCase):
             'reconcile':kind in ('asset_receivable','liability_payable')})
 
     def move(self, debit, credit, distribution=False):
-        return self.env['account.move'].create({'move_type':'entry','journal_id':self.journal.id,'date':'2026-10-15',
+        return self.env['account.move'].with_context(validate_analytic=True).create({'move_type':'entry','journal_id':self.journal.id,'date':'2026-10-15',
             'line_ids':[(0,0,{'name':'Debe QA T88','account_id':debit.id,'debit':100}),
                         (0,0,{'name':'Haber QA T88','account_id':credit.id,'credit':100,'analytic_distribution':distribution})]})
 
