@@ -14,6 +14,9 @@ try:
     for name in ('test_change_stock_traceability_and_print','test_normal_repack_inherits_and_rejects_new_change','test_company_scope_and_effective_form'):
         getattr(case,name)()
     if '/steps-validation/' in ROOT:
+        # The private test HTTP service has stopped before this rollback probe.
+        # Serve static report assets/barcodes from the existing local destination.
+        env['ir.config_parameter'].sudo().set_param('report.url', 'https://desarrollo.stepsapp.cl' if '/management_development_' in ROOT else 'https://cerroelplomo.stepsapp.cl')
         pdf,_=env['ir.actions.report']._render_qweb_pdf('step_inventory_fruit_tag.action_report_fruit_tag',case.target.ids)
         assert pdf.startswith(b'%PDF')
         (Path(ROOT).parent/'t87-tarja.pdf').write_bytes(pdf)
