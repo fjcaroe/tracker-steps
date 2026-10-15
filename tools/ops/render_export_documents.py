@@ -13,6 +13,7 @@ here = Path(__file__).resolve().parent
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('environment', choices=('development', 'cerro'))
 p.add_argument('--qa-run-id')
+p.add_argument('--company-name', help='Exact, unambiguous company for read-only examples')
 a = p.parse_args()
 target = json.loads((here/'environments.json').read_text())['environments'][a.environment]
 cfg = configparser.ConfigParser(interpolation=None); cfg.read(target['config']); opts = cfg['options']
@@ -33,9 +34,12 @@ script = '''
 from pathlib import Path
 import json
 try:
+    company = env['res.company'].search([('name','=',COMPANY_NAME)],limit=2) if COMPANY_NAME else env.company
+    assert len(company) == 1, 'Select one company explicitly'
+    env = env(context=dict(env.context,allowed_company_ids=company.ids))
     reports = env['ir.actions.report']
-    order = env['sale.order'].search(['|','|',('step_export_sale','=',True),('step_export_shipment_id','!=',False),('step_export_sales_program_id','!=',False)],order='id desc',limit=1)
-    packing = env['step.export.packing.list'].search([],order='id desc',limit=1)
+    order = env['sale.order'].search(['|','|',('step_export_sale','=',True),('step_export_shipment_id','!=',False),('step_export_sales_program_id','!=',False),('company_id','=',company.id)],order='id desc',limit=1)
+    packing = env['step.export.packing.list'].search([('company_id','=',company.id)],order='id desc',limit=1)
     for record, report, filename in [(order,'step_sale_export_report.proforma','customer-proforma'),
         (order,'step_export_document_revision.commercial_invoice','customer-invoice'),
         (packing,'step_export.action_report_export_packing_list','customer-packing')]:
@@ -53,7 +57,7 @@ finally:
 '''
 result = subprocess.run(['sudo','-u',user,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','shell','-c',target['config'],
     '-d',database,'--db-filter=^'+database+'$','--no-http','--workers=0','--max-cron-threads=0','--log-level=error']+extra,
-    input='OUTPUT='+repr(str(output))+'\n'+script,text=True,capture_output=True)
+    input='OUTPUT='+repr(str(output))+'\nCOMPANY_NAME='+repr(a.company_name)+'\n'+script,text=True,capture_output=True)
 (output/'render.log').write_text(result.stdout+result.stderr)
 assert result.returncode == 0 and 'CURRENT_DOCUMENTS_OK' in result.stdout, 'Inspect '+str(output/'render.log')
 print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('CURRENT_DOCUMENTS_OK')))
