@@ -15,6 +15,9 @@ class Partner(models.Model):
 
 class Package(models.Model):
     _inherit = 'stock.quant.package'
+    # Same native OT relation on both installed packing versions; no copied
+    # plant master or historical text lookup is needed on the older release.
+    step_packing_partner_id = fields.Many2one(related='step_packing_production_id.packing_partner_id', string='Packing')
     step_export_gross_kg = fields.Float(string='Gross Weight', digits='Stock Weight')
     step_export_thermos = fields.Char(string='Thermos')
     step_packing_date = fields.Date(related='step_packing_production_id.date', string='Date Packing')
@@ -28,7 +31,8 @@ class Package(models.Model):
 class Order(models.Model):
     _inherit = 'sale.order'
     step_price_kg = fields.Boolean(string='Precio kg', default=False, tracking=True)
-    step_box_pricing = fields.Boolean(string='Cálculo por cajas', default=False, copy=True,
+    step_box_pricing = fields.Boolean(string='Cálculo por cajas', copy=True,
+        default=lambda self: bool(self.env.context.get('default_step_export_sale') or self.env.context.get('default_step_export_shipment_id') or self.env.context.get('default_step_export_sales_program_id')),
         help='Las notas anteriores conservan sus cantidades hasta aplicar explícitamente el cálculo por cajas.')
 
     @api.model_create_multi
