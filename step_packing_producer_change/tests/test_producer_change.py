@@ -43,6 +43,7 @@ class ProducerChangeCase(TransactionCase):
             self.repack.line_ids.commercial_producer_id = self.producer
         html,_ = self.env['ir.actions.report']._render_qweb_html('step_inventory_fruit_tag.action_report_fruit_tag', self.target.ids)
         self.assertIn(self.buyer.name,html.decode())
+        self.assertIn('data:image/png;base64,',html.decode())
         self.assertNotIn('>'+self.producer.name+'<',html.decode())
 
     def test_normal_repack_inherits_and_rejects_new_change(self):
