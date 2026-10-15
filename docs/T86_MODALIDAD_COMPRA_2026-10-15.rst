@@ -49,4 +49,31 @@ contratos, selección y agrupación en estimaciones, versiones, vistas/menús
 efectivos, permisos por empresa y clasificación histórica sin revalorizar.
 La sonda posterior ejecuta el mismo flujo en el destino con reversión.
 
-Estado de publicación: pendiente de completar pruebas y revisión visual.
+Publicación y cierre verificados
+-------------------------------
+
+Publicado en Desarrollo y Cerro El Plomo el 15 de octubre de 2026:
+step_producer_purchase_mode 18.0.1.0.0. Paquete del commit
+ed9a1d61a574a92c74eed045af3fb8172d78e831, SHA-256
+655699173aad5f93e97c5849213cf1d279c1e1d143060120b569df919b26fcac.
+El mismo archivo pasó cuatro pruebas en cada copia (ocho en total), sin
+fallos ni errores, además de comparación de preservación y sonda funcional
+posterior en cada destino con reversión de los registros de prueba.
+
+Copias de validación: MANAGEMENT_QA_DEVELOPMENT_t86mode_a_dev y
+MANAGEMENT_QA_CERRO_t86mode_a_cerro. Respaldos previos:
+/opt/steps_backups/management_development_20261015T153745Z y
+/opt/steps_backups/management_cerro_20261015T153942Z. Los dos registros de
+publicación contienen MANAGEMENT_DEPLOY_OK y MANAGEMENT_VERIFY_OK.
+
+Revisión visual por HTTPS en los dos destinos: menú Productores,
+encabezados nativos de contrato y estimación, opciones y explicación de
+modalidad, filtros y agrupación de informes. Los formularios nuevos se
+descartaron sin guardar documentos ficticios. Los históricos aparecen
+sin definir y conservan cantidades, importes y auditoría.
+
+Evidencia privada en ~/.codex/local-artifacts/t86-contract-20261015:
+seis capturas, visual-review.json con sus huellas, certificados QA y logs
+de publicación vinculados al paquete. Ticket ID 86 cerrado como resuelto
+tras comprobar ausencia de respuestas humanas posteriores al requisito;
+nota interna 9453, sin notificaciones ni destinatarios externos.
