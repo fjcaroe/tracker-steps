@@ -92,7 +92,7 @@ class BalanceAnalyticCase(TransactionCase):
         values=self.distribution(income)
         move=self.move(asset,income,values)
         move.write({'operational_currency_id':foreign.id,'observed_exchange_rate':2})
-        move.line_ids.filtered(lambda line:line.credit).write({'currency_id':foreign.id,'amount_currency':-70})
+        move.line_ids.filtered(lambda line:line.credit).write({'currency_id':foreign.id,'amount_currency':-70,'balance':-100})
         move._sync_operational_adjustment()
         adjustment=move.line_ids.filtered('is_operational_exchange_adjustment')
         self.assertEqual(len(adjustment),1)
