@@ -13,6 +13,8 @@ class DocumentCase(TransactionCase):
             'currency_id': self.env.ref('base.USD').id, 'step_export_sale_format': True})
         env = self.env(context=dict(self.env.context, allowed_company_ids=company.ids, chart_template_load=True,
                                     tracking_disable=True, mail_create_nosubscribe=True))
+        env['ir.sequence'].create({'name': 'QA Packing Lists', 'code': 'step.export.packing.list',
+            'prefix': 'QA-PL/', 'padding': 4, 'company_id': company.id})
         partner = env['res.partner'].create({'name': 'QA Document Importer', 'lang': 'es_CL', 'cod_csg': 'QA-CSG'})
         product = env['product.product'].create({'name': 'QA Export Fruit', 'type': 'consu',
             'step_export_enabled': True, 'weight': 5, 'is_fruta': True})
@@ -21,7 +23,7 @@ class DocumentCase(TransactionCase):
         order = env['sale.order'].create({'partner_id': partner.id, 'company_id': company.id,
             'step_export_sale': True, 'order_line': [Command.create({'product_id': product.id,
                 'product_uom_qty': 10, 'product_packaging_id': packaging.id, 'price_unit': 3, 'tax_id': [Command.clear()]})]})
-        shipment = env['step.export.export'].create({'name': 'QA Document Shipment', 'receiver_id': partner.id,
+        shipment = env['step.export.export'].create({'name': 'QA Document Shipment', 'shipment_number': 'QA-DOC-85', 'receiver_id': partner.id,
             'company_id': company.id, 'booking': 'QA BOOKING', 'departure_date': '2026-11-01', 'arrival_date': '2026-12-01'})
         guide = env['step.dispatch.guide'].create({'external_folio': 'QA-DOC-85', 'partner_id': partner.id,
             'company_id': company.id, 'origin_address': 'QA Origin', 'destination_address': 'QA Destination',
@@ -62,6 +64,7 @@ class DocumentCase(TransactionCase):
 
     def test_missing_packaging_and_wrong_product_rejected(self):
         order, _ = self.sample()
+        order.step_price_kg = True
         with self.assertRaises(ValidationError), self.cr.savepoint(): order.order_line.product_packaging_id = False
 
     def test_english_documents_and_no_accounting_side_effects(self):

@@ -3,6 +3,7 @@ import base64
 import io
 
 import xlsxwriter
+from PIL import Image
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -45,6 +46,17 @@ class Order(models.Model):
     @api.constrains('step_price_kg', 'step_box_pricing')
     def _check_price_configuration(self):
         self.order_line._check_document_packaging()
+        if any(o.step_box_pricing and o.step_price_kg for o in self):
+            self.filtered(lambda o: o.step_box_pricing and o.step_price_kg)._check_commercial_ready()
+
+    def _check_commercial_ready(self):
+        for line in self.filtered('step_box_pricing').order_line.filtered(lambda l: not l.display_type and l.step_export_charge == 'product'):
+            if not line.product_packaging_id or line.step_document_kg_per_box <= 0:
+                raise ValidationError(_('Seleccione un embalaje del producto con kilos por caja positivos.'))
+
+    def action_confirm(self):
+        self._check_commercial_ready()
+        return super().action_confirm()
 
     def action_apply_box_pricing(self):
         for order in self:
@@ -58,35 +70,30 @@ class Order(models.Model):
 
     def action_print_export_proforma(self):
         self.ensure_one()
+        self._check_commercial_ready()
         return self.env.ref('step_sale_export_report.action_proforma').report_action(self)
 
     def action_print_export_invoice(self):
         self.ensure_one()
+        self._check_commercial_ready()
         return self.env.ref('step_export_document_revision.action_commercial_invoice').report_action(self)
+
+    def _step_export_report_values(self):
+        self._check_commercial_ready()
+        return super()._step_export_report_values()
 
 
 class OrderLine(models.Model):
     _inherit = 'sale.order.line'
     step_document_kg = fields.Float(compute='_compute_document_kg', string='Kilos', digits=(16, 3))
-    step_document_kg_per_box = fields.Float(string='Kg por caja acordados', digits=(16, 3), readonly=True,
+    step_document_kg_per_box = fields.Float(string='Kg por caja acordados', digits=(16, 3),
+        compute='_compute_document_packaging', store=True, precompute=True,
         help='Peso del embalaje al seleccionarlo; conserva el precio acordado ante cambios posteriores del maestro.')
 
-    @api.onchange('product_packaging_id')
-    def _onchange_document_packaging(self):
+    @api.depends('product_packaging_id')
+    def _compute_document_packaging(self):
         for line in self:
             line.step_document_kg_per_box = line.product_packaging_id.step_export_kg_per_box
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            if vals.get('product_packaging_id'):
-                vals['step_document_kg_per_box'] = self.env['product.packaging'].browse(vals['product_packaging_id']).step_export_kg_per_box
-        return super().create(vals_list)
-
-    def write(self, vals):
-        if 'product_packaging_id' in vals:
-            vals = dict(vals, step_document_kg_per_box=self.env['product.packaging'].browse(vals['product_packaging_id']).step_export_kg_per_box if vals['product_packaging_id'] else 0)
-        return super().write(vals)
 
     @api.depends('product_uom_qty', 'step_document_kg_per_box')
     def _compute_document_kg(self):
@@ -116,8 +123,10 @@ class OrderLine(models.Model):
         for line in self:
             if line.order_id.step_box_pricing and not line.display_type and line.step_export_charge == 'product':
                 package = line.product_packaging_id
-                if not package or package.product_id != line.product_id or line.step_document_kg_per_box <= 0:
+                if package and (package.product_id != line.product_id or line.step_document_kg_per_box <= 0):
                     raise ValidationError(_('Seleccione un embalaje del producto con kilos por caja positivos.'))
+                if line.order_id.step_price_kg and not package:
+                    raise ValidationError(_('Seleccione el embalaje para calcular el precio por kilo.'))
 
 
 class PackingList(models.Model):
@@ -125,6 +134,7 @@ class PackingList(models.Model):
 
     def _document_header(self):
         self.ensure_one()
+        self = self.with_context(lang='en_US')
         s = self.shipment_id
         return [('PRODUCT', s.species_id.display_name or ''), ('CNTR', self.container_number or ''),
                 ('INVOICE', s.commercial_folio or ''), ('VESSEL', s.vessel_id.display_name or ''),
@@ -136,6 +146,7 @@ class PackingList(models.Model):
 
     def _document_rows(self):
         self.ensure_one()
+        self = self.with_context(lang='en_US')
         rows = []
         for tag in self.tag_ids.sorted('name'):
             producers = tag.step_tag_line_ids.producer_id or tag.step_producer_id or tag.owner_id
@@ -158,8 +169,11 @@ class PackingList(models.Model):
         sheet.set_column('A:J', 17); sheet.set_column('B:B', 23)
         sheet.merge_range('A1:J3', 'PACKING LIST', title)
         if self.company_id.logo:
-            sheet.insert_image('A1', 'logo.png', {'image_data': io.BytesIO(base64.b64decode(self.company_id.logo)),
-                                                'x_scale': 0.15, 'y_scale': 0.15, 'object_position': 1})
+            logo = base64.b64decode(self.company_id.logo)
+            with Image.open(io.BytesIO(logo)) as picture:
+                scale = min(100 / picture.width, 55 / picture.height)
+            sheet.insert_image('A1', 'logo.png', {'image_data': io.BytesIO(logo),
+                                                'x_scale': scale, 'y_scale': scale, 'object_position': 1})
         sheet.write('A5', 'Shipment', heading); sheet.write('B5', self.shipment_number or '', cell)
         sheet.write('F5', 'Dispatch guide', heading); sheet.write('G5', self.guide_id.external_folio or self.guide_id.name, cell)
         for index, (label, value) in enumerate(self._document_header()):
