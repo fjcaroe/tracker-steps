@@ -90,6 +90,7 @@ class Order(models.Model):
 class OrderLine(models.Model):
     _inherit = 'sale.order.line'
     step_document_kg = fields.Float(compute='_compute_document_kg', string='Kilos', digits=(16, 3))
+    step_document_uom_id = fields.Many2one(related='product_id.uom_id', string='UdM')
     step_document_kg_per_box = fields.Float(string='Kg por caja acordados', digits=(16, 3),
         compute='_compute_document_packaging', store=True, precompute=True,
         help='Peso del embalaje al seleccionarlo; conserva el precio acordado ante cambios posteriores del maestro.')

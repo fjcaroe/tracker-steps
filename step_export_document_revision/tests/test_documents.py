@@ -110,6 +110,9 @@ class DocumentCase(TransactionCase):
         tree = etree.fromstring(order.with_user(user).get_view(view_type='form')['arch'].encode())
         self.assertTrue(tree.xpath('.//button[@name="action_print_export_invoice"]'))
         self.assertTrue(tree.xpath('.//field[@name="step_price_kg"]'))
+        fields = tree.xpath('.//field[@name="order_line"]/list/field/@name')
+        self.assertLess(fields.index('product_packaging_id'), fields.index('step_document_uom_id'))
+        self.assertLess(fields.index('step_document_uom_id'), fields.index('step_document_kg'))
         packing.with_user(user)._document_xlsx()
         other = new_test_user(self.env, login='qa-doc-other', groups='sales_team.group_sale_salesman,stock.group_stock_user',
             company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
