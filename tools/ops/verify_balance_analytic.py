@@ -14,6 +14,9 @@ try:
     for test in ('test_balance_and_equity_can_post_without_analytics','test_result_still_requires_complete_distribution','test_native_plan_rules_and_company_context_are_preserved','test_generated_exchange_adjustment_inherits_only_unique_distribution'):
         getattr(case,test)()
         env.cr.rollback()
+        # Analytic plan discovery uses a registry cache, outside the cursor.
+        # Discard rolled-back test plan IDs before validating customer entries.
+        env.registry.clear_cache()
     form=env['account.move'].get_view(env.ref('account.view_move_form').id,'form')['arch']
     assert 'analytic_distribution' in form and 'line_ids' in form
     menu=env.ref('account.menu_action_move_journal_line_form')
