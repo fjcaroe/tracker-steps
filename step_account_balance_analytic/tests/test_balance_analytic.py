@@ -97,5 +97,13 @@ class BalanceAnalyticCase(TransactionCase):
         adjustment=move.line_ids.filtered('is_operational_exchange_adjustment')
         self.assertEqual(len(adjustment),1)
         self.assertEqual(adjustment.analytic_distribution,values)
+        adjustment.analytic_distribution=False
+        asset_line=move.line_ids.filtered(lambda line:line.account_id==asset)
+        asset_line.analytic_distribution={key:50 for key in values}
+        move._sync_operational_adjustment()
+        self.assertFalse(adjustment.analytic_distribution)
+        with self.assertRaises(ValidationError),self.cr.savepoint():
+            move.action_post()
+        asset_line.analytic_distribution=False
         move.action_post()
         self.assertEqual(move.state,'posted')
