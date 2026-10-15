@@ -12,7 +12,7 @@ class BalanceAnalyticCase(TransactionCase):
 
     def account(self, kind, suffix):
         if kind == 'equity_unaffected':
-            existing=self.env['account.account'].with_company(self.company).search([('account_type','=',kind),('company_ids','in',self.company.id)],limit=1)
+            existing=self.env['account.account'].with_company(self.company).search([('account_type','=',kind),('company_ids','in',self.company.ids)],limit=1)
             if existing:
                 return existing
         return self.env['account.account'].create({'name':'Cuenta QA T88 '+kind,'code':'QT88'+suffix,
