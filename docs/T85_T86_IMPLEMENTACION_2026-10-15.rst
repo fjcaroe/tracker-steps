@@ -73,3 +73,43 @@ archivos de clientes, respaldos y evidencia visual se conservan fuera del
 repositorio público. La publicación exige el mismo paquete probado en copia
 aislada, respaldo, bloqueo compartido y overlay privado, sin downgrade ni
 cambios concurrentes.
+
+Entrega comprobada
+------------------
+
+Versión publicada: ``18.0.1.0.1``.
+Paquete: ``5b112acc4be6bd0a1b5ef7a5c61866bbe61c01d6``.
+SHA-256: ``a9724e0128b241ff5bc60a084d1fec67299321c7d26a2e3751f82c6e6015d887``.
+
+Seis pruebas sin fallos en cada copia nueva, con comparación íntegra de las
+filas anteriores y generación PDF nativa. Las muestras finales y los Excel
+fueron renderizados e inspeccionados; se comprobaron límites del texto y tamaño
+carta. También se imprimieron documentos existentes con la empresa seleccionada
+explícitamente, sin elegir otra por el usuario técnico de la sesión.
+
+Desarrollo: copia ``t8586_j_dev``. Respaldo previo a la entrega final:
+``/opt/steps_backups/management_development_20261015T051029Z``.
+Cerro El Plomo: copia ``t8586_j_cerro``. Respaldo:
+``/opt/steps_backups/management_cerro_20261015T051327Z``.
+Ambos sirven exactamente el mismo paquete probado desde sus overlays privados;
+se verificaron versión, fuente, formulario, menú, flujo, PDF y Excel después
+de publicar, además del acceso HTTPS.
+
+La revisión en navegador confirmó las columnas y Precio kg inicialmente falso
+en las notas nuevas de ambos ambientes, y los botones PDF/Excel de Packing List.
+En Desarrollo se descargaron realmente ambos formatos y se comprobó que el
+formulario del Packing List existente muestra los kilos de su tarja. Las notas
+sin guardar usadas para revisar formularios se descartaron.
+Cerro no tenía Packing Lists anteriores: el flujo completo se ensayó con
+registros de prueba y reversión, sin guardar un embarque ficticio en producción.
+
+Los demás pendientes siguen sujetos a sus requisitos humanos vigentes:
+T45 necesita equipo y prueba en terreno; T46 mantiene validación nativa y la
+decisión de arquitectura de pasajeros; T48 espera activar Meta y probar el canal
+real. No se encontraron respuestas humanas nuevas que destrabaran esos hitos.
+
+T85 y T86 se marcaron resueltos tras las verificaciones, con notas internas
+9441 y 9442 respectivamente y seguimiento/notificaciones suprimidos. Se leyó
+la configuración y el código de seguimiento de Helpdesk antes de cerrar:
+la plantilla automática de cierre depende del seguimiento de MailThread,
+deshabilitado en esa escritura. No se enviaron correos al cliente.
