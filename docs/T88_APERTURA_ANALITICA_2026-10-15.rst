@@ -32,4 +32,39 @@ por empresa. En la copia privada de Cerro se prueba contabilizar las dos
 aperturas reales y se revierte la transacción. En producción solo se valida
 la analítica: los comprobantes del cliente permanecen en borrador.
 
-Estado: pruebas y publicación pendientes.
+Entrega verificada
+------------------
+
+Paquete inmutable del commit ``903001bd9e211cdfdf02a0cc707c942abb80560e``,
+SHA256 ``66e15b9359f62cddb63b08ce2df1d0d89a83b10222126d4a6ee8e8f96cd9f845``,
+módulo ``step_account_balance_analytic`` versión ``18.0.1.0.0``.
+Las cuatro pruebas pasaron sin fallos en las copias nuevas
+``MANAGEMENT_QA_DEVELOPMENT_t88_g_dev`` y ``MANAGEMENT_QA_CERRO_t88_g_cerro``.
+Incluyen conservación de la clasificación nativa, empresa, reglas, rechazo
+del 50 %, herencia única del ajuste bimoneda y rechazo de la ambigüedad.
+
+La certificación de Cerro contabilizó las aperturas 13 y 9 y revirtió toda
+la transacción. El primer chequeo posterior a las pruebas encontró caché
+de planes de prueba revertidos; se corrigió el aislamiento del verificador
+y se repitió la certificación contra el mismo paquete y copia preservada.
+No se publicó ninguno de los paquetes preliminares.
+
+Se publicó ese mismo paquete en Desarrollo y Cerro, usando exclusión
+compartida, overlays privados y respaldos completos:
+
+* ``/opt/steps_backups/management_development_20261015T230927Z``.
+* ``/opt/steps_backups/management_cerro_20261015T231111Z``.
+
+Ambos destinos devolvieron ``MANAGEMENT_VERIFY_OK`` con el commit indicado,
+versión, formulario, menú y pruebas funcionales. Se revisaron visualmente
+los formularios de contabilidad en ambos destinos y el selector analítico
+de una cuenta de activo en Cerro, descartando su edición temporal.
+
+La inspección final de solo lectura comparó las 22 líneas de resultados y
+17 de activo-pasivo con la inspección inicial: mismos IDs, cuentas, saldos
+y distribuciones, ambos documentos en borrador. El bloqueo de activo-pasivo
+pasó de quince líneas a cero. No se contabilizaron documentos del cliente
+en producción. Evidencias privadas y hashes en
+``~/.codex/local-artifacts/t88-opening-20261015/visual-review.json``.
+
+T88 cerrado en etapa resuelta con nota interna 9464, sin notificaciones.
