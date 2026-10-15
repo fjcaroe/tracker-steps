@@ -10,7 +10,7 @@ from odoo.tests.common import TransactionCase, tagged, new_test_user
 class DocumentCase(TransactionCase):
     def sample(self):
         company = self.env['res.company'].create({'name': 'QA Document Exporter',
-            'currency_id': self.env.ref('base.USD').id, 'step_export_sale_format': True})
+            'currency_id': self.env.ref('base.USD').id, 'country_id': self.env.ref('base.cl').id, 'step_export_sale_format': True})
         env = self.env(context=dict(self.env.context, allowed_company_ids=company.ids, chart_template_load=True,
                                     tracking_disable=True, mail_create_nosubscribe=True))
         env['ir.sequence'].create({'name': 'QA Packing Lists', 'code': 'step.export.packing.list',
@@ -24,7 +24,9 @@ class DocumentCase(TransactionCase):
             'step_export_sale': True, 'order_line': [Command.create({'product_id': product.id,
                 'product_uom_qty': 10, 'product_packaging_id': packaging.id, 'price_unit': 3, 'tax_id': [Command.clear()]})]})
         shipment = env['step.export.export'].create({'name': 'QA Document Shipment', 'shipment_number': 'QA-DOC-85', 'receiver_id': partner.id,
-            'company_id': company.id, 'booking': 'QA BOOKING', 'departure_date': '2026-11-01', 'arrival_date': '2026-12-01'})
+            'company_id': company.id, 'booking': 'QA BOOKING', 'departure_date': '2026-11-01', 'arrival_date': '2026-12-01',
+            'line_ids': [Command.create({'product_id': product.id, 'pallet_qty': 1, 'boxes_per_pallet': 10, 'kg_per_box': 5})]})
+        order.step_export_shipment_id = shipment
         guide = env['step.dispatch.guide'].create({'external_folio': 'QA-DOC-85', 'partner_id': partner.id,
             'company_id': company.id, 'origin_address': 'QA Origin', 'destination_address': 'QA Destination',
             'carrier_id': partner.id, 'truck_plate': 'QA0085', 'step_export_shipment_id': shipment.id})
@@ -45,7 +47,8 @@ class DocumentCase(TransactionCase):
         self.assertEqual(order.amount_total, 30)
         order.step_price_kg = True; self.assertEqual(order.amount_total, 150)
         group = order.env['account.tax.group'].create({'name': 'QA VAT', 'company_id': order.company_id.id})
-        tax = order.env['account.tax'].create({'name': 'QA VAT', 'amount': 19, 'type_tax_use': 'sale', 'tax_group_id': group.id})
+        tax = order.env['account.tax'].create({'name': 'QA VAT', 'amount': 19, 'type_tax_use': 'sale',
+            'tax_group_id': group.id, 'country_id': self.env.ref('base.cl').id})
         line.write({'tax_id': [Command.set(tax.ids)], 'discount': 10})
         self.assertAlmostEqual(line.price_subtotal, 135); self.assertAlmostEqual(order.amount_total, 160.65)
         vals = line._prepare_invoice_line(); self.assertEqual(vals['price_unit'], 15)

@@ -154,12 +154,13 @@ class PackingList(models.Model):
         self = self.with_context(lang='en_US')
         s = self.shipment_id
         return [('PRODUCT', s.species_id.display_name or ''), ('CNTR', self.container_number or ''),
-                ('INVOICE', s.commercial_folio or ''), ('VESSEL', s.vessel_id.display_name or ''),
+                ('INVOICE', s.commercial_folio or ', '.join(sorted(set(s.sale_order_ids.mapped('export_document_number'))))),
+                ('VESSEL', s.vessel_id.display_name or ''),
                 ('ETD', str(s.departure_date or '')), ('ETA', str(s.arrival_date or '')), ('BK', s.booking or ''),
                 ('EXPORTER', s.company_id.name), ('IMPORTER', (s.receiver_id or s.consignee_id).name or ''),
                 ('POD', (s.destination_port_id.display_name or s.destination_port or '')),
                 ('POL', (s.origin_port_id.display_name or s.origin_port or '')),
-                ('TOTAL BOXES', self.box_qty), ('NET WEIGHT', sum(r[6] for r in self._document_rows()))]
+                ('TOTAL BOXES', s.box_qty), ('NET WEIGHT', s.kg_qty)]
 
     def _document_rows(self):
         self.ensure_one()
