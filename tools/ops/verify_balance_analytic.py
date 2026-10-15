@@ -13,6 +13,7 @@ try:
     case.cr=env.cr
     for test in ('test_balance_and_equity_can_post_without_analytics','test_result_still_requires_complete_distribution','test_native_plan_rules_and_company_context_are_preserved'):
         getattr(case,test)()
+        env.cr.rollback()
     opening=[]
     if 'cerro' in ROOT:
         moves=env['account.move'].search([('journal_id.code','=','APE'),('state','=','draft'),('ref','ilike','Apertura')])
