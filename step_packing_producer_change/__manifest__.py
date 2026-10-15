@@ -1,0 +1,1 @@
+{'name': 'Packing cambio de productor comercial', 'version': '18.0.1.0.0', 'depends': ['step_packing_operations'], 'data': ['views/producer_change.xml'], 'post_init_hook': 'post_init_hook', 'license': 'LGPL-3', 'installable': True}
