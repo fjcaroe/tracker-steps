@@ -1,11 +1,26 @@
 from odoo import api, fields, models, Command, _
 from odoo.exceptions import UserError, ValidationError
+import unicodedata
 
-PAYMENT = [('collect', 'Collete'), ('prepaid', 'Prepago')]
+PAYMENT = [('collect', 'Collect'), ('prepaid', 'Prepaid')]
 DOCUMENTS = [('dus', 'D.U.S. 2do envío'), ('bl', 'Conocimiento de embarque'),
              ('phyto', 'Certificado fitosanitario'), ('origin', 'Certificado de origen'), ('bill', 'Bill of Lading')]
 DOCUMENT_REQUIREMENTS = [('dus',5,0,''), ('bl',3,8,''), ('phyto',1,3,''), ('origin',1,3,''),
     ('bill',0,0,'SWB emisión en origen. Cambio a SWB emisión en destino con previa confirmación shipper.')]
+FREIGHT_CONCEPTS = (
+    ('Documentación FEE - Destination', ('Documentation FEE - Destination',)),
+    ('Gastos de importación', ()), ('Tasas portuarias en destino', ()), ('THC', ()),
+    ('Flete marítimo', ()),
+    ('Documentación FEE - Origen incluido Agente de Aduana', ('Documentation FEE - Origen incluido Agente de Aduana',)),
+    ('Inland en origen', ()), ('Servicio AC (Atmósfera Controlada)', ('Servicio de AC (Atmósfera Controlada)',)),
+    ('Late gate service - export', ()), ('Gate out', ()), ('Emisión BL', ()),
+    ('Security fee', ()), ('Sistema de monitoreo', ()),
+)
+
+
+def _concept_key(value):
+    return ''.join(c for c in unicodedata.normalize('NFKD', value or '').casefold()
+                   if c.isalnum() and not unicodedata.combining(c))
 
 
 class Company(models.Model):
@@ -148,7 +163,68 @@ class Shipment(models.Model):
                 vals['shipment_number'] = str(source.export_folio)
             vals.setdefault('documentation_ids', [Command.create({'kind': key,'originals': originals,
                 'copies': copies,'instructions': instructions}) for key,originals,copies,instructions in DOCUMENT_REQUIREMENTS])
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        records.action_complete_instruction_freights()
+        return records
+
+    def _instruction_documents(self):
+        """The printed requirement is fixed; operational tracking stays editable."""
+        labels = dict(DOCUMENTS)
+        return [dict(kind=kind, name=labels[kind], originals=originals, copies=copies,
+                     instructions=instructions) for kind,originals,copies,instructions in DOCUMENT_REQUIREMENTS]
+
+    def _instruction_freight_catalog(self, create=False):
+        self.ensure_one()
+        catalog = self.env['step.export.exterior.expense.concept'].with_context(active_test=False)
+        if create:
+            self.env.cr.execute('SELECT pg_advisory_xact_lock(%s,%s)', [831003,self.company_id.id])
+        concepts = catalog.search([('company_id','=',self.company_id.id)], order='id')
+        result = []
+        for label, aliases in FREIGHT_CONCEPTS:
+            keys = {_concept_key(name) for name in (label, *aliases)}
+            matches = concepts.filtered(lambda c: _concept_key(c.name) in keys)
+            if len(matches) > 1:
+                raise UserError(_('Hay varios conceptos de flete equivalentes a %(label)s. Revise el maestro antes de completar el instructivo.', label=label))
+            if not matches and create:
+                matches = catalog.create({'name':label, 'company_id':self.company_id.id})
+                concepts |= matches
+            result.append((label, matches))
+        return result
+
+    def action_complete_instruction_freights(self):
+        """Append missing native references; never rewrite an existing payment."""
+        self.check_access('write')
+        if self:
+            self.env.cr.execute('SELECT id FROM step_export_export WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(self.ids))])
+            self.invalidate_recordset(['freight_ids'])
+        for record in self:
+            present = set(record.freight_ids.concept_id.ids)
+            commands = [Command.create({'concept_id':concept.id,
+                'sequence':index*10,'payment':record.freight_payment or 'collect'})
+                for index,(_label,concept) in enumerate(record._instruction_freight_catalog(create=True),1)
+                if concept.id not in present]
+            if commands:
+                record.write({'freight_ids':commands})
+        return True
+
+    def _instruction_freights(self):
+        """Render the same core list even for legacy instructions without rows."""
+        self.ensure_one()
+        rows, covered = [], set()
+        labels = dict(PAYMENT)
+        for label, concept in self._instruction_freight_catalog():
+            lines = self.freight_ids.filtered(lambda line: line.concept_id == concept) if concept else self.freight_ids.browse()
+            covered.update(lines.ids)
+            payments = list(dict.fromkeys(lines.mapped('payment'))) or [self.freight_payment or 'collect']
+            rows.append({'name':concept.name if concept else label,
+                'payment':' / '.join(labels[payment] for payment in payments),
+                'collect':'collect' in payments, 'notes':'\n'.join(filter(None,lines.mapped('notes')))})
+        # Preserve visibility of any extra historical concept; do not delete or
+        # silently fold customer data into one of the standard references.
+        rows.extend({'name':line.concept_id.name,'payment':labels[line.payment],
+                     'collect':line.payment=='collect','notes':line.notes or ''}
+                    for line in self.freight_ids if line.id not in covered)
+        return rows
 
     @api.constrains('folio_sale_order_id', 'shipment_number', 'receiver_id', 'company_id')
     def _check_folio_source(self):

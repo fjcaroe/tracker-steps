@@ -8,6 +8,50 @@ from odoo.tools import mute_logger
 
 @tagged('post_install', '-at_install')
 class ShippingCase(TransactionCase):
+    def test_fixed_print_for_legacy_without_changing_tracking(self):
+        shipment,_=self.sample()
+        tracked=shipment.documentation_ids.filtered(lambda d:d.kind=='dus')
+        tracked.write({'originals':9,'status':'received','instructions':'Operational note only'})
+        reports=shipment.env['ir.actions.report']
+        html,_=reports._render_qweb_html('step_export_shipping_design.instruction',shipment.ids)
+        tree=etree.HTML(html)
+        documentation=tree.xpath('//div[@data-section="documentation"]')[0]
+        self.assertNotIn('Estado',''.join(documentation.itertext()))
+        self.assertNotIn('Operational note only',''.join(documentation.itertext()))
+        self.assertEqual(len(documentation.xpath('.//tbody/tr')),5)
+        self.assertEqual(tracked.originals,9);self.assertEqual(tracked.status,'received')
+        shipment.documentation_ids.unlink();shipment.freight_ids.unlink()
+        html,_=reports._render_qweb_html('step_export_shipping_design.instruction',shipment.ids)
+        tree=etree.HTML(html)
+        self.assertEqual(len(tree.xpath('//div[@data-section="documentation"]//tbody/tr')),5)
+        self.assertEqual(len(tree.xpath('//div[@data-section="freights"]//tbody/tr')),13)
+        self.assertFalse(shipment.documentation_ids);self.assertFalse(shipment.freight_ids)
+
+    def test_freight_list_copy_and_completion_preserve_payment(self):
+        shipment,_=self.sample(shared=False)
+        thc=shipment.freight_ids.filtered(lambda f:f.concept_id.name=='THC')
+        thc.payment='prepaid'
+        original=shipment.freight_ids.ids
+        shipment.action_complete_instruction_freights();shipment.action_complete_instruction_freights()
+        self.assertEqual(shipment.freight_ids.ids,original)
+        self.assertEqual(thc.payment,'prepaid')
+        copied=shipment.copy({'shipment_number':'QA83/0002'})
+        self.assertEqual(len(copied.freight_ids),len(original))
+        self.assertEqual(copied.freight_ids.filtered(lambda f:f.concept_id==thc.concept_id).payment,'prepaid')
+        self.assertEqual(dict(thc._fields['payment']._description_selection(thc.env)),{'collect':'Collect','prepaid':'Prepaid'})
+
+    def test_product_blocks_and_critical_fields(self):
+        shipment,_=self.sample()
+        shipment.line_ids.copy({'shipment_id':shipment.id,'label':'Second cargo brand'})
+        html,_=shipment.env['ir.actions.report']._render_qweb_html('step_export_shipping_design.instruction',shipment.ids)
+        tree=etree.HTML(html)
+        products=tree.xpath('//div[@data-section="product"]')
+        self.assertEqual(len(products),2)
+        self.assertTrue(all(len(block.xpath('.//tr'))==6 for block in products))
+        for label in ('CANTIDAD CONTENEDORES','BOOKING','PUERTO DE EMBARQUE','TEMPERATURA °C'):
+            self.assertTrue(tree.xpath('//th[@class="critical" and text()="%s"]'%label))
+        self.assertIn('Second cargo brand',html.decode())
+
     def sample(self, shared=True):
         company = self.env['res.company'].create({'name':'QA Shipping Company','currency_id':self.env.ref('base.USD').id,
             'export_folio_mode':'shared' if shared else 'document','export_folio_initial':257, 'step_export_sale_format':True})

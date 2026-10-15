@@ -11,29 +11,54 @@
         .shipping .section {background:#ed8d18;color:#fff;font-size:12px;font-weight:bold;padding:5px;}
         .shipping .heading {font-size:15px;font-weight:bold;text-align:center;}
         .shipping .reference {font-size:19px;color:#e7860d;font-weight:bold;text-align:center;}
+        .shipping .shipping-section {page-break-inside:avoid !important;break-inside:avoid;}
         .shipping tr {page-break-inside:avoid;}
         .shipping thead {display:table-header-group;}
-        .shipping .collect {background:#ffe2e2;text-align:center;}
-        .shipping .observations {background:#fff9e8;padding:7px;}
+        .shipping .collect {background:#ffe2e2;color:#9d2424;text-align:center;font-weight:bold;}
+        .shipping .critical {color:#d32f2f !important;}
+        .shipping .observations {background:#fff9e8;padding:7px;margin-bottom:9px;}
+        .shipping .multiline {white-space:pre-line;}
       </style>
       <div class="page shipping">
         <table><tr><td style="width:17%;text-align:center"><img t-if="doc.company_id.logo" t-att-src="image_data_uri(doc.company_id.logo)" style="max-height:65px;max-width:100px"/></td><td class="heading" style="width:62%"><span t-out="doc._instruction_title()"/></td><td class="reference">REF<br/><span t-field="doc.shipment_number"/></td></tr></table>
-        <div class="section">DATOS PRINCIPALES</div>
-        <table><tr><th>EXPORTADOR</th><td colspan="3"><strong t-field="doc.company_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.company_id.partner_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>RUT</th><td><span t-field="doc.company_id.vat"/></td><th>E MAIL</th><td><span t-field="doc.company_id.email"/></td></tr><tr><th>TELÉFONO</th><td colspan="3" ><span t-field="doc.company_id.phone"/></td></tr></table>
-        <table><tr><th>CONSIGNATARIO</th><td colspan="3" ><span t-field="doc.consignee_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.consignee_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>MAIL</th><td colspan="3" ><span t-field="doc.consignee_id.email"/></td></tr><tr><th>NOTIFY</th><td colspan="3" ><span t-field="doc.notify_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.notify_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>MAIL</th><td colspan="3" ><span t-field="doc.notify_id.email"/></td></tr></table>
-        <div class="section">DETALLES DEL PRODUCTO Y CARGA</div>
-        <table><thead><tr><th>Producto y envase</th><th>Variedad y marca</th><th>Calibre y calidad</th><th>Pallets y cajas</th><th>Kg netos</th></tr></thead><tbody><tr t-foreach="doc.line_ids" t-as="line"><td><span t-field="line.product_id.display_name"/><br/><span t-field="line.packaging_id.name"/></td><td><span t-field="line.variety_id.name"/><br/><span t-field="line.label"/></td><td><span t-field="line.caliber_id.name"/><br/><span t-field="line.quality_id.name"/></td><td><span t-field="line.pallet_qty"/> pallets<br/><span t-field="line.box_qty"/> cajas</td><td><span t-field="line.kg_qty"/></td></tr></tbody></table>
-        <table><tr><th>CONTENEDORES</th><td><span t-field="doc.container_qty"/></td><th>KG BRUTOS</th><td><span t-field="doc.gross_kg"/></td></tr><tr><th>CAJAS</th><td><span t-field="doc.box_qty"/></td><th>KG NETOS</th><td><span t-field="doc.kg_qty"/></td></tr></table>
-        <div class="section">INFORMACIÓN DE TRANSPORTE Y EMBARQUE</div>
-        <table><tr><th>FLETE</th><td><span t-field="doc.freight_payment"/></td><th>MODALIDAD DE VENTA</th><td><span t-field="doc.sale_mode_id.name"/></td></tr><tr><th>CLÁUSULA DE VENTA</th><td><span t-field="doc.incoterm_id.name"/></td><th>PUERTO DE EMBARQUE</th><td><span t-field="doc.origin_port_id.name"/></td></tr><tr><th>PUERTO DESTINO</th><td><span t-field="doc.destination_port_id.name"/></td><th>NAVE</th><td><span t-field="doc.vessel_id.name"/></td></tr><tr><th>BOOKING</th><td><span t-field="doc.booking"/></td><th>LÍNEA</th><td><span t-field="doc.carrier_id.name"/></td></tr><tr><th>FECHA ZARPE</th><td><span t-field="doc.departure_date"/></td><th>FECHA LLEGADA</th><td><span t-field="doc.arrival_date"/></td></tr><tr><th>TEMPERATURA °C</th><td><span t-field="doc.temperature"/></td><th>VENTILACIÓN</th><td><span t-field="doc.ventilation"/></td></tr><tr><th>ATMÓSFERA CONTROLADA</th><td><span t-field="doc.controlled_atmosphere"/></td><th>FILTROS</th><td><span t-field="doc.filters"/></td></tr><tr><th>THERMOS</th><td><span t-field="doc.thermograph_qty"/></td><th>CONTENEDOR</th><td><span t-field="doc.container_reference"/></td></tr></table>
-        <table><tr><th>TRANSPORTE A PUERTO</th><td><span t-field="doc.port_transport_id.name"/></td><th>FECHA Y HORA CARGA</th><td><span t-field="doc.loading_datetime"/></td></tr><tr><th>PACKING</th><td><span t-field="doc.packing_partner_id.name"/></td><th>CONTACTO TELÉFONO</th><td><span t-field="doc.counterpart_id.name"/><br/><span t-field="doc.counterpart_phone"/></td></tr><tr><th>CONSOLIDACIÓN</th><td><span t-field="doc.consolidation"/></td><th>AGENCIA DE ADUANA</th><td><span t-field="doc.customs_agent_id.name"/></td></tr><tr><th>STAKING</th><td><span t-field="doc.staking"/></td><th>OPERADOR LOGÍSTICO</th><td><span t-field="doc.logistics_operator_id.name"/></td></tr></table>
-        <div class="section">OBSERVACIONES</div><div class="observations" t-field="doc.notes"/>
-        <table><tr><td class="heading">FLETES Y DOCUMENTACIÓN</td><td style="width:25%" class="reference">REF <span t-field="doc.shipment_number"/></td></tr></table>
-        <div class="section">DESGLOSE FLETE</div>
-        <table><thead><tr><th style="width:68%">Concepto</th><th>Forma de pago</th></tr></thead><tbody><tr t-foreach="doc.freight_ids" t-as="freight"><td><strong t-field="freight.concept_id.name"/><br/><span t-field="freight.notes"/></td><td t-att-class="'collect' if freight.payment == 'collect' else ''"><span t-field="freight.payment"/></td></tr><tr t-if="not doc.freight_ids"><td colspan="2">Sin desglose registrado</td></tr></tbody></table>
-        <div class="section">DOCUMENTACIÓN REQUERIDA</div>
-        <table><thead><tr><th style="width:30%">Documento</th><th>Originales y copias e instrucciones</th><th style="width:18%">Estado</th></tr></thead><tbody><tr t-foreach="doc.documentation_ids" t-as="item"><td><span t-field="item.kind"/></td><td><t t-if="item.originals or item.copies"><span t-field="item.originals"/> originales y <span t-field="item.copies"/> copias<br/></t><span t-field="item.instructions"/></td><td><span t-field="item.status"/><br/><span t-field="item.date"/></td></tr></tbody></table>
-        <p>ATTE<br/><span t-field="doc.user_id.name"/></p>
+        <div class="shipping-section" data-section="exporter">
+          <div class="section">DATOS PRINCIPALES</div>
+          <table><tr><th>EXPORTADOR</th><td colspan="3"><strong t-field="doc.company_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.company_id.partner_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>RUT</th><td><span t-field="doc.company_id.vat"/></td><th>E MAIL</th><td><span t-field="doc.company_id.email"/></td></tr><tr><th>TELÉFONO</th><td colspan="3"><span t-field="doc.company_id.phone"/></td></tr></table>
+        </div>
+        <div class="shipping-section" data-section="consignee">
+          <table><tr><th>CONSIGNATARIO</th><td colspan="3"><span t-field="doc.consignee_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.consignee_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>MAIL</th><td colspan="3"><span t-field="doc.consignee_id.email"/></td></tr><tr><th>NOTIFY</th><td colspan="3"><span t-field="doc.notify_id.name"/></td></tr><tr><th>DIRECCIÓN</th><td colspan="3"><span t-field="doc.notify_id" t-options="{'widget':'contact','fields':['address'],'no_marker':True}"/></td></tr><tr><th>MAIL</th><td colspan="3"><span t-field="doc.notify_id.email"/></td></tr></table>
+        </div>
+        <div t-foreach="doc.line_ids" t-as="line" class="shipping-section" data-section="product">
+          <div class="section">DETALLES DEL PRODUCTO Y CARGA</div>
+          <table>
+            <colgroup><col style="width:23%"/><col style="width:27%"/><col style="width:23%"/><col style="width:27%"/></colgroup>
+            <tr><th>PRODUCTO</th><td><span t-field="line.product_id.name"/></td><th>VARIEDAD(ES)</th><td><span t-field="line.variety_id.name"/></td></tr>
+            <tr><th>ENVASE(S)</th><td><span t-field="line.packaging_id.name"/></td><th>CANTIDAD DE CAJAS/SACOS</th><td><span t-field="line.box_qty"/></td></tr>
+            <tr><th>CANTIDAD DE PALLETS</th><td><span t-field="line.pallet_qty"/></td><th class="critical">CANTIDAD CONTENEDORES</th><td><span t-field="doc.container_qty"/></td></tr>
+            <tr><th>MARCAS</th><td><span t-field="line.label"/></td><th>CALIBRES</th><td><span t-field="line.caliber_id.name"/></td></tr>
+            <tr><th>KG NETOS</th><td><span t-field="line.kg_qty"/></td><th>KG BRUTOS (EMBARQUE)</th><td><span t-field="doc.gross_kg"/></td></tr>
+            <tr><th>CALIDAD</th><td><span t-field="line.quality_id.name"/></td><td colspan="2"/></tr>
+          </table>
+        </div>
+        <div class="shipping-section" data-section="transport">
+          <div class="section">INFORMACIÓN DE TRANSPORTE Y EMBARQUE</div>
+          <table><tr><th class="critical">FLETE</th><td><span t-field="doc.freight_payment"/></td><th>MODALIDAD DE VENTA</th><td><span t-field="doc.sale_mode_id.name"/></td></tr><tr><th class="critical">CLÁUSULA DE VENTA</th><td><span t-field="doc.incoterm_id.name"/></td><th class="critical">PUERTO DE EMBARQUE</th><td><span t-field="doc.origin_port_id.name"/></td></tr><tr><th class="critical">PUERTO DE DESTINO</th><td><span t-field="doc.destination_port_id.name"/></td><th>NAVE</th><td><span t-field="doc.vessel_id.name"/></td></tr><tr><th class="critical">BOOKING</th><td><span t-field="doc.booking"/></td><th>LÍNEA</th><td><span t-field="doc.carrier_id.name"/></td></tr><tr><th class="critical">TEMPERATURA °C</th><td><span t-field="doc.temperature"/></td><th class="critical">VENTILACIÓN</th><td><span t-field="doc.ventilation"/></td></tr><tr><th class="critical">ATMÓSFERA CONTROLADA</th><td><span t-field="doc.controlled_atmosphere"/></td><th>FILTROS</th><td><span t-field="doc.filters"/></td></tr><tr><th class="critical">THERMOS</th><td><span t-field="doc.thermograph_qty"/></td><th>CONTENEDOR</th><td><span t-field="doc.container_reference"/></td></tr></table>
+        </div>
+        <div class="shipping-section" data-section="coordination">
+          <table><tr><th>FECHA ZARPE</th><td><span t-field="doc.departure_date"/></td><th>FECHA LLEGADA</th><td><span t-field="doc.arrival_date"/></td></tr></table>
+          <table><tr><th>TRANSPORTE A PUERTO</th><td><span t-field="doc.port_transport_id.name"/></td><th class="critical">FECHA Y HORA CARGA</th><td><span t-field="doc.loading_datetime"/></td></tr><tr><th>PACKING</th><td><span t-field="doc.packing_partner_id.name"/></td><th>CONTACTO TELÉFONO</th><td><span t-field="doc.counterpart_id.name"/><br/><span t-field="doc.counterpart_phone"/></td></tr><tr><th>CONSOLIDACIÓN</th><td><span t-field="doc.consolidation"/></td><th>AGENCIA DE ADUANA</th><td><span t-field="doc.customs_agent_id.name"/></td></tr><tr><th>STAKING</th><td><span t-field="doc.staking"/></td><th>OPERADOR LOGÍSTICO</th><td><span t-field="doc.logistics_operator_id.name"/></td></tr></table>
+        </div>
+        <div class="shipping-section" data-section="observations"><div class="section">OBSERVACIONES</div><div class="observations" t-field="doc.notes"/></div>
+        <div class="shipping-section" data-section="freights">
+          <table><tr><td class="heading">FLETES Y DOCUMENTACIÓN</td><td style="width:25%" class="reference">REF <span t-field="doc.shipment_number"/></td></tr></table>
+          <div class="section">DESGLOSE FLETE</div>
+          <table><thead><tr><th style="width:68%">Concepto</th><th>Forma de pago</th></tr></thead><tbody><tr t-foreach="doc._instruction_freights()" t-as="freight"><td><strong t-out="freight['name']"/><t t-if="freight['notes']"><br/><span class="multiline" t-out="freight['notes']"/></t></td><td t-att-class="'collect' if freight['collect'] else ''"><span t-out="freight['payment']"/></td></tr></tbody></table>
+        </div>
+        <div class="shipping-section" data-section="documentation">
+          <div class="section">DOCUMENTACIÓN REQUERIDA</div>
+          <table><thead><tr><th style="width:38%">Documento</th><th>Originales y copias e instrucciones</th></tr></thead><tbody><tr t-foreach="doc._instruction_documents()" t-as="item"><td><span t-out="item['name']"/></td><td t-att-class="'critical' if item['kind'] == 'bill' else ''"><t t-if="item['originals'] or item['copies']"><span t-out="item['originals']"/> originales<t t-if="item['copies']"> y <span t-out="item['copies']"/> copias</t></t><span t-out="item['instructions']"/></td></tr></tbody></table>
+          <p>ATTE<br/><span t-field="doc.user_id.name"/></p>
+        </div>
       </div>
     </t></t></t>
   </template>

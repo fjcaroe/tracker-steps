@@ -25,7 +25,7 @@
     </xpath>
     <xpath expr="//notebook" position="inside">
       <page string="Seguimiento" name="documentation"><field name="documentation_ids"><list editable="bottom"><field name="sequence" widget="handle"/><field name="kind"/><field name="originals"/><field name="copies"/><field name="instructions"/><field name="status"/><field name="date"/><field name="responsible_id"/></list></field></page>
-      <page string="Fletes" name="freights"><field name="freight_ids"><list editable="bottom"><field name="sequence" widget="handle"/><field name="concept_id"/><field name="payment"/><field name="notes"/></list></field></page>
+      <page string="Fletes" name="freights"><button name="action_complete_instruction_freights" type="object" string="Completar listado de fletes"/><field name="freight_ids"><list editable="bottom" create="false" delete="false"><field name="sequence" widget="handle"/><field name="concept_id" readonly="1"/><field name="payment"/><field name="notes"/></list></field></page>
     </xpath>
   </field></record>
   <template id="sale_commercial_number" inherit_id="step_sale_export_report.document"><xpath expr="//span[@t-field='doc.name']" position="replace"><span t-field="doc.export_document_number"/></xpath></template>
