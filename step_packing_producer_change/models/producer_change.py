@@ -48,7 +48,7 @@ class Repack(models.Model):
             for target in targets:
                 sources = self.line_ids.filtered(lambda row: row.target_package_id == target).source_package_id
                 inherited = sources.commercial_producer_id
-                if len(inherited) > 1 or target.commercial_producer_id != inherited:
+                if len(set(sources.mapped(lambda row: row.commercial_producer_id.id))) > 1 or target.commercial_producer_id != inherited:
                     raise ValidationError(_('Para cambiar el productor comercial use el tipo de proceso Cambio Productor.'))
         for target in targets:
             target._check_commercial_producer()
@@ -59,10 +59,12 @@ class Repack(models.Model):
         return location
 
     def action_prepare_distribution(self):
+        self.ensure_one()
+        producers = self.selected_source_ids.commercial_producer_id
+        if not self.process_type_id.changes_commercial_producer and len(set(
+                self.selected_source_ids.mapped(lambda row: row.commercial_producer_id.id))) > 1:
+            raise ValidationError(_('Separe las tarjas con distinto productor comercial o use Cambio Productor.'))
         result = super().action_prepare_distribution()
         if not self.process_type_id.changes_commercial_producer:
-            producers = self.selected_source_ids.commercial_producer_id
-            if len(producers) > 1:
-                raise ValidationError(_('Separe las tarjas con distinto productor comercial o use Cambio Productor.'))
             self.target_tag_ids.commercial_producer_id = producers
         return result
