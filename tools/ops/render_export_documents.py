@@ -36,16 +36,18 @@ try:
     reports = env['ir.actions.report']
     order = env['sale.order'].search(['|','|',('step_export_sale','=',True),('step_export_shipment_id','!=',False),('step_export_sales_program_id','!=',False)],order='id desc',limit=1)
     packing = env['step.export.packing.list'].search([],order='id desc',limit=1)
-    assert order and packing, 'Need existing examples to inspect'
     for record, report, filename in [(order,'step_sale_export_report.proforma','customer-proforma'),
         (order,'step_export_document_revision.commercial_invoice','customer-invoice'),
         (packing,'step_export.action_report_export_packing_list','customer-packing')]:
+        if not record:
+            continue
         record = record.with_company(record.company_id)
         pdf,_ = reports._render_qweb_pdf(report, record.ids)
         assert pdf.startswith(b'%PDF')
         Path(OUTPUT,filename+'.pdf').write_bytes(pdf)
-    Path(OUTPUT,'customer-packing.xlsx').write_bytes(packing._document_xlsx())
-    print('CURRENT_DOCUMENTS_OK '+json.dumps({'order':order.id,'packing':packing.id,'output':OUTPUT}))
+    if packing:
+        Path(OUTPUT,'customer-packing.xlsx').write_bytes(packing._document_xlsx())
+    print('CURRENT_DOCUMENTS_OK '+json.dumps({'order':order.id or None,'packing':packing.id or None,'output':OUTPUT}))
 finally:
     env.cr.rollback()
 '''

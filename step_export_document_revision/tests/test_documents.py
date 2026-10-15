@@ -89,6 +89,7 @@ class DocumentCase(TransactionCase):
         _, packing = self.sample(); rows = packing._document_rows()
         self.assertEqual(rows[0][0], 'QA-CSP'); self.assertEqual(rows[0][3], '2026-10-15')
         self.assertEqual(rows[0][4], 'QA-CSG'); self.assertEqual(rows[0][5:8], [10, 50, 53])
+        self.assertEqual(packing.kg_qty, 50)
         packing.shipment_id.write({'origin_port': 'QA departure', 'destination_port': 'QA arrival'})
         header = dict(packing._document_header())
         self.assertEqual(header['POD'], 'QA departure'); self.assertEqual(header['POL'], 'QA arrival')

@@ -149,6 +149,12 @@ class OrderLine(models.Model):
 class PackingList(models.Model):
     _inherit = 'step.export.packing.list'
 
+    @api.depends('tag_ids.box_count', 'tag_ids.kilos_total', 'tag_ids.step_actual_kg', 'tag_ids.step_tag_line_ids')
+    def _compute_totals(self):
+        for record in self:
+            record.box_qty = sum(record.tag_ids.mapped('box_count'))
+            record.kg_qty = sum(tag.step_actual_kg if tag.step_tag_line_ids else tag.kilos_total for tag in record.tag_ids)
+
     def action_print(self):
         self.ensure_one()
         return self.env.ref('step_export.action_report_export_packing_list').report_action(self, config=False)
