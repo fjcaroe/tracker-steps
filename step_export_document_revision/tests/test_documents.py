@@ -89,6 +89,11 @@ class DocumentCase(TransactionCase):
         _, packing = self.sample(); rows = packing._document_rows()
         self.assertEqual(rows[0][0], 'QA-CSP'); self.assertEqual(rows[0][3], '2026-10-15')
         self.assertEqual(rows[0][4], 'QA-CSG'); self.assertEqual(rows[0][5:8], [10, 50, 53])
+        packing.shipment_id.write({'origin_port': 'QA departure', 'destination_port': 'QA arrival'})
+        header = dict(packing._document_header())
+        self.assertEqual(header['POD'], 'QA departure'); self.assertEqual(header['POL'], 'QA arrival')
+        self.assertEqual(header['TOTAL BOXES'], 10); self.assertEqual(header['NET WEIGHT'], 50)
+        self.assertEqual(header['INVOICE'], packing.shipment_id.sale_order_ids.export_document_number)
         packing.tag_ids.step_export_thermos = '=1+1'
         book = zipfile.ZipFile(io.BytesIO(packing._document_xlsx()))
         xml = book.read('xl/worksheets/sheet1.xml')

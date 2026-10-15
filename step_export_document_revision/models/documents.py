@@ -162,8 +162,10 @@ class PackingList(models.Model):
                 ('VESSEL', s.vessel_id.display_name or ''),
                 ('ETD', str(s.departure_date or '')), ('ETA', str(s.arrival_date or '')), ('BK', s.booking or ''),
                 ('EXPORTER', s.company_id.name), ('IMPORTER', (s.receiver_id or s.consignee_id).name or ''),
-                ('POD', (s.destination_port_id.display_name or s.destination_port or '')),
-                ('POL', (s.origin_port_id.display_name or s.origin_port or '')),
+                # T85 explicitly requests these printed labels. Keep the ERP's
+                # origin/destination relations intact; adapt this document only.
+                ('POD', (s.origin_port_id.display_name or s.origin_port or '')),
+                ('POL', (s.destination_port_id.display_name or s.destination_port or '')),
                 ('TOTAL BOXES', s.box_qty), ('NET WEIGHT', s.kg_qty)]
 
     def _document_rows(self):
