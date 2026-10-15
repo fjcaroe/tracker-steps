@@ -1,3 +1,5 @@
+import base64
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -13,6 +15,11 @@ class Package(models.Model):
     commercial_producer_id = fields.Many2one('res.partner', string='Productor comercial',
         domain="[('is_productor','=',True)]", copy=True,
         help='Productor que aparece en la tarja impresa. El productor y fundo de origen se conservan.')
+
+    def _producer_tag_qr(self):
+        self.ensure_one()
+        return base64.b64encode(self.env['ir.actions.report'].barcode(
+            'QR', self.name or '', width=120, height=120))
 
     @api.constrains('commercial_producer_id', 'company_id')
     def _check_commercial_producer(self):
