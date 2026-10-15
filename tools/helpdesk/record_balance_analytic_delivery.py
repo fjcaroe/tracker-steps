@@ -13,7 +13,9 @@ for dest in ('development','cerro'):
     log=(a.evidence/(dest+'-deploy.log')).read_text(encoding='utf-8')
     assert a.commit in log and 'MANAGEMENT_DEPLOY_OK backup=' in log and 'MANAGEMENT_VERIFY_OK' in log
 copy=(a.evidence/'cerro-qa.log').read_text(encoding='utf-8')
-assert copy.count('"posted_in_copy_only": true')==2 and 'MANAGEMENT_QA_OK cerro' in copy
+assert copy.count('"posted_in_copy_only": true')==2
+assert '0 failed, 0 error(s) of 4 tests' in copy
+assert 'MANAGEMENT_QA_OK cerro' in copy or 'MANAGEMENT_CERTIFY_OK cerro' in copy
 for name,sha in v['files'].items():
     assert hashlib.sha256((a.evidence/name).read_bytes()).hexdigest()==sha
 assert v['files'] and v['originals_remain_draft']
