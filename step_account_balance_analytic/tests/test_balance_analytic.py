@@ -11,6 +11,10 @@ class BalanceAnalyticCase(TransactionCase):
         self.journal=self.env['account.journal'].create({'name':'Diario QA T88','code':'QT88','type':'general','company_id':self.company.id})
 
     def account(self, kind, suffix):
+        if kind == 'equity_unaffected':
+            existing=self.env['account.account'].with_company(self.company).search([('account_type','=',kind),('company_ids','in',self.company.id)],limit=1)
+            if existing:
+                return existing
         return self.env['account.account'].create({'name':'Cuenta QA T88 '+kind,'code':'QT88'+suffix,
             'account_type':kind,'company_ids':[(6,0,self.company.ids)],
             'reconcile':kind in ('asset_receivable','liability_payable')})
