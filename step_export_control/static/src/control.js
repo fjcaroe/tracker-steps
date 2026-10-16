@@ -34,18 +34,18 @@ export class ControlPanel extends Component {
             { label: 'Documentos enviados', value: rows.flatMap(r => r.documents).filter(d => d.sent).length },
             { label: 'Pendientes vencidos', value: rows.flatMap(r => r.documents).filter(d => !d.sent && d.color === 'late').length },
         ] : [
-            { label: 'En trÃ¡nsito', value: rows.filter(r => r.voyage_status === 'transit').length },
-            { label: 'PrÃ³ximos a arribar', value: rows.filter(r => r.near_arrival).length },
+            { label: 'En tránsito', value: rows.filter(r => r.voyage_status === 'transit').length },
+            { label: 'Próximos a arribar', value: rows.filter(r => r.near_arrival).length },
             { label: 'Arribados', value: rows.filter(r => r.voyage_status === 'arrived').length },
         ];
     }
     onMarkerKey(event, id) { if (event.key === 'Enter') this.open(id); }
     open(id) { return this.action.doAction({ type: 'ir.actions.act_window', res_model: 'step.export.export', res_id: id, views: [[false, 'form']], target: 'current' }); }
     configure(xmlid) { return this.action.doAction('step_export_control.' + xmlid); }
-    date(value) { return value ? value.split('-').reverse().join('-') : 'â€”'; }
+    date(value) { return value ? value.split('-').reverse().join('-') : '—'; }
     shortDate(value) { return value ? value.slice(5).split('-').reverse().join('-') : ''; }
-    status(row) { return { transit: 'En trÃ¡nsito', arrived: 'Arribado', scheduled: 'Por zarpar', unknown: 'Revisar fechas' }[row.voyage_status]; }
-    title(doc) { return `${doc.sent ? 'Enviado: ' + this.date(doc.date) : 'Pendiente'} Â· MÃ¡ximo: ${this.date(doc.deadline)}${doc.duplicates ? ' Â· Revisar registros duplicados' : ''}`; }
+    status(row) { return { transit: 'En tránsito', arrived: 'Arribado', scheduled: 'Por zarpar', unknown: 'Revisar fechas' }[row.voyage_status]; }
+    title(doc) { return `${doc.sent ? 'Enviado: ' + this.date(doc.date) : 'Pendiente'} · Máximo: ${this.date(doc.deadline)}${doc.duplicates ? ' · Revisar registros duplicados' : ''}`; }
     point(p) { return { x: (p[1] + 180) * 1000 / 360, y: (90 - p[0]) * 500 / 180 }; }
     paths(points) {
         // Split at the antimeridian so a route never draws across the entire map.
