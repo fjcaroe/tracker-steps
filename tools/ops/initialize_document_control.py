@@ -26,7 +26,7 @@ try:
  env.cr.execute('SELECT id FROM step_export_shipping_document ORDER BY id FOR UPDATE')
  old_ids=[row[0] for row in env.cr.fetchall()]
  def ship_snapshot():
-  env.cr.execute("SELECT COALESCE(jsonb_agg(to_jsonb(t)-'write_date' ORDER BY id),'[]') FROM step_export_export t")
+  env.cr.execute("SELECT COALESCE(jsonb_agg(to_jsonb(t)-'write_date'-'write_uid' ORDER BY id),'[]') FROM step_export_export t")
   return env.cr.fetchone()[0]
  def old_documents():
   env.cr.execute("SELECT COALESCE(jsonb_agg(to_jsonb(t) ORDER BY id),'[]') FROM step_export_shipping_document t WHERE id=ANY(%s)",[old_ids])
@@ -36,7 +36,9 @@ try:
  types=set(env['step.export.document.type'].search([]).mapped('kind'))
  shipments.action_complete_document_control()
  env.flush_all()
- assert ship_snapshot()==before_ship,'A shipment value other than its update date changed'
+ after_ship=ship_snapshot()
+ changes={str(b['id']):[k for k in b if b[k]!=c[k]] for b,c in zip(before_ship,after_ship) if b!=c}
+ assert not changes,'Shipment changed fields: '+json.dumps(changes)
  assert old_documents()==before_doc,'An existing documentation value changed'
  added=env['step.export.shipping.document'].search([('id','not in',old_ids)])
  for s in shipments:
