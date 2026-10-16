@@ -21,7 +21,7 @@ with open('/run/lock/steps-environments.lock','a') as lock:
     source=Path(__file__).resolve().parent
     destination=Path('/opt/steps-managed/aisstream')
     destination.mkdir(parents=True,exist_ok=True)
-    for name in ('aisstream_collector.py','environments.json'):
+    for name in ('aisstream_collector.py','verify_aisstream_live.py','environments.json'):
         shutil.copy2(source/name,destination/name)
     private=Path('/etc/steps/aisstream.env')
     private.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
