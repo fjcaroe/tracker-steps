@@ -85,6 +85,13 @@ class Vessel(models.Model):
         if any(v.mmsi and not re.fullmatch(r'[0-9]{9}',v.mmsi) for v in self):
             raise ValidationError(_('El MMSI debe contener exactamente nueve dígitos.'))
 
+    def write(self, values):
+        if 'mmsi' in values and any((v.mmsi or False)!=(values['mmsi'] or False) for v in self):
+            # A reassigned radio identity must never display the former ship's fix.
+            values={**values,**{name:False for name in ('ais_latitude','ais_longitude','ais_reported_at',
+                'ais_received_at','ais_speed','ais_course')}}
+        return super().write(values)
+
     @api.model
     def _ingest_ais_event(self, event):
         """Private collector entry point: no public RPC or name-based matching."""

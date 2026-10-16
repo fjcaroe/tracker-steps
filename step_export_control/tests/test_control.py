@@ -121,6 +121,9 @@ class ExportControlCase(TransactionCase):
         self.assertFalse(shipment._voyage_control_values(date(2026,10,16))['ais_fresh'])
         with self.assertRaises(ValidationError),self.cr.savepoint():
             vessel.mmsi='invalid'
+        vessel.mmsi='999000090'
+        self.assertFalse(vessel.ais_reported_at)
+        self.assertFalse(shipment._voyage_control_values(date(2026,10,16))['ais_position'])
         other=self.env['res.company'].create({'name':'QA otra empresa paneles'})
         route=self.env['step.export.sea.route'].create({'name':'QA confidencial','company_id':other.id,
             'origin_port_id':self.env['l10n_cl.customs_port'].search([],limit=1).id,
