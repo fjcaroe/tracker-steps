@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+type_read,Export document parameters,model_step_export_document_type,base.group_user,1,0,0,0
+type_admin,Export document parameter administration,model_step_export_document_type,base.group_system,1,1,1,0
+route_user,Export sea routes,model_step_export_sea_route,base.group_user,1,1,1,0
+waypoint_user,Export route points,model_step_export_sea_waypoint,base.group_user,1,1,1,1
+settings_read,Export control settings read,model_step_export_control_settings,base.group_user,1,0,0,0
+settings_admin,Export control settings,model_step_export_control_settings,base.group_system,1,1,1,0

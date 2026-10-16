@@ -1,0 +1,110 @@
+<odoo noupdate="1">
+  <record id="type_pf" model="step.export.document.type">
+    <field name="kind">pf</field>
+    <field name="code">PF</field>
+    <field name="name">Proforma</field>
+    <field name="sequence">10</field>
+    <field name="customer_days">-3</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_ie" model="step.export.document.type">
+    <field name="kind">ie</field>
+    <field name="code">IE</field>
+    <field name="name">Instructivo de embarque</field>
+    <field name="sequence">20</field>
+    <field name="customer_days">-1</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_pl" model="step.export.document.type">
+    <field name="kind">pl</field>
+    <field name="code">PL</field>
+    <field name="name">Packing List</field>
+    <field name="sequence">30</field>
+    <field name="customer_days">2</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_invoice" model="step.export.document.type">
+    <field name="kind">invoice</field>
+    <field name="code">IN</field>
+    <field name="name">Invoice</field>
+    <field name="sequence">40</field>
+    <field name="customer_days">2</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_bl" model="step.export.document.type">
+    <field name="kind">bl</field>
+    <field name="code">BL D</field>
+    <field name="name">BL Draft</field>
+    <field name="sequence">50</field>
+    <field name="customer_days">2</field>
+    <field name="customs_required" eval="True" />
+    <field name="customs_days">1</field>
+  </record>
+  <record id="type_bl_nv" model="step.export.document.type">
+    <field name="kind">bl_nv</field>
+    <field name="code">BL N V</field>
+    <field name="name">BL No Valorizado</field>
+    <field name="sequence">60</field>
+    <field name="customer_days">7</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_bl_v" model="step.export.document.type">
+    <field name="kind">bl_v</field>
+    <field name="code">BL V</field>
+    <field name="name">BL Valorizado</field>
+    <field name="sequence">70</field>
+    <field name="customer_days">7</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_bill" model="step.export.document.type">
+    <field name="kind">bill</field>
+    <field name="code">SWB</field>
+    <field name="name">SWB emisión destino</field>
+    <field name="sequence">80</field>
+    <field name="customer_days">15</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_fx" model="step.export.document.type">
+    <field name="kind">fx</field>
+    <field name="code">FX</field>
+    <field name="name">Factura exportación</field>
+    <field name="sequence">90</field>
+    <field name="customer_days">3</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_phyto" model="step.export.document.type">
+    <field name="kind">phyto</field>
+    <field name="code">FITO</field>
+    <field name="name">Fitosanitario</field>
+    <field name="sequence">100</field>
+    <field name="customer_days">7</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_origin" model="step.export.document.type">
+    <field name="kind">origin</field>
+    <field name="code">CO</field>
+    <field name="name">Certificado de origen</field>
+    <field name="sequence">110</field>
+    <field name="customer_days">7</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+  <record id="type_dus" model="step.export.document.type">
+    <field name="kind">dus</field>
+    <field name="code">DUS</field>
+    <field name="name">DUS</field>
+    <field name="sequence">120</field>
+    <field name="customer_days">15</field>
+    <field name="customs_required" eval="False" />
+    <field name="customs_days">0</field>
+  </record>
+</odoo>

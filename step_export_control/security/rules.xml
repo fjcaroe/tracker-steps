@@ -1,0 +1,5 @@
+<odoo>
+  <record id="route_company" model="ir.rule"><field name="name">Rutas de empresas activas</field><field name="model_id" ref="model_step_export_sea_route"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+  <record id="waypoint_company" model="ir.rule"><field name="name">Puntos de rutas de empresas activas</field><field name="model_id" ref="model_step_export_sea_waypoint"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+  <record id="settings_company" model="ir.rule"><field name="name">Parámetros de empresas activas</field><field name="model_id" ref="model_step_export_control_settings"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+</odoo>

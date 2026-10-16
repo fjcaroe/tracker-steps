@@ -1,0 +1,37 @@
+<templates xml:space="preserve">
+ <t t-name="step_export_control.Panel">
+  <main class="o_export_control">
+   <header class="control_heading"><div><span class="eyebrow">EXPORTACIONES / CONTROL</span><h1 t-esc="mode === 'documents' ? 'Panel de documentos' : 'A dÃ³nde va la lancha'"/><p t-esc="mode === 'documents' ? 'Cada envÃ­o, su fecha y el plazo que hay que cumplir.' : 'Estado de las naves y dÃ­as de navegaciÃ³n a la fecha de consulta.'"/></div><button class="btn btn-outline-secondary" t-on-click="() => this.configure(mode === 'documents' ? 'types_action' : 'settings_action')"><i class="fa fa-sliders me-2"/>ParÃ¡metros</button></header>
+   <form class="control_filters" t-on-submit.prevent="load">
+    <label>Temporada<select class="form-select" t-model="state.season"><option value="">Todas</option><t t-foreach="state.data?.seasons || []" t-as="s" t-key="s.id"><option t-att-value="s.id" t-esc="s.display_name"/></t></select></label>
+    <label>Fecha de consulta<input class="form-control" type="date" t-model="state.date"/></label>
+    <label class="control_query">Buscar<input class="form-control" t-model="state.query" placeholder="Embarque, contenedor o nave"/></label>
+    <button class="btn btn-primary" type="submit" t-att-disabled="state.loading"><i class="fa fa-refresh me-2"/>Consultar</button>
+   </form>
+   <div t-if="state.error" class="alert alert-danger" role="alert"><t t-esc="state.error"/><button class="btn btn-link" t-on-click="load">Reintentar</button></div>
+   <p t-if="state.loading" role="status">Consultando embarquesâ€¦</p>
+   <t t-if="state.data">
+    <section class="control_metrics"><t t-foreach="metrics" t-as="m" t-key="m.label"><article><span t-esc="m.label"/><strong t-esc="m.value"/></article></t></section>
+    <div t-if="mode === 'documents'" class="control_legend"><span class="status ontime">Antes del plazo</span><span class="status today">DÃ­a lÃ­mite</span><span class="status late">Fuera de plazo</span><span>E + fecha: enviado Â· P: pendiente</span><select aria-label="Filtrar vencimientos" class="form-select" t-model="state.status"><option value="">Todos los documentos</option><option value="late">Con pendientes vencidos</option><option value="today">Pendientes que vencen hoy</option></select></div>
+    <t t-if="mode === 'vessels'">
+     <section class="control_map_card"><div class="control_map_header"><div><h2>Mapa de naves en trÃ¡nsito</h2><p t-if="state.position === 'theoretical'">PosiciÃ³n teÃ³rica segÃºn fechas y ruta configurada.</p><p t-else="">AIS real de AISStream Â· Se muestra la fecha de cada lectura. Los datos antiguos se marcan en gris.</p></div><div class="btn-group"><button t-att-class="'btn ' + (state.position === 'theoretical' ? 'btn-primary' : 'btn-outline-secondary')" t-on-click="() => state.position = 'theoretical'">TeÃ³rico</button><button t-att-class="'btn ' + (state.position === 'ais' ? 'btn-primary' : 'btn-outline-secondary')" t-on-click="() => state.position = 'ais'">AIS real</button></div></div>
+      <svg viewBox="0 0 1000 500" role="img" aria-label="Mapa mundial de naves en trÃ¡nsito">
+       <image href="/step_export_control/static/src/world.svg" width="1000" height="500"/>
+       <t t-if="state.position === 'theoretical'"><t t-foreach="rows" t-as="r" t-key="r.id"><t t-foreach="paths(r.route)" t-as="path" t-key="path_index"><polyline t-att-points="path" class="control_route"/></t></t></t>
+       <t t-foreach="markers" t-as="r" t-key="r.id"><g role="button" tabindex="0" t-on-click="() => this.open(r.id)" t-on-keydown="(ev) => this.onMarkerKey(ev, r.id)" t-att-transform="'translate(' + r.x + ',' + r.y + ')'" t-att-class="state.position === 'ais' &amp;&amp; !r.ais_fresh ? 'control_ship stale' : 'control_ship'"><title><t t-esc="r.vessel + ' Â· Embarque ' + r.number + (state.position === 'ais' ? ' Â· AIS ' + r.ais_reported_at + ' UTC' : ' Â· PosiciÃ³n teÃ³rica')"/></title><circle r="7"/><text x="12" y="4" t-esc="r.number"/></g></t>
+      </svg>
+      <p t-if="!markers.length" class="control_empty_map" t-esc="state.position === 'ais' ? 'Sin posiciones AIS disponibles para estas naves. Configure sus MMSI y la conexiÃ³n de AISStream.' : 'Sin posiciones teÃ³ricas para estos filtros. Las naves en trÃ¡nsito necesitan una ruta con coordenadas verificadas.'"/>
+      <div class="control_map_footer"><span>Mapa: Natural Earth Â· Datos geogrÃ¡ficos locales</span><button class="btn btn-link" t-on-click="() => this.configure('routes_action')">Configurar rutas</button><span t-if="state.position === 'ais'" t-esc="state.data.ais_heartbeat ? 'Ãšltima conexiÃ³n del colector: ' + state.data.ais_heartbeat + ' UTC' : 'Colector AIS pendiente de activaciÃ³n'"/></div>
+     </section>
+     <div class="control_legend"><span class="status ontime">Arribado</span><span class="status today">En trÃ¡nsito</span><span class="status near">PrÃ³ximo a arribar</span><select aria-label="Filtrar estado de naves" class="form-select" t-model="state.status"><option value="">Todos los estados</option><option value="transit">En trÃ¡nsito</option><option value="arrived">Arribados</option><option value="scheduled">Por zarpar</option><option value="unknown">Revisar fechas</option></select></div>
+    </t>
+    <p t-if="state.data.total > state.data.rows.length" class="alert alert-warning">Se muestran 500 de <t t-esc="state.data.total"/> embarques. Filtre por temporada o bÃºsqueda para acotar la consulta.</p>
+    <div class="control_table_wrap"><table class="control_table"><thead><tr><th>Embarque</th><th>Contenedor / Nave</th><th>Puerto destino</th><th>ETD</th><th>ETA</th><t t-if="mode === 'documents'"><t t-foreach="state.data.types" t-as="type" t-key="type.kind"><th t-att-title="type.name + ' Â· Zarpe ' + (type.days >= 0 ? '+' : '') + type.days + ' dÃ­as'" t-esc="type.code"/></t></t><t t-else=""><th>Transit time</th><th>Estado teÃ³rico</th><th>DÃ­as al arribo</th><th>DÃ­as arribado</th><th>Ãšltima posiciÃ³n AIS (UTC)</th></t></tr></thead>
+     <tbody><t t-foreach="rows" t-as="r" t-key="r.id"><tr><td><button class="btn btn-link" t-on-click="() => this.open(r.id)" t-esc="r.number"/></td><td><strong t-esc="r.container || 'â€”'"/><small t-esc="r.vessel || 'Sin nave'"/></td><td t-esc="r.destination || 'â€”'"/><td t-esc="date(r.etd)"/><td t-esc="date(r.eta)"/>
+      <t t-if="mode === 'documents'"><t t-foreach="r.documents" t-as="d" t-key="d.kind"><td><button t-att-class="'document_status status ' + d.color" t-att-title="title(d)" t-on-click="() => this.open(r.id)"><t t-esc="d.sent ? 'E ' + shortDate(d.date) : 'P'"/><i t-if="d.duplicates" class="fa fa-exclamation-triangle ms-1"/></button></td></t></t>
+      <t t-else=""><td t-esc="r.transit_time"/><td><span t-att-class="'status ' + r.voyage_color" t-esc="status(r)"/><small t-if="r.near_arrival" class="text-info">Arribo prÃ³ximo</small></td><td t-esc="r.days_to_arrival"/><td t-esc="r.days_arrived"/><td><span t-esc="r.ais_reported_at || (r.mmsi ? 'Sin seÃ±al recibida' : 'Sin MMSI')"/><small t-if="r.ais_reported_at" t-att-class="r.ais_fresh ? 'text-success' : 'text-secondary'" t-esc="r.ais_fresh ? 'Dentro de vigencia configurada' : 'Dato antiguo'"/></td></t>
+     </tr></t><tr t-if="!rows.length"><td t-att-colspan="mode === 'documents' ? state.data.types.length + 5 : 10" class="control_empty">No hay embarques para estos filtros.</td></tr></tbody></table></div>
+   </t>
+  </main>
+ </t>
+</templates>

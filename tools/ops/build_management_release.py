@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -34,6 +34,8 @@ def main():
         modules = ('step_sale_export_report', 'step_export_client_revision')
     if args.kind in ('estimate-report', 'contract-report'):
         modules = ('step_producer_estimate_report',) if args.kind == 'estimate-report' else ('step_producer_contract_report',)
+    if args.kind == 'export-control':
+        modules = ('step_export_control',)
     if args.kind == 'balance-analytic':
         modules = ('step_account_balance_analytic',)
     if args.kind == 'producer-change':
@@ -78,7 +80,7 @@ def main():
         from stack_scope import MODULES as modules
     if args.environment == 'demo-sys':
         if args.kind != 'payroll':
-            parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')
+            parser.error('Demo-SYS replica SyS; este publicador solo prepara NÃ³mina para ese destino')
         modules = tuple(name for name in modules if name not in (
             'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow'))
     raw = subprocess.check_output(['git', 'archive', '--format=tar', commit, *modules], cwd=root)
