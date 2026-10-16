@@ -31,8 +31,9 @@ author=rpc('res.users','read',[[uid]],{'fields':['partner_id']})[0]['partner_id'
 for tid,last,marker in [(89,9471,'Control documental instalado y verificado'),(90,9476,'Panel de naves e integración AISStream')]:
     t=rpc('helpdesk.ticket','read',[[tid]],{'fields':['name','stage_id']})[0]
     assert t['name'].startswith('T'+str(tid))
-    recent=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','=',tid),('id','>',last),('message_type','in',['comment','email'])]],{'fields':['id','body']})
-    assert all(marker in (m['body'] or '') for m in recent),'Read newer human replies before recording delivery'
+    recent=rpc('mail.message','search_read',[[('model','=','helpdesk.ticket'),('res_id','=',tid),('id','>',last),('message_type','in',['comment','email'])]],{'fields':['id','body','author_id','subtype_id']})
+    assert all(marker in (m['body'] or '') and m['author_id'] and m['author_id'][0]==author
+               and m['subtype_id'] and m['subtype_id'][0]==note for m in recent),'Read newer human replies before recording delivery'
     if tid==89:
         body=('Publicado y verificado en Desarrollo y Cerro El Plomo. Control / Panel de documentos muestra '
             'las doce siglas, plazos configurables, fechas y semáforos. El instructivo tiene Control documentos '
@@ -53,9 +54,12 @@ for tid,last,marker in [(89,9471,'Control documental instalado y verificado'),(9
                'deben tener nave/MMSI y rutas/fechas correspondientes para aparecer en sus mapas.')
         stage=4 if a.ais_verified else 2
     existing=[m for m in recent if marker in (m['body'] or '')]
+    body_html='<h3>'+marker+'</h3><p>'+html.escape(body)+'</p>'
     message=existing[0]['id'] if existing else rpc('mail.message','create',[{'model':'helpdesk.ticket','res_id':tid,
         'message_type':'comment','subtype_id':note,'author_id':author,'partner_ids':[(5,0,0)],
-        'body':'<h3>'+marker+'</h3><p>'+html.escape(body)+'</p>'}])
+        'body':body_html}])
+    if existing and existing[0]['body']!=body_html:
+        rpc('mail.message','write',[[message],{'body':body_html}])
     saved=rpc('mail.message','read',[[message]],{'fields':['notification_ids','subtype_id']})[0]
     assert not saved['notification_ids'] and saved['subtype_id'][0]==note
     rpc('helpdesk.ticket','write',[[tid],{'stage_id':stage}],{'context':{'tracking_disable':True,'mail_notrack':True,'mail_create_nosubscribe':True,'mail_auto_subscribe_no_notify':True}})
