@@ -45,6 +45,16 @@ def checksum():
 
 with open('/run/lock/steps-environments.lock','a') as lock:
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    for command in Path('/proc').glob('[0-9]*/cmdline'):
+        try:
+            args=command.read_bytes().decode(errors='replace').split('\x00')
+        except OSError:
+            continue
+        if any(Path(arg).name=='odoo-bin' for arg in args):
+            assert not any(arg in ('-i','-u','--update','--init') or arg.startswith(('--update=','--init=')) for arg in args),'Concurrent Odoo upgrade'
+    if a.live:
+        copy=json.loads((stage/'asset_metadata_passed.json').read_text())
+        assert copy['commit']==a.commit and copy['timestamp']==a.timestamp and copy['content_preserved']
     check_bytes()
     before=checksum()
     changed={}
@@ -59,8 +69,6 @@ with open('/run/lock/steps-environments.lock','a') as lock:
     report={'commit':a.commit,'environment':a.environment,'database':database,'root':str(root),
         'content_preserved':True,'previous_mtimes':changed,'timestamp':a.timestamp,'before_checksum':before,'after_checksum':after}
     if a.live:
-        copy=json.loads((stage/'asset_metadata_passed.json').read_text())
-        assert copy['commit']==a.commit and copy['timestamp']==a.timestamp and copy['content_preserved']
         backup=Path('/opt/steps_backups')/('asset_metadata_'+a.environment+'_'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
         backup.mkdir(mode=0o700)
         (backup/'metadata.json').write_text(json.dumps(report,indent=2))
