@@ -28,12 +28,18 @@ with open('/run/lock/steps-environments.lock','a') as lock:
         private.write_text('# Private AISStream key; provision locally, never in Git.\nAISSTREAM_API_KEY=\n')
         private.chmod(0o600)
     service='odoo18-dev.service' if a.environment=='development' else 'odoo18-cerroelplomo.service'
+    database='LAB_TAREAS' if a.environment=='development' else 'CERRO_EL_PLOMO'
+    installed=subprocess.check_output(['sudo','-u','postgres','psql','-d',database,'-Atc',
+        "SELECT state FROM ir_module_module WHERE name='step_export_control'"],text=True).strip()
+    assert installed=='installed','First publish and verify the control addon'
     user=subprocess.check_output(['systemctl','show','--value','--property=User',service],text=True).strip()
     unit='steps-aisstream-'+a.environment+'.service'
     text=f'''[Unit]
 Description=Steps AISStream {a.environment}
 After=network-online.target {service}
 Wants=network-online.target
+Requires={service}
+PartOf={service}
 
 [Service]
 Type=simple
@@ -47,7 +53,7 @@ PrivateTmp=true
 UMask=0077
 
 [Install]
-WantedBy=multi-user.target
+WantedBy={service}
 '''
     Path('/etc/systemd/system',unit).write_text(text)
     subprocess.run(['systemctl','daemon-reload'],check=True)
