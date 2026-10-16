@@ -5,6 +5,7 @@ created, modified, printed, committed or requested over RPC by this installer.
 """
 import argparse
 import fcntl
+import json
 import os
 from pathlib import Path
 import shutil
@@ -27,8 +28,8 @@ with open('/run/lock/steps-environments.lock','a') as lock:
     if not private.exists():
         private.write_text('# Private AISStream key; provision locally, never in Git.\nAISSTREAM_API_KEY=\n')
         private.chmod(0o600)
-    service='odoo18-dev.service' if a.environment=='development' else 'odoo18-cerroelplomo.service'
-    database='LAB_TAREAS' if a.environment=='development' else 'CERRO_EL_PLOMO'
+    target=json.loads((source/'environments.json').read_text())['environments'][a.environment]
+    service,database=target['service'],target['database']
     installed=subprocess.check_output(['sudo','-u','postgres','psql','-d',database,'-Atc',
         "SELECT state FROM ir_module_module WHERE name='step_export_control'"],text=True).strip()
     assert installed=='installed','First publish and verify the control addon'
