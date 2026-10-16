@@ -62,8 +62,16 @@ class ExportControlCase(TransactionCase):
         self.assertEqual(line.sent_on,fields.Date.context_today(line))
         self.assertTrue(line.sent_message_id)
         self.assertEqual(line.sent_attachment_ids,attachment)
-        self.assertFalse(mail.exists())
+        self.assertEqual(mail.state,'sent')
+        self.assertFalse(mail.auto_delete)
         self.assertTrue(line.document_created_on)
+        partner=self.env['res.partner'].create({'name':'QA destinatario','email':'qa-recipient@example.invalid'})
+        composer=self.env['mail.compose.message'].create({'model':shipment._name,'res_ids':str(shipment.ids),
+            'composition_mode':'comment','subject':'QA compositor','body':'QA documentos',
+            'partner_ids':[Command.set(partner.ids)],'attachment_ids':[Command.set(attachment.ids)],
+            'export_control_type_ids':[Command.set(parameter.ids)]})
+        prepared=composer._prepare_mail_values(shipment.ids)[shipment.id]
+        self.assertEqual(prepared['export_control_type_ids'],[Command.set(parameter.ids)])
 
     def test_voyage_dates_alert_boundaries_and_routes(self):
         shipment=self.shipment()

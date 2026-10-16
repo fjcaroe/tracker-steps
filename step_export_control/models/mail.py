@@ -49,6 +49,10 @@ class Mail(models.Model):
                     types=self.env['step.export.document.type'].search([('kind','=','fx')])
             if not shipment or not types:
                 continue
+            if not mail.is_notification:
+                # Native unlink cascades the message for direct/mass mail.
+                # Keep that successful business email as its own audit evidence.
+                mail.auto_delete=False
             shipment.action_complete_document_control()
             today=fields.Date.context_today(mail)
             for line in shipment.documentation_ids.filtered(lambda l:l.kind in types.mapped('kind')):
