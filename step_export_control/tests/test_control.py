@@ -95,8 +95,8 @@ class ExportControlCase(TransactionCase):
     def test_ais_validation_identity_age_and_company_access(self):
         vessel=self.env['step.export.vessel'].create({'name':'QA AIS','mmsi':'999000089','company_id':self.env.company.id})
         shipment=self.shipment(vessel_id=vessel.id)
-        now=fields.Datetime.now().replace(microsecond=0)
-        event={'MessageType':'PositionReport','MetaData':{'MMSI':999000089,'time_utc':str(now)+'+00:00'},
+        now=(fields.Datetime.now()-timedelta(minutes=1)).replace(microsecond=0)
+        event={'MessageType':'PositionReport','MetaData':{'MMSI':999000089,'time_utc':str(now)+'.123456789 +0000 UTC'},
             'Message':{'PositionReport':{'Latitude':-20,'Longitude':-80,'Valid':True,'Sog':12,'Cog':22}}}
         vessel._ingest_ais_event(event)
         self.assertEqual(vessel.ais_latitude,-20)

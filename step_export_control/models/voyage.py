@@ -103,7 +103,12 @@ class Vessel(models.Model):
         if not timestamp:
             return 0  # reception time alone is not proof of the position age
         try:
-            reported=datetime.fromisoformat(str(timestamp).replace(' UTC','').replace('Z','+00:00'))
+            normalized=str(timestamp).replace(' UTC','').replace('Z','+00:00')
+            # AISStream uses Go timestamps with nanoseconds and a +0000 suffix;
+            # Odoo runs Python 3.10, whose ISO parser needs microseconds/+00:00.
+            normalized=re.sub(r'(\.\d{6})\d+',r'\1',normalized)
+            normalized=re.sub(r'\s([+-]\d{2})(\d{2})$',r'\1:\2',normalized)
+            reported=datetime.fromisoformat(normalized)
             if reported.tzinfo:
                 reported=reported.astimezone(timezone.utc).replace(tzinfo=None)
         except (ValueError,TypeError):
