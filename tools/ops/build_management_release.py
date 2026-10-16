@@ -25,6 +25,7 @@ def main():
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
     commit = subprocess.check_output(['git', 'rev-parse', args.commit + '^{commit}'], cwd=root, text=True).strip()
+    commit_time = int(subprocess.check_output(['git','show','-s','--format=%ct',commit],cwd=root,text=True).strip())
     modules = MODULES if args.kind == 'management' else ('step_environment_policy', 'step_payroll_engine_transition', 'step_hr_contract_days', 'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_simpledigital', 'step_hr_remuneration_book', 'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow')
     if args.kind == 'export':
         modules = ('step_export',)
@@ -103,6 +104,9 @@ def main():
             member = tarfile.TarInfo(name)
             member.size = len(data)
             member.mode = 0o644
+            # Odoo versions asset URLs from file mtimes. Epoch-zero mtimes can
+            # keep an earlier JS/template bundle cached after a real update.
+            member.mtime = commit_time
             archive.addfile(member, io.BytesIO(data))
     print('MANAGEMENT_RELEASE_OK ' + json.dumps({'commit': commit, 'sha256': hashlib.sha256(args.output.read_bytes()).hexdigest(), 'files': len(entries), 'versions': versions}))
 
