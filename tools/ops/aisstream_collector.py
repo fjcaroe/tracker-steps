@@ -50,6 +50,7 @@ def main():
             if heartbeat:
                 env['ir.config_parameter'].sudo().set_param('step_export_control.ais_heartbeat',datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
             cr.commit()
+        registry.signal_changes()  # invalidate cached connection state in web workers
 
     async def receive():
         delay=2

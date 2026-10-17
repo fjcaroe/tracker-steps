@@ -58,8 +58,6 @@ async def verify():
                     with patch.object(type(model),'search',return_value=candidate):
                         model._ingest_ais_event(event)
                     if candidate.ais_reported_at and timedelta(0)<=fields.Datetime.now()-candidate.ais_reported_at<timedelta(hours=2):
-                        print('AISSTREAM_LIVE_DATA_VERIFIED '+json.dumps({'environment':a.environment,'commit':a.commit,
-                            'authentication':True,'live_position_parsed':True,'test_transaction_rolled_back':True}),flush=True)
                         return
                 finally:
                     cr.rollback()
@@ -68,6 +66,18 @@ async def verify():
 
 try:
     asyncio.run(asyncio.wait_for(verify(),timeout=45))
+    # Record only the actual successful provider connection after the business
+    # test transaction has rolled back. This is also accurate when no customer
+    # MMSIs are configured yet and the persistent collector is waiting for them.
+    with registry.cursor() as cr:
+        env=api.Environment(cr,SUPERUSER_ID,{})
+        env['ir.config_parameter'].sudo().set_param('step_export_control.ais_heartbeat',
+            fields.Datetime.to_string(fields.Datetime.now()))
+        cr.commit()
+    registry.signal_changes()
+    print('AISSTREAM_LIVE_DATA_VERIFIED '+json.dumps({'environment':a.environment,'commit':a.commit,
+        'authentication':True,'live_position_parsed':True,'test_transaction_rolled_back':True,
+        'connection_timestamp_recorded':True}),flush=True)
 except Exception as error:
     # Do not print provider response bodies, subscription frames or key values.
     print('AISSTREAM_LIVE_CHECK_FAILED '+type(error).__name__,flush=True)

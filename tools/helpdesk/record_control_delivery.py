@@ -48,7 +48,9 @@ for tid,last,marker in [(89,9471,'Control documental instalado y verificado'),(9
             'teórico sobre rutas configuradas. Los puertos y naves existentes se conservan. Se implementó '
             'AISStream, proveedor gratuito, con colector del lado servidor, MMSI exacto, fecha de lectura y '
             'distinción entre dato vigente, antiguo y ausente. No se inventan coordenadas ni se asignan naves por nombre. ')
-        body+=('La conexión y recepción de datos AIS reales están comprobadas.' if a.ais_verified else
+        body+=('La conexión y recepción de datos AIS reales están comprobadas en ambos destinos. '
+               'Los dos servicios están activos. Los embarques actuales aún necesitan nave/MMSI '
+               'para mostrar sus propias posiciones; no se asignaron identidades por nombre.' if a.ais_verified else
                'Pendiente para cerrar el seguimiento real: autorizar/provisionar la clave de AISStream y comprobar '
                'la recepción real. La integración simulada no se presenta como conexión operativa. Los embarques '
                'deben tener nave/MMSI y rutas/fechas correspondientes para aparecer en sus mapas.')

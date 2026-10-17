@@ -111,11 +111,36 @@ fecha en Desarrollo: en ETA el embarque resulta arribado con cero días.
 Capturas, logs, certificados y hashes de evidencia se conservan fuera del
 checkout en ~/.codex/local-artifacts/t89-t90-20261016/visual-review.json.
 
-T89: resuelto, nota interna 9477. T90: en progreso, nota interna 9478; panel,
-mapa teórico e integración implementados. Los servicios AIS quedaron preparados
-e inactivos. Sigue pendiente la autorización humana solicitada para vincular
-AISStream con los datos públicos de GitHub fjcaroe y crear/guardar la clave
-privada del servidor. No se autorizó el OAuth ni se generó una clave. La
-recepción real no se ha comprobado y T90 no se cerró. Los embarques actuales
-carecen de MMSI/ruta completos; se muestra esa ausencia sin inventar posiciones.
-No se enviaron notificaciones de cierre ni correos a clientes.
+T89: resuelto, nota interna 9477. T90: resuelto, nota interna 9478 actualizada
+tras comprobar la recepción real. No se enviaron notificaciones de cierre ni
+correos a clientes.
+
+Activación AISStream, 16 de octubre (hora de Chile)
+------------------------------------------------
+
+El usuario creó la clave por su cuenta y autorizó usar su archivo local privado.
+No fue necesario completar la autorización OAuth que había quedado pendiente.
+provision_aisstream_key.py transportó la clave por stdin sobre SSH y la guardó
+atómicamente en /etc/steps/aisstream.env, propietario root y permisos 0600.
+El secreto no se registró en argumentos, logs, navegador ni repositorio.
+
+verify_aisstream_live.py comprobó autenticación, suscripción aceptada y una
+posición AIS reciente de la conexión real en cada destino. Usó una nave temporal
+y revirtió la transacción de prueba; no modificó identidades ni posiciones de
+naves del cliente. Solo registró la fecha de la conexión exitosa. Se añadió
+la señalización nativa de invalidación de caché para que los procesos web vean
+esa fecha. La misma señalización se aplica al colector persistente.
+
+Ambos servicios steps-aisstream-development.service y steps-aisstream-cerro.service
+quedaron enabled y active/running, con arranque y reinicio vinculados al Odoo
+respectivo. El código del addon publicado permanece en el paquete exacto probado;
+esta activación solo actualizó herramientas operacionales y la credencial privada.
+Se comprobó en ambos paneles AIS la fecha real de conexión y se guardaron las
+capturas development-ais-active.png, cerro-ais-active.png y ais-live.log con hashes
+en visual-review.json. Últimas conexiones verificadas: 2026-10-17 01:18:58 UTC
+y 01:19:17 UTC respectivamente (22:18:58 y 22:19:17 del 16 de octubre en Chile).
+
+Los embarques actuales carecen de MMSI/ruta completos. Los servicios esperan
+identificadores configurados; no se abre una suscripción global sin filtro ni
+se inventan posiciones. La integración y recepción real están comprobadas;
+ver una nave del cliente exige asignar su MMSI correcto a su maestro existente.
