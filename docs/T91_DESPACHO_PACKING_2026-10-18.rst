@@ -64,8 +64,42 @@ duplicarlo. Los packing lists anteriores sin este instructivo no se reescriben.
 Validación y publicación
 -----------------------
 
-Paquete en revisión: 140302f12fe903e7ee0262e47582a9f2b58b4c1f, versión
-18.0.1.0.0. SHA256 6573004eb9ac072c5e545787cf67b3d5cc070d4b469dcaaa4d16b81e030676be.
+Paquete final: f5bd63d1b01babf08758acc91f5f243bfcf46197, versión
+18.0.1.0.0. SHA256 a70fa903b1f6d3e52c27683cd077d61d73da253757de1ff3dd87d005065c1614.
 La suite cubre cálculos/preservación del embarque, lector/lista/confirmación y
 packing list, filtros/capacidad/duplicados y reglas por empresa/menús.
-Pruebas en ambas copias, publicación y revisión visual: pendientes.
+Las cuatro pruebas pasaron en la copia fresca de Desarrollo y en la copia de
+compatibilidad de Cerro. El certificado de cada destino vincula el mismo commit
+y SHA256. Después de publicar se comprobó versión, ruta efectiva, vistas y menús
+y se repitieron los cuatro casos con rollback en cada ambiente.
+
+Se publicó primero en Desarrollo y luego en Cerro, bajo la exclusión compartida
+/run/lock/steps-environments.lock, con overlays privados y sin actualizar sus
+raíces compartidas. Cada destino conserva las versiones instaladas de Packing,
+Inventario y Exportaciones: no se publicaron versiones diferentes de esos módulos.
+
+Respaldos recuperables anteriores a la publicación:
+
+* /opt/steps_backups/management_development_20261018T204710Z
+* /opt/steps_backups/management_cerro_20261018T205011Z
+
+La comparación de tablas e importes antes/después pasó en ambas copias y ambos
+destinos. Se excluyeron únicamente las columnas nuevas del instructivo y la guía;
+se preservó íntegramente cada campo previamente existente y sus relaciones.
+Las vistas antiguas Studio que generan advertencias al cargar Desarrollo no se
+modificaron. La única ausencia de módulo admitida allí sigue siendo steps_api,
+ya identificada por la herramienta operacional antes de esta entrega.
+
+Revisión en navegador: cuatro entradas de Despacho; menú separado Inspecciones;
+formulario del instructivo con datos del embarque real consultados sin guardar;
+campo Número instructivo despacho debajo de Embarque; pestaña Folio Pallet con
+entrada de lector y tabla de tarjas; formulario nativo del packing list. Las
+vistas previas se descartaron, sin crear documentos comerciales de clientes.
+Las capturas y los certificados se guardan fuera del checkout en
+~/.codex/local-artifacts/tickets-20261018/; visual-review.json registra sus hashes.
+El comprobador de cierre exige esa evidencia y rechaza comentarios humanos
+posteriores a 9499 que aún no se hayan incorporado.
+
+T91 quedó resuelto, con nota interna 9500. La nota no genera notificaciones ni
+correo externo. No se generaron guías, DTE ni despachos reales de clientes
+durante las pruebas; los casos transaccionales se revirtieron íntegramente.
