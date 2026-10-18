@@ -105,6 +105,7 @@ class DispatchCase(TransactionCase):
         self.assertIn(self.plan,model.search([]));self.assertNotIn(record,model.search([]))
         with self.assertRaises(AccessError):record.with_user(user).read(['name'])
         children=self.env['ir.ui.menu'].search([('parent_id','=',self.env.ref('step_packing_operations.menu_packing_operations_dispatch').id)])
+        self.assertEqual(len(children),4)
         self.assertEqual(set(children.mapped('name')),{'Instructivo de despacho','Despacho','Packing List','Traslado lotes'})
         self.assertEqual(self.env.ref('step_packing_dispatch.sag_action').res_model,'step.packing.inspection')
         self.assertEqual(self.env.ref('step_packing_dispatch.internal_action').res_model,'step.packing.inspection')

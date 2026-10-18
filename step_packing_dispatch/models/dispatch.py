@@ -124,7 +124,7 @@ class Load(models.Model):
     company_id=fields.Many2one(related='instruction_id.company_id',store=True)
     product_id=fields.Many2one('product.product',required=True,string='Producto',check_company=True)
     packaging_id=fields.Many2one('product.packaging',string='Embalaje',check_company=True)
-    producer_id=fields.Many2one('res.partner',string='Productor',check_company=True)
+    producer_id=fields.Many2one('res.partner',string='Productor',check_company=True,domain=[('is_productor','=',True)])
     variety_id=fields.Many2one('step.variedad',string='Variedad')
     label=fields.Char(string='Marca')
     caliber_id=fields.Many2one('step.management.fruit.caliber',string='Calibre')

@@ -20,7 +20,7 @@
  <record id="step_packing_operations.menu_packing_dispatch_shipping_instruction" model="ir.ui.menu"><field name="active" eval="False"/></record>
  <record id="step_packing_operations.menu_packing_dispatch_order" model="ir.ui.menu"><field name="name">Instructivo de despacho</field><field name="action" ref="instructions_action"/><field name="sequence">10</field></record>
  <menuitem id="dispatch_menu" name="Despacho" parent="step_packing_operations.menu_packing_operations_dispatch" action="step_dispatch_guide.action_dispatch_guides" sequence="20"/>
- <menuitem id="transfer_menu" name="Traslado lotes" parent="step_packing_operations.menu_packing_operations_dispatch" action="stock.action_picking_tree_internal" sequence="40"/>
+ <record id="step_packing_batch.menu_packing_fruta_batch" model="ir.ui.menu"><field name="sequence">40</field></record>
  <menuitem id="inspections_menu" name="Inspecciones" parent="step_packing_operations.menu_packing_operations_root" sequence="45"/>
  <menuitem id="sag_menu" name="Inspecciones SAG" parent="inspections_menu" action="sag_action" sequence="10"/>
  <menuitem id="internal_menu" name="Inspecciones internas" parent="inspections_menu" action="internal_action" sequence="20"/>
