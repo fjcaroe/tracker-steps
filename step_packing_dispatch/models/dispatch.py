@@ -9,6 +9,7 @@ from odoo.tools.float_utils import float_compare
 class Instruction(models.Model):
     _inherit = 'step.export.dispatch.order'
     _check_company_auto = True
+    name = fields.Char(string='Número instructivo despacho')
     shipment_id = fields.Many2one('step.export.export', string='Embarque', check_company=True, ondelete='restrict')
     date = fields.Date(string='Fecha', default=fields.Date.context_today)
     season_id = fields.Many2one(related='shipment_id.season_id', string='Temporada')
