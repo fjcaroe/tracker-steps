@@ -1,0 +1,4 @@
+<odoo>
+ <record id="instruction_company" model="ir.rule"><field name="name">Instructivos despacho por empresa</field><field name="model_id" ref="step_export.model_step_export_dispatch_order"/><field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field></record>
+ <record id="load_company" model="ir.rule"><field name="name">Carga despacho por empresa</field><field name="model_id" ref="model_step_export_dispatch_load"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+</odoo>
