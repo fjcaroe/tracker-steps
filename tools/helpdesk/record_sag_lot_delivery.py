@@ -51,12 +51,15 @@ body = ('Entrega disponible para QA solo en Desarrollo, Packing / Inspecciones /
     'Los archivos no se envían automáticamente al SAG ni ejecutan anulaciones o movimientos de inventario. '
     'La planilla oficial se emite/regulariza en Multipuerto. Los códigos y orígenes faltantes deben completarse '
     'en los maestros existentes; el sistema no inventa códigos SAG, provincias ni comunas. '
+    'Las tarjas anteriores con stock y sin tipo de fruta conservan sus datos: requieren confirmar '
+    'si son convencionales u orgánicas antes de utilizarlas con el filtro nuevo. '
     'No se publicó en producción. Queda entregado para revisión humana en Desarrollo.')
 body = '<h3>' + marker + '</h3><p>' + html.escape(body) + '</p>'
 existing = [m for m in recent if marker in (m['body'] or '')]
 message = existing[0]['id'] if existing else rpc('mail.message', 'create', [{'model': 'helpdesk.ticket', 'res_id': 93,
     'message_type': 'comment', 'subtype_id': note, 'author_id': author, 'partner_ids': [(5, 0, 0)], 'body': body}])
 assert not rpc('mail.message', 'read', [[message]], {'fields': ['notification_ids']})[0]['notification_ids']
-rpc('helpdesk.ticket', 'write', [[92], {'stage_id': 4}], {'context': {'tracking_disable': True, 'mail_notrack': True,
+rpc('helpdesk.ticket', 'write', [[93], {'stage_id': 4}], {'context': {'tracking_disable': True, 'mail_notrack': True,
     'mail_create_nosubscribe': True, 'mail_auto_subscribe_no_notify': True}})
+assert rpc('helpdesk.ticket', 'read', [[93]], {'fields': ['stage_id']})[0]['stage_id'][0] == 4
 print('T93_DELIVERY_RECORDED stage=4 note=' + str(message))
