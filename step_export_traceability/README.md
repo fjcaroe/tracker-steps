@@ -17,6 +17,9 @@ Las relaciones y permisos nativos siguen vigentes; no se usa sudo. Un dato sin
 evidencia vinculada disponible aparece como “Sin registro”. El cuartel histórico
 procede del dato ya registrado en recepción, no de una relación inventada. No se
 deducen orígenes por coincidencia de nombre o por la ubicación actual del stock.
+Se conservan también los vínculos nativos de guías y de tarjas de origen del
+detalle. Las guías del embarque sin asignación individual se muestran aparte;
+no se atribuyen automáticamente a todos sus pallets.
 
 La calidad de llegada usa el catálogo de calidad existente mediante el nuevo
 campo opcional `arrival_quality_id` en el embarque. Las fechas de arribo son las

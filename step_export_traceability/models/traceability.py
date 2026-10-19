@@ -53,7 +53,7 @@ class Package(models.Model):
                 ('target_package_id', 'in', frontier.ids), ('repack_id.state', '=', 'done')])
             productions |= ots
             repacks |= lines.repack_id
-            parents = ots.step_packing_input_tag_ids | lines.source_package_id
+            parents = ots.step_packing_input_tag_ids | lines.source_package_id | frontier.step_tag_line_ids.source_package_id
             # Never bypass package rules through a related record's relation.
             visible = self._trace_search('stock.quant.package', [('id', 'in', parents.ids)])
             frontier = visible - tags
@@ -68,12 +68,16 @@ class Package(models.Model):
         inspections = self._trace_search('step.packing.inspection', [('package_ids', 'in', tags.ids)])
         checks = self._trace_search('quality.check', [
             '|', ('picking_id', 'in', receipts.ids), ('move_line_id.result_package_id', 'in', tags.ids)])
-        guides = self._trace_search('step.dispatch.guide', [('load_tag_ids', 'in', self.ids)])
+        guides = self._trace_search('step.dispatch.guide', [
+            '|', ('load_tag_ids', 'in', self.ids), ('id', 'in', self.step_guide_ids.ids)])
         shipments = self._trace_search('step.export.export', [('tag_ids', 'in', self.ids)])
+        shipment_guides = self._trace_search('step.dispatch.guide', [
+            ('id', 'in', shipments.dispatch_guide_ids.ids)]) - guides
         claims = self._trace_search('step.export.customer.claim', [
             '|', ('tag_ids', 'in', self.ids), ('line_ids.tag_id', 'in', self.ids)])
         return dict(tags=tags, productions=productions, repacks=repacks, receipts=receipts,
-                    checks=checks, inspections=inspections, guides=guides, shipments=shipments, claims=claims)
+                    checks=checks, inspections=inspections, guides=guides, shipment_guides=shipment_guides,
+                    shipments=shipments, claims=claims)
 
     def _compute_trace(self):
         def text(value):
@@ -124,9 +128,14 @@ class Package(models.Model):
                  ('Folio SAG / SIF', value(sag, 'sag_sif_reference')), ('Lote SAG', links(sag)),
                  ('Fecha SAG', value(sag, 'date')), ('Resultado SAG', choices(sag, 'state'))]),
                 ('Despacho', [('Fecha despacho', value(guides, 'departure_datetime')), ('Guía despacho', links(guides)),
-                 ('Folio guía', value(guides, 'external_folio')), ('Contenedor', value(ships, 'container_reference')),
+                 ('Folio guía', value(guides, 'external_folio')), ('Fecha guía', value(guides, 'date')),
+                 ('Contenedor', value(ships, 'container_reference')),
                  ('Transportista', value(guides, 'carrier_id')), ('Camión', value(guides, 'vehicle_id')),
-                 ('Patente registrada', value(guides, 'truck_plate')), ('Instructivo despacho', value(guides, 'dispatch_instruction_id'))]),
+                 ('Patente registrada', value(guides, 'truck_plate')), ('Instructivo despacho', value(guides, 'dispatch_instruction_id')),
+                 ('Guías del embarque sin asignación individual', links(g['shipment_guides'])),
+                 ('Fecha de esas guías', value(g['shipment_guides'], 'date')),
+                 ('Transportista de esas guías', value(g['shipment_guides'], 'carrier_id')),
+                 ('Patente de esas guías', value(g['shipment_guides'], 'truck_plate'))]),
                 ('Exportación', [('Número embarque', value(ships, 'shipment_number')),
                  ('Fecha zarpe', value(ships, 'departure_date')), ('Nave', value(ships, 'vessel_id')),
                  ('Recibidor', value(ships, 'receiver_id')), ('BL', value(ships, 'bl_folio')),

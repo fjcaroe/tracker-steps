@@ -43,6 +43,7 @@ BUDGET_DESIGN_INITIAL = False
 DOCUMENT_DESIGN_INITIAL = False
 SHIPPING_DESIGN_INITIAL = False
 SAG_PROTOTYPE_INITIAL = False
+TRACEABILITY_INITIAL = False
 
 
 def run(*command, **kwargs):
@@ -75,7 +76,7 @@ def snapshot(database):
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
-            if TICKET_REVISION == 'traceability' and table == 'step_export_export':
+            if TICKET_REVISION == 'traceability' and TRACEABILITY_INITIAL and table == 'step_export_export':
                 row = "(to_jsonb(t)-'arrival_quality_id')"
             if TICKET_REVISION == 'sag-lot':
                 additions = {
@@ -232,7 +233,7 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
+    global TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
@@ -286,6 +287,7 @@ def main():
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
         SAG_PROTOTYPE_INITIAL = args.kind == 'sag-prototype' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_packing_sag' AND state='installed'")
+        TRACEABILITY_INITIAL = args.kind == 'traceability' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_export_traceability' AND state='installed'")
         assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producers','web_gantt','step_agriculture_catalogs') AND state='installed'") == '3'
         DOCUMENT_DESIGN_INITIAL = args.kind == 'document-design' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_export_document_revision' AND state='installed'")
         SHIPPING_DESIGN_INITIAL = args.kind == 'shipping-design' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_export_shipping_design' AND state='installed'")

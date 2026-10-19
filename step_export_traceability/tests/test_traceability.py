@@ -27,6 +27,15 @@ class TraceCase(SagCase):
         self.assertIn(receipt, g['receipts'])
         self.assertIn(shipment, g['shipments'])
         self.assertIn(inspection, g['inspections'])
+        guide = self.env['step.dispatch.guide'].create({'external_folio':'T94-GUIA',
+            'partner_id':self.producer.id,'carrier_id':self.producer.id,
+            'origin_address':'Origen QA','destination_address':'Destino QA','truck_plate':'QA0094'})
+        shipment.dispatch_guide_ids = guide
+        self.assertIn(guide,tag._trace_graph()['shipment_guides'])
+        self.assertNotIn(guide,tag._trace_graph()['guides'])
+        tag.step_guide_ids = guide
+        self.assertIn(guide,tag._trace_graph()['guides'])
+        self.assertNotIn(guide,tag._trace_graph()['shipment_guides'])
         tag._compute_trace()
         html = str(tag.trace_panel)
         tree = etree.HTML(html)
