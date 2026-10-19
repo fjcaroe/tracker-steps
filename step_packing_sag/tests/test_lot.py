@@ -78,7 +78,7 @@ class SagLotCase(SagCase):
         with self.assertRaises(UserError):
             lot._onchange_sag_scan()
         lot.sag_scan = False
-        other = self.variety.copy({'name':'Otra variedad QA', 'cod_variedad':'T93OTRA'})
+        other = self.env['step.variedad'].create({'name':'Otra variedad QA', 'cod_variedad':'T93OTRA', 'especie_id':self.species.id,'grupo_variedad_id':self.variety_group.id})
         with self.assertRaises(ValidationError), self.cr.savepoint():
             lot.sag_variety_ids = other
         shipment.write({'season_id':self.season.id,'species_id':self.species.id,'receiver_id':self.producer.id,
