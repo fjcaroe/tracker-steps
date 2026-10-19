@@ -42,6 +42,7 @@ SHIPMENT_PROVISION_INITIAL = False
 BUDGET_DESIGN_INITIAL = False
 DOCUMENT_DESIGN_INITIAL = False
 SHIPPING_DESIGN_INITIAL = False
+SAG_PROTOTYPE_INITIAL = False
 
 
 def run(*command, **kwargs):
@@ -74,7 +75,7 @@ def snapshot(database):
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
-            if TICKET_REVISION == 'sag-prototype' and table == 'step_packing_inspection':
+            if TICKET_REVISION == 'sag-prototype' and SAG_PROTOTYPE_INITIAL and table == 'step_packing_inspection':
                 columns = ['sag_prototype', 'sag_phase', 'sag_country_id', 'sag_counterpart_id', 'sag_requirements', 'sag_request_reference', 'sag_scheduled_at', 'sag_sif_reference', 'sag_initial', 'sag_documents', 'sag_traceability', 'sag_presentation', 'sag_packaging', 'sag_sampling_basis', 'sag_sample_count', 'sag_sample_findings', 'sag_laboratory_reference', 'sag_laboratory_received', 'sag_treatment', 'sag_treatment_detail']
                 row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in columns)
             if TICKET_REVISION == 'dispatch-design':
@@ -220,7 +221,7 @@ def errors(text, allowed_missing=('steps_api',)):
 
 
 def main():
-    global DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
+    global SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
@@ -273,6 +274,7 @@ def main():
         MODULES = ({'sag-prototype':('step_packing_sag',),'dispatch-design':('step_packing_dispatch',),'export-control':('step_export_control',),'balance-analytic':('step_account_balance_analytic',),'producer-change':('step_packing_producer_change',),'purchase-mode':('step_producer_purchase_mode',),'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',),'fruit-categories':('step_fruit_category_unification',),'daily-estimate':('step_producer_daily_estimate',),'shipment-provision':('step_export_shipment_provision',),'budget-design':('step_budget_design',),'shipping-design':('step_export_shipping_design',),'document-design':('step_export_document_revision',)})[args.kind]
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
+        SAG_PROTOTYPE_INITIAL = args.kind == 'sag-prototype' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_packing_sag' AND state='installed'")
         assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producers','web_gantt','step_agriculture_catalogs') AND state='installed'") == '3'
         DOCUMENT_DESIGN_INITIAL = args.kind == 'document-design' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_export_document_revision' AND state='installed'")
         SHIPPING_DESIGN_INITIAL = args.kind == 'shipping-design' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_export_shipping_design' AND state='installed'")

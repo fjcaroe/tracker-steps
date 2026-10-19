@@ -40,7 +40,9 @@
                             <field name="kind" invisible="1"/><field name="sag_prototype" invisible="1"/>
                             <field name="output_package_ids" invisible="1"/>
                             <field name="company_id" groups="base.group_multi_company"/>
-                            <field name="production_id" readonly="state != 'draft'"/>
+                            <!-- Company is related to the selected OT. Before selection it is
+                                 empty, so the implicit check_company domain has no matches. -->
+                            <field name="production_id" domain="[('company_id','in',context.get('allowed_company_ids', []))]" options="{'no_create': True}" readonly="state != 'draft'"/>
                             <field name="sag_packing_id"/><field name="sag_species_id"/><field name="sag_grower_id"/>
                             <field name="package_ids" widget="many2many_tags" domain="[('id','in',output_package_ids)]" readonly="state != 'draft'"/>
                             <label for="package_ids" string="Las tarjas conservan sus productores, lotes y cantidades originales."/>

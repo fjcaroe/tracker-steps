@@ -2,6 +2,7 @@ from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tests.common import new_test_user
+from lxml import etree
 from ..models.inspection import CHECKS
 
 
@@ -201,5 +202,8 @@ class SagCase(TransactionCase):
         menu = self.env.ref('step_packing_dispatch.sag_menu')
         self.assertEqual(menu.parent_id, self.env.ref('step_packing_dispatch.inspections_menu'))
         form = self.env['step.packing.inspection'].get_view(self.env.ref('step_packing_sag.sag_form').id, 'form')['arch']
+        ot_field = etree.fromstring(form).xpath("//field[@name='production_id']")[0]
+        self.assertEqual(ot_field.get('domain'), "[('company_id','in',context.get('allowed_company_ids', []))]")
+        self.assertIn(inspection.production_id, self.env['step.packing.production'].search([('company_id', 'in', self.env.companies.ids)]))
         for field in ('sag_country_id', 'sag_sampling_basis', 'sag_treatment', 'sag_evidence_ids'):
             self.assertIn(field, form)
