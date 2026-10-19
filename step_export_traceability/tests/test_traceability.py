@@ -46,7 +46,7 @@ class TraceCase(SagCase):
         self.assertIn('BL T94',html)
         from odoo.tools import format_date
         self.assertIn(format_date(self.env,shipment.arrival_date),html)
-        self.assertIn('model=step.packing.production',html)
+        self.assertIn('/odoo/step.packing.production/',html)
         self.assertNotIn('<script>',html)
         self.assertIn('&lt;script&gt;',html)
         self.assertIn(production.name,tag.trace_process)

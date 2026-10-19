@@ -94,8 +94,8 @@ class Package(models.Model):
             return text(' · '.join(dict.fromkeys(str(v) for v in vals if v is not False and v is not None and v != '')))
 
         def links(records):
-            return ' · '.join('<a href="/web#id=%s&amp;model=%s&amp;view_type=form">%s</a>' %
-                             (r.id, escape(r._name, quote=True), text(r.display_name)) for r in records) or 'Sin registro'
+            return ' · '.join('<a href="/odoo/%s/%s">%s</a>' %
+                             (escape(r._name, quote=True), r.id, text(r.display_name)) for r in records) or 'Sin registro'
 
         def choices(records, field):
             return text(' · '.join(dict.fromkeys(dict(r._fields[field]._description_selection(r.env)).get(r[field], '')
