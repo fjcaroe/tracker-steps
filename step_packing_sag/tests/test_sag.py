@@ -26,6 +26,8 @@ class SagCase(TransactionCase):
             "name": "Caja exportación T41", "default_code": "T41-EXPORT", "is_storable": True, "weight": 5.0, "grupo_labor": "pack"})
         self.national = self.env["product.product"].create({
             "name": "Fruta nacional T41", "is_storable": True, "weight": 1.0, "grupo_labor": "pack"})
+        self.city = self.env['res.city'].create({'name':'Comuna QA', 'country_id':self.env.ref('base.cl').id, 'step_sag_province_name':'Provincia QA'})
+        self.fundo = self.env['step.fundo'].create({'name':'Fundo QA', 'partner_id':self.producer.id, 'step_sag_city_id':self.city.id})
         self.carton = self.env["product.product"].create({
             "name": "Cartón T41", "is_storable": True, "grupo_labor": "pack"})
 
@@ -41,7 +43,7 @@ class SagCase(TransactionCase):
 
     def _tag(self, name, kind, product, kilos, boxes, result=False):
         return self.env["stock.quant.package"].create({
-            "name": name, "is_fruit_tag": True, "step_tag_kind": kind,
+            "name": name, "is_fruit_tag": True, "step_tag_kind": kind, "fruit_type": "conventional", "fundo_id": self.fundo.id,
             "step_packing_result": result, "step_producer_id": self.producer.id,
             "especie_id": self.species.id, "variedad_id": self.variety.id,
             "step_tag_line_ids": [(0, 0, {
@@ -202,8 +204,9 @@ class SagCase(TransactionCase):
         menu = self.env.ref('step_packing_dispatch.sag_menu')
         self.assertEqual(menu.parent_id, self.env.ref('step_packing_dispatch.inspections_menu'))
         form = self.env['step.packing.inspection'].get_view(self.env.ref('step_packing_sag.sag_form').id, 'form')['arch']
-        ot_field = etree.fromstring(form).xpath("//field[@name='production_id']")[0]
-        self.assertEqual(ot_field.get('domain'), "[('company_id','in',context.get('allowed_company_ids', []))]")
+        lot_field = etree.fromstring(form).xpath("//field[@name='package_ids'][@domain]")[0]
+        self.assertIn('sag_available_package_ids', lot_field.get('domain'))
+        self.assertFalse(etree.fromstring(form).xpath("//field[@name='sag_grower_id']"))
         self.assertIn(inspection.production_id, self.env['step.packing.production'].search([('company_id', 'in', self.env.companies.ids)]))
         for field in ('sag_country_id', 'sag_sampling_basis', 'sag_treatment', 'sag_evidence_ids'):
             self.assertIn(field, form)

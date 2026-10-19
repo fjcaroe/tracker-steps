@@ -1,0 +1,20 @@
+<odoo>
+    <record id="annex_paperformat" model="report.paperformat"><field name="name">SAG anexo horizontal</field><field name="format">A4</field><field name="orientation">Landscape</field><field name="margin_top">18</field><field name="margin_bottom">18</field><field name="margin_left">10</field><field name="margin_right">10</field><field name="header_spacing">10</field><field name="dpi">90</field></record>
+    <record id="report_dispatch_annex" model="ir.actions.report"><field name="name">Anexo planilla despacho SAG</field><field name="model">step.packing.inspection</field><field name="report_type">qweb-pdf</field><field name="report_name">step_packing_sag.dispatch_annex</field><field name="paperformat_id" ref="annex_paperformat"/></record>
+    <template id="dispatch_annex"><t t-call="web.html_container"><t t-foreach="docs" t-as="o"><t t-call="web.external_layout">
+        <t t-set="rows" t-value="o._sag_annex_rows()"/>
+        <div class="page" style="font-size:9pt">
+            <table class="table table-sm" style="width:100%;table-layout:fixed">
+                <thead style="display:table-header-group">
+                    <tr><th colspan="9"><h3>ANEXO PLANILLA DE DESPACHO</h3><div>Planilla Nº <span t-field="o.sag_dispatch_sheet_reference"/> · <span t-field="o.company_id.name"/></div><div>Condición: <span t-esc="o.sag_product_condition or 'No indicada'"/></div></th></tr>
+                    <tr><th>Folio pallet / bins</th><th>Especie</th><th>Variedades</th><th>Provincia de origen</th><th>Comuna de origen</th><th>Envases</th><th>Fecha inspección</th><th>Destino aprobado</th><th>Productores</th></tr>
+                </thead>
+                <tbody><tr t-foreach="rows" t-as="row" style="page-break-inside:avoid"><td t-foreach="row" t-as="value" style="overflow-wrap:break-word;word-wrap:break-word"><span t-esc="value"/></td></tr></tbody>
+            </table>
+            <div style="page-break-inside:avoid"><strong>Total envases: <span t-esc="sum(row[5] for row in rows)"/></strong>
+                <t t-if="o.sag_manual_dispatch"><p>Planilla emitida manualmente por problemas de conectividad.</p><p>Contraparte: <span t-field="o.sag_counterpart_id.name"/> · Firma: ____________________</p></t>
+                <p>Anexo del establecimiento. La planilla oficial se emite / regulariza en Multipuerto.</p>
+            </div>
+        </div>
+    </t></t></t></template>
+</odoo>

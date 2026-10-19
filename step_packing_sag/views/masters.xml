@@ -1,0 +1,33 @@
+<odoo>
+    <record id="service_list" model="ir.ui.view"><field name="name">packing.sag.service.list</field><field name="model">step.packing.sag.service</field>
+        <field name="arch" type="xml"><list><field name="sequence" widget="handle"/><field name="name"/><field name="code"/><field name="file_format"/><field name="sanitary"/><field name="reinspection"/><field name="active"/></list></field>
+    </record>
+    <record id="service_form" model="ir.ui.view"><field name="name">packing.sag.service.form</field><field name="model">step.packing.sag.service</field>
+        <field name="arch" type="xml"><form><sheet><group><field name="name"/><field name="code"/><field name="file_format"/><field name="sanitary"/><field name="reinspection"/><field name="active"/></group>
+            <p>INS: inspección, reinspección y fumigación; INT: recepción interplanta/devolución; REP: repaletizaje; DET: anulación; DES: despacho. Los demás servicios no tienen formato definido en el Anexo 5 adjunto.</p>
+        </sheet></form></field>
+    </record>
+    <record id="service_action" model="ir.actions.act_window"><field name="name">Tipos de servicio SAG</field><field name="res_model">step.packing.sag.service</field><field name="view_mode">list,form</field></record>
+    <menuitem id="service_menu" name="Tipos de servicio SAG" parent="step_packing_dispatch.inspections_menu" action="service_action" sequence="30"/>
+    <record id="partner_sag" model="ir.ui.view"><field name="name">partner.sag.plant</field><field name="model">res.partner</field><field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Identificación SAG"><field name="step_sag_plant_number"/></group></xpath></field>
+    </record>
+    <record id="country_sag" model="ir.ui.view"><field name="name">country.sag.code</field><field name="model">res.country</field><field name="inherit_id" ref="base.view_country_form"/>
+        <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group><field name="step_sag_code"/></group></xpath></field>
+    </record>
+    <record id="fundo_sag" model="ir.ui.view"><field name="name">fundo.sag.origin</field><field name="model">step.fundo</field><field name="inherit_id" ref="step_hr.view_step_fundo_form"/>
+        <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Origen SAG"><field name="step_sag_city_id"/></group></xpath></field>
+    </record>
+    <record id="city_list" model="ir.ui.view"><field name="name">city.sag.origin.list</field><field name="model">res.city</field>
+        <field name="arch" type="xml"><list><field name="name"/><field name="code"/><field name="state_id"/><field name="step_sag_province_name"/></list></field>
+    </record>
+    <record id="city_form" model="ir.ui.view"><field name="name">city.sag.origin.form</field><field name="model">res.city</field>
+        <field name="arch" type="xml"><form><sheet><group><field name="name"/><field name="code"/><field name="country_id"/><field name="state_id"/><field name="step_sag_province_name"/></group></sheet></form></field>
+    </record>
+    <record id="city_action" model="ir.actions.act_window"><field name="name">Comunas de origen SAG</field><field name="res_model">res.city</field><field name="view_mode">list,form</field><field name="view_id" ref="city_list"/></record>
+    <record id="city_action_form" model="ir.actions.act_window.view"><field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="city_form"/><field name="act_window_id" ref="city_action"/></record>
+    <menuitem id="city_menu" name="Comunas de origen SAG" parent="step_packing_dispatch.inspections_menu" action="city_action" sequence="40" groups="stock.group_stock_manager"/>
+    <record id="package_sag" model="ir.ui.view"><field name="name">package.sag.folio</field><field name="model">stock.quant.package</field><field name="inherit_id" ref="stock.view_quant_package_form"/>
+        <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Identificación SAG"><field name="step_sag_folio"/></group></xpath></field>
+    </record>
+</odoo>

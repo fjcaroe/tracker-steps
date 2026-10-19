@@ -4,7 +4,7 @@
         <field name="model">step.packing.inspection</field>
         <field name="arch" type="xml">
             <list decoration-success="state == 'approved'" decoration-danger="state == 'rejected'" decoration-warning="state == 'draft' and sag_phase == 'pending'">
-                <field name="name"/><field name="production_id"/><field name="sag_country_id"/>
+                <field name="name"/><field name="sag_service_id"/><field name="sag_species_id"/><field name="sag_fruit_type"/><field name="sag_receiver_id"/><field name="sag_country_id"/>
                 <field name="date"/><field name="inspector_id"/><field name="sag_phase" column_invisible="True"/><field name="sag_status"/>
                 <field name="sag_request_reference" optional="show"/><field name="state" widget="badge"/>
                 <field name="certificate_reference" optional="hide"/>
@@ -24,11 +24,14 @@
                     <button name="action_approve" type="object" string="Registrar aprobación externa" groups="stock.group_stock_manager" invisible="state != 'draft'" confirm="Registre únicamente un resultado ya comunicado por SAG y respaldado en esta inspección. Esta acción no emite un certificado oficial."/>
                     <button name="action_reject" type="object" string="Registrar rechazo externo" groups="stock.group_stock_manager" invisible="state != 'draft'"/>
                     <field name="state" widget="statusbar"/>
+                    <button name="action_sag_flat_file" type="object" string="Archivo plano SAG"/>
+                    <button name="action_sag_annex_xlsx" type="object" string="Anexo despacho Excel"/>
+                    <button name="action_sag_annex_pdf" type="object" string="Anexo despacho PDF"/>
                 </header>
                 <sheet>
                     <div class="alert alert-info" role="alert">
                         <strong>Prototipo para QA · Programa Origen SAG</strong><br/>
-                        Preparación interna y registro del resultado externo, por un país y un conjunto de tarjas de una OT.
+                        Preparación interna y registro del resultado externo por país. Un lote contiene una especie y puede reunir tarjas de varias OT y productores.
                         El agendamiento, la inspección oficial y la emisión del certificado fitosanitario se realizan ante SAG.
                         Referencia: Manual para Externos v04, 10-07-2024, capítulos 6.3 a 6.5 y 6.10; anexos 2 y 7.
                         Confirme los requisitos vigentes del país antes de cada servicio.
@@ -39,15 +42,21 @@
                         <group string="Lote y trazabilidad">
                             <field name="kind" invisible="1"/><field name="sag_prototype" invisible="1"/>
                             <field name="output_package_ids" invisible="1"/>
-                            <field name="company_id" groups="base.group_multi_company"/>
-                            <!-- Company is related to the selected OT. Before selection it is
-                                 empty, so the implicit check_company domain has no matches. -->
-                            <field name="production_id" domain="[('company_id','in',context.get('allowed_company_ids', []))]" options="{'no_create': True}" readonly="state != 'draft'"/>
-                            <field name="sag_packing_id"/><field name="sag_species_id"/><field name="sag_grower_id"/>
-                            <field name="package_ids" widget="many2many_tags" domain="[('id','in',output_package_ids)]" readonly="state != 'draft'"/>
+                            <field name="company_id" readonly="state != 'draft'" groups="base.group_multi_company"/>
+                            <field name="production_id" invisible="1"/>
+                            <field name="sag_multi_ot" invisible="1"/><field name="sag_available_package_ids" invisible="1"/>
+                            <field name="sag_packing_id" readonly="state != 'draft'"/>
+                            <field name="sag_species_id" readonly="state != 'draft'"/>
+                            <field name="sag_fruit_type" readonly="state != 'draft'"/>
+                            <field name="sag_variety_ids" widget="many2many_tags" domain="[('especie_id','=',sag_species_id)]" readonly="state != 'draft'"/>
+                            <field name="sag_scan" placeholder="Escanee el código impreso o ingrese uno o varios folios separados por coma; confirme con Tab." readonly="state != 'draft'"/>
+                            <field name="package_ids" widget="many2many_tags" domain="[('id','in',sag_available_package_ids)]" options="{'no_create': True}" readonly="state != 'draft'"/>
                             <label for="package_ids" string="Las tarjas conservan sus productores, lotes y cantidades originales."/>
                         </group>
                         <group string="Destino y servicio">
+                            <field name="sag_service_id" readonly="state != 'draft'"/>
+                            <field name="sag_instruction_id" readonly="state != 'draft'" options="{'no_create': True}"/>
+                            <field name="sag_receiver_id" readonly="state != 'draft'"/>
                             <field name="sag_country_id" readonly="state != 'draft'"/>
                             <field name="sag_counterpart_id" readonly="state != 'draft'"/>
                             <field name="date" readonly="state != 'draft'"/>
@@ -58,6 +67,14 @@
                         </group>
                     </group>
                     <notebook>
+                        <page string="Tarjas y trazabilidad" name="sag_traceability">
+                            <field name="sag_production_ids" widget="many2many_tags"/>
+                            <field name="package_ids" readonly="1"><list create="0" delete="0">
+                                <field name="name"/><field name="step_packing_production_id"/><field name="especie_id"/><field name="variedad_id"/>
+                                <field name="fruit_type"/><field name="step_producer_id"/><field name="step_actual_boxes"/><field name="step_actual_kg"/><field name="step_tag_state"/>
+                            </list></field>
+                            <p>Los productores, lotes de stock y fundos se consultan en cada tarja y su OT. No se agrupan bajo un productor único del encabezado.</p>
+                        </page>
                         <page string="Preparación documental" name="sag_preparation">
                             <group string="Requisitos específicos del destino">
                                 <field name="sag_requirements" placeholder="Fuente, protocolo aplicable, requisitos y fecha de consulta. PFI, carta de responsabilidad, orgánico o reexportación, cuando corresponda." readonly="state != 'draft'"/>
@@ -95,6 +112,18 @@
                                 <field name="reviewed_by"/><field name="reviewed_at"/>
                             </group>
                             <p>Guarde la inspección antes de adjuntar respaldos. La aprobación o el rechazo se transcriben desde la SIF y su respaldo. Pendiente de laboratorio conserva el estado borrador y bloquea el despacho para ese destino. Una reevaluación se registra como una nueva inspección.</p>
+                        </page>
+                        <page string="Archivos y anexo de despacho" name="sag_exports">
+                            <group>
+                                <field name="sag_export_sequence" readonly="state != 'draft'"/>
+                                <field name="sag_dispatch_sheet_reference" readonly="state != 'draft'"/>
+                                <field name="sag_dispatch_date" readonly="state != 'draft'"/>
+                                <field name="sag_repack_operation" readonly="state != 'draft'"/>
+                                <field name="sag_manual_dispatch" readonly="state != 'draft'"/>
+                                <field name="sag_product_condition" readonly="state != 'draft'"/>
+                            </group>
+                            <p>El servicio determina INS, INT, REP, DET o DES según Anexo 5. Complete los códigos oficiales en establecimiento, especie y país; folios sin dígito verificador. El archivo registra datos, no los envía a SAG ni ejecuta anulaciones o movimientos de stock.</p>
+                            <p>El anexo requiere número de planilla, resultado SAG aprobado para el destino y comuna/provincia del fundo de origen. La planilla oficial y su regularización por contingencia se realizan en Multipuerto (§6.8.4.2).</p>
                         </page>
                     </notebook>
                 </sheet>

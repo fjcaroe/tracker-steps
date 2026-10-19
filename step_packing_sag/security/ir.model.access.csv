@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+service_user,SAG services read,model_step_packing_sag_service,stock.group_stock_user,1,0,0,0
+service_manager,SAG services manage,model_step_packing_sag_service,stock.group_stock_manager,1,1,1,1

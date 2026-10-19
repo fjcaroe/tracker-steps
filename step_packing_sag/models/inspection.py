@@ -73,7 +73,7 @@ class Inspection(models.Model):
 
     def unlink(self):
         self.check_access('unlink')
-        self.production_id._lock_process()
+        self._inspection_productions()._lock_process()
         if self:
             self.env.cr.execute('SELECT id FROM step_packing_inspection WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(self.ids))])
             self.invalidate_recordset()
@@ -91,7 +91,7 @@ class Inspection(models.Model):
 
     def _sag_ready(self):
         self.check_access('write')
-        self.production_id._lock_process()
+        self._inspection_productions()._lock_process()
         if self:
             self.env.cr.execute('SELECT id FROM step_packing_inspection WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(self.ids))])
             self.invalidate_recordset()
@@ -134,7 +134,7 @@ class Inspection(models.Model):
         # Revalidate substantive fields at the final operation: RPC or editing a
         # phase alone cannot manufacture a SAG decision or bypass the checklist.
         self.check_access('write')
-        self.production_id._lock_process()
+        self._inspection_productions()._lock_process()
         if self:
             self.env.cr.execute('SELECT id FROM step_packing_inspection WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(self.ids))])
             self.invalidate_recordset()
@@ -162,7 +162,7 @@ class Shipment(models.Model):
             records = self.env['step.packing.inspection'].search([
                 ('sag_prototype', '=', True), ('kind', '=', 'sag'),
                 ('package_ids', 'in', shipment.tag_ids.ids),
-            ], order='id desc')
+            ], order='id desc').filtered(lambda row: row._counts_for_dispatch())
             for tag in shipment.tag_ids:
                 applicable = records.filtered(lambda r: tag in r.package_ids and r.sag_country_id == shipment.destination_country_id)
                 # A pending reevaluation must not inherit an older approval.

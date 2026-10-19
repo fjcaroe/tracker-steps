@@ -46,7 +46,7 @@ class TestPackingOperations(TransactionCase):
 
     def _tag(self, name, kind, product, kilos, boxes, result=False):
         return self.env["stock.quant.package"].create({
-            "name": name, "is_fruit_tag": True, "step_tag_kind": kind,
+            "name": name, "is_fruit_tag": True, "step_tag_kind": kind, "fruit_type": "conventional",
             "step_packing_result": result, "step_producer_id": self.producer.id,
             "especie_id": self.species.id, "variedad_id": self.variety.id,
             "step_tag_line_ids": [(0, 0, {
@@ -525,12 +525,26 @@ class TestPackingOperations(TransactionCase):
             'kind': 'sag', 'inspector_id': self.producer.id, 'package_ids': [(6, 0, export.ids)]})
         with self.assertRaises(UserError):
             inspection.action_approve()
+        if 'sag_prototype' in inspection._fields:
+            inspection.write({'sag_country_id': self.env.ref('base.us').id, 'sag_counterpart_id': self.producer.id,
+                'sag_requirements': 'QA requisito ficticio', 'sag_treatment': 'none',
+                'sag_initial':'yes','sag_documents':'yes','sag_traceability':'yes','sag_presentation':'yes','sag_packaging':'yes',
+                'sag_sif_reference':'QA SIF','sag_request_reference':'QA solicitud','sag_scheduled_at':'2026-11-09 12:00:00',
+                'sag_sample_count':1,'sag_sampling_basis':'QA','sag_sample_findings':'QA'})
+            evidence=self.env['ir.attachment'].create({'name':'QA SIF sin validez','type':'binary','raw':b'QA',
+                'res_model':inspection._name,'res_id':inspection.id})
+            inspection.sag_evidence_ids=evidence
         inspection.certificate_reference = 'CERTIFICADO-PRUEBA-QA'
         inspection.action_approve()
         shipment._check_tag_load()
         with self.assertRaises(UserError):
             inspection.write({'certificate_reference': 'OTRA-REFERENCIA'})
         rejected = inspection.copy({'name': 'Reevaluación QA', 'certificate_reference': False, 'observations': 'Calidad rechazada QA'})
+        if 'sag_prototype' in rejected._fields:
+            rejected.sag_sif_reference = 'QA SIF rechazo'
+            evidence=self.env['ir.attachment'].create({'name':'QA rechazo sin validez','type':'binary','raw':b'QA',
+                'res_model':rejected._name,'res_id':rejected.id})
+            rejected.sag_evidence_ids=evidence
         rejected.action_reject()
         with self.assertRaises(UserError):
             shipment._check_tag_load()

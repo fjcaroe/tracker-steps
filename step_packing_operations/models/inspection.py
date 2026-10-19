@@ -30,6 +30,13 @@ class PackingInspection(models.Model):
             if not record.package_ids or record.package_ids - record.production_id.step_packing_output_tag_ids:
                 raise ValidationError(_('Seleccione tarjas resultantes de esta OT.'))
 
+    def _inspection_productions(self):
+        return self.production_id
+
+    def _counts_for_dispatch(self):
+        self.ensure_one()
+        return True
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -41,11 +48,12 @@ class PackingInspection(models.Model):
         if not self.env.user.has_group('stock.group_stock_manager'):
             raise UserError(_('La revisión requiere un administrador de Inventario.'))
         self.check_access('write')
-        self.production_id._lock_process()
+        self._inspection_productions()._lock_process()
         for record in self:
             self.env.cr.execute('SELECT id FROM step_packing_inspection WHERE id=%s FOR UPDATE', [record.id])
             record.invalidate_recordset()
-            if record.state != 'draft' or record.production_id.state != 'closed' or any(tag.step_tag_state != 'validated' for tag in record.package_ids):
+            productions = record._inspection_productions()
+            if record.state != 'draft' or not productions or any(p.state != 'closed' for p in productions) or any(tag.step_tag_state != 'validated' for tag in record.package_ids):
                 raise UserError(_('Revise una inspección en borrador de una OT cerrada con tarjas disponibles.'))
             if approved and record.kind == 'sag' and not (record.certificate_reference or '').strip():
                 raise UserError(_('Registre la referencia del certificado emitido externamente por SAG.'))
@@ -101,7 +109,9 @@ class ExportShipment(models.Model):
             productions._lock_process()
             for production in productions:
                 for package in production.step_packing_output_tag_ids & shipment.tag_ids:
-                    inspections = production.inspection_ids.filtered(lambda row: package in row.package_ids and row.state != 'draft').sorted('id', reverse=True)
+                    inspections = self.env['step.packing.inspection'].search([
+                        ('package_ids', 'in', package.ids), ('state', '!=', 'draft'),
+                    ], order='id desc').filtered(lambda row: row._counts_for_dispatch())
                     latest_by_kind = {kind: inspections.filtered(lambda row: row.kind == kind)[:1] for kind in ('internal', 'sag')}
                     if any(row and row.state == 'rejected' for row in latest_by_kind.values()):
                         raise UserError(_('La tarja %s tiene una inspección rechazada; registre una reevaluación aprobada.') % package.name)
