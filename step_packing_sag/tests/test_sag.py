@@ -117,6 +117,14 @@ class SagCase(TransactionCase):
         inspection.write({'sag_laboratory_reference': 'QA MUESTRA', 'observations': 'QA pendiente de resultado externo'})
         inspection.action_sag_pending()
         with self.assertRaises(UserError):
+            inspection.write({'sag_phase': 'ready'})
+        with self.assertRaises(UserError):
+            inspection.action_sag_ready()
+        with self.assertRaises(UserError):
+            inspection.action_sag_requested()
+        with self.assertRaises(UserError):
+            inspection.unlink()
+        with self.assertRaises(UserError):
             shipment._check_tag_load()
         with self.assertRaises(UserError):
             inspection.action_approve()

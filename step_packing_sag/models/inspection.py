@@ -8,6 +8,7 @@ from odoo.exceptions import UserError, ValidationError
 
 CHECKS = ('sag_initial', 'sag_documents', 'sag_traceability', 'sag_presentation', 'sag_packaging')
 CHECK = [('pending', 'Por verificar'), ('yes', 'Conforme'), ('no', 'No conforme')]
+_FOLLOWUP = object()
 
 
 class Inspection(models.Model):
@@ -58,14 +59,27 @@ class Inspection(models.Model):
         defaults = self.default_get(['kind'])
         for vals in vals_list:
             vals['sag_prototype'] = vals.get('kind', defaults.get('kind')) == 'sag'
+            vals['sag_phase'] = 'preparing'
         return super().create(vals_list)
 
     def write(self, vals):
         if 'sag_prototype' in vals:
             raise UserError(_('No se modifica la identificación del prototipo ni el histórico.'))
+        if 'sag_phase' in vals and self.env.context.get('_sag_followup') is not _FOLLOWUP:
+            raise UserError(_('Cambie el seguimiento mediante los botones del servicio.'))
         if 'kind' in vals and any(vals['kind'] != r.kind for r in self):
             raise UserError(_('Cree otra inspección para un tipo distinto.'))
         return super().write(vals)
+
+    def unlink(self):
+        self.check_access('unlink')
+        self.production_id._lock_process()
+        if self:
+            self.env.cr.execute('SELECT id FROM step_packing_inspection WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(self.ids))])
+            self.invalidate_recordset()
+        if any(r.sag_prototype and r.sag_phase in ('requested', 'pending') for r in self):
+            raise UserError(_('Conserve la inspección con servicio solicitado o resultado pendiente.'))
+        return super().unlink()
 
     @api.constrains('sag_sample_count', 'sag_evidence_ids')
     def _check_sag_data(self):
@@ -96,21 +110,25 @@ class Inspection(models.Model):
 
     def action_sag_ready(self):
         self._sag_ready()
-        return self.write({'sag_phase': 'ready'})
+        if any(r.sag_phase == 'pending' for r in self):
+            raise UserError(_('El lote pendiente requiere el resultado de laboratorio comunicado por SAG.'))
+        return self.with_context(_sag_followup=_FOLLOWUP).write({'sag_phase': 'ready'})
 
     def action_sag_requested(self):
         self._sag_ready()
         for rec in self:
+            if rec.sag_phase == 'pending':
+                raise UserError(_('Conserve el resultado pendiente hasta recibir la comunicación de SAG.'))
             if not (rec.sag_request_reference or '').strip() or not rec.sag_scheduled_at:
                 raise UserError(_('Registre la solicitud externa y el horario asignado por SAG.'))
-        return self.write({'sag_phase': 'requested'})
+        return self.with_context(_sag_followup=_FOLLOWUP).write({'sag_phase': 'requested'})
 
     def action_sag_pending(self):
         self._sag_ready()
         for rec in self:
             if not (rec.sag_laboratory_reference or '').strip() or not (rec.observations or '').strip():
                 raise UserError(_('Identifique la muestra de laboratorio y el motivo pendiente.'))
-        return self.write({'sag_phase': 'pending', 'sag_laboratory_received': False})
+        return self.with_context(_sag_followup=_FOLLOWUP).write({'sag_phase': 'pending', 'sag_laboratory_received': False})
 
     def _review(self, approved):
         # Revalidate substantive fields at the final operation: RPC or editing a
