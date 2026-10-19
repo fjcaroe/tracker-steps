@@ -16,7 +16,7 @@ coma o salto de línea y no duplica una tarja ya seleccionada. Deben ser tarjas 
 validadas con stock interno, de la misma empresa, especie y tipo de fruta; deben
 cumplir las variedades y carga del instructivo, si se indicaron. Para una nueva
 inspección no se reutilizan tarjas asignadas a otra inspección SAG. Reinspección
- y tratamientos admiten historia anterior, pero no otra evaluación pendiente.
+y tratamientos admiten historia anterior, pero no otra evaluación pendiente.
 
 Un lote puede reunir varias OT y productores. El encabezado no identifica un
 productor único: la pestaña Tarjas y trazabilidad conserva las OT y el detalle
@@ -52,7 +52,7 @@ Si la referencia de tarja no representa el folio oficial, completar «Folio num�
 SAG sin verificador» en la tarja. Solo se elimina un verificador reconocido como
 `1234567890-K`. Se aplican letras por ceros, relleno a izquierda, campos sin
 delimitadores, `&&` y línea final en blanco. Se rechazan faltantes, desbordamientos
- y colisiones de folios normalizados.
+y colisiones de folios normalizados.
 
 INT, REP, DET, DES y el anexo requieren que el último resultado fitosanitario del
 folio esté aprobado para el destino. Estas operaciones no se confunden con
