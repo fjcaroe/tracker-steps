@@ -75,7 +75,7 @@ def snapshot(database):
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
             if TICKET_REVISION == 'sag-prototype' and table == 'step_packing_inspection':
-                columns = ['sag_prototype', 'sag_phase', 'sag_country_id', 'sag_counterpart_id', 'sag_requirements', 'sag_request_reference', 'sag_scheduled_at', 'sag_sif_reference', 'sag_initial', 'sag_documents', 'sag_traceability', 'sag_presentation', 'sag_packaging', 'sag_sampling_basis', 'sag_sample_count', 'sag_sample_findings', 'sag_laboratory_reference', 'sag_treatment', 'sag_treatment_detail']
+                columns = ['sag_prototype', 'sag_phase', 'sag_country_id', 'sag_counterpart_id', 'sag_requirements', 'sag_request_reference', 'sag_scheduled_at', 'sag_sif_reference', 'sag_initial', 'sag_documents', 'sag_traceability', 'sag_presentation', 'sag_packaging', 'sag_sampling_basis', 'sag_sample_count', 'sag_sample_findings', 'sag_laboratory_reference', 'sag_laboratory_received', 'sag_treatment', 'sag_treatment_detail']
                 row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in columns)
             if TICKET_REVISION == 'dispatch-design':
                 additions={'step_export_dispatch_order':['shipment_id','date','pallets_per_truck'],

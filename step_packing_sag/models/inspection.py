@@ -21,7 +21,7 @@ class Inspection(models.Model):
     ], string='Seguimiento interno', default='preparing', copy=False)
     sag_status = fields.Char('Seguimiento', compute='_compute_sag_status')
     sag_country_id = fields.Many2one('res.country', string='País de destino')
-    sag_counterpart_id = fields.Many2one('res.partner', string='Contraparte del establecimiento')
+    sag_counterpart_id = fields.Many2one('res.partner', string='Contraparte del establecimiento', check_company=True)
     sag_packing_id = fields.Many2one(related='production_id.packing_partner_id', string='Packing')
     sag_species_id = fields.Many2one(related='production_id.fruit_species_id', string='Especie')
     sag_grower_id = fields.Many2one(related='production_id.fruit_grower_id', string='Productor de la OT')
@@ -38,6 +38,7 @@ class Inspection(models.Model):
     sag_sample_count = fields.Integer('Unidades de muestreo inspeccionadas')
     sag_sample_findings = fields.Text('Tarjas muestreadas, plagas, pudrición, contaminantes y productores asociados')
     sag_laboratory_reference = fields.Char('Identificación de muestra / SISVEG / informe de laboratorio', copy=False)
+    sag_laboratory_received = fields.Boolean('Resultado de laboratorio recibido y comunicado por SAG', copy=False)
     sag_treatment = fields.Selection([
         ('undetermined', 'Por determinar según mercado'), ('none', 'No corresponde según requisito consultado'),
         ('required', 'Requerido, pendiente'), ('done', 'Realizado, con respaldo'),
@@ -109,7 +110,7 @@ class Inspection(models.Model):
         for rec in self:
             if not (rec.sag_laboratory_reference or '').strip() or not (rec.observations or '').strip():
                 raise UserError(_('Identifique la muestra de laboratorio y el motivo pendiente.'))
-        return self.write({'sag_phase': 'pending'})
+        return self.write({'sag_phase': 'pending', 'sag_laboratory_received': False})
 
     def _review(self, approved):
         # Revalidate substantive fields at the final operation: RPC or editing a
@@ -122,9 +123,10 @@ class Inspection(models.Model):
         for rec in self.filtered(lambda r: r.kind == 'sag' and r.sag_prototype):
             if not rec.sag_country_id or not (rec.sag_sif_reference or '').strip() or not rec.sag_evidence_ids:
                 raise UserError(_('Indique el país y la SIF, y adjunte el respaldo del resultado externo.'))
+            rec._check_sag_data()
             if approved:
                 rec._sag_ready()
-                if rec.sag_phase == 'pending' and not (rec.sag_laboratory_reference or '').strip():
+                if rec.sag_phase == 'pending' and (not rec.sag_laboratory_received or not (rec.sag_laboratory_reference or '').strip()):
                     raise UserError(_('Identifique el informe de laboratorio comunicado por SAG.'))
                 if not (rec.sag_request_reference or '').strip() or not rec.sag_scheduled_at:
                     raise UserError(_('Registre la solicitud externa y su horario.'))

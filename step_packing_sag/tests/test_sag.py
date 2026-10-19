@@ -118,6 +118,9 @@ class SagCase(TransactionCase):
         inspection.action_sag_pending()
         with self.assertRaises(UserError):
             shipment._check_tag_load()
+        with self.assertRaises(UserError):
+            inspection.action_approve()
+        inspection.sag_laboratory_received = True
         inspection.action_approve()
         self.assertEqual(inspection.state, 'approved')
         shipment._check_tag_load()

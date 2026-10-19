@@ -75,6 +75,7 @@
                                 <field name="sag_sample_count" readonly="state != 'draft'"/>
                                 <field name="sag_sample_findings" readonly="state != 'draft'"/>
                                 <field name="sag_laboratory_reference" readonly="state != 'draft'"/>
+                                <field name="sag_laboratory_received" readonly="state != 'draft'"/>
                             </group>
                         </page>
                         <page string="Tratamientos y resguardo" name="sag_treatments">
@@ -88,10 +89,10 @@
                                 <field name="sag_sif_reference" readonly="state != 'draft'"/>
                                 <field name="certificate_reference" string="Folio del respaldo externo SAG" readonly="state != 'draft'"/>
                                 <field name="observations" readonly="state != 'draft'"/>
-                                <field name="sag_evidence_ids" widget="many2many_binary" readonly="state != 'draft'"/>
+                                <field name="sag_evidence_ids" widget="many2many_binary" readonly="state != 'draft' or not id"/>
                                 <field name="reviewed_by"/><field name="reviewed_at"/>
                             </group>
-                            <p>La aprobación o el rechazo se transcriben desde la SIF y su respaldo. Pendiente de laboratorio conserva el estado borrador y bloquea el despacho para ese destino. Una reevaluación se registra como una nueva inspección.</p>
+                            <p>Guarde la inspección antes de adjuntar respaldos. La aprobación o el rechazo se transcriben desde la SIF y su respaldo. Pendiente de laboratorio conserva el estado borrador y bloquea el despacho para ese destino. Una reevaluación se registra como una nueva inspección.</p>
                         </page>
                     </notebook>
                 </sheet>
