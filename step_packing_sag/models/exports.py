@@ -127,7 +127,7 @@ class SagExports(models.Model):
         for tag in self.package_ids.sorted('name'):
             province, city = self._sag_origins(tag)
             source = self._sag_source_result(tag)
-            rows.append([tag.name, tag.especie_id.name or '', tag.variedad_id.name or '', province, city,
+            rows.append([tag.step_sag_folio or tag.name, tag.especie_id.name or '', tag.variedad_id.name or '', province, city,
                 self._sag_boxes(tag), fields.Date.to_string(source.date), self.sag_country_id.name or '',
                 ', '.join(sorted((tag.step_tag_line_ids.producer_id or tag.step_producer_id).mapped('name')))])
         return rows

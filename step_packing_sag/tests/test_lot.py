@@ -122,6 +122,7 @@ class SagLotCase(SagCase):
         lot, shipment = self._approved_multi()
         rows = lot._sag_annex_rows()
         self.assertEqual(len(rows),2); self.assertNotEqual(rows[0][4],rows[1][4])
+        self.assertEqual(rows[0][0],'38')
         book = load_workbook(io.BytesIO(lot._sag_annex_xlsx()), data_only=True)
         sheet = book.active
         self.assertIn('PLANILLA-QA-001',sheet['A2'].value)
