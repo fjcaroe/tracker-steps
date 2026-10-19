@@ -1,6 +1,9 @@
 """Read native evidence without creating a parallel traceability ledger."""
 from html import escape
+from html import unescape
+import re
 from odoo import fields, models
+from odoo.tools import format_datetime, format_date
 
 
 class Shipment(models.Model):
@@ -74,6 +77,10 @@ class Package(models.Model):
             vals = records.mapped(field)
             if hasattr(vals, '_name'):
                 return links(vals)
+            if records._fields[field].type == 'datetime':
+                vals = [format_datetime(self.env, v) for v in vals if v]
+            elif records._fields[field].type == 'date':
+                vals = [format_date(self.env, v) for v in vals if v]
             return text(' · '.join(dict.fromkeys(str(v) for v in vals if v is not False and v is not None and v != '')))
 
         def links(records):
@@ -92,15 +99,6 @@ class Package(models.Model):
             internal = inspections.filtered(lambda i: i.kind == 'internal')
             sag = inspections.filtered(lambda i: i.kind == 'sag')
             producers = origins.step_tag_line_ids.producer_id | origins.step_producer_id
-            # Summaries exported by the standard Odoo list are descriptive
-            # snapshots only; the panel links always open the native records.
-            tag.trace_origin = ' · '.join(producers.mapped('display_name'))
-            tag.trace_reception = ' · '.join(receipts.mapped('name'))
-            tag.trace_process = ' · '.join(ots.mapped('name') + g['repacks'].mapped('name'))
-            tag.trace_quality = ' · '.join(inspections.mapped('name') + checks.mapped('name'))
-            tag.trace_dispatch = ' · '.join(guides.mapped('external_folio'))
-            tag.trace_export = ' · '.join(ships.mapped('shipment_number'))
-            tag.trace_receiver = ' · '.join(ships.receiver_id.mapped('display_name') + claims.mapped('name'))
             sections = [
                 ('Productor', [('Productor', links(producers)), ('Fundo', value(origins, 'fundo_id')),
                  ('Cuartel registrado en recepción', value(receipts, 'step_fruit_cost_center')),
@@ -123,13 +121,18 @@ class Package(models.Model):
                  ('Folio guía', value(guides, 'external_folio')), ('Contenedor', value(ships, 'container_reference')),
                  ('Transportista', value(guides, 'carrier_id')), ('Camión', value(guides, 'vehicle_id')),
                  ('Patente registrada', value(guides, 'truck_plate')), ('Instructivo despacho', value(guides, 'dispatch_instruction_id'))]),
-                ('Exportación', [('Fecha zarpe', value(ships, 'departure_date')), ('Nave', value(ships, 'vessel_id')),
+                ('Exportación', [('Número embarque', value(ships, 'shipment_number')),
+                 ('Fecha zarpe', value(ships, 'departure_date')), ('Nave', value(ships, 'vessel_id')),
                  ('Recibidor', value(ships, 'receiver_id')), ('BL', value(ships, 'bl_folio')),
-                 ('Proforma / nota de venta', value(ships, 'sale_order_ids')), ('Instructivo embarque', links(ships)),
+                 ('Proforma / folio comercial', value(ships, 'folio_sale_order_id')),
+                 ('Notas de venta', value(ships, 'sale_order_ids')), ('Instructivo embarque', links(ships)),
                  ('Estado embarque', choices(ships, 'state'))]),
                 ('Recibidor', [('Fecha arribo registrada', value(ships, 'arrival_date')), ('Puerto arribo', value(ships, 'destination_port_id')),
                  ('Calidad llegada', value(ships, 'arrival_quality_id')), ('Folio reclamo de esta tarja', links(claims))]),
             ]
+            for field, (_, rows) in zip(('trace_origin','trace_reception','trace_process','trace_quality',
+                                        'trace_dispatch','trace_export','trace_receiver'), sections):
+                tag[field] = ' | '.join(label + ': ' + unescape(re.sub('<[^>]*>', '', val)) for label, val in rows)
             tag.trace_panel = '<div class="o_step_trace_grid">' + ''.join(
                 '<section><h3>%s</h3><dl>%s</dl></section>' % (text(title), ''.join(
                     '<dt>%s</dt><dd>%s</dd>' % (text(label), val) for label, val in rows)) for title, rows in sections) + '</div>'
