@@ -29,6 +29,12 @@ class Package(models.Model):
         target = self.env[model]
         if not target.has_access('read'):
             return target.browse()
+        if 'company_id' in target._fields:
+            domain = [*domain, ('company_id', 'in', self.env.companies.ids + [False])]
+        elif model == 'step.packing.repack.line':
+            # Legacy lines have no company rule of their own. Scope through
+            # their parent even when an emptied source package is now shared.
+            domain = [*domain, ('repack_id.company_id', 'in', self.env.companies.ids)]
         return target.search(domain)
 
     def _trace_graph(self):

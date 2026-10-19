@@ -82,5 +82,9 @@ class TraceCase(SagCase):
         foreign=self.env['res.company'].create({'name':'Otra empresa T94'})
         user=new_test_user(self.env,login='t94-stock',groups='stock.group_stock_user',
                           company_id=foreign.id,company_ids=[(6,0,foreign.ids)])
+        foreign_graph = source.with_user(user)._trace_graph()
+        self.assertFalse(foreign_graph['productions'])
+        self.assertFalse(foreign_graph['repacks'])
+        self.assertFalse(foreign_graph['inspections'])
         with self.assertRaises(AccessError):
-            source.with_user(user)._trace_graph()
+            target.with_user(user)._trace_graph()
