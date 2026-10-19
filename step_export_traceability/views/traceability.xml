@@ -19,10 +19,10 @@
     <field name="model">stock.quant.package</field>
     <field name="arch" type="xml">
       <list create="false" edit="false" delete="false" string="Trazabilidad por pallet">
-        <field name="name" string="Folio pallet"/><field name="step_tag_state"/>
+        <field name="name" string="Folio pallet" width="200px"/><field name="step_tag_state" width="170px"/>
         <field name="especie_id"/><field name="variedad_id"/><field name="fruit_type" optional="hide"/>
-        <field name="trace_origin"/><field name="trace_reception"/><field name="trace_process"/>
-        <field name="trace_quality"/><field name="trace_dispatch"/><field name="trace_export"/><field name="trace_receiver"/>
+        <field name="trace_origin" width="250px"/><field name="trace_reception" width="250px"/><field name="trace_process" width="250px"/>
+        <field name="trace_quality" width="250px"/><field name="trace_dispatch" width="250px"/><field name="trace_export" width="250px"/><field name="trace_receiver" width="250px"/>
         <field name="step_actual_boxes" optional="hide"/><field name="step_actual_kg" optional="hide"/>
         <field name="company_id" groups="base.group_multi_company" optional="hide"/>
       </list>
