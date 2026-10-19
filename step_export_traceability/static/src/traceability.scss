@@ -1,0 +1,12 @@
+.o_step_trace_grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(170px, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+    padding: 8px 0 16px;
+    section { border: 1px solid #d8e2df; border-radius: 6px; background: white; }
+    h3 { background: #e7f2ef; padding: 12px; font-size: 16px; color: #16594e; }
+    dl { padding: 0 12px; }
+    dt { color: #53675f; margin-top: 12px; font-size: 12px; }
+    dd { margin: 4px 0 12px; overflow-wrap: anywhere; }
+}

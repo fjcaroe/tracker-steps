@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'dispatch-design', 'sag-prototype', 'sag-lot'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -35,6 +35,9 @@ def main():
         modules = ('step_sale_export_report', 'step_export_client_revision')
     if args.kind in ('estimate-report', 'contract-report'):
         modules = ('step_producer_estimate_report',) if args.kind == 'estimate-report' else ('step_producer_contract_report',)
+    if args.kind == 'traceability':
+        assert args.environment == 'development', 'T94 QA en Desarrollo'
+        modules = ('step_export_traceability',)
     if args.kind == 'sag-lot':
         assert args.environment == 'development', 'T93 solo Desarrollo para QA'
         modules = ('step_packing_operations', 'step_packing_dispatch', 'step_packing_sag')

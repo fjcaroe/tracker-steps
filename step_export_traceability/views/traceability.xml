@@ -1,0 +1,61 @@
+<odoo>
+  <record id="view_traceability_form" model="ir.ui.view">
+    <field name="name">stock.quant.package.traceability.form</field>
+    <field name="model">stock.quant.package</field>
+    <field name="arch" type="xml">
+      <form string="Trazabilidad del pallet" create="false" edit="false" delete="false">
+        <sheet>
+          <h1><field name="name"/></h1>
+          <group><group><field name="step_tag_state"/><field name="step_sag_folio"/></group>
+            <group><field name="especie_id"/><field name="variedad_id"/><field name="company_id" groups="base.group_multi_company"/></group></group>
+          <p class="text-muted">Recorrido documental del folio. Abra cada referencia para consultar el proceso original. “Sin registro” indica que no hay evidencia vinculada disponible. Las fechas de arribo son las registradas en el embarque.</p>
+          <field name="trace_panel" widget="html" nolabel="1"/>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_traceability_list" model="ir.ui.view">
+    <field name="name">stock.quant.package.traceability.list</field>
+    <field name="model">stock.quant.package</field>
+    <field name="arch" type="xml">
+      <list create="false" edit="false" delete="false" string="Trazabilidad por pallet">
+        <field name="name" string="Folio pallet"/><field name="step_tag_state"/>
+        <field name="especie_id"/><field name="variedad_id"/><field name="fruit_type" optional="hide"/>
+        <field name="trace_origin"/><field name="trace_reception"/><field name="trace_process"/>
+        <field name="trace_quality"/><field name="trace_dispatch"/><field name="trace_export"/><field name="trace_receiver"/>
+        <field name="step_actual_boxes" optional="hide"/><field name="step_actual_kg" optional="hide"/>
+        <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_traceability_search" model="ir.ui.view">
+    <field name="name">stock.quant.package.traceability.search</field>
+    <field name="model">stock.quant.package</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="name" string="Folio pallet" filter_domain="['|',('name','ilike',self),('step_sag_folio','ilike',self)]"/>
+        <field name="especie_id"/><field name="variedad_id"/><field name="step_producer_id"/>
+        <field name="fundo_id"/><field name="step_tag_state"/><field name="step_export_shipment_ids"/>
+        <filter name="by_species" string="Especie" context="{'group_by':'especie_id'}"/>
+        <filter name="by_state" string="Estado actual" context="{'group_by':'step_tag_state'}"/>
+      </search>
+    </field>
+  </record>
+  <!-- Replace the existing menu's action without deleting shipments or old views. -->
+  <record id="step_export.action_export_traceability" model="ir.actions.act_window">
+    <field name="name">Trazabilidad por pallet</field>
+    <field name="res_model">stock.quant.package</field>
+    <field name="view_mode">list,form</field>
+    <field name="view_id" ref="view_traceability_list"/>
+    <field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('view_traceability_list')}),(0,0,{'view_mode':'form','view_id':ref('view_traceability_form')})]"/>
+    <field name="search_view_id" ref="view_traceability_search"/>
+    <field name="domain">[('is_fruit_tag','=',True),('step_tag_kind','=','E')]</field>
+    <field name="context">{'create':False}</field>
+  </record>
+  <record id="view_shipment_arrival_quality" model="ir.ui.view">
+    <field name="name">step.export.export.arrival.quality</field>
+    <field name="model">step.export.export</field>
+    <field name="inherit_id" ref="step_export.view_step_export_export_form"/>
+    <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Recepción en destino"><field name="arrival_quality_id" options="{'no_create':True}"/></group></xpath></field>
+  </record>
+</odoo>
