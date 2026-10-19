@@ -111,6 +111,9 @@ class SagLotCase(SagCase):
             if ext == 'REP':
                 doc.sag_repack_operation = 'E'
                 self.assertEqual(len(doc._sag_flat_file()[1].decode('ascii').split('\r\n')[1]),16)
+        draft = lot.copy({'sag_sif_reference':'00012','sag_export_sequence':'99'})
+        self.assertEqual(draft._sag_flat_file()[0], '00300012.INS')
+        self.assertEqual(draft.state, 'draft')
         lot.package_ids[:1].step_sag_folio = '12345678901'
         with self.assertRaises(UserError):
             lot._sag_flat_file()

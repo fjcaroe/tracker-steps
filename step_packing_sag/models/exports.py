@@ -56,12 +56,10 @@ class SagExports(models.Model):
             raise UserError(_('El Anexo 5 adjunto no define un archivo para este servicio.'))
         if not self.package_ids or not self.sag_packing_id or not self.sag_country_id or not self.date:
             raise UserError(_('Complete establecimiento, país, fecha y tarjas.'))
-        if fmt == 'INS' and self.state != 'approved':
-            raise UserError(_('Registre el resultado externo aprobado antes de exportar la inspección realizada.'))
         if fmt == 'INS' and any(tag.especie_id != self.sag_species_id for tag in self.package_ids):
             raise UserError(_('El archivo de inspección debe contener una sola especie.'))
         plant = numeric(self.sag_packing_id.step_sag_plant_number, 3, _('número de establecimiento sin región'))
-        seq = numeric(self.sag_export_sequence, 5, _('correlativo Anexo 5'))
+        seq = numeric(self.sag_sif_reference if fmt == 'INS' else self.sag_export_sequence, 5, _('SIF / correlativo Anexo 5'))
         plant_header = plant.zfill(4)
         country = numeric(self.sag_country_id.step_sag_code, 3, _('código país SAG'))
         count = numeric(len(self.package_ids), 4, _('cantidad de pallets'))
@@ -184,3 +182,15 @@ class SagExports(models.Model):
     def action_sag_annex_pdf(self):
         self._sag_annex_rows()
         return self.env.ref('step_packing_sag.report_dispatch_annex').report_action(self)
+
+
+class SagAnnexReport(models.Model):
+    _inherit = 'ir.actions.report'
+
+    def _get_layout(self):
+        # The annex has a complete inline print stylesheet. Keeping its layout
+        # self-contained avoids HTTP asset requests while rendering in a clone,
+        # a shell or a single-worker service; all other reports keep their layout.
+        if len(self) == 1 and self.report_name == 'step_packing_sag.dispatch_annex':
+            return self.env.ref('step_packing_sag.annex_minimal_layout')
+        return super()._get_layout()
