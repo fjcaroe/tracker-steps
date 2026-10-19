@@ -68,15 +68,30 @@ class SagLotCase(SagCase):
     def test_filters_reject_organic_other_variety_no_stock_and_duplicates(self):
         lot, shipment = self._multi_lot()
         for values in [{'sag_fruit_type': 'organic'}, {'sag_species_id': self.env['step.especie'].create({'name': 'Otra especie QA', 'type_especie': 'frutal', 'group_especie': 'fruta_h'}).id}]:
-            with self.cr.savepoint(), self.assertRaises(ValidationError):
+            with self.assertRaises(ValidationError), self.cr.savepoint():
                 lot.write(values)
-        with self.cr.savepoint(), self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             lot.copy({'name': 'Duplicado QA'})
         tag = self._tag('T93-SIN-STOCK', 'E', self.finished, 50, 10, 'export')
         tag.action_step_validate_tag()
         lot.sag_scan = tag.name
         with self.assertRaises(UserError):
             lot._onchange_sag_scan()
+        lot.sag_scan = False
+        other = self.variety.copy({'name':'Otra variedad QA', 'cod_variedad':'T93OTRA'})
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            lot.sag_variety_ids = other
+        shipment.write({'season_id':self.season.id,'species_id':self.species.id,'receiver_id':self.producer.id,
+            'line_ids':[(0,0,{'product_id':self.finished.id,'pallet_qty':2,'boxes_per_pallet':20,'kg_per_box':5})]})
+        plan = self.env['step.export.dispatch.order'].create({'name':'Instructivo QA T93','shipment_id':shipment.id})
+        plan.action_import_shipment_load()
+        lot.write({'sag_instruction_id':plan.id,'sag_receiver_id':self.producer.id,'sag_country_id':self.env.ref('base.us').id})
+        self.assertEqual(lot.package_ids & lot._sag_candidates(), lot.package_ids)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            lot.sag_receiver_id = self.company.partner_id
+        plan.load_line_ids.pallet_qty = 1
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            lot._check_packages()
 
     def test_five_annex5_formats_match_official_widths(self):
         lot, shipment = self._approved_multi()
@@ -108,7 +123,7 @@ class SagLotCase(SagCase):
         sheet = book.active
         self.assertIn('PLANILLA-QA-001',sheet['A2'].value)
         self.assertEqual(sheet['F7'].value,40)
-        pdf, _ = self.env['ir.actions.report']._render_qweb_pdf('step_packing_sag.report_dispatch_annex',res_ids=lot.ids)
+        pdf, _ = self.env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf('step_packing_sag.report_dispatch_annex',res_ids=lot.ids)
         self.assertTrue(pdf.startswith(b'%PDF'))
         lot.package_ids[:1].fundo_id.step_sag_city_id.step_sag_province_name = False
         with self.assertRaises(UserError):

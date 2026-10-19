@@ -37,7 +37,7 @@ def main():
         modules = ('step_producer_estimate_report',) if args.kind == 'estimate-report' else ('step_producer_contract_report',)
     if args.kind == 'sag-lot':
         assert args.environment == 'development', 'T93 solo Desarrollo para QA'
-        modules = ('step_packing_operations', 'step_packing_sag')
+        modules = ('step_packing_operations', 'step_packing_dispatch', 'step_packing_sag')
     if args.kind == 'sag-prototype':
         assert args.environment == 'development', 'T92 solo autoriza Desarrollo'
         modules = ('step_packing_sag',)

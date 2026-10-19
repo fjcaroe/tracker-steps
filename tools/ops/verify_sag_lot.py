@@ -24,14 +24,14 @@ try:
         folder = Path('/tmp') / ('t93-reports-' + env.cr.dbname)
         folder.mkdir(mode=0o700, exist_ok=True)
         (folder/'dispatch-annex.xlsx').write_bytes(lot._sag_annex_xlsx())
-        pdf, _ = env['ir.actions.report']._render_qweb_pdf('step_packing_sag.report_dispatch_annex', res_ids=lot.ids)
+        pdf, _ = env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf('step_packing_sag.report_dispatch_annex', res_ids=lot.ids)
         (folder/'dispatch-annex.pdf').write_bytes(pdf)
         filename, data = lot._sag_flat_file()
         (folder/filename).write_bytes(data)
         # A dedicated layout-only fixture verifies per-page reference and totals.
         rows = lot._sag_annex_rows()
         with patch.object(type(lot), '_sag_annex_rows', lambda self: rows * 40):
-            pdf, _ = env['ir.actions.report']._render_qweb_pdf('step_packing_sag.report_dispatch_annex', res_ids=lot.ids)
+            pdf, _ = env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf('step_packing_sag.report_dispatch_annex', res_ids=lot.ids)
             (folder/'layout-qa-only.pdf').write_bytes(pdf)
         print('MANAGEMENT_ARTIFACTS_OK ' + str(folder))
         env.cr.rollback();env.registry.clear_cache()

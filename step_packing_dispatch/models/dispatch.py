@@ -149,6 +149,7 @@ class Load(models.Model):
                 raise ValidationError(_('El embalaje debe corresponder al producto.'))
 
     def _matches(self,tag,quants,producers):
+        boxes = tag.step_actual_boxes if tag.step_tag_line_ids else tag.box_count
         return (quants.product_id==self.product_id
             and (not self.packaging_id or tag.step_packaging_id==self.packaging_id)
             and (not self.producer_id or all(p==self.producer_id for p,_ in producers))
@@ -156,8 +157,8 @@ class Load(models.Model):
             and (not self.label or tag.label==self.label)
             and (not self.caliber_id or tag.fruit_caliber_id==self.caliber_id)
             and (not self.quality_id or tag.fruit_quality_id==self.quality_id)
-            and float_compare(tag.box_count,self.boxes_per_pallet,precision_digits=3)==0
-            and float_compare(tag.step_actual_kg,tag.box_count*self.kg_per_box,precision_digits=3)==0)
+            and float_compare(boxes,self.boxes_per_pallet,precision_digits=3)==0
+            and float_compare(tag.step_actual_kg,boxes*self.kg_per_box,precision_digits=3)==0)
 
     @api.model_create_multi
     def create(self,vals_list):

@@ -43,7 +43,8 @@ class SagLot(models.Model):
             production = self.env['step.packing.production'].browse(vals.get('production_id'))
             if production:
                 vals.setdefault('company_id', production.company_id.id)
-                vals.setdefault('sag_species_id', production.fruit_species_id.id)
+                species = production.fruit_species_id or production.step_packing_output_tag_ids.especie_id
+                vals.setdefault('sag_species_id', species.id if len(species) == 1 else False)
                 vals.setdefault('sag_packing_id', production.packing_partner_id.id)
             if vals.get('kind', self.env.context.get('default_kind')) == 'sag':
                 vals['sag_multi_ot'] = True
@@ -59,6 +60,12 @@ class SagLot(models.Model):
     def write(self, vals):
         if 'sag_multi_ot' in vals:
             raise UserError(_('No se modifica la identificación del lote ampliado.'))
+        lot_fields = {'package_ids','sag_species_id','sag_fruit_type','sag_variety_ids','sag_instruction_id','sag_service_id'}
+        promote = self.filtered(lambda r: r.kind == 'sag' and not r.sag_multi_ot and r.state == 'draft') if lot_fields & vals.keys() else self.browse()
+        if promote:
+            super(SagLot, promote).write(dict(vals, sag_multi_ot=True))
+            remaining = self - promote
+            return super(SagLot, remaining).write(vals) if remaining else True
         return super().write(vals)
 
     def _sag_candidates(self):

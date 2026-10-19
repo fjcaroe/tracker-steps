@@ -44,9 +44,9 @@ class TestPackingOperations(TransactionCase):
             })],
         })
 
-    def _tag(self, name, kind, product, kilos, boxes, result=False):
+    def _tag(self, name, kind, product, kilos, boxes, result=False, fruit_type=False):
         return self.env["stock.quant.package"].create({
-            "name": name, "is_fruit_tag": True, "step_tag_kind": kind, "fruit_type": "conventional",
+            "name": name, "is_fruit_tag": True, "step_tag_kind": kind, "fruit_type": fruit_type,
             "step_packing_result": result, "step_producer_id": self.producer.id,
             "especie_id": self.species.id, "variedad_id": self.variety.id,
             "step_tag_line_ids": [(0, 0, {
@@ -73,7 +73,7 @@ class TestPackingOperations(TransactionCase):
     def test_tag_document_selectors_reject_other_company_and_unrelated_dus(self):
         tag = self._tag('T55 scope', 'E', self.finished, 50, 10, 'export')
         other = self.env['res.company'].create({'name': 'T55 other company'})
-        shipment = self.env['step.export.export'].create({'name': 'T55 foreign', 'company_id': other.id})
+        shipment = self.env['step.export.export'].create({'name': 'T55 foreign', 'company_id': other.id, 'shipment_number':'QA-FOREIGN'})
         with self.cr.savepoint(), self.assertRaises(ValidationError):
             tag.step_export_shipment_ids = [(4, shipment.id)]
         unrelated = self.env['step.export.export'].create({'name': 'T55 unrelated', 'dus_folio': 'DUS'})
@@ -503,10 +503,10 @@ class TestPackingOperations(TransactionCase):
             'bom_line_ids': [(0, 0, {'product_id': self.carton.id, 'product_qty': 1})]})
         order = self._order()
         order.action_validate()
-        incoming = self._tag('QA-CTR-C', 'C', self.raw, 100, 100)
+        incoming = self._tag('QA-CTR-C', 'C', self.raw, 100, 100, fruit_type='conventional')
         incoming.action_step_validate_tag()
-        export = self._tag('QA-CTR-E', 'E', self.finished, 80, 16, 'export')
-        national = self._tag('QA-CTR-N', 'N', self.national, 20, 20, 'commercial')
+        export = self._tag('QA-CTR-E', 'E', self.finished, 80, 16, 'export', fruit_type='conventional')
+        national = self._tag('QA-CTR-N', 'N', self.national, 20, 20, 'commercial', fruit_type='conventional')
         self.env['stock.quant']._update_available_quantity(self.raw, self.location, 100, package_id=incoming, owner_id=self.producer)
         self._stock(self.carton, 16)
         production = self._production(order, incoming, export | national, bom)
@@ -526,6 +526,7 @@ class TestPackingOperations(TransactionCase):
         with self.assertRaises(UserError):
             inspection.action_approve()
         if 'sag_prototype' in inspection._fields:
+            shipment.destination_country_id = self.env.ref('base.us')
             inspection.write({'sag_country_id': self.env.ref('base.us').id, 'sag_counterpart_id': self.producer.id,
                 'sag_requirements': 'QA requisito ficticio', 'sag_treatment': 'none',
                 'sag_initial':'yes','sag_documents':'yes','sag_traceability':'yes','sag_presentation':'yes','sag_packaging':'yes',

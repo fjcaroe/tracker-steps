@@ -10,6 +10,7 @@ from ..models.inspection import CHECKS
 class SagCase(TransactionCase):
     def _fixture(self):
         self.company = self.env.company
+        self.season = self.env['step.temporada'].create({'name':'Temporada QA T93'})
         self.warehouse = self.env["stock.warehouse"].search([("company_id", "=", self.company.id)], limit=1)
         self.location = self.warehouse.lot_stock_id
         self.producer = self.env["res.partner"].create({"name": "Productor Packing T41"})
@@ -43,7 +44,7 @@ class SagCase(TransactionCase):
 
     def _tag(self, name, kind, product, kilos, boxes, result=False):
         return self.env["stock.quant.package"].create({
-            "name": name, "is_fruit_tag": True, "step_tag_kind": kind, "fruit_type": "conventional", "fundo_id": self.fundo.id,
+            "name": name, "is_fruit_tag": True, "step_tag_kind": kind, "fruit_type": "conventional", "fundo_id": self.fundo.id, "step_export_season_id": self.season.id,
             "step_packing_result": result, "step_producer_id": self.producer.id,
             "especie_id": self.species.id, "variedad_id": self.variety.id,
             "step_tag_line_ids": [(0, 0, {
@@ -184,10 +185,10 @@ class SagCase(TransactionCase):
             inspection.with_user(stranger).read(['name'])
         with self.assertRaises(UserError):
             inspection.write({'kind': 'internal'})
-        with self.cr.savepoint(), self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             inspection.sag_sample_count = -1
         foreign = self.env['ir.attachment'].create({'name': 'Ajeno', 'type': 'binary', 'raw': b'QA', 'res_model': 'res.partner', 'res_id': self.producer.id})
-        with self.cr.savepoint(), self.assertRaises(ValidationError):
+        with self.assertRaises(ValidationError), self.cr.savepoint():
             inspection.sag_evidence_ids = foreign
 
     def test_native_internal_and_menu_form(self):

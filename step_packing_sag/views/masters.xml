@@ -26,6 +26,7 @@
     </record>
     <record id="city_action" model="ir.actions.act_window"><field name="name">Comunas de origen SAG</field><field name="res_model">res.city</field><field name="view_mode">list,form</field><field name="view_id" ref="city_list"/></record>
     <record id="city_action_form" model="ir.actions.act_window.view"><field name="sequence">2</field><field name="view_mode">form</field><field name="view_id" ref="city_form"/><field name="act_window_id" ref="city_action"/></record>
+    <record id="city_action_list" model="ir.actions.act_window.view"><field name="sequence">1</field><field name="view_mode">list</field><field name="view_id" ref="city_list"/><field name="act_window_id" ref="city_action"/></record>
     <menuitem id="city_menu" name="Comunas de origen SAG" parent="step_packing_dispatch.inspections_menu" action="city_action" sequence="40" groups="stock.group_stock_manager"/>
     <record id="package_sag" model="ir.ui.view"><field name="name">package.sag.folio</field><field name="model">stock.quant.package</field><field name="inherit_id" ref="stock.view_quant_package_form"/>
         <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Identificación SAG"><field name="step_sag_folio"/></group></xpath></field>
