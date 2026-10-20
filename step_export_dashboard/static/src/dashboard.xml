@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+ <t t-inherit="step_export.Dashboard" t-inherit-mode="extension">
+  <xpath expr="//div[hasclass('o_export_columns')]" position="before">
+   <section class="o_export_panel o_export_comparison" aria-labelledby="export-comparison-title">
+    <div class="o_export_section__heading"><div><span>PLANIFICADO Y REAL</span><h2 id="export-comparison-title">Comparativo de ventas</h2></div></div>
+    <div class="o_export_filters">
+     <label>Temporada<select class="form-select" t-att-value="state.filters.season_id" t-on-change="(event) => this.changeFilter('season_id', event)"><option value="">Todas</option><option t-foreach="state.comparison?.seasons || []" t-as="season" t-key="season.id" t-att-value="season.id"><t t-esc="season.name"/></option></select></label>
+     <label>Mes<select class="form-select" t-att-value="state.filters.month" t-on-change="(event) => this.changeFilter('month', event)"><option value="">Todos</option><option t-foreach="state.comparison?.months || []" t-as="month" t-key="month" t-att-value="month"><t t-esc="month"/></option></select></label>
+     <label>Semana<select class="form-select" t-att-value="state.filters.week" t-on-change="(event) => this.changeFilter('week', event)"><option value="">Todas</option><option t-foreach="state.comparison?.weeks || []" t-as="week" t-key="week.id" t-att-value="week.id"><t t-esc="week.name"/></option></select></label>
+    </div>
+    <p class="text-muted small">Planificado: semanas de programas vigentes. Kilos reales: carga de embarques embarcados, facturados o liquidados, por fecha de embarque. Precio promedio = monto total / kilos totales.</p>
+    <p t-if="state.comparison?.actual_basis_pending" class="alert alert-info">Monto y precio reales pendientes de definir su origen: facturación, carga comercial o liquidación del recibidor.</p>
+    <p t-if="state.comparison?.undated_shipments" class="text-warning">Hay embarques sin fecha: se incluyen en el total general, pero no en filtros de mes o semana.</p>
+    <p t-if="state.comparisonError" role="alert" class="alert alert-warning"><t t-esc="state.comparisonError"/><button class="btn btn-link" t-on-click="loadComparison">Reintentar</button></p>
+    <p t-if="state.comparisonLoading" role="status">Cargando comparativo…</p>
+    <div t-elif="state.comparison" class="o_export_comparison_tables">
+     <t t-foreach="[{key: 'species', title: 'Por especie'}, {key: 'programs', title: 'Por programa de venta'}]" t-as="group" t-key="group.key">
+      <div><h3><t t-esc="group.title"/></h3><div class="o_export_table_scroll"><table>
+       <thead><tr><th rowspan="2" scope="col"><t t-esc="group.title"/></th><th colspan="3" scope="colgroup">Planificado</th><th colspan="3" scope="colgroup">Real</th></tr><tr><th scope="col">Kilos</th><th scope="col">Monto USD</th><th scope="col">Precio kg</th><th scope="col">Kilos</th><th scope="col">Monto USD</th><th scope="col">Precio kg</th></tr></thead>
+       <tbody><tr t-foreach="state.comparison[group.key].rows" t-as="row" t-key="row.key"><th scope="row"><t t-esc="row.name"/></th><td t-foreach="['planned_kg','planned_usd','planned_price','actual_kg','actual_usd','actual_price']" t-as="key" t-key="key" class="o_export_number"><t t-esc="formatValue(row[key])"/></td></tr><tr t-if="!state.comparison[group.key].rows.length"><td colspan="7">No hay datos para los filtros seleccionados.</td></tr></tbody>
+       <tfoot><tr><th scope="row">Totales</th><td t-foreach="['planned_kg','planned_usd','planned_price','actual_kg','actual_usd','actual_price']" t-as="key" t-key="key" class="o_export_number"><t t-esc="formatValue(state.comparison[group.key].total[key])"/></td></tr></tfoot>
+      </table></div></div>
+     </t>
+    </div>
+   </section>
+  </xpath>
+ </t>
+</templates>
