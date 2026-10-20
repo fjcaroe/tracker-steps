@@ -16,6 +16,11 @@ try:
     assets = env['ir.asset']._get_asset_paths('web.assets_backend', {})
     assert any('step_export_dashboard/static/src/dashboard.js' in str(path) for path in assets)
     assert any('step_export_dashboard/static/src/dashboard.scss' in str(path) for path in assets)
+    if env.cr.dbname.startswith('MANAGEMENT_QA_'):
+        bundle = env['ir.qweb']._get_asset_bundle('web.assets_backend')
+        bundle.css(); bundle.js()
+        assert not bundle.css_errors, bundle.css_errors
+        print('T96_ASSET_COMPILATION_OK')
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':96,'versions':EXPECTED,'cases':4,'menu':True,'assets':True,'company_scope':True,'actual_formula':'invoice+debit-credit'}))
 finally:
     env.cr.rollback()

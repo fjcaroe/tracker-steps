@@ -609,7 +609,13 @@ def verify(base, options, database, source, opts, proof, stage, installed):
     if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         header += 'OUTPUT=' + repr(str(stage)) + '\n'
     data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') and database.startswith('MANAGEMENT_QA_') else []
-    result = subprocess.run(base + ['shell'] + options + data_options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
+    from contextlib import nullcontext
+    report_server = nullcontext()
+    if TICKET_REVISION == 'dispatch-improvements' and database.startswith('MANAGEMENT_QA_'):
+        from private_report_http import report_assets_http
+        report_server = report_assets_http(base, options, database, source, opts, stage, query)
+    with report_server:
+        result = subprocess.run(base + ['shell'] + options + data_options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
     if TICKET_REVISION == 'sag-traceability':
