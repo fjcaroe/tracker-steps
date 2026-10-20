@@ -73,8 +73,22 @@ Mismo archivo publicado en Desarrollo con respaldo
 `/opt/steps_backups/management_development_20261020T192426Z`, bloqueo compartido
 y overlay `releases/development/14d582077044f6230baab458f5eb9afe2a623513`.
 Comprobación posterior: versión, fuente cargada, menú, assets y cuatro casos
-correctos. No se modificó Cerro: queda pendiente la comprobación del panel
-renderizado a zoom normal y la compatibilidad del paquete en copia del destino.
+correctos. La comprobación del panel renderizado a zoom normal continúa pendiente.
+La publicación posterior en Cerro se detalla a continuación.
 T96 permanece abierto; el fallo local del navegador no acredita una falla de Odoo.
 
 Registro interno: nota 9541; etapa 6 En Espera, sin notificaciones.
+
+
+## Publicación en Cerro El Plomo
+
+El mismo paquete pasó cuatro pruebas y cuatro casos en la copia fresca
+`MANAGEMENT_QA_CERRO_t96c`, con compilación nativa de assets y preservación de
+las columnas anteriores. Se publicó por la autorización expresa del ticket
+para ambos destinos, sin añadir una solicitud de aprobación a ese alcance.
+Respaldo: `/opt/steps_backups/management_cerro_20261020T193228Z`.
+Overlay: `releases/cerro/14d582077044f6230baab458f5eb9afe2a623513`.
+Bloqueo compartido, sin downgrade ni modificación de raíces compartidas.
+Comprobación posterior correcta: versión, fuente, menú, assets y cuatro casos
+funcionales con rollback. No se afirma una revisión del panel en navegador;
+T96 continúa abierto por esa comprobación visual concreta.
