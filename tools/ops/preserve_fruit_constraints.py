@@ -36,7 +36,7 @@ def install():
         candidates=[key for key,value in registry._foreign_keys.items()
                     if key in LEGACY and value[0]==LEGACY[key]]
         if candidates:
-            cr.execute("SELECT 1 FROM ir_module_module WHERE name='step_fruit_category_unification' AND state='installed'")
+            cr.execute("SELECT 1 FROM ir_module_module WHERE name='step_fruit_category_unification' AND state IN ('installed','to upgrade')")
             if cr.fetchone():
                 for key in candidates:
                     cr.execute('SELECT target.relname,c.convalidated FROM pg_constraint c '

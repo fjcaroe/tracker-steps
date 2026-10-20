@@ -512,7 +512,7 @@ def main():
                 except OSError:
                     continue
                 for index, arg in enumerate(argv):
-                    if Path(arg).name == 'odoo-bin':
+                    if Path(arg).name in ('odoo-bin','run_sag_cerro_upgrade.py'):
                         assert not any(option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init=')) for option in argv[index + 1:]), 'Concurrent upgrade PID ' + command.parent.name
             assert not release_root.exists(), 'Release already exists'
             release_root.mkdir(parents=True)

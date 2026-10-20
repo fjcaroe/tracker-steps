@@ -18,11 +18,14 @@ for filename in ('development-qa.json','cerro-qa.json'):
     assert tested['commit']==proof['commit'] and tested['release_sha256']==proof['release_sha256']
 log=(args.evidence/'cerro-deploy.log').read_text(encoding='utf-8-sig')
 assert 'MANAGEMENT_DEPLOY_OK backup=' in log
+assert 'MANAGEMENT_CANONICAL_FRUIT_FKS_OK' in log
 verified=[json.loads(line.split(' ',1)[1]) for line in log.splitlines() if line.startswith('MANAGEMENT_VERIFY_OK ')]
 assert any(v['environment']=='cerro' and v['commit']==proof['commit'] for v in verified)
 flows=[json.loads(line.split(' ',1)[1]) for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
 assert {v['ticket']:v['cases'] for v in flows}=={93:8,94:3}
-for filename in ('development-native.log','cerro-native.log'):
+compatibility_log=proof['compatibility_log']
+assert Path(compatibility_log).name==compatibility_log
+for filename in ('development-native.log',compatibility_log):
     results=re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database',
         (args.evidence/filename).read_text(encoding='utf-8-sig'))
     assert results and int(results[-1])==proof['test_count']
