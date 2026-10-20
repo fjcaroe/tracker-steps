@@ -5,7 +5,7 @@ import xlsxwriter
 from odoo import fields, models, _
 
 ROLES = (
-    ('receiver', 'Recibidor'), ('carrier', 'Naviera o aerolÃ­nea'),
+    ('receiver', 'Recibidor'), ('carrier', 'Naviera o aerolínea'),
     ('consignee', 'Consignatario'), ('notify', 'Notify'),
     ('forwarder', 'Agencia de carga'), ('customs_agent', 'Agente aduana'),
 )
@@ -21,18 +21,18 @@ COLUMNS = (
 class Partner(models.Model):
     _inherit = 'res.partner'
     for role, label in ROLES:
-        locals()['step_export_' + role + '_code'] = fields.Char(string='CÃ³digo ' + label)
+        locals()['step_export_' + role + '_code'] = fields.Char(string='Código ' + label)
 
 
 class Instruction(models.Model):
     _name = 'step.export.dispatch.order'
     _inherit = ['step.export.dispatch.order', 'mail.thread', 'mail.activity.mixin']
 
-    dus_folio = fields.Char(related='shipment_id.dus_folio', string='NÃºmero DUS')
-    destination_country_id = fields.Many2one(related='shipment_id.destination_country_id', string='PaÃ­s destino')
+    dus_folio = fields.Char(related='shipment_id.dus_folio', string='Número DUS')
+    destination_country_id = fields.Many2one(related='shipment_id.destination_country_id', string='País destino')
     destination_port_id = fields.Many2one(related='shipment_id.destination_port_id', string='Puerto destino')
     customs_agent_id = fields.Many2one(related='shipment_id.customs_agent_id', string='Agente de aduana')
-    customs_agent_code = fields.Char(related='customs_agent_id.step_export_customs_agent_code', string='CÃ³digo Agente aduana')
+    customs_agent_code = fields.Char(related='customs_agent_id.step_export_customs_agent_code', string='Código Agente aduana')
     freight_carrier_id = fields.Many2one('res.partner', string='Transportista',
         domain=[('step_carga', '=', True)], check_company=True, tracking=True)
 
@@ -103,7 +103,7 @@ class Instruction(models.Model):
                     sheet.write_string(row, col, str(value.display_name or '') if line._fields[name].type == 'many2one' else str(value or ''), text)
         sheet.autofilter(first, 0, row, 11)
         row += 4  # Three blank rows separate load details from totals.
-        for key, value in (('Pallets por camiÃ³n', self.pallets_per_truck), ('Cantidad camiones', self.truck_qty),
+        for key, value in (('Pallets por camión', self.pallets_per_truck), ('Cantidad camiones', self.truck_qty),
                            ('Pallets', self.pallet_qty), ('Cajas', self.box_qty), ('Kilos', self.kg_qty)):
             sheet.write_string(row, 0, key, label)
             sheet.write_number(row, 1, value, number)
