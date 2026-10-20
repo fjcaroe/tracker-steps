@@ -4,10 +4,12 @@ from pathlib import Path
 import re
 import hashlib
 
-MODULES = ('step_packing_operations', 'step_packing_dispatch', 'step_packing_sag', 'step_export_traceability')
+MODULES = ('step_inventory_packing', 'step_packing_operations', 'step_packing_dispatch', 'step_packing_sag', 'step_export_traceability')
 APPROVED_RELEASES = {
-    'bfc2430f5b593f399a5774e8251ea79c21df3997': MODULES[:3],
-    '32b884ede0e87503f7ce3f1883ca1876e5e4b87e': MODULES[3:],
+    # Required native document/company fields used by both approved screens.
+    '8e564010deba5e543013e839b71038d81061da02': MODULES[:1],
+    'bfc2430f5b593f399a5774e8251ea79c21df3997': MODULES[1:4],
+    '32b884ede0e87503f7ce3f1883ca1876e5e4b87e': MODULES[4:],
 }
 DEVELOPMENT_RELEASES = Path('/opt/steps-managed/releases/development')
 

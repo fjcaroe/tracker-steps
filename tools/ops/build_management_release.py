@@ -37,7 +37,7 @@ def main():
         modules = ('step_producer_estimate_report',) if args.kind == 'estimate-report' else ('step_producer_contract_report',)
     if args.kind == 'sag-traceability':
         assert args.environment == 'development', 'Build approved content for Development validation first'
-        modules = ('step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability')
+        modules = ('step_inventory_packing','step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability')
     if args.kind == 'traceability':
         assert args.environment == 'development', 'T94 QA en Desarrollo'
         modules = ('step_export_traceability',)
