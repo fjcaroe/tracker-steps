@@ -3,6 +3,7 @@ from psycopg2 import IntegrityError
 from odoo import Command
 from odoo.tests import TransactionCase, tagged
 from odoo.exceptions import AccessDenied, ValidationError
+from odoo.tools import mute_logger
 
 
 @tagged('post_install', '-at_install')
@@ -30,7 +31,7 @@ class EmailCase(TransactionCase):
         with self.assertRaises(ValidationError): other.login='MI.CORREO@EXAMPLE.INVALID'
         self.user.active=False
         with self.assertRaises(ValidationError): other.login='MI.CORREO@EXAMPLE.INVALID'
-        with self.assertRaises(IntegrityError), self.cr.savepoint():
+        with mute_logger('odoo.sql_db'), self.assertRaises(IntegrityError), self.cr.savepoint():
             self.env.cr.execute('UPDATE res_users SET login=%s WHERE id=%s',['MI.CORREO@EXAMPLE.INVALID', other.id])
 
     def test_native_password_and_inactive_account_protection(self):
