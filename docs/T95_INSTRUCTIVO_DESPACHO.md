@@ -1,8 +1,9 @@
 # T95 Mejoras del instructivo de despacho
 
-Estado al 20-10-2026: versión 18.0.1.0.1 instalada y comprobada en Desarrollo.
+Estado al 20-10-2026: versión 18.0.1.0.2 instalada y comprobada en Desarrollo.
+Incorpora la revisión humana 9532; ver evidencia y publicación al final.
 Cerro El Plomo conserva su versión anterior. T95 está En espera por revisión web
-pendiente; nota interna 9531, sin destinatarios ni notificaciones.
+pendiente; última nota interna 9533, sin destinatarios ni notificaciones.
 
 ## Solicitud e implementación
 
@@ -112,3 +113,48 @@ Corrida definitiva: `t95d`; acciones `qa`, `compatibility`, `deploy`, `verify`.
 Los adjuntos, respuestas, inventarios, archivos de prueba, capturas PDF, paquetes,
 logs y comprobantes están fuera del repositorio en
 `~/.codex/local-artifacts/tickets-heartbeat-20261020-1303/`.
+
+
+## Revisión humana 9532: encabezado compacto y resumen separado
+
+La respuesta del 20-10-2026 pidió dos o tres filas de encabezado y separar
+el resumen de la carga. La versión 18.0.1.0.2 conserva los diecisiete datos
+en tres filas de seis posiciones, tanto en PDF como en Excel. El PDF reserva
+12 mm antes del resumen y Excel deja exactamente tres filas vacías. Los cinco
+totales siguen siendo datos numéricos; las doce columnas de carga se conservan.
+El resumen PDF usa el ancho completo para evitar etiquetas amontonadas.
+
+Paquete de la revisión: commit `8bfe69243c1ae51af1836584001887c09c649f85`,
+SHA-256 `fd5b2be4b76d0214a18d2eb69ebab8e17b18dfd4584cc74d087f3e53778cc74f`.
+La corrida inicial `t95compact1` permitió ajustar la alineación de los totales;
+solo `t95compact2` corresponde al paquete final. El probe guarda en la copia
+privada un PDF corto además del PDF de 81 líneas y el Excel, sin conservar
+registros ficticios en los destinos.
+
+La herramienta de navegador sigue fallando antes de inicializar con
+`failed to write kernel assets` y error de ruta inexistente. La revisión del
+formulario en navegador continúa pendiente; no se cierra T95 ni se afirma
+publicación en Cerro por esta revisión de documentos.
+
+Evidencia privada: `~/.codex/local-artifacts/t95-revision-9532-20261020/`.
+
+
+### Publicación de la revisión en Desarrollo
+
+La copia fresca `MANAGEMENT_QA_DEVELOPMENT_t95compact2` pasó las cuatro pruebas
+sin fallos ni errores y los cuatro casos funcionales adicionales. Se compararon
+los datos anteriores y se revisaron las tres páginas generadas (documento corto
+más las dos páginas de carga larga). Excel conserva diecisiete valores de
+encabezado en tres filas, cantidades numéricas, ninguna fórmula y tres filas
+vacías antes del resumen.
+
+El mismo paquete se instaló en Desarrollo con respaldo
+`/opt/steps_backups/management_development_20261020T181029Z`, exclusión compartida
+y overlay privado `releases/development/8bfe69243c1ae51af1836584001887c09c649f85`.
+La comprobación posterior confirmó versión 18.0.1.0.2, fuente cargada, formulario,
+menú y los cuatro casos con rollback, incluido el render real de PDF y Excel.
+El acceso por navegador continúa sin acreditarse por el fallo local documentado.
+Cerro permanece sin T95; su próxima promoción requiere revisar la interfaz en
+Desarrollo y repetir compatibilidad del paquete final en una copia fresca.
+
+Registro de la revisión: nota interna 9533, etapa 6 En Espera, sin notificaciones.
