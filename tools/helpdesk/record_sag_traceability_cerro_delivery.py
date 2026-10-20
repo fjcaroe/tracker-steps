@@ -16,6 +16,8 @@ assert all(proof[k] for k in ('sag_menu','sag_form','sag_services','trace_menu',
 for filename in ('development-qa.json','cerro-qa.json'):
     tested=json.loads((args.evidence/filename).read_text(encoding='utf-8-sig'))
     assert tested['commit']==proof['commit'] and tested['release_sha256']==proof['release_sha256']
+    prefix='MANAGEMENT_QA_CERRO_' if filename=='cerro-qa.json' else 'MANAGEMENT_QA_DEVELOPMENT_'
+    assert tested['database'].startswith(prefix)
 log=(args.evidence/'cerro-deploy.log').read_text(encoding='utf-8-sig')
 assert 'MANAGEMENT_DEPLOY_OK backup=' in log
 assert 'MANAGEMENT_CANONICAL_FRUIT_FKS_OK' in log

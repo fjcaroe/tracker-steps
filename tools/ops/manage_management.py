@@ -580,7 +580,9 @@ def verify(base, options, database, source, opts, proof, stage, installed):
     result = subprocess.run(base + ['shell'] + options + data_options + ['-d', database, '--db-filter=^' + database + '$', '--addons-path=' + str(source) + ',' + opts['addons_path'], '--log-level=error'], input=header + probe, text=True, capture_output=True)
     (stage / ('verify-' + database + '.log')).write_text(result.stdout + result.stderr)
     assert result.returncode==0 and 'MANAGEMENT_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
-    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK')), flush=True)
+    if TICKET_REVISION == 'sag-traceability':
+        assert 'MANAGEMENT_CANONICAL_FRUIT_FKS_OK' in result.stdout
+    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith(('MANAGEMENT_REGISTRY_OK','MANAGEMENT_CANONICAL_FRUIT_FKS_OK'))), flush=True)
     if homepage:
         from verify_home_heading_http import verify_http
         verify_http(base, options, database, source, opts, stage)
