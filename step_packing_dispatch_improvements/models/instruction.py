@@ -60,6 +60,10 @@ class Instruction(models.Model):
             result.append((field.get_description(self.env)['string'], value or ''))
         return result
 
+    def _dispatch_report_header_rows(self):
+        header = self._dispatch_report_header()
+        return [header[start:start + 6] for start in range(0, len(header), 6)]
+
     def _dispatch_report_columns(self):
         return COLUMNS
 
@@ -77,9 +81,10 @@ class Instruction(models.Model):
         sheet.set_column(7, 11, 17)
         sheet.merge_range(0, 0, 0, 11, 'Instructivo de despacho', title)
         row = 2
-        for key, value in self._dispatch_report_header():
-            sheet.write_string(row, 0, key, label)
-            sheet.merge_range(row, 1, row, 5, str(value), text)
+        for items in self._dispatch_report_header_rows():
+            sheet.set_row(row, 60)
+            for col, (key, value) in enumerate(items):
+                sheet.merge_range(row, col * 2, row, col * 2 + 1, '%s\n%s' % (key, value), text)
             row += 1
         row += 1
         for col, (_, name) in enumerate(COLUMNS):
@@ -97,7 +102,7 @@ class Instruction(models.Model):
                 else:
                     sheet.write_string(row, col, str(value.display_name or '') if line._fields[name].type == 'many2one' else str(value or ''), text)
         sheet.autofilter(first, 0, row, 11)
-        row += 2
+        row += 4  # Three blank rows separate load details from totals.
         for key, value in (('Pallets por camión', self.pallets_per_truck), ('Cantidad camiones', self.truck_qty),
                            ('Pallets', self.pallet_qty), ('Cajas', self.box_qty), ('Kilos', self.kg_qty)):
             sheet.write_string(row, 0, key, label)
