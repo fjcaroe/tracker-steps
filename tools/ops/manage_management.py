@@ -239,6 +239,16 @@ def errors(text, allowed_missing=('steps_api',)):
     return found
 
 
+def normalize_approved_account(base, options, database, args, commit):
+    header = ('APPROVED_USER_ID=' + repr(args.normalize_user_id) + '\nEXPECTED_USER_LOGIN=' + repr(args.expected_user_login)
+        + '\nEXPECTED_DATABASE=' + repr(database) + '\nNORMALIZE_COMMIT=' + repr(commit) + '\n')
+    result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']),
+        input=header + (HERE/'normalize_email_account.py').read_text(), text=True, capture_output=True)
+    expected = 'EMAIL_ACCOUNT_NORMALIZED_OK ' if commit else 'EMAIL_ACCOUNT_NORMALIZATION_TESTED_OK '
+    assert expected in result.stdout
+    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith(expected)), flush=True)
+
+
 def main():
     global PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
@@ -254,7 +264,7 @@ def main():
     args = parser.parse_args()
     if args.normalize_user_id is not None or args.expected_user_login is not None:
         assert args.normalize_user_id and args.expected_user_login and '@' in args.expected_user_login
-        assert args.kind == 'email-login' and args.environment == 'cerro' and args.action == 'deploy'
+        assert args.kind == 'email-login' and args.environment == 'cerro' and args.action in ('deploy','compatibility')
 
     SETTINGS = args.kind in ('settings', 'fruit-reception', 'packing')
     PRODUCERS = args.kind == 'producers'
@@ -498,6 +508,14 @@ def main():
         assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text, allowed_missing), 'QA failed: ' + str(log)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
         verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
+        if args.kind == 'email-login':
+            from verify_email_http import verify_http
+            verify_http(base, options, qa_db, staged, opts, stage)
+            assert snapshot(qa_db) == before, 'HTTP fixture cleanup changed original business/account records'
+            if args.normalize_user_id:
+                clone_options = options + ['--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)]
+                normalize_approved_account(base, clone_options, qa_db, args, False)
+                assert snapshot(qa_db) == before, 'Normalization dry run changed the clone'
         (stage / 'qa_passed.json').write_text(json.dumps({'commit': proof['commit'], 'release_sha256': release_sha, 'database': qa_db, 'log': str(log)}))
         print('MANAGEMENT_QA_OK ' + args.environment, flush=True)
         return
@@ -565,12 +583,7 @@ def main():
                     result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']), input=script, text=True, capture_output=True)
                     assert 'CERRO_CATALOGS_SHARED_OK' in result.stdout
                 if args.kind == 'email-login' and args.normalize_user_id:
-                    header = ('APPROVED_USER_ID=' + repr(args.normalize_user_id) + '\nEXPECTED_USER_LOGIN=' + repr(args.expected_user_login)
-                        + '\nEXPECTED_DATABASE=' + repr(database) + '\n')
-                    result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']),
-                        input=header + (HERE/'normalize_email_account.py').read_text(), text=True, capture_output=True)
-                    assert 'EMAIL_ACCOUNT_NORMALIZED_OK ' in result.stdout
-                    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('EMAIL_ACCOUNT_NORMALIZED_OK ')), flush=True)
+                    normalize_approved_account(base, options, database, args, True)
                 (backup / 'deployment.json').write_text(json.dumps({'commit': proof['commit'], 'sha256': release_sha, 'overlay': str(release_root), 'log': str(log)}))
             except Exception:
                 # Keep the upgraded DB and recovery dump; never silently discard business data.

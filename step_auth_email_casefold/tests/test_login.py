@@ -1,9 +1,7 @@
-import json
 import secrets
-from unittest.mock import patch
 from psycopg2 import IntegrityError
 from odoo import Command
-from odoo.tests import TransactionCase, HttpCase, tagged
+from odoo.tests import TransactionCase, tagged
 from odoo.exceptions import AccessDenied, ValidationError
 
 
@@ -52,21 +50,3 @@ class EmailCase(TransactionCase):
         self.assertEqual(self.user.login,'cambio@example.invalid')
         self.assertEqual(self.user.with_user(self.user)._check_credentials(
             {'login':self.user.login,'password':self.password,'type':'password'}, {'interactive':True})['uid'], self.user.id)
-
-
-@tagged('post_install','-at_install')
-class EmailHttpCase(HttpCase):
-    def test_real_session_authentication_mixed_case_and_invalid_password(self):
-        password=secrets.token_urlsafe(24)
-        user=self.env['res.users'].with_context(no_reset_password=True,tracking_disable=True,
-            mail_create_nosubscribe=True).create({'name':'QA correo HTTP','login':'Correo.HTTP@example.invalid',
-                'password':password,'groups_id':[Command.set(self.env.ref('base.group_user').ids)]})
-        self.env.flush_all()
-        def authenticate(login, secret):
-            return self.url_open('/web/session/authenticate', data=json.dumps({
-                'jsonrpc':'2.0','method':'call','params':{'db':self.env.cr.dbname,'login':login,'password':secret}}),
-                headers={'Content-Type':'application/json'}).json()
-        for login in ('CORREO.HTTP@EXAMPLE.INVALID','correo.http@example.invalid','Correo.Http@Example.Invalid'):
-            self.assertEqual(authenticate(login,password)['result']['uid'],user.id)
-        self.assertIn('error',authenticate(user.login,password+'invalid'))
-        self.assertEqual(self.url_open('/web/login').status_code,200)

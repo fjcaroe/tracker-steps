@@ -1,6 +1,7 @@
 """Executed inside the backed-up, locked deployment for one explicitly requested user."""
 import json
-assert env.cr.dbname == EXPECTED_DATABASE == 'CERRO_EL_PLOMO'
+assert env.cr.dbname == EXPECTED_DATABASE
+assert (EXPECTED_DATABASE == 'CERRO_EL_PLOMO' and NORMALIZE_COMMIT) or (EXPECTED_DATABASE.startswith('MANAGEMENT_QA_CERRO_') and not NORMALIZE_COMMIT)
 user=env['res.users'].browse(APPROVED_USER_ID).exists()
 assert len(user)==1 and user.login==EXPECTED_USER_LOGIN and '@' in user.login
 assert env['ir.module.module'].search([('name','=','step_auth_email_casefold'),('state','=','installed')])
@@ -21,6 +22,6 @@ for value in (user.login.lower(),user.login.upper()):
     assert env['res.users'].search(env['res.users']._get_login_domain(value))==user
 env.cr.execute('SELECT count(*) FROM mail_mail'); assert env.cr.fetchone()[0]==mails
 env.cr.execute('SELECT count(*) FROM mail_notification'); assert env.cr.fetchone()[0]==notifications
-env.cr.commit()
-print('EMAIL_ACCOUNT_NORMALIZED_OK '+json.dumps({'user_id':user.id,'lowercase':True,
+env.cr.commit() if NORMALIZE_COMMIT else env.cr.rollback()
+print(('EMAIL_ACCOUNT_NORMALIZED_OK ' if NORMALIZE_COMMIT else 'EMAIL_ACCOUNT_NORMALIZATION_TESTED_OK ')+json.dumps({'user_id':user.id,'lowercase':True,
     'password_and_access_unchanged':True,'no_mail_notifications':True}))
