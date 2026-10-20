@@ -9,11 +9,11 @@
      <label>Mes<select class="form-select" t-att-value="state.filters.month" t-on-change="(event) => this.changeFilter('month', event)"><option value="">Todos</option><option t-foreach="state.comparison?.months || []" t-as="month" t-key="month" t-att-value="month"><t t-esc="month"/></option></select></label>
      <label>Semana<select class="form-select" t-att-value="state.filters.week" t-on-change="(event) => this.changeFilter('week', event)"><option value="">Todas</option><option t-foreach="state.comparison?.weeks || []" t-as="week" t-key="week.id" t-att-value="week.id"><t t-esc="week.name"/></option></select></label>
     </div>
-    <p class="text-muted small">Planificado: semanas de programas vigentes. Kilos reales: carga de embarques embarcados, facturados o liquidados, por fecha de embarque. Precio promedio = monto total / kilos totales.</p>
-    <p t-if="state.comparison?.actual_basis_pending" class="alert alert-info">Monto y precio reales pendientes de definir su origen: facturación, carga comercial o liquidación del recibidor.</p>
+    <p class="text-muted small">Planificado: semanas de programas vigentes. Kilos reales: carga embarcada, facturada o liquidada. Monto real neto: facturas + notas de débito − notas de crédito contabilizadas, convertido a USD a la fecha de cada documento. Mes y semana corresponden a la fecha del embarque. Precio promedio = monto total / kilos totales.</p>
+    <p t-if="state.comparison?.amounts_restricted" class="alert alert-info">Monto y precio reales pendientes de definir su origen: facturaciÃ³n, carga comercial o liquidaciÃ³n del recibidor.</p>
     <p t-if="state.comparison?.undated_shipments" class="text-warning">Hay embarques sin fecha: se incluyen en el total general, pero no en filtros de mes o semana.</p>
     <p t-if="state.comparisonError" role="alert" class="alert alert-warning"><t t-esc="state.comparisonError"/><button class="btn btn-link" t-on-click="loadComparison">Reintentar</button></p>
-    <p t-if="state.comparisonLoading" role="status">Cargando comparativo…</p>
+    <p t-if="state.comparisonLoading" role="status">Cargando comparativoâ€¦</p>
     <div t-elif="state.comparison" class="o_export_comparison_tables">
      <t t-foreach="[{key: 'species', title: 'Por especie'}, {key: 'programs', title: 'Por programa de venta'}]" t-as="group" t-key="group.key">
       <div><h3><t t-esc="group.title"/></h3><div class="o_export_table_scroll"><table>

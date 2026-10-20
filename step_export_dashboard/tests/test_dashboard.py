@@ -41,7 +41,7 @@ class DashboardCase(TransactionCase):
             total = result[group]['total']
             self.assertEqual((total['planned_kg'], total['planned_usd'], total['actual_kg']), (300, 1600, 115))
             self.assertAlmostEqual(total['planned_price'], 1600 / 300)
-            self.assertIsNone(total['actual_usd'])
+            self.assertEqual(total['actual_usd'], 0)
         october = self.result(month='2026-10')['species']['total']
         self.assertEqual((october['planned_kg'], october['actual_kg']), (100, 115))
         self.assertEqual(self.result(week='2026-10-05')['species']['total']['planned_kg'], 100)
@@ -72,3 +72,41 @@ class DashboardCase(TransactionCase):
             with self.assertRaises(ValidationError): self.result(**filters)
         empty = self.result(month='2027-01')['species']['total']
         self.assertIsNone(empty['planned_price'])
+
+
+    def test_posted_invoice_debit_credit_and_currency(self):
+        company = self.env['res.company'].create({'name': 'QA T96 contabilidad',
+            'country_id': self.env.ref('base.us').id, 'currency_id': self.env.ref('base.USD').id})
+        self.env = self.env(context=dict(self.env.context, allowed_company_ids=[company.id])).with_company(company)
+        self.fixture()
+        accounts = self.env['account.account']
+        income = accounts.create({'name': 'QA T96 ingreso', 'code': 'T96REV',
+            'account_type': 'income', 'company_ids': [Command.set(company.ids)]})
+        receivable = accounts.create({'name': 'QA T96 deudor', 'code': 'T96REC',
+            'account_type': 'asset_receivable', 'reconcile': True, 'company_ids': [Command.set(company.ids)]})
+        self.receiver.property_account_receivable_id = receivable
+        journal = self.env['account.journal'].create({'name': 'QA T96 ventas', 'code': 'QT96',
+            'type': 'sale', 'company_id': company.id, 'default_account_id': income.id,
+            'l10n_latam_use_documents': False})
+        usd, eur = self.env.ref('base.USD'), self.env.ref('base.EUR')
+        self.env['res.currency.rate'].create({'currency_id': eur.id, 'company_id': company.id,
+            'name': '2026-10-01', 'rate': 0.5})
+        self.env['res.currency.rate'].create({'currency_id': usd.id, 'company_id': company.id,
+            'name': '2026-10-01', 'rate': 1})
+        def invoice(kind, amount, currency=usd, posted=True):
+            move = self.env['account.move'].create({'move_type': kind, 'partner_id': self.receiver.id,
+                'journal_id': journal.id, 'company_id': company.id, 'currency_id': currency.id,
+                'invoice_date': '2026-10-07', 'date': '2026-10-07',
+                'step_export_shipment_id': self.shipment.id,
+                'invoice_line_ids': [Command.create({'name': 'QA T96 venta', 'quantity': 1,
+                    'price_unit': amount, 'account_id': income.id, 'tax_ids': [Command.clear()]})]})
+            if posted: move.action_post()
+            return move
+        invoice('out_invoice', 1000)
+        invoice('out_invoice', 100)  # Debit notes are positive customer invoices in Odoo.
+        invoice('out_refund', 50)
+        invoice('out_invoice', 100, eur)
+        invoice('out_invoice', 9000, posted=False)
+        total = self.result()['species']['total']
+        self.assertEqual(total['actual_usd'], 1250)
+        self.assertAlmostEqual(total['actual_price'], 1250 / 115)
