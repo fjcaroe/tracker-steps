@@ -15,12 +15,12 @@ try:
         env.cr.rollback(); env.registry.clear_cache()
         case.env = env
     case.fixture()
-    # Render the actual PDF engine, including a second page of complete load columns.
+    # Render the actual PDF engine, including multiple pages of complete load columns.
     from odoo import Command
     case.plan.load_line_ids = [Command.create({
         'product_id':case.product.id, 'packaging_id':case.packaging.id,
         'producer_id':case.producer.id, 'label':'QA T95 línea %s'%i,
-        'pallet_qty':i+1, 'boxes_per_pallet':10, 'kg_per_box':5}) for i in range(30)]
+        'pallet_qty':i+1, 'boxes_per_pallet':10, 'kg_per_box':5}) for i in range(80)]
     pdf, _ = env['ir.actions.report']._render_qweb_pdf(
         'step_packing_dispatch_improvements.instruction_report', case.plan.ids)
     assert pdf.startswith(b'%PDF') and len(pdf)>5000
