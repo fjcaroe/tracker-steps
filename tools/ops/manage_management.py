@@ -409,6 +409,8 @@ def main():
                 baseline['shared_modules'][name] = {'version': version, 'sha256': tree_hash(source)}
     stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
+    if args.kind == 'sag-traceability' and args.environment == 'cerro':
+        base[-1] = str(HERE / 'run_sag_cerro_upgrade.py')
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
     if args.action == 'certify':
