@@ -1,0 +1,15 @@
+<odoo>
+ <record id="partner_codes" model="ir.ui.view"><field name="name">partner.export.role.codes</field><field name="model">res.partner</field><field name="inherit_id" ref="step_export_client_revision.partner_form"/><field name="arch" type="xml"><field name="step_export_receiver" position="after"><field name="step_export_receiver_code" invisible="not step_export_receiver"/></field>
+<field name="step_export_carrier" position="after"><field name="step_export_carrier_code" invisible="not step_export_carrier"/></field>
+<field name="step_export_consignee" position="after"><field name="step_export_consignee_code" invisible="not step_export_consignee"/></field>
+<field name="step_export_notify" position="after"><field name="step_export_notify_code" invisible="not step_export_notify"/></field>
+<field name="step_export_forwarder" position="after"><field name="step_export_forwarder_code" invisible="not step_export_forwarder"/></field>
+<field name="step_export_customs_agent" position="after"><field name="step_export_customs_agent_code" invisible="not step_export_customs_agent"/></field>
+</field></record>
+ <record id="instruction_form" model="ir.ui.view"><field name="name">dispatch.instruction.improvements</field><field name="model">step.export.dispatch.order</field><field name="inherit_id" ref="step_packing_dispatch.instruction_form"/><field name="arch" type="xml">
+  <xpath expr="//header" position="inside"><button name="action_dispatch_pdf" type="object" string="Instructivo de despacho PDF"/><button name="action_dispatch_xlsx" type="object" string="Instructivo de despacho Excel"/></xpath>
+  <field name="port_id" position="after"><field name="destination_country_id"/><field name="destination_port_id"/><field name="dus_folio"/></field>
+  <field name="receiver_id" position="after"><field name="customs_agent_id"/><field name="customs_agent_code"/><field name="freight_carrier_id"/></field>
+  <xpath expr="//sheet" position="after"><chatter/></xpath>
+ </field></record>
+</odoo>
