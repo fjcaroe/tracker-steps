@@ -158,3 +158,38 @@ Cerro permanece sin T95; su próxima promoción requiere revisar la interfaz en
 Desarrollo y repetir compatibilidad del paquete final en una copia fresca.
 
 Registro de la revisión: nota interna 9533, etapa 6 En Espera, sin notificaciones.
+
+
+## Revisión humana 9538: título y encabezado corporativo
+
+El usuario confirmó que el documento había mejorado y pidió centrar el título
+y evitar la superposición del logo/nombre de empresa. La versión 18.0.1.0.3
+centra el título en PDF y Excel y usa un encabezado propio de este reporte,
+con logo y datos de la empresa existente en columnas separadas. Conserva
+la dirección y el pie corporativo; no cambia la configuración global de empresa.
+El encabezado ocupa un área de 30 mm, con margen superior de 45 mm, separación
+de 35 mm y 4 mm de espacio inicial en el contenido.
+En wkhtmltopdf esa separación debe cubrir la altura real del encabezado.
+
+La verificación PDF sirve los assets desde un HTTP privado de la misma copia,
+con correo/cron desactivados y filtrado a esa base. Esto permitió descubrir
+una superposición también en páginas posteriores que no se detectaba cuando
+los estilos corporativos no estaban cargados. Se descartaron los paquetes
+intermedios para publicación y se corrigió el contenedor del encabezado.
+
+Paquete final de esta revisión: `4fa5a67ae037bf04a99cfe8a96e78bab2a3b1117`.
+SHA-256: `8ffb4fe46052d40afae768c907aa26e03e722fe445e2d47cc8d3e82a8f4471fa`.
+Versión: `step_packing_dispatch_improvements` 18.0.1.0.3.
+El módulo conserva los ocho archivos y los maestros, códigos, reglas por empresa,
+chatter, guía propuesta y reportes ya implementados. Las etiquetas mantienen UTF-8.
+
+Evidencia de esta revisión: `~/.codex/local-artifacts/t95-t96-20261020/`.
+
+
+La copia fresca `MANAGEMENT_QA_DEVELOPMENT_t95spacing` pasó cuatro pruebas
+sin fallos/errores y cuatro casos funcionales. Se revisó el PDF corto y las tres
+páginas del PDF de 81 líneas con assets corporativos reales: ningún solapamiento,
+título centrado, columnas repetidas y resumen separado. Excel mantiene el título
+centrado, diecisiete datos en tres filas, cantidades numéricas, tres filas vacías
+antes del resumen y ausencia de fórmulas. Las corridas previas con otras
+separaciones de encabezado no acreditan la publicación final.
