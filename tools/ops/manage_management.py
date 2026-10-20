@@ -247,9 +247,15 @@ def main():
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
     parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--normalize-user-id', type=int)
+    parser.add_argument('--expected-user-login')
     parser.add_argument('--approval-dir', type=Path)
     parser.add_argument('--development-proof', type=Path)
     args = parser.parse_args()
+    if args.normalize_user_id is not None or args.expected_user_login is not None:
+        assert args.normalize_user_id and args.expected_user_login and '@' in args.expected_user_login
+        assert args.kind == 'email-login' and args.environment == 'cerro' and args.action == 'deploy'
+
     SETTINGS = args.kind in ('settings', 'fruit-reception', 'packing')
     PRODUCERS = args.kind == 'producers'
     if PRODUCERS:
@@ -558,6 +564,13 @@ def main():
                     script = "from odoo import Command\nmodels=('step.temporada','step.especie','step.grupo.variedad','step.variedad')\nfor name in models:\n    records=env[name].search([])\n    records.with_context(_install_scope=__import__('odoo.addons.step_agriculture_catalogs.models.catalogs',fromlist=['_INSTALL_SCOPE'])._INSTALL_SCOPE).write({'company_ids':[Command.clear()]})\nfor name in models:\n    env[name].search([])._check_catalog_scope()\nenv.cr.commit()\nprint('CERRO_CATALOGS_SHARED_OK')\n"
                     result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']), input=script, text=True, capture_output=True)
                     assert 'CERRO_CATALOGS_SHARED_OK' in result.stdout
+                if args.kind == 'email-login' and args.normalize_user_id:
+                    header = ('APPROVED_USER_ID=' + repr(args.normalize_user_id) + '\nEXPECTED_USER_LOGIN=' + repr(args.expected_user_login)
+                        + '\nEXPECTED_DATABASE=' + repr(database) + '\n')
+                    result = run(*(base[:4] + [base[4], 'shell'] + options + ['-d', database, '--log-level=error']),
+                        input=header + (HERE/'normalize_email_account.py').read_text(), text=True, capture_output=True)
+                    assert 'EMAIL_ACCOUNT_NORMALIZED_OK ' in result.stdout
+                    print('\n'.join(line for line in result.stdout.splitlines() if line.startswith('EMAIL_ACCOUNT_NORMALIZED_OK ')), flush=True)
                 (backup / 'deployment.json').write_text(json.dumps({'commit': proof['commit'], 'sha256': release_sha, 'overlay': str(release_root), 'log': str(log)}))
             except Exception:
                 # Keep the upgraded DB and recovery dump; never silently discard business data.
