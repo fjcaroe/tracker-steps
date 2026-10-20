@@ -72,14 +72,16 @@ def tree_hash(path):
 
 def snapshot(database):
     existing = set(query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public'").splitlines())
+    current_columns = {}
+    if TICKET_REVISION == 'sag-traceability':
+        current_columns = json.loads(query(database, "SELECT json_object_agg(table_name,cols) FROM (SELECT table_name,json_agg(column_name) cols FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) s"))
     statements = []
     for table in BUSINESS:
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
             if TICKET_REVISION == 'sag-traceability':
-                current = query(database, "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='%s'" % table).splitlines()
-                added = sorted(set(current) - set(PROMOTION_COLUMNS[table]))
+                added = sorted(set(current_columns[table]) - set(PROMOTION_COLUMNS[table]))
                 if added: row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in added)
             if TICKET_REVISION == 'traceability' and TRACEABILITY_INITIAL and table == 'step_export_export':
                 row = "(to_jsonb(t)-'arrival_quality_id')"
