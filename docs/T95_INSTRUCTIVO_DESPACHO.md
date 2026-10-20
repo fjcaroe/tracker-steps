@@ -1,9 +1,8 @@
 # T95 Mejoras del instructivo de despacho
 
-Estado al 20-10-2026: versión 18.0.1.0.2 instalada y comprobada en Desarrollo.
-Incorpora la revisión humana 9532; ver evidencia y publicación al final.
-Cerro El Plomo conserva su versión anterior. T95 está En espera por revisión web
-pendiente; última nota interna 9533, sin destinatarios ni notificaciones.
+Estado al 20-10-2026: versión 18.0.1.0.3 publicada y comprobada en Desarrollo
+y Cerro El Plomo. Revisión humana 9538 incorporada. Ticket resuelto, nota interna
+9546 sin destinatarios ni notificaciones. Paquete y evidencia finales al final.
 
 ## Solicitud e implementación
 
@@ -33,7 +32,7 @@ los textos como literales, sin interpretarlos como fórmulas ni enlaces.
 El archivo Excel queda como adjunto privado del instructivo. Las acciones
 comprueban el acceso y conservan las reglas por empresa existentes.
 
-## Paquete final y pruebas
+## Primera entrega (18.0.1.0.1) y pruebas
 
 Commit: `6811c613d01d1ee5c48686074ad937ad7fb65f49`.
 SHA-256: `f2c38d352d74883a0367ba610da73bc6b4fad210ad33c478ba040a0a5edf22e6`.
@@ -67,7 +66,7 @@ encabezado corporativo. La acción final usa `config=False`, conservando la
 configuración de empresa; el papel reserva 40 mm arriba y 18 mm abajo, con
 10 mm de separación de encabezado. Ninguna copia fallida acredita esta entrega.
 
-## Publicación en Desarrollo
+## Publicación inicial en Desarrollo
 
 URL: <https://desarrollo.stepsapp.cl>.
 Base: `LAB_TAREAS`. Servicio: `odoo18-dev.service`, activo.
@@ -81,9 +80,12 @@ menú efectivos, los cuatro casos funcionales y ambos reportes, con rollback.
 
 La versión previa 18.0.1.0.0 se instaló transitoriamente solo en Desarrollo,
 con respaldo `/opt/steps_backups/management_development_20261020T162235Z`.
-Quedó reemplazada por 18.0.1.0.1. No se instaló ninguna versión de T95 en Cerro.
+Quedó reemplazada por 18.0.1.0.1. Hasta esa entrega inicial no se había instalado T95 en Cerro.
 
-## Revisión pendiente y continuación
+## Pendientes registrados tras la primera entrega
+
+La siguiente lista conserva el estado de aquella entrega. La revisión final
+y las publicaciones posteriores se detallan al final del documento.
 
 La herramienta local de navegador falla antes de enumerar pestañas con
 `failed to write kernel assets` y un error de ruta inexistente. Ocurre también
@@ -193,3 +195,30 @@ título centrado, columnas repetidas y resumen separado. Excel mantiene el títu
 centrado, diecisiete datos en tres filas, cantidades numéricas, tres filas vacías
 antes del resumen y ausencia de fórmulas. Las corridas previas con otras
 separaciones de encabezado no acreditan la publicación final.
+
+
+## Publicación final y cierre
+
+El paquete final `4fa5a67ae037bf04a99cfe8a96e78bab2a3b1117` pasó cuatro pruebas
+sin fallos/errores y cuatro casos funcionales también en la copia fresca
+`MANAGEMENT_QA_CERRO_t95spacing`. Se revisaron sus cuatro páginas de prueba
+(un documento corto y uno de tres páginas) con el logo/dirección existentes
+de Cerro y assets completos; no hay superposiciones y los totales se mantienen.
+Excel conserva encabezado, título centrado, números y separación de tres filas.
+En total se inspeccionaron ocho páginas entre las dos copias de destino.
+
+Se publicó el mismo archivo en ambos ambientes, con exclusión compartida,
+sin downgrade ni cambios concurrentes y sin sustituir raíces compartidas:
+
+- Desarrollo: respaldo `management_development_20261020T194444Z`.
+- Cerro: respaldo `management_cerro_20261020T194656Z`.
+- Overlays: `releases/<ambiente>/4fa5a67ae037bf04a99cfe8a96e78bab2a3b1117`.
+
+Las comprobaciones posteriores verificaron versión y fuente cargadas, formulario
+y menú efectivos, los cuatro flujos nativos con rollback y salidas PDF/Excel.
+Se atendieron las dos observaciones de la respuesta humana 9538 y se cerró T95
+mediante la nota interna 9546 y actualización sin seguimiento ni suscripciones.
+No hubo correos, notificaciones de entrega ni documentos operativos ficticios
+permanentes. No se afirma una inspección propia del navegador: la herramienta
+local sigue fallando; la revisión de las observaciones de formato se hizo sobre
+los PDF reales renderizados con estilos y los archivos Excel producidos.

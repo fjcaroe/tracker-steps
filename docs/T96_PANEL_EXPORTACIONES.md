@@ -92,3 +92,12 @@ Bloqueo compartido, sin downgrade ni modificación de raíces compartidas.
 Comprobación posterior correcta: versión, fuente, menú, assets y cuatro casos
 funcionales con rollback. No se afirma una revisión del panel en navegador;
 T96 continúa abierto por esa comprobación visual concreta.
+
+
+## Aprobación humana y cierre
+
+Respuesta 9542: «Aprobado». El usuario cerró T96 y en 9545 solicitó actualizar
+Cerro. Esa publicación ya estaba realizada y comprobada con el paquete exacto.
+Se conserva su cierre y se completa la nota interna 9541 sin notificaciones.
+La aprobación humana resuelve la revisión pendiente indicada en las secciones
+anteriores; no se atribuye al agente una revisión propia de navegador.
