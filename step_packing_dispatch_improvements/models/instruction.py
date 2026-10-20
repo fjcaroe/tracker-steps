@@ -89,6 +89,7 @@ class Instruction(models.Model):
         first = row
         for line in self.load_line_ids:
             row += 1
+            sheet.set_row(row, 45)
             for col, (name, _) in enumerate(COLUMNS):
                 value = line[name]
                 if line._fields[name].type in ('integer', 'float'):
@@ -121,4 +122,4 @@ class Instruction(models.Model):
     def action_dispatch_pdf(self):
         self.ensure_one()
         self.check_access('read')
-        return self.env.ref('step_packing_dispatch_improvements.instruction_report').report_action(self)
+        return self.env.ref('step_packing_dispatch_improvements.instruction_report').report_action(self, config=False)
