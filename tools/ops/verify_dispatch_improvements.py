@@ -15,6 +15,10 @@ try:
         env.cr.rollback(); env.registry.clear_cache()
         case.env = env
     case.fixture()
+    if env.cr.dbname.startswith('MANAGEMENT_QA_'):
+        short_pdf, _ = env['ir.actions.report']._render_qweb_pdf(
+            'step_packing_dispatch_improvements.instruction_report', case.plan.ids)
+        Path('/tmp/t95-'+env.cr.dbname+'-short.pdf').write_bytes(short_pdf)
     # Render the actual PDF engine, including multiple pages of complete load columns.
     from odoo import Command
     case.plan.load_line_ids = [Command.create({
