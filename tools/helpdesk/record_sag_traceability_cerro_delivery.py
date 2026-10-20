@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import html
 import json
+import re
 from pathlib import Path
 import xmlrpc.client
 
@@ -21,6 +22,10 @@ verified=[json.loads(line.split(' ',1)[1]) for line in log.splitlines() if line.
 assert any(v['environment']=='cerro' and v['commit']==proof['commit'] for v in verified)
 flows=[json.loads(line.split(' ',1)[1]) for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
 assert {v['ticket']:v['cases'] for v in flows}=={93:8,94:3}
+for filename in ('development-native.log','cerro-native.log'):
+    results=re.findall(r'0 failed, 0 error\(s\) of (\d+) tests when loading database',
+        (args.evidence/filename).read_text(encoding='utf-8-sig'))
+    assert results and int(results[-1])==proof['test_count']
 assert proof['files']
 for filename,sha in proof['files'].items():
     assert hashlib.sha256((args.evidence/filename).read_bytes()).hexdigest()==sha
@@ -42,7 +47,7 @@ for ticket_id,approval_id in ((93,9521),(94,9518)):
     assert all(marker in (m['body'] or '') and m['author_id'] and m['author_id'][0]==author
         and m['subtype_id'] and m['subtype_id'][0]==note for m in recent),'Read newer human replies first'
     body=('Se publicó en Cerro El Plomo la aplicación aprobada en Desarrollo, con los mismos archivos y versiones. '
-        'El conjunto pasó 37 pruebas y 11 comprobaciones funcionales en Desarrollo y en una copia privada de Cerro. '
+        f'El conjunto pasó {proof["test_count"]} pruebas y 11 comprobaciones funcionales en Desarrollo y en una copia privada de Cerro. '
         'Se respaldó el destino, se conservaron los registros y se verificaron los flujos y la navegación después de actualizar. ')
     if ticket_id==93:
         body+=('Disponible en Packing / Inspecciones / Inspección SAG: lotes de una especie con varias OT/productores, '
