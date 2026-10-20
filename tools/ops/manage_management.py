@@ -459,8 +459,9 @@ def main():
                     argv = command.read_bytes().decode(errors='replace').split('\x00')
                 except OSError:
                     continue
-                if any(Path(arg).name == 'odoo-bin' for arg in argv):
-                    assert not any(arg in ('-u', '-i', '--update', '--init') or arg.startswith(('--update=', '--init=')) for arg in argv), 'Concurrent Odoo upgrade'
+                for index, arg in enumerate(argv):
+                    if Path(arg).name == 'odoo-bin':
+                        assert not any(option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init=')) for option in argv[index + 1:]), 'Concurrent Odoo upgrade'
         if args.kind == 'homepage':
             from verify_home_heading_http import capture_before
             capture_before(target['url'], stage)

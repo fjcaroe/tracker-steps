@@ -101,7 +101,7 @@ def main():
         from stack_scope import MODULES as modules
     if args.environment == 'demo-sys':
         if args.kind != 'payroll':
-            parser.error('Demo-SYS replica SyS; este publicador solo prepara NÃ³mina para ese destino')
+            parser.error('Demo-SYS replica SyS; este publicador solo prepara Nómina para ese destino')
         modules = tuple(name for name in modules if name not in (
             'step_inventory_packing', 'step_packing_operations', 'step_producer_fruit_flow'))
     raw = subprocess.check_output(['git', 'archive', '--format=tar', commit, *modules], cwd=root)

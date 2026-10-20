@@ -24,7 +24,7 @@ class DashboardCase(TransactionCase):
                          Command.create({'week_start': date(2026, 11, 2), 'container_qty': 2, 'price_per_kg': 5})]})
         self.program.action_validate(); self.program.action_activate()
         self.shipment = self.env['step.export.export'].create({
-            'name': 'QA T96 embarque', 'date': date(2026, 10, 7),
+            'name': 'QA T96 embarque', 'shipment_number': 'QA-T96-%s' % self.season.id, 'date': date(2026, 10, 7),
             'season_id': self.season.id, 'species_id': self.species.id, 'sales_program_id': self.program.id,
             'line_ids': [Command.create({'product_id': self.product.id, 'pallet_qty': 1,
                                         'boxes_per_pallet': 10, 'kg_per_box': 11.5})]})
@@ -76,8 +76,8 @@ class DashboardCase(TransactionCase):
 
     def test_posted_invoice_debit_credit_and_currency(self):
         company = self.env['res.company'].create({'name': 'QA T96 contabilidad',
-            'country_id': self.env.ref('base.us').id, 'currency_id': self.env.ref('base.USD').id})
-        self.env = self.env(context=dict(self.env.context, allowed_company_ids=[company.id])).with_company(company)
+            'country_id': False, 'currency_id': self.env.ref('base.USD').id})
+        self.env = self.env(context=dict(self.env.context, allowed_company_ids=[company.id]))
         self.fixture()
         accounts = self.env['account.account']
         income = accounts.create({'name': 'QA T96 ingreso', 'code': 'T96REV',
@@ -89,6 +89,7 @@ class DashboardCase(TransactionCase):
             'type': 'sale', 'company_id': company.id, 'default_account_id': income.id,
             'l10n_latam_use_documents': False})
         usd, eur = self.env.ref('base.USD'), self.env.ref('base.EUR')
+        eur.active = True
         self.env['res.currency.rate'].create({'currency_id': eur.id, 'company_id': company.id,
             'name': '2026-10-01', 'rate': 0.5})
         self.env['res.currency.rate'].create({'currency_id': usd.id, 'company_id': company.id,

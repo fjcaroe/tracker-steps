@@ -20,7 +20,7 @@ class ExportDashboard(models.Model):
             if week and date.fromisoformat(week).weekday() != 0:
                 raise ValueError()
         except (ValueError, TypeError):
-            raise ValidationError(_('Seleccione un mes vÃ¡lido y una semana que comience el lunes.'))
+            raise ValidationError(_('Seleccione un mes válido y una semana que comience el lunes.'))
         companies = self.env.companies.ids
         programs = self.search([('company_id', 'in', companies), ('state', '=', 'current')])
         shipments = self.env['step.export.export'].search([
@@ -45,9 +45,9 @@ class ExportDashboard(models.Model):
             if species_key not in species_rows:
                 species_rows[species_key] = self._dashboard_row(str(species_key), species.display_name or _('Sin especie'))
             if program_key not in program_rows:
-                name = '%s Â· %s' % (program.series_code, program.name) if program else _('Sin programa')
+                name = '%s · %s' % (program.series_code, program.name) if program else _('Sin programa')
                 if len(companies) > 1 and program:
-                    name += ' Â· ' + company.display_name
+                    name += ' · ' + company.display_name
                 program_rows[program_key] = self._dashboard_row(program_key, name)
             return species_rows[species_key], program_rows[program_key]
 
@@ -108,7 +108,7 @@ class ExportDashboard(models.Model):
             'species': finish(species_rows), 'programs': finish(program_rows),
             'seasons': [{'id': season.id, 'name': season.display_name} for season in seasons],
             'months': months,
-            'weeks': [{'id': day.isoformat(), 'name': '%s-W%02d Â· %s' % (*day.isocalendar()[:2], day.strftime('%d/%m/%Y'))} for day in weeks],
+            'weeks': [{'id': day.isoformat(), 'name': '%s-W%02d · %s' % (*day.isocalendar()[:2], day.strftime('%d/%m/%Y'))} for day in weeks],
             'amounts_restricted': not can_read_amounts, 'undated_shipments': undated,
         }
 
