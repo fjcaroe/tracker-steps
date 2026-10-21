@@ -26,13 +26,13 @@ try:
     assets=env['ir.asset']._get_asset_paths('web.assets_backend',{})
     assert any('step_agro_analytics/static/src/comparison.js' in str(p) for p in assets)
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
-        from odoo.tests.common import new_test_user
-        context=dict(env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True)
-        scoped=env(context=context)
-        reader=new_test_user(scoped,login='qa_t9799_finance',groups='base.group_user,account.group_account_readonly',
-            company_id=env.company.id,company_ids=[(6,0,env.company.ids)])
-        operator=new_test_user(scoped,login='qa_t9799_packing',groups='base.group_user,stock.group_stock_manager',
-            company_id=env.company.id,company_ids=[(6,0,env.company.ids)])
+        users=env['res.users'].with_context(no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True)
+        def profile(login,group):
+            return users.create({'name':login,'login':login,'company_id':env.company.id,
+                'company_ids':[(6,0,env.company.ids)],
+                'groups_id':[(6,0,[env.ref('base.group_user').id,env.ref(group).id])]})
+        reader=profile('qa_t9799_finance','account.group_account_readonly')
+        operator=profile('qa_t9799_packing','stock.group_stock_manager')
         assert report.with_user(reader).has_access('read')
         assert not report.with_user(operator).has_access('read')
         assert env['step.packing.line.standard'].with_user(operator).has_access('create')

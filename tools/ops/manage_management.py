@@ -383,6 +383,8 @@ def main():
         BUSINESS = tuple(sorted(set(BUSINESS) | set(query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'res_users%' OR tablename IN ('res_groups_users_rel','res_company_users_rel'))").splitlines())))
     if args.kind in ('dispatch-improvements', 'export-dashboard', 'agro-analytics'):
         PROMOTION_COLUMNS = json.loads(query(database, "SELECT json_object_agg(table_name,cols) FROM (SELECT table_name,json_agg(column_name) cols FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) s"))
+        if args.kind == 'agro-analytics':
+            assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_export_dashboard','step_packing_operations','step_inventory_packing','step_export_shipping_design') AND state='installed'") == '4', 'Analytics parents must already be installed'
         if args.kind == 'dispatch-improvements':
             assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_packing_dispatch','step_export_client_revision') AND state='installed'") == '2'
     installed = json.loads(query(database, "SELECT COALESCE(json_object_agg(name,latest_version),'{}'::json) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
@@ -562,6 +564,7 @@ def main():
                     if store.exists():
                         run('rsync', '-a', str(store) + '/', str(backup / 'filestore') + '/')
                 before = snapshot(database)
+                (backup / 'business_before.json').write_text(json.dumps(before, indent=2))
                 new_paths = str(release_root) + ',' + opts['addons_path']
                 changed, count = re.subn(r'(?m)^\s*addons_path\s*=.*$', 'addons_path = ' + new_paths, conf.read_text())
                 assert count == 1
