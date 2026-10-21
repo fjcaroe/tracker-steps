@@ -1,18 +1,36 @@
 .o_packing_dashboard { height: 100%; min-height: 0; overflow-y: auto; }
 .o_agro_comparison {
-    margin-top: 18px; padding: 18px; border: 1px solid #dce7df;
-    border-radius: 14px; background: white; color: #183b30;
-    h2 { font-size: 22px; color: #183b30; }
-    h3 { font-size: 17px; margin: 16px 0 10px; }
-    .o_agro_filters { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
-    label { min-width: 150px; font-weight: 600; }
-    select { margin-top: 4px; }
-    .o_agro_tables { display: grid; gap: 16px; }
-    .o_agro_table_scroll { overflow-x: auto; }
-    table { width: 100%; min-width: 650px; font-size: 12px; }
-    th, td { padding: 9px; border-bottom: 1px solid #dce7df; }
-    thead { background: #edf5e8; }
-    tfoot { background: #f5f8f4; font-weight: 700; }
-    .o_agro_number { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    @media (max-width: 620px) { padding: 12px; label { width: 100%; } }
+    margin-top: 12px; padding: 14px; border: 1px solid #dce7df;
+    border-radius: 12px; background: white; color: #183b30;
+}
+.o_agro_comparison h2 { margin: 0 0 10px; font-size: 20px; color: #183b30; }
+.o_agro_comparison h3 { margin: 0 0 10px; font-size: 16px; }
+.o_agro_comparison .o_agro_filters {
+    display: grid; grid-template-columns: repeat(4, minmax(120px, 190px));
+    gap: 10px; margin: 10px 0;
+}
+.o_agro_comparison label { min-width: 0; font-size: 12px; font-weight: 600; }
+.o_agro_comparison select { margin-top: 3px; padding: 5px 28px 5px 8px; font-size: 12px; }
+.o_agro_comparison > p.small { margin-bottom: 10px; font-size: 11px; }
+.o_agro_comparison .o_agro_tables {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start; gap: 12px;
+}
+.o_agro_comparison .o_agro_tables article {
+    min-width: 0; padding: 12px; border: 1px solid #dce7df;
+    border-radius: 8px; background: #fff;
+}
+.o_agro_comparison .o_agro_table_scroll { overflow-x: auto; }
+.o_agro_comparison table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 11px; }
+.o_agro_comparison th, .o_agro_comparison td { padding: 7px 6px; border-bottom: 1px solid #dce7df; }
+.o_agro_comparison th { text-align: center; vertical-align: middle; line-height: 1.25; }
+.o_agro_comparison thead { background: #edf5e8; }
+.o_agro_comparison tfoot { background: #f5f8f4; font-weight: 700; }
+.o_agro_comparison .o_agro_number { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 900px) {
+    .o_agro_comparison .o_agro_tables { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+    .o_agro_comparison { padding: 10px; }
+    .o_agro_comparison .o_agro_filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }

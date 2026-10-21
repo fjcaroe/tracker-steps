@@ -14,7 +14,7 @@
    <p t-if="state.error" class="alert alert-warning" role="alert"><t t-esc="state.error"/><button class="btn btn-link" t-on-click="load">Reintentar</button></p>
    <p t-if="state.loading" role="status">Cargando comparativo…</p>
    <div t-elif="state.data" class="o_agro_tables">
-    <article t-foreach="state.data.tables" t-as="table" t-key="table.key"><h3><t t-esc="table.title"/></h3>
+    <article t-att-aria-label="table.title" t-foreach="state.data.tables" t-as="table" t-key="table.key"><h3><t t-esc="table.title"/></h3>
      <div class="o_agro_table_scroll"><table><thead><tr><th t-foreach="table.columns" t-as="column" t-key="column[0]" scope="col"><t t-esc="column[1]"/></th></tr></thead>
       <tbody><tr t-foreach="table.rows" t-as="row" t-key="row.key"><td t-foreach="table.columns" t-as="column" t-key="column[0]" t-att-class="column[2] === 'text' ? '' : 'o_agro_number'"><t t-esc="format(row[column[0]], column[2])"/></td></tr><tr t-if="!table.rows.length"><td t-att-colspan="table.columns.length">No hay datos para los filtros seleccionados.</td></tr></tbody>
       <tfoot><tr><td t-foreach="table.columns" t-as="column" t-key="column[0]" t-att-class="column[2] === 'text' ? '' : 'o_agro_number'"><t t-esc="format(table.total[column[0]], column[2])"/></td></tr></tfoot>
