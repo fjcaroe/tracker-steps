@@ -85,3 +85,31 @@ aplicaron en ambas publicaciones; no se modificaron raíces de addons compartida
 Notas internas de entrega: T97/9560, T98/9561, T99/9562. Se comprobó cero
 notificaciones y cero correos para esas notas. Los tickets permanecen abiertos
 para revisión visual. No se recibieron nuevas respuestas antes de registrar la entrega.
+
+
+## Ajuste visual T98/T99, 21-10-2026
+
+Respuestas humanas: T98/9563 y 9564, T99/9568; imágenes 3379 y 3380,
+conservadas fuera del repositorio. Solicitan dos secciones contiguas para
+compactar las tablas y centrar los encabezados. T97 fue aprobado por la persona
+(9565) y cerrado en Helpdesk; no se reabre ni se altera su informe.
+
+Versión 18.0.1.0.2: dos tarjetas con sus títulos propios y filtros comunes,
+menor espaciado y tipografía de tabla compacta. Encabezados centrados; datos
+numéricos alineados a la derecha. Bajo 900 px se apilan las tarjetas y el
+contenido ancho desplaza dentro de cada tabla, sin desbordar la página.
+No cambian fuentes, cálculos, estándares ni históricos.
+
+Paquete `9695fb1e866aacf3faf6e0f51afb60ea95dc9738`.
+SHA-256 `56ac0b116eac063934cfebcb912f8fe5fa778da984630a689faab5f49407a9bb`.
+Copia fresca Desarrollo `MANAGEMENT_QA_DEVELOPMENT_t9899compact1`: cuatro
+pruebas sin fallos ni errores; activos, vistas, menús, permisos y preservación
+comprobados. La vista previa con los mismos estilos y datos obtenidos de
+Desarrollo confirma dos columnas de igual ancho a 1280 px y encabezados
+centrados; a 390 px muestra una columna y desplazamiento interno.
+
+`tools/ops/preview_agro_comparisons.py` genera esa vista previa privada desde
+la API JSON-RPC de Desarrollo (admite valores indefinidos). No es una prueba
+de sesión web ni acredita el montaje OWL o los filtros interactivos de Odoo.
+El navegador ya inicia, pero Desarrollo sigue mostrando el login y no hay una
+sesión autenticada disponible. No se solicitan ni se cambian contraseñas.
