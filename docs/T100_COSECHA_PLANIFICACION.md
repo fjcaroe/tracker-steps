@@ -45,3 +45,18 @@ Desarrollo publicado con respaldo `management_development_20261021T180721Z`.
 Verificación posterior: origen efectivo del código, versión 18.0.1.0.0,
 acción compartida, formularios/listas/búsqueda, maestros nativos, servicio y
 URL HTTPS correctos. Sin nuevos modelos de negocio ni cambios en los permisos.
+
+
+Copia fresca de Cerro `MANAGEMENT_QA_CERRO_t100ce1`: dos pruebas sin fallos
+ni errores; probes de formularios, menús, permisos y preservación aprobados.
+Publicado el mismo paquete con respaldo `management_cerro_20261021T181212Z`.
+Verificación posterior del origen, versión, menús, maestros, formularios,
+servicio y HTTPS correcta. Se usaron overlays privados, baseline sin cambios
+concurrentes y bloqueo compartido; no se alteraron raíces compartidas.
+
+Entrega interna 9578. T100 quedó en Solved tras verificar ambos ambientes.
+El cierre se hizo con `tracking_disable` para omitir la plantilla automática:
+se comprobaron antes ausencia de SLA y automatizaciones activas del ticket,
+y después solo la nota interna nueva, cero notificaciones y cero correos.
+No se modificó la plantilla global ni se enviaron mensajes a terceros.
+No había respuestas adicionales ni tickets posteriores al 100 al entregar.
