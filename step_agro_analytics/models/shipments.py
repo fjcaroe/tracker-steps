@@ -9,6 +9,7 @@ class ShipmentReport(models.Model):
     _order = 'date desc, shipment_id, id'
     _rec_name = 'shipment_id'
     shipment_id = fields.Many2one('step.export.export', string='Embarque', readonly=True)
+    shipment_number = fields.Char(related='shipment_id.shipment_number', string='Núm. embarque', readonly=True)
     source_line_id = fields.Many2one('step.export.shipment.line', readonly=True)
     company_id = fields.Many2one('res.company', string='Empresa', readonly=True)
     company_currency_id = fields.Many2one('res.currency', readonly=True)

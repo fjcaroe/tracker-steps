@@ -80,6 +80,7 @@ class ShipmentCase(TransactionCase):
         report = self.env['step.export.shipment.report']
         rows = report.search([('shipment_id', '=', self.shipment.id)])
         self.assertEqual(len(rows), 2)
+        self.assertEqual(report.search([('shipment_number','=',self.shipment.shipment_number)]), rows)
         self.assertEqual(rows.filtered(lambda r: r.product_id == self.product).amount_usd, 312.5)
         self.assertEqual(rows.filtered(lambda r: r.product_id == self.second).amount_usd, 937.5)
         grouped = report._read_group([('id', 'in', rows.ids)], [],
