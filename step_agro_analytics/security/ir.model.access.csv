@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+shipment_report_read,shipment report read,model_step_export_shipment_report,account.group_account_readonly,1,0,0,0
+line_standard_read,line standard read,model_step_packing_line_standard,base.group_user,1,0,0,0
+line_standard_manage,line standard manage,model_step_packing_line_standard,stock.group_stock_manager,1,1,1,1

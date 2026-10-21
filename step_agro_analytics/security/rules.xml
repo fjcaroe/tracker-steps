@@ -1,0 +1,4 @@
+<odoo>
+ <record id="shipment_company" model="ir.rule"><field name="name">Informe embarques: empresas activas</field><field name="model_id" ref="model_step_export_shipment_report"/><field name="domain_force">[('company_id','in',company_ids)]</field></record>
+ <record id="standard_company" model="ir.rule"><field name="name">Estándares: empresas activas</field><field name="model_id" ref="model_step_packing_line_standard"/><field name="domain_force">['|',('company_id','=',False),('company_id','in',company_ids)]</field></record>
+</odoo>

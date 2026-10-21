@@ -1,0 +1,28 @@
+<templates xml:space="preserve">
+ <t t-name="step_agro_analytics.Comparison">
+  <section class="o_agro_comparison" aria-label="Comparativo operacional">
+   <h2><t t-if="props.kind === 'producers'">Comparativo de estimaciones</t><t t-else="">Comparativo de procesos de Packing</t></h2>
+   <div class="o_agro_filters">
+    <label>Temporada<select class="form-select" t-model="state.filters.season_id" t-on-change="(ev) => this.changeFilter('season_id', ev)"><option value="">Todas</option><option t-foreach="state.data?.seasons || []" t-as="item" t-key="item.id" t-att-value="item.id"><t t-esc="item.name"/></option></select></label>
+    <label>Mes<select class="form-select" t-model="state.filters.month" t-on-change="(ev) => this.changeFilter('month', ev)"><option value="">Todos</option><option t-foreach="state.data?.months || []" t-as="item" t-key="item" t-att-value="item"><t t-esc="item"/></option></select></label>
+    <label>Semana<select class="form-select" t-model="state.filters.week" t-on-change="(ev) => this.changeFilter('week', ev)"><option value="">Todas</option><option t-foreach="state.data?.weeks || []" t-as="item" t-key="item.id" t-att-value="item.id"><t t-esc="item.name"/></option></select></label>
+    <label>Especie<select class="form-select" t-model="state.filters.species_id" t-on-change="(ev) => this.changeFilter('species_id', ev)"><option value="">Todas</option><option t-foreach="state.data?.species || []" t-as="item" t-key="item.id" t-att-value="item.id"><t t-esc="item.name"/></option></select></label>
+   </div>
+   <p t-if="props.kind === 'producers'" class="text-muted small">Estimado: semanas de versiones vigentes. Real: exportación de OT terminadas + recepción de fruta embalada de exportación confirmada, sin repetir tarjas. Período: inicio de semana estimada, fecha de proceso o recepción real.</p>
+   <p t-else="" class="text-muted small">OT cerradas, costeadas o contabilizadas, por fecha de proceso. Rendimiento = kilos / horas efectivas, descontando detenciones. El estándar usa el valor guardado en cada OT; sin horas o estándar completo se muestra sin valor. Los porcentajes totales se calculan con los kilos y horas totales.</p>
+   <p t-if="state.data?.undated" class="text-warning small">Hay datos sin fecha: participan en el total general, pero no en un filtro de mes o semana.</p>
+   <p t-if="state.error" class="alert alert-warning" role="alert"><t t-esc="state.error"/><button class="btn btn-link" t-on-click="load">Reintentar</button></p>
+   <p t-if="state.loading" role="status">Cargando comparativo…</p>
+   <div t-elif="state.data" class="o_agro_tables">
+    <article t-foreach="state.data.tables" t-as="table" t-key="table.key"><h3><t t-esc="table.title"/></h3>
+     <div class="o_agro_table_scroll"><table><thead><tr><th t-foreach="table.columns" t-as="column" t-key="column[0]" scope="col"><t t-esc="column[1]"/></th></tr></thead>
+      <tbody><tr t-foreach="table.rows" t-as="row" t-key="row.key"><td t-foreach="table.columns" t-as="column" t-key="column[0]" t-att-class="column[2] === 'text' ? '' : 'o_agro_number'"><t t-esc="format(row[column[0]], column[2])"/></td></tr><tr t-if="!table.rows.length"><td t-att-colspan="table.columns.length">No hay datos para los filtros seleccionados.</td></tr></tbody>
+      <tfoot><tr><td t-foreach="table.columns" t-as="column" t-key="column[0]" t-att-class="column[2] === 'text' ? '' : 'o_agro_number'"><t t-esc="format(table.total[column[0]], column[2])"/></td></tr></tfoot>
+     </table></div>
+    </article>
+   </div>
+  </section>
+ </t>
+ <t t-inherit="step_producers.Dashboard" t-inherit-mode="extension"><xpath expr="//div[hasclass('o_export_columns')]" position="before"><AgroComparison kind="'producers'"/></xpath></t>
+ <t t-inherit="step_packing_operations.Dashboard" t-inherit-mode="extension"><xpath expr="//main" position="inside"><AgroComparison kind="'packing'"/></xpath></t>
+</templates>

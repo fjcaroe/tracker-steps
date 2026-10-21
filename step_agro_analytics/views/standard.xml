@@ -1,0 +1,6 @@
+<odoo>
+ <record id="line_standards_form" model="ir.ui.view">
+  <field name="name">step.packing.line.standards.form</field><field name="model">step.packing.line</field><field name="inherit_id" ref="step_packing.view_step_packing_line_form"/>
+  <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group string="Estándares por especie (kg/h)"><field name="standard_ids" nolabel="1"><list editable="bottom"><field name="species_id"/><field name="kg_hour"/></list></field><div class="text-muted">Se proponen en las nuevas OT. Los estándares ya guardados en procesos anteriores se conservan.</div></group></xpath></field>
+ </record>
+</odoo>
