@@ -25,6 +25,20 @@ try:
     report._read_group([],[],['kg_qty:sum','amount_usd:sum','price_per_kg:avg','shipment_count:sum'])
     assets=env['ir.asset']._get_asset_paths('web.assets_backend',{})
     assert any('step_agro_analytics/static/src/comparison.js' in str(p) for p in assets)
+    # Odoo bundles resolve the first module manifest, unlike raw static-file
+    # routing in Odoo 18 which can resolve an older duplicate overlay last.
+    # Verify the compiled bundle users consume, not a raw SCSS URL.
+    content,_=env['ir.qweb']._get_asset_content('web.assets_backend')
+    comparison=[entry for entry in content if entry['url'].endswith('step_agro_analytics/static/src/comparison.scss')]
+    assert len(comparison)==1
+    assert Path(comparison[0]['filename']).resolve()==Path(ROOT)/'step_agro_analytics/static/src/comparison.scss'
+    bundle=env['ir.qweb']._get_asset_bundle('web.assets_backend')
+    css=''.join(attachment.raw.decode() for attachment in bundle.css())
+    assert not bundle.css_errors,bundle.css_errors
+    import re
+    if tuple(map(int,EXPECTED['step_agro_analytics'].split('.'))) >= (18,0,1,0,2):
+        assert re.search(r'\.o_agro_comparison\s+\.o_agro_tables\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)',css)
+        assert re.search(r'\.o_agro_comparison\s+th\s*\{[^}]*text-align:\s*center',css)
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
         users=env['res.users'].with_context(no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True)
         def profile(login,group):

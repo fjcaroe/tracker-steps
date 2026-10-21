@@ -113,3 +113,25 @@ la API JSON-RPC de Desarrollo (admite valores indefinidos). No es una prueba
 de sesión web ni acredita el montaje OWL o los filtros interactivos de Odoo.
 El navegador ya inicia, pero Desarrollo sigue mostrando el login y no hay una
 sesión autenticada disponible. No se solicitan ni se cambian contraseñas.
+
+
+Verificación adicional de entrega: la fuente SCSS de `ir.qweb` debe proceder
+del overlay del paquete y el bundle compilado debe contener las dos columnas
+y `text-align: center` de los encabezados. Aprobado en Desarrollo y en la copia
+de Cerro (`certify`, sin repetir pruebas ni reutilizar una migración fallida).
+Odoo 18 resuelve sus archivos estáticos directos con el último módulo duplicado
+en addons, mientras que sus bundles usan el primer manifiesto. Por ello, el
+contenido servido en una URL SCSS cruda no acredita el CSS del panel: se verifica
+el bundle compilado. No se modifica el núcleo de Odoo ni las raíces compartidas.
+
+Desarrollo publicado: respaldo `management_development_20261021T140425Z`.
+Copia de Cerro `MANAGEMENT_QA_CERRO_t9899compactce1`: cuatro pruebas sin fallos
+ni errores, preservación y probes funcionales/perfiles/bundle aprobados.
+
+
+Cerro El Plomo publicado con el mismo paquete: respaldo
+`management_cerro_20261021T141349Z`; versión efectiva 18.0.1.0.2, servicio,
+formularios/menús, agregados y CSS compilado verificados después de publicar.
+Entrega interna: T98/9572 y T99/9573, cero notificaciones y cero correos.
+Siguen abiertos para revisión del usuario. No había respuestas nuevas ni tickets
+posteriores al 99 al registrar esta entrega. T97 permanece aprobado y cerrado.
