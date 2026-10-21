@@ -15,6 +15,8 @@ try:
         master=env.ref('step_cosecha_planning.'+ref)
         assert master.active and master.parent_id==env.ref('step_cosecha.step_maestros_cosecha')
         assert master.action.res_model==model
+    for ref,kind in [('step_export.view_step_export_package_type_form','form'),('step_export.view_step_export_package_type_list','list')]:
+        assert env['stock.package.type'].get_view(view_id=env.ref(ref).id,view_type=kind)['arch']
     packaging=env['product.packaging']
     assert packaging._fields['step_packaging_group'].selection==[('export','Exportación'),('national','Nacional'),('harvest','Cosecha')]
     field=env['ir.model.fields'].search([('model','=','product.packaging'),('name','=','step_packaging_group')])
