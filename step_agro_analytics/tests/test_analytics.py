@@ -29,6 +29,10 @@ class ShipmentCase(TransactionCase):
             'line_ids': [Command.create({'product_id': self.product.id, 'pallet_qty': 1,
                                         'boxes_per_pallet': 10, 'kg_per_box': 11.5})]})
         # Controlled test fixture: no dispatch, invoice, inventory move or DTE is emitted.
+        self.shipment.line_ids.write({'kg_per_box': 10})
+        self.second = self.env['product.product'].create({'name': 'QA otra carga', 'grupo_labor': 'pack'})
+        self.env['step.export.shipment.line'].create({'shipment_id': self.shipment.id,
+            'product_id': self.second.id, 'pallet_qty': 1, 'boxes_per_pallet': 10, 'kg_per_box': 30})
         self.shipment.state = 'shipped'
 
     def result(self, **filters):
@@ -70,18 +74,14 @@ class ShipmentCase(TransactionCase):
         invoice('out_invoice', 9000, posted=False)
         total = self.result()['species']['total']
         self.assertEqual(total['actual_usd'], 1250)
-        self.assertAlmostEqual(total['actual_price'], 1250 / 115)
+        self.assertAlmostEqual(total['actual_price'], 1250 / 400)
 
-        self.shipment.line_ids.write({'kg_per_box': 10})
-        second = self.env['product.product'].create({'name': 'QA otra carga', 'grupo_labor': 'pack'})
-        self.env['step.export.shipment.line'].create({'shipment_id': self.shipment.id,
-            'product_id': second.id, 'pallet_qty': 1, 'boxes_per_pallet': 10, 'kg_per_box': 30})
         self.env.flush_all()
         report = self.env['step.export.shipment.report']
         rows = report.search([('shipment_id', '=', self.shipment.id)])
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows.filtered(lambda r: r.product_id == self.product).amount_usd, 312.5)
-        self.assertEqual(rows.filtered(lambda r: r.product_id == second).amount_usd, 937.5)
+        self.assertEqual(rows.filtered(lambda r: r.product_id == self.second).amount_usd, 937.5)
         grouped = report._read_group([('id', 'in', rows.ids)], [],
             ['amount_usd:sum', 'kg_qty:sum', 'price_per_kg:avg', 'shipment_count:sum'])[0]
         self.assertEqual(grouped, (1250, 400, 3.125, 1))
@@ -90,11 +90,13 @@ class ShipmentCase(TransactionCase):
         self.assertEqual(legacy['price_per_kg'], 3.125)
         self.assertEqual(legacy['shipment_count'], 1)
         self.assertEqual(rows[0].action_open_shipment()['res_id'], self.shipment.id)
-        self.shipment.line_ids.unlink()
+        self.shipment = self.env['step.export.export'].create({'name':'QA sin kilos','shipment_number':'QA-NOKG','company_id':company.id})
+        self.shipment.state='shipped'
+        invoice('out_invoice',200)
         self.env.flush_all()
         missing = report.search([('shipment_id', '=', self.shipment.id)])
         self.assertTrue(missing.allocation_missing)
-        self.assertEqual(missing.amount_usd, 1250)
+        self.assertEqual(missing.amount_usd, 200)
 
 
 @tagged('post_install', '-at_install')
@@ -245,7 +247,7 @@ class ProducerCase(TransactionCase):
             self.assertEqual((total['estimated'],total['actual'],total['difference']), (100000,50,-99950))
             self.assertEqual(total['variation'],-99.95)
         self.assertEqual(order.operational_comparison('producers',dict(filters,month='2026-11',week='2026-11-02'))['tables'][0]['total']['estimated'],40000)
-        replacement=self.env[estimate._name].browse(estimate.action_new_version()['res_id'])
+        replacement=self.env[estimate._name].browse(estimate.action_new_estimate_version()['res_id'])
         replacement.estimate_line_ids.week_line_ids[0].export_kg=50000
         replacement.estimate_line_ids.export_kg=110000
         replacement.action_validate_estimate(); replacement.action_activate_estimate()
