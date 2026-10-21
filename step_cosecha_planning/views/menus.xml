@@ -1,0 +1,6 @@
+<odoo>
+ <menuitem id="menu_harvest_plan" name="Plan de cosecha" parent="step_cosecha.menu_step_cosecha_main_cosecha_plan" action="step_management_costs.action_harvest_plan" groups="step_management_costs.group_management_readonly" sequence="20"/>
+ <menuitem id="menu_package_type" name="Tipos de pallet" parent="step_cosecha.step_maestros_cosecha" action="step_export.action_step_export_package_type" sequence="30"/>
+ <record id="action_packaging" model="ir.actions.act_window"><field name="name">Embalajes</field><field name="res_model">product.packaging</field><field name="view_mode">list,form</field><field name="search_view_id" ref="product.product_packaging_search_view"/><field name="view_ids" eval="[(5,0,0),(0,0,{'view_mode':'list','view_id':ref('step_export.view_step_export_packaging_list')}),(0,0,{'view_mode':'form','view_id':ref('step_export.view_step_export_packaging_form')})]"/></record>
+ <menuitem id="menu_packaging" name="Embalajes" parent="step_cosecha.step_maestros_cosecha" action="action_packaging" sequence="40"/>
+</odoo>
