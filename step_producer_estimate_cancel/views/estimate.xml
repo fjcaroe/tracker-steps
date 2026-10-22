@@ -1,0 +1,56 @@
+<odoo>
+  <record id="estimate_cancel_form" model="ir.ui.view">
+    <field name="name">producer.estimate.cancellation</field>
+    <field name="model">step.export.estimate</field>
+    <field name="inherit_id" ref="step_export.view_step_export_estimate_t35_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//header" position="inside">
+        <button name="action_cancel_estimate" type="object" string="Anular estimación"
+          invisible="state not in ('created', 'validated', 'current')"
+          confirm="¿Anular esta estimación? Se conservarán sus líneas, semanas e históricos y dejará de contar como vigente."/>
+      </xpath>
+      <xpath expr="//header/field[@name='state']" position="attributes">
+        <attribute name="statusbar_visible">created,validated,current,replaced,cancelled</attribute>
+      </xpath>
+      <xpath expr="//field[@name='name']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='producer_id']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='packing_partner_id']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='date']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='delivery_start']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='delivery_end']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fundo_id']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='season_id']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='company_id']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//field[@name='estimate_line_ids']" position="attributes">
+        <attribute name="readonly">state in ('current', 'replaced', 'cancelled')</attribute>
+      </xpath>
+      <xpath expr="//group[@name='estimate_identity']/field[@name='user_id']" position="attributes">
+        <attribute name="readonly">state == 'cancelled'</attribute>
+      </xpath>
+      <xpath expr="//sheet" position="inside">
+        <group string="Anulación" invisible="state != 'cancelled'">
+          <field name="estimate_cancelled_at"/><field name="estimate_cancelled_by_id"/>
+          <div class="text-muted">La anulación conserva las cantidades, recepciones e históricos. Para preparar otra estimación puede duplicar el documento.</div>
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>
