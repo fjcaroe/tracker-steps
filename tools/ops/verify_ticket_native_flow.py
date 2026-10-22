@@ -59,7 +59,7 @@ try:
             if scoped[model].has_access('read'):
                 action = center.with_context(agriculture_activity=key).action_agriculture_activity()
                 assert action['res_model'] == model and action['domain'] == [(relation, '=', center.id)]
-                scoped[model].search(action['domain'], limit=1).web_read({'name': {}})
+                scoped[model].search(action['domain'], limit=1).web_read({'display_name': {}})
                 checked += 1
         assert checked == 13
         application = scoped['step.agriculture.application'].search([], limit=1)
