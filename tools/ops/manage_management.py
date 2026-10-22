@@ -388,6 +388,19 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
+    native_agriculture_versions = {
+        'step_bpa_irrigation': (18, 0, 3, 0, 0),
+        'step_bpa_inventory': (18, 0, 1, 0, 1),
+        'step_qa': (18, 0, 1, 1, 0),
+        'step_agro_traceability': (18, 0, 1, 1, 0),
+        'step_budget_design': (18, 0, 1, 1, 0),
+    }
+    requires_native_schema = any(
+        name in proof['versions'] and tuple(map(int, proof['versions'][name].split('.'))) >= version
+        for name, version in native_agriculture_versions.items())
+    if requires_native_schema and not query(database,
+            "SELECT 1 FROM ir_module_module WHERE name='step_agriculture_records' AND state='installed'"):
+        assert args.kind == 'agriculture-records', 'The agricultural native schema requires its complete in-place migration package'
     if args.kind == 'agriculture-records':
         assert args.environment == 'development', 'T103 is not a production authorization'
         global AGRICULTURE_SOURCE, AGRICULTURE_COLUMNS
