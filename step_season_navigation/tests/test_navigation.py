@@ -13,6 +13,8 @@ class SeasonNavigationCase(TransactionCase):
             menu = self.env.ref('step_season_navigation.menu_' + name + '_seasons')
             self.assertEqual(menu.action, action)
             self.assertIn(menu.id, menus)
+        packing = self.env.ref('step_season_navigation.menu_packing_seasons')
+        self.assertEqual(packing.parent_id, self.env.ref('step_packing_operations.menu_packing_operations_config'))
         self.assertEqual(action.res_model, 'step.temporada')
         seasons = self.env['step.temporada'].with_user(user)
         with Form(seasons, view='step_hr.view_temporada_form') as form:

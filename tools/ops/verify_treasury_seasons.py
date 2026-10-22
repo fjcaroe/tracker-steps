@@ -22,6 +22,8 @@ try:
         menu = env.ref('step_season_navigation.menu_' + key + '_seasons')
         assert menu.action == action and menu.active
         assert menu.id in env['ir.ui.menu']._visible_menu_ids()
+    assert env.ref('step_season_navigation.menu_packing_seasons').parent_id == env.ref(
+        'step_packing_operations.menu_packing_operations_config')
     for kind, xmlid in [('form', 'view_temporada_form'), ('list', 'view_step_temporada_list')]:
         assert env['step.temporada'].get_view(view_id=env.ref('step_hr.' + xmlid).id, view_type=kind)['arch']
     env['step.temporada'].search([], limit=5).web_read({'name': {}})
