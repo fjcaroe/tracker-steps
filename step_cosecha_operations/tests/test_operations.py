@@ -45,6 +45,7 @@ class HarvestOperationsCase(TransactionCase):
         registries = self.env['step.cosecha.registry'].with_user(user).with_context(step_default_contratista=1)
         with Form(registries) as f:
             f.name = 'QA harvest'
+            f.product_uom_id = self.env.ref('uom.product_uom_kgm')
             f.partner_id = partner
             f.salary_id_contrac = crew
         record = f.record
