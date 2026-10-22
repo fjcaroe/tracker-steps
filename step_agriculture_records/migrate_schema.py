@@ -140,7 +140,7 @@ def prepare(cr):
     # metadata with an explicit model-name column, not just ir.model itself.
     cr.execute("SELECT table_name,column_name FROM information_schema.columns WHERE table_schema='public' "
                "AND data_type IN ('text','character varying') AND column_name IN "
-               "('model','model_name','res_model','res_model_name','model_id')")
+               "('model','model_name','res_model','res_model_name','model_id','application_model')")
     references = [(table, column) for table, column in cr.fetchall() if table != 'ir_model_fields_selection']
     for old, new in MODELS.items():
         cr.execute('SELECT id FROM ir_model WHERE model IN (%s,%s)', (old, new))
@@ -317,7 +317,7 @@ def snapshot(cr, baseline=None):
             current = column if column in available else mapping.get(column)
             assert current in available, ('Lost historical column', logical, column)
             value = sql.SQL('t.{}').format(sql.Identifier(current))
-            if column in ('model', 'res_model', 'model_name', 'res_model_name'):
+            if column in ('model', 'res_model', 'model_name', 'res_model_name', 'application_model'):
                 cases = sql.SQL(' ').join(sql.SQL('WHEN {} THEN {}').format(sql.Literal(new), sql.Literal(old))
                                          for old, new in MODELS.items())
                 value = sql.SQL('CASE {} {} ELSE {} END').format(value, cases, value)

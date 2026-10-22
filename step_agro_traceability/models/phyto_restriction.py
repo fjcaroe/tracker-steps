@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Restricciones fitosanitarias (carencia y reingreso) por cuartel.
+"""Restricciones fitosanitarias por cuartel desde las aplicaciones nativas.
 
-Las aplicaciones fitosanitarias se registran hoy en el modelo Studio
-``step.agriculture.application``.  Este módulo no lo hereda en Python — un modelo manual
-no está en el registro cuando se cargan las clases Python — sino que lo lee de
-forma defensiva en tiempo de ejecución y materializa el resultado en un modelo
-nativo, versionado, con permisos y reglas de registro propias.
-
-El descubrimiento de las líneas de la aplicación se hace **por capacidad** y no
-por nombre: los sufijos que genera Studio (``..._line_6808a``) no están
-garantizados entre bases, de modo que se busca la línea que sabe de productos y
-la línea que sabe de cuarteles.
+Las líneas de productos y maquinaria son relaciones explícitas y versionadas;
+el motor conserva la restricción operativa al convertir los documentos antiguos.
 """
 
 import logging
@@ -166,31 +158,17 @@ class StepPhytoRestriction(models.Model):
     # ------------------------------------------------------------------
     @api.model
     def _application_model(self):
-        """Devuelve el modelo de aplicaciones, o ``None`` si Studio no está."""
+        """Devuelve el modelo de aplicaciones disponible en el registro."""
         return self.env.get(APPLICATION_MODEL)
 
     @api.model
     def _discover_line_models(self):
-        """Localiza las líneas de la aplicación por capacidad, no por nombre.
-
-        Devuelve ``(modelo_de_productos, modelo_de_cuarteles)``; cualquiera de
-        los dos puede ser ``None`` si Studio fue reconfigurado.
-        """
+        """Use the native product and intervention relations deterministically."""
         application = self._application_model()
         if application is None:
             return None, None
-        product_model = cuartel_model = None
-        for name, field in application._fields.items():
-            if field.type != "one2many" or not name.startswith("x_"):
-                continue
-            comodel = self.env.get(field.comodel_name)
-            if comodel is None:
-                continue
-            if product_model is None and "producto_id" in comodel._fields:
-                product_model = field.comodel_name
-            if cuartel_model is None and "cuartel_id" in comodel._fields:
-                cuartel_model = field.comodel_name
-        return product_model, cuartel_model
+        return (application._fields['product_ids'].comodel_name,
+                application._fields['machinery_ids'].comodel_name)
 
     @api.model
     def _carencia_for_product(self, product, criterion):
@@ -211,7 +189,7 @@ class StepPhytoRestriction(models.Model):
 
     @api.model
     def _collect_from_applications(self, applications):
-        """Traduce aplicaciones Studio a valores de ``step.phyto.restriction``.
+        """Traduce aplicaciones nativas a valores de ``step.phyto.restriction``.
 
         No escribe nada; devuelve una lista de diccionarios.  Se usa tanto para
         materializar el tablero como para la verificación en vivo al aprobar

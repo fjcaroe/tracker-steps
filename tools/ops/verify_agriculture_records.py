@@ -23,6 +23,8 @@ try:
             assert view.active and env[model].get_view(view_id=view.id, view_type=kind)['arch']
         env[model].with_context(active_test=False).search([], limit=5).web_read({'name': {}})
     analytic = env['account.analytic.account']
+    assert env['step.phyto.restriction']._discover_line_models() == (
+        'step.agriculture.application.product', 'step.agriculture.application.machinery')
     arch = etree.fromstring(analytic.get_view(
         view_id=env.ref('step_hr.step_view_account_analytic_account_form').id, view_type='form')['arch'])
     assert len(arch.xpath("//button[@name='action_agriculture_activity']")) == 13

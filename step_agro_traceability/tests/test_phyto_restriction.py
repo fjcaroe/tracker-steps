@@ -176,11 +176,36 @@ class TestPhytoRestriction(TransactionCase):
 
     def test_refresh_es_idempotente(self):
         model = self.env["step.phyto.restriction"]
-        before = model.search_count([])
         model.refresh()
+        before = model.search_count([])
         model.refresh()
         after = model.search_count([])
         self.assertEqual(before, after, "Refrescar dos veces no debe duplicar restricciones.")
+
+    def test_native_application_reaches_harvest_block_without_materialized_rows(self):
+        self.company.step_phyto_policy = 'block'
+        application = self.env['step.agriculture.application'].create({
+            'company_id': self.company.id, 'empresa_id': self.company.id,
+            'fundo_id': self.fundo.id, 'date': fields.Date.context_today(self.env.user),
+        })
+        self.env['step.agriculture.application.product'].create({
+            'application_id': application.id, 'producto_id': self.product.id,
+        })
+        self.env['step.agriculture.application.machinery'].create({
+            'application_id': application.id, 'cuartel_id': self.cuartel.id,
+            'fecha_hr_inicio': fields.Datetime.now(),
+        })
+        model = self.env['step.phyto.restriction']
+        self.assertEqual(model._discover_line_models(), (
+            'step.agriculture.application.product', 'step.agriculture.application.machinery'))
+        collected = model._collect_from_applications(application)
+        self.assertEqual(len(collected), 1)
+        self.assertEqual(collected[0]['cuartel_id'], self.cuartel.id)
+        self.assertEqual(collected[0]['carencia_days'], 14)
+        harvest = self._make_harvest(fields.Datetime.now())
+        with self.assertRaises(UserError):
+            harvest.action_apro()
+        self.assertEqual(harvest.state, 'in')
 
     def test_criterio_mayor_toma_el_valor_mas_restrictivo(self):
         model = self.env["step.phyto.restriction"]

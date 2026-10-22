@@ -28,7 +28,8 @@ class StepAgricultureInspection(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            if not values.get("name") or values["name"] == "Nuevo":
+                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
@@ -111,7 +112,8 @@ class StepAgricultureAdvisory(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            if not values.get("name") or values["name"] == "Nuevo":
+                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
@@ -181,7 +183,7 @@ class StepAgriculturePest(models.Model):
 class StepAgricultureMonitoring(models.Model):
     _inherit = 'step.agriculture.monitoring'
     _folio_sequence = 'monitoreo.bpa'
-    name = fields.Char(default="Nuevo", readonly=True, copy=False)
+    name = fields.Char(default="Nuevo", copy=False)
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     ejecutado_por_id = fields.Many2one(string='Ejecutado por', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
     empresa_id = fields.Many2one(string='Empresa', required=False, readonly=False, copy=True, store=True, comodel_name='res.company', ondelete='set null')
@@ -193,7 +195,8 @@ class StepAgricultureMonitoring(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            if not values.get("name") or values["name"] == "Nuevo":
+                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
@@ -251,7 +254,7 @@ class StepAgricultureApplicationMachinery(models.Model):
 class StepAgricultureApplication(models.Model):
     _inherit = 'step.agriculture.application'
     _folio_sequence = 'aplicaciones.bpa'
-    name = fields.Char(default="Nuevo", readonly=True, copy=False)
+    name = fields.Char(default="Nuevo", copy=False)
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     capacidad_lts_aplicadora = fields.Float(string='Capacidad lts aplicadora', required=False, readonly=False, copy=True, store=True)
     combustible_id = fields.Many2one(string='Combustible', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
@@ -297,7 +300,8 @@ class StepAgricultureApplication(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            if not values.get("name") or values["name"] == "Nuevo":
+                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
     @api.depends('lts_inicial_estanque', 'lts_relleno', 'litros_finales')
@@ -370,7 +374,7 @@ class StepAgricultureApplicationProduct(models.Model):
     objetivo_plaga_id = fields.Many2one(string='Objetivo, plaga', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.pest', ondelete='set null')
     producto_id = fields.Many2one(string='Producto', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
-    active_ingredient_id = fields.Many2one(string='Sustancia activa', required=False, readonly=True, copy=False, store=False, comodel_name='step.agriculture.active.ingredient', ondelete='set null', related='producto_id.active_ingredient_id')
+    active_ingredient_id = fields.Many2one(string='Sustancia activa', required=False, readonly=True, copy=False, store=False, comodel_name='step.agriculture.active.ingredient', ondelete='set null', related='producto_id.agriculture_active_ingredient_id')
 
 
 class StepAgricultureApplicationPpe(models.Model):
@@ -502,7 +506,8 @@ class StepAgricultureHarvestRecord(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            if not values.get("name") or values["name"] == "Nuevo":
+                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 

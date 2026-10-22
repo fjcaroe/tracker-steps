@@ -70,6 +70,16 @@ def main():
     for mapping in mappings.values():
         for old, new in mapping.items():
             global_fields.setdefault(old, new)
+    all_maps = {**mappings, **schema['FOREIGN_FIELDS']}
+    catalog = {(model, field['name']): field for model, meta in data['models'].items() for field in meta['fields']}
+
+    def related_path(model, path):
+        parts = []
+        for token in path.split('.'):
+            parts.append(all_maps.get(model, {}).get(token, token))
+            field = catalog.get((model, token), {})
+            model = field.get('relation') or ('product.template' if model == 'product.product' and token == 'product_tmpl_id' else '')
+        return '.'.join(parts)
     replace = schema['replace_tokens']
     base_source = replace(replace(original, models), global_fields)
     # Existing masters also retain their Studio chatter/activity history.
@@ -104,7 +114,7 @@ def main():
         if old_model in schema['SEQUENCES']:
             lines += ['    _folio_sequence = ' + repr(schema['SEQUENCES'][old_model])]
             if is_base:
-                lines += ['    name = fields.Char(default="Nuevo", readonly=True, copy=False)']
+                lines += ['    name = fields.Char(default="Nuevo", copy=False)']
         computes = []
         for field in meta['fields']:
             old = field['name']
@@ -143,20 +153,20 @@ def main():
             if field['domain'] and field['domain'] != '[]':
                 kwargs['domain'] = replace(field['domain'], global_fields)
             if field['related'] and field['runtime_available']:
-                kwargs['related'] = replace(field['related'], global_fields)
+                kwargs['related'] = related_path(old_model, field['related'])
             elif field['compute']:
                 method = '_compute_' + new
                 kwargs['compute'] = method
                 deps = [d.strip() for d in (field['depends'] or '').split(',') if d.strip()]
                 code = replace(field['compute'].replace('\r\n', '\n'), global_fields)
-                computes.append((method, [replace(d, global_fields) for d in deps], code))
+                computes.append((method, [related_path(old_model, d) for d in deps], code))
             elif not field['runtime_available']:
                 kwargs.update(compute='_compute_' + new, readonly=True, store=False, required=False)
                 computes.append(('_compute_' + new, [], 'for record in self:\n    record[' + repr(new) + '] = False'))
             if new == 'name':
                 kwargs['default'] = '__NEW_NAME__'
                 if old_model in schema['SEQUENCES']:
-                    kwargs.update(readonly=True, copy=False)
+                    kwargs.update(copy=False)
             if new == 'active':
                 kwargs['default'] = True
             if new == 'legacy_tag_state_id':
@@ -170,7 +180,8 @@ def main():
         if old_model in schema['SEQUENCES']:
             lines += ['', '    @api.model_create_multi', '    def create(self, values_list):',
                       '        for values in values_list:',
-                      '            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"',
+                      '            if not values.get("name") or values["name"] == "Nuevo":',
+                      '                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"',
                       '        return super().create(values_list)']
         for method, deps, code in computes:
             lines += ['', '    @api.depends(' + ', '.join(repr(d) for d in deps) + ')', '    def ' + method + '(self):']
