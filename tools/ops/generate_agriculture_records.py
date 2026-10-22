@@ -134,6 +134,8 @@ def main():
                 kwargs['translate'] = True
             if field['index']:
                 kwargs['index'] = True
+            if old in schema['UI_REQUIRED_FIELDS'].get(old_model, set()):
+                kwargs['required'] = False
             if kind == 'many2one':
                 kwargs['comodel_name'] = models.get(field['relation'], field['relation'])
                 kwargs['ondelete'] = field['on_delete'] or 'set null'

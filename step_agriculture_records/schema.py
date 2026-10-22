@@ -5,8 +5,8 @@ MODELS = {
     'x_planificar_cosecha': 'step.agriculture.harvest.forecast',
     'x_registro_cosecha': 'step.agriculture.harvest.record',
     'x_registro_cosecha_line_7dde6': 'step.agriculture.harvest.tag',
-    # Historical labels remain read-only; new operations use the Packing master.
-    'x_estado_de_tarjas': 'step.agriculture.archive.tag.state',
+    # Adopt the existing harvest-state master in place, retaining its own lifecycle.
+    'x_estado_de_tarjas': 'step.agriculture.harvest.tag.state',
     'x_inspecciones_interna': 'step.agriculture.inspection',
     'x_inspecciones_interna_line_9cc79': 'step.agriculture.inspection.line',
     'x_asesor_externo': 'step.agriculture.advisory',
@@ -62,7 +62,7 @@ COMMON_FIELDS = {
     'x_studio_centro_costo': 'cost_center_id',
     'x_studio_centro_de_costos': 'cost_center_id',
     'x_studio_cuenta': 'cost_center_id',
-    'x_studio_estado_tarja': 'legacy_tag_state_id',
+    'x_studio_estado_tarja': 'tag_state_id',
     'x_studio_cdigo_estado_tarja': 'code',
     'x_studio_currency_id': 'currency_id',
     'x_aplicacion_foliar_id': 'application_id',
@@ -111,10 +111,6 @@ SEQUENCES = {
     'x_registro_cosecha': 'Folio.cosecha',
 }
 
-# Filled only after the human chooses how the old "Vigente" state maps.
-# The immutable-release builder must reject an unresolved policy.
-TAG_STATE_POLICY = None
-
 FOREIGN_FIELDS = {
     'product.template': {'x_studio_sustancia_activa': 'agriculture_active_ingredient_id'},
     'product.product': {'x_studio_sustancia_activa': 'agriculture_active_ingredient_id'},
@@ -138,7 +134,7 @@ FOREIGN_FIELDS = {
 
 LABELS = {
     'harvest.forecast': 'Pronóstico de cosecha', 'harvest.record': 'Registro de cosecha',
-    'harvest.tag': 'Tarjas de cosecha', 'archive.tag.state': 'Estados históricos de tarja',
+    'harvest.tag': 'Tarjas de cosecha', 'harvest.tag.state': 'Estados de tarja de cosecha',
     'inspection': 'Inspecciones internas', 'inspection.line': 'Detalle de inspección',
     'advisory': 'Asesorías externas', 'advisory.line': 'Recomendaciones de asesoría',
     'active.ingredient': 'Sustancias activas', 'bpa.role': 'Cargos BPA',
@@ -165,6 +161,10 @@ FIELD_LABELS = {
     'available_cuartel_ids': 'Cuarteles disponibles', 'center_cuartel_ids': 'Cuarteles del centro',
     'analytic_cuartel_ids': 'Cuarteles de la cuenta analítica', 'standard_hour_cost': 'Costo estándar por hora',
 }
+
+# Studio's UI required flag did not make these historical SQL values NOT NULL.
+# Keep missing historical values unchanged and retain the form requirement.
+UI_REQUIRED_FIELDS = {'x_aplicacion_foliar': {'x_studio_consumo_lt_x_hora'}}
 
 
 def replace_tokens(text, mapping):

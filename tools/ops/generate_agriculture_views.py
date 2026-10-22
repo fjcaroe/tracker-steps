@@ -36,10 +36,6 @@ def main():
         names = {f['name']: mappings[old_model].get(f['name'], f['name']) for f in fields}
         fields.sort(key=lambda f: (names[f['name']] != 'name', names[f['name']]))
         by_name = {names[f['name']]: f for f in fields}
-        if suffix == 'harvest.tag':
-            by_name['tag_state_id'] = {'name': 'tag_state_id', 'ttype': 'many2one',
-                'relation': 'step.packing.tag.state', 'field_description': 'Estado de tarja',
-                'readonly': False, 'runtime_available': True}
         archive = suffix.startswith('archive.')
 
         def view(kind, arch):
@@ -82,6 +78,8 @@ def main():
                 pages.append((name, field))
             else:
                 attrs = {'name': name}
+                if field['name'] in schema['UI_REQUIRED_FIELDS'].get(old_model, set()):
+                    attrs['required'] = '1'
                 if field['ttype'] == 'many2many':
                     attrs['widget'] = 'many2many_tags'
                 if name == 'legacy_tag_state_id':
@@ -98,8 +96,6 @@ def main():
                 entry = ET.SubElement(page, 'field', name=name, nolabel='1')
                 if field['ttype'] == 'one2many' and relation in models and not field['readonly']:
                     rows = ET.SubElement(entry, 'list', editable='bottom')
-                    if relation == 'x_registro_cosecha_line_7dde6':
-                        ET.SubElement(rows, 'field', name='tag_state_id')
                     for child in data['models'][relation]['fields']:
                         child_name = mappings[relation].get(child['name'], child['name'])
                         if child['name'] in excluded or child['name'] == field['relation_field']:
@@ -183,6 +179,13 @@ def main():
                                icon='fa-' + icon, context=repr(context),
                                invisible='not agriculture_can_' + key, **{'class': 'oe_stat_button'})
         ET.SubElement(button, 'field', name='agriculture_' + key + '_count', widget='statinfo', string=label)
+    record = ET.SubElement(document, 'record', id='view_product_labor_group_requirement', model='ir.ui.view')
+    ET.SubElement(record, 'field', name='name').text = 'product.template.labor.group.requirement'
+    ET.SubElement(record, 'field', name='model').text = 'product.template'
+    ET.SubElement(record, 'field', name='inherit_id', ref='step_hr.step_view_product_template_form')
+    arch = ET.SubElement(record, 'field', name='arch', type='xml')
+    xpath = ET.SubElement(arch, 'xpath', expr="//field[@name='grupo_labor']", position='attributes')
+    ET.SubElement(xpath, 'attribute', name='required').text = 'is_labor'
     ET.indent(document)
     (addon / 'views').mkdir(exist_ok=True)
     ET.ElementTree(document).write(addon / 'views/documents.xml', encoding='utf-8', xml_declaration=True)

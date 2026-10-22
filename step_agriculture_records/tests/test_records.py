@@ -1,9 +1,9 @@
 from lxml import etree
 from odoo.tests import TransactionCase, Form, tagged
 from odoo.tests.common import new_test_user
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError
 from odoo.addons.step_management_costs.tests.test_management_costs import make_center
-from odoo.addons.step_agriculture_records.schema import MODELS, TAG_STATE_POLICY
+from odoo.addons.step_agriculture_records.schema import MODELS
 from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
 
 
@@ -63,7 +63,19 @@ class AgricultureRecordsCase(TransactionCase):
         self.assertNotIn(other, selected)
         self.assertEqual(center.agriculture_forecast_count, len(selected))
         self.assertEqual(action['context']['default_cost_center_id'], first.id)
+        from_directory = center.with_context(agriculture_activity='forecast', create=False,
+                                              edit=False, delete=False,
+                                              form_view_ref='step_hr.step_view_account_analytic_account_form')
+        document_action = from_directory.action_agriculture_activity()
+        self.assertFalse({'create', 'edit', 'delete', 'form_view_ref'} & set(document_action['context']))
+        self.assertEqual(document_action['context']['default_cost_center_id'], first.id)
         for key, (_, model, relation) in ACTIVITIES.items():
+            if not self.env[model].with_user(user).has_access('read'):
+                self.assertFalse(center['agriculture_can_' + key])
+                self.assertEqual(center['agriculture_' + key + '_count'], 0)
+                with self.assertRaises(AccessError):
+                    center.with_context(agriculture_activity=key).action_agriculture_activity()
+                continue
             action = center.with_context(agriculture_activity=key).action_agriculture_activity()
             self.assertEqual(action['domain'], [(relation, '=', center.id)])
             count = self.env[model].with_user(user).search_count(action['domain'])
@@ -82,12 +94,21 @@ class AgricultureRecordsCase(TransactionCase):
         actions = self.env['base.automation'].search([('model_id.model', 'in', list(MODELS.values())), ('active', '=', True)])
         self.assertFalse(actions)
 
-    def test_archive_labels_are_readonly_and_canonical_states_are_preserved(self):
-        legacy = self.env['step.agriculture.archive.tag.state'].search([], limit=1)
-        self.assertTrue(legacy)
-        with self.assertRaises(UserError):
-            self.env['step.agriculture.harvest.tag'].create({'name': 'QA T103', 'legacy_tag_state_id': legacy.id})
-        if TAG_STATE_POLICY is None:
-            self.skipTest('Waiting for the human mapping of the historical Vigente state')
-        for tag in self.env['step.agriculture.harvest.tag'].search([('legacy_tag_state_id', '!=', False)]):
-            self.assertEqual(tag.tag_state_id.code, TAG_STATE_POLICY[tag.legacy_tag_state_id.code])
+    def test_original_tag_states_remain_the_same_master(self):
+        states = self.env['step.agriculture.harvest.tag.state']
+        state = states.create({'name': 'QA T103 estado original', 'code': 'QA103'})
+        tag = self.env['step.agriculture.harvest.tag'].create({'name': 'QA T103 tarja', 'tag_state_id': state.id})
+        self.assertEqual(tag.tag_state_id, state)
+        self.assertEqual(tag.tag_state_id.code, 'QA103')
+        self.assertEqual(tag._fields['tag_state_id'].comodel_name, 'step.agriculture.harvest.tag.state')
+
+    def test_product_labor_group_is_required_only_for_labor(self):
+        product = self.env['product.template'].create({'name': 'QA T103 insumo', 'is_labor': False})
+        self.assertFalse(product.grupo_labor)
+        form = Form(self.env['product.template'])
+        form.name = 'QA T103 labor'
+        form.is_labor = True
+        with self.assertRaises(AssertionError):
+            form.save()
+        form.grupo_labor = 'manten'
+        self.assertEqual(form.save().grupo_labor, 'manten')

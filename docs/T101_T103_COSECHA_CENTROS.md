@@ -82,7 +82,7 @@ Un contenedor de botones que siga dependiendo de esos modelos manuales no
 acredita su conversión a código.
 
 El usuario eligió convertir también los documentos y formularios antiguos.
-La implementación y la decisión pendiente sobre equivalencias de estados están
+La implementación y la conservación de los estados originales están
 en `docs/T103_MIGRACION_DOCUMENTOS_AGRICOLAS.md`. T103 continúa abierto hasta
 terminar y comprobar la migración.
 El inventario detallado y los adjuntos se conservan fuera de Git, en los

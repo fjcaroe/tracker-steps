@@ -3,7 +3,7 @@ import importlib
 import json
 from pathlib import Path
 from lxml import etree
-from odoo.addons.step_agriculture_records.schema import MODELS, TAG_STATE_POLICY
+from odoo.addons.step_agriculture_records.schema import MODELS
 from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
 
 try:
@@ -35,11 +35,9 @@ try:
         action = center.with_context(agriculture_activity=key).action_agriculture_activity()
         assert action['res_model'] == model and action['domain'] == [(relation, '=', center.id)]
         assert center['agriculture_' + key + '_count'] == env[model].search_count(action['domain'])
-    if env.cr.dbname == 'LAB_TAREAS':
-        assert TAG_STATE_POLICY is not None, 'An unresolved draft cannot be delivered'
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 103, 'versions': EXPECTED,
           'native_models': len(MODELS), 'smart_buttons': 13,
-          'tag_state_policy_resolved': TAG_STATE_POLICY is not None,
+          'original_tag_states_preserved': True,
           'native_forms': True, 'related_records_read': True}))
 finally:
     env.cr.rollback()

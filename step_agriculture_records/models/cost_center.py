@@ -72,9 +72,16 @@ class CostCenter(models.Model):
         if not model.has_access('read'):
             raise AccessError(_('No tiene permiso para consultar esta actividad.'))
         default = [self.id] if model._fields[relation].type == 'many2many' else self.id
+        # The cost-center directory is read-only. Its view flags and defaults
+        # must not disable the related document's own permitted workflow.
+        inherited = {'create', 'edit', 'delete', 'active_id', 'active_ids', 'active_model',
+                     'form_view_ref', 'list_view_ref', 'tree_view_ref', 'search_view_ref', 'group_by'}
+        context = {key: value for key, value in self.env.context.items()
+                   if key not in inherited and not key.startswith(('default_', 'search_default_'))}
+        context['default_' + relation] = default
         action = {'type': 'ir.actions.act_window', 'name': label, 'res_model': model_name,
                   'view_mode': 'list,form', 'domain': [(relation, '=', self.id)],
-                  'context': dict(self.env.context, **{'default_' + relation: default})}
+                  'context': context}
         if model_name.startswith('step.agriculture.'):
             suffix = model_name.removeprefix('step.agriculture.').replace('.', '_')
             action['views'] = [
@@ -88,3 +95,7 @@ class ProductTemplate(models.Model):
 
     agriculture_active_ingredient_id = fields.Many2one(
         'step.agriculture.active.ingredient', string='Sustancia activa')
+    # Unclassified non-labor products already exist. Do not invent a labor
+    # classification for them merely to add the substance relation.
+    grupo_labor = fields.Selection(required=False)
+

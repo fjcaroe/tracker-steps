@@ -259,7 +259,7 @@ class StepAgricultureApplication(models.Model):
     capacidad_lts_aplicadora = fields.Float(string='Capacidad lts aplicadora', required=False, readonly=False, copy=True, store=True)
     combustible_id = fields.Many2one(string='Combustible', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
     consumo = fields.Float(string='Consumo', required=False, readonly=True, copy=False, store=True, compute='_compute_consumo')
-    consumo_lt_x_hora = fields.Float(string='Consumo lt x hora', required=True, readonly=False, copy=True, store=True)
+    consumo_lt_x_hora = fields.Float(string='Consumo lt x hora', required=False, readonly=False, copy=True, store=True)
     costo_por_hectrea = fields.Float(string='Costo por hectárea', required=False, readonly=False, copy=True, store=True)
     direccin_del_viento = fields.Char(string='Dirección del viento', required=False, readonly=False, copy=True, store=True)
     empresa_id = fields.Many2one(string='Empresa', required=False, readonly=False, copy=True, store=True, comodel_name='res.company', ondelete='set null')
@@ -522,16 +522,16 @@ class StepAgricultureHarvestTag(models.Model):
     cantidad_envases = fields.Float(string='Cantidad envases', required=False, readonly=False, copy=True, store=True)
     cdigo_de_barra_ids = fields.Many2many(string='Código de barra', required=False, readonly=False, copy=True, store=True, comodel_name='barcode.rule', relation='x_barcode_rule_x_registro_cosecha_line_7dde6_rel', column1='x_registro_cosecha_line_7dde6_id', column2='barcode_rule_id')
     envase_id = fields.Many2one(string='Envase', required=False, readonly=False, copy=True, store=True, comodel_name='product.packaging', ondelete='set null')
-    legacy_tag_state_id = fields.Many2one(string='Estado histórico de tarja', required=False, readonly=True, copy=False, store=True, comodel_name='step.agriculture.archive.tag.state', ondelete='set null')
+    tag_state_id = fields.Many2one(string='Estado tarja', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.harvest.tag.state', ondelete='set null')
     kilos_cosechados = fields.Float(string='Kilos cosechados', required=False, readonly=False, copy=True, store=True)
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     tipo_de_paquete_id = fields.Many2one(string='Tipo de paquete', required=False, readonly=False, copy=True, store=True, comodel_name='stock.package.type', ondelete='set null')
     tipo_paquete_id = fields.Many2one(string='Tipo Paquete', required=False, readonly=False, copy=True, store=True, comodel_name='stock.quant.package', ondelete='set null')
 
 
-class StepAgricultureArchiveTagState(models.Model):
-    _name = 'step.agriculture.archive.tag.state'
-    _description = 'Estados históricos de tarja'
+class StepAgricultureHarvestTagState(models.Model):
+    _name = 'step.agriculture.harvest.tag.state'
+    _description = 'Estados de tarja de cosecha'
     _rec_name = "name"
     _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']

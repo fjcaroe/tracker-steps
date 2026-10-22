@@ -1213,7 +1213,7 @@
               <field name="active" />
               <field name="capacidad_lts_aplicadora" />
               <field name="company_id" />
-              <field name="consumo_lt_x_hora" />
+              <field name="consumo_lt_x_hora" required="1" />
               <field name="costo_de_productos" />
               <field name="costo_por_hectrea" />
               <field name="currency_id" />
@@ -2234,12 +2234,11 @@
             <page name="page_tag_ids" string="Tarjas de cosecha">
               <field name="tag_ids" nolabel="1">
                 <list editable="bottom">
-                  <field name="tag_state_id" />
                   <field name="name" />
                   <field name="barcode_id" />
                   <field name="cantidad_envases" />
                   <field name="envase_id" />
-                  <field name="legacy_tag_state_id" optional="hide" readonly="1" />
+                  <field name="tag_state_id" />
                   <field name="kilos_cosechados" />
                   <field name="sequence" optional="hide" />
                   <field name="tipo_de_paquete_id" />
@@ -2299,11 +2298,10 @@
         <field name="envase_id" optional="hide" />
         <field name="harvest_id" optional="hide" />
         <field name="kilos_cosechados" optional="hide" />
-        <field name="legacy_tag_state_id" optional="hide" />
         <field name="sequence" optional="hide" />
+        <field name="tag_state_id" optional="hide" />
         <field name="tipo_de_paquete_id" optional="hide" />
         <field name="tipo_paquete_id" optional="hide" />
-        <field name="tag_state_id" optional="hide" />
       </list>
     </field>
   </record>
@@ -2328,15 +2326,14 @@
               <field name="barcode_id" />
               <field name="cdigo_de_barra_ids" widget="many2many_tags" />
               <field name="harvest_id" />
-              <field name="legacy_tag_state_id" readonly="1" string="Estado histórico de tarja" options="{'no_create': True}" />
+              <field name="sequence" />
               <field name="tipo_de_paquete_id" />
-              <field name="tag_state_id" />
             </group>
             <group>
               <field name="cantidad_envases" />
               <field name="envase_id" />
               <field name="kilos_cosechados" />
-              <field name="sequence" />
+              <field name="tag_state_id" />
               <field name="tipo_paquete_id" />
             </group>
           </group>
@@ -2370,12 +2367,12 @@
       <pivot string="Tarjas de cosecha" />
     </field>
   </record>
-  <record id="view_archive_tag_state_list" model="ir.ui.view">
-    <field name="name">step.agriculture.archive.tag.state.list</field>
-    <field name="model">step.agriculture.archive.tag.state</field>
+  <record id="view_harvest_tag_state_list" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.state.list</field>
+    <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <list string="Estados históricos de tarja" create="0" edit="0" delete="0">
+      <list string="Estados de tarja de cosecha">
         <field name="name" optional="show" />
         <field name="active" optional="hide" />
         <field name="code" optional="hide" />
@@ -2383,16 +2380,16 @@
       </list>
     </field>
   </record>
-  <record id="view_archive_tag_state_form" model="ir.ui.view">
-    <field name="name">step.agriculture.archive.tag.state.form</field>
-    <field name="model">step.agriculture.archive.tag.state</field>
+  <record id="view_harvest_tag_state_form" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.state.form</field>
+    <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <form string="Estados históricos de tarja" create="0" edit="0" delete="0">
+      <form string="Estados de tarja de cosecha">
         <header />
         <sheet>
           <div class="o_step_bpa_record_intro">
-            <strong>Estados históricos de tarja</strong>
+            <strong>Estados de tarja de cosecha</strong>
           </div>
           <div class="oe_title">
             <h1>
@@ -2413,30 +2410,30 @@
       </form>
     </field>
   </record>
-  <record id="view_archive_tag_state_search" model="ir.ui.view">
-    <field name="name">step.agriculture.archive.tag.state.search</field>
-    <field name="model">step.agriculture.archive.tag.state</field>
+  <record id="view_harvest_tag_state_search" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.state.search</field>
+    <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <search string="Estados históricos de tarja">
+      <search string="Estados de tarja de cosecha">
         <field name="name" />
       </search>
     </field>
   </record>
-  <record id="view_archive_tag_state_graph" model="ir.ui.view">
-    <field name="name">step.agriculture.archive.tag.state.graph</field>
-    <field name="model">step.agriculture.archive.tag.state</field>
+  <record id="view_harvest_tag_state_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.state.graph</field>
+    <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <graph string="Estados históricos de tarja" />
+      <graph string="Estados de tarja de cosecha" />
     </field>
   </record>
-  <record id="view_archive_tag_state_pivot" model="ir.ui.view">
-    <field name="name">step.agriculture.archive.tag.state.pivot</field>
-    <field name="model">step.agriculture.archive.tag.state</field>
+  <record id="view_harvest_tag_state_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.state.pivot</field>
+    <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <pivot string="Estados históricos de tarja" />
+      <pivot string="Estados de tarja de cosecha" />
     </field>
   </record>
   <record id="view_harvest_forecast_list" model="ir.ui.view">
@@ -3276,6 +3273,16 @@
             <field name="agriculture_inspection_count" widget="statinfo" string="Inspecciones" />
           </button>
         </div>
+      </xpath>
+    </field>
+  </record>
+  <record id="view_product_labor_group_requirement" model="ir.ui.view">
+    <field name="name">product.template.labor.group.requirement</field>
+    <field name="model">product.template</field>
+    <field name="inherit_id" ref="step_hr.step_view_product_template_form" />
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='grupo_labor']" position="attributes">
+        <attribute name="required">is_labor</attribute>
       </xpath>
     </field>
   </record>

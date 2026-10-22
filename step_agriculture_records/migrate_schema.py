@@ -258,20 +258,7 @@ def finalize(cr):
                            (sequence, kind, views[kind], action))
             cr.execute('UPDATE ir_act_window SET view_id=%s,search_view_id=%s,view_mode=%s WHERE id=%s',
                        (views[modes[0]], views['search'], ','.join(modes), action))
-    policy = SCHEMA.TAG_STATE_POLICY
-    if policy is not None:
-        assert set(policy) == {'V', 'R', 'D', 'P', 'N'}
-        for legacy_code, native_code in policy.items():
-            cr.execute('SELECT id FROM step_packing_tag_state WHERE code=%s', (native_code,))
-            matches = cr.fetchall()
-            assert len(matches) == 1, ('Ambiguous canonical tag-state code', native_code)
-            cr.execute('UPDATE step_agriculture_harvest_tag t SET tag_state_id=%s '
-                       'FROM step_agriculture_archive_tag_state s '
-                       'WHERE t.legacy_tag_state_id=s.id AND s.code=%s AND t.tag_state_id IS NULL',
-                       (matches[0][0], legacy_code))
-        cr.execute('SELECT count(*) FROM step_agriculture_harvest_tag WHERE legacy_tag_state_id IS NOT NULL AND tag_state_id IS NULL')
-        assert cr.fetchone()[0] == 0, 'Unmapped historical tag states'
-    return {'native_action_views': True, 'tag_state_policy_resolved': policy is not None}
+    return {'native_action_views': True, 'original_tag_states_preserved': True}
 
 
 def snapshot(cr, baseline=None):

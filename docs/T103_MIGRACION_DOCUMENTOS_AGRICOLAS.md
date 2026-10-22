@@ -30,22 +30,28 @@ y adjuntos. Los campos relacionados que ya no existían en el registro original
 se conservan como declaraciones inactivas de cálculo, sin inventar valores ni
 exponerlos en los nuevos formularios.
 
+Los valores históricos ausentes permanecen ausentes. En particular, el consumo
+por hora conserva su obligatoriedad en el formulario sin forzar valores sobre
+los documentos anteriores. La clasificación de grupo de labor sigue siendo
+obligatoria en el formulario de labores; los productos que no son labores
+pueden conservar su clasificación vacía, igual que antes de la conversión.
+
 Se incorporó al repositorio el puente `step_bpa_inventory` encontrado instalado
 en Desarrollo, incluyendo sus pruebas; sus movimientos, cantidades y distribución
 por hectáreas se conservan al actualizar las referencias. No se reemplazan las
 raíces compartidas de addons. Los accesos de T100, T101 y T102 deben seguir
 funcionando después de actualizar Cosecha y sus dependencias.
 
-## Decisión pendiente sobre estados
+## Estados originales
 
-Los estados históricos de tarja tienen códigos V, R, D, P y N. El maestro
-operativo de Packing usa códigos diferentes. Se conservará el catálogo antiguo
-como referencia histórica de solo lectura y la selección operativa usará el
-maestro de Packing existente. Falta la respuesta humana que defina si
-«Vigente» equivale a «Creada» o «Validada», y confirme el resto de equivalencias
-propuestas. `TAG_STATE_POLICY = None` impide publicar el paquete mientras esa
-decisión esté pendiente. Una prueba preliminar sin esa política no acredita la
-entrega final; al incorporarla se exige una copia fresca del paquete resultante.
+Los estados de tarja de cosecha conservan sus códigos V, R, D, P y N, sus filas,
+sus IDs y las relaciones de cada registro. Su tabla preexistente se convierte
+en `step.agriculture.harvest.tag.state`, sin copiarla ni crear otro maestro.
+El ciclo de Packing usa códigos diferentes y no se reinterpreta el significado
+de «Vigente» al convertir los documentos. La equivalencia consultada al usuario
+queda como una posible unificación posterior, ajena a la entrega de conversión.
+La publicación exige las pruebas funcionales completas del paquete final en
+una copia fresca y la comparación de los datos originales.
 
 Adjuntos, inventarios, código original recuperado, respaldos y resultados se
 guardan en los artefactos privados de T103, fuera de Git. No se publican datos
