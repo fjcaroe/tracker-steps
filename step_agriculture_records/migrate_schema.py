@@ -107,6 +107,7 @@ def prepare(cr):
     catalog = field_catalog(cr)
     present = {model for model, name in catalog}
     preserve_existing_access(cr)
+    preserve_existing_audit(cr)
     for old in MODELS:
         seen = {name for model, name in catalog if model == old and name.startswith('x_')}
         # Cerro's seven native BPA models contain an audited subset of the
@@ -345,8 +346,49 @@ def rewrite_foreign_views(cr, catalog):
             cr.execute('UPDATE ir_ui_view SET arch_db=%s::jsonb WHERE id=%s', (json.dumps(result), ident))
 
 
-def finalize(cr):
+def preserve_existing_audit(cr):
+    """Keep original modification stamps when a registry rebuild writes them."""
+    plan = {}
+    for old, new in MODELS.items():
+        table = table_name(old) if exists(cr, table_name(old)) else table_name(new)
+        if not exists(cr, table) or not column_exists(cr, table, 'write_date'):
+            continue
+        cr.execute("SELECT column_name FROM information_schema.columns WHERE table_schema='public' "
+                   'AND table_name=%s ORDER BY ordinal_position', (table,))
+        columns = [row[0] for row in cr.fetchall() if row[0] not in ('write_uid', 'write_date')]
+        baseline = {table_name(old): {'columns': columns}}
+        content = snapshot(cr, baseline)[table_name(old)]
+        cr.execute(sql.SQL('SELECT id,write_uid,write_date::text FROM {} ORDER BY id').format(sql.Identifier(table)))
+        plan[old] = {'content': content, 'stamps': cr.fetchall()}
+    cr.execute('INSERT INTO ir_config_parameter(key,value) VALUES(%s,%s) '
+               'ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value',
+               (MODULE + '.migration_audit', json.dumps(plan)))
+
+
+def restore_existing_audit(cr):
+    cr.execute('SELECT value FROM ir_config_parameter WHERE key=%s', (MODULE + '.migration_audit',))
+    row = cr.fetchone()
+    if not row:
+        return
+    plan = json.loads(row[0])
+    # Check every original non-audit value, including IDs and creation stamps,
+    # before restoring any modification stamp. Never conceal changed content.
+    for old, original in plan.items():
+        logical = table_name(old)
+        assert snapshot(cr, {logical: original['content']})[logical] == original['content'], (
+            'Historical content changed; refusing audit restoration', old)
+    for old, original in plan.items():
+        table = sql.Identifier(table_name(MODELS[old]))
+        for ident, user, date in original['stamps']:
+            cr.execute(sql.SQL('UPDATE {} SET write_uid=%s,write_date=%s WHERE id=%s '
+                       'AND (write_uid,write_date) IS DISTINCT FROM (%s,%s::timestamp)').format(table),
+                       (user, date, ident, user, date))
+
+
+def finalize(cr, preserve_audit=True):
     restore_existing_access(cr)
+    if preserve_audit:
+        restore_existing_audit(cr)
     # Every original menu/action now resolves to versioned native views,
     # including direct bookmarks and old chart/report actions.
     for old, model in MODELS.items():

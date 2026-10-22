@@ -4,7 +4,8 @@ from odoo.tests.common import new_test_user
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.addons.step_management_costs.tests.test_management_costs import make_center
 from odoo.addons.step_agriculture_records.schema import MODELS, TAG_STATE_POLICY, TAG_STATE_CODES
-from odoo.addons.step_agriculture_records.migrate_schema import unify_tag_rows
+from odoo.addons.step_agriculture_records.migrate_schema import (
+    unify_tag_rows, preserve_existing_audit, restore_existing_audit)
 from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
 
 
@@ -23,6 +24,21 @@ def assert_fields(case, model, node):
 
 @tagged('post_install', '-at_install')
 class AgricultureRecordsCase(TransactionCase):
+    def test_audit_stamps_restore_only_when_original_content_matches(self):
+        record = self.env['step.agriculture.application'].create({'name': 'QA T103 auditoría'})
+        self.env.flush_all()
+        preserve_existing_audit(self.env.cr)
+        self.env.cr.execute('SELECT write_uid,write_date FROM step_agriculture_application WHERE id=%s', (record.id,))
+        original = self.env.cr.fetchone()
+        self.env.cr.execute("UPDATE step_agriculture_application SET write_uid=%s,write_date='2020-01-01' WHERE id=%s",
+                            (self.env.ref('base.user_admin').id, record.id))
+        restore_existing_audit(self.env.cr)
+        self.env.cr.execute('SELECT write_uid,write_date FROM step_agriculture_application WHERE id=%s', (record.id,))
+        self.assertEqual(self.env.cr.fetchone(), original)
+        self.env.cr.execute("UPDATE step_agriculture_application SET name='QA contenido cambiado' WHERE id=%s", (record.id,))
+        with self.assertRaises(AssertionError):
+            restore_existing_audit(self.env.cr)
+
     def test_native_models_views_and_document_roundtrip(self):
         for model in MODELS.values():
             with self.subTest(model=model):

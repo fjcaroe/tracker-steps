@@ -19,4 +19,6 @@ def post_init_hook(env):
             sequence = env['ir.sequence'].create({'name': env[MODELS[old]]._description,
                 'code': code, 'prefix': MODELS[old].split('.')[-1].upper() + '/%(year)s/',
                 'padding': 5, 'company_id': False})
-    finalize(env.cr)
+    # Dependent modules may still rebuild stored fields after post-init.
+    # The publisher restores audit stamps after the full registry/test cycle.
+    finalize(env.cr, preserve_audit=False)

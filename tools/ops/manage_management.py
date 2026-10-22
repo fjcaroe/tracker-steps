@@ -547,7 +547,15 @@ def main():
         qa_options += ['--http-port=' + str(private_port), '--db-filter=^' + qa_db + '$']
         query(qa_db, "UPDATE ir_config_parameter SET value='http://127.0.0.1:%s' WHERE key='web.base.url'" % private_port)
         print('MANAGEMENT_QA_BEGIN ' + json.dumps({'database': qa_db, 'log': str(log), 'commit': proof['commit']}), flush=True)
-        tags = ','.join('/' + name for name in [*update, *install])
+        test_modules = [*update, *install]
+        if args.kind == 'agriculture-records':
+            # Always exercise the complete 33-model migration/form suite.
+            # Other module suites need repeating when their actual source
+            # changes from the destination, not just its overlay directory.
+            test_modules = [name for name in test_modules if name == 'step_agriculture_records'
+                or name in install or tree_hash(staged / name) != baseline['modules'][name]['sha256']]
+        tags = ','.join('/' + name for name in test_modules)
+        print('MANAGEMENT_TEST_SCOPE ' + json.dumps(test_modules), flush=True)
         init_options = ['-i', ','.join(install)] if install else []
         update_options = ['-u', ','.join(update)] if update else []
         if args.kind == 'agriculture-records':
