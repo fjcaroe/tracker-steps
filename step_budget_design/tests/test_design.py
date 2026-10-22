@@ -4,11 +4,14 @@ import openpyxl
 from lxml import etree
 from odoo import Command
 from odoo.exceptions import UserError,ValidationError
-from odoo.tests.common import TransactionCase,new_test_user
+from odoo.tests.common import TransactionCase,new_test_user,tagged
 from ..models.excel import ExcelValues
 from ..models.template import season_months
 
 
+# The role test resolves menus across installed applications. Run after the
+# entire registry is loaded, including applications outside this package.
+@tagged('post_install', '-at_install')
 class BudgetDesignCase(TransactionCase):
     def sample(self):
         env=self.env(context=dict(self.env.context,tracking_disable=True,mail_create_nosubscribe=True,no_reset_password=True))

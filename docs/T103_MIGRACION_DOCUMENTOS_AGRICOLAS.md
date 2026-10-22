@@ -74,3 +74,11 @@ centros de costo, permisos de un administrador agrícola, folios y cálculo de
 aplicaciones, consumo de inventario y la generación de una restricción
 fitosanitaria desde una aplicación real que impide aprobar la cosecha.
 Se ejecutaron también las pruebas de Cosecha, BPA y presupuestos del paquete.
+
+La revisión del navegador detectó que el despachador de botones de Odoo mezcla
+nuevamente el contexto del directorio después de recibir la acción Python.
+Por eso la acción declara explícitamente las banderas de creación, edición y
+borrado según los ACL del modelo de destino; omitir las claves no basta para
+eliminar el bloqueo del directorio. No se amplían grupos ni permisos.
+Las actualizaciones posteriores reutilizan las referencias ya adoptadas y
+comprueban su existencia, sin depender de los XMLID antiguos de Studio.
