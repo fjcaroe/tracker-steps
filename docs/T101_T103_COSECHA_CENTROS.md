@@ -83,7 +83,10 @@ acredita su conversión a código.
 
 El usuario eligió convertir también los documentos y formularios antiguos.
 La implementación y la conservación de los estados originales están
-en `docs/T103_MIGRACION_DOCUMENTOS_AGRICOLAS.md`. T103 continúa abierto hasta
-terminar y comprobar la migración.
+en `docs/T103_MIGRACION_DOCUMENTOS_AGRICOLAS.md`. La conversión, incluida la
+equivalencia de estados confirmada por el usuario, fue publicada y comprobada
+en Desarrollo. T103 quedó cerrado con nota interna silenciosa 9597 después de
+55 pruebas, comparación de preservación y verificación de formularios y flujo
+real en el navegador.
 El inventario detallado y los adjuntos se conservan fuera de Git, en los
 artefactos privados de la tarea.

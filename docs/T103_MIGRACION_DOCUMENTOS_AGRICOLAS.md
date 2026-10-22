@@ -1,7 +1,7 @@
 # T103: conversión de documentos agrícolas
 
-Estado: implementación y validación en curso; sin publicación ni cierre del
-ticket. El usuario eligió convertir también los registros y formularios
+Estado: convertido, publicado y verificado en Desarrollo; T103 cerrado con
+nota interna silenciosa 9597. El usuario eligió convertir también los registros y formularios
 históricos. El destino de esta migración es **Desarrollo**; no habilita una
 promoción a Cerro El Plomo ni a las otras producciones.
 
@@ -67,7 +67,7 @@ de documentos ni credenciales.
 
 ## Paquete y validación
 
-Paquete inmutable: `c66f89938d8dac6d7c2acbdcf78418929d1fc1e1`.
+Conversión inicial: `c66f89938d8dac6d7c2acbdcf78418929d1fc1e1`.
 SHA-256: `0b2a6f440350191de169af0c65c587b1177200fbae9910fd1fb978e02b16c175`.
 La copia fresca `MANAGEMENT_QA_DEVELOPMENT_t103qa3` pasó 54 pruebas, sin
 fallos ni errores. Se compararon los datos originales, relaciones, tablas
@@ -90,3 +90,41 @@ borrado según los ACL del modelo de destino; omitir las claves no basta para
 eliminar el bloqueo del directorio. No se amplían grupos ni permisos.
 Las actualizaciones posteriores reutilizan las referencias ya adoptadas y
 comprueban su existencia, sin depender de los XMLID antiguos de Studio.
+
+Paquete final con la equivalencia autorizada:
+`9f7935209ff1eecd0ac44bd968cd6aa88e13975f`.
+SHA-256: `a78a43f4bcaf73cc22a1212f014d0a682bfe2bfbdad17879348446da4e9e958e`.
+La copia fresca `MANAGEMENT_QA_DEVELOPMENT_t103qa6` pasó **55 pruebas**, sin
+fallos ni errores de pruebas. La comparación de preservación volvió a ser
+idéntica. Se enlazaron las siete tarjas históricas al maestro existente,
+conservando sus referencias originales y sin crear estados nuevos. Las pruebas
+recorren los cinco códigos autorizados, comprueban el cambio posterior del
+estado operativo conservando el original, la inmutabilidad del histórico y el
+rechazo de un estado que pertenece a otra empresa.
+
+La prueba de menús de Presupuestos se ejecuta después de cargar el registro
+completo, porque consulta otras aplicaciones instaladas. Conserva todas sus
+comprobaciones; no se ignoran errores de modelos ausentes ni se reduce la suite.
+
+## Entrega comprobada
+
+Se publicó el mismo paquete final probado en Desarrollo, usando el bloqueo
+compartido y un overlay privado. Respaldo final:
+`/opt/steps_backups/management_development_20261022T021446Z`.
+La conversión inicial conserva además el respaldo
+`/opt/steps_backups/management_development_20261022T014916Z`.
+La comparación de preservación en el destino real fue idéntica y el sondeo
+comprobó las versiones y rutas efectivas de los ocho addons del paquete.
+
+En el navegador autenticado se verificaron el acceso desde Gestión y Costos,
+los trece botones y sus contadores, los pronósticos filtrados y el formulario
+nuevo con el centro de costo correcto. Ese formulario se descartó. Se abrieron
+cosechas históricas con sus líneas, cantidades, maestros e historial; las
+tarjas muestran «Validada» y la columna histórica permite consultar «Vigente».
+Se restauró la preferencia inicial de columnas. También se recorrió una línea
+de maquinaria de aplicación hasta su documento padre con productos e historial.
+Los documentos existentes permiten edición conforme a sus permisos.
+
+El registro de entrega comprobó que no hubiera respuestas humanas nuevas sin
+leer, SLA ni automatizaciones de Helpdesk activas. La nota 9597 y el cierre en
+estado Solved no generaron registros de `mail.notification` ni `mail.mail`.
