@@ -6,6 +6,25 @@ from odoo.addons.step_cosecha_operations.hooks import migrate_contractor_form
 
 @tagged('post_install', '-at_install')
 class HarvestOperationsCase(TransactionCase):
+    def test_native_master_navigation_and_edit(self):
+        manager = new_test_user(self.env, login='qa_t101',
+                                groups='base.group_user,step_management_costs.group_management_manager')
+        visible = self.env['ir.ui.menu'].with_user(manager)._visible_menu_ids()
+        for key in ('fruit_class', 'tag_state', 'tag_type'):
+            menu = self.env.ref('step_cosecha_operations.menu_' + key)
+            self.assertIn(menu.id, visible)
+            model = self.env[menu.action.res_model].with_user(manager)
+            with Form(model) as f:
+                f.name = 'QA T101 master'
+                f.code = 'QA101'
+                if key == 'fruit_class':
+                    f.category_id = self.env['step.management.fruit.category'].create({
+                        'name': 'QA T101 category', 'code': 'QA101', 'company_id': manager.company_id.id})
+            record = f.record
+            with Form(record) as f:
+                f.name = 'QA T101 edited'
+            self.assertEqual(model.browse(record.id).name, 'QA T101 edited')
+
     def test_contractor_crew_and_harvest_roundtrip(self):
         user = new_test_user(self.env, login='qa_t102', groups='base.group_user,hr.group_hr_user')
         partner = self.env['res.partner'].create({'name': 'QA contractor', 'step_contra': True})
