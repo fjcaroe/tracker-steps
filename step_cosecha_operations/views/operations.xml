@@ -1,0 +1,25 @@
+<odoo>
+    <record id="step_cosecha.menu_step_cosecha_proceso" model="ir.ui.menu">
+        <field name="parent_id" ref="step_cosecha.menu_step_cosecha_recepcion"/>
+    </record>
+    <menuitem id="menu_fruit_class" name="Clase de fruta" parent="step_cosecha.menu_step_cosecha_config" action="step_management_costs.action_fruit_class" sequence="70"/>
+    <menuitem id="menu_tag_state" name="Estado de tarja" parent="step_cosecha.menu_step_cosecha_config" action="step_packing.action_step_packing_tag_state" sequence="80"/>
+    <menuitem id="menu_tag_type" name="Tipo de tarja" parent="step_cosecha.menu_step_cosecha_config" action="step_packing.action_step_packing_tag_type" sequence="90"/>
+
+    <record id="view_contractor_crew" model="ir.ui.view">
+        <field name="name">hr.salary.custom.contractor.header</field>
+        <field name="model">hr.salary.custom</field>
+        <field name="inherit_id" ref="step_hr.view_hr_salary_custom_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/group/group/field[@name='partner_id']" position="attributes">
+                <attribute name="invisible">group_type != 'contratista'</attribute>
+                <attribute name="required">group_type == 'contratista'</attribute>
+                <attribute name="domain">[('step_contra', '=', True)]</attribute>
+            </xpath>
+            <xpath expr="//field[@name='contract_line']/list/field[@name='partner_id']" position="replace"/>
+            <xpath expr="//field[@name='contract_line']/list/field[@name='employee_id']" position="attributes">
+                <attribute name="domain">[('is_contratista', '=', True), ('contratista_id', '=', parent.partner_id)]</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
