@@ -1,0 +1,5 @@
+<odoo>
+    <menuitem id="menu_export_seasons" name="Temporadas" parent="step_export.menu_step_export_config" action="step_hr.action_step_temporada" sequence="5"/>
+    <menuitem id="menu_packing_seasons" name="Temporadas" parent="step_packing.menu_packing_fruta_config" action="step_hr.action_step_temporada" sequence="5"/>
+    <menuitem id="menu_producer_seasons" name="Temporadas" parent="step_producers.menu_step_producers_config_group" action="step_hr.action_step_temporada" sequence="5"/>
+</odoo>
