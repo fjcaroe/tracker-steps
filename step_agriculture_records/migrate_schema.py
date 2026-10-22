@@ -67,8 +67,16 @@ def adopt(cr, xmlid, name):
     old_module, old_name = xmlid.split('.', 1)
     alias(cr, name, *found)
     if old_module != MODULE:
+        legacy = 'legacy_' + old_module + '_' + old_name
+        previous = reference(cr, MODULE + '.' + legacy)
+        if previous:
+            # Odoo can regenerate a module's native model/field XMLID during
+            # registry reflection. Reuse the already adopted identity on a
+            # later upgrade; never overwrite or duplicate the adopted XMLID.
+            assert previous == found, ('Conflicting prior adoption', xmlid)
+            return
         cr.execute('UPDATE ir_model_data SET module=%s,name=%s,noupdate=TRUE WHERE module=%s AND name=%s',
-                   (MODULE, 'legacy_' + old_module + '_' + old_name, old_module, old_name))
+                   (MODULE, legacy, old_module, old_name))
 
 
 def field_catalog(cr):
