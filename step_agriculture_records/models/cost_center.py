@@ -79,6 +79,11 @@ class CostCenter(models.Model):
         context = {key: value for key, value in self.env.context.items()
                    if key not in inherited and not key.startswith(('default_', 'search_default_'))}
         context['default_' + relation] = default
+        # Odoo's object-button dispatcher merges the parent context again
+        # after this method returns. Override those flags explicitly using
+        # the destination ACLs; omitting them leaves the directory read-only.
+        context.update(create=model.has_access('create'), edit=model.has_access('write'),
+                       delete=model.has_access('unlink'))
         action = {'type': 'ir.actions.act_window', 'name': label, 'res_model': model_name,
                   'view_mode': 'list,form', 'domain': [(relation, '=', self.id)],
                   'context': context}

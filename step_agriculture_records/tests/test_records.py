@@ -67,7 +67,9 @@ class AgricultureRecordsCase(TransactionCase):
                                               edit=False, delete=False,
                                               form_view_ref='step_hr.step_view_account_analytic_account_form')
         document_action = from_directory.action_agriculture_activity()
-        self.assertFalse({'create', 'edit', 'delete', 'form_view_ref'} & set(document_action['context']))
+        self.assertNotIn('form_view_ref', document_action['context'])
+        for flag, operation in [('create', 'create'), ('edit', 'write'), ('delete', 'unlink')]:
+            self.assertEqual(document_action['context'][flag], forecast.has_access(operation))
         self.assertEqual(document_action['context']['default_cost_center_id'], first.id)
         for key, (_, model, relation) in ACTIVITIES.items():
             if not self.env[model].with_user(user).has_access('read'):

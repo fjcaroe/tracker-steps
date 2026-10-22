@@ -57,6 +57,12 @@ def alias(cr, name, model, res_id):
 
 def adopt(cr, xmlid, name):
     found = reference(cr, xmlid)
+    if not found:
+        # The source XMLID was adopted by a previous release. A later native
+        # update must verify/reuse that identity rather than require Studio.
+        found = reference(cr, MODULE + '.' + name)
+        assert found, ('Missing audited metadata and adopted identity', xmlid)
+        return
     assert found, ('Missing audited metadata', xmlid)
     old_module, old_name = xmlid.split('.', 1)
     alias(cr, name, *found)

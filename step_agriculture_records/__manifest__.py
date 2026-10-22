@@ -1,6 +1,6 @@
 {
     'name': 'Steps - Documentos agrícolas y centros de costos',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.1',
     'license': 'LGPL-3',
     'depends': ['step_cosecha_operations', 'step_machinery', 'step_packing',
                 'step_management_costs_agriculture'],

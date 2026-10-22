@@ -56,3 +56,21 @@ una copia fresca y la comparación de los datos originales.
 Adjuntos, inventarios, código original recuperado, respaldos y resultados se
 guardan en los artefactos privados de T103, fuera de Git. No se publican datos
 de documentos ni credenciales.
+
+## Paquete y validación
+
+Paquete inmutable: `c66f89938d8dac6d7c2acbdcf78418929d1fc1e1`.
+SHA-256: `0b2a6f440350191de169af0c65c587b1177200fbae9910fd1fb978e02b16c175`.
+La copia fresca `MANAGEMENT_QA_DEVELOPMENT_t103qa3` pasó 54 pruebas, sin
+fallos ni errores. Se compararon los datos originales, relaciones, tablas
+intermedias e históricos; la comparación resultó idéntica normalizando
+solamente los nombres convertidos. La verificación efectiva comprobó los
+33 modelos nativos, sus cinco vistas y los trece botones de centros de costo.
+La auditoría de precisión confirmó que los dos costos relacionados con
+`standard_price` conservan `Product Price` por herencia.
+
+Las pruebas incluyen creación y reapertura de formularios, filtrado entre dos
+centros de costo, permisos de un administrador agrícola, folios y cálculo de
+aplicaciones, consumo de inventario y la generación de una restricción
+fitosanitaria desde una aplicación real que impide aprobar la cosecha.
+Se ejecutaron también las pruebas de Cosecha, BPA y presupuestos del paquete.
