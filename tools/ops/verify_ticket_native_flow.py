@@ -6,7 +6,16 @@ copy; this probe never creates payments, seasons or documents in production.
 """
 import json
 from lxml import etree
-from odoo.tests import Form
+from odoo.tools import config
+
+# This dedicated shell process is explicitly checking forms. Import the test
+# helper in test mode; do not emit Odoo's accidental-business-import warning.
+previous_test_mode = config['test_enable']
+config['test_enable'] = True
+try:
+    from odoo.tests import Form
+finally:
+    config['test_enable'] = previous_test_mode
 
 try:
     user = env.ref('base.user_admin')
@@ -61,7 +70,14 @@ try:
                 assert action['res_model'] == model and action['domain'] == [(relation, '=', center.id)]
                 scoped[model].search(action['domain'], limit=1).web_read({'display_name': {}})
                 checked += 1
-        assert checked == 13
+        assert checked == len(ACTIVITIES)
+        # Plaga is the thirteenth button: a distinct label/context over the
+        # monitoring relation, rather than a thirteenth duplicated model.
+        pest = center.with_context(agriculture_activity='monitoring', agriculture_pest_view=True).action_agriculture_activity()
+        assert pest['res_model'] == 'step.agriculture.monitoring.line'
+        assert pest['domain'] == [('cost_center_id', '=', center.id)]
+        scoped[pest['res_model']].search(pest['domain'], limit=1).web_read({'display_name': {}})
+        checked += 1
         application = scoped['step.agriculture.application'].search([], limit=1)
         if application:
             application.web_read({'name': {}, 'company_id': {}})
