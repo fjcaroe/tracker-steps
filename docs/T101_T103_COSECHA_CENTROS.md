@@ -27,6 +27,15 @@ reapertura, aprobación y retorno a Ingresado. La sonda comprueba rutas/versione
 menús, campos de subformularios y lectura de registros existentes mediante
 el serializador del cliente web. Todos los datos de prueba se revierten.
 
+Paquete funcional probado: commit
+`86ed636fe69cd7bf53b26264e20dfd0b10836978`, SHA-256
+`79eb9943ea723182d9e3251e00b0930a526ed68cc62ed0ce595b692f60fe6b5e`.
+Las copias frescas `t101qa3` (Desarrollo) y `t101ce1` (Cerro) pasaron las
+tres pruebas, sin fallos ni errores; ambas sondas confirmaron conservación
+de registros, formularios efectivos y maestros nativos. El error de apertura
+original también se reprodujo en el navegador autenticado de Desarrollo:
+`"hr.employee"."firstname" field is undefined`.
+
 ## T103: decisión funcional pendiente
 
 El adjunto muestra trece botones, incluidos los del desbordamiento «Más».
