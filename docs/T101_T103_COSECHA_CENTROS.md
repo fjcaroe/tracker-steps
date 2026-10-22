@@ -54,7 +54,7 @@ registrador comprobó ausencia de respuestas nuevas, SLA y automatizaciones
 antes del cambio de etapa, y ausencia de correos y notificaciones después.
 T103 permanece abierto, sin sustituir sus formularios históricos.
 
-## T103: decisión funcional pendiente
+## T103: conversión de históricos autorizada
 
 El adjunto muestra trece botones, incluidos los del desbordamiento «Más».
 El inventario de Desarrollo distingue:
@@ -81,8 +81,9 @@ líneas, relaciones con maestros, automatizaciones, permisos y datos históricos
 Un contenedor de botones que siga dependiendo de esos modelos manuales no
 acredita su conversión a código.
 
-Se consultó al usuario si quiere navegar a las operaciones actuales conservando
-los anteriores como históricos, o convertir también los documentos antiguos.
-Hasta resolver esa elección no se reemplazan destinos ni se cierra T103.
+El usuario eligió convertir también los documentos y formularios antiguos.
+La implementación y la decisión pendiente sobre equivalencias de estados están
+en `docs/T103_MIGRACION_DOCUMENTOS_AGRICOLAS.md`. T103 continúa abierto hasta
+terminar y comprobar la migración.
 El inventario detallado y los adjuntos se conservan fuera de Git, en los
 artefactos privados de la tarea.

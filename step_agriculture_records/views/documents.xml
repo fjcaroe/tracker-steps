@@ -1,0 +1,3282 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="view_inspection_list" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.list</field>
+    <field name="model">step.agriculture.inspection</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Inspecciones internas">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="asignado_a_id" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="date" optional="show" />
+        <field name="fecha_a_ejecutar" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="responsable_id" optional="hide" />
+        <field name="sector_riego_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="state" optional="show" />
+      </list>
+    </field>
+  </record>
+  <record id="view_inspection_form" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.form</field>
+    <field name="model">step.agriculture.inspection</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Inspecciones internas">
+        <header>
+          <field name="state" widget="statusbar" options="{'clickable': True}" />
+        </header>
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Inspecciones internas</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="cost_center_id" />
+              <field name="fecha_a_ejecutar" />
+              <field name="responsable_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="asignado_a_id" />
+              <field name="date" />
+              <field name="fundo_id" />
+              <field name="sector_riego_id" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_instruccin" string="Instrucción">
+              <field name="instruccin" nolabel="1" />
+            </page>
+            <page name="page_instructions_html" string="Instrucciones">
+              <field name="instructions_html" nolabel="1" />
+            </page>
+            <page name="page_line_ids" string="Detalle de inspección">
+              <field name="line_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_observaciones" string="Observaciones">
+              <field name="observaciones" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_inspection_search" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.search</field>
+    <field name="model">step.agriculture.inspection</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Inspecciones internas">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <field name="fundo_id" />
+        <field name="state" />
+        <filter name="group_cost_center_id" string="Centro costos" context="{'group_by': 'cost_center_id'}" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+        <filter name="group_state" string="Estado" context="{'group_by': 'state'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_inspection_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.graph</field>
+    <field name="model">step.agriculture.inspection</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Inspecciones internas">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_inspection_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.pivot</field>
+    <field name="model">step.agriculture.inspection</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Inspecciones internas">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_irrigation_sector_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.sector.list</field>
+    <field name="model">step.agriculture.irrigation.sector</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Sectores de riego">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cdigo_sdp" optional="hide" />
+        <field name="company_id" optional="show" />
+        <field name="fuente_de_agua" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="hs_disponibles" optional="hide" />
+        <field name="hs_otros_usos" optional="hide" />
+        <field name="hs_plantadas" optional="hide" />
+        <field name="irrigation_system" optional="hide" />
+        <field name="legacy_active" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="sistema_de_riego" optional="hide" />
+        <field name="soil_type" optional="hide" />
+        <field name="tipo_de_suelo" optional="hide" />
+        <field name="total_hs" optional="hide" />
+        <field name="uso_del_sueldo" optional="hide" />
+        <field name="water_source" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_sector_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.sector.form</field>
+    <field name="model">step.agriculture.irrigation.sector</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Sectores de riego">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Sectores de riego</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="company_id" />
+              <field name="fundo_id" />
+              <field name="hs_otros_usos" />
+              <field name="irrigation_system" />
+              <field name="sequence" />
+              <field name="soil_type" />
+              <field name="total_hs" />
+              <field name="water_source" />
+            </group>
+            <group>
+              <field name="cdigo_sdp" />
+              <field name="fuente_de_agua" />
+              <field name="hs_disponibles" />
+              <field name="hs_plantadas" />
+              <field name="legacy_active" />
+              <field name="sistema_de_riego" />
+              <field name="tipo_de_suelo" />
+              <field name="uso_del_sueldo" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_valve_ids" string="Válvulas de riego">
+              <field name="valve_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="cc_id" />
+                  <field name="cuartel_id" />
+                  <field name="cost_center_id" />
+                  <field name="lts_por_minuto" />
+                  <field name="related_sector_id" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_sector_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.sector.search</field>
+    <field name="model">step.agriculture.irrigation.sector</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Sectores de riego">
+        <field name="name" />
+        <field name="fundo_id" />
+        <field name="company_id" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_sector_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.sector.graph</field>
+    <field name="model">step.agriculture.irrigation.sector</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Sectores de riego">
+        <field name="fundo_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_irrigation_sector_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.sector.pivot</field>
+    <field name="model">step.agriculture.irrigation.sector</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Sectores de riego">
+        <field name="fundo_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_irrigation_valve_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.valve.list</field>
+    <field name="model">step.agriculture.irrigation.valve</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Válvulas de riego">
+        <field name="name" optional="show" />
+        <field name="cc_id" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="cuartel_id" optional="hide" />
+        <field name="lts_por_minuto" optional="hide" />
+        <field name="related_sector_id" optional="hide" />
+        <field name="sector_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_valve_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.valve.form</field>
+    <field name="model">step.agriculture.irrigation.valve</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Válvulas de riego">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Válvulas de riego</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="cc_id" />
+              <field name="cuartel_id" />
+              <field name="related_sector_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="cost_center_id" />
+              <field name="lts_por_minuto" />
+              <field name="sector_id" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_valve_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.valve.search</field>
+    <field name="model">step.agriculture.irrigation.valve</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Válvulas de riego">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <filter name="group_cost_center_id" string="Centro costos" context="{'group_by': 'cost_center_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_valve_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.valve.graph</field>
+    <field name="model">step.agriculture.irrigation.valve</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Válvulas de riego">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_irrigation_valve_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.valve.pivot</field>
+    <field name="model">step.agriculture.irrigation.valve</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Válvulas de riego">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_inspection_line_list" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.line.list</field>
+    <field name="model">step.agriculture.inspection.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Detalle de inspección">
+        <field name="name" optional="show" />
+        <field name="inspection_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_inspection_line_form" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.line.form</field>
+    <field name="model">step.agriculture.inspection.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Detalle de inspección">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Detalle de inspección</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="inspection_id" />
+            </group>
+            <group>
+              <field name="sequence" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_inspection_line_search" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.line.search</field>
+    <field name="model">step.agriculture.inspection.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Detalle de inspección">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_inspection_line_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.line.graph</field>
+    <field name="model">step.agriculture.inspection.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Detalle de inspección" />
+    </field>
+  </record>
+  <record id="view_inspection_line_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.inspection.line.pivot</field>
+    <field name="model">step.agriculture.inspection.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Detalle de inspección" />
+    </field>
+  </record>
+  <record id="view_advisory_list" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.list</field>
+    <field name="model">step.agriculture.advisory</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Asesorías externas">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="actividad_id" optional="hide" />
+        <field name="aprobador_id" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="date" optional="show" />
+        <field name="descripcin" optional="hide" />
+        <field name="fecha_a_ejecutar" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="nombre_asesor_id" optional="hide" />
+        <field name="responsable_de_ejecutar_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="species_id" optional="hide" />
+        <field name="state" optional="show" />
+      </list>
+    </field>
+  </record>
+  <record id="view_advisory_form" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.form</field>
+    <field name="model">step.agriculture.advisory</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Asesorías externas">
+        <header>
+          <field name="state" widget="statusbar" options="{'clickable': True}" />
+        </header>
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Asesorías externas</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="aprobador_id" />
+              <field name="date" />
+              <field name="fecha_a_ejecutar" />
+              <field name="nombre_asesor_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="actividad_id" />
+              <field name="cost_center_id" />
+              <field name="descripcin" />
+              <field name="fundo_id" />
+              <field name="responsable_de_ejecutar_id" />
+              <field name="species_id" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_instructions_html" string="Instrucciones">
+              <field name="instructions_html" nolabel="1" />
+            </page>
+            <page name="page_line_ids" string="Recomendaciones de asesoría">
+              <field name="line_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="dosis_por_ha" />
+                  <field name="labor_tarea_id" />
+                  <field name="producto_agrcola_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="active_ingredient_id" />
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_advisory_search" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.search</field>
+    <field name="model">step.agriculture.advisory</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Asesorías externas">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <field name="fundo_id" />
+        <field name="state" />
+        <filter name="group_cost_center_id" string="Centro costo" context="{'group_by': 'cost_center_id'}" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+        <filter name="group_state" string="Estado" context="{'group_by': 'state'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_advisory_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.graph</field>
+    <field name="model">step.agriculture.advisory</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Asesorías externas">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_advisory_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.pivot</field>
+    <field name="model">step.agriculture.advisory</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Asesorías externas">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_advisory_line_list" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.line.list</field>
+    <field name="model">step.agriculture.advisory.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Recomendaciones de asesoría">
+        <field name="name" optional="show" />
+        <field name="active_ingredient_id" optional="hide" />
+        <field name="advisory_id" optional="hide" />
+        <field name="dosis_por_ha" optional="hide" />
+        <field name="labor_tarea_id" optional="hide" />
+        <field name="producto_agrcola_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_advisory_line_form" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.line.form</field>
+    <field name="model">step.agriculture.advisory.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Recomendaciones de asesoría">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Recomendaciones de asesoría</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active_ingredient_id" />
+              <field name="dosis_por_ha" />
+              <field name="producto_agrcola_id" />
+            </group>
+            <group>
+              <field name="advisory_id" />
+              <field name="labor_tarea_id" />
+              <field name="sequence" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_advisory_line_search" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.line.search</field>
+    <field name="model">step.agriculture.advisory.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Recomendaciones de asesoría">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_advisory_line_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.line.graph</field>
+    <field name="model">step.agriculture.advisory.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Recomendaciones de asesoría" />
+    </field>
+  </record>
+  <record id="view_advisory_line_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.advisory.line.pivot</field>
+    <field name="model">step.agriculture.advisory.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Recomendaciones de asesoría" />
+    </field>
+  </record>
+  <record id="view_active_ingredient_list" model="ir.ui.view">
+    <field name="name">step.agriculture.active.ingredient.list</field>
+    <field name="model">step.agriculture.active.ingredient</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Sustancias activas">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cdigo" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_active_ingredient_form" model="ir.ui.view">
+    <field name="name">step.agriculture.active.ingredient.form</field>
+    <field name="model">step.agriculture.active.ingredient</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Sustancias activas">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Sustancias activas</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="cdigo" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_observacin" string="Observación">
+              <field name="observacin" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_active_ingredient_search" model="ir.ui.view">
+    <field name="name">step.agriculture.active.ingredient.search</field>
+    <field name="model">step.agriculture.active.ingredient</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Sustancias activas">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_active_ingredient_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.active.ingredient.graph</field>
+    <field name="model">step.agriculture.active.ingredient</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Sustancias activas" />
+    </field>
+  </record>
+  <record id="view_active_ingredient_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.active.ingredient.pivot</field>
+    <field name="model">step.agriculture.active.ingredient</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Sustancias activas" />
+    </field>
+  </record>
+  <record id="view_monitoring_line_list" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.line.list</field>
+    <field name="model">step.agriculture.monitoring.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Hallazgos de monitoreo">
+        <field name="name" optional="show" />
+        <field name="comentario" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="cuartel_id" optional="hide" />
+        <field name="hallazgo" optional="hide" />
+        <field name="hileras" optional="hide" />
+        <field name="monitoring_id" optional="hide" />
+        <field name="objetivo_plaga_id" optional="hide" />
+        <field name="plantas_cuartel" optional="hide" />
+        <field name="plantas_muesteadas" optional="hide" />
+        <field name="seales_de_plaga" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_monitoring_line_form" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.line.form</field>
+    <field name="model">step.agriculture.monitoring.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Hallazgos de monitoreo">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Hallazgos de monitoreo</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="comentario" />
+              <field name="cuartel_id" />
+              <field name="hileras" />
+              <field name="objetivo_plaga_id" />
+              <field name="plantas_muesteadas" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="cost_center_id" />
+              <field name="hallazgo" />
+              <field name="monitoring_id" />
+              <field name="plantas_cuartel" />
+              <field name="seales_de_plaga" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_available_cuartel_ids" string="Cuarteles disponibles">
+              <field name="available_cuartel_ids" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_monitoring_line_search" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.line.search</field>
+    <field name="model">step.agriculture.monitoring.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Hallazgos de monitoreo">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <filter name="group_cost_center_id" string="Centro costos" context="{'group_by': 'cost_center_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_monitoring_line_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.line.graph</field>
+    <field name="model">step.agriculture.monitoring.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Hallazgos de monitoreo">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_monitoring_line_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.line.pivot</field>
+    <field name="model">step.agriculture.monitoring.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Hallazgos de monitoreo">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_pest_list" model="ir.ui.view">
+    <field name="name">step.agriculture.pest.list</field>
+    <field name="model">step.agriculture.pest</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Objetivos y plagas">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cdigo_de_objetivo" optional="hide" />
+        <field name="grupo_objetivo_bpa" optional="hide" />
+        <field name="legacy_active" optional="hide" />
+        <field name="rango_fecha" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_pest_form" model="ir.ui.view">
+    <field name="name">step.agriculture.pest.form</field>
+    <field name="model">step.agriculture.pest</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Objetivos y plagas">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Objetivos y plagas</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="grupo_objetivo_bpa" />
+              <field name="rango_fecha" />
+            </group>
+            <group>
+              <field name="cdigo_de_objetivo" />
+              <field name="legacy_active" />
+              <field name="sequence" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_observacin" string="Observación">
+              <field name="observacin" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_pest_search" model="ir.ui.view">
+    <field name="name">step.agriculture.pest.search</field>
+    <field name="model">step.agriculture.pest</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Objetivos y plagas">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_pest_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.pest.graph</field>
+    <field name="model">step.agriculture.pest</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Objetivos y plagas" />
+    </field>
+  </record>
+  <record id="view_pest_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.pest.pivot</field>
+    <field name="model">step.agriculture.pest</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Objetivos y plagas" />
+    </field>
+  </record>
+  <record id="view_monitoring_list" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.list</field>
+    <field name="model">step.agriculture.monitoring</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Monitoreos agrícolas">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="company_id" optional="show" />
+        <field name="date" optional="show" />
+        <field name="ejecutado_por_id" optional="hide" />
+        <field name="empresa_id" optional="hide" />
+        <field name="estado_fenolgico_id" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="nmero_ot" optional="hide" />
+        <field name="responsable_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="species_id" optional="hide" />
+        <field name="state" optional="show" />
+      </list>
+    </field>
+  </record>
+  <record id="view_monitoring_form" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.form</field>
+    <field name="model">step.agriculture.monitoring</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Monitoreos agrícolas">
+        <header>
+          <field name="state" widget="statusbar" options="{'clickable': True}" />
+        </header>
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Monitoreos agrícolas</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="date" />
+              <field name="empresa_id" />
+              <field name="fundo_id" />
+              <field name="responsable_id" />
+              <field name="species_id" />
+            </group>
+            <group>
+              <field name="company_id" />
+              <field name="ejecutado_por_id" />
+              <field name="estado_fenolgico_id" />
+              <field name="nmero_ot" />
+              <field name="sequence" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_instrucciones" string="Instrucciones">
+              <field name="instrucciones" nolabel="1" />
+            </page>
+            <page name="page_line_ids" string="Hallazgos de monitoreo">
+              <field name="line_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="cost_center_id" />
+                  <field name="comentario" />
+                  <field name="cuartel_id" />
+                  <field name="hallazgo" />
+                  <field name="hileras" optional="hide" />
+                  <field name="objetivo_plaga_id" />
+                  <field name="plantas_cuartel" optional="hide" />
+                  <field name="plantas_muesteadas" />
+                  <field name="seales_de_plaga" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_notes" string="Hallazgos y observaciones">
+              <field name="notes" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_monitoring_search" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.search</field>
+    <field name="model">step.agriculture.monitoring</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Monitoreos agrícolas">
+        <field name="name" />
+        <field name="fundo_id" />
+        <field name="company_id" />
+        <field name="state" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+        <filter name="group_state" string="Estado" context="{'group_by': 'state'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_monitoring_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.graph</field>
+    <field name="model">step.agriculture.monitoring</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Monitoreos agrícolas">
+        <field name="fundo_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_monitoring_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.monitoring.pivot</field>
+    <field name="model">step.agriculture.monitoring</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Monitoreos agrícolas">
+        <field name="fundo_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_phenological_stage_list" model="ir.ui.view">
+    <field name="name">step.agriculture.phenological.stage.list</field>
+    <field name="model">step.agriculture.phenological.stage</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Estados fenológicos">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cdigo_estado_fenolgico" optional="hide" />
+        <field name="fecha_inicio" optional="hide" />
+        <field name="fecha_trmino" optional="hide" />
+        <field name="legacy_active" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="species_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_phenological_stage_form" model="ir.ui.view">
+    <field name="name">step.agriculture.phenological.stage.form</field>
+    <field name="model">step.agriculture.phenological.stage</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Estados fenológicos">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Estados fenológicos</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="fecha_inicio" />
+              <field name="legacy_active" />
+              <field name="species_id" />
+            </group>
+            <group>
+              <field name="cdigo_estado_fenolgico" />
+              <field name="fecha_trmino" />
+              <field name="sequence" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_observacin" string="Observación">
+              <field name="observacin" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_phenological_stage_search" model="ir.ui.view">
+    <field name="name">step.agriculture.phenological.stage.search</field>
+    <field name="model">step.agriculture.phenological.stage</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Estados fenológicos">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_phenological_stage_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.phenological.stage.graph</field>
+    <field name="model">step.agriculture.phenological.stage</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Estados fenológicos" />
+    </field>
+  </record>
+  <record id="view_phenological_stage_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.phenological.stage.pivot</field>
+    <field name="model">step.agriculture.phenological.stage</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Estados fenológicos" />
+    </field>
+  </record>
+  <record id="view_application_machinery_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.machinery.list</field>
+    <field name="model">step.agriculture.application.machinery</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Maquinaria aplicada">
+        <field name="name" optional="show" />
+        <field name="aplicador_id" optional="hide" />
+        <field name="application_id" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="costo_estndar_total" optional="hide" />
+        <field name="cuartel_id" optional="hide" />
+        <field name="fecha_hr_inicio" optional="hide" />
+        <field name="has_aplicadas" optional="hide" />
+        <field name="hormetro_final" optional="hide" />
+        <field name="hormetro_inicial" optional="hide" />
+        <field name="hrs_mquina" optional="hide" />
+        <field name="implemento_id" optional="hide" />
+        <field name="labor_maquinaria_id" optional="hide" />
+        <field name="legacy_decimal" optional="hide" />
+        <field name="lts_maquinada" optional="hide" />
+        <field name="mquina_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="udm_labor_id" optional="hide" />
+        <field name="valor_st_hr_mquina" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_machinery_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.machinery.form</field>
+    <field name="model">step.agriculture.application.machinery</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Maquinaria aplicada">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Maquinaria aplicada</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="aplicador_id" />
+              <field name="cost_center_id" />
+              <field name="cuartel_id" />
+              <field name="has_aplicadas" />
+              <field name="hormetro_inicial" />
+              <field name="implemento_id" />
+              <field name="legacy_decimal" />
+              <field name="mquina_id" />
+              <field name="udm_labor_id" />
+            </group>
+            <group>
+              <field name="application_id" />
+              <field name="costo_estndar_total" />
+              <field name="fecha_hr_inicio" />
+              <field name="hormetro_final" />
+              <field name="hrs_mquina" />
+              <field name="labor_maquinaria_id" />
+              <field name="lts_maquinada" />
+              <field name="sequence" />
+              <field name="valor_st_hr_mquina" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_analytic_cuartel_ids" string="Cuarteles de la cuenta analítica">
+              <field name="analytic_cuartel_ids" nolabel="1" />
+            </page>
+            <page name="page_available_cuartel_ids" string="Cuarteles disponibles">
+              <field name="available_cuartel_ids" nolabel="1" />
+            </page>
+            <page name="page_center_cuartel_ids" string="Cuarteles del centro">
+              <field name="center_cuartel_ids" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_machinery_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.machinery.search</field>
+    <field name="model">step.agriculture.application.machinery</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Maquinaria aplicada">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <filter name="group_cost_center_id" string="Centro Costo" context="{'group_by': 'cost_center_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_machinery_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.machinery.graph</field>
+    <field name="model">step.agriculture.application.machinery</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Maquinaria aplicada">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_application_machinery_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.machinery.pivot</field>
+    <field name="model">step.agriculture.application.machinery</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Maquinaria aplicada">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_application_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.list</field>
+    <field name="model">step.agriculture.application</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Aplicaciones foliares">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="aprueba_id" optional="hide" />
+        <field name="capacidad_lts_aplicadora" optional="hide" />
+        <field name="combustible_id" optional="hide" />
+        <field name="company_id" optional="show" />
+        <field name="consumo" optional="hide" />
+        <field name="consumo_lt_x_hora" optional="hide" />
+        <field name="costo_de_personal" optional="hide" />
+        <field name="costo_de_productos" optional="hide" />
+        <field name="costo_maquinarias" optional="hide" />
+        <field name="costo_por_hectrea" optional="hide" />
+        <field name="costo_total_aplicacin" optional="hide" />
+        <field name="currency_id" optional="hide" />
+        <field name="date" optional="show" />
+        <field name="direccin_del_viento" optional="hide" />
+        <field name="empresa_id" optional="hide" />
+        <field name="especie_1_id" optional="hide" />
+        <field name="fecha_hora_planificada" optional="hide" />
+        <field name="forma_de_aplicar_id" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="hrs_total_aplicacin" optional="hide" />
+        <field name="humedad" optional="hide" />
+        <field name="legacy_workflow_state" optional="hide" />
+        <field name="litros_finales" optional="hide" />
+        <field name="lluvia_en_24_hrs_m3" optional="hide" />
+        <field name="lts_inicial_estanque" optional="hide" />
+        <field name="lts_relleno" optional="hide" />
+        <field name="maquinadas" optional="hide" />
+        <field name="mojamiento_por_h" optional="hide" />
+        <field name="nmero_ot_bpa" optional="hide" />
+        <field name="objetivo_aplicacin_id" optional="hide" />
+        <field name="otros" optional="hide" />
+        <field name="sector_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="state" optional="show" />
+        <field name="t_ambiente" optional="hide" />
+        <field name="tipo_de_aplicacin_id" optional="hide" />
+        <field name="total_hectreas" optional="hide" />
+        <field name="total_hectreas_1" optional="hide" />
+        <field name="total_lts_mezca" optional="hide" />
+        <field name="trabajador_id" optional="hide" />
+        <field name="usuario_registro_id" optional="hide" />
+        <field name="viento_kmhr" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.form</field>
+    <field name="model">step.agriculture.application</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Aplicaciones foliares">
+        <header>
+          <field name="state" widget="statusbar" options="{'clickable': True}" />
+        </header>
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Aplicaciones foliares</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="capacidad_lts_aplicadora" />
+              <field name="company_id" />
+              <field name="consumo_lt_x_hora" />
+              <field name="costo_de_productos" />
+              <field name="costo_por_hectrea" />
+              <field name="currency_id" />
+              <field name="direccin_del_viento" />
+              <field name="especie_1_id" />
+              <field name="forma_de_aplicar_id" />
+              <field name="hrs_total_aplicacin" />
+              <field name="legacy_workflow_state" />
+              <field name="lluvia_en_24_hrs_m3" />
+              <field name="lts_relleno" />
+              <field name="mojamiento_por_h" />
+              <field name="objetivo_aplicacin_id" />
+              <field name="sector_id" />
+              <field name="t_ambiente" />
+              <field name="total_hectreas" />
+              <field name="total_lts_mezca" />
+              <field name="usuario_registro_id" />
+            </group>
+            <group>
+              <field name="aprueba_id" />
+              <field name="combustible_id" />
+              <field name="consumo" />
+              <field name="costo_de_personal" />
+              <field name="costo_maquinarias" />
+              <field name="costo_total_aplicacin" />
+              <field name="date" />
+              <field name="empresa_id" />
+              <field name="fecha_hora_planificada" />
+              <field name="fundo_id" />
+              <field name="humedad" />
+              <field name="litros_finales" />
+              <field name="lts_inicial_estanque" />
+              <field name="maquinadas" />
+              <field name="nmero_ot_bpa" />
+              <field name="otros" />
+              <field name="sequence" />
+              <field name="tipo_de_aplicacin_id" />
+              <field name="total_hectreas_1" />
+              <field name="trabajador_id" />
+              <field name="viento_kmhr" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_cost_ids" string="Costos de aplicación">
+              <field name="cost_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="actividad_id" />
+                  <field name="cost_center_id" />
+                  <field name="consumo" />
+                  <field name="costo_total" optional="hide" />
+                  <field name="costo_unitario" optional="hide" />
+                  <field name="labor_agrcola_id" />
+                  <field name="producto_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="udm_id" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_instrucciones" string="Instrucciones">
+              <field name="instrucciones" nolabel="1" />
+            </page>
+            <page name="page_instrucciones_1" string="Instrucciones">
+              <field name="instrucciones_1" nolabel="1" />
+            </page>
+            <page name="page_instrucciones_2" string="Instrucciones">
+              <field name="instrucciones_2" nolabel="1" />
+            </page>
+            <page name="page_instructions_html" string="Instrucciones">
+              <field name="instructions_html" nolabel="1" />
+            </page>
+            <page name="page_legacy_notes" string="Observaciones adicionales">
+              <field name="legacy_notes" nolabel="1" />
+            </page>
+            <page name="page_machinery_ids" string="Maquinaria aplicada">
+              <field name="machinery_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="aplicador_id" />
+                  <field name="cost_center_id" />
+                  <field name="costo_estndar_total" optional="hide" />
+                  <field name="cuartel_id" />
+                  <field name="fecha_hr_inicio" />
+                  <field name="legacy_decimal" />
+                  <field name="has_aplicadas" />
+                  <field name="hormetro_final" />
+                  <field name="hormetro_inicial" optional="hide" />
+                  <field name="hrs_mquina" />
+                  <field name="implemento_id" />
+                  <field name="labor_maquinaria_id" />
+                  <field name="lts_maquinada" />
+                  <field name="mquina_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="udm_labor_id" optional="hide" />
+                  <field name="valor_st_hr_mquina" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_note_ids" string="Observaciones de aplicación">
+              <field name="note_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_notes" string="Observaciones">
+              <field name="notes" nolabel="1" />
+            </page>
+            <page name="page_ppe_ids" string="Protección personal">
+              <field name="ppe_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="empleado_id" />
+                  <field name="epp" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_precautions_html" string="Precauciones">
+              <field name="precautions_html" nolabel="1" />
+            </page>
+            <page name="page_product_ids" string="Productos aplicados">
+              <field name="product_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="consumo_terico" />
+                  <field name="dosis_100_lts" />
+                  <field name="dosis_por_ha" />
+                  <field name="ds_carencia_etiqueta" optional="hide" />
+                  <field name="ds_carencia_mayor" optional="hide" />
+                  <field name="ds_carencia_ue" optional="hide" />
+                  <field name="ds_carencia_usa" optional="hide" />
+                  <field name="mximo_veces" optional="hide" />
+                  <field name="objetivo_plaga_id" />
+                  <field name="producto_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="active_ingredient_id" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_waste_ids" string="Remanentes y residuos">
+              <field name="waste_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="agua_usada_lts" />
+                  <field name="cantidad_mezcla" />
+                  <field name="legacy_reference" />
+                  <field name="comentario" />
+                  <field name="destino_residuo" />
+                  <field name="observacin" />
+                  <field name="sequence" optional="hide" />
+                  <field name="tipo_remanente" />
+                </list>
+              </field>
+            </page>
+            <page name="page_worker_ids" string="Personal de aplicación">
+              <field name="worker_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="cost_center_id" />
+                  <field name="costo_mo_bpa" optional="hide" />
+                  <field name="costo_por_hora" optional="hide" />
+                  <field name="currency_id" optional="hide" />
+                  <field name="hrs_extras" />
+                  <field name="hrs_ord_1" />
+                  <field name="labor_agrcola_id" />
+                  <field name="bpa_role_id" />
+                  <field name="nip" optional="hide" />
+                  <field name="nombre_trabajador_id" />
+                  <field name="standard_hour_cost" optional="hide" />
+                  <field name="sequence" optional="hide" />
+                  <field name="total_hrs" />
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_application_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.search</field>
+    <field name="model">step.agriculture.application</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Aplicaciones foliares">
+        <field name="name" />
+        <field name="fundo_id" />
+        <field name="company_id" />
+        <field name="state" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+        <filter name="group_state" string="Estado" context="{'group_by': 'state'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.graph</field>
+    <field name="model">step.agriculture.application</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Aplicaciones foliares">
+        <field name="fundo_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_application_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.pivot</field>
+    <field name="model">step.agriculture.application</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Aplicaciones foliares">
+        <field name="fundo_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_application_type_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.type.list</field>
+    <field name="model">step.agriculture.application.type</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Tipos de aplicación">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cdigo_aplicaciones" optional="hide" />
+        <field name="legacy_active" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_type_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.type.form</field>
+    <field name="model">step.agriculture.application.type</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Tipos de aplicación">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Tipos de aplicación</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="legacy_active" />
+            </group>
+            <group>
+              <field name="cdigo_aplicaciones" />
+              <field name="sequence" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_observaciones" string="Observaciones">
+              <field name="observaciones" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_type_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.type.search</field>
+    <field name="model">step.agriculture.application.type</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Tipos de aplicación">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_type_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.type.graph</field>
+    <field name="model">step.agriculture.application.type</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Tipos de aplicación" />
+    </field>
+  </record>
+  <record id="view_application_type_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.type.pivot</field>
+    <field name="model">step.agriculture.application.type</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Tipos de aplicación" />
+    </field>
+  </record>
+  <record id="view_application_note_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.note.list</field>
+    <field name="model">step.agriculture.application.note</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Observaciones de aplicación">
+        <field name="name" optional="show" />
+        <field name="application_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_note_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.note.form</field>
+    <field name="model">step.agriculture.application.note</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Observaciones de aplicación">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Observaciones de aplicación</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="application_id" />
+            </group>
+            <group>
+              <field name="sequence" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_note_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.note.search</field>
+    <field name="model">step.agriculture.application.note</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Observaciones de aplicación">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_note_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.note.graph</field>
+    <field name="model">step.agriculture.application.note</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Observaciones de aplicación" />
+    </field>
+  </record>
+  <record id="view_application_note_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.note.pivot</field>
+    <field name="model">step.agriculture.application.note</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Observaciones de aplicación" />
+    </field>
+  </record>
+  <record id="view_application_waste_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.waste.list</field>
+    <field name="model">step.agriculture.application.waste</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Remanentes y residuos">
+        <field name="name" optional="show" />
+        <field name="agua_usada_lts" optional="hide" />
+        <field name="application_id" optional="hide" />
+        <field name="cantidad_mezcla" optional="hide" />
+        <field name="comentario" optional="hide" />
+        <field name="destino_residuo" optional="hide" />
+        <field name="legacy_reference" optional="hide" />
+        <field name="observacin" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="tipo_remanente" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_waste_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.waste.form</field>
+    <field name="model">step.agriculture.application.waste</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Remanentes y residuos">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Remanentes y residuos</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="agua_usada_lts" />
+              <field name="cantidad_mezcla" />
+              <field name="destino_residuo" />
+              <field name="observacin" />
+              <field name="tipo_remanente" />
+            </group>
+            <group>
+              <field name="application_id" />
+              <field name="comentario" />
+              <field name="legacy_reference" />
+              <field name="sequence" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_notes_html" string="Observaciones">
+              <field name="notes_html" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_waste_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.waste.search</field>
+    <field name="model">step.agriculture.application.waste</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Remanentes y residuos">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_waste_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.waste.graph</field>
+    <field name="model">step.agriculture.application.waste</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Remanentes y residuos" />
+    </field>
+  </record>
+  <record id="view_application_waste_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.waste.pivot</field>
+    <field name="model">step.agriculture.application.waste</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Remanentes y residuos" />
+    </field>
+  </record>
+  <record id="view_application_product_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.product.list</field>
+    <field name="model">step.agriculture.application.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Productos aplicados">
+        <field name="name" optional="show" />
+        <field name="active_ingredient_id" optional="hide" />
+        <field name="application_id" optional="hide" />
+        <field name="consumo_terico" optional="hide" />
+        <field name="dosis_100_lts" optional="hide" />
+        <field name="dosis_por_ha" optional="hide" />
+        <field name="ds_carencia_etiqueta" optional="hide" />
+        <field name="ds_carencia_mayor" optional="hide" />
+        <field name="ds_carencia_ue" optional="hide" />
+        <field name="ds_carencia_usa" optional="hide" />
+        <field name="mximo_veces" optional="hide" />
+        <field name="objetivo_plaga_id" optional="hide" />
+        <field name="producto_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_product_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.product.form</field>
+    <field name="model">step.agriculture.application.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Productos aplicados">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Productos aplicados</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active_ingredient_id" />
+              <field name="consumo_terico" />
+              <field name="dosis_por_ha" />
+              <field name="ds_carencia_mayor" />
+              <field name="ds_carencia_usa" />
+              <field name="objetivo_plaga_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="application_id" />
+              <field name="dosis_100_lts" />
+              <field name="ds_carencia_etiqueta" />
+              <field name="ds_carencia_ue" />
+              <field name="mximo_veces" />
+              <field name="producto_id" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_product_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.product.search</field>
+    <field name="model">step.agriculture.application.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Productos aplicados">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_product_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.product.graph</field>
+    <field name="model">step.agriculture.application.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Productos aplicados" />
+    </field>
+  </record>
+  <record id="view_application_product_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.product.pivot</field>
+    <field name="model">step.agriculture.application.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Productos aplicados" />
+    </field>
+  </record>
+  <record id="view_application_ppe_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.ppe.list</field>
+    <field name="model">step.agriculture.application.ppe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Protección personal">
+        <field name="name" optional="show" />
+        <field name="application_id" optional="hide" />
+        <field name="empleado_id" optional="hide" />
+        <field name="epp" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_ppe_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.ppe.form</field>
+    <field name="model">step.agriculture.application.ppe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Protección personal">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Protección personal</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="application_id" />
+              <field name="epp" />
+            </group>
+            <group>
+              <field name="empleado_id" />
+              <field name="sequence" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_ppe_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.ppe.search</field>
+    <field name="model">step.agriculture.application.ppe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Protección personal">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_ppe_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.ppe.graph</field>
+    <field name="model">step.agriculture.application.ppe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Protección personal" />
+    </field>
+  </record>
+  <record id="view_application_ppe_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.ppe.pivot</field>
+    <field name="model">step.agriculture.application.ppe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Protección personal" />
+    </field>
+  </record>
+  <record id="view_application_worker_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.worker.list</field>
+    <field name="model">step.agriculture.application.worker</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Personal de aplicación">
+        <field name="name" optional="show" />
+        <field name="application_id" optional="hide" />
+        <field name="bpa_role_id" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="costo_mo_bpa" optional="hide" />
+        <field name="costo_por_hora" optional="hide" />
+        <field name="currency_id" optional="hide" />
+        <field name="hrs_extras" optional="hide" />
+        <field name="hrs_ord_1" optional="hide" />
+        <field name="labor_agrcola_id" optional="hide" />
+        <field name="nip" optional="hide" />
+        <field name="nombre_trabajador_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="standard_hour_cost" optional="hide" />
+        <field name="total_hrs" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_worker_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.worker.form</field>
+    <field name="model">step.agriculture.application.worker</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Personal de aplicación">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Personal de aplicación</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="application_id" />
+              <field name="cost_center_id" />
+              <field name="costo_por_hora" />
+              <field name="hrs_extras" />
+              <field name="labor_agrcola_id" />
+              <field name="nombre_trabajador_id" />
+              <field name="standard_hour_cost" />
+            </group>
+            <group>
+              <field name="bpa_role_id" />
+              <field name="costo_mo_bpa" />
+              <field name="currency_id" />
+              <field name="hrs_ord_1" />
+              <field name="nip" />
+              <field name="sequence" />
+              <field name="total_hrs" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_worker_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.worker.search</field>
+    <field name="model">step.agriculture.application.worker</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Personal de aplicación">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <filter name="group_cost_center_id" string="Centro de costos" context="{'group_by': 'cost_center_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_worker_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.worker.graph</field>
+    <field name="model">step.agriculture.application.worker</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Personal de aplicación">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_application_worker_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.worker.pivot</field>
+    <field name="model">step.agriculture.application.worker</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Personal de aplicación">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_bpa_role_list" model="ir.ui.view">
+    <field name="name">step.agriculture.bpa.role.list</field>
+    <field name="model">step.agriculture.bpa.role</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Cargos BPA">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_bpa_role_form" model="ir.ui.view">
+    <field name="name">step.agriculture.bpa.role.form</field>
+    <field name="model">step.agriculture.bpa.role</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Cargos BPA">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Cargos BPA</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+            </group>
+            <group>
+              <field name="sequence" />
+            </group>
+          </group>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_bpa_role_search" model="ir.ui.view">
+    <field name="name">step.agriculture.bpa.role.search</field>
+    <field name="model">step.agriculture.bpa.role</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Cargos BPA">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_bpa_role_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.bpa.role.graph</field>
+    <field name="model">step.agriculture.bpa.role</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Cargos BPA" />
+    </field>
+  </record>
+  <record id="view_bpa_role_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.bpa.role.pivot</field>
+    <field name="model">step.agriculture.bpa.role</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Cargos BPA" />
+    </field>
+  </record>
+  <record id="view_application_cost_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.cost.list</field>
+    <field name="model">step.agriculture.application.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Costos de aplicación">
+        <field name="name" optional="show" />
+        <field name="actividad_id" optional="hide" />
+        <field name="application_id" optional="hide" />
+        <field name="consumo" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="costo_total" optional="hide" />
+        <field name="costo_unitario" optional="hide" />
+        <field name="labor_agrcola_id" optional="hide" />
+        <field name="producto_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="udm_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_cost_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.cost.form</field>
+    <field name="model">step.agriculture.application.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Costos de aplicación">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Costos de aplicación</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="actividad_id" />
+              <field name="consumo" />
+              <field name="costo_total" />
+              <field name="labor_agrcola_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="application_id" />
+              <field name="cost_center_id" />
+              <field name="costo_unitario" />
+              <field name="producto_id" />
+              <field name="udm_id" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_application_cost_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.cost.search</field>
+    <field name="model">step.agriculture.application.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Costos de aplicación">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <filter name="group_cost_center_id" string="Centro de costos" context="{'group_by': 'cost_center_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_cost_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.cost.graph</field>
+    <field name="model">step.agriculture.application.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Costos de aplicación">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_application_cost_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.cost.pivot</field>
+    <field name="model">step.agriculture.application.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Costos de aplicación">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_application_method_list" model="ir.ui.view">
+    <field name="name">step.agriculture.application.method.list</field>
+    <field name="model">step.agriculture.application.method</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Formas de aplicación">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cdigo_forma_aplicar" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_application_method_form" model="ir.ui.view">
+    <field name="name">step.agriculture.application.method.form</field>
+    <field name="model">step.agriculture.application.method</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Formas de aplicación">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Formas de aplicación</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="cdigo_forma_aplicar" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_observacin" string="Observación">
+              <field name="observacin" nolabel="1" />
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_application_method_search" model="ir.ui.view">
+    <field name="name">step.agriculture.application.method.search</field>
+    <field name="model">step.agriculture.application.method</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Formas de aplicación">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_application_method_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.application.method.graph</field>
+    <field name="model">step.agriculture.application.method</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Formas de aplicación" />
+    </field>
+  </record>
+  <record id="view_application_method_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.application.method.pivot</field>
+    <field name="model">step.agriculture.application.method</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Formas de aplicación" />
+    </field>
+  </record>
+  <record id="view_harvest_record_list" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.record.list</field>
+    <field name="model">step.agriculture.harvest.record</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Registro de cosecha">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cantidad_embalaje" optional="hide" />
+        <field name="cantidad_kilos" optional="hide" />
+        <field name="contratista_id" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="cuadrilla" optional="hide" />
+        <field name="cuartel_id" optional="hide" />
+        <field name="date" optional="show" />
+        <field name="dotacin" optional="hide" />
+        <field name="embalaje_id" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="harvest_date" optional="hide" />
+        <field name="horas_de_proceso" optional="hide" />
+        <field name="kilos_cosechados" optional="hide" />
+        <field name="pasada" optional="hide" />
+        <field name="producto_cosechado_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="species_id" optional="hide" />
+        <field name="supervisor_id" optional="hide" />
+        <field name="tarja_cosecha" optional="hide" />
+        <field name="temporada_id" optional="hide" />
+        <field name="tipo_cosecha" optional="hide" />
+        <field name="tipo_cosecha_1" optional="hide" />
+        <field name="tipo_tarea_id" optional="hide" />
+        <field name="tipo_tareo" optional="hide" />
+        <field name="total_horas" optional="hide" />
+        <field name="ubicacin_operacin_id" optional="hide" />
+        <field name="variety_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_harvest_record_form" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.record.form</field>
+    <field name="model">step.agriculture.harvest.record</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Registro de cosecha">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Registro de cosecha</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="cantidad_kilos" />
+              <field name="contratista_id" />
+              <field name="cuadrilla" />
+              <field name="date" />
+              <field name="embalaje_id" />
+              <field name="harvest_date" />
+              <field name="kilos_cosechados" />
+              <field name="process_ids" widget="many2many_tags" />
+              <field name="sequence" />
+              <field name="supervisor_id" />
+              <field name="temporada_id" />
+              <field name="tipo_cosecha_1" />
+              <field name="tipo_tareo" />
+              <field name="ubicacin_operacin_id" />
+            </group>
+            <group>
+              <field name="cantidad_embalaje" />
+              <field name="cdigo_de_barra_ids" widget="many2many_tags" />
+              <field name="cost_center_id" />
+              <field name="cuartel_id" />
+              <field name="dotacin" />
+              <field name="fundo_id" />
+              <field name="horas_de_proceso" />
+              <field name="pasada" />
+              <field name="producto_cosechado_id" />
+              <field name="species_id" />
+              <field name="tarja_cosecha" />
+              <field name="tipo_cosecha" />
+              <field name="tipo_tarea_id" />
+              <field name="total_horas" />
+              <field name="variety_id" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_tag_ids" string="Tarjas de cosecha">
+              <field name="tag_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="tag_state_id" />
+                  <field name="name" />
+                  <field name="barcode_id" />
+                  <field name="cantidad_envases" />
+                  <field name="envase_id" />
+                  <field name="legacy_tag_state_id" optional="hide" readonly="1" />
+                  <field name="kilos_cosechados" />
+                  <field name="sequence" optional="hide" />
+                  <field name="tipo_de_paquete_id" />
+                  <field name="tipo_paquete_id" />
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_harvest_record_search" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.record.search</field>
+    <field name="model">step.agriculture.harvest.record</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Registro de cosecha">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <field name="fundo_id" />
+        <filter name="group_cost_center_id" string="Centro costos" context="{'group_by': 'cost_center_id'}" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_harvest_record_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.record.graph</field>
+    <field name="model">step.agriculture.harvest.record</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Registro de cosecha">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_harvest_record_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.record.pivot</field>
+    <field name="model">step.agriculture.harvest.record</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Registro de cosecha">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_harvest_tag_list" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.list</field>
+    <field name="model">step.agriculture.harvest.tag</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Tarjas de cosecha">
+        <field name="name" optional="show" />
+        <field name="barcode_id" optional="hide" />
+        <field name="cantidad_envases" optional="hide" />
+        <field name="envase_id" optional="hide" />
+        <field name="harvest_id" optional="hide" />
+        <field name="kilos_cosechados" optional="hide" />
+        <field name="legacy_tag_state_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="tipo_de_paquete_id" optional="hide" />
+        <field name="tipo_paquete_id" optional="hide" />
+        <field name="tag_state_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_harvest_tag_form" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.form</field>
+    <field name="model">step.agriculture.harvest.tag</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Tarjas de cosecha">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Tarjas de cosecha</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="barcode_id" />
+              <field name="cdigo_de_barra_ids" widget="many2many_tags" />
+              <field name="harvest_id" />
+              <field name="legacy_tag_state_id" readonly="1" string="Estado histórico de tarja" options="{'no_create': True}" />
+              <field name="tipo_de_paquete_id" />
+              <field name="tag_state_id" />
+            </group>
+            <group>
+              <field name="cantidad_envases" />
+              <field name="envase_id" />
+              <field name="kilos_cosechados" />
+              <field name="sequence" />
+              <field name="tipo_paquete_id" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_harvest_tag_search" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.search</field>
+    <field name="model">step.agriculture.harvest.tag</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Tarjas de cosecha">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_harvest_tag_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.graph</field>
+    <field name="model">step.agriculture.harvest.tag</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Tarjas de cosecha" />
+    </field>
+  </record>
+  <record id="view_harvest_tag_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.tag.pivot</field>
+    <field name="model">step.agriculture.harvest.tag</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Tarjas de cosecha" />
+    </field>
+  </record>
+  <record id="view_archive_tag_state_list" model="ir.ui.view">
+    <field name="name">step.agriculture.archive.tag.state.list</field>
+    <field name="model">step.agriculture.archive.tag.state</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Estados históricos de tarja" create="0" edit="0" delete="0">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="code" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_archive_tag_state_form" model="ir.ui.view">
+    <field name="name">step.agriculture.archive.tag.state.form</field>
+    <field name="model">step.agriculture.archive.tag.state</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Estados históricos de tarja" create="0" edit="0" delete="0">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Estados históricos de tarja</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="code" />
+            </group>
+          </group>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_archive_tag_state_search" model="ir.ui.view">
+    <field name="name">step.agriculture.archive.tag.state.search</field>
+    <field name="model">step.agriculture.archive.tag.state</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Estados históricos de tarja">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_archive_tag_state_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.archive.tag.state.graph</field>
+    <field name="model">step.agriculture.archive.tag.state</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Estados históricos de tarja" />
+    </field>
+  </record>
+  <record id="view_archive_tag_state_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.archive.tag.state.pivot</field>
+    <field name="model">step.agriculture.archive.tag.state</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Estados históricos de tarja" />
+    </field>
+  </record>
+  <record id="view_harvest_forecast_list" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.forecast.list</field>
+    <field name="model">step.agriculture.harvest.forecast</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Pronóstico de cosecha">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="cost_center_id" optional="show" />
+        <field name="cuartel_id" optional="hide" />
+        <field name="envase_cosecha_id" optional="hide" />
+        <field name="envases_totales_estimados" optional="hide" />
+        <field name="fecha_fin_cosecha" optional="hide" />
+        <field name="fecha_inicio_cosecha" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="jornadas_totales_estimadas" optional="hide" />
+        <field name="kg_por_envase" optional="hide" />
+        <field name="kg_por_hectrea" optional="hide" />
+        <field name="kg_totales_estimados" optional="hide" />
+        <field name="kilos_por_planta" optional="hide" />
+        <field name="peso_udm_estimacin" optional="hide" />
+        <field name="plantas_cuartel" optional="hide" />
+        <field name="rendimiento_jornada" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="species_id" optional="hide" />
+        <field name="udm_estimacin" optional="hide" />
+        <field name="variety_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_harvest_forecast_form" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.forecast.form</field>
+    <field name="model">step.agriculture.harvest.forecast</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Pronóstico de cosecha">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Pronóstico de cosecha</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="cuartel_id" />
+              <field name="envases_totales_estimados" />
+              <field name="fecha_inicio_cosecha" />
+              <field name="jornadas_totales_estimadas" />
+              <field name="kg_por_hectrea" />
+              <field name="kilos_por_planta" />
+              <field name="plantas_cuartel" />
+              <field name="sequence" />
+              <field name="udm_estimacin" />
+            </group>
+            <group>
+              <field name="cost_center_id" />
+              <field name="envase_cosecha_id" />
+              <field name="fecha_fin_cosecha" />
+              <field name="fundo_id" />
+              <field name="kg_por_envase" />
+              <field name="kg_totales_estimados" />
+              <field name="peso_udm_estimacin" />
+              <field name="rendimiento_jornada" />
+              <field name="species_id" />
+              <field name="variety_id" />
+            </group>
+          </group>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_harvest_forecast_search" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.forecast.search</field>
+    <field name="model">step.agriculture.harvest.forecast</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Pronóstico de cosecha">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <field name="fundo_id" />
+        <filter name="group_cost_center_id" string="Centro costos" context="{'group_by': 'cost_center_id'}" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_harvest_forecast_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.forecast.graph</field>
+    <field name="model">step.agriculture.harvest.forecast</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Pronóstico de cosecha">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_harvest_forecast_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.harvest.forecast.pivot</field>
+    <field name="model">step.agriculture.harvest.forecast</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Pronóstico de cosecha">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_irrigation_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.list</field>
+    <field name="model">step.agriculture.irrigation</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Riego y fertilización">
+        <field name="name" optional="show" />
+        <field name="active" optional="hide" />
+        <field name="company_id" optional="show" />
+        <field name="date" optional="show" />
+        <field name="empresa_id" optional="hide" />
+        <field name="estanque_riego_id" optional="hide" />
+        <field name="fecha_aplicacin" optional="hide" />
+        <field name="forma_de_aplicar_id" optional="hide" />
+        <field name="fundo_id" optional="show" />
+        <field name="hectreas_a_regar" optional="hide" />
+        <field name="litros_mezcla" optional="hide" />
+        <field name="ot_bpa" optional="hide" />
+        <field name="responsaable_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="slo_riego" optional="hide" />
+        <field name="state" optional="show" />
+        <field name="tipo_de_aplicacin_id" optional="hide" />
+        <field name="tipo_mezcla" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.form</field>
+    <field name="model">step.agriculture.irrigation</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Riego y fertilización">
+        <header>
+          <field name="state" widget="statusbar" options="{'clickable': True}" />
+        </header>
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Riego y fertilización</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="active" />
+              <field name="date" />
+              <field name="estanque_riego_id" />
+              <field name="forma_de_aplicar_id" />
+              <field name="hectreas_a_regar" />
+              <field name="ot_bpa" />
+              <field name="sequence" />
+              <field name="tipo_de_aplicacin_id" />
+            </group>
+            <group>
+              <field name="company_id" />
+              <field name="empresa_id" />
+              <field name="fecha_aplicacin" />
+              <field name="fundo_id" />
+              <field name="litros_mezcla" />
+              <field name="responsaable_id" />
+              <field name="slo_riego" />
+              <field name="tipo_mezcla" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_cost_ids" string="Costos de fertirriego">
+              <field name="cost_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="cantidad" />
+                  <field name="centro_de_costo_id" />
+                  <field name="costo_producto" optional="hide" />
+                  <field name="costo_total" />
+                  <field name="distribucin_analtica_id" />
+                  <field name="producto_id" />
+                  <field name="product_uom_id" optional="hide" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_instrucciones" string="Instrucciones">
+              <field name="instrucciones" nolabel="1" />
+            </page>
+            <page name="page_instrucciones_1" string="Instrucciones">
+              <field name="instrucciones_1" nolabel="1" />
+            </page>
+            <page name="page_notes" string="Observaciones">
+              <field name="notes" nolabel="1" />
+            </page>
+            <page name="page_product_ids" string="Productos de fertirriego">
+              <field name="product_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="cantidad_producto" />
+                  <field name="dosis_x_1000_lt" />
+                  <field name="dosis_x_ha" />
+                  <field name="hectreas_a_regar" />
+                  <field name="horas_estimadas" />
+                  <field name="litros_mezcla" />
+                  <field name="producto_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="udm" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_recipe_ids" string="Recetas de fertilización">
+              <field name="recipe_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="sequence" optional="hide" />
+                </list>
+              </field>
+            </page>
+            <page name="page_schedule_ids" string="Jornadas de riego">
+              <field name="schedule_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="centro_de_costo_id" />
+                  <field name="centro_de_costo_1_id" />
+                  <field name="fecha_hr_inicio" />
+                  <field name="fecha_hr_trmino" />
+                  <field name="horas_riego" />
+                  <field name="litros_riego" />
+                  <field name="sector_riego_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="vlvula_id" />
+                  <field name="vlvula_de_riego" />
+                </list>
+              </field>
+            </page>
+            <page name="page_water_ids" string="Agua por cuartel">
+              <field name="water_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="cost_center_id" />
+                  <field name="cuartel_id" />
+                  <field name="litros_de_agua" />
+                  <field name="sequence" optional="hide" />
+                  <field name="vlvula_id" />
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter />
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.search</field>
+    <field name="model">step.agriculture.irrigation</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Riego y fertilización">
+        <field name="name" />
+        <field name="fundo_id" />
+        <field name="company_id" />
+        <field name="state" />
+        <filter name="group_fundo_id" string="Fundo" context="{'group_by': 'fundo_id'}" />
+        <filter name="group_state" string="Estado" context="{'group_by': 'state'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.graph</field>
+    <field name="model">step.agriculture.irrigation</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Riego y fertilización">
+        <field name="fundo_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_irrigation_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.pivot</field>
+    <field name="model">step.agriculture.irrigation</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Riego y fertilización">
+        <field name="fundo_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_irrigation_water_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.water.list</field>
+    <field name="model">step.agriculture.irrigation.water</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Agua por cuartel">
+        <field name="name" optional="show" />
+        <field name="cost_center_id" optional="show" />
+        <field name="cuartel_id" optional="hide" />
+        <field name="irrigation_id" optional="hide" />
+        <field name="litros_de_agua" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="vlvula_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_water_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.water.form</field>
+    <field name="model">step.agriculture.irrigation.water</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Agua por cuartel">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Agua por cuartel</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="cost_center_id" />
+              <field name="irrigation_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="cuartel_id" />
+              <field name="litros_de_agua" />
+              <field name="vlvula_id" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_water_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.water.search</field>
+    <field name="model">step.agriculture.irrigation.water</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Agua por cuartel">
+        <field name="name" />
+        <field name="cost_center_id" />
+        <filter name="group_cost_center_id" string="Centro costos" context="{'group_by': 'cost_center_id'}" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_water_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.water.graph</field>
+    <field name="model">step.agriculture.irrigation.water</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Agua por cuartel">
+        <field name="cost_center_id" />
+      </graph>
+    </field>
+  </record>
+  <record id="view_irrigation_water_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.water.pivot</field>
+    <field name="model">step.agriculture.irrigation.water</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Agua por cuartel">
+        <field name="cost_center_id" type="row" />
+      </pivot>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.list</field>
+    <field name="model">step.agriculture.irrigation.recipe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Recetas de fertilización">
+        <field name="name" optional="show" />
+        <field name="irrigation_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.form</field>
+    <field name="model">step.agriculture.irrigation.recipe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Recetas de fertilización">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Recetas de fertilización</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="irrigation_id" />
+            </group>
+            <group>
+              <field name="sequence" />
+            </group>
+          </group>
+          <notebook>
+            <page name="page_line_ids" string="Productos de la receta">
+              <field name="line_ids" nolabel="1">
+                <list editable="bottom">
+                  <field name="name" />
+                  <field name="dosis_x_100_ml" />
+                  <field name="dosis_x_ha" />
+                  <field name="producto_id" />
+                  <field name="sequence" optional="hide" />
+                  <field name="udm" optional="hide" />
+                </list>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.search</field>
+    <field name="model">step.agriculture.irrigation.recipe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Recetas de fertilización">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.graph</field>
+    <field name="model">step.agriculture.irrigation.recipe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Recetas de fertilización" />
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.pivot</field>
+    <field name="model">step.agriculture.irrigation.recipe</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Recetas de fertilización" />
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_line_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.line.list</field>
+    <field name="model">step.agriculture.irrigation.recipe.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Productos de la receta">
+        <field name="name" optional="show" />
+        <field name="dosis_x_100_ml" optional="hide" />
+        <field name="dosis_x_ha" optional="hide" />
+        <field name="producto_id" optional="hide" />
+        <field name="recipe_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="udm" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_line_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.line.form</field>
+    <field name="model">step.agriculture.irrigation.recipe.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Productos de la receta">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Productos de la receta</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="dosis_x_100_ml" />
+              <field name="producto_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="dosis_x_ha" />
+              <field name="recipe_id" />
+              <field name="udm" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_line_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.line.search</field>
+    <field name="model">step.agriculture.irrigation.recipe.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Productos de la receta">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_line_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.line.graph</field>
+    <field name="model">step.agriculture.irrigation.recipe.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Productos de la receta" />
+    </field>
+  </record>
+  <record id="view_irrigation_recipe_line_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.recipe.line.pivot</field>
+    <field name="model">step.agriculture.irrigation.recipe.line</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Productos de la receta" />
+    </field>
+  </record>
+  <record id="view_irrigation_schedule_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.schedule.list</field>
+    <field name="model">step.agriculture.irrigation.schedule</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Jornadas de riego">
+        <field name="name" optional="show" />
+        <field name="centro_de_costo_1_id" optional="hide" />
+        <field name="centro_de_costo_id" optional="hide" />
+        <field name="fecha_hr_inicio" optional="hide" />
+        <field name="fecha_hr_trmino" optional="hide" />
+        <field name="horas_riego" optional="hide" />
+        <field name="irrigation_id" optional="hide" />
+        <field name="litros_riego" optional="hide" />
+        <field name="sector_riego_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="vlvula_de_riego" optional="hide" />
+        <field name="vlvula_id" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_schedule_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.schedule.form</field>
+    <field name="model">step.agriculture.irrigation.schedule</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Jornadas de riego">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Jornadas de riego</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="centro_de_costo_1_id" />
+              <field name="fecha_hr_inicio" />
+              <field name="horas_riego" />
+              <field name="litros_riego" />
+              <field name="sequence" />
+              <field name="vlvula_id" />
+            </group>
+            <group>
+              <field name="centro_de_costo_id" />
+              <field name="fecha_hr_trmino" />
+              <field name="irrigation_id" />
+              <field name="sector_riego_id" />
+              <field name="vlvula_de_riego" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_schedule_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.schedule.search</field>
+    <field name="model">step.agriculture.irrigation.schedule</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Jornadas de riego">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_schedule_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.schedule.graph</field>
+    <field name="model">step.agriculture.irrigation.schedule</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Jornadas de riego" />
+    </field>
+  </record>
+  <record id="view_irrigation_schedule_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.schedule.pivot</field>
+    <field name="model">step.agriculture.irrigation.schedule</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Jornadas de riego" />
+    </field>
+  </record>
+  <record id="view_irrigation_product_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.product.list</field>
+    <field name="model">step.agriculture.irrigation.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Productos de fertirriego">
+        <field name="name" optional="show" />
+        <field name="cantidad_producto" optional="hide" />
+        <field name="dosis_x_1000_lt" optional="hide" />
+        <field name="dosis_x_ha" optional="hide" />
+        <field name="hectreas_a_regar" optional="hide" />
+        <field name="horas_estimadas" optional="hide" />
+        <field name="irrigation_id" optional="hide" />
+        <field name="litros_mezcla" optional="hide" />
+        <field name="producto_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+        <field name="udm" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_product_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.product.form</field>
+    <field name="model">step.agriculture.irrigation.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Productos de fertirriego">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Productos de fertirriego</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="cantidad_producto" />
+              <field name="dosis_x_ha" />
+              <field name="horas_estimadas" />
+              <field name="litros_mezcla" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="dosis_x_1000_lt" />
+              <field name="hectreas_a_regar" />
+              <field name="irrigation_id" />
+              <field name="producto_id" />
+              <field name="udm" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_product_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.product.search</field>
+    <field name="model">step.agriculture.irrigation.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Productos de fertirriego">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_product_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.product.graph</field>
+    <field name="model">step.agriculture.irrigation.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Productos de fertirriego" />
+    </field>
+  </record>
+  <record id="view_irrigation_product_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.product.pivot</field>
+    <field name="model">step.agriculture.irrigation.product</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Productos de fertirriego" />
+    </field>
+  </record>
+  <record id="view_irrigation_cost_list" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.cost.list</field>
+    <field name="model">step.agriculture.irrigation.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <list string="Costos de fertirriego">
+        <field name="name" optional="show" />
+        <field name="cantidad" optional="hide" />
+        <field name="centro_de_costo_id" optional="hide" />
+        <field name="costo_producto" optional="hide" />
+        <field name="costo_total" optional="hide" />
+        <field name="distribucin_analtica_id" optional="hide" />
+        <field name="irrigation_id" optional="hide" />
+        <field name="product_uom_id" optional="hide" />
+        <field name="producto_id" optional="hide" />
+        <field name="sequence" optional="hide" />
+      </list>
+    </field>
+  </record>
+  <record id="view_irrigation_cost_form" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.cost.form</field>
+    <field name="model">step.agriculture.irrigation.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <form string="Costos de fertirriego">
+        <header />
+        <sheet>
+          <div class="o_step_bpa_record_intro">
+            <strong>Costos de fertirriego</strong>
+          </div>
+          <div class="oe_title">
+            <h1>
+              <field name="name" />
+            </h1>
+          </div>
+          <group>
+            <group>
+              <field name="cantidad" />
+              <field name="costo_producto" />
+              <field name="distribucin_analtica_id" />
+              <field name="product_uom_id" />
+              <field name="sequence" />
+            </group>
+            <group>
+              <field name="centro_de_costo_id" />
+              <field name="costo_total" />
+              <field name="irrigation_id" />
+              <field name="producto_id" />
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+  <record id="view_irrigation_cost_search" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.cost.search</field>
+    <field name="model">step.agriculture.irrigation.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <search string="Costos de fertirriego">
+        <field name="name" />
+      </search>
+    </field>
+  </record>
+  <record id="view_irrigation_cost_graph" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.cost.graph</field>
+    <field name="model">step.agriculture.irrigation.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <graph string="Costos de fertirriego" />
+    </field>
+  </record>
+  <record id="view_irrigation_cost_pivot" model="ir.ui.view">
+    <field name="name">step.agriculture.irrigation.cost.pivot</field>
+    <field name="model">step.agriculture.irrigation.cost</field>
+    <field name="priority">1</field>
+    <field name="arch" type="xml">
+      <pivot string="Costos de fertirriego" />
+    </field>
+  </record>
+  <record id="view_cost_center_activities" model="ir.ui.view">
+    <field name="name">account.analytic.account.agricultural.activities</field>
+    <field name="model">account.analytic.account</field>
+    <field name="inherit_id" ref="step_hr.step_view_account_analytic_account_form" />
+    <field name="priority">90</field>
+    <field name="arch" type="xml">
+      <xpath expr="//form/sheet/div[not(@name)][1]" position="before">
+        <div name="button_box" class="oe_button_box">
+          <field name="agriculture_can_cost" invisible="1" />
+          <field name="agriculture_can_forecast" invisible="1" />
+          <field name="agriculture_can_machinery" invisible="1" />
+          <field name="agriculture_can_movement" invisible="1" />
+          <field name="agriculture_can_harvest" invisible="1" />
+          <field name="agriculture_can_irrigation" invisible="1" />
+          <field name="agriculture_can_contractor" invisible="1" />
+          <field name="agriculture_can_own" invisible="1" />
+          <field name="agriculture_can_foliar" invisible="1" />
+          <field name="agriculture_can_monitoring" invisible="1" />
+          <field name="agriculture_can_advisory" invisible="1" />
+          <field name="agriculture_can_inspection" invisible="1" />
+          <button name="action_agriculture_activity" type="object" icon="fa-gears" context="{'agriculture_activity': 'cost'}" invisible="not agriculture_can_cost" class="oe_stat_button">
+            <field name="agriculture_cost_count" widget="statinfo" string="Costos" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-feed" context="{'agriculture_activity': 'forecast'}" invisible="not agriculture_can_forecast" class="oe_stat_button">
+            <field name="agriculture_forecast_count" widget="statinfo" string="Pronóstico cosecha" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-group" context="{'agriculture_activity': 'machinery'}" invisible="not agriculture_can_machinery" class="oe_stat_button">
+            <field name="agriculture_machinery_count" widget="statinfo" string="Maquinaria" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-eject" context="{'agriculture_activity': 'movement'}" invisible="not agriculture_can_movement" class="oe_stat_button">
+            <field name="agriculture_movement_count" widget="statinfo" string="Movilización" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-diamond" context="{'agriculture_activity': 'harvest'}" invisible="not agriculture_can_harvest" class="oe_stat_button">
+            <field name="agriculture_harvest_count" widget="statinfo" string="Cosecha" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-tint" context="{'agriculture_activity': 'irrigation'}" invisible="not agriculture_can_irrigation" class="oe_stat_button">
+            <field name="agriculture_irrigation_count" widget="statinfo" string="Riego" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-diamond" context="{'agriculture_activity': 'contractor'}" invisible="not agriculture_can_contractor" class="oe_stat_button">
+            <field name="agriculture_contractor_count" widget="statinfo" string="Contratistas" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-diamond" context="{'agriculture_activity': 'own'}" invisible="not agriculture_can_own" class="oe_stat_button">
+            <field name="agriculture_own_count" widget="statinfo" string="Tarja propia" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-pause" context="{'agriculture_activity': 'foliar'}" invisible="not agriculture_can_foliar" class="oe_stat_button">
+            <field name="agriculture_foliar_count" widget="statinfo" string="Aplicación foliar" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-retweet" context="{'agriculture_activity': 'monitoring'}" invisible="not agriculture_can_monitoring" class="oe_stat_button">
+            <field name="agriculture_monitoring_count" widget="statinfo" string="Monitoreo" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-diamond" context="{'agriculture_activity': 'monitoring', 'agriculture_pest_view': True}" invisible="not agriculture_can_monitoring" class="oe_stat_button">
+            <field name="agriculture_monitoring_count" widget="statinfo" string="Plaga" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-etsy" context="{'agriculture_activity': 'advisory'}" invisible="not agriculture_can_advisory" class="oe_stat_button">
+            <field name="agriculture_advisory_count" widget="statinfo" string="Asesoría" />
+          </button>
+          <button name="action_agriculture_activity" type="object" icon="fa-low-vision" context="{'agriculture_activity': 'inspection'}" invisible="not agriculture_can_inspection" class="oe_stat_button">
+            <field name="agriculture_inspection_count" widget="statinfo" string="Inspecciones" />
+          </button>
+        </div>
+      </xpath>
+    </field>
+  </record>
+</odoo>

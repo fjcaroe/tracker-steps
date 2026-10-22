@@ -19,20 +19,20 @@ class BpaIrrigationDashboard(models.Model):
             start = fields.Datetime.now() - relativedelta(days=days)
             domain = [("create_date", ">=", fields.Datetime.to_string(start))]
 
-        irrigation = self.env["x_riego_y_fertilizacio"]
-        application = self.env["x_aplicacion_foliar"]
-        monitoring = self.env["x_monitoreo_agricola"]
-        sectors = self.env["x_sector_de_riego"]
+        irrigation = self.env["step.agriculture.irrigation"]
+        application = self.env["step.agriculture.application"]
+        monitoring = self.env["step.agriculture.monitoring"]
+        sectors = self.env["step.agriculture.irrigation.sector"]
 
         try:
             irrigation_records = irrigation.search(domain)
             application_records = application.search(domain)
             monitoring_records = monitoring.search(domain)
 
-            irrigated_hectares = sum(irrigation_records.mapped("x_studio_hectreas_a_regar"))
-            mixture_liters = sum(irrigation_records.mapped("x_studio_litros_mezcla"))
-            applied_hectares = sum(application_records.mapped("x_studio_total_hectreas"))
-            application_cost = sum(application_records.mapped("x_studio_costo_total_aplicacin"))
+            irrigated_hectares = sum(irrigation_records.mapped("hectreas_a_regar"))
+            mixture_liters = sum(irrigation_records.mapped("litros_mezcla"))
+            applied_hectares = sum(application_records.mapped("total_hectreas"))
+            application_cost = sum(application_records.mapped("costo_total_aplicacin"))
 
             return {
                 "period_days": days,
@@ -40,7 +40,7 @@ class BpaIrrigationDashboard(models.Model):
                     "total": len(irrigation_records),
                     "hectares": irrigated_hectares,
                     "mixture_liters": mixture_liters,
-                    "only_water": irrigation.search_count(domain + [("x_studio_slo_riego", "=", True)]),
+                    "only_water": irrigation.search_count(domain + [("slo_riego", "=", True)]),
                 },
                 "applications": {
                     "total": len(application_records),
@@ -50,7 +50,7 @@ class BpaIrrigationDashboard(models.Model):
                 "monitoring": {"total": len(monitoring_records)},
                 "sectors": {
                     "total": sectors.search_count([]),
-                    "hectares": sum(sectors.search([]).mapped("x_studio_total_hs")),
+                    "hectares": sum(sectors.search([]).mapped("total_hs")),
                 },
                 "recent": self._step_bpa_recent(irrigation, application, monitoring, domain),
             }
@@ -69,22 +69,22 @@ class BpaIrrigationDashboard(models.Model):
     def _step_bpa_recent(self, irrigation, application, monitoring, domain):
         records = []
         definitions = (
-            (irrigation, "x_studio_fecha", "Riego y fertilización", "fa-tint"),
-            (application, "x_studio_fecha", "Aplicación foliar", "fa-leaf"),
-            (monitoring, "x_studio_fecha", "Monitoreo agrícola", "fa-binoculars"),
+            (irrigation, "date", "Riego y fertilización", "fa-tint"),
+            (application, "date", "Aplicación foliar", "fa-leaf"),
+            (monitoring, "date", "Monitoreo agrícola", "fa-binoculars"),
         )
         for model, date_field, label, icon in definitions:
             for record in model.search(domain, order=f"{date_field} desc, create_date desc", limit=5):
-                farm = getattr(record, "x_studio_fundo", False)
+                farm = getattr(record, "fundo_id", False)
                 responsible = (
-                    getattr(record, "x_studio_responsaable", False)
-                    or getattr(record, "x_studio_responsable", False)
-                    or getattr(record, "x_studio_aprueba", False)
+                    getattr(record, "responsaable_id", False)
+                    or getattr(record, "responsable_id", False)
+                    or getattr(record, "aprueba_id", False)
                 )
                 records.append({
                     "id": record.id,
                     "model": model._name,
-                    "name": record.x_name or label,
+                    "name": record.name or label,
                     "kind": label,
                     "icon": icon,
                     "date": fields.Date.to_string(getattr(record, date_field, False)),

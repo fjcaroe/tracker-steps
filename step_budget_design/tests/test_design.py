@@ -153,4 +153,4 @@ class BudgetDesignCase(TransactionCase):
             self.assertIn(env.ref('step_budget_design.'+name).id,visible)
         arch=etree.fromstring(env['step.management.budget.template'].with_user(user).get_view(view_id=env.ref('step_management_costs.view_budget_template_form').id,view_type='form')['arch'].encode())
         for name in ('season_id','calculation_uom_id','calculation_unit_price','period_date'):self.assertTrue(arch.xpath('.//field[@name="%s"]'%name))
-        self.assertEqual(env['step.management.budget.group']._fields['phenology_id'].comodel_name,'x_estado_fenologico')
+        self.assertEqual(env['step.management.budget.group']._fields['phenology_id'].comodel_name,'step.agriculture.phenological.stage')

@@ -45,6 +45,8 @@ SHIPPING_DESIGN_INITIAL = False
 SAG_PROTOTYPE_INITIAL = False
 TRACEABILITY_INITIAL = False
 PROMOTION_COLUMNS = {}
+AGRICULTURE_SOURCE = None
+AGRICULTURE_COLUMNS = None
 
 
 def run(*command, **kwargs):
@@ -70,17 +72,34 @@ def tree_hash(path):
     return digestor.hexdigest()
 
 
+def agriculture_migrate(action, database, source):
+    return run('/usr/bin/python3.10', str(source / 'migrate_schema.py'), action, database)
+
+
+def agriculture_snapshot(database):
+    command = ['/usr/bin/python3.10', str(AGRICULTURE_SOURCE / 'migrate_schema.py'), 'snapshot', database]
+    if AGRICULTURE_COLUMNS.exists():
+        command += ['--baseline', str(AGRICULTURE_COLUMNS)]
+    result = run(*command, text=True, capture_output=True)
+    proof = json.loads(result.stdout)
+    if not AGRICULTURE_COLUMNS.exists():
+        AGRICULTURE_COLUMNS.write_text(json.dumps(proof))
+    return proof
+
+
 def snapshot(database):
+    if TICKET_REVISION == "agriculture-records":
+        return agriculture_snapshot(database)
     existing = set(query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public'").splitlines())
     current_columns = {}
-    if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations'):
+    if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records'):
         current_columns = json.loads(query(database, "SELECT json_object_agg(table_name,cols) FROM (SELECT table_name,json_agg(column_name) cols FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) s"))
     statements = []
     for table in BUSINESS:
         assert re.fullmatch('[a-z_][a-z0-9_]*', table), 'Invalid preservation table'
         if table in existing:
             row = 'jsonb_strip_nulls(to_jsonb(t))' if PRODUCERS else 'to_jsonb(t)' if SETTINGS else "(to_jsonb(t)-ARRAY['center_id','cost_center_id','write_date'])"
-            if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations'):
+            if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records'):
                 added = sorted(set(current_columns[table]) - set(PROMOTION_COLUMNS[table]))
                 if added: row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in added)
             if TICKET_REVISION == 'traceability' and TRACEABILITY_INITIAL and table == 'step_export_export':
@@ -256,7 +275,7 @@ def main():
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys'))
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
-    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
     parser.add_argument('--normalize-user-id', type=int)
     parser.add_argument('--expected-user-login')
     parser.add_argument('--approval-dir', type=Path)
@@ -302,13 +321,13 @@ def main():
         required = ('step_export', 'step_packing_operations', 'step_inventory_fruit_tag', 'step_sale_export_report', 'web_gantt')
         assert int(query(target_db, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % n for n in required))) == len(required)
         BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'hr_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_bank','l10n_cl_customs_port')) ORDER BY tablename").splitlines())
-    if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+    if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         TICKET_REVISION = args.kind
         if args.kind in ('sag-prototype', 'sag-lot', 'traceability'):
             assert args.environment == 'development', 'T92 solo autoriza Desarrollo'
         SETTINGS = True
         assert args.environment in ('development', 'cerro')
-        MODULES = ({'sag-traceability':('step_inventory_packing','step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability'),'traceability':('step_export_traceability',),'sag-lot':('step_packing_operations','step_packing_dispatch','step_packing_sag'),'sag-prototype':('step_packing_sag',),'email-login':('step_auth_email_casefold',),'dispatch-improvements':('step_packing_dispatch_improvements',),'harvest-operations':('step_cosecha_operations',),'harvest-planning':('step_cosecha_planning',),'agro-analytics':('step_agro_analytics',),'export-dashboard':('step_export_dashboard',),'dispatch-design':('step_packing_dispatch',),'export-control':('step_export_control',),'balance-analytic':('step_account_balance_analytic',),'producer-change':('step_packing_producer_change',),'purchase-mode':('step_producer_purchase_mode',),'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',),'fruit-categories':('step_fruit_category_unification',),'daily-estimate':('step_producer_daily_estimate',),'shipment-provision':('step_export_shipment_provision',),'budget-design':('step_budget_design',),'shipping-design':('step_export_shipping_design',),'document-design':('step_export_document_revision',)})[args.kind]
+        MODULES = ({'sag-traceability':('step_inventory_packing','step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability'),'traceability':('step_export_traceability',),'sag-lot':('step_packing_operations','step_packing_dispatch','step_packing_sag'),'sag-prototype':('step_packing_sag',),'email-login':('step_auth_email_casefold',),'dispatch-improvements':('step_packing_dispatch_improvements',),'agriculture-records':('step_agriculture_records','step_bpa_irrigation','step_bpa_inventory','step_qa','step_agro_traceability','step_budget_design','step_cosecha','step_cosecha_operations'),'harvest-operations':('step_cosecha_operations',),'harvest-planning':('step_cosecha_planning',),'agro-analytics':('step_agro_analytics',),'export-dashboard':('step_export_dashboard',),'dispatch-design':('step_packing_dispatch',),'export-control':('step_export_control',),'balance-analytic':('step_account_balance_analytic',),'producer-change':('step_packing_producer_change',),'purchase-mode':('step_producer_purchase_mode',),'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',),'fruit-categories':('step_fruit_category_unification',),'daily-estimate':('step_producer_daily_estimate',),'shipment-provision':('step_export_shipment_provision',),'budget-design':('step_budget_design',),'shipping-design':('step_export_shipping_design',),'document-design':('step_export_document_revision',)})[args.kind]
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
         SAG_PROTOTYPE_INITIAL = args.kind == 'sag-prototype' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_packing_sag' AND state='installed'")
@@ -369,6 +388,16 @@ def main():
     staged = stage / 'addons'
     staged.mkdir(exist_ok=True)
     proof = extract(args.release, staged)
+    if args.kind == 'agriculture-records':
+        assert args.environment == 'development', 'T103 is not a production authorization'
+        global AGRICULTURE_SOURCE, AGRICULTURE_COLUMNS
+        AGRICULTURE_SOURCE = staged / 'step_agriculture_records'
+        AGRICULTURE_COLUMNS = stage / 'agriculture-columns.json'
+        declarations = ast.parse((AGRICULTURE_SOURCE / 'schema.py').read_text())
+        policy = next(ast.literal_eval(node.value) for node in declarations.body
+                      if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and
+                      target.id == 'TAG_STATE_POLICY' for target in node.targets))
+        assert args.action != 'deploy' or policy is not None, 'Resolve the human tag-state decision before publishing T103'
     for path in [staged, *staged.rglob('*')]:
         os.chown(path, identity.pw_uid, identity.pw_gid)
     release_sha = digest(args.release)
@@ -381,7 +410,7 @@ def main():
         PROMOTION_COLUMNS = json.loads(query(database, "SELECT json_object_agg(table_name,cols) FROM (SELECT table_name,json_agg(column_name) cols FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) s"))
     if args.kind == 'email-login':
         BUSINESS = tuple(sorted(set(BUSINESS) | set(query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'res_users%' OR tablename IN ('res_groups_users_rel','res_company_users_rel'))").splitlines())))
-    if args.kind in ('dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations'):
+    if args.kind in ('dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records'):
         PROMOTION_COLUMNS = json.loads(query(database, "SELECT json_object_agg(table_name,cols) FROM (SELECT table_name,json_agg(column_name) cols FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) s"))
         if args.kind == 'harvest-operations':
             assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_cosecha_planning','step_packing') AND state='installed'") == '2'
@@ -401,15 +430,15 @@ def main():
     if PRODUCERS:
         assert set(installed) >= set(MODULES) - {'step_producers_integrations'}, 'Revise only installed agricultural apps'
         assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_account_treasury','step_packing_operations') AND state='installed'") == '2', 'Bridge dependencies must already be installed'
-    if SETTINGS and args.kind not in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+    if SETTINGS and args.kind not in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         assert set(installed) == set(MODULES), 'Repair only existing modules'
-    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         assert not query(database, "SELECT name FROM ir_module_module WHERE state IN ('to upgrade','to install','to remove')"), 'Pending upgrades'
     for name, old in installed.items():
         assert tuple(map(int, proof['versions'][name].split('.'))) >= tuple(map(int, old.split('.'))), 'Downgrade refused: ' + name
     update = [name for name in MODULES if name in installed]
     install = ['step_agriculture_catalogs'] if args.kind == 'management' else ['step_producers_integrations'] if PRODUCERS and 'step_producers_integrations' not in installed else []
-    if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+    if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         install = [name for name in MODULES if name not in installed]
     if args.kind == 'sale-format' and SALE_FORMAT_INITIAL:
         install = ['step_sale_export_report']
@@ -422,8 +451,8 @@ def main():
     for name in installed:
         source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
         baseline['modules'][name] = {'source': str(source), 'sha256': tree_hash(source), 'version': installed[name]}
-    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
-        condition = "" if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') else " AND name LIKE 'step%'"
+    if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+        condition = "" if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') else " AND name LIKE 'step%'"
         shared = json.loads(query(database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'" + condition))
         baseline['shared_modules'] = {}
         for name, version in shared.items():
@@ -457,7 +486,7 @@ def main():
         print('MANAGEMENT_CERTIFY_OK '+args.environment,flush=True)
         return
     if args.action in ('qa', 'compatibility'):
-        if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+        if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
             settings_lease = open('/run/lock/steps-environments.lock', 'a')
             fcntl.flock(settings_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
             for command in Path('/proc').glob('[0-9]*/cmdline'):
@@ -509,11 +538,15 @@ def main():
         tags = ','.join('/' + name for name in [*update, *install])
         init_options = ['-i', ','.join(install)] if install else []
         update_options = ['-u', ','.join(update)] if update else []
+        if args.kind == 'agriculture-records':
+            agriculture_migrate('prepare', qa_db, AGRICULTURE_SOURCE)
         result = subprocess.run(base + qa_options + ['-d', qa_db, '--addons-path=' + str(staged) + ',' + opts['addons_path'], '--data-dir=' + str(data)] + init_options + update_options + ['--test-enable', '--test-tags', tags, '--stop-after-init', '--logfile=' + str(log)])
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
         results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
         assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text, allowed_missing), 'QA failed: ' + str(log)
+        if args.kind == 'agriculture-records':
+            agriculture_migrate('finalize', qa_db, AGRICULTURE_SOURCE)
         assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
         verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
         if args.kind == 'email-login':
@@ -563,12 +596,14 @@ def main():
             try:
                 with (backup / 'database.dump').open('wb') as stream:
                     run('sudo', '-u', 'postgres', 'pg_dump', '-Fc', database, stdout=stream)
-                if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+                if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
                     store = Path(opts['data_dir']) / 'filestore' / database
                     if store.exists():
                         run('rsync', '-a', str(store) + '/', str(backup / 'filestore') + '/')
                 before = snapshot(database)
                 (backup / 'business_before.json').write_text(json.dumps(before, indent=2))
+                if args.kind == 'agriculture-records':
+                    agriculture_migrate('prepare', database, release_root / 'step_agriculture_records')
                 new_paths = str(release_root) + ',' + opts['addons_path']
                 changed, count = re.subn(r'(?m)^\s*addons_path\s*=.*$', 'addons_path = ' + new_paths, conf.read_text())
                 assert count == 1
@@ -579,6 +614,8 @@ def main():
                 result = subprocess.run(base + options + ['-d', database] + init_options + update_options + ['--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
+                if args.kind == 'agriculture-records':
+                    agriculture_migrate('finalize', database, release_root / 'step_agriculture_records')
                 assert snapshot(database) == before, 'Business migration check failed'
                 if TICKET_REVISION == 'sale-format':
                     # Explicit per-company configuration; never copy banking values.
@@ -611,12 +648,12 @@ def main():
 def verify(base, options, database, source, opts, proof, stage, installed):
     export = MODULES == ('step_export',)
     homepage = MODULES == ('step_demo_homepage',)
-    probe = (HERE / ('verify_sag_traceability.py' if TICKET_REVISION == 'sag-traceability' else 'verify_traceability.py' if TICKET_REVISION == 'traceability' else 'verify_sag_lot.py' if TICKET_REVISION == 'sag-lot' else 'verify_sag_prototype.py' if TICKET_REVISION == 'sag-prototype' else 'verify_email_login.py' if TICKET_REVISION == 'email-login' else 'verify_dispatch_improvements.py' if TICKET_REVISION == 'dispatch-improvements' else 'verify_harvest_operations.py' if TICKET_REVISION == 'harvest-operations' else 'verify_harvest_planning.py' if TICKET_REVISION == 'harvest-planning' else 'verify_agro_analytics.py' if TICKET_REVISION == 'agro-analytics' else 'verify_export_dashboard.py' if TICKET_REVISION == 'export-dashboard' else 'verify_dispatch_design.py' if TICKET_REVISION == 'dispatch-design' else 'verify_export_control.py' if TICKET_REVISION == 'export-control' else 'verify_balance_analytic.py' if TICKET_REVISION == 'balance-analytic' else 'verify_producer_change.py' if TICKET_REVISION == 'producer-change' else 'verify_purchase_mode.py' if TICKET_REVISION == 'purchase-mode' else 'verify_document_design.py' if TICKET_REVISION == 'document-design' else 'verify_shipping_design.py' if TICKET_REVISION == 'shipping-design' else 'verify_budget_design.py' if TICKET_REVISION == 'budget-design' else 'verify_shipment_provision.py' if TICKET_REVISION == 'shipment-provision' else 'verify_daily_estimate.py' if TICKET_REVISION == 'daily-estimate' else 'verify_fruit_categories.py' if TICKET_REVISION == 'fruit-categories' else 'verify_estimate_revision.py' if TICKET_REVISION == 'estimate-revision' else 'verify_fruit_reports.py' if TICKET_REVISION == 'fruit-reports' else 'verify_contract_report.py' if TICKET_REVISION == 'contract-report' else 'verify_estimate_report.py' if TICKET_REVISION == 'estimate-report' else 'verify_client_revision.py' if TICKET_REVISION == 'client-revision' else 'verify_sale_format.py' if TICKET_REVISION == 'sale-format' else 'verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
-    names = installed if SETTINGS or PRODUCERS or export or homepage or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') else {*installed, 'step_agriculture_catalogs'}
+    probe = (HERE / ('verify_sag_traceability.py' if TICKET_REVISION == 'sag-traceability' else 'verify_traceability.py' if TICKET_REVISION == 'traceability' else 'verify_sag_lot.py' if TICKET_REVISION == 'sag-lot' else 'verify_sag_prototype.py' if TICKET_REVISION == 'sag-prototype' else 'verify_email_login.py' if TICKET_REVISION == 'email-login' else 'verify_dispatch_improvements.py' if TICKET_REVISION == 'dispatch-improvements' else 'verify_agriculture_records.py' if TICKET_REVISION == 'agriculture-records' else 'verify_harvest_operations.py' if TICKET_REVISION == 'harvest-operations' else 'verify_harvest_planning.py' if TICKET_REVISION == 'harvest-planning' else 'verify_agro_analytics.py' if TICKET_REVISION == 'agro-analytics' else 'verify_export_dashboard.py' if TICKET_REVISION == 'export-dashboard' else 'verify_dispatch_design.py' if TICKET_REVISION == 'dispatch-design' else 'verify_export_control.py' if TICKET_REVISION == 'export-control' else 'verify_balance_analytic.py' if TICKET_REVISION == 'balance-analytic' else 'verify_producer_change.py' if TICKET_REVISION == 'producer-change' else 'verify_purchase_mode.py' if TICKET_REVISION == 'purchase-mode' else 'verify_document_design.py' if TICKET_REVISION == 'document-design' else 'verify_shipping_design.py' if TICKET_REVISION == 'shipping-design' else 'verify_budget_design.py' if TICKET_REVISION == 'budget-design' else 'verify_shipment_provision.py' if TICKET_REVISION == 'shipment-provision' else 'verify_daily_estimate.py' if TICKET_REVISION == 'daily-estimate' else 'verify_fruit_categories.py' if TICKET_REVISION == 'fruit-categories' else 'verify_estimate_revision.py' if TICKET_REVISION == 'estimate-revision' else 'verify_fruit_reports.py' if TICKET_REVISION == 'fruit-reports' else 'verify_contract_report.py' if TICKET_REVISION == 'contract-report' else 'verify_estimate_report.py' if TICKET_REVISION == 'estimate-report' else 'verify_client_revision.py' if TICKET_REVISION == 'client-revision' else 'verify_sale_format.py' if TICKET_REVISION == 'sale-format' else 'verify_ticket_revision.py' if TICKET_REVISION else 'verify_packing_revision.py' if MODULES == ('step_packing_operations',) else 'verify_fruit_reception.py' if MODULES == ('step_inventory_packing',) else 'verify_producer_revision.py' if PRODUCERS else 'verify_settings_navigation.py' if SETTINGS else 'verify_home_heading.py' if homepage else 'verify_export_navigation.py' if export else 'verify_management.py')).read_text()
+    names = installed if SETTINGS or PRODUCERS or export or homepage or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') else {*installed, 'step_agriculture_catalogs'}
     header = 'PROBE_TOOLS=' + repr(str(HERE)) + '\nimport sys\nsys.path.insert(0,' + repr(str(HERE)) + ')\nROOT=' + repr(str(source)) + '\nEXPECTED=' + repr({name: proof['versions'][name] for name in names}) + '\n'
-    if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
+    if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         header += 'OUTPUT=' + repr(str(stage)) + '\n'
-    data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') and database.startswith('MANAGEMENT_QA_') else []
+    data_options = ['--data-dir=' + str(stage/'data')] if TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability') and database.startswith('MANAGEMENT_QA_') else []
     from contextlib import nullcontext
     report_server = nullcontext()
     if TICKET_REVISION == 'dispatch-improvements' and database.startswith('MANAGEMENT_QA_'):

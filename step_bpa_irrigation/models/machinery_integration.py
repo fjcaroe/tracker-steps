@@ -10,7 +10,7 @@ LEGACY_FOLIO_FIELD = "x_studio_folio_bpa"
 #: Campos de la OT-BPA que alimentan el nombre compuesto de Horas Máquina.
 #: Ambos están definidos en Python por este módulo (`bpa_native.py`), así que
 #: siempre existen.
-BPA_LABEL_FIELDS = ("x_studio_nmero_ot_bpa", "x_name")
+BPA_LABEL_FIELDS = ("nmero_ot_bpa", "name")
 
 #: Marca de contexto para no reentrar en la sincronización de nombres.
 SYNC_CONTEXT_KEY = "skip_machinery_name_sync"
@@ -23,7 +23,7 @@ class StepHrsMachineryBpa(models.Model):
     _rec_names_search = list(StepHrsMachinery._rec_names_search) + ["bpa_folio"]
 
     bpa_order_id = fields.Many2one(
-        "x_aplicacion_foliar", string="Folio BPA", check_company=True, tracking=True,
+        "step.agriculture.application", string="Folio BPA", check_company=True, tracking=True,
         help="OT-BPA de aplicación foliar que originó el uso de maquinaria. "
              "Es un dato distinto de la Orden de Trabajo de la labor.",
     )
@@ -32,7 +32,7 @@ class StepHrsMachineryBpa(models.Model):
         help="Número de la OT-BPA vinculada, usado para componer el nombre del registro.",
     )
 
-    @api.depends("bpa_order_id", "bpa_order_id.x_studio_nmero_ot_bpa", "bpa_order_id.x_name")
+    @api.depends("bpa_order_id", "bpa_order_id.nmero_ot_bpa", "bpa_order_id.name")
     def _compute_bpa_folio(self):
         for record in self:
             record.bpa_folio = record._bpa_folio_label()
@@ -42,7 +42,7 @@ class StepHrsMachineryBpa(models.Model):
         self.ensure_one()
         order = self.bpa_order_id
         if order:
-            label = (order.x_studio_nmero_ot_bpa or "").strip() or (order.x_name or "").strip()
+            label = (order.nmero_ot_bpa or "").strip() or (order.name or "").strip()
             if label:
                 return label
         if LEGACY_FOLIO_FIELD in self._fields:
@@ -67,7 +67,7 @@ class StepHrsMachineryBpa(models.Model):
         for record in self:
             order = record.bpa_order_id
             if order:
-                record.fundo_id = order.x_studio_fundo
+                record.fundo_id = order.fundo_id
                 record.company_id = order.company_id
 
     @api.constrains("bpa_order_id", "company_id")
@@ -82,7 +82,7 @@ class StepHrsMachineryBpa(models.Model):
 class BpaFoliarApplicationNaming(models.Model):
     """Propaga a Horas Máquina los cambios de folio de la OT-BPA."""
 
-    _inherit = "x_aplicacion_foliar"
+    _inherit = "step.agriculture.application"
 
     def write(self, vals):
         result = super().write(vals)

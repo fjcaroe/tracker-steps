@@ -28,7 +28,9 @@ def main():
     models, common = schema['MODELS'], schema['COMMON_FIELDS']
     data = json.loads(args.inventory.read_text(encoding='utf-8'))
     assert set(models) == set(data['models']), 'Review newly discovered dependencies first'
-    original = (root / 'step_bpa_irrigation/models/bpa_native.py').read_text(encoding='utf-8')
+    base_path = addon / 'models/bpa.py'
+    original = (base_path if base_path.exists() else root / 'step_bpa_irrigation/models/bpa_native.py').read_text(encoding='utf-8')
+    previous = runpy.run_path(str(addon / 'field_names.py'))['FIELDS'] if (addon / 'field_names.py').exists() else {}
     tree = ast.parse(original)
     base_fields = {}
     for node in tree.body:
@@ -36,7 +38,9 @@ def main():
             assignments = {a.targets[0].id: a.value for a in node.body
                            if isinstance(a, ast.Assign) and isinstance(a.targets[0], ast.Name)}
             name = ast.literal_eval(assignments['_name'])
-            base_fields[name] = {key for key in assignments if not key.startswith('_')}
+            name = next((old for old, new in models.items() if new == name), name)
+            inverse = {value: key for key, value in previous.get(name, {}).items()}
+            base_fields[name] = {inverse.get(key, key) for key in assignments if not key.startswith('_')}
     mappings = {}
     for name, meta in data['models'].items():
         available = {f['name'] for f in meta['fields'] if not f['name'].startswith('x_')}
@@ -88,8 +92,8 @@ def main():
         if is_base:
             lines += ['    _inherit = ' + repr(new_model)]
         else:
-            lines += ['    _name = ' + repr(new_model), '    _description = ' + repr(meta['description']),
-                      '    _rec_name = "name"', '    _order = "id"']
+            lines += ['    _name = ' + repr(new_model), '    _description = ' + repr(schema['LABELS'][new_model.removeprefix('step.agriculture.')]),
+                      '    _rec_name = "name"', '    _order = ' + repr(replace(meta['order'], mapping))]
             inherit = []
             if meta['mail_thread']:
                 inherit.append('mail.thread')
@@ -100,7 +104,7 @@ def main():
         if old_model in schema['SEQUENCES']:
             lines += ['    _folio_sequence = ' + repr(schema['SEQUENCES'][old_model])]
             if is_base:
-                lines += ['    name = fields.Char(default="Nuevo")']
+                lines += ['    name = fields.Char(default="Nuevo", readonly=True, copy=False)']
         computes = []
         for field in meta['fields']:
             old = field['name']
@@ -108,7 +112,7 @@ def main():
                 continue
             new = mapping[old]
             kind = field['ttype']
-            kwargs = {'string': field['field_description'],
+            kwargs = {'string': schema['FIELD_LABELS'].get(new, field['field_description']),
                       'required': field.get('runtime_required', field['required']),
                       'readonly': field.get('runtime_readonly', field['readonly']),
                       'copy': field['copied'], 'store': field.get('runtime_store', field['store'])}
@@ -151,8 +155,14 @@ def main():
                 computes.append(('_compute_' + new, [], 'for record in self:\n    record[' + repr(new) + '] = False'))
             if new == 'name':
                 kwargs['default'] = '__NEW_NAME__'
+                if old_model in schema['SEQUENCES']:
+                    kwargs.update(readonly=True, copy=False)
             if new == 'active':
                 kwargs['default'] = True
+            if new == 'legacy_tag_state_id':
+                kwargs.update(readonly=True, copy=False, string='Estado histórico de tarja')
+            if new == 'legacy_workflow_state':
+                kwargs.update(readonly=True, copy=False, string='Estado anterior')
             constructor = {'many2one': 'Many2one', 'one2many': 'One2many',
                            'many2many': 'Many2many'}.get(kind, kind.title())
             rendered = ', '.join(k + '=' + ('"Nuevo"' if v == '__NEW_NAME__' else repr(v)) for k, v in kwargs.items())
@@ -160,13 +170,15 @@ def main():
         if old_model in schema['SEQUENCES']:
             lines += ['', '    @api.model_create_multi', '    def create(self, values_list):',
                       '        for values in values_list:',
-                      '            if not values.get("name") or values["name"] == "Nuevo":',
-                      '                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"',
+                      '            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"',
                       '        return super().create(values_list)']
         for method, deps, code in computes:
             lines += ['', '    @api.depends(' + ', '.join(repr(d) for d in deps) + ')', '    def ' + method + '(self):']
             # Normalize inconsistent Studio indentation into a real Python method.
             normalized = ast.unparse(ast.parse(code))
+            if method == '_compute_maquinadas':
+                normalized = normalized.replace('/ record.capacidad_lts_aplicadora',
+                    '/ record.capacidad_lts_aplicadora if record.capacidad_lts_aplicadora else 0.0')
             lines += ['        ' + line for line in normalized.splitlines()]
         lines += ['']
     (addon / 'models/documents.py').write_text('\n'.join(lines) + '\n', encoding='utf-8')

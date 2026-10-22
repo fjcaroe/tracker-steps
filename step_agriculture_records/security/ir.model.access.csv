@@ -1,0 +1,74 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_inspection_0,Inspecciones internas,model_step_agriculture_inspection,base.group_system,1,1,1,1
+access_inspection_1,Inspecciones internas,model_step_agriculture_inspection,base.group_user,1,1,1,0
+access_irrigation_sector_0,Sectores de riego,model_step_agriculture_irrigation_sector,base.group_system,1,1,1,1
+access_irrigation_sector_1,Sectores de riego,model_step_agriculture_irrigation_sector,base.group_user,1,1,1,0
+access_irrigation_sector_2,Sectores de riego,model_step_agriculture_irrigation_sector,base.group_user,1,1,1,1
+access_irrigation_valve_0,Válvulas de riego,model_step_agriculture_irrigation_valve,base.group_system,1,1,1,1
+access_irrigation_valve_1,Válvulas de riego,model_step_agriculture_irrigation_valve,base.group_user,1,1,1,0
+access_inspection_line_0,Detalle de inspección,model_step_agriculture_inspection_line,base.group_system,1,1,1,1
+access_inspection_line_1,Detalle de inspección,model_step_agriculture_inspection_line,base.group_user,1,1,1,0
+access_advisory_0,Asesorías externas,model_step_agriculture_advisory,base.group_system,1,1,1,1
+access_advisory_1,Asesorías externas,model_step_agriculture_advisory,base.group_user,1,1,1,0
+access_advisory_line_0,Recomendaciones de asesoría,model_step_agriculture_advisory_line,base.group_system,1,1,1,1
+access_advisory_line_1,Recomendaciones de asesoría,model_step_agriculture_advisory_line,base.group_user,1,1,1,0
+access_active_ingredient_0,Sustancias activas,model_step_agriculture_active_ingredient,base.group_system,1,1,1,1
+access_active_ingredient_1,Sustancias activas,model_step_agriculture_active_ingredient,base.group_user,1,1,1,0
+access_monitoring_line_0,Hallazgos de monitoreo,model_step_agriculture_monitoring_line,base.group_system,1,1,1,1
+access_monitoring_line_1,Hallazgos de monitoreo,model_step_agriculture_monitoring_line,base.group_user,1,1,1,0
+access_pest_0,Objetivos y plagas,model_step_agriculture_pest,base.group_system,1,1,1,1
+access_pest_1,Objetivos y plagas,model_step_agriculture_pest,base.group_user,1,1,1,0
+access_pest_2,Objetivos y plagas,model_step_agriculture_pest,base.group_user,1,1,1,1
+access_monitoring_0,Monitoreos agrícolas,model_step_agriculture_monitoring,base.group_system,1,1,1,1
+access_monitoring_1,Monitoreos agrícolas,model_step_agriculture_monitoring,base.group_user,1,1,1,0
+access_monitoring_2,Monitoreos agrícolas,model_step_agriculture_monitoring,base.group_user,1,1,1,1
+access_phenological_stage_0,Estados fenológicos,model_step_agriculture_phenological_stage,base.group_system,1,1,1,1
+access_phenological_stage_1,Estados fenológicos,model_step_agriculture_phenological_stage,base.group_user,1,1,1,0
+access_phenological_stage_2,Estados fenológicos,model_step_agriculture_phenological_stage,base.group_user,1,1,1,1
+access_application_machinery_0,Maquinaria aplicada,model_step_agriculture_application_machinery,base.group_system,1,1,1,1
+access_application_machinery_1,Maquinaria aplicada,model_step_agriculture_application_machinery,base.group_user,1,1,1,0
+access_application_0,Aplicaciones foliares,model_step_agriculture_application,base.group_system,1,1,1,1
+access_application_1,Aplicaciones foliares,model_step_agriculture_application,base.group_user,1,1,1,1
+access_application_2,Aplicaciones foliares,model_step_agriculture_application,base.group_user,1,1,1,0
+access_application_type_0,Tipos de aplicación,model_step_agriculture_application_type,base.group_system,1,1,1,1
+access_application_type_1,Tipos de aplicación,model_step_agriculture_application_type,base.group_user,1,1,1,0
+access_application_type_2,Tipos de aplicación,model_step_agriculture_application_type,base.group_user,1,1,1,1
+access_application_note_0,Observaciones de aplicación,model_step_agriculture_application_note,base.group_system,1,1,1,1
+access_application_note_1,Observaciones de aplicación,model_step_agriculture_application_note,base.group_user,1,1,1,0
+access_application_waste_0,Remanentes y residuos,model_step_agriculture_application_waste,base.group_system,1,1,1,1
+access_application_waste_1,Remanentes y residuos,model_step_agriculture_application_waste,base.group_user,1,1,1,0
+access_application_product_0,Productos aplicados,model_step_agriculture_application_product,base.group_system,1,1,1,1
+access_application_product_1,Productos aplicados,model_step_agriculture_application_product,base.group_user,1,1,1,0
+access_application_ppe_0,Protección personal,model_step_agriculture_application_ppe,base.group_system,1,1,1,1
+access_application_ppe_1,Protección personal,model_step_agriculture_application_ppe,base.group_user,1,1,1,0
+access_application_worker_0,Personal de aplicación,model_step_agriculture_application_worker,base.group_system,1,1,1,1
+access_application_worker_1,Personal de aplicación,model_step_agriculture_application_worker,base.group_user,1,1,1,0
+access_bpa_role_0,Cargos BPA,model_step_agriculture_bpa_role,base.group_system,1,1,1,1
+access_bpa_role_1,Cargos BPA,model_step_agriculture_bpa_role,base.group_user,1,1,1,0
+access_application_cost_0,Costos de aplicación,model_step_agriculture_application_cost,base.group_system,1,1,1,1
+access_application_cost_1,Costos de aplicación,model_step_agriculture_application_cost,base.group_user,1,1,1,0
+access_application_method_0,Formas de aplicación,model_step_agriculture_application_method,base.group_system,1,1,1,1
+access_application_method_1,Formas de aplicación,model_step_agriculture_application_method,base.group_user,1,1,1,0
+access_harvest_record_0,Registro de cosecha,model_step_agriculture_harvest_record,base.group_system,1,1,1,1
+access_harvest_record_1,Registro de cosecha,model_step_agriculture_harvest_record,base.group_user,1,1,1,0
+access_harvest_tag_0,Tarjas de cosecha,model_step_agriculture_harvest_tag,base.group_system,1,1,1,1
+access_harvest_tag_1,Tarjas de cosecha,model_step_agriculture_harvest_tag,base.group_user,1,1,1,0
+access_archive_tag_state_0,Estados históricos de tarja,model_step_agriculture_archive_tag_state,base.group_system,1,0,0,0
+access_archive_tag_state_1,Estados históricos de tarja,model_step_agriculture_archive_tag_state,base.group_user,1,0,0,0
+access_harvest_forecast_0,Pronóstico de cosecha,model_step_agriculture_harvest_forecast,base.group_system,1,1,1,1
+access_harvest_forecast_1,Pronóstico de cosecha,model_step_agriculture_harvest_forecast,base.group_user,1,1,1,0
+access_irrigation_0,Riego y fertilización,model_step_agriculture_irrigation,base.group_system,1,1,1,1
+access_irrigation_1,Riego y fertilización,model_step_agriculture_irrigation,base.group_user,1,1,1,1
+access_irrigation_2,Riego y fertilización,model_step_agriculture_irrigation,base.group_user,1,1,1,0
+access_irrigation_water_0,Agua por cuartel,model_step_agriculture_irrigation_water,base.group_system,1,1,1,1
+access_irrigation_water_1,Agua por cuartel,model_step_agriculture_irrigation_water,base.group_user,1,1,1,0
+access_irrigation_recipe_0,Recetas de fertilización,model_step_agriculture_irrigation_recipe,base.group_system,1,1,1,1
+access_irrigation_recipe_1,Recetas de fertilización,model_step_agriculture_irrigation_recipe,base.group_user,1,1,1,0
+access_irrigation_recipe_line_0,Productos de la receta,model_step_agriculture_irrigation_recipe_line,base.group_system,1,1,1,1
+access_irrigation_recipe_line_1,Productos de la receta,model_step_agriculture_irrigation_recipe_line,base.group_user,1,1,1,0
+access_irrigation_schedule_0,Jornadas de riego,model_step_agriculture_irrigation_schedule,base.group_system,1,1,1,1
+access_irrigation_schedule_1,Jornadas de riego,model_step_agriculture_irrigation_schedule,base.group_user,1,1,1,0
+access_irrigation_product_0,Productos de fertirriego,model_step_agriculture_irrigation_product,base.group_system,1,1,1,1
+access_irrigation_product_1,Productos de fertirriego,model_step_agriculture_irrigation_product,base.group_user,1,1,1,0
+access_irrigation_cost_0,Costos de fertirriego,model_step_agriculture_irrigation_cost,base.group_system,1,1,1,1
+access_irrigation_cost_1,Costos de fertirriego,model_step_agriculture_irrigation_cost,base.group_user,1,1,1,0

@@ -2,7 +2,7 @@
 """Restricciones fitosanitarias (carencia y reingreso) por cuartel.
 
 Las aplicaciones fitosanitarias se registran hoy en el modelo Studio
-``x_aplicacion_foliar``.  Este módulo no lo hereda en Python — un modelo manual
+``step.agriculture.application``.  Este módulo no lo hereda en Python — un modelo manual
 no está en el registro cuando se cargan las clases Python — sino que lo lee de
 forma defensiva en tiempo de ejecución y materializa el resultado en un modelo
 nativo, versionado, con permisos y reglas de registro propias.
@@ -21,7 +21,7 @@ from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
-APPLICATION_MODEL = "x_aplicacion_foliar"
+APPLICATION_MODEL = "step.agriculture.application"
 
 #: Campo del producto que sostiene cada criterio de carencia.  ``label`` es el
 #: campo nativo de ``step_hr``; los otros tres son campos Studio del maestro de
@@ -186,9 +186,9 @@ class StepPhytoRestriction(models.Model):
             comodel = self.env.get(field.comodel_name)
             if comodel is None:
                 continue
-            if product_model is None and "x_studio_producto" in comodel._fields:
+            if product_model is None and "producto_id" in comodel._fields:
                 product_model = field.comodel_name
-            if cuartel_model is None and "x_studio_cuartel" in comodel._fields:
+            if cuartel_model is None and "cuartel_id" in comodel._fields:
                 cuartel_model = field.comodel_name
         return product_model, cuartel_model
 
@@ -224,15 +224,15 @@ class StepPhytoRestriction(models.Model):
         criterion = self.env.company.step_phyto_criterion or "max"
         values = []
         for application in applications:
-            header_date = application["x_studio_fecha"] if "x_studio_fecha" in application._fields else False
+            header_date = application["date"] if "date" in application._fields else False
             company = (
-                application["x_studio_empresa"]
-                if "x_studio_empresa" in application._fields and application["x_studio_empresa"]
+                application["empresa_id"]
+                if "empresa_id" in application._fields and application["empresa_id"]
                 else self.env.company
             )
             fundo = (
-                application["x_studio_fundo"]
-                if "x_studio_fundo" in application._fields
+                application["fundo_id"]
+                if "fundo_id" in application._fields
                 else self.env["step.fundo"]
             )
 
@@ -240,7 +240,7 @@ class StepPhytoRestriction(models.Model):
             products = self.env["product.template"]
             if product_model:
                 for line in self._application_lines(application, product_model):
-                    product = line["x_studio_producto"]
+                    product = line["producto_id"]
                     if product:
                         products |= product
             carencia = max(
@@ -255,20 +255,20 @@ class StepPhytoRestriction(models.Model):
 
             substances = ", ".join(
                 sorted({
-                    p["x_studio_sustancia_activa"].display_name
+                    p["agriculture_active_ingredient_id"].display_name
                     for p in products
-                    if "x_studio_sustancia_activa" in p._fields and p["x_studio_sustancia_activa"]
+                    if "agriculture_active_ingredient_id" in p._fields and p["agriculture_active_ingredient_id"]
                 })
             )
 
             # --- cuarteles intervenidos --------------------------------
             for line in self._application_lines(application, cuartel_model):
-                cuartel = line["x_studio_cuartel"]
+                cuartel = line["cuartel_id"]
                 if not cuartel:
                     continue
                 line_date = (
-                    line["x_studio_fecha_hr_inicio"]
-                    if "x_studio_fecha_hr_inicio" in line._fields
+                    line["fecha_hr_inicio"]
+                    if "fecha_hr_inicio" in line._fields
                     else False
                 )
                 date_application = line_date or self._as_datetime(header_date)
@@ -296,8 +296,8 @@ class StepPhytoRestriction(models.Model):
         model = self.env.get(line_model)
         if model is None:
             return None
-        if "x_aplicacion_foliar_id" in model._fields:
-            return "x_aplicacion_foliar_id"
+        if "application_id" in model._fields:
+            return "application_id"
         return next(
             (
                 name
@@ -376,7 +376,7 @@ class StepPhytoRestriction(models.Model):
             if not inverse:
                 return self.browse()
             lines = self.env[cuartel_model].sudo().search([
-                ("x_studio_cuartel", "in", list(cuartel_ids)),
+                ("cuartel_id", "in", list(cuartel_ids)),
             ])
             wanted = {line[inverse].id for line in lines if line[inverse]}
             applications = applications.filtered(lambda a: a.id in wanted)

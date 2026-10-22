@@ -39,6 +39,7 @@ MODELS = {
 }
 
 COMMON_FIELDS = {
+    'x_studio_sustancia_activa': 'active_ingredient_id',
     'x_studio_one2many_field_3ls_1jhj9eqdf': 'valve_ids',
     'x_studio_one2many_field_123_1jhkg07bt': 'line_ids',
     'x_studio_selection_field_4bo_1jhkp8p27': 'state',
@@ -108,6 +109,61 @@ SEQUENCES = {
     'x_monitoreo_agricola': 'monitoreo.bpa',
     'x_aplicacion_foliar': 'aplicaciones.bpa',
     'x_registro_cosecha': 'Folio.cosecha',
+}
+
+# Filled only after the human chooses how the old "Vigente" state maps.
+# The immutable-release builder must reject an unresolved policy.
+TAG_STATE_POLICY = None
+
+FOREIGN_FIELDS = {
+    'product.template': {'x_studio_sustancia_activa': 'agriculture_active_ingredient_id'},
+    'product.product': {'x_studio_sustancia_activa': 'agriculture_active_ingredient_id'},
+    'account.analytic.account': {
+        'x_studio_sector_de_riego': 'agriculture_sector_id',
+        'x_studio_valvula': 'agriculture_valve_id',
+        'x_cost_id_domain_step_tarja_cost_line_count': 'agriculture_cost_count',
+        'x_x_studio_centro_costos_x_planificar_cosecha_count': 'agriculture_forecast_count',
+        'x_cost_id_step_hrs_machinery_line_count': 'agriculture_machinery_count',
+        'x_cost_id_step_movi_cost_line_count': 'agriculture_movement_count',
+        'x_x_studio_centro_costos_x_registro_cosecha_count': 'agriculture_harvest_count',
+        'x_x_studio_cuenta_x_sector_de_riego_line_29f4f_count': 'agriculture_irrigation_count',
+        'x_cost_id_step_tarja_cost_line_count': 'agriculture_contractor_count',
+        'x_cost_id_step_tarja_line_count': 'agriculture_own_count',
+        'x_x_studio_centro_costo_x_aplicacion_foliar_line_2f222_count': 'agriculture_foliar_count',
+        'x_x_studio_centro_costos_x_monitoreo_agricola_line_78784_count': 'agriculture_monitoring_count',
+        'x_x_studio_centro_costo_x_asesor_externo_count': 'agriculture_advisory_count',
+        'x_x_studio_centro_costos_x_inspecciones_interna_count': 'agriculture_inspection_count',
+    },
+}
+
+LABELS = {
+    'harvest.forecast': 'Pronóstico de cosecha', 'harvest.record': 'Registro de cosecha',
+    'harvest.tag': 'Tarjas de cosecha', 'archive.tag.state': 'Estados históricos de tarja',
+    'inspection': 'Inspecciones internas', 'inspection.line': 'Detalle de inspección',
+    'advisory': 'Asesorías externas', 'advisory.line': 'Recomendaciones de asesoría',
+    'active.ingredient': 'Sustancias activas', 'bpa.role': 'Cargos BPA',
+    'application.method': 'Formas de aplicación', 'pest': 'Objetivos y plagas',
+    'phenological.stage': 'Estados fenológicos', 'application.type': 'Tipos de aplicación',
+    'irrigation.sector': 'Sectores de riego', 'irrigation.valve': 'Válvulas de riego',
+    'monitoring': 'Monitoreos agrícolas', 'monitoring.line': 'Hallazgos de monitoreo',
+    'application': 'Aplicaciones foliares', 'application.machinery': 'Maquinaria aplicada',
+    'application.note': 'Observaciones de aplicación', 'application.waste': 'Remanentes y residuos',
+    'application.product': 'Productos aplicados', 'application.ppe': 'Protección personal',
+    'application.worker': 'Personal de aplicación', 'application.cost': 'Costos de aplicación',
+    'irrigation': 'Riego y fertilización', 'irrigation.water': 'Agua por cuartel',
+    'irrigation.recipe': 'Recetas de fertilización', 'irrigation.recipe.line': 'Productos de la receta',
+    'irrigation.schedule': 'Jornadas de riego', 'irrigation.product': 'Productos de fertirriego',
+    'irrigation.cost': 'Costos de fertirriego',
+}
+
+FIELD_LABELS = {
+    'state': 'Estado', 'legacy_workflow_state': 'Estado anterior',
+    'legacy_active': 'Activo anterior', 'legacy_decimal': 'Dato adicional',
+    'legacy_reference': 'Referencia adicional', 'legacy_notes': 'Observaciones adicionales',
+    'instructions_html': 'Instrucciones', 'precautions_html': 'Precauciones',
+    'notes_html': 'Observaciones', 'related_sector_id': 'Sector relacionado',
+    'available_cuartel_ids': 'Cuarteles disponibles', 'center_cuartel_ids': 'Cuarteles del centro',
+    'analytic_cuartel_ids': 'Cuarteles de la cuenta analítica', 'standard_hour_cost': 'Costo estándar por hora',
 }
 
 

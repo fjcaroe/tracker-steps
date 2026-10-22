@@ -6,36 +6,35 @@ class StepAgricultureInspection(models.Model):
     _name = 'step.agriculture.inspection'
     _description = 'Inspecciones internas'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _folio_sequence = 'interna.inspecciones'
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
-    name = fields.Char(string='Folio inspección interna', required=False, readonly=True, copy=True, store=True, default="Nuevo")
+    name = fields.Char(string='Folio inspección interna', required=False, readonly=True, copy=False, store=True, default="Nuevo")
     asignado_a_id = fields.Many2one(string='Asignado a', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
     cost_center_id = fields.Many2one(string='Centro costos', required=False, readonly=False, copy=True, store=True, comodel_name='account.analytic.account', ondelete='set null')
     date = fields.Date(string='Fecha', required=False, readonly=False, copy=True, store=True)
     fecha_a_ejecutar = fields.Date(string='Fecha a ejecutar', required=False, readonly=False, copy=True, store=True)
     fundo_id = fields.Many2one(string='Fundo', required=False, readonly=False, copy=True, store=True, comodel_name='step.fundo', ondelete='set null')
-    instructions_html = fields.Html(string='Nuevo HTML', required=False, readonly=False, copy=True, store=True)
+    instructions_html = fields.Html(string='Instrucciones', required=False, readonly=False, copy=True, store=True)
     instruccin = fields.Text(string='Instrucción', required=False, readonly=False, copy=True, store=True)
     observaciones = fields.Text(string='Observaciones', required=False, readonly=False, copy=True, store=True)
     line_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.inspection.line', inverse_name='inspection_id')
     responsable_id = fields.Many2one(string='Responsable', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
     sector_riego_id = fields.Many2one(string='Sector riego', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation.sector', ondelete='set null')
-    state = fields.Selection(string='Barra de estado de flujo', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Creada'], ['status2', 'Ejecutada'], ['status3', 'Aprobada']], default='status1')
+    state = fields.Selection(string='Estado', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Creada'], ['status2', 'Ejecutada'], ['status3', 'Aprobada']], default='status1')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
 
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            if not values.get("name") or values["name"] == "Nuevo":
-                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
 class StepAgricultureIrrigationSector(models.Model):
     _inherit = 'step.agriculture.irrigation.sector'
-    legacy_active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True)
+    legacy_active = fields.Boolean(string='Activo anterior', required=False, readonly=False, copy=True, store=True)
     cdigo_sdp = fields.Char(string='Código SDP', required=False, readonly=False, copy=True, store=True)
     fuente_de_agua = fields.Selection(string='Fuente de agua', required=False, readonly=False, copy=True, store=True, selection=[['Canal', 'Canal'], ['Tranque', 'Tranque'], ['Pozo', 'Pozo'], ['Noria', 'Noria'], ['Vertiente', 'Vertiente']])
     hs_disponibles = fields.Float(string='Hás. disponibles', required=False, readonly=False, copy=True, store=True)
@@ -50,9 +49,9 @@ class StepAgricultureIrrigationSector(models.Model):
 
 class StepAgricultureIrrigationValve(models.Model):
     _name = 'step.agriculture.irrigation.valve'
-    _description = 'sector_de_riego_line'
+    _description = 'Válvulas de riego'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Válvula', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     sector_id = fields.Many2one(string='X Sector De Riego', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation.sector', ondelete='set null')
     cc_id = fields.Many2one(string='cc', required=False, readonly=False, copy=True, store=True, comodel_name='step.centro.costo', ondelete='set null')
@@ -61,7 +60,7 @@ class StepAgricultureIrrigationValve(models.Model):
     has_ccosto = fields.Integer(string='Has CCosto', required=False, readonly=True, copy=False, store=False, compute='_compute_has_ccosto')
     has_cuartel = fields.Integer(string='Has cuartel', required=False, readonly=True, copy=False, store=False, compute='_compute_has_cuartel')
     lts_por_minuto = fields.Float(string='Lts por minuto', required=False, readonly=False, copy=True, store=True)
-    related_sector_id = fields.Many2one(string='Nuevo Many2One', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation.sector', ondelete='set null')
+    related_sector_id = fields.Many2one(string='Sector relacionado', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation.sector', ondelete='set null')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
 
     @api.depends()
@@ -77,9 +76,9 @@ class StepAgricultureIrrigationValve(models.Model):
 
 class StepAgricultureInspectionLine(models.Model):
     _name = 'step.agriculture.inspection.line'
-    _description = 'inspecciones_interna_line'
+    _description = 'Detalle de inspección'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     inspection_id = fields.Many2one(string='X Inspecciones Interna', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.inspection', ondelete='set null')
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
@@ -87,9 +86,9 @@ class StepAgricultureInspectionLine(models.Model):
 
 class StepAgricultureAdvisory(models.Model):
     _name = 'step.agriculture.advisory'
-    _description = 'Asesor externo'
+    _description = 'Asesorías externas'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _folio_sequence = 'asesor.inspecciones'
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
@@ -102,40 +101,39 @@ class StepAgricultureAdvisory(models.Model):
     date = fields.Date(string='Fecha', required=False, readonly=False, copy=True, store=True)
     fecha_a_ejecutar = fields.Date(string='Fecha a ejecutar', required=False, readonly=False, copy=True, store=True)
     fundo_id = fields.Many2one(string='Fundo', required=False, readonly=False, copy=True, store=True, comodel_name='step.fundo', ondelete='set null')
-    instructions_html = fields.Html(string='Nuevo HTML', required=False, readonly=False, copy=True, store=True)
+    instructions_html = fields.Html(string='Instrucciones', required=False, readonly=False, copy=True, store=True)
     nombre_asesor_id = fields.Many2one(string='Nombre asesor', required=False, readonly=False, copy=True, store=True, comodel_name='res.partner', ondelete='set null')
     line_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.advisory.line', inverse_name='advisory_id')
     responsable_de_ejecutar_id = fields.Many2one(string='Responsable de ejecutar', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
-    state = fields.Selection(string='Barra de estado de flujo', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Creada'], ['status2', 'Ejecutada'], ['status3', 'Aprobada'], ['Revisada asesor', 'Revisada asesor']], default='status1')
+    state = fields.Selection(string='Estado', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Creada'], ['status2', 'Ejecutada'], ['status3', 'Aprobada'], ['Revisada asesor', 'Revisada asesor']], default='status1')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
 
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            if not values.get("name") or values["name"] == "Nuevo":
-                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
 class StepAgricultureAdvisoryLine(models.Model):
     _name = 'step.agriculture.advisory.line'
-    _description = 'asesor_externo_line'
+    _description = 'Recomendaciones de asesoría'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     advisory_id = fields.Many2one(string='X Asesor Externo', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.advisory', ondelete='set null')
     name = fields.Char(string='Resultado esperado', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     dosis_por_ha = fields.Char(string='Dosis por ha', required=False, readonly=False, copy=True, store=True)
     labor_tarea_id = fields.Many2one(string='labor, tarea', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
     producto_agrcola_id = fields.Many2one(string='Producto agrícola', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
-    sustancia_activa_id = fields.Many2one(string='Sustancia activa', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.active.ingredient', ondelete='set null')
+    active_ingredient_id = fields.Many2one(string='Sustancia activa', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.active.ingredient', ondelete='set null')
 
 
 class StepAgricultureActiveIngredient(models.Model):
     _name = 'step.agriculture.active.ingredient'
-    _description = 'Sustancia activa'
+    _description = 'Sustancias activas'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
@@ -146,9 +144,9 @@ class StepAgricultureActiveIngredient(models.Model):
 
 class StepAgricultureMonitoringLine(models.Model):
     _name = 'step.agriculture.monitoring.line'
-    _description = 'monitoreo_agricola_line'
+    _description = 'Hallazgos de monitoreo'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     monitoring_id = fields.Many2one(string='X Monitoreo Agricola', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.monitoring', ondelete='set null')
     name = fields.Char(string='Línea', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     cost_center_id = fields.Many2one(string='Centro costos', required=False, readonly=False, copy=True, store=True, comodel_name='account.analytic.account', ondelete='set null')
@@ -160,7 +158,7 @@ class StepAgricultureMonitoringLine(models.Model):
     objetivo_plaga_id = fields.Many2one(string='Objetivo plaga', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.pest', ondelete='set null')
     plantas_cuartel = fields.Integer(string='Plantas cuartel', required=False, readonly=True, copy=False, store=False, related='cuartel_id.plant_cuartel')
     plantas_muesteadas = fields.Float(string='Plantas muesteadas', required=False, readonly=False, copy=True, store=True)
-    available_cuartel_ids = fields.One2many(string='Nuevo Campo relacionado', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cuartel_line')
+    available_cuartel_ids = fields.One2many(string='Cuarteles disponibles', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cuartel_line')
     seales_de_plaga = fields.Selection(string='Señales de plaga', required=False, readonly=False, copy=True, store=True, selection=[['Animal vivo', 'Animal vivo'], ['Animal muerto', 'Animal muerto'], ['Daños', 'Daños'], ['Excremento', 'Excremento']])
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
 
@@ -172,7 +170,7 @@ class StepAgricultureMonitoringLine(models.Model):
 
 class StepAgriculturePest(models.Model):
     _inherit = 'step.agriculture.pest'
-    legacy_active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True)
+    legacy_active = fields.Boolean(string='Activo anterior', required=False, readonly=False, copy=True, store=True)
     cdigo_de_objetivo = fields.Char(string='Código de objetivo', required=False, readonly=False, copy=True, store=True)
     grupo_objetivo_bpa = fields.Selection(string='Grupo objetivo BPA', required=False, readonly=False, copy=True, store=True, selection=[['Plagas', 'Plagas'], ['Malezas', 'Malezas'], ['Nutrición', 'Nutrición']])
     observacin = fields.Html(string='Observación', required=False, readonly=False, copy=True, store=True)
@@ -183,26 +181,25 @@ class StepAgriculturePest(models.Model):
 class StepAgricultureMonitoring(models.Model):
     _inherit = 'step.agriculture.monitoring'
     _folio_sequence = 'monitoreo.bpa'
-    name = fields.Char(default="Nuevo")
+    name = fields.Char(default="Nuevo", readonly=True, copy=False)
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     ejecutado_por_id = fields.Many2one(string='Ejecutado por', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
     empresa_id = fields.Many2one(string='Empresa', required=False, readonly=False, copy=True, store=True, comodel_name='res.company', ondelete='set null')
     instrucciones = fields.Html(string='Instrucciones', required=False, readonly=False, copy=True, store=True)
     line_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.monitoring.line', inverse_name='monitoring_id')
-    state = fields.Selection(string='Barra de estado de flujo', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Ingresado'], ['status2', 'Aprobado']], default='status1')
+    state = fields.Selection(string='Estado', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Ingresado'], ['status2', 'Aprobado']], default='status1')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
 
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            if not values.get("name") or values["name"] == "Nuevo":
-                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
 class StepAgriculturePhenologicalStage(models.Model):
     _inherit = 'step.agriculture.phenological.stage'
-    legacy_active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True)
+    legacy_active = fields.Boolean(string='Activo anterior', required=False, readonly=False, copy=True, store=True)
     cdigo_estado_fenolgico = fields.Char(string='Código estado fenológico', required=False, readonly=False, copy=True, store=True)
     species_id = fields.Many2one(string='Especie', required=False, readonly=False, copy=True, store=True, comodel_name='step.especie', ondelete='set null')
     fecha_inicio = fields.Date(string='Fecha inicio', required=False, readonly=False, copy=True, store=True)
@@ -213,9 +210,9 @@ class StepAgriculturePhenologicalStage(models.Model):
 
 class StepAgricultureApplicationMachinery(models.Model):
     _name = 'step.agriculture.application.machinery'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Maquinaria aplicada'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Maquinada', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     aplicador_id = fields.Many2one(string='Aplicador', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
@@ -223,7 +220,7 @@ class StepAgricultureApplicationMachinery(models.Model):
     costo_estndar_total = fields.Float(string='Costo estándar total', required=False, readonly=True, copy=False, store=True, compute='_compute_costo_estndar_total')
     cuartel_id = fields.Many2one(string='Cuartel', required=False, readonly=False, copy=True, store=True, comodel_name='step.cuartel.line', ondelete='set null')
     fecha_hr_inicio = fields.Datetime(string='Fecha Hr Inicio', required=False, readonly=False, copy=True, store=True)
-    legacy_decimal = fields.Float(string='Nuevo Decimal', required=False, readonly=False, copy=True, store=True)
+    legacy_decimal = fields.Float(string='Dato adicional', required=False, readonly=False, copy=True, store=True)
     has_aplicadas = fields.Float(string='Has aplicadas', required=False, readonly=False, copy=True, store=True)
     has_cuartel = fields.Integer(string='Has cuartel', required=False, readonly=True, copy=False, store=False, compute='_compute_has_cuartel')
     hormetro_final = fields.Float(string='Horómetro final', required=False, readonly=False, copy=True, store=True)
@@ -233,9 +230,9 @@ class StepAgricultureApplicationMachinery(models.Model):
     labor_maquinaria_id = fields.Many2one(string='Labor maquinaria', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
     lts_maquinada = fields.Float(string='Lts. mezcla aplicados', required=False, readonly=False, copy=True, store=True)
     mquina_id = fields.Many2one(string='Máquina', required=False, readonly=False, copy=True, store=True, comodel_name='fleet.vehicle', ondelete='set null')
-    center_cuartel_ids = fields.One2many(string='Nuevo Campo relacionado', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cuartel_line')
-    available_cuartel_ids = fields.One2many(string='Nuevo Campo relacionado', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cuartel_line')
-    analytic_cuartel_ids = fields.One2many(string='Nuevo Campo relacionado', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cost_id.cuartel_line')
+    center_cuartel_ids = fields.One2many(string='Cuarteles del centro', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cuartel_line')
+    available_cuartel_ids = fields.One2many(string='Cuarteles disponibles', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cuartel_line')
+    analytic_cuartel_ids = fields.One2many(string='Cuarteles de la cuenta analítica', required=False, readonly=True, copy=False, store=False, comodel_name='step.cuartel.line', related='cost_center_id.cost_id.cuartel_line')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     udm_labor_id = fields.Many2one(string='UdM labor', required=False, readonly=True, copy=False, store=False, comodel_name='uom.uom', ondelete='set null', related='labor_maquinaria_id.uom_id')
     valor_st_hr_mquina = fields.Float(string='Valor St Hr máquina ', required=False, readonly=True, copy=False, store=False, related='mquina_id.step_cost_hrmq_standar')
@@ -254,7 +251,7 @@ class StepAgricultureApplicationMachinery(models.Model):
 class StepAgricultureApplication(models.Model):
     _inherit = 'step.agriculture.application'
     _folio_sequence = 'aplicaciones.bpa'
-    name = fields.Char(default="Nuevo")
+    name = fields.Char(default="Nuevo", readonly=True, copy=False)
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     capacidad_lts_aplicadora = fields.Float(string='Capacidad lts aplicadora', required=False, readonly=False, copy=True, store=True)
     combustible_id = fields.Many2one(string='Combustible', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
@@ -265,8 +262,8 @@ class StepAgricultureApplication(models.Model):
     empresa_id = fields.Many2one(string='Empresa', required=False, readonly=False, copy=True, store=True, comodel_name='res.company', ondelete='set null')
     forma_de_aplicar_id = fields.Many2one(string='Forma de aplicar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application.method', ondelete='set null')
     hrs_total_aplicacin = fields.Float(string='Hrs total aplicación', required=False, readonly=False, copy=True, store=True)
-    instructions_html = fields.Html(string='Nuevo HTML', required=False, readonly=False, copy=True, store=True)
-    precautions_html = fields.Html(string='Nuevo HTML', required=False, readonly=False, copy=True, store=True)
+    instructions_html = fields.Html(string='Instrucciones', required=False, readonly=False, copy=True, store=True)
+    precautions_html = fields.Html(string='Precauciones', required=False, readonly=False, copy=True, store=True)
     humedad = fields.Float(string='Humedad', required=False, readonly=False, copy=True, store=True)
     instrucciones = fields.Html(string='Instrucciones', required=False, readonly=False, copy=True, store=True)
     instrucciones_1 = fields.Html(string='Instrucciones', required=False, readonly=False, copy=True, store=True)
@@ -286,10 +283,10 @@ class StepAgricultureApplication(models.Model):
     note_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.application.note', inverse_name='application_id')
     otros = fields.Float(string='Otros', required=False, readonly=False, copy=True, store=True)
     sector_id = fields.Many2one(string='Sector', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation.sector', ondelete='set null')
-    legacy_workflow_state = fields.Selection(string='Barra de estado de flujo', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Ingresado'], ['status2', 'Aprobado'], ['status3', 'Costeado'], ['Contabilizado', 'Contabilizado']])
+    legacy_workflow_state = fields.Selection(string='Estado anterior', required=False, readonly=True, copy=False, store=True, selection=[['status1', 'Ingresado'], ['status2', 'Aprobado'], ['status3', 'Costeado'], ['Contabilizado', 'Contabilizado']])
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     t_ambiente = fields.Float(string='T° ambiente', required=False, readonly=False, copy=True, store=True)
-    legacy_notes = fields.Text(string='Nuevo Texto multilínea', required=False, readonly=False, copy=True, store=True)
+    legacy_notes = fields.Text(string='Observaciones adicionales', required=False, readonly=False, copy=True, store=True)
     tipo_de_aplicacin_id = fields.Many2one(string='Tipo de aplicación', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application.type', ondelete='set null')
     total_hectreas_1 = fields.Float(string='Total hectáreas', required=False, readonly=False, copy=True, store=True)
     total_lts_mezca = fields.Float(string='Total Lts mezcla', required=False, readonly=True, copy=False, store=True, compute='_compute_total_lts_mezca')
@@ -300,8 +297,7 @@ class StepAgricultureApplication(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            if not values.get("name") or values["name"] == "Nuevo":
-                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
     @api.depends('lts_inicial_estanque', 'lts_relleno', 'litros_finales')
@@ -312,7 +308,7 @@ class StepAgricultureApplication(models.Model):
     @api.depends('total_hectreas', 'mojamiento_por_h', 'capacidad_lts_aplicadora')
     def _compute_maquinadas(self):
         for record in self:
-            record['maquinadas'] = record.total_hectreas * record.mojamiento_por_h / record.capacidad_lts_aplicadora
+            record['maquinadas'] = record.total_hectreas * record.mojamiento_por_h / record.capacidad_lts_aplicadora if record.capacidad_lts_aplicadora else 0.0
 
     @api.depends('total_hectreas', 'mojamiento_por_h')
     def _compute_total_lts_mezca(self):
@@ -322,7 +318,7 @@ class StepAgricultureApplication(models.Model):
 
 class StepAgricultureApplicationType(models.Model):
     _inherit = 'step.agriculture.application.type'
-    legacy_active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True)
+    legacy_active = fields.Boolean(string='Activo anterior', required=False, readonly=False, copy=True, store=True)
     cdigo_aplicaciones = fields.Char(string='Código aplicaciones', required=False, readonly=False, copy=True, store=True)
     observaciones = fields.Html(string='Observaciones', required=False, readonly=False, copy=True, store=True)
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
@@ -330,9 +326,9 @@ class StepAgricultureApplicationType(models.Model):
 
 class StepAgricultureApplicationNote(models.Model):
     _name = 'step.agriculture.application.note'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Observaciones de aplicación'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
@@ -340,17 +336,17 @@ class StepAgricultureApplicationNote(models.Model):
 
 class StepAgricultureApplicationWaste(models.Model):
     _name = 'step.agriculture.application.waste'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Remanentes y residuos'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Fecha lavado', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     agua_usada_lts = fields.Float(string='Agua usada (lts)', required=False, readonly=False, copy=True, store=True)
     cantidad_mezcla = fields.Float(string='Cantidad mezcla', required=False, readonly=False, copy=True, store=True)
-    legacy_reference = fields.Char(string='X Studio Char Field 87O 1Jhu3Tihh', required=False, readonly=False, copy=True, store=True)
+    legacy_reference = fields.Char(string='Referencia adicional', required=False, readonly=False, copy=True, store=True)
     comentario = fields.Char(string='Comentario', required=False, readonly=False, copy=True, store=True)
     destino_residuo = fields.Selection(string='Destino residuo', required=False, readonly=False, copy=True, store=True, selection=[['Orillado', 'Orillado'], ['Camino', 'Camino'], ['Terreno barbecho', 'Terreno barbecho'], ['Otro', 'Otro']])
-    notes_html = fields.Html(string='Nuevo HTML', required=False, readonly=False, copy=True, store=True)
+    notes_html = fields.Html(string='Observaciones', required=False, readonly=False, copy=True, store=True)
     observacin = fields.Integer(string='Observación', required=False, readonly=False, copy=True, store=True)
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     tipo_remanente = fields.Selection(string='Tipo remanente', required=False, readonly=False, copy=True, store=True, selection=[['Lavado máquina', 'Lavado máquina'], ['Remanente mezcla', 'Remanente mezcla']])
@@ -358,9 +354,9 @@ class StepAgricultureApplicationWaste(models.Model):
 
 class StepAgricultureApplicationProduct(models.Model):
     _name = 'step.agriculture.application.product'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Productos aplicados'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Num', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     consumo_terico = fields.Float(string='Consumo teórico', required=False, readonly=False, copy=True, store=True)
@@ -374,14 +370,14 @@ class StepAgricultureApplicationProduct(models.Model):
     objetivo_plaga_id = fields.Many2one(string='Objetivo, plaga', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.pest', ondelete='set null')
     producto_id = fields.Many2one(string='Producto', required=False, readonly=False, copy=True, store=True, comodel_name='product.template', ondelete='set null')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
-    sustancia_activa_id = fields.Many2one(string='Sustancia activa', required=False, readonly=True, copy=False, store=False, comodel_name='step.agriculture.active.ingredient', ondelete='set null', related='producto_id.sustancia_activa_id')
+    active_ingredient_id = fields.Many2one(string='Sustancia activa', required=False, readonly=True, copy=False, store=False, comodel_name='step.agriculture.active.ingredient', ondelete='set null', related='producto_id.active_ingredient_id')
 
 
 class StepAgricultureApplicationPpe(models.Model):
     _name = 'step.agriculture.application.ppe'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Protección personal'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Fecha', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     empleado_id = fields.Many2one(string='Empleado', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
@@ -391,9 +387,9 @@ class StepAgricultureApplicationPpe(models.Model):
 
 class StepAgricultureApplicationWorker(models.Model):
     _name = 'step.agriculture.application.worker'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Personal de aplicación'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Línea', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     cost_center_id = fields.Many2one(string='Centro de costos', required=False, readonly=False, copy=True, store=True, comodel_name='account.analytic.account', ondelete='set null')
@@ -406,7 +402,7 @@ class StepAgricultureApplicationWorker(models.Model):
     bpa_role_id = fields.Many2one(string='Cargo BPA', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.bpa.role', ondelete='set null')
     nip = fields.Char(string='NIP', required=False, readonly=True, copy=False, store=False, groups='hr.group_hr_user', related='nombre_trabajador_id.pin')
     nombre_trabajador_id = fields.Many2one(string='Nombre trabajador', required=False, readonly=False, copy=True, store=True, comodel_name='hr.employee', ondelete='set null')
-    standard_hour_cost = fields.Monetary(string='Nuevo Campo relacionado', required=False, readonly=True, copy=False, store=False, groups='hr.group_hr_user', currency_field='currency_id', related='nombre_trabajador_id.hourly_cost')
+    standard_hour_cost = fields.Monetary(string='Costo estándar por hora', required=False, readonly=True, copy=False, store=False, groups='hr.group_hr_user', currency_field='currency_id', related='nombre_trabajador_id.hourly_cost')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     total_hrs = fields.Float(string='Total Hrs.', required=True, readonly=False, copy=True, store=True)
 
@@ -420,7 +416,7 @@ class StepAgricultureBpaRole(models.Model):
     _name = 'step.agriculture.bpa.role'
     _description = 'Cargos BPA'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
@@ -429,9 +425,9 @@ class StepAgricultureBpaRole(models.Model):
 
 class StepAgricultureApplicationCost(models.Model):
     _name = 'step.agriculture.application.cost'
-    _description = 'aplicacion_foliar_line'
+    _description = 'Costos de aplicación'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     application_id = fields.Many2one(string='X Aplicacion Foliar', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.application', ondelete='set null')
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     actividad_id = fields.Many2one(string='Actividad', required=False, readonly=False, copy=True, store=True, comodel_name='mail.activity', ondelete='set null')
@@ -452,9 +448,9 @@ class StepAgricultureApplicationCost(models.Model):
 
 class StepAgricultureApplicationMethod(models.Model):
     _name = 'step.agriculture.application.method'
-    _description = 'Forma de aplicación'
+    _description = 'Formas de aplicación'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
@@ -465,9 +461,9 @@ class StepAgricultureApplicationMethod(models.Model):
 
 class StepAgricultureHarvestRecord(models.Model):
     _name = 'step.agriculture.harvest.record'
-    _description = 'Registro cosecha'
+    _description = 'Registro de cosecha'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _folio_sequence = 'Folio.cosecha'
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
@@ -506,23 +502,22 @@ class StepAgricultureHarvestRecord(models.Model):
     @api.model_create_multi
     def create(self, values_list):
         for values in values_list:
-            if not values.get("name") or values["name"] == "Nuevo":
-                values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
+            values["name"] = self.env["ir.sequence"].next_by_code(self._folio_sequence) or "/"
         return super().create(values_list)
 
 
 class StepAgricultureHarvestTag(models.Model):
     _name = 'step.agriculture.harvest.tag'
-    _description = 'registro_cosecha_line'
+    _description = 'Tarjas de cosecha'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Num tarja cosecha', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     harvest_id = fields.Many2one(string='X Registro Cosecha', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.harvest.record', ondelete='set null')
     barcode_id = fields.Many2one(string='barcode', required=False, readonly=False, copy=True, store=True, comodel_name='barcode.nomenclature', ondelete='set null')
     cantidad_envases = fields.Float(string='Cantidad envases', required=False, readonly=False, copy=True, store=True)
     cdigo_de_barra_ids = fields.Many2many(string='Código de barra', required=False, readonly=False, copy=True, store=True, comodel_name='barcode.rule', relation='x_barcode_rule_x_registro_cosecha_line_7dde6_rel', column1='x_registro_cosecha_line_7dde6_id', column2='barcode_rule_id')
     envase_id = fields.Many2one(string='Envase', required=False, readonly=False, copy=True, store=True, comodel_name='product.packaging', ondelete='set null')
-    legacy_tag_state_id = fields.Many2one(string='Estado tarja', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.archive.tag.state', ondelete='set null')
+    legacy_tag_state_id = fields.Many2one(string='Estado histórico de tarja', required=False, readonly=True, copy=False, store=True, comodel_name='step.agriculture.archive.tag.state', ondelete='set null')
     kilos_cosechados = fields.Float(string='Kilos cosechados', required=False, readonly=False, copy=True, store=True)
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     tipo_de_paquete_id = fields.Many2one(string='Tipo de paquete', required=False, readonly=False, copy=True, store=True, comodel_name='stock.package.type', ondelete='set null')
@@ -531,9 +526,9 @@ class StepAgricultureHarvestTag(models.Model):
 
 class StepAgricultureArchiveTagState(models.Model):
     _name = 'step.agriculture.archive.tag.state'
-    _description = 'Estado de tarjas'
+    _description = 'Estados históricos de tarja'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
@@ -543,9 +538,9 @@ class StepAgricultureArchiveTagState(models.Model):
 
 class StepAgricultureHarvestForecast(models.Model):
     _name = 'step.agriculture.harvest.forecast'
-    _description = 'Planificar cosecha'
+    _description = 'Pronóstico de cosecha'
     _rec_name = "name"
-    _order = "id"
+    _order = 'sequence asc, id asc'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     active = fields.Boolean(string='Activo', required=False, readonly=False, copy=True, store=True, default=True)
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
@@ -589,16 +584,16 @@ class StepAgricultureIrrigation(models.Model):
     schedule_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.irrigation.schedule', inverse_name='irrigation_id')
     recipe_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.irrigation.recipe', inverse_name='irrigation_id')
     water_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.irrigation.water', inverse_name='irrigation_id')
-    state = fields.Selection(string='Barra de estado de flujo', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Ingresado'], ['status2', 'Ejecutado'], ['status3', 'Aprobado']], default='status1')
+    state = fields.Selection(string='Estado', required=False, readonly=False, copy=True, store=True, selection=[['status1', 'Ingresado'], ['status2', 'Ejecutado'], ['status3', 'Aprobado']], default='status1')
     sequence = fields.Integer(string='Secuencia', required=False, readonly=False, copy=True, store=True)
     tipo_mezcla = fields.Selection(string='Tipo mezcla', required=False, readonly=False, copy=True, store=True, selection=[['Sólo riego', 'Sólo riego'], ['Riego y fertilización', 'Riego y fertilización']])
 
 
 class StepAgricultureIrrigationWater(models.Model):
     _name = 'step.agriculture.irrigation.water'
-    _description = 'riego_y_fertilizacio_line'
+    _description = 'Agua por cuartel'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Día semana', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     irrigation_id = fields.Many2one(string='X Riego Y Fertilizacio', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation', ondelete='set null')
     cost_center_id = fields.Many2one(string='Centro costos', required=False, readonly=False, copy=True, store=True, comodel_name='account.analytic.account', ondelete='set null')
@@ -622,9 +617,9 @@ class StepAgricultureIrrigationWater(models.Model):
 
 class StepAgricultureIrrigationRecipe(models.Model):
     _name = 'step.agriculture.irrigation.recipe'
-    _description = 'riego_y_fertilizacio_line'
+    _description = 'Recetas de fertilización'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Descripción', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     irrigation_id = fields.Many2one(string='X Riego Y Fertilizacio', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation', ondelete='set null')
     line_ids = fields.One2many(string='Nuevas líneas', required=False, readonly=False, copy=False, store=True, comodel_name='step.agriculture.irrigation.recipe.line', inverse_name='recipe_id')
@@ -633,9 +628,9 @@ class StepAgricultureIrrigationRecipe(models.Model):
 
 class StepAgricultureIrrigationRecipeLine(models.Model):
     _name = 'step.agriculture.irrigation.recipe.line'
-    _description = 'riego_y_fertilizacio_line_b7eaf_line'
+    _description = 'Productos de la receta'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Linea', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     recipe_id = fields.Many2one(string='X Riego Y Fertilizacio Line B7Eaf', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation.recipe', ondelete='set null')
     dosis_x_100_ml = fields.Float(string='Dosis x 100 ml', required=False, readonly=False, copy=True, store=True)
@@ -647,9 +642,9 @@ class StepAgricultureIrrigationRecipeLine(models.Model):
 
 class StepAgricultureIrrigationSchedule(models.Model):
     _name = 'step.agriculture.irrigation.schedule'
-    _description = 'riego_y_fertilizacio_line'
+    _description = 'Jornadas de riego'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Día semana', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     irrigation_id = fields.Many2one(string='X Riego Y Fertilizacio', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation', ondelete='set null')
     centro_de_costo_id = fields.Many2one(string='Centro de costo', required=False, readonly=False, copy=True, store=True, comodel_name='step.centro.costo', ondelete='set null')
@@ -684,9 +679,9 @@ class StepAgricultureIrrigationSchedule(models.Model):
 
 class StepAgricultureIrrigationProduct(models.Model):
     _name = 'step.agriculture.irrigation.product'
-    _description = 'riego_y_fertilizacio_line'
+    _description = 'Productos de fertirriego'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Línea', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     irrigation_id = fields.Many2one(string='X Riego Y Fertilizacio', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation', ondelete='set null')
     cantidad_producto = fields.Float(string='Cantidad producto', required=False, readonly=False, copy=True, store=True)
@@ -702,9 +697,9 @@ class StepAgricultureIrrigationProduct(models.Model):
 
 class StepAgricultureIrrigationCost(models.Model):
     _name = 'step.agriculture.irrigation.cost'
-    _description = 'riego_y_fertilizacio_line'
+    _description = 'Costos de fertirriego'
     _rec_name = "name"
-    _order = "id"
+    _order = 'id'
     name = fields.Char(string='Día semana', required=True, readonly=False, copy=True, store=True, translate=True, default="Nuevo")
     irrigation_id = fields.Many2one(string='X Riego Y Fertilizacio', required=False, readonly=False, copy=True, store=True, comodel_name='step.agriculture.irrigation', ondelete='set null')
     cantidad = fields.Float(string='Cantidad', required=False, readonly=False, copy=True, store=True)

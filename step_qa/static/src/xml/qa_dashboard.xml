@@ -101,7 +101,7 @@
                             <button t-on-click="() => this.openAction('step_qa.inspecciones_interna_1723c8a9-8891-4311-9a5a-0a2ae007dae2')">Abrir módulo</button>
                         </header>
                         <div t-if="!state.data.inspections.recent.length" class="o_step_qa_empty">Aún no hay inspecciones registradas.</div>
-                        <button t-foreach="state.data.inspections.recent" t-as="inspection" t-key="inspection.id" class="o_step_qa_row" t-on-click="() => this.openRecord('x_inspecciones_interna', inspection.id)">
+                        <button t-foreach="state.data.inspections.recent" t-as="inspection" t-key="inspection.id" class="o_step_qa_row" t-on-click="() => this.openRecord('step.agriculture.inspection', inspection.id)">
                             <span t-attf-class="o_step_qa_state o_step_qa_state--{{ inspection.state }}" t-esc="stateLabel(inspection.state)"/>
                             <span class="o_step_qa_row_main"><strong t-esc="inspection.name"/><small><t t-esc="inspection.farm"/> · <t t-esc="inspection.responsible"/></small></span>
                             <time t-esc="formatDate(inspection.date)"/>

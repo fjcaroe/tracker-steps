@@ -58,7 +58,7 @@ class CalculationUom(models.Model):
 class BudgetGroup(models.Model):
     _inherit='step.management.budget.group'
     origin_id=fields.Many2one('step.management.budget.origin',string='Origen presupuesto')
-    phenology_id=fields.Many2one('x_estado_fenologico',string='Estado fenológico BPA')
+    phenology_id=fields.Many2one('step.agriculture.phenological.stage',string='Estado fenológico BPA')
 
 
 class Template(models.Model):

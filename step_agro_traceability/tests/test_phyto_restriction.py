@@ -3,7 +3,7 @@
 
 Se prueban las reglas de negocio nativas sin depender de los modelos Studio:
 las restricciones se crean directamente, que es exactamente lo que el motor de
-lectura de ``x_aplicacion_foliar`` produce.
+lectura de ``step.agriculture.application`` produce.
 """
 
 from datetime import timedelta

@@ -1,13 +1,12 @@
 {
     "name": "Steps - BPA y Riego",
     "summary": "Centro operativo moderno para BPA, monitoreo y fertirriego",
-    "version": "18.0.2.3.1",
+    "version": "18.0.3.0.0",
     "author": "Steps Consulting",
     "category": "Operations",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "web", "hr", "fleet", "step_hr", "step_machinery"],
+    "depends": ["base", "mail", "web", "hr", "fleet", "step_hr", "step_machinery", "step_agriculture_records"],
     "data": [
-        "security/ir.model.access.csv",
         "views/bpa_dashboard_views.xml",
         "views/bpa_studio_layout_views.xml",
         "views/bpa_report_views.xml",

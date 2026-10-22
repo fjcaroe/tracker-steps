@@ -3,7 +3,7 @@
     <!-- Planning -->
     <record id="view_planificar_cosecha_form_layout" model="ir.ui.view">
         <field name="name">x.planificar.cosecha.form.harvest.layout</field>
-        <field name="model">x_planificar_cosecha</field>
+        <field name="model">step.agriculture.harvest.forecast</field>
         <field name="inherit_id" ref="studio_customization.default_form_view_fo_80098c29-1006-44aa-8a4c-30fac8c0dc54"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--plan" separator=" "/></xpath>
@@ -14,7 +14,7 @@
     </record>
     <record id="view_planificar_cosecha_list_layout" model="ir.ui.view">
         <field name="name">x.planificar.cosecha.list.harvest.layout</field>
-        <field name="model">x_planificar_cosecha</field>
+        <field name="model">step.agriculture.harvest.forecast</field>
         <field name="inherit_id" ref="studio_customization.default_list_view_fo_c47f8905-401b-419e-a88e-c7f402332d8c"/>
         <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--plan" separator=" "/></xpath></field>
     </record>
@@ -40,7 +40,7 @@
     <!-- Harvest registry -->
     <record id="view_registro_cosecha_form_layout" model="ir.ui.view">
         <field name="name">x.registro.cosecha.form.harvest.layout</field>
-        <field name="model">x_registro_cosecha</field>
+        <field name="model">step.agriculture.harvest.record</field>
         <field name="inherit_id" ref="studio_customization.default_form_view_fo_83525bc5-eb7e-4082-badd-14af9286f12e"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="attributes"><attribute name="class" add="o_cosecha_studio_form o_cosecha_studio_form--registry" separator=" "/></xpath>
@@ -51,7 +51,7 @@
     </record>
     <record id="view_registro_cosecha_list_layout" model="ir.ui.view">
         <field name="name">x.registro.cosecha.list.harvest.layout</field>
-        <field name="model">x_registro_cosecha</field>
+        <field name="model">step.agriculture.harvest.record</field>
         <field name="inherit_id" ref="studio_customization.default_list_view_fo_d7a782cd-c9ee-47f1-803e-6b803545f836"/>
         <field name="arch" type="xml"><xpath expr="//list" position="attributes"><attribute name="class" add="o_cosecha_studio_list o_cosecha_studio_list--registry" separator=" "/></xpath></field>
     </record>
@@ -59,54 +59,54 @@
     <!-- A real analytical workspace replaces the empty Studio report model. -->
     <record id="view_registro_cosecha_graph_report" model="ir.ui.view">
         <field name="name">x.registro.cosecha.graph.report</field>
-        <field name="model">x_registro_cosecha</field>
+        <field name="model">step.agriculture.harvest.record</field>
         <field name="priority">5</field>
         <field name="arch" type="xml">
             <graph string="Producción de cosecha" type="bar" sample="1">
-                <field name="x_studio_fundo"/>
-                <field name="x_studio_kilos_cosechados" type="measure"/>
-                <field name="x_studio_cantidad_embalaje" type="measure"/>
+                <field name="fundo_id"/>
+                <field name="kilos_cosechados" type="measure"/>
+                <field name="cantidad_embalaje" type="measure"/>
             </graph>
         </field>
     </record>
     <record id="view_registro_cosecha_pivot_report" model="ir.ui.view">
         <field name="name">x.registro.cosecha.pivot.report</field>
-        <field name="model">x_registro_cosecha</field>
+        <field name="model">step.agriculture.harvest.record</field>
         <field name="priority">5</field>
         <field name="arch" type="xml">
             <pivot string="Análisis de cosecha" sample="1">
-                <field name="x_studio_fundo" type="row"/>
-                <field name="x_studio_especie" type="row"/>
-                <field name="x_studio_fecha_1" type="col" interval="month"/>
-                <field name="x_studio_kilos_cosechados" type="measure"/>
-                <field name="x_studio_cantidad_embalaje" type="measure"/>
-                <field name="x_studio_dotacin" type="measure"/>
-                <field name="x_studio_total_horas" type="measure"/>
+                <field name="fundo_id" type="row"/>
+                <field name="species_id" type="row"/>
+                <field name="harvest_date" type="col" interval="month"/>
+                <field name="kilos_cosechados" type="measure"/>
+                <field name="cantidad_embalaje" type="measure"/>
+                <field name="dotacin" type="measure"/>
+                <field name="total_horas" type="measure"/>
             </pivot>
         </field>
     </record>
     <record id="view_registro_cosecha_search_report" model="ir.ui.view">
         <field name="name">x.registro.cosecha.search.report</field>
-        <field name="model">x_registro_cosecha</field>
+        <field name="model">step.agriculture.harvest.record</field>
         <field name="priority">5</field>
         <field name="arch" type="xml">
             <search string="Analizar cosecha">
-                <field name="x_name"/>
-                <field name="x_studio_fundo"/>
-                <field name="x_studio_especie"/>
-                <field name="x_studio_variedad"/>
-                <field name="x_studio_supervisor"/>
-                <field name="x_studio_temporada"/>
+                <field name="name"/>
+                <field name="fundo_id"/>
+                <field name="species_id"/>
+                <field name="variety_id"/>
+                <field name="supervisor_id"/>
+                <field name="temporada_id"/>
                 <separator/>
-                <filter name="group_fundo" string="Fundo" context="{'group_by': 'x_studio_fundo'}"/>
-                <filter name="group_especie" string="Especie" context="{'group_by': 'x_studio_especie'}"/>
-                <filter name="group_month" string="Mes" context="{'group_by': 'x_studio_fecha_1:month'}"/>
+                <filter name="group_fundo" string="Fundo" context="{'group_by': 'fundo_id'}"/>
+                <filter name="group_especie" string="Especie" context="{'group_by': 'species_id'}"/>
+                <filter name="group_month" string="Mes" context="{'group_by': 'harvest_date:month'}"/>
             </search>
         </field>
     </record>
     <record id="studio_customization.informes_de_cosecha_f1db1e5b-6b7f-42ed-8c2f-a36363d1354c" model="ir.actions.act_window">
         <field name="name">Informes de Registro Manual</field>
-        <field name="res_model">x_registro_cosecha</field>
+        <field name="res_model">step.agriculture.harvest.record</field>
         <field name="view_mode">graph,pivot,list,form</field>
         <field name="search_view_id" ref="view_registro_cosecha_search_report"/>
         <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Ingrese registros manuales para analizarlos por separado de la operación conectada a Odoo.</p></field>

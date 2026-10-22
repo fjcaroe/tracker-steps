@@ -87,27 +87,27 @@ class QualityCheck(models.Model):
 
     @api.model
     def _step_qa_inspection_summary(self, period_domain):
-        if "x_inspecciones_interna" not in self.env:
+        if "step.agriculture.inspection" not in self.env:
             return {"available": False, "total": 0, "created": 0, "executed": 0, "approved": 0, "overdue": 0, "recent": []}
-        model = self.env["x_inspecciones_interna"]
+        model = self.env["step.agriculture.inspection"]
         try:
             total = model.search_count(period_domain)
-            created = model.search_count(period_domain + [("x_studio_selection_field_6l2_1jhuo823d", "=", "status1")])
-            executed = model.search_count(period_domain + [("x_studio_selection_field_6l2_1jhuo823d", "=", "status2")])
-            approved = model.search_count(period_domain + [("x_studio_selection_field_6l2_1jhuo823d", "=", "status3")])
+            created = model.search_count(period_domain + [("state", "=", "status1")])
+            executed = model.search_count(period_domain + [("state", "=", "status2")])
+            approved = model.search_count(period_domain + [("state", "=", "status3")])
             overdue = model.search_count(period_domain + [
-                ("x_studio_selection_field_6l2_1jhuo823d", "=", "status1"),
-                ("x_studio_fecha_a_ejecutar", "<", fields.Date.context_today(self)),
+                ("state", "=", "status1"),
+                ("fecha_a_ejecutar", "<", fields.Date.context_today(self)),
             ])
             recent = []
-            for record in model.search(period_domain, order="x_studio_fecha_a_ejecutar desc, create_date desc", limit=6):
+            for record in model.search(period_domain, order="fecha_a_ejecutar desc, create_date desc", limit=6):
                 recent.append({
                     "id": record.id,
-                    "name": record.x_name or "Inspección interna",
-                    "state": record.x_studio_selection_field_6l2_1jhuo823d or "status1",
-                    "date": fields.Date.to_string(record.x_studio_fecha_a_ejecutar or record.x_studio_fecha),
-                    "farm": record.x_studio_fundo.display_name or "Sin fundo",
-                    "responsible": record.x_studio_asignado_a.display_name or record.x_studio_responsable.display_name or "Sin asignar",
+                    "name": record.name or "Inspección interna",
+                    "state": record.state or "status1",
+                    "date": fields.Date.to_string(record.fecha_a_ejecutar or record.date),
+                    "farm": record.fundo_id.display_name or "Sin fundo",
+                    "responsible": record.asignado_a_id.display_name or record.responsable_id.display_name or "Sin asignar",
                 })
             return {
                 "available": True,
@@ -123,15 +123,15 @@ class QualityCheck(models.Model):
 
     @api.model
     def _step_qa_advisor_summary(self, period_domain):
-        if "x_asesor_externo" not in self.env:
+        if "step.agriculture.advisory" not in self.env:
             return {"available": False, "total": 0, "pending": 0}
-        model = self.env["x_asesor_externo"]
+        model = self.env["step.agriculture.advisory"]
         try:
             return {
                 "available": True,
                 "total": model.search_count(period_domain),
                 "pending": model.search_count(period_domain + [
-                    ("x_studio_selection_field_9fu_1jhjpstuu", "=", "status1")
+                    ("state", "=", "status1")
                 ]),
             }
         except AccessError:
