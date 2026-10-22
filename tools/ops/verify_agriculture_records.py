@@ -23,6 +23,11 @@ try:
             assert view.active and env[model].get_view(view_id=view.id, view_type=kind)['arch']
         env[model].with_context(active_test=False).search([], limit=5).web_read({'name': {}})
     analytic = env['account.analytic.account']
+    tags = env['step.agriculture.harvest.tag']
+    assert tags._fields['packing_tag_state_id'].comodel_name == 'step.packing.tag.state'
+    assert tags._fields['tag_state_id'].readonly
+    assert not env['step.agriculture.harvest.tag.state'].has_access('create') or env.su
+    assert not tags.search_count([('tag_state_id', '!=', False), ('packing_tag_state_id', '=', False)])
     assert env['step.phyto.restriction']._discover_line_models() == (
         'step.agriculture.application.product', 'step.agriculture.application.machinery')
     arch = etree.fromstring(analytic.get_view(
@@ -38,6 +43,7 @@ try:
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 103, 'versions': EXPECTED,
           'native_models': len(MODELS), 'smart_buttons': 13,
           'original_tag_states_preserved': True,
+          'canonical_tag_states_unified': True,
           'native_forms': True, 'related_records_read': True}))
 finally:
     env.cr.rollback()

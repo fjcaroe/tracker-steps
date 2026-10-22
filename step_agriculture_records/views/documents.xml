@@ -2372,7 +2372,7 @@
     <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <list string="Estados de tarja de cosecha">
+      <list string="Estados originales de tarja (histórico)" create="0" edit="0" delete="0">
         <field name="name" optional="show" />
         <field name="active" optional="hide" />
         <field name="code" optional="hide" />
@@ -2385,11 +2385,11 @@
     <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <form string="Estados de tarja de cosecha">
+      <form string="Estados originales de tarja (histórico)" create="0" edit="0" delete="0">
         <header />
         <sheet>
           <div class="o_step_bpa_record_intro">
-            <strong>Estados de tarja de cosecha</strong>
+            <strong>Estados originales de tarja (histórico)</strong>
           </div>
           <div class="oe_title">
             <h1>
@@ -2415,7 +2415,7 @@
     <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <search string="Estados de tarja de cosecha">
+      <search string="Estados originales de tarja (histórico)">
         <field name="name" />
       </search>
     </field>
@@ -2425,7 +2425,7 @@
     <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <graph string="Estados de tarja de cosecha" />
+      <graph string="Estados originales de tarja (histórico)" />
     </field>
   </record>
   <record id="view_harvest_tag_state_pivot" model="ir.ui.view">
@@ -2433,7 +2433,7 @@
     <field name="model">step.agriculture.harvest.tag.state</field>
     <field name="priority">1</field>
     <field name="arch" type="xml">
-      <pivot string="Estados de tarja de cosecha" />
+      <pivot string="Estados originales de tarja (histórico)" />
     </field>
   </record>
   <record id="view_harvest_forecast_list" model="ir.ui.view">

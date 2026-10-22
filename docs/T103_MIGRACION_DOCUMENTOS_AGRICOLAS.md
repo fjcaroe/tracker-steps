@@ -42,14 +42,22 @@ por hectáreas se conservan al actualizar las referencias. No se reemplazan las
 raíces compartidas de addons. Los accesos de T100, T101 y T102 deben seguir
 funcionando después de actualizar Cosecha y sus dependencias.
 
-## Estados originales
+## Equivalencia de estados autorizada
 
-Los estados de tarja de cosecha conservan sus códigos V, R, D, P y N, sus filas,
-sus IDs y las relaciones de cada registro. Su tabla preexistente se convierte
-en `step.agriculture.harvest.tag.state`, sin copiarla ni crear otro maestro.
-El ciclo de Packing usa códigos diferentes y no se reinterpreta el significado
-de «Vigente» al convertir los documentos. La equivalencia consultada al usuario
-queda como una posible unificación posterior, ajena a la entrega de conversión.
+El usuario confirmó «Vigente» → «Validada» y aceptó «Despachada» → «Desp/Emb»,
+conservando Repaletizada, Procesada y Nula. La relación operativa
+`packing_tag_state_id` reutiliza los registros existentes de `step.packing.tag.state`:
+V → 02, D → 05, R → 04, P → 03 y N → 10. La migración resuelve los códigos
+dentro de la empresa del centro de costo; rechaza estados ausentes o ambiguos.
+No crea un segundo maestro operativo ni copia registros de estados.
+
+Los estados originales conservan sus códigos V, R, D, P y N, sus filas, sus IDs
+y las relaciones de cada registro en la columna original `tag_state_id`.
+La tabla preexistente `step.agriculture.harvest.tag.state` queda como histórico
+de solo lectura, protegido también por métodos ORM. Los formularios presentan
+el estado del maestro actual y permiten consultar la referencia original.
+La relación operativa se inicializa una sola vez al agregar la columna; las
+actualizaciones posteriores no reinterpretan los cambios operativos del usuario.
 La publicación exige las pruebas funcionales completas del paquete final en
 una copia fresca y la comparación de los datos originales.
 

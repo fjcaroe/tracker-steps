@@ -36,7 +36,7 @@ def main():
         names = {f['name']: mappings[old_model].get(f['name'], f['name']) for f in fields}
         fields.sort(key=lambda f: (names[f['name']] != 'name', names[f['name']]))
         by_name = {names[f['name']]: f for f in fields}
-        archive = suffix.startswith('archive.')
+        archive = suffix.startswith('archive.') or old_model == 'x_estado_de_tarjas'
 
         def view(kind, arch):
             record = ET.SubElement(document, 'record', id='view_' + key + '_' + kind, model='ir.ui.view')

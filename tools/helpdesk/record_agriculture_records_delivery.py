@@ -16,9 +16,11 @@ def main():
     assert 'MANAGEMENT_DEPLOY_OK backup=' in log and 'MANAGEMENT_VERIFY_OK' in log
     assert 'MANAGEMENT_REGISTRY_OK' in log and '"native_models": 33' in log
     assert '"smart_buttons": 13' in log and '"original_tag_states_preserved": true' in log
+    assert '"canonical_tag_states_unified": true' in log
     assert gui['environment'] == 'development' and gui['commit'] == proof['commit']
     assert gui['cost_center_buttons'] and gui['historical_forms'] and gui['existing_records']
     assert gui['menus'] and gui['related_document_navigation']
+    assert gui['canonical_states_and_original_history'] and gui['destination_edit_permissions']
     config = json.loads((Path.home() / '.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url = 'https://soporte.stepsapp.cl'
     uid = xmlrpc.client.ServerProxy(url + '/xmlrpc/2/common').authenticate(
@@ -49,7 +51,9 @@ def main():
     body = ('Publicado y verificado en Desarrollo. Los trece accesos de centros de costo '
             'usan acciones y formularios versionados. Se convirtieron también los registros '
             'y formularios históricos: 33 modelos, sus líneas, maestros, permisos y secuencias. '
-            'Se conservaron IDs, valores, relaciones, estados originales de tarjas, mensajes '
+            'Se unificaron los estados operativos con el maestro actual: Vigente a Validada, '
+            'Despachada a Desp/Emb, conservando Repaletizada, Procesada y Nula. '
+            'Se conservaron IDs, valores, relaciones, estados originales de tarjas como histórico, mensajes '
             'y adjuntos mediante migración sobre las tablas existentes. El mismo paquete pasó '
             'pruebas funcionales y comparación de preservación en una copia fresca de Desarrollo. '
             'Se revisaron menús, formularios históricos y navegación real desde centros de costo, '

@@ -53,8 +53,8 @@ access_harvest_record_0,Registro de cosecha,model_step_agriculture_harvest_recor
 access_harvest_record_1,Registro de cosecha,model_step_agriculture_harvest_record,base.group_user,1,1,1,0
 access_harvest_tag_0,Tarjas de cosecha,model_step_agriculture_harvest_tag,base.group_system,1,1,1,1
 access_harvest_tag_1,Tarjas de cosecha,model_step_agriculture_harvest_tag,base.group_user,1,1,1,0
-access_harvest_tag_state_0,Estados de tarja de cosecha,model_step_agriculture_harvest_tag_state,base.group_system,1,1,1,1
-access_harvest_tag_state_1,Estados de tarja de cosecha,model_step_agriculture_harvest_tag_state,base.group_user,1,1,1,0
+access_harvest_tag_state_0,Estados originales de tarja (histórico),model_step_agriculture_harvest_tag_state,base.group_system,1,0,0,0
+access_harvest_tag_state_1,Estados originales de tarja (histórico),model_step_agriculture_harvest_tag_state,base.group_user,1,0,0,0
 access_harvest_forecast_0,Pronóstico de cosecha,model_step_agriculture_harvest_forecast,base.group_system,1,1,1,1
 access_harvest_forecast_1,Pronóstico de cosecha,model_step_agriculture_harvest_forecast,base.group_user,1,1,1,0
 access_irrigation_0,Riego y fertilización,model_step_agriculture_irrigation,base.group_system,1,1,1,1

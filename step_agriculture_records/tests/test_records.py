@@ -1,9 +1,10 @@
 from lxml import etree
 from odoo.tests import TransactionCase, Form, tagged
 from odoo.tests.common import new_test_user
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.addons.step_management_costs.tests.test_management_costs import make_center
-from odoo.addons.step_agriculture_records.schema import MODELS
+from odoo.addons.step_agriculture_records.schema import MODELS, TAG_STATE_POLICY
+from odoo.addons.step_agriculture_records.migrate_schema import unify_tag_rows
 from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
 
 
@@ -34,7 +35,7 @@ class AgricultureRecordsCase(TransactionCase):
                     view = self.env.ref('step_agriculture_records.view_' + suffix + '_' + kind)
                     arch = records.get_view(view_id=view.id, view_type=kind)['arch']
                     assert_fields(self, model, etree.fromstring(arch))
-                if '.archive.' in model:
+                if model == 'step.agriculture.harvest.tag.state':
                     continue
                 with Form(records, view='step_agriculture_records.view_' + suffix + '_form') as form:
                     if not records._fields['name'].readonly:
@@ -96,13 +97,46 @@ class AgricultureRecordsCase(TransactionCase):
         actions = self.env['base.automation'].search([('model_id.model', 'in', list(MODELS.values())), ('active', '=', True)])
         self.assertFalse(actions)
 
-    def test_original_tag_states_remain_the_same_master(self):
+    def test_approved_states_reuse_packing_master_and_preserve_originals(self):
         states = self.env['step.agriculture.harvest.tag.state']
-        state = states.create({'name': 'QA T103 estado original', 'code': 'QA103'})
-        tag = self.env['step.agriculture.harvest.tag'].create({'name': 'QA T103 tarja', 'tag_state_id': state.id})
-        self.assertEqual(tag.tag_state_id, state)
-        self.assertEqual(tag.tag_state_id.code, 'QA103')
-        self.assertEqual(tag._fields['tag_state_id'].comodel_name, 'step.agriculture.harvest.tag.state')
+        packing = self.env['step.packing.tag.state']
+        before = packing.search_count([])
+        plan = self.env['account.analytic.plan'].create({'name': 'QA T103 estados'})
+        center = make_center(self.env, plan, 'QA103S', 'QA T103 estados', self.env.company)
+        harvest = self.env['step.agriculture.harvest.record'].create({'cost_center_id': center.id})
+        for original, canonical in TAG_STATE_POLICY.items():
+            source = states.search([('code', '=', original)])
+            self.assertEqual(len(source), 1)
+            tag = self.env['step.agriculture.harvest.tag'].create({'name': 'QA T103 ' + original, 'harvest_id': harvest.id})
+            # Simulate a pre-conversion historical FK without exposing any
+            # writable history field or migration method through the ORM.
+            self.env.flush_all()
+            self.env.cr.execute('UPDATE step_agriculture_harvest_tag SET tag_state_id=%s WHERE id=%s', (source.id, tag.id))
+            self.assertEqual(unify_tag_rows(self.env.cr, [tag.id]), 1)
+            tag.invalidate_recordset()
+            self.assertEqual(tag.tag_state_id, source)
+            self.assertEqual(tag.packing_tag_state_id.code, canonical)
+            self.assertEqual(tag.packing_tag_state_id.company_id, self.env.company)
+            with self.assertRaises(UserError):
+                tag.write({'tag_state_id': False})
+            tag.packing_tag_state_id = packing.search([('code', '=', '05'), ('company_id', '=', self.env.company.id)])
+            self.assertEqual(tag.tag_state_id, source)
+        self.assertEqual(packing.search_count([]), before)
+        with self.assertRaises(UserError):
+            states.create({'name': 'QA T103 histórico nuevo'})
+        with self.assertRaises(UserError):
+            source.write({'name': 'QA T103 histórico alterado'})
+        with self.assertRaises(UserError):
+            source.unlink()
+
+    def test_operational_state_respects_harvest_company(self):
+        other = self.env['res.company'].create({'name': 'QA T103 otra empresa'})
+        state = self.env['step.packing.tag.state'].create({'name': 'QA T103 ajeno', 'code': 'QA103', 'company_id': other.id})
+        plan = self.env['account.analytic.plan'].create({'name': 'QA T103 empresa'})
+        center = make_center(self.env, plan, 'QA103C', 'QA T103 empresa', self.env.company)
+        harvest = self.env['step.agriculture.harvest.record'].create({'cost_center_id': center.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env['step.agriculture.harvest.tag'].create({'name': 'QA T103 ajena', 'harvest_id': harvest.id, 'packing_tag_state_id': state.id})
 
     def test_product_labor_group_is_required_only_for_labor(self):
         product = self.env['product.template'].create({'name': 'QA T103 insumo', 'is_labor': False})

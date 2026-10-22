@@ -1,6 +1,8 @@
 """Explicit in-place migration names for agricultural documents and their lines."""
 import re
 
+TAG_STATE_POLICY = {'V': '02', 'D': '05', 'R': '04', 'P': '03', 'N': '10'}
+
 MODELS = {
     'x_planificar_cosecha': 'step.agriculture.harvest.forecast',
     'x_registro_cosecha': 'step.agriculture.harvest.record',
@@ -134,7 +136,7 @@ FOREIGN_FIELDS = {
 
 LABELS = {
     'harvest.forecast': 'Pronóstico de cosecha', 'harvest.record': 'Registro de cosecha',
-    'harvest.tag': 'Tarjas de cosecha', 'harvest.tag.state': 'Estados de tarja de cosecha',
+    'harvest.tag': 'Tarjas de cosecha', 'harvest.tag.state': 'Estados originales de tarja (histórico)',
     'inspection': 'Inspecciones internas', 'inspection.line': 'Detalle de inspección',
     'advisory': 'Asesorías externas', 'advisory.line': 'Recomendaciones de asesoría',
     'active.ingredient': 'Sustancias activas', 'bpa.role': 'Cargos BPA',

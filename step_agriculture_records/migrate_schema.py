@@ -204,7 +204,46 @@ def prepare(cr):
     for old in before:
         cr.execute(sql.SQL('SELECT count(*) FROM {}').format(sql.Identifier(table_name(MODELS[old]))))
         assert cr.fetchone()[0] == before[old], ('Row preservation failed', old)
-    return {'renamed': before, 'models': len(MODELS), 'transactional': True}
+    unified = prepare_tag_states(cr)
+    return {'renamed': before, 'models': len(MODELS), 'transactional': True,
+            'canonical_tag_states': unified}
+
+
+def unify_tag_rows(cr, ids=None):
+    """Use approved codes and the harvest center's company, never name matches."""
+    cr.execute('SELECT id,code,company_id FROM step_packing_tag_state')
+    candidates = {}
+    for ident, code, company in cr.fetchall():
+        candidates.setdefault(code, []).append((ident, company))
+    cr.execute('SELECT t.id,s.code,a.company_id FROM step_agriculture_harvest_tag t '
+               'JOIN step_agriculture_harvest_tag_state s ON s.id=t.tag_state_id '
+               'LEFT JOIN step_agriculture_harvest_record h ON h.id=t.harvest_id '
+               'LEFT JOIN account_analytic_account a ON a.id=h.cost_center_id '
+               'WHERE (%s IS NULL OR t.id=ANY(%s))', (ids, ids))
+    rows = cr.fetchall()
+    for tag, original, company in rows:
+        assert original in SCHEMA.TAG_STATE_POLICY, ('Unapproved original tag-state code', original)
+        choices = candidates.get(SCHEMA.TAG_STATE_POLICY[original], [])
+        scoped = [ident for ident, owner in choices if company and owner == company]
+        scoped = scoped or [ident for ident, owner in choices if owner is None]
+        assert len(scoped) == 1, ('Missing or ambiguous canonical tag state for company', original, company)
+        cr.execute('UPDATE step_agriculture_harvest_tag SET packing_tag_state_id=%s WHERE id=%s',
+                   (scoped[0], tag))
+    return len(rows)
+
+
+def prepare_tag_states(cr):
+    # A new FK is the operational state. The original FK and master remain
+    # untouched as immutable history, so preservation compares the same IDs.
+    table = 'step_agriculture_harvest_tag'
+    if column_exists(cr, table, 'packing_tag_state_id'):
+        return {'already_unified': True}
+    cr.execute('ALTER TABLE step_agriculture_harvest_tag ADD COLUMN packing_tag_state_id '
+               'INTEGER REFERENCES step_packing_tag_state(id) ON DELETE RESTRICT')
+    count = unify_tag_rows(cr)
+    cr.execute('UPDATE ir_model_access SET perm_write=FALSE,perm_create=FALSE,perm_unlink=FALSE '
+               "WHERE model_id=(SELECT id FROM ir_model WHERE model='step.agriculture.harvest.tag.state')")
+    return {'mapped': count, 'policy': SCHEMA.TAG_STATE_POLICY}
 
 
 def rename_reference_values(cr):
