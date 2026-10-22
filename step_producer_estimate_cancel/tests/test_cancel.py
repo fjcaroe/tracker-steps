@@ -91,8 +91,8 @@ class CancellationCase(TransactionCase):
     def test_company_access_is_preserved(self):
         estimate = self.sample()
         other = self.env['res.company'].create({'name': 'QA cancellation other'})
-        user = new_test_user(self.env, login='qa-cancel-other', groups='base.group_user',
+        user = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)), login='qa-cancel-other', groups='base.group_user',
                              company_id=other.id, company_ids=[Command.set(other.ids)])
-        with self.assertRaises((AccessError, UserError)):
+        with self.assertRaises(AccessError):
             estimate.with_user(user).with_context(allowed_company_ids=other.ids).action_cancel_estimate()
         self.assertEqual(estimate.state, 'created')
