@@ -109,7 +109,10 @@ def prepare(cr):
     preserve_existing_access(cr)
     for old in MODELS:
         seen = {name for model, name in catalog if model == old and name.startswith('x_')}
-        assert not seen or seen == set(FIELDS[old]), ('Concurrent agricultural schema change', old)
+        # Cerro's seven native BPA models contain an audited subset of the
+        # larger historical Studio schema. Preserve every existing field and
+        # let the native addon add the missing fields; unknown ones still block.
+        assert seen <= set(FIELDS[old]), ('Unknown agricultural schema field', old, sorted(seen - set(FIELDS[old])))
     before = {}
     for old, new in MODELS.items():
         source_table, target = table_name(old), table_name(new)
