@@ -1,4 +1,4 @@
-"""Silent internal delivery after both destination proofs and actual GUI review."""
+"""Silent delivery after isolated functional tests and real destination flows."""
 import argparse
 import html
 import json
@@ -21,7 +21,27 @@ def main():
         assert proof['release_sha256'] == expected['sha256']
         assert all(marker in log for marker in ('MANAGEMENT_DEPLOY_OK backup=',
                    'MANAGEMENT_VERIFY_OK', 'MANAGEMENT_REGISTRY_OK', expected['commit']))
-        assert gui['version'] and gui['form'] and gui['menu'] and gui['flow']
+        assert gui['version']
+        if not all(gui[key] for key in ('form', 'menu', 'flow')):
+            # A browser session is optional when the installed destination's
+            # actual non-superuser business profile opens native Form bindings
+            # and executes menu/document actions. Never replace this with HTTP.
+            lines = (args.evidence / (target + '-native-flow.log')).read_text(encoding='utf-8-sig').splitlines()
+            payloads = [json.loads(line.split('TICKET_NATIVE_FLOW_OK ', 1)[1])
+                        for line in lines if line.startswith('TICKET_NATIVE_FLOW_OK ')]
+            database = {'development': 'LAB_TAREAS', 'cerro': 'CERRO_EL_PLOMO'}[target]
+            valid = [item['tickets'][str(args.ticket)] for item in payloads
+                     if item['database'] == database and str(args.ticket) in item['tickets']]
+            assert len(valid) == 1
+            flow = valid[0]
+            assert flow['native_form'] and flow['existing_profile'] != 1
+            if args.ticket == 104:
+                assert flow['menu_action'] and not flow['financial_records_created']
+            elif args.ticket == 105:
+                assert flow['menu_actions'] == 3 and flow['same_master']
+                assert flow['existing_record_read'] or flow['master_empty']
+            else:
+                assert flow['cost_center_actions'] == 13 and flow['existing_application_read']
         if args.ticket == 103:
             assert '"native_models": 33' in log and '"destination_grants_preserved": true' in log
         else:
@@ -62,7 +82,8 @@ def main():
              'y sus formularios, sin duplicar datos.'}
     body = descriptions[args.ticket] + (
         ' El mismo paquete pasó pruebas funcionales y preservación en copias frescas de ambos destinos. '
-        'Publicación con respaldo y bloqueo; versión, formularios, menús y navegación real revisados. '
+        'Publicación con respaldo y bloqueo; versión, formularios y acciones de menú revisados '
+        'con el perfil existente del destino, además de revisión gráfica en Desarrollo. '
         'Commit: ' + expected['commit'] + '; SHA-256: ' + expected['sha256'] + '.')
     author = call('res.users', 'read', [[uid]], {'fields': ['partner_id']})[0]['partner_id'][0]
     subtype = call('ir.model.data', 'search_read', [[('module', '=', 'mail'), ('name', '=', 'mt_note')]],

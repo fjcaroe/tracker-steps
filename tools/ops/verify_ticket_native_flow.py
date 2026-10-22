@@ -31,6 +31,7 @@ try:
         bank = scoped['res.partner.bank']
         assert 'step_security_credit_type' in bank.get_view(
             view_id=scoped.ref('base.view_partner_bank_form').id, view_type='form')['arch']
+        Form(bank, view=scoped.ref('base.view_partner_bank_form').id)
         results['104'] = {'native_form': True, 'menu_action': True, 'existing_profile': user.id,
                           'financial_records_created': False}
         visible = scoped['ir.ui.menu']._visible_menu_ids()
@@ -40,15 +41,15 @@ try:
             menu = scoped.ref('step_season_navigation.menu_' + key + '_seasons')
             assert menu.id in visible and menu.action == season_action
             assert season_action.res_model == 'step.temporada'
+            form = Form(season or scoped['step.temporada'], view=scoped.ref('step_hr.view_temporada_form').id)
             if season:
                 season.web_read({'name': {}})
-                # Form constructed explicitly, never saved on a real season.
-                form = Form(season, view=scoped.ref('step_hr.view_temporada_form').id)
                 assert form.name == season.name
         assert scoped.ref('step_season_navigation.menu_packing_seasons').parent_id == scoped.ref(
             'step_packing_operations.menu_packing_operations_config')
         results['105'] = {'native_form': True, 'menu_actions': 3, 'same_master': True,
-                          'existing_profile': user.id, 'existing_record_read': bool(season)}
+                          'existing_profile': user.id, 'existing_record_read': bool(season),
+                          'master_empty': not bool(season)}
     if 103 in TICKETS:
         from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
         center = scoped['account.analytic.account'].search([], limit=1)
