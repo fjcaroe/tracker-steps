@@ -8,7 +8,7 @@ import xmlrpc.client
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('ticket', type=int, choices=(103, 104, 105))
+    parser.add_argument('ticket', type=int, choices=(103, 104, 105, 107, 108))
     parser.add_argument('--evidence', type=Path, required=True)
     args = parser.parse_args()
     record = json.loads((args.evidence / 'delivery-reviewed.json').read_text(encoding='utf-8'))
@@ -22,7 +22,15 @@ def main():
         assert all(marker in log for marker in ('MANAGEMENT_DEPLOY_OK backup=',
                    'MANAGEMENT_VERIFY_OK', 'MANAGEMENT_REGISTRY_OK', expected['commit']))
         assert gui['version']
-        if not all(gui[key] for key in ('form', 'menu', 'flow')):
+        if args.ticket in (107, 108):
+            payloads = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
+                        for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
+            assert any(item.get('tickets') == [107, 108] and item.get('actual_user_id', 1) != 1
+                       and item.get('estimate_menu_and_form') and item.get('cancel_button_and_audit')
+                       and item.get('cancelled_report_state') and item.get('folio_menu_existing_company_form')
+                       and item.get('company_creation_disabled') and item.get('writes') is False
+                       for item in payloads)
+        elif not all(gui[key] for key in ('form', 'menu', 'flow')):
             # A browser session is optional when the installed destination's
             # actual non-superuser business profile opens native Form bindings
             # and executes menu/document actions. Never replace this with HTTP.
@@ -44,7 +52,7 @@ def main():
                 assert flow['cost_center_actions'] == 13 and flow['existing_application_read']
         if args.ticket == 103:
             assert '"native_models": 33' in log and '"destination_grants_preserved": true' in log
-        else:
+        elif args.ticket in (104, 105):
             assert '"season_menus": 3' in log and '"security_button": true' in log
     config = json.loads((Path.home() / '.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url = 'https://soporte.stepsapp.cl'
@@ -69,6 +77,15 @@ def main():
         ('res_id', '=', args.ticket), ('id', '>', expected['reviewed_message_id']),
         ('message_type', 'in', ['comment', 'email'])]]), 'Read newer replies before delivery'
     descriptions = {
+        107: 'Publicado en Desarrollo y Cerro El Plomo el botón Anular estimación para documentos '
+             'creados, validados o vigentes. Registra fecha y usuario, mantiene líneas y semanas, '
+             'congela el histórico y excluye la versión anulada de los cálculos vigentes. '
+             'No reactiva versiones reemplazadas ni modifica recepciones, inventario o contabilidad. '
+             'No se anuló ningún documento productivo como parte de esta entrega.',
+        108: 'Corregido Folios de exportación en Desarrollo y Cerro El Plomo: el menú lista las '
+             'empresas existentes permitidas y abre su formulario para configurar modalidad e inicio '
+             'sin pedir crear una empresa nueva ni cambiar su nombre. Se conserva la configuración '
+             'y la numeración histórica de los documentos.',
         103: 'Se completó la actualización solicitada en Cerro El Plomo y se verificó también Desarrollo. '
              'Los 33 modelos y los trece accesos agrícolas usan código y formularios nativos. '
              'La migración conserva los registros, identificadores, relaciones y permisos propios del destino. '

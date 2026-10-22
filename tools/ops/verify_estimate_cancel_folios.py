@@ -28,7 +28,7 @@ try:
     Form(records, view=estimate_view)
     visible = scoped['ir.ui.menu']._visible_menu_ids()
     estimate_actions = scoped['ir.actions.act_window'].search([('res_model', '=', 'step.export.estimate')])
-    assert any(menu.id in visible and menu.action in estimate_actions for menu in scoped['ir.ui.menu'].search([('action', '!=', False)]))
+    assert any(menu.id in visible and menu.action._name == 'ir.actions.act_window' and menu.action in estimate_actions for menu in scoped['ir.ui.menu'].search([('action', '!=', False)]))
     action = scoped.ref('step_export_shipping_design.folio_company_action')
     menu = scoped.ref('step_export_shipping_design.folio_company_menu')
     assert menu.id in visible and menu.action == action
