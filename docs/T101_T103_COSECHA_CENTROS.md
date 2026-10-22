@@ -36,6 +36,24 @@ de registros, formularios efectivos y maestros nativos. El error de apertura
 original también se reprodujo en el navegador autenticado de Desarrollo:
 `"hr.employee"."firstname" field is undefined`.
 
+Publicación del mismo paquete completada en ambos destinos, con sondas
+posteriores de versión, ruta efectiva, menús, formularios y lectura de
+registros existentes. Respaldos:
+
+- Desarrollo: `management_development_20261022T005222Z`.
+- Cerro El Plomo: `management_cerro_20261022T005353Z`.
+
+En el navegador autenticado de Desarrollo se comprobaron la apertura de un
+registro contratista nuevo y uno existente, el contratista en la cabecera de
+una nueva cuadrilla, la ausencia de esa columna en sus líneas y el árbol de
+menús con Procesos en Recepción y los tres maestros en Configuración.
+Los formularios nuevos se descartaron sin guardar documentos.
+
+T101 y T102 quedaron resueltos mediante notas internas 9595 y 9596. El
+registrador comprobó ausencia de respuestas nuevas, SLA y automatizaciones
+antes del cambio de etapa, y ausencia de correos y notificaciones después.
+T103 permanece abierto, sin sustituir sus formularios históricos.
+
 ## T103: decisión funcional pendiente
 
 El adjunto muestra trece botones, incluidos los del desbordamiento «Más».
