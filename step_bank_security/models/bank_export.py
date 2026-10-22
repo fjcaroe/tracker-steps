@@ -13,6 +13,13 @@ BANK_CODES = {1, 9, 12, 14, 16, 27, 28, 31, 37, 39, 46, 49, 51, 53, 54, 55,
               504, 738, 697, 507, 672, 729, 730, 875, 732, 741, 743, 746, 62}
 
 
+def whole_pesos(value):
+    amount = Decimal(str(value))
+    if not amount.is_finite() or amount <= 0 or amount != amount.to_integral_value():
+        raise UserError(_('El monto Security debe ser positivo y expresado en pesos enteros.'))
+    return int(amount)
+
+
 def clean_rut(value):
     value = re.sub(r'^CL', '', (value or '').strip(), flags=re.I)
     value = re.sub(r'[.\s-]', '', value).upper()
@@ -61,9 +68,7 @@ class BatchPayment(models.Model):
                 raise UserError(_('Todos los pagos deben ser salientes y pertenecer a la empresa del lote.'))
             if payment.state in ('canceled', 'cancel', 'rejected') or payment.currency_id.name != 'CLP':
                 raise UserError(_('Security requiere pagos vigentes en pesos chilenos (CLP).'))
-            amount = Decimal(str(payment.amount))
-            if not amount.is_finite() or amount <= 0 or amount != amount.to_integral_value():
-                raise UserError(_('El monto Security debe ser positivo y expresado en pesos enteros.'))
+            amount = whole_pesos(payment.amount)
             partner = payment.partner_id
             accounts = partner.bank_ids.filtered(lambda bank: not bank.company_id or bank.company_id == self.company_id)
             account = payment.partner_bank_id

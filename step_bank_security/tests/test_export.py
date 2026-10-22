@@ -5,7 +5,7 @@ from odoo.tests import tagged
 from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.exceptions import UserError, AccessError
-from ..models.bank_export import clean_rut
+from ..models.bank_export import clean_rut, whole_pesos
 
 
 @tagged('post_install', '-at_install')
@@ -69,9 +69,10 @@ class SecurityExportCase(AccountTestInvoicingCommon):
         with self.assertRaises(UserError):
             batch._security_rows()
         account.step_security_credit_type = '1'
-        payment.amount = 10.5
+        # Monetary CLP fields round on assignment, so exercise the file's
+        # decimal guard before Odoo's currency conversion loses that input.
         with self.assertRaises(UserError):
-            batch._security_rows()
+            whole_pesos(10.5)
         payment.amount = 100
         payment.currency_id = self.env.ref('base.USD')
         with self.assertRaises(UserError):
