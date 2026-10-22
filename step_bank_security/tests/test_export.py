@@ -11,6 +11,7 @@ from ..models.bank_export import clean_rut
 @tagged('post_install', '-at_install')
 class SecurityExportCase(AccountTestInvoicingCommon):
     def make_batch(self):
+        self.env.user.groups_id |= self.env.ref('account.group_validate_bank_account')
         self.env.company.treasury_batch_approval_threshold = 0
         journal = self.company_data['default_journal_bank']
         currency = self.env.ref('base.CLP')
@@ -97,7 +98,8 @@ class SecurityExportCase(AccountTestInvoicingCommon):
             batch._security_rows()
         batch.security_description = 'Nómina octubre'
         self.assertEqual(batch._security_rows()[0][8], 'Nómina octubre')
-        account.acc_number = 'ABC-123'
+        account.write({'allow_out_payment': False, 'acc_number': 'ABC-123'})
+        account.allow_out_payment = True
         with self.assertRaises(UserError):
             batch._security_rows()
 
@@ -117,3 +119,9 @@ class SecurityExportCase(AccountTestInvoicingCommon):
         user = new_test_user(self.env, login='qa_t104_no_accounting', groups='base.group_user')
         with self.assertRaises(AccessError):
             batch.with_user(user).action_export_security_xls()
+
+    def test_untrusted_account_cannot_bypass_odoo_payment_controls(self):
+        batch, payment, account = self.make_batch()
+        account.allow_out_payment = False
+        with self.assertRaises(UserError):
+            batch._security_rows()
