@@ -54,17 +54,20 @@ try:
         from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
         center = scoped['account.analytic.account'].search([], limit=1)
         assert center
+        checked = 0
         for key, (_, model, relation) in ACTIVITIES.items():
             if scoped[model].has_access('read'):
                 action = center.with_context(agriculture_activity=key).action_agriculture_activity()
                 assert action['res_model'] == model and action['domain'] == [(relation, '=', center.id)]
                 scoped[model].search(action['domain'], limit=1).web_read({'name': {}})
+                checked += 1
+        assert checked == 13
         application = scoped['step.agriculture.application'].search([], limit=1)
         if application:
             application.web_read({'name': {}, 'company_id': {}})
             form = Form(application, view=scoped.ref('step_agriculture_records.view_application_form').id)
             assert form.name == application.name
-        results['103'] = {'native_form': True, 'cost_center_actions': 13,
+        results['103'] = {'native_form': True, 'cost_center_actions': checked,
                           'existing_profile': user.id, 'existing_application_read': bool(application)}
     assert all(str(ticket) in results for ticket in TICKETS)
     print('TICKET_NATIVE_FLOW_OK ' + json.dumps({'database': scoped.cr.dbname, 'tickets': results}))
