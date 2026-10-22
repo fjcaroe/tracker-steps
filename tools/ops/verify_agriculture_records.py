@@ -17,6 +17,8 @@ try:
         assert meta.state == 'base'
         assert not env['ir.model.fields'].search_count([('model', '=', model), ('state', '=', 'manual')])
         assert not any(name.startswith('x_') for name in env[model]._fields)
+        assert not any(part.startswith('x_') for field in env[model]._fields.values()
+                       for part in (field.related or ()))
         key = model.removeprefix('step.agriculture.').replace('.', '_')
         for kind in ('form', 'list', 'search', 'graph', 'pivot'):
             view = env.ref('step_agriculture_records.view_' + key + '_' + kind)

@@ -138,6 +138,16 @@ FOREIGN_FIELDS = {
     },
 }
 
+# These inherited product fields are part of the application's related-field
+# graph. They exist as Studio integers in Desarrollo and are absent in Cerro.
+for _model in ('product.template', 'product.product'):
+    FOREIGN_FIELDS[_model].update({
+        'x_studio_das_carencia_mayor': 'agriculture_max_withholding_days',
+        'x_studio_das_carencia_ue': 'agriculture_eu_withholding_days',
+        'x_studio_das_carencia_usa': 'agriculture_us_withholding_days',
+        'x_studio_mximo_veces_a_aplicar': 'agriculture_max_applications',
+    })
+
 LABELS = {
     'harvest.forecast': 'Pronóstico de cosecha', 'harvest.record': 'Registro de cosecha',
     'harvest.tag': 'Tarjas de cosecha', 'harvest.tag.state': 'Estados originales de tarja (histórico)',

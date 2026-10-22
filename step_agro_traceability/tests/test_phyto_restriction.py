@@ -211,6 +211,12 @@ class TestPhytoRestriction(TransactionCase):
         model = self.env["step.phyto.restriction"]
         self.assertEqual(model._carencia_for_product(self.product, "label"), 14)
         self.assertEqual(model._carencia_for_product(self.product, "max"), 14)
+        self.product.write({'agriculture_max_withholding_days': 21,
+                            'agriculture_eu_withholding_days': 28,
+                            'agriculture_us_withholding_days': 18})
+        self.assertEqual(model._carencia_for_product(self.product, 'max'), 28)
+        self.assertEqual(model._carencia_for_product(self.product, 'eu'), 28)
+        self.assertEqual(model._carencia_for_product(self.product, 'usa'), 18)
 
     def test_criterio_de_destino_sin_dato_cae_a_etiqueta(self):
         """Un mercado sin días cargados no puede relajar el control legal."""

@@ -30,6 +30,9 @@ class AgricultureRecordsCase(TransactionCase):
                 meta = self.env['ir.model'].search([('model', '=', model)])
                 self.assertEqual(meta.state, 'base')
                 self.assertFalse(any(name.startswith('x_') for name in records._fields))
+                for field in records._fields.values():
+                    self.assertFalse(any(part.startswith('x_') for part in (field.related or ())),
+                                     (model, field.name, field.related))
                 suffix = model.removeprefix('step.agriculture.').replace('.', '_')
                 for kind in ('form', 'list', 'search', 'graph', 'pivot'):
                     view = self.env.ref('step_agriculture_records.view_' + suffix + '_' + kind)

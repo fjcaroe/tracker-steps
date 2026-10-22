@@ -100,6 +100,10 @@ class ProductTemplate(models.Model):
 
     agriculture_active_ingredient_id = fields.Many2one(
         'step.agriculture.active.ingredient', string='Sustancia activa')
+    agriculture_max_withholding_days = fields.Integer(string='Días de carencia mayor')
+    agriculture_eu_withholding_days = fields.Integer(string='Días de carencia UE')
+    agriculture_us_withholding_days = fields.Integer(string='Días de carencia USA')
+    agriculture_max_applications = fields.Integer(string='Máximo de aplicaciones')
     # Unclassified non-labor products already exist. Do not invent a labor
     # classification for them merely to add the substance relation.
     grupo_labor = fields.Selection(required=False)

@@ -20,8 +20,8 @@ APPLICATION_MODEL = "step.agriculture.application"
 #: productos y por eso se leen con guarda.
 CARENCIA_FIELD_BY_CRITERION = {
     "label": "dia_carencia",
-    "eu": "x_studio_das_carencia_ue",
-    "usa": "x_studio_das_carencia_usa",
+    "eu": "agriculture_eu_withholding_days",
+    "usa": "agriculture_us_withholding_days",
 }
 
 
@@ -179,7 +179,7 @@ class StepPhytoRestriction(models.Model):
             return int(product[field_name] or 0)
 
         if criterion == "max":
-            candidates = [read("dia_carencia"), read("x_studio_das_carencia_mayor")]
+            candidates = [read("dia_carencia"), read("agriculture_max_withholding_days")]
             candidates += [read(f) for f in CARENCIA_FIELD_BY_CRITERION.values()]
             return max(candidates or [0])
         value = read(CARENCIA_FIELD_BY_CRITERION.get(criterion, "dia_carencia"))
