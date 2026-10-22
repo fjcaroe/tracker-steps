@@ -3,7 +3,7 @@ from odoo.tests import TransactionCase, Form, tagged
 from odoo.tests.common import new_test_user
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.addons.step_management_costs.tests.test_management_costs import make_center
-from odoo.addons.step_agriculture_records.schema import MODELS, TAG_STATE_POLICY
+from odoo.addons.step_agriculture_records.schema import MODELS, TAG_STATE_POLICY, TAG_STATE_CODES
 from odoo.addons.step_agriculture_records.migrate_schema import unify_tag_rows
 from odoo.addons.step_agriculture_records.models.cost_center import ACTIVITIES
 
@@ -100,6 +100,12 @@ class AgricultureRecordsCase(TransactionCase):
     def test_approved_states_reuse_packing_master_and_preserve_originals(self):
         states = self.env['step.agriculture.harvest.tag.state']
         packing = self.env['step.packing.tag.state']
+        for original, canonical in TAG_STATE_POLICY.items():
+            if not states.search_count([('code', '=', original)]):
+                self.env.cr.execute('INSERT INTO step_agriculture_harvest_tag_state(name,code,active,sequence) '
+                    'VALUES(%s::jsonb,%s,TRUE,10)', ('{"en_US":"QA T103 estado original"}', original))
+            if not packing.search_count([('code', 'in', TAG_STATE_CODES[canonical]), ('company_id', '=', self.env.company.id)]):
+                packing.create({'name': 'QA T103 estado ' + canonical, 'code': canonical, 'company_id': self.env.company.id})
         before = packing.search_count([])
         plan = self.env['account.analytic.plan'].create({'name': 'QA T103 estados'})
         center = make_center(self.env, plan, 'QA103S', 'QA T103 estados', self.env.company)
@@ -115,11 +121,11 @@ class AgricultureRecordsCase(TransactionCase):
             self.assertEqual(unify_tag_rows(self.env.cr, [tag.id]), 1)
             tag.invalidate_recordset()
             self.assertEqual(tag.tag_state_id, source)
-            self.assertEqual(tag.packing_tag_state_id.code, canonical)
+            self.assertIn(tag.packing_tag_state_id.code, TAG_STATE_CODES[canonical])
             self.assertEqual(tag.packing_tag_state_id.company_id, self.env.company)
             with self.assertRaises(UserError):
                 tag.write({'tag_state_id': False})
-            tag.packing_tag_state_id = packing.search([('code', '=', '05'), ('company_id', '=', self.env.company.id)])
+            tag.packing_tag_state_id = packing.search([('code', 'in', TAG_STATE_CODES['05']), ('company_id', '=', self.env.company.id)])
             self.assertEqual(tag.tag_state_id, source)
         self.assertEqual(packing.search_count([]), before)
         with self.assertRaises(UserError):

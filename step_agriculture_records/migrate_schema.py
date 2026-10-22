@@ -97,6 +97,8 @@ def expression(model, value):
 
 def prepare(cr):
     catalog = field_catalog(cr)
+    present = {model for model, name in catalog}
+    preserve_existing_access(cr)
     for old in MODELS:
         seen = {name for model, name in catalog if model == old and name.startswith('x_')}
         assert not seen or seen == set(FIELDS[old]), ('Concurrent agricultural schema change', old)
@@ -105,7 +107,9 @@ def prepare(cr):
         source_table, target = table_name(old), table_name(new)
         old_exists, new_exists = exists(cr, source_table), exists(cr, target)
         assert not (old_exists and new_exists), ('Parallel tables; manual reconciliation required', old)
-        assert old_exists or new_exists, ('Missing audited agricultural table', old)
+        if not old_exists and not new_exists:
+            assert old not in present and new not in present, ('Missing table of an existing model', old)
+            continue  # The ORM creates a new empty native model, not a copy.
         if not old_exists:
             continue
         cr.execute(sql.SQL('SELECT count(*) FROM {}').format(sql.Identifier(source_table)))
@@ -151,6 +155,8 @@ def prepare(cr):
     for old, new in MODELS.items():
         cr.execute('SELECT id FROM ir_model WHERE model IN (%s,%s)', (old, new))
         rows = cr.fetchall()
+        if not rows:
+            continue
         assert len(rows) == 1, ('Ambiguous model metadata', old)
         model_id = rows[0][0]
         cr.execute('SELECT id FROM ir_model_fields WHERE model IN (%s,%s)', (old, new))
@@ -188,11 +194,18 @@ def prepare(cr):
                        (new, expression(old, domain), expression(old, context), ident))
     for category in ('access', 'rules'):
         for old, new in ADOPTIONS[category].items():
+            if not reference(cr, old) and not reference(cr, MODULE + '.' + new):
+                # Source-specific Studio grants may never have existed here.
+                # Native CSV grants are versioned and the original BPA grants
+                # must still be present/adopted when their module is installed.
+                assert not old.startswith('step_bpa_irrigation.'), ('Missing BPA grant', old)
+                continue
             adopt(cr, old, new)
     for code in SCHEMA.SEQUENCES.values():
         cr.execute('SELECT id FROM ir_sequence WHERE code=%s', (code,))
         sequences = [r[0] for r in cr.fetchall()]
-        assert sequences, ('Missing existing folio sequence', code)
+        if not sequences:
+            continue  # post_init supplies only missing, fresh native sequences.
         cr.execute("SELECT module,name FROM ir_model_data WHERE model='ir.sequence' AND res_id=ANY(%s) AND module<>%s",
                    (sequences, MODULE))
         for mod, name in cr.fetchall():
@@ -223,7 +236,8 @@ def unify_tag_rows(cr, ids=None):
     rows = cr.fetchall()
     for tag, original, company in rows:
         assert original in SCHEMA.TAG_STATE_POLICY, ('Unapproved original tag-state code', original)
-        choices = candidates.get(SCHEMA.TAG_STATE_POLICY[original], [])
+        choices = [item for code in SCHEMA.TAG_STATE_CODES[SCHEMA.TAG_STATE_POLICY[original]]
+                   for item in candidates.get(code, [])]
         scoped = [ident for ident, owner in choices if company and owner == company]
         scoped = scoped or [ident for ident, owner in choices if owner is None]
         assert len(scoped) == 1, ('Missing or ambiguous canonical tag state for company', original, company)
@@ -236,6 +250,8 @@ def prepare_tag_states(cr):
     # A new FK is the operational state. The original FK and master remain
     # untouched as immutable history, so preservation compares the same IDs.
     table = 'step_agriculture_harvest_tag'
+    if not exists(cr, table):
+        return {'mapped': 0, 'fresh_native_model': True}
     if column_exists(cr, table, 'packing_tag_state_id'):
         return {'already_unified': True}
     cr.execute('ALTER TABLE step_agriculture_harvest_tag ADD COLUMN packing_tag_state_id '
@@ -244,6 +260,39 @@ def prepare_tag_states(cr):
     cr.execute('UPDATE ir_model_access SET perm_write=FALSE,perm_create=FALSE,perm_unlink=FALSE '
                "WHERE model_id=(SELECT id FROM ir_model WHERE model='step.agriculture.harvest.tag.state')")
     return {'mapped': count, 'policy': SCHEMA.TAG_STATE_POLICY}
+
+
+def preserve_existing_access(cr):
+    """Record this destination's grants, not another client's Studio grants."""
+    plan = {}
+    for old, new in MODELS.items():
+        cr.execute('SELECT id FROM ir_model WHERE model IN (%s,%s)', (old, new))
+        row = cr.fetchone()
+        if not row:
+            continue
+        cr.execute('SELECT id,group_id,perm_read,perm_write,perm_create,perm_unlink,active '
+                   'FROM ir_model_access WHERE model_id=%s', (row[0],))
+        plan[new] = cr.fetchall()
+    cr.execute("INSERT INTO ir_config_parameter(key,value) VALUES(%s,%s) "
+               'ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value',
+               (MODULE + '.migration_access', json.dumps(plan)))
+
+
+def restore_existing_access(cr):
+    cr.execute('SELECT value FROM ir_config_parameter WHERE key=%s', (MODULE + '.migration_access',))
+    row = cr.fetchone()
+    if not row:
+        return
+    for model, grants in json.loads(row[0]).items():
+        ids = [grant[0] for grant in grants]
+        cr.execute('UPDATE ir_model_access SET active=FALSE WHERE model_id='
+                   '(SELECT id FROM ir_model WHERE model=%s) AND NOT (id=ANY(%s::int[]))', (model, ids))
+        for ident, group, read, write, create, unlink, active in grants:
+            if model == 'step.agriculture.harvest.tag.state':
+                write = create = unlink = False
+            cr.execute('UPDATE ir_model_access SET group_id=%s,perm_read=%s,perm_write=%s,'
+                       'perm_create=%s,perm_unlink=%s,active=%s WHERE id=%s',
+                       (group, read, write, create, unlink, active, ident))
 
 
 def rename_reference_values(cr):
@@ -286,6 +335,7 @@ def rewrite_foreign_views(cr, catalog):
 
 
 def finalize(cr):
+    restore_existing_access(cr)
     # Every original menu/action now resolves to versioned native views,
     # including direct bookmarks and old chart/report actions.
     for old, model in MODELS.items():

@@ -52,7 +52,7 @@ def main():
     if args.kind == 'treasury-seasons':
         modules = ('step_bank_security', 'step_season_navigation')
     if args.kind == 'agriculture-records':
-        assert args.environment == 'development', 'T103 migration is restricted to Development'
+        assert args.environment in ('development', 'cerro'), 'T103 authorizes Desarrollo and Cerro only (reply 9598)'
         modules = ('step_agriculture_records','step_bpa_irrigation','step_bpa_inventory','step_qa','step_agro_traceability','step_budget_design','step_cosecha','step_cosecha_operations')
     if args.kind == 'harvest-operations':
         modules = ('step_cosecha_operations',)

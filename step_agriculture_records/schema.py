@@ -2,6 +2,10 @@
 import re
 
 TAG_STATE_POLICY = {'V': '02', 'D': '05', 'R': '04', 'P': '03', 'N': '10'}
+# Existing Packing masters use numeric codes in Desarrollo and letter codes
+# in Cerro. Preserve their IDs/codes; never copy a client's master records.
+TAG_STATE_CODES = {'02': ('02', 'V'), '05': ('05', 'D'), '04': ('04', 'R'),
+                   '03': ('03', 'P'), '10': ('10', 'N')}
 
 MODELS = {
     'x_planificar_cosecha': 'step.agriculture.harvest.forecast',

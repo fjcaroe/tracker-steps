@@ -22,6 +22,20 @@ try:
             view = env.ref('step_agriculture_records.view_' + key + '_' + kind)
             assert view.active and env[model].get_view(view_id=view.id, view_type=kind)['arch']
         env[model].with_context(active_test=False).search([], limit=5).web_read({'name': {}})
+    plan = json.loads(env['ir.config_parameter'].sudo().get_param(
+        'step_agriculture_records.migration_access', '{}'))
+    for model, original in plan.items():
+        grants = env['ir.model.access'].with_context(active_test=False).search([('model_id.model', '=', model)])
+        original_ids = {row[0] for row in original}
+        assert not grants.filtered(lambda grant: grant.id not in original_ids and grant.active), model
+        for ident, group, read, write, create, unlink, active in original:
+            grant = grants.browse(ident).exists()
+            assert grant
+            if model == 'step.agriculture.harvest.tag.state':
+                write = create = unlink = False
+            assert (grant.group_id.id or None, grant.perm_read, grant.perm_write,
+                    grant.perm_create, grant.perm_unlink, grant.active) == (
+                    group, read, write, create, unlink, active), model
     analytic = env['account.analytic.account']
     tags = env['step.agriculture.harvest.tag']
     assert tags._fields['packing_tag_state_id'].comodel_name == 'step.packing.tag.state'
@@ -44,6 +58,7 @@ try:
           'native_models': len(MODELS), 'smart_buttons': 13,
           'original_tag_states_preserved': True,
           'canonical_tag_states_unified': True,
+          'destination_grants_preserved': True,
           'native_forms': True, 'related_records_read': True}))
 finally:
     env.cr.rollback()

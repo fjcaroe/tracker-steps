@@ -402,7 +402,7 @@ def main():
             "SELECT 1 FROM ir_module_module WHERE name='step_agriculture_records' AND state='installed'"):
         assert args.kind == 'agriculture-records', 'The agricultural native schema requires its complete in-place migration package'
     if args.kind == 'agriculture-records':
-        assert args.environment == 'development', 'T103 is not a production authorization'
+        assert args.environment in ('development', 'cerro'), 'T103 reply 9598 authorizes Cerro; no other production'
         global AGRICULTURE_SOURCE, AGRICULTURE_COLUMNS
         AGRICULTURE_SOURCE = staged / 'step_agriculture_records'
         AGRICULTURE_COLUMNS = stage / 'agriculture-columns.json'
@@ -448,6 +448,10 @@ def main():
     install = ['step_agriculture_catalogs'] if args.kind == 'management' else ['step_producers_integrations'] if PRODUCERS and 'step_producers_integrations' not in installed else []
     if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         install = [name for name in MODULES if name not in installed]
+    if args.kind == 'agriculture-records' and args.environment == 'cerro':
+        # Preserve Cerro's installed scope: no inventory bridge or budget app
+        # merely because their sources share the immutable release.
+        install = [name for name in install if name == 'step_agriculture_records']
     if args.kind == 'sale-format' and SALE_FORMAT_INITIAL:
         install = ['step_sale_export_report']
     if args.kind == 'client-revision' and CLIENT_REVISION_INITIAL:
