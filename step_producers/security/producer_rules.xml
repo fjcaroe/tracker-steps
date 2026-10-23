@@ -6,4 +6,22 @@
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         <field name="groups" eval="[(4, ref('base.group_user'))]"/>
     </record>
+    <record id="rule_step_producer_contract_company" model="ir.rule">
+        <field name="name">Contratos productor: empresas permitidas</field>
+        <field name="model_id" ref="model_step_producer_purchase_contract"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_producer_contract_product_company" model="ir.rule">
+        <field name="name">Productos contrato: empresas permitidas</field>
+        <field name="model_id" ref="model_step_producer_purchase_contract_product"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+    <record id="rule_step_producer_contract_installment_company" model="ir.rule">
+        <field name="name">Cuotas contrato: empresas permitidas</field>
+        <field name="model_id" ref="model_step_producer_purchase_contract_installment"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
 </odoo>
