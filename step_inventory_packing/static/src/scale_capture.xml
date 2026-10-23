@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_inventory_packing.ScaleCapture">
+        <div class="d-flex gap-2 align-items-center">
+            <select class="form-select" t-model="state.target" aria-label="Dato de pesaje">
+                <t t-foreach="weightFields" t-as="field" t-key="field[0]">
+                    <option t-att-value="field[0]"><t t-esc="field[1]"/></option>
+                </t>
+            </select>
+            <button type="button" class="btn btn-primary" t-on-click="capture"
+                    t-att-disabled="state.busy">Leer balanza</button>
+        </div>
+    </t>
+</templates>

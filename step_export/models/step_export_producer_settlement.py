@@ -44,13 +44,21 @@ class ProducerSettlement(models.Model):
 
     name = fields.Char(default="Nuevo", readonly=True, copy=False)
     state = fields.Selection([
-        ("draft", "Creada"), ("validated", "Validada"),
-        ("accounted", "Contabilizada"),
+        ("draft", "Generada"), ("validated", "Validada"),
+        ("accounted", "Entregada"), ("closed", "Cerrada"),
     ], default="draft", required=True, tracking=True, copy=False)
+    delivery_date = fields.Date(string="Fecha de entrega", readonly=True, copy=False)
+    closed_date = fields.Date(string="Fecha de cierre", readonly=True, copy=False)
     receiver_settlement_id = fields.Many2one("step.export.receiver.settlement", required=True, ondelete="restrict")
     company_id = fields.Many2one(related="receiver_settlement_id.company_id", store=True)
     producer_id = fields.Many2one("res.partner", string="Productor", required=True)
     rate_id = fields.Many2one("step.export.grower.rate", string="Tarifa productor")
+    payout_mode = fields.Selection([
+        ("rate", "Tarifa histórica"), ("fob", "FOB traspasado"),
+    ], string="Cálculo del retorno", required=True, default="rate",
+        help="Los registros anteriores conservan la tarifa histórica; las nuevas liquidaciones usan FOB.")
+    fob_transfer_percent = fields.Float(string="FOB al productor %", default=100,
+                                        digits=(8, 4))
     usd_currency_id = fields.Many2one("res.currency", default=lambda self: self.env.ref("base.USD"))
     bill_currency_id = fields.Many2one("res.currency", string="Moneda factura productor",
                                        default=lambda self: self.env.company.currency_id)
@@ -80,6 +88,7 @@ class ProducerSettlement(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            vals.setdefault("payout_mode", "fob")
             if vals.get("name", "Nuevo") == "Nuevo":
                 vals["name"] = self.env["ir.sequence"].next_by_code(
                     "step.export.producer.settlement") or "Nuevo"
@@ -98,6 +107,12 @@ class ProducerSettlement(models.Model):
                 if receiver.company_id.step_export_purchase_journal_id:
                     vals["purchase_journal_id"] = receiver.company_id.step_export_purchase_journal_id.id
         return super().create(vals_list)
+
+    @api.constrains("fob_transfer_percent")
+    def _check_fob_transfer_percent(self):
+        for record in self:
+            if not 0 <= record.fob_transfer_percent <= 100:
+                raise ValidationError(_("El porcentaje de FOB al productor debe estar entre 0 y 100."))
 
     @api.depends("line_ids.kg_qty", "line_ids.amount_usd", "discount_line_ids.amount_usd")
     def _compute_totals(self):
@@ -126,7 +141,8 @@ class ProducerSettlement(models.Model):
                 raise UserError(_("La liquidación de productor debe tener tarjas."))
             if record.receiver_settlement_id.state not in ("validated", "accounted"):
                 raise UserError(_("Primero valide la liquidación del recibidor."))
-            if not record.rate_id or record.rate_id.rate_value <= 0 or not record.rate_id.expense_account_id:
+            if (not record.rate_id or not record.rate_id.expense_account_id or
+                    (record.payout_mode == "rate" and record.rate_id.rate_value <= 0)):
                 raise ValidationError(_("Configure una tarifa positiva y su cuenta de compra de fruta."))
             if (record.rate_id.company_id != record.company_id or
                     record.rate_id.producer_id != record.producer_id or
@@ -135,12 +151,23 @@ class ProducerSettlement(models.Model):
                 raise ValidationError(_("La tarifa debe corresponder al productor, empresa, temporada y especie de la liquidación."))
             if record.net_usd < 0:
                 raise ValidationError(_("Los descuentos no pueden superar la liquidación bruta."))
-            if any(line.tag_id.owner_id != record.producer_id for line in record.line_ids):
+            if any(not any(producer == record.producer_id and
+                           float_is_zero(line.kg_qty - line.tag_id._step_liquidation_kg() * share,
+                                         precision_rounding=0.001)
+                           for producer, share in line.tag_id._step_producer_shares())
+                   for line in record.line_ids):
                 raise ValidationError(_("Todas las tarjas deben pertenecer al productor."))
             if any(bill.state != "posted" or bill.partner_id != record.producer_id or
                    bill.company_id != record.company_id for bill in record.initial_bill_ids):
                 raise ValidationError(_("Las facturas previas deben estar publicadas y pertenecer al productor y empresa."))
-            record.state = "validated"
+            record.with_context(_step_settlement_transition=True).write({"state": "validated"})
+        return True
+
+    def action_reopen(self):
+        for record in self:
+            if record.state != "validated":
+                raise UserError(_("Solo puede volver a Generada desde Validada."))
+            record.with_context(_step_settlement_transition=True).write({"state": "draft"})
         return True
 
     def action_account(self):
@@ -150,7 +177,9 @@ class ProducerSettlement(models.Model):
             if not record.initial_bills_reviewed:
                 raise UserError(_("Revise y vincule las facturas previas del productor antes de contabilizar."))
             if float_is_zero(record.adjustment_usd, precision_rounding=record.usd_currency_id.rounding):
-                record.state = "accounted"
+                record.with_context(_step_settlement_transition=True).write({
+                    "state": "accounted", "delivery_date": fields.Date.context_today(record),
+                })
                 continue
             if not record.supplier_invoice_folio:
                 raise UserError(_("Registre el folio del documento tributario del productor."))
@@ -212,15 +241,38 @@ class ProducerSettlement(models.Model):
                     bill.l10n_latam_document_type_id = document_type
                 record.bill_id = bill
             record.bill_id.action_post()
-            record.state = "accounted"
+            record.with_context(_step_settlement_transition=True).write({
+                "state": "accounted", "delivery_date": fields.Date.context_today(record),
+            })
+        return True
+
+    def action_close(self):
+        for record in self:
+            if record.state != "accounted":
+                raise UserError(_("Solo puede cerrar una liquidación entregada."))
+            if record.bill_id and record.bill_id.state != "posted":
+                raise UserError(_("La factura de ajuste debe estar publicada antes de cerrar."))
+            record.with_context(_step_settlement_transition=True).write({
+                "state": "closed", "closed_date": fields.Date.context_today(record),
+            })
         return True
 
     def write(self, vals):
-        frozen = {"producer_id", "rate_id", "line_ids", "discount_line_ids", "receiver_settlement_id"}
+        frozen = {"producer_id", "rate_id", "line_ids", "discount_line_ids",
+                  "receiver_settlement_id", "payout_mode", "fob_transfer_percent"}
         if frozen.intersection(vals) and any(record.state != "draft" for record in self):
             raise UserError(_("La liquidación validada conserva productor, tarifa y tarjas."))
-        if vals and any(record.state == "accounted" for record in self):
-            raise UserError(_("La liquidación contabilizada no puede modificarse."))
+        if "state" in vals:
+            allowed = {"draft": {"validated"}, "validated": {"draft", "accounted"},
+                       "accounted": {"closed"}}
+            if not self.env.context.get("_step_settlement_transition") or any(
+                    vals["state"] not in allowed.get(record.state, set()) for record in self):
+                raise UserError(_("Use los botones de la liquidación para cambiar de estado."))
+        if vals and any(record.state in ("accounted", "closed") for record in self):
+            if not (self.env.context.get("_step_settlement_transition") and
+                    vals.get("state") == "closed" and
+                    set(vals).issubset({"state", "closed_date"})):
+                raise UserError(_("La liquidación entregada o cerrada no puede modificarse."))
         return super().write(vals)
 
 
@@ -236,20 +288,29 @@ class ProducerSettlementLine(models.Model):
     usd_currency_id = fields.Many2one(related="settlement_id.usd_currency_id")
     amount_usd = fields.Monetary(currency_field="usd_currency_id", compute="_compute_amount", store=True)
 
-    @api.depends("kg_qty", "allocated_fob_usd", "settlement_id.rate_id.rate_type",
+    @api.depends("kg_qty", "allocated_fob_usd", "settlement_id.payout_mode",
+                 "settlement_id.fob_transfer_percent", "settlement_id.rate_id.rate_type",
                  "settlement_id.rate_id.rate_value")
     def _compute_amount(self):
         for record in self:
             rate = record.settlement_id.rate_id
-            record.amount_usd = (
-                record.kg_qty * rate.rate_value if rate.rate_type == "usd_kg"
-                else record.allocated_fob_usd * rate.rate_value / 100)
+            if record.settlement_id.payout_mode == "fob":
+                record.amount_usd = (record.allocated_fob_usd *
+                                     record.settlement_id.fob_transfer_percent / 100)
+            else:
+                record.amount_usd = (
+                    record.kg_qty * rate.rate_value if rate.rate_type == "usd_kg"
+                    else record.allocated_fob_usd * rate.rate_value / 100)
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if "kg_qty" not in vals and vals.get("tag_id"):
-                vals["kg_qty"] = self.env["stock.quant.package"].browse(vals["tag_id"]).kilos_total
+                tag = self.env["stock.quant.package"].browse(vals["tag_id"])
+                parent = self.env["step.export.producer.settlement"].browse(vals["settlement_id"])
+                shares = [share for producer, share in tag._step_producer_shares()
+                          if producer == parent.producer_id]
+                vals["kg_qty"] = tag._step_liquidation_kg() * shares[0] if shares else 0
         parents = self.env["step.export.producer.settlement"].browse([
             vals["settlement_id"] for vals in vals_list if vals.get("settlement_id")])
         if any(parent.state != "draft" for parent in parents):

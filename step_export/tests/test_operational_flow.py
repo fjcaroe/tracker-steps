@@ -240,6 +240,7 @@ class TestExportOperations(TransactionCase):
             lambda line: line.account_id.account_type == "asset_receivable")
         self.assertAlmostEqual(receivable_line.amount_currency, 50)
         producer_settlement = settlement.producer_settlement_ids
+        producer_settlement.payout_mode = "rate"  # conserva la fórmula histórica de este caso
         self.assertAlmostEqual(producer_settlement.net_usd, 50)
         initial_bill = self.env["account.move"].create({
             "move_type": "in_invoice", "company_id": company.id,
@@ -267,6 +268,16 @@ class TestExportOperations(TransactionCase):
         producer_settlement.action_validate()
         producer_settlement.action_account()
         self.assertEqual(producer_settlement.bill_id.state, "posted")
+        self.assertEqual(producer_settlement.state, "accounted")
+        self.assertTrue(producer_settlement.delivery_date)
+        producer_settlement.action_close()
+        self.assertEqual(producer_settlement.state, "closed")
+        self.assertTrue(producer_settlement.closed_date)
+        report = self.env.ref("step_export.action_report_producer_settlement")
+        html, _ = report._render_qweb_html(
+            report.report_name, [producer_settlement.id])
+        self.assertIn(b"Liquidaci", html)
+        self.assertIn(b"T35-TAG-ACCOUNTING", html)
         self.assertAlmostEqual(producer_settlement.bill_id.amount_untaxed,
                                self.env.ref("base.USD")._convert(
                                    30, company.currency_id, company, date(2026, 11, 20)), places=2)

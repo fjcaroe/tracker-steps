@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_producer_preliquidation_list" model="ir.ui.view">
+        <field name="name">step.producer.preliquidation.list</field>
+        <field name="model">step.producer.preliquidation</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="producer_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="season_id"/>
+                <field name="species_id"/>
+                <field name="date"/>
+                <field name="usd_currency_id" column_invisible="True"/>
+                <field name="estimated_return_usd"/>
+                <field name="projected_balance_usd"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_producer_preliquidation_form" model="ir.ui.view">
+        <field name="name">step.producer.preliquidation.form</field>
+        <field name="model">step.producer.preliquidation</field>
+        <field name="arch" type="xml">
+            <form string="Preliquidación de productor">
+                <header>
+                    <button name="action_generate" type="object" string="Calcular / recalcular"
+                            class="btn-primary"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="producer_id" domain="[('is_productor', '=', True)]"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="season_id"/>
+                            <field name="species_id"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="usd_currency_id" invisible="1"/>
+                            <field name="contract_ids" widget="many2many_tags"
+                                   domain="[('partner_id', '=', producer_id), ('company_id', '=', company_id)]"/>
+                        </group>
+                    </group>
+                    <group string="Resumen USD">
+                        <field name="estimated_return_usd"/>
+                        <field name="account_balance_usd"/>
+                        <field name="pending_installments_usd"/>
+                        <field name="projected_balance_usd"/>
+                    </group>
+                    <field name="line_ids" readonly="1">
+                        <list>
+                            <field name="phase"/>
+                            <field name="variety_id"/>
+                            <field name="product_id"/>
+                            <field name="package_id"/>
+                            <field name="source_kg" sum="Origen"/>
+                            <field name="export_percent"/>
+                            <field name="box_qty" sum="Cajas"/>
+                            <field name="export_kg" sum="Exportables"/>
+                            <field name="price_usd_per_kg"/>
+                            <field name="fob_usd" sum="FOB"/>
+                            <field name="cost_usd_per_kg"/>
+                            <field name="cost_usd" sum="Gasto"/>
+                            <field name="return_usd" sum="Retorno"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_producer_preliquidation" model="ir.actions.act_window">
+        <field name="name">Preliquidaciones</field>
+        <field name="res_model">step.producer.preliquidation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

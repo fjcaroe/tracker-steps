@@ -30,13 +30,18 @@
                     <th>Tarja</th><th>Productor</th><th>Fundo</th><th>Variedad</th>
                     <th>Categoría</th><th>Calibre</th><th>Cajas</th><th>Kg</th>
                 </tr></thead><tbody><tr t-foreach="doc.tag_ids" t-as="tag">
-                    <td><span t-field="tag.name"/></td><td><span t-field="tag.owner_id.name"/></td>
+                    <td><span t-field="tag.name"/></td><td>
+                        <t t-foreach="tag._step_producer_shares()" t-as="share">
+                            <span t-esc="share[0].name"/>:
+                            <span t-esc="'%.2f' % (tag._step_liquidation_kg() * share[1])"/> kg<br/>
+                        </t>
+                    </td>
                     <td><span t-field="tag.fundo_id.name"/></td>
                     <td><span t-field="tag.variedad_id.name"/></td>
                     <td><span t-field="tag.fruit_category_id.name"/></td>
                     <td><span t-field="tag.fruit_caliber_id.name"/></td>
                     <td class="text-end"><span t-field="tag.box_count"/></td>
-                    <td class="text-end"><span t-field="tag.kilos_total"/></td>
+                    <td class="text-end"><span t-esc="'%.2f' % tag._step_liquidation_kg()"/></td>
                 </tr></tbody></table>
             </div></t>
         </t></t>
