@@ -27,7 +27,7 @@ def main():
                         for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
             assert any(item.get('ticket') == 109 and item.get('actual_user_id', 1) != 1
                        and all(item.get(key) for key in ('menu', 'pivot_weekly_two_measures',
-                               'native_list_form', 'live_grouped_flow', 'read_only'))
+                               'native_list_form', 'live_grouped_flow', 'read_only', 'source_totals_match'))
                        and item.get('writes') is False for item in payloads)
         elif args.ticket in (107, 108):
             payloads = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
