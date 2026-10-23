@@ -1,0 +1,122 @@
+"""Tarja de fruta sobre el paquete de stock, sin duplicar el inventario."""
+
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError, UserError
+
+
+class StockQuantPackage(models.Model):
+    _inherit = "stock.quant.package"
+
+    step_tag_kind = fields.Selection([
+        ("C", "Cosecha"), ("E", "Exportación"), ("N", "Nacional"),
+    ], string="Tipo de tarja", index=True)
+    step_tag_state = fields.Selection([
+        ("created", "Creada"), ("validated", "Validada"),
+        ("processed", "Procesada"), ("repalletized", "Repaletizada"),
+        ("dispatched", "Despachada / embarcada"),
+        ("liquidated", "Liquidada"), ("void", "Nula"),
+    ], string="Estado de tarja", default="created", index=True)
+    step_producer_id = fields.Many2one("res.partner", string="Productor de origen", index=True)
+    step_producer_code = fields.Char(related="step_producer_id.ref", string="Código productor", store=True)
+    step_sdp_code = fields.Char(related="fundo_id.sdp_code", string="Código SDP", store=True)
+    step_shipment = fields.Char(string="Embarque")
+    step_dispatch_guide = fields.Char(string="Guía SII")
+    step_dus = fields.Char(string="DUS")
+    step_invoice = fields.Char(string="Factura")
+    step_bl_awb = fields.Char(string="BL / AWB")
+    step_tag_line_ids = fields.One2many("step.fruit.package.line", "package_id", string="Detalle por productor")
+    step_actual_kg = fields.Float(string="Kilos reales", compute="_compute_step_actual_kg", digits="Stock Weight")
+    step_composition = fields.Selection([
+        ("simple", "Simple"), ("mixed", "Mixta"),
+    ], compute="_compute_step_tag_attributes", string="Composición")
+    step_filling = fields.Selection([
+        ("complete", "Completa"), ("partial", "Parcial"),
+    ], compute="_compute_step_tag_attributes", string="Llenado")
+
+    @api.depends("step_tag_line_ids.producer_id", "box_count", "package_type_id")
+    def _compute_step_tag_attributes(self):
+        for package in self:
+            producers = set(package.step_tag_line_ids.mapped("producer_id").ids)
+            package.step_composition = "mixed" if len(producers) > 1 else "simple"
+            capacity = package.package_type_id.step_export_boxes_per_pallet
+            package.step_filling = "complete" if capacity and package.box_count >= capacity else "partial"
+
+    @api.depends("step_tag_line_ids.kilos")
+    def _compute_step_actual_kg(self):
+        for package in self:
+            package.step_actual_kg = sum(package.step_tag_line_ids.mapped("kilos"))
+
+    @api.onchange("fundo_id")
+    def _onchange_step_producer(self):
+        for package in self:
+            if package.fundo_id.partner_id:
+                package.step_producer_id = package.fundo_id.partner_id
+
+    @api.constrains("step_tag_kind", "step_tag_state", "step_tag_line_ids", "step_producer_id")
+    def _check_step_tag(self):
+        for package in self.filtered("is_fruit_tag"):
+            if not package.step_tag_kind:
+                raise ValidationError(_("Seleccione el tipo C, E o N de la tarja."))
+            if package.step_tag_state == "processed" and package.step_tag_kind != "C":
+                raise ValidationError(_("Solo las tarjas de cosecha pueden quedar procesadas."))
+            if package.step_tag_state == "liquidated" and package.step_tag_kind != "E":
+                raise ValidationError(_("Solo las tarjas de exportación pueden liquidarse."))
+            if package.step_tag_state not in ("created", "void"):
+                lines = package.step_tag_line_ids
+                if not lines or not all(line.producer_id for line in lines):
+                    raise ValidationError(_("Una tarja validada requiere detalle por productor."))
+                if len(set(lines.mapped("producer_id").ids)) == 1 and package.step_producer_id != lines[0].producer_id:
+                    raise ValidationError(_("El productor de origen debe coincidir con el detalle de una tarja simple."))
+                if package.quant_ids and not set(lines.mapped("product_id").ids).issubset(set(package.quant_ids.mapped("product_id").ids)):
+                    raise ValidationError(_("Los productos del detalle no coinciden con el contenido del paquete."))
+
+    def action_step_validate_tag(self):
+        for package in self:
+            if not package.is_fruit_tag or package.step_tag_state != "created":
+                raise UserError(_("Solo puede validar una tarja de fruta creada."))
+            package.step_tag_state = "validated"
+        return True
+
+    def write(self, vals):
+        locked = {"step_tag_kind", "step_producer_id", "fundo_id", "box_count", "step_tag_line_ids"}
+        if locked.intersection(vals) and any(
+                package.is_fruit_tag and package.step_tag_state not in ("created", "void")
+                for package in self):
+            raise UserError(_("Una tarja validada no se modifica; cree una tarja de repaletizaje."))
+        return super().write(vals)
+
+
+class StepFruitPackageLine(models.Model):
+    _name = "step.fruit.package.line"
+    _description = "Contenido de tarja por productor"
+    _order = "id"
+
+    package_id = fields.Many2one("stock.quant.package", required=True, ondelete="cascade", index=True)
+    producer_id = fields.Many2one("res.partner", string="Productor", required=True)
+    product_id = fields.Many2one("product.product", string="Producto", required=True)
+    quantity = fields.Float(string="Cantidad", digits="Product Unit of Measure", required=True)
+    uom_id = fields.Many2one("uom.uom", string="UdM", related="product_id.uom_id", store=True)
+    kilos = fields.Float(string="Kilos", digits="Stock Weight", required=True)
+    boxes = fields.Float(string="Cajas", digits="Product Unit of Measure")
+
+    _sql_constraints = [
+        ("positive_quantity", "check(quantity > 0 AND kilos > 0)", "Cantidad y kilos deben ser mayores a cero."),
+    ]
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        packages = self.env["stock.quant.package"].browse([
+            vals["package_id"] for vals in vals_list if vals.get("package_id")])
+        if any(package.step_tag_state not in ("created", "void") for package in packages):
+            raise UserError(_("No agregue detalle a una tarja validada."))
+        return super().create(vals_list)
+
+    def write(self, vals):
+        if vals and any(line.package_id.step_tag_state not in ("created", "void") for line in self):
+            raise UserError(_("No modifique el detalle de una tarja validada."))
+        return super().write(vals)
+
+    def unlink(self):
+        if any(line.package_id.step_tag_state not in ("created", "void") for line in self):
+            raise UserError(_("No borre el detalle de una tarja validada."))
+        return super().unlink()
