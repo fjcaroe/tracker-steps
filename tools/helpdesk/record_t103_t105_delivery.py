@@ -8,7 +8,7 @@ import xmlrpc.client
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('ticket', type=int, choices=(103, 104, 105, 107, 108, 109))
+    parser.add_argument('ticket', type=int, choices=(103, 104, 105, 107, 108, 109, 110, 111))
     parser.add_argument('--evidence', type=Path, required=True)
     args = parser.parse_args()
     record = json.loads((args.evidence / 'delivery-reviewed.json').read_text(encoding='utf-8'))
@@ -22,7 +22,14 @@ def main():
         assert all(marker in log for marker in ('MANAGEMENT_DEPLOY_OK backup=',
                    'MANAGEMENT_VERIFY_OK', 'MANAGEMENT_REGISTRY_OK', expected['commit']))
         assert gui['version']
-        if args.ticket == 109:
+        if args.ticket in (110, 111):
+            payloads = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
+                        for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
+            assert any(item.get('tickets') == [110, 111] and item.get('actual_user_id', 1) != 1
+                       and all(item.get(key) for key in ('native_country_and_port_menus', 'market_relation',
+                              'native_forms', 'usd_list', 'operation_usd_bindings', 'numeric_currency_widget'))
+                       and item.get('writes') is False for item in payloads)
+        elif args.ticket == 109:
             payloads = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
                         for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
             assert any(item.get('ticket') == 109 and item.get('actual_user_id', 1) != 1
@@ -84,6 +91,16 @@ def main():
         ('res_id', '=', args.ticket), ('id', '>', expected['reviewed_message_id']),
         ('message_type', 'in', ['comment', 'email'])]]), 'Read newer replies before delivery'
     descriptions = {
+        110: 'Publicado en Desarrollo y Cerro El Plomo: Exportaciones / Configuraciones / '
+             'Exportaciones incluye Países y Puertos Aduana. Países abre el maestro estándar '
+             'res.country e incorpora Mercado, relacionado con el maestro existente step.fruit.market. '
+             'Puertos usa l10n_cl.customs_port con nombre, código y país, conservando sus registros '
+             'y relaciones actuales. Se respetan los permisos nativos de ambos maestros.',
+        111: 'Corregida la presentación en Desarrollo y Cerro El Plomo. La lista de programas '
+             'muestra Venta USD y el importe USD. La distribución semanal y el resumen distinguen '
+             'Venta M Op y Venta USD; celdas y subtotales omiten el símbolo CLP. Cada importe conserva '
+             'su moneda correcta y se mantiene el control de subtotales entre monedas distintas. '
+             'No se cambiaron las monedas de operación, las paridades ni los importes guardados.',
         109: 'Publicado en Desarrollo y Cerro El Plomo el informe Comparativo ventas y estimaciones, '
              'en Exportaciones / Planificación. La tabla dinámica compara Kg venta y Kg estimación '
              'por semana, con filtros y agrupaciones por temporada, especie, variedad, productor y '
