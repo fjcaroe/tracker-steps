@@ -27,14 +27,14 @@ def main():
                         for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
             assert any(item.get('tickets') == [110, 111] and item.get('actual_user_id', 1) != 1
                        and all(item.get(key) for key in ('native_country_and_port_menus', 'market_relation',
-                              'native_forms', 'usd_list', 'operation_usd_bindings', 'numeric_currency_widget'))
+                              'native_forms', 'usd_list', 'operation_usd_bindings', 'numeric_currency_widget', 'target_company_verified'))
                        and item.get('writes') is False for item in payloads)
         elif args.ticket == 109:
             payloads = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
                         for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
             assert any(item.get('ticket') == 109 and item.get('actual_user_id', 1) != 1
                        and all(item.get(key) for key in ('menu', 'pivot_weekly_two_measures',
-                               'native_list_form', 'live_grouped_flow', 'read_only', 'source_totals_match'))
+                               'native_list_form', 'live_grouped_flow', 'read_only', 'source_totals_match', 'target_company_verified'))
                        and item.get('writes') is False for item in payloads)
         elif args.ticket in (107, 108):
             payloads = [json.loads(line.split('MANAGEMENT_REGISTRY_OK ', 1)[1])
