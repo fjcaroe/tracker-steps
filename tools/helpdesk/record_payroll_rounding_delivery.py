@@ -11,7 +11,12 @@ def main():
     parser.add_argument('evidence',type=Path)
     args = parser.parse_args()
     reviewed = json.loads((args.evidence/'delivery-reviewed.json').read_text())
-    assert 'PAYROLL_ROUNDING_CASES_OK' in (args.evidence/'emca-cases.log').read_text(encoding='utf-8-sig')
+    cases_log=(args.evidence/'emca-cases.log').read_text(encoding='utf-8-sig')
+    cases=[json.loads(line.split('PAYROLL_ROUNDING_CASES_OK ',1)[1]) for line in cases_log.splitlines()
+           if line.startswith('PAYROLL_ROUNDING_CASES_OK ')]
+    assert len(cases)==1 and len(cases[0])==2
+    assert all(case['full_compute_sheet'] and case['native_report_totals'] and case['original_unchanged']
+               and case['existing_profile']!=1 for case in cases[0])
     for target in ('development','sys','cerro'):
         proof = json.loads((args.evidence/(target+'-qa.json')).read_text())
         log = (args.evidence/(target+'-deploy.log')).read_text(encoding='utf-8-sig')
