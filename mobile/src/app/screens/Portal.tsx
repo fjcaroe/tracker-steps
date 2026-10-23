@@ -1,6 +1,6 @@
 import { useRuntime, useSession, useSyncState } from '../context';
 import { visibleModules, type ModuleManifest } from '../../modules/registry';
-import { Banner, Button, Card, Chip, Empty } from '../../shared/ui';
+import { Banner, Button, Card, Chip, Empty, Icon } from '../../shared/ui';
 
 export function SyncChip() {
   const s = useSyncState();
@@ -22,8 +22,8 @@ export default function Portal({ manifests, onOpen }: { manifests: ModuleManifes
 
   return (
     <div className="ui-screen">
-      <Card label="Empresa activa">
-        <div className="ui-row"><div><small>Empresa</small><h2>{catalog?.organization.name ?? '…'}</h2></div><SyncChip /></div>
+      <Card label="Empresa activa" className="ui-company">
+        <div><span className="ui-eyebrow">Empresa activa</span><h2>{catalog?.organization.name ?? '…'}</h2><SyncChip /></div>
       </Card>
       {notice && <Banner tone="warn">{notice}</Banner>}
       {access === 'offline_valid' && <Banner tone="warn">Sin conexión: puedes seguir trabajando hasta {catalog ? new Date(catalog.offline_until).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' }) : '—'}. Tus datos se enviarán al volver la señal.</Banner>}
@@ -32,7 +32,7 @@ export default function Portal({ manifests, onOpen }: { manifests: ModuleManifes
 
       {modules.some((m) => m.manifest.quickActions?.some((a) => session.can(a.permission))) && (
         <Card label="Acciones frecuentes">
-          <h3>Acciones frecuentes</h3>
+          <h3 className="ui-section-title"><Icon name="arrow" />Acciones frecuentes</h3>
           <div className="ui-grid">
             {modules.flatMap((m) => (m.manifest.quickActions ?? []).filter((a) => session.can(a.permission)).map((a) => (
               <Button key={`${m.manifest.id}:${a.id}`} variant="primary" onClick={() => onOpen(m.manifest.id, a.id)}>{a.label}</Button>
@@ -43,9 +43,9 @@ export default function Portal({ manifests, onOpen }: { manifests: ModuleManifes
 
       {modules.length === 0
         ? <Card><Empty title="Aún no tienes módulos habilitados" hint="Tu administrador puede asignarte accesos desde Odoo. Vuelve a revisar más tarde." /><Button onClick={() => void session.revalidate()}>Revisar de nuevo</Button></Card>
-        : <div className="ui-grid">{modules.map(({ manifest }) => (
-            <Button key={manifest.id} className="ui-card--tap" onClick={() => onOpen(manifest.id)} aria-label={`Abrir ${manifest.name}`}>
-              <strong>{manifest.name}</strong><br /><small>{manifest.tagline}</small>
+        : <div className="ui-module-list"><h3>Tus módulos</h3>{modules.map(({ manifest }) => (
+            <Button key={manifest.id} className="ui-card--tap ui-module" onClick={() => onOpen(manifest.id)} aria-label={`Abrir ${manifest.name}`}>
+              <span className="ui-module__icon"><Icon name={manifest.id} /></span><span className="ui-module__text"><strong>{manifest.name}</strong><small>{manifest.tagline}</small></span><Icon name="arrow" />
             </Button>))}</div>}
     </div>
   );
