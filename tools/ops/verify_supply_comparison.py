@@ -1,6 +1,7 @@
 """T109 installed package, native pivot/list/form and actual business profile."""
 import importlib
 import json
+import math
 from pathlib import Path
 from lxml import etree
 from odoo.tools import config
@@ -33,12 +34,21 @@ try:
             assert arch.xpath("//field[@type='measure']/@name") == ['sale_kg', 'estimate_kg']
             assert arch.xpath("//field[@type='col']/@interval") == ['week']
     rows = model.search([], limit=1)
-    assert rows, 'Expected current weekly source rows in the destination'
-    Form(rows, view=prefix + 'report_form')
+    programs = scoped['step.export.sales.program'].search([('state', '=', 'current')])
+    estimates = scoped['step.export.estimate'].search([('state', '=', 'current')])
+    sale_weeks = programs.mapped('line_ids')
+    estimate_weeks = estimates.mapped('estimate_line_ids.week_line_ids')
+    assert model.search_count([]) == len(sale_weeks) + len(estimate_weeks)
+    total = model.read_group([], ['sale_kg:sum', 'estimate_kg:sum'], [])[0]
+    assert math.isclose(total['sale_kg'] or 0, sum(sale_weeks.mapped('kg_qty')), rel_tol=1e-9, abs_tol=1e-6)
+    assert math.isclose(total['estimate_kg'] or 0, sum(estimate_weeks.mapped('export_kg')), rel_tol=1e-9, abs_tol=1e-6)
+    # An empty result is valid when neither source has current weekly rows.
+    # Constructing Form without saving also verifies that empty-state binding.
+    Form(rows or model, view=prefix + 'report_form')
     model.read_group([], ['sale_kg:sum', 'estimate_kg:sum'], ['week_start:week'], lazy=False)
     assert not model.has_access('write') and not model.has_access('create') and not model.has_access('unlink')
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 109, 'versions': EXPECTED,
           'actual_user_id': user.id, 'menu': True, 'pivot_weekly_two_measures': True,
-          'native_list_form': True, 'live_grouped_flow': True, 'read_only': True, 'writes': False}))
+          'native_list_form': True, 'live_grouped_flow': True, 'read_only': True, 'source_totals_match': True, 'empty_report': not bool(rows), 'writes': False}))
 finally:
     env.cr.rollback()
