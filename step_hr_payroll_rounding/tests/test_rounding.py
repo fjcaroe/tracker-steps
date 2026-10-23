@@ -35,6 +35,10 @@ class TestRounding(TransactionCase):
                         'condition_select':'none', 'amount_select':'code',
                         'amount_python_compute':expression})
                 slip.struct_id.rule_ids = rules
+                # This engine test supplies its own rule inputs; work-entry
+                # generation belongs to the separate real-destination rehearsal.
+                slip.worked_days_line_ids = self.env['hr.payslip.worked_days']
+                slip.input_line_ids = self.env['hr.payslip.input']
                 lines = {line['code']:line['total'] for line in slip._get_payslip_lines()}
                 self.assertEqual(lines['GROSS'], expected[0])
                 self.assertEqual(lines['NET'], expected[1])
