@@ -1,0 +1,45 @@
+<odoo>
+  <record id="program_list" model="ir.ui.view">
+    <field name="name">sales.program.list.usd</field><field name="model">step.export.sales.program</field>
+    <field name="inherit_id" ref="step_export.view_step_export_sales_program_list"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='amount_currency']" position="replace">
+        <field name="amount_usd" string="Venta USD" sum="Venta USD" widget="step_export_amount" options="{'currency_field':'usd_currency_id','no_symbol':True}"/>
+        <field name="usd_currency_id" column_invisible="True"/>
+      </xpath>
+    </field>
+  </record>
+  <record id="program_form" model="ir.ui.view">
+    <field name="name">sales.program.form.currency.labels</field><field name="model">step.export.sales.program</field>
+    <field name="inherit_id" ref="step_export.view_step_export_sales_program_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='line_ids']/list/field[@name='amount_currency']" position="attributes">
+        <attribute name="string">Venta M Op</attribute><attribute name="sum">Venta M Op</attribute>
+        <attribute name="widget">step_export_amount</attribute>
+        <attribute name="options">{'currency_field':'currency_id','no_symbol':True}</attribute>
+      </xpath>
+      <xpath expr="//field[@name='line_ids']/list/field[@name='amount_usd']" position="attributes">
+        <attribute name="string">Venta USD</attribute><attribute name="sum">Venta USD</attribute>
+        <attribute name="widget">step_export_amount</attribute>
+        <attribute name="options">{'currency_field':'usd_currency_id','no_symbol':True}</attribute>
+      </xpath>
+      <xpath expr="//sheet/group[field[@name='container_qty']]/field[@name='amount_currency']" position="attributes">
+        <attribute name="string">Venta M Op</attribute><attribute name="widget">step_export_amount</attribute>
+        <attribute name="options">{'currency_field':'currency_id','no_symbol':True}</attribute>
+      </xpath>
+      <xpath expr="//sheet/group[field[@name='container_qty']]/field[@name='amount_usd']" position="attributes">
+        <attribute name="string">Venta USD</attribute><attribute name="widget">step_export_amount</attribute>
+        <attribute name="options">{'currency_field':'usd_currency_id','no_symbol':True}</attribute>
+      </xpath>
+    </field>
+  </record>
+  <record id="program_week_list" model="ir.ui.view">
+    <field name="name">sales.program.week.usd</field><field name="model">step.export.sales.program.line</field>
+    <field name="inherit_id" ref="step_export_client_revision.week_list"/>
+    <field name="arch" type="xml"><xpath expr="//field[@name='amount_usd']" position="attributes">
+      <attribute name="string">Venta USD</attribute><attribute name="sum">Venta USD</attribute>
+      <attribute name="widget">step_export_amount</attribute>
+      <attribute name="options">{'currency_field':'usd_currency_id','no_symbol':True}</attribute>
+    </xpath></field>
+  </record>
+</odoo>
