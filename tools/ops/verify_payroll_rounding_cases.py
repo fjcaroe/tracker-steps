@@ -2,7 +2,9 @@
 
 Caller supplies CASES: slip_id plus expected GROSS, TOTAL_DSCTOS and NET.
 The effective-date predicate is patched only in this clone transaction, so the
-actual September inputs/indicators stay applicable. Originals are never saved.
+actual September inputs/indicators stay applicable. Contract review is confirmed
+through its normal action only in the clone, and every change is rolled back.
+Original payslip lines are never saved.
 """
 import json
 import re
@@ -25,7 +27,9 @@ try:
         original = scoped['hr.payslip'].browse(original.id)
         before = original.line_ids.read(['code','amount','quantity','rate','total'])
         draft = original.with_context(tracking_disable=True,mail_create_nosubscribe=True).copy(
-            {'state':'draft','move_id':False})
+            {'state':'draft','move_id':False,'line_ids':False})
+        if draft.contract_id.step_payroll_migration_review:
+            draft.contract_id.action_confirm_payroll_migration()
         with patch.object(type(draft), '_step_clp_rounding_applies', return_value=True):
             draft.compute_sheet()
         previous=config['test_enable'];config['test_enable']=True
