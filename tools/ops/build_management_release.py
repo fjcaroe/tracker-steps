@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro'))
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
@@ -49,6 +49,9 @@ def main():
         modules = ('step_packing_sag',)
     if args.kind == 'email-login':
         modules = ('step_auth_email_casefold',)
+    if args.kind == 'supply-comparison':
+        assert args.environment in ('development', 'cerro')
+        modules = ('step_export_supply_comparison',)
     if args.kind == 'estimate-cancel-folios':
         assert args.environment in ('development', 'cerro')
         modules = ('step_producer_estimate_cancel', 'step_export_folio_settings')

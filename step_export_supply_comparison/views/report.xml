@@ -1,0 +1,74 @@
+<odoo>
+  <record id="report_pivot" model="ir.ui.view">
+    <field name="name">export.supply.comparison.pivot</field>
+    <field name="model">step.export.supply.comparison</field>
+    <field name="arch" type="xml">
+      <pivot string="Programas de ventas y estimaciones">
+        <field name="season_id" type="row"/><field name="species_id" type="row"/>
+        <field name="variety_id" type="row"/>
+        <field name="week_start" type="col" interval="week"/>
+        <field name="sale_kg" type="measure"/><field name="estimate_kg" type="measure"/>
+      </pivot>
+    </field>
+  </record>
+  <record id="report_list" model="ir.ui.view">
+    <field name="name">export.supply.comparison.list</field>
+    <field name="model">step.export.supply.comparison</field>
+    <field name="arch" type="xml">
+      <list create="false" edit="false" delete="false">
+        <field name="week_start"/><field name="season_id"/><field name="species_id"/>
+        <field name="variety_id"/><field name="producer_id"/><field name="program_id"/>
+        <field name="estimate_id"/><field name="source"/>
+        <field name="sale_kg" sum="Kg venta"/><field name="estimate_kg" sum="Kg estimación"/>
+        <field name="company_id" groups="base.group_multi_company"/>
+      </list>
+    </field>
+  </record>
+  <record id="report_form" model="ir.ui.view">
+    <field name="name">export.supply.comparison.form</field>
+    <field name="model">step.export.supply.comparison</field>
+    <field name="arch" type="xml">
+      <form create="false" edit="false" delete="false"><sheet>
+        <group><field name="week_start"/><field name="source"/><field name="season_id"/>
+          <field name="species_id"/><field name="variety_id"/><field name="producer_id"/>
+          <field name="program_id"/><field name="estimate_id"/>
+          <field name="sale_kg"/><field name="estimate_kg"/>
+          <field name="company_id" groups="base.group_multi_company"/></group>
+        <p>Solo versiones vigentes, en kilos de exportación. Cada fila conserva su origen:
+          el productor pertenece a la estimación y el programa a la venta. Filtrar por uno
+          limita los datos a ese origen; no existe una asignación automática entre ambos.</p>
+      </sheet></form>
+    </field>
+  </record>
+  <record id="report_search" model="ir.ui.view">
+    <field name="name">export.supply.comparison.search</field>
+    <field name="model">step.export.supply.comparison</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="season_id"/><field name="species_id"/><field name="variety_id"/>
+        <field name="producer_id"/><field name="program_id"/><field name="estimate_id"/>
+        <filter name="date" string="Semana" date="week_start"/>
+        <group>
+          <filter name="season" string="Temporada" context="{'group_by':'season_id'}"/>
+          <filter name="species" string="Especie" context="{'group_by':'species_id'}"/>
+          <filter name="variety" string="Variedad" context="{'group_by':'variety_id'}"/>
+          <filter name="producer" string="Productor" context="{'group_by':'producer_id'}"/>
+          <filter name="program" string="Programa" context="{'group_by':'program_id'}"/>
+          <filter name="week" string="Semana" context="{'group_by':'week_start:week'}"/>
+          <filter name="month" string="Mes" context="{'group_by':'week_start:month'}"/>
+        </group>
+      </search>
+    </field>
+  </record>
+  <record id="report_action" model="ir.actions.act_window">
+    <field name="name">Comparativo ventas y estimaciones</field>
+    <field name="res_model">step.export.supply.comparison</field>
+    <field name="view_mode">pivot,list,form</field>
+    <field name="view_id" ref="report_pivot"/><field name="search_view_id" ref="report_search"/>
+    <field name="help" type="html"><p>Compara kilos de exportación semanales de versiones vigentes.
+      El productor corresponde a las estimaciones y el programa a las ventas;
+      al filtrar por uno solo se incluyen sus filas de origen.</p></field>
+  </record>
+  <menuitem id="report_menu" name="Comparativo ventas y estimaciones"
+    parent="step_export.menu_step_export_ops" action="report_action" sequence="46"/>
+</odoo>
