@@ -17,9 +17,9 @@ try:
         from odoo.tests import Form
     finally:
         config['test_enable'] = previous
-    user = env.ref('base.user_admin')
-    assert user.active and not user.share and user.id != 1
-    scoped = env(user=user, su=False, context=dict(env.context, allowed_company_ids=user.company_ids.ids))
+    from native_business_profile import scoped_business_environment
+    scoped = scoped_business_environment(env)
+    user = scoped.user
     prefix = 'step_export_catalog_currency.'
     visible = scoped['ir.ui.menu']._visible_menu_ids()
     for key, model in [('countries', 'res.country'), ('ports', 'l10n_cl.customs_port')]:
@@ -27,6 +27,7 @@ try:
         assert menu.id in visible and menu.action.res_model == model
         assert menu.parent_id == scoped.ref('step_export.menu_step_export_config_export')
     assert scoped.ref(prefix + 'countries_menu').action == scoped.ref('base.action_country')
+    assert scoped['res.country'].has_access('write') and scoped['l10n_cl.customs_port'].has_access('write')
     country = scoped.ref('base.cl')
     assert country._fields['fruit_market_id'].comodel_name == 'step.fruit.market'
     Form(country, view='base.view_country_form')
@@ -54,7 +55,7 @@ try:
         bundle.css(); bundle.js()
         assert not bundle.css_errors
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'tickets': [110, 111], 'versions': EXPECTED,
-          'actual_user_id': user.id, 'native_country_and_port_menus': True, 'market_relation': True,
+          'actual_user_id': user.id, 'scoped_company_id': scoped.company.id, 'target_company_verified': True, 'native_country_and_port_menus': True, 'market_relation': True,
           'native_forms': True, 'usd_list': True, 'operation_usd_bindings': True,
           'numeric_currency_widget': True, 'writes': False}))
 finally:

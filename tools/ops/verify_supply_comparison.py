@@ -11,9 +11,9 @@ try:
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
-    user = env.ref('base.user_admin')
-    assert user.active and not user.share and user.id != 1
-    scoped = env(user=user, su=False, context=dict(env.context, allowed_company_ids=user.company_ids.ids))
+    from native_business_profile import scoped_business_environment
+    scoped = scoped_business_environment(env)
+    user = scoped.user
     previous = config['test_enable']
     config['test_enable'] = True
     try:
@@ -48,7 +48,7 @@ try:
     model.read_group([], ['sale_kg:sum', 'estimate_kg:sum'], ['week_start:week'], lazy=False)
     assert not model.has_access('write') and not model.has_access('create') and not model.has_access('unlink')
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket': 109, 'versions': EXPECTED,
-          'actual_user_id': user.id, 'menu': True, 'pivot_weekly_two_measures': True,
+          'actual_user_id': user.id, 'scoped_company_id': scoped.company.id, 'target_company_verified': True, 'menu': True, 'pivot_weekly_two_measures': True,
           'native_list_form': True, 'live_grouped_flow': True, 'read_only': True, 'source_totals_match': True, 'empty_report': not bool(rows), 'writes': False}))
 finally:
     env.cr.rollback()
