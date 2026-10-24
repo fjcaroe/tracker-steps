@@ -32,7 +32,7 @@ try:
         assert scoped.ref(view_ref).id in action.view_ids.mapped('view_id').ids
         arch = etree.fromstring(model.get_view(view_id=scoped.ref(view_ref).id, view_type='form')['arch'])
         assert len(arch.xpath("//field[@name='%s']" % field)) == 1
-        assert model._fields[field].digits == (16, 2)
+        assert model._fields[field].get_digits(scoped) == (16, 2)
         assert model.check_access_rights('write', raise_exception=False)
         record = model.search([], limit=1)
         assert record
