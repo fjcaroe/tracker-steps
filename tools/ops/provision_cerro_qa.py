@@ -108,12 +108,15 @@ def create():
     paths=[Path(v.strip()) for v in opts['addons_path'].split(',')]
     installed=json.loads(query(SOURCE,"SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'"))
     resolved={name:next((path/name for path in paths if (path/name/'__manifest__.py').exists()),None) for name in installed}
-    assert all(resolved.values()), 'Do not create a copy with missing addon sources'
+    missing={name for name,path in resolved.items() if path is None}
+    # Studio's virtual customization module lives in the database, not addons.
+    assert missing <= {'studio_customization'}, 'Do not create a copy with missing addon sources'
+    resolved={name:path for name,path in resolved.items() if path is not None}
     run('useradd','--system','--home-dir',str(ROOT),'--no-create-home','--shell','/usr/sbin/nologin',USER)
     ident=pwd.getpwnam(USER);ROOT.mkdir(parents=True,mode=0o750);os.chown(ROOT,0,ident.pw_gid)
     addons=ROOT/'addons';addons.mkdir(mode=0o750);os.chown(addons,0,ident.pw_gid)
     from manage_management import tree_hash
-    hashes={}
+    hashes={name:{'version':installed[name],'database_only':True} for name in missing}
     print('CUSTOMER_QA_FREEZE_BEGIN modules='+str(len(resolved)),flush=True)
     for name,source in resolved.items():
         shutil.copytree(source,addons/name,ignore=shutil.ignore_patterns('__pycache__','.git','*.pyc'))
