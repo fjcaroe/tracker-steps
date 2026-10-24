@@ -367,6 +367,7 @@ def main():
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
     assert args.environment != 'qa-cerro' or args.kind == 'reception-revision', 'T118 is the only explicitly authorized customer-QA update'
+    assert not (args.environment == 'qa-cerro' and args.action == 'certify'), 'Customer QA requires a fresh compatibility run; clone access is removed after each run'
     assert args.action != 'compatibility' or args.environment in registry['policy']['production'] or (args.environment == 'qa-cerro' and args.kind == 'reception-revision')
     target = registry['environments'][args.environment]
     database, service = target['database'], target['service']
