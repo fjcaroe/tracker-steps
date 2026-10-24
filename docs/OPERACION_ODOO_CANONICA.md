@@ -43,6 +43,23 @@ no una base para copiar ciegamente a los demás ambientes.
    está integrado en esa base. Steps Móvil y Web Tracker conservan sus bases
    propias documentadas. Crear worktree propio y preservar cambios ajenos.
 
+## Excepción específica T115, 24-10-2026
+
+El usuario autorizó crear **QA-CERROELPLOMO** desde la producción de Cerro para
+pruebas de implementación y capacitación del cliente. Es una copia aislada,
+neutralizada y con fuentes/filestore propios. Desarrollo conserva el QA general
+y la revisión previa del circuito de ingeniería. La copia del cliente no cambia
+los destinos de publicación genéricos ni autoriza producción, accesos adicionales
+entre empresas, envíos reales o una actualización automática de sus datos.
+Un refresco futuro requiere conservar primero los ejercicios de capacitación;
+no sobrescribir la copia por una ejecución recurrente.
+
+El registro `qa-cerro` documenta esta excepción con `deploy_enabled=false`;
+`tools/ops/provision_cerro_qa.py` implementa su creación explícita. Su servicio
+no tiene tareas programadas ni salida a Internet, con excepción del acceso a
+su propio HTTP local para informes. Los demás ambientes legados y SAG T92/T93
+conservan sus restricciones.
+
 ## Contrato funcional
 
 Decisión del usuario, 06-10-2026: no crear ni ampliar desarrollos Studio.

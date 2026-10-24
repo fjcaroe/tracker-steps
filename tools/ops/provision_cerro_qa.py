@@ -118,19 +118,27 @@ def create():
         shutil.copytree(source,addons/name,ignore=shutil.ignore_patterns('__pycache__','.git','*.pyc'))
         assert tree_hash(source)==tree_hash(addons/name)
         hashes[name]={'version':installed[name],'source':str(source),'hash':tree_hash(addons/name)}
-    run('chmod','-R','a+rX',str(addons))
+    for path in [addons,*addons.rglob('*')]:
+        os.chown(path,0,ident.pw_gid)
+        path.chmod(0o750 if path.is_dir() or path.stat().st_mode & 0o111 else 0o640)
     stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup=Path('/opt/steps_backups')/('customer_qa_cerro_'+stamp);backup.mkdir(mode=0o700)
     dump=backup/'source.dump'
-    with dump.open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc',SOURCE,stdout=out)
+    data=ROOT/'data';store=data/'filestore'/DB;store.mkdir(parents=True)
+    run('systemctl','stop','odoo18-cerroelplomo.service')
+    try:
+        with dump.open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc',SOURCE,stdout=out)
+        run('rsync','-a',str(Path(opts['data_dir'])/'filestore'/SOURCE)+'/',str(store)+'/')
+    finally:
+        run('systemctl','start','odoo18-cerroelplomo.service')
     query('postgres','CREATE ROLE '+USER+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;')
     run('sudo','-u','postgres','createdb','-O',USER,DB)
     with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',USER,'-d',DB,stdin=inp)
-    from manage_payroll import history
-    before=history(DB)
-    data=ROOT/'data';store=data/'filestore'/DB;store.mkdir(parents=True)
-    run('rsync','-a',str(Path(opts['data_dir'])/'filestore'/SOURCE)+'/',str(store)+'/')
+    import manage_management as management
+    management.BUSINESS=tuple(query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines())
+    before=management.snapshot(DB)
     run('chown','-R',USER+':'+USER,str(data))
+    cfg=configparser.ConfigParser(interpolation=None);cfg['options']={'admin_passwd':secrets.token_urlsafe(48)};opts=cfg['options']
     opts['db_name']=DB;opts['dbfilter']='^'+DB+'$';opts['list_db']='False'
     opts['db_user']=USER;opts['db_host']='False';opts.pop('db_password',None)
     opts['data_dir']=str(data);opts['addons_path']=str(addons);opts.pop('logfile',None)
@@ -149,7 +157,8 @@ def create():
     for key,value in parameters.items():
         sql+="INSERT INTO ir_config_parameter(key,value) VALUES('%s','%s') ON CONFLICT(key) DO UPDATE SET value=excluded.value;"%(key,value.replace("'","''"))
     query(DB,sql)
-    assert history(DB)==before, 'Payroll/accounting history must be preserved'
+    assert management.snapshot(DB)==before, 'Business history must be preserved'
+    (backup/'business-preserved.json').write_text(json.dumps(before))
     helper=Path('/usr/local/libexec/steps-qa-cerro');helper.mkdir(parents=True,exist_ok=True)
     shutil.copy2(Path(__file__),helper/'provision_cerro_qa.py')
     firewall()
@@ -163,13 +172,88 @@ def create():
     print('CUSTOMER_QA_CREATED database='+DB+' backup='+str(backup),flush=True)
 
 
+def publish():
+    assert socket.gethostbyname(DOMAIN)=='35.222.25.110', 'Wait for the requested DNS record'
+    assert (ROOT/'creation.json').exists()
+    run('systemctl','is-active','--quiet',SERVICE)
+    site=Path('/etc/nginx/sites-available')/DOMAIN
+    enabled=Path('/etc/nginx/sites-enabled')/DOMAIN
+    marker='# Steps customer QA T115\n'
+    if site.exists():
+        assert site.read_text().startswith(marker), 'Do not replace another virtual host'
+    http='''server {
+    listen 80; listen [::]:80;
+    server_name DOMAIN;
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt; try_files $uri =404;
+    }
+    location / { return 503; }
+}
+'''.replace('DOMAIN',DOMAIN)
+    site.write_text(marker+http)
+    if not enabled.exists():enabled.symlink_to(site)
+    run('nginx','-t');run('systemctl','reload','nginx')
+    result=subprocess.run(['certbot','certonly','--non-interactive','--webroot','-w',
+        '/var/www/letsencrypt','-d',DOMAIN],text=True,capture_output=True)
+    assert result.returncode==0, 'TLS issuance failed; HTTP remains unavailable, inspect certbot log'
+    static=''
+    for app in ('task','cosecha'):
+        source=Path('/var/www')/app
+        dest=Path('/var/www/qa-cerroelplomo')/app
+        if source.exists():
+            if not dest.exists():shutil.copytree(source,dest)
+            static+='''
+    location = /APP { return 301 /APP/; }
+    location ^~ /APP/ {
+        alias /var/www/qa-cerroelplomo/APP/;
+        try_files $uri $uri/ /APP/index.html;
+        add_header Cache-Control "no-cache";
+    }
+'''.replace('APP',app)
+    tls='''server {
+    listen 443 ssl http2; listen [::]:443 ssl http2;
+    server_name DOMAIN;
+    ssl_certificate /etc/letsencrypt/live/DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/DOMAIN/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    client_max_body_size 200m;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    location ^~ /web/database { return 404; }
+STATIC
+    location / {
+        proxy_pass http://127.0.0.1:8083;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port 443;
+        proxy_read_timeout 720s;
+        proxy_redirect off;
+    }
+}
+'''.replace('DOMAIN',DOMAIN).replace('STATIC',static)
+    site.write_text(marker+http.replace('return 503','return 301 https://$host$request_uri')+tls)
+    run('nginx','-t');run('systemctl','reload','nginx')
+    import urllib.request
+    with urllib.request.urlopen('https://'+DOMAIN+'/web/login',timeout=45) as response:
+        assert response.status==200 and b'password' in response.read()
+    (ROOT/'published.json').write_text(json.dumps({'url':'https://'+DOMAIN,'tls':True}))
+    print('CUSTOMER_QA_HTTPS_OK https://'+DOMAIN,flush=True)
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','verify','firewall'))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','verify','publish','firewall'))
     args=parser.parse_args();assert os.geteuid()==0
     if args.action=='firewall':firewall();return
     with open('/run/lock/steps-environments.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.action=='create':create()
+        elif args.action=='publish':publish()
         else:verify()
 
 

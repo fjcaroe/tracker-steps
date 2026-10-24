@@ -87,6 +87,18 @@
       "config": "/etc/odoo18-everfruit.conf",
       "role": "legacy",
       "deploy_enabled": false
+    },
+    "qa-cerro": {
+      "label": "QA-CERROELPLOMO",
+      "url": "https://qa-cerroelplomo.stepsapp.cl",
+      "port": 8083,
+      "database": "QA-CERROELPLOMO",
+      "service": "odoo18-qa-cerroelplomo.service",
+      "config": "/etc/odoo18-qa-cerroelplomo.conf",
+      "role": "customer-qa",
+      "source": "cerro",
+      "deploy_enabled": false,
+      "authorization": "T115: 2026-10-24, copia para pruebas y capacitación; sin promoción automática"
     }
   },
   "policy": {
