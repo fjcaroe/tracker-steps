@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from lxml import etree
 from odoo.tools import config
+from odoo.tools.safe_eval import safe_eval
 from native_business_profile import scoped_business_environment
 
 try:
@@ -20,6 +21,10 @@ try:
     assert view in action.view_ids.mapped('view_id')
     assert action.views[:2] == [(scoped.ref('stock.vpicktree').id, 'list'), (view.id, 'form')]
     model = scoped['stock.picking']
+    list_arch = etree.fromstring(model.get_view(view_id=scoped.ref('stock.vpicktree').id, view_type='list')['arch'])
+    assert {'name','partner_id','state'} <= set(list_arch.xpath('//field/@name'))
+    listed = model.search(safe_eval(action.domain), limit=5)
+    assert all(row.picking_type_code == 'incoming' and row.step_fruit_reception_kind == 'process' for row in listed)
     arch = etree.fromstring(model.get_view(view_id=view.id, view_type='form')['arch'])
     expected = ['product_id','step_fruit_pallet_type_id','step_fruit_pallet_qty','product_packaging_id',
                 'step_fruit_packaging_qty','product_uom','product_uom_qty']
@@ -43,6 +48,6 @@ try:
     Form(record or model.with_context(default_step_fruit_reception_kind='process'), view=view)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':118,'versions':EXPECTED,
         'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,
-        'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
+        'native_list':True,'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
 finally:
     env.cr.rollback()
