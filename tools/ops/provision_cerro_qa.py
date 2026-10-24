@@ -92,6 +92,17 @@ finally:
     print('CUSTOMER_QA_VERIFY_OK database='+DB,flush=True)
 
 
+def business_snapshot():
+    tables=query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines()
+    import re
+    entries=[]
+    for table in tables:
+        assert re.fullmatch('[a-z_][a-z0-9_]*',table)
+        row="(to_jsonb(t)-'l10n_cl_dte_service_provider')" if table=='res_company' else 'to_jsonb(t)'
+        entries.append("SELECT '%s' AS name,json_build_object('rows',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) AS value FROM %s t"%(table,row,row,table))
+    return json.loads(query(DB,'SELECT json_object_agg(name,value) FROM ('+' UNION ALL '.join(entries)+') snapshots'))
+
+
 def create():
     assert not ROOT.exists() and not CONF.exists(), 'Preserve previous work; inspect before resuming'
     assert not query('postgres',"SELECT 1 FROM pg_database WHERE datname='"+DB+"'")
@@ -142,15 +153,6 @@ def create():
     run('sudo','-u','postgres','createdb','-O',USER,DB)
     print('CUSTOMER_QA_RESTORE_BEGIN',flush=True)
     with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',USER,'-d',DB,stdin=inp)
-    tables=query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines()
-    def business_snapshot():
-        import re
-        entries=[]
-        for table in tables:
-            assert re.fullmatch('[a-z_][a-z0-9_]*',table)
-            row="(to_jsonb(t)-'l10n_cl_dte_service_provider')" if table=='res_company' else 'to_jsonb(t)'
-            entries.append("SELECT '%s' AS name,json_build_object('rows',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) AS value FROM %s t"%(table,row,row,table))
-        return json.loads(query(DB,'SELECT json_object_agg(name,value) FROM ('+' UNION ALL '.join(entries)+') snapshots'))
     before=business_snapshot()
     run('chown','-R',USER+':'+USER,str(data))
     cfg=configparser.ConfigParser(interpolation=None);cfg['options']={'admin_passwd':secrets.token_urlsafe(48)};opts=cfg['options']
@@ -164,6 +166,24 @@ def create():
     opts['smtp_server']='invalid';opts['smtp_port']='1025'
     with CONF.open('w') as out:cfg.write(out)
     os.chown(CONF,0,ident.pw_gid);CONF.chmod(0o640)
+    (ROOT/'prepared.json').write_text(json.dumps({'backup':str(backup),'hashes':hashes,'before':before,'stamp':stamp}))
+    (ROOT/'prepared.json').chmod(0o600)
+    finish()
+
+
+def finish():
+    assert not (ROOT/'published.json').exists(), 'Never reset a published training copy'
+    prepared=json.loads((ROOT/'prepared.json').read_text())
+    backup=Path(prepared['backup']);hashes=prepared['hashes'];before=prepared['before'];stamp=prepared['stamp']
+    cfg=configparser.ConfigParser(interpolation=None);cfg.read(CONF);opts=cfg['options']
+    assert opts['db_name']==DB and opts['db_user']==USER
+    if not opts.get('db_password'):
+        # Only the newly created service role receives a credential; source accounts are untouched.
+        password=secrets.token_urlsafe(48)
+        query('postgres',"ALTER ROLE "+USER+" PASSWORD '"+password+"';")
+        opts['db_password']=password
+        with CONF.open('w') as out:cfg.write(out)
+        CONF.chmod(0o640)
     run('sudo','-u',USER,'/usr/bin/python3.10','/opt/odoo18/odoo-bin','neutralize','-c',str(CONF),'-d',DB,'--no-http','--log-level=critical')
     # These copy-only changes do not alter documents, users or source credentials.
     parameters={'web.base.url':'https://'+DOMAIN,'web.base.url.freeze':'True','report.url':'http://127.0.0.1:'+str(PORT),'database.uuid':str(uuid.uuid4()),'database.secret':secrets.token_urlsafe(48)}
@@ -186,6 +206,31 @@ def create():
     (ROOT/'creation.json').write_text(json.dumps(manifest,indent=2));(ROOT/'creation.json').chmod(0o640)
     run('systemctl','daemon-reload');run('systemctl','enable','--now','steps-qa-cerro-firewall.service',SERVICE)
     print('CUSTOMER_QA_CREATED database='+DB+' backup='+str(backup),flush=True)
+
+
+def resume(backup):
+    assert ROOT.exists() and CONF.exists() and not (ROOT/'published.json').exists()
+    if not (ROOT/'prepared.json').exists():
+        assert not (Path('/etc/systemd/system')/SERVICE).exists()
+        assert backup and backup.resolve().parent==Path('/opt/steps_backups')
+        assert backup.name.startswith('customer_qa_cerro_') and (backup/'source.dump').exists()
+        assert query(DB,"SELECT COALESCE((SELECT value FROM ir_config_parameter WHERE key='database.is_neutralized'),'false')")!='true'
+        source=configparser.ConfigParser(interpolation=None);source.read('/etc/odoo18-cerroelplomo.conf')
+        paths=[Path(v.strip()) for v in source['options']['addons_path'].split(',')]
+        installed=json.loads(query(DB,"SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'"))
+        from manage_management import tree_hash
+        hashes={}
+        for name,version in installed.items():
+            if name=='studio_customization':
+                hashes[name]={'version':version,'database_only':True};continue
+            frozen=ROOT/'addons'/name
+            actual=next(path/name for path in paths if (path/name/'__manifest__.py').exists())
+            assert tree_hash(frozen)==tree_hash(actual), 'Review changed source before resuming'
+            hashes[name]={'version':version,'source':str(actual),'hash':tree_hash(frozen)}
+        (ROOT/'prepared.json').write_text(json.dumps({'backup':str(backup),'hashes':hashes,
+            'before':business_snapshot(),'stamp':backup.name.removeprefix('customer_qa_cerro_')}))
+        (ROOT/'prepared.json').chmod(0o600)
+    finish()
 
 
 def publish():
@@ -273,12 +318,14 @@ STATIC
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','verify','publish','firewall'))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','resume','verify','publish','firewall'))
+    parser.add_argument('--backup',type=Path)
     args=parser.parse_args();assert os.geteuid()==0
     if args.action=='firewall':firewall();return
     with open('/run/lock/steps-environments.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.action=='create':create()
+        elif args.action=='resume':resume(args.backup)
         elif args.action=='publish':publish()
         else:verify()
 
