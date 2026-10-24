@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="step_helpdesk_brand.HelpdeskTeamHero"
+       t-inherit="helpdesk.HelpdeskTeamKanbanView" t-inherit-mode="extension">
+        <xpath expr="//HelpdeskTeamDashboard" position="before">
+            <section class="steps-helpdesk-hero" aria-label="Centro de soporte">
+                <span>STEPS AGRO / CENTRO DE SOPORTE</span>
+                <h1>Seguimiento claro de cada solicitud.</h1>
+                <p>Prioridades, avances y responsables en un solo lugar.</p>
+            </section>
+        </xpath>
+    </t>
+</templates>

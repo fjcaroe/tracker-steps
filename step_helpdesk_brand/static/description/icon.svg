@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Steps Soporte">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#143d30"/><stop offset="1" stop-color="#267155"/></linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+  <path d="M25 35h78v20c-8 0-8 18 0 18v20H25V73c8 0 8-18 0-18V35Z" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M49 35v58" stroke="#b9dc8a" stroke-width="5" stroke-dasharray="7 8"/>
+  <path d="M66 70c14-1 25-9 32-25-17 0-29 6-32 25Z" fill="#d9f18d"/>
+  <path d="M61 80c8-12 17-20 29-27" fill="none" stroke="#d9f18d" stroke-width="4" stroke-linecap="round"/>
+</svg>
