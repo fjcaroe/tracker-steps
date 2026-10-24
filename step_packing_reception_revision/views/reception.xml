@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_process_reception_form" model="ir.ui.view">
+    <field name="name">packing.process.reception.revision.form</field>
+    <field name="model">stock.picking</field>
+    <field name="inherit_id" ref="stock.view_picking_form"/>
+    <field name="mode">primary</field>
+    <field name="priority">110</field>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet/group/group/field[@name='partner_id']" position="after">
+        <field name="step_fruit_contract_date" invisible="1"/>
+        <field name="step_fruit_contract_id" readonly="state in ('done','cancel')"
+          options="{'no_create': True}"
+          domain="[('partner_id','=',partner_id),('company_id','=',company_id),('state','=','confirmed'),('is_superseded','=',False),'|',('date_start','=',False),('date_start','&lt;=',step_fruit_contract_date),'|',('date_end','=',False),('date_end','&gt;=',step_fruit_contract_date)]"/>
+      </xpath>
+      <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_class_id']" position="replace">
+        <field name="step_fruit_origin_class_id"/>
+      </xpath>
+      <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_weighing_type']" position="replace"/>
+      <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_grower_contract']" position="replace"/>
+      <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_guide_number']" position="after">
+        <xpath expr="//page[@name='step_packing_fruit']//field[@name='step_fruit_guide_date']" position="move"/>
+      </xpath>
+      <xpath expr="//page[@name='step_packing_fruit']" position="after">
+        <page name="step_fruit_freights" string="Fletes">
+          <xpath expr="//page[@name='step_packing_fruit']//group[field[@name='fruit_freight_paid']]" position="move"/>
+        </page>
+      </xpath>
+      <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_id']" position="after">
+        <field name="step_fruit_pallet_type_id" readonly="state in ('done','cancel')"/>
+        <field name="step_fruit_pallet_qty" readonly="state in ('done','cancel')"/>
+        <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_packaging_id']" position="move"/>
+        <field name="step_fruit_packaging_qty" readonly="state in ('done','cancel') or not product_packaging_id"/>
+        <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom']" position="move"/>
+        <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom_qty']" position="move"/>
+      </xpath>
+      <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_packaging_quantity']" position="replace"/>
+    </field>
+  </record>
+  <record id="process_reception_form_action" model="ir.actions.act_window.view">
+    <field name="sequence">2</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="view_process_reception_form"/>
+    <field name="act_window_id" ref="step_inventory_packing.action_steps_fruit_process_reception"/>
+  </record>
+</odoo>
