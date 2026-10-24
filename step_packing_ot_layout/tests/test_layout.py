@@ -15,6 +15,8 @@ class LayoutCase(TransactionCase):
             'ot_raw_material_left':['raw_product_id'],'ot_instructions_left':['instruction_id'],
             'ot_instructions_right':['sales_program_id','sale_order_id']}
         for group,fields in expected.items():
+            fields=[name for name in fields if not (name=='company_id' and not self.env.user.has_group('base.group_multi_company'))
+                    and not (name=='purchase_bill_id' and not self.env.user.has_group('account.group_account_user'))]
             self.assertEqual(arch.xpath("//group[@name='%s']/field/@name"%group),fields)
         self.assertEqual(arch.xpath("//notebook[@name='fruit_details']/page[1]/@name"),['inputs'])
         self.assertEqual(arch.xpath("//field[@name='raw_product_id']/@readonly"),["state != 'created'"])

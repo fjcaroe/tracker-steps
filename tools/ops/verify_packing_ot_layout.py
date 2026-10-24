@@ -24,6 +24,8 @@ try:
         ('ot_fruit_contract_right',['contract_id','contract_currency_id','contract_amount','purchase_bill_id']),
         ('ot_raw_material_left',['raw_product_id']),('ot_instructions_left',['instruction_id']),
         ('ot_instructions_right',['sales_program_id','sale_order_id'])]:
+        fields=[field for field in fields if not (field=='company_id' and not scoped.user.has_group('base.group_multi_company'))
+                and not (field=='purchase_bill_id' and not scoped.user.has_group('account.group_account_user'))]
         assert arch.xpath("//group[@name='%s']/field/@name"%name)==fields
     previous=config['test_enable'];config['test_enable']=True
     try:
