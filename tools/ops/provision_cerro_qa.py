@@ -134,9 +134,16 @@ def create():
     query('postgres','CREATE ROLE '+USER+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;')
     run('sudo','-u','postgres','createdb','-O',USER,DB)
     with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',USER,'-d',DB,stdin=inp)
-    import manage_management as management
-    management.BUSINESS=tuple(query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines())
-    before=management.snapshot(DB)
+    tables=query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines()
+    def business_snapshot():
+        import re
+        entries=[]
+        for table in tables:
+            assert re.fullmatch('[a-z_][a-z0-9_]*',table)
+            row="(to_jsonb(t)-'l10n_cl_dte_service_provider')" if table=='res_company' else 'to_jsonb(t)'
+            entries.append("SELECT '%s' AS name,json_build_object('rows',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),''))) AS value FROM %s t"%(table,row,row,table))
+        return json.loads(query(DB,'SELECT json_object_agg(name,value) FROM ('+' UNION ALL '.join(entries)+') snapshots'))
+    before=business_snapshot()
     run('chown','-R',USER+':'+USER,str(data))
     cfg=configparser.ConfigParser(interpolation=None);cfg['options']={'admin_passwd':secrets.token_urlsafe(48)};opts=cfg['options']
     opts['db_name']=DB;opts['dbfilter']='^'+DB+'$';opts['list_db']='False'
@@ -157,7 +164,8 @@ def create():
     for key,value in parameters.items():
         sql+="INSERT INTO ir_config_parameter(key,value) VALUES('%s','%s') ON CONFLICT(key) DO UPDATE SET value=excluded.value;"%(key,value.replace("'","''"))
     query(DB,sql)
-    assert management.snapshot(DB)==before, 'Business history must be preserved'
+    assert business_snapshot()==before, 'Business history must be preserved'
+    assert query(DB,"SELECT count(*) FROM res_company WHERE l10n_cl_dte_service_provider!='SIITEST'")=='0'
     (backup/'business-preserved.json').write_text(json.dumps(before))
     helper=Path('/usr/local/libexec/steps-qa-cerro');helper.mkdir(parents=True,exist_ok=True)
     shutil.copy2(Path(__file__),helper/'provision_cerro_qa.py')
