@@ -326,7 +326,7 @@ def main():
         if args.kind in ('sag-prototype', 'sag-lot', 'traceability'):
             assert args.environment == 'development', 'T92 solo autoriza Desarrollo'
         SETTINGS = True
-        assert args.environment in (('development', 'cerro', 'qa-cerro') if args.kind == 'reception-revision' else ('development', 'cerro'))
+        assert args.environment in (('development', 'cerro', 'qa-cerro') if args.kind in ('reception-revision', 'packing-tare') else ('development', 'cerro'))
         MODULES = ({'reception-revision':('step_packing_reception_revision',),'packing-tare':('step_packing_tare',),'sag-traceability':('step_inventory_packing','step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability'),'traceability':('step_export_traceability',),'sag-lot':('step_packing_operations','step_packing_dispatch','step_packing_sag'),'sag-prototype':('step_packing_sag',),'email-login':('step_auth_email_casefold',),'dispatch-improvements':('step_packing_dispatch_improvements',),'treasury-seasons':('step_bank_security','step_season_navigation'),'estimate-cancel-folios':('step_producer_estimate_cancel','step_export_folio_settings'),'supply-comparison':('step_export_supply_comparison',),'packing-ot-layout':('step_packing_ot_layout',),'export-catalog-currency':('step_export_catalog_currency',),'agriculture-records':('step_agriculture_records','step_bpa_irrigation','step_bpa_inventory','step_qa','step_agro_traceability','step_budget_design','step_cosecha','step_cosecha_operations'),'harvest-operations':('step_cosecha_operations',),'harvest-planning':('step_cosecha_planning',),'agro-analytics':('step_agro_analytics',),'export-dashboard':('step_export_dashboard',),'dispatch-design':('step_packing_dispatch',),'export-control':('step_export_control',),'balance-analytic':('step_account_balance_analytic',),'producer-change':('step_packing_producer_change',),'purchase-mode':('step_producer_purchase_mode',),'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',),'fruit-categories':('step_fruit_category_unification',),'daily-estimate':('step_producer_daily_estimate',),'shipment-provision':('step_export_shipment_provision',),'budget-design':('step_budget_design',),'shipping-design':('step_export_shipping_design',),'document-design':('step_export_document_revision',)})[args.kind]
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
@@ -366,9 +366,9 @@ def main():
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
-    assert args.environment != 'qa-cerro' or args.kind == 'reception-revision', 'T118 is the only explicitly authorized customer-QA update'
+    assert args.environment != 'qa-cerro' or args.kind in ('reception-revision','packing-tare'), 'Only explicitly authorized T117/T118/T119 customer-QA packages'
     assert not (args.environment == 'qa-cerro' and args.action == 'certify'), 'Customer QA requires a fresh compatibility run; clone access is removed after each run'
-    assert args.action != 'compatibility' or args.environment in registry['policy']['production'] or (args.environment == 'qa-cerro' and args.kind == 'reception-revision')
+    assert args.action != 'compatibility' or args.environment in registry['policy']['production'] or (args.environment == 'qa-cerro' and args.kind in ('reception-revision','packing-tare'))
     target = registry['environments'][args.environment]
     database, service = target['database'], target['service']
     allowed_missing = ['steps_api']

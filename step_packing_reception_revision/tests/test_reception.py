@@ -134,3 +134,14 @@ class ReceptionCase(TransactionCase):
         self.assertEqual(picking.fruit_type, 'clasificación histórica sin equivalencia')
         choices = dict(self.env['stock.picking']._fields['step_fruit_type']._description_selection(self.env))
         self.assertEqual(set(choices), {'conventional', 'organic'})
+
+    def test_menu_opens_existing_receptions_list_before_form(self):
+        from odoo.tools.safe_eval import safe_eval
+        action = self.env.ref('step_inventory_packing.action_steps_fruit_process_reception')
+        self.assertEqual(action.views[:2], [
+            (self.env.ref('stock.vpicktree').id, 'list'), (self.env.ref(VIEW).id, 'form')])
+        picking = self.picking()
+        domain = safe_eval(action.domain)
+        self.assertIn(picking, self.env['stock.picking'].search(domain))
+        picking.step_fruit_reception_kind = False
+        self.assertNotIn(picking, self.env['stock.picking'].search(domain))

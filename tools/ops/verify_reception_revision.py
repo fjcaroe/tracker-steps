@@ -18,6 +18,7 @@ try:
     assert menu.action == action
     view = scoped.ref('step_packing_reception_revision.view_process_reception_form')
     assert view in action.view_ids.mapped('view_id')
+    assert action.views[:2] == [(scoped.ref('stock.vpicktree').id, 'list'), (view.id, 'form')]
     model = scoped['stock.picking']
     arch = etree.fromstring(model.get_view(view_id=view.id, view_type='form')['arch'])
     expected = ['product_id','step_fruit_pallet_type_id','step_fruit_pallet_qty','product_packaging_id',
@@ -42,6 +43,6 @@ try:
     Form(record or model.with_context(default_step_fruit_reception_kind='process'), view=view)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':118,'versions':EXPECTED,
         'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,
-        'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
+        'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
 finally:
     env.cr.rollback()

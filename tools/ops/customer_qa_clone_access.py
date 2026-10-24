@@ -1,4 +1,4 @@
-"""Temporary, exact-database Unix-socket permission for an isolated T118 clone.
+"""Temporary, exact-database Unix-socket permission for an isolated customer-QA clone.
 
 Caller owns the shared environment lease. Never permits a production database,
 changes credentials or widens the customer QA service's network firewall.
@@ -17,7 +17,7 @@ def clone_database_access(query, database, stage):
     hba = Path(query('postgres', 'SHOW hba_file'))
     assert hba.name == 'pg_hba.conf' and str(hba).startswith('/etc/postgresql/')
     original = hba.read_text()
-    marker = '# STEPS TEMPORARY T118 CLONE ' + database
+    marker = '# STEPS TEMPORARY CUSTOMER QA CLONE ' + database
     assert marker not in original
     block = marker + '\nlocal "' + database + '" cerroqa_odoo18 md5\n'
     backup = stage / 'clone_hba_before.conf'
