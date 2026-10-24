@@ -55,7 +55,7 @@ def firewall():
 
 
 def isolate_database_role():
-    """The new QA role authenticates only to its own DB, never production."""
+    """The QA role authenticates to QA and the maintenance catalog, never production."""
     hba=Path(query('postgres','SHOW hba_file'))
     assert hba.name=='pg_hba.conf' and str(hba).startswith('/etc/postgresql/')
     original=hba.read_bytes()
