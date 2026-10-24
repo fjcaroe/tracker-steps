@@ -31,6 +31,8 @@ try:
         assert not arch.xpath("//page[@name='step_packing_fruit']//field[@name='%s']" % old)
     assert model._fields['step_fruit_origin_class_id'].comodel_name == 'step.management.fruit.class'
     assert model._fields['step_fruit_contract_id'].comodel_name == 'step.producer.purchase.contract'
+    assert set(dict(model._fields['step_fruit_type']._description_selection(scoped))) == {'conventional','organic'}
+    assert arch.xpath("//page[@name='step_packing_fruit']//field[@name='step_fruit_type']")
     previous = config['test_enable']; config['test_enable'] = True
     try:
         from odoo.tests import Form
@@ -40,6 +42,6 @@ try:
     Form(record or model.with_context(default_step_fruit_reception_kind='process'), view=view)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':118,'versions':EXPECTED,
         'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,
-        'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
+        'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
 finally:
     env.cr.rollback()

@@ -5,6 +5,9 @@ from odoo.exceptions import ValidationError
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
+    step_fruit_type = fields.Selection(
+        [('conventional', 'Convencional'), ('organic', 'Orgánica')], string='Tipo de fruta')
+
     step_fruit_contract_id = fields.Many2one(
         'step.producer.purchase.contract', string='Contrato', check_company=True)
     step_fruit_contract_date = fields.Date(compute='_compute_fruit_contract_date')

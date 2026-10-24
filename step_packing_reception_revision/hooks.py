@@ -13,3 +13,15 @@ def post_init_hook(env):
         ) UPDATE stock_picking p SET step_fruit_origin_class_id=c.class_id
             FROM candidates c WHERE p.id=c.id
     """)
+
+    # Explicit labels/keys only: preserve every original string, including
+    # unrecognized spellings, rather than guessing a historical classification.
+    env.cr.execute("""
+        UPDATE stock_picking SET step_fruit_type = CASE
+            WHEN translate(lower(btrim(fruit_type)), 'áéíóú', 'aeiou')
+                 IN ('convencional', 'conventional') THEN 'conventional'
+            WHEN translate(lower(btrim(fruit_type)), 'áéíóú', 'aeiou')
+                 IN ('organica', 'organico', 'organic') THEN 'organic'
+            ELSE NULL END
+         WHERE step_fruit_reception_kind='process' AND step_fruit_type IS NULL
+    """)

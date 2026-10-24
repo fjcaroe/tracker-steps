@@ -117,3 +117,20 @@ class ReceptionCase(TransactionCase):
         picking = self.picking().with_context(tz='America/Santiago')
         picking.scheduled_date = '2026-10-24 01:00:00'
         self.assertEqual(str(picking.step_fruit_contract_date), '2026-10-23')
+
+    def test_fruit_selector_and_historical_text_preservation(self):
+        picking = self.picking()
+        picking.fruit_type = 'Orgánica'
+        self.env.flush_all(); post_init_hook(self.env); picking.invalidate_recordset()
+        self.assertEqual(picking.step_fruit_type, 'organic')
+        self.assertEqual(picking.fruit_type, 'Orgánica')
+        with Form(picking, view=VIEW) as form:
+            form.step_fruit_type = 'conventional'
+        self.assertEqual(picking.step_fruit_type, 'conventional')
+        self.assertEqual(picking.fruit_type, 'Orgánica')
+        picking.write({'fruit_type': 'clasificación histórica sin equivalencia', 'step_fruit_type': False})
+        self.env.flush_all(); post_init_hook(self.env); picking.invalidate_recordset()
+        self.assertFalse(picking.step_fruit_type)
+        self.assertEqual(picking.fruit_type, 'clasificación histórica sin equivalencia')
+        choices = dict(self.env['stock.picking']._fields['step_fruit_type']._description_selection(self.env))
+        self.assertEqual(set(choices), {'conventional', 'organic'})

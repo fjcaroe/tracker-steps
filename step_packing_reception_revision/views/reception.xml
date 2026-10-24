@@ -16,6 +16,10 @@
       <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_class_id']" position="replace">
         <field name="step_fruit_origin_class_id"/>
       </xpath>
+      <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_type']" position="replace">
+        <field name="step_fruit_type"/>
+        <field name="fruit_type" string="Tipo de fruta anterior" readonly="1" invisible="not fruit_type or step_fruit_type"/>
+      </xpath>
       <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_weighing_type']" position="replace"/>
       <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_grower_contract']" position="replace"/>
       <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_guide_number']" position="after">
