@@ -112,3 +112,8 @@ class ReceptionCase(TransactionCase):
         self.env.flush_all(); post_init_hook(self.env); picking.invalidate_recordset()
         self.assertFalse(picking.step_fruit_origin_class_id)
         self.assertEqual(picking.fruit_class_id, category)
+
+    def test_contract_date_uses_the_operating_timezone(self):
+        picking = self.picking().with_context(tz='America/Santiago')
+        picking.scheduled_date = '2026-10-24 01:00:00'
+        self.assertEqual(str(picking.step_fruit_contract_date), '2026-10-23')

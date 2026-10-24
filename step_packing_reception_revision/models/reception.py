@@ -12,9 +12,10 @@ class Picking(models.Model):
         'step.management.fruit.class', string='Clase de fruta', check_company=True)
 
     @api.depends('scheduled_date')
+    @api.depends_context('tz')
     def _compute_fruit_contract_date(self):
         for picking in self:
-            picking.step_fruit_contract_date = fields.Date.to_date(picking.scheduled_date) or fields.Date.context_today(picking)
+            picking.step_fruit_contract_date = fields.Date.context_today(picking, timestamp=picking.scheduled_date or None)
 
     def _fruit_contract_domain(self):
         self.ensure_one()

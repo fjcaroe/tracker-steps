@@ -34,7 +34,6 @@
         <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom']" position="move"/>
         <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom_qty']" position="move"/>
       </xpath>
-      <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_packaging_quantity']" position="replace"/>
     </field>
   </record>
   <record id="process_reception_form_action" model="ir.actions.act_window.view">
