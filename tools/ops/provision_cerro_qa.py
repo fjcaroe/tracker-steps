@@ -54,6 +54,33 @@ def firewall():
             run(binary,'-w','-I',*rule)
 
 
+def isolate_database_role():
+    """The new QA role authenticates only to its own DB, never production."""
+    hba=Path(query('postgres','SHOW hba_file'))
+    assert hba.name=='pg_hba.conf' and str(hba).startswith('/etc/postgresql/')
+    original=hba.read_bytes()
+    begin='# BEGIN STEPS QA CERRO ROLE\n';end='# END STEPS QA CERRO ROLE\n'
+    text=original.decode()
+    if begin in text:
+        assert end in text
+        text=text[:text.index(begin)]+text[text.index(end)+len(end):]
+    block=begin+f'''local "{DB}" {USER} md5
+local all {USER} reject
+host "{DB}" {USER} 127.0.0.1/32 md5
+host "{DB}" {USER} ::1/128 md5
+host all {USER} 0.0.0.0/0 reject
+host all {USER} ::/0 reject
+'''+end
+    backup=ROOT/'pg_hba_before.conf'
+    if not backup.exists():backup.write_bytes(original);backup.chmod(0o600)
+    try:
+        hba.write_text(block+text)
+        assert query('postgres','SELECT count(*) FROM pg_hba_file_rules WHERE error IS NOT NULL')=='0'
+        assert query('postgres','SELECT pg_reload_conf()')=='t'
+    except Exception:
+        hba.write_bytes(original);query('postgres','SELECT pg_reload_conf()');raise
+
+
 def verify():
     assert query(DB,"SELECT value FROM ir_config_parameter WHERE key='database.is_neutralized'")=='true'
     assert query(DB,'SELECT count(*) FROM ir_cron WHERE active')=='0'
@@ -88,6 +115,16 @@ finally:
     print(result.stdout.strip(),flush=True)
     # Outbound production APIs must fail; localhost QA remains reachable.
     code="import socket; s=socket.socket(); s.settimeout(3); r=s.connect_ex(('35.222.25.110',443)); assert r!=0; print('CUSTOMER_QA_EGRESS_BLOCKED')"
+    run('sudo','-u',USER,'/usr/bin/python3.10','-c',code)
+    code="""import configparser,psycopg2
+c=configparser.ConfigParser(interpolation=None);c.read('/etc/odoo18-qa-cerroelplomo.conf')
+try:
+    connection=psycopg2.connect(dbname='CERRO_EL_PLOMO',user='cerroqa_odoo18',password=c['options']['db_password'])
+except psycopg2.OperationalError:
+    print('CUSTOMER_QA_SOURCE_DB_DENIED')
+else:
+    connection.close();raise AssertionError('QA role must not connect to production')
+"""
     run('sudo','-u',USER,'/usr/bin/python3.10','-c',code)
     print('CUSTOMER_QA_VERIFY_OK database='+DB,flush=True)
 
@@ -197,6 +234,7 @@ def finish():
     (backup/'business-preserved.json').write_text(json.dumps(before))
     helper=Path('/usr/local/libexec/steps-qa-cerro');helper.mkdir(parents=True,exist_ok=True)
     shutil.copy2(Path(__file__),helper/'provision_cerro_qa.py')
+    isolate_database_role()
     firewall()
     fwunit=Path('/etc/systemd/system/steps-qa-cerro-firewall.service')
     fwunit.write_text('[Unit]\nDescription=Isolate Cerro QA outbound traffic\nBefore='+SERVICE+'\nAfter=network-pre.target\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/python3.10 '+str(helper/'provision_cerro_qa.py')+' firewall\n[Install]\nWantedBy=multi-user.target\n')
@@ -318,7 +356,7 @@ STATIC
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','resume','verify','publish','firewall'))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('action',choices=('create','resume','verify','publish','isolate','firewall'))
     parser.add_argument('--backup',type=Path)
     args=parser.parse_args();assert os.geteuid()==0
     if args.action=='firewall':firewall();return
@@ -326,6 +364,7 @@ def main():
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.action=='create':create()
         elif args.action=='resume':resume(args.backup)
+        elif args.action=='isolate':isolate_database_role()
         elif args.action=='publish':publish()
         else:verify()
 

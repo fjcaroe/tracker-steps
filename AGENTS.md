@@ -1,6 +1,8 @@
 # Instrucciones compartidas para Codex y Claude
 
-Desarrollo es el único QA. Demo-SYS replica exclusivamente el alcance instalado
+Desarrollo es el QA general. La excepción explícita T115 (24-10-2026) crea
+QA-CERROELPLOMO como copia aislada para pruebas y capacitación del cliente,
+sin promoción ni refresco automáticos; ver la política canónica. Demo-SYS replica exclusivamente el alcance instalado
 de SyS, incluida Nómina Simple Digital; no recibe aplicaciones de otros productos.
 Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
 fuera del circuito de publicación, conservando datos. Leer la política vigente
