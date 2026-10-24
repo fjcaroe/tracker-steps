@@ -64,10 +64,10 @@ def isolate_database_role():
     if begin in text:
         assert end in text
         text=text[:text.index(begin)]+text[text.index(end)+len(end):]
-    block=begin+f'''local "{DB}" {USER} md5
+    block=begin+f'''local "{DB}",postgres {USER} md5
 local all {USER} reject
-host "{DB}" {USER} 127.0.0.1/32 md5
-host "{DB}" {USER} ::1/128 md5
+host "{DB}",postgres {USER} 127.0.0.1/32 md5
+host "{DB}",postgres {USER} ::1/128 md5
 host all {USER} 0.0.0.0/0 reject
 host all {USER} ::/0 reject
 '''+end
