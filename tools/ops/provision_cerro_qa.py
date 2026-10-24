@@ -114,10 +114,12 @@ def create():
     addons=ROOT/'addons';addons.mkdir(mode=0o750);os.chown(addons,0,ident.pw_gid)
     from manage_management import tree_hash
     hashes={}
+    print('CUSTOMER_QA_FREEZE_BEGIN modules='+str(len(resolved)),flush=True)
     for name,source in resolved.items():
         shutil.copytree(source,addons/name,ignore=shutil.ignore_patterns('__pycache__','.git','*.pyc'))
         assert tree_hash(source)==tree_hash(addons/name)
         hashes[name]={'version':installed[name],'source':str(source),'hash':tree_hash(addons/name)}
+    print('CUSTOMER_QA_FREEZE_OK',flush=True)
     for path in [addons,*addons.rglob('*')]:
         os.chown(path,0,ident.pw_gid)
         path.chmod(0o750 if path.is_dir() or path.stat().st_mode & 0o111 else 0o640)
@@ -127,12 +129,15 @@ def create():
     data=ROOT/'data';store=data/'filestore'/DB;store.mkdir(parents=True)
     run('systemctl','stop','odoo18-cerroelplomo.service')
     try:
+        print('CUSTOMER_QA_CONSISTENT_SNAPSHOT_BEGIN',flush=True)
         with dump.open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc',SOURCE,stdout=out)
         run('rsync','-a',str(Path(opts['data_dir'])/'filestore'/SOURCE)+'/',str(store)+'/')
     finally:
         run('systemctl','start','odoo18-cerroelplomo.service')
+    print('CUSTOMER_QA_SOURCE_RESUMED',flush=True)
     query('postgres','CREATE ROLE '+USER+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;')
     run('sudo','-u','postgres','createdb','-O',USER,DB)
+    print('CUSTOMER_QA_RESTORE_BEGIN',flush=True)
     with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',USER,'-d',DB,stdin=inp)
     tables=query(DB,"SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'hr_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'purchase_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_country','account_move','account_move_line','account_payment','account_journal','account_account','account_tax')) ORDER BY tablename").splitlines()
     def business_snapshot():
@@ -189,6 +194,19 @@ def publish():
     marker='# Steps customer QA T115\n'
     if site.exists():
         assert site.read_text().startswith(marker), 'Do not replace another virtual host'
+    def apply_site(content):
+        previous=site.read_bytes() if site.exists() else None
+        existed=enabled.exists()
+        try:
+            site.write_text(content)
+            if not existed:enabled.symlink_to(site)
+            run('nginx','-t');run('systemctl','reload','nginx')
+        except Exception:
+            if previous is not None:site.write_bytes(previous)
+            else:
+                if enabled.is_symlink():enabled.unlink()
+                site.unlink(missing_ok=True)
+            raise
     http='''server {
     listen 80; listen [::]:80;
     server_name DOMAIN;
@@ -198,9 +216,7 @@ def publish():
     location / { return 503; }
 }
 '''.replace('DOMAIN',DOMAIN)
-    site.write_text(marker+http)
-    if not enabled.exists():enabled.symlink_to(site)
-    run('nginx','-t');run('systemctl','reload','nginx')
+    apply_site(marker+http)
     result=subprocess.run(['certbot','certonly','--non-interactive','--webroot','-w',
         '/var/www/letsencrypt','-d',DOMAIN],text=True,capture_output=True)
     assert result.returncode==0, 'TLS issuance failed; HTTP remains unavailable, inspect certbot log'
@@ -245,8 +261,7 @@ STATIC
     }
 }
 '''.replace('DOMAIN',DOMAIN).replace('STATIC',static)
-    site.write_text(marker+http.replace('return 503','return 301 https://$host$request_uri')+tls)
-    run('nginx','-t');run('systemctl','reload','nginx')
+    apply_site(marker+http.replace('return 503','return 301 https://$host$request_uri')+tls)
     import urllib.request
     with urllib.request.urlopen('https://'+DOMAIN+'/web/login',timeout=45) as response:
         assert response.status==200 and b'password' in response.read()
