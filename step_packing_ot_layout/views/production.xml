@@ -1,0 +1,45 @@
+<odoo><record id="production_form_layout" model="ir.ui.view">
+<field name="name">packing.production.requested.layout</field><field name="model">step.packing.production</field>
+<field name="inherit_id" ref="step_packing_operations.view_packing_production_form"/><field name="priority">100</field>
+<field name="arch" type="xml">
+<xpath expr="//sheet/group[1]" position="before">
+<group name="ot_identity" col="2"><group name="ot_identity_left"/><group name="ot_identity_right"/></group>
+<group name="ot_fruit_contract" col="2"><group name="ot_fruit_contract_left"/><group name="ot_fruit_contract_right"/></group>
+<group name="ot_raw_material" col="2"><group name="ot_raw_material_left"/><group name="ot_raw_material_right"/></group>
+<group name="ot_instructions" col="2"><group name="ot_instructions_left"/><group name="ot_instructions_right"/></group>
+</xpath>
+<xpath expr="//group[@name='ot_identity_left']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='company_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='step_packing_order_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='step_packing_line_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='bom_id']" position="move"/>
+</xpath>
+<xpath expr="//group[@name='ot_identity_right']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='fruit_grower_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='fruit_fundo_id']" position="move"/>
+</xpath>
+<xpath expr="//group[@name='ot_fruit_contract_left']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='fruit_species_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='fruit_variety_id']" position="move"/>
+</xpath>
+<xpath expr="//group[@name='ot_fruit_contract_right']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='contract_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='contract_currency_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='contract_amount']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='purchase_bill_id']" position="move"/>
+</xpath>
+<xpath expr="//group[@name='ot_raw_material_left']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='raw_product_id']" position="move"/>
+</xpath>
+<xpath expr="//group[@name='ot_raw_material_right']" position="inside">
+</xpath>
+<xpath expr="//group[@name='ot_instructions_left']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='instruction_id']" position="move"/>
+</xpath>
+<xpath expr="//group[@name='ot_instructions_right']" position="inside">
+<xpath expr="//sheet/group[not(@name)]//field[@name='sales_program_id']" position="move"/>
+<xpath expr="//sheet/group[not(@name)]//field[@name='sale_order_id']" position="move"/>
+</xpath>
+<xpath expr="//sheet/group[not(@name)][1]" position="replace"/>
+<xpath expr="//notebook[@name='fruit_details']/page[@name='outputs']" position="before"><xpath expr="//notebook[@name='fruit_details']/page[@name='inputs']" position="move"/></xpath>
+</field></record></odoo>
