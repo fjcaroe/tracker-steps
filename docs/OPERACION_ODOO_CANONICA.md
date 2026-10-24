@@ -60,6 +60,18 @@ no tiene tareas programadas ni salida a Internet, con excepción del acceso a
 su propio HTTP local para informes. Los demás ambientes legados y SAG T92/T93
 conservan sus restricciones.
 
+## Actualización explícita T118 de QA-CERROELPLOMO
+
+T118 solicita aplicar el cambio de recepciones de Packing a Desarrollo, Cerro
+El Plomo y QA-CERROELPLOMO. El tipo de paquete `reception-revision` permite
+únicamente esos destinos. El registro de la copia conserva `deploy_enabled=false`
+y no se habilitan promociones genéricas ni refrescos de datos. Se exige copia
+fresca de cada destino, paquete idéntico, respaldo y bloqueo antes de publicar.
+La capacitación existente, la neutralización, el correo y la red aislada se
+conservan. Para probar la copia del cliente, un contexto temporal autoriza a su
+rol únicamente la base clonada por socket local; retira la regla al terminar,
+sin modificar claves ni dar acceso a producción.
+
 ## Contrato funcional
 
 Decisión del usuario, 06-10-2026: no crear ni ampliar desarrollos Studio.
