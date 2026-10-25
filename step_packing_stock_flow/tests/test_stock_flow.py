@@ -43,7 +43,8 @@ class PackingStockFlowCase(TransactionCase):
                                                           package_id=incoming, owner_id=self.producer)
         finished = self.tag('E', self.finished, 16, 80, 'export')
         national = self.tag('N', self.national, 15, 15, 'commercial')
-        self.env['stock.quant']._update_available_quantity(self.material, self.wh.lot_stock_id, material_qty)
+        if material_qty:
+            self.env['stock.quant']._update_available_quantity(self.material, self.wh.lot_stock_id, material_qty)
         return self.env['step.packing.production'].create({
             'step_packing_input_tag_ids': [(6, 0, incoming.ids)],
             'step_packing_output_tag_ids': [(6, 0, (finished | national).ids)]})
@@ -169,6 +170,7 @@ class PackingStockFlowCase(TransactionCase):
         arch = etree.fromstring(ot.get_view(view_id=view.id, view_type='form')['arch'])
         self.assertTrue(arch.xpath("//page[@name='packing_stock_flow']//field[@name='step_stock_material_location_id']"))
         Form(ot, view=view)
+        Form(self.company, view='step_packing_stock_flow.packing_company_form')
         with self.assertRaises(UserError):ot.step_packing_transfer_id = self.env['stock.picking'].create({
             'picking_type_id': self.wh.int_type_id.id, 'location_id': self.wh.lot_stock_id.id,
             'location_dest_id': self.source_wh.lot_stock_id.id})

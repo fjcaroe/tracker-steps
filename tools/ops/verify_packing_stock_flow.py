@@ -32,6 +32,11 @@ try:
     finally:
         config['test_enable'] = previous
     Form(model.search([], limit=1) or model, view=view)
+    config_action = scoped.ref('step_packing_stock_flow.packing_company_action')
+    config_menu = scoped.ref('step_packing_stock_flow.packing_company_menu')
+    assert config_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+    assert config_menu.action == config_action
+    Form(company, view='step_packing_stock_flow.packing_company_form')
     flow = False
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
         from probe_packing_stock_flow import verify_flow
