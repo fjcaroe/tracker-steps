@@ -11,6 +11,41 @@ class Package(models.Model):
         'stock.picking', string='Recepción de origen', copy=False, readonly=True, index=True)
 
 
+class TagLine(models.Model):
+    _inherit = 'step.packing.picking.tag.line'
+
+    step_import_stock_quantity = fields.Float(
+        string='Cantidad de stock importada', readonly=True, copy=False,
+        digits='Product Unit of Measure')
+
+
+    def _set_process_import_boxes(self):
+        self.ensure_one()
+        if self.box_count <= 0 or float_compare(self.box_count, round(self.box_count), precision_digits=6):
+            raise ValidationError(_('En Excel, Cajas debe indicar la cantidad entera de envases de cada tarja a proceso.'))
+        moves = self.picking_id.move_ids.filtered(lambda move: move.state not in ('done', 'cancel')
+                                                  and move.product_id == self.product_id)
+        values = {'step_import_stock_quantity': self.quantity, 'quantity': self.box_count}
+        if len(moves) == 1 and moves.product_packaging_id:
+            values['packaging_id'] = moves.product_packaging_id.id
+        self.write(values)
+
+
+class ReceptionImport(models.TransientModel):
+    _inherit = 'step.fruit.reception.import'
+
+    def action_import(self):
+        with self.env.cr.savepoint():
+            before = self.picking_id.fruit_tag_line_ids
+            result = super().action_import()
+            if self.picking_id.step_fruit_reception_kind == 'process':
+                for row in self.picking_id.fruit_tag_line_ids - before:
+                    row._set_process_import_boxes()
+            return result
+
+
+
+
 class Picking(models.Model):
     _inherit = 'stock.picking'
 
@@ -35,6 +70,15 @@ class Picking(models.Model):
         moves = self.move_ids.filtered(lambda m: m.state not in ('done', 'cancel'))
         if not moves:
             raise ValidationError(_('Registre el producto y la cantidad recibida en Operaciones.'))
+        # Resume the old Excel wizard's pending rows without confusing its
+        # stock "Cantidad" with the reception form's count of containers.
+        for row in self.fruit_tag_line_ids:
+            package = row.package_id
+            if (not row.step_import_stock_quantity and row.uom_id and row.box_count
+                    and row.quantity != row.box_count and package
+                    and package.step_tag_state == 'created' and not package.step_process_reception_id
+                    and not package.step_tag_line_ids and package.box_count == row.box_count):
+                row._set_process_import_boxes()
         names = [row.tag_number.strip() if row.tag_number else '' for row in self.fruit_tag_line_ids]
         if not all(names) or len(set(names)) != len(names):
             raise ValidationError(_('Indique un número distinto para cada tarja de la recepción.'))
@@ -119,6 +163,9 @@ class Picking(models.Model):
                         or self.env['step.packing.production'].sudo().search_count([('step_packing_input_tag_ids','in',package.ids)])):
                     raise ValidationError(_('La tarja %s ya está utilizada o pertenece a otro origen.') % name)
             base_quantity = move.product_uom._compute_quantity(quantity, move.product_id.uom_id, round=False)
+            if row.step_import_stock_quantity and float_compare(
+                    row.step_import_stock_quantity, base_quantity, precision_rounding=move.product_id.uom_id.rounding):
+                raise ValidationError(_('La cantidad de stock del Excel no coincide con los kilos o envases de la tarja %s.') % name)
             metadata = {'fundo_id': self.fruit_fundo_id.id, 'especie_id': self.fruit_species_id.id,
                         'variedad_id': self.fruit_variety_id.id, 'step_export_season_id': self.fruit_season_id.id,
                         'fruit_type': self.step_fruit_type, 'fruit_category_id': self.fruit_category_id.id,

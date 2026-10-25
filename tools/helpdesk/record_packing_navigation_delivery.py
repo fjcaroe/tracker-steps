@@ -24,7 +24,7 @@ def main():
             import re
             qa_log=(root/(target+'-qa.log')).read_text(encoding='utf-8-sig')
             assert '"clone_flow": true' in qa_log
-            assert re.search(r'0 failed, 0 error\(s\) of (?:19|[2-9][0-9]|[1-9][0-9]{2,}) tests',qa_log)
+            assert re.search(r'0 failed, 0 error\(s\) of (?:2[2-9]|[3-9][0-9]|[1-9][0-9]{2,}) tests',qa_log)
         fields=('native_menu_and_form','two_decimals','native_pallet_weight') if args.ticket==117 else ('native_menu_and_form','native_list','list_first','fruit_selector','operations_order','freights_tab')
         if args.ticket==120: fields+=('automatic_tags','simplified_form')
         assert any(item.get('existing_profile',1)!=1 and all(item.get(key) for key in fields)
@@ -55,7 +55,7 @@ def main():
               'Se separan kilos y cantidad de envases y se conservan movimientos, lotes y entregas parciales. '
               'La recuperación de tarjas validadas prematuramente se limita a las vinculadas a esa recepción, '
               'sin stock ni movimientos históricos ni otra utilización, con origen y detalle coincidentes. '
-              'Diecinueve pruebas y flujo completo con perfiles existentes aprobados en copias frescas de cada destino; '
+              'Veintidós pruebas y flujo completo con perfiles existentes aprobados en copias frescas de cada destino; '
               'versión, origen, menú, listado y formulario verificados después de publicar. '
               'Publicación del mismo paquete con respaldo y bloqueo, conservando datos y aislamiento de QA. ')
     body+='Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.'

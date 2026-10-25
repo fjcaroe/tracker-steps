@@ -1,4 +1,7 @@
+import base64
+from io import BytesIO
 from lxml import etree
+from openpyxl import Workbook
 from odoo.tests import TransactionCase, tagged
 from odoo.exceptions import ValidationError
 
@@ -170,3 +173,45 @@ class SimpleReceptionCase(TransactionCase):
         self.assertEqual(arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='package_id']/@column_invisible"), ['True'])
         self.assertEqual(arch.xpath("//field[@name='step_container_transfer_ids']/@invisible"), ['1'])
         self.assertEqual(arch.xpath("//button[@name='action_prepare_fruit_stock']/@invisible"), ['1'])
+
+    def test_excel_preserves_stock_quantity_separately_from_boxes(self):
+        picking = self.receipt()
+        picking.fruit_tag_line_ids.unlink()
+        self.product.default_code = 'QA120-KG'
+        workbook = Workbook(); sheet = workbook.active
+        sheet.append(['Tarja', 'Producto', 'Cantidad', 'Kilos', 'Cajas', 'Peso bruto', 'Destare'])
+        sheet.append(['QA120-XLS-%s' % picking.id, 'QA120-KG', 400, 400, 50, 410, 10])
+        stream = BytesIO(); workbook.save(stream)
+        wizard = self.env['step.fruit.reception.import'].create({
+            'picking_id': picking.id, 'filename': 'tarjas.xlsx', 'file': base64.b64encode(stream.getvalue())})
+        wizard.action_import()
+        row = picking.fruit_tag_line_ids
+        self.assertEqual(row.quantity, 50)
+        self.assertEqual(row.step_import_stock_quantity, 400)
+        self.assertEqual(row.packaging_id, self.packaging)
+        picking.button_validate()
+        self.assert_received(picking)
+        self.assertEqual(row.package_id.step_tag_line_ids.quantity, 400)
+
+    def test_pending_legacy_excel_row_keeps_its_original_quantity(self):
+        picking = self.receipt()
+        row = picking.fruit_tag_line_ids
+        package = self.env['stock.quant.package'].create({
+            'name': row.tag_number, 'is_fruit_tag': True, 'step_tag_kind': 'C',
+            'step_producer_id': self.producer.id, 'box_count': 50})
+        row.write({'package_id': package.id, 'quantity': 400, 'box_count': 50,
+                   'uom_id': self.product.uom_id.id, 'packaging_id': False})
+        picking.button_validate()
+        self.assert_received(picking)
+        self.assertEqual(row.quantity, 50)
+        self.assertEqual(row.step_import_stock_quantity, 400)
+        self.assertEqual(row.package_id, package)
+
+    def test_imported_stock_mismatch_is_rejected_atomically(self):
+        picking = self.receipt()
+        row = picking.fruit_tag_line_ids
+        row.step_import_stock_quantity = 399
+        with self.assertRaises(ValidationError):
+            picking.button_validate()
+        self.assertFalse(row.package_id)
+        self.assertEqual(picking.move_ids.quantity, 400)
