@@ -76,6 +76,17 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T121 autoriza además el paquete `packing-stock` en Desarrollo, Cerro y
+QA-CERROELPLOMO: configurar una bodega nativa Packing, el origen de materiales y
+el traslado de tarjas C al proceso. Se reutiliza la bodega existente cuando es
+única y compatible. La configuración inicial solo crea registros logísticos
+nativos; no inventa existencias ni mueve fruta o materiales de los ambientes
+activos. Las tarjas se trasladan cuando el operador valida o cierra la OT.
+La prueba en copias permite altas de configuración de la empresa autorizada,
+manteniendo huellas de todos los registros previos y de todas las cantidades,
+movimientos, reservas, documentos y registros contables. QA conserva su
+aislamiento, sin refresco de datos ni autorización genérica de publicación.
+
 Decisión del usuario, 06-10-2026: no crear ni ampliar desarrollos Studio.
 Todo nuevo desarrollo se implementa en código versionado. El inventario de
 retiro comprende modelos, campos, vistas, reportes, automatizaciones y permisos;

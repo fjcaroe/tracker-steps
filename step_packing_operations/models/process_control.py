@@ -214,7 +214,13 @@ class PackingProduction(models.Model):
             for line in lines:
                 product, qty, package, result = line[:4]
                 domain = [('product_id', '=', product.id), ('location_id', '=', source.id),
-                          ('package_id', '=', package.id if package else False), ('quantity', '>', 0)]
+                          ('package_id', '=', package.id if package else False), ('quantity', '>', 0),
+                          ('company_id', '=', self.company_id.id)]
+                if len(line) == 6:
+                    domain += [('lot_id', '=', line[4].id if line[4] else False),
+                               ('owner_id', '=', line[5].id if line[5] else False)]
+                elif not package:
+                    domain.append(('owner_id', '=', False))
                 quants = self.env['stock.quant'].search(domain, order='in_date, id')
                 if quants:
                     self.env.cr.execute('SELECT id FROM stock_quant WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(sorted(quants.ids))])
@@ -230,7 +236,11 @@ class PackingProduction(models.Model):
                     if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) <= 0:
                         break
                 if float_compare(remaining, 0, precision_rounding=product.uom_id.rounding) > 0:
-                    raise UserError(_('Stock libre insuficiente de %s; revise reservas y ubicación.') % product.display_name)
+                    raise UserError(_('Stock libre insuficiente de %(product)s en %(location)s. '
+                                      'Cantidad requerida: %(required)s %(unit)s; faltante: %(missing)s. '
+                                      'Revise el stock de esta ubicación y sus reservas.') % {
+                                          'product': product.display_name, 'location': source.display_name,
+                                          'required': qty, 'missing': remaining, 'unit': product.uom_id.display_name})
             lines = exact
         return super()._create_packing_move(warehouse, source, dest, lines)
 

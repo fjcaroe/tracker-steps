@@ -1,0 +1,30 @@
+<odoo>
+  <record id="company_stock_flow" model="ir.ui.view">
+    <field name="name">company.packing.stock.flow</field><field name="model">res.company</field>
+    <field name="inherit_id" ref="base.view_company_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet/notebook" position="inside">
+        <page string="Bodega Packing" groups="stock.group_stock_manager">
+          <group><field name="step_packing_warehouse_id" domain="[('company_id','=',id)]" options="{'no_create':True}"/>
+            <field name="step_packing_fruit_location_id" domain="[('company_id','=',id),('usage','=','internal')]" options="{'no_create':True}"/>
+            <field name="step_packing_material_location_id" domain="[('company_id','=',id),('usage','=','internal')]" options="{'no_create':True}"/>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+  <record id="production_stock_flow" model="ir.ui.view">
+    <field name="name">packing.production.stock.flow</field><field name="model">step.packing.production</field>
+    <field name="inherit_id" ref="step_packing_operations.view_packing_production_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//notebook[@name='fruit_details']" position="inside">
+        <page string="Bodega y movimientos" name="packing_stock_flow">
+          <group><field name="step_stock_warehouse_id"/><field name="step_stock_fruit_location_id"/>
+            <field name="step_stock_material_location_id"/><field name="step_packing_transfer_id"/>
+            <field name="input_picking_id"/><field name="material_picking_id"/><field name="output_picking_id"/>
+          </group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+</odoo>
