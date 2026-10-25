@@ -60,9 +60,9 @@ no tiene tareas programadas ni salida a Internet, con excepción del acceso a
 su propio HTTP local para informes. Los demás ambientes legados y SAG T92/T93
 conservan sus restricciones.
 
-## Actualizaciones explícitas T117/T118/T119 de QA-CERROELPLOMO
+## Actualizaciones explícitas T117/T118/T119/T120 de QA-CERROELPLOMO
 
-T118 y T119 solicitan aplicar sus cambios de recepciones de Packing a Desarrollo,
+T118, T119 y T120 solicitan aplicar sus cambios de recepciones de Packing a Desarrollo,
 Cerro El Plomo y QA-CERROELPLOMO. La respuesta humana 9692 de T117 solicita
 además actualizar la copia QA con las taras ya entregadas en Desarrollo y Cerro.
 Los tipos de paquete `reception-revision` y `packing-tare` permiten únicamente

@@ -39,6 +39,24 @@
         <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom']" position="move"/>
         <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom_qty']" position="move"/>
       </xpath>
+      <xpath expr="//button[@name='action_step_container_return']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='step_container_transfer_ids']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//button[@name='action_prepare_fruit_stock']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='package_id']" position="attributes">
+        <attribute name="column_invisible">True</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='box_count']" position="attributes">
+        <attribute name="column_invisible">True</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']" position="before">
+        <div class="text-muted">Distribuya los kilos recibidos entre números de tarja distintos. Al validar se crean y vinculan automáticamente las tarjas C.</div>
+      </xpath>
     </field>
   </record>
   <record id="process_reception_list_action" model="ir.actions.act_window.view">

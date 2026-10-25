@@ -366,7 +366,7 @@ def main():
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
-    assert args.environment != 'qa-cerro' or args.kind in ('reception-revision','packing-tare'), 'Only explicitly authorized T117/T118/T119 customer-QA packages'
+    assert args.environment != 'qa-cerro' or args.kind in ('reception-revision','packing-tare'), 'Only explicitly authorized T117/T118/T119/T120 customer-QA packages'
     assert not (args.environment == 'qa-cerro' and args.action == 'certify'), 'Customer QA requires a fresh compatibility run; clone access is removed after each run'
     assert args.action != 'compatibility' or args.environment in registry['policy']['production'] or (args.environment == 'qa-cerro' and args.kind in ('reception-revision','packing-tare'))
     target = registry['environments'][args.environment]

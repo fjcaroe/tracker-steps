@@ -39,6 +39,9 @@ try:
     assert model._fields['step_fruit_contract_id'].comodel_name == 'step.producer.purchase.contract'
     assert set(dict(model._fields['step_fruit_type']._description_selection(scoped))) == {'conventional','organic'}
     assert arch.xpath("//page[@name='step_packing_fruit']//field[@name='step_fruit_type']")
+    assert arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='package_id']/@column_invisible") == ['True']
+    assert arch.xpath("//field[@name='step_container_transfer_ids']/@invisible") == ['1']
+    assert arch.xpath("//button[@name='action_prepare_fruit_stock']/@invisible") == ['1']
     previous = config['test_enable']; config['test_enable'] = True
     try:
         from odoo.tests import Form
@@ -46,8 +49,13 @@ try:
         config['test_enable'] = previous
     record = model.search([('step_fruit_reception_kind','=','process')], limit=1)
     Form(record or model.with_context(default_step_fruit_reception_kind='process'), view=view)
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':118,'versions':EXPECTED,
+    clone_flow = False
+    if env.cr.dbname.startswith('MANAGEMENT_QA_'):
+        from probe_reception_flow import verify_flow
+        verify_flow(env, scoped)
+        clone_flow = True
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':120,'versions':EXPECTED,
         'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,
-        'native_list':True,'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
+        'automatic_tags':True,'simplified_form':True,'clone_flow':clone_flow,'native_list':True,'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
 finally:
     env.cr.rollback()
