@@ -13,7 +13,7 @@ class SimpleReceptionCase(TransactionCase):
         cls.producer = cls.env['res.partner'].create({'name': 'QA T120 productor', 'is_productor': True})
         cls.fundo = cls.env['step.fundo'].create({'name': 'QA T120 fundo', 'partner_id': cls.producer.id,
                                                'company_id': cls.env.company.id})
-        cls.species = cls.env['step.especie'].create({'name': 'QA T120 especie'})
+        cls.species = cls.env['step.especie'].create({'name': 'QA T120 especie', 'type_especie': 'frutal', 'group_especie': 'fruta_h'})
         kg = cls.env.ref('uom.product_uom_kgm')
         cls.product = cls.env['product.product'].create({'name': 'QA T120 fruta kg', 'is_storable': True,
                                                         'uom_id': kg.id, 'uom_po_id': kg.id})

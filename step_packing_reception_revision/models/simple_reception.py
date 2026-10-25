@@ -68,10 +68,14 @@ class Picking(models.Model):
             stock_lines = move.move_line_ids
             if any(line.package_id or line.owner_id and line.owner_id != producer for line in stock_lines):
                 raise ValidationError(_('Revise los paquetes de origen o propietarios incompatibles en Operaciones.'))
+            if any(line.location_id != move.location_id or line.location_dest_id != move.location_dest_id for line in stock_lines):
+                raise ValidationError(_('Revise las ubicaciones detalladas: difieren de la operación de la recepción.'))
             lots = stock_lines.lot_id
             lot = row.stock_lot_id
             if not lot and len(lots) == 1:
                 lot = lots
+            if lot and lots and lot not in lots:
+                raise ValidationError(_('El lote de la tarja no coincide con el lote ya capturado en Operaciones.'))
             if (len(lots) > 1 and not row.stock_lot_id) or any(line.lot_name for line in stock_lines):
                 raise ValidationError(_('Seleccione el lote de stock de cada tarja antes de validar.'))
             if move.product_id.tracking != 'none' and not lot:
@@ -80,6 +84,12 @@ class Picking(models.Model):
                 raise ValidationError(_('El lote debe pertenecer al producto y empresa de la recepción.'))
             plans.append((row, name, move, quantity, lot))
         for move in moves:
+            for lot in move.move_line_ids.lot_id:
+                previous_qty = sum(line.product_uom_id._compute_quantity(line.quantity, move.product_uom, round=False)
+                                   for line in move.move_line_ids.filtered(lambda line: line.lot_id == lot))
+                distributed = sum(q for _, _, operation, q, assigned_lot in plans if operation == move and assigned_lot == lot)
+                if float_compare(previous_qty, distributed, precision_rounding=move.product_uom.rounding):
+                    raise ValidationError(_('La distribución por tarjas debe conservar los kilos o unidades de cada lote capturado.'))
             if float_compare(totals[move.id], move.quantity, precision_rounding=move.product_uom.rounding):
                 raise ValidationError(_('La distribución de tarjas debe coincidir con la cantidad recibida en Operaciones: %s.') % move.product_id.display_name)
         for name in sorted(names):
