@@ -10,7 +10,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('ticket',type=int,choices=(117,119,120,121))
     parser.add_argument('evidence',type=Path)
+    parser.add_argument('--pending-products',action='store_true')
     args=parser.parse_args();root=args.evidence
+    assert not args.pending_products or args.ticket==121
     expected=json.loads((root/'delivery-reviewed.json').read_text())[str(args.ticket)]
     targets=('qa-cerro',) if args.ticket==117 else ('development','cerro','qa-cerro')
     for target in targets:
@@ -34,7 +36,9 @@ def main():
                    and item.get('writes') is False for item in checks)
     if args.ticket==121:
         original=(root/'development-clone-flow.log').read_text(encoding='utf-8-sig')
-        assert 'T121_ORIGINAL_OT_REPLAY_OK rollback_required=True' in original
+        marker=('T121_ORIGINAL_MATERIAL_STOCK_OK pending_product_definition=True' if args.pending_products
+                else 'T121_ORIGINAL_OT_REPLAY_OK rollback_required=True')
+        assert marker in original
     isolation=(root/'qa-final-isolation.log').read_text(encoding='utf-8-sig')
     assert all(marker in isolation for marker in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
     if args.ticket==117:
@@ -76,6 +80,18 @@ def main():
               'Versión, origen, menús, configuración y formulario comprobados después de publicar el mismo paquete con respaldo y bloqueo. '
               'La instalación solo agrega configuración logística; no valida OT reales, inventa existencias ni mueve stock del cliente. '
               'QA conserva sus ejercicios, correo neutralizado, aislamiento y ausencia de acceso a producción. ')
+    if args.pending_products:
+        findings=json.loads((root/'pending-products.json').read_text())
+        body=('T121: corrección de bodega y consumos publicada y verificada en Desarrollo, Cerro El Plomo y QA-CERROELPLOMO. '
+              'El origen de materiales es configurable por empresa y separado de la fruta; se reutilizó la bodega Packing existente en Desarrollo. '
+              'Las tarjas C se trasladan con su lote y propietario al validar, o al cerrar las OT antiguas. '
+              'Treinta y tres pruebas por destino y el flujo completo con perfiles existentes se aprobaron en copias frescas. '
+              'Se verificó que los cinco materiales de la OT del adjunto tienen stock suficiente en la ubicación correcta. '
+              'La reproducción encontró otro bloqueo, ahora identificado antes de mover paquetes: '
+              + findings['summary'] + ' '
+              'Se consultó al usuario la definición de unidades y control de inventario. No se modificaron esos productos, '
+              'las cantidades, la aprobación ni el estado de la OT real. El ticket permanece abierto hasta recibir la definición '
+              'y probar su cierre completo en una copia. Publicado con respaldo y bloqueo, conservando datos y aislamiento de QA. ')
     body+='Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.'
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url='https://soporte.stepsapp.cl';uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(c['db'],c['username'],c['api_key'],{})
@@ -94,11 +110,14 @@ def main():
     subtype=call('ir.model.data','search_read',[[('module','=','mail'),('name','=','mt_note')]],{'fields':['res_id']})[0]['res_id']
     message=call('mail.message','create',[{'model':'helpdesk.ticket','res_id':args.ticket,'message_type':'comment',
         'subtype_id':subtype,'author_id':author,'partner_ids':[(6,0,[])],'body':'<p>'+html.escape(body)+'</p>'}])
-    call('helpdesk.ticket','write',[[args.ticket],{'stage_id':4}])
-    assert call('helpdesk.ticket','read',[[args.ticket]],{'fields':['stage_id']})[0]['stage_id'][0]==4
+    if not args.pending_products:
+        call('helpdesk.ticket','write',[[args.ticket],{'stage_id':4}])
+    stage=call('helpdesk.ticket','read',[[args.ticket]],{'fields':['stage_id']})[0]['stage_id'][0]
+    assert stage==(ticket['stage_id'][0] if args.pending_products else 4)
     for model in ('mail.notification','mail.mail'):
         assert not call(model,'search_count',[[('mail_message_id','=',message)]])
-    print('TICKET_DELIVERY_RECORDED ticket=%s note=%s stage=4 NO_NOTIFICATIONS_OK'%(args.ticket,message))
+    event='TICKET_PROGRESS_RECORDED' if args.pending_products else 'TICKET_DELIVERY_RECORDED'
+    print('%s ticket=%s note=%s stage=%s NO_NOTIFICATIONS_OK'%(event,args.ticket,message,stage))
 
 
 if __name__=='__main__':main()
