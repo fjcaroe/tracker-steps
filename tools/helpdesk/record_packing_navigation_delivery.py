@@ -24,7 +24,7 @@ def main():
             import re
             qa_log=(root/(target+'-qa.log')).read_text(encoding='utf-8-sig')
             assert '"clone_flow": true' in qa_log
-            minimum=32 if args.ticket==121 else 22
+            minimum=33 if args.ticket==121 else 22
             counts=re.findall(r'0 failed, 0 error\(s\) of ([0-9]+) tests',qa_log)
             assert counts and max(map(int,counts))>=minimum
         fields=('native_menu_and_form','two_decimals','native_pallet_weight') if args.ticket==117 else ('native_menu_and_form','native_list','list_first','fruit_selector','operations_order','freights_tab')
@@ -32,6 +32,9 @@ def main():
         if args.ticket==120: fields+=('automatic_tags','simplified_form')
         assert any(item.get('existing_profile',1)!=1 and all(item.get(key) for key in fields)
                    and item.get('writes') is False for item in checks)
+    if args.ticket==121:
+        original=(root/'development-clone-flow.log').read_text(encoding='utf-8-sig')
+        assert 'T121_ORIGINAL_OT_REPLAY_OK rollback_required=True' in original
     isolation=(root/'qa-final-isolation.log').read_text(encoding='utf-8-sig')
     assert all(marker in isolation for marker in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
     if args.ticket==117:
@@ -68,7 +71,7 @@ def main():
               'Validar la OT traslada las tarjas C a Packing con sus paquetes, lotes y propietario; '
               'las OT ya validadas hacen ese traslado al cerrar. El consumo de fruta y la entrada de resultados quedan trazables. '
               'Se respetan reservas, empresa y propiedad de los materiales; un error revierte el cierre completo. '
-              'Treinta y dos pruebas por destino y flujo completo con perfiles existentes aprobados en copias frescas; '
+              'Treinta y tres pruebas por destino y flujo completo con perfiles existentes aprobados en copias frescas; '
               'se reprodujo el cierre de la OT del adjunto exclusivamente en una copia y se revirtió. '
               'Versión, origen, menús, configuración y formulario comprobados después de publicar el mismo paquete con respaldo y bloqueo. '
               'La instalación solo agrega configuración logística; no valida OT reales, inventa existencias ni mueve stock del cliente. '

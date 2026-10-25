@@ -122,6 +122,16 @@ class PackingStockFlowCase(TransactionCase):
         with self.assertRaises(UserError):ot.action_step_packing_close()
         self.assertEqual(ot.state, 'validated')
 
+    def test_non_inventory_fruit_is_rejected_before_moving_any_package(self):
+        self.national.is_storable = False
+        ot = self.ot()
+        with self.assertRaisesRegex(UserError, 'controlar inventario'):
+            ot.action_step_packing_validate()
+        self.assertEqual(ot.state, 'created')
+        self.assertFalse(ot.step_packing_transfer_id)
+        self.assertEqual(ot.step_packing_input_tag_ids.quant_ids.filtered(lambda q: q.quantity > 0).location_id,
+                         self.source_wh.lot_stock_id)
+
     def test_exact_lots_survive_fruit_transfer_and_material_consumption(self):
         self.raw.tracking = 'lot'; self.material.tracking = 'lot'
         ot = self.ot(material_qty=0)

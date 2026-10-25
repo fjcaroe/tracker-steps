@@ -75,6 +75,11 @@ class Production(models.Model):
             return
         if self.state != 'validated':
             raise UserError(_('Valide la cuadratura antes del traslado a Packing.'))
+        products = (self.step_packing_input_tag_ids | self.step_packing_output_tag_ids).step_tag_line_ids.product_id
+        untracked = products.filtered(lambda product: not product.is_storable)
+        if untracked:
+            raise UserError(_('Los productos de fruta deben controlar inventario antes de procesar la OT: %s. '
+                              'Revise su configuración en el maestro de productos.') % ', '.join(untracked.mapped('display_name')))
         tags = self.step_packing_input_tag_ids
         source = self._packing_stock_location(tags)
         destination = self.company_id.step_packing_fruit_location_id

@@ -38,11 +38,28 @@ def verify_flow(root, scoped):
     assert not ot.input_picking_id.move_ids.stock_valuation_layer_ids
     original = scoped['step.packing.production'].search([('name','=','OT/2026/00040')])
     if original and original.state == 'validated' and original.material_review_state == 'approved':
-        original.action_step_packing_close()
-        assert original.state == 'closed'
-        assert original.material_picking_id.location_id == company.step_packing_material_location_id
-        assert original.input_picking_id.location_id == company.step_packing_fruit_location_id
-        assert original.step_packing_transfer_id.state == 'done'
-        assert original.material_picking_id.move_ids and original.output_picking_id.state == 'done'
-        print('T121_ORIGINAL_OT_REPLAY_OK rollback_required=True')
+        unsupported = original.step_packing_output_tag_ids.step_tag_line_ids.product_id.filtered(lambda p: not p.is_storable)
+        if unsupported:
+            from odoo.exceptions import UserError
+            for row in original.material_line_ids:
+                quants = scoped['stock.quant'].search([('product_id','=',row.product_id.id),
+                    ('location_id','=',company.step_packing_material_location_id.id),('owner_id','=',False),
+                    ('package_id','=',False),('company_id','=',company.id),('quantity','>',0)])
+                assert sum(q.quantity-q.reserved_quantity for q in quants) >= row.quantity
+            try:
+                original.action_step_packing_close()
+            except UserError as exc:
+                assert 'controlar inventario' in str(exc)
+            else:
+                raise AssertionError('Non-inventory fruit unexpectedly closed')
+            assert original.state == 'validated' and not original.step_packing_transfer_id
+            print('T121_ORIGINAL_MATERIAL_STOCK_OK pending_product_definition=True writes=False')
+        else:
+            original.action_step_packing_close()
+            assert original.state == 'closed'
+            assert original.material_picking_id.location_id == company.step_packing_material_location_id
+            assert original.input_picking_id.location_id == company.step_packing_fruit_location_id
+            assert original.step_packing_transfer_id.state == 'done'
+            assert original.material_picking_id.move_ids and original.output_picking_id.state == 'done'
+            print('T121_ORIGINAL_OT_REPLAY_OK rollback_required=True')
     print('T121_OPERATOR_FLOW_OK uid=%s company=%s rollback_required=True' % (scoped.uid,company.id))
