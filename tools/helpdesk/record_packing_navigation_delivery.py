@@ -1,4 +1,4 @@
-"""Silent T117 QA/T119 delivery with exact destination and package proofs."""
+"""Silent T117 QA/T119/T120 delivery with exact destination and package proofs."""
 import argparse
 import html
 import json
@@ -8,7 +8,7 @@ import xmlrpc.client
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('ticket',type=int,choices=(117,119))
+    parser.add_argument('ticket',type=int,choices=(117,119,120))
     parser.add_argument('evidence',type=Path)
     args=parser.parse_args();root=args.evidence
     expected=json.loads((root/'delivery-reviewed.json').read_text())[str(args.ticket)]
@@ -20,7 +20,13 @@ def main():
         assert proof['commit']==expected['commit'] and proof['release_sha256']==expected['sha256']
         assert all(marker in log for marker in ('MANAGEMENT_DEPLOY_OK backup=','MANAGEMENT_VERIFY_OK',expected['commit']))
         checks=[json.loads(line.split('MANAGEMENT_REGISTRY_OK ',1)[1]) for line in log.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
+        if args.ticket==120:
+            import re
+            qa_log=(root/(target+'-qa.log')).read_text(encoding='utf-8-sig')
+            assert '"clone_flow": true' in qa_log
+            assert re.search(r'0 failed, 0 error\(s\) of (?:19|[2-9][0-9]|[1-9][0-9]{2,}) tests',qa_log)
         fields=('native_menu_and_form','two_decimals','native_pallet_weight') if args.ticket==117 else ('native_menu_and_form','native_list','list_first','fruit_selector','operations_order','freights_tab')
+        if args.ticket==120: fields+=('automatic_tags','simplified_form')
         assert any(item.get('existing_profile',1)!=1 and all(item.get(key) for key in fields)
                    and item.get('writes') is False for item in checks)
     isolation=(root/'qa-final-isolation.log').read_text(encoding='utf-8-sig')
@@ -32,7 +38,7 @@ def main():
               'de QA, comprobación posterior de origen, versión, menús y formularios con el usuario operativo. '
               'Se conservaron los ejercicios y el aislamiento de QA, sin refrescar datos ni cambiar claves. '
               'Publicado con respaldo y bloqueo. ')
-    else:
+    elif args.ticket==119:
         body=('T119 publicado y verificado en Desarrollo, Cerro y QA-CERROELPLOMO. '
               'Packing / Recepciones / Fruta a proceso abre primero el listado de recepciones a proceso, '
               'incluyendo borradores y registros de otros estados; Nuevo abre el formulario T118. '
@@ -40,6 +46,18 @@ def main():
               'permisos y registros. Ocho pruebas aprobadas en copias frescas de cada destino; se comprobó '
               'después de publicar versión, origen, menú, listado nativo y formulario con perfiles existentes. '
               'QA conserva sus datos de capacitación y aislamiento. Publicado con respaldo y bloqueo. ')
+    else:
+        body=('T120 publicado y verificado en Desarrollo, Cerro El Plomo y QA-CERROELPLOMO. '
+              'La recepción se completa en Encabezado/Operaciones, Fruta con pesaje y distribución por números de tarja, '
+              'y Fletes. Al validar se crean y vinculan automáticamente los paquetes nativos tipo C, '
+              'con datos de origen, kilos, envases y propietario productor, sin abrir el maestro de paquetes. '
+              'Se ocultan el control de envases y la preparación manual en este formulario. '
+              'Se separan kilos y cantidad de envases y se conservan movimientos, lotes y entregas parciales. '
+              'La recuperación de tarjas validadas prematuramente se limita a las vinculadas a esa recepción, '
+              'sin stock ni movimientos históricos ni otra utilización, con origen y detalle coincidentes. '
+              'Diecinueve pruebas y flujo completo con perfiles existentes aprobados en copias frescas de cada destino; '
+              'versión, origen, menú, listado y formulario verificados después de publicar. '
+              'Publicación del mismo paquete con respaldo y bloqueo, conservando datos y aislamiento de QA. ')
     body+='Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.'
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url='https://soporte.stepsapp.cl';uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(c['db'],c['username'],c['api_key'],{})
