@@ -48,6 +48,7 @@ PROMOTION_COLUMNS = {}
 AGRICULTURE_SOURCE = None
 AGRICULTURE_COLUMNS = None
 PACKING_CONFIG_LIMITS = {}
+PACKING_INACTIVE_TYPES = {}
 
 
 def run(*command, **kwargs):
@@ -222,7 +223,7 @@ def snapshot(database):
             condition = " WHERE key <> 'web.base.url'" if (SETTINGS or PRODUCERS) and table == 'ir_config_parameter' else ''
             if TICKET_REVISION == 'packing-stock':
                 from packing_stock_setup import snapshot_filter
-                row, condition = snapshot_filter(table, row, PACKING_CONFIG_LIMITS)
+                row, condition = snapshot_filter(table, row, PACKING_CONFIG_LIMITS, PACKING_INACTIVE_TYPES)
             statements.append("SELECT '%s',json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),'')))::text FROM %s t%s" % (table, row, row, table, condition))
     # One SQL statement sees a consistent MVCC snapshot across every table.
     # It preserves the same row normalization and hashes as the former loop.
@@ -273,7 +274,7 @@ def normalize_approved_account(base, options, database, args, commit):
 
 
 def main():
-    global PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
+    global PACKING_INACTIVE_TYPES, PACKING_CONFIG_LIMITS, PROMOTION_COLUMNS, TRACEABILITY_INITIAL, SAG_PROTOTYPE_INITIAL, DOCUMENT_DESIGN_INITIAL, SHIPPING_DESIGN_INITIAL, BUDGET_DESIGN_INITIAL, SHIPMENT_PROVISION_INITIAL, DAILY_ESTIMATE_INITIAL, ESTIMATE_REVISION_INITIAL, FRUIT_REPORTS_INITIAL, CONTRACT_REPORT_INITIAL, MODULES, BUSINESS, SETTINGS, PRODUCERS, PACKING_INITIAL_MIGRATION, EXPORT_SALE_ADDITION, EXPORT_PORT_ADDITIONS, TICKET_REVISION, SALE_FORMAT_INITIAL, CLIENT_REVISION_INITIAL
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('qa', 'compatibility', 'certify', 'deploy', 'verify'))
     parser.add_argument('environment', choices=('development', 'cerro', 'steps', 'sys', 'qa-cerro'))
@@ -437,8 +438,9 @@ def main():
         if args.kind == 'dispatch-improvements':
             assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_packing_dispatch','step_export_client_revision') AND state='installed'") == '2'
     if args.kind == 'packing-stock':
-        from packing_stock_setup import capture
+        from packing_stock_setup import capture, capture_inactive_types
         PACKING_CONFIG_LIMITS = capture(query, database)
+        PACKING_INACTIVE_TYPES = capture_inactive_types(query, database)
     installed = json.loads(query(database, "SELECT COALESCE(json_object_agg(name,latest_version),'{}'::json) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in MODULES)))
     if args.kind == 'packing':
         PACKING_INITIAL_MIGRATION = tuple(map(int, installed['step_packing_operations'].split('.'))) < (18, 0, 2, 8, 0)
@@ -586,7 +588,7 @@ def main():
                 agriculture_migrate('finalize', qa_db, AGRICULTURE_SOURCE)
             if args.kind == 'packing-stock':
                 from packing_stock_setup import configure
-                configure(base, options, qa_db, staged, opts, stage, query, PACKING_CONFIG_LIMITS)
+                configure(base, options, qa_db, staged, opts, stage, query, PACKING_CONFIG_LIMITS, PACKING_INACTIVE_TYPES)
             assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
             verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
             if args.kind == 'email-login':
@@ -658,7 +660,7 @@ def main():
                     agriculture_migrate('finalize', database, release_root / 'step_agriculture_records')
                 if args.kind == 'packing-stock':
                     from packing_stock_setup import configure
-                    configure(base, options, database, release_root, opts, stage, query, PACKING_CONFIG_LIMITS)
+                    configure(base, options, database, release_root, opts, stage, query, PACKING_CONFIG_LIMITS, PACKING_INACTIVE_TYPES)
                 assert snapshot(database) == before, 'Business migration check failed'
                 if TICKET_REVISION == 'sale-format':
                     # Explicit per-company configuration; never copy banking values.

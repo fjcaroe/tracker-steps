@@ -9,9 +9,22 @@ def capture(query, database):
     return {table: int(query(database, 'SELECT COALESCE(max(id),0) FROM ' + table)) for table in CONFIG_TABLES}
 
 
-def snapshot_filter(table, row, limits):
+def capture_inactive_types(query, database):
+    return json.loads(query(database, "SELECT COALESCE(json_object_agg(id,company_id),'{}'::json) FROM stock_picking_type WHERE code='internal' AND active=false"))
+
+
+def snapshot_filter(table, row, limits, inactive_types):
     if table == 'res_company':
         row = "(%s-ARRAY['write_date','write_uid'])" % row
+    if table == 'res_partner':
+        # Module recomputations and native warehouse partner setup touch audit
+        # metadata. Every prior business field and every partner ID still hashes.
+        row = "(%s-ARRAY['write_date','write_uid'])" % row
+    if table == 'stock_picking_type' and inactive_types:
+        ids = ','.join(str(int(key)) for key in inactive_types)
+        # A second warehouse enables existing internal operation types. Only
+        # previously inactive types qualify; deactivations of active ones fail.
+        row = "CASE WHEN t.id IN (%s) THEN (jsonb_set(%s,'{active}','false'::jsonb)-ARRAY['write_date','write_uid']) ELSE %s END" % (ids,row,row)
     if table in limits:
         return row, ' WHERE id <= %s' % limits[table]
     if table == 'stock_route_warehouse':
@@ -19,7 +32,7 @@ def snapshot_filter(table, row, limits):
     return row, ''
 
 
-def configure(base, options, database, source, opts, stage, query, limits):
+def configure(base, options, database, source, opts, stage, query, limits, inactive_types):
     # native_business_profile is copied alongside the publisher, not into addons.
     from pathlib import Path
     script = "import sys\nsys.path.insert(0,%r)\n" % str(Path(__file__).resolve().parent)
@@ -48,4 +61,7 @@ print('PACKING_STOCK_CONFIGURED '+json.dumps({'company':company.id,'warehouse':w
     for table, maximum in limits.items():
         assert query(database, 'SELECT count(*) FROM %s WHERE id>%s AND company_id IS DISTINCT FROM %s' %
                      (table, maximum, config['company'])) == '0', 'Unexpected warehouse configuration company: '+table
+    foreign = [str(int(key)) for key, company in inactive_types.items() if company != config['company']]
+    if foreign:
+        assert query(database, "SELECT count(*) FROM stock_picking_type WHERE id IN (%s) AND active=true" % ','.join(foreign)) == '0', 'Internal operations of another company were activated'
     print(line, flush=True)
