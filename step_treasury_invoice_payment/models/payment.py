@@ -224,6 +224,13 @@ class Payment(models.Model):
             self.filtered(lambda payment: payment.step_invoice_allocation_ids and payment.state == 'draft')._step_validate_allocations(lock=True)
             return super().action_post()
 
+    def action_cancel(self):
+        # Payment providers also call this hook with an empty recordset after
+        # manual confirmations. There is no accounting document to cancel.
+        if not self:
+            return True
+        return super().action_cancel()
+
     def write(self, values):
         guarded = set(self._get_trigger_fields_to_synchronize()) | {'step_invoice_allocation_ids'}
         if set(values) & guarded and any(p.step_invoice_allocation_ids and p.state != 'draft' for p in self):
