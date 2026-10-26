@@ -15,7 +15,7 @@
     <group><field name="step_analytic_season_id" readonly="state != 'created'" options="{'no_create':True}"/>
      <field name="step_effective_season_id"/><field name="step_analytic_message"/></group>
     <field name="step_analytic_summary" readonly="1"/>
-    <field name="step_analytic_reclassification_ids" readonly="1"><list><field name="name"/><field name="ref"/><field name="date"/><field name="state"/></list></field>
+    <field name="step_analytic_reclassification_ids" readonly="1" groups="account.group_account_user"><list><field name="name"/><field name="ref"/><field name="date"/><field name="state"/></list></field>
    </page></xpath>
   </field></record>
 </odoo>

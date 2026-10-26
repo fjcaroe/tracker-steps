@@ -46,6 +46,9 @@ def verify_flow(root,scoped):
     operator.action_step_packing_validate();operator.action_prepare_materials()
     reviewer=fixture.with_env(scoped).with_context(**quiet);reviewer.action_approve_materials()
     operator.action_step_packing_close()
+    # Opening the completed OT must also work without accounting permissions.
+    from odoo.tests import Form
+    Form(operator,view='step_packing_operations.view_packing_production_form')
     setup['res.company'].browse(company.id).step_packing_require_contract=require
     assert fixture.state=='closed'
     entries=fixture.material_picking_id.move_ids.stock_valuation_layer_ids.account_move_id
