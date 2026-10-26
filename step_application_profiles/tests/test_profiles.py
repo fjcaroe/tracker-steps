@@ -84,3 +84,13 @@ class ApplicationProfilesCase(TransactionCase):
         ot=self.env['step.packing.production'].with_company(other).create({'company_id':other.id})
         with self.assertRaises(AccessError):
             ot.with_user(self.users['packing','manager']).with_context(allowed_company_ids=self.env.company.ids).read(['name'])
+
+    def test_export_inventory_permissions_do_not_allow_raw_fruit_tags(self):
+        user=self.users['export','operation']
+        with self.assertRaises(AccessError):
+            self.env['stock.quant.package'].with_user(user).create({'name':'QA114 C','is_fruit_tag':True,'step_tag_kind':'C'})
+        wh=self.env['stock.warehouse'].search([('company_id','=',self.env.company.id)],limit=1)
+        with self.assertRaises(AccessError):
+            self.env['stock.picking'].with_user(user).create({'picking_type_id':wh.in_type_id.id,
+                'location_id':wh.in_type_id.default_location_src_id.id,'location_dest_id':wh.lot_stock_id.id,
+                'step_fruit_reception_kind':'process'})

@@ -1,6 +1,8 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 
+_ORIGIN=object()
+
 
 def root_plan(plan):
     while plan.parent_id:
@@ -134,6 +136,9 @@ class Production(models.Model):
         values['step_packing_consumption']=source.usage=='internal' and dest.usage=='production'
         return values
 
+    def _create_packing_move(self,warehouse,source,dest,lines):
+        return super(Production,self.with_context(_packing_analytic_origin=_ORIGIN))._create_packing_move(warehouse,source,dest,lines)
+
     def action_apply_packing_analytics(self):
         if not self.env.user.has_group('account.group_account_user') or not self.env.user.has_group('stock.group_stock_manager'):
             raise AccessError(_('La revisión de comprobantes requiere Contabilidad y administración de Inventario.'))
@@ -173,6 +178,17 @@ class Move(models.Model):
     _inherit='stock.move'
     step_analytic_production_id=fields.Many2one('step.packing.production',copy=False,readonly=True,check_company=True,index=True)
     step_packing_consumption=fields.Boolean(copy=False,readonly=True)
+
+    @api.model_create_multi
+    def create(self,values):
+        if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and any(row.get('step_analytic_production_id') for row in values):
+            raise AccessError(_('El vínculo contable con la OT se genera desde el flujo de Packing.'))
+        return super().create(values)
+
+    def write(self,values):
+        if not self.env.su and self.env.context.get('_packing_analytic_origin') is not _ORIGIN and {'step_analytic_production_id','step_packing_consumption'}&values.keys():
+            raise AccessError(_('El vínculo contable con la OT se genera desde el flujo de Packing.'))
+        return super().write(values)
 
     def _get_dest_account(self, accounts_data):
         if self.step_analytic_production_id and self.step_packing_consumption:

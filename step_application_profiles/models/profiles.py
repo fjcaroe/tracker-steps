@@ -10,6 +10,7 @@ MASTERS=('res.partner','step.fundo','step.especie','step.variedad','step.grupo.v
 
 
 def owners(model):
+    if model=='step.fruit.package.line':return {'packing','export'}
     if model.startswith(SHARED_EXPORT):return {'packing','export'}
     if model.startswith(('step.producer.','step.export.producer.','step.export.grower.','step.export.estimate')):
         return {'producers'}
@@ -77,3 +78,59 @@ class Menu(models.Model):
         if not blocked:return visible
         descendants=self.sudo().search([('id','child_of',blocked.ids)])
         return set(visible)-set(descendants.ids)
+
+
+def require_fruit_operation(env,kind):
+    levels=env.user._step_application_levels()
+    if levels is not None and max(levels[app] for app in (('packing',) if kind=='C' else ('packing','export')))<2:
+        raise AccessError(_('El perfil no permite modificar esta recepción o tarja de fruta.'))
+
+
+class Picking(models.Model):
+    _inherit='stock.picking'
+
+    @api.model_create_multi
+    def create(self,values):
+        if any(row.get('step_fruit_reception_kind') for row in values):require_fruit_operation(self.env,'C')
+        return super().create(values)
+
+    def write(self,values):
+        if values.get('step_fruit_reception_kind') or any(self.mapped('step_fruit_reception_kind')):require_fruit_operation(self.env,'C')
+        return super().write(values)
+
+    def button_validate(self):
+        if any(self.mapped('step_fruit_reception_kind')):require_fruit_operation(self.env,'C')
+        return super().button_validate()
+
+
+class Package(models.Model):
+    _inherit='stock.quant.package'
+
+    @api.model_create_multi
+    def create(self,values):
+        for row in values:
+            if row.get('is_fruit_tag'):require_fruit_operation(self.env,row.get('step_tag_kind'))
+        return super().create(values)
+
+    def write(self,values):
+        for package in self.filtered('is_fruit_tag'):require_fruit_operation(self.env,package.step_tag_kind)
+        if values.get('is_fruit_tag') or values.get('step_tag_kind'):require_fruit_operation(self.env,values.get('step_tag_kind'))
+        return super().write(values)
+
+
+class PackageLine(models.Model):
+    _inherit='step.fruit.package.line'
+
+    @api.model_create_multi
+    def create(self,values):
+        for package in self.env['stock.quant.package'].browse([row['package_id'] for row in values if row.get('package_id')]):
+            require_fruit_operation(self.env,package.step_tag_kind)
+        return super().create(values)
+
+    def write(self,values):
+        for package in self.package_id:require_fruit_operation(self.env,package.step_tag_kind)
+        return super().write(values)
+
+    def unlink(self):
+        for package in self.package_id:require_fruit_operation(self.env,package.step_tag_kind)
+        return super().unlink()
