@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+allocation_account_user,Invoice allocation accountant,model_step_treasury_payment_invoice,account.group_account_invoice,1,1,1,1
+invoice_selection_account_user,Invoice selection accountant,model_step_treasury_payment_invoice_select,account.group_account_invoice,1,1,1,1

@@ -1,0 +1,12 @@
+<odoo>
+ <record id="allocation_company" model="ir.rule">
+  <field name="name">Facturas de pagos: empresas permitidas</field>
+  <field name="model_id" ref="model_step_treasury_payment_invoice"/>
+  <field name="domain_force">[('company_id','in',company_ids)]</field>
+ </record>
+ <record id="selection_company" model="ir.rule">
+  <field name="name">Selector de facturas: empresas permitidas</field>
+  <field name="model_id" ref="model_step_treasury_payment_invoice_select"/>
+  <field name="domain_force">[('payment_id.company_id','in',company_ids)]</field>
+ </record>
+</odoo>
