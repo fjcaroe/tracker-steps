@@ -28,7 +28,9 @@ class Users(models.Model):
 
     def _step_application_levels(self):
         self.ensure_one()
-        if self.env.su or self.has_group('base.group_system'):return None
+        # env.user is a sudo record even when the calling model is not sudo.
+        # Callers must test their own environment, not this record's su flag.
+        if self.has_group('base.group_system'):return None
         levels={app:max((i for i,level in enumerate(LEVELS,1)
                         if self.has_group('step_application_profiles.%s_%s'%(app,level))),default=0) for app in APPS}
         return levels if any(levels.values()) else None
@@ -67,6 +69,7 @@ class Menu(models.Model):
     @api.model
     def _visible_menu_ids(self,debug=False):
         visible=super()._visible_menu_ids(debug=debug)
+        if self.env.su:return visible
         levels=self.env.user._step_application_levels()
         if levels is None:return visible
         blocked=self.browse()
@@ -81,6 +84,7 @@ class Menu(models.Model):
 
 
 def require_fruit_operation(env,kind):
+    if env.su:return
     levels=env.user._step_application_levels()
     if levels is not None and max(levels[app] for app in (('packing',) if kind=='C' else ('packing','export')))<2:
         raise AccessError(_('El perfil no permite modificar esta recepción o tarja de fruta.'))

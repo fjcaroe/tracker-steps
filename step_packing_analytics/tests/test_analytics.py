@@ -115,6 +115,14 @@ class PackingAnalyticsCase(TransactionCase):
         ot=self.ot()
         with self.assertRaises(UserError):ot._packing_distribution(create=True,existing={str(other.id):100})
 
+    def test_archived_source_account_is_not_duplicated(self):
+        ot=self.ot();ot._packing_distribution(create=True)
+        account=self.env['account.analytic.account'].search([('step_packing_production_id','=',ot.id)])
+        account.active=False
+        count=self.env['account.analytic.account'].with_context(active_test=False).search_count([])
+        with self.assertRaises(UserError):ot._packing_distribution(create=True)
+        self.assertEqual(self.env['account.analytic.account'].with_context(active_test=False).search_count([]),count)
+
     def test_rules_reject_duplicate_origin_and_non_root_plan(self):
         other=self.env['account.analytic.plan'].create({'name':'QA122 otro'})
         with self.assertRaises(ValidationError),self.cr.savepoint():

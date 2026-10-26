@@ -78,7 +78,7 @@ class Production(models.Model):
         for ot in self:
             try:
                 ot.step_analytic_distribution=ot._packing_distribution(create=False)
-                ids={int(value) for key in ot.step_analytic_distribution for value in key.split(',') if value}
+                ids={int(value) for key in (ot.step_analytic_distribution or {}) for value in key.split(',') if value}
                 accounts=ot.env['account.analytic.account'].sudo().browse(list(ids)).exists()
                 ot.step_analytic_summary='; '.join('%s: %s'%(a.plan_id.display_name,a.name) for a in accounts)
                 ot.step_analytic_message=_('Se completa al generar el comprobante de consumo.')
@@ -101,9 +101,9 @@ class Production(models.Model):
             if rule.origin=='season' and source.company_ids and self.company_id not in source.company_ids:
                 raise UserError(_('La temporada no está habilitada para la empresa de la OT.'))
             linked_field={'ot':'step_packing_production_id','species':'step_packing_species_id','season':'step_packing_season_id'}[rule.origin]
-            accounts=self.env['account.analytic.account'].sudo().with_company(self.company_id)
+            accounts=self.env['account.analytic.account'].sudo().with_company(self.company_id).with_context(active_test=False)
             preferred=source.sudo().cost_id if rule.origin!='ot' else accounts.browse()
-            if preferred and preferred.active and preferred.company_id in (self.company_id,self.env['res.company']) and root_plan(preferred.plan_id)==rule.plan_id:
+            if preferred and preferred.company_id in (self.company_id,self.env['res.company']) and root_plan(preferred.plan_id)==rule.plan_id:
                 account=preferred
             else:
                 if create:
@@ -115,6 +115,8 @@ class Production(models.Model):
                 if len(account)>1:raise UserError(_('Hay cuentas analíticas ambiguas para %s; revise el maestro.')%source.display_name)
                 if not account and create:
                     account=accounts.create({'name':source.name,'plan_id':rule.plan_id.id,'company_id':self.company_id.id,linked_field:source.id})
+            if account and not account.active:
+                raise UserError(_('La cuenta analítica %s está archivada; reactive el registro existente.')%account.display_name)
             if account:chosen[rule.plan_id.id]=account.id
         if not chosen:return existing or {}
         result={}
