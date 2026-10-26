@@ -7,6 +7,7 @@ class PackingAnalyticsCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.env=cls.env(context=dict(cls.env.context,tracking_disable=True,mail_notrack=True,mail_notify_force_send=False,mail_create_nosubscribe=True))
         cls.company=cls.env.company
         cls.company.step_packing_require_contract=False
         cls.wh=cls.env['stock.warehouse'].search([('company_id','=',cls.company.id)],limit=1)

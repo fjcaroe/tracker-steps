@@ -9,6 +9,7 @@ class ApplicationProfilesCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.env=cls.env(context=dict(cls.env.context,tracking_disable=True,mail_notrack=True,mail_notify_force_send=False,mail_create_nosubscribe=True))
         cls.users={}
         for app in ('packing','export','producers'):
             for level in ('read','operation','manager'):
