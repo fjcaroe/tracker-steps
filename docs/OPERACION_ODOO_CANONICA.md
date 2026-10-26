@@ -76,6 +76,14 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T123 usa `invoice-payments` inicialmente solo en Desarrollo. El adjunto pide
+seleccionar facturas pendientes y distribuir el pago/cobro total o parcial,
+con una contrapartida contable por factura y conciliación nativa. No define
+otros ambientes; la publicación en Cerro o QA-Cerro espera confirmación del
+usuario. El publicador impide esos destinos mientras no se confirme el alcance.
+La instalación no cambia pagos ni facturas históricos. Las pruebas contables
+se ejecutan en copia, publicando el mismo paquete con respaldo y bloqueo.
+
 T114 y T122 autorizan `packing-controls` en Desarrollo, Cerro y QA-CERROELPLOMO:
 perfiles por aplicación y analítica de consumos de Packing. Los perfiles no se
 asignan automáticamente ni alteran membresías existentes; la contabilidad
