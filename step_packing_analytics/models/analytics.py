@@ -217,21 +217,23 @@ class Move(models.Model):
                 return lines.account_id.id
         return super()._get_src_account(accounts_data)
 
-    def _prepare_account_move_line(self,qty,cost,credit_account_id,debit_account_id,svl_id,description):
-        values=super()._prepare_account_move_line(qty,cost,credit_account_id,debit_account_id,svl_id,description)
+    def _prepare_account_move_vals(self,credit_account_id,debit_account_id,journal_id,qty,description,svl_id,cost):
+        values=super()._prepare_account_move_vals(credit_account_id,debit_account_id,journal_id,qty,description,svl_id,cost)
+        # Complete native journal commands after optional stock extensions have
+        # prepared them. No stock-wide analytic validation is installed here.
         if self.step_analytic_production_id and self.step_packing_consumption:
-            distribution=self.step_analytic_production_id._packing_distribution(create=True,existing=self.analytic_distribution)
-            for command in values:
+            for command in values['line_ids']:
                 line=command[2]
                 if line.get('account_id')==debit_account_id:
-                    line['analytic_distribution']=distribution
+                    line['analytic_distribution']=self.step_analytic_production_id._packing_distribution(
+                        create=True,existing=line.get('analytic_distribution'))
         elif self.location_id.usage=='production' and self.location_dest_id.usage=='internal':
             original=self._packing_return_expense_lines()
             distributions=[line.analytic_distribution for line in original if line.analytic_distribution]
             if distributions:
                 if any(value!=distributions[0] for value in distributions):
                     raise UserError(_('Revise la distribución del consumo original antes de devolverlo.'))
-                for command in values:
+                for command in values['line_ids']:
                     if command[2].get('account_id')==credit_account_id:
                         command[2]['analytic_distribution']=distributions[0]
         return values
