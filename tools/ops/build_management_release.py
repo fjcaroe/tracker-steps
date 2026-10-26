@@ -52,7 +52,7 @@ def main():
         modules = ('step_auth_email_casefold',)
     if args.kind == 'packing-controls':
         assert args.environment in ('development','cerro','qa-cerro')
-        modules=('step_packing_analytics','step_application_profiles')
+        modules=('stock_analytic','step_packing_analytics','step_application_profiles')
     if args.kind == 'packing-stock':
         assert args.environment in ('development','cerro','qa-cerro')
         modules = ('step_packing_operations','step_packing_stock_flow')
