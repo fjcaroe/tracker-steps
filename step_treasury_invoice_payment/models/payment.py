@@ -155,6 +155,8 @@ class Payment(models.Model):
                 self.env.cr.execute('SELECT id FROM account_move_line WHERE move_id=ANY(%s) ORDER BY id FOR UPDATE', [invoice_ids])
                 self.env.invalidate_all()
             rows._check_invoice()
+            if payment.payment_token_id:
+                raise UserError(_('La distribución por facturas requiere un pago sin cobro automático mediante tarjeta guardada.'))
             if not payment.outstanding_account_id:
                 raise UserError(_('Configure la cuenta de pagos o cobros pendientes del método de pago para generar el comprobante.'))
             if payment.currency_id.compare_amounts(payment.amount, sum(rows.mapped('amount'))):
@@ -245,9 +247,12 @@ class Payment(models.Model):
                         return (line.get('account_id'), line.get('step_treasury_invoice_id') or False,
                                 line.get('currency_id'), round(line.get('amount_currency', 0), 8),
                                 round(line.get('debit', 0) - line.get('credit', 0), 8))
+                    adjustments = payment.move_id.line_ids.filtered('is_operational_exchange_adjustment')
+                    if any(not payment.company_id.currency_id.is_zero(line.balance) for line in adjustments):
+                        raise UserError(_('Revise el ajuste bimoneda antes de confirmar el pago.'))
                     actual = [{'account_id': line.account_id.id, 'step_treasury_invoice_id': line.step_treasury_invoice_id.id,
                                'currency_id': line.currency_id.id, 'amount_currency': line.amount_currency,
-                               'debit': line.debit, 'credit': line.credit} for line in payment.move_id.line_ids]
+                               'debit': line.debit, 'credit': line.credit} for line in payment.move_id.line_ids - adjustments]
                     if sorted(map(signature, expected)) != sorted(map(signature, actual)):
                         raise UserError(_('El comprobante no coincide con la distribución. Vuelva a guardar las facturas antes de confirmar.'))
             result = super().write(values)

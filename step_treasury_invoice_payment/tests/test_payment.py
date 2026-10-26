@@ -24,7 +24,11 @@ class InvoicePaymentCase(TransactionCase):
         self.assertEqual(len(applied), 2)
         self.assertEqual(applied.step_treasury_invoice_id, invoices)
         self.assertEqual(sorted(applied.mapped('credit')), [100, 200])
-        self.assertEqual(len(pay.move_id.line_ids), 3)
+        ordinary = pay.move_id.line_ids.filtered(lambda line: not line.is_operational_exchange_adjustment)
+        self.assertEqual(len(ordinary), 3)
+        self.assertTrue(self.env.company.currency_id.is_zero(sum(pay.move_id.line_ids.mapped('balance'))))
+        if pay.move_id.operational_currency_id:
+            self.assertTrue(pay.move_id.operational_currency_id.is_zero(sum(pay.move_id.line_ids.mapped('operational_balance'))))
         self.assertEqual(invoices.mapped('amount_residual'), [0, 0])
         self.assertTrue(all(applied.mapped('reconciled')))
 

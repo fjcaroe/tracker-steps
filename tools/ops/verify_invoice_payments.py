@@ -45,7 +45,8 @@ try:
             Form(pay, view='account.view_account_payment_form')
             pay.action_post()
             assert invoices.mapped('amount_residual') == [60, 0]
-            assert pay.move_id.state == 'posted' and len(pay.move_id.line_ids) == 3
+            assert pay.move_id.state == 'posted'
+            assert len(pay.move_id.line_ids.filtered(lambda line: not line.is_operational_exchange_adjustment)) == 3
             assert pay.move_id.line_ids.filtered('step_treasury_invoice_id').step_treasury_invoice_id == invoices
             Form(pay, view='account.view_account_payment_form')
         clone = True
