@@ -219,6 +219,11 @@ class Payment(models.Model):
                     invoice_lines = payment._step_open_invoice_lines(row.invoice_id)
                     (counterparts | invoice_lines).reconcile()
 
+    def action_post(self):
+        with self.env.cr.savepoint():
+            self.filtered(lambda payment: payment.step_invoice_allocation_ids and payment.state == 'draft')._step_validate_allocations(lock=True)
+            return super().action_post()
+
     def write(self, values):
         guarded = set(self._get_trigger_fields_to_synchronize()) | {'step_invoice_allocation_ids'}
         if set(values) & guarded and any(p.step_invoice_allocation_ids and p.state != 'draft' for p in self):
