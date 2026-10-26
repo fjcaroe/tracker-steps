@@ -18,11 +18,15 @@ ot_plan=Plan.search([('parent_id','=',False),('name','=ilike','OT Packing')])
 assert len(ot_plan)<=1,'Ambiguous OT Packing plans'
 if not ot_plan and not existing:
     ot_plan=Plan.create({'name':'OT Packing','default_applicability':'optional'})
-origins={'temporada':'season','centro de costos':'species','ot packing':'ot'}
+origins={'temporada':'season','centro de costos':'species','centro costos':'species','ot packing':'ot'}
 for plan in Plan.search([('parent_id','=',False)]):
     if Rule.search_count([('company_id','=',company.id),('plan_id','=',plan.id)]):continue
-    origin=origins.get(plan.name.strip().casefold()) if not existing else False
+    names={plan.name.strip().casefold(),plan.with_context(lang='es_CL').name.strip().casefold()}
+    matches={origins[name] for name in names if name in origins}
+    assert len(matches)<=1,'Conflicting translated analytic plan labels'
+    origin=next(iter(matches),False) if not existing else False
     Rule.create({'company_id':company.id,'plan_id':plan.id,'origin':origin,'apply':bool(origin)})
+assert set(Rule.search([('company_id','=',company.id),('apply','=',True)]).mapped('origin'))=={'season','species','ot'}
 assert not env['res.groups'].search([('id','in',[env.ref('step_application_profiles.%s_%s'%(app,level)).id for app in ('packing','export','producers') for level in ('read','operation','manager')])]).users
 env.cr.commit()
 print('PACKING_CONTROLS_CONFIGURED '+json.dumps({'company':company.id,'plans':Rule.search_count([('company_id','=',company.id)]),'profiles':9,'memberships_changed':False}))
