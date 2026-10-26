@@ -290,7 +290,7 @@ def main():
     parser.add_argument('--development-proof', type=Path)
     args = parser.parse_args()
     if args.kind == 'invoice-payments':
-        assert args.environment == 'development', 'T123: delivery scope is Development pending explicit target confirmation'
+        assert args.environment in ('development', 'cerro', 'qa-cerro'), 'T123: explicitly confirmed Development, Cerro and customer QA only'
     if args.normalize_user_id is not None or args.expected_user_login is not None:
         assert args.normalize_user_id and args.expected_user_login and '@' in args.expected_user_login
         assert args.kind == 'email-login' and args.environment == 'cerro' and args.action in ('deploy','compatibility')

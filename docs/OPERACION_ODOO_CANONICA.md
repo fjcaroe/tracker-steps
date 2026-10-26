@@ -76,11 +76,11 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
-T123 usa `invoice-payments` inicialmente solo en Desarrollo. El adjunto pide
+T123 usa `invoice-payments` en Desarrollo, Cerro y QA-CERROELPLOMO, según
+confirmación explícita del usuario en este chat el 26-10-2026. El adjunto pide
 seleccionar facturas pendientes y distribuir el pago/cobro total o parcial,
-con una contrapartida contable por factura y conciliación nativa. No define
-otros ambientes; la publicación en Cerro o QA-Cerro espera confirmación del
-usuario. El publicador impide esos destinos mientras no se confirme el alcance.
+con una contrapartida contable por factura y conciliación nativa. QA-Cerro
+conserva sus ejercicios, red y correo neutralizados; no se refresca su base.
 La instalación no cambia pagos ni facturas históricos. Las pruebas contables
 se ejecutan en copia, publicando el mismo paquete con respaldo y bloqueo.
 

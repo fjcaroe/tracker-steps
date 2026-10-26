@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro', 'qa-cerro'))
     args = parser.parse_args()
     if args.kind == 'invoice-payments':
-        assert args.environment == 'development', 'T123 is currently scoped to Development'
+        assert args.environment in ('development', 'cerro', 'qa-cerro'), 'T123 is authorized only for Development, Cerro and customer QA'
     assert args.environment != 'qa-cerro' or args.kind in ('invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicit T117/T118/T119/T120/T121/T114/T122 packages are authorized for customer QA'
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
