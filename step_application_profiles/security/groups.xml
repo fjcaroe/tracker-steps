@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+  <record id="packing_category" model="ir.module.category">
+    <field name="name">Packing Steps</field>
+    <field name="sequence">65</field>
+  </record>
+  <record id="packing_read" model="res.groups">
+    <field name="name">Consulta</field>
+    <field name="category_id" ref="packing_category"/>
+    <field name="implied_ids" eval="[(4,ref('stock.group_stock_user'))]"/>
+  </record>
+  <record id="packing_operation" model="res.groups">
+    <field name="name">Operación</field>
+    <field name="category_id" ref="packing_category"/>
+    <field name="implied_ids" eval="[(4,ref('packing_read'))]"/>
+  </record>
+  <record id="packing_manager" model="res.groups">
+    <field name="name">Administración</field>
+    <field name="category_id" ref="packing_category"/>
+    <field name="implied_ids" eval="[(4,ref('packing_operation')),(4,ref('stock.group_stock_manager'))]"/>
+  </record>
+  <record id="export_category" model="ir.module.category">
+    <field name="name">Exportaciones Steps</field>
+    <field name="sequence">65</field>
+  </record>
+  <record id="export_read" model="res.groups">
+    <field name="name">Consulta</field>
+    <field name="category_id" ref="export_category"/>
+    <field name="implied_ids" eval="[(4,ref('stock.group_stock_user'))]"/>
+  </record>
+  <record id="export_operation" model="res.groups">
+    <field name="name">Operación</field>
+    <field name="category_id" ref="export_category"/>
+    <field name="implied_ids" eval="[(4,ref('export_read'))]"/>
+  </record>
+  <record id="export_manager" model="res.groups">
+    <field name="name">Administración</field>
+    <field name="category_id" ref="export_category"/>
+    <field name="implied_ids" eval="[(4,ref('export_operation')),(4,ref('stock.group_stock_manager'))]"/>
+  </record>
+  <record id="producers_category" model="ir.module.category">
+    <field name="name">Productores Steps</field>
+    <field name="sequence">65</field>
+  </record>
+  <record id="producers_read" model="res.groups">
+    <field name="name">Consulta</field>
+    <field name="category_id" ref="producers_category"/>
+    <field name="implied_ids" eval="[(4,ref('stock.group_stock_user'))]"/>
+  </record>
+  <record id="producers_operation" model="res.groups">
+    <field name="name">Operación</field>
+    <field name="category_id" ref="producers_category"/>
+    <field name="implied_ids" eval="[(4,ref('producers_read'))]"/>
+  </record>
+  <record id="producers_manager" model="res.groups">
+    <field name="name">Administración</field>
+    <field name="category_id" ref="producers_category"/>
+    <field name="implied_ids" eval="[(4,ref('producers_operation')),(4,ref('stock.group_stock_manager'))]"/>
+  </record>
+</odoo>

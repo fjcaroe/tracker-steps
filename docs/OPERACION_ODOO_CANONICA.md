@@ -76,6 +76,17 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T114 y T122 autorizan `packing-controls` en Desarrollo, Cerro y QA-CERROELPLOMO:
+perfiles por aplicación y analítica de consumos de Packing. Los perfiles no se
+asignan automáticamente ni alteran membresías existentes; la contabilidad
+conserva sus grupos nativos. El plan nativo OT Packing y las reglas por empresa
+se configuran sin generar asientos o movimientos. Las cuentas de OT se crean
+al preparar el comprobante. Las correcciones de cargos de asientos anteriores
+se presentan como reclasificaciones en borrador, conservando los publicados.
+Se exige copia fresca del destino, paquete idéntico, respaldo y bloqueo; QA
+conserva sus ejercicios y aislamiento. El stock en kg y cajas separadas de T121
+fue confirmado en la respuesta humana 9720, que informa el ciclo probado.
+
 T121 autoriza además el paquete `packing-stock` en Desarrollo, Cerro y
 QA-CERROELPLOMO: configurar una bodega nativa Packing, el origen de materiales y
 el traslado de tarjas C al proceso. Se reutiliza la bodega existente cuando es

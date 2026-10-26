@@ -1,0 +1,2 @@
+<odoo><record id="analytic_rule_company" model="ir.rule"><field name="name">Packing analytic configuration by company</field>
+<field name="model_id" ref="model_step_packing_analytic_rule"/><field name="domain_force">[('company_id','in',company_ids)]</field></record></odoo>

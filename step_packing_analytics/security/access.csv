@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+rule_stock_read,Packing analytic rules reader,model_step_packing_analytic_rule,stock.group_stock_user,1,0,0,0
+rule_account_manager,Packing analytic rules manager,model_step_packing_analytic_rule,account.group_account_manager,1,1,1,1
