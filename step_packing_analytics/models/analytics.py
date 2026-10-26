@@ -197,6 +197,24 @@ class Move(models.Model):
             return expense.id
         return super()._get_dest_account(accounts_data)
 
+    def _packing_return_expense_lines(self):
+        self.ensure_one()
+        original=self.origin_returned_move_id
+        if not original.step_analytic_production_id or not original.step_packing_consumption:
+            return self.env['account.move.line']
+        if original.company_id!=self.company_id:
+            raise UserError(_('La devolución y el consumo original pertenecen a empresas distintas.'))
+        return original.sudo().stock_valuation_layer_ids.account_move_id.line_ids.filtered(
+            lambda line:line.product_id==self.product_id and line.debit>0)
+
+    def _get_src_account(self, accounts_data):
+        if self.location_id.usage=='production' and self.location_dest_id.usage=='internal':
+            lines=self._packing_return_expense_lines()
+            if lines:
+                if len(lines.account_id)!=1:raise UserError(_('Revise las cuentas del consumo original antes de devolverlo.'))
+                return lines.account_id.id
+        return super()._get_src_account(accounts_data)
+
     def _prepare_account_move_line(self,qty,cost,credit_account_id,debit_account_id,svl_id,description):
         values=super()._prepare_account_move_line(qty,cost,credit_account_id,debit_account_id,svl_id,description)
         if self.step_analytic_production_id and self.step_packing_consumption:
@@ -205,6 +223,15 @@ class Move(models.Model):
                 line=command[2]
                 if line.get('account_id')==debit_account_id:
                     line['analytic_distribution']=distribution
+        elif self.location_id.usage=='production' and self.location_dest_id.usage=='internal':
+            original=self._packing_return_expense_lines()
+            distributions=[line.analytic_distribution for line in original if line.analytic_distribution]
+            if distributions:
+                if any(value!=distributions[0] for value in distributions):
+                    raise UserError(_('Revise la distribución del consumo original antes de devolverlo.'))
+                for command in values:
+                    if command[2].get('account_id')==credit_account_id:
+                        command[2]['analytic_distribution']=distributions[0]
         return values
 
 

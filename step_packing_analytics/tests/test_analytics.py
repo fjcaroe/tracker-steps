@@ -145,3 +145,20 @@ class PackingAnalyticsCase(TransactionCase):
     def test_native_form_shows_analytic_configuration_and_review_action(self):
         ot=self.ot();Form(ot,view='step_packing_operations.view_packing_production_form')
         self.assertEqual(ot.step_effective_season_id,self.season)
+
+    def test_native_material_return_reverses_original_expense_and_analytics(self):
+        ot=self.ot();ot.action_step_packing_close()
+        original=ot.material_picking_id.move_ids
+        distribution=original.stock_valuation_layer_ids.account_move_id.line_ids.filtered('debit').analytic_distribution
+        picking=self.env['stock.picking'].create({'picking_type_id':self.wh.int_type_id.id,
+            'location_id':original.location_dest_id.id,'location_dest_id':original.location_id.id,
+            'move_ids':[(0,0,{'name':'QA122 devolución','product_id':self.material.id,
+                'product_uom':self.material.uom_id.id,'product_uom_qty':16,
+                'location_id':original.location_dest_id.id,'location_dest_id':original.location_id.id,
+                'origin_returned_move_id':original.id})]})
+        picking.action_confirm();picking.move_ids.quantity=16;picking.button_validate()
+        entry=picking.move_ids.stock_valuation_layer_ids.account_move_id
+        self.assertEqual(entry.state,'posted')
+        self.assertEqual(entry.line_ids.filtered('debit').account_id,self.asset)
+        self.assertEqual(entry.line_ids.filtered('credit').account_id,self.expense)
+        self.assertEqual(entry.line_ids.filtered('credit').analytic_distribution,distribution)

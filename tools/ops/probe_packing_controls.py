@@ -1,7 +1,8 @@
 """Private full accounting flow with application operator and historical review."""
 def verify_flow(root,scoped):
     assert root.cr.dbname.startswith('MANAGEMENT_QA_')
-    setup=root['stock.picking'].with_company(scoped.company).env
+    quiet={'tracking_disable':True,'mail_notrack':True,'mail_notify_force_send':False,'mail_create_nosubscribe':True,'mail_auto_subscribe_no_notify':True}
+    setup=root['stock.picking'].with_company(scoped.company).with_context(**quiet).env
     company=scoped.company
     user=setup['res.users'].with_context(no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True).create({
         'name':'QA114 Packing operación','login':'qa114-probe-op','company_id':company.id,'company_ids':[(6,0,company.ids)],
@@ -43,7 +44,7 @@ def verify_flow(root,scoped):
     setup['res.company'].browse(company.id).step_packing_require_contract=False
     operator=fixture.with_user(user).with_context(allowed_company_ids=company.ids)
     operator.action_step_packing_validate();operator.action_prepare_materials()
-    reviewer=fixture.with_env(scoped);reviewer.action_approve_materials()
+    reviewer=fixture.with_env(scoped).with_context(**quiet);reviewer.action_approve_materials()
     operator.action_step_packing_close()
     setup['res.company'].browse(company.id).step_packing_require_contract=require
     assert fixture.state=='closed'
@@ -57,7 +58,7 @@ def verify_flow(root,scoped):
     assert not fixture.input_picking_id.move_ids.stock_valuation_layer_ids
     assert len(setup['account.analytic.account'].search([('step_packing_production_id','=',fixture.id)]))==1
     print('T114_T122_OPERATOR_ACCOUNTING_FLOW_OK company=%s operator=%s rollback_required=True'%(company.id,user.id))
-    original=scoped['step.packing.production'].search([('name','=','OT/2026/00040')])
+    original=scoped['step.packing.production'].with_context(**quiet).search([('name','=','OT/2026/00040')])
     if original:
         entries=(original.input_picking_id.move_ids|original.material_picking_id.move_ids).stock_valuation_layer_ids.account_move_id
         old={line.id:(line.account_id.id,line.debit,line.credit) for line in entries.line_ids}
