@@ -199,7 +199,8 @@ class Payment(models.Model):
         return super()._generate_journal_entry(write_off_line_vals=write_off_line_vals, force_balance=force_balance, line_ids=line_ids)
 
     def _synchronize_to_moves(self, changed_fields):
-        selected = self.filtered('step_invoice_allocation_ids')
+        selected = self.filtered(lambda payment: payment.step_invoice_allocation_ids
+                                 or payment.move_id.line_ids.filtered('step_treasury_invoice_id'))
         super(Payment, self - selected)._synchronize_to_moves(changed_fields)
         if not (set(changed_fields) & (set(self._get_trigger_fields_to_synchronize()) | {'step_invoice_allocation_ids'})):
             return
@@ -208,6 +209,7 @@ class Payment(models.Model):
                 raise UserError(_('Vuelva el pago a borrador antes de cambiar sus importes o facturas.'))
             payment._step_validate_allocations()
             payment.move_id.with_context(skip_invoice_sync=True).write({
+                'name': '/',
                 'date': payment.date, 'partner_id': payment.partner_id.id, 'currency_id': payment.currency_id.id,
                 'partner_bank_id': payment.partner_bank_id.id, 'journal_id': payment.journal_id.id,
                 'line_ids': [Command.clear()] + [Command.create(values) for values in payment._prepare_move_line_default_vals()]})
@@ -290,7 +292,10 @@ class InvoiceSelection(models.TransientModel):
         if not self.invoice_ids or self.invoice_ids - self.available_invoice_ids:
             raise UserError(_('Seleccione facturas contabilizadas y pendientes del tercero y empresa del pago.'))
         existing = payment.step_invoice_allocation_ids.invoice_id
+        values = []
         for invoice in self.invoice_ids - existing:
             amount = invoice.currency_id._convert(invoice.amount_residual, payment.currency_id, payment.company_id, payment.date)
-            self.env['step.treasury.payment.invoice'].create({'payment_id': payment.id, 'invoice_id': invoice.id, 'amount': amount})
+            values.append({'payment_id': payment.id, 'invoice_id': invoice.id, 'amount': amount})
+        if values:
+            self.env['step.treasury.payment.invoice'].create(values)
         return {'type': 'ir.actions.act_window_close'}

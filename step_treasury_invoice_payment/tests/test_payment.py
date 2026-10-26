@@ -162,6 +162,25 @@ class InvoicePaymentCase(TransactionCase):
         pay = payment(self.env, self.data, inv)
         self.assertFalse(pay.copy().step_invoice_allocation_ids)
 
+    def test_clearing_all_invoices_after_reset_restores_a_standard_draft_payment(self):
+        invoices = invoice(self.env, self.data, 100) | invoice(self.env, self.data, 200)
+        pay = payment(self.env, self.data, invoices); pay.action_post(); pay.action_draft()
+        pay.step_invoice_allocation_ids.unlink()
+        self.assertEqual(pay.amount, 0)
+        self.assertFalse(pay.move_id.line_ids.filtered('step_treasury_invoice_id'))
+        self.assertEqual(len(pay.move_id.line_ids), 2)
+        self.assertEqual(invoices.mapped('amount_residual'), [100, 200])
+
+    def test_draft_journal_invoice_reference_cannot_bypass_payment_distribution(self):
+        invoices = invoice(self.env, self.data, 100) | invoice(self.env, self.data, 200)
+        pay = payment(self.env, self.data, invoices); pay.action_post(); pay.action_draft()
+        wrong = invoice(self.env, self.data, 300)
+        first = pay.move_id.line_ids.filtered(lambda line: line.step_treasury_invoice_id == invoices[0])
+        first.step_treasury_invoice_id = wrong
+        with self.assertRaises(UserError): pay.action_post()
+        self.assertEqual(pay.move_id.state, 'draft')
+        self.assertEqual(invoices.mapped('amount_residual'), [100, 200])
+
     def test_invoice_cannot_be_duplicated_or_assigned_to_wrong_partner(self):
         inv = invoice(self.env, self.data)
         pay = payment(self.env, self.data, inv)
@@ -192,6 +211,14 @@ class InvoicePaymentCase(TransactionCase):
         pay = payment(self.env, self.data)
         with self.assertRaises(AccessError):
             self.env['step.treasury.payment.invoice'].with_user(user).create({'payment_id': pay.id, 'invoice_id': inv.id, 'amount': 10})
+
+    def test_native_billing_user_can_apply_invoice_payment(self):
+        user = new_test_user(self.env, login='qa123-billing', groups='base.group_user,account.group_account_invoice',
+                             company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
+        inv = invoice(self.env, self.data)
+        pay = payment(self.env, self.data, inv).with_user(user)
+        pay.action_post()
+        self.assertEqual(inv.amount_residual, 0)
 
     def test_invoice_allocation_respects_company_access_and_cannot_cross_companies(self):
         other = self.env['res.company'].create({'name': 'QA123 empresa separada', 'currency_id': self.env.company.currency_id.id})
