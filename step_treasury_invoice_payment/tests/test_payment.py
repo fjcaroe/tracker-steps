@@ -188,3 +188,19 @@ class InvoicePaymentCase(TransactionCase):
         pay = payment(self.env, self.data)
         with self.assertRaises(AccessError):
             self.env['step.treasury.payment.invoice'].with_user(user).create({'payment_id': pay.id, 'invoice_id': inv.id, 'amount': 10})
+
+    def test_invoice_allocation_respects_company_access_and_cannot_cross_companies(self):
+        other = self.env['res.company'].create({'name': 'QA123 empresa separada', 'currency_id': self.env.company.currency_id.id})
+        other_env = self.env['account.payment'].with_company(other).env
+        other_data = fixture(other_env, prefix='Q124')
+        foreign_invoice = invoice(other_env, other_data)
+        foreign_payment = payment(other_env, other_data, foreign_invoice)
+        user = new_test_user(self.env, login='qa123-company-user', groups='base.group_user,account.group_account_user',
+                             company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
+        with self.assertRaises(AccessError):
+            foreign_payment.step_invoice_allocation_ids.with_user(user).with_context(
+                allowed_company_ids=self.env.company.ids).read(['amount'])
+        local = payment(self.env, self.data)
+        with self.assertRaises(UserError):
+            self.env['step.treasury.payment.invoice'].create({'payment_id': local.id,
+                'invoice_id': foreign_invoice.id, 'amount': 10})
