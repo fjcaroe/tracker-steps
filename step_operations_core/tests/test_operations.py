@@ -33,8 +33,8 @@ class OperationsCoreCase(TransactionCase):
         })
         self.assertEqual(employee.step_work_schedule, schedule)
         self.assertEqual(employee.contratista_id, contractor)
-        self.assertEqual(employee.costo_empresa, 123.45)
-        self.assertEqual(employee.costo_contratista, 67.89)
+        self.assertEqual(employee.costo_empresa, employee.currency_id.round(123.45))
+        self.assertEqual(employee.costo_contratista, employee.currency_id.round(67.89))
         self.assertEqual(employee.cost_currency_id, self.env.company.currency_id)
         self.assertTrue(employee.get_view(self.env.ref('step_hr.step_view_hr_employee_form').id, 'form')['arch'])
         portal = self.env['res.users'].create({'name': 'Operations portal', 'login': 'operations-portal-fixture',

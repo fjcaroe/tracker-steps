@@ -22,7 +22,13 @@ class TestMachineryAccounting(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.company = cls.env.company
+        # Do not reuse or reactivate customer accounts. A destination can
+        # legitimately retain deprecated canonical accounts for its history.
+        cls.company = cls.env['res.company'].create({
+            'name': 'Community Machinery Accounting fixture',
+            'currency_id': cls.env.company.currency_id.id,
+        })
+        cls.env = cls.env(context=dict(cls.env.context, allowed_company_ids=cls.company.ids))
         cls.Service = cls.env["type.service.machinery"]
         # Diario propio de la prueba, restringido igual que CDMaq antes de la
         # homologación: sólo acepta una cuenta ajena a maquinaria.
@@ -31,10 +37,11 @@ class TestMachineryAccounting(TransactionCase):
             "company_id": cls.company.id,
         })
         cls.company.step_journal_machinery = cls.journal
-        cls.foreign_account = cls.env["account.account"].with_company(cls.company).search(
-            [("account_type", "=", "asset_current")], limit=1)
-        if cls.foreign_account:
-            cls.journal.write({"account_control_ids": [(6, 0, cls.foreign_account.ids)]})
+        cls.foreign_account = cls.env["account.account"].create({
+            'name': 'Fixture unrelated current asset', 'code': 'QA100',
+            'account_type': 'asset_current', 'company_ids': [(6, 0, cls.company.ids)],
+        })
+        cls.journal.write({"account_control_ids": [(6, 0, cls.foreign_account.ids)]})
         cls.Service._ensure_canonical_catalog(cls.company)
         cls.cargo = cls.env["account.account"].with_company(cls.company).search(
             [("code", "=", CANONICAL_CARGO_ACCOUNT[0])], limit=1)
