@@ -216,6 +216,7 @@ def main():
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
     parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor', 'harvest'), default='agriculture')
+    parser.add_argument('--wait-lock', action='store_true', help='Queue behind the shared environment lease; no database mutation while waiting')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
     parser.add_argument('--complete-native', action='store_true', help='Finish native checks after successful full tests; identical addon fingerprints required')
     args = parser.parse_args()
@@ -250,7 +251,9 @@ def main():
     data = stage / 'data'; data.mkdir()
     with ExitStack() as stack:
         lock = stack.enter_context(open('/run/lock/steps-environments.lock', 'a'))
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.wait_lock: print('AGRICULTURE_WAITING_FOR_SHARED_LEASE',flush=True)
+        fcntl.flock(lock,fcntl.LOCK_EX if args.wait_lock else fcntl.LOCK_EX|fcntl.LOCK_NB)
+        print('AGRICULTURE_SHARED_LEASE_ACQUIRED',flush=True)
         assert not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + args.database + "'")
         sys.path.insert(0, str(addons / 'tools/ops'))
         if args.environment == 'qa-cerro':
