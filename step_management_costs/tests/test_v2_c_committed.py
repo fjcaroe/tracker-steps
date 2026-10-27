@@ -48,6 +48,7 @@ class TestV2CCommitted(ManagementCostsCommon):
             "invoice_date": fields.Date.today(),
             "invoice_line_ids": [(0, 0, {
                 "product_id": po_line.product_id.id, "quantity": quantity,
+                "account_id": self.expense_account.id,
                 "price_unit": po_line.price_unit, "purchase_line_id": po_line.id,
                 "name": po_line.product_id.name,
             })],

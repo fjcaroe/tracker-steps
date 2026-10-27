@@ -115,6 +115,10 @@ class ManagementCostsCommon(TransactionCase):
         super().setUpClass()
         cls.company_a = cls.env.ref("base.main_company")
         cls.purchase_journal = make_purchase_journal(cls.env, cls.company_a)
+        cls.expense_account = cls.env['account.account'].create({
+            'name': 'QA expense Management Costs', 'code': 'QAE' + uuid.uuid4().hex[:8],
+            'account_type': 'expense', 'company_ids': [(6, 0, cls.company_a.ids)],
+        })
         cls.company_b = cls.env["res.company"].create(dict(
             {"name": "MC Company B"}, **extra_company_vals(cls.env),
         ))

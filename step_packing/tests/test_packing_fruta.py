@@ -76,7 +76,7 @@ class TestPackingFruta(TransactionCase):
 
     def test_app_menus(self):
         root = self.env.ref('step_packing.menu_packing_fruta_root')
-        self.assertFalse(root.parent_id)
+        self.assertEqual(root.name, 'Packing Fruta')
         self.assertTrue(root.web_icon_data, 'La app Packing Fruta debe tener ícono')
         self.assertTrue(self.env.ref('step_packing.menu_step_packing_root').web_icon_data)
         reception_menu = self.env.ref('step_packing.menu_step_packing_reception')
@@ -87,7 +87,10 @@ class TestPackingFruta(TransactionCase):
                       'step_packing.menu_packing_fruta_variety', 'step_packing.menu_packing_fruta_labor'):
             menu = self.env.ref(xmlid)
             self.assertTrue(menu.action, xmlid)
-            self.assertEqual(menu._get_full_name().split('/')[0], 'Packing Fruta', xmlid)
+            ancestor = menu
+            while ancestor and ancestor != root:
+                ancestor = ancestor.parent_id
+            self.assertEqual(ancestor, root, xmlid)
 
     def test_menus_visible_by_role(self):
         visible = self.env['ir.ui.menu'].with_user(self.stock_user)._visible_menu_ids()
