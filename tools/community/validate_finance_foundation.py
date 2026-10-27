@@ -34,14 +34,25 @@ def snapshot(database):
     statements = []
     for table in tables:
         assert re.fullmatch('[a-z_][a-z0-9_]*', table)
+        # Numeric trailing zeroes are representation only (15.00 == 15).
+        # trim_scale is exact: it never rounds amounts or changes strings/nulls.
+        normalized = "(SELECT jsonb_object_agg(key,CASE WHEN jsonb_typeof(value)='number' " \
+            "THEN to_jsonb(trim_scale((value#>>'{}')::numeric)) ELSE value END) FROM jsonb_each(to_jsonb(t)))"
         statements.append("SELECT '" + table + "' AS name, json_build_object('rows',count(*),'hash',"
-            "md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) AS value FROM " + table + ' t')
+            "md5(coalesce(string_agg(n::text,E'\\n' ORDER BY n::text),'')),'representation_hash',"
+            "md5(coalesce(string_agg(raw::text,E'\\n' ORDER BY raw::text),''))) AS value FROM "
+            "(SELECT " + normalized + " AS n,to_jsonb(t) AS raw FROM " + table + ' t) rows')
     if not statements:
         return {}
     # A single SQL statement gives every table the same MVCC snapshot and
     # avoids a separate sudo/psql process per table.
     return json.loads(sql(database, "SELECT json_object_agg(name,value) FROM (" +
                           ' UNION ALL '.join(statements) + ') snapshots'))
+
+
+def same_values(before, after):
+    return before.keys() == after.keys() and all(
+        (before[t]['rows'], before[t]['hash']) == (after[t]['rows'], after[t]['hash']) for t in before)
 
 
 def field_ids(database):
@@ -132,7 +143,7 @@ def main():
         sql(args.database, 'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         if baseline is not None:
             after = snapshot(args.database); (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
-            assert after == baseline, 'Existing business records changed'
+            assert same_values(baseline, after), 'Existing business records changed'
             assert field_ids(args.database) == original_fields, 'Field IDs changed'
         check = '''
 import json
@@ -160,7 +171,7 @@ finally: env.cr.rollback()
         assert result.returncode == 0 and 'COMMUNITY_FOUNDATION_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
         print(result.stdout, flush=True)
         if baseline is not None:
-            assert snapshot(args.database) == baseline
+            assert same_values(baseline, snapshot(args.database))
         (stage / 'passed.json').write_text(json.dumps({'mode': args.mode, 'database': args.database,
             'tests_log': str(log), 'business_preserved': baseline is not None, 'writes_to_production': False}, indent=2))
         print('COMMUNITY_FOUNDATION_OK ' + args.mode, flush=True)
