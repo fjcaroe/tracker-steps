@@ -15,6 +15,7 @@ class FieldTranslationsCase(unittest.TestCase):
                     Json({'en_US':'Schedule','es_CL':'Horario'}),Json({'en_US':'Original source','es_CL':'Ayuda original'})))
             cr.execute('INSERT INTO ir_model_fields VALUES (4,%s,%s,NULL)',('hr.contract',Json({'en_US':'Untranslated'})))
             before=capture(cr,['hr.contract']);self.assertEqual(len(before),3)
+            self.assertEqual(capture(cr),before)
             cr.execute('UPDATE ir_model_fields SET help=%s WHERE id=1',(Json({'en_US':'Original source'}),))
             cr.execute('UPDATE ir_model_fields SET help=%s WHERE id=2',(Json({'en_US':'Changed source'}),))
             cr.execute('UPDATE ir_model_fields SET help=%s WHERE id=3',(Json({'en_US':'Original source','es_CL':'Explicit replacement'}),))

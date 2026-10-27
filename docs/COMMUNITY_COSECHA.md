@@ -140,3 +140,11 @@ de HR y otra de Cosecha, para la misma tabla/modelo compartido. El puente adopta
 ambas filas manteniendo sus IDs, nombres, modelo y auditoría original. No las
 fusiona ni elimina. El contrato permite exclusivamente esos dos propietarios
 legados para esa relación, además de las dos relaciones de informes de HR.
+
+La protección de traducciones captura también el estado inicial al construir el
+registro y lo conserva al finalizar toda la operación CLI, incluida la apertura
+nativa de formularios. Se limita a las bases seleccionadas explícitamente con
+`-d`, a los mismos IDs y a textos base finales que siguen iguales. Esto cubre
+el caso del calendario de contratos, cuya ayuda perdía el español fuera de la
+reflexión inicial. Conserva traducciones nuevas explícitas y la salida original
+de las pruebas; una prueba fallida sigue impidiendo la aceptación.
