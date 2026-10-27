@@ -127,11 +127,15 @@ class CommunityCurrencyCase(TransactionCase):
         for record in records: alias(self.env, record, namespace, True)
         field = self.env['res.company']._fields['operational_currency_id']
         prefetch = field.prefetch
+        model_class = type(self.env['res.company'])
+        own_attribute = 'operational_currency_id' in vars(model_class)
         try:
             self.env['ir.model.data']._module_data_uninstall([namespace])
         finally:
             # Native uninstall rebuilds the registry afterward; TransactionCase does not.
             field.prefetch = prefetch
             self.env['res.company']._add_field('operational_currency_id', field)
+            if not own_attribute:
+                delattr(model_class, 'operational_currency_id')
         for name in names: self.assertTrue(self.env.ref(CORE+'.'+name).exists())
         self.assertEqual(self.company.operational_currency_id, self.operational)
