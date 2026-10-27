@@ -138,6 +138,7 @@ class LaborOperationsCase(TransactionCase):
                 item.fixed_price=20
         rate=form.record
         self.assertEqual(rate.item_ids.labor_id,labor)
+        self.assertEqual(rate.item_ids.product_tmpl_id,labor)
         self.assertEqual(rate.item_ids.uom_id,unit)
         with Form(self.scoped['product.pricelist.item'].with_context(default_pricelist_id=rate.id),
                   view='step_hr.product_pricelist_item_form_inherit_step') as standalone:
@@ -147,6 +148,7 @@ class LaborOperationsCase(TransactionCase):
             standalone.uom_id=unit
             standalone.compute_price='fixed'
             standalone.fixed_price=20
+        self.assertEqual(standalone.record.product_tmpl_id,labor)
         partner=self.env['res.partner'].create({'name':'Contractor rate fixture','step_contra':True})
         self.employee.write({'is_contratista':True,'contratista_id':partner.id})
         crew=self.crew('contratista')
@@ -154,10 +156,12 @@ class LaborOperationsCase(TransactionCase):
             'partner_id':partner.id,'company_id':self.company.id,'date':'2026-10-27','pricelist_id':rate.id,
             'tarja_cost_line':[Command.create({'employee_id':self.employee.id,'labor_id':labor.id,'quantity':3})]})
         line=tarja.tarja_cost_line
+        # Reading the stored computed total runs the scheduled tariff compute;
+        # it also assigns the legacy normal unit/rate fields.
+        self.assertEqual(line.trato_total,60)
         self.assertEqual(line.labor_id,labor)
         self.assertEqual(line.uom_id,unit)
         self.assertEqual(line.tarifa,20)
-        self.assertEqual(line.trato_total,60)
 
     def test_relation_metadata_owner_preserves_ids_and_is_idempotent(self):
         data=self.env['ir.model.relation'].search([('name','in',RELATIONS)])
