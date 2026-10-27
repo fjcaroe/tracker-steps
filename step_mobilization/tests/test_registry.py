@@ -13,7 +13,7 @@ class TestRegistry(MobilizationCommon):
         field=self.env['res.company']._fields['step_movi_document_type_id']
         self.assertEqual(field.comodel_name,'l10n_latam.document.type')
         document_type=self.env['l10n_latam.document.type'].create({
-            'name':'Private mobilization document fixture','code':'LTEST',
+            'name':'Private mobilization document fixture','code':'991',
             'country_id':self.env.ref('base.cl').id,
         })
         self.company.step_movi_document_type_id=document_type
