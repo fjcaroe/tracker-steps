@@ -56,10 +56,11 @@ def main():
                 shutil.copyfile(stage / ('verify-' + proof['database'] + '.log'), output / (target + '-clone-flow.log'))
                 if entry['kind'] == 'packaging-master':
                     matches = list(stage.glob('material-hierarchy-*.log'))
-                    assert len(matches) == 1 or target == 'cerro'
+                    assert 1 <= len(matches) <= 2
                     # A live configuration receipt is stronger when present.
                     db = {'development': 'LAB_TAREAS', 'cerro': 'CERRO_EL_PLOMO', 'qa-cerro': 'QA-CERROELPLOMO'}[target]
                     live = stage / ('material-hierarchy-' + db + '.log')
+                    assert all(p.name in {'material-hierarchy-' + proof['database'] + '.log', live.name} for p in matches)
                     shutil.copyfile(live if live.exists() else matches[0], output / (target + '-hierarchy.log'))
                 receipts = []
                 for backup in Path('/opt/steps_backups').glob('management_' + target + '_*'):
