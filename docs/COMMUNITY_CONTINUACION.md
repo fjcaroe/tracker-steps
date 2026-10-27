@@ -172,3 +172,93 @@ reemplazo real que preserve el historial; no quitarlos del manifiesto solamente.
 La etapa 1 queda validada como paquete preparatorio. El siguiente bloque es
 Tesorería/informes (cinco acciones concretas arriba), antes del retiro integral.
 No usar estas evidencias como respaldo fresco para una futura publicación.
+
+## Segunda extracción — Tesorería e informes, 27-10-2026
+
+Esta sección actualiza el punto de continuación anterior. Trabajo desde
+`669e3a1`, en worktree propio y rama `codex/community-treasury-20261027`.
+Commits de implementación: `2a678c8`, `c882b81`, `2598602`.
+
+- `step_account_treasury` 18.0.1.3.0 conserva todos sus modelos, cálculos,
+  tablas, formularios y permisos. Ahora depende de
+  `step_accounting_multicurrency_core`, sin `account_reports`.
+- `step_account_treasury_reports` 18.0.1.0.0 es el puente opcional para las
+  cinco acciones Enterprise identificadas. Conserva el adaptador de informes
+  multimoneda. No implementa ni copia el motor Enterprise.
+- La premigración de Tesorería exige instalar el puente en la misma operación
+  cuando existen los menús anteriores. Adopta sus XMLIDs con alias en ambos
+  namespaces; no recrea menús ni escribe acciones, grupos o fechas.
+- El hook del puente solo crea los accesos faltantes en instalaciones nuevas.
+  No usar XML `noupdate` para adoptar estos menús: el modo de instalación también
+  escribe los registros existentes. Dos pruebas del puente verifican menús
+  personalizados intactos y creación de accesos con alias históricos.
+- Tres pruebas del núcleo comprueban adopción idempotente con permisos,
+  rechazo de alias en conflicto y bloqueo de actualización sin puente.
+- El control estático aprueba el cierre de dependencias de Tesorería (28) y
+  T123 (29); rechaza correctamente el puente Enterprise. T123 se probó en la
+  copia Cerro; no se afirma todavía su instalación funcional pura Community.
+
+Paquete de los addons: `2598602`. Archivo privado `treasury-final.tar`, SHA256
+`05e85905fcf82ef36a7b646527ac418d06ecf17641c55b62160c87ac1b55c0c9`.
+Los 60 archivos de los cuatro addons coinciden por SHA256 entre ambos ensayos.
+El validador es `tools/community/validate_treasury_extraction.py`; no publica,
+solo admite bases privadas y utiliza `/run/lock/steps-environments.lock`.
+
+### Evidencia y límites
+
+Community final: `/opt/steps-validation/community-treasury-20261027B/community/`,
+DB `COMMUNITY_TREASURY_20261027B`, 62 pruebas aprobadas, cero Enterprise,
+formularios comprobados. Fuentes oficiales 18.0 en la misma revisión
+`4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`. El primer ensayo A también aprobó
+62 pruebas; B repitió la instalación con el paquete final del puente.
+
+El primer ensayo Cerro A aprobó 86 pruebas y conservó valores y permisos,
+pero la comparación estricta encontró que el XML de instalación escribía las
+fechas de modificación de los cinco menús. No se aceptó como entrega; el hook
+de creación selectiva y sus dos pruebas corrigen ese comportamiento.
+El ensayo B se detuvo al cargar Nómina porque la extracción del overlay excluyó
+también una carpeta interna `tools`; no se reutilizó su base. Al preparar C se
+anclaron las exclusiones de tar a la raíz con `--anchored`.
+
+Ensayo Cerro final C: DB `MANAGEMENT_QA_CERRO_TREASURY_20261027C`,
+`/opt/steps-validation/community-treasury-cerro-20261027C/cerro-copy/`.
+`passed.json` y `verify.log` confirman 88 pruebas sin fallos, formularios y
+aliases comprobados. Se conservaron los valores de 842 tablas, 225 IDs de
+campos, 21 registros de ACL/reglas/grupos y las relaciones de grupos/usuarios.
+Los cinco menús conservan sus IDs, acciones, restricciones, estado, padres,
+secuencias y fechas de modificación. Las comparaciones JSON son estructurales;
+el orden de las claves de un objeto JSON no es significativo.
+
+La única diferencia de representación textual vuelve a ser
+`stock_package_type`, con la normalización decimal exacta ya validada en la
+primera etapa. Las huellas de valores coinciden en todas las tablas. La copia
+mantiene sus 140 Enterprise; no representa todavía una conversión integral.
+El dump de origen y todos los intentos se conservaron fuera de Git.
+
+Evidencia Windows: `C:/Users/tito4/.codex/local-artifacts/community-treasury-20261027/`.
+`evidence.tar.gz` contiene resultados, logs y huellas de todos los intentos;
+los dumps y filestores permanecen en los directorios privados del servidor.
+La evidencia de fuentes en `source-files.json` registra los mismos 60 archivos
+de addons en Community B y Cerro C.
+
+### Siguiente trabajo real
+
+La etapa 2 sigue abierta. El puente conserva los cinco accesos de informes
+Enterprise; no es su sustituto Community. La instalación Community dispone de
+la planificación, hojas, resumen y exportaciones propios de Tesorería, sin
+anunciar esos cinco informes todavía no reemplazados. Evaluar los candidatos
+OCA ya registrados contra los contratos reales de mayor, antigüedad y saldos;
+definir y conciliar por separado flujo de efectivo y conciliación bancaria.
+Conservar los mismos menús al conectar cada reemplazo validado. No retirar el
+puente ni `account_reports` hasta completar estos contratos y sus dependientes.
+
+`step_account_treasury_batch` sigue separado y depende de
+`account_batch_payment`: preservar sus lotes históricos y reemplazar el flujo
+real antes de retirar Enterprise. Probar también T123 en instalación Community
+pura antes de declararlo funcionalmente independiente. La separación de los
+maestros de `step_hr`, DTE y Calidad permanece posterior.
+
+No se publicó en servicios activos, no se retiró Enterprise en producción,
+no se alteraron vencimientos y no se refrescó QA-Cerro. Estos ensayos privados
+no sustituyen Desarrollo público ni son un respaldo fresco de una publicación
+futura.
