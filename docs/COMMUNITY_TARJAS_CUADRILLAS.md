@@ -1,5 +1,10 @@
 # Tarjas, Cuadrillas y Movilización Community
 
+Actualización posterior: la frontera restante de HR se separa en
+`step_hr_payroll_bridge`; Actividades/Tracker permanecen en `step_hr` Community.
+Este documento conserva la evidencia de su bloque original; el contrato actual
+y la continuación de Nómina están en [COMMUNITY_HR_PAYROLL.md](COMMUNITY_HR_PAYROLL.md).
+
 ## Frontera operacional
 
 `step_labor_operations_core` 18.0.1.0.0 depende de `step_operations_core` y

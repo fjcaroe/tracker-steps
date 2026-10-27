@@ -1163,3 +1163,121 @@ Guarda commits, push, integra solo lo validado y ejecuta
 python tools/git/verify_handoff.py --require-pushed. Entrega estado, evidencia,
 pendientes, valoración honesta del 31 y el siguiente prompt.
 ```
+
+
+## HR operacional y auditoría de Nómina — aceptación final F, 27-10-2026
+
+Base de trabajo: canónica `ca45289`, que ya contiene `a6a7f66` y las entregas
+concurrentes T124/T125/T126. Código exacto de addons `6e418ef`, en la rama
+`codex/community-hr-payroll-20261027`. Contratos y prompt completo:
+[COMMUNITY_HR_PAYROLL.md](COMMUNITY_HR_PAYROLL.md).
+
+`step_hr` 18.0.1.10.0 conserva Actividades/Tracker, configuración, históricos,
+assets, IDs y relaciones; instala en Community oficial sin Nómina ni mapa EE.
+`step_hr_payroll_bridge` conserva las cuatro vistas y los campos originales de
+Nómina, el método real de Tarjas y el Boolean bancario legado. La premigración
+rechaza actualizar HR con Nómina instalada sin incluir ese puente. Se mantienen
+los alias de campos delegados y de herencias reales, los límites de Calendar y
+`210233` descontinuada. El importador masivo valida empresa/lote/estructura,
+contrato, unicidad, borrador no pagado y duplicados, con bloqueo de filas y sin
+recalcular. Respeta la API real: el lote pasa a `verify` al contener borradores.
+Los permisos originales se conservan.
+
+Evidencia aceptada: **468 pruebas Community / 516 en copia fresca de Cerro**,
+**28 addons / 837 archivos idénticos**, **918 tablas/proyecciones**, **140
+contadores exactos durante upgrade**, **58.956 XML IDs originales**, **463
+relaciones**, **526 restricciones SQL/FK**, **2.322 ACL y 610 reglas**.
+Se conservan las 1.614 membresías usuario/grupo y 36 usuario/compañía, además de
+los grupos implicados y de reglas. Las fixtures consumen luego 30 contadores
+estándar de la copia, monótonos y sin reset. Los históricos, adjuntos, saldos y
+vencimiento permanecen iguales. Los formularios, menús y flujos nativos pasan
+con UID 6, compañía 2 y `su=False`. Detalle y huellas en el documento HR.
+
+La regresión incluye 34 casos de Exportación; se corrigieron sus expectativas
+para los consumidores instalados (Control, roles y bloqueo de guías), conservando
+el orden guardado del cliente. El preflight dirigido aprobó 48 casos antes de
+repetir el paquete final completo. No se emitió al SII real ni se probó aún su
+reemplazo Community.
+
+El motor real OCA `payroll`/`payroll_account`, fijado a `4c71cd4`, pasa **38
+pruebas**, cálculo/entrada/asiento balanceado y menú/formularios con usuario
+sin superpoderes sobre Community oficial `4b4efe6`, cero EE. Usa datos de ejemplo
+oficiales requeridos por la suite upstream en una base privada nueva. **No es
+compatible todavía con Simple Digital**: la comprobación nativa demuestra al
+menos siete brechas de API. Los tipos base de estructura sí existen en Community;
+faltan enlaces, tipos de entrada, worked days por work entries, relación de reglas,
+métodos y contexto de cálculo, además de equivalencia contable/chilena.
+Simple Digital declara AGPL-3 pero depende de tres componentes OEEL-1. Se auditan
+4 estructuras, 71 reglas, 6 tipos de entrada, los puentes de contratos, días,
+redondeos/correcciones, 2 perfiles Previred y 2 de libro con 42 líneas.
+Cerro tiene cero contratos, liquidaciones y snapshots salariales originales:
+las fixtures no acreditan una conversión de nómina pagada histórica.
+
+Estado acumulado: base contable, cinco consultas de Tesorería, maestros,
+Productores/Calendar, Operaciones, Tarjas/Cuadrillas, Movilización,
+Cosecha/planificación/registros y ahora HR operacional tienen ensayos parciales
+Community y copias de Cerro. El inventario actual tiene **374 instalados / 140
+Enterprise / 93 propios**. Sobre el mismo inventario, HR reduce **60 → 53** las
+apps propias con clausuras Enterprise; el bloque anterior contaba 59 sobre 91.
+No usar esos números como porcentaje de conversión. `step_task` y
+`step_harvest_launcher` siguen pendientes de consolidación/aceptación aislada.
+
+**No hay todavía una copia integral de Cerro aceptada con cero Enterprise.
+No existe evidencia para comprometer un corte seguro el 31 de octubre; riesgo
+alto.** Quedan motor Simple Digital compatible, reglas/Previred/libro, DTE/CAF/
+folios/firmas/respuestas SII/Exportación, Calidad/Studio/Documentos/Firma,
+lotes/conciliación de Tesorería, revisión de `210233`, extracción bancaria
+explícita, consumidores restantes, ensayo integral/recuperación y aceptación
+por empresa/perfil. Los paquetes agrícolas/HR no se publicaron en ambientes
+activos; seguir el circuito de Desarrollo antes de una publicación autorizada.
+Producción conserva 140 Enterprise. No se refrescó QA-Cerro ni se alteraron
+vencimientos ni liquidaciones pagadas.
+
+Evidencia privada: `~/.codex/local-artifacts/community-hr-payroll-20261027/`,
+`evidence-F/`, `summary-F.json` y `source-F-final.tar.gz`. Todos los hashes y
+comandos reproducibles figuran en `COMMUNITY_HR_PAYROLL.md`.
+
+### Prompt siguiente después de HR
+
+```text
+Continúa desde origin/codex/ambientes-canonicos-reparacion actualizada, en un
+worktree propio. Lee AGENTS.md, ~/.odoo/environments.json, operación, workflow,
+plan, continuidad, Productores, Operaciones, Tarjas/Cuadrillas, Cosecha,
+COMMUNITY_HR_PAYROLL.md y la matriz Enterprise. Revisa la evidencia final allí.
+
+Prioriza la adaptación real de Simple Digital a OCA payroll/payroll_account,
+fijados a 4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e. El paquete HR pasó
+468 pruebas en Community y 516 en copia fresca de Cerro,
+con 837 archivos idénticos, 918 tablas/proyecciones, 58.956 XML IDs y 140
+contadores preservados durante upgrade. El candidato OCA pasó 38 pruebas
+y cálculo/asiento nativo en Community oficial 4b4efe6, pero NO es compatible aún
+con Simple Digital: quedan al menos siete brechas de API comprobadas. Los modelos base
+hr.payroll.structure.type y hr.contract.structure_type_id sí existen en Community;
+faltan vínculos/complementos, tipos de entradas, worked_days por work entries,
+relación de reglas a estructuras y métodos/contexto de cálculo. No inventes
+hr.payslip ni un módulo vacío hr_payroll para engañar al cargador. Usa el motor real.
+
+Audita y conserva los 71 registros de reglas, 4 estructuras, 6 tipos de entrada,
+2 perfiles Previred y 2 de libro/42 líneas, además de los puentes de contratos,
+redondeos, días, correcciones y transición del motor. Adopta XML IDs, campos,
+grupos y relaciones antes de cambiar dependencias. Certifica casos chilenos,
+contabilización, Previred y libro, con permisos reales y pruebas de no recálculo
+pagado. Cerro no contiene contratos/liquidaciones originales ni snapshots del
+motor previo: no presentes sus fixtures como conversión de históricos pagados.
+El lote nativo pasa a verify al contener borradores; no confundirlo con cierre.
+
+Mantén explícito el camino crítico DTE/CAF/folios/firmas/respuestas SII y el ensayo
+integral de Cerro con cero Enterprise. Producción conserva 140 Enterprise;
+53 apps propias aún tienen caminos declarados Enterprise sobre 93 inventariadas.
+No está resuelto el vencimiento del 31 de octubre. No emitas al SII real.
+
+Preserva IDs, maestros, relaciones, permisos, históricos, saldos y correlativos.
+Respeta Calendar, 210233 descontinuada y el Boolean bancario legado del puente HR.
+No recalcules liquidaciones pagadas, retires Enterprise en producción, alteres
+vencimientos ni refresques QA-Cerro. Prueba primero los casos nuevos dirigidos
+y después el paquete exacto completo en Community oficial y copia fresca de Cerro,
+con overlays privados, bloqueo compartido, sin downgrade ni cambios concurrentes.
+Guarda commits, push, integra solo lo validado y ejecuta
+python tools/git/verify_handoff.py --require-pushed. Entrega estado acumulado,
+evidencia, pendientes, valoración honesta del 31 y siguiente prompt.
+```

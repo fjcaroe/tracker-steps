@@ -33,7 +33,8 @@ prueba con secuencias de empresas desechables.
 `hr.input.step.wizard`, `hr.entry.xls.wizard` y `success.message`, sus campos,
 las vistas, acciones, menús y los dos ACL originales. Depende de `hr_payroll`
 y `hr_work_entry_contract_enterprise`; no entra en la instalación Community.
-HR consume ese puente; Cosecha ya no importa una segunda definición idéntica
+Desde el bloque HR, `step_hr_payroll_bridge` consume ese puente opcional; HR
+operacional queda libre de Nómina. Cosecha ya no importa una segunda definición idéntica
 de esos modelos compartidos. Los alias históricos de HR y Cosecha apuntan a
 los mismos registros. No se inventa un permiso para el wizard de entradas,
 que no tenía ACL propio en el paquete original.

@@ -74,11 +74,13 @@ Exige empresa activa, lote, estructura, un empleado por usuario y una liquidaci�
 conjunto antes de crear entradas. Solo acepta lote abierto (`draft`/`verify`) y liquidación en borrador y no
 pagada, conserva el contrato de la propia liquidación y rechaza un tipo de entrada
 ya existente. Una repetición no duplica importes ni reemplaza registros originales.
-No usa `sudo`, no concede el ACL ausente del wizard y no llama a `compute_sheet`.
+No usa `sudo`, no incorpora ACL nuevos al wizard y no llama a `compute_sheet`.
 La API nativa cambia el lote a `verify` al agregar una liquidación todavía en borrador; se conserva esa semántica y se rechazan lotes `close`/`paid`. El flujo APR legado sigue separado y no constituye un motor salarial.
 
 ## Pruebas y evidencia
 
+Con esta versión, el ensayo de Cerro usa `--profile hr`: los perfiles históricos
+no incluyen el nuevo puente y no autorizan una actualización aislada de HR.
 El perfil `hr` de `tools/community/validate_agriculture_core.py` incorpora toda
 la regresión agrícola anterior, HR operacional y el puente opcional en Cerro.
 Compara el paquete completo de addons por archivo, los datos, identidades,
@@ -93,8 +95,63 @@ del proveedor OCA y un flujo nativo de cálculo/asiento balanceado como usuario
 sin superpoderes. El resultado enumera la API faltante y mantiene
 `simpledigital_compatible=false` hasta cerrar la adaptación real.
 
-La evidencia de aceptación se registra al completar ambos ensayos; las etapas
-fallidas o exploratorias nunca equivalen a validación del paquete final.
+Aceptación final del código de addons `6e418ef` (27-10-2026):
+
+| Ensayo privado | Pruebas | Instalados / Enterprise | Resultado |
+| --- | ---: | ---: | --- |
+| Community oficial, perfil HR F | 468 | 135 / 0 | Aprobado, incluidos formularios, menús y flujos nativos |
+| Copia fresca de Cerro F | 516 | 381 / 140 | Aprobado, usuario existente 6/compañía 2/sin `sudo` |
+| Motor OCA real, candidato C | 38 + flujo nativo | 62 / 0 | Cálculo, entrada y asiento balanceado; compatibilidad Simple Digital pendiente |
+
+Los **28 addons / 837 archivos** son idénticos en ambos ensayos del paquete HR y
+coinciden con el checkout. SHA-256 de `source-files.json`:
+`a73b802e1bf4c0ce0f2c1e93327c66bf34f2ada5f2de0c1d34c6f81d7fda70e8`.
+Runtime oficial: `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`.
+
+La copia conserva **918 tablas/proyecciones**, **140 contadores estándar exactos
+durante el upgrade**, **58.956 XML IDs originales**, 1.217 modelos, 26.994 campos
+originales, 5.071 selecciones, 2.322 ACL, 610 reglas, 1.328 menús originales,
+417 vínculos acción/vista, 463 registros de relación y 526 restricciones SQL/FK.
+Los 1.614 vínculos usuario/grupo, 36 usuario/compañía, 283 grupos implicados y
+338 grupos de reglas conservan sus hashes. Los únicos campos nuevos de ese
+contrato son los dos `calendar_end` visuales ya documentados. El total posterior
+es 60.126 XML IDs, 26.996 campos y 1.351 menús; los 23 menús nuevos de los núcleos
+mantienen las raíces alternativas inactivas en Cerro. Se preservan los registros
+originales y las dos filas propietarias de `step_hr_payslip_rel`.
+
+Las fixtures consumen después **30** contadores estándar de la copia de modo
+monótono; no se resetean para ocultar el consumo. El upgrade anterior a esas
+fixtures conserva exactamente los 140. Se mantienen 1.389 mensajes, 738 cambios
+seguidos, 601 seguidores, cero actividades, 1.125 adjuntos de negocio y los
+parámetros de vencimiento. Las fuentes, configuración y versiones de producción
+permanecen iguales al contrato de origen. Producción y QA-Cerro no reciben este
+paquete. No se invoca la API externa de Tracker ni se emite al SII real.
+
+Evidencia privada reproducible en
+`~/.codex/local-artifacts/community-hr-payroll-20261027/evidence-F/`, con resumen
+`summary-F.json`. Archivo `evidence-F.tar.gz`, SHA-256
+`4f39c9d22cf48523c9c0829079062792cd18cf8509eccd24c5bf736a36191df4`,
+exportado con permiso de propietario y sin dump, filestore, enlaces ni configuración.
+El respaldo íntegro permanece en la etapa privada. Paquete de fuentes probado
+`source-F-final.tar.gz`, SHA-256
+`56c06ccf7121aa3df2e22ef6fcac847c5516e7fa30d30b1fc1a86b372bf631df`.
+El resumen se reproduce con `tools/community/summarize_hr_evidence.py` y comprueba
+otra vez los archivos del repo contra las huellas aceptadas.
+
+Las etapas A/E y los preflights fallidos son diagnósticos conservados, no aceptación.
+Las etapas B/C de HR se cancelaron mientras esperaban el bloqueo, antes de crear
+bases. La aceptación corresponde únicamente al paquete final F y al motor OCA C.
+
+
+La regresión ampliada de Cerro incorpora también las 34 pruebas de Exportación.
+Sus expectativas se adaptan a los consumidores realmente instalados: raíz
+adicional Control, roles de participantes y protección de guías con packing list.
+La navegación comprueba padre, acción y formulario; conserva el orden guardado
+que coloca Notas de venta antes de Instructivo. La prueba de desvinculación
+acepta el error de usuario de la protección y exige que la relación siga intacta.
+Los 48 casos dirigidos (14 de Nómina/puente y 34 de Exportación) aprobaron antes
+de repetir el paquete completo. Las operaciones de SII/CAF siguen fuera de esta
+aceptación; se preservan las políticas y las relaciones vigentes.
 
 ## Camino crítico al 31 de octubre
 
@@ -136,9 +193,12 @@ plan, continuidad, Productores, Operaciones, Tarjas/Cuadrillas, Cosecha,
 COMMUNITY_HR_PAYROLL.md y la matriz Enterprise. Revisa la evidencia final allí.
 
 Prioriza la adaptación real de Simple Digital a OCA payroll/payroll_account,
-fijados a 4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e. El candidato pasó 38 pruebas
+fijados a 4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e. El paquete HR pasó
+468 pruebas en Community y 516 en copia fresca de Cerro,
+con 837 archivos idénticos, 918 tablas/proyecciones, 58.956 XML IDs y 140
+contadores preservados durante upgrade. El candidato OCA pasó 38 pruebas
 y cálculo/asiento nativo en Community oficial 4b4efe6, pero NO es compatible aún
-con Simple Digital: quedan siete brechas de API comprobadas. Los modelos base
+con Simple Digital: quedan al menos siete brechas de API comprobadas. Los modelos base
 hr.payroll.structure.type y hr.contract.structure_type_id sí existen en Community;
 faltan vínculos/complementos, tipos de entradas, worked_days por work entries,
 relación de reglas a estructuras y métodos/contexto de cálculo. No inventes

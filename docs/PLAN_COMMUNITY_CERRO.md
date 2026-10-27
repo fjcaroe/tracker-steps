@@ -61,8 +61,9 @@ completar su validación y el circuito de entrega correspondiente.
   Es candidato para mayor, balance de comprobación y antigüedad. No se ha
   instalado ni se declara reemplazo completo de los informes existentes.
 - [OCA Payroll 18.0](https://github.com/OCA/payroll/blob/18.0/payroll/__manifest__.py)
-  es candidato a evaluar para el motor Community; no acredita todavía
-  compatibilidad con Simple Digital, reglas de Chile ni datos históricos.
+  se evaluó fijado a `4c71cd4`: 38 pruebas y cálculo/asiento nativo en Community
+  oficial. No acredita todavía compatibilidad con Simple Digital, reglas de
+  Chile ni datos históricos; ver `docs/COMMUNITY_HR_PAYROLL.md`.
 - Facturación electrónica chilena requiere una selección y validación específicas;
   no se presume que un módulo de localización genérico sustituye DTE/CAF/SII.
 - Las funciones que no se usen se podrán retirar solo después de inventariar
@@ -289,3 +290,24 @@ Producción conserva Enterprise; siguen abiertos Nómina, DTE/CAF/SII, Calidad,
 Studio/Documentos/Firma, lotes/conciliación, despliegues de los núcleos y la
 conversión integral con recuperación y aceptación. No se puede comprometer
 el corte del 31 de octubre a partir de esta extracción.
+
+
+## Frontera operacional HR y candidato salarial — 27-10-2026
+
+Aceptado el paquete HR `6e418ef`: 468 pruebas en Community oficial y 516 en copia
+fresca de Cerro, 28 addons/837 archivos idénticos. Se conservan 918 tablas/
+proyecciones, 58.956 XML IDs originales, permisos/históricos/saldos y 140
+contadores durante upgrade; las fixtures consumen después 30 contadores de la
+copia sin reset. HR operacional queda libre de Nómina/mapa EE, con puente real
+para las relaciones, vistas, Tarjas y Boolean bancario originales.
+
+OCA Payroll real pasa 38 pruebas y un flujo de cálculo/asiento balanceado en
+Community oficial. Persisten al menos siete brechas verificadas con Simple
+Digital, además de la aceptación chilena/Previred/libro e históricos pagados.
+No se implementa un stub de `hr.payslip` ni se retira Enterprise en producción.
+
+La matriz actual cubre 93 apps propias: 53 aún alcanzan Enterprise; producción
+mantiene 140 EE. Sigue pendiente el camino crítico DTE/CAF/SII y la conversión
+integral con cero EE, recuperación y aceptación por perfil. Riesgo alto para el
+31 de octubre: este bloque no resuelve el vencimiento. Estado, evidencia y
+prompt siguiente en `COMMUNITY_HR_PAYROLL.md` y `COMMUNITY_CONTINUACION.md`.

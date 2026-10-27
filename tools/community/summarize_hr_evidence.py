@@ -54,6 +54,8 @@ def main():
             'permission_memberships':{name:before[name]['rows'] for name in
                 ('res_groups_users_rel','res_company_users_rel','res_groups_implied_rel','rule_group_rel')}},
         'fixture_standard_counters_consumed':len(read(cerro/'fixture-counter-consumption.json')),
+        'validated_environment_counts':{label:read(folder/'environment-counts.json') for label,folder in
+            [('community',community),('cerro_copy',cerro),('oca_engine',engine)]},
         'source_inventory':audit['installed'],'payroll_counts':audit['counts'],
         'oca_revision':ep['oca_revision'],'official_community':ep['official_community'],
         'real_engine_native':ep['engine_native'],
