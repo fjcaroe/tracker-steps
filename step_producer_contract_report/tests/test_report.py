@@ -2,9 +2,31 @@ from datetime import date
 from odoo import Command
 from odoo.tests.common import TransactionCase, new_test_user
 from odoo.exceptions import AccessError, UserError
+from lxml import etree
+from odoo.addons.step_producers.migration import adopt_calendar_binding
 
 
 class ContractReportCase(TransactionCase):
+    def test_community_calendar_keeps_original_binding(self):
+        module = 'step_producer_contract_report'
+        action = self.env.ref(module + '.report_action')
+        view = self.env.ref(module + '.report_gantt')
+        self.assertEqual(action.view_mode, 'calendar,pivot,list')
+        arch = etree.fromstring(self.env['step.producer.contract.report'].get_view(view.id, 'calendar')['arch'])
+        self.assertEqual(arch.tag, 'calendar')
+        self.assertEqual(arch.get('date_start'), 'date_due')
+        self.assertEqual(arch.get('date_stop'), 'date_stop')
+        original = action.view_ids.filtered(lambda row: row.view_id == view)
+        original_id = original.id
+        # Simulate the prior persisted value, even without web_gantt installed.
+        self.env.cr.execute("UPDATE ir_act_window_view SET view_mode='gantt' WHERE id=%s", [original_id])
+        original.invalidate_recordset()
+        adopt_calendar_binding(self.env, module)
+        self.assertEqual(original.id, original_id)
+        self.assertEqual(original.view_mode, 'calendar')
+        adopt_calendar_binding(self.env, module)
+        self.assertEqual(len(action.view_ids), 3)
+
     def sample(self, unit=False, quantity=100, price=2, currency=False):
         env=self.env
         partner=env['res.partner'].create({'name':'QA T69 producer','is_productor':True})

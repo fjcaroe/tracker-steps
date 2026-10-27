@@ -17,3 +17,4 @@ from . import step_actividad_line
 from . import step_labor
 from . import step_labor_line
 from . import product_template
+from . import res_partner

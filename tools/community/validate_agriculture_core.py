@@ -21,10 +21,14 @@ from validate_community_reports import run, sql, snapshot as finance_snapshot, s
 
 MODULES = ('step_agriculture_core', 'step_hr', 'step_agriculture_catalogs', 'step_packing',
            'step_inventory_fruit_tag', 'step_management_costs', 'step_management_costs_agriculture')
+BASE_MODULES = MODULES
+PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_producer_estimate_report')
 
 
 def verify_native(base, opts, addons, stage, mode):
     check = (addons / 'tools/community/verify_agriculture_core.py').read_text()
+    if 'step_producers' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_producers.py').read_text()
     result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
         input='MODE=' + repr(mode) + '\n' + check, text=True, capture_output=True)
     (stage / 'verify.log').write_text(result.stdout + result.stderr)
@@ -57,6 +61,13 @@ def snapshot(database):
         result[table] = json.loads(sql(database,
             "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+    # These SQL projections retain their source row IDs, dates, quantities and
+    # monetary values when only the presentation changes from Gantt to Calendar.
+    for table in ('step_producer_contract_report', 'step_producer_estimate_report'):
+        if sql(database, "SELECT to_regclass('" + table + "') IS NOT NULL") == 't':
+            result[table] = json.loads(sql(database,
+                "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
+                "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
     # Only new core menu memberships are added. Original menu memberships
     # remain exact and are also checked in the identity contract.
     result['ir_ui_menu_group_rel'] = json.loads(sql(database,
@@ -109,13 +120,16 @@ def history_contract(database):
 
 
 def main():
+    global MODULES
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('community', 'cerro-copy'))
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
+    parser.add_argument('--profile', choices=('agriculture', 'producers'), default='agriculture')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
     args = parser.parse_args()
+    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile == 'producers' else ())
     assert os.geteuid() == 0
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
@@ -165,14 +179,23 @@ def main():
             (stage / 'source-contract.json').write_text(json.dumps(contract, indent=2))
             baseline = snapshot(args.database)
             original = identity_contract(args.database)
+            calendar_bindings = json.loads(sql(args.database,
+                "SELECT coalesce(json_agg(t.id),'[]'::json) FROM ir_act_window_view t "
+                "JOIN ir_model_data d ON d.res_id=t.view_id AND d.model='ir.ui.view' "
+                "WHERE d.name='report_gantt' AND d.module IN ('step_producer_contract_report',"
+                "'step_producer_estimate_report')")) if args.profile == 'producers' else []
+            if args.profile == 'producers':
+                assert len(calendar_bindings) == 2, 'Expected two original report-view bindings'
+            (stage / 'calendar-bindings-before.json').write_text(json.dumps(calendar_bindings))
             history = history_contract(args.database)
             for name, value in [('business-before', baseline), ('identity-before', original), ('history-before', history)]:
                 (stage / (name + '.json')).write_text(json.dumps(value, indent=2))
             runtime = Path('/opt/odoo18')
             addon_paths = str(addons) + ',' + options['addons_path']
             installed = contract['installed_versions']
-            upgrades = [m for m in MODULES if m != 'step_agriculture_core' and m in installed]
-            init = ['-i', 'step_agriculture_core', '-u', ','.join(upgrades)]
+            upgrades = [m for m in MODULES if m in installed]
+            init = ([] if 'step_agriculture_core' in installed else ['-i', 'step_agriculture_core']) + (
+                ['-u', ','.join(upgrades)] if upgrades else [])
             entrypoint = addons / 'tools/ops/run_agriculture_upgrade.py'
         else:
             runtime = root / 'community-runtime'
@@ -190,6 +213,8 @@ def main():
                 (pure / module).symlink_to(addons / module)
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
+            if args.profile == 'producers':
+                init[1] += ',step_producer_contract_report,step_producer_estimate_report'
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)
@@ -227,11 +252,15 @@ def main():
                         got = now.get(row['id'])
                         assert got and all(got[k] == v for k,v in row.items() if k != 'modules'), (table, row['id'])
                 else:
-                    assert all(row in current[table] for row in rows), 'Existing identities changed: ' + table
+                    expected = [dict(row, view_mode='calendar') if table == 'ir_act_window_view' and
+                                row['id'] in calendar_bindings and row['view_mode'] in ('gantt', 'calendar') else row
+                                for row in rows]
+                    assert all(row in current[table] for row in expected), 'Existing identities changed: ' + table
             assert final_history == history, 'Chatter, attachments or expiration changed'
             assert source_contract(conf, addons) == contract, 'Source service configuration, versions or files changed'
         (stage / 'passed.json').write_text(json.dumps({'mode': args.mode, 'database': args.database,
             'environment': args.environment, 'business_preserved': baseline is not None,
+            'profile': args.profile,
             'writes_to_source': False, 'modules': MODULES, 'files': len(fingerprints)}, indent=2))
         print('AGRICULTURE_OK ' + args.mode, flush=True)
 

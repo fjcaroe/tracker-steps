@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- © 2025 Jamie Escalante. AGPL-3.0 or later. Optional Enterprise map. -->
+<odoo>
+    <record id="step_view_res_partner_map" model="ir.ui.view">
+        <field name="name">step.res.partner.map.enterprise</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="step_agriculture_core.step_view_res_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='map']" position="replace">
+                <page name="map" string="Mapa">
+                    <map res_partner="partner_id" hide_address="1" js_class="stock_map">
+                        <maker-popup>
+                            <field name="contact_address_complete" string="address"/>
+                        </maker-popup>
+                    </map>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

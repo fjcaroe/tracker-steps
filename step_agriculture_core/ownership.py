@@ -169,7 +169,15 @@ FIELDS = {'step.temporada': ['code', 'company_id', 'cost_id', 'end_date', 'name'
                       'step_objetivo',
                       'step_proteje',
                       'step_toxi',
-                      'uom_trato']}
+                      'uom_trato'],
+ 'res.partner': ['cod_csg',
+                 'cod_fundo',
+                 'cod_ggn',
+                 'is_productor',
+                 'productor_name',
+                 'step_carga',
+                 'step_contra',
+                 'step_export']}
 
 RECORDS = {'model_step_temporada': 'ir.model',
  'field_step_temporada__code': 'ir.model.fields',
@@ -420,4 +428,14 @@ RECORDS = {'model_step_temporada': 'ir.model',
  'field_product_template__step_toxi': 'ir.model.fields',
  'field_product_template__uom_trato': 'ir.model.fields',
  'step_view_product_template_form': 'ir.ui.view',
- 'step_product_template_action': 'ir.actions.act_window'}
+ 'step_product_template_action': 'ir.actions.act_window',
+ 'field_res_partner__cod_csg': 'ir.model.fields',
+ 'field_res_partner__cod_fundo': 'ir.model.fields',
+ 'field_res_partner__cod_ggn': 'ir.model.fields',
+ 'field_res_partner__is_productor': 'ir.model.fields',
+ 'field_res_partner__productor_name': 'ir.model.fields',
+ 'field_res_partner__step_carga': 'ir.model.fields',
+ 'field_res_partner__step_contra': 'ir.model.fields',
+ 'field_res_partner__step_export': 'ir.model.fields',
+ 'step_view_res_partner_form': 'ir.ui.view',
+ 'action_partner_contratista_form_step': 'ir.actions.act_window'}

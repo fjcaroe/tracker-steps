@@ -2,8 +2,19 @@ from datetime import date
 from odoo import Command
 from odoo.tests.common import TransactionCase, new_test_user
 from odoo.exceptions import AccessError
+from lxml import etree
 
 class EstimateReportCase(TransactionCase):
+    def test_community_calendar_keeps_week_and_original_view_id(self):
+        action = self.env.ref('step_producer_estimate_report.report_action')
+        view = self.env.ref('step_producer_estimate_report.report_gantt')
+        self.assertEqual(action.view_mode, 'calendar,pivot,list')
+        self.assertEqual(action.view_ids[0].view_id, view)
+        arch = etree.fromstring(self.env['step.producer.estimate.report'].get_view(view.id, 'calendar')['arch'])
+        self.assertEqual((arch.tag, arch.get('date_start'), arch.get('date_stop')),
+                         ('calendar', 'week_start', 'week_end'))
+        self.assertTrue(all(arch.get(flag) == 'false' for flag in ('create', 'edit', 'delete', 'quick_create')))
+
     def sample(self):
         env=self.env
         producer=env['res.partner'].create({'name':'QA T68 producer','is_productor':True})
