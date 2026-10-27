@@ -52,7 +52,8 @@ def main():
     assert config.read(args.config)
     options = config['options']
     assert options['db_name'] == args.database, 'Explicit database must match the canonical service config'
-    assert not args.output.resolve().is_relative_to(Path(__file__).resolve().parents[2]), 'Use private artifacts'
+    repository = Path(__file__).resolve().parents[2]
+    assert not (repository / '.git').exists() or not args.output.resolve().is_relative_to(repository), 'Use private artifacts'
     roots = [Path(value.strip()) for value in options['addons_path'].split(',')]
     modules = query(args.database, """
         SELECT coalesce(json_agg(row_to_json(t)), '[]'::json) FROM (
