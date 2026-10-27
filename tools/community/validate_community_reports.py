@@ -1,7 +1,7 @@
 """Private-only Treasury extraction and fresh Cerro-copy validation. No deploy mode.
 
 The clean runtime must be a checkout of official Odoo Community. The copy
-retains Enterprise during this first extraction; it is not a full conversion.
+retains Enterprise while these alternatives are validated; it is not a full conversion.
 """
 import argparse
 import configparser
@@ -145,7 +145,8 @@ def main():
             run('rsync', '-a', str(source_store) + '/', str(target_store) + '/')
             sys.path.insert(0, str(addons / 'tools/community'))
             from manage_community_reports import runtime_contract
-            (stage / 'source-contract.json').write_text(json.dumps(runtime_contract(conf), indent=2))
+            contract = runtime_contract(conf)
+            (stage / 'source-contract.json').write_text(json.dumps(contract, indent=2))
             baseline = snapshot(args.database)
             (stage / 'business-before.json').write_text(json.dumps(baseline, indent=2))
             original_actions = action_contract(args.database)
@@ -189,13 +190,16 @@ def main():
                 '--addons-path=' + addon_paths, '--data-dir=' + str(data), '--load=base,web',
                 '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
                 '--workers=0', '--max-cron-threads=0', '--without-demo=all']
+        sys.path.insert(0, str(addons / 'tools/ops'))
+        from manage_management import errors as module_errors
+        allowed_missing = tuple(name for name in ('steps_api',) if args.mode != 'community' and name in contract['installed_versions'])
         log = stage / 'tests.log'
         print('COMMUNITY_TREASURY_BEGIN ' + json.dumps({'mode': args.mode, 'database': args.database, 'log': str(log)}), flush=True)
         with (stage / 'bootstrap.log').open('w') as stream:
             result = subprocess.run(base + opts + init + ['--logfile=' + str(log), '--test-enable', '--test-tags=' + tags, '--stop-after-init'], stdout=stream, stderr=subprocess.STDOUT)
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' CRITICAL ' in line)[-6500:], flush=True)
-        assert result.returncode == 0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests', text), 'Tests failed: ' + str(log)
+        assert result.returncode == 0 and not module_errors(text, allowed_missing) and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests', text), 'Tests failed: ' + str(log)
         sql(args.database, 'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         if baseline is not None:
             after = snapshot(args.database); (stage / 'business-after.json').write_text(json.dumps(after, indent=2))

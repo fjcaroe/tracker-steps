@@ -17,6 +17,7 @@ import pwd
 import re
 import shutil
 import subprocess
+import sys
 import urllib.request
 
 MODULES = ('step_accounting_multicurrency_core', 'step_accounting_multicurrency',
@@ -131,8 +132,11 @@ def main():
             log = stage / 'upgrade.log'
             with (stage / 'bootstrap.log').open('w') as stream:
                 result = subprocess.run(base + options + commands + ['--stop-after-init', '--logfile=' + str(log)], stdout=stream, stderr=subprocess.STDOUT)
-            errors = log.read_text(errors='replace')
-            assert result.returncode == 0 and 'Modules loaded.' in errors and ' CRITICAL ' not in errors and ' ERROR ' not in errors, 'Upgrade failed; preserve recovery directory'
+            diagnostics = log.read_text(errors='replace')
+            sys.path.insert(0, str(source / 'tools/ops'))
+            from manage_management import errors as module_errors
+            allowed_missing = tuple(name for name in ('steps_api',) if name in installed)
+            assert result.returncode == 0 and 'Modules loaded.' in diagnostics and not module_errors(diagnostics, allowed_missing), 'Upgrade failed; preserve recovery directory'
             assert same_values(before, snapshot(database)), 'Business values changed'
             assert action_contract(database) == old_actions, 'Existing client actions changed'
             assert field_ids(database) == old_fields and security_contract(database) == old_security

@@ -371,6 +371,9 @@ class TestTreasurySheets(TestTreasuryCommon):
         self.assertEqual(lines.bucket, "w2")
 
     def test_sale_order_counts_only_the_uninvoiced_part(self):
+        # This case tests order-based invoicing. Installed sale extensions can
+        # default the fixture product to delivery; that policy has its own test.
+        self.product_a.product_tmpl_id.invoice_policy = "order"
         order = self.env["sale.order"].create({
             "partner_id": self.partner_a.id,
             "treasury_due_date": self.start + timedelta(days=8),
