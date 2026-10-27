@@ -42,7 +42,8 @@ class HarvestCommunityCase(TransactionCase):
         pre_init_hook(self.env);post_init_hook(self.env)
         company=self.env['res.company'].create({'name':'Private harvest receipt company'})
         scoped=self.env(context=dict(self.env.context,allowed_company_ids=company.ids))
-        warehouse=scoped['stock.warehouse'].create({'name':'Private harvest warehouse','code':'HQA','company_id':company.id})
+        warehouse=(scoped['stock.warehouse'].search([('company_id','=',company.id)],limit=1) or
+            scoped['stock.warehouse'].create({'name':'Private harvest warehouse','code':'HQA','company_id':company.id}))
         partner=scoped['res.partner'].create({'name':'Private harvest contractor'})
         kg=scoped.ref('uom.product_uom_kgm')
         product=scoped['product.product'].create({'name':'Private harvest fruit','grupo_labor':'pack','type':'consu','uom_id':kg.id,'uom_po_id':kg.id})
@@ -69,3 +70,49 @@ class HarvestCommunityCase(TransactionCase):
         picking.button_validate()
         self.assertEqual(picking.state,'done')
         self.assertTrue(harvest.cos_recibida)
+
+    def test_contractor_costing_uses_native_analytic_links_and_balances(self):
+        company=self.env['res.company'].create({'name':'Private harvest accounting company'})
+        scoped=self.env(context=dict(self.env.context,allowed_company_ids=company.ids))
+        Account=scoped['account.account']
+        liability=Account.create({'name':'Private harvest liability','code':'989900',
+            'account_type':'liability_current','company_ids':[(6,0,company.ids)]})
+        expense=Account.create({'name':'Private harvest expense','code':'989901',
+            'account_type':'expense','company_ids':[(6,0,company.ids)]})
+        journal=scoped['account.journal'].create({'name':'Private harvest costing','code':'HQA',
+            'type':'general','company_id':company.id,'default_account_id':expense.id,
+            'account_control_ids':[(6,0,(liability+expense).ids)]})
+        company.step_cosecha_journal_id=journal
+        accounts=[]
+        for label in ('Season','Center','Activity'):
+            plan=scoped['account.analytic.plan'].create({'name':'Private harvest '+label})
+            accounts.append(scoped['account.analytic.account'].create({'name':'Private harvest '+label,
+                'plan_id':plan.id,'company_id':company.id}))
+        season,center,activity=accounts
+        scoped['step.temporada'].create({'name':'Private harvest season','start_date':'2098-01-01',
+            'end_date':'2098-12-31','company_id':company.id,'cost_id':season.id})
+        labor=scoped['product.template'].create({'name':'Private harvest labor','is_labor':True,
+            'grupo_labor':'cosecha','actividad_id':activity.id})
+        partner=scoped['res.partner'].create({'name':'Private harvest accounting contractor'})
+        operator=new_test_user(scoped,login='private_harvest_accounting_operator',
+            groups='base.group_user,hr.group_hr_user,account.group_account_manager',
+            company_id=company.id,company_ids=[(6,0,company.ids)])
+        harvest=scoped['step.cosecha.registry'].with_user(operator).with_context(default_type_tarea='contratista').create({
+            'name':'Private costed harvest','date':'2098-06-01','company_id':company.id,
+            'partner_id':partner.id,'cost_id':center.id,'labor_id':labor.id,
+            'product_uom_id':scoped.ref('uom.product_uom_kgm').id,
+            'registry_tarja_line':[(0,0,{'quantity':3,'tarifa':20})]})
+        self.assertFalse(harvest.env.su)
+        self.assertEqual(harvest.registry_tarja_line.trato_total,60)
+        harvest.action_apro();harvest.action_costeo();harvest.action_conta()
+        move=harvest.invoice_id
+        self.assertEqual(harvest.state,'cont');self.assertEqual(move.state,'draft')
+        self.assertEqual(sum(move.line_ids.mapped('debit')),60)
+        self.assertEqual(sum(move.line_ids.mapped('credit')),60)
+        debit=move.line_ids.filtered(lambda line:line.debit)
+        self.assertEqual(debit.account_id,expense)
+        self.assertEqual(move.line_ids.filtered(lambda line:line.credit).account_id,liability)
+        self.assertEqual(debit.analytic_distribution,{','.join(str(a.id) for a in accounts):100})
+        self.assertEqual(harvest.cost_id,center);self.assertEqual(harvest.labor_id.actividad_id,activity)
+        with self.assertRaises(UserError):harvest.action_conta()
+        self.assertEqual(harvest.invoice_id,move)

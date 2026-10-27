@@ -102,3 +102,12 @@ Los documentos de negocio, históricos, saldos y los demás contratos se compara
 también al terminar las pruebas. Los IDs originales de `ir.model.data` se
 comparan completos junto con nombre, módulo, modelo y destino; la protección
 intencional `noupdate` no cambia esas identidades.
+
+La contabilización de Cosecha usa directamente las cuentas analíticas ya
+seleccionadas en `registry.cost_id` y `product.template.actividad_id`.
+El código legado intentaba atravesar un `cost_id` inexistente en esas dos
+relaciones, confundiéndolas con `step.centro.costo` y `step.actividad`.
+No se convierten IDs ni se reconstruyen maestros. La prueba con empresa y
+cuentas desechables recorre aprobación, costeo y generación del asiento en
+borrador de 60, con distribución de temporada/centro/actividad y bloqueo de
+segunda contabilización. No publica asientos ni recalcula registros históricos.
