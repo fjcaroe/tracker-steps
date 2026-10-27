@@ -28,7 +28,7 @@ def sql(database, statement):
 def snapshot(database):
     tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
                  "(tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'step_%' OR "
-                 "tablename LIKE 'hr_%' OR tablename LIKE 'res_users%' OR tablename IN ('ir_ui_menu_group_rel','ir_model_access','ir_rule','rule_group_rel') OR tablename IN "
+                 "tablename LIKE 'hr_%' OR tablename LIKE 'res_users%' OR tablename IN ('ir_ui_menu_group_rel','rule_group_rel','res_groups_implied_rel') OR tablename IN "
                  "('res_company','res_partner','res_currency','res_currency_rate','res_groups_users_rel','res_company_users_rel')) "
                  "ORDER BY tablename").splitlines()
     statements = []
@@ -60,10 +60,11 @@ def same_values(before, after):
 
 def field_ids(database):
     return json.loads(sql(database, "SELECT coalesce(json_object_agg(model||'.'||name,id),'{}'::json) FROM ir_model_fields "
-        "WHERE name IN ('operational_currency_id','operational_rate_date','observed_exchange_rate','operational_debit',"
+        "WHERE (name IN ('operational_currency_id','operational_rate_date','observed_exchange_rate','operational_debit',"
         "'operational_credit','operational_exchange_rate','operational_balance','is_operational_exchange_adjustment',"
         "'conversion_amount','conversion_currency_id') AND model IN ('res.company','res.config.settings','account.move',"
-        "'account.move.line','account.payment','account.payment.register')"))
+        "'account.move.line','account.payment','account.payment.register')) OR model IN "
+        "('step.cashflow','step.cashflow.line','step.treasury.concept','step.vendor.proforma','step.vendor.proforma.line')"))
 
 
 def report_menus(database):
@@ -72,6 +73,14 @@ def report_menus(database):
         "AND d.model='ir.ui.menu' AND d.name IN ('menu_treasury_bank_reconciliation',"
         "'menu_treasury_partner_ledger','menu_treasury_cash_flow_statement','menu_treasury_aged_receivable',"
         "'menu_treasury_aged_payable')"))
+
+
+def security_contract(database):
+    parts = []
+    for model, table in (('ir.model.access', 'ir_model_access'), ('ir.rule', 'ir_rule'), ('res.groups', 'res_groups')):
+        parts.append("SELECT d.name, to_jsonb(t)-'write_date'-'write_uid' AS value FROM ir_model_data d "
+            "JOIN " + table + " t ON t.id=d.res_id WHERE d.module='step_account_treasury' AND d.model='" + model + "'")
+    return json.loads(sql(database, "SELECT json_object_agg(name,value) FROM (" + ' UNION ALL '.join(parts) + ") policies"))
 
 
 def main():
@@ -117,6 +126,8 @@ def main():
             run('rsync', '-a', str(source_store) + '/', str(target_store) + '/')
             baseline = snapshot(args.database)
             (stage / 'business-before.json').write_text(json.dumps(baseline, indent=2))
+            original_security = security_contract(args.database)
+            (stage / 'security-before.json').write_text(json.dumps(original_security, indent=2))
             original_menus = report_menus(args.database)
             (stage / 'menus-before.json').write_text(json.dumps(original_menus, indent=2))
             assert len(original_menus) == 5, 'Expected five original report menus'
@@ -165,6 +176,10 @@ def main():
         if baseline is not None:
             after = snapshot(args.database); (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
             assert same_values(baseline, after), 'Existing business records changed'
+            (stage / 'security-after.json').write_text(json.dumps(security_contract(args.database), indent=2))
+            (stage / 'menus-after.json').write_text(json.dumps(report_menus(args.database), indent=2))
+            (stage / 'field-ids-after.json').write_text(json.dumps(field_ids(args.database), indent=2))
+            assert security_contract(args.database) == original_security, 'Treasury access rules or groups changed'
             assert report_menus(args.database) == original_menus, 'Report menu IDs, actions or permissions changed'
             assert field_ids(args.database) == original_fields, 'Field IDs changed'
         check = '''
