@@ -4,9 +4,29 @@ from odoo.addons.step_labor_operations_core.ownership import RECORDS
 try:
     for name in RECORDS:
         assert env.ref('step_hr.'+name) == env.ref('step_labor_operations_core.'+name),name
-    operator=env.ref('base.user_admin') if MODE=='community' else user
+    operator=user
+    if MODE=='community':
+        # Settings rights do not imply Mobilization roles. Use a disposable
+        # business profile, never grant groups to an existing user.
+        operator=env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private Community labor verifier','login':'private-community-labor-verifier',
+            'company_id':company.id,'company_ids':[(6,0,company.ids)],
+            'groups_id':[(6,0,[env.ref(g).id for g in ('base.group_user','hr.group_hr_user',
+                'hr_contract.group_hr_contract_manager','step_mobilization.group_mobilization_manager',
+                'sales_team.group_sale_manager','product.group_product_pricelist')])],
+        })
     scoped_labor=api.Environment(env.cr,operator.id,dict(env.context,allowed_company_ids=company.ids),su=False)
     assert not scoped_labor.su
+    visible=scoped_labor['ir.ui.menu']._visible_menu_ids()
+    root=scoped_labor.ref('step_labor_operations_core.menu_labor_operations')
+    if MODE=='community':
+        assert root.active and root.id in visible
+        assert scoped_labor.ref('step_labor_operations_core.menu_task_own').id in visible
+    else:
+        assert not root.active
+        legacy_menu=scoped_labor.ref('step_hr.menu_step_tarja')
+        if legacy_menu.active:
+            assert legacy_menu.id in visible
     for model,view in [('hr.salary.custom','view_hr_salary_custom_form'),
                        ('step.tarja','view_step_tarja_form'),('hr.contract','step_view_hr_contract_form')]:
         scoped_labor[model].get_view(scoped_labor.ref('step_hr.'+view).id,'form')
@@ -32,6 +52,6 @@ try:
     scoped_labor['step.movi.registry'].search_count([])
     print('LABOR_NATIVE_OK '+json.dumps({'uid':operator.id,'company_id':company.id,'su':False,
         'crew_create':True,'tarja_costing':True,'contract_form':True,'mobilization_form':True,
-        'legacy_xmlids':len(RECORDS),'numbering':'isolated fixtures only'}))
+        'legacy_xmlids':len(RECORDS),'menus':True,'numbering':'isolated fixtures only'}))
 finally:
     env.cr.rollback()

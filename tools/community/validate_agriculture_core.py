@@ -60,20 +60,44 @@ def verify_native(base, opts, addons, stage, mode):
 def verify_existing(args):
     assert args.mode == 'community', 'This post-check only accepts the pure private Community stage'
     root = args.root.resolve(); stage = root / args.mode; addons = root / 'addons'
-    proof = json.loads((stage / 'passed.json').read_text())
-    assert proof['database'] == args.database
-    for relative, digest in json.loads((stage / 'source-files.json').read_text()).items():
-        assert hashlib.sha256((addons / relative).read_bytes()).hexdigest() == digest, relative
+    fingerprints = json.loads((stage / 'source-files.json').read_text())
+    actual = {str(p.relative_to(addons)): hashlib.sha256(p.read_bytes()).hexdigest()
+              for module in MODULES for p in sorted((addons / module).rglob('*'))
+              if p.is_file() and '__pycache__' not in p.parts}
+    assert actual == fingerprints, 'Tested addon package changed'
+    if args.complete_native:
+        assert not (stage / 'passed.json').exists(), 'Stage already accepted'
+        text = (stage / 'tests.log').read_text()
+        sys.path.insert(0, str(addons / 'tools/ops'))
+        from manage_management import errors
+        assert not errors(text, ()) and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests', text)
+        with (stage / 'native-completion-attempts.log').open('a') as previous:
+            previous.write((stage / 'verify.log').read_text() + '\n')
+    else:
+        proof = json.loads((stage / 'passed.json').read_text())
+        assert proof['database'] == args.database and proof['profile'] == args.profile
     conf = '/etc/dev_odoo18.conf'
     runtime = root / 'community-runtime'
     assert run('git', '-C', str(runtime), 'remote', 'get-url', 'origin', text=True,
                capture_output=True).stdout.strip() == 'https://github.com/odoo/odoo.git'
+    assert not run('git', '-C', str(runtime), 'status', '--porcelain', text=True, capture_output=True).stdout.strip()
+    assert run('git', '-C', str(runtime), 'rev-parse', 'HEAD', text=True, capture_output=True).stdout.strip() == (
+        stage / 'runtime-revision.txt').read_text().strip()
     opts = ['-c', conf, '-d', args.database, '--addons-path=' + str(stage / 'addons') + ',' + str(runtime / 'addons'),
             '--data-dir=' + str(stage / 'data'), '--load=base,web', '--workers=0', '--max-cron-threads=0']
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         verify_native(['sudo', '-u', 'odoo', '/usr/bin/python3.10', str(runtime / 'odoo-bin')],
                       opts, addons, stage, args.mode)
+        if args.complete_native:
+            (stage / 'passed.json').write_text(json.dumps({'mode':args.mode,'database':args.database,
+                'environment':args.environment,'profile':args.profile,'business_preserved':False,
+                'writes_to_source':False,'modules':MODULES,'files':len(fingerprints),
+                'completion':'Full successful module tests, identical addons/runtime, native verifier correction only',
+                'test_log_sha256':hashlib.sha256((stage / 'tests.log').read_bytes()).hexdigest(),
+                'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                'labor_verifier_sha256':hashlib.sha256((addons / 'tools/community/verify_labor.py').read_bytes()).hexdigest()},indent=2))
+            print('AGRICULTURE_OK community (native completion)',flush=True)
 
 
 def snapshot(database):
@@ -176,6 +200,7 @@ def main():
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
     parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor'), default='agriculture')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
+    parser.add_argument('--complete-native', action='store_true', help='Finish native checks after successful full tests; identical addon fingerprints required')
     args = parser.parse_args()
     MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor') else ()) + (
         OPERATIONS_MODULES if args.profile in ('operations','labor') else ()) + (
@@ -184,7 +209,7 @@ def main():
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
                          'MANAGEMENT_QA_CERRO_AGRICULTURE_') + '[A-Za-z0-9_]+', args.database)
-    if args.verify_existing:
+    if args.verify_existing or args.complete_native:
         verify_existing(args)
         return
     root = args.root.resolve(); stage = root / args.mode
