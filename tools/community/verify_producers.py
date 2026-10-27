@@ -4,7 +4,7 @@ from lxml import etree
 try:
     if MODE == 'community':
         assert not env['ir.module.module'].search_count([
-            ('name', 'in', ['web_gantt', 'web_map', 'hr_payroll', 'step_hr']), ('state', '=', 'installed')])
+            ('name', 'in', ['web_gantt', 'web_map', 'hr_payroll', 'step_hr_payroll_bridge']), ('state', '=', 'installed')])
         assert scoped['res.partner']._fields['duplicate_bank_partner_ids'].type == 'many2many'
     with Form(scoped['res.partner'], view='step_agriculture_core.step_view_res_partner_form') as contact:
         contact.name = 'Private Community producer verification'

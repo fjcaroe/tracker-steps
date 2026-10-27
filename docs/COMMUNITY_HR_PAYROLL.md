@@ -116,3 +116,55 @@ suficiente para comprometer un corte integral seguro el 31; riesgo alto.
 
 Producción mantiene 140 Enterprise. No se modifica la fecha de vencimiento ni
 se interpreta una extracción parcial o una prueba aislada de OCA como solución.
+
+## Siguiente bloque y prompt de continuidad
+
+La revisión estática de los consumidores liberados por HR no encontró llamadas
+a Nómina/mapa en los seis consumidores con fuentes revisadas. `step_task`
+(21 archivos en el servidor) y `step_harvest_launcher` (8) todavía necesitan
+consolidación de fuentes y aceptación aislada; su manifiesto libre no acredita
+el flujo Community completo. El inventario actual tiene 93 apps propias; sobre
+ese mismo conjunto, la extracción de HR reduce de 60 a 53 las clausuras con
+Enterprise. El bloque anterior contaba 59 sobre 91 apps; no comparar esos números
+como un porcentaje de conversión. Los puentes nuevos opcionales no forman parte
+de las apps instaladas de ese conteo.
+
+```text
+Continúa desde origin/codex/ambientes-canonicos-reparacion actualizada, en un
+worktree propio. Lee AGENTS.md, ~/.odoo/environments.json, operación, workflow,
+plan, continuidad, Productores, Operaciones, Tarjas/Cuadrillas, Cosecha,
+COMMUNITY_HR_PAYROLL.md y la matriz Enterprise. Revisa la evidencia final allí.
+
+Prioriza la adaptación real de Simple Digital a OCA payroll/payroll_account,
+fijados a 4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e. El candidato pasó 38 pruebas
+y cálculo/asiento nativo en Community oficial 4b4efe6, pero NO es compatible aún
+con Simple Digital: quedan siete brechas de API comprobadas. Los modelos base
+hr.payroll.structure.type y hr.contract.structure_type_id sí existen en Community;
+faltan vínculos/complementos, tipos de entradas, worked_days por work entries,
+relación de reglas a estructuras y métodos/contexto de cálculo. No inventes
+hr.payslip ni un módulo vacío hr_payroll para engañar al cargador. Usa el motor real.
+
+Audita y conserva los 71 registros de reglas, 4 estructuras, 6 tipos de entrada,
+2 perfiles Previred y 2 de libro/42 líneas, además de los puentes de contratos,
+redondeos, días, correcciones y transición del motor. Adopta XML IDs, campos,
+grupos y relaciones antes de cambiar dependencias. Certifica casos chilenos,
+contabilización, Previred y libro, con permisos reales y pruebas de no recálculo
+pagado. Cerro no contiene contratos/liquidaciones originales ni snapshots del
+motor previo: no presentes sus fixtures como conversión de históricos pagados.
+El lote nativo pasa a verify al contener borradores; no confundirlo con cierre.
+
+Mantén explícito el camino crítico DTE/CAF/folios/firmas/respuestas SII y el ensayo
+integral de Cerro con cero Enterprise. Producción conserva 140 Enterprise;
+53 apps propias aún tienen caminos declarados Enterprise sobre 93 inventariadas.
+No está resuelto el vencimiento del 31 de octubre. No emitas al SII real.
+
+Preserva IDs, maestros, relaciones, permisos, históricos, saldos y correlativos.
+Respeta Calendar, 210233 descontinuada y el Boolean bancario legado del puente HR.
+No recalcules liquidaciones pagadas, retires Enterprise en producción, alteres
+vencimientos ni refresques QA-Cerro. Prueba primero los casos nuevos dirigidos
+y después el paquete exacto completo en Community oficial y copia fresca de Cerro,
+con overlays privados, bloqueo compartido, sin downgrade ni cambios concurrentes.
+Guarda commits, push, integra solo lo validado y ejecuta
+python tools/git/verify_handoff.py --require-pushed. Entrega estado acumulado,
+evidencia, pendientes, valoración honesta del 31 y siguiente prompt.
+```
