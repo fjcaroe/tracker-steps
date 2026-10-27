@@ -155,3 +155,31 @@ solo admite Desarrollo y QA-Cerro y exige ensayo Community, copia fresca de
 Cerro y copia fresca del destino, con el mismo SHA256 por archivo. Las versiones,
 fuentes, configuración y datos deben seguir correspondiendo a la prueba.
 El retiro integral de Enterprise y el reemplazo de lotes siguen pendientes.
+
+## Cuarto paquete: maestros agrícolas y consumidores Community
+
+`step_agriculture_core` extrae 18 modelos y 181 campos declarados de los
+maestros, productos y cuentas analíticas. Adopta 250 identificadores explícitos
+y los metadatos heredados/generados, sin copiar tablas ni cambiar relaciones.
+`step_hr` conserva el personal y las funciones que todavía requieren Enterprise;
+no se debe desinstalar. Los detalles de adopción, permisos y ejecutor de
+actualización están en `COMMUNITY_MAESTROS_AGRICOLAS.md`.
+
+Catálogos compartidos, Packing, Tarjas de Fruta y el puente agrícola de Gestión
+y Costos consumen el núcleo sin Nómina ni Gantt. Esto acredita esa frontera,
+no la independencia del resto de las extensiones de Packing o Exportación.
+El alcance compartido y la nulabilidad se conservan durante toda la carga,
+además de conservarse en el registro final. No se asignan empresas por defecto
+a los registros compartidos existentes.
+
+La matriz completa de los 140 Enterprise está en
+`COMMUNITY_INVENTARIO_ENTERPRISE_20261027.md`. Frente a la auditoría de
+producción, el código candidato deja seis apps propias sin caminos declarados
+hacia Enterprise; 73 de las 91 aún tienen alguno. Es un análisis de dependencias,
+no una prueba de conversión de toda la base ni una resolución del vencimiento.
+Nómina/contratos, DTE, Calidad, lotes y los demás consumidores siguen pendientes.
+
+La autorización de revisión en QA-Cerro no autoriza refrescar su base ni retirar
+Enterprise de producción. El paquete agrícola requiere todavía sus ensayos
+frescos en Desarrollo y QA antes de publicar allí. Los informes de Tesorería
+del paquete anterior continúan siendo el último despliegue verificado en QA.

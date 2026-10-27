@@ -391,3 +391,103 @@ conciliación adicionales sobre maestros nativos, sin tablas ni cuentas paralela
 
 Producción no recibió el paquete, no se alteraron vencimientos y QA-Cerro no se
 refrescó. No usar estos dumps de ensayo como respaldo fresco de otra publicación.
+
+## Cuarto bloque validado — maestros y consumidores agrícolas (27-10-2026)
+
+Implementación guardada en `codex/community-operations-core-20261027`, hasta
+`43dcc6c`, sobre la canónica `7926598`. La canónica recibe también estos commits
+y esta actualización de continuidad. Este bloque sustituye la separación de
+maestros que figuraba pendiente arriba; no completa la conversión integral.
+
+### Paquete
+
+- `step_agriculture_core` 18.0.1.0.0: 18 modelos, 181 campos declarados y 250
+  identificadores explícitos, además de campos heredados y selecciones.
+- `step_hr` 18.0.1.5.0: conserva personal/operación y los puentes aún Enterprise;
+  depende del núcleo para los maestros. No desinstalarlo.
+- `step_agriculture_catalogs` 18.0.1.1.0, `step_packing` 18.0.1.2.0,
+  `step_inventory_fruit_tag` 18.0.1.1.0 y
+  `step_management_costs_agriculture` 18.0.2.2.0 consumen el núcleo Community.
+- Se incluye `step_management_costs` 18.0.21.1.0 con fixtures contables propios.
+
+Se preservan modelos, tablas, relaciones, IDs, maestros compartidos y alcance
+multicompañía. Los dos namespaces apuntan a los mismos registros. Los menús
+anteriores mantienen sus restricciones; el acceso independiente del núcleo
+queda inactivo en destinos donde ya existen los menús de Actividades.
+Ver `COMMUNITY_MAESTROS_AGRICOLAS.md` para el contrato y los adaptadores de
+actualización. No utilizar el publicador de cinco módulos de Tesorería para
+este paquete de siete módulos.
+
+### Ensayo aceptado y conservación
+
+Paquete generado mediante `git archive` de `43dcc6c`, con 364 archivos de addons
+idénticos en ambos ensayos. SHA256 del mapa ordenado de archivos:
+`ae874ab24db05d2ea8dd61c8cf180be40466db498cae9340029917eadd0ebd9a`.
+Raíz `/opt/steps-validation/community-agriculture-20261027J/`:
+
+- `community/`, base `COMMUNITY_AGRICULTURE_20261027J`: 309 pruebas sin fallos;
+  66 módulos instalados, cero Enterprise y sin `step_hr`. Runtime oficial
+  Community limpio en la misma revisión `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`.
+- `cerro-copy/`, base `MANAGEMENT_QA_CERRO_AGRICULTURE_20261027J`: copia fresca
+  del destino, 309 pruebas sin fallos. Mantiene sus 140 Enterprise; 373 módulos
+  instalados al añadir el núcleo. No es una prueba de retiro Enterprise.
+- Tres pruebas locales del preservador de enlaces verifican que solo un reset
+  de grafo idéntico puede omitirse; cambios de vista, modo, secuencia o comandos
+  distintos siguen el comportamiento normal y deben superar la comparación.
+
+La comparación conservó los valores de 846 tablas de negocio; todos los
+1.217 modelos, 26.987 campos y 5.071 valores de selección originales;
+2.322 ACL, 610 reglas, 1.327 menús y 417 enlaces de acción/vistas originales.
+También se conservaron membresías de menús, reglas y grupos implícitos,
+históricos de mensajes/seguimiento/seguidores y adjuntos. Las únicas
+normalizaciones son la escala numérica ya documentada y los timestamps de
+escritura de iconos binarios de menú recargados por Odoo; sus IDs, contenido
+y demás metadatos deben permanecer exactos. Las nuevas membresías del menú
+del núcleo se separan explícitamente de las originales.
+
+Ambos ensayos ejecutaron además menús y formularios sin `sudo`. Cerro utilizó
+el perfil existente UID 6 y la empresa canónica identificada por su VAT, ID 2;
+consultó los seis maestros y guardó un formulario nativo de Packing dentro de
+una transacción revertida. No se otorgaron grupos al usuario para pasar.
+
+Los intentos previos conservan sus artefactos. Revelaron y corrigieron:
+la dependencia de Labores respecto de los campos de producto; obligatoriedad
+intermedia incompatible con cuentas/productos generales y catálogos
+compartidos; etiquetas con encoding dañado; recreación de enlaces y orden de
+menús; y fixtures que heredaban cuentas obsoletas/impuestos del cliente o
+suponían una navegación sin agrupaciones. No se corrigieron datos del cliente
+para hacer pasar las pruebas.
+
+`passed.json`, `source-files.json`, `verify.log`, logs de pruebas y contratos
+antes/después están en ambos stages. Los archivos, configuración y versiones
+del servicio de origen quedaron idénticos al contrato inicial. Producción
+mantiene 372 módulos y 140 Enterprise. El vencimiento registrado permanece
+intacto; este paquete no lo resuelve.
+
+Evidencia local:
+`C:/Users/tito4/.codex/local-artifacts/community-agriculture-20261027/`.
+`evidence-J.tar.gz` omite dumps, filestores y configuraciones. El dump de ensayo
+permanece privado en el servidor; no sirve como respaldo de un despliegue futuro.
+
+### Continuación necesaria
+
+Este paquete todavía no se publicó en Desarrollo ni QA-Cerro. Los informes
+Community de Tesorería siguen siendo el último paquete desplegado allí.
+Preparar ensayos frescos de esos destinos, comprobar sus perfiles y publicar
+el mismo paquete probado mediante un publicador específico, con respaldo,
+bloqueo compartido, overlay privado, ausencia de downgrade y neutralización QA.
+No refrescar QA-Cerro ni utilizar una copia de producción sobre su base activa.
+
+`COMMUNITY_INVENTARIO_ENTERPRISE_20261027.md` enumera los 140 módulos Enterprise.
+El código candidato deja seis apps propias sin caminos declarados Enterprise
+respecto de producción, pero 73 de las 91 aún tienen alguno. Eso no acredita
+que las seis tengan todos sus flujos validados en instalación pura: por ejemplo,
+la prueba pura propia de T123 sigue pendiente. Las cuatro fronteras agrícolas
+de este bloque sí forman parte de los 309 tests del paquete.
+
+Prioridades siguientes: separar los demás consumidores de `step_hr`, resolver
+lotes de pago, motor de Nómina/contratos y salidas chilenas, DTE/CAF/SII,
+Calidad y vistas restantes. No sustituir datos históricos, copiar código
+Enterprise ni crear stubs. Falta el ensayo integral de una copia con fuentes
+Community exclusivamente y el ensayo de recuperación antes de cualquier corte.
+No se retiró Enterprise de producción ni se alteraron controles de vencimiento.
