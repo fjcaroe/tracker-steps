@@ -56,7 +56,7 @@ def main():
         opts=['-c','/etc/dev_odoo18.conf','-d',args.database,
               '--addons-path='+str(args.oca)+','+str(args.runtime/'addons'),'--data-dir='+str(data),
               '--logfile='+str(data/'odoo.log'),
-              '--load=base,web','--workers=0','--max-cron-threads=0','--without-demo=all',
+              '--load=base,web','--workers=0','--max-cron-threads=0','--without-demo=',
               '--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0']
         # Root-owned logs: capture stdout instead of giving Odoo write access to the source evidence.
         with (args.root/'bootstrap.log').open('w') as log:
@@ -74,7 +74,7 @@ def main():
         evidence=json.loads(next(line.split('PAYROLL_ENGINE_NATIVE_OK ',1)[1] for line in native.stdout.splitlines() if 'PAYROLL_ENGINE_NATIVE_OK ' in line))
         assert not git(args.runtime,'status','--porcelain') and not git(args.oca,'status','--porcelain')
         proof={'database':args.database,'official_community':git(args.runtime,'rev-parse','HEAD'),
-            'oca_revision':PIN,'engine_native':evidence,'writes_to_source':False,
+            'oca_revision':PIN,'upstream_demo_data':True,'engine_native':evidence,'writes_to_source':False,
             'source_files_sha256':hashlib.sha256((args.root/'source-files.json').read_bytes()).hexdigest(),
             'tests':[line for line in text.splitlines() if 'tests.result' in line],
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),

@@ -15,7 +15,7 @@ class PayrollInputCase(TransactionCase):
             'type_id':cls.env['hr.payroll.structure.type'].create({'name':'Private input type'}).id})
         cls.input_type=cls.env['hr.payslip.input.type'].create({'name':'Private bonus','code':'PRIVATE_BONUS',
             'struct_ids':[Command.set(cls.structure.ids)]})
-        cls.run=cls.env['hr.payslip.run'].create({'name':'Private input run','company_id':cls.company.id})
+        cls.batch=cls.env['hr.payslip.run'].create({'name':'Private input run','company_id':cls.company.id})
         cls.employee=cls.env['hr.employee'].create({'name':'Private input employee','company_id':cls.company.id})
         cls.user=cls.env['res.users'].with_context(no_reset_password=True).create({
             'name':'Private input user','login':'private-input-user','company_id':cls.company.id,
@@ -32,13 +32,13 @@ class PayrollInputCase(TransactionCase):
     @classmethod
     def make_slip(cls, **values):
         vals={'name':'Private input slip','employee_id':cls.employee.id,'contract_id':cls.contract.id,
-              'company_id':cls.company.id,'struct_id':cls.structure.id,'payslip_run_id':cls.run.id,
+              'company_id':cls.company.id,'struct_id':cls.structure.id,'payslip_run_id':cls.batch.id,
               'date_from':fields.Date.today().replace(day=1),'date_to':fields.Date.today()}
         vals.update(values)
         return cls.env['hr.payslip'].create(vals)
 
     def wizard(self, **values):
-        vals={'payslip_run_id':self.run.id,'struct_id':self.structure.id,'input_type_id':self.input_type.id,
+        vals={'payslip_run_id':self.batch.id,'struct_id':self.structure.id,'input_type_id':self.input_type.id,
               'user_ids':[Command.set(self.user.ids)],'value_amount':12345.67}
         vals.update(values)
         return self.env['hr.input.step.wizard'].create(vals)
@@ -101,8 +101,8 @@ class PayrollInputCase(TransactionCase):
         self.assertFalse(self.slip.input_line_ids)
 
     def test_closed_run_rejected(self):
-        state=next(s for s,_ in self.run._fields['state']._description_selection(self.env) if s!='draft')
-        self.run.state=state
+        state=next(s for s,_ in self.batch._fields['state']._description_selection(self.env) if s!='draft')
+        self.batch.state=state
         with self.assertRaises(ValidationError):self.wizard().import_button()
         self.assertFalse(self.slip.input_line_ids)
 
