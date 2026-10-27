@@ -262,3 +262,132 @@ No se publicó en servicios activos, no se retiró Enterprise en producción,
 no se alteraron vencimientos y no se refrescó QA-Cerro. Estos ensayos privados
 no sustituyen Desarrollo público ni son un respaldo fresco de una publicación
 futura.
+
+## Tercer bloque completado — cinco alternativas Community y QA-Cerro
+
+Actualización del 27-10-2026: esta sección reemplaza el siguiente paso del bloque
+anterior. El usuario autorizó las cinco alternativas y su entrega en QA-Cerro,
+sin modificar producción ni refrescar los ejercicios. Se trabajó en el worktree
+propio anterior, con rama nueva `codex/community-reports-20261027`, desde `25d11ac`.
+
+### Código y alcance entregados
+
+- `step_treasury_community_reports` 18.0.1.0.0: mayor de socios, antigüedad de
+  cobros/pagos, efectivo realizado y control de conciliación bancaria. Asistente
+  transitorio con filtros, HTML, CSV, PDF y enlaces a documentos nativos.
+- `step_account_treasury` 18.0.1.3.1: su adopción admite el reemplazo Community.
+  La prueba por cantidad pedida fija `invoice_policy=order` explícitamente;
+  las políticas por entrega y compra tienen sus propias pruebas. No se cambian
+  productos ni políticas de facturación de los ambientes activos.
+- Los cinco menús mantienen IDs, nombres, padres, grupos, secuencias y estado.
+  Solo cambia su acción de destino y el registro de esa modificación.
+  Las cinco acciones globales de `account_reports`, con sus IDs y fechas,
+  permanecen intactas; otros accesos Enterprise siguen funcionando.
+- No se asignan perfiles. Se comprueban lectura contable, empresas autorizadas
+  y visibilidad del menú también al invocar el método por RPC. El usuario de
+  prueba de Cerro/QA es uno existente autorizado, sin superusuario y con la
+  empresa Cerro seleccionada por su identificación canónica, no por el valor
+  predeterminado del usuario. Los totales concuerdan con el libro nativo.
+- El PDF usa un layout propio sin recursos externos, limitado a este reporte;
+  no modifica el layout de otros documentos. Se generó y revisó visualmente
+  una muestra sintética horizontal, fuera de Git.
+
+Contratos, permisos y límites detallados: `INFORMES_COMMUNITY_TESORERIA.md`.
+El efectivo es directo y realizado, todavía sin clasificación normativa por
+actividades. El control bancario distingue saldos al corte y estado actual de
+extractos; no publica ni concilia automáticamente. Las columnas operacionales
+conservan la valoración histórica declarada, no una liquidación de FX realizada.
+
+### Paquete y ensayos aceptados
+
+Código del paquete: `82a3e8f` (cálculos y presentación definitivos desde
+`043002e`; el ajuste posterior del paquete solo hace explícita la política del
+fixture). `reports-release.tar` SHA256:
+`e45e3a4b2049887fd9ff99a24b530cf08b4d97e3cd9fffa072a4e558088f6bbc`.
+Los **70 archivos de cinco addons** coinciden en los cuatro ensayos y ambos
+overlays publicados. Huella agregada de esos archivos:
+`a0c3a26550b6cc6aeb809674410c0ea44e424d821c62520b985638fa77875505`.
+Las herramientas operativas recibieron resguardos adicionales sin cambiar esos
+archivos de addons.
+
+| Ensayo | Base privada | Pruebas | Directorio en `/opt/steps-validation/` |
+| --- | --- | --- | --- |
+| Community oficial | `COMMUNITY_TREASURY_REPORTS_20261027J` | 77 | `community-reports-20261027J/community/` |
+| Cerro fresco | `MANAGEMENT_QA_CERRO_TREASURY_REPORTS_20261027C` | 101 | `community-reports-cerro-20261027C/cerro-copy/` |
+| Desarrollo fresco | `MANAGEMENT_QA_CERRO_TREASURY_REPORTS_DEV_20261027B` | 101 | `community-reports-dev-20261027B/cerro-copy/` |
+| QA-Cerro fresco | `MANAGEMENT_QA_QA-CERRO_reports_20261027a` | 101 | `community-reports-qa-20261027A/cerro-copy/` |
+
+Community tiene cero Enterprise y usa las fuentes oficiales limpias en la
+revisión `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`. Las copias conservan
+Enterprise: Cerro 140, Desarrollo 168 y QA-Cerro 137, según su inventario propio.
+No se igualaron instalaciones ni se retiraron módulos para obtener el resultado.
+Se conservaron valores en 842 tablas de Cerro/QA y 916 de Desarrollo, 225 IDs
+de campos y 21 registros de ACL/reglas/grupos, además de sus relaciones.
+Los cinco registros de acciones Enterprise se comparan íntegramente. Para el
+resto de acciones cliente también se conserva el contenido; se admiten solo
+fechas/autor de actualización de metadatos recargados normalmente por Odoo.
+
+`validate_community_reports.py` guarda dumps, huellas antes/después, acciones,
+menús, campos y permisos. El permiso temporal del rol QA a su única copia privada
+se retiró al finalizar. Las comprobaciones adicionales de empresa canónica están
+en `company-verify.log` de Cerro y `post-start-verify.log` de la entrega QA.
+
+### Entregas verificadas
+
+Overlays privados y recuperación completa, bajo `/opt/steps-community/releases/`:
+
+- Desarrollo: `development/a0c3a26550b6cc6aeb809674410c0ea44e424d821c62520b985638fa77875505-20261027054222/`.
+- QA-Cerro: `qa-cerro/a0c3a26550b6cc6aeb809674410c0ea44e424d821c62520b985638fa77875505-20261027055330/`.
+
+`deployed.json`, `runtime-passed.json`, `http-passed.json` y los logs de cada
+directorio confirman versiones, archivos efectivos, configuración del proceso,
+formularios, menús y cinco flujos con usuario autorizado. Versiones instaladas
+en ambos: núcleo multimoneda 18.0.1.0.0, puente previo 18.0.2.1.0, Tesorería
+18.0.1.3.1 y reportes Community 18.0.1.0.0. El puente opcional Enterprise de los
+cinco menús no se instala como dependencia del reemplazo.
+
+Acceso de revisión: `https://qa-cerroelplomo.stepsapp.cl`, Tesorería / Informes
+y Tesorería / Conciliación bancaria. Desarrollo también está publicado para
+revisión. Se conservaron las bases y filestores activos; no se restauró ninguna
+base sobre QA-Cerro. Dumps, configuración previa y filestore recuperable quedan
+en esos directorios, fuera de Git.
+
+Se detectaron y resolvieron dos resguardos operativos durante la publicación:
+
+- El cron normal de Tracker avanzó su marcador durante el ensayo de Desarrollo.
+  Solo se admiten cambios de `last_sync` y `write_date`, comparando todos los
+  otros campos/registros contra la copia intacta. Se preserva el corte actual
+  completo bajo el servicio detenido; no se restaura el marcador antiguo.
+- La recarga de datos activó una definición cron en QA. El control detuvo el
+  cierre; `finalize_qa_reports.py` comprobó respaldo original con cero cron
+  activos, datos y permisos intactos y versiones correctas, restableció la
+  neutralización y verificó todo sin reinstalar ni restaurar la base.
+
+Después del reinicio y la revisión final: cron, correo y fetchmail activos = 0,
+planificador configurado en 0, salida de red bloqueada y acceso del rol QA a la
+base de producción rechazado. También pasó el formulario nativo de Packing con
+el perfil existente. No se amplió el firewall ni se cambiaron claves.
+`final-isolation-state.json` registra estas comprobaciones. La configuración,
+fuentes y versiones de producción siguen idénticas al contrato del ensayo Cerro.
+
+Evidencia Windows: `C:/Users/tito4/.codex/local-artifacts/community-reports-20261027/`.
+`evidence.tar.gz` contiene ensayos aceptados y entregas; omite dumps, filestores
+y configuraciones privadas. Los intentos anteriores conservan sus artefactos en
+el servidor. Sus correcciones incluyeron instalación/encoding del módulo nuevo,
+layout PDF sin recursos HTTP, separación de auditoría de acciones y el fixture
+de ventas que dependía de un default distinto en Desarrollo. `steps_api` continúa
+como faltante legado documentado de Desarrollo; se usa el mismo clasificador
+canónico para esa condición previa, sin crear un stub ni suprimir errores nuevos.
+
+### Próximo bloque
+
+Las cinco alternativas están disponibles para probar en QA-Cerro. No equivalen
+todavía a la conversión integral: siguen pendientes los lotes de pago Enterprise,
+la separación de maestros de `step_hr`, DTE, Calidad y los demás dependientes.
+T123 pasó su regresión en las tres copias; todavía requiere una instalación pura
+Community propia antes de declarar independiente todo su flujo.
+La clasificación normativa del flujo de efectivo requiere contrato funcional y
+conciliación adicionales sobre maestros nativos, sin tablas ni cuentas paralelas.
+
+Producción no recibió el paquete, no se alteraron vencimientos y QA-Cerro no se
+refrescó. No usar estos dumps de ensayo como respaldo fresco de otra publicación.

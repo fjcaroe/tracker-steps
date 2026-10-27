@@ -131,3 +131,27 @@ los lotes históricos. La etapa 2 sigue abierta hasta conciliar esos reemplazos.
 Community y en una copia fresca de Cerro. Solo admite bases privadas, usa el
 bloqueo compartido y no tiene modo de publicación. Además de las huellas de
 negocio comprueba campos, menús, ACL, reglas, grupos y membresías.
+
+## Tercer paquete: alternativas Community para los cinco accesos
+
+`step_treasury_community_reports` 18.0.1.0.0 implementa mayor de socios,
+antigüedad por cobrar/pagar, efectivo realizado y control de conciliación.
+`step_account_treasury` 18.0.1.3.1 admite este reemplazo en su premigración.
+Los cinco menús conservan identidad y restricciones; apuntan a acciones de
+ventana propias. Las acciones compartidas de Enterprise permanecen intactas.
+La instalación Community sí dispone ahora de las cinco alternativas.
+
+El alcance y las reglas monetarias se detallan en
+`INFORMES_COMMUNITY_TESORERIA.md`: consulta del libro nativo sin `sudo`, corte
+histórico de conciliaciones, salidas HTML/CSV/PDF y separación de monedas.
+El efectivo es realizado, todavía sin clasificación normativa por actividades;
+la conciliación muestra controles y permite abrir documentos nativos, sin
+publicar ni conciliar automáticamente. No se presume equivalencia de esa
+presentación con toda la configuración Enterprise anterior.
+
+El usuario autorizó el 27-10-2026 publicar este paquete en QA-Cerro para probar,
+sin refrescar sus ejercicios ni tocar producción. El publicador específico
+solo admite Desarrollo y QA-Cerro y exige ensayo Community, copia fresca de
+Cerro y copia fresca del destino, con el mismo SHA256 por archivo. Las versiones,
+fuentes, configuración y datos deben seguir correspondiendo a la prueba.
+El retiro integral de Enterprise y el reemplazo de lotes siguen pendientes.
