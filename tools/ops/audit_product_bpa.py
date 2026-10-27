@@ -40,7 +40,7 @@ def main():
         "OR (model='ir.model.fields' AND res_id IN (SELECT id FROM ir_model_fields WHERE "
         "model='x_aptitud_plaguicidas' OR (model='product.template' AND name LIKE 'x_studio_%'))) "
         "ORDER BY module,name) t")
-    exists = query(database, "SELECT to_regclass('public.x_aptitud_plaguicidas') IS NOT NULL")
+    exists = query(database, "SELECT to_json(to_regclass('public.x_aptitud_plaguicidas') IS NOT NULL)")
     catalog = query(database, 'SELECT coalesce(json_agg(to_jsonb(t)),\'[]\'::json) FROM x_aptitud_plaguicidas t') if exists else []
     permissions = query(database, "SELECT coalesce(json_agg(row_to_json(t)),'[]'::json) FROM ("
         "SELECT * FROM ir_model_access WHERE model_id IN "
