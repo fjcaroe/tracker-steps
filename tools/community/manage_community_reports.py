@@ -157,6 +157,10 @@ def main():
             from manage_management import errors as module_errors
             allowed_missing = tuple(name for name in ('steps_api',) if name in installed)
             assert result.returncode == 0 and 'Modules loaded.' in diagnostics and not module_errors(diagnostics, allowed_missing), 'Upgrade failed; preserve recovery directory'
+            if args.environment == 'qa-cerro':
+                # Module XML may reactivate cron definitions. Keep the customer
+                # QA neutralized before the service is allowed to resume.
+                sql(database, 'UPDATE ir_cron SET active=false WHERE active; UPDATE ir_mail_server SET active=false WHERE active; UPDATE fetchmail_server SET active=false WHERE active;')
             after = snapshot(database)
             (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
             assert same_values(before, after), 'Business values changed'

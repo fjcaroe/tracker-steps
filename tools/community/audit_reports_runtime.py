@@ -23,8 +23,13 @@ def main():
     pid = int(run('systemctl', 'show', service, '-p', 'MainPID', '--value', capture_output=True, text=True).stdout.strip())
     argv = Path('/proc/%s/cmdline' % pid).read_bytes().decode().split('\0')
     assert conf in argv or '--config=' + conf in argv
-    assert not any(arg.startswith(('--addons-path', '--data-dir', '--database')) or arg == '-d' for arg in argv), 'Unexpected service override'
     config = configparser.ConfigParser(interpolation=None); config.read(conf)
+    for index, arg in enumerate(argv):
+        for flag, key in (('-d', 'db_name'), ('--database', 'db_name'), ('--data-dir', 'data_dir'), ('--addons-path', 'addons_path')):
+            if arg == flag:
+                assert argv[index + 1] == config['options'].get(key), 'Conflicting service override: ' + flag
+            elif arg.startswith(flag + '='):
+                assert arg.split('=', 1)[1] == config['options'].get(key), 'Conflicting service override: ' + flag
     assert config['options']['db_name'] == database
     assert config['options']['addons_path'].split(',')[0].strip() == str(release / 'addons')
     actual = {str(p.relative_to(release / 'addons')): digest(p) for name in MODULES
