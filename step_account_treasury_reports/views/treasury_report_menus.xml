@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo><data noupdate="1">
+    <menuitem id="menu_treasury_bank_reconciliation"
+              name="Conciliación bancaria"
+              parent="step_account_treasury.menu_treasury_bank"
+              action="account_reports.action_account_report_bank_reconciliation"
+              sequence="20"/>
+    <menuitem id="menu_treasury_partner_ledger"
+              name="Cuentas corrientes"
+              parent="step_account_treasury.menu_treasury_reports"
+              action="account_reports.action_account_report_partner_ledger"
+              sequence="10"/>
+    <menuitem id="menu_treasury_cash_flow_statement"
+              name="Estado de flujo de efectivo"
+              parent="step_account_treasury.menu_treasury_reports"
+              action="account_reports.action_account_report_cs"
+              sequence="20"/>
+    <menuitem id="menu_treasury_aged_receivable"
+              name="Cuentas por cobrar vencidas"
+              parent="step_account_treasury.menu_treasury_reports"
+              action="account_reports.action_account_report_ar"
+              sequence="30"/>
+    <menuitem id="menu_treasury_aged_payable"
+              name="Cuentas por pagar vencidas"
+              parent="step_account_treasury.menu_treasury_reports"
+              action="account_reports.action_account_report_ap"
+              sequence="40"/>
+</data></odoo>

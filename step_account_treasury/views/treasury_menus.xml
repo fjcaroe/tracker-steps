@@ -55,36 +55,11 @@
               parent="menu_treasury_bank"
               action="account.open_account_journal_dashboard_kanban"
               sequence="10"/>
-    <menuitem id="menu_treasury_bank_reconciliation"
-              name="Conciliación bancaria"
-              parent="menu_treasury_bank"
-              action="account_reports.action_account_report_bank_reconciliation"
-              sequence="20"/>
 
     <!-- Informes -->
     <menuitem id="menu_treasury_reports"
               name="Informes"
               parent="menu_treasury_root"
-              sequence="40"/>
-    <menuitem id="menu_treasury_partner_ledger"
-              name="Cuentas corrientes"
-              parent="menu_treasury_reports"
-              action="account_reports.action_account_report_partner_ledger"
-              sequence="10"/>
-    <menuitem id="menu_treasury_cash_flow_statement"
-              name="Estado de flujo de efectivo"
-              parent="menu_treasury_reports"
-              action="account_reports.action_account_report_cs"
-              sequence="20"/>
-    <menuitem id="menu_treasury_aged_receivable"
-              name="Cuentas por cobrar vencidas"
-              parent="menu_treasury_reports"
-              action="account_reports.action_account_report_ar"
-              sequence="30"/>
-    <menuitem id="menu_treasury_aged_payable"
-              name="Cuentas por pagar vencidas"
-              parent="menu_treasury_reports"
-              action="account_reports.action_account_report_ap"
               sequence="40"/>
 
     <!-- Planificación -->
