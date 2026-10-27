@@ -29,6 +29,7 @@ class TestMachineryAccounting(TransactionCase):
             'currency_id': cls.env.company.currency_id.id,
         })
         cls.env = cls.env(context=dict(cls.env.context, allowed_company_ids=cls.company.ids))
+        cls.company = cls.company.with_env(cls.env)
         cls.Service = cls.env["type.service.machinery"]
         # Diario propio de la prueba, restringido igual que CDMaq antes de la
         # homologación: sólo acepta una cuenta ajena a maquinaria.
