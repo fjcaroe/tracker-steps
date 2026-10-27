@@ -9,4 +9,7 @@
     <menuitem id="menu_cost_accounts" name="Haberes de costeo" parent="menu_labor_operations" action="action_step_haber_costeo" sequence="70"/>
     <menuitem id="menu_task_report" name="Detalle de tareas propias" parent="menu_labor_operations" action="action_view_step_tarja_line" sequence="80"/>
     <menuitem id="menu_contractor_report" name="Detalle de tareas contratistas" parent="menu_labor_operations" action="action_view_step_tarja_cost_line" sequence="90"/>
+<record id="menu_labor_operations" model="ir.ui.menu">
+        <field name="active" eval="not ref('step_hr.menu_step_hr_root', False)"/>
+    </record>
 </odoo>
