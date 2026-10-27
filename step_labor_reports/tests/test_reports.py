@@ -46,3 +46,17 @@ class LaborReportsCase(TransactionCase):
         portal=new_test_user(self.env,login='private_labor_reports_portal',groups='base.group_portal')
         for model in ('report.step.hrs.wizard','report.by.process.wizard'):
             self.assertFalse(self.env[model].with_user(portal).has_access('read'))
+
+    def test_repeated_xml_upgrade_preserves_legacy_menu_boundary(self):
+        from odoo.tools import convert_file
+        legacy=self.env.ref('step_hr.menu_step_hr_root',raise_if_not_found=False)
+        if not legacy:
+            legacy=self.env['ir.ui.menu'].create({'name':'Private legacy HR menu fixture'})
+            self.env['ir.model.data'].create({'module':'step_hr','name':'menu_step_hr_root',
+                'model':'ir.ui.menu','res_id':legacy.id,'noupdate':True})
+        for module,name in [('step_agriculture_core','menu_agriculture_core'),
+                            ('step_labor_operations_core','menu_labor_operations')]:
+            convert_file(self.env,module,'views/menu_views.xml',{},mode='update')
+            self.assertFalse(self.env.ref(module+'.'+name).active)
+            convert_file(self.env,module,'views/menu_views.xml',{},mode='update')
+            self.assertFalse(self.env.ref(module+'.'+name).active)

@@ -118,3 +118,9 @@ por `write({'state': ...})`, por lo que ese override legado no marcaba siempre
 la recepción validada. Los hooks actúan solamente sobre el registro vinculado
 a la recepción actual durante la transición del operador: no hay recomputación
 de recepciones anteriores ni cambios de históricos durante el upgrade.
+
+Las raíces Community de maestros (núcleo 18.0.1.1.1) y Tarjas/Cuadrillas
+(18.0.1.0.1) reevalúan su estado activo en cada carga XML. Permanecen ocultas
+cuando existe la raíz legada de HR, incluso después de un segundo upgrade;
+no se depende solamente de `post_init_hook`. La regresión vuelve a cargar ambos
+XML dos veces y comprueba la frontera de menús. No modifica grupos de usuarios.
