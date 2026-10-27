@@ -17,7 +17,7 @@ class TestShipmentRevision(TransactionCase):
             self.assertFalse(access.check('l10n_cl.customs_port', operation, raise_exception=False))
         self.assertTrue(self.env['l10n_cl.customs_port'].with_user(user).search([], limit=1))
 
-    def test_participant_selectors_use_existing_export_contact_flag(self):
+    def test_participant_selectors_respect_installed_roles(self):
         roles={'carrier_id':'step_export_carrier','consignee_id':'step_export_consignee',
                'notify_id':'step_export_notify','freight_forwarder_id':'step_export_forwarder',
                'customs_agent_id':'step_export_customs_agent'}
