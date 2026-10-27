@@ -68,6 +68,8 @@
                                             options="{'no_create':1}"
                                             invisible="display_applied_on != '2_product_category'"
                                             placeholder="All categories"/>
+                                        <field name="labor_id"/>
+                                        <field name="uom_id"/>
                                         <field name="product_tmpl_id"
                                             options="{'no_create':1}"
                                             invisible="display_applied_on != '1_product'" domain="[('id', 'in', product_id_domain)]"
@@ -207,6 +209,7 @@
         <field name="arch" type="xml">
             <xpath expr="//label[@for='price_min_margin']/parent::group/parent::group" position="after">
                 <group>
+                    <field name="labor_id"/>
                     <field name="can_std"/>
                     <field name="can_max"/>
                     <field name="tarifa_trato"/>

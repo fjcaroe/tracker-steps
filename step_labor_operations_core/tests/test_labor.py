@@ -119,6 +119,42 @@ class LaborOperationsCase(TransactionCase):
         self.assertEqual(sequence.prefix,'CUSTOM/');self.assertEqual(sequence.padding,9)
         self.assertEqual(sequence.number_next_actual,before)
 
+    def test_rate_form_and_contractor_cost_keep_actual_product_relations(self):
+        labor=self.env['product.template'].create({'name':'Labor rate fixture','is_labor':True})
+        unit=self.env.ref('uom.product_uom_unit')
+        with Form(self.scoped['product.pricelist'].with_context(step_default_contratista=True),
+                  view='step_hr.step_pricelist_view_inherit') as form:
+            form.name='Contractor rate fixture'
+            with form.item_ids.new() as item:
+                item.display_applied_on='1_product'
+                item.product_tmpl_id=labor
+                item.labor_id=labor
+                item.uom_id=unit
+                item.compute_price='fixed'
+                item.fixed_price=20
+        rate=form.record
+        self.assertEqual(rate.item_ids.labor_id,labor)
+        self.assertEqual(rate.item_ids.uom_id,unit)
+        with Form(self.scoped['product.pricelist.item'].with_context(default_pricelist_id=rate.id),
+                  view='step_hr.product_pricelist_item_form_inherit_step') as standalone:
+            standalone.display_applied_on='1_product'
+            standalone.product_tmpl_id=labor
+            standalone.labor_id=labor
+            standalone.uom_id=unit
+            standalone.compute_price='fixed'
+            standalone.fixed_price=20
+        partner=self.env['res.partner'].create({'name':'Contractor rate fixture','step_contra':True})
+        self.employee.write({'is_contratista':True,'contratista_id':partner.id})
+        crew=self.crew('contratista')
+        tarja=self.scoped['step.tarja'].create({'tarja_type':'contratista','salary_id_contrac':crew.id,
+            'partner_id':partner.id,'company_id':self.company.id,'date':'2026-10-27','pricelist_id':rate.id,
+            'tarja_cost_line':[Command.create({'employee_id':self.employee.id,'labor_id':labor.id,'quantity':3})]})
+        line=tarja.tarja_cost_line
+        self.assertEqual(line.labor_id,labor)
+        self.assertEqual(line.uom_id,unit)
+        self.assertEqual(line.tarifa,20)
+        self.assertEqual(line.trato_total,60)
+
     def test_relation_metadata_owner_preserves_ids_and_is_idempotent(self):
         data=self.env['ir.model.relation'].search([('name','in',RELATIONS)])
         before={row.id:(row.name,row.model.id,row.module.id) for row in data}
