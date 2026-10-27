@@ -1,4 +1,7 @@
 def migrate(cr, version):
+    from odoo import api,SUPERUSER_ID
+    from odoo.addons.step_cosecha.hooks import pre_init_hook
+    pre_init_hook(api.Environment(cr,SUPERUSER_ID,{}))
     cr.execute("UPDATE ir_model_data SET noupdate=true WHERE module='step_cosecha' AND model='ir.sequence' AND name IN ('seq_step_cosecha_propio','seq_step_cosecha_contra')")
     cr.execute("SELECT 1 FROM ir_model_data WHERE module='step_cosecha' AND model='ir.model' AND name IN ('model_hr_input_step_wizard','model_hr_entry_xls_wizard','model_success_message') LIMIT 1")
     if cr.fetchone():

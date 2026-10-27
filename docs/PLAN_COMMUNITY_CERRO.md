@@ -256,3 +256,36 @@ de Movilización abandona ese camino. Esto no convierte por sí solo los otros
 consumidores de Cosecha, Nómina, DTE o Calidad. Tampoco sustituye el ensayo de
 conversión integral, recuperación, publicación y aceptación. Las evidencias del
 paquete aceptado quedan en continuidad; producción conserva 140 Enterprise.
+
+## Octavo paquete: Cosecha, planificación y registros
+
+`step_cosecha` 18.0.1.7.0 consume el núcleo laboral sin Nómina/Gantt.
+`step_cosecha_planning` 18.0.1.1.0 consume los formatos compartidos;
+`step_agriculture_records` 18.0.1.3.0 declara Movilización y el costo horario
+nativo Community. Cosecha y sus diez modelos conservan nombres/tablas,
+maestros y permisos. `product.packaging` sigue siendo el único maestro de
+embalajes; no se infiere clasificación para los históricos.
+
+`step_agriculture_format_core`, `step_labor_reports` y
+`step_labor_payroll_wizards` adoptan 27 identificadores explícitos, cinco
+modelos transitorios y 22 campos declarados. Los dos informes laborales son
+operacionales Community. El puente de wizards conserva Nómina real y sus
+relaciones en Cerro, y no se instala en Community. HR lo consume sin duplicar
+las definiciones en Cosecha. Se adoptan los tres propietarios M2M pendientes.
+La bandera original de recepción `stock.picking.cosecha` pasa a Cosecha con
+un identificador adicional preservado: el total del bloque es 28 IDs y 23
+campos declarados. Se comprueba recepción nativa y rechazo de duplicados.
+No se certifica todavía el importador de entradas salariales, el algoritmo
+APR legado ni el motor Simple Digital sobre un sustituto Community.
+
+El contrato, los límites y la comprobación de correlativos se detallan en
+`COMMUNITY_COSECHA.md`; la aceptación y evidencia se registran en continuidad.
+La matriz candidata pasa de 64 a 59 apps propias con caminos Enterprise.
+Esas cinco clausuras incluyen `step_harvest_launcher`, que solo aparece en el
+inventario del servidor y no tiene fuentes versionadas en este checkout:
+la cifra es de dependencias declaradas, no una certificación adicional de ese
+launcher. Las cuatro aplicaciones agrícolas del paquete sí se ensayan.
+Producción conserva Enterprise; siguen abiertos Nómina, DTE/CAF/SII, Calidad,
+Studio/Documentos/Firma, lotes/conciliación, despliegues de los núcleos y la
+conversión integral con recuperación y aceptación. No se puede comprometer
+el corte del 31 de octubre a partir de esta extracción.

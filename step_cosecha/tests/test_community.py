@@ -34,3 +34,38 @@ class HarvestCommunityCase(TransactionCase):
         harvest=self.env['step.cosecha.registry'].with_context(default_type_tarea='contratista').create({'name':'Private protected harvest','product_uom_id':self.env.ref('uom.product_uom_kgm').id})
         harvest.write({'state':'cont'})
         with self.assertRaises(UserError):harvest.unlink()
+
+    def test_original_warehouse_marker_and_receipt_workflow(self):
+        from odoo.addons.step_cosecha.hooks import pre_init_hook,post_init_hook
+        self.assertEqual(self.env.ref('step_hr.field_stock_picking__cosecha'),
+                         self.env.ref('step_cosecha.field_stock_picking__cosecha'))
+        pre_init_hook(self.env);post_init_hook(self.env)
+        company=self.env['res.company'].create({'name':'Private harvest receipt company'})
+        scoped=self.env(context=dict(self.env.context,allowed_company_ids=company.ids))
+        warehouse=scoped['stock.warehouse'].create({'name':'Private harvest warehouse','code':'HQA','company_id':company.id})
+        partner=scoped['res.partner'].create({'name':'Private harvest contractor'})
+        kg=scoped.ref('uom.product_uom_kgm')
+        product=scoped['product.product'].create({'name':'Private harvest fruit','grupo_labor':'pack','type':'consu','uom_id':kg.id,'uom_po_id':kg.id})
+        operator=new_test_user(scoped,login='private_harvest_receipt_operator',
+            groups='base.group_user,hr.group_hr_user,stock.group_stock_user',
+            company_id=company.id,company_ids=[(6,0,company.ids)])
+        harvest=scoped['step.cosecha.registry'].with_user(operator).with_context(default_type_tarea='contratista').create({
+            'name':'Private warehouse harvest','company_id':company.id,'partner_id':partner.id,
+            'product_id':product.product_tmpl_id.id,'product_uom_id':kg.id,
+            'tarja_registry_line':[(0,0,{'qty_kg':20})]})
+        harvest.recibir_cosecha()
+        picking=harvest.reception_picking_id
+        self.assertTrue(picking.cosecha)
+        self.assertEqual(picking.harvest_registry_id,harvest)
+        self.assertEqual(picking.company_id,company)
+        self.assertEqual(picking.move_ids.product_id,product)
+        self.assertEqual(picking.move_ids.product_uom_qty,20)
+        self.assertEqual(harvest.total_kilos,20)
+        self.assertFalse(harvest.env.su)
+        self.assertEqual(picking.location_dest_id,warehouse.in_type_id.default_location_dest_id)
+        with self.assertRaises(UserError):harvest.recibir_cosecha()
+        picking.action_confirm()
+        for move in picking.move_ids:move.quantity=move.product_uom_qty
+        picking.button_validate()
+        self.assertEqual(picking.state,'done')
+        self.assertTrue(harvest.cos_recibida)

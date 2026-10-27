@@ -18,6 +18,5 @@ from . import res_company
 from . import res_config_settings
 # from . import step_cosecha_tarja_line
 # from . import step_cosecha_tarja_registry_line
-from . import stock_picking
 from . import step_history
 from . import step_tarja_payroll

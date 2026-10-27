@@ -39,4 +39,6 @@
  'assets': {'web.assets_backend': ['step_cosecha/static/src/js/cosecha_dashboard.js',
                                    'step_cosecha/static/src/xml/cosecha_dashboard.xml',
                                    'step_cosecha/static/src/scss/cosecha_dashboard.scss']},
- 'application': True}
+ 'application': True,
+ 'pre_init_hook': 'pre_init_hook',
+ 'post_init_hook': 'post_init_hook'}

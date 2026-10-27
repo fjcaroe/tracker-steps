@@ -7,6 +7,8 @@ from odoo import fields, models
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
+    cosecha = fields.Boolean('Es Cosecha')
+
     harvest_registry_id = fields.Many2one(
         'step.cosecha.registry', string='Registro de cosecha',
         copy=False, index=True, ondelete='set null'

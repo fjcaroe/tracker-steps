@@ -9,7 +9,7 @@ try:
             'company_id':company.id,'company_ids':[(6,0,company.ids)],
             'groups_id':[(6,0,[env.ref(g).id for g in ('base.group_user','hr.group_hr_user',
                 'sales_team.group_sale_manager','product.group_product_pricelist',
-                'step_management_costs.group_management_manager')])],
+                'step_management_costs.group_management_manager','stock.group_stock_user')])],
         })
     scoped_harvest=api.Environment(env.cr,operator.id,dict(env.context,allowed_company_ids=company.ids),su=False)
     assert not scoped_harvest.su
@@ -22,6 +22,10 @@ try:
                        ('report.step.hrs.wizard','step_labor_reports.report_step_hrs_wizard_form'),
                        ('report.by.process.wizard','step_labor_reports.report_step_by_process_form')]:
         scoped_harvest[model].get_view(scoped_harvest.ref(ref).id,'form')
+    assert env.ref('step_hr.field_stock_picking__cosecha')==env.ref('step_cosecha.field_stock_picking__cosecha')
+    assert scoped_harvest['stock.picking']._fields['cosecha'].type=='boolean'
+    dashboard=scoped_harvest['step.cosecha.registry'].get_dashboard_data(0)
+    assert 'warehouse_receptions' in dashboard
     visible=scoped_harvest['ir.ui.menu']._visible_menu_ids()
     assert scoped_harvest.ref('step_cosecha_planning.menu_packaging').id in visible
     product=scoped_harvest['product.product'].create({'name':'Private harvest package verification','grupo_labor':'pack'})
@@ -49,7 +53,7 @@ try:
         assert env['ir.model.relation'].search([('name','=','step_hr_payslip_rel')]).module.name=='step_labor_payroll_wizards'
         assert env.ref('step_hr.step_payslip_wizard_form')==env.ref('step_labor_payroll_wizards.step_payslip_wizard_form')
     print('HARVEST_NATIVE_OK '+json.dumps({'uid':operator.id,'company':company.id,'su':False,
-        'harvest_workflow':True,'packaging_native':True,'record_forms':len(HARVEST_RECORD_MODELS),
+        'harvest_workflow':True,'warehouse_dashboard':True,'packaging_native':True,'record_forms':len(HARVEST_RECORD_MODELS),
         'report_download':True,'real_payroll_bridge':MODE!='community','paid_payroll_invoked':False}))
 finally:
     env.cr.rollback()

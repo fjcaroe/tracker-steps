@@ -4,7 +4,12 @@
 
 Cosecha 18.0.1.7.0 depende de `step_labor_operations_core` y de módulos
 oficiales Community. Conserva sus diez modelos de Cosecha/historial, tablas,
-campos, acciones, maestros, ACL y reglas. No duplica cuadrillas ni contratos.
+campos, acciones, maestros, ACL y reglas. No duplica cuadrillas ni contratos. La bandera original
+`stock.picking.cosecha` pasa de HR a Cosecha con el mismo campo, columna, ID y
+alias antiguo. La recepción y el dashboard leen esa bandera también en
+Community; el hook y las migraciones rechazan conflictos de identidad/tipo.
+La prueba de Inventario usa un operador desechable sin `su`, crea la recepción
+de 20 kg, conserva producto/UdM/compañía, la valida y rechaza duplicados.
 La planificación 18.0.1.1.0 usa los planes originales de Gestión y Costos.
 Los registros agrícolas 18.0.1.3.0 declaran explícitamente su consumidor de
 Movilización: el panel de centros consulta `step.movi.cost.line`.
