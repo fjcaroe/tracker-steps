@@ -1,0 +1,35 @@
+<odoo>
+  <record id="packaging_capacity_form" model="ir.ui.view">
+    <field name="name">product.packaging.packing.capacities.form</field>
+    <field name="model">product.packaging</field>
+    <field name="inherit_id" ref="step_export.view_step_export_packaging_form"/>
+    <field name="arch" type="xml">
+      <field name="step_export_kg_per_box" position="after">
+        <field name="step_clamshell_qty"/>
+        <field name="step_clamshell_weight_g"/>
+        <field name="step_boxes_per_pallet"/>
+        <field name="step_pallets_per_container"/>
+        <field name="step_boxes_per_container_40"/>
+        <field name="step_net_pallet_weight"/>
+      </field>
+    </field>
+  </record>
+  <record id="packaging_capacity_list" model="ir.ui.view">
+    <field name="name">product.packaging.packing.capacities.list</field>
+    <field name="model">product.packaging</field>
+    <field name="inherit_id" ref="step_export.view_step_export_packaging_list"/>
+    <field name="arch" type="xml">
+      <field name="step_export_kg_per_box" position="after">
+        <field name="step_clamshell_qty" optional="hide"/>
+        <field name="step_clamshell_weight_g" optional="hide"/>
+        <field name="step_boxes_per_pallet" optional="show"/>
+        <field name="step_pallets_per_container" optional="hide"/>
+        <field name="step_boxes_per_container_40" optional="show"/>
+        <field name="step_net_pallet_weight" optional="show"/>
+      </field>
+    </field>
+  </record>
+  <menuitem id="menu_packing_fruit_bom" name="Listas de materiales de fruta"
+      parent="step_packing_operations.menu_packing_operations_masters"
+      action="step_export.action_export_fruit_bom" sequence="35"/>
+</odoo>
