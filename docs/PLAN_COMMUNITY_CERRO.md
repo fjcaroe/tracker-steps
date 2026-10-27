@@ -95,3 +95,39 @@ El ensayo Cerro conserva sus 140 Enterprise: es una prueba de extracción, no
 la conversión final. Producción sigue con la versión previa y el vencimiento
 permanece pendiente. Evidencias y punto exacto de continuación están en
 `docs/COMMUNITY_CONTINUACION.md`.
+
+## Segunda extracción: frontera de Tesorería
+
+`step_account_treasury` 18.0.1.3.0 usa el núcleo multimoneda Community.
+Los cinco accesos a `account_reports` pasan a `step_account_treasury_reports`
+18.0.1.0.0, puente opcional que también conserva el adaptador multimoneda de
+informes. Los modelos, cálculos, exportaciones de planificación y permisos de
+Tesorería siguen en el módulo original, con sus nombres y tablas.
+
+Al actualizar una base existente se debe instalar el puente en la misma
+operación (solo en el ensayo privado, con las demás opciones del validador):
+
+```text
+-i step_accounting_multicurrency_core,step_account_treasury_reports
+-u step_accounting_multicurrency,step_account_treasury
+```
+
+La premigración rechaza
+una actualización que dejaría sin propietario los accesos anteriores. Adopta
+los cinco menús mediante alias, sin escribir sus acciones, grupos, padres,
+secuencias ni estado activo. El hook del puente solo crea los accesos faltantes:
+el XML con `noupdate` también escribe al instalar un módulo nuevo, por lo que
+no se usa para adoptar estos menús.
+
+Esto es una extracción de dependencias, no la sustitución de los cinco informes.
+Una instalación Community dispone de planificación, detalle, resumen y
+exportaciones de Tesorería; no anuncia conciliación bancaria, mayor de socios,
+estado de flujo de efectivo ni antigüedad Enterprise. En la copia Enterprise
+los cinco accesos siguen disponibles con sus IDs anteriores. No desinstalar el
+puente ni `account_reports`: todavía faltan sus sustitutos y el tratamiento de
+los lotes históricos. La etapa 2 sigue abierta hasta conciliar esos reemplazos.
+
+`tools/community/validate_treasury_extraction.py` ensaya esta frontera en
+Community y en una copia fresca de Cerro. Solo admite bases privadas, usa el
+bloqueo compartido y no tiene modo de publicación. Además de las huellas de
+negocio comprueba campos, menús, ACL, reglas, grupos y membresías.

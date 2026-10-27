@@ -136,7 +136,7 @@ def main():
             runtime = Path('/opt/odoo18')
             addon_paths = str(addons) + ',' + options['addons_path']
             init = ['-i', 'step_accounting_multicurrency_core,step_account_treasury_reports', '-u', 'step_accounting_multicurrency,step_account_treasury']
-            tags = '/step_accounting_multicurrency_core,/step_account_treasury,/step_treasury_invoice_payment'
+            tags = '/step_accounting_multicurrency_core,/step_account_treasury,/step_account_treasury_reports,/step_treasury_invoice_payment'
         else:
             runtime = root / 'community-runtime'
             assert (runtime / '.git').exists()

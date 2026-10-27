@@ -5,7 +5,6 @@
     'license': 'LGPL-3',
     'author': 'Steps Consulting',
     'depends': ['step_account_treasury', 'account_reports', 'step_accounting_multicurrency'],
-    'data': ['views/treasury_report_menus.xml'],
     'pre_init_hook': 'pre_init_reports',
     'post_init_hook': 'post_init_reports',
     'installable': True,
