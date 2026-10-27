@@ -116,7 +116,7 @@ def snapshot(database):
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
     if 'step_labor_operations_core' in MODULES:
         labor_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
-            "(tablename LIKE 'tarja_%' OR tablename LIKE 'product_pricelist%' OR tablename IN "
+            "(tablename LIKE 'tarja_%' OR tablename LIKE 'product_pricelist%' OR tablename LIKE 'resource_%' OR tablename IN "
             "('partner_pricelist_rel','grupo_variedad_pricelist_rel','step_analytic_pricelist_rel')) ORDER BY tablename").splitlines()
         for table in labor_tables:
             assert re.fullmatch('[a-z_][a-z0-9_]*', table)
