@@ -134,6 +134,9 @@ def main():
             source_store = Path(options['data_dir']) / 'filestore' / source
             target_store = data / 'filestore' / args.database; target_store.mkdir(parents=True)
             run('rsync', '-a', str(source_store) + '/', str(target_store) + '/')
+            sys.path.insert(0, str(addons / 'tools/community'))
+            from manage_community_reports import runtime_contract
+            (stage / 'source-contract.json').write_text(json.dumps(runtime_contract(conf), indent=2))
             baseline = snapshot(args.database)
             (stage / 'business-before.json').write_text(json.dumps(baseline, indent=2))
             original_security = security_contract(args.database)
@@ -192,46 +195,8 @@ def main():
             assert security_contract(args.database) == original_security, 'Treasury access rules or groups changed'
             assert {k:{f:v for f,v in row.items() if f not in ('action','write_date','write_uid')} for k,row in report_menus(args.database).items()} == {k:{f:v for f,v in row.items() if f not in ('action','write_date','write_uid')} for k,row in original_menus.items()}, 'Report menu IDs or permissions changed'
             assert field_ids(args.database) == original_fields, 'Field IDs changed'
-        check = '''
-import json
-from odoo.tools import config
-previous_test_enable = config['test_enable']
-config['test_enable'] = True
-from odoo.tests import Form
-config['test_enable'] = previous_test_enable
-from odoo.addons.step_accounting_multicurrency_core.hooks import CORE,LEGACY,VIEWS,FIELDS
-try:
- for name in VIEWS: assert env.ref(CORE+'.'+name)==env.ref(LEGACY+'.'+name)
- for model,names in FIELDS.items():
-  for name in names:
-   key='field_'+model.replace('.','_')+'__'+name
-   assert env.ref(CORE+'.'+key)==env.ref(LEGACY+'.'+key)
- from odoo.addons.step_treasury_community_reports.hooks import MODULE,LAUNCHERS
- for name,kind,*unused in LAUNCHERS:
-  menu=env.ref('step_account_treasury.'+name)
-  assert menu==env.ref(MODULE+'.'+name)
-  assert menu.action==env.ref(MODULE+'.action_'+kind)
- users=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1)])
- users=users.filtered(lambda u:u.has_group('account.group_account_manager') and u.has_group('step_account_treasury.group_treasury_reader'))
- assert users,'No existing accounting business user for flow verification'
- user=users[:1];company=user.company_id
- scoped=env(user=user,su=False,context=dict(env.context,allowed_company_ids=company.ids))
- for name,kind,*unused in LAUNCHERS:
-  menu=scoped.ref('step_account_treasury.'+name)
-  assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
-  report=scoped['step.treasury.report'].create({'kind':kind,'company_id':company.id})
-  report.action_calculate();report.action_export()
-  assert report.result_html and report.export_file
-  Form(report,view=MODULE+'.view_report_form')
- print('COMMUNITY_REPORTS_NATIVE_FLOW_OK five_menus=True exports=True scoped_business_user=True')
- Form(env['step.cashflow'])
- Form(env['step.treasury.concept'])
- Form(env['account.payment'],view='account.view_account_payment_form')
- ee=env['ir.module.module'].search_count([('state','=','installed'),('license','=','OEEL-1')])
- assert MODE!='community' or ee==0,'Enterprise modules installed in Community runtime'
- print('COMMUNITY_TREASURY_REGISTRY_OK '+json.dumps({'mode':MODE,'enterprise_installed':ee,'same_xmlids':True,'native_form':True,'writes':False}))
-finally: env.cr.rollback()
-'''
+        check = (addons / 'tools/community/verify_community_reports.py').read_text()
+
         result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
             input='MODE=' + repr(args.mode) + '\n' + check, text=True, capture_output=True)
         (stage / 'verify.log').write_text(result.stdout + result.stderr)
