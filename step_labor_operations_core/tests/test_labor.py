@@ -166,7 +166,7 @@ class LaborOperationsCase(TransactionCase):
     def test_relation_metadata_owner_preserves_ids_and_is_idempotent(self):
         data=self.env['ir.model.relation'].search([('name','in',RELATIONS)])
         before={row.id:(row.name,row.model.id,row.module.id) for row in data}
-        legacy=self.env['ir.module.module'].search([('name','=','step_hr_payroll_bridge')])
+        legacy=self.env['ir.module.module'].search([('name','=','step_hr')])
         self.assertFalse(data.filtered(lambda row:row.module==legacy))
         adopt_legacy_records(self.env)
         self.assertEqual(before,{row.id:(row.name,row.model.id,row.module.id) for row in data})

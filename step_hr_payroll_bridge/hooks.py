@@ -12,6 +12,10 @@ VIEWS = ('view_salary_payroll_bridge', 'view_tarja_payroll_bridge',
 def owned(env, row):
     if row.name in VIEWS and row.model != 'ir.ui.view':
         raise UserError('Vista HR con modelo incompatible: %s' % row.name)
+    if row.model == 'ir.model.inherit':
+        return row.model in env and bool(env[row.model].browse(row.res_id).exists()) and any(
+            row.name.startswith('model_inherit__'+model.replace('.','_')+'__')
+            for model in (*FIELDS, 'res.users', 'step.tarja'))
     if row.model not in ('ir.ui.view', 'ir.model', 'ir.model.fields'):
         return False
     record = env[row.model].browse(row.res_id).exists()

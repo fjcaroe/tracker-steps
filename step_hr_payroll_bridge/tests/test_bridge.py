@@ -35,3 +35,14 @@ class HrPayrollBridgeCase(TransactionCase):
             with self.assertRaises(UserError):require_payroll_bridge(self.env.cr)
         finally:
             self.env.cr.execute("UPDATE ir_module_module SET state=%s WHERE name='step_hr_payroll_bridge'",[original])
+
+    def test_conflicting_view_alias_cannot_retarget_original_identity(self):
+        from odoo.exceptions import UserError
+        alias=self.env['ir.model.data'].search([('module','=','step_hr_payroll_bridge'),('name','=','view_salary_payroll_bridge')])
+        original=alias.res_id
+        try:
+            alias.res_id=self.env.ref('step_hr.view_step_tarja_form').id
+            with self.assertRaises(UserError):pre_init_hook(self.env)
+        finally:
+            alias.res_id=original
+        self.assertEqual(self.env.ref('step_hr.view_salary_payroll_bridge').id,original)
