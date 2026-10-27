@@ -1,0 +1,18 @@
+<odoo>
+  <record id="species_tariff_form" model="ir.ui.view">
+    <field name="name">step.especie.tariff.form</field>
+    <field name="model">step.especie</field>
+    <field name="inherit_id" ref="step_hr.view_step_especie_form"/>
+    <field name="arch" type="xml">
+      <field name="cod_especie" position="after"><field name="tariff_code"/></field>
+    </field>
+  </record>
+  <record id="species_tariff_list" model="ir.ui.view">
+    <field name="name">step.especie.tariff.list</field>
+    <field name="model">step.especie</field>
+    <field name="inherit_id" ref="step_hr.view_step_especie_list"/>
+    <field name="arch" type="xml">
+      <field name="name" position="after"><field name="tariff_code" optional="show"/></field>
+    </field>
+  </record>
+</odoo>
