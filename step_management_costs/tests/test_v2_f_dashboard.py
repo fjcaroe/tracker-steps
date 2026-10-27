@@ -168,6 +168,7 @@ class TestOutOfOp(ManagementCostsCommon):
             "invoice_line_ids": [(0, 0, {
                 "product_id": self.product.id, "quantity": 1, "price_unit": amount,
                 "account_id": self.expense_account.id,
+                "tax_ids": [(5, 0, 0)],
                 "analytic_distribution": {str(center.id): 100.0},
             })],
         })
