@@ -128,7 +128,7 @@ def main():
                 # Only the ordinary cron heartbeat may advance since QA. Compare
                 # every other field and record against the untouched private copy.
                 statement = "SELECT coalesce(jsonb_agg(to_jsonb(t)-ARRAY['last_sync','write_date'] ORDER BY id),'[]'::jsonb) FROM step_tracker_protection_sync t"
-                assert json.loads(sql(reference, statement)) == json.loads(sql(database, statement)), 'Tracker configuration changed since QA'
+                assert sql(reference, statement) == sql(database, statement), 'Tracker configuration changed since QA'
                 advanced_sync_marker = True
             # Freeze and preserve the *current* complete state, including the
             # newer heartbeat. Never restore the older QA marker to live data.

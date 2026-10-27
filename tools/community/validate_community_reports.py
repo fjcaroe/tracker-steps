@@ -215,7 +215,7 @@ def main():
         check = (addons / 'tools/community/verify_community_reports.py').read_text()
 
         result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
-            input='MODE=' + repr(args.mode) + '\n' + check, text=True, capture_output=True)
+            input='MODE=' + repr(args.mode) + '\nENVIRONMENT=' + repr(args.environment) + '\n' + check, text=True, capture_output=True)
         (stage / 'verify.log').write_text(result.stdout + result.stderr)
         assert result.returncode == 0 and 'COMMUNITY_TREASURY_REGISTRY_OK' in result.stdout, result.stderr[-2500:]
         print(result.stdout, flush=True)

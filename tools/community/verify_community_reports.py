@@ -20,7 +20,15 @@ try:
  users=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1)])
  users=users.filtered(lambda u:u.has_group('account.group_account_manager') and u.has_group('step_account_treasury.group_treasury_reader'))
  assert users,'No existing accounting business user for flow verification'
- user=users[:1];company=user.company_id
+ environment=globals().get('ENVIRONMENT',MODE)
+ if MODE!='community' and environment in ('cerro','qa-cerro'):
+  company=env['res.company'].search([('vat','=','76943293-0')])
+  assert len(company)==1,'Canonical Cerro company must be unique'
+  users=users.filtered(lambda u:company in u.company_ids)
+  assert users,'No existing authorized report user for Cerro'
+  user=users[:1]
+ else:
+  user=users[:1];company=user.company_id
  scoped=env(user=user,su=False,context=dict(env.context,allowed_company_ids=company.ids))
  for name,kind,*unused in LAUNCHERS:
   menu=scoped.ref('step_account_treasury.'+name)
@@ -38,7 +46,7 @@ try:
   report.action_calculate();report.action_export()
   assert report.result_html and report.export_file
   Form(report,view=MODULE+'.view_report_form')
- print('COMMUNITY_REPORTS_NATIVE_FLOW_OK five_menus=True exports=True native_totals=True scoped_business_user=True')
+ print('COMMUNITY_REPORTS_NATIVE_FLOW_OK five_menus=True exports=True native_totals=True scoped_business_user=True uid=%s company=%s'%(scoped.uid,company.id))
  Form(env['step.cashflow'])
  Form(env['step.treasury.concept'])
  Form(env['account.payment'],view='account.view_account_payment_form')
