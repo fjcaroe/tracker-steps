@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import urllib.request
 
 MODULES = ('step_accounting_multicurrency_core', 'step_accounting_multicurrency',
@@ -184,8 +185,16 @@ def main():
             # Retain upgraded state and recovery dump; never discard new user data.
             run('systemctl', 'start', service)
         run('systemctl', 'is-active', '--quiet', service)
-        with urllib.request.urlopen(url + '/web/login', timeout=30) as response:
-            assert response.status == 200
+        for attempt in range(20):
+            try:
+                with urllib.request.urlopen(url + '/web/login', timeout=15) as response:
+                    assert response.status == 200 and b'password' in response.read()
+                break
+            except (OSError, AssertionError):
+                if attempt == 19:
+                    raise
+                time.sleep(2)
+        (stage / 'http-passed.json').write_text(json.dumps({'url': url, 'status': 200, 'login': True}))
         print('COMMUNITY_REPORTS_DEPLOYED ' + json.dumps({'environment': args.environment, 'url': url, 'evidence': str(stage)}))
 
 
