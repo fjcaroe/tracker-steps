@@ -91,6 +91,7 @@ class CommunityCurrencyCase(TransactionCase):
             self.company.operational_currency_id = self.company.currency_id
 
     def test_native_forms_include_community_currency_fields(self):
+        self.env.user.groups_id |= self.env.ref('account.group_account_user') | self.env.ref('base.group_multi_currency')
         move = self.move()
         Form(move, view='account.view_move_form')
         arch = self.env['account.move'].get_view(view_id=self.env.ref('account.view_move_form').id, view_type='form')['arch']
@@ -124,6 +125,13 @@ class CommunityCurrencyCase(TransactionCase):
         records = self.env['ir.model.data'].search([('module', '=', CORE), ('name', 'in', names)])
         self.assertEqual(len(records), 2)
         for record in records: alias(self.env, record, namespace, True)
-        self.env['ir.model.data']._module_data_uninstall([namespace])
+        field = self.env['res.company']._fields['operational_currency_id']
+        prefetch = field.prefetch
+        try:
+            self.env['ir.model.data']._module_data_uninstall([namespace])
+        finally:
+            # Native uninstall rebuilds the registry afterward; TransactionCase does not.
+            field.prefetch = prefetch
+            self.env['res.company']._add_field('operational_currency_id', field)
         for name in names: self.assertTrue(self.env.ref(CORE+'.'+name).exists())
         self.assertEqual(self.company.operational_currency_id, self.operational)

@@ -112,8 +112,8 @@ def main():
                 '--workers=0', '--max-cron-threads=0', '--without-demo=all']
         log = stage / 'tests.log'
         print('COMMUNITY_FOUNDATION_BEGIN ' + json.dumps({'mode': args.mode, 'database': args.database, 'log': str(log)}), flush=True)
-        with log.open('w') as stream:
-            result = subprocess.run(base + opts + init + ['--test-enable', '--test-tags=' + tags, '--stop-after-init'], stdout=stream, stderr=subprocess.STDOUT)
+        with (stage / 'bootstrap.log').open('w') as stream:
+            result = subprocess.run(base + opts + init + ['--logfile=' + str(log), '--test-enable', '--test-tags=' + tags, '--stop-after-init'], stdout=stream, stderr=subprocess.STDOUT)
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' CRITICAL ' in line)[-6500:], flush=True)
         assert result.returncode == 0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests', text), 'Tests failed: ' + str(log)
@@ -124,7 +124,11 @@ def main():
             assert field_ids(args.database) == original_fields, 'Field IDs changed'
         check = '''
 import json
+from odoo.tools import config
+previous_test_enable = config['test_enable']
+config['test_enable'] = True
 from odoo.tests import Form
+config['test_enable'] = previous_test_enable
 from odoo.addons.step_accounting_multicurrency_core.hooks import CORE,LEGACY,VIEWS,FIELDS
 try:
  for name in VIEWS: assert env.ref(CORE+'.'+name)==env.ref(LEGACY+'.'+name)
