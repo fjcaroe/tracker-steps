@@ -284,11 +284,20 @@ def main():
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
     parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--wait-for-lease', action='store_true', help='Queue a private copy check behind the shared environment lease')
     parser.add_argument('--normalize-user-id', type=int)
     parser.add_argument('--expected-user-login')
     parser.add_argument('--approval-dir', type=Path)
     parser.add_argument('--development-proof', type=Path)
     args = parser.parse_args()
+    settings_lease = None
+    if args.wait_for_lease:
+        assert args.action in ('qa', 'compatibility') and args.kind in ('species-tariff', 'packaging-master')
+        assert os.geteuid() == 0
+        settings_lease = open('/run/lock/steps-environments.lock', 'a')
+        print('MANAGEMENT_WAITING_FOR_SHARED_LEASE', flush=True)
+        fcntl.flock(settings_lease, fcntl.LOCK_EX)
+        print('MANAGEMENT_SHARED_LEASE_ACQUIRED', flush=True)
     if args.kind in ('species-tariff', 'packaging-master', 'invoice-payments'):
         assert args.environment in ('development', 'cerro', 'qa-cerro'), 'T123: explicitly confirmed Development, Cerro and customer QA only'
     if args.normalize_user_id is not None or args.expected_user_login is not None:
@@ -522,8 +531,9 @@ def main():
         return
     if args.action in ('qa', 'compatibility'):
         if SETTINGS or PRODUCERS or TICKET_REVISION in ('sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
-            settings_lease = open('/run/lock/steps-environments.lock', 'a')
-            fcntl.flock(settings_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if settings_lease is None:
+                settings_lease = open('/run/lock/steps-environments.lock', 'a')
+                fcntl.flock(settings_lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
             for command in Path('/proc').glob('[0-9]*/cmdline'):
                 try:
                     argv = command.read_bytes().decode(errors='replace').split('\x00')
