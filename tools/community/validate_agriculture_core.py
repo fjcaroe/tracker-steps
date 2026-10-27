@@ -30,6 +30,11 @@ OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_ag
 
 LABOR_MODULES = ('step_labor_operations_core', 'step_mobilization', 'step_mobilization_agriculture')
 
+HARVEST_MODULES = ('step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core',
+                   'step_export','step_cosecha','step_cosecha_planning',
+                   'step_cosecha_operations','step_agriculture_records')
+PRIVATE_ENTERPRISE_MODULES = ('step_hr','step_export','step_labor_payroll_wizards')
+
 # Regenerable compiled web bundles only. Business files, view attachments,
 # source maps, private files and anything without the exact cache URL stay strict.
 GENERATED_ASSET_CACHE = """(t.res_model='ir.ui.view' AND t.res_field IS NULL
@@ -46,6 +51,8 @@ def verify_native(base, opts, addons, stage, mode):
         check += '\n' + (addons / 'tools/community/verify_operations.py').read_text()
     if 'step_labor_operations_core' in MODULES:
         check += '\n' + (addons / 'tools/community/verify_labor.py').read_text()
+    if 'step_cosecha' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_harvest.py').read_text()
     result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
         input='MODE=' + repr(mode) + '\n' + check, text=True, capture_output=True)
     (stage / 'verify.log').write_text(result.stdout + result.stderr)
@@ -54,6 +61,8 @@ def verify_native(base, opts, addons, stage, mode):
         assert 'OPERATIONS_NATIVE_OK' in result.stdout and 'PRODUCERS_NATIVE_OK' in result.stdout
     if 'step_labor_operations_core' in MODULES:
         assert 'LABOR_NATIVE_OK' in result.stdout
+    if 'step_cosecha' in MODULES:
+        assert 'HARVEST_NATIVE_OK' in result.stdout
     print(result.stdout, flush=True)
 
 
@@ -116,8 +125,8 @@ def snapshot(database):
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
     if 'step_labor_operations_core' in MODULES:
         labor_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
-            "(tablename LIKE 'tarja_%' OR tablename LIKE 'product_pricelist%' OR tablename LIKE 'resource_%' OR tablename IN "
-            "('partner_pricelist_rel','grupo_variedad_pricelist_rel','step_analytic_pricelist_rel')) ORDER BY tablename").splitlines()
+            "(tablename LIKE 'tarja_%' OR tablename LIKE 'product_pricelist%' OR tablename LIKE 'resource_%' OR tablename LIKE 'employee_%_rel' OR tablename IN "
+            "('partner_pricelist_rel','grupo_variedad_pricelist_rel','step_analytic_pricelist_rel','product_packaging','ir_sequence','ir_sequence_date_range','product_category')) ORDER BY tablename").splitlines()
         for table in labor_tables:
             assert re.fullmatch('[a-z_][a-z0-9_]*', table)
             result[table] = json.loads(sql(database,
@@ -136,6 +145,10 @@ def snapshot(database):
         "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
         "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM ir_ui_menu_group_rel t WHERE menu_id NOT IN "
         "(SELECT res_id FROM ir_model_data WHERE module IN ('step_agriculture_core','step_labor_operations_core') AND model='ir.ui.menu')"))
+    if 'step_cosecha' in MODULES:
+        for name in sql(database,"SELECT sequencename FROM pg_sequences WHERE schemaname='public' AND sequencename ~ '^ir_sequence_[0-9]+(_[0-9]+)?$' ORDER BY sequencename").splitlines():
+            assert re.fullmatch('ir_sequence_[0-9]+(_[0-9]+)?',name)
+            result[name]=json.loads(sql(database,"SELECT json_build_object('rows',1,'hash',to_jsonb(t)::text) FROM "+name+' t'))
     return result
 
 
@@ -198,13 +211,13 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
-    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor'), default='agriculture')
+    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor', 'harvest'), default='agriculture')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
     parser.add_argument('--complete-native', action='store_true', help='Finish native checks after successful full tests; identical addon fingerprints required')
     args = parser.parse_args()
-    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor') else ()) + (
-        OPERATIONS_MODULES if args.profile in ('operations','labor') else ()) + (
-        LABOR_MODULES if args.profile == 'labor' else ())
+    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor','harvest') else ()) + (
+        OPERATIONS_MODULES if args.profile in ('operations','labor','harvest') else ()) + (
+        LABOR_MODULES if args.profile in ('labor','harvest') else ()) + (HARVEST_MODULES if args.profile == 'harvest' else ())
     assert os.geteuid() == 0
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
@@ -258,8 +271,8 @@ def main():
                 "SELECT coalesce(json_agg(t.id),'[]'::json) FROM ir_act_window_view t "
                 "JOIN ir_model_data d ON d.res_id=t.view_id AND d.model='ir.ui.view' "
                 "WHERE d.name='report_gantt' AND d.module IN ('step_producer_contract_report',"
-                "'step_producer_estimate_report')")) if args.profile in ('producers','operations','labor') else []
-            if args.profile in ('producers','operations','labor'):
+                "'step_producer_estimate_report')")) if args.profile in ('producers','operations','labor','harvest') else []
+            if args.profile in ('producers','operations','labor','harvest'):
                 assert len(calendar_bindings) == 2, 'Expected two original report-view bindings'
             (stage / 'calendar-bindings-before.json').write_text(json.dumps(calendar_bindings))
             history = history_contract(args.database)
@@ -269,7 +282,8 @@ def main():
             addon_paths = str(addons) + ',' + options['addons_path']
             installed = contract['installed_versions']
             upgrades = [m for m in MODULES if m in installed]
-            new_cores = [m for m in ('step_agriculture_core','step_operations_core','step_labor_operations_core')
+            new_cores = [m for m in ('step_agriculture_core','step_operations_core','step_labor_operations_core',
+                                       'step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core')
                          if m in MODULES and m not in installed]
             init = (['-i', ','.join(new_cores)] if new_cores else []) + (
                 ['-u', ','.join(upgrades)] if upgrades else [])
@@ -285,17 +299,19 @@ def main():
                                                          text=True, capture_output=True).stdout)
             pure = stage / 'addons'; pure.mkdir()
             for module in MODULES:
-                if module == 'step_hr':
+                if module in PRIVATE_ENTERPRISE_MODULES:
                     continue
                 (pure / module).symlink_to(addons / module)
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
-            if args.profile in ('producers','operations','labor'):
+            if args.profile in ('producers','operations','labor','harvest'):
                 init[1] += ',' + ','.join(PRODUCER_MODULES)
-            if args.profile in ('operations','labor'):
+            if args.profile in ('operations','labor','harvest'):
                 init[1] += ',' + ','.join(OPERATIONS_MODULES)
-            if args.profile == 'labor':
+            if args.profile in ('labor','harvest'):
                 init[1] += ',' + ','.join(LABOR_MODULES)
+            if args.profile == 'harvest':
+                init[1] += ',' + ','.join(m for m in HARVEST_MODULES if m not in PRIVATE_ENTERPRISE_MODULES)
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)
@@ -310,7 +326,7 @@ def main():
         print('AGRICULTURE_BEGIN ' + str(log), flush=True)
         with (stage / 'bootstrap.log').open('w') as stream:
             result = subprocess.run(base + opts + init + ['--logfile=' + str(log), '--test-enable',
-                '--test-tags=' + ','.join('/' + m for m in MODULES if m != 'step_hr'), '--stop-after-init'],
+                '--test-tags=' + ','.join('/' + m for m in MODULES if m not in PRIVATE_ENTERPRISE_MODULES), '--stop-after-init'],
                 stdout=stream, stderr=subprocess.STDOUT)
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or
@@ -338,7 +354,13 @@ def main():
                         and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'RELATIONS'))
                     legacy_module = int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='step_hr'"))
                     new_module = int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='step_labor_operations_core'"))
-                    expected = [dict(row, module=new_module) if row['module'] == legacy_module and
+                    extra_owners={}
+                    if args.profile=='harvest':
+                        extra_owners={name:int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='"+owner+"'"))
+                            for name,owner in [('employee_wizard_rel','step_labor_reports'),
+                                ('employee_process_rel','step_labor_reports'),('step_hr_payslip_rel','step_labor_payroll_wizards')]}
+                    expected = [dict(row,module=extra_owners[row['name']]) if row['module']==legacy_module and
+                                row['name'] in extra_owners else dict(row, module=new_module) if row['module'] == legacy_module and
                                 row['name'] in relations else row for row in rows]
                     assert all(row in current[table] for row in expected), 'Relation identity or owner changed unexpectedly'
                 else:

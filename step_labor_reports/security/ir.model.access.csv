@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_report_step_hrs_wizard,access.report.step.hrs.wizard,model_report_step_hrs_wizard,base.group_user,1,1,1,1
+access_report_by_process_wizard,access.report.by.process.wizard,model_report_by_process_wizard,base.group_user,1,1,1,1

@@ -1,6 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_success_message,access.success.message,model_success_message,base.group_user,1,1,1,1
-access_hr_entry_xls_wizard,access.hr.entry.xls.wizard,model_hr_entry_xls_wizard,base.group_user,1,1,1,1
 access_step_tracker,access.step.tracker,model_step_tracker,base.group_user,1,1,1,1
 access_step_tracker_machine,access.step.tracker.machine,model_step_tracker_machine,base.group_user,1,1,0,0
 access_step_tracker_driver,access.step.tracker.driver,model_step_tracker_driver,base.group_user,1,1,0,0
@@ -12,6 +10,4 @@ access_step_tracker_session,access.step.tracker.session,model_step_tracker_sessi
 access_step_tracker_work_order,access.step.tracker.work_order,model_step_tracker_work_order,base.group_user,1,1,0,0
 access_step_tracker_sync_log,access.step.tracker.sync.log,model_step_tracker_sync_log,base.group_user,1,0,0,0
 access_step_tracker_sync_log_system,access.step.tracker.sync.log.system,model_step_tracker_sync_log,base.group_system,1,1,1,1
-access_report_step_hrs_wizard,access.report.step.hrs.wizard,model_report_step_hrs_wizard,base.group_user,1,1,1,1
-access_report_by_process_wizard,access.report.by.process.wizard,model_report_by_process_wizard,base.group_user,1,1,1,1
 access_step_history,access.step.history,model_step_history,base.group_user,1,1,1,1
