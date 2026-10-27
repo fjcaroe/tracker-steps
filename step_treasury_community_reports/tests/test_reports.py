@@ -2,10 +2,12 @@ import base64
 import csv
 import io
 from datetime import date
+from pathlib import Path
 
 from odoo import Command
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import tagged, Form
+from odoo.tools import config
 from odoo.addons.step_account_treasury.tests.test_treasury import TestTreasuryCommon
 from ..hooks import MODULE, LAUNCHERS, post_init_reports
 
@@ -144,6 +146,8 @@ class TestCommunityReports(TestTreasuryCommon):
         pdf, report_type = self.env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf(MODULE + '.report_print', report.ids)
         self.assertEqual(report_type, 'pdf')
         self.assertTrue(pdf.startswith(b'%PDF-'))
+        if self.env.cr.dbname.startswith(('COMMUNITY_TREASURY_', 'MANAGEMENT_QA_')):
+            (Path(config['data_dir']) / 'treasury-report-fixture.pdf').write_bytes(pdf)
 
     def test_launchers_keep_ids_and_restrictive_groups(self):
         before = {}
