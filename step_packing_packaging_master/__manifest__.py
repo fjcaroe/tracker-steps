@@ -4,5 +4,7 @@
     'license': 'LGPL-3',
     'depends': ['step_export', 'step_packing_operations'],
     'data': ['views/packaging.xml'],
+    'pre_init_hook': 'preserve_packaging_before',
+    'post_init_hook': 'restore_packaging_audit',
     'installable': True,
 }
