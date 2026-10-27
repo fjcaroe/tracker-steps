@@ -99,6 +99,7 @@ def main():
     with tarfile.open(str(args.output) + '.tar', 'w') as archive:
         for file in sorted(args.output.rglob('*')):
             if file.is_file(): archive.add(file, arcname=file.relative_to(args.output))
+    Path(str(args.output) + '.tar').chmod(0o600)
     print('TICKET_DELIVERY_EVIDENCE_COLLECTED ' + str(args.output) + '.tar', flush=True)
 
 
