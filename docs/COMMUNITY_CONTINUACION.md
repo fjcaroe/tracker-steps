@@ -491,3 +491,142 @@ Calidad y vistas restantes. No sustituir datos históricos, copiar código
 Enterprise ni crear stubs. Falta el ensayo integral de una copia con fuentes
 Community exclusivamente y el ensayo de recuperación antes de cualquier corte.
 No se retiró Enterprise de producción ni se alteraron controles de vencimiento.
+
+## Quinto bloque validado — Productores y calendarios Community (27-10-2026)
+
+Fuente del paquete: `70523bc`, rama `codex/community-producers-20261027`, sobre
+la canónica `10051bf`. Los commits de esta rama y la continuidad se integran
+también en `codex/ambientes-canonicos-reparacion`. No se publicó este bloque en
+servicios activos. Ver el contrato en `COMMUNITY_PRODUCTORES.md`.
+
+### Implementación y versiones
+
+- `step_agriculture_core` 18.0.1.1.0 adopta ocho campos de `res.partner`,
+  su formulario agrícola y la acción de contratistas. Conserva IDs, columnas
+  y XMLIDs antiguos como alias. El contrato total declara 189 campos y 260 IDs.
+- `step_hr` 18.0.1.6.0 conserva el puente opcional del mapa y el override
+  booleano bancario legado. No retirar este módulo ni convertir ese campo
+  silenciosamente. Una instalación pura conserva la relación bancaria nativa.
+- `step_producers` 18.0.1.9.0 usa el núcleo y `hr` Community, sin Nómina.
+- `step_producer_contract_report`, `step_producer_estimate_report` y
+  `step_producer_purchase_mode`, 18.0.1.1.0, usan calendarios Community,
+  conservando sus IDs de vistas/acciones/menús y enlaces. Los XMLIDs históricos
+  `report_gantt` y los de vistas heredadas se conservan; ahora son calendarios.
+- El paquete incluye `step_management_costs_producers` 18.0.1.0.0 y los siete
+  módulos agrícolas anteriores: doce módulos, once expuestos a Community.
+
+Los calendarios son de consulta, junto con listado y tabla dinámica. No se
+editan vencimientos ni semanas. `calendar_end` es un cálculo no almacenado que
+adapta el fin exclusivo original al fin inclusivo de Calendar; la búsqueda por
+rango se traduce al campo original. Las cuotas duran su día y las semanas
+terminan el domingo. Ambos renderizadores nativos inspeccionados (Community y
+runtime Cerro) añaden un día al límite Date; no se corrigió esto escribiendo
+datos de negocio. Las proyecciones SQL y sus fórmulas monetarias no cambiaron.
+
+### Evidencia aceptada
+
+Raíz `/opt/steps-validation/community-producers-20261027G/`, paquete generado
+mediante `git archive` de `70523bc`. Los 463 archivos de addons son idénticos
+en los dos ensayos. SHA256 del mapa ordenado de archivos:
+`1f3c3000bedcf6a32722cb26a9632580655fec5f602b61fa30536a956bcb9006`.
+
+- `community/`: base `COMMUNITY_AGRICULTURE_PRODUCERS_20261027G`, 351 pruebas
+  sin fallos, 77 módulos instalados y cero Enterprise; sin `step_hr`, `web_gantt`,
+  `web_map` ni Nómina Enterprise. Runtime oficial limpio, misma revisión
+  `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4` de los bloques anteriores.
+- `cerro-copy/`: base `MANAGEMENT_QA_CERRO_AGRICULTURE_PRODUCERS_20261027G`,
+  copia fresca de Cerro, 351 pruebas sin fallos. Conserva sus 140 Enterprise;
+  373 módulos instalados por la adición del núcleo. No es la conversión integral.
+- Se conservaron los valores de 848 tablas y proyecciones, incluidos los dos
+  informes SQL completos. Se preservaron los 1.217 modelos, 26.987 campos,
+  5.071 selecciones, 2.322 ACL, 610 reglas y 1.327 menús originales. Se añaden
+  únicamente dos campos visuales calculados a los informes.
+- Los 417 enlaces originales entre acciones y vistas conservaron IDs y
+  atributos; solo se permiten dos cambios identificados de modo Gantt a Calendar.
+  Se conservaron membresías, históricos y adjuntos, con las normalizaciones
+  exactas ya documentadas para escala numérica e iconos de menú.
+- El verificador nativo abrió maestros, Packing y ficha de productor y consultó
+  calendarios/listas/pivots. Cerro utilizó el usuario existente UID 6, empresa
+  canónica ID 2, sin `sudo` ni asignación de grupos. Las altas de formulario
+  se revirtieron. Las consultas reales conservaron los indicadores de falta de
+  valorización; no se inventaron precios para obtener totales.
+
+`passed.json`, `source-files.json`, `verify.log`, contratos antes/después y logs
+están en los stages. La configuración, archivos y versiones del servicio de
+origen quedaron idénticos al contrato inicial. Producción mantiene 372 módulos
+y 140 Enterprise, sin cambios en vencimiento. QA-Cerro no se refrescó ni recibió
+este bloque. Los informes de Tesorería siguen siendo el último despliegue allí.
+
+Evidencia privada Windows:
+`C:/Users/tito4/.codex/local-artifacts/community-producers-20261027/`.
+`evidence-G.tar.gz` omite dumps, filestores y configuraciones. Los ensayos
+anteriores A–F no sustituyen al G aceptado; F tuvo una comprobación diagnóstica
+de integridad, pero falló un fixture y no tiene aceptación del paquete completo.
+
+Las correcciones incluyeron el campo de dirección exclusivo de Enterprise,
+XPath heredados todavía Gantt, límites inclusivos del renderizador y fixtures
+con idioma/roles implícitos, formularios retirados por T35 o categorías del
+maestro legado frente al catálogo unificado efectivo. No se cambiaron datos
+del cliente ni se retiraron restricciones para pasar pruebas.
+La ruta ensayada en Cerro instala el núcleo donde aún no estaba instalado;
+el upgrade 18.0.1.0.0 → 18.0.1.1.0 tiene scripts versionados y debe ensayarse
+en copia fresca de cualquier destino que ya tenga el núcleo anterior.
+
+### Estado acumulado y siguiente bloque
+
+Base contable, Tesorería y cinco consultas alternativas ya están implementadas;
+ese paquete está desplegado y verificado en Desarrollo y QA-Cerro. El núcleo
+agrícola, Packing/Tarjas/Costos y este bloque de Productores están validados en
+Community y copias de Cerro, todavía sin despliegue en servicios activos.
+
+Frente a los 79 caminos Enterprise originales, quedan 68 apps propias con
+alguno, sobre las 91 instaladas en producción: once dejaron de tenerlo en el
+código candidato, seis antes y cinco en este bloque. Esto es análisis declarado,
+no certificación de todos los flujos de esas once; por ejemplo, la instalación
+pura propia de T123 continúa pendiente. La matriz completa sigue vigente.
+
+Faltan, en particular: restantes campos y modelos operacionales de `step_hr`
+para Maquinaria/Tareas/Tarjas y sus consumidores; lotes de pago y conciliación
+operativa/clasificación del efectivo; Nómina/contratos/entradas de trabajo,
+Previred y libros compatibles con Simple Digital; DTE/CAF/SII y exportación;
+Calidad, demás Gantt y dependencias Studio/Documentos/Firma. También faltan
+ensayos frescos y publicación específica de los paquetes agrícolas en Desarrollo
+y QA, conversión integral con cero Enterprise, recuperación y aceptación.
+El riesgo del 31 de octubre continúa abierto. No retirar Enterprise de producción.
+
+Siguiente foco de implementación: inventariar y extraer la frontera operacional
+que aún vincula Maquinaria y Tareas a `step_hr`, conservando empleados, flota,
+tarjas y maestros. No quitar manifiestos sin cerrar relaciones y vistas. El
+adaptador agrícola de Movilización también consulta `step.tarja`: no sustituir
+esa distribución contable por texto o un fallback silencioso. La prueba nativa
+pura de T123 es otro pendiente concreto de la fase contable.
+
+### Prompt para continuar
+
+```text
+Continúa la migración de Cerro El Plomo a Odoo Community desde la canónica
+origin/codex/ambientes-canonicos-reparacion actualizada. Usa un worktree propio.
+Lee AGENTS.md, ~/.odoo/environments.json, docs/OPERACION_ODOO_CANONICA.md,
+docs/WORKFLOW_GIT_COMPARTIDO.md, docs/PLAN_COMMUNITY_CERRO.md,
+docs/COMMUNITY_CONTINUACION.md, docs/COMMUNITY_PRODUCTORES.md y la matriz Enterprise.
+
+El último paquete de Productores tiene fuente 70523bc y ensayo aceptado
+community-producers-20261027G: 351 pruebas en Community y 351 en copia fresca
+de Cerro, con 848 tablas/proyecciones conservadas. Hay 68 apps propias con
+caminos declarados Enterprise; producción todavía conserva 140 Enterprise.
+
+Continúa separando la frontera operacional de step_hr para Maquinaria/Tareas
+y sus consumidores. Cierra modelos, relaciones, vistas y permisos antes de
+cambiar dependencias. Preserva IDs, maestros, históricos, saldos y capacitación.
+Respeta el override bancario legado y los límites visuales de los calendarios
+documentados. No recalcules liquidaciones pagadas ni sustituyas maestros.
+
+Prueba el paquete exacto en Community oficial y copia fresca de Cerro. No
+retires Enterprise en producción, alteres vencimientos ni refresques QA-Cerro.
+Mantén bloqueo compartido, overlays privados, ausencia de downgrade y respaldo
+para cualquier publicación autorizada. No reutilices ensayos fallidos.
+Guarda commits, push, integra lo validado a la canónica y ejecuta
+python tools/git/verify_handoff.py --require-pushed. Al cerrar actualiza estado,
+evidencias, pendientes y el siguiente prompt. No declares resuelto el 31 por
+una extracción parcial.
+```

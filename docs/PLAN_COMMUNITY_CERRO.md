@@ -183,3 +183,27 @@ La autorización de revisión en QA-Cerro no autoriza refrescar su base ni retir
 Enterprise de producción. El paquete agrícola requiere todavía sus ensayos
 frescos en Desarrollo y QA antes de publicar allí. Los informes de Tesorería
 del paquete anterior continúan siendo el último despliegue verificado en QA.
+
+## Quinto paquete: Productores y dos calendarios Community
+
+El núcleo 18.0.1.1.0 adopta la ficha agrícola del contacto; Productores
+18.0.1.9.0 usa ese núcleo y `hr` Community para el autorizador. Los informes
+de contratos y estimaciones 18.0.1.1.0 sustituyen Gantt por calendarios nativos,
+conservando acciones, vistas, enlaces, filtros, modelos y proyecciones SQL.
+Modalidad de compra adapta sus vistas heredadas y el puente de costos mantiene
+su relación con la cuenta analítica nativa.
+
+El fin visual inclusivo se calcula aparte; no se alteran vencimientos ni
+semanas almacenadas, cantidades, precios o importes. La ficha Community usa la
+dirección nativa, conservando el mapa como puente opcional. El override bancario
+booleano legado permanece en `step_hr` para no convertir silenciosamente su
+tipo ni perder su columna. Ver `COMMUNITY_PRODUCTORES.md`.
+
+El perfil `--profile producers` del validador comprende doce módulos del
+paquete y añade comprobación de las dos proyecciones SQL y de los dos cambios
+de modo permitidos en enlaces existentes. No permite retirar Enterprise ni
+publicar servicios. Las versiones y ensayos aceptados quedan en continuidad.
+El código candidato reduce a 68 las apps propias con caminos declarados hacia
+Enterprise, frente a 79 en producción y 73 después del cuarto bloque.
+Esta cifra no acredita una conversión integral de la base ni la independencia
+de todas las extensiones de Exportación/Packing que aún dependen de Enterprise.
