@@ -15,7 +15,8 @@ MODULES = ('l10n_cl_simpledigital_payroll', 'hr_payroll', 'hr_payroll_account',
            'hr_payroll_expense', 'hr_work_entry_contract_enterprise',
            'step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_remuneration_book',
            'step_hr_contract_lifecycle', 'step_hr_contract_lifecycle_agriculture',
-           'steps_hr_payroll_correction', 'step_payroll_engine_transition', 'l10n_cl_hr')
+           'steps_hr_payroll_correction', 'step_payroll_engine_transition', 'l10n_cl_hr',
+           'step_hr_contract_lifecycle_simpledigital','step_hr_payroll_rounding','step_hr_contract_days')
 
 
 def query(sql):
@@ -95,6 +96,7 @@ def main():
         counts[table]=int(query('SELECT count(*) FROM '+table)[0]) if exists else None
     result['counts']=counts
     result['states']=json.loads(query("SELECT coalesce(json_object_agg(state,n),'{}'::json) FROM (SELECT state,count(*) n FROM hr_payslip GROUP BY state) t")[0])
+    result['rule_xmlid_namespaces']=json.loads(query("SELECT coalesce(json_object_agg(module,n),'{}'::json) FROM (SELECT d.module,count(DISTINCT r.id) n FROM hr_salary_rule r JOIN ir_model_data d ON d.model='hr.salary.rule' AND d.res_id=r.id GROUP BY d.module) t")[0])
     rules=json.loads(query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'code',code,'condition',condition_python,'amount',amount_python_compute) ORDER BY id),'[]'::jsonb) FROM hr_salary_rule")[0])
     result['rules']=[]
     for rule in rules:

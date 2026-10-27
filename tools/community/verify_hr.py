@@ -1,5 +1,14 @@
 """Real operational HR forms/menu/dashboard as a non-superuser; rollback only."""
 try:
+    operator=user
+    if MODE=='community':
+        operator=env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private Community HR verifier','login':'private-community-hr-verifier',
+            'company_id':company.id,'company_ids':[(6,0,company.ids)],
+            'groups_id':[(6,0,[env.ref(g).id for g in ('base.group_user','hr.group_hr_user',
+                'hr_contract.group_hr_contract_manager','step_mobilization.group_mobilization_manager',
+                'sales_team.group_sale_manager','product.group_product_pricelist')])],
+        })
     scoped_hr=api.Environment(env.cr,operator.id,dict(env.context,allowed_company_ids=company.ids),su=False)
     assert not scoped_hr.su
     for model in ('step.tracker','step.tracker.machine','step.tracker.driver','step.tracker.field',

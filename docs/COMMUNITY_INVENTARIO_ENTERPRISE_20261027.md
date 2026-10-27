@@ -4,6 +4,7 @@ Generada con `tools/community/build_enterprise_backlog.py` desde auditoría de s
 No contiene datos de negocio, rutas de servidor ni parámetros de licencia.
 
 Producción: 374 módulos instalados, 140 Enterprise y 93 propios.
+Código candidato: 53 apps propias instaladas aún alcanzan Enterprise por sus dependencias.
 Producción conserva Enterprise. Ninguna fila autoriza desinstalación ni acredita reemplazo integral.
 Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cada módulo;
 «código candidato» usa los manifiestos del checkout. Cero dependientes propios no significa cero uso.
@@ -176,6 +177,68 @@ Esta lista usa producción; los puentes ya extraídos se mantienen instalados al
 | `step_producer_estimate_report` | `web_gantt` |
 | `step_qa` | `quality_control` |
 | `steps_hr_payroll_correction` | `hr_payroll` |
+
+## Apps propias con caminos Enterprise pendientes
+
+Se cuentan las apps propias del inventario instalado, no los puentes nuevos opcionales.
+«Fuente en repo» solo indica disponibilidad del manifiesto; no acredita aceptación funcional.
+Los sustitutos agrícolas y HR probados no equivalen a conversión integral del destino.
+
+| App | Caminos Enterprise | Fuente en repo |
+| --- | ---: | --- |
+| `step_account_balance_analytic` | 6 | Sí |
+| `step_account_treasury_batch` | 1 | Sí |
+| `step_accounting_multicurrency` | 6 | Sí |
+| `step_agricultural_access` | 4 | Sí |
+| `step_agricultural_branding` | 3 | Sí |
+| `step_agro_analytics` | 10 | Sí |
+| `step_agro_traceability` | 4 | Sí |
+| `step_application_profiles` | 10 | Sí |
+| `step_bank_security` | 1 | Sí |
+| `step_expire_database` | 1 | Sí |
+| `step_export` | 9 | Sí |
+| `step_export_catalog_currency` | 10 | Sí |
+| `step_export_client_revision` | 10 | Sí |
+| `step_export_control` | 10 | Sí |
+| `step_export_dashboard` | 9 | Sí |
+| `step_export_document_revision` | 10 | Sí |
+| `step_export_folio_settings` | 10 | Sí |
+| `step_export_shipment_provision` | 9 | Sí |
+| `step_export_shipping_design` | 10 | Sí |
+| `step_export_supply_comparison` | 10 | Sí |
+| `step_export_traceability` | 13 | Sí |
+| `step_fruit_category_unification` | 10 | Sí |
+| `step_hr_contract_days` | 10 | Sí |
+| `step_hr_contract_lifecycle` | 4 | Sí |
+| `step_hr_contract_lifecycle_simpledigital` | 10 | Sí |
+| `step_hr_payroll_rounding` | 10 | Sí |
+| `step_hr_previred` | 4 | Sí |
+| `step_hr_previred_simpledigital` | 10 | Sí |
+| `step_hr_remuneration_book` | 4 | Sí |
+| `step_inventory_packing` | 9 | Sí |
+| `step_packing_analytics` | 9 | Sí |
+| `step_packing_batch` | 9 | Sí |
+| `step_packing_dispatch` | 10 | Sí |
+| `step_packing_dispatch_improvements` | 10 | Sí |
+| `step_packing_operations` | 9 | Sí |
+| `step_packing_ot_layout` | 9 | Sí |
+| `step_packing_packaging_master` | 9 | Sí |
+| `step_packing_producer_change` | 9 | Sí |
+| `step_packing_reception_revision` | 10 | Sí |
+| `step_packing_sag` | 10 | Sí |
+| `step_packing_stock_flow` | 9 | Sí |
+| `step_packing_tare` | 9 | Sí |
+| `step_payroll_engine_transition` | 4 | Sí |
+| `step_producer_daily_estimate` | 10 | Sí |
+| `step_producer_estimate_cancel` | 10 | Sí |
+| `step_producer_estimate_revision` | 10 | Sí |
+| `step_producer_fruit_flow` | 9 | Sí |
+| `step_producer_fruit_reports` | 10 | Sí |
+| `step_producers_integrations` | 9 | Sí |
+| `step_qa` | 4 | Sí |
+| `step_sale_export_report` | 9 | Sí |
+| `step_season_navigation` | 9 | Sí |
+| `steps_hr_payroll_correction` | 4 | Sí |
 
 ## Orden de desbloqueo y aceptación
 

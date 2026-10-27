@@ -52,10 +52,12 @@ def main():
     own = sorted(m for m in installed if m.startswith('step'))
     previous = {m: closure(m, installed) for m in own}
     proposed = {m: closure(m, candidates) for m in own}
+    pending = [m for m in own if proposed[m] & set(enterprise)]
     rows = ['# Matriz de retiro Enterprise — Cerro, 27-10-2026', '',
             'Generada con `tools/community/build_enterprise_backlog.py` desde auditoría de solo lectura.',
             'No contiene datos de negocio, rutas de servidor ni parámetros de licencia.', '',
             f'Producción: {len(installed)} módulos instalados, {len(enterprise)} Enterprise y {len(own)} propios.',
+            f'Código candidato: {len(pending)} apps propias instaladas aún alcanzan Enterprise por sus dependencias.',
             'Producción conserva Enterprise. Ninguna fila autoriza desinstalación ni acredita reemplazo integral.',
             'Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cada módulo;',
             '«código candidato» usa los manifiestos del checkout. Cero dependientes propios no significa cero uso.', '',
@@ -71,6 +73,14 @@ def main():
         direct = sorted(set(installed[name]['depends']) & set(enterprise))
         if direct:
             rows.append('| `' + name + '` | ' + ', '.join('`' + n + '`' for n in direct) + ' |')
+    rows += ['', '## Apps propias con caminos Enterprise pendientes', '',
+             'Se cuentan las apps propias del inventario instalado, no los puentes nuevos opcionales.',
+             '«Fuente en repo» solo indica disponibilidad del manifiesto; no acredita aceptación funcional.',
+             'Los sustitutos agrícolas y HR probados no equivalen a conversión integral del destino.', '',
+             '| App | Caminos Enterprise | Fuente en repo |', '| --- | ---: | --- |']
+    for name in pending:
+        rows.append('| `' + name + '` | ' + str(len(proposed[name] & set(enterprise))) + ' | ' +
+                    ('Sí' if (args.repository / name / '__manifest__.py').exists() else 'Pendiente de consolidar') + ' |')
     rows += ['', '## Orden de desbloqueo y aceptación', '',
              '1. Maestros agrícolas y centros de costo: núcleo Community con modelos/IDs originales; '
              'luego consumidores de Packing, Productores, Costos y Exportación.',
