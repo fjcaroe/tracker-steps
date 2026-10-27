@@ -9,6 +9,16 @@ from .common import MobilizationCommon
 @tagged('post_install', '-at_install')
 class TestRegistry(MobilizationCommon):
 
+    def test_company_document_type_is_the_native_latam_relation(self):
+        field=self.env['res.company']._fields['step_movi_document_type_id']
+        self.assertEqual(field.comodel_name,'l10n_latam.document.type')
+        document_type=self.env['l10n_latam.document.type'].create({
+            'name':'Private mobilization document fixture','code':'LTEST',
+            'country_id':self.env.ref('base.cl').id,
+        })
+        self.company.step_movi_document_type_id=document_type
+        self.assertEqual(self.company.step_movi_document_type_id,document_type)
+
     def test_missing_tariff_raises(self):
         other_route = self.env['hr.route'].create({'name': 'Sin tarifa', 'company_id': self.company.id})
         trip = self._make_trip(recorrido_id=other_route.id)
