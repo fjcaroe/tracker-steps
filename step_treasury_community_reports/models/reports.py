@@ -189,6 +189,7 @@ class TreasuryReport(models.TransientModel):
         result['notice'] = 'Control de conciliación: libro de efectivo al corte, extractos del período y partidas conciliables pendientes al corte. El estado del extracto es el estado actual, indicado expresamente; no reconstruye cambios históricos del indicador. Los importes de extracto están separados por moneda. Abrir los documentos para completar la conciliación nativa.'
 
     def _html_table(self, rows, columns, model='account.move.line'):
+        linked = any(row.get('id') for row in rows)
         heading = Markup('').join(Markup('<th>%s</th>') % label for key, label in columns)
         body = []
         for row in rows:
@@ -200,8 +201,10 @@ class TreasuryReport(models.TransientModel):
                 cells.append(Markup('<td>%s</td>') % value)
             if row.get('id'):
                 cells.append(Markup('<td><a href="/web#model=%s&amp;id=%s&amp;view_type=form" target="_blank">Abrir</a></td>') % (model, row['id']))
+            elif linked:
+                cells.append(Markup('<td></td>'))
             body.append(Markup('<tr>%s</tr>') % Markup('').join(cells))
-        return Markup('<table class="table table-sm table-striped"><thead><tr>%s<th>Documento</th></tr></thead><tbody>%s</tbody></table>') % (heading, Markup('').join(body))
+        return Markup('<table class="table table-sm table-striped"><thead><tr>%s%s</tr></thead><tbody>%s</tbody></table>') % (heading, Markup('<th>Documento</th>') if linked else '', Markup('').join(body))
 
     def action_calculate(self):
         data = self.report_data()
