@@ -111,3 +111,10 @@ No se convierten IDs ni se reconstruyen maestros. La prueba con empresa y
 cuentas desechables recorre aprobación, costeo y generación del asiento en
 borrador de 60, con distribución de temporada/centro/actividad y bloqueo de
 segunda contabilización. No publica asientos ni recalcula registros históricos.
+
+La recepción sincroniza `cos_recibida` al terminar/cancelar la operación nativa
+de Inventario. El estado de `stock.picking` es calculado y no garantiza pasar
+por `write({'state': ...})`, por lo que ese override legado no marcaba siempre
+la recepción validada. Los hooks actúan solamente sobre el registro vinculado
+a la recepción actual durante la transición del operador: no hay recomputación
+de recepciones anteriores ni cambios de históricos durante el upgrade.
