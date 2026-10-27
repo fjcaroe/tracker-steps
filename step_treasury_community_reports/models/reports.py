@@ -39,7 +39,7 @@ class TreasuryReport(models.TransientModel):
             raise AccessError(_('Se requiere acceso contable de consulta.'))
         if self.company_id not in self.env.companies:
             raise AccessError(_('La empresa no está autorizada en la sesión.'))
-        if not self.date_from or not self.date_to or self.date_from > self.date_to:
+        if not self.date_to or (self.kind not in ('receivable', 'payable') and (not self.date_from or self.date_from > self.date_to)):
             raise ValidationError(_('El período del informe no es válido.'))
         if any(j.company_id != self.company_id for j in self.journal_ids):
             raise AccessError(_('Los diarios deben pertenecer a la empresa del informe.'))
@@ -249,4 +249,4 @@ class TreasuryReport(models.TransientModel):
 
     def action_print(self):
         self.action_calculate()
-        return self.env.ref('step_treasury_community_reports.report_print').report_action(self)
+        return self.env.ref('step_treasury_community_reports.report_print').report_action(self, config=False)

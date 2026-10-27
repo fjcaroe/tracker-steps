@@ -122,6 +122,9 @@ class TestCommunityReports(TestTreasuryCommon):
         self.assertEqual(report.action_print()['report_type'], 'qweb-pdf')
         html, unused = self.env['ir.actions.report']._render_qweb_html(MODULE + '.report_print', report.ids)
         self.assertIn(b'100.00', html)
+        pdf, report_type = self.env['ir.actions.report'].with_context(force_report_rendering=True)._render_qweb_pdf(MODULE + '.report_print', report.ids)
+        self.assertEqual(report_type, 'pdf')
+        self.assertTrue(pdf.startswith(b'%PDF-'))
 
     def test_launchers_keep_ids_and_restrictive_groups(self):
         before = {}
