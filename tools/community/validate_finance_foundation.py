@@ -35,9 +35,12 @@ def snapshot(database):
     for table in tables:
         assert re.fullmatch('[a-z_][a-z0-9_]*', table)
         # Numeric trailing zeroes are representation only (15.00 == 15).
-        # trim_scale is exact: it never rounds amounts or changes strings/nulls.
+        # Trim fractional trailing zeroes exactly, including on PostgreSQL 12.
+        # No float conversion, rounding, or changes to strings/nulls.
         normalized = "(SELECT jsonb_object_agg(key,CASE WHEN jsonb_typeof(value)='number' " \
-            "THEN to_jsonb(trim_scale((value#>>'{}')::numeric)) ELSE value END) FROM jsonb_each(to_jsonb(t)))"
+            "THEN to_jsonb((CASE WHEN strpos(value#>>'{}','.')>0 THEN " \
+            "rtrim(rtrim(value#>>'{}','0'),'.') ELSE value#>>'{}' END)::numeric) " \
+            "ELSE value END) FROM jsonb_each(to_jsonb(t)))"
         statements.append("SELECT '" + table + "' AS name, json_build_object('rows',count(*),'hash',"
             "md5(coalesce(string_agg(n::text,E'\\n' ORDER BY n::text),'')),'representation_hash',"
             "md5(coalesce(string_agg(raw::text,E'\\n' ORDER BY raw::text),''))) AS value FROM "
