@@ -87,6 +87,19 @@ class TestCommunityReports(TestTreasuryCommon):
         self.assertEqual(row['reconciled_now'], entry.is_reconciled)
         self.assertEqual(row['amount'], 80)
 
+    def test_bank_checkpoint_reconciles_statement_and_book(self):
+        entry = self.env['account.bank.statement.line'].create({
+            'journal_id': self.bank_journal.id, 'date': '2026-09-10',
+            'payment_ref': 'Closing statement fixture', 'amount': 80})
+        self.env['account.bank.statement'].create({
+            'name': 'Closing fixture', 'line_ids': [Command.link(entry.id)],
+            'balance_start': 0, 'balance_end_real': 80})
+        report = self._report('bank')
+        report.partner_ids = False
+        anchor = next(row for row in report.report_data()['anchors'] if row['label'] == self.bank_journal.display_name)
+        self.assertEqual(anchor['statement'], 80)
+        self.assertAlmostEqual(anchor['difference'], 0)
+
     def test_no_accounting_access_is_not_granted_by_treasury(self):
         user = self.env['res.users'].with_context(no_reset_password=True).create({
             'name': 'Report reader fixture', 'login': 'report_reader_fixture',
@@ -139,10 +152,16 @@ class TestCommunityReports(TestTreasuryCommon):
         Form(self.env['step.treasury.report'], view=MODULE + '.view_report_form')
 
     def test_operational_amounts_are_stored_historical_values(self):
+        self.company.operational_currency_id = self.aux_currency
+        self.env['res.currency.rate'].create({'name': '2026-08-01', 'currency_id': self.aux_currency.id,
+                                             'company_id': self.company.id, 'rate': 2})
         invoice = self._invoice('out_invoice', date(2026, 9, 3), 100)
+        self._settle(invoice, 40, '2026-09-10')
         invoice.line_ids.invalidate_recordset()
         report = self._report('receivable')
         values = report.report_data()
+        self.assertEqual(values['rows'][0]['operational_currency'], self.aux_currency.name)
+        self.assertAlmostEqual(values['rows'][0]['operational'], 120)
         self.env['res.currency.rate'].create({'name': '2026-09-14', 'currency_id': self.aux_currency.id,
                                              'company_id': self.company.id, 'rate': 19})
         self.assertEqual(values, report.report_data())

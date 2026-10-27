@@ -76,6 +76,17 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+El 27-10-2026 el usuario autorizó reemplazar las cinco acciones de informes de
+Tesorería por alternativas Community y desplegar el paquete en QA-Cerro para
+probar, sin modificar producción. Esta autorización es específica de
+`step_treasury_community_reports` y la extracción contable que necesita.
+`tools/community/manage_community_reports.py` solo publica en Desarrollo y
+QA-Cerro, exige pruebas del mismo paquete en Community, copia fresca de Cerro
+y copia fresca del destino, ausencia de cambios concurrentes, respaldo y bloqueo.
+No refresca QA-Cerro, no retira Enterprise, no asigna perfiles ni altera
+vencimientos. La revisión inicial continúa en Desarrollo. El registro conserva
+`deploy_enabled=false` para promociones genéricas de QA-Cerro.
+
 T123 usa `invoice-payments` en Desarrollo, Cerro y QA-CERROELPLOMO, según
 confirmación explícita del usuario en este chat el 26-10-2026. El adjunto pide
 seleccionar facturas pendientes y distribuir el pago/cobro total o parcial,
