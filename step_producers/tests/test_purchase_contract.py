@@ -213,6 +213,7 @@ class TestProducerPurchaseContract(TransactionCase):
             'name': 'Contract accounting form QA', 'login': 'contract-accounting-view-' + uuid4().hex,
             'company_id': self.env.company.id, 'company_ids': [(6, 0, self.env.company.ids)],
             'groups_id': [(6, 0, [self.env.ref('base.group_user').id,
+                                  self.env.ref('account.group_account_user').id,
                                   self.env.ref('account.group_account_manager').id])],
         })
         arch = self.env["step.producer.purchase.contract"].with_user(accountant).get_view(

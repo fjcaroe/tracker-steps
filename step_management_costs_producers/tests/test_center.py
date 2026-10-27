@@ -6,4 +6,9 @@ class TestProducerAnalyticCenter(TransactionCase):
     def test_estimate_uses_native_account_and_form_compiles(self):
         model = self.env['step.export.estimate']
         self.assertEqual(model._fields['cost_center_id'].comodel_name, 'account.analytic.account')
-        self.assertIn('cost_center_id', model.get_view(view_type='form')['arch'])
+        # The modern T35 form deliberately omits this legacy header field.
+        # Its retained legacy form must still compile against the native FK.
+        self.assertIn('cost_center_id', model.get_view(
+            view_id=self.env.ref('step_producers.view_step_export_estimate_form').id,
+            view_type='form')['arch'])
+        self.assertIn('season_id', model.get_view(view_type='form')['arch'])

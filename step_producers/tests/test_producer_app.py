@@ -68,8 +68,13 @@ class TestProducerApp(TransactionCase):
     def test_menu_follows_client_process_groups(self):
         root = self.env.ref("step_producers.menu_step_producers_root")
         children = self.env["ir.ui.menu"].search([("parent_id", "=", root.id)], order="sequence,id")
-        self.assertEqual(children.with_context(lang="en_US").mapped("name"), [
-            "Inicio", "Planificación", "Control Contratos", "Control fruta", "Liquidación", "Maestros", "Configuraciones"])
+        expected = ["Inicio", "Planificación", "Control Contratos", "Liquidación", "Maestros", "Configuraciones"]
+        # The independent app has no Export fruit-control actions. Odoo hides
+        # an empty navigation group; its original XMLID still exists.
+        self.assertTrue(self.env.ref('step_producers.menu_step_producers_fruit_group').exists())
+        if self.env.registry.get('step.export.sales.program'):
+            expected.insert(3, 'Control fruta')
+        self.assertEqual(children.with_context(lang="en_US").mapped("name"), expected)
         self.assertEqual(self.env.ref("step_producers.menu_step_producers_contracts").parent_id,
                          self.env.ref("step_producers.menu_step_producers_planning_group"))
         self.assertEqual(self.env.ref("step_producers.menu_step_producers_fundos").parent_id,
