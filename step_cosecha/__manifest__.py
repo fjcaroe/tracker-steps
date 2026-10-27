@@ -10,7 +10,7 @@
  'author': 'jamie.escalante7@gmail.com',
  'website': '',
  'category': 'Operations/Agriculture',
- 'version': '18.0.1.7.0',
+ 'version': '18.0.1.8.0',
  'license': 'LGPL-3',
  'depends': ['base',
              'hr_work_entry_holidays',

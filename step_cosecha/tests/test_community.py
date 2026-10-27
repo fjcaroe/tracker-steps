@@ -16,7 +16,7 @@ class HarvestCommunityCase(TransactionCase):
     def test_preserve_custom_sequence_parameters_on_repeated_upgrade_protection(self):
         import importlib.util
         from pathlib import Path
-        spec=importlib.util.spec_from_file_location('harvest_pre',Path(__file__).parents[1]/'migrations/18.0.1.7.0/pre-migration.py')
+        spec=importlib.util.spec_from_file_location('harvest_pre',Path(__file__).parents[1]/'migrations/18.0.1.8.0/pre-migration.py')
         migration=importlib.util.module_from_spec(spec);spec.loader.exec_module(migration)
         seq=self.env.ref('step_cosecha.seq_step_cosecha_propio')
         seq.write({'prefix':'PRIVATE/','padding':9,'number_increment':3})

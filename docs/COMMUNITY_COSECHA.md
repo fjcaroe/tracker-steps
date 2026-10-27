@@ -2,7 +2,7 @@
 
 ## Contrato operacional
 
-Cosecha 18.0.1.7.0 depende de `step_labor_operations_core` y de módulos
+Cosecha 18.0.1.8.0 depende de `step_labor_operations_core` y de módulos
 oficiales Community. Conserva sus diez modelos de Cosecha/historial, tablas,
 campos, acciones, maestros, ACL y reglas. No duplica cuadrillas ni contratos. La bandera original
 `stock.picking.cosecha` pasa de HR a Cosecha con el mismo campo, columna, ID y

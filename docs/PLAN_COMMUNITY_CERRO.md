@@ -212,7 +212,7 @@ de todas las extensiones de Exportación/Packing que aún dependen de Enterprise
 
 `step_operations_core` 18.0.1.0.0 extrae 30 campos de flota, empleados y tareas,
 conservando 34 identificadores explícitos, las relaciones y las vistas originales.
-`step_hr` 18.0.1.7.0 queda como consumidor del núcleo. Maquinaria 18.0.22.1.0
+`step_hr` 18.0.1.8.0 queda como consumidor del núcleo. Maquinaria 18.0.22.1.0
 y clasificación agrícola de tareas 18.0.1.1.0 consumen el núcleo Community.
 El puente existente de costos de maquinaria se incluye en el mismo ensayo.
 El contrato técnico está en `COMMUNITY_OPERACIONES.md`.
@@ -259,7 +259,7 @@ paquete aceptado quedan en continuidad; producción conserva 140 Enterprise.
 
 ## Octavo paquete: Cosecha, planificación y registros
 
-`step_cosecha` 18.0.1.7.0 consume el núcleo laboral sin Nómina/Gantt.
+`step_cosecha` 18.0.1.8.0 consume el núcleo laboral sin Nómina/Gantt.
 `step_cosecha_planning` 18.0.1.1.0 consume los formatos compartidos;
 `step_agriculture_records` 18.0.1.3.0 declara Movilización y el costo horario
 nativo Community. Cosecha y sus diez modelos conservan nombres/tablas,
