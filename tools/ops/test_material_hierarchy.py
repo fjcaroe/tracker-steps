@@ -9,6 +9,13 @@ class MaterialHierarchyGuardCase(unittest.TestCase):
             return descendant_count if 'count(*)' in statement else json.dumps(rows)
         return capture(query, 'private', 'cerro')
 
+    def test_customer_qa_without_production_subcategories_is_unchanged(self):
+        import json
+        plan = capture(lambda db,q: json.dumps([{'id':8,'name':'6 materiales de embalajes'}]), 'private', 'qa-cerro')
+        self.assertEqual(plan['children'], [])
+        self.assertTrue(plan['children_absent'])
+        self.assertEqual(snapshot_row('to_jsonb(t)',plan),'to_jsonb(t)')
+
     def test_only_approved_children_allow_expected_structure_changes(self):
         row = snapshot_row('to_jsonb(t)', {'children': [19, 20]})
         self.assertIn('t.id IN (19,20)', row)

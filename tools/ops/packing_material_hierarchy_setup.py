@@ -14,8 +14,10 @@ def capture(query, database, environment):
     roots = [r for r in records if r['name'].lower() not in CHILDREN]
     assert len(roots) == 1, 'One native packaging-material root is required'
     children = [r for r in records if r['name'].lower() in CHILDREN]
-    if environment == 'development' and not children:
-        return {'root': roots[0]['id'], 'children': [], 'before': []}
+    if environment in ('development', 'qa-cerro') and not children:
+        # Customer QA preserves its own exercise catalog; never import the
+        # production subcategories merely to equalize databases.
+        return {'root': roots[0]['id'], 'children': [], 'before': [], 'children_absent': True}
     assert len(children) == 2 and {r['name'].lower() for r in children} == set(CHILDREN)
     assert all(r.get('parent_id') in (None, False, roots[0]['id']) for r in children), 'Unexpected existing parent'
     ids = sorted(r['id'] for r in children)
@@ -34,7 +36,7 @@ def snapshot_row(row, plan):
 
 def apply(env, plan):
     if not plan['children']:
-        return {'changed': 0, 'accounts_preserved': True, 'category_ids_preserved': True}
+        return {'changed': 0, 'children': [], 'children_absent': True, 'accounts_preserved': True, 'category_ids_preserved': True}
     Category = env['product.category']
     root = Category.browse(plan['root']).exists()
     children = Category.browse(plan['children']).exists()

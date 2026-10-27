@@ -31,8 +31,10 @@ def main():
             hierarchy=(root/(target+'-hierarchy.log')).read_text(encoding='utf-8-sig')
             receipts=[json.loads(line.split('T125_HIERARCHY_CONFIGURED ',1)[1]) for line in hierarchy.splitlines() if line.startswith('T125_HIERARCHY_CONFIGURED ')]
             assert receipts and receipts[-1]['accounts_preserved'] and receipts[-1]['category_ids_preserved']
-            if target!='development':
+            if target=='cerro':
                 assert len(receipts[-1]['children'])==2 and receipts[-1]['products_preserved']>0
+            if target=='qa-cerro':
+                assert (len(receipts[-1]['children'])==2 and receipts[-1]['products_preserved']>0) or (receipts[-1].get('children_absent') and receipts[-1]['changed']==0)
         assert 'MANAGEMENT_VERIFY_OK' in live and expected['commit'] in live
         payloads=[json.loads(line.split('MANAGEMENT_REGISTRY_OK ',1)[1]) for line in live.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
         assert any(p.get('existing_profile',1)!=1 and p.get('native_menu_and_form') and p.get('writes') is False for p in payloads)
