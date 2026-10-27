@@ -106,7 +106,13 @@ def main():
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)
         with socket.socket() as listener:
             listener.bind(('127.0.0.1', 0)); port = listener.getsockname()[1]
-        base = ['sudo', '-u', user, '/usr/bin/python3.10', str(runtime / 'odoo-bin')]
+        entrypoint = runtime / 'odoo-bin'
+        if args.mode == 'cerro-copy':
+            # Reuse the reviewed Cerro upgrade adapter: keep already validated
+            # canonical fruit FKs while an older base definition loads first.
+            entrypoint = addons / 'tools/ops/run_sag_cerro_upgrade.py'
+            assert entrypoint.exists()
+        base = ['sudo', '-u', user, '/usr/bin/python3.10', str(entrypoint)]
         opts = ['-c', str(conf), '-d', args.database, '--db-filter=^' + args.database + '$',
                 '--addons-path=' + addon_paths, '--data-dir=' + str(data), '--load=base,web',
                 '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
