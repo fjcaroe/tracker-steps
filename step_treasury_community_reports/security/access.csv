@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_treasury_community_accountant,treasury.community.accountant,model_step_treasury_report,account.group_account_readonly,1,1,1,1
+access_treasury_community_manager,treasury.community.manager,model_step_treasury_report,account.group_account_manager,1,1,1,1

@@ -1,0 +1,1 @@
+{'name': 'Steps - Informes de Tesorería Community', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'author': 'Steps Consulting', 'depends': ['step_account_treasury'], 'data': ['security/access.csv', 'views/reports.xml'], 'post_init_hook': 'post_init_reports', 'installable': True}

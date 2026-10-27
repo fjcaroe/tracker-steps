@@ -36,7 +36,7 @@ class TestReportOwnership(TransactionCase):
             preserve_menus(self.env)
 
     def test_upgrade_requires_bridge_for_existing_reports(self):
-        bridge = self.env['ir.module.module'].search([('name', '=', BRIDGE)])
+        bridge = self.env['ir.module.module'].search([('name', 'in', (BRIDGE, 'step_treasury_community_reports'))])
         bridge.write({'state': 'uninstalled'})
         name = MENUS[2]
         data = self.env['ir.model.data']

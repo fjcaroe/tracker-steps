@@ -14,7 +14,7 @@ def preserve_menus(env, require_bridge=False):
     data = env['ir.model.data']
     legacy = data.search([('module', '=', CORE), ('name', 'in', MENUS)])
     if require_bridge and legacy and not env['ir.module.module'].search_count([
-        ('name', '=', BRIDGE), ('state', 'in', ('installed', 'to install', 'to upgrade')),
+        ('name', 'in', (BRIDGE, 'step_treasury_community_reports')), ('state', 'in', ('installed', 'to install', 'to upgrade')),
     ]):
         raise UserError('Actualice Tesorería instalando también step_account_treasury_reports '
                         'para conservar los cinco accesos de informes existentes.')
