@@ -65,7 +65,7 @@
             <field name="target">new</field>
         </record>
 
-        
+
 <menuitem id="menu_labor_hours" name="Labores por trabajador propio" parent="step_labor_operations_core.menu_labor_operations" action="report_step_hrs_wizard_action" sequence="50"/>
 <menuitem id="menu_labor_process" name="Labores por trabajador contratista" parent="step_labor_operations_core.menu_labor_operations" action="report_step_by_process_action" sequence="51"/>
 </odoo>

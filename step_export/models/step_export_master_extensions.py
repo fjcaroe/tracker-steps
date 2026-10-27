@@ -20,5 +20,3 @@ class ProductTemplate(models.Model):
     step_export_payment_concept_id = fields.Many2one(
         "step.export.payment.concept", string="Concepto de liquidación")
     step_export_budget_cost = fields.Float(string="Costo presupuesto", digits=(16, 4))
-
-
