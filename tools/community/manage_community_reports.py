@@ -87,6 +87,8 @@ def main():
         assert args.development_release, 'First review this package in Desarrollo'
         development = json.loads((args.development_release / 'deployed.json').read_text())
         assert development['source_files'] == actual and development['business_preserved']
+        ready = json.loads((args.development_release / 'http-passed.json').read_text())
+        assert ready == {'url': TARGETS['development'][4], 'status': 200, 'login': True}, 'Desarrollo HTTPS must be verified first'
     contract = json.loads((proof / 'source-contract.json').read_text())
     before = json.loads((proof / 'business-before.json').read_text())
     package_hash = hashlib.sha256(json.dumps(actual, sort_keys=True).encode()).hexdigest()

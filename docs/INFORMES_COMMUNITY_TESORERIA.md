@@ -84,3 +84,13 @@ un overlay privado de los cinco módulos. Rechaza downgrade y cambios concurrent
 No restaura datos automáticamente ante un fallo. Verifica registros, saldos,
 formularios y flujo real antes de registrar la entrega. QA conserva sus ejercicios,
 correo neutralizado, cron detenido y las reglas de aislamiento.
+
+En Desarrollo, el cron de Tracker puede avanzar exclusivamente `last_sync` y
+`write_date` de `step_tracker_protection_sync` mientras se valida la copia.
+El publicador permite únicamente ese cambio: compara todos los demás campos
+y registros con la copia privada intacta. Después de detener el servicio toma
+un nuevo corte **completo**, incluido el marcador más reciente, lo respalda y
+exige igualdad integral después de actualizar. No restaura el valor antiguo ni
+excluye esa tabla de la conservación. Cualquier otro cambio obliga a una nueva
+validación. El HTTP se comprueba con espera de arranque; QA-Cerro exige además
+el resultado HTTPS positivo de la entrega previa en Desarrollo.
