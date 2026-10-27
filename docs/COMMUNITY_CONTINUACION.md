@@ -785,3 +785,175 @@ lo validado a la canónica y ejecuta python tools/git/verify_handoff.py
 --require-pushed. Entrega estado acumulado, evidencia, pendientes y siguiente
 prompt. No declares resuelto el vencimiento por una extracción parcial.
 ```
+
+## Séptimo bloque validado — Tarjas, Cuadrillas y Movilización (27-10-2026)
+
+Base canónica de inicio: `19f9088`. Rama propia:
+`codex/community-tarjas-20261027`. Fuente del paquete aceptado: `b781f72`.
+Contrato técnico: `COMMUNITY_TARJAS_CUADRILLAS.md`.
+
+### Implementación y frontera conservada
+
+- Núcleo `step_labor_operations_core` 18.0.1.0.0: nueve modelos originales,
+  228 campos declarados y 296 XML IDs explícitos, con nueve ACL y cuatro
+  secuencias. Se mantienen tablas, maestros, columnas, relaciones y alias
+  `step_hr.*`. No se crean maestros ni grupos de permisos paralelos.
+- Las cuatro secuencias se adoptan sin reescribir sus parámetros o contadores.
+  Sus alias del núcleo quedan `noupdate=True`, necesarios para sobrevivir a
+  la limpieza de metadatos de una instalación sin XML de secuencias.
+- Los siete registros originales de propiedad M2M se transfieren de HR al
+  núcleo sin cambiar sus IDs, nombres o modelos. Se verifica el conjunto
+  completo de relaciones y las restricciones SQL/FK laborales originales.
+- `step_hr` 18.0.1.8.0 conserva el puente de lotes/estructuras y envío a
+  remuneraciones. No se simulan `hr.payslip.run` ni `hr.payroll.structure`
+  en Community. No se invoca el envío ni se recalculan liquidaciones pagadas.
+- Los costos de contrato conservan sus fórmulas. En Cerro se sigue leyendo
+  el campo semanal legado; en Community se obtiene la jornada de los calendarios
+  nativos, incluyendo el ciclo de dos semanas y la configuración flexible.
+  No se fabrica una jornada ni una tarifa cero cuando faltan horas.
+- Las reglas de tarifas permiten completar labor y unidad obligatorias desde
+  los dos formularios, conservando las relaciones a los productos existentes.
+- Movilización agrícola 18.0.1.1.0 consume el núcleo y lee la distribución
+  vigente por empleado/fundo/fecha/empresa. Movilización 18.0.1.0.3 limita su
+  pestaña de tarifas a sus perfiles y declara el modelo de documento LATAM
+  nativo, evitando que la relación de empresa quede como `_unknown`.
+
+### Ensayos y aceptación
+
+Ensayo aceptado: `/opt/steps-validation/community-labor-20261027G/`.
+
+- `COMMUNITY_AGRICULTURE_LABOR_20261027G`: 440 pruebas sin fallos,
+  113 módulos instalados, cero Enterprise y sin `step_hr`. Runtime oficial
+  limpio `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`.
+- `MANAGEMENT_QA_CERRO_AGRICULTURE_LABOR_20261027G`: copia fresca de
+  Cerro, 440 pruebas sin fallos, 375 módulos instalados y sus 140 Enterprise
+  conservados. Se añaden tres núcleos; no es la conversión integral.
+- Mismos 632 archivos de addons por hash. SHA256 del mapa `source-files.json`:
+  `6d8bcf4ea67591db8ab532c7257fd5de4666e0ea717d9b2943d8acc13c0af6c9`.
+  Los diecinueve módulos del paquete no suponen downgrade respecto del origen.
+- Se conservaron los valores de 911 tablas/proyecciones, incluidos tarifas,
+  calendarios, recursos y relaciones M2M. Los 1.217 modelos, 26.987 campos,
+  5.071 selecciones, 2.322 ACL, 610 reglas y 1.327 menús originales mantuvieron
+  identidad y atributos. Se añaden únicamente los dos campos visuales de
+  Productores ya documentados; el núcleo agrícola añade once menús y el laboral diez.
+- Los 463 registros originales de relaciones mantienen sus IDs, nombres y
+  modelos. Solo los siete propietarios declarados pasan de HR al núcleo laboral.
+  Las 176 restricciones SQL/FK laborales permanecen exactas, al igual que
+  los 417 enlaces acción/vista salvo los dos modos Calendar permitidos.
+  Se comprobó también la FK nativa del tipo de documento de empresa.
+- Se conservaron 1.388 mensajes, 738 seguimientos, 600 seguidores, las actividades,
+  1.125 adjuntos de negocio y los parámetros de vencimiento. Se aplica únicamente
+  la excepción estricta de cachés web regenerables previamente documentada.
+- Verificadores nativos de maestros/Packing, Productores, Operaciones y laboral:
+  en Cerro UID 6, empresa canónica 2, sin superusuario ni asignación de grupos.
+  Menús y formularios accesibles; altas temporales de empleado/contrato/cuadrilla/
+  tarja, costeo y lectura de Movilización, con rollback. En Community, el perfil
+  laboral es un usuario desechable con roles explícitos, también sin superusuario.
+
+`passed.json`, `source-files.json`, `tests.log`, `verify.log`, contratos de
+negocio, identidades, restricciones, relaciones e históricos antes/después
+están en ambos stages. El cierre fue directo: `AGRICULTURE_OK community` y
+`AGRICULTURE_OK cerro-copy`, sin normalizar la relación defectuosa del ensayo F.
+Los contratos de configuración, archivos y versiones del origen coincidieron
+antes/después. Producción sigue con 372 módulos y 140 Enterprise; no recibió
+este paquete ni cambios de vencimiento. QA-Cerro no se refrescó ni se publicó
+allí este bloque. Tampoco hubo publicación agrícola en Desarrollo.
+
+El corte muestreado no tenía contratos o liquidaciones existentes. Se preserva
+esa situación y se prueban contratos nuevos con fixtures; esto no acredita la
+conversión de una nómina histórica pagada ni el retiro del motor Enterprise.
+
+Evidencia privada local:
+`C:/Users/tito4/.codex/local-artifacts/community-labor-20261027/`.
+`evidence-G.tar.gz` contiene las pruebas y contratos sin dump, filestore ni
+configuración. `source-G.tar.gz` conserva el paquete exacto. El dump completo
+y filestore originales permanecen en el stage privado del servidor.
+
+No usar A–F como aceptación final. A detectó una
+expectativa equivocada del test ante la excepción FK de borrado del fundo.
+B pasó 438 pruebas puras, pero su copia detectó el alias de secuencia y una
+asignación de vacaciones del fixture. Las comprobaciones nativas de Community
+se ajustaron para usar un perfil temporal de negocio sin ampliar al administrador.
+D/E fueron diagnósticos focalizados del formulario de tarifas. F pasó 439 pruebas
+en ambos entornos y sus verificadores nativos, pero detectó el comodel LATAM
+incorrecto en el contrato de metadatos; no tiene aceptación. G incorpora la
+dependencia explícita y la prueba de relación guardada, con ambas bases nuevas.
+
+### Estado acumulado y pendientes
+
+La base contable y Tesorería están implementadas, con sus cinco consultas
+alternativas desplegadas en Desarrollo y QA-Cerro. Los núcleos agrícola y
+operacional, Packing, identificación de fruta, Costos y Productores ya tienen
+ensayos aceptados en Community y copias frescas; su promoción agrícola a los
+servicios activos sigue pendiente. Este bloque incorpora la frontera laboral
+y el consumidor de Movilización.
+
+El candidato deja 64 de 91 apps propias con caminos declarados Enterprise,
+frente a 79 originales y 65 después de Maquinaria/Tareas. La reducción aquí
+corresponde a Movilización agrícola; `step_hr` conserva el puente de Nómina.
+La cifra es de manifiestos, no una certificación de todos los flujos de las
+apps sin caminos Enterprise. Producción conserva 140 Enterprise y el riesgo
+del 31 de octubre continúa abierto.
+
+Siguiente frontera: Cosecha, sus wizards activos de Nómina y planificación/
+registros agrícolas. `step_cosecha_planning` también depende de `step_export`
+por los formatos de empaque; no basta sustituir su dependencia de HR. Conservar
+el maestro nativo `product.packaging`, sus vistas y alias al cerrar ese borde.
+Después siguen Nómina/contratos/entradas compatibles con Simple Digital,
+Previred/libros, DTE/CAF/SII/exportación, Calidad, restantes Gantt y Studio/
+Documentos/Firma. Permanecen T123 en instalación pura propia, lotes de pago,
+conciliación operativa y clasificación del efectivo. Faltan publicación en
+Desarrollo/QA con sus copias específicas, conversión integral con cero
+Enterprise, recuperación y aceptación.
+
+La cuenta `210233` permanece descontinuada. La aceptación de ese flujo real
+sigue requiriendo una resolución contable. El override bancario queda en HR,
+los límites de Calendar se conservan y QA-Cerro no se refresca.
+
+El inventario final conserva tres relaciones aún propiedad de HR, todas de
+wizards pendientes: `employee_wizard_rel` (`report.step.hrs.wizard`),
+`step_hr_payslip_rel` (`hr.input.step.wizard`) y `employee_process_rel`
+(`report.by.process.wizard`). No retirar HR sin migrar esos propietarios,
+sus modelos/IDs/permisos y el override bancario.
+
+### Prompt para el siguiente bloque
+
+```text
+Continúa la migración de Cerro El Plomo a Community desde la canónica
+origin/codex/ambientes-canonicos-reparacion actualizada. Usa un worktree propio.
+Lee AGENTS.md, ~/.odoo/environments.json, docs/OPERACION_ODOO_CANONICA.md,
+docs/WORKFLOW_GIT_COMPARTIDO.md, docs/PLAN_COMMUNITY_CERRO.md,
+docs/COMMUNITY_CONTINUACION.md, docs/COMMUNITY_PRODUCTORES.md,
+docs/COMMUNITY_OPERACIONES.md, docs/COMMUNITY_TARJAS_CUADRILLAS.md y la matriz
+Enterprise.
+
+El último bloque, fuente b781f72 y ensayo community-labor-20261027G, separó
+nueve modelos de Tarjas/Cuadrillas y Movilización: 440 pruebas por entorno,
+911 tablas/proyecciones, 463 relaciones y 176 restricciones SQL preservadas.
+Conservó 296 XML IDs y transfirió siete propietarios M2M manteniendo sus IDs.
+Quedan 64 apps propias con caminos declarados Enterprise y producción conserva
+140 Enterprise. Este bloque no resuelve el vencimiento del 31 de octubre.
+
+Continúa con la frontera de Cosecha y planificación/registros agrícolas.
+Separa sus wizards activos de Nómina mediante un puente real; no simules
+hr.payslip ni retires campos/IDs. step_cosecha_planning también consume
+step_export por los formatos: conserva product.packaging, vistas y alias antes
+de cambiar dependencias. Revisa los wizards laborales que aún quedan en HR y
+sus tres propietarios M2M pendientes descritos en continuidad.
+
+Cierra modelos, relaciones, vistas y permisos antes de cambiar manifiestos.
+Preserva maestros, IDs, históricos, permisos, saldos y correlativos. Respeta
+los límites de Calendar, el override bancario y la cuenta 210233 descontinuada.
+No recalcules liquidaciones pagadas, retires Enterprise en producción, alteres
+vencimientos ni refresques QA-Cerro. No amplíes perfiles para pasar pruebas.
+Los fixtures de contratos usan el mes actual para evitar generar asignaciones
+acumuladas de vacaciones de Simple Digital; no desactives ese motor.
+
+Prueba el mismo paquete en Community oficial y copia fresca de Cerro, con
+bloqueo compartido y overlays privados. Los despliegues agrícolas en Desarrollo
+y QA siguen pendientes y necesitan sus propios ensayos frescos. Guarda commits,
+push, integra solo lo validado a la canónica y ejecuta python
+tools/git/verify_handoff.py --require-pushed. Entrega estado, evidencias,
+pendientes y siguiente prompt; no declares resuelto el vencimiento por una
+extracción parcial.
+```

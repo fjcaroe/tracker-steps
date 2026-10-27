@@ -229,3 +229,30 @@ Producción continúa con sus 140 Enterprise. Tarjas/Cuadrillas, Movilización y
 otros consumidores de nómina necesitan su propia extracción de modelos,
 relaciones, vistas y permisos antes de modificar dependencias. Las evidencias
 de aceptación y los pendientes de publicación están en continuidad.
+
+## Séptimo paquete: Tarjas, Cuadrillas y Movilización
+
+`step_labor_operations_core` 18.0.1.0.0 separa nueve modelos operacionales de
+`step_hr`, con 228 campos declarados y 296 identificadores explícitos, incluidos
+nueve permisos y cuatro secuencias. Adopta también los registros originales de
+propiedad de siete tablas M2M. Mantiene las tablas, IDs, relaciones, parámetros
+y cálculos, sin crear maestros alternativos ni recalcular liquidaciones pagadas.
+El contrato técnico está en `COMMUNITY_TARJAS_CUADRILLAS.md`.
+
+`step_hr` 18.0.1.8.0 conserva el puente real a lotes y estructuras de Nómina y
+el envío a remuneraciones; el núcleo Community no simula esos modelos.
+Movilización agrícola 18.0.1.1.0 usa el núcleo laboral y lee la distribución
+actual de las tarjas. Movilización 18.0.1.0.3 declara el tipo de documento
+latinoamericano nativo y alinea su pestaña de tarifas con los grupos de su modelo.
+
+El perfil `labor` ensaya diecinueve módulos de paquete y amplía el contrato de
+preservación a tarifas, calendarios/recursos, relaciones M2M y restricciones
+SQL/FK laborales. Las reglas de tarifa permiten completar sus relaciones
+obligatorias desde ambos formularios. Las pruebas no asignan grupos a usuarios
+existentes para forzar acceso ni fabrican jornadas para calcular costos.
+
+El candidato deja 64 apps propias con caminos Enterprise: el adaptador agrícola
+de Movilización abandona ese camino. Esto no convierte por sí solo los otros
+consumidores de Cosecha, Nómina, DTE o Calidad. Tampoco sustituye el ensayo de
+conversión integral, recuperación, publicación y aceptación. Las evidencias del
+paquete aceptado quedan en continuidad; producción conserva 140 Enterprise.
