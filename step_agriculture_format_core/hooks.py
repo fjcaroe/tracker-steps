@@ -3,6 +3,8 @@ from odoo.exceptions import UserError
 from .ownership import CORE, LEGACY, MODELS, RECORDS, RELATIONS
 
 def owned(env,row):
+    if row.model=='ir.model' and env[row.model].browse(row.res_id).model=='stock.package.type':
+        return True
     if row.name in RECORDS:
         if row.model != RECORDS[row.name] or not env[row.model].browse(row.res_id).exists():
             raise UserError('Identificador incompatible: %s.%s' % (row.module,row.name))
@@ -20,7 +22,7 @@ def alias(env,row,namespace):
             raise UserError('Identificador en conflicto: %s.%s' % (namespace,row.name))
     else:
         env['ir.model.data'].create({'module':namespace,'name':row.name,'model':row.model,
-            'res_id':row.res_id,'noupdate': row.noupdate if namespace==CORE else True})
+            'res_id':row.res_id,'noupdate': True if row.model in ('ir.model','ir.model.fields','ir.model.fields.selection') else row.noupdate if namespace==CORE else True})
 
 def pre_init_hook(env):
     modules=env['ir.module.module']

@@ -193,6 +193,36 @@ def identity_contract(database):
                           ' UNION ALL '.join(queries) + ') t'))
 
 
+def verify_identity_contract(database,addons,profile,calendar_bindings,original,current):
+    for table, rows in original.items():
+        # New core menus/metadata are expected; each preexisting row is exact.
+        if table in ('ir_model', 'ir_model_fields', 'original_xmlids'):
+            now = {r['id']: r for r in current[table]}
+            for row in rows:
+                got = now.get(row['id'])
+                assert got and all(got[k] == v for k,v in row.items() if k != 'modules'), (table, row['id'])
+        elif table == 'ir_model_relation' and 'step_labor_operations_core' in MODULES:
+            tree = ast.parse((addons / 'step_labor_operations_core/ownership.py').read_text())
+            relations = ast.literal_eval(next(n.value for n in tree.body if isinstance(n, ast.Assign)
+                and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'RELATIONS'))
+            legacy_module = int(sql(database, "SELECT id FROM ir_module_module WHERE name='step_hr'"))
+            new_module = int(sql(database, "SELECT id FROM ir_module_module WHERE name='step_labor_operations_core'"))
+            extra_owners={}
+            if profile=='harvest':
+                extra_owners={name:int(sql(database, "SELECT id FROM ir_module_module WHERE name='"+owner+"'"))
+                    for name,owner in [('employee_wizard_rel','step_labor_reports'),
+                        ('employee_process_rel','step_labor_reports'),('step_hr_payslip_rel','step_labor_payroll_wizards')]}
+            expected = [dict(row,module=extra_owners[row['name']]) if row['module']==legacy_module and
+                        row['name'] in extra_owners else dict(row, module=new_module) if row['module'] == legacy_module and
+                        row['name'] in relations else row for row in rows]
+            assert all(row in current[table] for row in expected), 'Relation identity or owner changed unexpectedly'
+        else:
+            expected = [dict(row, view_mode='calendar') if table == 'ir_act_window_view' and
+                        row['id'] in calendar_bindings and row['view_mode'] in ('gantt', 'calendar') else row
+                        for row in rows]
+            assert all(row in current[table] for row in expected), 'Existing identities changed: ' + table
+
+
 def history_contract(database):
     queries = []
     for table in ('mail_message', 'mail_tracking_value', 'mail_followers', 'mail_activity', 'ir_attachment'):
@@ -347,6 +377,9 @@ def main():
             upgraded_business=snapshot(args.database)
             (stage/'business-after-upgrade.json').write_text(json.dumps(upgraded_business,indent=2))
             assert same_values(baseline,upgraded_business), 'Migration changed business values or original sequence counters'
+            upgraded_identity=identity_contract(args.database)
+            (stage/'identity-after-upgrade.json').write_text(json.dumps(upgraded_identity,indent=2))
+            verify_identity_contract(args.database,addons,args.profile,calendar_bindings,original,upgraded_identity)
             # Exercise the exact installed package again, including its init-only
             # cores' tests. No migrations or test failures are accepted silently.
             init=['-u',','.join(dict.fromkeys(new_cores+upgrades))]
@@ -386,33 +419,7 @@ def main():
                 baseline={name:value for name,value in baseline.items() if name not in counters}
                 after={name:value for name,value in after.items() if name not in counters}
             assert same_values(baseline, after), 'Existing business values changed'
-            for table, rows in original.items():
-                # New core menus/metadata are expected; each preexisting row is exact.
-                if table in ('ir_model', 'ir_model_fields'):
-                    now = {r['id']: r for r in current[table]}
-                    for row in rows:
-                        got = now.get(row['id'])
-                        assert got and all(got[k] == v for k,v in row.items() if k != 'modules'), (table, row['id'])
-                elif table == 'ir_model_relation' and 'step_labor_operations_core' in MODULES:
-                    tree = ast.parse((addons / 'step_labor_operations_core/ownership.py').read_text())
-                    relations = ast.literal_eval(next(n.value for n in tree.body if isinstance(n, ast.Assign)
-                        and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'RELATIONS'))
-                    legacy_module = int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='step_hr'"))
-                    new_module = int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='step_labor_operations_core'"))
-                    extra_owners={}
-                    if args.profile=='harvest':
-                        extra_owners={name:int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='"+owner+"'"))
-                            for name,owner in [('employee_wizard_rel','step_labor_reports'),
-                                ('employee_process_rel','step_labor_reports'),('step_hr_payslip_rel','step_labor_payroll_wizards')]}
-                    expected = [dict(row,module=extra_owners[row['name']]) if row['module']==legacy_module and
-                                row['name'] in extra_owners else dict(row, module=new_module) if row['module'] == legacy_module and
-                                row['name'] in relations else row for row in rows]
-                    assert all(row in current[table] for row in expected), 'Relation identity or owner changed unexpectedly'
-                else:
-                    expected = [dict(row, view_mode='calendar') if table == 'ir_act_window_view' and
-                                row['id'] in calendar_bindings and row['view_mode'] in ('gantt', 'calendar') else row
-                                for row in rows]
-                    assert all(row in current[table] for row in expected), 'Existing identities changed: ' + table
+            verify_identity_contract(args.database,addons,args.profile,calendar_bindings,original,current)
             assert final_history == history, 'Chatter, attachments or expiration changed'
             assert source_contract(conf, addons) == contract, 'Source service configuration, versions or files changed'
         (stage / 'passed.json').write_text(json.dumps({'mode': args.mode, 'database': args.database,

@@ -60,3 +60,13 @@ class LaborReportsCase(TransactionCase):
             self.assertFalse(self.env.ref(module+'.'+name).active)
             convert_file(self.env,module,'views/menu_views.xml',{},mode='update')
             self.assertFalse(self.env.ref(module+'.'+name).active)
+
+    def test_native_and_delegated_legacy_api_aliases(self):
+        for old,new in [
+            ('step_hr.model_hr_employee','step_operations_core.model_hr_employee'),
+            ('step_hr.model_hr_contract','step_labor_operations_core.model_hr_contract'),
+            ('step_hr.model_product_template','step_agriculture_core.model_product_template'),
+            ('step_hr.field_product_product__is_fruta','step_agriculture_core.field_product_product__is_fruta'),
+            ('step_hr.field_res_users__step_export','step_agriculture_core.field_res_users__step_export'),
+            ('step_hr.field_account_bank_statement_line__cosecha','step_labor_operations_core.field_account_bank_statement_line__cosecha')]:
+            self.assertEqual(self.env.ref(old),self.env.ref(new))

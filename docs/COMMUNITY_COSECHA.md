@@ -124,3 +124,13 @@ Las raíces Community de maestros (núcleo 18.0.1.1.1) y Tarjas/Cuadrillas
 cuando existe la raíz legada de HR, incluso después de un segundo upgrade;
 no se depende solamente de `post_init_hook`. La regresión vuelve a cargar ambos
 XML dos veces y comprueba la frontera de menús. No modifica grupos de usuarios.
+
+La comparación de todos los XML IDs detectó alias de modelos nativos, campos
+delegados de productos/usuarios/extractos y metadatos de herencia que antes
+no estaban en la lista explícita. Los núcleos los adoptan/protegen también,
+con los mismos destinos y filas originales; los metadatos opcionales Studio
+solo se conservan cuando ya existen en Cerro, sin simular sus modelos en Community.
+El ejecutor canónico conserva traducciones de descripciones/ayudas que el
+reflejo nativo borra aunque el texto inglés no haya cambiado. No restaura un
+texto base modificado ni pisa una traducción nueva explícita. El contrato de
+identidad compara todas las traducciones resultantes, sin omitir ese campo.

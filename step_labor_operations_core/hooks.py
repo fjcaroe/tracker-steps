@@ -15,8 +15,14 @@ def _owned(record):
             if field.name not in FIELDS.get(field.model, ()):
                 raise UserError('Campo operacional incompatible: %s.' % record.name)
         return True
+    if record.model == 'ir.model':
+        return record.env[record.model].browse(record.res_id).model in FIELDS
+    if record.model == 'ir.model.inherit':
+        return bool(record.env[record.model].browse(record.res_id).exists()) and any(record.name.startswith('model_inherit__'+model.replace('.','_')+'__') for model in MODELS)
     if record.model == 'ir.model.fields':
         field = record.env[record.model].browse(record.res_id).exists()
+        if field.model=='account.bank.statement.line' and field.name in FIELDS.get('account.move',()) and field.related=='move_id.'+field.name:
+            return True
         return bool(field and field.model in MODELS and not (
             field.model == 'hr.salary.custom' and field.name in PAYROLL_FIELDS))
     if record.model == 'ir.model.fields.selection':
@@ -33,7 +39,7 @@ def _alias(record, namespace):
             raise UserError('Identificador operacional en conflicto: %s.%s' % (namespace,record.name))
     else:
         data.create({'module':namespace,'name':record.name,'model':record.model,
-                     'res_id':record.res_id,'noupdate':True if record.model == 'ir.sequence' else
+                     'res_id':record.res_id,'noupdate':True if record.model in ('ir.sequence','ir.model','ir.model.fields','ir.model.fields.selection','ir.model.inherit') else
                      record.noupdate if namespace == CORE else True})
 
 
