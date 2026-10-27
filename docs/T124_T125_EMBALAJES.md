@@ -1,5 +1,9 @@
 # T124 y T125 — embalajes y listas de materiales
 
+> Entrega completada en los tres destinos y tickets cerrados. Estado vigente y
+> evidencia en `docs/T124_T126_ENTREGA_20261027.md`. Lo siguiente es historia de
+> los ensayos y decisiones; sus pendientes quedaron superados por esa entrega.
+
 > Actualización posterior al mensaje humano de los cuatro tickets: el ensayo
 > de Cerro aprobó las cinco pruebas y la conservación de datos, pero el flujo
 > de usuario detectó otra configuración faltante. No se publicó en Cerro.

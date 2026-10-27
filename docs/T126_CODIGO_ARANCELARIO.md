@@ -1,5 +1,9 @@
 # T126 — código arancelario de especies
 
+> Entrega completada en Desarrollo, Cerro y QA-Cerro; ticket cerrado. El estado
+> vigente es `docs/T124_T126_ENTREGA_20261027.md`. Las colas y fallos descritos
+> debajo corresponden a ensayos previos, ya resueltos.
+
 > Actualización posterior al mensaje humano de los cuatro tickets: paquete C
 > preparado, prueba privada en cola bajo el bloqueo compartido. Aún sin publicar.
 
