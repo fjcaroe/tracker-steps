@@ -98,7 +98,9 @@ def verify_existing(args):
     opts = ['-c', conf, '-d', args.database, '--addons-path=' + str(stage / 'addons') + ',' + str(runtime / 'addons'),
             '--data-dir=' + str(stage / 'data'), '--load=base,web', '--workers=0', '--max-cron-threads=0']
     with open('/run/lock/steps-environments.lock', 'a') as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.wait_lock:
+            print('AGRICULTURE_NATIVE_WAITING_FOR_SHARED_LEASE', flush=True)
+        fcntl.flock(lock, fcntl.LOCK_EX if args.wait_lock else fcntl.LOCK_EX | fcntl.LOCK_NB)
         verify_native(['sudo', '-u', 'odoo', '/usr/bin/python3.10', str(runtime / 'odoo-bin')],
                       opts, addons, stage, args.mode)
         if args.complete_native:
@@ -106,8 +108,13 @@ def verify_existing(args):
                 'environment':args.environment,'profile':args.profile,'business_preserved':False,
                 'writes_to_source':False,'modules':MODULES,'files':len(fingerprints),
                 'completion':'Full successful module tests, identical addons/runtime, native verifier correction only',
+                'source_files_sha256':hashlib.sha256((stage / 'source-files.json').read_bytes()).hexdigest(),
                 'test_log_sha256':hashlib.sha256((stage / 'tests.log').read_bytes()).hexdigest(),
                 'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                'hr_verifier_sha256':hashlib.sha256((addons / 'tools/community/verify_hr.py').read_bytes()).hexdigest()
+                    if 'step_hr_payroll_bridge' in MODULES else None,
+                'producer_verifier_sha256':hashlib.sha256((addons / 'tools/community/verify_producers.py').read_bytes()).hexdigest()
+                    if 'step_producers' in MODULES else None,
                 'labor_verifier_sha256':hashlib.sha256((addons / 'tools/community/verify_labor.py').read_bytes()).hexdigest()},indent=2))
             print('AGRICULTURE_OK community (native completion)',flush=True)
 
