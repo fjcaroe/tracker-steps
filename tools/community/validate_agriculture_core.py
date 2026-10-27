@@ -27,6 +27,8 @@ PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_pro
 OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_agriculture_scope',
                       'step_management_costs_machinery')
 
+LABOR_MODULES = ('step_labor_operations_core', 'step_mobilization', 'step_mobilization_agriculture')
+
 # Regenerable compiled web bundles only. Business files, view attachments,
 # source maps, private files and anything without the exact cache URL stay strict.
 GENERATED_ASSET_CACHE = """(t.res_model='ir.ui.view' AND t.res_field IS NULL
@@ -41,12 +43,16 @@ def verify_native(base, opts, addons, stage, mode):
         check += '\n' + (addons / 'tools/community/verify_producers.py').read_text()
     if 'step_operations_core' in MODULES:
         check += '\n' + (addons / 'tools/community/verify_operations.py').read_text()
+    if 'step_labor_operations_core' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_labor.py').read_text()
     result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
         input='MODE=' + repr(mode) + '\n' + check, text=True, capture_output=True)
     (stage / 'verify.log').write_text(result.stdout + result.stderr)
     assert result.returncode == 0 and 'AGRICULTURE_NATIVE_OK' in result.stdout, result.stderr[-3000:]
     if 'step_operations_core' in MODULES:
         assert 'OPERATIONS_NATIVE_OK' in result.stdout and 'PRODUCERS_NATIVE_OK' in result.stdout
+    if 'step_labor_operations_core' in MODULES:
+        assert 'LABOR_NATIVE_OK' in result.stdout
     print(result.stdout, flush=True)
 
 
@@ -83,6 +89,15 @@ def snapshot(database):
         result[table] = json.loads(sql(database,
             "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+    if 'step_labor_operations_core' in MODULES:
+        labor_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
+            "(tablename LIKE 'tarja_%' OR tablename LIKE 'product_pricelist%' OR tablename IN "
+            "('partner_pricelist_rel','grupo_variedad_pricelist_rel','step_analytic_pricelist_rel')) ORDER BY tablename").splitlines()
+        for table in labor_tables:
+            assert re.fullmatch('[a-z_][a-z0-9_]*', table)
+            result[table] = json.loads(sql(database,
+                "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
+                "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
     # These SQL projections retain their source row IDs, dates, quantities and
     # monetary values when only the presentation changes from Gantt to Calendar.
     for table in ('step_producer_contract_report', 'step_producer_estimate_report'):
@@ -95,7 +110,7 @@ def snapshot(database):
     result['ir_ui_menu_group_rel'] = json.loads(sql(database,
         "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
         "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM ir_ui_menu_group_rel t WHERE menu_id NOT IN "
-        "(SELECT res_id FROM ir_model_data WHERE module='step_agriculture_core' AND model='ir.ui.menu')"))
+        "(SELECT res_id FROM ir_model_data WHERE module IN ('step_agriculture_core','step_labor_operations_core') AND model='ir.ui.menu')"))
     return result
 
 
@@ -150,11 +165,12 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
-    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations'), default='agriculture')
+    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor'), default='agriculture')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
     args = parser.parse_args()
-    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations') else ()) + (
-        OPERATIONS_MODULES if args.profile == 'operations' else ())
+    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor') else ()) + (
+        OPERATIONS_MODULES if args.profile in ('operations','labor') else ()) + (
+        LABOR_MODULES if args.profile == 'labor' else ())
     assert os.geteuid() == 0
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
@@ -208,8 +224,8 @@ def main():
                 "SELECT coalesce(json_agg(t.id),'[]'::json) FROM ir_act_window_view t "
                 "JOIN ir_model_data d ON d.res_id=t.view_id AND d.model='ir.ui.view' "
                 "WHERE d.name='report_gantt' AND d.module IN ('step_producer_contract_report',"
-                "'step_producer_estimate_report')")) if args.profile in ('producers','operations') else []
-            if args.profile in ('producers','operations'):
+                "'step_producer_estimate_report')")) if args.profile in ('producers','operations','labor') else []
+            if args.profile in ('producers','operations','labor'):
                 assert len(calendar_bindings) == 2, 'Expected two original report-view bindings'
             (stage / 'calendar-bindings-before.json').write_text(json.dumps(calendar_bindings))
             history = history_contract(args.database)
@@ -219,7 +235,7 @@ def main():
             addon_paths = str(addons) + ',' + options['addons_path']
             installed = contract['installed_versions']
             upgrades = [m for m in MODULES if m in installed]
-            new_cores = [m for m in ('step_agriculture_core','step_operations_core')
+            new_cores = [m for m in ('step_agriculture_core','step_operations_core','step_labor_operations_core')
                          if m in MODULES and m not in installed]
             init = (['-i', ','.join(new_cores)] if new_cores else []) + (
                 ['-u', ','.join(upgrades)] if upgrades else [])
@@ -240,10 +256,12 @@ def main():
                 (pure / module).symlink_to(addons / module)
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
-            if args.profile in ('producers','operations'):
+            if args.profile in ('producers','operations','labor'):
                 init[1] += ',' + ','.join(PRODUCER_MODULES)
-            if args.profile == 'operations':
+            if args.profile in ('operations','labor'):
                 init[1] += ',' + ','.join(OPERATIONS_MODULES)
+            if args.profile == 'labor':
+                init[1] += ',' + ','.join(LABOR_MODULES)
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)

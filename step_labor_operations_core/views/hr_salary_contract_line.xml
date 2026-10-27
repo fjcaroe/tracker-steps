@@ -73,7 +73,7 @@
         <field name="name">Informes de Cuadrillas Contratistas</field>
         <field name="res_model">hr.salary.contract.line</field>
         <field name="view_mode">pivot,graph,list,kanban</field>
-        <field name="search_view_id" ref="step_hr.view_hr_salary_contract_line_search"/>
+        <field name="search_view_id" ref="step_labor_operations_core.view_hr_salary_contract_line_search"/>
     </record>
 
 </odoo>

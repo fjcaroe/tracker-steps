@@ -18,23 +18,19 @@ class StepMoviRegistry(models.Model):
         self.ensure_one()
         if not self.fundo_id or not self.date:
             return super()._get_cost_distribution_hook(employee)
-        cache = getattr(self, '_mobilization_agri_cost_cache', None)
-        if cache is None:
-            cache = {}
-            tarjas = self.env['step.tarja'].search([
-                ('fundo_id', '=', self.fundo_id.id),
-                ('date', '=', self.date),
-                ('company_id', '=', self.company_id.id),
-                ('tarja_type', '=', 'propio'),
-            ])
-            for tarja in tarjas:
-                for line in tarja.tarja_line:
-                    cache.setdefault(line.employee_id.id, {
-                        'cost_id': line.cost_id.id,
-                        'labor_id': line.labor_id.id,
-                    })
-            self._mobilization_agri_cost_cache = cache
-        return cache.get(employee.id)
+        # Read the current original tarja on each costing call. A record-local
+        # cache can survive changes to the trip scope or its tarja distribution.
+        tarjas = self.env['step.tarja'].search([
+            ('fundo_id', '=', self.fundo_id.id),
+            ('date', '=', self.date),
+            ('company_id', '=', self.company_id.id),
+            ('tarja_type', '=', 'propio'),
+        ])
+        for tarja in tarjas:
+            for line in tarja.tarja_line:
+                if line.employee_id == employee:
+                    return {'cost_id': line.cost_id.id, 'labor_id': line.labor_id.id}
+        return None
 
 
 class StepMoviRegistryLine(models.Model):

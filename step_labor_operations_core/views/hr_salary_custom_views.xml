@@ -38,8 +38,6 @@
                             <field name="folio"/>
                             <field name="responsable_id" domain="[('user_id', '!=', False)]"/>
                             <field name="company_id"/>
-                            <field name="payslip_run_id" invisible="1"/>
-                            <field name="struct_id" invisible="1"/>
                             <field name="work_entry_type_id" invisible="1"/>
                         </group>
                     </group>

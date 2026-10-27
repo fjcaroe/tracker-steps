@@ -26,10 +26,7 @@
                     <button name="action_to_costeo" string="Devolver a Autorizado"
                             type="object" class="oe_highlight"
                             invisible="state != 'costo'"/>
-                    <button name="envio_nomina" string="Enviar a Remuneraciones"
-                            type="object" class="oe_highlight"
-                            confirm="Esta Seguro de enviar todos los registros a nomina?"
-                            invisible="remunera != False or tarja_type == 'contratista'"/>
+
                     <field name="state" widget="statusbar" nolabel="1" readonly="1" />
                 </header>
                 <sheet>

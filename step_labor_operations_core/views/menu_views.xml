@@ -1,0 +1,12 @@
+<odoo>
+    <menuitem id="menu_labor_operations" name="Tarjas y Cuadrillas" sequence="25" groups="base.group_user"/>
+    <menuitem id="menu_crew_own" name="Cuadrillas propias" parent="menu_labor_operations" action="action_hr_salary_custom" sequence="10"/>
+    <menuitem id="menu_crew_contractor" name="Cuadrillas contratistas" parent="menu_labor_operations" action="action_hr_salary_custom_contra" sequence="20"/>
+    <menuitem id="menu_task_own" name="Tareas propias" parent="menu_labor_operations" action="action_step_tarja" sequence="30"/>
+    <menuitem id="menu_task_contractor" name="Tareas contratistas" parent="menu_labor_operations" action="action_step_tarja_contratista" sequence="40"/>
+    <menuitem id="menu_labor_rates" name="Tarifas propias" parent="menu_labor_operations" action="step_product_pricelist_action_propio" sequence="50"/>
+    <menuitem id="menu_contractor_rates" name="Tarifas contratistas" parent="menu_labor_operations" action="step_product_pricelist_action_contratista" sequence="60"/>
+    <menuitem id="menu_cost_accounts" name="Haberes de costeo" parent="menu_labor_operations" action="action_step_haber_costeo" sequence="70"/>
+    <menuitem id="menu_task_report" name="Detalle de tareas propias" parent="menu_labor_operations" action="action_view_step_tarja_line" sequence="80"/>
+    <menuitem id="menu_contractor_report" name="Detalle de tareas contratistas" parent="menu_labor_operations" action="action_view_step_tarja_cost_line" sequence="90"/>
+</odoo>

@@ -19,6 +19,9 @@ from odoo.tools.misc import format_date
 from odoo.tools.safe_eval import safe_eval, datetime as safe_eval_datetime, dateutil as safe_eval_dateutil
 
 
+from ..calendar import weekly_hours
+
+
 class HrContract(models.Model):
     _inherit = 'hr.contract'
 
@@ -42,7 +45,10 @@ class HrContract(models.Model):
                 move.aport_patronal) + float(move.fer_propor) + float(
                 move.step_ias))
             move.cost_dia = move.total_cost / 22
-            move.cost_hora = move.total_cost / (int(move.resource_calendar_id.hours_per_week)*4) or 0
+            hours = int(weekly_hours(move.resource_calendar_id))
+            if hours <= 0:
+                raise ValidationError(_('Defina horas semanales positivas en el calendario para calcular el costo horario.'))
+            move.cost_hora = move.total_cost / (hours*4) or 0
 
     sueldo_base =  fields.Float('Sueldo base', compute='_compute_total', store=True)
     valor_extra =  fields.Float('Valor Hora Extra')

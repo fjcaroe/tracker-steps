@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_salary_custom,access.hr.salary.custom,model_hr_salary_custom,base.group_user,1,1,1,1
+access_hr_salary_custom_line,access.hr.salary.custom.line,model_hr_salary_custom_line,base.group_user,1,1,1,1
+access_step_tarja,access.step.tarja,model_step_tarja,base.group_user,1,1,1,1
+access_step_tarja_line,access.step.tarja.line,model_step_tarja_line,base.group_user,1,1,1,1
+access_step_tarja_cost,access.step.tarja.cost,model_step_tarja_cost,base.group_user,1,1,1,1
+access_step_tarja_cost_line,access.step.tarja.cost.line,model_step_tarja_cost_line,base.group_user,1,1,1,1
+access_hr_salary_contract_line,access.hr.salary.contract.line,model_hr_salary_contract_line,base.group_user,1,1,1,1
+access_step_tarja_registry,access.step.tarja.registry,model_step_tarja_registry,base.group_user,1,1,1,1
+access_step_haber_costeo,access.step.haber.costeo,model_step_haber_costeo,base.group_user,1,1,1,1

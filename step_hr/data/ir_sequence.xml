@@ -7,38 +7,14 @@
     <data noupdate="0">
 
         <!-- Sequences for cuadrillas-->
-       <record id="seq_cuadrilla_propia" model="ir.sequence">
-            <field name="name">Step secuencia propia</field>
-            <field name="code">cuadrilla_propia_seq</field>
-            <field name="prefix">CP</field>
-            <field name="padding">5</field>
-            <field name="company_id" eval="False"/>
-        </record>
 
-         <record id="seq_cuadrilla_contratista" model="ir.sequence">
-            <field name="name">Step secuencia contratista</field>
-            <field name="code">cuadrilla_contratista_seq</field>
-            <field name="prefix">CC</field>
-            <field name="padding">5</field>
-            <field name="company_id" eval="False"/>
-        </record>
+
+
 
         <!-- Sequences for Registro de tareas-->
-       <record id="seq_registro_propia" model="ir.sequence">
-            <field name="name">Step secuencia Registro propia</field>
-            <field name="code">registro_propia_seq</field>
-            <field name="prefix">OT</field>
-            <field name="padding">5</field>
-            <field name="company_id" eval="False"/>
-        </record>
 
-         <record id="seq_registro_contratista" model="ir.sequence">
-            <field name="name">Step secuencia contratista</field>
-            <field name="code">registro_contratista_seq</field>
-            <field name="prefix">OC</field>
-            <field name="padding">5</field>
-            <field name="company_id" eval="False"/>
-        </record>
+
+
 
         <!-- Sequences for Ordenes de Trabajo-->
        <record id="seq_otrabajo_propia" model="ir.sequence">
