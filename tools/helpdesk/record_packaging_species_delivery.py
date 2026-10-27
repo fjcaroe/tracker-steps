@@ -63,12 +63,18 @@ def main():
         ('id','>',expected['reviewed_message_id']),('message_type','in',['comment','email'])]])
     author=call('res.users','read',[[uid]],{'fields':['partner_id']})[0]['partner_id'][0]
     subtype=call('ir.model.data','search_read',[[('module','=','mail'),('name','=','mt_note')]],{'fields':['res_id']})[0]['res_id']
+    related=[('mail_message_id.model','=','helpdesk.ticket'),('mail_message_id.res_id','=',args.ticket)]
+    original_messages=set(call('mail.message','search',[[('model','=','helpdesk.ticket'),('res_id','=',args.ticket)]]))
+    original_delivery={m:set(call(m,'search',[related])) for m in ('mail.notification','mail.mail')}
     message=call('mail.message','create',[{'model':'helpdesk.ticket','res_id':args.ticket,'message_type':'comment',
         'subtype_id':subtype,'author_id':author,'partner_ids':[(6,0,[])],'body':'<p>'+html.escape(body)+'</p>'}])
     call('helpdesk.ticket','write',[[args.ticket],{'stage_id':4}])
     assert call('helpdesk.ticket','read',[[args.ticket]],{'fields':['stage_id']})[0]['stage_id'][0]==4
     for model in ('mail.notification','mail.mail'):
         assert not call(model,'search_count',[[('mail_message_id','=',message)]])
+    assert set(call('mail.message','search',[[('model','=','helpdesk.ticket'),('res_id','=',args.ticket)]]))==original_messages|{message}
+    for model,identifiers in original_delivery.items():
+        assert set(call(model,'search',[related]))==identifiers, 'Unexpected stage/template notification'
     print('TICKET_DELIVERY_RECORDED ticket=%s note=%s stage=4 NO_NOTIFICATIONS_OK'%(args.ticket,message))
 
 
