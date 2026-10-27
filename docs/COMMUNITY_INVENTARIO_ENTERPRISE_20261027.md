@@ -62,11 +62,11 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `hr_contract_sign` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_expense_extract` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_expense_predict_product` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_gantt` | Personal / Nómina / Planificación | 72 | 60 | Pendiente de ensayo integral |
+| `hr_gantt` | Personal / Nómina / Planificación | 72 | 59 | Pendiente de ensayo integral |
 | `hr_holidays_contract_gantt` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_holidays_gantt` | Personal / Nómina / Planificación | 62 | 50 | Pendiente de ensayo integral |
+| `hr_holidays_gantt` | Personal / Nómina / Planificación | 62 | 49 | Pendiente de ensayo integral |
 | `hr_mobile` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_payroll` | Personal / Nómina / Planificación | 71 | 59 | Pendiente de ensayo integral |
+| `hr_payroll` | Personal / Nómina / Planificación | 71 | 58 | Pendiente de ensayo integral |
 | `hr_payroll_account` | Personal / Nómina / Planificación | 4 | 4 | Pendiente de ensayo integral |
 | `hr_payroll_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_payroll_expense` | Personal / Nómina / Planificación | 4 | 4 | Pendiente de ensayo integral |
@@ -77,7 +77,7 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `hr_recruitment_reports` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_recruitment_sign` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_work_entry_contract_enterprise` | Personal / Nómina / Planificación | 72 | 60 | Pendiente de ensayo integral |
+| `hr_work_entry_contract_enterprise` | Personal / Nómina / Planificación | 72 | 59 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_planning` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_planning_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_holidays_enterprise` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
@@ -141,9 +141,9 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `stock_fleet_enterprise` | Inventario / Fabricación | 0 | 0 | Pendiente de ensayo integral |
 | `web_cohort` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `web_enterprise` | Interfaz / Integraciones | 53 | 48 | Pendiente de ensayo integral |
-| `web_gantt` | Interfaz / Integraciones | 72 | 60 | Pendiente de ensayo integral |
+| `web_gantt` | Interfaz / Integraciones | 72 | 59 | Pendiente de ensayo integral |
 | `web_grid` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
-| `web_map` | Interfaz / Integraciones | 0 | 50 | Pendiente de ensayo integral |
+| `web_map` | Interfaz / Integraciones | 0 | 49 | Pendiente de ensayo integral |
 | `web_mobile` | Interfaz / Integraciones | 52 | 47 | Pendiente de ensayo integral |
 | `web_studio` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `website_documents` | Documentos / Firma | 0 | 0 | Pendiente de ensayo integral |

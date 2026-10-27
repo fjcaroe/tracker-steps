@@ -1,4 +1,7 @@
 """Original labor model, field and XML ID contract; no replacement tables."""
+RELATIONS = ('tarja_employee_rel', 'tarja_line_rel', 'tarja_cost_rel',
+             'partner_pricelist_rel', 'grupo_variedad_pricelist_rel',
+             'step_analytic_pricelist_rel', 'product_pricelist_rel')
 MODELS = ('hr.salary.contract.line',
  'hr.salary.custom',
  'hr.salary.custom.line',

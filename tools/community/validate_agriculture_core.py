@@ -4,6 +4,7 @@ No deploy, uninstall, license edits or restore over an existing database.
 Uses the canonical copy/precision/error safeguards of the Treasury validators.
 """
 import argparse
+import ast
 import configparser
 import fcntl
 import hashlib
@@ -136,9 +137,17 @@ def identity_contract(database):
     queries = []
     for table in ('ir_model', 'ir_model_fields', 'ir_model_fields_selection', 'ir_model_access', 'ir_rule', 'ir_ui_menu',
                   'ir_act_window_view', 'ir_ui_menu_group_rel', 'rule_group_rel',
-                  'res_groups_implied_rel'):
+                  'res_groups_implied_rel') + (('ir_model_relation',) if 'step_labor_operations_core' in MODULES else ()):
         queries.append("SELECT '" + table + "' AS name,coalesce(jsonb_agg(to_jsonb(t)-'write_date'-'write_uid' "
                        "ORDER BY to_jsonb(t)::text),'[]'::jsonb) AS value FROM " + table + ' t')
+    if 'step_labor_operations_core' in MODULES:
+        queries.append("SELECT 'labor_constraints' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY "
+            "to_jsonb(t)::text),'[]'::jsonb) AS value FROM (SELECT conrelid::regclass::text AS table_name,"
+            "conname,contype,convalidated,pg_get_constraintdef(oid) AS definition FROM pg_constraint "
+            "WHERE connamespace='public'::regnamespace AND (conrelid::regclass::text LIKE 'step_tarja%' "
+            "OR conrelid::regclass::text LIKE 'hr_salary_%' OR conrelid::regclass::text LIKE 'tarja_%' "
+            "OR conrelid::regclass::text IN ('product_pricelist','product_pricelist_item','partner_pricelist_rel',"
+            "'grupo_variedad_pricelist_rel','step_analytic_pricelist_rel','product_pricelist_rel','hr_contract'))) t")
     return json.loads(sql(database, 'SELECT json_object_agg(name,value) FROM (' +
                           ' UNION ALL '.join(queries) + ') t'))
 
@@ -298,6 +307,15 @@ def main():
                     for row in rows:
                         got = now.get(row['id'])
                         assert got and all(got[k] == v for k,v in row.items() if k != 'modules'), (table, row['id'])
+                elif table == 'ir_model_relation' and 'step_labor_operations_core' in MODULES:
+                    tree = ast.parse((addons / 'step_labor_operations_core/ownership.py').read_text())
+                    relations = ast.literal_eval(next(n.value for n in tree.body if isinstance(n, ast.Assign)
+                        and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'RELATIONS'))
+                    legacy_module = int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='step_hr'"))
+                    new_module = int(sql(args.database, "SELECT id FROM ir_module_module WHERE name='step_labor_operations_core'"))
+                    expected = [dict(row, module=new_module) if row['module'] == legacy_module and
+                                row['name'] in relations else row for row in rows]
+                    assert all(row in current[table] for row in expected), 'Relation identity or owner changed unexpectedly'
                 else:
                     expected = [dict(row, view_mode='calendar') if table == 'ir_act_window_view' and
                                 row['id'] in calendar_bindings and row['view_mode'] in ('gantt', 'calendar') else row

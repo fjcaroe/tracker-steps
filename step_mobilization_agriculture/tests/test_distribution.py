@@ -1,5 +1,6 @@
-from odoo.exceptions import UserError
+from psycopg2.errors import ForeignKeyViolation
 from odoo.tests import tagged
+from odoo.tools import mute_logger
 from odoo.addons.step_mobilization.tests.common import MobilizationCommon
 
 
@@ -67,6 +68,6 @@ class AgriculturalDistributionCase(MobilizationCommon):
 
     def test_farm_with_trip_cannot_delete_its_operational_history(self):
         trip=self._make_trip(fundo_id=self.farm.id)
-        with self.assertRaises(UserError),self.cr.savepoint():
+        with self.assertRaises(ForeignKeyViolation),mute_logger('odoo.sql_db'),self.cr.savepoint():
             self.farm.unlink()
         self.assertTrue(trip.exists())

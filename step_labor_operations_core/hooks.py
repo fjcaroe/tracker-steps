@@ -1,6 +1,6 @@
 """Adopt original labor metadata, without copying business records or grants."""
 from odoo.exceptions import UserError
-from .ownership import MODELS, FIELDS, RECORDS, PAYROLL_FIELDS, SEQUENCES
+from .ownership import MODELS, FIELDS, RECORDS, PAYROLL_FIELDS, SEQUENCES, RELATIONS
 
 LEGACY = 'step_hr'
 CORE = 'step_labor_operations_core'
@@ -37,6 +37,13 @@ def _alias(record, namespace):
 
 
 def adopt_legacy_records(env):
+    module = env['ir.module.module'].search([('name', '=', CORE)])
+    old = env['ir.module.module'].search([('name', '=', LEGACY)])
+    assert len(module) == 1
+    relations = env['ir.model.relation'].search([('name', 'in', RELATIONS), ('module', 'in', old.ids)])
+    # Before _reflect_relation runs, transfer the original metadata rows.
+    # This preserves IDs and prevents the old module owning their SQL tables.
+    relations.write({'module': module.id})
     for record in env['ir.model.data'].search([('module', '=', LEGACY)]):
         if _owned(record):
             _alias(record, CORE)

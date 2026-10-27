@@ -4,7 +4,7 @@ from odoo.tests import Form, TransactionCase, tagged
 
 from ..calendar import weekly_hours
 from ..hooks import adopt_legacy_records, preserve_legacy_xmlids
-from ..ownership import RECORDS, MODELS
+from ..ownership import RECORDS, MODELS, RELATIONS
 
 
 @tagged('post_install', '-at_install')
@@ -118,6 +118,14 @@ class LaborOperationsCase(TransactionCase):
         adopt_legacy_records(self.env); preserve_legacy_xmlids(self.env)
         self.assertEqual(sequence.prefix,'CUSTOM/');self.assertEqual(sequence.padding,9)
         self.assertEqual(sequence.number_next_actual,before)
+
+    def test_relation_metadata_owner_preserves_ids_and_is_idempotent(self):
+        data=self.env['ir.model.relation'].search([('name','in',RELATIONS)])
+        before={row.id:(row.name,row.model.id,row.module.id) for row in data}
+        legacy=self.env['ir.module.module'].search([('name','=','step_hr')])
+        self.assertFalse(data.filtered(lambda row:row.module==legacy))
+        adopt_legacy_records(self.env)
+        self.assertEqual(before,{row.id:(row.name,row.model.id,row.module.id) for row in data})
 
     def test_conflicting_alias_aborts(self):
         alias=self.env['ir.model.data'].search([('module','=','step_labor_operations_core'),('name','=','action_step_tarja')])
