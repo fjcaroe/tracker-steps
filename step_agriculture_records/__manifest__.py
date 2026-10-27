@@ -1,4 +1,4 @@
-{'name': 'Steps - Documentos agr√\xadcolas y centros de costos',
+{'name': 'Steps - Documentos agr√≠colas y centros de costos',
  'version': '18.0.1.3.0',
  'license': 'LGPL-3',
  'depends': ['step_cosecha_operations',
