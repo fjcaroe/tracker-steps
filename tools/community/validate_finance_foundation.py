@@ -75,8 +75,9 @@ def main():
         if args.mode == 'cerro-copy':
             with (stage / 'source.dump').open('wb') as stream:
                 run('sudo', '-u', 'postgres', 'pg_dump', '-Fc', source, stdout=stream)
-            run('sudo', '-u', 'postgres', 'pg_restore', '--no-owner', '--no-acl', '--no-comments',
-                '--role=' + options['db_user'], '-d', args.database, str(stage / 'source.dump'))
+            with (stage / 'source.dump').open('rb') as stream:
+                run('sudo', '-u', 'postgres', 'pg_restore', '--no-owner', '--no-acl', '--no-comments',
+                    '--role=' + options['db_user'], '-d', args.database, stdin=stream)
             sql(args.database, 'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
             source_store = Path(options['data_dir']) / 'filestore' / source
             target_store = data / 'filestore' / args.database; target_store.mkdir(parents=True)
