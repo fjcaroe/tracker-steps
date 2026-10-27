@@ -160,3 +160,20 @@ Prueba de Cerro detenida antes de aceptación/publicación:
 pero sin `qa_passed.json` porque el probe no encontró materiales seleccionables.
 No certificarla hasta resolver y probar la decisión. Cerro y QA-Cerro continúan
 sin este paquete. Desarrollo mantiene la entrega ya comprobada.
+
+## Decisión humana recibida y ejecución de la jerarquía
+
+El usuario respondió: **vincular ambas como subcategorías**. La decisión queda
+autorizada; no volver a preguntarla. El adaptador
+`tools/ops/packing_material_hierarchy_setup.py` toma una configuración explícita
+por destino de esas categorías únicas existentes. No crea categorías, no cambia
+`categ_id` de productos y comprueba que las cuentas efectivas de cada material
+en todas las empresas se conserven. Rechaza otro padre, ambigüedad, nuevos
+descendientes o cambios concurrentes frente al plan.
+
+La comparación permite exclusivamente padre, ruta, nombre completo derivado
+y auditoría de las dos categorías aprobadas. Nombres originales, IDs y demás
+campos se conservan; las demás categorías y documentos se comparan completos.
+El adaptador verifica la estructura y cuentas antes de confirmar. Se requiere
+otro ensayo de Desarrollo (sin cambios de jerarquía allí) y copias frescas de
+Cerro/QA con ese mismo adaptador. La autorización no acredita su publicación.

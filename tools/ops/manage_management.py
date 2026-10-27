@@ -6,6 +6,7 @@ clone, unchanged source/config baseline, lease and backup are required to promot
 import argparse
 import ast
 import configparser
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import fcntl
 import hashlib
@@ -47,6 +48,7 @@ TRACEABILITY_INITIAL = False
 PROMOTION_COLUMNS = {}
 AGRICULTURE_SOURCE = None
 AGRICULTURE_COLUMNS = None
+MATERIAL_HIERARCHY_PLAN = {}
 PACKING_CONFIG_LIMITS = {}
 PACKING_INACTIVE_TYPES = {}
 PACKING_ANALYTIC_PLAN_MAX = 0
@@ -105,6 +107,9 @@ def snapshot(database):
             if TICKET_REVISION in ('sag-traceability', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency'):
                 added = sorted(set(current_columns[table]) - set(PROMOTION_COLUMNS[table]))
                 if added: row = "(to_jsonb(t)-ARRAY[%s])" % ','.join("'%s'" % c for c in added)
+            if TICKET_REVISION == 'packaging-master' and table == 'product_category':
+                from packing_material_hierarchy_setup import snapshot_row
+                row = snapshot_row(row, MATERIAL_HIERARCHY_PLAN)
             if TICKET_REVISION == 'traceability' and TRACEABILITY_INITIAL and table == 'step_export_export':
                 row = "(to_jsonb(t)-'arrival_quality_id')"
             if TICKET_REVISION == 'sag-lot':
@@ -284,7 +289,7 @@ def main():
     parser.add_argument('release', type=Path)
     parser.add_argument('run_id')
     parser.add_argument('--kind', choices=('management', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
-    parser.add_argument('--wait-for-lease', action='store_true', help='Queue a private copy check behind the shared environment lease')
+    parser.add_argument('--wait-for-lease', action='store_true', help='Queue this authorized ticket operation before reading its source baseline')
     parser.add_argument('--normalize-user-id', type=int)
     parser.add_argument('--expected-user-login')
     parser.add_argument('--approval-dir', type=Path)
@@ -292,7 +297,7 @@ def main():
     args = parser.parse_args()
     settings_lease = None
     if args.wait_for_lease:
-        assert args.action in ('qa', 'compatibility') and args.kind in ('species-tariff', 'packaging-master')
+        assert args.action in ('qa', 'compatibility', 'deploy') and args.kind in ('species-tariff', 'packaging-master')
         assert os.geteuid() == 0
         settings_lease = open('/run/lock/steps-environments.lock', 'a')
         print('MANAGEMENT_WAITING_FOR_SHARED_LEASE', flush=True)
@@ -492,6 +497,12 @@ def main():
         install.append('step_management_costs_producers')
     addon_paths = opts['addons_path'].split(',')
     baseline = {'config_sha256': digest(conf), 'modules': {}}
+    if args.kind == 'packaging-master':
+        from packing_material_hierarchy_setup import capture
+        global MATERIAL_HIERARCHY_PLAN
+        MATERIAL_HIERARCHY_PLAN = capture(query, database, args.environment)
+        baseline['material_hierarchy'] = MATERIAL_HIERARCHY_PLAN
+        baseline['material_hierarchy_adapter'] = digest(HERE / 'packing_material_hierarchy_setup.py')
     for name in installed:
         source = next(Path(path.strip()) / name for path in addon_paths if (Path(path.strip()) / name / '__manifest__.py').exists())
         baseline['modules'][name] = {'source': str(source), 'sha256': tree_hash(source), 'version': installed[name]}
@@ -545,7 +556,6 @@ def main():
         if args.kind == 'homepage':
             from verify_home_heading_http import capture_before
             capture_before(target['url'], stage)
-        from contextlib import nullcontext
         from customer_qa_clone_access import clone_database_access
         clone_access = clone_database_access(query, qa_db, stage) if args.environment == 'qa-cerro' else nullcontext()
         with clone_access:
@@ -610,6 +620,9 @@ def main():
             if args.kind == 'packing-controls':
                 from packing_controls_setup import configure
                 configure(base,options,qa_db,staged,opts,stage)
+            if args.kind == 'packaging-master':
+                from packing_material_hierarchy_setup import configure
+                configure(base, options, qa_db, staged, opts, stage, MATERIAL_HIERARCHY_PLAN)
             assert snapshot(qa_db) == before, 'Business amounts/rows changed during migration'
             verify(base, options, qa_db, staged, opts, proof, stage, {*installed, *install})
             if args.kind == 'email-login':
@@ -637,8 +650,9 @@ def main():
                 assert (qa_root / 'release.json').exists(), 'First deliver this package to Desarrollo for review'
                 assert json.loads((qa_root / 'release.json').read_text()) == proof
         assert json.loads((stage / 'baseline.json').read_text()) == baseline, 'Concurrent source/config change; repeat QA from current baseline'
-        with open('/run/lock/steps-environments.lock', 'a') as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with (nullcontext(settings_lease) if settings_lease else open('/run/lock/steps-environments.lock', 'a')) as lock:
+            if settings_lease is None:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             for command in Path('/proc').glob('[0-9]*/cmdline'):
                 try:
                     argv = command.read_bytes().decode(errors='replace').split('\x00')
@@ -685,6 +699,9 @@ def main():
                 if args.kind == 'packing-controls':
                     from packing_controls_setup import configure
                     configure(base,options,database,release_root,opts,stage)
+                if args.kind == 'packaging-master':
+                    from packing_material_hierarchy_setup import configure
+                    configure(base, options, database, release_root, opts, stage, MATERIAL_HIERARCHY_PLAN)
                 assert snapshot(database) == before, 'Business migration check failed'
                 if TICKET_REVISION == 'sale-format':
                     # Explicit per-company configuration; never copy banking values.
