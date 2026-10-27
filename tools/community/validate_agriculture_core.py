@@ -268,6 +268,11 @@ def main():
             store = data / 'filestore' / args.database; store.mkdir(parents=True)
             run('rsync', '-a', str(Path(options['data_dir']) / 'filestore' / source) + '/', str(store) + '/')
             contract = source_contract(conf, addons)
+            for module in MODULES:
+                old=contract['installed_versions'].get(module)
+                if old:
+                    candidate=ast.literal_eval((addons/module/'__manifest__.py').read_text(encoding='utf-8-sig'))['version']
+                    assert tuple(map(int,candidate.split('.'))) >= tuple(map(int,old.split('.'))), 'Downgrade refused: '+module
             (stage / 'source-contract.json').write_text(json.dumps(contract, indent=2))
             baseline = snapshot(args.database)
             original = identity_contract(args.database)
