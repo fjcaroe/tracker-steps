@@ -14,7 +14,7 @@
     """,
     'author': "Steps Consulting",
     'category': 'Operations/Fleet',
-    'version': '18.0.1.0.1',
+    'version': '18.0.1.0.2',
     'license': 'LGPL-3',
     'depends': ['base', 'mail', 'web', 'hr', 'contacts', 'fleet', 'product', 'account', 'analytic'],
     'data': [
