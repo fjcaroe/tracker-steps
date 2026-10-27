@@ -177,3 +177,25 @@ campos se conservan; las demás categorías y documentos se comparan completos.
 El adaptador verifica la estructura y cuentas antes de confirmar. Se requiere
 otro ensayo de Desarrollo (sin cambios de jerarquía allí) y copias frescas de
 Cerro/QA con ese mismo adaptador. La autorización no acredita su publicación.
+
+## Simulación comprobada con la decisión aprobada
+
+Sobre `MANAGEMENT_QA_CERRO_t124t125c`, la aplicación del adaptador en una
+transacción con rollback vinculó las dos categorías y conservó sus veinte
+productos, todos los IDs y las cuentas efectivas de esos productos en todas las
+empresas. Con el usuario existente 6 de Cerro (empresa 2), aparecieron veinte
+materiales y pasó el flujo nativo de crear una lista y seleccionar componentes.
+El probe terminó con rollback: no acredita una publicación ni cambió producción.
+Evidencia privada: `hierarchy-rollback-probe.log` en la carpeta de esa copia.
+
+Nuevo ensayo fresco de Desarrollo **en cola**, a la espera del bloqueo compartido:
+`management_development_t125hier1`, con el mismo paquete B y el adaptador aprobado.
+Sesión exec del chat 70559. No duplicar ese proceso: comprobar sus logs y
+`qa_passed.json`. Después hacer copias frescas de Cerro y QA con el mismo
+adaptador. Los run_id antiguos sin prueba aprobada no sirven como aceptación.
+
+T126 ya aprobó dos pruebas y el flujo nativo en `management_development_t126d`.
+Su publicación únicamente en Desarrollo está ejecutándose/en cola en la sesión
+85093; el operador espera el bloqueo **antes** de leer la línea base y conserva
+los resguardos de actualización, respaldo y verificación. No lanzar otro deploy
+hasta comprobar esa operación. Cerro/QA de T126 todavía no se publicaron.
