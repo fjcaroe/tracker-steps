@@ -16,6 +16,9 @@ nulabilidad efectiva de Cerro. Los productos generales y cuentas ajenas a la
 agricultura siguen siendo válidos. El formulario agrícola solicita sus datos
 y el grupo de labor se exige cuando el producto es una labor; no se rellenan
 valores inventados en registros existentes.
+Las empresas de los cuatro catálogos también admiten el alcance compartido
+durante toda la carga intermedia, antes de que se cargue la extensión de
+catálogos: no se asigna la empresa por defecto a registros compartidos.
 
 `step_agriculture_catalogs` mantiene exactamente sus relaciones multicompañía,
 reglas y contratos de compatibilidad. Packing, Tarjas de Fruta y el puente
@@ -39,6 +42,17 @@ filestore privado y la configuración explícita del destino. No ejecutar esos
 argumentos directamente sobre producción. La premigración del puente de
 costos adopta también los enlaces existentes entre acción y vistas, evitando
 el borrado y recreación del comando XML anterior.
+El ejecutor privado `tools/ops/run_agriculture_upgrade.py` conserva además
+las FKs canónicas, el orden previo de los menús y los enlaces de acción/vistas
+cuando el XML intenta recrear exactamente la misma configuración. Un grafo
+diferente sigue el tratamiento normal y debe superar la comparación de IDs.
+No instala estos adaptadores en procesos de servicio ni cambia sus fuentes.
+
+La comprobación histórica conserva mensajes, seguimiento, seguidores y
+adjuntos. Solo normaliza los timestamps de escritura de iconos binarios de
+menú que Odoo vuelve a cargar: conserva sus IDs, contenido y demás metadatos.
+Las nuevas membresías del menú del núcleo se controlan por separado de las
+membresías originales, que deben permanecer exactas.
 
 Esta entrega permite instalar esos consumidores en Community. No permite
 desinstalar todavía `step_hr`, Nómina, DTE, Calidad, Studio o Enterprise de

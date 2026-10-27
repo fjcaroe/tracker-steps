@@ -13,7 +13,7 @@ class StepGrupoVariedad(models.Model):
     especie_id = fields.Many2one('step.especie',
         string="Especie",
         required=True, ondelete='cascade', copy=False)
-    company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
+    company_id = fields.Many2one('res.company', required=False, default=lambda self: self.env.company)
     #tags_ids
     note = fields.Html(string="Notas")
     variedad_line = fields.One2many(

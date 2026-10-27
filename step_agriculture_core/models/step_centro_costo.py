@@ -44,9 +44,9 @@ class AccountAnalyticAccount(models.Model):
     #     string="Sector",
     #     required=False, ondelete='cascade', copy=False)
     plan_id = fields.Many2one(
-        'account.analytic.plan', "Plan AnalÃ­tico")
+        'account.analytic.plan', "Plan Analítico")
     cost_id = fields.Many2one(
-        'account.analytic.account', "Cuenta analÃ­tica",
+        'account.analytic.account', "Cuenta analítica",
     )
     # account_id = fields.Many2one('account.account', string='Cuenta Contable')
     note = fields.Html(string="Notas")
@@ -85,7 +85,7 @@ class AccountAnalyticAccount(models.Model):
     # Datos Agricolas
     id_cost = fields.Integer(string='ID')
     cost_id = fields.Many2one(
-        'account.analytic.account', "Cuenta analÃ­tica",
+        'account.analytic.account', "Cuenta analítica",
     )
     especie_id = fields.Many2one(
         'step.especie', "Especie",
@@ -96,9 +96,9 @@ class AccountAnalyticAccount(models.Model):
     variedad_id = fields.Many2one('step.variedad',
                                   string="Variedad",
                                   required=False, ondelete='cascade', copy=False)
-    date_plant = fields.Date(string='AÃ±o PlantaciÃ³n')
-    date_prod = fields.Date(string='AÃ±o ProducciÃ³n')
-    date_prodtivos = fields.Date(string='AÃ±os Productivos')
+    date_plant = fields.Date(string='Año Plantación')
+    date_prod = fields.Date(string='Año Producción')
+    date_prodtivos = fields.Date(string='Años Productivos')
     has_cost = fields.Float(string='Has CCosto', digits=(16, 2))
     plant_cost = fields.Integer(string='Plantas CCosto')
     date_init_co = fields.Date(string='Fecha Ini Cosecha')
@@ -140,9 +140,9 @@ class StepCentroCosto(models.Model):
     # #     string="Sector",
     # #     required=False, ondelete='cascade', copy=False)
     # plan_id = fields.Many2one(
-    #     'account.analytic.plan', "Plan AnalÃ­tico")
+    #     'account.analytic.plan', "Plan Analítico")
     # cost_id = fields.Many2one(
-    #     'account.analytic.account', "Cuenta analÃ­tica",
+    #     'account.analytic.account', "Cuenta analítica",
     # )
     # account_id = fields.Many2one('account.account', string='Cuenta Contable')
     # note = fields.Html(string="Notas")
@@ -181,7 +181,7 @@ class StepCentroCosto(models.Model):
     # #Datos Agricolas
     # id_cost = fields.Integer(string='ID')
     # cost_id = fields.Many2one(
-    #     'account.analytic.account', "Cuenta analÃ­tica",
+    #     'account.analytic.account', "Cuenta analítica",
     # )
     # especie_id = fields.Many2one(
     #     'step.especie', "Especie",
@@ -192,9 +192,9 @@ class StepCentroCosto(models.Model):
     # variedad_id = fields.Many2one('step.variedad',
     #     string="Variedad",
     #     required=False, ondelete='cascade', copy=False)
-    # date_plant = fields.Date(string='AÃ±o PlantaciÃ³n')
-    # date_prod = fields.Date(string='AÃ±o ProducciÃ³n')
-    # date_prodtivos = fields.Date(string='AÃ±os Productivos')
+    # date_plant = fields.Date(string='Año Plantación')
+    # date_prod = fields.Date(string='Año Producción')
+    # date_prodtivos = fields.Date(string='Años Productivos')
     # has_cost = fields.Integer(string='Has CCosto')
     # plant_cost = fields.Integer(string='Plantas CCosto')
     # date_init_co = fields.Date(string='Fecha Ini Cosecha')

@@ -57,6 +57,12 @@ def snapshot(database):
         result[table] = json.loads(sql(database,
             "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+    # Only new core menu memberships are added. Original menu memberships
+    # remain exact and are also checked in the identity contract.
+    result['ir_ui_menu_group_rel'] = json.loads(sql(database,
+        "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
+        "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM ir_ui_menu_group_rel t WHERE menu_id NOT IN "
+        "(SELECT res_id FROM ir_model_data WHERE module='step_agriculture_core' AND model='ir.ui.menu')"))
     return result
 
 
@@ -92,8 +98,10 @@ def identity_contract(database):
 def history_contract(database):
     queries = []
     for table in ('mail_message', 'mail_tracking_value', 'mail_followers', 'mail_activity', 'ir_attachment'):
+        payload = ("CASE WHEN t.res_model='ir.ui.menu' AND t.res_field='web_icon_data' THEN "
+                   "to_jsonb(t)-'write_date'-'write_uid' ELSE to_jsonb(t) END") if table == 'ir_attachment' else 'to_jsonb(t)'
         queries.append("SELECT '" + table + "' AS name,json_build_object('rows',count(*),'hash',"
-                       "md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) AS value FROM " + table + ' t')
+                       "md5(coalesce(string_agg((" + payload + ")::text,E'\\n' ORDER BY (" + payload + ")::text),''))) AS value FROM " + table + ' t')
     queries.append("SELECT 'expiration',coalesce(json_object_agg(key,value),'{}'::json) FROM ir_config_parameter "
                    "WHERE key IN ('database.expiration_date','database.expiration_reason')")
     return json.loads(sql(database, 'SELECT json_object_agg(name,value) FROM (' +
@@ -165,7 +173,7 @@ def main():
             installed = contract['installed_versions']
             upgrades = [m for m in MODULES if m != 'step_agriculture_core' and m in installed]
             init = ['-i', 'step_agriculture_core', '-u', ','.join(upgrades)]
-            entrypoint = addons / 'tools/ops/run_sag_cerro_upgrade.py'
+            entrypoint = addons / 'tools/ops/run_agriculture_upgrade.py'
         else:
             runtime = root / 'community-runtime'
             assert (runtime / '.git').exists()

@@ -19,7 +19,7 @@ class StepVariedad(models.Model):
         required=True, ondelete='cascade', copy=False)
     date_init = fields.Date(string='Inicio Cosecha')
     partner_id = fields.Many2one('res.partner', 'Responsable')
-    company_id = fields.Many2one('res.company', string='Empresa', required=True, default=lambda self: self.env.company)
+    company_id = fields.Many2one('res.company', string='Empresa', required=False, default=lambda self: self.env.company)
     #tags_ids
     note = fields.Html(string="Notas")
     date_to = fields.Date(string='Final Cosecha')

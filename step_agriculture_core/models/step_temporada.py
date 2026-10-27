@@ -11,7 +11,7 @@ class StepTemporada(models.Model):
     code = fields.Char(string='Código Temp.')
     start_date = fields.Date(string='Fecha Inicio')
     end_date = fields.Date(string='Fecha Término')
-    company_id = fields.Many2one('res.company', string='Empresa', required=True, default=lambda self: self.env.company)
+    company_id = fields.Many2one('res.company', string='Empresa', required=False, default=lambda self: self.env.company)
     cost_id = fields.Many2one(
         'account.analytic.account', "Cuenta analítica",
         )

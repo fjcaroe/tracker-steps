@@ -16,7 +16,7 @@ class StepEspecie(models.Model):
     plan_id = fields.Many2one(
         'account.analytic.plan', "Plan Analítico")
     kg_caja = fields.Float(string='Kg Caja Base')
-    company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
+    company_id = fields.Many2one('res.company', required=False, default=lambda self: self.env.company)
     type_especie = fields.Selection(
         selection=[
             ('frutal', 'Frutales'),
