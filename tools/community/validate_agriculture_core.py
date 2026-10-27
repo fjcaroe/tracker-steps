@@ -24,7 +24,8 @@ MODULES = ('step_agriculture_core', 'step_hr', 'step_agriculture_catalogs', 'ste
 BASE_MODULES = MODULES
 PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_producer_estimate_report',
                     'step_producer_purchase_mode', 'step_management_costs_producers')
-OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_agriculture_scope')
+OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_agriculture_scope',
+                      'step_management_costs_machinery')
 
 
 def verify_native(base, opts, addons, stage, mode):
