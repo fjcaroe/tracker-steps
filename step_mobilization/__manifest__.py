@@ -14,9 +14,10 @@
     """,
     'author': "Steps Consulting",
     'category': 'Operations/Fleet',
-    'version': '18.0.1.0.1',
+    'version': '18.0.1.0.3',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail', 'web', 'hr', 'contacts', 'fleet', 'product', 'account', 'analytic'],
+    'depends': ['base', 'mail', 'web', 'hr', 'contacts', 'fleet', 'product', 'account', 'analytic',
+                'l10n_latam_invoice_document'],
     'data': [
         'security/step_mobilization_security.xml',
         'security/ir.model.access.csv',

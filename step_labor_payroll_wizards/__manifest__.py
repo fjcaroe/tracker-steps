@@ -1,0 +1,10 @@
+{'name': 'step_labor_payroll_wizards',
+ 'version': '18.0.1.0.0',
+ 'license': 'AGPL-3',
+ 'depends': ['step_labor_operations_core',
+             'hr_payroll',
+             'hr_work_entry_contract_enterprise'],
+ 'data': ['security/ir.model.access.csv', 'views/wizards.xml'],
+ 'pre_init_hook': 'pre_init_hook',
+ 'post_init_hook': 'post_init_hook',
+ 'installable': True}

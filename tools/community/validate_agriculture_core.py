@@ -4,6 +4,7 @@ No deploy, uninstall, license edits or restore over an existing database.
 Uses the canonical copy/precision/error safeguards of the Treasury validators.
 """
 import argparse
+import ast
 import configparser
 import fcntl
 import hashlib
@@ -24,36 +25,88 @@ MODULES = ('step_agriculture_core', 'step_hr', 'step_agriculture_catalogs', 'ste
 BASE_MODULES = MODULES
 PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_producer_estimate_report',
                     'step_producer_purchase_mode', 'step_management_costs_producers')
+OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_agriculture_scope',
+                      'step_management_costs_machinery')
+
+LABOR_MODULES = ('step_labor_operations_core', 'step_mobilization', 'step_mobilization_agriculture')
+
+HARVEST_MODULES = ('step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core',
+                   'step_export','step_cosecha','step_cosecha_planning',
+                   'step_cosecha_operations','step_agriculture_records')
+PRIVATE_ENTERPRISE_MODULES = ('step_hr','step_export','step_labor_payroll_wizards')
+
+# Regenerable compiled web bundles only. Business files, view attachments,
+# source maps, private files and anything without the exact cache URL stay strict.
+GENERATED_ASSET_CACHE = """(t.res_model='ir.ui.view' AND t.res_field IS NULL
+ AND t.res_id=0 AND t.type='binary' AND t.public IS TRUE
+ AND t.mimetype IN ('text/css','application/javascript')
+ AND t.url ~ '^/web/assets/[0-9a-f]+/[^/]+[.](css|js)$')"""
 
 
 def verify_native(base, opts, addons, stage, mode):
     check = (addons / 'tools/community/verify_agriculture_core.py').read_text()
     if 'step_producers' in MODULES:
         check += '\n' + (addons / 'tools/community/verify_producers.py').read_text()
+    if 'step_operations_core' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_operations.py').read_text()
+    if 'step_labor_operations_core' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_labor.py').read_text()
+    if 'step_cosecha' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_harvest.py').read_text()
     result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
         input='MODE=' + repr(mode) + '\n' + check, text=True, capture_output=True)
     (stage / 'verify.log').write_text(result.stdout + result.stderr)
     assert result.returncode == 0 and 'AGRICULTURE_NATIVE_OK' in result.stdout, result.stderr[-3000:]
+    if 'step_operations_core' in MODULES:
+        assert 'OPERATIONS_NATIVE_OK' in result.stdout and 'PRODUCERS_NATIVE_OK' in result.stdout
+    if 'step_labor_operations_core' in MODULES:
+        assert 'LABOR_NATIVE_OK' in result.stdout
+    if 'step_cosecha' in MODULES:
+        assert 'HARVEST_NATIVE_OK' in result.stdout
     print(result.stdout, flush=True)
 
 
 def verify_existing(args):
     assert args.mode == 'community', 'This post-check only accepts the pure private Community stage'
     root = args.root.resolve(); stage = root / args.mode; addons = root / 'addons'
-    proof = json.loads((stage / 'passed.json').read_text())
-    assert proof['database'] == args.database
-    for relative, digest in json.loads((stage / 'source-files.json').read_text()).items():
-        assert hashlib.sha256((addons / relative).read_bytes()).hexdigest() == digest, relative
+    fingerprints = json.loads((stage / 'source-files.json').read_text())
+    actual = {str(p.relative_to(addons)): hashlib.sha256(p.read_bytes()).hexdigest()
+              for module in MODULES for p in sorted((addons / module).rglob('*'))
+              if p.is_file() and '__pycache__' not in p.parts}
+    assert actual == fingerprints, 'Tested addon package changed'
+    if args.complete_native:
+        assert not (stage / 'passed.json').exists(), 'Stage already accepted'
+        text = (stage / 'tests.log').read_text()
+        sys.path.insert(0, str(addons / 'tools/ops'))
+        from manage_management import errors
+        assert not errors(text, ()) and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests', text)
+        with (stage / 'native-completion-attempts.log').open('a') as previous:
+            previous.write((stage / 'verify.log').read_text() + '\n')
+    else:
+        proof = json.loads((stage / 'passed.json').read_text())
+        assert proof['database'] == args.database and proof['profile'] == args.profile
     conf = '/etc/dev_odoo18.conf'
     runtime = root / 'community-runtime'
     assert run('git', '-C', str(runtime), 'remote', 'get-url', 'origin', text=True,
                capture_output=True).stdout.strip() == 'https://github.com/odoo/odoo.git'
+    assert not run('git', '-C', str(runtime), 'status', '--porcelain', text=True, capture_output=True).stdout.strip()
+    assert run('git', '-C', str(runtime), 'rev-parse', 'HEAD', text=True, capture_output=True).stdout.strip() == (
+        stage / 'runtime-revision.txt').read_text().strip()
     opts = ['-c', conf, '-d', args.database, '--addons-path=' + str(stage / 'addons') + ',' + str(runtime / 'addons'),
             '--data-dir=' + str(stage / 'data'), '--load=base,web', '--workers=0', '--max-cron-threads=0']
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         verify_native(['sudo', '-u', 'odoo', '/usr/bin/python3.10', str(runtime / 'odoo-bin')],
                       opts, addons, stage, args.mode)
+        if args.complete_native:
+            (stage / 'passed.json').write_text(json.dumps({'mode':args.mode,'database':args.database,
+                'environment':args.environment,'profile':args.profile,'business_preserved':False,
+                'writes_to_source':False,'modules':MODULES,'files':len(fingerprints),
+                'completion':'Full successful module tests, identical addons/runtime, native verifier correction only',
+                'test_log_sha256':hashlib.sha256((stage / 'tests.log').read_bytes()).hexdigest(),
+                'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                'labor_verifier_sha256':hashlib.sha256((addons / 'tools/community/verify_labor.py').read_bytes()).hexdigest()},indent=2))
+            print('AGRICULTURE_OK community (native completion)',flush=True)
 
 
 def snapshot(database):
@@ -62,6 +115,24 @@ def snapshot(database):
         result[table] = json.loads(sql(database,
             "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+    operational_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
+        "(tablename LIKE 'project_%' OR tablename LIKE 'fleet_%' OR tablename LIKE 'monthly_%' OR "
+        "tablename LIKE 'real_cost_%' OR tablename LIKE 'regist_cost_%' OR tablename IN ('type_service_machinery','type_costing_machinery')) ORDER BY tablename").splitlines()
+    for table in operational_tables:
+        assert re.fullmatch('[a-z_][a-z0-9_]*', table)
+        result[table] = json.loads(sql(database,
+            "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
+            "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+    if 'step_labor_operations_core' in MODULES:
+        labor_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
+            "(tablename LIKE 'tarja_%' OR tablename LIKE 'product_pricelist%' OR tablename LIKE 'resource_%' OR tablename LIKE 'employee_%_rel' OR tablename IN "
+            "('partner_pricelist_rel','grupo_variedad_pricelist_rel','step_analytic_pricelist_rel','product_packaging','ir_sequence','ir_sequence_date_range','product_category')) ORDER BY tablename").splitlines()
+        for table in labor_tables:
+            assert re.fullmatch('[a-z_][a-z0-9_]*', table)
+            payload="to_jsonb(t)-'write_date'-'write_uid'" if table in ('ir_sequence','ir_sequence_date_range') else 'to_jsonb(t)'
+            result[table] = json.loads(sql(database,
+                "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(("+payload+")::text,"
+                "E'\\n' ORDER BY ("+payload+")::text),''))) FROM " + table + ' t'))
     # These SQL projections retain their source row IDs, dates, quantities and
     # monetary values when only the presentation changes from Gantt to Calendar.
     for table in ('step_producer_contract_report', 'step_producer_estimate_report'):
@@ -74,7 +145,11 @@ def snapshot(database):
     result['ir_ui_menu_group_rel'] = json.loads(sql(database,
         "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
         "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM ir_ui_menu_group_rel t WHERE menu_id NOT IN "
-        "(SELECT res_id FROM ir_model_data WHERE module='step_agriculture_core' AND model='ir.ui.menu')"))
+        "(SELECT res_id FROM ir_model_data WHERE module IN ('step_agriculture_core','step_labor_operations_core') AND model='ir.ui.menu')"))
+    if 'step_cosecha' in MODULES:
+        for name in sql(database,"SELECT sequencename FROM pg_sequences WHERE schemaname='public' AND sequencename ~ '^ir_sequence_[0-9]+(_[0-9]+)?$' ORDER BY sequencename").splitlines():
+            assert re.fullmatch('ir_sequence_[0-9]+(_[0-9]+)?',name)
+            result[name]=json.loads(sql(database,"SELECT json_build_object('rows',1,'hash',to_jsonb(t)::text) FROM "+name+' t'))
     return result
 
 
@@ -100,11 +175,54 @@ def identity_contract(database):
     queries = []
     for table in ('ir_model', 'ir_model_fields', 'ir_model_fields_selection', 'ir_model_access', 'ir_rule', 'ir_ui_menu',
                   'ir_act_window_view', 'ir_ui_menu_group_rel', 'rule_group_rel',
-                  'res_groups_implied_rel'):
+                  'res_groups_implied_rel') + (('ir_model_relation',) if 'step_labor_operations_core' in MODULES else ()):
         queries.append("SELECT '" + table + "' AS name,coalesce(jsonb_agg(to_jsonb(t)-'write_date'-'write_uid' "
                        "ORDER BY to_jsonb(t)::text),'[]'::jsonb) AS value FROM " + table + ' t')
+    if 'step_cosecha' in MODULES:
+        queries.append("SELECT 'original_xmlids' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]'::jsonb) AS value FROM (SELECT id,module,name,model,res_id FROM ir_model_data) t")
+        queries.append("SELECT 'harvest_constraints' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb) AS value FROM (SELECT conrelid::regclass::text AS table_name,conname,contype,convalidated,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE connamespace='public'::regnamespace AND (conrelid::regclass::text LIKE 'step_cosecha%' OR conrelid::regclass::text LIKE 'step_agriculture_%' OR conrelid::regclass::text IN ('product_packaging','stock_package_type','report_step_hrs_wizard','report_by_process_wizard','employee_wizard_rel','employee_process_rel','step_hr_payslip_rel','hr_input_step_wizard','hr_entry_xls_wizard','success_message'))) t")
+    if 'step_labor_operations_core' in MODULES:
+        queries.append("SELECT 'labor_constraints' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY "
+            "to_jsonb(t)::text),'[]'::jsonb) AS value FROM (SELECT conrelid::regclass::text AS table_name,"
+            "conname,contype,convalidated,pg_get_constraintdef(oid) AS definition FROM pg_constraint "
+            "WHERE connamespace='public'::regnamespace AND (conrelid::regclass::text LIKE 'step_tarja%' "
+            "OR conrelid::regclass::text LIKE 'hr_salary_%' OR conrelid::regclass::text LIKE 'tarja_%' "
+            "OR conrelid::regclass::text IN ('product_pricelist','product_pricelist_item','partner_pricelist_rel',"
+            "'grupo_variedad_pricelist_rel','step_analytic_pricelist_rel','product_pricelist_rel','hr_contract'))) t")
     return json.loads(sql(database, 'SELECT json_object_agg(name,value) FROM (' +
                           ' UNION ALL '.join(queries) + ') t'))
+
+
+def verify_identity_contract(database,addons,profile,calendar_bindings,original,current):
+    for table, rows in original.items():
+        # New core menus/metadata are expected; each preexisting row is exact.
+        if table in ('ir_model', 'ir_model_fields', 'original_xmlids'):
+            now = {r['id']: r for r in current[table]}
+            for row in rows:
+                got = now.get(row['id'])
+                assert got and all(got[k] == v for k,v in row.items() if k != 'modules'), (table, row['id'])
+        elif table == 'ir_model_relation' and 'step_labor_operations_core' in MODULES:
+            tree = ast.parse((addons / 'step_labor_operations_core/ownership.py').read_text())
+            relations = ast.literal_eval(next(n.value for n in tree.body if isinstance(n, ast.Assign)
+                and isinstance(n.targets[0], ast.Name) and n.targets[0].id == 'RELATIONS'))
+            legacy_module = int(sql(database, "SELECT id FROM ir_module_module WHERE name='step_hr'"))
+            new_module = int(sql(database, "SELECT id FROM ir_module_module WHERE name='step_labor_operations_core'"))
+            extra_owners={}
+            if profile=='harvest':
+                extra_owners={name:int(sql(database, "SELECT id FROM ir_module_module WHERE name='"+owner+"'"))
+                    for name,owner in [('employee_wizard_rel','step_labor_reports'),
+                        ('employee_process_rel','step_labor_reports'),('step_hr_payslip_rel','step_labor_payroll_wizards')]}
+            cosecha_module=int(sql(database,"SELECT id FROM ir_module_module WHERE name='step_cosecha'")) if profile=='harvest' else None
+            expected = [dict(row,module=extra_owners[row['name']]) if row['name'] in extra_owners and
+                        (row['module']==legacy_module or (row['name']=='step_hr_payslip_rel' and row['module']==cosecha_module))
+                        else dict(row, module=new_module) if row['module'] == legacy_module and
+                        row['name'] in relations else row for row in rows]
+            assert all(row in current[table] for row in expected), 'Relation identity or owner changed unexpectedly'
+        else:
+            expected = [dict(row, view_mode='calendar') if table == 'ir_act_window_view' and
+                        row['id'] in calendar_bindings and row['view_mode'] in ('gantt', 'calendar') else row
+                        for row in rows]
+            assert all(row in current[table] for row in expected), 'Existing identities changed: ' + table
 
 
 def history_contract(database):
@@ -112,8 +230,10 @@ def history_contract(database):
     for table in ('mail_message', 'mail_tracking_value', 'mail_followers', 'mail_activity', 'ir_attachment'):
         payload = ("CASE WHEN t.res_model='ir.ui.menu' AND t.res_field='web_icon_data' THEN "
                    "to_jsonb(t)-'write_date'-'write_uid' ELSE to_jsonb(t) END") if table == 'ir_attachment' else 'to_jsonb(t)'
+        where = (' WHERE NOT coalesce(' + GENERATED_ASSET_CACHE + ',false)') if (
+            table == 'ir_attachment' and 'step_operations_core' in MODULES) else ''
         queries.append("SELECT '" + table + "' AS name,json_build_object('rows',count(*),'hash',"
-                       "md5(coalesce(string_agg((" + payload + ")::text,E'\\n' ORDER BY (" + payload + ")::text),''))) AS value FROM " + table + ' t')
+                       "md5(coalesce(string_agg((" + payload + ")::text,E'\\n' ORDER BY (" + payload + ")::text),''))) AS value FROM " + table + ' t' + where)
     queries.append("SELECT 'expiration',coalesce(json_object_agg(key,value),'{}'::json) FROM ir_config_parameter "
                    "WHERE key IN ('database.expiration_date','database.expiration_reason')")
     return json.loads(sql(database, 'SELECT json_object_agg(name,value) FROM (' +
@@ -127,15 +247,19 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
-    parser.add_argument('--profile', choices=('agriculture', 'producers'), default='agriculture')
+    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor', 'harvest'), default='agriculture')
+    parser.add_argument('--wait-lock', action='store_true', help='Queue behind the shared environment lease; no database mutation while waiting')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
+    parser.add_argument('--complete-native', action='store_true', help='Finish native checks after successful full tests; identical addon fingerprints required')
     args = parser.parse_args()
-    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile == 'producers' else ())
+    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor','harvest') else ()) + (
+        OPERATIONS_MODULES if args.profile in ('operations','labor','harvest') else ()) + (
+        LABOR_MODULES if args.profile in ('labor','harvest') else ()) + (HARVEST_MODULES if args.profile == 'harvest' else ())
     assert os.geteuid() == 0
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
                          'MANAGEMENT_QA_CERRO_AGRICULTURE_') + '[A-Za-z0-9_]+', args.database)
-    if args.verify_existing:
+    if args.verify_existing or args.complete_native:
         verify_existing(args)
         return
     root = args.root.resolve(); stage = root / args.mode
@@ -159,7 +283,9 @@ def main():
     data = stage / 'data'; data.mkdir()
     with ExitStack() as stack:
         lock = stack.enter_context(open('/run/lock/steps-environments.lock', 'a'))
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if args.wait_lock: print('AGRICULTURE_WAITING_FOR_SHARED_LEASE',flush=True)
+        fcntl.flock(lock,fcntl.LOCK_EX if args.wait_lock else fcntl.LOCK_EX|fcntl.LOCK_NB)
+        print('AGRICULTURE_SHARED_LEASE_ACQUIRED',flush=True)
         assert not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + args.database + "'")
         sys.path.insert(0, str(addons / 'tools/ops'))
         if args.environment == 'qa-cerro':
@@ -177,6 +303,11 @@ def main():
             store = data / 'filestore' / args.database; store.mkdir(parents=True)
             run('rsync', '-a', str(Path(options['data_dir']) / 'filestore' / source) + '/', str(store) + '/')
             contract = source_contract(conf, addons)
+            for module in MODULES:
+                old=contract['installed_versions'].get(module)
+                if old:
+                    candidate=ast.literal_eval((addons/module/'__manifest__.py').read_text(encoding='utf-8-sig'))['version']
+                    assert tuple(map(int,candidate.split('.'))) >= tuple(map(int,old.split('.'))), 'Downgrade refused: '+module
             (stage / 'source-contract.json').write_text(json.dumps(contract, indent=2))
             baseline = snapshot(args.database)
             original = identity_contract(args.database)
@@ -184,8 +315,8 @@ def main():
                 "SELECT coalesce(json_agg(t.id),'[]'::json) FROM ir_act_window_view t "
                 "JOIN ir_model_data d ON d.res_id=t.view_id AND d.model='ir.ui.view' "
                 "WHERE d.name='report_gantt' AND d.module IN ('step_producer_contract_report',"
-                "'step_producer_estimate_report')")) if args.profile == 'producers' else []
-            if args.profile == 'producers':
+                "'step_producer_estimate_report')")) if args.profile in ('producers','operations','labor','harvest') else []
+            if args.profile in ('producers','operations','labor','harvest'):
                 assert len(calendar_bindings) == 2, 'Expected two original report-view bindings'
             (stage / 'calendar-bindings-before.json').write_text(json.dumps(calendar_bindings))
             history = history_contract(args.database)
@@ -195,7 +326,10 @@ def main():
             addon_paths = str(addons) + ',' + options['addons_path']
             installed = contract['installed_versions']
             upgrades = [m for m in MODULES if m in installed]
-            init = ([] if 'step_agriculture_core' in installed else ['-i', 'step_agriculture_core']) + (
+            new_cores = [m for m in ('step_agriculture_core','step_operations_core','step_labor_operations_core',
+                                       'step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core')
+                         if m in MODULES and m not in installed]
+            init = (['-i', ','.join(new_cores)] if new_cores else []) + (
                 ['-u', ','.join(upgrades)] if upgrades else [])
             entrypoint = addons / 'tools/ops/run_agriculture_upgrade.py'
         else:
@@ -209,13 +343,19 @@ def main():
                                                          text=True, capture_output=True).stdout)
             pure = stage / 'addons'; pure.mkdir()
             for module in MODULES:
-                if module == 'step_hr':
+                if module in PRIVATE_ENTERPRISE_MODULES:
                     continue
                 (pure / module).symlink_to(addons / module)
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
-            if args.profile == 'producers':
+            if args.profile in ('producers','operations','labor','harvest'):
                 init[1] += ',' + ','.join(PRODUCER_MODULES)
+            if args.profile in ('operations','labor','harvest'):
+                init[1] += ',' + ','.join(OPERATIONS_MODULES)
+            if args.profile in ('labor','harvest'):
+                init[1] += ',' + ','.join(LABOR_MODULES)
+            if args.profile == 'harvest':
+                init[1] += ',' + ','.join(m for m in HARVEST_MODULES if m not in PRIVATE_ENTERPRISE_MODULES)
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)
@@ -226,11 +366,30 @@ def main():
                 '--addons-path=' + addon_paths, '--data-dir=' + str(data), '--load=base,web',
                 '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
                 '--workers=0', '--max-cron-threads=0', '--without-demo=all']
+        if args.mode=='cerro-copy' and args.profile=='harvest':
+            # PostgreSQL standard sequence nextval is not rolled back by test
+            # savepoints. Measure actual migration preservation before fixtures.
+            upgrade_log=stage/'upgrade.log'
+            with (stage/'upgrade-bootstrap.log').open('w') as stream:
+                upgraded=subprocess.run(base+opts+init+['--logfile='+str(upgrade_log),'--stop-after-init'],
+                    stdout=stream,stderr=subprocess.STDOUT)
+            from manage_management import errors
+            allowed=tuple(n for n in ('steps_api',) if n in installed)
+            assert upgraded.returncode==0 and not errors(upgrade_log.read_text(errors='replace'),allowed), 'Upgrade failed'
+            upgraded_business=snapshot(args.database)
+            (stage/'business-after-upgrade.json').write_text(json.dumps(upgraded_business,indent=2))
+            assert same_values(baseline,upgraded_business), 'Migration changed business values or original sequence counters'
+            upgraded_identity=identity_contract(args.database)
+            (stage/'identity-after-upgrade.json').write_text(json.dumps(upgraded_identity,indent=2))
+            verify_identity_contract(args.database,addons,args.profile,calendar_bindings,original,upgraded_identity)
+            # Exercise the exact installed package again, including its init-only
+            # cores' tests. No migrations or test failures are accepted silently.
+            init=['-u',','.join(dict.fromkeys(new_cores+upgrades))]
         log = stage / 'tests.log'
         print('AGRICULTURE_BEGIN ' + str(log), flush=True)
         with (stage / 'bootstrap.log').open('w') as stream:
             result = subprocess.run(base + opts + init + ['--logfile=' + str(log), '--test-enable',
-                '--test-tags=' + ','.join('/' + m for m in MODULES if m != 'step_hr'), '--stop-after-init'],
+                '--test-tags=' + ','.join('/' + m for m in MODULES if m not in PRIVATE_ENTERPRISE_MODULES), '--stop-after-init'],
                 stdout=stream, stderr=subprocess.STDOUT)
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or
@@ -244,25 +403,35 @@ def main():
             after = snapshot(args.database); (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
             current = identity_contract(args.database); (stage / 'identity-after.json').write_text(json.dumps(current, indent=2))
             final_history = history_contract(args.database); (stage / 'history-after.json').write_text(json.dumps(final_history, indent=2))
+            if args.profile=='harvest':
+                # The upgrade above preserved every counter exactly. The full
+                # functional suite may consume standard numbers in this private
+                # copy only; validate monotonic native increments and retain all
+                # measurements. Never reset a number to hide fixture consumption.
+                counters={name:baseline[name] for name in baseline if re.fullmatch('ir_sequence_[0-9]+(_[0-9]+)?',name)}
+                consumed={}
+                for name,old in counters.items():
+                    start=json.loads(old['hash']);end=json.loads(after[name]['hash'])
+                    increment=int(sql(args.database,"SELECT increment_by FROM pg_sequences WHERE schemaname='public' AND sequencename='"+name+"'"))
+                    delta=end['last_value']-start['last_value']
+                    assert delta*increment>=0 and delta%increment==0, ('Counter regressed or changed increment',name)
+                    assert not start['is_called'] or end['is_called'], ('Counter reset',name)
+                    if start!=end:consumed[name]={'before':start,'after_tests':end,'increment':increment}
+                (stage/'fixture-counter-consumption.json').write_text(json.dumps(consumed,indent=2))
+                baseline={name:value for name,value in baseline.items() if name not in counters}
+                after={name:value for name,value in after.items() if name not in counters}
             assert same_values(baseline, after), 'Existing business values changed'
-            for table, rows in original.items():
-                # New core menus/metadata are expected; each preexisting row is exact.
-                if table in ('ir_model', 'ir_model_fields'):
-                    now = {r['id']: r for r in current[table]}
-                    for row in rows:
-                        got = now.get(row['id'])
-                        assert got and all(got[k] == v for k,v in row.items() if k != 'modules'), (table, row['id'])
-                else:
-                    expected = [dict(row, view_mode='calendar') if table == 'ir_act_window_view' and
-                                row['id'] in calendar_bindings and row['view_mode'] in ('gantt', 'calendar') else row
-                                for row in rows]
-                    assert all(row in current[table] for row in expected), 'Existing identities changed: ' + table
+            verify_identity_contract(args.database,addons,args.profile,calendar_bindings,original,current)
             assert final_history == history, 'Chatter, attachments or expiration changed'
             assert source_contract(conf, addons) == contract, 'Source service configuration, versions or files changed'
         (stage / 'passed.json').write_text(json.dumps({'mode': args.mode, 'database': args.database,
             'environment': args.environment, 'business_preserved': baseline is not None,
             'profile': args.profile,
-            'writes_to_source': False, 'modules': MODULES, 'files': len(fingerprints)}, indent=2))
+            'writes_to_source': False, 'modules': MODULES, 'files': len(fingerprints),
+            'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
+            'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'migration_counter_proof': 'business-after-upgrade.json' if args.mode=='cerro-copy' and args.profile=='harvest' else None,
+            'fixture_counter_consumption': 'fixture-counter-consumption.json' if args.mode=='cerro-copy' and args.profile=='harvest' else None}, indent=2))
         print('AGRICULTURE_OK ' + args.mode, flush=True)
 
 

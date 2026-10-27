@@ -388,18 +388,17 @@ class StepCosechaRegistry(models.Model):
                     "No existe una temporada con centro de costo para la fecha del registro %s.",
                     salary.display_name,
                 ))
-            if not salary.cost_id or not salary.cost_id.cost_id:
+            if not salary.cost_id:
                 raise UserError(_(
-                    "El centro de costo de %s no tiene la cuenta analítica requerida.",
+                    "Seleccione el centro de costo analítico de %s.",
                     salary.display_name,
                 ))
             if (
                 not salary.labor_id
                 or not salary.labor_id.actividad_id
-                or not salary.labor_id.actividad_id.cost_id
             ):
                 raise UserError(_(
-                    "La labor de %s debe tener actividad y cuenta analítica configuradas.",
+                    "La labor de %s debe tener la actividad analítica configurada.",
                     salary.display_name,
                 ))
             salary.write({'state': 'cont'})
@@ -436,8 +435,8 @@ class StepCosechaRegistry(models.Model):
                     'debit': round(total, 4),
                     'credit': 0,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                     'move_id': invoice_id.id,
                     'tax_ids': False
                 }
@@ -488,8 +487,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': round(total_sueldo, 4),
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_credito += round(total_sueldo, 4)
                 line_asiento.append(credit_sueldo)
@@ -501,8 +500,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': 0, #round(total, 4),
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 line_asiento.append(debit_sueldo)
                 # Seguro
@@ -514,8 +513,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': round(total_seguro, 4),
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_credito += round(total_seguro, 4)
                 line_asiento.append(credit_seguro)
@@ -527,8 +526,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': 0,
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_debito += round(total_seguro, 4)
                 line_asiento.append(debit_seguro)
@@ -541,8 +540,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': round(total_feriado, 4),
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_credito += round(total_feriado, 4)
                 line_asiento.append(credit_feriado)
@@ -553,8 +552,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': 0,
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_debito += round(total_seguro, 4)
                 line_asiento.append(debit_feriado)
@@ -567,8 +566,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': round(total_ias, 4),
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_credito += round(total_ias, 4)
                 line_asiento.append(credit_ias)
@@ -579,8 +578,8 @@ class StepCosechaRegistry(models.Model):
                     'credit': 0,
                     'move_id': create_asiento.id,
                     'analytic_distribution': {str(cost_temporada.cost_id.id) + "," +
-                                              str(salary.cost_id.cost_id.id) + "," +
-                                              str(salary.labor_id.actividad_id.cost_id.id): 100},
+                                              str(salary.cost_id.id) + "," +
+                                              str(salary.labor_id.actividad_id.id): 100},
                 }
                 total_debito += round(total_seguro, 4)
                 line_asiento.append(debit_ias)

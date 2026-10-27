@@ -1,0 +1,1 @@
+from . import hr_salary_custom, hr_salary_custom_line, hr_salary_contract_line, step_tarja, step_tarja_line, step_tarja_cost, step_tarja_cost_line, step_tarja_registry, step_haber_costeo, hr_contract, product_pricelist, product_pricelist_item, account_move, res_company

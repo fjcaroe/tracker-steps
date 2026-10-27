@@ -113,7 +113,10 @@ class AgricultureRecordsCase(TransactionCase):
         self.assertEqual(app.maquinadas, 4)
         app.capacidad_lts_aplicadora = 0
         self.assertEqual(app.maquinadas, 0)
-        actions = self.env['base.automation'].search([('model_id.model', 'in', list(MODELS.values())), ('active', '=', True)])
+        # A clean Community runtime need not install the optional automation engine.
+        actions = (self.env['base.automation'].search([
+            ('model_id.model', 'in', list(MODELS.values())), ('active', '=', True)])
+            if 'base.automation' in self.env.registry.models else [])
         self.assertFalse(actions)
 
     def test_approved_states_reuse_packing_master_and_preserve_originals(self):

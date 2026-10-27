@@ -1,0 +1,11 @@
+{'name': 'Steps Operaciones Community',
+ 'version': '18.0.1.0.1',
+ 'license': 'AGPL-3',
+ 'author': 'Steps / Jamie Escalante',
+ 'depends': ['step_agriculture_core', 'hr', 'project'],
+ 'data': ['views/fleet_vehicle_views.xml',
+          'views/project_task_views.xml',
+          'views/hr_employee_views.xml'],
+ 'pre_init_hook': 'adopt_legacy_records',
+ 'post_init_hook': 'preserve_legacy_xmlids',
+ 'installable': True}

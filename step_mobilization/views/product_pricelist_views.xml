@@ -15,7 +15,8 @@
                 <field name="transporte_id" invisible="not moviliza"/>
             </xpath>
             <xpath expr="//page[@name='pricelist_rules']" position="after">
-                <page name="move_line" string="Tarifas por recorrido" invisible="not moviliza">
+                <page name="move_line" string="Tarifas por recorrido" invisible="not moviliza"
+                      groups="step_mobilization.group_mobilization_user">
                     <field name="move_item">
                         <list editable="bottom">
                             <field name="recorrido_id" optional="show"/>

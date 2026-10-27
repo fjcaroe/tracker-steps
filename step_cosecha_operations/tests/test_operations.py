@@ -6,6 +6,14 @@ from odoo.addons.step_cosecha_operations.hooks import migrate_contractor_form
 
 @tagged('post_install', '-at_install')
 class HarvestOperationsCase(TransactionCase):
+    def setUp(self):
+        super().setUp()
+        company=self.env['res.company'].create({'name':'Private harvest operations fixture'})
+        self.env=self.env(context=dict(self.env.context,allowed_company_ids=company.ids))
+        for code in ('step_cosecha_pro_seq','step_cosecha_contra_seq','cuadrilla_propia_seq','cuadrilla_contratista_seq'):
+            self.env['ir.sequence'].create({'name':'Private harvest fixture','code':code,
+                'company_id':company.id,'prefix':'QA','implementation':'no_gap'})
+
     def test_native_master_navigation_and_edit(self):
         manager = new_test_user(self.env, login='qa_t101',
                                 groups='base.group_user,step_management_costs.group_management_manager')

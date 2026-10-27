@@ -21,9 +21,15 @@ class TestMachineryWebForm(HttpCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.admin = cls.env.ref("base.user_admin")
-        # Contraseña local de la base desechable, nunca una credencial real.
-        cls.admin.write({"password": "admin_qa_maquinaria"})
+        # A dedicated disposable fixture, never a destination user's password.
+        cls.login = 'qa_community_machinery_web'
+        cls.admin = cls.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'QA Machinery HTTP', 'login': cls.login, 'password': 'admin_qa_maquinaria',
+            'company_id': cls.env.company.id, 'company_ids': [(6, 0, cls.env.company.ids)],
+            'groups_id': [(6, 0, [cls.env.ref('base.group_user').id,
+                                  cls.env.ref('fleet.fleet_group_manager').id,
+                                  cls.env.ref('hr.group_hr_user').id])],
+        })
 
     def _call_kw(self, model, method, args, kwargs=None):
         return self.make_jsonrpc_request("/web/dataset/call_kw", {
@@ -32,7 +38,7 @@ class TestMachineryWebForm(HttpCase):
         })
 
     def test_form_saves_without_typing_name(self):
-        self.authenticate("admin", "admin_qa_maquinaria")
+        self.authenticate(self.login, "admin_qa_maquinaria")
 
         views = self._call_kw(MODEL, "get_views", [[[False, "form"]]], {"options": {}})
         self.assertIn("form", views["views"])
@@ -69,7 +75,7 @@ class TestMachineryWebForm(HttpCase):
         self.assertTrue(self.env[MODEL].browse(record_id).exists())
 
     def test_list_and_search_expose_ot_number_and_name(self):
-        self.authenticate("admin", "admin_qa_maquinaria")
+        self.authenticate(self.login, "admin_qa_maquinaria")
         views = self._call_kw(MODEL, "get_views", [[[False, "list"], [False, "search"]]], {"options": {}})
         list_arch = views["views"]["list"]["arch"]
         search_arch = views["views"]["search"]["arch"]

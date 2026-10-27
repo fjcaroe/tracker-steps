@@ -16,6 +16,15 @@ def _owned(record):
             if not field or field.name not in FIELDS.get(field.model, ()):
                 raise UserError('Campo agrícola incompatible: %s' % record.name)
         return True
+    if record.model == 'ir.model':
+        return record.env[record.model].browse(record.res_id).model in FIELDS
+    if record.model == 'ir.model.inherit':
+        return bool(record.env[record.model].browse(record.res_id).exists()) and any(record.name.startswith('model_inherit__'+model.replace('.','_')+'__') for model in MODELS)
+    if record.model == 'ir.model.fields':
+        field=record.env[record.model].browse(record.res_id)
+        parent={'product.product':'product.template','res.users':'res.partner'}.get(field.model)
+        if parent and field.name in FIELDS.get(parent,()) and field.related=={'product.product':'product_tmpl_id','res.users':'partner_id'}[field.model]+'.'+field.name:
+            return True
     # Odoo also generates inherited fields and selection XML IDs. Protect
     # those owned by these models when the old payroll bridge is retired.
     if record.model == 'ir.model.fields':
@@ -35,7 +44,7 @@ def _alias(record, namespace):
             raise UserError('Identificador agrícola en conflicto: %s.%s' % (namespace, record.name))
     else:
         data.create({'module': namespace, 'name': record.name, 'model': record.model,
-                     'res_id': record.res_id, 'noupdate': record.noupdate if namespace == CORE else True})
+                     'res_id': record.res_id, 'noupdate': True if record.model in ('ir.model','ir.model.fields','ir.model.fields.selection','ir.model.inherit') else record.noupdate if namespace == CORE else True})
 
 
 def adopt_legacy_records(env):

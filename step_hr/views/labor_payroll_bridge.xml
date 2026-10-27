@@ -1,0 +1,26 @@
+<odoo>
+    <record id="view_salary_payroll_bridge" model="ir.ui.view">
+        <field name="name">hr.salary.custom.payroll.bridge</field>
+        <field name="model">hr.salary.custom</field>
+        <field name="inherit_id" ref="step_labor_operations_core.view_hr_salary_custom_form"/>
+        <field name="arch" type="xml">
+            <field name="work_entry_type_id" position="after">
+                <field name="payslip_run_id" invisible="1"/>
+                <field name="struct_id" invisible="1"/>
+            </field>
+        </field>
+    </record>
+    <record id="view_tarja_payroll_bridge" model="ir.ui.view">
+        <field name="name">step.tarja.payroll.bridge</field>
+        <field name="model">step.tarja</field>
+        <field name="inherit_id" ref="step_labor_operations_core.view_step_tarja_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header/field[@name='state']" position="before">
+                    <button name="envio_nomina" string="Enviar a Remuneraciones"
+                            type="object" class="oe_highlight"
+                            confirm="Esta Seguro de enviar todos los registros a nomina?"
+                            invisible="remunera != False or tarja_type == 'contratista'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

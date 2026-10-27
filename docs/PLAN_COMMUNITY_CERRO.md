@@ -207,3 +207,85 @@ El código candidato reduce a 68 las apps propias con caminos declarados hacia
 Enterprise, frente a 79 en producción y 73 después del cuarto bloque.
 Esta cifra no acredita una conversión integral de la base ni la independencia
 de todas las extensiones de Exportación/Packing que aún dependen de Enterprise.
+
+## Sexto paquete: frontera operacional de Maquinaria y Tareas
+
+`step_operations_core` 18.0.1.0.0 extrae 30 campos de flota, empleados y tareas,
+conservando 34 identificadores explícitos, las relaciones y las vistas originales.
+`step_hr` 18.0.1.8.0 queda como consumidor del núcleo. Maquinaria 18.0.22.1.0
+y clasificación agrícola de tareas 18.0.1.1.0 consumen el núcleo Community.
+El puente existente de costos de maquinaria se incluye en el mismo ensayo.
+El contrato técnico está en `COMMUNITY_OPERACIONES.md`.
+
+El perfil `operations` contiene dieciséis módulos de paquete y compara también
+las tablas operacionales de flota, proyectos y costos. Las comprobaciones de
+permisos incluyen empleados privados, aislamiento por empresa y usuarios
+autorizados sin modo superusuario. No se relajan las restricciones de las tareas
+agrícolas ni se exigen variedades inventadas a las tareas genéricas.
+
+La matriz candidata baja de 68 a 65 apps propias con caminos declarados hacia
+Enterprise: se liberan Maquinaria, su puente de costos y el alcance de tareas.
+Producción continúa con sus 140 Enterprise. Tarjas/Cuadrillas, Movilización y
+otros consumidores de nómina necesitan su propia extracción de modelos,
+relaciones, vistas y permisos antes de modificar dependencias. Las evidencias
+de aceptación y los pendientes de publicación están en continuidad.
+
+## Séptimo paquete: Tarjas, Cuadrillas y Movilización
+
+`step_labor_operations_core` 18.0.1.0.0 separa nueve modelos operacionales de
+`step_hr`, con 228 campos declarados y 296 identificadores explícitos, incluidos
+nueve permisos y cuatro secuencias. Adopta también los registros originales de
+propiedad de siete tablas M2M. Mantiene las tablas, IDs, relaciones, parámetros
+y cálculos, sin crear maestros alternativos ni recalcular liquidaciones pagadas.
+El contrato técnico está en `COMMUNITY_TARJAS_CUADRILLAS.md`.
+
+`step_hr` 18.0.1.8.0 conserva el puente real a lotes y estructuras de Nómina y
+el envío a remuneraciones; el núcleo Community no simula esos modelos.
+Movilización agrícola 18.0.1.1.0 usa el núcleo laboral y lee la distribución
+actual de las tarjas. Movilización 18.0.1.0.3 declara el tipo de documento
+latinoamericano nativo y alinea su pestaña de tarifas con los grupos de su modelo.
+
+El perfil `labor` ensaya diecinueve módulos de paquete y amplía el contrato de
+preservación a tarifas, calendarios/recursos, relaciones M2M y restricciones
+SQL/FK laborales. Las reglas de tarifa permiten completar sus relaciones
+obligatorias desde ambos formularios. Las pruebas no asignan grupos a usuarios
+existentes para forzar acceso ni fabrican jornadas para calcular costos.
+
+El candidato deja 64 apps propias con caminos Enterprise: el adaptador agrícola
+de Movilización abandona ese camino. Esto no convierte por sí solo los otros
+consumidores de Cosecha, Nómina, DTE o Calidad. Tampoco sustituye el ensayo de
+conversión integral, recuperación, publicación y aceptación. Las evidencias del
+paquete aceptado quedan en continuidad; producción conserva 140 Enterprise.
+
+## Octavo paquete: Cosecha, planificación y registros
+
+`step_cosecha` 18.0.1.8.0 consume el núcleo laboral sin Nómina/Gantt.
+`step_cosecha_planning` 18.0.1.1.0 consume los formatos compartidos;
+`step_agriculture_records` 18.0.1.3.0 declara Movilización y el costo horario
+nativo Community. Cosecha y sus diez modelos conservan nombres/tablas,
+maestros y permisos. `product.packaging` sigue siendo el único maestro de
+embalajes; no se infiere clasificación para los históricos.
+
+`step_agriculture_format_core`, `step_labor_reports` y
+`step_labor_payroll_wizards` adoptan 27 identificadores explícitos, cinco
+modelos transitorios y 22 campos declarados. Los dos informes laborales son
+operacionales Community. El puente de wizards conserva Nómina real y sus
+relaciones en Cerro, y no se instala en Community. HR lo consume sin duplicar
+las definiciones en Cosecha. Se adoptan los tres propietarios M2M pendientes.
+La bandera original de recepción `stock.picking.cosecha` pasa a Cosecha con
+un identificador adicional preservado: el total del bloque es 28 IDs y 23
+campos declarados. Se comprueba recepción nativa y rechazo de duplicados.
+No se certifica todavía el importador de entradas salariales, el algoritmo
+APR legado ni el motor Simple Digital sobre un sustituto Community.
+
+El contrato, los límites y la comprobación de correlativos se detallan en
+`COMMUNITY_COSECHA.md`; la aceptación y evidencia se registran en continuidad.
+La matriz candidata pasa de 64 a 59 apps propias con caminos Enterprise.
+Esas cinco clausuras incluyen `step_harvest_launcher`, que solo aparece en el
+inventario del servidor y no tiene fuentes versionadas en este checkout:
+la cifra es de dependencias declaradas, no una certificación adicional de ese
+launcher. Las cuatro aplicaciones agrícolas del paquete sí se ensayan.
+Producción conserva Enterprise; siguen abiertos Nómina, DTE/CAF/SII, Calidad,
+Studio/Documentos/Firma, lotes/conciliación, despliegues de los núcleos y la
+conversión integral con recuperación y aceptación. No se puede comprometer
+el corte del 31 de octubre a partir de esta extracción.
