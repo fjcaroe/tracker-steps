@@ -113,7 +113,24 @@ def main():
         run('systemctl', 'stop', service)
         try:
             assert runtime_contract(conf) == contract, 'Concurrent change before service stop'
-            assert same_values(before, snapshot(database)), 'Business data changed since fresh copy; validate a new copy'
+            current = snapshot(database)
+            advanced_sync_marker = False
+            if not same_values(before, current):
+                changed = {name for name in before if name in current and
+                           (before[name]['rows'], before[name]['hash']) != (current[name]['rows'], current[name]['hash'])}
+                assert before.keys() == current.keys() and changed == {'step_tracker_protection_sync'}, 'Business data changed since fresh copy; validate a new copy'
+                reference = json.loads((proof / 'passed.json').read_text())['database']
+                assert reference.startswith('MANAGEMENT_QA_')
+                assert same_values(before, snapshot(reference)), 'Validation copy no longer matches its proof'
+                # Only the ordinary cron heartbeat may advance since QA. Compare
+                # every other field and record against the untouched private copy.
+                statement = "SELECT coalesce(jsonb_agg(to_jsonb(t)-ARRAY['last_sync','write_date'] ORDER BY id),'[]'::jsonb) FROM step_tracker_protection_sync t"
+                assert json.loads(sql(reference, statement)) == json.loads(sql(database, statement)), 'Tracker configuration changed since QA'
+                advanced_sync_marker = True
+            # Freeze and preserve the *current* complete state, including the
+            # newer heartbeat. Never restore the older QA marker to live data.
+            before = current
+            (stage / 'business-before.json').write_text(json.dumps(before, indent=2))
             old_actions = action_contract(database)
             old_fields = field_ids(database); old_security = security_contract(database); old_menus = report_menus(database)
             shutil.copy2(conf, stage / 'config-before.conf'); (stage / 'config-before.conf').chmod(0o600)
@@ -137,7 +154,9 @@ def main():
             from manage_management import errors as module_errors
             allowed_missing = tuple(name for name in ('steps_api',) if name in installed)
             assert result.returncode == 0 and 'Modules loaded.' in diagnostics and not module_errors(diagnostics, allowed_missing), 'Upgrade failed; preserve recovery directory'
-            assert same_values(before, snapshot(database)), 'Business values changed'
+            after = snapshot(database)
+            (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
+            assert same_values(before, after), 'Business values changed'
             assert action_contract(database) == old_actions, 'Existing client actions changed'
             assert field_ids(database) == old_fields and security_contract(database) == old_security
             after_menus = report_menus(database)
@@ -159,7 +178,8 @@ def main():
                 assert sql(database, 'SELECT count(*) FROM ir_cron WHERE active') == '0'
                 assert sql(database, "SELECT count(*) FROM ir_mail_server WHERE active AND smtp_host!='invalid'") == '0'
             (stage / 'deployed.json').write_text(json.dumps({'package_hash': package_hash, 'url': url, 'source_files': actual,
-                'installed_versions': confirmed_versions, 'business_preserved': True}, indent=2))
+                'installed_versions': confirmed_versions, 'business_preserved': True,
+                'advanced_sync_marker_before_stop': advanced_sync_marker}, indent=2))
         finally:
             # Retain upgraded state and recovery dump; never discard new user data.
             run('systemctl', 'start', service)
