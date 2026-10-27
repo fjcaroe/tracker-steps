@@ -86,6 +86,12 @@ def main():
     data = stage / 'data'; data.mkdir()
     addons = root / 'addons'
     assert (addons / 'step_accounting_multicurrency_core' / '__manifest__.py').exists()
+    fingerprints = {}
+    for module in ('step_accounting_multicurrency_core', 'step_accounting_multicurrency'):
+        for path in sorted((addons / module).rglob('*')):
+            if path.is_file() and '__pycache__' not in path.parts:
+                fingerprints[str(path.relative_to(addons))] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (stage / 'source-files.json').write_text(json.dumps(fingerprints, indent=2))
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         assert not sql('postgres', "SELECT 1 FROM pg_database WHERE datname='" + args.database + "'"), 'Database already exists'
