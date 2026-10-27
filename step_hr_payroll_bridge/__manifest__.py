@@ -1,0 +1,10 @@
+{'name': 'Steps HR real payroll and legacy Enterprise bridge',
+ 'version': '18.0.1.0.0',
+ 'license': 'AGPL-3',
+ 'depends': ['step_hr', 'step_labor_payroll_wizards', 'hr_payroll', 'web_map'],
+ 'data': ['views/labor_payroll_bridge.xml',
+          'views/hr_payslip_views.xml',
+          'views/res_partner_map_views.xml'],
+ 'pre_init_hook': 'pre_init_hook',
+ 'post_init_hook': 'post_init_hook',
+ 'installable': True}

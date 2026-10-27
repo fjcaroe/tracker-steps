@@ -33,6 +33,7 @@ LABOR_MODULES = ('step_labor_operations_core', 'step_mobilization', 'step_mobili
 HARVEST_MODULES = ('step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core',
                    'step_export','step_cosecha','step_cosecha_planning',
                    'step_cosecha_operations','step_agriculture_records')
+HR_MODULES = ('step_hr_payroll_bridge',)
 PRIVATE_ENTERPRISE_MODULES = ('step_hr','step_export','step_labor_payroll_wizards')
 
 # Regenerable compiled web bundles only. Business files, view attachments,
@@ -53,6 +54,8 @@ def verify_native(base, opts, addons, stage, mode):
         check += '\n' + (addons / 'tools/community/verify_labor.py').read_text()
     if 'step_cosecha' in MODULES:
         check += '\n' + (addons / 'tools/community/verify_harvest.py').read_text()
+    if 'step_hr_payroll_bridge' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_hr.py').read_text()
     result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
         input='MODE=' + repr(mode) + '\n' + check, text=True, capture_output=True)
     (stage / 'verify.log').write_text(result.stdout + result.stderr)
@@ -117,7 +120,7 @@ def snapshot(database):
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
     operational_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
         "(tablename LIKE 'project_%' OR tablename LIKE 'fleet_%' OR tablename LIKE 'monthly_%' OR "
-        "tablename LIKE 'real_cost_%' OR tablename LIKE 'regist_cost_%' OR tablename IN ('type_service_machinery','type_costing_machinery')) ORDER BY tablename").splitlines()
+        "tablename LIKE 'step_tracker%' OR tablename='step_history' OR tablename LIKE 'hr_payslip%' OR tablename LIKE 'real_cost_%' OR tablename LIKE 'regist_cost_%' OR tablename IN ('type_service_machinery','type_costing_machinery')) ORDER BY tablename").splitlines()
     for table in operational_tables:
         assert re.fullmatch('[a-z_][a-z0-9_]*', table)
         result[table] = json.loads(sql(database,
@@ -208,11 +211,11 @@ def verify_identity_contract(database,addons,profile,calendar_bindings,original,
             legacy_module = int(sql(database, "SELECT id FROM ir_module_module WHERE name='step_hr'"))
             new_module = int(sql(database, "SELECT id FROM ir_module_module WHERE name='step_labor_operations_core'"))
             extra_owners={}
-            if profile=='harvest':
+            if profile in ('harvest','hr'):
                 extra_owners={name:int(sql(database, "SELECT id FROM ir_module_module WHERE name='"+owner+"'"))
                     for name,owner in [('employee_wizard_rel','step_labor_reports'),
                         ('employee_process_rel','step_labor_reports'),('step_hr_payslip_rel','step_labor_payroll_wizards')]}
-            cosecha_module=int(sql(database,"SELECT id FROM ir_module_module WHERE name='step_cosecha'")) if profile=='harvest' else None
+            cosecha_module=int(sql(database,"SELECT id FROM ir_module_module WHERE name='step_cosecha'")) if profile in ('harvest','hr') else None
             expected = [dict(row,module=extra_owners[row['name']]) if row['name'] in extra_owners and
                         (row['module']==legacy_module or (row['name']=='step_hr_payslip_rel' and row['module']==cosecha_module))
                         else dict(row, module=new_module) if row['module'] == legacy_module and
@@ -241,20 +244,22 @@ def history_contract(database):
 
 
 def main():
-    global MODULES
+    global MODULES, PRIVATE_ENTERPRISE_MODULES
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('community', 'cerro-copy'))
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
-    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor', 'harvest'), default='agriculture')
+    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations', 'labor', 'harvest', 'hr'), default='agriculture')
     parser.add_argument('--wait-lock', action='store_true', help='Queue behind the shared environment lease; no database mutation while waiting')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
     parser.add_argument('--complete-native', action='store_true', help='Finish native checks after successful full tests; identical addon fingerprints required')
     args = parser.parse_args()
-    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor','harvest') else ()) + (
-        OPERATIONS_MODULES if args.profile in ('operations','labor','harvest') else ()) + (
-        LABOR_MODULES if args.profile in ('labor','harvest') else ()) + (HARVEST_MODULES if args.profile == 'harvest' else ())
+    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations','labor','harvest','hr') else ()) + (
+        OPERATIONS_MODULES if args.profile in ('operations','labor','harvest','hr') else ()) + (
+        LABOR_MODULES if args.profile in ('labor','harvest','hr') else ()) + (HARVEST_MODULES if args.profile in ('harvest','hr') else ()) + (HR_MODULES if args.profile=='hr' else ())
+    if args.profile=='hr':
+        PRIVATE_ENTERPRISE_MODULES = ('step_export','step_labor_payroll_wizards','step_hr_payroll_bridge')
     assert os.geteuid() == 0
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
@@ -315,8 +320,8 @@ def main():
                 "SELECT coalesce(json_agg(t.id),'[]'::json) FROM ir_act_window_view t "
                 "JOIN ir_model_data d ON d.res_id=t.view_id AND d.model='ir.ui.view' "
                 "WHERE d.name='report_gantt' AND d.module IN ('step_producer_contract_report',"
-                "'step_producer_estimate_report')")) if args.profile in ('producers','operations','labor','harvest') else []
-            if args.profile in ('producers','operations','labor','harvest'):
+                "'step_producer_estimate_report')")) if args.profile in ('producers','operations','labor','harvest','hr') else []
+            if args.profile in ('producers','operations','labor','harvest','hr'):
                 assert len(calendar_bindings) == 2, 'Expected two original report-view bindings'
             (stage / 'calendar-bindings-before.json').write_text(json.dumps(calendar_bindings))
             history = history_contract(args.database)
@@ -327,7 +332,7 @@ def main():
             installed = contract['installed_versions']
             upgrades = [m for m in MODULES if m in installed]
             new_cores = [m for m in ('step_agriculture_core','step_operations_core','step_labor_operations_core',
-                                       'step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core')
+                                       'step_labor_reports','step_labor_payroll_wizards','step_agriculture_format_core','step_hr_payroll_bridge')
                          if m in MODULES and m not in installed]
             init = (['-i', ','.join(new_cores)] if new_cores else []) + (
                 ['-u', ','.join(upgrades)] if upgrades else [])
@@ -348,13 +353,15 @@ def main():
                 (pure / module).symlink_to(addons / module)
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
-            if args.profile in ('producers','operations','labor','harvest'):
+            if args.profile in ('producers','operations','labor','harvest','hr'):
                 init[1] += ',' + ','.join(PRODUCER_MODULES)
-            if args.profile in ('operations','labor','harvest'):
+            if args.profile in ('operations','labor','harvest','hr'):
                 init[1] += ',' + ','.join(OPERATIONS_MODULES)
-            if args.profile in ('labor','harvest'):
+            if args.profile in ('labor','harvest','hr'):
                 init[1] += ',' + ','.join(LABOR_MODULES)
-            if args.profile == 'harvest':
+            if args.profile=='hr':
+                init[1] += ',step_hr'
+            if args.profile in ('harvest','hr'):
                 init[1] += ',' + ','.join(m for m in HARVEST_MODULES if m not in PRIVATE_ENTERPRISE_MODULES)
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
@@ -366,7 +373,7 @@ def main():
                 '--addons-path=' + addon_paths, '--data-dir=' + str(data), '--load=base,web',
                 '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
                 '--workers=0', '--max-cron-threads=0', '--without-demo=all']
-        if args.mode=='cerro-copy' and args.profile=='harvest':
+        if args.mode=='cerro-copy' and args.profile in ('harvest','hr'):
             # PostgreSQL standard sequence nextval is not rolled back by test
             # savepoints. Measure actual migration preservation before fixtures.
             upgrade_log=stage/'upgrade.log'
@@ -389,7 +396,7 @@ def main():
         print('AGRICULTURE_BEGIN ' + str(log), flush=True)
         with (stage / 'bootstrap.log').open('w') as stream:
             result = subprocess.run(base + opts + init + ['--logfile=' + str(log), '--test-enable',
-                '--test-tags=' + ','.join('/' + m for m in MODULES if m not in PRIVATE_ENTERPRISE_MODULES), '--stop-after-init'],
+                '--test-tags=' + ','.join('/' + m for m in MODULES if m not in PRIVATE_ENTERPRISE_MODULES or (args.mode!='community' and args.profile=='hr')), '--stop-after-init'],
                 stdout=stream, stderr=subprocess.STDOUT)
         text = log.read_text(errors='replace')
         print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or
@@ -403,7 +410,7 @@ def main():
             after = snapshot(args.database); (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
             current = identity_contract(args.database); (stage / 'identity-after.json').write_text(json.dumps(current, indent=2))
             final_history = history_contract(args.database); (stage / 'history-after.json').write_text(json.dumps(final_history, indent=2))
-            if args.profile=='harvest':
+            if args.profile in ('harvest','hr'):
                 # The upgrade above preserved every counter exactly. The full
                 # functional suite may consume standard numbers in this private
                 # copy only; validate monotonic native increments and retain all
@@ -430,8 +437,8 @@ def main():
             'writes_to_source': False, 'modules': MODULES, 'files': len(fingerprints),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-            'migration_counter_proof': 'business-after-upgrade.json' if args.mode=='cerro-copy' and args.profile=='harvest' else None,
-            'fixture_counter_consumption': 'fixture-counter-consumption.json' if args.mode=='cerro-copy' and args.profile=='harvest' else None}, indent=2))
+            'migration_counter_proof': 'business-after-upgrade.json' if args.mode=='cerro-copy' and args.profile in ('harvest','hr') else None,
+            'fixture_counter_consumption': 'fixture-counter-consumption.json' if args.mode=='cerro-copy' and args.profile in ('harvest','hr') else None}, indent=2))
         print('AGRICULTURE_OK ' + args.mode, flush=True)
 
 

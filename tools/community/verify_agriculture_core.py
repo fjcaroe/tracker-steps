@@ -9,7 +9,6 @@ try:
         company = env.company
         user = env.ref('base.user_admin')
         assert not env['ir.module.module'].search_count([('state', '=', 'installed'), ('license', '=', 'OEEL-1')])
-        assert not env['ir.module.module'].search_count([('name', '=', 'step_hr'), ('state', '=', 'installed')])
     else:
         company = env['res.company'].search([('vat', '=', '76943293-0')], limit=1)
         assert company, 'Canonical Cerro company missing'
@@ -43,7 +42,7 @@ try:
         native.name = 'Private Community packing verification'
     assert native.record.id
     root = scoped.ref('step_agriculture_core.menu_agriculture_core')
-    if MODE == 'community':
+    if not scoped.ref('step_hr.menu_step_hr_root', raise_if_not_found=False):
         assert root.id in scoped['ir.ui.menu']._visible_menu_ids()
     else:
         assert not root.active, 'Existing menu restrictions must not be bypassed'

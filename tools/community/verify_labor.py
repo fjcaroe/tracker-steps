@@ -20,7 +20,7 @@ try:
     assert not scoped_labor.su
     visible=scoped_labor['ir.ui.menu']._visible_menu_ids()
     root=scoped_labor.ref('step_labor_operations_core.menu_labor_operations')
-    if MODE=='community':
+    if not scoped_labor.ref('step_hr.menu_step_hr_root',raise_if_not_found=False):
         assert root.active and root.id in visible
         assert scoped_labor.ref('step_labor_operations_core.menu_task_own').id in visible
     else:

@@ -106,7 +106,7 @@ class LaborOperationsCase(TransactionCase):
                 self.env[model].with_user(portal).check_access('read')
 
     def test_optional_payroll_fields_and_controls_stay_in_bridge(self):
-        installed=self.env['ir.module.module'].search_count([('name','=','step_hr'),('state','=','installed')])
+        installed=self.env['ir.module.module'].search_count([('name','=','step_hr_payroll_bridge'),('state','=','installed')])
         self.assertEqual('payslip_run_id' in self.env['hr.salary.custom']._fields,bool(installed))
         self.assertEqual('struct_id' in self.env['hr.salary.custom']._fields,bool(installed))
         arch=self.env['step.tarja'].get_view(self.env.ref('step_hr.view_step_tarja_form').id,'form')['arch']
@@ -166,7 +166,7 @@ class LaborOperationsCase(TransactionCase):
     def test_relation_metadata_owner_preserves_ids_and_is_idempotent(self):
         data=self.env['ir.model.relation'].search([('name','in',RELATIONS)])
         before={row.id:(row.name,row.model.id,row.module.id) for row in data}
-        legacy=self.env['ir.module.module'].search([('name','=','step_hr')])
+        legacy=self.env['ir.module.module'].search([('name','=','step_hr_payroll_bridge')])
         self.assertFalse(data.filtered(lambda row:row.module==legacy))
         adopt_legacy_records(self.env)
         self.assertEqual(before,{row.id:(row.name,row.model.id,row.module.id) for row in data})

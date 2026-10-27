@@ -1,11 +1,8 @@
 # © 2025 (Jamie Escalante <jamie.escalante7@gmail.com>)
 # -*- coding: utf-8 -*-
 
-from . import hr_payslip
-from . import hr_salary_custom
 from . import activities_dashboard
 # from . import step_cosecha_ubicacion
-from . import res_partner
 from . import step_tracker
 from . import step_tracker_sync
 # from . import step_cosecha_registry
@@ -19,4 +16,3 @@ from . import res_config_settings
 # from . import step_cosecha_tarja_line
 # from . import step_cosecha_tarja_registry_line
 from . import step_history
-from . import step_tarja_payroll

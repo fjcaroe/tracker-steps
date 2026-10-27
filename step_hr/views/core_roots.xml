@@ -1,0 +1,9 @@
+<odoo>
+    <!-- The original app keeps its menu and inherited access restrictions. -->
+    <record id="step_agriculture_core.menu_agriculture_core" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="step_labor_operations_core.menu_labor_operations" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+</odoo>

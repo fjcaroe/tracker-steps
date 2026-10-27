@@ -28,28 +28,62 @@ class HrInputStep(models.TransientModel):
     value_amount = fields.Float(string='Monto')
 
     def import_button(self):
-        rec_count = 0
-        input_obj = self.env['hr.payslip.input']
-        contract_obj = self.env['hr.contract']
-        if self.user_ids:
-            for input in self.user_ids:
-                #try:
-                    contract_id = contract_obj.search([('employee_id', '=', input.employee_id.id)], limit=1)
-                    payslip_id = self.env['hr.payslip'].search([('employee_id', '=', input.employee_id.id)], limit=1)
-                    vals = {
-                        'name': 'Entrada de Bonos o Descuentos masivos',
-                        'payslip_id': payslip_id.id,
-                        'input_type_id': self.input_type_id.id,
-                        # 'code': ,
-                        'amount': self.value_amount,
-                        'contract_id': contract_id.id,
-                    }
-                    input_id = input_obj.create(vals)
-                    rec_count += 1
+        self.ensure_one()
+        if not self.user_ids:
+            raise ValidationError(_('Seleccione empleados antes de importar.'))
+        self.payslip_run_id.check_access('read')
+        self.struct_id.check_access('read')
+        self.input_type_id.check_access('read')
+        if self.payslip_run_id.company_id != self.env.company:
+            raise ValidationError(_('El lote debe pertenecer a la empresa activa.'))
+        if self.input_type_id.struct_ids and self.struct_id not in self.input_type_id.struct_ids:
+            raise ValidationError(_('El tipo de entrada no corresponde a la estructura seleccionada.'))
 
-                # except Exception:
-                #     raise ValidationError(_("Por favor contacte al Adiminstrador"))
-        return self.success_message(rec_count)
+        # Resolve the complete batch before creating anything. Never choose the
+        # first contract/payslip or fall back to another period, company or state.
+        slips = self.env['hr.payslip']
+        for user in self.user_ids:
+            employee = user.employee_id
+            if not employee or employee.company_id != self.env.company:
+                raise ValidationError(_('Cada usuario debe tener un empleado en la empresa activa.'))
+            matches = self.env['hr.payslip'].search([
+                ('employee_id', '=', employee.id),
+                ('company_id', '=', self.env.company.id),
+                ('payslip_run_id', '=', self.payslip_run_id.id),
+                ('struct_id', '=', self.struct_id.id),
+            ], limit=2)
+            if len(matches) != 1 or matches in slips:
+                raise ValidationError(_('Debe existir una única liquidación por empleado, lote y estructura.'))
+            matches.check_access('write')
+            slips |= matches
+
+        # Serialize imports with native payroll state changes on the same rows.
+        # Access checks above and ORM create below retain the original ACL/rules.
+        self.env.cr.execute('SELECT id FROM hr_payslip_run WHERE id=%s FOR UPDATE',
+                            [self.payslip_run_id.id])
+        self.env.cr.execute('SELECT id FROM hr_payslip WHERE id IN %s ORDER BY id FOR UPDATE',
+                            [tuple(slips.ids)])
+        self.payslip_run_id.invalidate_recordset(['state'])
+        slips.invalidate_recordset()
+        if self.payslip_run_id.state != 'draft':
+            raise ValidationError(_('Solo se pueden importar entradas en lotes en borrador.'))
+        values = []
+        for slip in slips:
+            slip.check_access('write')
+            if (slip.state != 'draft' or slip.paid or
+                    slip.payslip_run_id != self.payslip_run_id or slip.struct_id != self.struct_id or
+                    slip.company_id != self.env.company or slip.employee_id not in self.user_ids.employee_id):
+                raise ValidationError(_('Solo se pueden modificar liquidaciones en borrador, no pagadas, del lote y estructura seleccionados.'))
+            contract = slip.contract_id
+            if not contract or contract.employee_id != slip.employee_id or contract.company_id != slip.company_id:
+                raise ValidationError(_('La liquidación debe conservar su contrato y empleado de la misma empresa.'))
+            if slip.input_line_ids.filtered(lambda line: line.input_type_id == self.input_type_id):
+                raise ValidationError(_('La liquidación ya tiene una entrada de este tipo; revise el registro existente.'))
+            values.append({'name': 'Entrada de Bonos o Descuentos masivos',
+                           'payslip_id': slip.id, 'input_type_id': self.input_type_id.id,
+                           'amount': self.value_amount, 'contract_id': contract.id})
+        self.env['hr.payslip.input'].create(values)
+        return self.success_message(len(values))
 
 
     def success_message(self, rec_count):
