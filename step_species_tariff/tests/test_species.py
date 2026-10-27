@@ -6,7 +6,7 @@ class SpeciesTariffCase(TransactionCase):
     def test_text_roundtrip_keeps_leading_zeroes_and_punctuation(self):
         original = self.env['step.especie'].search([], limit=1)
         row = self.env['step.especie'].create({'name': 'QA T126', 'type_especie': original.type_especie,
-            'group_especie': original.group_especie.id,
+            'group_especie': original.group_especie,
             'company_ids': [(6, 0, original.company_ids.ids)], 'tariff_code': '0012.34/A'})
         self.env.invalidate_all()
         self.assertEqual(row.tariff_code, '0012.34/A')
