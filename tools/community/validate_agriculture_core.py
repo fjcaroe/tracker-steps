@@ -129,9 +129,10 @@ def snapshot(database):
             "('partner_pricelist_rel','grupo_variedad_pricelist_rel','step_analytic_pricelist_rel','product_packaging','ir_sequence','ir_sequence_date_range','product_category')) ORDER BY tablename").splitlines()
         for table in labor_tables:
             assert re.fullmatch('[a-z_][a-z0-9_]*', table)
+            payload="to_jsonb(t)-'write_date'-'write_uid'" if table in ('ir_sequence','ir_sequence_date_range') else 'to_jsonb(t)'
             result[table] = json.loads(sql(database,
-                "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
-                "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+                "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(("+payload+")::text,"
+                "E'\\n' ORDER BY ("+payload+")::text),''))) FROM " + table + ' t'))
     # These SQL projections retain their source row IDs, dates, quantities and
     # monetary values when only the presentation changes from Gantt to Calendar.
     for table in ('step_producer_contract_report', 'step_producer_estimate_report'):
@@ -325,6 +326,22 @@ def main():
                 '--addons-path=' + addon_paths, '--data-dir=' + str(data), '--load=base,web',
                 '--http-interface=127.0.0.1', '--http-port=' + str(port), '--gevent-port=0',
                 '--workers=0', '--max-cron-threads=0', '--without-demo=all']
+        if args.mode=='cerro-copy' and args.profile=='harvest':
+            # PostgreSQL standard sequence nextval is not rolled back by test
+            # savepoints. Measure actual migration preservation before fixtures.
+            upgrade_log=stage/'upgrade.log'
+            with (stage/'upgrade-bootstrap.log').open('w') as stream:
+                upgraded=subprocess.run(base+opts+init+['--logfile='+str(upgrade_log),'--stop-after-init'],
+                    stdout=stream,stderr=subprocess.STDOUT)
+            from manage_management import errors
+            allowed=tuple(n for n in ('steps_api',) if n in installed)
+            assert upgraded.returncode==0 and not errors(upgrade_log.read_text(errors='replace'),allowed), 'Upgrade failed'
+            upgraded_business=snapshot(args.database)
+            (stage/'business-after-upgrade.json').write_text(json.dumps(upgraded_business,indent=2))
+            assert same_values(baseline,upgraded_business), 'Migration changed business values or original sequence counters'
+            # Exercise the exact installed package again, including its init-only
+            # cores' tests. No migrations or test failures are accepted silently.
+            init=['-u',','.join(dict.fromkeys(new_cores+upgrades))]
         log = stage / 'tests.log'
         print('AGRICULTURE_BEGIN ' + str(log), flush=True)
         with (stage / 'bootstrap.log').open('w') as stream:
@@ -343,6 +360,23 @@ def main():
             after = snapshot(args.database); (stage / 'business-after.json').write_text(json.dumps(after, indent=2))
             current = identity_contract(args.database); (stage / 'identity-after.json').write_text(json.dumps(current, indent=2))
             final_history = history_contract(args.database); (stage / 'history-after.json').write_text(json.dumps(final_history, indent=2))
+            if args.profile=='harvest':
+                # The upgrade above preserved every counter exactly. The full
+                # functional suite may consume standard numbers in this private
+                # copy only; validate monotonic native increments and retain all
+                # measurements. Never reset a number to hide fixture consumption.
+                counters={name:baseline[name] for name in baseline if re.fullmatch('ir_sequence_[0-9]+(_[0-9]+)?',name)}
+                consumed={}
+                for name,old in counters.items():
+                    start=json.loads(old['hash']);end=json.loads(after[name]['hash'])
+                    increment=int(sql(args.database,"SELECT increment_by FROM pg_sequences WHERE schemaname='public' AND sequencename='"+name+"'"))
+                    delta=end['last_value']-start['last_value']
+                    assert delta*increment>=0 and delta%increment==0, ('Counter regressed or changed increment',name)
+                    assert not start['is_called'] or end['is_called'], ('Counter reset',name)
+                    if start!=end:consumed[name]={'before':start,'after_tests':end,'increment':increment}
+                (stage/'fixture-counter-consumption.json').write_text(json.dumps(consumed,indent=2))
+                baseline={name:value for name,value in baseline.items() if name not in counters}
+                after={name:value for name,value in after.items() if name not in counters}
             assert same_values(baseline, after), 'Existing business values changed'
             for table, rows in original.items():
                 # New core menus/metadata are expected; each preexisting row is exact.
@@ -376,7 +410,11 @@ def main():
         (stage / 'passed.json').write_text(json.dumps({'mode': args.mode, 'database': args.database,
             'environment': args.environment, 'business_preserved': baseline is not None,
             'profile': args.profile,
-            'writes_to_source': False, 'modules': MODULES, 'files': len(fingerprints)}, indent=2))
+            'writes_to_source': False, 'modules': MODULES, 'files': len(fingerprints),
+            'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
+            'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'migration_counter_proof': 'business-after-upgrade.json' if args.mode=='cerro-copy' and args.profile=='harvest' else None,
+            'fixture_counter_consumption': 'fixture-counter-consumption.json' if args.mode=='cerro-copy' and args.profile=='harvest' else None}, indent=2))
         print('AGRICULTURE_OK ' + args.mode, flush=True)
 
 

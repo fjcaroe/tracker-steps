@@ -30,7 +30,7 @@ try:
         form.step_export_kg_per_box=7.125;form.step_packaging_group='harvest'
     package=form.record
     assert package.product_id==product and package.step_export_kg_per_box==7.125
-    harvest=scoped_harvest['step.cosecha.registry'].create({'name':'Private harvest verification',
+    harvest=scoped_harvest['step.cosecha.registry'].with_context(default_type_tarea='contratista').create({'name':'Private harvest verification',
         'company_id':company.id,'product_uom_id':env.ref('uom.product_uom_kgm').id})
     harvest.write({'type_tarea':'contratista','tarja_kg':400,'tarja_cajas':20})
     harvest.action_apro();harvest.action_in();assert harvest.state=='in'

@@ -17,8 +17,9 @@ No se modifica el límite de fechas de los dos Calendar de Productores.
 Los correlativos de Cosecha conservan sus XML IDs, prefijos, compañías,
 incrementos y rangos personalizados. La premigración protege los dos alias
 antes de cargar XML `noupdate`; cambiar solo el XML no protege un alias legado
-que todavía fuera actualizable. Los verificadores nativos omiten el tipo al
-crear, lo escriben después y revierten las altas. La numeración automática se
+que todavía fuera actualizable. Los verificadores nativos proporcionan el tipo obligatorio mediante
+`default_type_tarea` del contexto, sin ponerlo en los valores explícitos que
+activan el correlativo del override de `create`, y revierten las altas. La numeración automática se
 prueba con secuencias de empresas desechables.
 
 ## Puente real de Nómina y propietarios M2M
@@ -83,3 +84,16 @@ Solo las copias privadas reciben instalaciones/actualizaciones. Los resultados
 aceptados, huellas, límites y siguiente paso se registran en continuidad.
 No hay publicación automática en Desarrollo/QA, refresco de QA-Cerro, cambio de
 vencimiento ni retiro de Enterprise en producción. `210233` sigue descontinuada.
+
+La comprobación de correlativos separa el upgrade de los fixtures funcionales.
+Primero actualiza la copia sin pruebas y exige conservar exactamente valores,
+parámetros y contadores PostgreSQL existentes. Después ejecuta todas las pruebas
+del paquete. Los `nextval` de secuencias estándar no se revierten con savepoints:
+se conserva una evidencia separada de su consumo por fixtures en la copia,
+se exige progresión nativa y nunca se resetean números para ocultarla.
+`ir.sequence` y sus rangos conservan todos sus valores de configuración;
+solo se excluyen `write_uid`/`write_date` de esos dos registros de metadatos.
+Los documentos de negocio, históricos, saldos y los demás contratos se comparan
+también al terminar las pruebas. Los IDs originales de `ir.model.data` se
+comparan completos junto con nombre, módulo, modelo y destino; la protección
+intencional `noupdate` no cambia esas identidades.

@@ -31,6 +31,6 @@ class HarvestCommunityCase(TransactionCase):
         portal=new_test_user(self.env,login='private_harvest_portal',groups='base.group_portal')
         for model in ('step.cosecha.registry','step.cosecha.registry.line','step.history.cosecha'):
             self.assertFalse(self.env[model].with_user(portal).has_access('read'))
-        harvest=self.env['step.cosecha.registry'].create({'name':'Private protected harvest','product_uom_id':self.env.ref('uom.product_uom_kgm').id})
+        harvest=self.env['step.cosecha.registry'].with_context(default_type_tarea='contratista').create({'name':'Private protected harvest','product_uom_id':self.env.ref('uom.product_uom_kgm').id})
         harvest.write({'state':'cont'})
         with self.assertRaises(UserError):harvest.unlink()
