@@ -22,6 +22,9 @@ from odoo.tools.safe_eval import safe_eval, datetime as safe_eval_datetime, date
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
+    # Nonlabor native products must remain valid, including existing nulls.
+    # The labor form requires grupo_labor only when is_labor is enabled.
+
     is_fruta =  fields.Boolean('Es Fruta?')
     cosecha =  fields.Boolean('Es Cosecha?')
     is_labor =  fields.Boolean('Es Labor, Tarea?')
@@ -52,7 +55,7 @@ class ProductTemplate(models.Model):
             ('pack', 'Packing'),
         ],
         string='Grupo Labor',
-        required=True,
+        required=False,
         readonly=False,
         copy=False,
     )
@@ -74,9 +77,9 @@ class ProductTemplate(models.Model):
     # product_id = fields.Many2one('product.template', 'Relación Producto', required=False)
     partner_id = fields.Many2one('res.partner', 'Responsable')
     date = fields.Date(string='Fecha')
-    # company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
+    # company_id = fields.Many2one('res.company', required=False, default=lambda self: self.env.company)
     date_init = fields.Date(string='Fecha Inicio Labor')
     date_end = fields.Date(string='Fecha Fin Labor ')
     # actividad_id = fields.Many2one('step.actividad',
     #                                string="Actividad",
-    #                                required=True, ondelete='cascade')
+    #                                required=False, ondelete='cascade')

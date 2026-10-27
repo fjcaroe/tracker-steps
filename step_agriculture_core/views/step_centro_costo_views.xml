@@ -18,9 +18,9 @@
 <!--                    <group>-->
 <!--                        <group>-->
 <!--                            <field name="cod_costo"/>-->
-<!--                            <field name="type_costo"/>-->
-<!--                            <field name="etapa_costo"/>-->
-<!--                            <field name="fundo_id"/>-->
+<!--                            <field name="type_costo" required="1"/>-->
+<!--                            <field name="etapa_costo" required="1"/>-->
+<!--                            <field name="fundo_id" required="1"/>-->
 <!--                            <field name="plan_id"/>-->
 <!--                            <field name="cost_id"/>-->
 <!--                            <field name="maquina_id" invisible="type_costo != 'maquinaria'"/>-->
@@ -31,7 +31,7 @@
 <!--                            <field name="partner_id"/>-->
 <!--                            <field name="date_init"/>-->
 <!--                            <field name="company_id"/>-->
-<!--                            <field name="tipo_fruta"/>-->
+<!--                            <field name="tipo_fruta" required="1"/>-->
 <!--                        </group>-->
 <!--                    </group>-->
 <!--                    <field name="note"/>-->
@@ -138,9 +138,9 @@
                                 <field name="active" invisible="1"/>
                                 <field name="partner_id"/>
                                 <field name="code"/>
-                                <field name="type_costo"/>
-                                <field name="etapa_costo"/>
-                                <field name="fundo_id"/>
+                                <field name="type_costo" required="1"/>
+                                <field name="etapa_costo" required="1"/>
+                                <field name="fundo_id" required="1"/>
 <!--                                <field name="plan_id"/>-->
                                 <field name="maquina_id" invisible="type_costo != 'maquinaria'"/>
                             </group>
@@ -151,7 +151,7 @@
                                 <field name="date"/>
                                 <field name="responsable_id"/>
                                 <field name="date_init"/>
-                                <field name="tipo_fruta"/>
+                                <field name="tipo_fruta" required="1"/>
                             </group>
                         </group>
                         <notebook colspan="4">
@@ -252,9 +252,7 @@
         <field name="name">Centro de Costo</field>
         <field name="res_model">account.analytic.account</field>
         <field name="domain">[]</field>
-        <field name="view_ids" eval="[(5, 0, 0),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('step_hr.step_view_account_analytic_account_list')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('step_hr.step_view_account_analytic_account_form')})]"/>
+
     </record>
 
 

@@ -37,7 +37,7 @@ class TestPackingFruta(TransactionCase):
         cls.fundo = cls.env['step.fundo'].create({'name': 'Fundo prueba T34'})
         cls.category = cls.env['step.packing.fruit.category'].create({'name': 'Exportación T34'})
         cls.caliber = cls.env['step.packing.fruit.caliber'].create({'name': 'XL T34'})
-        cls.product = cls.env['product.product'].create({'name': 'Cereza granel T34', 'is_storable': True})
+        cls.product = cls.env['product.product'].create({'name': 'Cereza granel T34', 'is_storable': True, 'grupo_labor': 'cosecha'})
         cls.incoming_type = cls.env['stock.picking.type'].search([
             ('code', '=', 'incoming'), ('company_id', '=', cls.env.company.id)], limit=1)
         cls.outgoing_type = cls.env['stock.picking.type'].search([

@@ -1,9 +1,9 @@
 {
     'name': 'Steps - Maestros agrícolas compartidos',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.1.0',
     'license': 'LGPL-3',
     'author': 'Steps Consulting',
-    'depends': ['step_hr'],
+    'depends': ['step_agriculture_core'],
     'data': ['security/catalog_rules.xml', 'views/catalog_views.xml'],
     'post_init_hook': 'post_init_hook',
     'installable': True,

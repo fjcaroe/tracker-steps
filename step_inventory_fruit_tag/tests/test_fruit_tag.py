@@ -21,6 +21,7 @@ class TestFruitTag(TransactionCase):
         cls.product = cls.env["product.template"].create({
             "name": "Arándano test",
             "is_storable": True,
+            "grupo_labor": "cosecha",
             "weight": 5.0,
             "uom_id": cls.uom_kg.id,
         }).product_variant_id

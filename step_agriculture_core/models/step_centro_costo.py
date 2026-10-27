@@ -8,6 +8,10 @@ from odoo import api, fields, models, tools, SUPERUSER_ID, _, Command
 class AccountAnalyticAccount(models.Model):
     _inherit = 'account.analytic.account'
 
+    # Keep the destination's effective optional schema: native nonagricultural
+    # analytic accounts already have legitimate nulls. Agricultural forms
+    # enforce their inputs without imposing global NOT NULL during extraction.
+
     # cod_costo = fields.Char(string='CÃ³digo C Costo', required=True)
     type_costo = fields.Selection(
         selection=[
@@ -18,7 +22,7 @@ class AccountAnalyticAccount(models.Model):
             ('admin', 'Administrativo')
         ],
         string='Tipo C Costo',
-        required=True,
+        required=False,
         readonly=False,
         copy=False,
     )
@@ -29,16 +33,16 @@ class AccountAnalyticAccount(models.Model):
             ('ope', 'Operacion')
         ],
         string='Etapa C Costo',
-        required=True,
+        required=False,
         readonly=False,
         copy=False,
     )
     fundo_id = fields.Many2one('step.fundo',
                                string="Fundo",
-                               required=True, ondelete='cascade', copy=False)
+                               required=False, ondelete='cascade', copy=False)
     # sector_id = fields.Many2one('step.sector',
     #     string="Sector",
-    #     required=True, ondelete='cascade', copy=False)
+    #     required=False, ondelete='cascade', copy=False)
     plan_id = fields.Many2one(
         'account.analytic.plan', "Plan AnalÃ­tico")
     cost_id = fields.Many2one(
@@ -51,14 +55,14 @@ class AccountAnalyticAccount(models.Model):
     # partner_id = fields.Many2one('res.partner', 'Contacto')
     date_init = fields.Date(string='Fecha de Inicio')
     # tags_ids
-    # company_id = fields.Many2one('res.company', string='Empresa', required=True, default=lambda self: self.env.company)
+    # company_id = fields.Many2one('res.company', string='Empresa', required=False, default=lambda self: self.env.company)
     tipo_fruta = fields.Selection(
         selection=[
             ('conven', 'Convencional'),
             ('orga', 'Organico')
         ],
         string='Tipo Fruta',
-        required=True,
+        required=False,
         readonly=False,
         copy=False,
     )
@@ -114,7 +118,7 @@ class StepCentroCosto(models.Model):
     #         ('admin', 'Administrativo')
     #     ],
     #     string='Tipo C Costo',
-    #     required=True,
+    #     required=False,
     #     readonly=False,
     #     copy=False,
     # )
@@ -125,16 +129,16 @@ class StepCentroCosto(models.Model):
     #         ('ope', 'Operacion')
     #     ],
     #     string='Etapa C Costo',
-    #     required=True,
+    #     required=False,
     #     readonly=False,
     #     copy=False,
     # )
     # fundo_id = fields.Many2one('step.fundo',
     #     string="Fundo",
-    #     required=True, ondelete='cascade', copy=False)
+    #     required=False, ondelete='cascade', copy=False)
     # # sector_id = fields.Many2one('step.sector',
     # #     string="Sector",
-    # #     required=True, ondelete='cascade', copy=False)
+    # #     required=False, ondelete='cascade', copy=False)
     # plan_id = fields.Many2one(
     #     'account.analytic.plan', "Plan AnalÃ­tico")
     # cost_id = fields.Many2one(
@@ -147,14 +151,14 @@ class StepCentroCosto(models.Model):
     # partner_id = fields.Many2one('res.partner', 'Contacto')
     # date_init = fields.Date(string='Fecha de Inicio')
     # # tags_ids
-    # company_id = fields.Many2one('res.company', string='Empresa', required=True, default=lambda self: self.env.company)
+    # company_id = fields.Many2one('res.company', string='Empresa', required=False, default=lambda self: self.env.company)
     # tipo_fruta = fields.Selection(
     #     selection=[
     #         ('conven', 'Convencional'),
     #         ('orga', 'Organico')
     #     ],
     #     string='Tipo Fruta',
-    #     required=True,
+    #     required=False,
     #     readonly=False,
     #     copy=False,
     # )
@@ -184,10 +188,10 @@ class StepCentroCosto(models.Model):
     # )
     # grupo_variedad_id = fields.Many2one('step.grupo.variedad',
     #                                     string="Grupo Variedad",
-    #                                     required=True, ondelete='cascade', copy=False)
+    #                                     required=False, ondelete='cascade', copy=False)
     # variedad_id = fields.Many2one('step.variedad',
     #     string="Variedad",
-    #     required=True, ondelete='cascade', copy=False)
+    #     required=False, ondelete='cascade', copy=False)
     # date_plant = fields.Date(string='AÃ±o PlantaciÃ³n')
     # date_prod = fields.Date(string='AÃ±o ProducciÃ³n')
     # date_prodtivos = fields.Date(string='AÃ±os Productivos')

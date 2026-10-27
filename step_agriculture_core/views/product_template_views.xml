@@ -28,7 +28,7 @@
                         <group>
                             <field name="cod_labor"/>
                             <field name="uom_trato"/>
-                            <field name="grupo_labor" invisible="is_labor == False"/>
+                            <field name="grupo_labor" invisible="is_labor == False" required="is_labor"/>
                             <field name="qa" invisible="is_labor == False"/>
                             <field name="date" invisible="is_labor == False"/>
                         </group>

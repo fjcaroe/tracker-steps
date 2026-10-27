@@ -21,11 +21,11 @@
         - Campos "Número OP" / "Número OT" en el formulario de Operaciones
           de Inventario (stock.picking).
     """,
-    "version": "18.0.1.0.0",
+    "version": "18.0.1.1.0",
     "author": "Steps Consulting",
     "category": "Inventory/Inventory",
     "license": "LGPL-3",
-    "depends": ["stock", "step_hr", "step_management_costs"],
+    "depends": ["stock", "step_agriculture_core", "step_management_costs"],
     "data": [
         "security/ir.model.access.csv",
         "data/stock_location_data.xml",

@@ -3,11 +3,11 @@
     "name": "Steps - Packing",
     "summary": "Apps Packing Campo y Packing Fruta: recepcion de fruta, recepcion a granel, "
                 "inspecciones, despacho y catalogos de proceso (puerto desde Studio, tickets 33 y 34).",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "category": "Agriculture",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "step_hr", "product", "mrp", "stock"],
+    "depends": ["base", "mail", "step_agriculture_core", "product", "mrp", "stock"],
     "data": [
         "security/ir.model.access.csv",
         "data/stages.xml",

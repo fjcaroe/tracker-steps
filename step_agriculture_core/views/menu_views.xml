@@ -1,0 +1,13 @@
+<odoo>
+    <menuitem id="menu_agriculture_core" name="Maestros agrícolas" sequence="61" groups="base.group_user"/>
+    <menuitem id="menu_step_temporada" name="Temporadas" parent="menu_agriculture_core" action="action_step_temporada" sequence="10"/>
+    <menuitem id="menu_step_fundo" name="Fundos" parent="menu_agriculture_core" action="action_step_fundo" sequence="20"/>
+    <menuitem id="menu_step_especie" name="Especies" parent="menu_agriculture_core" action="action_step_especie" sequence="30"/>
+    <menuitem id="menu_step_grupo_variedad" name="Grupos de variedades" parent="menu_agriculture_core" action="action_step_grupo_variedad" sequence="40"/>
+    <menuitem id="menu_step_variedad" name="Variedades" parent="menu_agriculture_core" action="action_step_variedad" sequence="50"/>
+    <menuitem id="menu_step_centro_costo_analytic" name="Centros de costo" parent="menu_agriculture_core" action="action_step_centro_costo_analytic" sequence="60"/>
+    <menuitem id="menu_step_work_schedule" name="Horarios de trabajo" parent="menu_agriculture_core" action="action_step_work_schedule" sequence="70"/>
+    <menuitem id="menu_res_sector" name="Sectores" parent="menu_agriculture_core" action="action_res_sector" sequence="80"/>
+    <menuitem id="menu_step_actividad" name="Actividades" parent="menu_agriculture_core" action="action_step_actividad" sequence="90"/>
+    <menuitem id="menu_step_labor" name="Labores" parent="menu_agriculture_core" action="action_step_labor" sequence="100"/>
+</odoo>
