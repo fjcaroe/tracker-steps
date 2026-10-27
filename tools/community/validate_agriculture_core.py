@@ -22,7 +22,8 @@ from validate_community_reports import run, sql, snapshot as finance_snapshot, s
 MODULES = ('step_agriculture_core', 'step_hr', 'step_agriculture_catalogs', 'step_packing',
            'step_inventory_fruit_tag', 'step_management_costs', 'step_management_costs_agriculture')
 BASE_MODULES = MODULES
-PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_producer_estimate_report')
+PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_producer_estimate_report',
+                    'step_producer_purchase_mode', 'step_management_costs_producers')
 
 
 def verify_native(base, opts, addons, stage, mode):
@@ -214,7 +215,7 @@ def main():
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
             if args.profile == 'producers':
-                init[1] += ',step_producer_contract_report,step_producer_estimate_report'
+                init[1] += ',' + ','.join(PRODUCER_MODULES)
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)

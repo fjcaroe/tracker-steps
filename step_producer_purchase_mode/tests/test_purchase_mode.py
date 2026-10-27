@@ -71,8 +71,8 @@ class PurchaseModeCase(TransactionCase):
             link='contract_id' if kind=='contract' else 'estimate_id'
             rows=report.search([(link,'=',doc.id)])
             self.assertTrue(rows)
-            for typ in ('list','search','gantt'):
-                view=self.env.ref('step_producer_'+kind+'_report.report_'+typ)
+            for typ in ('list','search','calendar'):
+                view=self.env.ref('step_producer_'+kind+'_report.report_'+('gantt' if typ == 'calendar' else typ))
                 arch=etree.fromstring(report.get_view(view_id=view.id,view_type=typ)['arch'].encode())
                 self.assertTrue(arch.xpath(".//field[@name='purchase_mode']"))
             action=self.env.ref('step_producer_'+kind+'_report.report_action')

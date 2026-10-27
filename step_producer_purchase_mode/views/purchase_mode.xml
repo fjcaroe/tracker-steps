@@ -1,11 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-<record id="contract_form" model="ir.ui.view"><field name="name">contract_form</field><field name="model">step.producer.purchase.contract</field><field name="inherit_id" ref="step_producers.view_step_producer_purchase_contract_form"/><field name="arch" type="xml"><xpath expr="//field[@name='partner_id']" position="after"><field name="purchase_mode" readonly="(state != 'draft') and purchase_mode"/><div class="text-muted" colspan="2" invisible="not purchase_mode"><span invisible="purchase_mode != 'firm'">A firme: precio final, sin liquidación.</span><span invisible="purchase_mode != 'consignment'">Consignación: precio referencial; el precio final se determina según la venta en Liquidación de productor.</span></div></xpath></field></record>
-<record id="estimate_form" model="ir.ui.view"><field name="name">estimate_form</field><field name="model">step.export.estimate</field><field name="inherit_id" ref="step_producers.view_step_export_estimate_t35_form"/><field name="arch" type="xml"><xpath expr="//field[@name='producer_id']" position="after"><field name="purchase_mode" readonly="(state in ('current', 'replaced')) and purchase_mode"/><div class="text-muted" colspan="2" invisible="not purchase_mode"><span invisible="purchase_mode != 'firm'">A firme: precio final, sin liquidación.</span><span invisible="purchase_mode != 'consignment'">Consignación: precio referencial; el precio final se determina según la venta en Liquidación de productor.</span></div></xpath></field></record>
-<record id="contract_list" model="ir.ui.view"><field name="name">contract_list</field><field name="model">step.producer.contract.report</field><field name="inherit_id" ref="step_producer_contract_report.report_list"/><field name="arch" type="xml"><xpath expr="//list/field[1]" position="after"><field name="purchase_mode"/></xpath></field></record>
-<record id="contract_search" model="ir.ui.view"><field name="name">contract_search</field><field name="model">step.producer.contract.report</field><field name="inherit_id" ref="step_producer_contract_report.report_search"/><field name="arch" type="xml"><xpath expr="//search/field[1]" position="after"><field name="purchase_mode"/><filter name="mode_firm" string="A firme" domain="[('purchase_mode','=','firm')]"/><separator/><filter name="mode_consignment" string="Consignación" domain="[('purchase_mode','=','consignment')]"/><separator/><filter name="mode_unset" string="Sin modalidad" domain="[('purchase_mode','=',False)]"/><separator/><filter name="group_purchase_mode" string="Modalidad de compra" context="{'group_by':'purchase_mode'}"/></xpath></field></record>
-<record id="contract_gantt" model="ir.ui.view"><field name="name">contract_gantt</field><field name="model">step.producer.contract.report</field><field name="inherit_id" ref="step_producer_contract_report.report_gantt"/><field name="arch" type="xml"><xpath expr="//gantt/field[1]" position="after"><field name="purchase_mode"/></xpath></field></record>
-<record id="estimate_list" model="ir.ui.view"><field name="name">estimate_list</field><field name="model">step.producer.estimate.report</field><field name="inherit_id" ref="step_producer_estimate_report.report_list"/><field name="arch" type="xml"><xpath expr="//list/field[1]" position="after"><field name="purchase_mode"/></xpath></field></record>
-<record id="estimate_search" model="ir.ui.view"><field name="name">estimate_search</field><field name="model">step.producer.estimate.report</field><field name="inherit_id" ref="step_producer_estimate_report.report_search"/><field name="arch" type="xml"><xpath expr="//search/field[1]" position="after"><field name="purchase_mode"/><filter name="mode_firm" string="A firme" domain="[('purchase_mode','=','firm')]"/><separator/><filter name="mode_consignment" string="Consignación" domain="[('purchase_mode','=','consignment')]"/><separator/><filter name="mode_unset" string="Sin modalidad" domain="[('purchase_mode','=',False)]"/><separator/><filter name="group_purchase_mode" string="Modalidad de compra" context="{'group_by':'purchase_mode'}"/></xpath></field></record>
-<record id="estimate_gantt" model="ir.ui.view"><field name="name">estimate_gantt</field><field name="model">step.producer.estimate.report</field><field name="inherit_id" ref="step_producer_estimate_report.report_gantt"/><field name="arch" type="xml"><xpath expr="//gantt/field[1]" position="after"><field name="purchase_mode"/></xpath></field></record>
+  <record id="contract_form" model="ir.ui.view">
+    <field name="name">contract_form</field>
+    <field name="model">step.producer.purchase.contract</field>
+    <field name="inherit_id" ref="step_producers.view_step_producer_purchase_contract_form" />
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='partner_id']" position="after">
+        <field name="purchase_mode" readonly="(state != 'draft') and purchase_mode" />
+        <div class="text-muted" colspan="2" invisible="not purchase_mode">
+          <span invisible="purchase_mode != 'firm'">A firme: precio final, sin liquidación.</span>
+          <span invisible="purchase_mode != 'consignment'">Consignación: precio referencial; el precio final se determina según la venta en Liquidación de productor.</span>
+        </div>
+      </xpath>
+    </field>
+  </record>
+  <record id="estimate_form" model="ir.ui.view">
+    <field name="name">estimate_form</field>
+    <field name="model">step.export.estimate</field>
+    <field name="inherit_id" ref="step_producers.view_step_export_estimate_t35_form" />
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='producer_id']" position="after">
+        <field name="purchase_mode" readonly="(state in ('current', 'replaced')) and purchase_mode" />
+        <div class="text-muted" colspan="2" invisible="not purchase_mode">
+          <span invisible="purchase_mode != 'firm'">A firme: precio final, sin liquidación.</span>
+          <span invisible="purchase_mode != 'consignment'">Consignación: precio referencial; el precio final se determina según la venta en Liquidación de productor.</span>
+        </div>
+      </xpath>
+    </field>
+  </record>
+  <record id="contract_list" model="ir.ui.view">
+    <field name="name">contract_list</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="inherit_id" ref="step_producer_contract_report.report_list" />
+    <field name="arch" type="xml">
+      <xpath expr="//list/field[1]" position="after">
+        <field name="purchase_mode" />
+      </xpath>
+    </field>
+  </record>
+  <record id="contract_search" model="ir.ui.view">
+    <field name="name">contract_search</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="inherit_id" ref="step_producer_contract_report.report_search" />
+    <field name="arch" type="xml">
+      <xpath expr="//search/field[1]" position="after">
+        <field name="purchase_mode" />
+        <filter name="mode_firm" string="A firme" domain="[('purchase_mode','=','firm')]" />
+        <separator />
+        <filter name="mode_consignment" string="Consignación" domain="[('purchase_mode','=','consignment')]" />
+        <separator />
+        <filter name="mode_unset" string="Sin modalidad" domain="[('purchase_mode','=',False)]" />
+        <separator />
+        <filter name="group_purchase_mode" string="Modalidad de compra" context="{'group_by':'purchase_mode'}" />
+      </xpath>
+    </field>
+  </record>
+  <record id="contract_gantt" model="ir.ui.view">
+    <field name="name">contract_gantt</field>
+    <field name="model">step.producer.contract.report</field>
+    <field name="inherit_id" ref="step_producer_contract_report.report_gantt" />
+    <field name="arch" type="xml">
+      <xpath expr="//calendar/field[1]" position="after">
+        <field name="purchase_mode" />
+      </xpath>
+    </field>
+    <field name="type">calendar</field>
+  </record>
+  <record id="estimate_list" model="ir.ui.view">
+    <field name="name">estimate_list</field>
+    <field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_list" />
+    <field name="arch" type="xml">
+      <xpath expr="//list/field[1]" position="after">
+        <field name="purchase_mode" />
+      </xpath>
+    </field>
+  </record>
+  <record id="estimate_search" model="ir.ui.view">
+    <field name="name">estimate_search</field>
+    <field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_search" />
+    <field name="arch" type="xml">
+      <xpath expr="//search/field[1]" position="after">
+        <field name="purchase_mode" />
+        <filter name="mode_firm" string="A firme" domain="[('purchase_mode','=','firm')]" />
+        <separator />
+        <filter name="mode_consignment" string="Consignación" domain="[('purchase_mode','=','consignment')]" />
+        <separator />
+        <filter name="mode_unset" string="Sin modalidad" domain="[('purchase_mode','=',False)]" />
+        <separator />
+        <filter name="group_purchase_mode" string="Modalidad de compra" context="{'group_by':'purchase_mode'}" />
+      </xpath>
+    </field>
+  </record>
+  <record id="estimate_gantt" model="ir.ui.view">
+    <field name="name">estimate_gantt</field>
+    <field name="model">step.producer.estimate.report</field>
+    <field name="inherit_id" ref="step_producer_estimate_report.report_gantt" />
+    <field name="arch" type="xml">
+      <xpath expr="//calendar/field[1]" position="after">
+        <field name="purchase_mode" />
+      </xpath>
+    </field>
+    <field name="type">calendar</field>
+  </record>
 </odoo>
