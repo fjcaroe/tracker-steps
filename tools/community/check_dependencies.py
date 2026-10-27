@@ -24,6 +24,8 @@ def check(names, nodes):
         if node is None:
             errors.append('missing manifest: ' + chain)
             return
+        if node.get('source_available') is False:
+            errors.append('missing source: ' + chain)
         if node.get('license') == 'OEEL-1':
             errors.append('Enterprise: ' + chain)
         if not node.get('installable', True):
