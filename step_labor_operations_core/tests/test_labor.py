@@ -1,4 +1,4 @@
-from odoo import Command
+from odoo import Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import Form, TransactionCase, tagged
 
@@ -33,7 +33,8 @@ class LaborOperationsCase(TransactionCase):
         cls.employee = cls.scoped['hr.employee'].create({'name':'Labor fixture employee',
             'company_id':cls.company.id,'is_propio':True})
         cls.contract = cls.scoped['hr.contract'].create({'name':'Labor fixture contract',
-            'employee_id':cls.employee.id,'company_id':cls.company.id,'date_start':'2026-01-01',
+            'employee_id':cls.employee.id,'company_id':cls.company.id,
+            'date_start':fields.Date.context_today(cls.scoped['hr.contract']).replace(day=1),
             'resource_calendar_id':cls.calendar.id,'wage':800000})
 
     def crew(self, kind='propio'):
@@ -118,6 +119,9 @@ class LaborOperationsCase(TransactionCase):
         adopt_legacy_records(self.env); preserve_legacy_xmlids(self.env)
         self.assertEqual(sequence.prefix,'CUSTOM/');self.assertEqual(sequence.padding,9)
         self.assertEqual(sequence.number_next_actual,before)
+        for name in ('seq_cuadrilla_propia','seq_cuadrilla_contratista','seq_registro_propia','seq_registro_contratista'):
+            alias=self.env['ir.model.data'].search([('module','=','step_labor_operations_core'),('name','=',name)])
+            self.assertTrue(alias.noupdate,'Sequence hook aliases must survive module cleanup')
 
     def test_rate_form_and_contractor_cost_keep_actual_product_relations(self):
         labor=self.env['product.template'].create({'name':'Labor rate fixture','is_labor':True})

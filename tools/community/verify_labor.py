@@ -1,5 +1,6 @@
 """Labor operations forms and costs with an existing profile; rollback only."""
 from odoo.addons.step_labor_operations_core.ownership import RECORDS
+from odoo import fields
 
 try:
     for name in RECORDS:
@@ -35,7 +36,8 @@ try:
         assert not hasattr(scoped_labor['step.tarja'],'envio_nomina')
     employee=scoped_labor['hr.employee'].create({'name':'Private labor verification','company_id':company.id})
     contract=scoped_labor['hr.contract'].create({'name':'Private labor contract verification',
-        'employee_id':employee.id,'company_id':company.id,'date_start':'2026-10-01','wage':800000,
+        'employee_id':employee.id,'company_id':company.id,
+        'date_start':fields.Date.context_today(scoped_labor['hr.contract']).replace(day=1),'wage':800000,
         'resource_calendar_id':company.resource_calendar_id.id})
     # Omit explicit type during these reversible native API checks so the
     # legacy create override doesn't consume the customer's SQL sequence.

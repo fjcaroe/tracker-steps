@@ -33,7 +33,8 @@ def _alias(record, namespace):
             raise UserError('Identificador operacional en conflicto: %s.%s' % (namespace,record.name))
     else:
         data.create({'module':namespace,'name':record.name,'model':record.model,
-                     'res_id':record.res_id,'noupdate':record.noupdate if namespace == CORE else True})
+                     'res_id':record.res_id,'noupdate':True if record.model == 'ir.sequence' else
+                     record.noupdate if namespace == CORE else True})
 
 
 def adopt_legacy_records(env):
