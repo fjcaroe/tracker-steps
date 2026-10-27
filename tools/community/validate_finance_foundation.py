@@ -31,12 +31,17 @@ def snapshot(database):
                  "tablename LIKE 'hr_%' OR tablename LIKE 'res_users%' OR tablename IN "
                  "('res_company','res_partner','res_currency','res_currency_rate','res_groups_users_rel','res_company_users_rel')) "
                  "ORDER BY tablename").splitlines()
-    result = {}
+    statements = []
     for table in tables:
         assert re.fullmatch('[a-z_][a-z0-9_]*', table)
-        value = sql(database, "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t')
-        result[table] = json.loads(value)
-    return result
+        statements.append("SELECT '" + table + "' AS name, json_build_object('rows',count(*),'hash',"
+            "md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) AS value FROM " + table + ' t')
+    if not statements:
+        return {}
+    # A single SQL statement gives every table the same MVCC snapshot and
+    # avoids a separate sudo/psql process per table.
+    return json.loads(sql(database, "SELECT json_object_agg(name,value) FROM (" +
+                          ' UNION ALL '.join(statements) + ') snapshots'))
 
 
 def field_ids(database):
