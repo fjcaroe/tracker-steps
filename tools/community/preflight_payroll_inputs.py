@@ -17,11 +17,13 @@ def main():
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--data',type=Path,required=True)
+    parser.add_argument('--attempt',type=int,default=1)
     args=parser.parse_args()
     assert os.geteuid()==0 and re.fullmatch('MANAGEMENT_QA_CERRO_AGRICULTURE_HR_[A-Za-z0-9_]+',args.database)
     assert str(args.root.resolve()).startswith('/opt/steps-validation/')
     assert str(args.data.resolve()).startswith('/opt/steps-validation/')
-    addons=args.root/'addons';stage=args.root/'payroll-preflight'
+    assert 1<=args.attempt<=9
+    addons=args.root/'addons';stage=args.root/('payroll-preflight-'+str(args.attempt))
     assert not stage.exists() and (addons/'step_labor_payroll_wizards/__manifest__.py').is_file()
     stage.mkdir(mode=0o750)
     identity=pwd.getpwnam('cerro_odoo18');os.chown(stage,identity.pw_uid,identity.pw_gid)

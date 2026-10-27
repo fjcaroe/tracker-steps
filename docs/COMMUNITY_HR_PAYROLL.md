@@ -50,7 +50,7 @@ Este ensayo **no** adapta ni instala Simple Digital sobre OCA.
 | Contrato requerido por el stack actual | Brecha a cerrar con OCA |
 | --- | --- |
 | Módulos y XML IDs `hr_payroll*` | OCA usa `payroll*`; hay que adaptar dependencias y adoptar IDs de modelos, grupos, reglas, acciones y vistas sin fachadas vacías. |
-| `hr.payroll.structure.type`, `hr.contract.structure_type_id` | El motor candidato usa `hr.contract.struct_id`; falta preservar el modelo original y su semántica de tipos/estructuras. |
+| `hr.payroll.structure.type`, `hr.contract.structure_type_id` | Los modelos base sí existen en Community oficial. OCA usa además `hr.contract.struct_id`; faltan el enlace `hr.payroll.structure.type_id` y los complementos del proveedor, conservando IDs y semántica. |
 | `hr.salary.rule.struct_id` | OCA usa reglas asociadas a estructuras por M2M; falta conservar la relación original y demostrar equivalencia. |
 | `hr.payslip.input.type` e `input_type_id` | OCA usa entradas con código y `hr.rule.input`; faltan tipos, restricciones por estructura e identidad de entradas originales. |
 | `hr.payslip.worked_days.work_entry_type_id` y `_get_worked_day_lines_values(domain)` | Simple Digital genera asistencia/ausencias por tipos de entradas; OCA no ofrece esa misma API. No reemplazarla por días constantes. |
@@ -71,11 +71,11 @@ libro, ciclo de contratos, correcciones y transición del motor.
 El wizard original ya no busca la primera liquidación o contrato del empleado.
 Exige empresa activa, lote, estructura, un empleado por usuario y una liquidación
 única coincidente. Toma bloqueo de filas, vuelve a leer estados y valida todo el
-conjunto antes de crear entradas. Solo acepta lote/liquidación en borrador y no
+conjunto antes de crear entradas. Solo acepta lote abierto (`draft`/`verify`) y liquidación en borrador y no
 pagada, conserva el contrato de la propia liquidación y rechaza un tipo de entrada
 ya existente. Una repetición no duplica importes ni reemplaza registros originales.
 No usa `sudo`, no concede el ACL ausente del wizard y no llama a `compute_sheet`.
-El flujo APR legado sigue separado y no constituye un motor salarial.
+La API nativa cambia el lote a `verify` al agregar una liquidación todavía en borrador; se conserva esa semántica y se rechazan lotes `close`/`paid`. El flujo APR legado sigue separado y no constituye un motor salarial.
 
 ## Pruebas y evidencia
 

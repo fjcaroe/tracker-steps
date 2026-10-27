@@ -47,6 +47,7 @@ class PayrollInputCase(TransactionCase):
         other=self.env['hr.payslip.run'].create({'name':'Other private run','company_id':self.company.id})
         earlier=self.make_slip(payslip_run_id=other.id)
         lines_before=self.slip.line_ids.read(['total','amount'])
+        self.assertEqual(self.batch.state,'verify')
         result=self.wizard().import_button()
         self.assertEqual(result['res_model'],'success.message')
         self.assertEqual(len(self.slip.input_line_ids),1)
@@ -101,10 +102,10 @@ class PayrollInputCase(TransactionCase):
         self.assertFalse(self.slip.input_line_ids)
 
     def test_closed_run_rejected(self):
-        state=next(s for s,_ in self.batch._fields['state']._description_selection(self.env) if s!='draft')
-        self.batch.state=state
-        with self.assertRaises(ValidationError):self.wizard().import_button()
-        self.assertFalse(self.slip.input_line_ids)
+        for state in ('close','paid'):
+            self.batch.state=state
+            with self.subTest(state=state),self.assertRaises(ValidationError):self.wizard().import_button()
+            self.assertFalse(self.slip.input_line_ids)
 
     def test_empty_selection_rejected(self):
         with self.assertRaises(ValidationError):self.wizard(user_ids=[Command.clear()]).import_button()

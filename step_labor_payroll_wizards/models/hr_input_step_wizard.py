@@ -65,8 +65,10 @@ class HrInputStep(models.TransientModel):
                             [tuple(slips.ids)])
         self.payslip_run_id.invalidate_recordset(['state'])
         slips.invalidate_recordset()
-        if self.payslip_run_id.state != 'draft':
-            raise ValidationError(_('Solo se pueden importar entradas en lotes en borrador.'))
+        # Native payroll marks a batch verify as soon as it contains draft slips.
+        # That batch remains open; every selected slip must still be unpaid draft.
+        if self.payslip_run_id.state not in ('draft', 'verify'):
+            raise ValidationError(_('Solo se pueden importar entradas en lotes abiertos (nuevos o confirmados).'))
         values = []
         for slip in slips:
             slip.check_access('write')

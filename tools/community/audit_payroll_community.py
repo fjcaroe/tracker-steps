@@ -89,7 +89,7 @@ def main():
     counts={}
     for table in ('hr_contract','hr_payslip','hr_payslip_run','hr_payslip_input','hr_payslip_line',
                   'hr_payroll_structure','hr_payroll_structure_type','hr_salary_rule','hr_payslip_input_type',
-                  'hr_work_entry','hr_employee_movement','hr_employee_movement_line','hr_employee_movement_type',
+                  'step_payroll_legacy_snapshot','hr_salary_employee_month','hr_work_entry','hr_employee_movement','hr_employee_movement_line','hr_employee_movement_type',
                   'step_previred_profile','step_previred_batch','step_remuneration_book_profile','step_remuneration_book_profile_line',
                   'step_remuneration_book_log'):
         exists=query("SELECT to_regclass('"+table+"') IS NOT NULL")[0]=='t'
@@ -97,10 +97,12 @@ def main():
     result['counts']=counts
     result['states']=json.loads(query("SELECT coalesce(json_object_agg(state,n),'{}'::json) FROM (SELECT state,count(*) n FROM hr_payslip GROUP BY state) t")[0])
     result['rule_xmlid_namespaces']=json.loads(query("SELECT coalesce(json_object_agg(module,n),'{}'::json) FROM (SELECT d.module,count(DISTINCT r.id) n FROM hr_salary_rule r JOIN ir_model_data d ON d.model='hr.salary.rule' AND d.res_id=r.id GROUP BY d.module) t")[0])
-    rules=json.loads(query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'code',code,'condition',condition_python,'amount',amount_python_compute) ORDER BY id),'[]'::jsonb) FROM hr_salary_rule")[0])
+    rules=json.loads(query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'code',code,'struct_id',struct_id,'category_id',category_id,'sequence',sequence,'active',active,'condition',condition_python,'amount',amount_python_compute) ORDER BY id),'[]'::jsonb) FROM hr_salary_rule")[0])
+    result['structures']=json.loads(query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'type_id',type_id,'code',code,'active',active) ORDER BY id),'[]'::jsonb) FROM hr_payroll_structure")[0])
+    result['input_types']=json.loads(query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'code',code,'active',active) ORDER BY id),'[]'::jsonb) FROM hr_payslip_input_type")[0])
     result['rules']=[]
     for rule in rules:
-        item={'id':rule['id'],'code':rule['code']}
+        item={key:rule[key] for key in ('id','code','struct_id','category_id','sequence','active')}
         for key in ('condition','amount'):
             code=rule[key] or ''
             item[key+'_sha256']=hashlib.sha256(code.encode()).hexdigest()
