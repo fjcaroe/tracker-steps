@@ -24,16 +24,21 @@ MODULES = ('step_agriculture_core', 'step_hr', 'step_agriculture_catalogs', 'ste
 BASE_MODULES = MODULES
 PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_producer_estimate_report',
                     'step_producer_purchase_mode', 'step_management_costs_producers')
+OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_agriculture_scope')
 
 
 def verify_native(base, opts, addons, stage, mode):
     check = (addons / 'tools/community/verify_agriculture_core.py').read_text()
     if 'step_producers' in MODULES:
         check += '\n' + (addons / 'tools/community/verify_producers.py').read_text()
+    if 'step_operations_core' in MODULES:
+        check += '\n' + (addons / 'tools/community/verify_operations.py').read_text()
     result = subprocess.run(base + ['shell'] + opts + ['--no-http', '--log-level=critical'],
         input='MODE=' + repr(mode) + '\n' + check, text=True, capture_output=True)
     (stage / 'verify.log').write_text(result.stdout + result.stderr)
     assert result.returncode == 0 and 'AGRICULTURE_NATIVE_OK' in result.stdout, result.stderr[-3000:]
+    if 'step_operations_core' in MODULES:
+        assert 'OPERATIONS_NATIVE_OK' in result.stdout and 'PRODUCERS_NATIVE_OK' in result.stdout
     print(result.stdout, flush=True)
 
 
@@ -59,6 +64,14 @@ def verify_existing(args):
 def snapshot(database):
     result = finance_snapshot(database)
     for table in ('product_template', 'product_product', 'fleet_vehicle', 'res_sector'):
+        result[table] = json.loads(sql(database,
+            "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
+            "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
+    operational_tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
+        "(tablename LIKE 'project_%' OR tablename LIKE 'fleet_%' OR tablename LIKE 'monthly_%' OR "
+        "tablename LIKE 'real_cost_%' OR tablename LIKE 'regist_cost_%' OR tablename IN ('type_service_machinery','type_costing_machinery')) ORDER BY tablename").splitlines()
+    for table in operational_tables:
+        assert re.fullmatch('[a-z_][a-z0-9_]*', table)
         result[table] = json.loads(sql(database,
             "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,"
             "E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM " + table + ' t'))
@@ -127,10 +140,11 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--environment', choices=('cerro', 'development', 'qa-cerro'), default='cerro')
-    parser.add_argument('--profile', choices=('agriculture', 'producers'), default='agriculture')
+    parser.add_argument('--profile', choices=('agriculture', 'producers', 'operations'), default='agriculture')
     parser.add_argument('--verify-existing', action='store_true', help='Add native checks to an already passed pure stage')
     args = parser.parse_args()
-    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile == 'producers' else ())
+    MODULES = BASE_MODULES + (PRODUCER_MODULES if args.profile in ('producers','operations') else ()) + (
+        OPERATIONS_MODULES if args.profile == 'operations' else ())
     assert os.geteuid() == 0
     assert re.fullmatch(('COMMUNITY_AGRICULTURE_' if args.mode == 'community' else
                          'MANAGEMENT_QA_QA-CERRO_' if args.environment == 'qa-cerro' else
@@ -184,8 +198,8 @@ def main():
                 "SELECT coalesce(json_agg(t.id),'[]'::json) FROM ir_act_window_view t "
                 "JOIN ir_model_data d ON d.res_id=t.view_id AND d.model='ir.ui.view' "
                 "WHERE d.name='report_gantt' AND d.module IN ('step_producer_contract_report',"
-                "'step_producer_estimate_report')")) if args.profile == 'producers' else []
-            if args.profile == 'producers':
+                "'step_producer_estimate_report')")) if args.profile in ('producers','operations') else []
+            if args.profile in ('producers','operations'):
                 assert len(calendar_bindings) == 2, 'Expected two original report-view bindings'
             (stage / 'calendar-bindings-before.json').write_text(json.dumps(calendar_bindings))
             history = history_contract(args.database)
@@ -195,7 +209,9 @@ def main():
             addon_paths = str(addons) + ',' + options['addons_path']
             installed = contract['installed_versions']
             upgrades = [m for m in MODULES if m in installed]
-            init = ([] if 'step_agriculture_core' in installed else ['-i', 'step_agriculture_core']) + (
+            new_cores = [m for m in ('step_agriculture_core','step_operations_core')
+                         if m in MODULES and m not in installed]
+            init = (['-i', ','.join(new_cores)] if new_cores else []) + (
                 ['-u', ','.join(upgrades)] if upgrades else [])
             entrypoint = addons / 'tools/ops/run_agriculture_upgrade.py'
         else:
@@ -214,8 +230,10 @@ def main():
                 (pure / module).symlink_to(addons / module)
             addon_paths = str(pure) + ',' + str(runtime / 'addons')
             init = ['-i', 'step_agriculture_catalogs,step_packing,step_inventory_fruit_tag,step_management_costs_agriculture']
-            if args.profile == 'producers':
+            if args.profile in ('producers','operations'):
                 init[1] += ',' + ','.join(PRODUCER_MODULES)
+            if args.profile == 'operations':
+                init[1] += ',' + ','.join(OPERATIONS_MODULES)
             entrypoint = runtime / 'odoo-bin'
         for path in [stage, *stage.rglob('*')]:
             if not path.is_symlink(): os.chown(path, identity.pw_uid, identity.pw_gid)

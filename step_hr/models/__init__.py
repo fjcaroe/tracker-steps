@@ -9,16 +9,13 @@ from . import hr_salary_contract_line
 # from . import step_cosecha_ubicacion
 from . import product_pricelist
 from . import product_pricelist_item
-from . import project_task
 from . import step_tarja
 from . import step_tarja_line
 from . import step_tarja_cost
 from . import step_tarja_cost_line
 from . import account_move
-from . import hr_employee
 from . import hr_contract
 from . import res_partner
-from . import fleet_vehicle
 from . import step_tracker
 from . import step_tracker_sync
 # from . import step_cosecha_registry

@@ -16,10 +16,10 @@ class Task(models.Model):
     num_op = fields.Char(string='Número OP', readonly=False)
     grupo_variedad_id = fields.Many2one('step.grupo.variedad',
                                         string="Grupo Variedad",
-                                        required=True, ondelete='cascade', copy=False)
+                                        required=False, ondelete='cascade', copy=False)
     variedad_id = fields.Many2one('step.variedad',
                                   string="Variedad",
-                                  required=True, ondelete='cascade', copy=False)
+                                  required=False, ondelete='cascade', copy=False)
     step_note = fields.Html(string="Notas")
     cost_id = fields.Many2one(
         'account.analytic.account', "Centro de Costo",
