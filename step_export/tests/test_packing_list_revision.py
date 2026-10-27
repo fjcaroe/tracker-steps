@@ -1,5 +1,5 @@
 from lxml import etree
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -28,8 +28,11 @@ class TestPackingListRevision(TransactionCase):
         self.assertIn(packing.name.encode(), html)
         guide_tree = etree.fromstring(guide.get_view(view_type='form')['arch'].encode())
         self.assertTrue(guide_tree.xpath(".//sheet//field[@name='step_export_shipment_id']"))
-        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+        # Packing Dispatch may reject the same unsafe change earlier with
+        # UserError; the base ValidationError also inherits that user-facing type.
+        with self.assertRaises(UserError), self.env.cr.savepoint():
             guide.step_export_shipment_id = False
+        self.assertEqual(guide.step_export_shipment_id, shipment)
 
     def test_existing_membership_and_switch_keep_single_relation(self):
         guide = self._guide()

@@ -18,15 +18,25 @@ class TestShipmentRevision(TransactionCase):
         self.assertTrue(self.env['l10n_cl.customs_port'].with_user(user).search([], limit=1))
 
     def test_participant_selectors_use_existing_export_contact_flag(self):
-        eligible = self.env['res.partner'].create({'name': 'QA export participant', 'step_export': True})
-        regular = self.env['res.partner'].create({'name': 'QA regular contact', 'step_export': False})
-        tree = etree.fromstring(self.env['step.export.export'].get_view(view_type='form')['arch'].encode())
-        for field in ('carrier_id', 'consignee_id', 'notify_id', 'freight_forwarder_id', 'customs_agent_id'):
-            node = tree.xpath(".//field[@name='%s']" % field)[0]
-            domain = safe_eval(node.get('domain')) if node.get('domain') else self.env['step.export.export']._fields[field].domain
-            choices = self.env['res.partner'].search(domain)
-            self.assertIn(eligible, choices)
-            self.assertNotIn(regular, choices)
+        roles={'carrier_id':'step_export_carrier','consignee_id':'step_export_consignee',
+               'notify_id':'step_export_notify','freight_forwarder_id':'step_export_forwarder',
+               'customs_agent_id':'step_export_customs_agent'}
+        typed=self.env['ir.module.module'].search_count([
+            ('name','=','step_export_client_revision'),('state','=','installed')])
+        regular=self.env['res.partner'].create({'name':'QA regular contact','step_export':False})
+        generic=self.env['res.partner'].create({'name':'QA generic export contact','step_export':True})
+        tree=etree.fromstring(self.env['step.export.export'].get_view(view_type='form')['arch'].encode())
+        for field,flag in roles.items():
+            values={'name':'QA export participant '+field,'step_export':True}
+            if typed:values[flag]=True
+            eligible=self.env['res.partner'].create(values)
+            node=tree.xpath(".//field[@name='%s']" % field)[0]
+            domain=safe_eval(node.get('domain')) if node.get('domain') else self.env['step.export.export']._fields[field].domain
+            self.assertIn((flag if typed else 'step_export','=',True),domain)
+            choices=self.env['res.partner'].search(domain)
+            self.assertIn(eligible,choices)
+            self.assertNotIn(regular,choices)
+            if typed:self.assertNotIn(generic,choices,'A generic contact is not a typed export participant')
 
     def test_ports_use_native_customs_master_and_keep_historical_text(self):
         origin = self.env['l10n_cl.customs_port'].create({'name': 'QA native origin port', 'code': 999999991, 'country_id': self.env.ref('base.cl').id})

@@ -7,7 +7,11 @@ class TestExportNavigation(TransactionCase):
         root = self.env.ref('step_export.menu_step_export_root')
         menus = self.env['ir.ui.menu'].with_context(lang='es_CL').search(
             [('parent_id', '=', root.id)], order='sequence,id')
-        self.assertEqual(menus.mapped('name'), [
+        # Optional apps add their own roots (for example Control). Keep the
+        # base navigation contract without rejecting those installed consumers.
+        owned_ids=self.env['ir.model.data'].search([('module','=','step_export'),
+            ('model','=','ir.ui.menu'),('res_id','in',menus.ids)]).mapped('res_id')
+        self.assertEqual(menus.filtered(lambda menu:menu.id in owned_ids).mapped('name'), [
             'Inicio', 'Planificación', 'Embarque', 'Recibidor',
             'Gastos exportación', 'Maestros', 'Configuraciones'])
         instruction = self.env.ref('step_export.action_export_shipping_instructions')
