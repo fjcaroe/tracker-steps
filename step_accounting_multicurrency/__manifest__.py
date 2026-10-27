@@ -1,16 +1,12 @@
 {
     "name": "Steps Contabilidad Multimoneda",
-    "summary": "Captura contable multimoneda y balances en monedas de presentación",
-    "version": "18.0.2.0.1",
+    "summary": "Puente opcional de la multimoneda Steps con informes Enterprise",
+    "version": "18.0.2.1.0",
     "category": "Accounting/Accounting",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["account", "account_reports"],
-    "data": [
-        "views/account_move_views.xml",
-        "views/account_payment_views.xml",
-        "views/res_config_settings_views.xml",
-    ],
+    "depends": ["step_accounting_multicurrency_core", "account_reports"],
+    "data": [],
     "assets": {
         "web.assets_backend": [
             "step_accounting_multicurrency/static/src/js/report_filters.js",
