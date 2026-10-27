@@ -27,6 +27,13 @@ PRODUCER_MODULES = ('step_producers', 'step_producer_contract_report', 'step_pro
 OPERATIONS_MODULES = ('step_operations_core', 'step_machinery', 'step_project_agriculture_scope',
                       'step_management_costs_machinery')
 
+# Regenerable compiled web bundles only. Business files, view attachments,
+# source maps, private files and anything without the exact cache URL stay strict.
+GENERATED_ASSET_CACHE = """(t.res_model='ir.ui.view' AND t.res_field IS NULL
+ AND t.res_id=0 AND t.type='binary' AND t.public IS TRUE
+ AND t.mimetype IN ('text/css','application/javascript')
+ AND t.url ~ '^/web/assets/[0-9a-f]+/[^/]+[.](css|js)$')"""
+
 
 def verify_native(base, opts, addons, stage, mode):
     check = (addons / 'tools/community/verify_agriculture_core.py').read_text()
@@ -126,8 +133,10 @@ def history_contract(database):
     for table in ('mail_message', 'mail_tracking_value', 'mail_followers', 'mail_activity', 'ir_attachment'):
         payload = ("CASE WHEN t.res_model='ir.ui.menu' AND t.res_field='web_icon_data' THEN "
                    "to_jsonb(t)-'write_date'-'write_uid' ELSE to_jsonb(t) END") if table == 'ir_attachment' else 'to_jsonb(t)'
+        where = (' WHERE NOT coalesce(' + GENERATED_ASSET_CACHE + ',false)') if (
+            table == 'ir_attachment' and 'step_operations_core' in MODULES) else ''
         queries.append("SELECT '" + table + "' AS name,json_build_object('rows',count(*),'hash',"
-                       "md5(coalesce(string_agg((" + payload + ")::text,E'\\n' ORDER BY (" + payload + ")::text),''))) AS value FROM " + table + ' t')
+                       "md5(coalesce(string_agg((" + payload + ")::text,E'\\n' ORDER BY (" + payload + ")::text),''))) AS value FROM " + table + ' t' + where)
     queries.append("SELECT 'expiration',coalesce(json_object_agg(key,value),'{}'::json) FROM ir_config_parameter "
                    "WHERE key IN ('database.expiration_date','database.expiration_reason')")
     return json.loads(sql(database, 'SELECT json_object_agg(name,value) FROM (' +
