@@ -80,3 +80,18 @@ de despliegue. Las evidencias, dumps y capturas quedan fuera del repositorio.
 
 Estado y comandos de continuación se registran en
 `docs/COMMUNITY_CONTINUACION.md` al terminar esta sesión.
+
+## Avance comprobado al 27-10-2026
+
+Primera extracción completada y validada, sin despliegue en servicios activos:
+11 pruebas en una instalación oficial Community con cero Enterprise y 35 pruebas
+sobre una copia fresca de Cerro, incluidas las 24 de pagos por factura. Los
+valores de 839 tablas y los 21 IDs de campos se conservaron. La huella textual
+adicional registra un cambio de escala `15.00`/`15` en envases, sin cambio de
+valor. Tres pruebas SQL comprueban que el comparador no redondea importes ni
+convierte textos, y dos pruebas validan la conservación de FKs del maestro.
+
+El ensayo Cerro conserva sus 140 Enterprise: es una prueba de extracción, no
+la conversión final. Producción sigue con la versión previa y el vencimiento
+permanece pendiente. Evidencias y punto exacto de continuación están en
+`docs/COMMUNITY_CONTINUACION.md`.
