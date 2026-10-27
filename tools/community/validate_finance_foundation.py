@@ -21,7 +21,7 @@ def run(*args, **kwargs):
 
 
 def sql(database, statement):
-    return run('sudo', '-u', 'postgres', 'psql', '-v', 'ON_ERROR_STOP=1', '-d', database, '-At',
+    return run('sudo', '-u', 'postgres', 'psql', '-q', '-v', 'ON_ERROR_STOP=1', '-d', database, '-At',
                input=statement, text=True, capture_output=True).stdout.strip()
 
 
@@ -49,7 +49,7 @@ def snapshot(database):
         return {}
     # A single SQL statement gives every table the same MVCC snapshot and
     # avoids a separate sudo/psql process per table.
-    return json.loads(sql(database, "SELECT json_object_agg(name,value) FROM (" +
+    return json.loads(sql(database, "SET jit=off; SELECT json_object_agg(name,value) FROM (" +
                           ' UNION ALL '.join(statements) + ') snapshots'))
 
 
