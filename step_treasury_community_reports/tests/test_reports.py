@@ -122,6 +122,12 @@ class TestCommunityReports(TestTreasuryCommon):
         with self.assertRaises(ValidationError):
             report.report_data()
 
+    def test_hidden_menu_cannot_be_bypassed_by_changing_report_kind(self):
+        report = self._report()
+        self.env.ref('step_account_treasury.menu_treasury_partner_ledger').active = False
+        with self.assertRaises(AccessError):
+            report.report_data()
+
     def test_exports_and_screen_use_same_dataset(self):
         self._invoice('out_invoice', date(2026, 9, 3), 100)
         report = self._report('receivable')
@@ -130,7 +136,7 @@ class TestCommunityReports(TestTreasuryCommon):
         report.action_export()
         text = base64.b64decode(report.export_file).decode('utf-8-sig')
         rows = list(csv.reader(io.StringIO(text)))
-        self.assertEqual(float(rows[1][-1]), report.report_data()['closing'])
+        self.assertEqual(float(rows[2][-1]), report.report_data()['closing'])
         self.assertIn('Antigüedad', report.result_html)
         self.assertEqual(report.action_print()['report_type'], 'qweb-pdf')
         html, unused = self.env['ir.actions.report']._render_qweb_html(MODULE + '.report_print', report.ids)

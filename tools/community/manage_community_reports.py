@@ -66,6 +66,7 @@ def main():
     parser.add_argument('--proof-root', type=Path, required=True)
     parser.add_argument('--community-root', type=Path, required=True)
     parser.add_argument('--cerro-root', type=Path, required=True)
+    parser.add_argument('--development-release', type=Path)
     args = parser.parse_args()
     assert os.geteuid() == 0
     database, conf, service, user, url = TARGETS[args.environment]
@@ -80,6 +81,10 @@ def main():
     actual = {str(p.relative_to(source)): digest(p) for module in MODULES for p in (source / module).rglob('*')
               if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'}
     assert actual == expected_files
+    if args.environment == 'qa-cerro':
+        assert args.development_release, 'First review this package in Desarrollo'
+        development = json.loads((args.development_release / 'deployed.json').read_text())
+        assert development['source_files'] == actual and development['business_preserved']
     contract = json.loads((proof / 'source-contract.json').read_text())
     before = json.loads((proof / 'business-before.json').read_text())
     package_hash = hashlib.sha256(json.dumps(actual, sort_keys=True).encode()).hexdigest()
@@ -105,6 +110,7 @@ def main():
         assert {str(p.relative_to(overlay)): digest(p) for module in MODULES for p in (overlay / module).rglob('*') if p.is_file()} == expected_files
         run('systemctl', 'stop', service)
         try:
+            assert runtime_contract(conf) == contract, 'Concurrent change before service stop'
             assert same_values(before, snapshot(database)), 'Business data changed since fresh copy; validate a new copy'
             old_fields = field_ids(database); old_security = security_contract(database); old_menus = report_menus(database)
             shutil.copy2(conf, stage / 'config-before.conf'); (stage / 'config-before.conf').chmod(0o600)

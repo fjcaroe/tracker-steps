@@ -39,6 +39,11 @@ class TreasuryReport(models.TransientModel):
             raise AccessError(_('Se requiere acceso contable de consulta.'))
         if self.company_id not in self.env.companies:
             raise AccessError(_('La empresa no está autorizada en la sesión.'))
+        from ..hooks import LAUNCHERS
+        menu_name = next(name for name, kind, *_ in LAUNCHERS if kind == self.kind)
+        menu = self.env.ref('step_account_treasury.' + menu_name)
+        if menu.id not in self.env['ir.ui.menu']._visible_menu_ids():
+            raise AccessError(_('El perfil no permite este acceso de Tesorería.'))
         if not self.date_to or (self.kind not in ('receivable', 'payable') and (not self.date_from or self.date_from > self.date_to)):
             raise ValidationError(_('El período del informe no es válido.'))
         if any(j.company_id != self.company_id for j in self.journal_ids):
@@ -174,6 +179,8 @@ class TreasuryReport(models.TransientModel):
             ledger = self._lines([('company_id', '=', self.company_id.id), ('parent_state', '=', 'posted'),
                                   ('account_id', '=', journal.default_account_id.id), ('date', '<=', cutoff)])
             money = journal.currency_id or self.company_id.currency_id
+            if money != self.company_id.currency_id and any(line.currency_id != money for line in ledger):
+                continue  # No meaningful comparison exists for mixed document currencies.
             ledger_balance = sum(ledger.mapped('amount_currency' if money != self.company_id.currency_id else 'balance'))
             anchors.append({'label': journal.display_name, 'date': str(cutoff), 'currency': money.name,
                             'statement': anchor.balance_end_real, 'ledger': ledger_balance,
@@ -207,8 +214,11 @@ class TreasuryReport(models.TransientModel):
         else:
             columns += [('running', 'Acumulado')]
         html = Markup('<h2>%s</h2><p>%s — %s / %s</p><p>%s</p><p>Inicial: %.2f | Movimiento: %.2f | Final: %.2f (%s)</p>') % (
-            data['title'], self.company_id.name, self.date_from, self.date_to, data['notice'],
+            data['title'], self.company_id.name, self.date_from if self.kind not in ('receivable', 'payable') else _('Corte'), self.date_to, data['notice'],
             data['opening'], data['movement'], data['closing'], data['currency'])
+        html += Markup('<p>Socios: %s | Diarios: %s</p>') % (
+            ', '.join(self.partner_ids.mapped('display_name')) or _('Todos'),
+            ', '.join(self.journal_ids.mapped('display_name')) or _('Todos'))
         if data['buckets']:
             html += self._html_table([{'bucket': key, 'balance': value} for key, value in data['buckets'].items()], [('bucket', 'Antigüedad'), ('balance', 'Saldo')])
         if data.get('summary'):
@@ -233,6 +243,8 @@ class TreasuryReport(models.TransientModel):
             value = str(value)
             return "'" + value if value.startswith(('=', '+', '-', '@')) else value
         writer.writerow([data['title'], self.company_id.name, str(self.date_from), str(self.date_to), data['currency']])
+        writer.writerow(['Socios', safe(', '.join(self.partner_ids.mapped('display_name')) or 'Todos'),
+                         'Diarios', safe(', '.join(self.journal_ids.mapped('display_name')) or 'Todos')])
         writer.writerow(['Inicial', data['opening'], 'Movimiento', data['movement'], 'Final', data['closing']])
         writer.writerow([data['notice']])
         for label in ('summary', 'rows', 'anchors', 'statements', 'outstanding'):
