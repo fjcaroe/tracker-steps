@@ -1,6 +1,7 @@
 """Read-only payment schedule projection; native contract and catalog relations."""
 from odoo import api, fields, models, tools, _
 from odoo.exceptions import UserError
+from odoo.addons.step_producers.calendar import inclusive_end_domain
 
 
 class PurchaseContract(models.Model):
@@ -42,6 +43,17 @@ class ContractReport(models.Model):
     product_id = fields.Many2one('product.product', string='Fruta de referencia', readonly=True)
     date_due = fields.Date(string='Vencimiento', readonly=True)
     date_stop = fields.Date(string='Fin vencimiento', readonly=True)
+    calendar_end = fields.Date(string='Fin visual calendario', compute='_compute_calendar_end', search='_search_calendar_end')
+
+    @api.depends('date_stop')
+    def _compute_calendar_end(self):
+        for row in self:
+            row.calendar_end = fields.Date.subtract(row.date_stop, days=1) if row.date_stop else False
+
+    @api.model
+    def _search_calendar_end(self, operator, value):
+        return inclusive_end_domain('date_stop', operator, value)
+
     quantity = fields.Float(string='Cantidad original', readonly=True, aggregator=False)
     uom_id = fields.Many2one('uom.uom', string='UdM original', readonly=True)
     quantity_kg = fields.Float(string='Cantidad kilos', readonly=True)

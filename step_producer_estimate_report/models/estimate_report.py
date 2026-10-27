@@ -1,5 +1,6 @@
 """Live weekly projection over native estimates; no copied business records."""
-from odoo import fields, models, tools
+from odoo import api, fields, models, tools
+from odoo.addons.step_producers.calendar import inclusive_end_domain
 
 class EstimateReport(models.Model):
     _name = 'step.producer.estimate.report'
@@ -19,6 +20,17 @@ class EstimateReport(models.Model):
     state = fields.Selection([('created','Creada'),('validated','Validada'),('current','Vigente'),('replaced','Reemplazada')], string='Estado', readonly=True)
     week_start = fields.Date(string='Semana', readonly=True)
     week_end = fields.Date(string='Fin de semana', readonly=True)
+    calendar_end = fields.Date(string='Fin visual calendario', compute='_compute_calendar_end', search='_search_calendar_end')
+
+    @api.depends('week_end')
+    def _compute_calendar_end(self):
+        for row in self:
+            row.calendar_end = fields.Date.subtract(row.week_end, days=1) if row.week_end else False
+
+    @api.model
+    def _search_calendar_end(self, operator, value):
+        return inclusive_end_domain('week_end', operator, value)
+
     export_kg = fields.Float(string='Kilos exportación', readonly=True)
     process_kg = fields.Float(string='Kilos a proceso', readonly=True)
     export_box_qty = fields.Float(string='Cajas exportación', readonly=True)

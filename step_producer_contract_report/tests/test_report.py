@@ -15,7 +15,7 @@ class ContractReportCase(TransactionCase):
         arch = etree.fromstring(self.env['step.producer.contract.report'].get_view(view.id, 'calendar')['arch'])
         self.assertEqual(arch.tag, 'calendar')
         self.assertEqual(arch.get('date_start'), 'date_due')
-        self.assertEqual(arch.get('date_stop'), 'date_stop')
+        self.assertEqual(arch.get('date_stop'), 'calendar_end')
         original = action.view_ids.filtered(lambda row: row.view_id == view)
         original_id = original.id
         # Simulate the prior persisted value, even without web_gantt installed.
@@ -26,6 +26,15 @@ class ContractReportCase(TransactionCase):
         self.assertEqual(original.view_mode, 'calendar')
         adopt_calendar_binding(self.env, module)
         self.assertEqual(len(action.view_ids), 3)
+        contract = self.sample()
+        rows = self.rows(contract)
+        self.assertTrue(all(row.calendar_end == row.date_due for row in rows))
+        december = self.env['step.producer.contract.report'].search([
+            ('contract_id', '=', contract.id), ('calendar_end', '>=', date(2026, 12, 1))])
+        self.assertEqual(december.date_due, date(2026, 12, 18))
+        november = self.env['step.producer.contract.report'].search([
+            ('contract_id', '=', contract.id), ('calendar_end', '=', date(2026, 11, 30))])
+        self.assertEqual(november.date_due, date(2026, 11, 30))
 
     def sample(self, unit=False, quantity=100, price=2, currency=False):
         env=self.env

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from odoo import Command
 from odoo.tests.common import TransactionCase, new_test_user
 from odoo.exceptions import AccessError
@@ -12,8 +12,14 @@ class EstimateReportCase(TransactionCase):
         self.assertEqual(action.view_ids[0].view_id, view)
         arch = etree.fromstring(self.env['step.producer.estimate.report'].get_view(view.id, 'calendar')['arch'])
         self.assertEqual((arch.tag, arch.get('date_start'), arch.get('date_stop')),
-                         ('calendar', 'week_start', 'week_end'))
+                         ('calendar', 'week_start', 'calendar_end'))
         self.assertTrue(all(arch.get(flag) == 'false' for flag in ('create', 'edit', 'delete', 'quick_create')))
+        estimate, _price = self.sample()
+        rows = self.env['step.producer.estimate.report'].search([('estimate_id', '=', estimate.id)])
+        self.assertTrue(all(row.calendar_end == row.week_start + timedelta(days=6) for row in rows))
+        next_week = self.env['step.producer.estimate.report'].search([
+            ('estimate_id', '=', estimate.id), ('calendar_end', '>=', date(2026, 11, 9))])
+        self.assertEqual(next_week.week_start, date(2026, 11, 9))
 
     def sample(self):
         env=self.env

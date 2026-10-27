@@ -29,10 +29,12 @@ try:
             assert arch.tag == kind
             if kind == 'calendar':
                 assert arch.get('date_start') == date_field
+                assert arch.get('date_stop') == 'calendar_end'
                 assert all(arch.get(flag) == 'false' for flag in ('create', 'edit', 'delete', 'quick_create'))
         domain = [('company_id', '=', company.id)]
         events = scoped[model].with_context(active_test=False).search_read(
-            domain, [date_field, 'amount_usd', 'producer_id', 'company_id'], limit=100)
+            domain + [('calendar_end', '>=', '2026-01-01')],
+            [date_field, 'calendar_end', 'amount_usd', 'producer_id', 'company_id'], limit=100)
         assert all(row['company_id'][0] == company.id for row in events)
         totals = scoped[model].with_context(active_test=False).read_group(domain, ['amount_usd:sum'], [])
         assert scoped.ref(module + '.report_menu').action == action

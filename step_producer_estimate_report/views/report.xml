@@ -4,7 +4,7 @@
     <field name="name">producer.estimate.report.calendar</field>
     <field name="model">step.producer.estimate.report</field>
     <field name="arch" type="xml">
-      <calendar string="Estimaciones de cosecha" date_start="week_start" date_stop="week_end" color="producer_id" mode="month" create="false" edit="false" delete="false" quick_create="false" event_open_popup="true">
+      <calendar string="Estimaciones de cosecha" date_start="week_start" date_stop="calendar_end" color="producer_id" mode="month" create="false" edit="false" delete="false" quick_create="false" event_open_popup="true">
         <field name="estimate_id" />
         <field name="season_id" />
         <field name="species_id" />

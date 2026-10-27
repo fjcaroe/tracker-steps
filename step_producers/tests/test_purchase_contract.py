@@ -47,8 +47,12 @@ class TestProducerPurchaseContract(TransactionCase):
             "name": "Santina T30", "cod_variedad": "T30S",
             "especie_id": self.species.id, "grupo_variedad_id": group.id,
         })
-        category = self.env["step.packing.fruit.category"].create({"name": "Cat 1 T30"})
         model = self.env["step.producer.purchase.contract.product"]
+        category_model = self.env[model._fields['category_id'].comodel_name]
+        category_values = {'name': 'Cat 1 T30', 'company_id': contract.company_id.id}
+        if 'code' in category_model._fields:
+            category_values['code'] = 'QA30' + uuid4().hex[:8]
+        category = category_model.create(category_values)
         specific = model.create({
             "contract_id": contract.id, "product_id": self.product.id,
             "species_id": self.species.id, "variety_id": variety.id,

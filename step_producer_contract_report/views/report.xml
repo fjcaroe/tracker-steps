@@ -4,7 +4,7 @@
     <field name="name">producer.contract.report.calendar</field>
     <field name="model">step.producer.contract.report</field>
     <field name="arch" type="xml">
-      <calendar string="Calendario de pago de contratos" date_start="date_due" date_stop="date_stop" color="producer_id" mode="month" create="false" edit="false" delete="false" quick_create="false" event_open_popup="true">
+      <calendar string="Calendario de pago de contratos" date_start="date_due" date_stop="calendar_end" color="producer_id" mode="month" create="false" edit="false" delete="false" quick_create="false" event_open_popup="true">
         <field name="contract_id" />
         <field name="season_id" />
         <field name="species_id" />
