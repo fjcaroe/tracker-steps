@@ -630,3 +630,158 @@ python tools/git/verify_handoff.py --require-pushed. Al cerrar actualiza estado,
 evidencias, pendientes y el siguiente prompt. No declares resuelto el 31 por
 una extracción parcial.
 ```
+
+## Sexto bloque validado — Maquinaria, Tareas y costos de maquinaria (27-10-2026)
+
+Continuación desde la canónica `3107162`. Rama propia
+`codex/community-machinery-20261027`. Fuente de addons: `75d8a48`.
+Verificador final de contratos y pruebas SQL: `94e2600`.
+Contrato técnico y frontera pendiente: `COMMUNITY_OPERACIONES.md`.
+
+### Implementación
+
+- `step_operations_core` 18.0.1.0.0 adopta 30 campos nativos existentes
+  (16 flota, nueve empleado, cinco tarea), tres vistas y una acción: 34 XML IDs
+  explícitos, además de los alias de selección. Conserva `step_hr.*` y rechaza
+  conflictos de destino. No crea maestros, grupos, ACL ni tablas de negocio.
+- `step_hr` 18.0.1.7.0 consume ese núcleo; deja de importar los tres modelos
+  extendidos y las tres vistas trasladadas. Conserva los componentes de Nómina
+  y Tarjas todavía pendientes y el override bancario booleano legado.
+- Maquinaria 18.0.22.1.0 y clasificación agrícola de tareas 18.0.1.1.0 usan
+  el núcleo, sin dependencia de `step_hr`. El puente de costos de maquinaria
+  se valida en el mismo perfil `operations`, de dieciséis módulos de paquete.
+  Su clausura declarada de 36 dependencias no contiene Enterprise.
+- Las tareas genéricas conservan la nulabilidad efectiva de sus variedades;
+  el consumidor agrícola mantiene sus restricciones de clasificación. No se
+  cambian fórmulas de costos, fuentes de saldos ni liquidaciones pagadas.
+- La prueba HTTP utiliza un usuario desechable; no altera contraseñas ni grupos
+  existentes. Las pruebas de empleado respetan el redondeo de la moneda real.
+
+### Evidencia y límites de aceptación
+
+Ensayo aceptado: `/opt/steps-validation/community-operations-20261027D/`.
+
+- `COMMUNITY_AGRICULTURE_OPERATIONS_20261027D`: 408 pruebas sin fallos,
+  94 módulos instalados, cero Enterprise y sin `step_hr`. Runtime oficial limpio
+  `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`.
+- `MANAGEMENT_QA_CERRO_AGRICULTURE_OPERATIONS_20261027D`: copia fresca de
+  Cerro, 408 pruebas sin fallos; 374 instalados, conservando sus 140 Enterprise.
+- Mismos 542 archivos de addons en ambas pruebas. SHA256 del mapa
+  `source-files.json`:
+  `a666756eff0efb5e7deedd78a7721d43ed69e076ced4a1a49331acd0b3673330`.
+- Las 897 tablas/proyecciones conservaron sus valores; saldos y registros de
+  flota, proyectos y costos incluidos. La diferencia numérica `15.00` → `15`
+  de `stock_package_type.base_weight` conserva el hash semántico existente;
+  su hash de representación permite auditarla, sin redondear valores.
+- Se preservaron los 1.217 modelos, 26.987 campos, 5.071 selecciones,
+  2.322 ACL, 610 reglas y 1.327 menús originales, así como membresías y los
+  417 enlaces acción/vista. Solo los dos modos Calendar permitidos cambian.
+  El paquete agrícola añade once menús y Productores dos campos visuales;
+  el núcleo operacional no crea tablas, permisos o columnas paralelas.
+- Verificadores nativos de maestros/Packing, Productores y Operaciones:
+  UID 6, empresa canónica 2, sin superusuario ni nuevos grupos. Guardado web de
+  parte de maquinaria y formulario de tarea, con altas revertidas.
+
+El primer cierre de D detectó la regeneración de cachés CSS/JS como una
+diferencia de adjuntos. No se modificaron los addons ya probados.
+`tools/community/recheck_operations_contract.py` completó la aceptación bajo
+bloqueo con el verificador `94e2600`: exigió 408 pruebas completas y verificadores
+nativos en cada entorno, identidad exacta del paquete y restauró el dump original
+en otra base privada SQL, `…20261027D_ORIGINAL`. Antes de aplicar la excepción,
+su histórico completo, identidades y valores coincidieron con la línea base
+registrada. No se utilizó una producción cambiante como línea base.
+
+La excepción identifica únicamente bundles públicos binarios CSS/JS generados
+de `ir.ui.view`, sin campo, `res_id=0` y URL hexadecimal `/web/assets/…`.
+Dos pruebas sobre PostgreSQL real verificaron ese límite y la detección de un
+cambio en contenido de negocio. La comparación final conservó 1.124 adjuntos
+de negocio, 1.342 mensajes, 738 seguimientos y 554 seguidores, además de
+actividades y parámetros de vencimiento. Los originales sin filtrar también
+permanecen en evidencia; no se oculta la regeneración de cachés.
+
+El cierre produjo `OPERATIONS_CONTRACT_OK 897` y `cerro-copy/passed.json`,
+con hashes del checker, verificador, log de pruebas y dump. Las comparaciones
+filtradas son `history-before-business.json` y `history-after-business.json`.
+Los contratos de configuración, archivos y versiones del origen coincidieron
+antes/después. Producción y QA-Cerro no recibieron este paquete ni cambios de
+vencimiento; QA no se refrescó. No hubo recálculo de liquidaciones pagadas.
+
+Evidencia privada local:
+`C:/Users/tito4/.codex/local-artifacts/community-operations-20261027/`.
+`evidence-D.tar.gz` contiene pruebas y contratos, sin dump, filestore ni
+configuraciones; `source-D.tar.gz` y `contract-check-E.tar.gz` preservan las
+fuentes exactas de addons y del verificador final. A–C no sustituyen esta
+aceptación: A tuvo 396 pruebas puras sin el puente de costos; B pasó las 408
+puras pero su copia falló por precisión monetaria del fixture y cuentas
+descontinuadas del cliente; C detectó el contexto de empresa del fixture nuevo.
+
+**Limitación contable encontrada:** en la copia de Cerro, `210233` conserva
+su marca de cuenta descontinuada. La prueba contable utiliza una empresa y
+cuentas desechables. La contabilización real de Cerro que intente usar esa
+cuenta seguirá siendo rechazada por Odoo. Resolver esa configuración y aceptar
+el flujo real es un pendiente contable; no reactivar ni sustituir cuentas del
+cliente para aprobar pruebas de extracción.
+
+### Estado acumulado y próximos pendientes
+
+Base contable, núcleo de Tesorería y sus cinco consultas alternativas están
+implementados; Tesorería sigue siendo el último paquete desplegado y verificado
+en Desarrollo y QA-Cerro. Núcleo agrícola, Packing, identificación de fruta,
+Costos y Productores
+están validados en Community y copias de Cerro, sin publicación activa de esos
+paquetes. Operaciones incorpora Maquinaria, Tareas y su puente de costos.
+
+La matriz candidata deja 65 de las 91 apps propias con caminos declarados hacia
+Enterprise, frente a 79 en producción y 68 después de Productores. Las tres
+liberadas aquí son Maquinaria, costos de maquinaria y clasificación de tareas.
+Producción conserva 372 módulos instalados y 140 Enterprise; esta entrega no
+autoriza retirarlos y no resuelve el riesgo del 31 de octubre.
+
+El siguiente bloque debe cerrar la frontera Tarjas/Cuadrillas: `step.tarja`,
+sus líneas/costos/registro, `hr.salary.custom`, contratos, tarifas y cuentas de
+costeo. Movilización conserva su distribución por empleado/fundo/fecha/empresa.
+No quitar dependencias antes de cerrar modelos, relaciones, vistas y permisos.
+Permanecen pendientes Nómina compatible con Simple Digital, contratos/entradas,
+Previred/libros, lotes de pago y conciliación operativa/clasificación del efectivo,
+DTE/CAF/SII/exportación, Calidad y demás Gantt/Studio/Documentos/Firma. También
+la prueba pura propia de T123, la publicación agrícola/operacional en Desarrollo
+y QA con sus copias frescas, conversión integral con cero Enterprise,
+recuperación y aceptación. No refrescar QA-Cerro.
+
+### Prompt para el siguiente bloque
+
+```text
+Continúa la migración de Cerro El Plomo a Community desde la canónica
+origin/codex/ambientes-canonicos-reparacion actualizada. Usa un worktree propio.
+Lee AGENTS.md, ~/.odoo/environments.json, docs/OPERACION_ODOO_CANONICA.md,
+docs/WORKFLOW_GIT_COMPARTIDO.md, docs/PLAN_COMMUNITY_CERRO.md,
+docs/COMMUNITY_CONTINUACION.md, docs/COMMUNITY_PRODUCTORES.md,
+docs/COMMUNITY_OPERACIONES.md y la matriz Enterprise.
+
+El sexto bloque separa Maquinaria, Tareas y costos de maquinaria de step_hr:
+núcleo operacional con 30 campos y 34 XML IDs originales. Consulta en continuidad
+el ensayo D aceptado: 408 pruebas por entorno, 897 tablas/proyecciones y fuentes
+75d8a48 de addons / 94e2600 de contratos. Quedan 65 apps propias con caminos
+declarados Enterprise; producción conserva 140 Enterprise. Esto no resuelve
+el vencimiento del 31 de octubre.
+
+Continúa cerrando Tarjas/Cuadrillas y sus consumidores: step.tarja, líneas,
+costos y registros, hr.salary.custom, contratos, tarifas y step.haber.costeo.
+Movilización distribuye por empleado/fundo/fecha/empresa usando la tarja propia.
+Separa el adaptador de Nómina solo después de cerrar modelos, relaciones,
+vistas y permisos. No cambies manifiestos dejando relaciones incompletas.
+
+Preserva IDs, maestros, históricos, permisos y saldos. Respeta los límites
+visuales de Calendar y el override bancario legado. Conserva la cuenta
+210233 descontinuada: su configuración y aceptación del flujo real están
+pendientes; no reactives cuentas para aprobar fixtures. No recalcules
+liquidaciones pagadas, retires Enterprise en producción, alteres vencimientos
+ni refresques QA-Cerro. Los paquetes agrícolas/operacionales aún requieren
+publicación específica en Desarrollo y QA tras sus copias frescas.
+
+Prueba el paquete exacto en Community oficial y copia fresca de Cerro, bajo
+bloqueo compartido y overlays privados. Guarda commits, push, integra únicamente
+lo validado a la canónica y ejecuta python tools/git/verify_handoff.py
+--require-pushed. Entrega estado acumulado, evidencia, pendientes y siguiente
+prompt. No declares resuelto el vencimiento por una extracción parcial.
+```

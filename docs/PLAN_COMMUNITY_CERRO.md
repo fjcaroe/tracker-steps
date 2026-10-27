@@ -207,3 +207,25 @@ El código candidato reduce a 68 las apps propias con caminos declarados hacia
 Enterprise, frente a 79 en producción y 73 después del cuarto bloque.
 Esta cifra no acredita una conversión integral de la base ni la independencia
 de todas las extensiones de Exportación/Packing que aún dependen de Enterprise.
+
+## Sexto paquete: frontera operacional de Maquinaria y Tareas
+
+`step_operations_core` 18.0.1.0.0 extrae 30 campos de flota, empleados y tareas,
+conservando 34 identificadores explícitos, las relaciones y las vistas originales.
+`step_hr` 18.0.1.7.0 queda como consumidor del núcleo. Maquinaria 18.0.22.1.0
+y clasificación agrícola de tareas 18.0.1.1.0 consumen el núcleo Community.
+El puente existente de costos de maquinaria se incluye en el mismo ensayo.
+El contrato técnico está en `COMMUNITY_OPERACIONES.md`.
+
+El perfil `operations` contiene dieciséis módulos de paquete y compara también
+las tablas operacionales de flota, proyectos y costos. Las comprobaciones de
+permisos incluyen empleados privados, aislamiento por empresa y usuarios
+autorizados sin modo superusuario. No se relajan las restricciones de las tareas
+agrícolas ni se exigen variedades inventadas a las tareas genéricas.
+
+La matriz candidata baja de 68 a 65 apps propias con caminos declarados hacia
+Enterprise: se liberan Maquinaria, su puente de costos y el alcance de tareas.
+Producción continúa con sus 140 Enterprise. Tarjas/Cuadrillas, Movilización y
+otros consumidores de nómina necesitan su propia extracción de modelos,
+relaciones, vistas y permisos antes de modificar dependencias. Las evidencias
+de aceptación y los pendientes de publicación están en continuidad.
