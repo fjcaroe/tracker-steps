@@ -55,13 +55,15 @@ def main():
         base=['sudo','-u','odoo','/usr/bin/python3.10',str(args.runtime/'odoo-bin')]
         opts=['-c','/etc/dev_odoo18.conf','-d',args.database,
               '--addons-path='+str(args.oca)+','+str(args.runtime/'addons'),'--data-dir='+str(data),
+              '--logfile='+str(data/'odoo.log'),
               '--load=base,web','--workers=0','--max-cron-threads=0','--without-demo=all',
               '--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0']
         # Root-owned logs: capture stdout instead of giving Odoo write access to the source evidence.
-        with (args.root/'tests.log').open('w') as log:
+        with (args.root/'bootstrap.log').open('w') as log:
             status=subprocess.run(base+opts+['-i','payroll_account','--test-enable',
                 '--test-tags=/payroll,/payroll_account','--stop-after-init'],stdout=log,stderr=subprocess.STDOUT)
-        text=(args.root/'tests.log').read_text(errors='replace')
+        text=(data/'odoo.log').read_text(errors='replace')
+        (args.root/'tests.log').write_text(text)
         assert status.returncode==0 and re.search(r'0 failed, 0 error\(s\) of [1-9][0-9]* tests',text)
         assert not re.search(r' (ERROR|CRITICAL) ',text),'Candidate tests logged errors'
         check=Path(__file__).with_name('verify_payroll_engine.py').read_text()
