@@ -35,7 +35,7 @@
                 </page>
                 <page name="map" string="Dirección">
                     <group>
-                        <field name="contact_address_complete" readonly="1" />
+                        <field name="contact_address" readonly="1" />
                     </group>
                 </page>
             </xpath>
