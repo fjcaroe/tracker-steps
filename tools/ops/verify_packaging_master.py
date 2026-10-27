@@ -36,7 +36,7 @@ try:
         setup = env(context=dict(env.context, tracking_disable=True, mail_notrack=True,
             mail_create_nosubscribe=True, mail_notify_force_send=False))
         finished = setup['product.product'].create({'name': 'QA T124/T125 product', 'company_id': scoped.company.id})
-        package = setup['product.packaging'].create({'name': 'QA T124', 'product_id': finished.id, 'qty': 3.8,
+        package = setup['product.packaging'].create({'name': 'QA T124', 'company_id': scoped.company.id, 'product_id': finished.id, 'qty': 3.8,
             'step_export_kg_per_box': 3.8, 'step_clamshell_qty': 12, 'step_clamshell_weight_g': 340,
             'step_boxes_per_pallet': 204, 'step_pallets_per_container': 20})
         assert package.step_boxes_per_container_40 == 4080
