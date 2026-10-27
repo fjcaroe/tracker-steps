@@ -93,7 +93,7 @@ def main():
     stage.mkdir(parents=True, mode=0o750)
     config = configparser.ConfigParser(interpolation=None); config.read(conf); opts = config['options']
     assert opts['db_name'] == database
-    from validate_community_reports import snapshot, same_values, field_ids, security_contract, report_menus
+    from validate_community_reports import snapshot, same_values, field_ids, security_contract, report_menus, action_contract
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         assert runtime_contract(conf) == contract, 'Concurrent configuration, source or version change'
@@ -112,6 +112,7 @@ def main():
         try:
             assert runtime_contract(conf) == contract, 'Concurrent change before service stop'
             assert same_values(before, snapshot(database)), 'Business data changed since fresh copy; validate a new copy'
+            old_actions = action_contract(database)
             old_fields = field_ids(database); old_security = security_contract(database); old_menus = report_menus(database)
             shutil.copy2(conf, stage / 'config-before.conf'); (stage / 'config-before.conf').chmod(0o600)
             with (stage / 'recovery.dump').open('wb') as stream:
@@ -132,6 +133,7 @@ def main():
             errors = log.read_text(errors='replace')
             assert result.returncode == 0 and 'Modules loaded.' in errors and ' CRITICAL ' not in errors and ' ERROR ' not in errors, 'Upgrade failed; preserve recovery directory'
             assert same_values(before, snapshot(database)), 'Business values changed'
+            assert action_contract(database) == old_actions, 'Existing client actions changed'
             assert field_ids(database) == old_fields and security_contract(database) == old_security
             after_menus = report_menus(database)
             strip = lambda menus: {k:{f:v for f,v in row.items() if f not in ('action','write_date','write_uid')} for k,row in menus.items()}

@@ -30,7 +30,7 @@ def sql(database, statement):
 def snapshot(database):
     tables = sql(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND "
                  "(tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'step_%' OR "
-                 "tablename LIKE 'hr_%' OR tablename LIKE 'res_users%' OR tablename IN ('ir_ui_menu_group_rel','rule_group_rel','res_groups_implied_rel','ir_act_client') OR tablename IN "
+                 "tablename LIKE 'hr_%' OR tablename LIKE 'res_users%' OR tablename IN ('ir_ui_menu_group_rel','rule_group_rel','res_groups_implied_rel') OR tablename IN "
                  "('res_company','res_partner','res_currency','res_currency_rate','res_groups_users_rel','res_company_users_rel')) "
                  "ORDER BY tablename").splitlines()
     tables = [t for t in tables if t not in ('step_treasury_report', 'step_treasury_report_partner_rel', 'step_treasury_report_journal_rel')]
@@ -86,6 +86,15 @@ def security_contract(database):
     return json.loads(sql(database, "SELECT json_object_agg(name,value) FROM (" + ' UNION ALL '.join(parts) + ") policies"))
 
 
+def action_contract(database):
+    return json.loads(sql(database, "SELECT json_build_object('all_clients',"
+        "(SELECT coalesce(json_object_agg(id,to_jsonb(t)-'write_date'-'write_uid'),'{}'::json) FROM ir_act_client t),"
+        "'native_five',(SELECT coalesce(json_object_agg(d.name,to_jsonb(t)),'{}'::json) "
+        "FROM ir_model_data d JOIN ir_act_client t ON t.id=d.res_id WHERE d.module='account_reports' "
+        "AND d.name IN ('action_account_report_bank_reconciliation','action_account_report_partner_ledger',"
+        "'action_account_report_cs','action_account_report_ar','action_account_report_ap')))"))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('community', 'cerro-copy'))
@@ -139,6 +148,8 @@ def main():
             (stage / 'source-contract.json').write_text(json.dumps(runtime_contract(conf), indent=2))
             baseline = snapshot(args.database)
             (stage / 'business-before.json').write_text(json.dumps(baseline, indent=2))
+            original_actions = action_contract(args.database)
+            (stage / 'actions-before.json').write_text(json.dumps(original_actions, indent=2))
             original_security = security_contract(args.database)
             (stage / 'security-before.json').write_text(json.dumps(original_security, indent=2))
             original_menus = report_menus(args.database)
@@ -192,6 +203,8 @@ def main():
             (stage / 'security-after.json').write_text(json.dumps(security_contract(args.database), indent=2))
             (stage / 'menus-after.json').write_text(json.dumps(report_menus(args.database), indent=2))
             (stage / 'field-ids-after.json').write_text(json.dumps(field_ids(args.database), indent=2))
+            (stage / 'actions-after.json').write_text(json.dumps(action_contract(args.database), indent=2))
+            assert action_contract(args.database) == original_actions, 'Existing client actions changed'
             assert security_contract(args.database) == original_security, 'Treasury access rules or groups changed'
             assert {k:{f:v for f,v in row.items() if f not in ('action','write_date','write_uid')} for k,row in report_menus(args.database).items()} == {k:{f:v for f,v in row.items() if f not in ('action','write_date','write_uid')} for k,row in original_menus.items()}, 'Report menu IDs or permissions changed'
             assert field_ids(args.database) == original_fields, 'Field IDs changed'
