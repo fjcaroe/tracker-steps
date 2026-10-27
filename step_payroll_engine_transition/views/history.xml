@@ -3,7 +3,18 @@
         <field name="name">hr.contract.payroll.migration.review</field>
         <field name="model">hr.contract</field>
         <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
-        <field name="arch" type="xml"><xpath expr="//sheet" position="inside"><group invisible="not step_payroll_migration_review"><field name="step_payroll_migration_review"/><button name="action_confirm_payroll_migration" type="object" string="Confirmar parámetros de nómina" groups="hr_payroll.group_hr_payroll_manager" confirm="Confirma que revisó los parámetros previsionales, asignaciones y estructura de Simple Digital del contrato. Las liquidaciones históricas se conservan."/></group></xpath></field>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="before">
+                <field name="step_payroll_migration_review" invisible="1"/>
+                <div class="alert alert-warning" role="alert" invisible="not step_payroll_migration_review">
+                    <strong>Revisión de parámetros de nómina pendiente</strong>
+                    <p>Antes de generar nuevas liquidaciones, revise salud, previsión, jornada, centro de costo y tipo de contrato. La confirmación corresponde al administrador de Nómina.</p>
+                    <button name="action_confirm_payroll_migration" type="object" string="Confirmar parámetros de nómina"
+                        class="btn btn-primary" groups="hr_payroll.group_hr_payroll_manager"
+                        confirm="Confirma que revisó los parámetros previsionales, asignaciones y estructura de Simple Digital del contrato. Las liquidaciones históricas se conservan."/>
+                </div>
+            </xpath>
+        </field>
     </record>
     <record id="view_history_list" model="ir.ui.view">
         <field name="name">step.payroll.legacy.snapshot.list</field>
