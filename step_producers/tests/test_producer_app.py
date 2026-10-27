@@ -68,7 +68,7 @@ class TestProducerApp(TransactionCase):
     def test_menu_follows_client_process_groups(self):
         root = self.env.ref("step_producers.menu_step_producers_root")
         children = self.env["ir.ui.menu"].search([("parent_id", "=", root.id)], order="sequence,id")
-        self.assertEqual(children.with_context(lang="es_CL").mapped("name"), [
+        self.assertEqual(children.with_context(lang="en_US").mapped("name"), [
             "Inicio", "Planificación", "Control Contratos", "Control fruta", "Liquidación", "Maestros", "Configuraciones"])
         self.assertEqual(self.env.ref("step_producers.menu_step_producers_contracts").parent_id,
                          self.env.ref("step_producers.menu_step_producers_planning_group"))

@@ -209,7 +209,13 @@ class TestProducerPurchaseContract(TransactionCase):
         self.assertEqual(product_line.ordered_quantity, 0)
         order.state = "purchase"
         self.assertEqual(product_line.ordered_quantity, 25)
-        arch = self.env["step.producer.purchase.contract"].get_view(
+        accountant = self.env['res.users'].create({
+            'name': 'Contract accounting form QA', 'login': 'contract-accounting-view-' + uuid4().hex,
+            'company_id': self.env.company.id, 'company_ids': [(6, 0, self.env.company.ids)],
+            'groups_id': [(6, 0, [self.env.ref('base.group_user').id,
+                                  self.env.ref('account.group_account_manager').id])],
+        })
+        arch = self.env["step.producer.purchase.contract"].with_user(accountant).get_view(
             view_id=self.env.ref("step_producers.view_step_producer_purchase_contract_form").id,
             view_type="form")["arch"]
         pages = etree.fromstring(arch.encode()).xpath("//notebook/page/@name")

@@ -23,5 +23,6 @@ def adopt_calendar_binding(env, module):
         env.cr.execute("""UPDATE ir_ui_view SET type='calendar', arch_db=(
             SELECT jsonb_object_agg(key,replace(value,'//gantt/','//calendar/'))
             FROM jsonb_each_text(arch_db)) WHERE id=%s""", [child.id])
-        child.invalidate_recordset(['type', 'arch_db'])
+        child.invalidate_recordset()
+        env.registry.clear_cache()
     bindings.view_mode = 'calendar'
