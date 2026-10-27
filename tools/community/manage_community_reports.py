@@ -97,6 +97,7 @@ def main():
     with open('/run/lock/steps-environments.lock', 'a') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         assert runtime_contract(conf) == contract, 'Concurrent configuration, source or version change'
+        assert sql(database, "SELECT count(*) FROM ir_module_module WHERE state IN ('to install','to upgrade','to remove')") == '0', 'Another module operation is pending'
         installed = contract['installed_versions']
         for name in MODULES:
             version = ast.literal_eval((source / name / '__manifest__.py').read_text())['version']
@@ -143,11 +144,18 @@ def main():
             (stage / 'verify.log').write_text(result.stdout + result.stderr)
             assert 'COMMUNITY_REPORTS_NATIVE_FLOW_OK' in result.stdout and 'COMMUNITY_TREASURY_REGISTRY_OK' in result.stdout
             assert same_values(before, snapshot(database))
+            confirmed_versions = {}
+            for name in init + update:
+                version = ast.literal_eval((overlay / name / '__manifest__.py').read_text())['version']
+                actual_version = sql(database, "SELECT latest_version FROM ir_module_module WHERE name='" + name + "' AND state='installed'")
+                assert actual_version == version, 'Installed version differs: ' + name
+                confirmed_versions[name] = actual_version
             if args.environment == 'qa-cerro':
                 assert sql(database, "SELECT value FROM ir_config_parameter WHERE key='database.is_neutralized'") == 'true'
                 assert sql(database, 'SELECT count(*) FROM ir_cron WHERE active') == '0'
                 assert sql(database, "SELECT count(*) FROM ir_mail_server WHERE active AND smtp_host!='invalid'") == '0'
-            (stage / 'deployed.json').write_text(json.dumps({'package_hash': package_hash, 'url': url, 'source_files': actual, 'business_preserved': True}, indent=2))
+            (stage / 'deployed.json').write_text(json.dumps({'package_hash': package_hash, 'url': url, 'source_files': actual,
+                'installed_versions': confirmed_versions, 'business_preserved': True}, indent=2))
         finally:
             # Retain upgraded state and recovery dump; never discard new user data.
             run('systemctl', 'start', service)
