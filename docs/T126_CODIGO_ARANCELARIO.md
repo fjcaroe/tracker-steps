@@ -1,5 +1,8 @@
 # T126 — código arancelario de especies
 
+> Actualización posterior al mensaje humano de los cuatro tickets: paquete C
+> preparado, prueba privada en cola bajo el bloqueo compartido. Aún sin publicar.
+
 Revisión de las 11:00 del 27-10-2026. Leídos descripción, comentarios y adjunto
 3417, incluido el formulario capturado. Pide un campo de texto en `step.especie`
 y autoriza Desarrollo, Cerro y QA-Cerro. No pide asignar códigos concretos.
@@ -48,3 +51,30 @@ Auditoría y adjunto privados: carpeta
 `C:/Users/tito4/.codex/local-artifacts/helpdesk-heartbeat-20261027-1100/`.
 Último comentario revisado de T126: 9749 (T124: 9737; T125: 9742). Volver a leer
 comentarios antes del cierre. Los tres tickets continúan abiertos.
+
+## Paquete C y prueba en cola
+
+El fixture B trataba el grupo de especie como relación, pero el campo nativo
+es una selección. Se corrigió para conservar su valor real, sin cambiar código
+funcional de producto ni datos del destino. El paquete vigente es:
+
+- Commit `815b056f1e79f3aa86efeac2c87e5fa2549e7d91`.
+- SHA256 `7e38b3a590b99dd1cdc88f216555fb7ebb5f9c76fde2aede7c93b69d9e826ead`.
+- `/opt/steps-validation/t126-20261027/species-tariff-C.tar`.
+
+Se dejó **ejecutándose/en cola**:
+
+```text
+sudo python3 /opt/steps-validation/t126-20261027/tools/ops/manage_management.py qa development /opt/steps-validation/t126-20261027/species-tariff-C.tar t126d --kind species-tariff --wait-for-lease
+```
+
+El operador incorpora `--wait-for-lease` para estos ensayos privados: adquiere el
+bloqueo compartido antes de leer la configuración y la línea base. Espera al
+dueño actual sin detenerlo ni retirar la exclusión. No habilita publicación
+automática. Sesión exec del chat: 32618. **Antes de lanzar otra prueba, comprobar
+ese proceso y `/opt/steps-validation/management_development_t126d/`.** No duplicar
+el ensayo ni asumir que ya terminó. Revisar logs y `qa_passed.json`.
+
+Una vez aprobado C, publicar el paquete C en Desarrollo con run_id `t126d`;
+continuar con copias nuevas de Cerro y QA-Cerro y ese mismo archivo. Los comandos
+anteriores con paquete B quedaron superados. El código de producción no cambió.

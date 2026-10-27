@@ -1,5 +1,9 @@
 # T124 y T125 — embalajes y listas de materiales
 
+> Actualización posterior al mensaje humano de los cuatro tickets: el ensayo
+> de Cerro aprobó las cinco pruebas y la conservación de datos, pero el flujo
+> de usuario detectó otra configuración faltante. No se publicó en Cerro.
+
 > Estado vigente al cierre de la revisión de las 11:00 del 27-10-2026:
 > Desarrollo publicado y verificado. Cerro y QA-Cerro pendientes. Los apartados
 > iniciales conservan la historia del primer ensayo; usar la continuación final.
@@ -133,3 +137,26 @@ create/resume/publish ni refrescos. El cierre interno silencioso queda protegido
 por `tools/helpdesk/record_packaging_species_delivery.py` y exige evidencia de
 los tres destinos, ninguna respuesta humana posterior no revisada y ausencia
 de notificaciones. No ejecutarlo con pruebas parciales.
+
+## T125 — decisión requerida sobre la jerarquía real
+
+La categoría `6 materiales de embalajes` no contiene físicamente las categorías
+`6.1 materiales de caja` y `6.2 materiales de pallet`: las tres tienen
+`parent_id` vacío. Por tanto, corregir las mayúsculas no basta para que el
+dominio nativo `child_of` encuentre los veinte productos de estas dos categorías.
+No son productos perdidos ni un problema demostrado de permisos.
+
+Se preguntó al usuario mediante pregunta asíncrona si deben vincularse como
+subcategorías del maestro de materiales (manteniendo productos e IDs) o seguir
+separadas y usar selección explícita de categorías. **No inferir la respuesta**.
+No renombrar, reclasificar, duplicar ni reparentar categorías mientras esté
+pendiente. Si elige vincularlas, preparar y probar una configuración explícita
+por destino, conservando relaciones/IDs y comprobando su efecto contable antes
+de publicar. Si deben seguir separadas, usar relaciones al maestro existente
+para el selector y el dominio; no resolverlas por texto o IDs fijos.
+
+Prueba de Cerro detenida antes de aceptación/publicación:
+`/opt/steps-validation/management_cerro_t124t125c/`, cinco pruebas aprobadas,
+pero sin `qa_passed.json` porque el probe no encontró materiales seleccionables.
+No certificarla hasta resolver y probar la decisión. Cerro y QA-Cerro continúan
+sin este paquete. Desarrollo mantiene la entrega ya comprobada.
