@@ -20,6 +20,7 @@ KINDS = [('bank', 'Conciliación bancaria'), ('ledger', 'Cuentas corrientes'),
 class TreasuryReport(models.TransientModel):
     _name = 'step.treasury.report'
     _description = 'Informe contable de Tesorería'
+    _check_company_auto = True
 
     kind = fields.Selection(KINDS, required=True, default='ledger', string='Informe')
     company_id = fields.Many2one('res.company', required=True, default=lambda self: self.env.company)
@@ -122,6 +123,16 @@ class TreasuryReport(models.TransientModel):
             result['rows'] = [self._row(line) for line in current]
             result['movement'] = sum(current.mapped('balance'))
             result['closing'] = result['opening'] + result['movement']
+            grouped = defaultdict(lambda: {'opening': 0.0, 'movement': 0.0, 'closing': 0.0})
+            for line in lines:
+                key = line.partner_id.display_name or _('Sin socio') if self.kind == 'ledger' else line.account_id.display_name
+                # IDs, rather than names, distinguish homonymous partners/accounts.
+                identity = line.partner_id.id if self.kind == 'ledger' else line.account_id.id
+                group = grouped[identity]
+                group['label'] = key
+                group['opening' if line.date < self.date_from else 'movement'] += line.balance
+                group['closing'] += line.balance
+            result['summary'] = list(grouped.values())
             running = result['opening']
             for row in result['rows']:
                 running += row['balance']
@@ -150,9 +161,27 @@ class TreasuryReport(models.TransientModel):
         remaining = self._historical_residuals(outstanding)
         result['outstanding'] = [self._row(row, remaining[row.id]) for row in outstanding
                                  if not self.company_id.currency_id.is_zero(remaining[row.id])]
+        anchors = []
+        journals = self.journal_ids or self.env['account.journal'].search([
+            ('company_id', '=', self.company_id.id), ('type', 'in', ('bank', 'cash'))])
+        for journal in journals:
+            candidates = self.env['account.bank.statement'].search([
+                ('journal_id', '=', journal.id), ('date', '<=', self.date_to)], order='first_line_index desc')
+            anchor = candidates.filtered(lambda s: s.line_ids and max(s.line_ids.mapped('date')) <= self.date_to)[:1]
+            if not anchor or self.partner_ids:
+                continue  # A partial partner filter cannot reconcile a whole bank balance.
+            cutoff = max(anchor.line_ids.mapped('date'))
+            ledger = self._lines([('company_id', '=', self.company_id.id), ('parent_state', '=', 'posted'),
+                                  ('account_id', '=', journal.default_account_id.id), ('date', '<=', cutoff)])
+            money = journal.currency_id or self.company_id.currency_id
+            ledger_balance = sum(ledger.mapped('amount_currency' if money != self.company_id.currency_id else 'balance'))
+            anchors.append({'label': journal.display_name, 'date': str(cutoff), 'currency': money.name,
+                            'statement': anchor.balance_end_real, 'ledger': ledger_balance,
+                            'difference': anchor.balance_end_real - ledger_balance})
+        result['anchors'] = anchors
         result['notice'] = 'Control de conciliación: libro de efectivo al corte, extractos del período y partidas conciliables pendientes al corte. El estado del extracto es el estado actual, indicado expresamente; no reconstruye cambios históricos del indicador. Los importes de extracto están separados por moneda. Abrir los documentos para completar la conciliación nativa.'
 
-    def _table(self, rows, columns, model='account.move.line'):
+    def _html_table(self, rows, columns, model='account.move.line'):
         heading = Markup('').join(Markup('<th>%s</th>') % label for key, label in columns)
         body = []
         for row in rows:
@@ -181,12 +210,16 @@ class TreasuryReport(models.TransientModel):
             data['title'], self.company_id.name, self.date_from, self.date_to, data['notice'],
             data['opening'], data['movement'], data['closing'], data['currency'])
         if data['buckets']:
-            html += self._table([{'bucket': key, 'balance': value} for key, value in data['buckets'].items()], [('bucket', 'Antigüedad'), ('balance', 'Saldo')])
-        html += self._table(data['rows'], columns)
+            html += self._html_table([{'bucket': key, 'balance': value} for key, value in data['buckets'].items()], [('bucket', 'Antigüedad'), ('balance', 'Saldo')])
+        if data.get('summary'):
+            html += self._html_table(data['summary'], [('label', 'Socio / cuenta'), ('opening', 'Inicial'), ('movement', 'Movimiento'), ('closing', 'Final')])
+        html += self._html_table(data['rows'], columns)
         if self.kind == 'bank':
+            html += Markup('<h3>Saldos de extracto frente a libro en fecha de último extracto completo</h3>')
+            html += self._html_table(data['anchors'], [('label', 'Banco'), ('date', 'Fecha'), ('currency', 'Moneda'), ('statement', 'Extracto'), ('ledger', 'Libro'), ('difference', 'Diferencia')])
             html += Markup('<h3>Extractos (estado actual)</h3>')
-            html += self._table(data['statements'], [('date', 'Fecha'), ('label', 'Referencia'), ('amount', 'Importe'), ('currency', 'Moneda'), ('reconciled_now', 'Conciliado actualmente')], 'account.bank.statement.line')
-            html += Markup('<h3>Partidas pendientes al corte</h3>') + self._table(data['outstanding'], columns[:-1])
+            html += self._html_table(data['statements'], [('date', 'Fecha'), ('label', 'Referencia'), ('amount', 'Importe'), ('currency', 'Moneda'), ('reconciled_now', 'Conciliado actualmente')], 'account.bank.statement.line')
+            html += Markup('<h3>Partidas pendientes al corte</h3>') + self._html_table(data['outstanding'], columns[:-1])
         self.result_html = html
         return {'type': 'ir.actions.act_window', 'res_model': self._name, 'res_id': self.id,
                 'view_mode': 'form', 'target': 'current'}
@@ -202,7 +235,7 @@ class TreasuryReport(models.TransientModel):
         writer.writerow([data['title'], self.company_id.name, str(self.date_from), str(self.date_to), data['currency']])
         writer.writerow(['Inicial', data['opening'], 'Movimiento', data['movement'], 'Final', data['closing']])
         writer.writerow([data['notice']])
-        for label in ('rows', 'statements', 'outstanding'):
+        for label in ('summary', 'rows', 'anchors', 'statements', 'outstanding'):
             rows = data.get(label, [])
             writer.writerow([label])
             if rows:
