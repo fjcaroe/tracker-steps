@@ -212,8 +212,10 @@ def verify_identity_contract(database,addons,profile,calendar_bindings,original,
                 extra_owners={name:int(sql(database, "SELECT id FROM ir_module_module WHERE name='"+owner+"'"))
                     for name,owner in [('employee_wizard_rel','step_labor_reports'),
                         ('employee_process_rel','step_labor_reports'),('step_hr_payslip_rel','step_labor_payroll_wizards')]}
-            expected = [dict(row,module=extra_owners[row['name']]) if row['module']==legacy_module and
-                        row['name'] in extra_owners else dict(row, module=new_module) if row['module'] == legacy_module and
+            cosecha_module=int(sql(database,"SELECT id FROM ir_module_module WHERE name='step_cosecha'")) if profile=='harvest' else None
+            expected = [dict(row,module=extra_owners[row['name']]) if row['name'] in extra_owners and
+                        (row['module']==legacy_module or (row['name']=='step_hr_payslip_rel' and row['module']==cosecha_module))
+                        else dict(row, module=new_module) if row['module'] == legacy_module and
                         row['name'] in relations else row for row in rows]
             assert all(row in current[table] for row in expected), 'Relation identity or owner changed unexpectedly'
         else:

@@ -134,3 +134,9 @@ El ejecutor canónico conserva traducciones de descripciones/ayudas que el
 reflejo nativo borra aunque el texto inglés no haya cambiado. No restaura un
 texto base modificado ni pisa una traducción nueva explícita. El contrato de
 identidad compara todas las traducciones resultantes, sin omitir ese campo.
+
+`step_hr_payslip_rel` tiene dos filas originales en `ir.model.relation`, una
+de HR y otra de Cosecha, para la misma tabla/modelo compartido. El puente adopta
+ambas filas manteniendo sus IDs, nombres, modelo y auditoría original. No las
+fusiona ni elimina. El contrato permite exclusivamente esos dos propietarios
+legados para esa relación, además de las dos relaciones de informes de HR.
