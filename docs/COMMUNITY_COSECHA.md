@@ -37,7 +37,10 @@ sus campos, vistas, acciones y ACL originales. Los menús originales siguen
 en HR con sus ancestros/grupos; Community añade dos accesos bajo su raíz
 laboral, que ya se desactiva cuando existe la raíz legada. No se crea un atajo
 activo en Cerro. Los informes conservan sus métodos XLSX y sus relaciones a
-empleados y tarjas originales.
+empleados y tarjas originales. Se corrige la visibilidad de entrada/resultado
+para usar el archivo generado: el nombre calculado ya existía antes de generar
+y ocultaba las fechas al abrir. El informe contratista recupera un botón que
+llama a su método original; no recibe permisos adicionales.
 
 Los tres propietarios M2M pendientes se adoptan antes de reflejar las tablas,
 sin cambiar ID, nombre ni modelo de `ir.model.relation`:

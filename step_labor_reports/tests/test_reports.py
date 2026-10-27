@@ -18,6 +18,9 @@ class LaborReportsCase(TransactionCase):
     def test_native_report_downloads_with_original_employee_relation(self):
         user=new_test_user(self.env,login='private_labor_reports',groups='base.group_user,hr.group_hr_user')
         employee=self.env['hr.employee'].create({'name':'Private labor report worker'})
+        self.env['step.tarja'].create({'name':'Private report source','date':'2099-01-01',
+            'tarja_line':[(0,0,{'employee_id':employee.id,'quantity':2})],
+            'tarja_cost_line':[(0,0,{'employee_id':employee.id,'quantity':3,'tarifa':20})]})
         for model,view in [('report.step.hrs.wizard','report_step_hrs_wizard_form'),
                            ('report.by.process.wizard','report_step_by_process_form')]:
             scoped=self.env[model].with_user(user)
@@ -31,6 +34,13 @@ class LaborReportsCase(TransactionCase):
             raw=base64.b64decode(wizard.file)
             with zipfile.ZipFile(io.BytesIO(raw)) as book:
                 self.assertIn('xl/worksheets/sheet1.xml',book.namelist())
+                self.assertIn(b'Private labor report worker',book.read('xl/sharedStrings.xml'))
+                if model=='report.by.process.wizard':
+                    from xml.etree import ElementTree as ET
+                    sheet=ET.fromstring(book.read('xl/worksheets/sheet1.xml'))
+                    values=sheet.findall(".//{*}c[@r='AB2']/{*}v")
+                    self.assertTrue(values)
+                    self.assertEqual(float(values[0].text),60)
 
     def test_portal_cannot_read_operational_reports(self):
         portal=new_test_user(self.env,login='private_labor_reports_portal',groups='base.group_portal')
