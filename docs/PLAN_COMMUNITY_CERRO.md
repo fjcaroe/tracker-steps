@@ -508,3 +508,29 @@ vivos que aún requieren cierre histórico. Quedan 52 apps con caminos EE y 140
 Enterprise en producción. No hay conversión integral ni certificación salarial,
 Previred/Libro oficial o resolución del 31. Estado, evidencia y **siguiente prompt
 vigente**: [COMMUNITY_PAYROLL_WAGE_BASIS.md](COMMUNITY_PAYROLL_WAGE_BASIS.md).
+
+
+## Libro: snapshots salariales y permisos — 28-10-2026
+
+Código de addons 97a1ec9, paquete E: 150 pruebas Community (cero Enterprise) y
+90 en copia fresca nativa, sin fallos. El Libro del proveedor real lee los totales
+SQL originales, incluido cero y líneas archivadas OCA, sin reconstruir importes.
+Comprueba padres, campos y todas las líneas; rechaza NULL o líneas ocultas antes
+de formatear. Selecciona done/paid por período/compañía sin sudo y vuelve a aplicar
+el actor HTTP si recibe un registro elevado. No cambia dependencias ni identidades.
+
+Se preservan 919 tablas/proyecciones, 140 contadores, 59.039 XML IDs y las 1.614
+relaciones usuario-grupo/283 implicaciones. El inventario ya incluye entrada
+manual de contactos: 377 instalados/96 propios/140 Enterprise, 114 manifiestos
+en repo y 22 fuera de Cerro. Siguen 52 apps instaladas con caminos EE.
+Se retiraron ocho ensayos propios inactivos con dos planes verificados, cero dumps,
+y se conservaron caso dorado, referencias y cuatro respaldos decodificados.
+
+No se certifica el CSV oficial completo ni se convierte Cerro: quedan las columnas
+basadas en datos vivos, Libro/tablero propio, configuración original/71 reglas,
+identidad y almacenamiento del motor, casos chilenos, YTD, asientos y Previred.
+Se pidió una referencia aprobada para resolver BASIC/IMP/GROSS sin inventar reglas.
+Siguen DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma, demás productos
+y conversión integral restaurable cero Enterprise. El 31 sigue en riesgo alto.
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_PAYROLL_BOOK_LINES.md](COMMUNITY_PAYROLL_BOOK_LINES.md).

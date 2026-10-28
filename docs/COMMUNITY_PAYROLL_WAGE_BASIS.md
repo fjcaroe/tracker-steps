@@ -120,3 +120,8 @@ Community oficial y copia fresca aislada de Cerro. No recalcules pagadas, escrib
 en producción, alteres vencimientos, refresques QA-Cerro ni emitas al SII real.
 Respeta Calendar, Boolean bancario y 210233. Guarda evidencia, commits y push,
 integra solo lo validado sin pisar cambios concurrentes y verifica handoff.
+
+
+Continuación aceptada, evidencia y siguiente prompt vigentes:
+[COMMUNITY_PAYROLL_BOOK_LINES.md](COMMUNITY_PAYROLL_BOOK_LINES.md), con lectura
+de totales originales del Libro y cierre de permisos sobre líneas ocultas/archivadas.

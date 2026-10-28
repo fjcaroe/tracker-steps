@@ -3,7 +3,7 @@
 Generada con `tools/community/build_enterprise_backlog.py` desde auditoría de solo lectura.
 No contiene datos de negocio, rutas de servidor ni parámetros de licencia.
 
-Producción: 376 módulos instalados, 140 Enterprise y 95 propios.
+Producción: 377 módulos instalados, 140 Enterprise y 96 propios.
 Código candidato: 52 apps propias instaladas aún alcanzan Enterprise por sus dependencias.
 Producción conserva Enterprise. Ninguna fila autoriza desinstalación ni acredita reemplazo integral.
 Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cada módulo;
@@ -241,7 +241,7 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 
 ## Alcance de productos fuera del inventario instalado
 
-El repositorio contiene 113 módulos propios con manifiesto; 22 no están instalados en este inventario de Cerro.
+El repositorio contiene 114 módulos propios con manifiesto; 22 no están instalados en este inventario de Cerro.
 Los módulos operativos requieren aceptación Community; separar herramientas de ensayo como step_payroll_enterprise_reference, que solo compara el motor nativo en clones privados. La ausencia de caminos declarados no acredita imports, assets, permisos ni flujos; las fuentes desconocidas quedan pendientes.
 
 | Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |
