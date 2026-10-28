@@ -302,6 +302,8 @@ class RemunerationBookExtractor(models.AbstractModel):
             ("state", "=", "installed"),
         ]).mapped("name"))
         if "l10n_cl_simpledigital_payroll" in installed:
+            if self.env['ir.module.module'].sudo().search_count([('name','=','payroll'),('state','=','installed')]):
+                return '', _('El CSV oficial Simple Digital sobre OCA requiere certificar reglas y columnas históricas antes de habilitarse.')
             return "l10n_cl_simpledigital_payroll", "Steps"
         if "l10n_cl_hr_electronic_book" in installed:
             return ("l10n_cl_hr_electronic_book",
@@ -321,6 +323,7 @@ class RemunerationBookExtractor(models.AbstractModel):
             return self._official_csv_simpledigital(wizard), label
         if module == "l10n_cl_hr_electronic_book":
             return self._official_csv_electronic_book(wizard), label
+        if label:raise UserError(label)
         raise UserError(_(
             "No hay una fuente instalada que genere el archivo oficial de la "
             "Dirección del Trabajo. Instale un motor de nómina compatible o el "

@@ -151,7 +151,7 @@ class HrLibroRemuneracionesWizard(models.TransientModel):
                     "empresa completa.")
             elif not module:
                 wizard.official_csv_available = False
-                wizard.official_csv_message = _(
+                wizard.official_csv_message = label or _(
                     "No hay una fuente oficial DT instalada en esta base.")
             else:
                 wizard.official_csv_available = True

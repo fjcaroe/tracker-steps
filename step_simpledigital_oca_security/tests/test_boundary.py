@@ -603,11 +603,16 @@ class FullBookInstall(PayrollContractMixin,TransactionCase):
         self.assertFalse(dataset.errors,[issue.code for issue in dataset.errors])
         self.assertEqual(len(dataset.lines),1)
         self.assertEqual(dataset.lines[0].values[dt_book.CODE_NET],125)
-        self.assertTrue(build_workbook(dataset).startswith(b'PK'))
+        import io
+        stream=io.BytesIO();build_workbook(stream,dataset)
+        self.assertTrue(stream.getvalue().startswith(b'PK'))
         self.assertIn('/step/payroll/remuneration-book/xlsx',wizard.action_download_xlsx()['url'])
         action=wizard.action_download_pdf();self.assertEqual(action['report_name'],'step_hr_remuneration_book.consolidated_book')
         html,_=self.scope['ir.actions.report']._render_qweb_html('step_hr_remuneration_book.action_report_consolidated_book',wizard.ids)
         self.assertIn(b'Private API employee',html)
+        if self.env['ir.module.module'].search_count([('name','=','payroll'),('state','=','installed')]):
+            self.assertFalse(wizard.official_csv_available)
+            with self.assertRaisesRegex(UserError,'certific'):wizard.action_download_official_csv()
         self.assertFalse(self.scope.su)
 
     def test_partial_user_cannot_export_full_book(self):
