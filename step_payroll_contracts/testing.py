@@ -240,6 +240,32 @@ class PayrollContractMixin:
         self.assertEqual(rows[0]['number_of_days'],2)
         self.assertFalse(slip._get_worked_day_lines(check_out_of_contract=False))
 
+    @staticmethod
+    def monthly_basis_fixture_formula():
+        return """first = worked_days.get('PRIVATE_DAY_A')
+second = worked_days.get('PRIVATE_DAY_B')
+a = first.number_of_days if first and first.number_of_days else 0.0
+b = second.number_of_days if second and second.number_of_days else 0.0
+monthly = contract.wage or 0.0
+result = (monthly / 30.0) * (a + b)
+"""
+
+    def test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self):
+        (self.structure.rule_ids-self.rule).unlink()
+        self.contract.wage=900000
+        self.rule.write({'code':'BASIC','amount_python_compute':self.monthly_basis_fixture_formula()})
+        kinds={code:self.scope['hr.work.entry.type'].create({'name':code,'code':code}) for code in ('PRIVATE_DAY_A','PRIVATE_DAY_B')}
+        for first,second in [(30,0),(18,2),(0,0)]:
+            slip=self.slip();slip.worked_days_line_ids.unlink()
+            for code,days in [('PRIVATE_DAY_A',first),('PRIVATE_DAY_B',second)]:
+                if days:self.scope['hr.payslip.worked_days'].create({'name':code,'payslip_id':slip.id,
+                    'contract_id':self.contract.id,'work_entry_type_id':kinds[code].id,
+                    'number_of_days':days,'number_of_hours':days*8})
+            slip.compute_sheet()
+            expected=self.company.currency_id.round(self.contract.wage/30*(first+second))
+            self.assertAlmostEqual(slip._get_line_values(['BASIC'])['BASIC'][slip.id]['total'],expected)
+            self.assertFalse(slip.env.su)
+
     def test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self):
         from datetime import date
         from odoo.addons.step_payroll_contracts.reference import select_closed_reference

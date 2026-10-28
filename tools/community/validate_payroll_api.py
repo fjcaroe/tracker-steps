@@ -180,7 +180,7 @@ def main():
             methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions','actual_pdf_binary_and_employee_sheets']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (73 if pure else 20)+((51 if pure else 44) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
+        expected=7 if standalone else (74 if pure else 21)+((53 if pure else 46) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -190,6 +190,18 @@ def main():
                     input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
             report_log=(stage/'configuration.log').read_text(errors='replace')
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Configuration inspector failed'
+        if (root/'basis-input.json').exists():
+            assert simpledigital
+            probe=source/'tools/community/probe_monthly_basis.py'
+            payload=json.loads((root/'basis-input.json').read_text())
+            expression="import runpy; runpy.run_path("+repr(str(probe))+")["+repr('exercise')+"](env,"+repr(payload)+","+repr(str(stage/'monthly-basis.json'))+")"
+            with (stage/'monthly-basis-bootstrap.log').open('w') as stream:
+                status=subprocess.run(base+['shell']+opts+['--no-http','--logfile='+str(stage/'monthly-basis.log')],
+                    input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
+            report_log=(stage/'monthly-basis.log').read_text(errors='replace')
+            assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Monthly BASIC-only reference replay failed'
+            replay=json.loads((stage/'monthly-basis.json').read_text())
+            assert replay['basic_matches_original_snapshot'] and replay['fixtures_rolled_back'] and replay['normal_actor']
         if not pure:
             after=snapshot();current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))

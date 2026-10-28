@@ -9,6 +9,9 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self):
+        PayrollContractMixin.test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self)
+
     def test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self):
         PayrollContractMixin.test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self)
 

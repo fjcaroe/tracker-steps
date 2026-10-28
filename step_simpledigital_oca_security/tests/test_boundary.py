@@ -186,6 +186,24 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.net_rule=self.rule.copy({'code':'NET','sequence':200,
             'amount_python_compute':"result = categories.get('PRIVATE_GROSS', 0)"})
 
+    def test_monthly_basis_structure_reports_explicit_worked_day_codes(self):
+        self.valid_configuration()
+        self.rule.amount_python_compute=self.monthly_basis_fixture_formula()
+        before=self.rule.read(['id','amount_python_compute','category_id','sequence'])
+        report=self.structure._step_validate_configuration()
+        self.assertEqual(report['basic_basis']['worked_day_codes'],['PRIVATE_DAY_A','PRIVATE_DAY_B'])
+        self.assertEqual(report['basic_basis']['divisor'],30)
+        self.assertFalse(report['financial_certified'])
+        self.assertEqual(self.rule.read(['id','amount_python_compute','category_id','sequence']),before)
+
+    def test_monthly_basis_cannot_hide_quantity_rate_or_arbitrary_code(self):
+        self.valid_configuration();formula=self.monthly_basis_fixture_formula()
+        for invalid in [formula.replace('/ 30.0','/ 31.0'),formula.replace('a + b','a - b'),
+                'result_qty = 2\n'+formula,'result_rate = 50\n'+formula,
+                formula.replace('monthly = contract.wage or 0.0','monthly = payslip._get_contract_wage()')]:
+            self.rule.amount_python_compute=invalid
+            with self.assertRaisesRegex(UserError,'BASIC_UNVERIFIED_AMOUNT'):self.structure._step_validate_configuration()
+
     def test_actual_provider_configuration_and_original_rule_aliases(self):
         # Grant this new fixture actor access to the original configuration company.
         company=self.env.company

@@ -4,6 +4,7 @@ import hashlib
 from collections import Counter
 from odoo import _
 from odoo.exceptions import UserError
+from .basis import monthly_worked_day_basis
 
 ESSENTIAL=('BASIC','GROSS','NET')
 
@@ -59,10 +60,12 @@ def configuration_report(structure):
         found=rules.filtered(lambda rule:rule.code==code)
         if len(found)!=1:errors.append(code+('_MISSING' if not found else '_AMBIGUOUS'))
         else:chosen[code]=found
+    basic_basis=None
     if len(chosen)==3:
         basic,gross,net=(chosen[code] for code in ESSENTIAL)
         if not basic.sequence<gross.sequence<net.sequence:errors.append('ESSENTIAL_SEQUENCE')
-        if basic.amount_select!='code' or references(basic.amount_python_compute)!={('paid_amount',''):1}:
+        basic_basis=monthly_worked_day_basis(basic.amount_python_compute) if basic.amount_select=='code' and basic.condition_select=='none' else None
+        if basic.amount_select!='code' or (references(basic.amount_python_compute)!={('paid_amount',''):1} and basic_basis is None):
             errors.append('BASIC_UNVERIFIED_AMOUNT')
         reachable=category_chain(basic.category_id);dependent={'BASIC'}
         for rule in rules.sorted(lambda rule:(rule.sequence,rule.id)):
@@ -81,6 +84,7 @@ def configuration_report(structure):
             errors.append('NET_DISCONNECTED_FROM_GROSS')
     return {'structure_id':structure.id,'rule_count':len(rules),'essential_ids':{code:rule.id for code,rule in chosen.items()},
             'duplicate_code_ids':duplicate_codes,
+            'basic_basis':basic_basis,
             'essential_candidate_ids':{code:rules.filtered(lambda rule:rule.code==code).sorted(lambda rule:(rule.sequence,rule.id)).ids for code in ESSENTIAL},
             'errors':errors,'structural_checks_passed':not errors,'financial_certified':False,
             'rule_body_sha256':{str(rule.id):hashlib.sha256((rule.amount_python_compute or '').encode()).hexdigest() for rule in rules}}
