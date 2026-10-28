@@ -15,8 +15,8 @@ class WorkEntryType(models.Model):
 
     round_days = fields.Selection([('NO', 'No rounding'), ('HALF', 'Half day'),
                                    ('FULL', 'Full day')], default='NO', required=True)
-    round_days_type = fields.Selection([('UP', 'Up'), ('DOWN', 'Down')],
-                                       default='UP', required=True)
+    round_days_type = fields.Selection([('HALF-UP', 'Closest'), ('UP', 'Up'), ('DOWN', 'Down')],
+                                       default='DOWN', required=True)
 
 
 class Contract(models.Model):

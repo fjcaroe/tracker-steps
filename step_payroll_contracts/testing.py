@@ -159,6 +159,9 @@ class PayrollContractMixin:
              'work_entry_type_id':work.id,'date_start':datetime.combine(monday,time(8)),'date_stop':datetime.combine(monday,time(12))},
             {'name':'Private leave','employee_id':self.employee.id,'contract_id':self.contract.id,'company_id':self.company.id,
              'work_entry_type_id':leave.id,'date_start':datetime.combine(monday,time(12)),'date_stop':datetime.combine(monday,time(16))}])
+        self.assertEqual(work.round_days_type,'DOWN')
+        leave.round_days='HALF';leave.round_days_type='HALF-UP'
+        self.assertEqual(slip._round_days(leave,0.25),0.5)
         before=entries.read(['date_start','date_stop','duration','state','contract_id','work_entry_type_id'])
         rows={row['work_entry_type_id']:row for row in slip._get_worked_day_lines_values()}
         self.assertAlmostEqual(rows[work.id]['number_of_hours'],4)

@@ -137,6 +137,8 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         self.assertEqual(slip._round_days(kind,0.3),0.5)
         kind.round_days_type='DOWN'
         self.assertEqual(slip._round_days(kind,0.3),0)
+        kind.round_days_type='HALF-UP'
+        self.assertEqual(slip._round_days(kind,0.25),0.5)
 
     def test_clp_policy_keeps_earlier_period_and_validated_states(self):
         from datetime import date

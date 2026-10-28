@@ -27,19 +27,22 @@ def main():
     fields={}
     for label,db in [('community',args.community_db),('reference',args.reference_db)]:
         assert query(db,'SHOW default_transaction_read_only')=='on'
-        fields[label]=json.loads(query(db,"SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'model',model,'name',name,'ttype',ttype,'relation',relation,'store',store,'required',required,'modules',modules) ORDER BY model,name),'[]'::jsonb) FROM ir_model_fields WHERE "+SCOPE))
+        scope = (SCOPE+" OR EXISTS(SELECT 1 FROM ir_model_data d WHERE d.model='ir.model.fields' AND d.res_id=f.id AND d.module IN ('l10n_cl_simpledigital_payroll','hr_payroll','hr_payroll_account','hr_payroll_expense'))") if label=='reference' else 'true'
+        fields[label]=json.loads(query(db,"SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'model',model,'name',name,'ttype',ttype,'relation',relation,'store',store,'required',required,'selection',(SELECT coalesce(jsonb_agg(s.value ORDER BY s.value),'[]'::jsonb) FROM ir_model_fields_selection s WHERE s.field_id=f.id),'xmlids',(SELECT coalesce(jsonb_agg(d.module||'.'||d.name ORDER BY d.module,d.name),'[]'::jsonb) FROM ir_model_data d WHERE d.model='ir.model.fields' AND d.res_id=f.id)) ORDER BY model,name),'[]'::jsonb) FROM ir_model_fields f WHERE "+scope))
     target={(f['model'],f['name']):f for f in fields['community']}
     differences=[]
     for original in fields['reference']:
         key=(original['model'],original['name']);candidate=target.get(key)
         changed=['missing'] if candidate is None else [attr for attr in ('ttype','relation','store','required') if candidate[attr]!=original[attr]]
+        if candidate is not None and set(original['selection'])-set(candidate['selection']):
+            changed.append('selection')
         if changed:
             differences.append({'model':key[0],'field':key[1],'source_identity':original,
                 'candidate':candidate,'differences':changed,'migration_accepted':False})
-    counts={attr:sum(attr in row['differences'] for row in differences) for attr in ('missing','ttype','relation','store','required')}
+    counts={attr:sum(attr in row['differences'] for row in differences) for attr in ('missing','ttype','relation','store','required','selection')}
     vendor=json.loads(query(args.community_db,"SELECT json_build_object('simpledigital_installed',EXISTS(SELECT 1 FROM ir_module_module WHERE name='l10n_cl_simpledigital_payroll' AND state='installed'),'enterprise',count(*) FILTER (WHERE license='OEEL-1' AND state='installed')) FROM ir_module_module"))
     result={'read_only':True,'community':args.community_db,'reference':args.reference_db,
-        'source_fields':len(fields['reference']),'candidate_fields':len(fields['community']),
+        'source_fields_in_scope':len(fields['reference']),'candidate_fields_total':len(fields['community']),
         'counts':counts,'differences':differences,'vendor':vendor,
         'preserve_ids_requires_in_place_adoption':True,'identity_migration_accepted':False,
         'simpledigital_certified':False,'full_cerro_conversion':False}
