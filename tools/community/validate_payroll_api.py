@@ -17,6 +17,7 @@ import subprocess
 import sys
 
 MODULES=('step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference')
+OFFICIAL_PIN='4b4efe68291d6def5bb7d2e1f2b829e0cda577d4'
 PIN='4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e'
 
 
@@ -54,6 +55,7 @@ def main():
         for path,url in ((args.runtime,'https://github.com/odoo/odoo.git'),(args.oca,'https://github.com/OCA/payroll.git')):
             assert run('git','-C',str(path),'remote','get-url','origin',capture_output=True,text=True).stdout.strip()==url
             assert not run('git','-C',str(path),'status','--porcelain',capture_output=True,text=True).stdout.strip()
+        assert run('git','-C',str(args.runtime),'rev-parse','HEAD',capture_output=True,text=True).stdout.strip()==OFFICIAL_PIN
         assert run('git','-C',str(args.oca),'rev-parse','HEAD',capture_output=True,text=True).stdout.strip()==PIN
         for m in ('payroll','payroll_account'):(overlay/m).symlink_to(args.oca/m)
         dump_json('vendor-files',{str(p.relative_to(args.oca)):hashlib.sha256(p.read_bytes()).hexdigest()
@@ -95,7 +97,7 @@ def main():
             upgraded=preservation.snapshot(args.database);dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')])
-        assert re.search(r'0 failed, 0 error\(s\) of '+str(50 if pure else 6)+r' tests',text), 'Expected all upstream and shared API contracts to run'
+        assert re.search(r'0 failed, 0 error\(s\) of '+str(53 if pure else 6)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if not pure:
             after=preservation.snapshot(args.database);current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))
@@ -112,7 +114,7 @@ def main():
         if pure:assert counts['enterprise']==0
         dump_json('passed',{'mode':args.mode,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
-            'counts':counts,'oca_revision':PIN,'historical_conversion':False,'simpledigital_certified':False,
+            'counts':counts,'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)

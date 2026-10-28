@@ -22,6 +22,10 @@ Contratos implementados:
 - Lectura ORM de importes/cantidad/total por código, con suma de varias
   liquidaciones y permisos del usuario. Los acumulados YTD se rechazan
   explícitamente: no se reemplazan por cero ni por un total mensual.
+- Acceso `inputs[code]` y `inputs.get` sobre entradas reales, manteniendo también
+  el acceso legado OCA por atributo y su consulta histórica `sum`.
+  Las entradas tipadas con código repetido (también mezcladas con entradas sin
+  tipo) se rechazan antes de calcular: la agregación del proveedor sigue pendiente.
 - `worked_days.get` conserva las líneas reales de OCA. El motor OCA ya entrega
   el registro ORM real `payslip` a las reglas; no fue necesario simularlo.
 - Bloqueo de `compute_sheet` si cualquier liquidación está pagada o fuera de
@@ -29,7 +33,9 @@ Contratos implementados:
 
 Las entradas antiguas sin tipo siguen admitidas para respetar el contrato OCA.
 No se cambian dependencias de apps instaladas ni se copian reglas chilenas a
-un motor incompatible. Los grupos OCA mantienen sus permisos; solo se añaden
+un motor incompatible. Cambiar estructura/empleado/compañía/contrato de una liquidación vuelve a
+validar sus entradas tipadas, evitando relaciones inconsistentes por API.
+Los grupos OCA mantienen sus permisos; solo se añaden
 ACL del modelo de tipos: lectura para Nómina y gestión para su responsable.
 La conservación de grupos/XML IDs Enterprise al convertir está pendiente.
 
@@ -59,7 +65,9 @@ producción, QA-Cerro, vencimientos ni liquidaciones originales pagadas.
    IDs antes de retirar el motor anterior en una copia.
 3. Certificar 71 reglas, cuatro estructuras, seis tipos de entrada, instituciones,
    topes, impuestos, redondeos, cantidades, acumulados y casos chilenos.
-   Un asiento genérico balanceado no certifica la contabilización chilena.
+   Un asiento genérico balanceado no certifica la contabilización chilena. Las pruebas comunes usan compañía privada en CLP,
+   cantidades unitarias y expectativas redondeadas por moneda; no certifican
+   jornadas parciales, interacción entre reglas ni todo el redondeo del proveedor.
 4. Certificar Previred (dos perfiles) y libro (dos perfiles/42 líneas), con
    comparaciones de archivos/cifras y permisos reales. No publicar datos privados.
 5. Probar históricos pagados representativos: Cerro no contiene contratos ni

@@ -1,5 +1,5 @@
 from odoo import Command
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
 
@@ -63,3 +63,31 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
 
     def test_portal_cannot_read_salary_lines(self):
         PayrollContractMixin.test_portal_cannot_read_salary_lines(self)
+
+    def test_duplicate_typed_inputs_are_not_silently_overwritten(self):
+        for typed in (True,False):
+            slip=self.slip()
+            if typed:
+                slip.input_line_ids.copy({'payslip_id':slip.id})
+            else:
+                self.scope['hr.payslip.input'].create({'name':'Legacy same code','code':'PRIVATE_BONUS',
+                    'payslip_id':slip.id,'contract_id':self.contract.id,'amount':999})
+            with self.assertRaises(UserError):slip.compute_sheet()
+            self.assertFalse(slip.line_ids)
+            self.assertEqual(len(slip.input_line_ids),2)
+
+    def test_payroll_reader_cannot_change_input_master(self):
+        actor=self.env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private payroll reader','login':'private-payroll-api-reader',
+            'company_id':self.company.id,'company_ids':[Command.set(self.company.ids)],
+            'groups_id':[Command.set([self.env.ref('base.group_user').id,self.env.ref('payroll.group_payroll_user').id])]})
+        kind=self.input_type.with_user(actor)
+        self.assertEqual(kind.read(['code'])[0]['code'],'PRIVATE_BONUS')
+        with self.assertRaises(AccessError):kind.write({'name':'Forbidden edit'})
+
+    def test_slip_structure_cannot_invalidate_input_type(self):
+        slip=self.slip()
+        other=self.structure.copy({'name':'Unrelated private structure','rule_ids':[Command.clear()]})
+        with self.assertRaises(ValidationError),self.env.cr.savepoint():
+            slip.struct_id=other
+        self.assertEqual(slip.struct_id,self.structure)

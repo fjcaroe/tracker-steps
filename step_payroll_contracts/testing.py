@@ -10,7 +10,7 @@ class PayrollContractMixin:
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        company=cls.env['res.company'].create({'name':'Private payroll API fixture','country_id':cls.env.ref('base.us').id})
+        company=cls.env['res.company'].create({'name':'Private payroll API fixture','country_id':cls.env.ref('base.cl').id,'currency_id':cls.env.ref('base.CLP').id})
         actor=cls.env['res.users'].with_context(no_reset_password=True).create({
             'name':'Private payroll API manager','login':'private-payroll-api-manager','tz':'UTC',
             'company_id':company.id,'company_ids':[Command.set(company.ids)],
@@ -32,7 +32,7 @@ class PayrollContractMixin:
         cls.rule=scope['hr.salary.rule'].create({'name':'Private real API rule','code':'LIQ','sequence':1,
             'struct_id':cls.structure.id,'category_id':scope['hr.salary.rule.category'].create({'name':'Private API net','code':'PRIVATE_NET'}).id,
             'condition_select':'none','amount_select':'code','quantity':'1.0',
-            'amount_python_compute':'result = contract.wage + inputs.PRIVATE_BONUS.amount',
+            'amount_python_compute':"result = contract.wage + inputs['PRIVATE_BONUS'].amount",
             'account_debit':cls.debit.id,'account_credit':cls.credit.id})
         cls.input_type=scope['hr.payslip.input.type'].create({'name':'Private API bonus','code':'PRIVATE_BONUS','struct_ids':[Command.set(cls.structure.ids)]})
         cls.employee=scope['hr.employee'].create({'name':'Private API employee','company_id':company.id})
@@ -57,7 +57,7 @@ class PayrollContractMixin:
         slip=self.slip();slip.compute_sheet()
         self.assertFalse(slip.env.su)
         self.assertEqual(slip.input_line_ids.code,'PRIVATE_BONUS')
-        self.assertAlmostEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],800123.45)
+        self.assertAlmostEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],self.company.currency_id.round(800123.45))
         self.assertEqual(slip.input_line_ids.contract_id,self.contract)
 
     def test_line_values_missing_codes_and_multi_slip_sum(self):
@@ -77,9 +77,9 @@ class PayrollContractMixin:
         self.assertEqual(slip.state,'done')
 
     def test_rules_receive_real_record_and_mapping_get(self):
-        self.rule.amount_python_compute='result = 321.25 if payslip.env.company.id == contract.company_id.id and worked_days.get("PRIVATE_ABSENT") is None else -999'
+        self.rule.amount_python_compute='result = 321.25 if payslip.env.company.id == contract.company_id.id and worked_days.get("PRIVATE_ABSENT") is None and inputs.get("PRIVATE_ABSENT") is None else -999'
         slip=self.slip();slip.compute_sheet()
-        self.assertAlmostEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],321.25)
+        self.assertAlmostEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],self.company.currency_id.round(321.25))
 
     def test_actual_accounting_entry_balances(self):
         slip=self.slip();slip.compute_sheet();slip.action_payslip_done()

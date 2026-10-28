@@ -4,7 +4,7 @@ No Chilean rate policy or historical migration is implemented here.
 """
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
-from odoo.addons.payroll.models.base_browsable import WorkedDays
+from odoo.addons.payroll.models.base_browsable import WorkedDays, InputLine
 
 
 class Structure(models.Model):
@@ -41,6 +41,12 @@ class Rule(models.Model):
             self._link_original_structure()
         return result
 
+    @api.constrains('company_id','struct_id')
+    def _check_structure_company(self):
+        for rule in self.filtered('struct_id'):
+            if rule.company_id and rule.struct_id.company_id != rule.company_id:
+                raise ValidationError(_('Rule and structure must belong to the same company.'))
+
     def _link_original_structure(self):
         for rule in self.filtered('struct_id'):
             if rule.company_id and rule.struct_id.company_id != rule.company_id:
@@ -66,7 +72,8 @@ class InputType(models.Model):
 
     def write(self, values):
         if {'code','country_id','struct_ids'} & values.keys():
-            used=self.env['hr.payslip.input'].search_count([('input_type_id','in',self.ids)])
+            # Existence only: protect global types even under another company's rules.
+            used=self.env['hr.payslip.input'].sudo().search_count([('input_type_id','in',self.ids)])
             if used:
                 raise ValidationError(_('Used input types retain their code, country and structure scope. Create a new type.'))
         return super().write(values)
@@ -121,6 +128,14 @@ class Input(models.Model):
                 raise ValidationError(_('Input must retain the payslip employee and company contract.'))
 
 
+class InputLineMapping(InputLine):
+    def __getitem__(self, code):
+        return self.dict[code]
+
+    def get(self, code, default=None):
+        return self.dict.get(code, default)
+
+
 class WorkedDaysMapping(WorkedDays):
     def get(self, code, default=None):
         return self.dict.get(code, default)
@@ -131,13 +146,22 @@ class Payslip(models.Model):
 
     def _get_baselocaldict(self, contracts):
         result=super()._get_baselocaldict(contracts)
+        result['inputs']=InputLineMapping(self.employee_id.id,result['inputs'].dict,self.env)
         result['worked_days']=WorkedDaysMapping(self.employee_id.id,
             {line.code:line for line in self.worked_days_line_ids if line.code},self.env)
         return result
 
+    @api.constrains('struct_id','employee_id','company_id','contract_id')
+    def _check_existing_typed_inputs(self):
+        self.mapped('input_line_ids')._check_typed_input()
+
     def compute_sheet(self):
         if any(slip.paid or slip.state not in ('draft','verify') for slip in self):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
+        for slip in self:
+            typed_codes=set(slip.input_line_ids.filtered('input_type_id').mapped('code'))
+            if any(len(slip.input_line_ids.filtered(lambda line:line.code==code))>1 for code in typed_codes):
+                raise UserError(_('Duplicate typed input codes require a validated aggregation policy.'))
         return super().compute_sheet()
 
     def _get_line_values(self, code_list, vals_list=None, compute_sum=False):
