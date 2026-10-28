@@ -37,8 +37,10 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
             self.scope['hr.payslip.input'].create({'payslip_id':slip.id,'contract_id':self.contract.id,
                 'input_type_id':kind.id,'amount':1})
 
-    def test_ytd_is_explicitly_unsupported(self):
-        with self.assertRaises(UserError):self.slip()._get_line_values(['LIQ'],['ytd'])
+    def test_ytd_reads_actual_stored_values_and_rejects_unknown_fields(self):
+        slip=self.slip();slip.compute_sheet()
+        self.assertEqual(slip._get_line_values(['LIQ'],['ytd'])['LIQ'][slip.id]['ytd'],slip.line_ids.filtered(lambda line:line.code=='LIQ').total)
+        with self.assertRaises(UserError):slip._get_line_values(['LIQ'],['unverified'])
 
     def test_used_input_type_keeps_historical_scope(self):
         self.slip()
