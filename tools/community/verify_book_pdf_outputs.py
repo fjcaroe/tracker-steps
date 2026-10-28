@@ -49,7 +49,8 @@ def main():
             dimensions = (1008, 612) if name == 'consolidated_book' else (595, 842)
             fonts=set()
             for page in reader.pages:
-                for font in page['/Resources'].get('/Font',{}).values():
+                font_resource=page['/Resources'].get('/Font')
+                for font in (font_resource.get_object().values() if font_resource else ()):
                     fonts.add(str(font.get_object().get('/BaseFont','')))
                 assert abs(float(page.mediabox.width) - dimensions[0]) < 2
                 assert abs(float(page.mediabox.height) - dimensions[1]) < 2
