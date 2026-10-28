@@ -1,1 +1,1 @@
-{'name': 'Simple Digital payroll access boundary', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['l10n_cl_simpledigital_payroll'], 'data': ['security.xml'], 'pre_init_hook': 'pre_init_hook', 'installable': True}
+{'name': 'Simple Digital payroll access boundary', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['l10n_cl_simpledigital_payroll', 'step_payroll_contracts'], 'data': ['security.xml'], 'pre_init_hook': 'pre_init_hook', 'installable': True}

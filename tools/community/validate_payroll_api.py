@@ -48,7 +48,7 @@ def main():
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
     data=stage/'data';data.mkdir();overlay=stage/'addons';overlay.mkdir()
-    for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else (MODULES[0],MODULES[2])):(overlay/m).symlink_to(source/m)
+    for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security') if args.profile=='simpledigital' else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
     preservation.MODULES=preservation.BASE_MODULES+preservation.PRODUCER_MODULES+preservation.OPERATIONS_MODULES+preservation.LABOR_MODULES+preservation.HARVEST_MODULES+preservation.HR_MODULES
@@ -64,6 +64,11 @@ def main():
         for m in ('payroll','payroll_account'):(overlay/m).symlink_to(args.oca/m)
         dump_json('vendor-files',{str(p.relative_to(args.oca)):hashlib.sha256(p.read_bytes()).hexdigest()
             for m in ('payroll','payroll_account') for p in sorted((args.oca/m).rglob('*')) if p.is_file() and '__pycache__' not in p.parts})
+    def snapshot():
+        result=preservation.snapshot(args.database)
+        if args.profile=='simpledigital':
+            result['rule_group_rel']=json.loads(sql(args.database,"SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM rule_group_rel t WHERE rule_group_id NOT IN (SELECT res_id FROM ir_model_data WHERE module='step_simpledigital_oca_security' AND model='ir.rule')"))
+        return result
     with open('/run/lock/steps-environments.lock','a') as lock:
         print('PAYROLL_API_WAITING_FOR_SHARED_LEASE '+args.mode,flush=True);fcntl.flock(lock,fcntl.LOCK_EX)
         assert not sql('postgres',"SELECT 1 FROM pg_database WHERE datname='"+args.database+"'")
@@ -77,7 +82,7 @@ def main():
             store=data/'filestore'/args.database;store.mkdir(parents=True)
             run('rsync','-a',str(Path(config['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/')
             contract=runtime_contract(conf);dump_json('source-contract',contract)
-            baseline=preservation.snapshot(args.database);original=preservation.identity_contract(args.database);history=preservation.history_contract(args.database)
+            baseline=snapshot();original=preservation.identity_contract(args.database);history=preservation.history_contract(args.database)
             for name,value in [('business-before',baseline),('identity-before',original),('history-before',history)]:dump_json(name,value)
         for p in [stage,*stage.rglob('*')]:
             if not p.is_symlink():os.chown(p,identity.pw_uid,identity.pw_gid)
@@ -88,7 +93,7 @@ def main():
         opts=['-c',str(conf),'-d',args.database,'--db-filter=^'+args.database+'$','--addons-path='+paths,
             '--data-dir='+str(data),'--load=base,web','--workers=0','--max-cron-threads=0',
             '--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0','--without-demo='+('' if pure else 'all')]
-        modules=('step_simpledigital_oca_security' if args.profile=='simpledigital' else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'
+        modules=('step_simpledigital_oca_security' if args.profile=='simpledigital' else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'+(',step_simpledigital_oca_security' if args.profile=='simpledigital' else '')
         def execute(name,flags):
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
                 status=subprocess.run(base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init'],stdout=stream,stderr=subprocess.STDOUT)
@@ -98,16 +103,12 @@ def main():
             return text
         if not pure:
             execute('upgrade',['-i',modules])
-            upgraded=preservation.snapshot(args.database);dump_json('business-after-upgrade',upgraded)
+            upgraded=snapshot();dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
-        if args.profile=='simpledigital':
-            execute('provider-install',['-i',modules])
-            print('PROVIDER_REGISTRY_OK '+args.mode,flush=True)
-            return
-        text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')])
-        assert re.search(r'0 failed, 0 error\(s\) of '+str(68 if pure else 15)+r' tests',text), 'Expected all upstream and shared API contracts to run'
+        text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+(('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')+(',/step_simpledigital_oca_security' if args.profile=='simpledigital' else ''))])
+        assert re.search(r'0 failed, 0 error\(s\) of '+str((68 if pure else 15)+(23 if args.profile=='simpledigital' else 0))+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if not pure:
-            after=preservation.snapshot(args.database);current=preservation.identity_contract(args.database)
+            after=snapshot();current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))
             assert same_values(baseline,after),'Original business data/counters changed after reference tests'
             for name,rows in original.items():
@@ -120,7 +121,7 @@ def main():
         assert all(hashlib.sha256((source/key).read_bytes()).hexdigest()==value for key,value in fp.items())
         counts=json.loads(sql(args.database,"SELECT json_build_object('installed',count(*),'enterprise',count(*) FILTER (WHERE license='OEEL-1')) FROM ir_module_module WHERE state='installed'"))
         if pure:assert counts['enterprise']==0
-        dump_json('passed',{'mode':args.mode,'database':args.database,'writes_to_source':False,'package_files':len(fp),
+        dump_json('passed',{'mode':args.mode,'profile':args.profile,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'counts':counts,'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],

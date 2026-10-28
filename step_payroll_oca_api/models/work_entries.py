@@ -167,7 +167,7 @@ class Payslip(models.Model):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
         pending = []
         for slip in self.filtered(lambda record: record.struct_id.use_work_entries):
-            actual = slip._get_worked_day_lines_values()
+            actual = slip.contract_id.get_work_hours(slip.date_from,slip.date_to)
             if not actual:
                 raise UserError(_('Generate actual work entries before calculating this payroll.'))
             rows = slip._get_worked_day_lines()

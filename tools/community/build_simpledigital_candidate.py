@@ -58,6 +58,12 @@ def main():
                         if keyword.arg=='required' and isinstance(keyword.value,ast.Constant) and keyword.value.value is True:
                             keyword.value=ast.Constant(False)
             content=ast.unparse(tree)+'\n'
+        if name=='data/hr_salary_structure.xml':
+            tree=ET.fromstring(content)
+            for record in tree.iter('record'):
+                if record.get('id')=='structure_chile':
+                    flag=ET.SubElement(record,'field',name='use_work_entries');flag.text='True'
+            content=ET.tostring(tree,encoding='unicode')
         if content!=before:
             dest.write_text(content,encoding='utf-8');changes.append(name)
     manifest['depends']=['step_simpledigital_oca_base']
