@@ -439,10 +439,13 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
 
     def test_book_missing_original_total_does_not_become_zero(self):
         slip=self.closed_book_slip()
-        with self.assertRaises(UserError),self.env.cr.savepoint():
-            self.env.cr.execute('UPDATE hr_payslip_line SET total=NULL WHERE slip_id=%s',(slip.id,))
-            with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
-                Book()._get_payslip_lines(slip,'LIQ')
+        calls=(lambda:Book()._get_payslip_lines(slip,'LIQ'),
+               lambda:Book()._get_payslips(slip.date_from,slip.date_to,self.company.id))
+        for call in calls:
+            with self.assertRaises(UserError),self.env.cr.savepoint():
+                self.env.cr.execute('UPDATE hr_payslip_line SET total=NULL WHERE slip_id=%s',(slip.id,))
+                with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+                    call()
         self.assertEqual(stored_payslip_totals(slip),{slip.id:0})
 
     def test_book_hidden_salary_line_rejects_partial_total(self):
@@ -454,6 +457,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
             with self.assertRaises(AccessError):Book()._get_payslip_lines(slip.sudo(),'LIQ')
             with self.assertRaises(AccessError):Book()._get_payslip_lines(slip.sudo(),'MISSING')
+            with self.assertRaises(AccessError):Book()._get_payslips(slip.date_from,slip.date_to,self.company.id)
 
     def test_book_rebinds_elevated_payslip_to_http_actor(self):
         slip=self.closed_book_slip(250)

@@ -44,10 +44,14 @@ class Book(LibroRemuneracionesController):
         if date_from > date_to:
             raise BadRequest()
         # Keep the supplier's period and terminal-state contract, without elevation.
-        return request.env['hr.payslip'].search([
+        payslips = request.env['hr.payslip'].search([
             ('date_from', '>=', date_from), ('date_to', '<=', date_to),
             ('company_id', '=', company_id), ('state', 'in', ['done', 'paid'])],
             order='employee_id, date_from')
+        # Validate the complete history before any supplier row formatter can
+        # catch an exception and replace an incomplete concept with zero.
+        stored_payslip_totals(payslips)
+        return payslips
 
     def _get_payslip_lines(self, payslip, rule_codes=None):
         if not payslip or payslip._name != 'hr.payslip' or len(payslip) != 1:
