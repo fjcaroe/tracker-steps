@@ -240,3 +240,47 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):slip.compute_sheet()
         self.assertFalse(slip.line_ids)
         self.assertEqual(slip.state,'draft')
+
+    def duplicate_rules(self):
+        (self.structure.rule_ids-self.rule).unlink()
+        self.rule.write({'code':'NET','sequence':200,'amount_python_compute':'result = 10'})
+        second=self.rule.copy({'name':'Private second NET','amount_python_compute':'result = 30'})
+        category=self.scope['hr.salary.rule.category'].create({'name':'Private observer','code':'PRIVATE_OBSERVER'})
+        observer=self.rule.copy({'code':'PRIVATE_OBSERVER','sequence':201,'category_id':category.id,
+            'amount_python_compute':"result = categories['PRIVATE_NET']"})
+        return second,observer
+
+    def test_same_sequence_duplicate_net_uses_original_id_order(self):
+        second,observer=self.duplicate_rules()
+        before=(self.rule|second).read(['id','active','sequence','code','amount_python_compute','category_id'])
+        slip=self.slip();slip.compute_sheet()
+        lines=slip.line_ids.filtered(lambda line:line.code=='NET')
+        self.assertEqual(len(lines),1)
+        self.assertEqual(lines.salary_rule_id,second)
+        self.assertEqual(lines.total,30)
+        self.assertEqual(slip.line_ids.filtered(lambda line:line.salary_rule_id==observer).total,30)
+        self.assertEqual((self.rule|second).read(['id','active','sequence','code','amount_python_compute','category_id']),before)
+        if self.oca:
+            self.assertEqual(slip._get_salary_rules().filtered(lambda rule:rule.code=='NET').ids,[self.rule.id,second.id])
+
+    def test_conditional_duplicate_net_preserves_previous_result(self):
+        second,observer=self.duplicate_rules()
+        second.write({'condition_select':'python','condition_python':'result = False'})
+        slip=self.slip();slip.compute_sheet()
+        line=slip.line_ids.filtered(lambda line:line.code=='NET')
+        self.assertEqual(line.salary_rule_id,self.rule)
+        self.assertEqual(line.total,10)
+        self.assertEqual(slip.line_ids.filtered(lambda line:line.salary_rule_id==observer).total,10)
+        self.assertTrue(second.active)
+
+    def test_ambiguous_net_reports_all_original_ids_without_adopting_one(self):
+        self.valid_configuration()
+        second=self.net_rule.copy({'name':'Private alternate NET'})
+        before=(self.net_rule|second).read(['id','active','amount_python_compute'])
+        report=self.structure._step_configuration_report()
+        self.assertEqual(report['essential_candidate_ids']['NET'],[self.net_rule.id,second.id])
+        self.assertIn('NET_AMBIGUOUS',report['errors'])
+        self.assertNotIn('NET',report['essential_ids'])
+        self.assertFalse(report['financial_certified'])
+        with self.assertRaisesRegex(UserError,'NET_AMBIGUOUS'):self.structure._step_validate_configuration()
+        self.assertEqual((self.net_rule|second).read(['id','active','amount_python_compute']),before)

@@ -75,6 +75,7 @@ def configuration_report(structure):
         elif not any(coefficient>0 and (kind=='category' and name in category_chain(gross.category_id) or kind=='rule' and name=='GROSS') for (kind,name),coefficient in refs.items()):
             errors.append('NET_DISCONNECTED_FROM_GROSS')
     return {'structure_id':structure.id,'rule_count':len(rules),'essential_ids':{code:rule.id for code,rule in chosen.items()},
+            'essential_candidate_ids':{code:rules.filtered(lambda rule:rule.code==code).sorted(lambda rule:(rule.sequence,rule.id)).ids for code in ESSENTIAL},
             'errors':errors,'structural_checks_passed':not errors,'financial_certified':False,
             'rule_body_sha256':{str(rule.id):hashlib.sha256((rule.amount_python_compute or '').encode()).hexdigest() for rule in rules}}
 

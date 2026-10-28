@@ -178,6 +178,11 @@ class WorkedDaysMapping(WorkedDays):
 class Payslip(models.Model):
     _inherit = 'hr.payslip'
 
+    def _get_salary_rules(self):
+        # A same-sequence rule retains its original ID tie-breaker after import.
+        # Never use new XML IDs or M2M insertion order to resolve legacy rules.
+        return super()._get_salary_rules().sorted(lambda rule: (rule.sequence, rule.id))
+
     def _get_baselocaldict(self, contracts):
         result=super()._get_baselocaldict(contracts)
         grouped = self.input_line_ids.grouped('code')
