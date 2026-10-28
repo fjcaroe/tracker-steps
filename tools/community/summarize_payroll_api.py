@@ -56,6 +56,8 @@ def main():
     if document.exists():paths+=['tools/community/export_sys_reference_document.py']
     comparison=args.evidence/'document-comparison.json'
     if comparison.exists():paths+=['tools/community/compare_sys_reference_document.py']
+    basis=args.evidence/'basis-input.json'
+    if basis.exists():paths+=['tools/community/audit_sys_monthly_basis.py','tools/community/probe_monthly_basis.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -220,6 +222,26 @@ def main():
         assert proof['basic_matches_stored'] and proof['net_matches_stored']
         result['documentary_reference']={key:proof[key] for key in ('documentary_wage_observed','basic_matches_stored','net_matches_stored',
             'taxable_matches_stored_gross','total_earnings_matches_stored_gross','master_timeline_certified','financial_certified')}
+    if basis.exists():
+        inputs=json.loads(basis.read_text())
+        auditor=(args.evidence/'basis-auditor.py').read_bytes();helper=(args.evidence/'basis-helper.py').read_bytes();probe=(args.evidence/'basis-probe.py').read_bytes()
+        for name,blob in [('tools/community/audit_sys_monthly_basis.py',auditor),('step_payroll_contracts/basis.py',helper),('tools/community/probe_monthly_basis.py',probe)]:
+            assert blob.replace(b'\r\n',b'\n')==source[name].replace(b'\r\n',b'\n')
+        assert inputs['auditor_sha256']==hashlib.sha256(auditor).hexdigest() and inputs['basis_helper_sha256']==hashlib.sha256(helper).hexdigest()
+        assert inputs['formula_sha256']==hashlib.sha256(inputs['formula'].encode()).hexdigest()
+        assert inputs['read_only_source'] and inputs['contains_private_formula_and_payroll_data']
+        assert not any(inputs[key] for key in ('orm_reads','source_payroll_computed','enterprise_source_files_copied','financial_certified','master_timeline_certified'))
+        observations={mode:read(mode,'monthly-basis') for mode in ('community','cerro-reference')}
+        for proof in observations.values():
+            assert proof['probe_sha256']==hashlib.sha256(probe).hexdigest()
+            assert proof['normal_actor'] and proof['real_engine'] and proof['new_fixture_only'] and proof['fixtures_rolled_back']
+            assert proof['basic_matches_original_snapshot']
+            assert not any(proof[key] for key in ('source_payroll_computed','source_written','financial_certified','master_timeline_certified','full_payroll_replay','identity_conversion'))
+            assert all(proof[key]==inputs[key] for key in ('capsule_sha256','pdf_sha256','formula_sha256'))
+            assert all(row['source_id'] and row['target_id'] and row['code'] for row in proof['worked_day_master_mapping'])
+        result['monthly_basic_reference']={'engines':2,'basic_matches_original_snapshot':True,'real_engine':True,
+            'fixtures_rolled_back':True,'full_payroll_replay':False,'financial_certified':False,'identity_conversion':False,
+            'basis':inputs['basis'],'rule_write_date_precedes_period':inputs['rule_write_date_precedes_period']}
     if collisions.exists():
         probe=(collisions/'probe.py').read_bytes();runner=(collisions/'runner.py').read_bytes()
         for name,blob in [('probe_payroll_rule_collisions.py',probe),('run_payroll_rule_probe.py',runner)]:
