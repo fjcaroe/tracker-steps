@@ -28,8 +28,8 @@ def main():
     bridge=read('community','passed').get('profile')=='previred-simpledigital'
     if previred:paths+=['step_hr_previred']
     if bridge:paths+=['step_hr_previred_simpledigital']
-    cleanup=args.evidence/'retention/cleanup-result.json'
-    if cleanup.exists():paths+=['tools/community/cleanup_payroll_rehearsals.py']
+    cleanups=sorted(args.evidence.glob('retention*/cleanup-result.json'),key=lambda p:p.parent.name)
+    if cleanups:paths+=['tools/community/cleanup_payroll_rehearsals.py']
     group_proof=args.evidence/'group-preservation.json'
     if group_proof.exists():paths+=['tools/community/verify_payroll_group_preservation.py']
     configuration=args.evidence/'community/configuration.json'
@@ -155,10 +155,12 @@ def main():
         assert proof['read_only'] and not proof['writes_to_source']
         assert all(row['identical'] and row['original_rows']==row['current_rows'] and row['original_sha256']==row['current_sha256'] for row in proof['bindings'].values())
         result['original_group_bindings_preserved']=proof
-    if cleanup.exists():
+    cleanup_plans={}
+    retained=set()
+    for cleanup in cleanups:
         proof=json.loads(cleanup.read_text(encoding='utf-8'))
-        executed=(args.evidence/'retention/cleanup.py').read_bytes()
-        plan_path=args.evidence/'retention/cleanup-plan-resume.json'
+        executed=(cleanup.parent/'cleanup.py').read_bytes()
+        plan_path=cleanup.parent/'cleanup-plan-resume.json'
         plan=json.loads(plan_path.read_text(encoding='utf-8'))
         assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
         assert proof['plan_sha256']==hashlib.sha256(plan_path.read_bytes()).hexdigest()
@@ -168,9 +170,18 @@ def main():
         assert not set(plan['keep_databases'])&set(plan['delete_databases'])
         assert {row['path'] for row in proof['retained_backups']}==set(plan['keep_backups'])
         assert all(row['fully_decoded'] for row in proof['retained_backups'])
-        result['retention_cleanup']={'retired_databases':len(proof['databases'])+len(plan.get('already_retired_databases',[])),
+        retained.update(row['path'] for row in proof['retained_backups'])
+        cleanup_plans[cleanup.parent.name]={'retired_databases':len(proof['databases'])+len(plan.get('already_retired_databases',[])),
             'retired_backups':len(proof['backups']),'retained_decoded_backups':len(proof['retained_backups']),
             'postgres_available_bytes_after':proof['postgres_available_bytes_after']}
+    if cleanup_plans:
+        result['retention_cleanup_plans']=cleanup_plans
+        result['retention_cleanup']={
+            'retired_databases':sum(value['retired_databases'] for value in cleanup_plans.values()),
+            'retired_backups':sum(value['retired_backups'] for value in cleanup_plans.values()),
+            'retained_decoded_backups':len(retained)}
+        if len(cleanup_plans)==1:
+            result['retention_cleanup']['postgres_available_bytes_after']=next(iter(cleanup_plans.values()))['postgres_available_bytes_after']
     standalone=args.evidence/'core-standalone/passed.json'
     if standalone.exists():
         proof=json.loads(standalone.read_text(encoding='utf-8'))
