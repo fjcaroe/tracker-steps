@@ -5,7 +5,7 @@ from odoo.tests import TransactionCase, tagged
 from werkzeug.exceptions import BadRequest, Forbidden
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
 from ..controllers import authorized_company
-from odoo.addons.step_payroll_contracts.history import assert_history_snapshots
+from odoo.addons.step_payroll_contracts.history import assert_history_snapshots, assert_community_engine
 
 
 @tagged('post_install','-at_install')
@@ -165,3 +165,9 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             assert_history_snapshots(self.env.cr)
         self.env.cr.execute('SELECT net_wage IS NOT NULL FROM hr_payslip WHERE id=%s',(slip.id,))
         self.assertTrue(self.env.cr.fetchone()[0])
+
+    def test_native_engine_cannot_be_overlaid_by_community_bridge(self):
+        if self.oca:
+            assert_community_engine(self.env.cr)
+        else:
+            with self.assertRaises(UserError):assert_community_engine(self.env.cr)

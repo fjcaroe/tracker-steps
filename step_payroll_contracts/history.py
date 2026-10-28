@@ -63,3 +63,9 @@ def assert_mutable(parents):
     parents.check_access('read')
     if any(history_protected(slip) for slip in parents):
         raise UserError(_('Closed payroll history cannot be changed or removed. Create a correction instead.'))
+
+
+def assert_community_engine(cr):
+    cr.execute("SELECT 1 FROM ir_module_module WHERE name='hr_payroll' AND state NOT IN ('uninstalled','uninstallable') LIMIT 1")
+    if cr.fetchone():
+        raise UserError(_('Retire the native engine through the audited identity conversion before installing the Community bridge.'))
