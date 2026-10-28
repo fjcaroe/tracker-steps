@@ -28,6 +28,8 @@ def main():
     if configuration.exists():paths+=['tools/community/inspect_payroll_configuration.py']
     origins=args.evidence/'profile-origins.json'
     if origins.exists():paths+=['tools/community/audit_payroll_profile_sources.py']
+    ytd=args.evidence/'native-ytd/observations.json'
+    if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
     if upgrade.exists():paths+=['tools/community/validate_payroll_history_upgrade.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
@@ -128,6 +130,15 @@ def main():
         if all('historical_net_rule_counts' in profile for profile in value['profiles'].values()):
             result['profile_net_history']={name:profile['historical_net_rule_counts'] for name,profile in value['profiles'].items()}
             assert all(row['line_count']>0 and row['salary_rule_id'] for rows in result['profile_net_history'].values() for row in rows)
+    if ytd.exists():
+        proof=json.loads(ytd.read_text(encoding='utf-8'))
+        executed=(args.evidence/'native-ytd/probe.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/probe_payroll_ytd.py'].replace(b'\r\n',b'\n')
+        assert proof['normal_actor'] and proof['synthetic_only'] and proof['fixtures_rolled_back'] and not proof['writes_to_source']
+        assert proof['observations']['current']['ytd']==80 and proof['observations']['draft']['ytd']==30
+        assert proof['extra']['overlapping']==95 and proof['extra']['same_period']==104
+        result['native_ytd_observations']={'synthetic_only':True,'normal_actor':True,
+            'fixtures_rolled_back':True,'financial_certified':False,'observations':proof['observations'],'extra':proof['extra']}
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 
