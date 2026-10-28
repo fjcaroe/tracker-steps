@@ -226,3 +226,22 @@ sobre 93 apps inventariadas y 140 EE en producción. El 31 continúa con riesgo 
 
 Alcance vigente, hashes, evidencia, mapa y **siguiente prompt** en
 [COMMUNITY_PAYROLL_WORK_ENTRIES.md](COMMUNITY_PAYROLL_WORK_ENTRIES.md).
+
+
+## Instalación Simple Digital–OCA — 28-10-2026
+
+Paquete K, código c930d5a: 80 pruebas Community oficial (68 módulos/0 EE) y
+27 en copia fresca nativa de Cerro (377/140 EE), con 82 archivos idénticos.
+Se conservan 918 tablas/proyecciones, 140 contadores, 58.956 XML IDs y metadatos,
+permisos, relaciones, históricos y saldos originales. El proveedor real instala
+sin campos faltantes ni diferencias en los atributos comparados de sus campos;
+se prueban aliases de IDs originales, acceso propio/ajeno, formulario/acción e
+informe. La referencia mantiene su motor: la conversión integral, almacenamiento
+histórico, 71 reglas, YTD, Previred/libro y DTE/CAF/SII siguen pendientes.
+El vencimiento del 31 no está resuelto. Producción y QA-Cerro no se modifican.
+
+Estado, alcance, evidencia privada y **prompt vigente** en
+[COMMUNITY_SIMPLEDIGITAL_OCA.md](COMMUNITY_SIMPLEDIGITAL_OCA.md).
+La continuidad horaria autorizada y sus puertas de cierre están en
+[COMMUNITY_AUTONOMIA.md](COMMUNITY_AUTONOMIA.md); la matriz completa actualizada es
+[COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md](COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md).

@@ -243,7 +243,7 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 ## Alcance de productos fuera del inventario instalado
 
 El repositorio contiene 111 módulos propios con manifiesto; 22 no están instalados en este inventario de Cerro.
-También requieren aceptación Community. La ausencia de un camino declarado no acredita imports, assets, permisos ni flujos; dependencias desconocidas quedan pendientes.
+Los módulos operativos requieren aceptación Community; separar herramientas de ensayo como step_payroll_enterprise_reference, que solo compara el motor nativo en clones privados. La ausencia de caminos declarados no acredita imports, assets, permisos ni flujos; las fuentes desconocidas quedan pendientes.
 
 | Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |
 | --- | ---: | ---: |

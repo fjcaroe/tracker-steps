@@ -5,6 +5,9 @@ medio y acceso local completo hasta completar la migración de los productos
 propios. La automatización debe trabajar en este mismo hilo. El usuario gestiona
 los restablecimientos de cuota; no se compran créditos ni se modifican límites.
 La programación no garantiza cuota ni disponibilidad de la máquina.
+Se verificó el contexto efectivo del hilo: gpt-6.1-sol, esfuerzo medium,
+approval_policy never y sandbox danger-full-access. El heartbeat continúa este
+hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 ## Inicio de cada ejecución
 
