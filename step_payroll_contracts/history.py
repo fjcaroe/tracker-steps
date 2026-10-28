@@ -101,7 +101,8 @@ def stored_payslip_totals(payslips, rule_codes=None):
     lines = payslips.env['hr.payslip.line']
     lines.check_access('read')
     lines.check_field_access_rights('read', ['slip_id', 'code', 'total'])
-    visible = lines.search([('slip_id', 'in', payslips.ids)])
+    # Archived OCA lines remain historical data; active_test is not a salary ACL.
+    visible = lines.with_context(active_test=False).search([('slip_id', 'in', payslips.ids)])
     payslips.env.cr.execute(
         'SELECT id,slip_id,code,total FROM hr_payslip_line WHERE slip_id=ANY(%s)',
         (payslips.ids,))

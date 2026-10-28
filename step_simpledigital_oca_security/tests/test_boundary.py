@@ -420,9 +420,11 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             with self.assertRaises(AccessError):
                 getattr(slip.with_user(stranger),method)()
 
-    def closed_book_slip(self, total=0):
+    def closed_book_slip(self, total=0, inactive=False):
         slip=self.slip();slip.compute_sheet();self.env.flush_all()
         self.env.cr.execute('UPDATE hr_payslip_line SET amount=100,total=%s WHERE slip_id=%s',(total,slip.id))
+        if inactive and 'active' in slip.line_ids._fields:
+            slip.line_ids.active=False
         slip.line_ids.invalidate_recordset();slip.state='done';self.env.flush_all()
         return slip
 
@@ -478,7 +480,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             with self.assertRaises(BadRequest):Book()._get_payslips(closed.date_to,closed.date_from.replace(day=1).replace(year=2025),self.company.id)
 
     def test_book_preserves_supplier_code_filter_and_integer_contract(self):
-        first=self.closed_book_slip(12.9);second=self.closed_book_slip(-12.9)
+        first=self.closed_book_slip(12.9,inactive=True);second=self.closed_book_slip(-12.9)
         self.assertEqual(stored_payslip_totals(first|second,'LIQ'),{first.id:12.9,second.id:-12.9})
         with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
             book=Book()
@@ -486,7 +488,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             self.assertEqual(book._get_payslip_lines(second,'LIQ'),-12)
             self.assertEqual(book._get_payslip_lines(first,'MISSING'),0)
             # Native fixtures also contain the real engine's additional core lines.
-            self.assertEqual(book._get_payslip_lines(first,[]),int(12.9*len(first.line_ids)))
+            self.assertEqual(book._get_payslip_lines(first,[]),int(12.9*len(first.with_context(active_test=False).line_ids)))
 
     def test_book_invalid_parent_is_not_an_empty_report(self):
         with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
