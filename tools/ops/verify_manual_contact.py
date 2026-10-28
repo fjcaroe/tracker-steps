@@ -25,6 +25,13 @@ try:
     finally:
         config['test_enable']=previous
     Form(model)
+    content,_=scoped['ir.qweb']._get_asset_content('web.assets_backend')
+    entries=[entry for entry in content if entry['url'].endswith('step_partner_manual_entry/static/src/js/partner_field.js')]
+    assert len(entries)==1 and Path(entries[0]['filename']).resolve()==Path(ROOT)/'step_partner_manual_entry/static/src/js/partner_field.js'
+    if env.cr.dbname.startswith('MANAGEMENT_QA_'):
+        bundle=scoped['ir.qweb']._get_asset_bundle('web.assets_backend')
+        js=''.join(attachment.raw.decode() for attachment in bundle.js())
+        assert '@step_partner_manual_entry/js/partner_field' in js
     with patch.object(type(scoped['iap.autocomplete.api']),'_contact_iap',side_effect=AssertionError('External autocomplete must not run')):
         assert model.autocomplete_by_name('QA Supplier')==[]
         assert model.autocomplete_by_vat('CL123')==[]
