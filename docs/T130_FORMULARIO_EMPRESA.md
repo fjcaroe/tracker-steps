@@ -1,0 +1,55 @@
+# T130: formulario completo de Ajustes / Empresas
+
+Solicitud y adjunto 3423 revisados el 28-10-2026. Entrega autorizada en
+Desarrollo, Cerro y QA-Cerro. T129 ya estaba resuelto por un humano y no se modifica.
+
+## Causa y solución
+
+Odoo elige vistas primarias por prioridad, nombre e ID. Los formularios reducidos
+`company.export.folios` y `company.packing.stock.configuration` compartían la
+prioridad 16 con `res.company.form` y quedaban antes por nombre. Sus listados
+también podían sustituir el listado general.
+
+`step_company_form_restore` da prioridad 5 a las dos vistas estándar y vincula
+la acción nativa al listado estándar. Reutiliza la identidad, permisos, dominios
+y todas las extensiones del formulario nativo; no reconstruye una empresa ni
+copia sus campos a otra tabla. Folios y Bodega Packing mantienen sus enlaces
+explícitos y sus formularios reducidos.
+
+Se detectó además en Desarrollo un layout Previred de Studio que referenciaba
+cinco campos inexistentes. Su migración versionada exige reconocer exactamente
+ese conjunto y encontrar los cinco parámetros canónicos nativos. Conserva el
+ID y la arquitectura originales como vista inactiva y adopta su identidad externa
+para protegerla de la retirada futura de Studio. No recrea campos Studio ni
+calcula tasas por suposición.
+
+`step_company_form_restore_payroll` agrega la pestaña Previred en código y usa
+`caja_compensacion`, `has_mutual`, `mutual`, `rate_base` y `rate_additional` del
+proveedor oficial instalado. Comparte esos campos con Instituciones Relacionadas,
+sin campos paralelos ni modificaciones de valores o cálculos.
+
+## Alcance de las pruebas
+
+Las pruebas comprueban selección predeterminada del formulario y listado, todas
+las extensiones nativas, resistencia a otra vista primaria de igual prioridad,
+accesos explícitos a Folios/Packing, carga de los datos reales y edición en el
+búfer del formulario, sin guardarlos. El caso de uso de T130 es recuperar la
+pantalla y visualizar información; no completar la configuración fiscal.
+También se verifica la pestaña Previred nativa y la ausencia de referencias a
+los cinco campos obsoletos.
+
+El flujo de usuario usa perfiles existentes, menú real, listado y formulario
+completos; conserva la empresa, su identidad, moneda y datos. La prueba no evita
+validaciones nativas ni introduce datos fiscales ficticios en ambientes activos.
+
+## Configuración fiscal pendiente
+
+Cerro tiene seleccionado SII y QA-Cerro SIITEST, con correo DTE y resolución SII
+incompletos. El formulario nativo exige completarlos al guardar. Se solicitó el
+correo al usuario por este chat y se informó que también faltan número/fecha de
+resolución. Estos valores permanecen intactos; no son requisitos para mostrar
+la pantalla ni autorizan inventar parámetros fiscales.
+
+Publicar el mismo paquete comprobado en copias frescas, con respaldo y bloqueo,
+sin refrescar QA-Cerro ni alterar su aislamiento. Las evidencias se guardan fuera
+del repositorio público.
