@@ -240,6 +240,36 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 | `step_season_navigation` | 9 | Sí |
 | `steps_hr_payroll_correction` | 4 | Sí |
 
+## Alcance de productos fuera del inventario instalado
+
+El repositorio contiene 111 módulos propios con manifiesto; 22 no están instalados en este inventario de Cerro.
+También requieren aceptación Community. La ausencia de un camino declarado no acredita imports, assets, permisos ni flujos; dependencias desconocidas quedan pendientes.
+
+| Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |
+| --- | ---: | ---: |
+| `step_account_treasury_reports` | 6 | 0 |
+| `step_accounting_multicurrency_core` | 0 | 0 |
+| `step_agriculture_core` | 0 | 0 |
+| `step_agriculture_format_core` | 0 | 0 |
+| `step_bpa_inventory` | 0 | 0 |
+| `step_budget_design` | 0 | 0 |
+| `step_colaciones` | 0 | 0 |
+| `step_helpdesk_whatsapp` | 0 | 1 |
+| `step_hr_contract_lifecycle_agriculture` | 4 | 1 |
+| `step_hr_payroll_bridge` | 5 | 0 |
+| `step_hr_previred_blueminds` | 4 | 1 |
+| `step_labor_operations_core` | 0 | 0 |
+| `step_labor_payroll_wizards` | 4 | 0 |
+| `step_labor_reports` | 0 | 0 |
+| `step_operations_core` | 0 | 0 |
+| `step_payroll_contracts` | 0 | 0 |
+| `step_payroll_enterprise_reference` | 9 | 0 |
+| `step_payroll_oca_api` | 0 | 1 |
+| `step_sawmill` | 0 | 0 |
+| `step_simpledigital_oca_base` | 0 | 1 |
+| `step_simpledigital_oca_security` | 10 | 0 |
+| `step_treasury_community_reports` | 0 | 0 |
+
 ## Orden de desbloqueo y aceptación
 
 1. Maestros agrícolas y centros de costo: núcleo Community con modelos/IDs originales; luego consumidores de Packing, Productores, Costos y Exportación.

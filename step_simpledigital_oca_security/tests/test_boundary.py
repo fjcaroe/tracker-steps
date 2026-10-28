@@ -1,6 +1,6 @@
 """Exercise actual supplier/OCA records and native ID aliases with real users."""
 from odoo import api, Command
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from werkzeug.exceptions import BadRequest, Forbidden
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
@@ -82,7 +82,37 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         kind=self.scope['hr.work.entry.type'].create({'name':'Private unpaid','code':'PRIVATE_UNPAID',
             'unpaid_structure_ids':[Command.set(self.structure.ids)]})
         line=self.scope['hr.payslip.worked_days'].create({'payslip_id':slip.id,'contract_id':self.contract.id,
-            'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
+            'name':kind.name,'code':kind.code,'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
         self.assertFalse(line.is_paid);self.assertEqual(line.amount,0)
         kind.unpaid_structure_ids=[Command.clear()]
         self.assertTrue(line.is_paid);self.assertAlmostEqual(line.amount,self.contract.wage/30)
+
+    def test_validated_salary_is_immutable(self):
+        slip=self.slip();slip.compute_sheet();slip.state='done'
+        before=slip.line_ids.read(['amount','quantity','total'])
+        with self.assertRaises(UserError):slip.compute_sheet()
+        self.assertEqual(slip.line_ids.read(['amount','quantity','total']),before)
+
+    def test_inverse_input_membership_cannot_change_used_type(self):
+        if not self.oca:return
+        self.slip()
+        original=self.input_type.struct_ids
+        other=self.structure.copy({'name':'Private unrelated input structure','rule_ids':[Command.clear()]})
+        self.assertEqual(self.input_type.struct_ids,original)
+        with self.assertRaises(ValidationError):other.input_line_type_ids=[Command.link(self.input_type.id)]
+        self.assertEqual(self.input_type.struct_ids,original)
+
+    def test_real_employee_action_and_provider_report(self):
+        slip=self.slip();slip.compute_sheet()
+        action=self.employee.action_view_payslips()
+        self.assertEqual(action['res_model'],'hr.payslip')
+        self.assertIn(slip,self.scope['hr.payslip'].search(action['domain']))
+        for view_id,view_type in action['views']:
+            self.assertTrue(self.scope['hr.payslip'].get_view(view_id=view_id,view_type=view_type)['arch'])
+        if self.oca:
+            report=self.env.ref('payroll.action_report_payslip')
+            self.assertEqual(report.report_name,'step_simpledigital_oca_base.report_payslip')
+            html,_=self.scope['ir.actions.report']._render_qweb_html('payroll.action_report_payslip',slip.ids)
+            self.assertIn(b'payslip_lines_table',html)
+            self.assertIn(b'Private API employee',html)
+            self.assertFalse(self.scope.su)

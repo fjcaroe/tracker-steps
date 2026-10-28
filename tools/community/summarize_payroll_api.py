@@ -20,16 +20,27 @@ def main():
     assert packets[0]==packets[1], 'Different addon packets'
     # git archive applies export EOL filters too. Pin the Windows export used
     # for the accepted package instead of confusing export bytes with raw blobs.
+    simpledigital=read('community','passed').get('profile')=='simpledigital'
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
+    if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
         source={m.name:archive.extractfile(m).read() for m in archive.getmembers() if m.isfile()}
     for name,digest in packets[0].items():
+        if simpledigital and name.startswith('l10n_cl_simpledigital_payroll/'):
+            blob=(args.evidence/'provider'/name).read_bytes()
+            assert hashlib.sha256(blob).hexdigest()==digest,name
+            continue
         blob=source[name]
         assert hashlib.sha256(blob).hexdigest()==digest, name
         assert (repo/name).read_bytes().replace(b'\r\n',b'\n')==blob.replace(b'\r\n',b'\n'),name
+    if simpledigital:
+        derivation=json.loads((args.evidence/'provider-derivation.json').read_text(encoding='utf-8'))
+        pin=json.loads(source['tools/community/simpledigital_runtime_source.json'].decode('utf-8-sig'))
+        assert derivation['source_files']==pin['files'] and derivation['license']=='AGPL-3'
+        assert derivation['builder_sha256']==hashlib.sha256(source['tools/community/build_simpledigital_candidate.py']).hexdigest()
     results={mode:read(mode,'passed') for mode in ('community','cerro-reference')}
     assert results['community']['counts']['enterprise']==0
     assert results['cerro-reference']['counts']['enterprise']==140

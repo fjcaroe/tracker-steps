@@ -82,6 +82,18 @@ def main():
     for name in pending:
         rows.append('| `' + name + '` | ' + str(len(proposed[name] & set(enterprise))) + ' | ' +
                     ('Sí' if (args.repository / name / '__manifest__.py').exists() else 'Pendiente de consolidar') + ' |')
+    repository_own=sorted(p.parent.name for p in args.repository.glob('step*/__manifest__.py'))
+    extra=sorted(set(repository_own)-set(own))
+    rows += ['', '## Alcance de productos fuera del inventario instalado', '',
+             f'El repositorio contiene {len(repository_own)} módulos propios con manifiesto; '
+             f'{len(extra)} no están instalados en este inventario de Cerro.',
+             'También requieren aceptación Community. La ausencia de un camino declarado '
+             'no acredita imports, assets, permisos ni flujos; dependencias desconocidas quedan pendientes.', '',
+             '| Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |',
+             '| --- | ---: | ---: |']
+    for name in extra:
+        paths=closure(name,candidates)
+        rows.append('| `'+name+'` | '+str(len(paths & set(enterprise)))+' | '+str(len(paths-set(candidates)))+' |')
     rows += ['', '## Orden de desbloqueo y aceptación', '',
              '1. Maestros agrícolas y centros de costo: núcleo Community con modelos/IDs originales; '
              'luego consumidores de Packing, Productores, Costos y Exportación.',

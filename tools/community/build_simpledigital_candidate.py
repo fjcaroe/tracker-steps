@@ -70,6 +70,7 @@ def main():
     manifest['version']='18.0.1.1.0'
     (target/'__manifest__.py').write_text(repr(manifest)+'\n',encoding='utf-8')
     (args.output.parent/'provider-derivation.json').write_text(json.dumps({
+        'builder_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'license':'AGPL-3','author':manifest['author'],'source_files':pin['files'],
         'transformed_files':changes,'xmlid_map':XMLIDS,'community_compatible':False,
         'identity_conversion_accepted':False},indent=2),encoding='utf-8')

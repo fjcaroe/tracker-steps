@@ -7,6 +7,8 @@ class Payslip(models.Model):
     _inherit = 'hr.payslip'
 
     def compute_sheet(self):
+        if any(slip.state not in ('draft','verify') or ('paid' in slip._fields and slip.paid) for slip in self):
+            raise UserError(_('Validated or paid payroll cannot be recalculated.'))
         for slip in self:
             if slip.struct_id.name != 'Nómina Chile':
                 continue

@@ -9,4 +9,8 @@
         </xpath>
         <xpath expr="//div[@class='page']/table[2]" position="replace"/>
     </template>
+    <record id="payroll.action_report_payslip" model="ir.actions.report">
+        <field name="report_name">step_simpledigital_oca_base.report_payslip</field>
+        <field name="report_file">step_simpledigital_oca_base.report_payslip</field>
+    </record>
 </odoo>

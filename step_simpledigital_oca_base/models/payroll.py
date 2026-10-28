@@ -13,7 +13,18 @@ class Structure(models.Model):
     note = fields.Html()
     use_worked_day_lines = fields.Boolean(default=True)
     input_line_type_ids = fields.Many2many('hr.payslip.input.type',
-        'hr_payroll_structure_hr_payslip_input_type_rel','hr_payroll_structure_id','hr_payslip_input_type_id')
+        'hr_payroll_structure_hr_payslip_input_type_rel','hr_payroll_structure_id','hr_payslip_input_type_id',copy=False)
+
+    def write(self,values):
+        used=self.env['hr.payslip.input.type']
+        if 'input_line_type_ids' in values:
+            used=self.env['hr.payslip.input'].sudo().search([('input_type_id','!=',False)]).mapped('input_type_id')
+        original={kind.id:set(kind.struct_ids.ids) for kind in used}
+        with self.env.cr.savepoint():
+            result=super().write(values)
+            if any(set(kind.struct_ids.ids)!=original[kind.id] for kind in used):
+                raise ValidationError(_('Used input types retain their historical structure scope.'))
+            return result
 
 
 class Rule(models.Model):
