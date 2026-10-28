@@ -1360,3 +1360,17 @@ Estado, alcance, evidencia privada y **prompt vigente** en
 La continuidad horaria autorizada y sus puertas de cierre están en
 [COMMUNITY_AUTONOMIA.md](COMMUNITY_AUTONOMIA.md); la matriz completa actualizada es
 [COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md](COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md).
+
+
+## Históricos monetarios OCA — continuidad del 28-10-2026
+
+Paquete C de código 434fc86: 90 pruebas Community (68/0 EE) y 30 en copia fresca
+nativa (377/140 EE). Se conservan 918 tablas/proyecciones, 140 contadores,
+58.956 XML IDs y metadatos/relaciones/permisos/saldos originales. Se cierran cinco
+contratos de almacenamiento monetario; las diferencias de store bajan de 17 a 12.
+Hay protección de históricos al leer/cambiar sueldos y admisión antes del upgrade,
+con un upgrade Community real 1.0->1.1 sobre fixtures, sin convertir Cerro.
+Estado, evidencia, límites y **siguiente prompt vigente** en
+[COMMUNITY_PAYROLL_HISTORY.md](COMMUNITY_PAYROLL_HISTORY.md). La configuración
+original, histórico real, DTE/CAF/SII y conversión integral siguen pendientes;
+no se considera resuelto el 31 y no se modifican producción ni QA-Cerro.

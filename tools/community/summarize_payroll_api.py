@@ -24,6 +24,8 @@ def main():
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
+    upgrade=args.evidence/'history-upgrade/passed.json'
+    if upgrade.exists():paths+=['tools/community/validate_payroll_history_upgrade.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -87,6 +89,17 @@ def main():
         assert proof['same_runtime_bytes']
         assert proof['builder_sha256']==hashlib.sha256(source['tools/community/build_simpledigital_candidate.py']).hexdigest()
         result['provider_reproduction']=proof
+    if upgrade.exists():
+        proof=json.loads(upgrade.read_text(encoding='utf-8'))
+        executed=(args.evidence/'history-upgrade/probe.py').read_bytes()
+        assert hashlib.sha256(executed).hexdigest()==proof['probe_sha256']
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_payroll_history_upgrade.py'].replace(b'\r\n',b'\n')
+        assert all(proof[key] for key in ('actual_upgrade','rejected_missing_snapshots','real_engine','normal_actor','original_payroll_rows_preserved','historical_values_preserved','closure_marked_by_upgrade','synthetic_fixture_only'))
+        assert not proof['writes_to_source'] and not proof['full_cerro_conversion']
+        seed=json.loads((args.evidence/'history-upgrade/seed.json').read_text(encoding='utf-8'))
+        proof['ledger_row_counts']={name:len(seed['original_rows'][name]) for name in ('account_move','account_move_line')}
+        assert all(proof['ledger_row_counts'].values())
+        result['history_upgrade']=proof
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 
