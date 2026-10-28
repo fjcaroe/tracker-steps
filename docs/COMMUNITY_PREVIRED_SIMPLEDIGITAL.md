@@ -122,3 +122,14 @@ No recalcules pagadas ni modifiques producción, vencimientos o QA-Cerro; respet
 Calendar, Boolean bancario y 210233. No emitas SII real. Guarda evidencia privada,
 commits, push, integra lo validado y verifica handoff. Mantén visible la conversión
 integral restaurable cero Enterprise y el riesgo del 31.
+
+
+## Integración concurrente
+
+La canónica avanzó con T127/BPA mientras se ejecutaban estas pruebas. Se integran
+sus commits sin reemplazarlos; no modifican ninguno de los 149 archivos del paquete
+HR aceptado ni su validador. El resumidor vuelve a comprobar su identidad tras el
+merge. La matriz actualizada incluye ahora 113 módulos propios en repo y 24 fuera
+del inventario instalado de Cerro. La aceptación/publicación de BPA tiene su propio
+runbook y evidencia; esta automatización conserva la prohibición de escribir en
+producción y no ejecuta ese corte ni refresca QA-Cerro.
