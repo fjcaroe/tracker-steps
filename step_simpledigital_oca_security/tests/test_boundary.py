@@ -71,7 +71,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.assertTrue(self.env.ref('l10n_cl_simpledigital_payroll.structure_chile').exists())
 
     def test_chile_incomplete_masters_block_before_lines(self):
-        self.structure.name='NÃ³mina Chile'
+        self.structure.name='Nómina Chile'
         slip=self.slip()
         with self.assertRaises(UserError):slip.compute_sheet()
         self.assertFalse(slip.line_ids)
@@ -234,7 +234,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
 
     def test_configuration_is_checked_before_any_payroll_calculation(self):
         self.valid_configuration()
-        self.structure.name='NÃ³mina Chile'
+        self.structure.name='Nómina Chile'
         self.gross_rule.amount_python_compute="result = categories.get('PRIVATE_GROSS', 0)"
         slip=self.slip()
         with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):slip.compute_sheet()
