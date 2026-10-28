@@ -19,7 +19,7 @@ descargar el archivo.</field>
         <record id="group_previred_generate" model="res.groups">
             <field name="name">Previred: generar exportaciones</field>
             <field name="category_id" ref="base.module_category_human_resources_payroll"/>
-            <field name="implied_ids" eval="[(4, ref('step_hr_previred.group_previred_summary')), (4, ref('hr_payroll.group_hr_payroll_manager'))]"/>
+            <field name="implied_ids" eval="[(4, ref('step_hr_previred.group_previred_summary'))]"/>
             <field name="comment">Permite producir el TXT oficial, el Excel de
 revisión y el ZIP. El archivo Previred declara la nómina completa de la
 empresa, así que sólo debe otorgarse a quien tiene acceso real a todas las

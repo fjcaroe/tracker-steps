@@ -1,6 +1,6 @@
 {
     "name": "Steps - Previred por departamento",
-    "version": "18.0.3.8.7",
+    "version": "18.0.3.8.8",
     "category": "Human Resources/Payroll",
     "summary": "TXT Previred consolidado o por departamento, más Excel de revisión",
     "description": """
@@ -39,7 +39,7 @@ ni confirma su aceptación por la plataforma.
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
     "license": "LGPL-3",
-    "depends": ["hr_payroll"],
+    "depends": ["step_payroll_contracts"],
     "external_dependencies": {"python": ["xlsxwriter"]},
     "data": [
         "security/previred_security.xml",

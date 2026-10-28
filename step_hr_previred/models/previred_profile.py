@@ -24,6 +24,14 @@ class PreviredProfile(models.Model):
     _description = "Perfil de formato Previred"
     _order = "sequence, id"
 
+    def _register_hook(self):
+        result=super()._register_hook()
+        # The real engine can be installed after this neutral core. Keep the
+        # original group identities and add only the intended implications.
+        from ..hooks import ensure_group_implications
+        ensure_group_implications(self.env)
+        return result
+
     name = fields.Char(required=True, string="Nombre")
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)

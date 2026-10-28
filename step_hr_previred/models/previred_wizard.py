@@ -15,6 +15,7 @@ import zipfile
 
 from odoo import _, api, fields, models
 from odoo.exceptions import AccessError, UserError
+from odoo.addons.step_payroll_contracts.access import has_payroll_role
 
 from ..tools import previred, xlsx_previred
 from . import previred_adapter as adapters
@@ -136,7 +137,9 @@ class PreviredExportWizard(models.TransientModel):
             raise AccessError(_(
                 "Necesita el permiso «Previred: generar exportaciones» para "
                 "producir el archivo."))
-        if not self.env.user.has_group("hr_payroll.group_hr_payroll_manager"):
+        if self.env.get('hr.payslip') is None:
+            raise UserError(_("Instale un motor de nómina real y su puente antes de generar Previred."))
+        if not has_payroll_role(self.env,'manager'):
             raise AccessError(_(
                 "El archivo Previred contiene la nómina corporativa completa. "
                 "Sólo un Administrador de Nómina puede generarlo."))

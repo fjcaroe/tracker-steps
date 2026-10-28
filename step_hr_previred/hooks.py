@@ -9,6 +9,7 @@ Es el mismo mecanismo que usa `step_hr_remuneration_book`.
 """
 
 import logging
+from odoo.addons.step_payroll_contracts.access import payroll_role_group
 
 _logger = logging.getLogger(__name__)
 
@@ -30,7 +31,10 @@ IMPLICATIONS = (
 def ensure_group_implications(env):
     for own_xmlid, foreign_xmlid in IMPLICATIONS:
         own = env.ref(own_xmlid, raise_if_not_found=False)
-        foreign = env.ref(foreign_xmlid, raise_if_not_found=False)
+        if foreign_xmlid in ('hr_payroll.group_hr_payroll_user','hr_payroll.group_hr_payroll_manager'):
+            foreign=payroll_role_group(env,'manager' if foreign_xmlid.endswith('_manager') else 'user')
+        else:
+            foreign = env.ref(foreign_xmlid, raise_if_not_found=False)
         if not own or not foreign:
             _logger.info(
                 "Previred: no se pudo enlazar %s con %s; alguno no existe en "

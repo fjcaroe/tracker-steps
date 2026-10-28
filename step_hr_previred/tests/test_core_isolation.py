@@ -56,13 +56,13 @@ class TestCoreIsolation(TransactionCase):
             "El core nombra addons de proveedor; eso pertenece a un bridge:\n"
             + "\n".join(offenders))
 
-    def test_core_declares_only_hr_payroll_as_dependency(self):
+    def test_core_declares_only_engine_neutral_contracts_as_dependency(self):
         manifest = open(os.path.join(CORE_ROOT, "__manifest__.py"),
                         encoding="utf-8").read()
         depends = re.search(r'"depends":\s*\[([^\]]*)\]', manifest).group(1)
         self.assertEqual(
             [d.strip().strip('"\'') for d in depends.split(",") if d.strip()],
-            ["hr_payroll"])
+            ["step_payroll_contracts"])
 
     def test_core_registry_is_open_and_may_be_empty(self):
         """Sin ningún bridge instalado el registro puede estar vacío.
@@ -94,3 +94,37 @@ class TestCoreIsolation(TransactionCase):
         self.assertFalse(
             os.path.isdir(os.path.join(CORE_ROOT, "controllers")),
             "El core no debe publicar controladores Previred.")
+
+    def previred_user(self,login,group):
+        from odoo import Command
+        return self.env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private Previred role','login':login,'company_id':self.env.company.id,
+            'company_ids':[Command.set(self.env.company.ids)],
+            'groups_id':[Command.set([self.env.ref('base.group_user').id,self.env.ref(group).id])]})
+
+    def test_normal_summary_user_opens_real_form_but_cannot_export(self):
+        from odoo.exceptions import AccessError
+        user=self.previred_user('private-previred-summary','step_hr_previred.group_previred_summary')
+        model=self.env['step.previred.export.wizard'].with_user(user)
+        wizard=model.create({'company_id':self.env.company.id,'date_from':'2026-08-01','date_to':'2026-08-31'})
+        view=self.env.ref('step_hr_previred.view_previred_export_wizard_form')
+        self.assertTrue(model.get_view(view_id=view.id,view_type='form')['arch'])
+        self.assertFalse(wizard.env.su)
+        with self.assertRaises(AccessError):wizard._ensure_export_permission()
+
+    def test_generate_role_uses_actual_engine_or_explains_absence(self):
+        from odoo.exceptions import UserError
+        from odoo.addons.step_payroll_contracts.access import payroll_role_group,has_payroll_role
+        user=self.previred_user('private-previred-generate','step_hr_previred.group_previred_generate')
+        wizard=self.env['step.previred.export.wizard'].with_user(user).create({
+            'company_id':self.env.company.id,'date_from':'2026-08-01','date_to':'2026-08-31'})
+        self.env.cr.execute('SELECT count(*) FROM res_groups');before=self.env.cr.fetchone()
+        group=payroll_role_group(wizard.env,'manager')
+        if self.env.get('hr.payslip') is not None:
+            self.assertTrue(group)
+            self.assertTrue(has_payroll_role(wizard.env,'manager'))
+            wizard._ensure_export_permission()
+        else:
+            self.assertFalse(group)
+            with self.assertRaisesRegex(UserError,'motor'):wizard._ensure_export_permission()
+        self.env.cr.execute('SELECT count(*) FROM res_groups');self.assertEqual(self.env.cr.fetchone(),before)

@@ -20,10 +20,12 @@ def main():
     assert packets[0]==packets[1], 'Different addon packets'
     # git archive applies export EOL filters too. Pin the Windows export used
     # for the accepted package instead of confusing export bytes with raw blobs.
-    simpledigital=read('community','passed').get('profile')=='simpledigital'
+    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred')
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
+    previred=read('community','passed').get('profile')=='previred'
+    if previred:paths+=['step_hr_previred']
     configuration=args.evidence/'community/configuration.json'
     if configuration.exists():paths+=['tools/community/inspect_payroll_configuration.py']
     origins=args.evidence/'profile-origins.json'
@@ -139,6 +141,15 @@ def main():
         assert proof['extra']['overlapping']==95 and proof['extra']['same_period']==104
         result['native_ytd_observations']={'synthetic_only':True,'normal_actor':True,
             'fixtures_rolled_back':True,'financial_certified':False,'observations':proof['observations'],'extra':proof['extra']}
+    standalone=args.evidence/'core-standalone/passed.json'
+    if standalone.exists():
+        proof=json.loads(standalone.read_text(encoding='utf-8'))
+        packet=json.loads((args.evidence/'core-standalone/source-files.json').read_text(encoding='utf-8'))
+        assert proof['profile']=='previred-standalone' and proof['counts']['enterprise']==0 and not proof['payroll_model_registered']
+        assert not proof['writes_to_source'] and not proof['historical_conversion']
+        assert proof['validator_sha256']==hashlib.sha256(validator).hexdigest()
+        assert packet and all(packets[0].get(name)==value for name,value in packet.items())
+        result['previred_standalone']=proof
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 
