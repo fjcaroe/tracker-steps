@@ -3,4 +3,4 @@ from . import models
 from . import controllers
 from . import report
 
-from .hooks import post_init_hook
+from .hooks import post_init_hook, pre_init_hook, uninstall_hook

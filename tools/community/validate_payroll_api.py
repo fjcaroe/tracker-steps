@@ -28,16 +28,17 @@ def main():
     global MODULES
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode',choices=('community','cerro-reference'))
-    parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone','previred-simpledigital','book-consumers'),default='api')
+    parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone','previred-simpledigital','book-consumers','book-install'),default='api')
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
-    own_book=args.profile=='book-consumers'
-    simpledigital=args.profile in ('simpledigital','previred','previred-simpledigital','book-consumers')
-    previred=args.profile in ('previred','previred-simpledigital','book-consumers')
-    bridge=args.profile in ('previred-simpledigital','book-consumers')
+    full_book=args.profile=='book-install'
+    own_book=args.profile in ('book-consumers','book-install')
+    simpledigital=args.profile in ('simpledigital','previred','previred-simpledigital','book-consumers','book-install')
+    previred=args.profile in ('previred','previred-simpledigital','book-consumers','book-install')
+    bridge=args.profile in ('previred-simpledigital','book-consumers','book-install')
     standalone=args.profile=='previred-standalone'
     if simpledigital:
         MODULES=MODULES+('step_simpledigital_oca_base','step_simpledigital_oca_security','l10n_cl_simpledigital_payroll')
@@ -130,7 +131,7 @@ def main():
         modules=('step_simpledigital_oca_security' if simpledigital else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'+(',step_simpledigital_oca_security' if simpledigital else '')
         if previred:modules+=',step_hr_previred'
         if bridge:modules+=',step_hr_previred_simpledigital'
-        if own_book and not pure:modules+=',step_hr_remuneration_book'
+        if own_book and (not pure or full_book):modules+=',step_hr_remuneration_book'
         if standalone:modules='step_hr_previred'
         def execute(name,flags):
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
@@ -155,10 +156,13 @@ def main():
         if standalone:tags='/step_hr_previred:TestCoreIsolation'
         if own_book:
             methods=['code_snapshots_preserve_original_zero_in_batch','actual_movement_adapter_reads_stored_totals','actual_movement_adapter_rejects_hidden_lines']
-            if not pure:methods.append('native_registered_extractor_uses_original_code_map')
+            if not pure or full_book:methods.append('native_registered_extractor_uses_original_code_map')
             tags+=','+','.join('/step_simpledigital_oca_security:OwnBookConsumers.test_'+name for name in methods)
+        if full_book:
+            methods=['real_views_menus_and_actions','real_consolidated_outputs','partial_user_cannot_export_full_book','engine_alias_retirement_preserves_records']
+            tags+=','+','.join('/step_simpledigital_oca_security:FullBookInstall.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (68 if pure else 15)+((49 if pure else 42) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((3 if pure else 4) if own_book else 0)
+        expected=7 if standalone else (68 if pure else 15)+((49 if pure else 42) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(4 if full_book else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -184,8 +188,8 @@ def main():
         if pure:assert counts['enterprise']==0
         book_installed=sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name='step_hr_remuneration_book' AND state='installed'")=='1'
         if own_book:
-            assert book_installed==bool(not pure),'Distinguish Community library tests from native full-module upgrade'
-            if not pure:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_remuneration_book'")=='18.0.3.4.1'
+            assert book_installed==bool(not pure or full_book),'Distinguish Community library tests from native full-module upgrade'
+            if not pure:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_remuneration_book'")=='18.0.3.5.0'
 
         engine_models=int(sql(args.database,"SELECT count(*) FROM ir_model WHERE model='hr.payslip'"))
         if standalone:
@@ -194,7 +198,7 @@ def main():
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
-            'counts':counts,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
+            'counts':counts,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)

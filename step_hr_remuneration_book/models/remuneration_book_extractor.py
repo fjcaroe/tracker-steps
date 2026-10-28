@@ -196,7 +196,7 @@ class RemunerationBookExtractor(models.AbstractModel):
         contract_department = payslip.contract_id.department_id
         if contract_department:
             return contract_department.name, None
-        payslip_department = payslip.department_id
+        payslip_department = payslip.department_id if 'department_id' in payslip._fields else self.env['hr.department']
         if payslip_department:
             return payslip_department.name, dt_book.Issue(
                 "warning", "department_from_payslip",

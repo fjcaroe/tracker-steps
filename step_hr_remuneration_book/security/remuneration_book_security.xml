@@ -17,7 +17,7 @@
         <record id="group_remuneration_book_full" model="res.groups">
             <field name="name">Libro de Remuneraciones: exportación completa</field>
             <field name="category_id" ref="base.module_category_human_resources_payroll"/>
-            <field name="implied_ids" eval="[(4, ref('hr_payroll.group_hr_payroll_user'))]"/>
+            <field name="implied_ids" eval="[(4, ref('step_hr_remuneration_book.engine_user'))]"/>
             <field name="comment">Permite generar el Libro de Remuneraciones de
 la empresa completa y el archivo oficial de la Dirección del Trabajo. Sólo
 debe otorgarse a usuarios con acceso a todas las liquidaciones de la

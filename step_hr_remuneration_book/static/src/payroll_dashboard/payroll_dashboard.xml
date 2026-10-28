@@ -31,7 +31,7 @@
                             </div>
                         </div>
                         <div class="o_steps_payroll_hero_actions">
-                            <button class="btn btn-light" t-on-click="() => this.openAction('hr_payroll.action_hr_payslip_new')">
+                            <button class="btn btn-light" t-on-click="() => this.openAction(state.data.engine_actions.payslips)">
                                 <i class="fa fa-plus me-2"/>Nueva liquidación
                             </button>
                             <button t-if="state.data.can_full_book" class="btn btn-outline-light"
@@ -109,7 +109,7 @@
                         <article class="o_steps_payroll_panel">
                             <div class="panel_head">
                                 <div><span class="o_steps_payroll_eyebrow dark">TRAZABILIDAD</span><h2>Últimos lotes</h2></div>
-                                <button class="btn btn-sm btn-link" t-on-click="() => this.openAction('hr_payroll.action_hr_payslip_run_tree')">Ver todos</button>
+                                <button class="btn btn-sm btn-link" t-on-click="() => this.openAction(state.data.engine_actions.batches)">Ver todos</button>
                             </div>
                             <button t-foreach="state.data.recent_batches" t-as="batch" t-key="batch.id"
                                     class="batch_row" t-on-click="() => this.openBatch(batch.id)">
@@ -132,8 +132,8 @@
                     </section>
 
                     <section class="o_steps_payroll_shortcuts">
-                        <button t-on-click="() => this.openAction('hr_payroll.action_hr_payslip_run_tree')"><i class="fa fa-calendar-check-o"/><span>Lotes de nómina</span></button>
-                        <button t-on-click="() => this.openAction('hr_payroll.hr_payroll_dashboard_open')"><i class="fa fa-exclamation-circle"/><span>Controles estándar</span></button>
+                        <button t-on-click="() => this.openAction(state.data.engine_actions.batches)"><i class="fa fa-calendar-check-o"/><span>Lotes de nómina</span></button>
+                        <button t-if="state.data.engine_actions.checks" t-on-click="() => this.openAction(state.data.engine_actions.checks)"><i class="fa fa-exclamation-circle"/><span>Controles estándar</span></button>
                         <button t-if="state.data.can_full_book" t-on-click="() => this.openAction('step_hr_remuneration_book.action_hr_libro_remuneraciones_wizard_steps')"><i class="fa fa-book"/><span>Libro consolidado Steps</span></button>
                         <button t-on-click="() => this.openAction('step_hr_remuneration_book.action_hr_remuneration_partial_report_steps')"><i class="fa fa-pie-chart"/><span>Reporte parcial</span></button>
                     </section>

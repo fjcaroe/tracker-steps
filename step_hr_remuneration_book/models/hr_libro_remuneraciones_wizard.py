@@ -5,6 +5,7 @@ from datetime import date
 from urllib.parse import urlencode
 
 from odoo import _, api, fields, models
+from odoo.addons.step_payroll_contracts.access import has_payroll_role
 from odoo.exceptions import UserError
 from odoo.tools.misc import hmac as odoo_hmac
 
@@ -162,7 +163,7 @@ class HrLibroRemuneracionesWizard(models.TransientModel):
         """Permiso para el libro corporativo, comprobado sin ambigüedad."""
         user = self.env.user
         return (user.has_group(FULL_GROUP)
-                or user.has_group(PAYROLL_MANAGER_GROUP))
+                or has_payroll_role(self.env, 'manager'))
 
     def _scope(self):
         self.ensure_one()
@@ -185,7 +186,7 @@ class HrLibroRemuneracionesWizard(models.TransientModel):
                     "El Libro de Remuneraciones corporativo sólo puede "
                     "generarlo un Administrador de Nómina o un usuario del "
                     "grupo de exportación completa."))
-        elif not self.env.user.has_group(PARTIAL_GROUP):
+        elif not has_payroll_role(self.env, 'user'):
             raise UserError(_(
                 "Sólo el personal autorizado de Nómina puede generar informes "
                 "de remuneraciones."))

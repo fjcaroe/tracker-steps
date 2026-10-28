@@ -5,6 +5,8 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError
+from odoo.addons.step_payroll_contracts.access import has_payroll_role
+from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals
 from odoo.tools.misc import format_date
 
 from odoo.addons.step_hr_previred.tools import previred
@@ -177,8 +179,16 @@ class HrPayslip(models.Model):
             return empty
 
     @api.model
+    def _steps_engine_actions(self):
+        pairs={'payslips':('hr_payroll.action_hr_payslip_new','payroll.hr_payslip_action'),
+               'batches':('hr_payroll.action_hr_payslip_run_tree','payroll.hr_payslip_run_action'),
+               'checks':('hr_payroll.hr_payroll_dashboard_open',)}
+        return {key:next((xmlid for xmlid in xmlids if self.env.ref(xmlid,raise_if_not_found=False)),False)
+                for key,xmlids in pairs.items()}
+
+    @api.model
     def get_steps_payroll_dashboard(self, period=None):
-        if not self.env.user.has_group("hr_payroll.group_hr_payroll_user"):
+        if not has_payroll_role(self.env, 'user'):
             raise AccessError(_("No tiene acceso a la información de Nómina."))
 
         company = self.env.company
@@ -199,17 +209,14 @@ class HrPayslip(models.Model):
         missing_identification = len(completed.employee_id.filtered(lambda employee: not employee.identification_id))
 
         rule_codes = {"GROSS", "NET", "HAB", "LIQ"}
-        totals = defaultdict_float()
+        totals = {}
         if completed:
-            grouped = self.env["hr.payslip.line"]._read_group(
-                [("slip_id", "in", completed.ids), ("code", "in", list(rule_codes))],
-                ["code"],
-                ["total:sum"],
-            )
-            for code, amount in grouped:
-                totals[code] = amount or 0.0
-        legacy_gross = totals["GROSS"] or totals["HAB"]
-        legacy_net = totals["NET"] or totals["LIQ"]
+            for codes in stored_payslip_code_totals(completed).values():
+                for code, amount in codes.items():
+                    if code in rule_codes:
+                        totals[code] = totals.get(code, 0.0) + amount
+        legacy_gross = totals.get('GROSS', totals.get('HAB', 0.0))
+        legacy_net = totals.get('NET', totals.get('LIQ', 0.0))
         book = self._steps_book_summary(completed, company)
         total_income = book["total_income"] if book["available"] else legacy_gross
         net = book["net"] if book["available"] else legacy_net
@@ -277,6 +284,7 @@ class HrPayslip(models.Model):
             "step_hr_remuneration_book.group_remuneration_book_full"
         )
         return {
+            "engine_actions": self._steps_engine_actions(),
             "company": company.display_name,
             "period": self._steps_period_label(month_start),
             "selected_period": month_start.strftime("%Y-%m"),

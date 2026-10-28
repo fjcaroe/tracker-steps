@@ -1,6 +1,6 @@
 {
     "name": "Steps - Libro de Remuneraciones",
-    "version": "18.0.3.4.1",
+    "version": "18.0.3.5.0",
     "category": "Human Resources/Payroll",
     "summary": "Libro consolidado por departamento en Excel y PDF, y archivo oficial DT",
     "description": """
@@ -50,6 +50,8 @@ remuneraciones», rotulado como tal y sin archivo oficial DT.
         ],
     },
     "post_init_hook": "post_init_hook",
+    "pre_init_hook": "pre_init_hook",
+    "uninstall_hook": "uninstall_hook",
     "installable": True,
     "application": True,
 }

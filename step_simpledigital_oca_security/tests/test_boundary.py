@@ -559,3 +559,75 @@ class OwnBookConsumers(PayrollContractMixin,TransactionCase):
         mapping=self.env['step.remuneration.book.profile.line'].create({
             'profile_id':profile.id,'dt_code':'2101','source_type':'rule','rule_codes':code})
         self.assertEqual(extractor._resolve_values(slip,mapping,{}),{'2101':0})
+
+
+@tagged('post_install','-at_install')
+class FullBookInstall(PayrollContractMixin,TransactionCase):
+    payroll_group='payroll.group_payroll_manager'
+
+    def test_real_views_menus_and_actions(self):
+        for model,view in [('step.hr.remuneration.book.wizard','view_hr_libro_remuneraciones_wizard_form_steps'),
+                           ('step.remuneration.book.profile','view_remuneration_book_profile_form')]:
+            record=self.env.ref('step_hr_remuneration_book.'+view)
+            self.assertTrue(self.scope[model].get_view(view_id=record.id,view_type='form')['arch'])
+        visible=self.scope['ir.ui.menu']._visible_menu_ids()
+        self.assertIn(self.env.ref('step_hr_remuneration_book.menu_hr_payroll_libro_remuneraciones_steps').id,visible)
+        actions=self.scope['hr.payslip']._steps_engine_actions()
+        self.assertTrue(actions['payslips']);self.assertTrue(actions['batches'])
+        for xmlid in actions.values():
+            if xmlid:self.assertTrue(self.scope.ref(xmlid).exists())
+        from odoo.addons.step_hr_remuneration_book.hooks import engine_alias_targets
+        for name,target in engine_alias_targets(self.env).items():
+            self.assertEqual(self.env.ref('step_hr_remuneration_book.'+name),target)
+
+    def test_real_consolidated_outputs(self):
+        from odoo.addons.step_hr_remuneration_book.tools import dt_book
+        from odoo.addons.step_hr_remuneration_book.tools.xlsx_book import build_workbook
+        self.employee.identification_id='12345678-5'
+        self.rule.amount_python_compute="result = inputs['PRIVATE_BONUS'].amount"
+        zero=self.rule.copy({'name':'Private zero rule','code':'PRIVATE_ZERO','sequence':5,'amount_python_compute':'result = 0'})
+        slip=self.slip(125);slip.compute_sheet();slip.state='done';self.env.flush_all()
+        lines=[]
+        for code in dt_book.REQUIRED_DT_CODES:
+            values={'dt_code':code,'source_type':'rule','rule_codes':'PRIVATE_ZERO'}
+            if code==dt_book.CODE_RUT:values={'dt_code':code,'source_type':'employee_rut'}
+            elif code in (dt_book.CODE_WAGE,dt_book.CODE_TOTAL_TAXABLE,dt_book.CODE_TOTAL_INCOME,dt_book.CODE_NET):values['rule_codes']='LIQ'
+            lines.append(Command.create(values))
+        profile=self.env['step.remuneration.book.profile'].create({'name':'Private software report fixture',
+            'code':'PRIVATE_FULL_BOOK','company_id':self.company.id,'line_ids':lines})
+        profile.action_activate()
+        self.company.remuneration_book_profile_id=profile
+        wizard=self.scope['step.hr.remuneration.book.wizard'].create({'company_id':self.company.id,
+            'month':str(slip.date_from.month),'year':slip.date_from.year,'mode':'full'})
+        dataset=wizard.build_dataset()
+        self.assertFalse(dataset.errors,[issue.code for issue in dataset.errors])
+        self.assertEqual(len(dataset.lines),1)
+        self.assertEqual(dataset.lines[0].values[dt_book.CODE_NET],125)
+        self.assertTrue(build_workbook(dataset).startswith(b'PK'))
+        self.assertIn('/step/payroll/remuneration-book/xlsx',wizard.action_download_xlsx()['url'])
+        action=wizard.action_download_pdf();self.assertEqual(action['report_name'],'step_hr_remuneration_book.consolidated_book')
+        html,_=self.scope['ir.actions.report']._render_qweb_html('step_hr_remuneration_book.action_report_consolidated_book',wizard.ids)
+        self.assertIn(b'Private API employee',html)
+        self.assertFalse(self.scope.su)
+
+    def test_partial_user_cannot_export_full_book(self):
+        from odoo.addons.step_payroll_contracts.access import payroll_role_group
+        user=self.env['res.users'].with_context(no_reset_password=True).create({'name':'Private book partial user',
+            'login':'private-fullbook-partial','company_id':self.company.id,'company_ids':[Command.set(self.company.ids)],
+            'groups_id':[Command.set([self.env.ref('base.group_user').id,payroll_role_group(self.env,'user').id])]})
+        scope=api.Environment(self.env.cr,user.id,dict(self.scope.context),su=False)
+        wizard=scope['step.hr.remuneration.book.wizard'].create({'company_id':self.company.id,'mode':'full'})
+        self.assertFalse(wizard.user_has_full_access())
+        with self.assertRaises(UserError):wizard._step_check_access()
+        self.assertNotIn(self.env.ref('step_hr_remuneration_book.menu_hr_payroll_libro_remuneraciones_steps').id,
+                         scope['ir.ui.menu']._visible_menu_ids())
+
+    def test_engine_alias_retirement_preserves_records(self):
+        from odoo.addons.step_hr_remuneration_book.hooks import engine_alias_targets,uninstall_hook,ensure_engine_aliases
+        targets=engine_alias_targets(self.env)
+        uninstall_hook(self.env)
+        for name,record in targets.items():
+            self.assertTrue(record.exists())
+            self.assertFalse(self.env.ref('step_hr_remuneration_book.'+name,raise_if_not_found=False))
+        ensure_engine_aliases(self.env)
+        for name,record in targets.items():self.assertEqual(self.env.ref('step_hr_remuneration_book.'+name),record)

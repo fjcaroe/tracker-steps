@@ -20,15 +20,16 @@ def main():
     assert packets[0]==packets[1], 'Different addon packets'
     # git archive applies export EOL filters too. Pin the Windows export used
     # for the accepted package instead of confusing export bytes with raw blobs.
-    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital','book-consumers')
+    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital','book-consumers','book-install')
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
-    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers')
-    bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers')
+    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install')
+    bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install')
     if previred:paths+=['step_hr_previred']
     if bridge:paths+=['step_hr_previred_simpledigital']
-    if read('community','passed').get('profile')=='book-consumers':paths+=['step_hr_remuneration_book']
+    if read('community','passed').get('profile') in ('book-consumers','book-install'):paths+=['step_hr_remuneration_book']
+    if read('community','passed').get('profile')=='book-install':paths+=['tools/community/build_book_candidate.py']
     cleanups=sorted(args.evidence.glob('retention*/cleanup-result.json'),key=lambda p:p.parent.name)
     if cleanups:paths+=['tools/community/cleanup_payroll_rehearsals.py']
     group_proof=args.evidence/'group-preservation.json'
@@ -51,8 +52,18 @@ def main():
             assert hashlib.sha256(blob).hexdigest()==digest,name
             continue
         blob=source[name]
+        if read('community','passed').get('profile')=='book-install' and name=='step_hr_remuneration_book/__manifest__.py':
+            blob=blob.replace(b'"hr_payroll"',b'"step_simpledigital_oca_security"')
         assert hashlib.sha256(blob).hexdigest()==digest, name
-        assert (repo/name).read_bytes().replace(b'\r\n',b'\n')==blob.replace(b'\r\n',b'\n'),name
+        assert (repo/name).read_bytes().replace(b'\r\n',b'\n')==source[name].replace(b'\r\n',b'\n'),name
+    if read('community','passed').get('profile')=='book-install':
+        proof=json.loads((args.evidence/'book-derivation.json').read_text(encoding='utf-8'))
+        assert proof['transformation']=='real_simpledigital_prerequisite_only' and proof['license']=='LGPL-3'
+        assert proof['builder_sha256']==hashlib.sha256(source['tools/community/build_book_candidate.py']).hexdigest()
+        for name,digest in proof['source_files'].items():
+            assert digest==hashlib.sha256(source['step_hr_remuneration_book/'+name]).hexdigest()
+            assert proof['candidate_files'][name]==packets[0]['step_hr_remuneration_book/'+name]
+        assert not proof['generic_canonical_dependency_retired'] and not proof['full_cerro_conversion']
     if simpledigital:
         derivation=json.loads((args.evidence/'provider-derivation.json').read_text(encoding='utf-8'))
         pin=json.loads(source['tools/community/simpledigital_runtime_source.json'].decode('utf-8-sig'))
@@ -64,6 +75,8 @@ def main():
     if results['community'].get('profile')=='book-consumers':
         assert results['community']['own_book_library_only'] and not results['community']['own_book_installed']
         assert results['cerro-reference']['own_book_installed'] and not results['cerro-reference']['own_book_library_only']
+    if results['community'].get('profile')=='book-install':
+        assert all(r['own_book_installed'] and not r['own_book_library_only'] for r in results.values())
     assert all(not r['writes_to_source'] and not r['historical_conversion'] and not r['simpledigital_certified'] for r in results.values())
     assert len({r['source_files_sha256'] for r in results.values()})==1
     validator=source['tools/community/validate_payroll_api.py']

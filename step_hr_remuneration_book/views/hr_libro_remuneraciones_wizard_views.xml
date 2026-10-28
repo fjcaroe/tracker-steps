@@ -101,20 +101,20 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="context">{'default_mode': 'partial'}</field>
-        <field name="groups_id" eval="[(6, 0, [ref('hr_payroll.group_hr_payroll_user')])]"/>
+        <field name="groups_id" eval="[(6, 0, [ref('step_hr_remuneration_book.engine_user')])]"/>
     </record>
 
     <menuitem id="menu_hr_payroll_libro_remuneraciones_steps"
               name="Libro de Remuneraciones Steps"
-              parent="hr_payroll.menu_hr_payroll_report"
+              parent="step_hr_remuneration_book.engine_report_menu"
               action="action_hr_libro_remuneraciones_wizard_steps"
               sequence="42"
               groups="step_hr_remuneration_book.group_remuneration_book_full"/>
 
     <menuitem id="menu_hr_payroll_reporte_parcial_steps"
               name="Reporte parcial de remuneraciones"
-              parent="hr_payroll.menu_hr_payroll_report"
+              parent="step_hr_remuneration_book.engine_report_menu"
               action="action_hr_remuneration_partial_report_steps"
               sequence="43"
-              groups="hr_payroll.group_hr_payroll_user"/>
+              groups="step_hr_remuneration_book.engine_user"/>
 </odoo>

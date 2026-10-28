@@ -4,6 +4,7 @@ import re
 from datetime import datetime
 
 from odoo import http
+from odoo.addons.step_payroll_contracts.access import has_payroll_role
 from odoo.exceptions import AccessError, UserError
 from odoo.http import content_disposition, request
 
@@ -36,7 +37,7 @@ class StepsRemunerationBookController(http.Controller):
         # Nómina no debe provocar siquiera un error de acceso que revele que
         # el asistente existe.
         if not (Wizard.user_has_full_access()
-                or request.env.user.has_group(PARTIAL_GROUP)):
+                or has_payroll_role(request.env, 'user')):
             return None, request.not_found()
         try:
             wizard_id = int(kwargs.get("wizard_id") or 0)
@@ -59,7 +60,7 @@ class StepsRemunerationBookController(http.Controller):
         if wizard.mode == "full":
             if not Wizard.user_has_full_access():
                 return None, request.not_found()
-        elif not request.env.user.has_group(PARTIAL_GROUP):
+        elif not has_payroll_role(request.env, 'user'):
             return None, request.not_found()
         if output == "csv" and wizard.mode != "full":
             return None, request.not_found()

@@ -121,14 +121,14 @@
 
     <menuitem id="menu_remuneration_book_profile"
               name="Perfiles del Libro de Remuneraciones"
-              parent="hr_payroll.menu_hr_salary_configuration"
+              parent="step_hr_remuneration_book.engine_configuration_menu"
               action="action_remuneration_book_profile"
               sequence="90"
               groups="step_hr_remuneration_book.group_remuneration_book_technical"/>
 
     <menuitem id="menu_remuneration_book_log"
               name="Auditoría del Libro de Remuneraciones"
-              parent="hr_payroll.menu_hr_payroll_report"
+              parent="step_hr_remuneration_book.engine_report_menu"
               action="action_remuneration_book_log"
               sequence="91"
               groups="step_hr_remuneration_book.group_remuneration_book_full"/>
