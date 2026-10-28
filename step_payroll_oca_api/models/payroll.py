@@ -15,7 +15,7 @@ class Structure(models.Model):
 
     type_id = fields.Many2one('hr.payroll.structure.type', string='Type', ondelete='restrict')
     step_clp_concept_rounding = fields.Boolean(string='Redondear conceptos en pesos (Chile)',
-        help='Redondea cada concepto antes de acumular categorías desde octubre de 2026. No modifica liquidaciones validadas.')
+        help='Redondea cada concepto antes de acumular categorÃ­as desde octubre de 2026. No modifica liquidaciones validadas.')
 
     @api.constrains('rule_ids')
     def _check_primary_rule_membership(self):
@@ -284,8 +284,8 @@ class Payslip(models.Model):
     def _get_line_values(self, code_list, vals_list=None, compute_sum=False):
         self.check_access('read')
         values=vals_list or ['total']
-        if set(values)-{'amount','quantity','total'}:
-            raise UserError(_('Unsupported payroll values; YTD requires a separately validated implementation.'))
+        if set(values)-{'amount','quantity','total','ytd'}:
+            raise UserError(_('Unsupported payroll line value.'))
         result={code:{slip.id:{value:0.0 for value in values} for slip in self} for code in code_list}
         lines=self.mapped('line_ids').filtered(lambda line:line.code in result)
         lines.check_access('read')

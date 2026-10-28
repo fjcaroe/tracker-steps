@@ -284,3 +284,88 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.assertFalse(report['financial_certified'])
         with self.assertRaisesRegex(UserError,'NET_AMBIGUOUS'):self.structure._step_validate_configuration()
         self.assertEqual((self.net_rule|second).read(['id','active','amount_python_compute']),before)
+
+    def ytd_configuration(self):
+        from datetime import date
+        (self.structure.rule_ids-self.rule).unlink()
+        self.structure.ytd_computation=True
+        self.company.write({'ytd_reset_day':1,'ytd_reset_month':'1'})
+        self.contract.date_start=date(2024,1,1)
+        self.rule.amount_python_compute="result = inputs['PRIVATE_BONUS'].amount"
+
+    def period_slip(self,start,end,amount,closed=False):
+        from datetime import date
+        slip=self.slip(amount)
+        slip.write({'date_from':date.fromisoformat(start),'date_to':date.fromisoformat(end)})
+        slip.compute_sheet()
+        if closed:slip.state='done'
+        return slip
+
+    def test_ytd_actual_calendar_window_states_and_overlapping_periods(self):
+        self.ytd_configuration()
+        self.period_slip('2025-12-01','2025-12-31',5,True)
+        january=self.period_slip('2026-01-01','2026-01-31',10,True)
+        self.period_slip('2026-02-01','2026-02-28',20)
+        february=self.period_slip('2026-02-01','2026-02-28',30,True)
+        self.period_slip('2026-04-01','2026-04-30',50,True)
+        self.period_slip('2026-02-15','2026-03-15',15,True)
+        current=self.period_slip('2026-03-01','2026-03-31',40)
+        self.assertEqual(january.line_ids.ytd,10)
+        self.assertEqual(february.line_ids.ytd,40)
+        self.assertEqual(current.line_ids.ytd,95)
+        self.assertEqual(current._get_line_values(['LIQ'],['total','ytd'])['LIQ'][current.id],{'total':40,'ytd':95})
+        same=self.period_slip('2026-03-01','2026-03-31',9,True)
+        current.compute_sheet()
+        self.assertEqual(current.line_ids.ytd,104)
+        self.assertEqual(same.line_ids.ytd,64)
+
+    def test_ytd_disabled_retains_current_stored_total(self):
+        self.ytd_configuration()
+        self.period_slip('2026-01-01','2026-01-31',10,True)
+        self.structure.ytd_computation=False
+        current=self.period_slip('2026-02-01','2026-02-28',30)
+        self.assertEqual(current.line_ids.ytd,30)
+        self.assertEqual(current._get_line_values(['LIQ','MISSING'],['ytd'],compute_sum=True)['LIQ']['sum']['ytd'],30)
+
+    def test_closed_ytd_read_is_stored_and_immutable(self):
+        self.ytd_configuration()
+        slip=self.period_slip('2026-01-01','2026-01-31',10,True)
+        self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(l) FROM hr_payslip_line l WHERE id=%s',(slip.line_ids.id,));before=self.env.cr.fetchone()
+        self.contract.wage=1200000
+        self.structure.ytd_computation=False
+        self.env.flush_all();slip.line_ids.invalidate_recordset()
+        self.assertEqual(slip._get_line_values(['LIQ'],['ytd'])['LIQ'][slip.id]['ytd'],10)
+        self.env.cr.execute('SELECT to_jsonb(l) FROM hr_payslip_line l WHERE id=%s',(slip.line_ids.id,));self.assertEqual(self.env.cr.fetchone(),before)
+        with self.assertRaises(UserError):slip.line_ids.ytd=999
+        with self.assertRaises(UserError):slip.credit_note=True
+        with self.assertRaises(UserError):slip.compute_sheet()
+
+    def test_ytd_missing_original_snapshot_rejects_without_backfill(self):
+        from odoo.addons.step_payroll_contracts.ytd import assert_ytd_snapshots
+        self.ytd_configuration()
+        slip=self.period_slip('2026-01-01','2026-01-31',10,True)
+        self.env.flush_all();assert_ytd_snapshots(self.env.cr)
+        with self.assertRaises(UserError),self.env.cr.savepoint():
+            self.env.cr.execute('UPDATE hr_payslip_line SET ytd=NULL WHERE id=%s',(slip.line_ids.id,))
+            assert_ytd_snapshots(self.env.cr)
+        self.env.cr.execute('SELECT ytd FROM hr_payslip_line WHERE id=%s',(slip.line_ids.id,));self.assertEqual(self.env.cr.fetchone()[0],10)
+
+    def test_community_ytd_rejects_unvalidated_resets_and_credit_notes(self):
+        if not self.oca:return
+        self.ytd_configuration();self.company.ytd_reset_month='2'
+        slip=self.slip()
+        with self.assertRaisesRegex(UserError,'Custom YTD resets'):slip.compute_sheet()
+        self.assertFalse(slip.line_ids)
+        self.company.ytd_reset_month='1';slip.credit_note=True
+        with self.assertRaisesRegex(UserError,'Credit notes'):slip.compute_sheet()
+        self.assertFalse(slip.line_ids)
+
+    def test_community_ytd_repeated_lines_fail_atomically(self):
+        if not self.oca:return
+        self.ytd_configuration()
+        self.rule.code=self.input_type.code
+        slip=self.slip(10);slip.input_line_ids.copy({'amount':20})
+        with self.assertRaisesRegex(UserError,'repeated concept lines'):slip.compute_sheet()
+        self.assertFalse(slip.line_ids)
+        self.assertEqual(len(slip.input_line_ids),2)

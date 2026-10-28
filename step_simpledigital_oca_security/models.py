@@ -10,7 +10,7 @@ class Payslip(models.Model):
 
     def write(self,values):
         financial={'employee_id','company_id','contract_id','struct_id','date_from','date_to',
-                   'line_ids','input_line_ids','worked_days_line_ids','basic_wage','gross_wage','net_wage'}
+                   'line_ids','input_line_ids','worked_days_line_ids','credit_note','basic_wage','gross_wage','net_wage'}
         if financial & values.keys():assert_mutable(self)
         if 'paid' in values and any(history_protected(slip) and 'paid' in slip._fields and slip.paid!=values['paid'] for slip in self):
             raise UserError(_('Closed payroll payment status cannot be reset.'))
