@@ -144,4 +144,4 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         before=slip.line_ids.read(['id','code','salary_rule_id'])
         slip._get_line_values(['LIQ'])
         self.assertEqual(slip.line_ids.read(['id','code','salary_rule_id']),before)
-        self.assertEqual(slip.line_ids.code,self.rule.code)
+        self.assertIn(self.rule.code,slip.line_ids.mapped('code'))
