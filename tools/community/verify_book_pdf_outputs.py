@@ -46,16 +46,20 @@ def main():
             label = 'Total general' if name == 'consolidated_book' else 'No constituye liquidaci\u00f3n'
             assert compact(label) in compact(text), (mode, name, 'report label missing')
             dimensions = (1008, 612) if name == 'consolidated_book' else (595, 842)
+            fonts=set()
             for page in reader.pages:
+                for font in page['/Resources'].get('/Font',{}).get_object().values():
+                    fonts.add(str(font.get_object().get('/BaseFont','')))
                 assert abs(float(page.mediabox.width) - dimensions[0]) < 2
                 assert abs(float(page.mediabox.height) - dimensions[1]) < 2
+            assert fonts and all('DejaVuSans' in font for font in fonts), (mode,name,fonts)
             for number in range(1, len(reader.pages) + 1):
                 prefix = directory / (name + '-page-' + str(number))
                 subprocess.run([str(args.renderer), '-f', str(number), '-l', str(number),
                                 '-singlefile', '-scale-to', '1800', '-png', str(path), str(prefix)], check=True)
                 assert prefix.with_suffix('.png').stat().st_size > 1000
             result['reports'].append({'mode': mode, 'report': name, 'pages': len(reader.pages),
-                                      'sha256': proof['sha256'], 'text_and_dimensions_checked': True})
+                                      'sha256': proof['sha256'], 'local_fonts':sorted(fonts), 'text_and_dimensions_checked': True})
     args.output.write_text(json.dumps(result, indent=2), encoding='utf-8')
     print(json.dumps(result, indent=2))
 

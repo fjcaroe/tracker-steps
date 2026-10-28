@@ -50,6 +50,7 @@
 
     <template id="book_styles">
         <style>
+            .step-book-report { font-family: "DejaVu Sans", Arial, sans-serif; }
             .step-book-title { color: #174a35; font-size: 15px; font-weight: 700; }
             .step-book-meta { color: #52675d; font-size: 8px; }
             .step-book-table { width: 100%; border-collapse: collapse; font-size: 7.5px; }
@@ -90,7 +91,7 @@
     <!-- ============================ LIBRO CONSOLIDADO ==================== -->
     <template id="consolidated_book">
         <t t-call="web.html_container">
-            <div class="article"
+            <div class="article step-book-report"
                  t-att-data-oe-model="docs._name"
                  t-att-data-oe-id="docs.id"
                  t-att-data-oe-lang="docs.env.context.get('lang')">
@@ -206,7 +207,7 @@
     <template id="employee_sheets">
         <t t-call="web.html_container">
             <t t-foreach="dataset.lines" t-as="line">
-                <div class="article step-sheet"
+                <div class="article step-sheet step-book-report"
                      t-att-data-oe-model="docs._name"
                      t-att-data-oe-id="docs.id"
                      t-att-data-oe-lang="docs.env.context.get('lang')">

@@ -760,14 +760,15 @@ class FullBookHttp(FullBookInstall,HttpCase):
         self.assertIn(batch.id,[row['id'] for row in result['recent_batches']])
         self.assertFalse(result['contributions']['available'])
 
-    def _pdf_asset_sidecar(self, html):
+    def _pdf_asset_sidecar(self, documents):
         """Serve exact prefetched runtime assets, avoiding nested test-cursor deadlocks."""
         import re,threading,hashlib
         from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
         from urllib.parse import urljoin,urlsplit
         from lxml import html as etree
-        origin=self.base_url();cache={};missing=[]
-        todo=etree.fromstring(html).xpath('//link[@href]/@href | //script[@src]/@src | //img[@src]/@src')
+        origin=self.base_url();cache={};missing=[];unused_font_urls=set();todo=[]
+        for html in documents:
+            todo.extend(etree.fromstring(html).xpath('//link[@href]/@href | //script[@src]/@src | //img[@src]/@src'))
         while todo:
             link=todo.pop()
             if link.startswith('data:'):continue
@@ -783,9 +784,11 @@ class FullBookHttp(FullBookInstall,HttpCase):
                 for raw in re.findall(r'url\(\s*([^)]*?)\s*\)',css):
                     value=raw.strip('\"\' ')
                     if value and not value.startswith('data:'):
-                        # Asset URLs in runtime bundles must remain relative for this static mirror.
-                        self.assertFalse(urlsplit(value).netloc,'Absolute asset callback cannot use the test mirror')
-                        todo.append(urljoin(key,value))
+                        host=urlsplit(value).netloc
+                        if host:
+                            self.assertEqual(host,'fonts.odoocdn.com','Unknown external runtime asset')
+                            unused_font_urls.add(value)
+                        else:todo.append(urljoin(key,value))
         self.assertTrue(cache)
         class Handler(BaseHTTPRequestHandler):
             def do_GET(handler):
@@ -798,7 +801,7 @@ class FullBookHttp(FullBookInstall,HttpCase):
             def log_message(handler,*args):pass
         server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
         thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
-        return server,thread,missing,{key:hashlib.sha256(value[0]).hexdigest() for key,value in cache.items()}
+        return server,thread,missing,{key:hashlib.sha256(value[0]).hexdigest() for key,value in cache.items()},sorted(unused_font_urls)
 
     def test_actual_pdf_binary_and_employee_sheets(self):
         import io,json,hashlib
@@ -815,7 +818,9 @@ class FullBookHttp(FullBookInstall,HttpCase):
             suffix='step_hr_remuneration_book.%s/%s?'%(name,wizard.id)+urlencode({'context':json.dumps(context)})
             html=self.url_open('/report/html/'+suffix)
             self.assertEqual(html.status_code,200)
-            server,thread,missing,assets=self._pdf_asset_sidecar(html.content)
+            action=self.scope.ref('step_hr_remuneration_book.action_report_'+name)
+            bodies,ids,header,footer,paper=action._prepare_html(html.content,report_model=wizard._name)
+            server,thread,missing,assets,font_urls=self._pdf_asset_sidecar([html.content,*bodies,header,footer])
             domain=[('company_id','=',self.company.id),('output','=',output)]
             self.env.invalidate_all()
             count=self.scope['step.remuneration.book.log'].search_count(domain)
@@ -843,6 +848,7 @@ class FullBookHttp(FullBookInstall,HttpCase):
                 proofs.append({'report':name,'output':output,'pages':reader.getNumPages(),
                     'width':width,'height':height,'sha256':hashlib.sha256(response.content).hexdigest(),
                     'normal_actor':not self.scope.su,'single_audit':True,'history_preserved':True,
-                    'asset_source':'exact_runtime_prefetch','asset_sha256':assets,'missing_assets':missing})
+                    'asset_source':'exact_runtime_prefetch','asset_sha256':assets,'missing_assets':missing,
+                    'unused_cdn_font_declarations':font_urls})
         if proofs:
             (directory/'pdf-proof.json').write_text(json.dumps(proofs,indent=2),encoding='utf-8')
