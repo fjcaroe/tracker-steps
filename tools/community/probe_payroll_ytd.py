@@ -24,7 +24,6 @@ def exercise(env,output):
     (case.structure.rule_ids-case.rule).unlink()
     case.structure.ytd_computation=True
     case.company.write({'ytd_reset_day':1,'ytd_reset_month':'1'})
-    case.contract.date_start=date(2024,1,1)
     case.rule.amount_python_compute="result = inputs['PRIVATE_BONUS'].amount"
     def make(start,end,amount,closed=False):
         slip=case.slip(amount)
