@@ -136,6 +136,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.assertTrue(fields['income_tax_type'].required)
         self.assertTrue(fields['work_schedule_id'].required)
         self.assertFalse(self.scope['hr.payslip.line']._fields['code'].required)
+        if not self.oca:return  # Native code is readonly/related, not a stored writable snapshot.
         slip=self.slip();slip.compute_sheet()
         line=slip.line_ids.copy({'code':False})
         self.env.flush_all();line.invalidate_recordset()
