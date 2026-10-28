@@ -82,6 +82,9 @@ def prepare(cr):
     cr.execute("SELECT table_name,column_name FROM information_schema.columns WHERE table_schema='public' AND data_type IN ('text','character varying') AND column_name IN ('model','model_name','res_model','res_model_name','model_id','application_model')")
     for table, col in cr.fetchall():
         cr.execute(sql.SQL('UPDATE {} SET {}=%s WHERE {}=%s').format(sql.Identifier(table), sql.Identifier(col), sql.Identifier(col)), (NEW, OLD))
+    cr.execute('SELECT DISTINCT res_id FROM ir_model_data WHERE model=%s AND module<>%s', (NEW, MODULE))
+    for (ident,) in cr.fetchall():
+        adopt(cr, NEW, ident, 'aptitude_record_' + str(ident))
     cr.execute("UPDATE ir_model SET state='base' WHERE model=%s", (NEW,))
     cr.execute("UPDATE ir_model_fields SET state='base' WHERE model=%s", (NEW,))
     cr.execute('UPDATE ir_model_fields SET relation=%s WHERE relation=%s', (NEW, OLD))
@@ -165,7 +168,7 @@ def snapshot(cr, baseline):
                 value = sql.SQL('CASE WHEN t.{}=%s THEN %s ELSE t.{} END').format(sql.Identifier(col),sql.Identifier(col))
             pairs.extend([sql.Literal(old), value])
         expr = sql.SQL(' || ').join(sql.SQL('jsonb_build_object({})').format(sql.SQL(',').join(pairs[i:i+80])) for i in range(0,len(pairs),80))
-        statement = sql.SQL('SELECT count(*),md5(coalesce(string_agg(row::text,\'\' ORDER BY row::text),\'\')) FROM (SELECT {} row FROM {} t) records').format(expr,sql.Identifier(table))
+        statement = sql.SQL('SELECT count(*),md5(coalesce(string_agg(payload::text,\'\' ORDER BY payload::text),\'\')) FROM (SELECT {} AS payload FROM {} t) records').format(expr,sql.Identifier(table))
         params = [item for old in cols if old in ('res_model','model') for item in (OLD,NEW)]
         cr.execute(statement,params)
         result[logical] = cr.fetchone()

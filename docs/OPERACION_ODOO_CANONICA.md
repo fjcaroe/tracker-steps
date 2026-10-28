@@ -76,6 +76,14 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T127 autoriza `product-bpa` en Desarrollo, Cerro y QA-CERROELPLOMO. El
+28-10-2026 el usuario confirmó implementar como producto Community los campos
+y el maestro BPA heredados de Studio. El núcleo depende solo de Product y Mail;
+el puente reutiliza los maestros agrícolas actuales. Migrar en el sitio, con
+IDs, relaciones, textos, fechas e historial conservados. QA-Cerro mantiene sus
+ejercicios y aislamiento; no se refrescan datos ni se retira Enterprise.
+Exigir copias frescas, paquete idéntico, respaldo y bloqueo compartido.
+
 El 27-10-2026 el usuario autorizó reemplazar las cinco acciones de informes de
 Tesorería por alternativas Community y desplegar el paquete en QA-Cerro para
 probar, sin modificar producción. Esta autorización es específica de
