@@ -1,11 +1,12 @@
-from odoo import api, models
+from odoo import api, models, _
+from odoo.exceptions import UserError
 
 from ..tools import dt_book
 
 
 def format_amount(value):
     """Entero con separador de miles chileno; vacío si no hay valor."""
-    if value in (None, "", False):
+    if value is None or value is False or value == "":
         return ""
     return "{:,.0f}".format(int(value)).replace(",", ".")
 
@@ -26,7 +27,11 @@ class _BookReportMixin(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
-        wizard = self.env["step.hr.remuneration.book.wizard"].browse(docids)[:1]
+        wizard = self.env["step.hr.remuneration.book.wizard"].browse(docids)
+        if len(wizard) != 1:
+            raise UserError(_("Seleccione un solo asistente para generar el informe."))
+        # Preserve transient ownership and record rules before reading its scope.
+        wizard.check_access('read')
         dataset = wizard.generate(self._step_output)
         return {
             "doc_ids": docids,

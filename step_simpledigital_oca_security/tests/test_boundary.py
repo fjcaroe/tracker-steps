@@ -620,6 +620,31 @@ class FullBookInstall(PayrollContractMixin,TransactionCase):
             with self.assertRaisesRegex(UserError,'certific'):wizard.action_download_official_csv()
         self.assertFalse(self.scope.su)
 
+    def test_pdf_scope_requires_one_readable_wizard(self):
+        slip,wizard=self.book_reference()
+        report=self.scope['report.step_hr_remuneration_book.consolidated_book']
+        for ids in ([],wizard.ids+wizard.ids):
+            with self.assertRaises(UserError):report._get_report_values(ids)
+        foreign=wizard.with_env(self.env).copy()  # Admin owns this private transient, not the reporting actor.
+        with self.assertRaises(AccessError):report._get_report_values(foreign.ids)
+        self.env['ir.rule'].create({'name':'Private PDF hidden salary',
+            'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
+            'domain_force':repr([('id','not in',slip.line_ids.ids)]),
+            'perm_read':True,'perm_write':False,'perm_create':False,'perm_unlink':False})
+        with self.assertRaises(AccessError):report._get_report_values(wizard.ids)
+
+    def test_pdf_template_preserves_zero_and_negative_amounts(self):
+        from odoo.addons.step_hr_remuneration_book.report.remuneration_book_report import format_amount
+        self.assertEqual(format_amount(0),'0')
+        self.assertEqual(format_amount(-125),'-125')
+        self.assertEqual(format_amount(None),'')
+        slip,wizard=self.book_reference()
+        html,_=self.scope['ir.actions.report']._render_qweb_html(
+            'step_hr_remuneration_book.action_report_consolidated_book',wizard.ids)
+        from lxml import html as etree
+        cells=[node.text_content().strip() for node in etree.fromstring(html).xpath('//td')]
+        self.assertIn('0',cells);self.assertIn('125',cells)
+
     def test_partial_user_cannot_export_full_book(self):
         from odoo.addons.step_payroll_contracts.access import payroll_role_group
         user=self.env['res.users'].with_context(no_reset_password=True).create({'name':'Private book partial user',
@@ -733,3 +758,41 @@ class FullBookHttp(FullBookInstall,HttpCase):
         self.assertTrue(result['engine_actions']['payslips']);self.assertTrue(result['book_available'])
         self.assertIn(batch.id,[row['id'] for row in result['recent_batches']])
         self.assertFalse(result['contributions']['available'])
+
+    def test_actual_pdf_binary_and_employee_sheets(self):
+        import io,json,hashlib
+        from pathlib import Path
+        from urllib.parse import urlencode
+        from PyPDF2 import PdfFileReader
+        from odoo import tools
+        slip,wizard=self.book_reference();self.login_owner()
+        # Only the private test listener may receive renderer callbacks.
+        self.env['ir.config_parameter'].sudo().set_param('report.url',self.base_url())
+        before=stored_payslip_totals(slip,'LIQ')
+        proofs=[]
+        for name,output,dimensions in [('consolidated_book','pdf',(1008,612)),
+                                       ('employee_sheets','sheets',(595,842))]:
+            context={'force_report_rendering':True,'allowed_company_ids':self.company.ids}
+            url='/report/pdf/step_hr_remuneration_book.%s/%s?'%(name,wizard.id)+urlencode({'context':json.dumps(context)})
+            response=self.url_open(url,timeout=120)
+            self.assertEqual(response.status_code,200)
+            self.assertIn('application/pdf',response.headers.get('Content-Type',''))
+            self.assertTrue(response.content.startswith(b'%PDF-'))
+            reader=PdfFileReader(io.BytesIO(response.content));self.assertGreater(reader.getNumPages(),0)
+            page=reader.getPage(0);width,height=map(float,(page.mediaBox.getWidth(),page.mediaBox.getHeight()))
+            self.assertAlmostEqual(width,dimensions[0],delta=2);self.assertAlmostEqual(height,dimensions[1],delta=2)
+            self.env.invalidate_all()
+            logs=self.scope['step.remuneration.book.log'].search([
+                ('company_id','=',self.company.id),('output','=',output)])
+            self.assertEqual(len(logs),1);self.assertEqual(logs.user_id,self.scope.user)
+            self.assertEqual(logs.result,'ok')
+            self.assertEqual(stored_payslip_totals(slip,'LIQ'),before)
+            directory=Path(tools.config['data_dir']).parent/'pdf-evidence'
+            if str(directory).startswith('/opt/steps-validation/community-payroll-book-'):
+                directory.mkdir(exist_ok=True)
+                (directory/(name+'.pdf')).write_bytes(response.content)
+                proofs.append({'report':name,'output':output,'pages':reader.getNumPages(),
+                    'width':width,'height':height,'sha256':hashlib.sha256(response.content).hexdigest(),
+                    'normal_actor':not self.scope.su,'single_audit':True,'history_preserved':True})
+        if proofs:
+            (directory/'pdf-proof.json').write_text(json.dumps(proofs,indent=2),encoding='utf-8')

@@ -98,6 +98,17 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if all(report.get('pdf_binary_reports') for report in results.values()):
+        result['pdf_binary_reports']={}
+        for mode in ('community','cerro-reference'):
+            directory=args.evidence/mode/'pdf-evidence'
+            pdfs=json.loads((directory/'pdf-proof.json').read_text(encoding='utf-8'))
+            assert len(pdfs)==2 and {row['report'] for row in pdfs}=={'consolidated_book','employee_sheets'}
+            for row in pdfs:
+                blob=(directory/(row['report']+'.pdf')).read_bytes()
+                assert blob.startswith(b'%PDF-') and hashlib.sha256(blob).hexdigest()==row['sha256']
+                assert row['normal_actor'] and row['single_audit'] and row['history_preserved'] and row['pages']>0
+            result['pdf_binary_reports'][mode]=pdfs
     ui=args.evidence/'community'/'configuration-probe.json'
     if ui.exists():
         probe=json.loads(ui.read_text(encoding='utf-8'))
