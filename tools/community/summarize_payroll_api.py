@@ -77,6 +77,16 @@ def main():
         assert mapping['read_only'] and not mapping['identity_migration_accepted']
         assert not mapping['simpledigital_certified'] and mapping['vendor']['simpledigital_installed']==simpledigital
         result['schema_delta_counts']=mapping['counts']
+        if simpledigital:
+            provider=[{'model':row['model'],'field':row['field'],'differences':row['differences']} for row in mapping['differences'] if any(x.startswith('l10n_cl_simpledigital_payroll.') for x in row['source_identity']['xmlids'])]
+            assert not provider,'Supplier fields differ from source contract'
+            result['provider_field_differences']=provider
+    reproduction=args.evidence/'reproduction.json'
+    if reproduction.exists():
+        proof=json.loads(reproduction.read_text(encoding='utf-8'))
+        assert proof['same_runtime_bytes']
+        assert proof['builder_sha256']==hashlib.sha256(source['tools/community/build_simpledigital_candidate.py']).hexdigest()
+        result['provider_reproduction']=proof
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 
