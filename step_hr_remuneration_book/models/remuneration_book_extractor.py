@@ -2,6 +2,7 @@ import logging
 
 from odoo import _, api, models
 from odoo.exceptions import UserError
+from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals
 
 from ..tools import dt_book
 from . import remuneration_book_adapter as adapters
@@ -50,6 +51,7 @@ class RemunerationBookExtractor(models.AbstractModel):
             ))
             return [], issues
 
+        rule_totals = stored_payslip_code_totals(payslips)
         # Una sola lectura por lote de todo lo que se va a recorrer.
         payslips.mapped("line_ids.code")
         payslips.mapped("worked_days_line_ids.work_entry_type_id.code")
@@ -63,7 +65,7 @@ class RemunerationBookExtractor(models.AbstractModel):
         lines = []
         for payslip in payslips:
             line, line_issues = self._extract_line(
-                payslip, profile, order, adapter_values)
+                payslip, profile, order, adapter_values, rule_totals[payslip.id])
             issues.extend(line_issues)
             if line is not None:
                 lines.append(line)
@@ -139,7 +141,7 @@ class RemunerationBookExtractor(models.AbstractModel):
 
     # -- resolución de una liquidación --------------------------------------
 
-    def _extract_line(self, payslip, profile, order, adapter_values):
+    def _extract_line(self, payslip, profile, order, adapter_values, rule_totals=None):
         issues = []
         department, department_issue = self._resolve_department(payslip)
         if department_issue:
@@ -159,7 +161,7 @@ class RemunerationBookExtractor(models.AbstractModel):
                   "inválido.", payslip.id),
             ))
 
-        values = self._resolve_values(payslip, order, adapter_values)
+        values = self._resolve_values(payslip, order, adapter_values, rule_totals)
         negatives = [
             code for code in dt_book.REQUIRED_DT_CODES
             if code != dt_book.CODE_RUT and int(values.get(code) or 0) < 0
@@ -216,7 +218,7 @@ class RemunerationBookExtractor(models.AbstractModel):
               "«%(label)s».", id=payslip.id, label=dt_book.NO_DEPARTMENT_LABEL),
         )
 
-    def _resolve_values(self, payslip, order, adapter_values):
+    def _resolve_values(self, payslip, order, adapter_values, rule_totals=None):
         """Aplica el perfil sobre una liquidación siguiendo el orden topológico.
 
         No hay «pasadas»: cuando llega el turno de un código derivado, sus
@@ -225,7 +227,6 @@ class RemunerationBookExtractor(models.AbstractModel):
         el validador estructural lo detecta.
         """
         values = {}
-        rule_totals = None
         for mapping in order:
             source = mapping.source_type
             if source in ("aggregate", "difference"):
@@ -264,11 +265,7 @@ class RemunerationBookExtractor(models.AbstractModel):
 
     @staticmethod
     def _rule_totals(payslip):
-        totals = {}
-        for line in payslip.line_ids:
-            if line.code:
-                totals[line.code] = totals.get(line.code, 0.0) + line.total
-        return totals
+        return stored_payslip_code_totals(payslip)[payslip.id]
 
     # -- correspondencia segura ---------------------------------------------
 

@@ -85,7 +85,7 @@ def stored_line_total(lines):
     return sum(value for ident,value in rows)
 
 
-def stored_payslip_totals(payslips, rule_codes=None):
+def _stored_payslip_rows(payslips):
     """Aggregate authoritative line snapshots only after checking complete visibility.
 
     A record-rule-filtered one2many must not turn a hidden contribution into zero.
@@ -95,7 +95,7 @@ def stored_payslip_totals(payslips, rule_codes=None):
         raise ValueError('Expected actual payroll slips')
     payslips.check_access('read')
     if not payslips:
-        return {}
+        return []
     if any(not isinstance(ident, int) for ident in payslips.ids) or payslips.exists() != payslips:
         raise UserError(_('Save the real payroll slips before exporting stored totals.'))
     lines = payslips.env['hr.payslip.line']
@@ -111,9 +111,22 @@ def stored_payslip_totals(payslips, rule_codes=None):
         raise AccessError(_('The payroll export requires access to every original salary line.'))
     if any(total is None or not code for ident, slip_id, code, total in rows):
         raise UserError(_('Original stored payroll line totals or codes are incomplete; no amount will be reconstructed.'))
-    codes = {rule_codes} if isinstance(rule_codes, str) else set(rule_codes or ())
-    result = dict.fromkeys(payslips.ids, 0.0)
+    return rows
+
+
+def stored_payslip_code_totals(payslips):
+    """One authorized SQL snapshot per batch, grouped by original stored code."""
+    rows = _stored_payslip_rows(payslips)
+    result = {ident: {} for ident in payslips.ids}
     for ident, slip_id, code, total in rows:
-        if not codes or code in codes:
-            result[slip_id] += total
+        codes = result[slip_id]
+        codes[code] = codes.get(code, 0.0) + total
     return result
+
+
+def stored_payslip_totals(payslips, rule_codes=None):
+    """Preserve the filtered-sum API using the same complete authorized snapshot."""
+    codes = {rule_codes} if isinstance(rule_codes, str) else set(rule_codes or ())
+    grouped = stored_payslip_code_totals(payslips)
+    return {ident: sum((total for code, total in values.items() if not codes or code in codes), 0.0)
+            for ident, values in grouped.items()}

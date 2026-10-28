@@ -23,6 +23,7 @@ liquidación, para evitar el N+1.
 import logging
 
 from odoo import _
+from odoo.addons.step_payroll_contracts.history import stored_payslip_totals
 
 _logger = logging.getLogger(__name__)
 
@@ -106,18 +107,14 @@ class _PayslipRuleCodesAdapter(BookAdapter):
 
     @classmethod
     def values(cls, env, payslips, param):
+        payslips = payslips.with_env(env)
+        payslips.check_access('read')
         codes = set(cls.rule_codes(env, payslips, param))
         if not codes:
             return {}
-        result = {}
-        for payslip in payslips:
-            total = 0.0
-            for line in payslip.line_ids:
-                if line.code in codes:
-                    total += line.total
-            if total:
-                result[payslip.id] = int(round(total))
-        return result
+        totals = stored_payslip_totals(payslips, codes)
+        return {ident: int(round(total)) for ident, total in totals.items() if total}
+
 
 
 class MovementTypeRulesAdapter(_PayslipRuleCodesAdapter):

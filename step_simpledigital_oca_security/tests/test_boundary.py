@@ -495,3 +495,67 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             with self.assertRaises(UserError):Book()._get_payslip_lines(self.scope['hr.payslip'])
             with self.assertRaises(UserError):Book()._get_payslip_lines(self.scope['hr.payslip'].new({}))
         self.assertEqual(stored_payslip_totals(self.scope['hr.payslip']),{})
+
+
+@tagged('post_install','-at_install')
+class OwnBookConsumers(PayrollContractMixin,TransactionCase):
+    """Actual own-library on OCA; registered own extractor on native reference."""
+    payroll_group='payroll.group_payroll_manager'
+
+    def movement_slip(self,total):
+        kind=self.env['hr.employee.movement.type'].create({'name':'Private book movement','bono_ok':True})
+        self.assertTrue(kind.salary_rule_id)
+        self.rule.code=kind.salary_rule_id.code
+        slip=self.slip();slip.compute_sheet();self.env.flush_all()
+        self.env.cr.execute('UPDATE hr_payslip_line SET amount=100,total=%s WHERE slip_id=%s AND code=%s',
+                            (total,slip.id,self.rule.code))
+        slip.line_ids.invalidate_recordset();slip.state='done';self.env.flush_all()
+        return slip,self.rule.code
+
+    def adapter(self):
+        import runpy
+        from pathlib import Path
+        from odoo.modules.module import get_module_path
+        path=Path(get_module_path('step_hr_remuneration_book'))/'models/remuneration_book_adapter.py'
+        # This file only defines the actual Python adapter registry. It does not
+        # register ORM models or pretend the full native-dependent app is installed.
+        return runpy.run_path(str(path))['MovementTypeRulesAdapter']
+
+    def test_code_snapshots_preserve_original_zero_in_batch(self):
+        from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals
+        slip,code=self.movement_slip(0)
+        other=self.slip();other.compute_sheet();self.env.flush_all()
+        self.env.cr.execute('UPDATE hr_payslip_line SET total=-25 WHERE slip_id=%s AND code=%s',(other.id,code))
+        other.line_ids.invalidate_recordset();other.state='done';self.env.flush_all()
+        before=stored_payslip_code_totals(slip|other)
+        self.assertIn(code,before[slip.id]);self.assertEqual(before[slip.id][code],0)
+        self.assertEqual(before[other.id][code],-25)
+        self.contract.wage=1200000
+        self.assertEqual(stored_payslip_code_totals(slip|other),before)
+        self.assertEqual(stored_payslip_totals(slip,code),{slip.id:0})
+
+    def test_actual_movement_adapter_reads_stored_totals(self):
+        slip,code=self.movement_slip(125)
+        adapter=self.adapter()
+        self.assertEqual(adapter.values(self.scope,slip,'bono_ok'),{slip.id:125})
+        self.contract.wage=1200000
+        self.assertEqual(adapter.values(self.scope,slip,'bono_ok'),{slip.id:125})
+        self.assertFalse(slip.env.su)
+
+    def test_actual_movement_adapter_rejects_hidden_lines(self):
+        slip,code=self.movement_slip(125)
+        self.env['ir.rule'].create({'name':'Private own book hidden line',
+            'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
+            'domain_force':repr([('id','not in',slip.line_ids.ids)]),
+            'perm_read':True,'perm_create':False,'perm_write':False,'perm_unlink':False})
+        with self.assertRaises(AccessError):
+            self.adapter().values(self.scope,slip.sudo(),'bono_ok')
+
+    def test_native_registered_extractor_uses_original_code_map(self):
+        slip,code=self.movement_slip(0)
+        extractor=self.scope['step.remuneration.book.extractor']
+        self.assertEqual(extractor._rule_totals(slip)[code],0)
+        profile=self.env['step.remuneration.book.profile'].create({'name':'Private snapshot profile','code':'PRIVATE_SNAPSHOT'})
+        mapping=self.env['step.remuneration.book.profile.line'].create({
+            'profile_id':profile.id,'dt_code':'1101','source_type':'rule','rule_codes':code})
+        self.assertEqual(extractor._resolve_values(slip,mapping,{}),{'1101':0})

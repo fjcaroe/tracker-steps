@@ -20,14 +20,15 @@ def main():
     assert packets[0]==packets[1], 'Different addon packets'
     # git archive applies export EOL filters too. Pin the Windows export used
     # for the accepted package instead of confusing export bytes with raw blobs.
-    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital')
+    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital','book-consumers')
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
-    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital')
-    bridge=read('community','passed').get('profile')=='previred-simpledigital'
+    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers')
+    bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers')
     if previred:paths+=['step_hr_previred']
     if bridge:paths+=['step_hr_previred_simpledigital']
+    if read('community','passed').get('profile')=='book-consumers':paths+=['step_hr_remuneration_book']
     cleanups=sorted(args.evidence.glob('retention*/cleanup-result.json'),key=lambda p:p.parent.name)
     if cleanups:paths+=['tools/community/cleanup_payroll_rehearsals.py']
     group_proof=args.evidence/'group-preservation.json'

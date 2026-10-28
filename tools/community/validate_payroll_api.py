@@ -28,20 +28,22 @@ def main():
     global MODULES
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode',choices=('community','cerro-reference'))
-    parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone','previred-simpledigital'),default='api')
+    parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone','previred-simpledigital','book-consumers'),default='api')
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
-    simpledigital=args.profile in ('simpledigital','previred','previred-simpledigital')
-    previred=args.profile in ('previred','previred-simpledigital')
-    bridge=args.profile=='previred-simpledigital'
+    own_book=args.profile=='book-consumers'
+    simpledigital=args.profile in ('simpledigital','previred','previred-simpledigital','book-consumers')
+    previred=args.profile in ('previred','previred-simpledigital','book-consumers')
+    bridge=args.profile in ('previred-simpledigital','book-consumers')
     standalone=args.profile=='previred-standalone'
     if simpledigital:
         MODULES=MODULES+('step_simpledigital_oca_base','step_simpledigital_oca_security','l10n_cl_simpledigital_payroll')
     if previred:MODULES+=('step_hr_previred',)
     if bridge:MODULES+=('step_hr_previred_simpledigital',)
+    if own_book:MODULES+=('step_hr_remuneration_book',)
     if standalone:
         assert args.mode=='community'
         MODULES=('step_payroll_contracts','step_hr_previred')
@@ -58,6 +60,7 @@ def main():
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
     data=stage/'data';data.mkdir();overlay=stage/'addons';overlay.mkdir()
     for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ())+(('step_hr_previred_simpledigital',) if bridge else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
+    if own_book and args.mode!='community':(overlay/'step_hr_remuneration_book').symlink_to(source/'step_hr_remuneration_book')
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
     preservation.MODULES=preservation.BASE_MODULES+preservation.PRODUCER_MODULES+preservation.OPERATIONS_MODULES+preservation.LABOR_MODULES+preservation.HARVEST_MODULES+preservation.HR_MODULES
@@ -127,6 +130,7 @@ def main():
         modules=('step_simpledigital_oca_security' if simpledigital else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'+(',step_simpledigital_oca_security' if simpledigital else '')
         if previred:modules+=',step_hr_previred'
         if bridge:modules+=',step_hr_previred_simpledigital'
+        if own_book and not pure:modules+=',step_hr_remuneration_book'
         if standalone:modules='step_hr_previred'
         def execute(name,flags):
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
@@ -137,10 +141,11 @@ def main():
             return text
         if not pure:
             existing=['step_hr_previred']+(['step_hr_previred_simpledigital'] if bridge else []) if previred else []
+            if own_book:existing.append('step_hr_remuneration_book')
             execute('upgrade',['-i',','.join(name for name in modules.split(',') if name not in existing)]+(['-u',','.join(existing)] if existing else []))
             upgraded=snapshot();dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
-        tags=(('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')+(',/step_simpledigital_oca_security'+(',/step_simpledigital_oca_base' if pure else '') if simpledigital else ''))
+        tags=(('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')+(',/step_simpledigital_oca_security:SimpleDigitalBoundary'+(',/step_simpledigital_oca_base' if pure else '') if simpledigital else ''))
         if previred:tags+=',/step_hr_previred:TestCoreIsolation'
         if bridge:
             tags+=',/step_hr_previred_simpledigital:TestSimpleDigitalMatrix,/step_hr_previred_simpledigital:TestSimpleDigitalRouteSecurity'
@@ -148,8 +153,12 @@ def main():
                 'closed_zero_total_is_authoritative','missing_total_is_rejected','employer_zero_does_not_reconstruct_deduction','paid_state_keeps_original_totals')
             tags+=','+','.join('/step_hr_previred_simpledigital:CommunityBridgeContracts.test_community_'+name for name in methods)
         if standalone:tags='/step_hr_previred:TestCoreIsolation'
+        if own_book:
+            methods=['code_snapshots_preserve_original_zero_in_batch','actual_movement_adapter_reads_stored_totals','actual_movement_adapter_rejects_hidden_lines']
+            if not pure:methods.append('native_registered_extractor_uses_original_code_map')
+            tags+=','+','.join('/step_simpledigital_oca_security:OwnBookConsumers.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (68 if pure else 15)+((49 if pure else 42) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)
+        expected=7 if standalone else (68 if pure else 15)+((49 if pure else 42) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((3 if pure else 4) if own_book else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -180,7 +189,7 @@ def main():
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
-            'counts':counts,'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
+            'counts':counts,'own_book_library_only':bool(own_book and pure),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)
