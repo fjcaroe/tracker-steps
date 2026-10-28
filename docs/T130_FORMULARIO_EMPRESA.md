@@ -42,13 +42,27 @@ El flujo de usuario usa perfiles existentes, menú real, listado y formulario
 completos; conserva la empresa, su identidad, moneda y datos. La prueba no evita
 validaciones nativas ni introduce datos fiscales ficticios en ambientes activos.
 
-## Configuración fiscal pendiente
+## Configuración DTE diferida, autorizada por el usuario
 
-Cerro tiene seleccionado SII y QA-Cerro SIITEST, con correo DTE y resolución SII
-incompletos. El formulario nativo exige completarlos al guardar. Se solicitó el
-correo al usuario por este chat y se informó que también faltan número/fecha de
-resolución. Estos valores permanecen intactos; no son requisitos para mostrar
-la pantalla ni autorizan inventar parámetros fiscales.
+El usuario respondió que no dispone del correo DTE y pidió permitir guardar la
+empresa dejando señalado que ese dato se requiere para el proceso con SII.
+`step_company_edi_readiness` retira únicamente la obligatoriedad en el formulario
+de los cinco datos DTE, y muestra un aviso calculado con lo que falta. No guarda
+marcadores ficticios ni cambia los valores existentes. Las pantallas generales
+de configuración nativas ya permitían esos campos vacíos.
+
+El flujo de documentos mantiene la llamada a `_l10n_cl_edi_post_validation` del
+proveedor instalado, incluidas sus validaciones de correo, actividades, oficina
+y excepciones por tipo de documento. Después comprueba que número y fecha de
+resolución estén informados para SII/SIITEST, antes de crear el XML. Los documentos
+manuales que no usan ese flujo y el modo de demostración conservan su comportamiento.
+
+Las pruebas verifican guardar datos generales con correo/resolución vacíos,
+el aviso, el rechazo nativo por correo DTE y el control de resolución. Los casos
+de validación usan documentos nuevos en memoria; no emiten ni envían documentos.
+Los datos fiscales de los ambientes activos permanecen intactos.
+
+Referencia técnica: [instructivo de emisión SII](https://www.sii.cl/factura_electronica/factura_mercado/instructivo_emision.pdf).
 
 Publicar el mismo paquete comprobado en copias frescas, con respaldo y bloqueo,
 sin refrescar QA-Cerro ni alterar su aislamiento. Las evidencias se guardan fuera

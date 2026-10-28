@@ -12,9 +12,9 @@ def main():
     a.output.mkdir(parents=True,exist_ok=True,mode=0o700)
     packages=set()
     for target,suffix in [('development','d'),('cerro','c'),('qa-cerro','q')]:
-        stage=Path('/opt/steps-validation')/('management_'+target+'_t130'+suffix+'4')
+        stage=Path('/opt/steps-validation')/('management_'+target+'_t130'+suffix+'5')
         proof=json.loads((stage/'qa_passed.json').read_text())
-        qa=Path(proof['log']);assert re.search(r'0 failed, 0 error\(s\) of 7 tests',qa.read_text())
+        qa=Path(proof['log']);assert re.search(r'0 failed, 0 error\(s\) of 11 tests',qa.read_text())
         live=Path('/tmp/t130-deploy-'+suffix+'.log');text=live.read_text()
         assert 'MANAGEMENT_VERIFY_OK' in text and '"compact_actions_preserved": true' in text
         backups=re.findall(r'MANAGEMENT_DEPLOY_OK backup=(\S+)',text);assert len(backups)==1
@@ -31,7 +31,7 @@ def main():
     (a.output/'qa-isolation.log').write_text(isolation.stdout+isolation.stderr)
     assert isolation.returncode==0
     assert all(marker in isolation.stdout for marker in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
-    (a.output/'delivery.json').write_text(json.dumps({'commit':next(iter(packages))[0],'sha256':next(iter(packages))[1],'destinations':3,'test_executions':21,'native_company_form':True,'compact_actions_preserved':True},indent=2))
+    (a.output/'delivery.json').write_text(json.dumps({'commit':next(iter(packages))[0],'sha256':next(iter(packages))[1],'destinations':3,'test_executions':33,'native_company_form':True,'compact_actions_preserved':True},indent=2))
     (a.output/'delivery-reviewed.json').write_text(json.dumps({'130':{'commit':next(iter(packages))[0],'sha256':next(iter(packages))[1],'reviewed_message_id':9777}}))
     print('T130_DELIVERY_EVIDENCE_OK')
 

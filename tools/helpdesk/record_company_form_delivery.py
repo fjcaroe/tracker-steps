@@ -21,7 +21,7 @@ def main():
         assert proof['commit']==deployment['commit']==expected['commit']
         assert proof['release_sha256']==deployment['sha256']==expected['sha256']
         assert Path(deployment['overlay']).name==expected['commit']
-        assert re.search(r'0 failed, 0 error\(s\) of 7 tests',qa)
+        assert re.search(r'0 failed, 0 error\(s\) of 11 tests',qa)
         assert 'T130_NATIVE_COMPANY_FORM_FLOW_OK' in flow and 'rollback_required=True' in flow
         assert 'MANAGEMENT_VERIFY_OK' in live and expected['commit'] in live
         payloads=[json.loads(line.split('MANAGEMENT_REGISTRY_OK ',1)[1]) for line in live.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
@@ -33,8 +33,8 @@ def main():
         'Folios y Bodega Packing mantienen sus vistas específicas. La pestaña Previred obsoleta de Studio se conserva archivada '
         'y se reemplaza por una vista en código que usa los parámetros nativos existentes, sin modificar valores ni cálculos. '
         'Publicado y verificado en Desarrollo, Cerro El Plomo y QA-CERROELPLOMO con el mismo paquete probado en copias frescas, respaldo y bloqueo. '
-        'Siete pruebas por copia y flujo nativo con perfiles existentes aprobados. Datos y permisos preservados; QA conserva su aislamiento. '
-        'El correo DTE y la resolución SII de Cerro y QA siguen pendientes de definición del usuario: no se inventó un correo en las bases activas. '
+        'Once pruebas por copia y flujo nativo con perfiles existentes aprobados. Datos y permisos preservados; QA conserva su aislamiento. '
+        'Según respuesta del usuario, la configuración DTE puede quedar pendiente sin impedir guardar la empresa: se muestra aviso con los datos faltantes. Se conservan las validaciones nativas al procesar DTE y se comprueba la resolución antes de generar documentos; no se inventaron correos ni resoluciones. '
         'Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.')
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url='https://soporte.stepsapp.cl'
