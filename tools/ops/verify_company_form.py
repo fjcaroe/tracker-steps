@@ -46,7 +46,10 @@ try:
         company=scoped.company
         before=company.read(['name','vat','partner_id','currency_id'])[0]
         count=model.search_count([])
-        with Form(company) as form:form.phone='QA PHONE'
+        with Form(company) as form:
+            if 'l10n_cl_dte_email' in company._fields and company.l10n_cl_dte_service_provider in ('SII','SIITEST') and not company.l10n_cl_dte_email:
+                form.l10n_cl_dte_email='qa.company@example.invalid'
+            form.phone='QA PHONE'
         assert company.phone=='QA PHONE' and company.read(['name','vat','partner_id','currency_id'])[0]==before
         assert model.search_count([])==count
         print('T130_NATIVE_COMPANY_FORM_FLOW_OK rollback_required=True')

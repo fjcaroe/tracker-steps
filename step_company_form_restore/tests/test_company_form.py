@@ -44,7 +44,10 @@ class CompanyFormCase(TransactionCase):
         company=self.env.company
         before=company.read(['name','vat','partner_id','currency_id'])[0]
         count=self.env['res.company'].search_count([])
-        with Form(company) as form: form.phone='QA PHONE'
+        with Form(company) as form:
+            if 'l10n_cl_dte_email' in company._fields and company.l10n_cl_dte_service_provider in ('SII','SIITEST') and not company.l10n_cl_dte_email:
+                form.l10n_cl_dte_email='qa.company@example.invalid'
+            form.phone='QA PHONE'
         self.assertEqual(company.phone,'QA PHONE')
         self.assertEqual(company.read(['name','vat','partner_id','currency_id'])[0],before)
         self.assertEqual(self.env['res.company'].search_count([]),count)
