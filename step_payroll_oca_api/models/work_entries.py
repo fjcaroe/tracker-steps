@@ -5,7 +5,8 @@ from datetime import datetime, time, timedelta
 import pytz
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
+from odoo.addons.step_payroll_contracts.history import assert_mutable
 from odoo.osv import expression
 from odoo.tools.float_utils import float_round
 
@@ -17,6 +18,18 @@ class WorkEntryType(models.Model):
                                    ('FULL', 'Full day')], default='NO', required=True)
     round_days_type = fields.Selection([('HALF-UP', 'Closest'), ('UP', 'Up'), ('DOWN', 'Down')],
                                        default='DOWN', required=True)
+
+    def write(self,values):
+        if 'code' in values:
+            self.check_access('write');self.check_field_access_rights('write',['code'])
+            changed=self.filtered(lambda kind:kind.code!=values['code'])
+            if changed:
+                # Like FK restriction, this must include references in other
+                # companies without exposing their payroll data to the caller.
+                self.env['hr.payslip.worked_days'].flush_model(['work_entry_type_id'])
+                self.env.cr.execute('SELECT 1 FROM hr_payslip_worked_days WHERE work_entry_type_id=ANY(%s) LIMIT 1',(changed.ids,))
+                if self.env.cr.fetchone():raise ValidationError(_('A worked-day type used by payroll must retain its original code.'))
+        return super().write(values)
 
 
 class Contract(models.Model):
@@ -75,6 +88,44 @@ class WorkedDays(models.Model):
     _inherit = 'hr.payslip.worked_days'
 
     work_entry_type_id = fields.Many2one('hr.work.entry.type', ondelete='restrict')
+
+    @api.model_create_multi
+    def create(self,values_list):
+        prepared=[]
+        for original in values_list:
+            values=dict(original)
+            if values.get('work_entry_type_id'):
+                kind=self.env['hr.work.entry.type'].browse(values['work_entry_type_id'])
+                kind.check_access('read')
+                if not kind.exists() or not kind.code:raise ValidationError(_('Select an existing worked-day type with a code.'))
+                if values.get('code') and values['code']!=kind.code:
+                    raise ValidationError(_('The worked-day code must match its existing type.'))
+                values['code']=kind.code
+            prepared.append(values)
+        return super().create(prepared)
+
+    def write(self,values):
+        if {'code','work_entry_type_id'} & values.keys():
+            assert_mutable(self.mapped('payslip_id'))
+            if 'work_entry_type_id' in values:
+                if not values['work_entry_type_id'] and self.work_entry_type_id:
+                    raise ValidationError(_('A typed worked day must retain its master relation.'))
+                if values['work_entry_type_id']:
+                    kind=self.env['hr.work.entry.type'].browse(values['work_entry_type_id']);kind.check_access('read')
+                    if not kind.exists() or not kind.code:raise ValidationError(_('Select an existing worked-day type with a code.'))
+                    if 'code' in values and values['code']!=kind.code:
+                        raise ValidationError(_('The worked-day code must match its existing type.'))
+                    values=dict(values,code=kind.code)
+        return super().write(values)
+
+    @api.constrains('code','work_entry_type_id')
+    def _check_type_code(self):
+        if any(line.work_entry_type_id and line.code!=line.work_entry_type_id.code for line in self):
+            raise ValidationError(_('The worked-day code must match its existing type.'))
+
+    @api.onchange('work_entry_type_id')
+    def _onchange_type_code(self):
+        for line in self.filtered('work_entry_type_id'):line.code=line.work_entry_type_id.code
 
 
 class Payslip(models.Model):
@@ -165,6 +216,7 @@ class Payslip(models.Model):
     def compute_sheet(self):
         if any(slip.paid or slip.state not in ('draft','verify') for slip in self):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
+        self.mapped('worked_days_line_ids')._check_type_code()
         pending = []
         for slip in self.filtered(lambda record: record.struct_id.use_work_entries):
             actual = slip.contract_id.get_work_hours(slip.date_from,slip.date_to)

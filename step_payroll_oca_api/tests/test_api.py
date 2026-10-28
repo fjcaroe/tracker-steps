@@ -9,6 +9,27 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_typed_worked_day_code_keeps_master_and_historical_identity(self):
+        slip=self.slip()
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private typed day','code':'PRIVATE_TYPED_DAY'})
+        line=self.scope['hr.payslip.worked_days'].create({'name':'Private typed day','payslip_id':slip.id,
+            'contract_id':self.contract.id,'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
+        self.assertEqual(line.code,kind.code)
+        for operation in [lambda:line.write({'code':'WRONG'}),lambda:line.write({'work_entry_type_id':False}),
+                          lambda:kind.write({'code':'CHANGED'})]:
+            with self.assertRaises(ValidationError),self.env.cr.savepoint():operation()
+        slip.state='done';before=line.read(['id','code','work_entry_type_id','number_of_days','number_of_hours'])
+        with self.assertRaises(UserError):line.write({'code':kind.code})
+        self.assertEqual(line.read(['id','code','work_entry_type_id','number_of_days','number_of_hours']),before)
+
+    def test_legacy_worked_day_code_is_not_reconstructed_on_read(self):
+        slip=self.slip()
+        line=self.scope['hr.payslip.worked_days'].create({'name':'Private legacy day','payslip_id':slip.id,
+            'contract_id':self.contract.id,'code':'PRIVATE_LEGACY_DAY','number_of_days':1,'number_of_hours':8})
+        before=line.read(['id','code','work_entry_type_id'])
+        self.assertFalse(line.work_entry_type_id)
+        self.assertEqual(line.read(['id','code','work_entry_type_id']),before)
+
     def test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self):
         PayrollContractMixin.test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self)
 
