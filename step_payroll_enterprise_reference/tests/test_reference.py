@@ -59,4 +59,3 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
 
     def test_stored_nonessential_distinct_rules_keep_additive_contract(self):
         PayrollContractMixin.test_stored_nonessential_distinct_rules_keep_additive_contract(self)
-
