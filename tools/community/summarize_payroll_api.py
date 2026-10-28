@@ -45,6 +45,8 @@ def main():
     if sys_provider.exists():paths+=['tools/community/audit_payroll_community.py']
     storage=args.evidence/'storage-proof.json'
     if storage.exists():paths+=['tools/community/prepare_payroll_storage.py']
+    resize=args.evidence/'disk-resize-proof.json'
+    if resize.exists():paths+=['tools/ops/resize_community_data_disk.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -155,6 +157,18 @@ def main():
             assert actual[mode]['database']==results[mode]['database'] and actual[mode]['tablespace']==target['name']
             assert actual[mode]['foreign_public_relations']==0
         result['private_storage']={'existing_databases_moved':False,'server_configuration_changed':False,'credentials_changed':False,'new_databases_verified':True}
+    if resize.exists():
+        proof=json.loads(resize.read_text(encoding='utf-8'))
+        executed=(args.evidence/'disk-resizer.py').read_bytes()
+        assert hashlib.sha256(executed).hexdigest()==proof['tool_sha256']
+        assert executed.replace(b'\r\n',b'\n')==source['tools/ops/resize_community_data_disk.py'].replace(b'\r\n',b'\n')
+        assert proof['completed'] and proof['postgres_ready_after'] and proof['cloud_size_gib']==150
+        assert not any(proof[key] for key in ('database_dml','service_restart','credentials_changed'))
+        assert set(proof['backups'])=={'SyS','CERRO_EL_PLOMO'}
+        assert all(row['fully_decoded'] and len(row['sha256'])==64 for row in proof['backups'].values())
+        assert proof['snapshot']['status']=='READY' and int(proof['snapshot']['diskSizeGb'])==100
+        assert proof['filesystem_bytes_after']>140*1024**3 and proof['postgres_available_bytes_after']>=5*1024**3
+        result['approved_capacity_change']={'target_gib':150,'backups_decoded':2,'snapshot_ready':True,'database_dml':False,'service_restart':False}
     versions=args.evidence/'contracts-version-proof.json'
     if versions.exists():
         proof=json.loads(versions.read_text(encoding='utf-8'))
