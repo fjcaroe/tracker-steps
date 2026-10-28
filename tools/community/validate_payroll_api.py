@@ -31,6 +31,7 @@ def main():
     parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone','previred-simpledigital','book-consumers','book-install','book-history'),default='api')
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
+    parser.add_argument('--tablespace')
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
@@ -107,13 +108,23 @@ def main():
         dump_json('storage-preflight',capacity)
         assert capacity['postgres_available_bytes']>=capacity['postgres_minimum_bytes'],'PostgreSQL volume reserve too low; retire owned rehearsals before continuing'
         assert capacity['artifact_available_bytes']>=capacity['artifact_minimum_bytes'],'Private artifact volume reserve too low'
-        run('sudo','-u','postgres','createdb','--owner='+config['options']['db_user'],args.database)
+        create=['sudo','-u','postgres','createdb','--owner='+config['options']['db_user']]
+        if args.tablespace:
+            expected='steps_community_storage_20261028_'+('community' if pure else 'cerro')
+            assert args.tablespace==expected
+            location=sql('postgres',"SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='"+expected+"'")
+            assert location=='/opt/steps-validation/community-payroll-storage-20261028/'+('community' if pure else 'cerro')
+            assert sql('postgres',"SELECT pg_get_userbyid(spcowner) FROM pg_tablespace WHERE spcname='"+expected+"'")==config['options']['db_user']
+            capacity['validation_tablespace']={'name':expected,'location':location}
+            dump_json('storage-preflight',capacity)
+            create+=['--tablespace='+expected]
+        run(*create,args.database)
         baseline=original=history=contract=None
         if not pure:
             assert config['options']['db_name']=='CERRO_EL_PLOMO'
             with (stage/'source.dump').open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc','CERRO_EL_PLOMO',stdout=out)
             with (stage/'source.dump').open('rb') as inp,(stage/'restore.log').open('w') as restore_log:
-                run('sudo','-u','postgres','pg_restore','--exit-on-error','--no-owner','--no-acl','--no-comments','--role='+config['options']['db_user'],'-d',args.database,stdin=inp,stderr=restore_log)
+                run('sudo','-u','postgres','pg_restore','--exit-on-error','--no-owner','--no-acl','--no-comments',*(['--no-tablespaces'] if args.tablespace else []),'--role='+config['options']['db_user'],'-d',args.database,stdin=inp,stderr=restore_log)
             sql(args.database,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
             store=data/'filestore'/args.database;store.mkdir(parents=True)
             run('rsync','-a',str(Path(config['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/')
@@ -138,6 +149,9 @@ def main():
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
                 status=subprocess.run(base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init'],stdout=stream,stderr=subprocess.STDOUT)
             text=(stage/(name+'.log')).read_text(errors='replace')
+            if args.tablespace:
+                current=os.statvfs(sql('postgres','SHOW data_directory'))
+                assert current.f_bavail*current.f_frsize>=5*1024**3,'PostgreSQL/WAL reserve fell below minimum'
             print('\n'.join(l for l in text.splitlines() if ' ERROR ' in l or ' CRITICAL ' in l or 'tests.result' in l)[-7000:],flush=True)
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',text),str(stage/(name+'.log'))
             return text
