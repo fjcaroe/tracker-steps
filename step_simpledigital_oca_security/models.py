@@ -13,7 +13,7 @@ class Payslip(models.Model):
             if slip.struct_id.name != 'Nómina Chile':
                 continue
             contract=slip.contract_id
-            missing=[field for field in ('contract_type_id','analytic_account_id','health_institution','pension_option') if not contract[field]]
+            missing=[field for field in ('contract_type_id','analytic_account_id','health_institution','pension_option','income_tax_type','work_schedule_id') if not contract[field]]
             for field in ('hr_commune','identification_id','country_id','birthday','gender'):
                 if not slip.employee_id[field]:missing.append(field)
             if missing:

@@ -52,7 +52,9 @@ def main():
             content=content.replace("@name='hr_payroll'","@name='payroll_settings'")
         if name in ('models/hr_contract.py','models/hr_employee.py'):
             tree=ast.parse(content)
+            owners={id(node.value):node.targets[0].id for node in ast.walk(tree) if isinstance(node,ast.Assign) and isinstance(node.targets[0],ast.Name)}
             for node in ast.walk(tree):
+                if owners.get(id(node)) in ('income_tax_type','work_schedule_id'):continue
                 if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and isinstance(node.func.value,ast.Name) and node.func.value.id=='fields':
                     for keyword in node.keywords:
                         if keyword.arg=='required' and isinstance(keyword.value,ast.Constant) and keyword.value.value is True:

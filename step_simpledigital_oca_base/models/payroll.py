@@ -128,6 +128,8 @@ class Payslip(models.Model):
 
 class PayslipLine(models.Model):
     _inherit = 'hr.payslip.line'
+    # Native historical lines permit a missing code; rules themselves still require one.
+    code = fields.Char(required=False)
     condition_python = fields.Text(groups='payroll.group_payroll_user')
     condition_range = fields.Char(groups='payroll.group_payroll_user')
     amount_python_compute = fields.Text(groups='payroll.group_payroll_user')

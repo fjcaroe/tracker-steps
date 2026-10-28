@@ -130,3 +130,14 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             self.assertIn(b'payslip_lines_table',html)
             self.assertIn(b'Private API employee',html)
             self.assertFalse(self.scope.su)
+
+    def test_provider_required_metadata_matches_preserved_contract(self):
+        fields=self.scope['hr.contract']._fields
+        self.assertTrue(fields['income_tax_type'].required)
+        self.assertTrue(fields['work_schedule_id'].required)
+        self.assertFalse(self.scope['hr.payslip.line']._fields['code'].required)
+        slip=self.slip();slip.compute_sheet()
+        line=slip.line_ids.copy({'code':False})
+        self.env.flush_all();line.invalidate_recordset()
+        self.assertFalse(line.code)
+        self.assertEqual(self.rule.code,'LIQ')
