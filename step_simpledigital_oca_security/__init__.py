@@ -1,4 +1,3 @@
 from .hooks import pre_init_hook
 from . import controllers
 from . import models
-from . import tests

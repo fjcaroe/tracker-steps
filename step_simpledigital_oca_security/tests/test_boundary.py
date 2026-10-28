@@ -101,6 +101,9 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.assertEqual(self.input_type.struct_ids,original)
         with self.assertRaises(ValidationError):other.input_line_type_ids=[Command.link(self.input_type.id)]
         self.assertEqual(self.input_type.struct_ids,original)
+        with self.assertRaises(ValidationError):
+            self.structure.copy({'input_line_type_ids':[Command.link(self.input_type.id)]})
+        self.assertEqual(self.input_type.struct_ids,original)
 
     def test_real_employee_action_and_provider_report(self):
         slip=self.slip();slip.compute_sheet()

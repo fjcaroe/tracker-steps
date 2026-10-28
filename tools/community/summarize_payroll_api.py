@@ -75,7 +75,7 @@ def main():
     if schema.exists():
         mapping=json.loads(schema.read_text(encoding='utf-8'))
         assert mapping['read_only'] and not mapping['identity_migration_accepted']
-        assert not mapping['simpledigital_certified'] and not mapping['vendor']['simpledigital_installed']
+        assert not mapping['simpledigital_certified'] and mapping['vendor']['simpledigital_installed']==simpledigital
         result['schema_delta_counts']=mapping['counts']
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))

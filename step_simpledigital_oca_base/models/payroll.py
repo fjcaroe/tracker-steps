@@ -15,6 +15,18 @@ class Structure(models.Model):
     input_line_type_ids = fields.Many2many('hr.payslip.input.type',
         'hr_payroll_structure_hr_payslip_input_type_rel','hr_payroll_structure_id','hr_payslip_input_type_id',copy=False)
 
+    @api.model_create_multi
+    def create(self,values_list):
+        used=self.env['hr.payslip.input.type']
+        if any('input_line_type_ids' in values for values in values_list):
+            used=self.env['hr.payslip.input'].sudo().search([('input_type_id','!=',False)]).mapped('input_type_id')
+        original={kind.id:set(kind.struct_ids.ids) for kind in used}
+        with self.env.cr.savepoint():
+            result=super().create(values_list)
+            if any(set(kind.struct_ids.ids)!=original[kind.id] for kind in used):
+                raise ValidationError(_('Used input types retain their historical structure scope.'))
+            return result
+
     def write(self,values):
         used=self.env['hr.payslip.input.type']
         if 'input_line_type_ids' in values:

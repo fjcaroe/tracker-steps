@@ -53,7 +53,17 @@ def main():
     import validate_agriculture_core as preservation
     preservation.MODULES=preservation.BASE_MODULES+preservation.PRODUCER_MODULES+preservation.OPERATIONS_MODULES+preservation.LABOR_MODULES+preservation.HARVEST_MODULES+preservation.HR_MODULES
     from validate_community_reports import sql,same_values
-    from manage_community_reports import runtime_contract
+    from manage_community_reports import runtime_contract as original_runtime_contract
+    def runtime_contract(conf):
+        value=original_runtime_contract(conf)
+        if args.profile=='simpledigital':
+            roots=[Path(p.strip()) for p in config['options']['addons_path'].split(',')]
+            provider=next(p/'l10n_cl_simpledigital_payroll' for p in roots if (p/'l10n_cl_simpledigital_payroll/__manifest__.py').exists())
+            pin=json.loads((source/'tools/community/simpledigital_runtime_source.json').read_text(encoding='utf-8'))
+            actual={name:hashlib.sha256((provider/name).read_bytes()).hexdigest() for name in pin['files']}
+            assert actual==pin['files'],'Active provider drift from audited source'
+            value['simpledigital_original_files']=actual
+        return value
     def dump_json(name,value):(stage/(name+'.json')).write_text(json.dumps(value,indent=2))
     if pure:
         for path,url in ((args.runtime,'https://github.com/odoo/odoo.git'),(args.oca,'https://github.com/OCA/payroll.git')):
