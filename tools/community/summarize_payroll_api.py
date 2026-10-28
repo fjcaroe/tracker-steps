@@ -43,6 +43,8 @@ def main():
     if sys_reference.exists():paths+=['tools/community/audit_sys_payroll_reference.py']
     sys_provider=args.evidence/'sys-provider-source.json'
     if sys_provider.exists():paths+=['tools/community/audit_payroll_community.py']
+    storage=args.evidence/'storage-proof.json'
+    if storage.exists():paths+=['tools/community/prepare_payroll_storage.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -138,6 +140,21 @@ def main():
         same=provider['source_sha256']==inventory['modules']['l10n_cl_simpledigital_payroll']['source_sha256']
         assert same==proof['same_as_cerro_original']
         result['sys_provider']={'files':provider['files'],'license':provider['manifest']['license'],'same_as_cerro_original':same}
+    if storage.exists():
+        proof=json.loads(storage.read_text(encoding='utf-8'))
+        executed=(args.evidence/'storage-preparer.py').read_bytes()
+        assert hashlib.sha256(executed).hexdigest()==proof['tool_sha256']
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/prepare_payroll_storage.py'].replace(b'\r\n',b'\n')
+        assert not any(proof[key] for key in ('existing_databases_moved','server_configuration_changed','credentials_changed'))
+        actual=json.loads((args.evidence/'database-storage.json').read_text(encoding='utf-8'))
+        for mode in ('community','cerro-reference'):
+            key='community' if mode=='community' else 'cerro'
+            target=proof['tablespaces'][key]
+            planned=read(mode,'storage-preflight')['validation_tablespace']
+            assert planned['name']==target['name'] and planned['location']==target['location']
+            assert actual[mode]['database']==results[mode]['database'] and actual[mode]['tablespace']==target['name']
+            assert actual[mode]['foreign_public_relations']==0
+        result['private_storage']={'existing_databases_moved':False,'server_configuration_changed':False,'credentials_changed':False,'new_databases_verified':True}
     versions=args.evidence/'contracts-version-proof.json'
     if versions.exists():
         proof=json.loads(versions.read_text(encoding='utf-8'))
