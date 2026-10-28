@@ -560,3 +560,27 @@ Studio/Documentos/Firma, demás productos y conversión integral restaurable cer
 La referencia humana BASIC/IMP/GROSS sigue pendiente. El 31 continúa en riesgo alto.
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_OWN_BOOK_CONTRACTS.md](COMMUNITY_OWN_BOOK_CONTRACTS.md).
+
+
+## Libro instalado realmente en Community — 28-10-2026
+
+Paquete B, código 9b415b4: 158 pruebas Community (71 módulos, cero Enterprise)
+y 98 en copia fresca nativa. El candidato Simple Digital instala el Libro completo,
+con modelos, herencia real, vistas, menús, aliases de roles y permisos, consolidado
+Excel y acción/renderizado HTML. Ya no es solo biblioteca. El CSV oficial OCA del
+Libro propio queda bloqueado hasta certificarlo; faltan también rutas del proveedor,
+tablero/navegador y PDF binario, casos chilenos e identidad del motor.
+
+La derivación privada cambia solo el prerequisito del manifiesto por el puente
+real Simple Digital. La dependencia genérica canónica sigue pendiente para no
+forzar ese proveedor en otros productos. No se publica en servicios ni se retira
+Enterprise en producción. Se preservan 919 tablas/proyecciones, 140 contadores,
+59.039 XML IDs, 1.614 vínculos usuario-grupo y 283 implicaciones. El mapa baja de
+984 a 934 campos ausentes; no acredita conversión ni certificación financiera.
+El inventario mantiene 52 apps con caminos genéricos EE y 140 EE en producción.
+
+Quedan reglas/configuración aprobada BASIC/IMP/GROSS, identidad/almacenamiento,
+YTD/asientos/Previred/CSV, DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma,
+demás productos y conversión integral restaurable cero Enterprise. El 31 sigue
+en riesgo alto. Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_BOOK_INSTALL.md](COMMUNITY_BOOK_INSTALL.md).

@@ -127,3 +127,8 @@ con respaldo, overlay privado y bloqueo. No escribas en producción, recalcules
 pagadas, cambies vencimientos, refresques QA-Cerro ni emitas SII real. Respeta
 Calendar, Boolean bancario y 210233. Guarda evidencia, commits y push, integra
 solo lo validado sin pisar cambios concurrentes y verifica handoff.
+
+
+Continuación aceptada y siguiente prompt vigentes: [COMMUNITY_BOOK_INSTALL.md](COMMUNITY_BOOK_INSTALL.md).
+El candidato específico ya instala la aplicación completa en Community, con
+CSV oficial OCA aún bloqueado y conversión integral pendiente.
