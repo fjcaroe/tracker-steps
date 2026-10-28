@@ -190,3 +190,13 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
 
     def test_out_of_contract_days_use_original_calendar(self):
         PayrollContractMixin.test_out_of_contract_days_use_original_calendar(self)
+
+    def test_stored_essential_distinct_rule_identities_are_not_summed(self):
+        PayrollContractMixin.test_stored_essential_distinct_rule_identities_are_not_summed(self)
+
+    def test_stored_same_rule_rows_remain_additive_and_stable(self):
+        PayrollContractMixin.test_stored_same_rule_rows_remain_additive_and_stable(self)
+
+    def test_stored_nonessential_distinct_rules_keep_additive_contract(self):
+        PayrollContractMixin.test_stored_nonessential_distinct_rules_keep_additive_contract(self)
+
