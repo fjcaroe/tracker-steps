@@ -699,3 +699,31 @@ refresco QA-Cerro. El 31 continúa en riesgo alto, no resuelto.
 
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_RULE_COLLISIONS.md](COMMUNITY_RULE_COLLISIONS.md).
+
+
+## Referencia documental positiva SyS — 28-10-2026
+
+Paquete D de 1d7e626, núcleo 18.0.1.8.0: 124 pruebas Community oficial/OCA y
+64 en copia fresca nativa, cero errores. Perfil simpledigital, proveedor real
+instalado: 68/0 módulos/EE Community y 383/140 referencia. Se conserva aceptación
+previa de Libro/Previred/HTTP/PDF sin repetir rutas sin cambios. Mismos 95 archivos,
+919 tablas/proyecciones, 140 contadores, 59.048 XML IDs y permisos preservados.
+
+La selección anterior era un caso cero válido. El nuevo helper conserva todos
+los casos y prioriza uno cerrado positivo de períodos anteriores al actual.
+Auditoría SyS actual: 627 done, 626 completos no ambiguos, uno NET 8/32;
+612 referencias positivas de períodos previos. Se preserva PDF existente
+vinculado por checksum/hash, sin generar reporte ni recalcular. BASIC/NET
+coinciden con SQL; GROSS coincide con imponible, no con total haberes. Sueldo
+impreso observado en cápsula privada; cronología maestra y certificación
+financiera aún no aceptadas. Falta replay aislado y adaptación real de reglas.
+
+Inventario completo y matriz regenerada sin cambios: 380 instalados/99 propios/
+140 EE, 117 manifiestos, 22 fuera de Cerro y 54 apps con caminos EE. Siguen
+identidad/almacén, 71 reglas, días/entradas/redondeos/YTD/asientos, Previred/libro
+no vacíos, DTE/CAF/SII y demás productos; falta conversión integral restaurable
+cero Enterprise y aceptación. El 31 sigue en riesgo alto. Sin publicación en
+producción, recálculos de originales ni refresco QA-Cerro.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_SYS_DOCUMENT_REFERENCE.md](COMMUNITY_SYS_DOCUMENT_REFERENCE.md).

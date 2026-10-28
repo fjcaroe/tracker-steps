@@ -146,3 +146,9 @@ retires EE en producción, alteres vencimientos ni refresques QA-Cerro. Mantén
 Community oficial y copia fresca de Cerro, distingue referencia de conversión,
 guarda evidencia privada, commits/push, integra solo lo validado y ejecuta
 python tools/git/verify_handoff.py --require-pushed.
+
+
+Continuación posterior: [COMMUNITY_SYS_DOCUMENT_REFERENCE.md](COMMUNITY_SYS_DOCUMENT_REFERENCE.md)
+incorpora caso positivo y PDF existente de SyS, con distinción entre imponible
+y total haberes. Consultar allí la última aceptación y el siguiente prompt;
+cronología maestra y certificación financiera siguen pendientes.
