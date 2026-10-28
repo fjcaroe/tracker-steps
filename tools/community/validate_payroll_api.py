@@ -182,6 +182,11 @@ def main():
         assert all(hashlib.sha256((source/key).read_bytes()).hexdigest()==value for key,value in fp.items())
         counts=json.loads(sql(args.database,"SELECT json_build_object('installed',count(*),'enterprise',count(*) FILTER (WHERE license='OEEL-1')) FROM ir_module_module WHERE state='installed'"))
         if pure:assert counts['enterprise']==0
+        book_installed=sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name='step_hr_remuneration_book' AND state='installed'")=='1'
+        if own_book:
+            assert book_installed==bool(not pure),'Distinguish Community library tests from native full-module upgrade'
+            if not pure:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_remuneration_book'")=='18.0.3.4.1'
+
         engine_models=int(sql(args.database,"SELECT count(*) FROM ir_model WHERE model='hr.payslip'"))
         if standalone:
             assert engine_models==0 and sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name IN ('payroll','hr_payroll') AND state='installed'")=='0'
@@ -189,7 +194,7 @@ def main():
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
-            'counts':counts,'own_book_library_only':bool(own_book and pure),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
+            'counts':counts,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)

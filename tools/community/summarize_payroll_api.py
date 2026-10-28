@@ -61,6 +61,9 @@ def main():
     results={mode:read(mode,'passed') for mode in ('community','cerro-reference')}
     assert results['community']['counts']['enterprise']==0
     assert results['cerro-reference']['counts']['enterprise']==140
+    if results['community'].get('profile')=='book-consumers':
+        assert results['community']['own_book_library_only'] and not results['community']['own_book_installed']
+        assert results['cerro-reference']['own_book_installed'] and not results['cerro-reference']['own_book_library_only']
     assert all(not r['writes_to_source'] and not r['historical_conversion'] and not r['simpledigital_certified'] for r in results.values())
     assert len({r['source_files_sha256'] for r in results.values()})==1
     validator=source['tools/community/validate_payroll_api.py']
