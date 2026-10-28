@@ -100,33 +100,47 @@ def _stored_payslip_rows(payslips):
         raise UserError(_('Save the real payroll slips before exporting stored totals.'))
     lines = payslips.env['hr.payslip.line']
     lines.check_access('read')
-    lines.check_field_access_rights('read', ['slip_id', 'code', 'total'])
+    lines.check_field_access_rights('read', ['slip_id', 'code', 'total', 'salary_rule_id'])
     # Archived OCA lines remain historical data; active_test is not a salary ACL.
     visible = lines.with_context(active_test=False).search([('slip_id', 'in', payslips.ids)])
     payslips.env.cr.execute(
-        'SELECT id,slip_id,code,total FROM hr_payslip_line WHERE slip_id=ANY(%s)',
+        'SELECT id,slip_id,code,total,salary_rule_id FROM hr_payslip_line WHERE slip_id=ANY(%s)',
         (payslips.ids,))
     rows = payslips.env.cr.fetchall()
     if set(visible.ids) != {row[0] for row in rows}:
         raise AccessError(_('The payroll export requires access to every original salary line.'))
-    if any(total is None or not code for ident, slip_id, code, total in rows):
+    if any(total is None or not code for ident, slip_id, code, total, rule_id in rows):
         raise UserError(_('Original stored payroll line totals or codes are incomplete; no amount will be reconstructed.'))
     return rows
 
 
-def stored_payslip_code_totals(payslips):
-    """One authorized SQL snapshot per batch, grouped by original stored code."""
+def stored_payslip_code_totals(payslips, rule_codes=None):
+    """Aggregate stored codes; essential concepts require one original rule identity.
+
+    Repeated rows of the same rule remain additive. Two different rules called
+    NET are not an authorized choice of financial meaning, even if one is zero.
+    Filtering a nonessential code does not select or repair an ambiguous NET.
+    """
     rows = _stored_payslip_rows(payslips)
+    requested = {rule_codes} if isinstance(rule_codes, str) else set(rule_codes or ())
     result = {ident: {} for ident in payslips.ids}
-    for ident, slip_id, code, total in rows:
+    identities = {}
+    for ident, slip_id, code, total, rule_id in rows:
+        if requested and code not in requested:
+            continue
+        if code in ('BASIC', 'GROSS', 'NET'):
+            if not rule_id:
+                raise UserError(_('Original essential payroll rule identity is missing: %s', code))
+            key = (slip_id, code)
+            identities.setdefault(key, set()).add(rule_id)
+            if len(identities[key]) > 1:
+                raise UserError(_('Historical %s has multiple rule identities. Resolve the audited reference before exporting this concept.', code))
         codes = result[slip_id]
         codes[code] = codes.get(code, 0.0) + total
     return result
 
 
 def stored_payslip_totals(payslips, rule_codes=None):
-    """Preserve the filtered-sum API using the same complete authorized snapshot."""
-    codes = {rule_codes} if isinstance(rule_codes, str) else set(rule_codes or ())
-    grouped = stored_payslip_code_totals(payslips)
-    return {ident: sum((total for code, total in values.items() if not codes or code in codes), 0.0)
-            for ident, values in grouped.items()}
+    """Read selected stored totals with complete visibility and rule identity checks."""
+    grouped = stored_payslip_code_totals(payslips, rule_codes)
+    return {ident: sum(values.values(), 0.0) for ident, values in grouped.items()}
