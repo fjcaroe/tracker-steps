@@ -7,6 +7,7 @@
             <field name="name" position="after">
                 <field name="type_id"/>
                 <field name="use_work_entries"/>
+                <field name="out_of_contract_work_entry_type_id" invisible="not use_work_entries"/>
                 <field name="step_clp_concept_rounding"/>
             </field>
         </field>

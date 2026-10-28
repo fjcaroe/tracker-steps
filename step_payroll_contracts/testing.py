@@ -216,3 +216,18 @@ class PayrollContractMixin:
         slip=self.slip()
         for amount,qty,rate,expected in [(100.25,3,50,150),(2.5,1,100,3),(-2.5,1,100,-3)]:
             self.assertEqual(slip._get_payslip_line_total(amount,qty,rate,self.rule),expected)
+
+    def test_out_of_contract_days_use_original_calendar(self):
+        self.work_calendar()
+        slip=self.slip()
+        self.contract.date_start=slip.date_from+timedelta(days=3)
+        if self.oca:
+            kind=self.scope['hr.work.entry.type'].create({'name':'Private out of contract','code':'PAPI_OUT'})
+            self.structure.out_of_contract_work_entry_type_id=kind
+        else:
+            kind=self.env.ref('hr_payroll.hr_work_entry_type_out_of_contract')
+        rows=[row for row in slip._get_worked_day_lines() if row['work_entry_type_id']==kind.id]
+        self.assertEqual(len(rows),1)
+        self.assertEqual(rows[0]['number_of_hours'],16)
+        self.assertEqual(rows[0]['number_of_days'],2)
+        self.assertFalse(slip._get_worked_day_lines(check_out_of_contract=False))

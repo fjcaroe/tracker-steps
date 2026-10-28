@@ -1,6 +1,6 @@
 """Work-entry payroll boundary using actual Community contracts and calendars."""
 from collections import defaultdict
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 import pytz
 
@@ -64,6 +64,9 @@ class Contract(models.Model):
 class Structure(models.Model):
     _inherit = 'hr.payroll.structure'
 
+    out_of_contract_work_entry_type_id = fields.Many2one('hr.work.entry.type', ondelete='restrict',
+        string='Tipo para fuera de contrato')
+
     use_work_entries = fields.Boolean(string='Usar entradas de trabajo', default=False,
         help='Explicit opt-in. Read actual work entries; keep legacy OCA calendar payroll otherwise.')
 
@@ -109,22 +112,65 @@ class Payslip(models.Model):
                 'name': entry_type.name, 'code': entry_type.code, 'contract_id': self.contract_id.id})
         return sorted(result, key=lambda row: (row['sequence'], row['work_entry_type_id']))
 
+    def _get_out_of_contract_calendar(self):
+        self.ensure_one()
+        contract = self.contract_id
+        if 'time_credit' in contract._fields and contract.time_credit and 'standard_calendar_id' in contract._fields:
+            return contract.standard_calendar_id
+        return contract.resource_calendar_id
+
+    def _get_worked_day_lines(self, domain=None, check_out_of_contract=True):
+        self.ensure_one()
+        rows = self._get_worked_day_lines_values(domain=domain)
+        if not check_out_of_contract:
+            return rows
+        contract = self.contract_id
+        calendar = self._get_out_of_contract_calendar()
+        if not calendar:
+            raise UserError(_('Out-of-contract payroll requires its original calendar.'))
+        ranges = []
+        if contract.date_start and self.date_from < contract.date_start:
+            ranges.append((self.date_from,min(self.date_to,contract.date_start-timedelta(days=1))))
+        if contract.date_end and contract.date_end < self.date_to:
+            ranges.append((max(self.date_from,contract.date_end+timedelta(days=1)),self.date_to))
+        zone = pytz.timezone(calendar.tz or 'UTC')
+        days = hours = 0.0
+        for first, last in ranges:
+            if first > last:
+                continue
+            start = zone.localize(datetime.combine(first,time.min))
+            stop = zone.localize(datetime.combine(last,time.max))
+            duration = calendar.get_work_duration_data(start,stop,compute_leaves=False)
+            days += duration['days'];hours += duration['hours']
+        if days or hours:
+            kind = self.struct_id.out_of_contract_work_entry_type_id
+            if not kind:
+                # Reuse the preserved supplier master if its original XML ID exists.
+                kind = self.env.ref('hr_payroll.hr_work_entry_type_out_of_contract',raise_if_not_found=False)
+            if not kind:
+                raise UserError(_('Select the original out-of-contract work-entry type on the salary structure.'))
+            rows.append({'sequence':kind.sequence,'work_entry_type_id':kind.id,
+                'name':kind.name,'code':kind.code,'contract_id':contract.id,
+                'number_of_days':days,'number_of_hours':hours})
+        return rows
+
     def get_worked_day_lines(self, contracts, date_from, date_to):
         if not self.struct_id.use_work_entries:
             return super().get_worked_day_lines(contracts, date_from, date_to)
         self.ensure_one()
         if contracts != self.contract_id or date_from != self.date_from or date_to != self.date_to:
             raise UserError(_('Work-entry payroll requires the payslip own contract and period.'))
-        return self._get_worked_day_lines_values()
+        return self._get_worked_day_lines()
 
     def compute_sheet(self):
         if any(slip.paid or slip.state not in ('draft','verify') for slip in self):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
         pending = []
         for slip in self.filtered(lambda record: record.struct_id.use_work_entries):
-            rows = slip._get_worked_day_lines_values()
-            if not rows:
+            actual = slip._get_worked_day_lines_values()
+            if not actual:
                 raise UserError(_('Generate actual work entries before calculating this payroll.'))
+            rows = slip._get_worked_day_lines()
             start, stop = slip.contract_id._payroll_period_bounds(slip.date_from,slip.date_to)
             if self.env['hr.work.entry'].search_count([
                     ('contract_id','=',slip.contract_id.id),('company_id','=',slip.company_id.id),

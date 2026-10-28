@@ -47,3 +47,6 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
 
     def test_chile_final_quantity_rate_and_signed_halves(self):
         PayrollContractMixin.test_chile_final_quantity_rate_and_signed_halves(self)
+
+    def test_out_of_contract_days_use_original_calendar(self):
+        PayrollContractMixin.test_out_of_contract_days_use_original_calendar(self)

@@ -182,3 +182,6 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         with self.assertRaises(UserError):slip.compute_sheet()
         self.assertFalse(slip.worked_days_line_ids)
         self.assertFalse(slip.line_ids)
+
+    def test_out_of_contract_days_use_original_calendar(self):
+        PayrollContractMixin.test_out_of_contract_days_use_original_calendar(self)
