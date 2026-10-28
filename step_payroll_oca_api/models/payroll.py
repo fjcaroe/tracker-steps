@@ -2,6 +2,9 @@
 
 No Chilean rate policy or historical migration is implemented here.
 """
+from datetime import date
+
+from odoo.tools.float_utils import float_round
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.addons.payroll.models.base_browsable import WorkedDays, InputLine, BaseBrowsableObject
@@ -11,6 +14,8 @@ class Structure(models.Model):
     _inherit = 'hr.payroll.structure'
 
     type_id = fields.Many2one('hr.payroll.structure.type', string='Type', ondelete='restrict')
+    step_clp_concept_rounding = fields.Boolean(string='Redondear conceptos en pesos (Chile)',
+        help='Redondea cada concepto antes de acumular categorías desde octubre de 2026. No modifica liquidaciones validadas.')
 
     @api.constrains('rule_ids')
     def _check_primary_rule_membership(self):
@@ -152,6 +157,11 @@ class ValueMapping(BaseBrowsableObject):
         return self.dict.get(code, default)
 
 
+class CategoryMapping(ValueMapping):
+    def __getitem__(self, code):
+        return self.dict.get(code, 0.0)
+
+
 class InputLineMapping(InputLine):
     def __getitem__(self, code):
         return self.dict[code]
@@ -179,9 +189,35 @@ class Payslip(models.Model):
                 inputs[code] = InputAmountGroup(lines)
         result['inputs']=InputLineMapping(self.employee_id.id,inputs,self.env)
         result['result_rules']=ValueMapping(result['result_rules'].dict)
+        result['categories']=CategoryMapping(result['categories'].dict)
         result['worked_days']=WorkedDaysMapping(self.employee_id.id,
             {line.code:line for line in self.worked_days_line_ids if line.code},self.env)
         return result
+
+    def _step_clp_rounding_applies(self):
+        self.ensure_one()
+        chile_type = self.env.ref('l10n_cl_simpledigital_payroll.structure_type_chile', raise_if_not_found=False)
+        configured = self.struct_id.step_clp_concept_rounding or (chile_type and self.struct_id.type_id == chile_type)
+        return bool(configured and self.company_id.currency_id.name == 'CLP'
+                    and self.date_from and self.date_from >= date(2026,10,1)
+                    and self.state in ('draft','verify'))
+
+    def _get_payslip_line_total(self, amount, quantity, rate, rule):
+        total = amount*quantity*rate/100.0
+        return float_round(total, precision_digits=0, rounding_method='HALF-UP') if self._step_clp_rounding_applies() else total
+
+    def _get_lines_dict(self, rule, localdict, lines_dict, key, values, previous_amount):
+        localdict, lines_dict = super()._get_lines_dict(rule,localdict,lines_dict,key,values,previous_amount)
+        if self._step_clp_rounding_applies():
+            line = lines_dict[key]
+            total = self._get_payslip_line_total(values['amount'],values['quantity'],values['rate'],rule)
+            correction = total-line['total']
+            self._sum_salary_rule_category(localdict,rule.category_id,correction)
+            line['total'] = total
+            if rule.code:
+                localdict[rule.code] = total
+                localdict['result_rules'].dict[rule.code].dict['total'] = total
+        return localdict, lines_dict
 
     def _compute_payslip_line(self, rule, localdict, lines_dict):
         group = localdict['inputs'].get(rule.code)

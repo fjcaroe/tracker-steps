@@ -97,7 +97,7 @@ def main():
             upgraded=preservation.snapshot(args.database);dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')])
-        assert re.search(r'0 failed, 0 error\(s\) of '+str(59 if pure else 12)+r' tests',text), 'Expected all upstream and shared API contracts to run'
+        assert re.search(r'0 failed, 0 error\(s\) of '+str(64 if pure else 14)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if not pure:
             after=preservation.snapshot(args.database);current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))

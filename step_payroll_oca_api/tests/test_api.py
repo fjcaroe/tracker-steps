@@ -113,3 +113,36 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
 
     def test_calendar_timezone_clips_work_entry_at_payroll_boundary(self):
         PayrollContractMixin.test_calendar_timezone_clips_work_entry_at_payroll_boundary(self)
+
+    def test_chile_concept_rounding_matches_known_salary_cases(self):
+        PayrollContractMixin.test_chile_concept_rounding_matches_known_salary_cases(self)
+
+    def test_chile_final_quantity_rate_and_signed_halves(self):
+        PayrollContractMixin.test_chile_final_quantity_rate_and_signed_halves(self)
+
+    def test_structure_configuration_form_and_work_entry_opt_in(self):
+        from lxml import etree
+        view=self.scope['hr.payroll.structure'].get_view(self.scope.ref('payroll.hr_payroll_structure_view_form').id,'form')
+        form=etree.fromstring(view['arch'])
+        for field in ('type_id','use_work_entries','step_clp_concept_rounding'):
+            self.assertTrue(form.xpath("//field[@name='%s']"%field))
+        self.structure.use_work_entries=True
+        self.work_calendar()
+        slip=self.slip()
+        self.assertEqual(slip.get_worked_day_lines(self.contract,slip.date_from,slip.date_to),[])
+
+    def test_type_rounding_and_no_work_entry_side_effects(self):
+        slip=self.slip()
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private rounding type','code':'PAPI_ROUND','round_days':'HALF','round_days_type':'UP'})
+        self.assertEqual(slip._round_days(kind,0.3),0.5)
+        kind.round_days_type='DOWN'
+        self.assertEqual(slip._round_days(kind,0.3),0)
+
+    def test_clp_policy_keeps_earlier_period_and_validated_states(self):
+        from datetime import date
+        self.structure.step_clp_concept_rounding=True
+        slip=self.slip()
+        for month in (9,10):
+            for state in ('draft','verify','done','cancel'):
+                slip.write({'date_from':date(2026,month,1),'date_to':date(2026,month,28),'state':state})
+                self.assertEqual(slip._get_payslip_line_total(10.6,1,100,self.rule),11 if month==10 and state in ('draft','verify') else 10.6)

@@ -1,0 +1,14 @@
+<odoo>
+    <record id="payroll_structure_community_policy_form" model="ir.ui.view">
+        <field name="name">hr.payroll.structure.community.policy.form</field>
+        <field name="model">hr.payroll.structure</field>
+        <field name="inherit_id" ref="payroll.hr_payroll_structure_view_form"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="type_id"/>
+                <field name="use_work_entries"/>
+                <field name="step_clp_concept_rounding"/>
+            </field>
+        </field>
+    </record>
+</odoo>

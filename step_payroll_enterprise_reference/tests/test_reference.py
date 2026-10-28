@@ -41,3 +41,9 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
 
     def test_calendar_timezone_clips_work_entry_at_payroll_boundary(self):
         PayrollContractMixin.test_calendar_timezone_clips_work_entry_at_payroll_boundary(self)
+
+    def test_chile_concept_rounding_matches_known_salary_cases(self):
+        PayrollContractMixin.test_chile_concept_rounding_matches_known_salary_cases(self)
+
+    def test_chile_final_quantity_rate_and_signed_halves(self):
+        PayrollContractMixin.test_chile_final_quantity_rate_and_signed_halves(self)

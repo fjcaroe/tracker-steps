@@ -108,11 +108,14 @@ class PayrollContractMixin:
     def test_repeated_input_nonlinear_rule_is_evaluated_per_line(self):
         self.rule.write({'code':'PRIVATE_BONUS',
             'amount_python_compute':"result = inputs['PRIVATE_BONUS'].amount ** 2"})
+        self.rule.copy({'code':'PRIVATE_RESULT_CHAIN','sequence':2,
+            'amount_python_compute':"result = result_rules['PRIVATE_BONUS']['total']"})
         slip=self.slip(2);slip.input_line_ids.copy({'amount':3});slip.compute_sheet()
         lines=slip.line_ids.filtered(lambda line:line.code=='PRIVATE_BONUS')
         self.assertEqual(len(lines),2)
         self.assertEqual(slip._get_line_values(['PRIVATE_BONUS'])['PRIVATE_BONUS'][slip.id]['total'],13)
         self.assertEqual(len(slip.input_line_ids),2)
+        self.assertEqual(slip._get_line_values(['PRIVATE_RESULT_CHAIN'])['PRIVATE_RESULT_CHAIN'][slip.id]['total'],13)
 
     def test_quantities_rates_and_categories_preserve_clp_rounding(self):
         self.input_type.is_quantity=True
@@ -140,6 +143,8 @@ class PayrollContractMixin:
                 Command.create({'name':'Private shift','dayofweek':str(day),'hour_from':8,'hour_to':16,'day_period':'morning'})
                 for day in range(5)]})
         self.contract.resource_calendar_id=calendar
+        self.employee.resource_calendar_id=calendar
+        self.employee.resource_id.tz=tz
         return calendar
 
     def test_actual_work_entries_types_and_domain(self):
@@ -174,3 +179,40 @@ class PayrollContractMixin:
             'date_start':boundary-timedelta(hours=2),'date_stop':boundary+timedelta(hours=3)})
         hours=self.contract.get_work_hours(slip.date_from,slip.date_to)
         self.assertAlmostEqual(hours[kind.id],3,places=5)
+
+    def chile_rounding_structure(self):
+        if self.oca:
+            self.structure.step_clp_concept_rounding=True
+        else:
+            self.structure.type_id=self.env.ref('l10n_cl_simpledigital_payroll.structure_type_chile')
+
+    def test_chile_concept_rounding_matches_known_salary_cases(self):
+        self.chile_rounding_structure()
+        for days,deduction,expected in [(28,134034,(738071,633904)),(29,192790,(761136,599279))]:
+            self.structure=self.structure.copy({'name':'Private Chile case '+str(days),'rule_ids':[Command.clear()]})
+            self.input_type=self.input_type.copy({'code':'PRIVATE_CASE_'+str(days),'struct_ids':[Command.set(self.structure.ids)]})
+            categories={code:self.scope['hr.salary.rule.category'].create({'name':'Private '+code,'code':code})
+                        for code in ('IMP','GROSS','NOP_IMP','DED','NET')}
+            specs=[('BASIC','IMP',f'result = 553553 / 30 * {days}'),
+                   ('BONUS','IMP','result = 73808'),
+                   ('GRAT','IMP',"result = categories['IMP'] * .25"),
+                   ('GROSS','GROSS',"result = categories['IMP']"),
+                   ('COLA','NOP_IMP',f'result = 32000 / 30 * {days}'),
+                   ('DED','DED',f'result = {deduction}'),
+                   ('NET','NET',"result = categories['GROSS'] + categories['NOP_IMP'] - categories['DED']")]
+            rules=self.scope['hr.salary.rule']
+            for index,(code,category,formula) in enumerate(specs):
+                rules |= self.scope['hr.salary.rule'].create({'name':'Private '+code,'code':code,
+                    'category_id':categories[category].id,'sequence':index+1,'struct_id':self.structure.id,
+                    'condition_select':'none','amount_select':'code','amount_python_compute':formula})
+            slip=self.slip();slip.compute_sheet()
+            values=slip._get_line_values(['BASIC','BONUS','GRAT','GROSS','NET'])
+            actual=lambda code:values[code][slip.id]['total']
+            self.assertEqual((actual('GROSS'),actual('NET')),expected)
+            self.assertEqual(actual('GROSS'),sum(actual(code) for code in ('BASIC','BONUS','GRAT')))
+
+    def test_chile_final_quantity_rate_and_signed_halves(self):
+        self.chile_rounding_structure()
+        slip=self.slip()
+        for amount,qty,rate,expected in [(100.25,3,50,150),(2.5,1,100,3),(-2.5,1,100,-3)]:
+            self.assertEqual(slip._get_payslip_line_total(amount,qty,rate,self.rule),expected)
