@@ -20,16 +20,16 @@ def main():
     assert packets[0]==packets[1], 'Different addon packets'
     # git archive applies export EOL filters too. Pin the Windows export used
     # for the accepted package instead of confusing export bytes with raw blobs.
-    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital','book-consumers','book-install')
+    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital','book-consumers','book-install','book-history')
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
-    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install')
-    bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install')
+    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
+    bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install','book-history')
     if previred:paths+=['step_hr_previred']
     if bridge:paths+=['step_hr_previred_simpledigital']
-    if read('community','passed').get('profile') in ('book-consumers','book-install'):paths+=['step_hr_remuneration_book']
-    if read('community','passed').get('profile')=='book-install':paths+=['tools/community/build_book_candidate.py']
+    if read('community','passed').get('profile') in ('book-consumers','book-install','book-history'):paths+=['step_hr_remuneration_book']
+    if read('community','passed').get('profile') in ('book-install','book-history'):paths+=['tools/community/build_book_candidate.py']
     cleanups=sorted(args.evidence.glob('retention*/cleanup-result.json'),key=lambda p:p.parent.name)
     if cleanups:paths+=['tools/community/cleanup_payroll_rehearsals.py']
     group_proof=args.evidence/'group-preservation.json'
@@ -38,6 +38,8 @@ def main():
     if configuration.exists():paths+=['tools/community/inspect_payroll_configuration.py']
     origins=args.evidence/'profile-origins.json'
     if origins.exists():paths+=['tools/community/audit_payroll_profile_sources.py']
+    sys_reference=args.evidence/'sys-reference.json'
+    if sys_reference.exists():paths+=['tools/community/audit_sys_payroll_reference.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -52,11 +54,11 @@ def main():
             assert hashlib.sha256(blob).hexdigest()==digest,name
             continue
         blob=source[name]
-        if read('community','passed').get('profile')=='book-install' and name=='step_hr_remuneration_book/__manifest__.py':
+        if read('community','passed').get('profile') in ('book-install','book-history') and name=='step_hr_remuneration_book/__manifest__.py':
             blob=blob.replace(b'"hr_payroll"',b'"step_simpledigital_oca_security"')
         assert hashlib.sha256(blob).hexdigest()==digest, name
         assert (repo/name).read_bytes().replace(b'\r\n',b'\n')==source[name].replace(b'\r\n',b'\n'),name
-    if read('community','passed').get('profile')=='book-install':
+    if read('community','passed').get('profile') in ('book-install','book-history'):
         proof=json.loads((args.evidence/'book-derivation.json').read_text(encoding='utf-8'))
         assert proof['transformation']=='real_simpledigital_prerequisite_only' and proof['license']=='LGPL-3'
         assert proof['builder_sha256']==hashlib.sha256(source['tools/community/build_book_candidate.py']).hexdigest()
@@ -75,7 +77,7 @@ def main():
     if results['community'].get('profile')=='book-consumers':
         assert results['community']['own_book_library_only'] and not results['community']['own_book_installed']
         assert results['cerro-reference']['own_book_installed'] and not results['cerro-reference']['own_book_library_only']
-    if results['community'].get('profile')=='book-install':
+    if results['community'].get('profile') in ('book-install','book-history'):
         assert all(r['own_book_installed'] and not r['own_book_library_only'] for r in results.values())
     assert all(not r['writes_to_source'] and not r['historical_conversion'] and not r['simpledigital_certified'] for r in results.values())
     assert len({r['source_files_sha256'] for r in results.values()})==1
@@ -109,6 +111,19 @@ def main():
                 assert blob.startswith(b'%PDF-') and hashlib.sha256(blob).hexdigest()==row['sha256']
                 assert row['normal_actor'] and row['single_audit'] and row['history_preserved'] and row['pages']>0
             result['pdf_binary_reports'][mode]=pdfs
+    if sys_reference.exists():
+        proof=json.loads(sys_reference.read_text(encoding='utf-8'))
+        executed=(args.evidence/'reference-auditor.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_sys_payroll_reference.py'].replace(b'\r\n',b'\n')
+        assert proof['read_only'] and not proof['orm_reads'] and not proof['payroll_computed']
+        assert not proof['financial_certified'] and not proof['identity_conversion'] and not proof['formula_bodies_exported']
+        assert not proof['direct_employee_identifiers_exported'] and proof['private_payroll_amounts_exported']
+        selected=proof['selected_case']
+        assert selected and selected['state'] in ('done','paid') and set(selected['concepts'])=={'BASIC','GROSS','NET'}
+        assert all(len({row['salary_rule_id'] for row in rows})==1 for rows in selected['concepts'].values())
+        result['sys_reference']={'closed_slips':proof['closed_slips'],'unambiguous_complete_slips':proof['unambiguous_complete_slips'],
+            'ambiguous_concepts':len(proof['ambiguous_concepts']),'incomplete_slips':len(proof['incomplete_slip_ids']),
+            'selected_period':selected['date_to'][:7],'financial_certified':False,'source_read_only':True}
     ui=args.evidence/'community'/'configuration-probe.json'
     if ui.exists():
         probe=json.loads(ui.read_text(encoding='utf-8'))
