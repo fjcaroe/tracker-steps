@@ -9,6 +9,7 @@ import configparser
 from datetime import date
 from decimal import Decimal
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import subprocess
@@ -17,6 +18,7 @@ import subprocess
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--selection-helper',type=Path)
     args = parser.parse_args()
     assert str(args.output.resolve()).startswith('/opt/steps-validation/')
     cfg = configparser.ConfigParser(interpolation=None)
@@ -59,8 +61,11 @@ def main():
                                      for code, rows in slip['concepts'].items()}
             complete.append(slip)
     # Prefer a completed previous month, never assume current contract data historical.
-    candidates = [row for row in complete if row['date_to'] < date.today().replace(day=1).isoformat()]
-    selected = max(candidates, key=lambda row: (row['date_to'], row['id'])) if candidates else None
+    helper=args.selection_helper or Path(__file__).resolve().parents[2]/'step_payroll_contracts/reference.py'
+    spec=importlib.util.spec_from_file_location('payroll_reference_selection',helper)
+    selection=importlib.util.module_from_spec(spec);spec.loader.exec_module(selection)
+    chosen=selection.select_closed_reference(complete)
+    selected=chosen['selected_case']
     if selected:
         ident = str(int(selected['id']))
         selected['basis'] = json.loads(query("SELECT jsonb_build_object("
@@ -79,6 +84,8 @@ def main():
               'snapshot_sha256': hashlib.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest(),
               'closed_slips': len(indexed), 'unambiguous_complete_slips': len(complete),
               'incomplete_slip_ids': incomplete, 'ambiguous_concepts': ambiguous,
+              **{key:value for key,value in chosen.items() if key!='selected_case'},
+              'selection_helper_sha256':hashlib.sha256(helper.read_bytes()).hexdigest(),
               'essential_rule_origins': rules, 'selected_case': selected}
     args.output.write_text(json.dumps(result, indent=2), encoding='utf-8')
     print(json.dumps({'read_only': True, 'closed_slips': len(indexed),

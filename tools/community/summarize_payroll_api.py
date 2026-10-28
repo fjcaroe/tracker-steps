@@ -1,5 +1,6 @@
 """Verify exported private API evidence against this checkout, without database access."""
 import argparse
+import ast
 import hashlib
 import io
 import tarfile
@@ -51,6 +52,8 @@ def main():
     if collisions.exists():paths+=['tools/community/probe_payroll_rule_collisions.py','tools/community/run_payroll_rule_probe.py']
     temporal=args.evidence/'temporal-basis.json'
     if temporal.exists():paths+=['tools/community/audit_sys_payroll_temporal_basis.py']
+    document=args.evidence/'document/document-proof.json'
+    if document.exists():paths+=['tools/community/export_sys_reference_document.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -133,6 +136,14 @@ def main():
         assert selected and selected['state'] in ('done','paid') and set(selected['concepts'])=={'BASIC','GROSS','NET'}
         assert all(len({row['salary_rule_id'] for row in rows})==1 for rows in selected['concepts'].values())
         assert all(sum((Decimal(row['total']) for row in rows),Decimal(0))==Decimal(selected['stored_totals'][code]) for code,rows in selected['concepts'].items())
+        if 'selection_helper_sha256' in proof:
+            helper=(args.evidence/'selection-helper.py').read_bytes()
+            assert hashlib.sha256(helper).hexdigest()==proof['selection_helper_sha256']
+            assert helper.replace(b'\r\n',b'\n')==source['step_payroll_contracts/reference.py'].replace(b'\r\n',b'\n')
+            assert proof['zero_cases_preserved']
+            positive=all(Decimal(value)>0 for value in selected['stored_totals'].values())
+            assert proof['selected_case_has_positive_essential_totals']==positive
+            assert positive or proof['positive_closed_previous_month_cases']==0
         result['sys_reference']={'closed_slips':proof['closed_slips'],'unambiguous_complete_slips':proof['unambiguous_complete_slips'],
             'ambiguous_concepts':len(proof['ambiguous_concepts']),'incomplete_slips':len(proof['incomplete_slip_ids']),
             'selected_period':selected['date_to'][:7],'financial_certified':False,'source_read_only':True}
@@ -177,8 +188,20 @@ def main():
     if versions.exists():
         proof=json.loads(versions.read_text(encoding='utf-8'))
         assert proof['read_only'] and set(proof['versions'])=={'community','cerro-reference'}
-        assert set(proof['versions'].values())=={'18.0.1.7.0'}
+        expected_version=ast.literal_eval(source['step_payroll_contracts/__manifest__.py'].decode('utf-8-sig'))['version']
+        assert set(proof['versions'].values())=={expected_version}
         result['contracts_versions']=proof['versions']
+    if document.exists():
+        proof=json.loads(document.read_text())
+        executed=(document.parent/'exporter.py').read_bytes();pdf=(document.parent/'reference.pdf').read_bytes()
+        assert hashlib.sha256(executed).hexdigest()==proof['exporter_sha256']
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/export_sys_reference_document.py'].replace(b'\r\n',b'\n')
+        assert proof['read_only'] and proof['contains_private_identity_and_payroll_data']
+        assert not any(proof[key] for key in ('orm_reads','report_generated','payroll_computed','financial_certified','historical_wage_proven'))
+        assert proof['capsule_sha256']==hashlib.sha256(sys_reference.read_bytes()).hexdigest()
+        assert pdf.startswith(b'%PDF-') and hashlib.sha256(pdf).hexdigest()==proof['pdf_sha256']
+        assert hashlib.sha1(pdf).hexdigest()==proof['attachment']['checksum'] and len(pdf)==proof['attachment']['file_size']
+        result['existing_reference_document']={'source_checksum_verified':True,'report_generated':False,'financial_certified':False,'historical_wage_proven':False}
     if collisions.exists():
         probe=(collisions/'probe.py').read_bytes();runner=(collisions/'runner.py').read_bytes()
         for name,blob in [('probe_payroll_rule_collisions.py',probe),('run_payroll_rule_probe.py',runner)]:

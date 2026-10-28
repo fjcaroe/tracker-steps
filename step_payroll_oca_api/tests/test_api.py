@@ -9,6 +9,9 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self):
+        PayrollContractMixin.test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self)
+
     def test_duplicate_code_category_effects_match_native_observations(self):
         PayrollContractMixin.test_duplicate_code_category_effects_match_native_observations(self)
 
