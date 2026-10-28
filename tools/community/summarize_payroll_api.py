@@ -229,6 +229,13 @@ def main():
             assert blob.replace(b'\r\n',b'\n')==source[name].replace(b'\r\n',b'\n')
         assert inputs['auditor_sha256']==hashlib.sha256(auditor).hexdigest() and inputs['basis_helper_sha256']==hashlib.sha256(helper).hexdigest()
         assert inputs['formula_sha256']==hashlib.sha256(inputs['formula'].encode()).hexdigest()
+        assert inputs['capsule_sha256']==hashlib.sha256(sys_reference.read_bytes()).hexdigest()
+        documentary=json.loads(comparison.read_text());reference=json.loads(sys_reference.read_text())
+        assert inputs['pdf_sha256']==documentary['pdf_sha256']
+        assert Decimal(inputs['printed_contract_wage'])==Decimal(documentary['printed_contract_wage'])
+        assert Decimal(inputs['expected_basic'])==Decimal(reference['selected_case']['stored_totals']['BASIC'])
+        original_id=reference['selected_case']['concepts']['BASIC'][0]['salary_rule_id']
+        assert inputs['formula_sha256']==next(row['body_sha256'] for row in reference['essential_rule_origins'] if row['id']==original_id)
         assert inputs['read_only_source'] and inputs['contains_private_formula_and_payroll_data']
         assert not any(inputs[key] for key in ('orm_reads','source_payroll_computed','enterprise_source_files_copied','financial_certified','master_timeline_certified'))
         observations={mode:read(mode,'monthly-basis') for mode in ('community','cerro-reference')}
