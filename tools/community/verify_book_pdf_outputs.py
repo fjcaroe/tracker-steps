@@ -21,12 +21,13 @@ def compact(value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('evidence', type=Path)
+    parser.add_argument('--mode', choices=('community','cerro-reference'), action='append')
     parser.add_argument('--renderer', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     result = {'synthetic_only': True, 'database_access': False,
               'financial_certified': False, 'reports': []}
-    for mode in ('community', 'cerro-reference'):
+    for mode in args.mode or ('community', 'cerro-reference'):
         directory = args.evidence / mode / 'pdf-evidence'
         proofs = json.loads((directory / 'pdf-proof.json').read_text(encoding='utf-8'))
         assert len(proofs) == 2
@@ -48,7 +49,7 @@ def main():
             dimensions = (1008, 612) if name == 'consolidated_book' else (595, 842)
             fonts=set()
             for page in reader.pages:
-                for font in page['/Resources'].get('/Font',{}).get_object().values():
+                for font in page['/Resources'].get('/Font',{}).values():
                     fonts.add(str(font.get_object().get('/BaseFont','')))
                 assert abs(float(page.mediabox.width) - dimensions[0]) < 2
                 assert abs(float(page.mediabox.height) - dimensions[1]) < 2
