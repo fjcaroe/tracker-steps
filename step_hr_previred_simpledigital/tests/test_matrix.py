@@ -233,11 +233,12 @@ class TestSimpleDigitalRouteSecurity(HttpCase):
         cls.company = cls.env.company
         cls.other_company = cls.env["res.company"].sudo().search(
             [("id", "!=", cls.company.id)], limit=1)
+        user_env = cls.env(context=dict(cls.env.context, no_reset_password=True))
         cls.plain = new_test_user(
-            cls.env, login="sd_plain", groups="base.group_user",
+            user_env, login="sd_plain", groups="base.group_user",
             password="sd_plain")
         cls.exporter = new_test_user(
-            cls.env, login="sd_exporter", password="sd_exporter",
+            user_env, login="sd_exporter", password="sd_exporter",
             groups="step_hr_previred.group_previred_generate")
 
     # 1) usuario sin grupo

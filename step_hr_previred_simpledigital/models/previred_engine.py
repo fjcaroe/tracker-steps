@@ -114,8 +114,11 @@ class SimpleDigitalAdapter(adapters.EngineAdapter):
                   cls.label))]
 
         controller = vendor.PreviredExportController()
-        response = controller.download_previred_txt(
-            period=date_from.strftime("%m%Y"), company_id=str(company.id))
+        generator = vendor.PreviredExportController.download_previred_txt
+        # The canonical wizard/controller authorizes before delegation. The
+        # actual supplier body also works before Odoo has built its route map.
+        response = getattr(generator, 'original_endpoint', generator)(
+            controller, period=date_from.strftime("%m%Y"), company_id=str(company.id))
         data = getattr(response, "data", b"") or b""
         text = data if isinstance(data, str) \
             else data.decode(previred.ENCODING, errors="replace")
