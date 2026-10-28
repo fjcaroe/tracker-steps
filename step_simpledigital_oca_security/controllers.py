@@ -54,7 +54,8 @@ class Book(LibroRemuneracionesController):
         return payslips
 
     def _get_payslip_lines(self, payslip, rule_codes=None):
-        if not payslip or payslip._name != 'hr.payslip' or len(payslip) != 1:
+        if (not payslip or payslip._name != 'hr.payslip' or len(payslip) != 1
+                or not isinstance(payslip.id, int) or payslip.id <= 0):
             raise UserError(_('The remuneration book requires one real saved payroll slip.'))
         # Never retain a supplier sudo environment or swallow incomplete history.
         actual = request.env['hr.payslip'].browse(payslip.id)
