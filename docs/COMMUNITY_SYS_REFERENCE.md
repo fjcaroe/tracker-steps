@@ -171,3 +171,8 @@ Boolean bancario y 210233. Usa overlays privados, respaldo, reserva y bloqueo.
 Prueba paquete exacto en Community oficial y copia fresca aislada de Cerro;
 registra evidencia privada, commits y push, integra solo lo validado y verifica
 python tools/git/verify_handoff.py --require-pushed.
+
+
+Continuación posterior: [COMMUNITY_RULE_COLLISIONS.md](COMMUNITY_RULE_COLLISIONS.md)
+contiene el último bloque aceptado, límites temporales comprobados y siguiente
+prompt. No usar el sueldo actual como histórico ni repetir consultas ya resueltas.

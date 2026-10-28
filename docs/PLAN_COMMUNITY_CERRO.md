@@ -671,3 +671,31 @@ Enterprise y aceptación: el 31 sigue en riesgo alto.
 
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_SYS_REFERENCE.md](COMMUNITY_SYS_REFERENCE.md).
+
+
+## Colisiones de reglas y límite temporal SyS — 28-10-2026
+
+Paquete D de 8ca0d3b: 166 pruebas Community oficial/OCA y 106 en copia fresca
+nativa, cero errores; mismos 196 archivos. step_payroll_contracts 18.0.1.7.0
+reporta todos los códigos activos directos duplicados y el guard de Nómina Chile
+los rechaza antes de cambiar líneas existentes, sin escoger/desactivar maestros.
+Cuatro observaciones con motores reales coinciden: código repetido puede
+sobrescribir la línea anterior y dejar efectos en categorías; no certifican SyS.
+Preservados 919 tablas/proyecciones, 140 contadores, 59.048 XML IDs y permisos.
+Libro/proveedor reales instalados: Community 71/0 módulos/EE, referencia 383/140.
+
+Auditoría temporal de solo lectura ligada a la cápsula de septiembre: contrato
+modificado después del período, cero tracking salarial, hr.contract.history
+es vista dependiente de hr_contract.wage actual. Eso no acredita sueldo histórico.
+Recuperar referencia temporal aprobada antes del replay; si falta, avanzar DTE
+sin inventar maestros ni recalcular el original cerrado. Anomalía NET 8/32 intacta.
+
+Inventario completo reauditado: 380 instalados/99 propios/140 EE, 117 manifiestos
+propios, 22 fuera de Cerro y 54 apps con caminos EE; matriz sin cambios. Siguen
+identidad/almacén (934 campos ausentes), 71 reglas, días/entradas/YTD/asientos,
+Previred/libro no vacíos, DTE/CAF/SII, otros productos y conversión integral
+restaurable cero Enterprise con aceptación. Sin publicación en producción ni
+refresco QA-Cerro. El 31 continúa en riesgo alto, no resuelto.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_RULE_COLLISIONS.md](COMMUNITY_RULE_COLLISIONS.md).
