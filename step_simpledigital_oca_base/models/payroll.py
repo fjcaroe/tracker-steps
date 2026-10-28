@@ -37,6 +37,9 @@ class WorkEntryType(models.Model):
 class Contract(models.Model):
     _inherit = 'hr.contract'
 
+    hourly_wage = fields.Monetary(string='Hourly wage', default=0)
+    wage_type = fields.Selection([('monthly','Monthly'),('hourly','Hourly')],default='monthly')
+
     @api.onchange('structure_type_id')
     def _onchange_simpledigital_structure_type(self):
         for contract in self:

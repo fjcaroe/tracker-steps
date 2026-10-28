@@ -50,6 +50,14 @@ def main():
         if dest.suffix=='.xml':
             content=content.replace("@name='salary_computation'","@name='computation'")
             content=content.replace("@name='hr_payroll'","@name='payroll_settings'")
+        if name in ('models/hr_contract.py','models/hr_employee.py'):
+            tree=ast.parse(content)
+            for node in ast.walk(tree):
+                if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and isinstance(node.func.value,ast.Name) and node.func.value.id=='fields':
+                    for keyword in node.keywords:
+                        if keyword.arg=='required' and isinstance(keyword.value,ast.Constant) and keyword.value.value is True:
+                            keyword.value=ast.Constant(False)
+            content=ast.unparse(tree)+'\n'
         if content!=before:
             dest.write_text(content,encoding='utf-8');changes.append(name)
     manifest['depends']=['step_simpledigital_oca_base']

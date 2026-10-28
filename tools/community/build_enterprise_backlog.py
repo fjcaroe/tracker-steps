@@ -39,6 +39,7 @@ def family(name):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--as-of',default='2026-10-27')
     parser.add_argument('--audit', type=Path, required=True)
     parser.add_argument('--repository', type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument('--output', type=Path, required=True)
@@ -53,7 +54,7 @@ def main():
     previous = {m: closure(m, installed) for m in own}
     proposed = {m: closure(m, candidates) for m in own}
     pending = [m for m in own if proposed[m] & set(enterprise)]
-    rows = ['# Matriz de retiro Enterprise — Cerro, 27-10-2026', '',
+    rows = ['# Matriz de retiro Enterprise — Cerro, '+args.as_of, '',
             'Generada con `tools/community/build_enterprise_backlog.py` desde auditoría de solo lectura.',
             'No contiene datos de negocio, rutas de servidor ni parámetros de licencia.', '',
             f'Producción: {len(installed)} módulos instalados, {len(enterprise)} Enterprise y {len(own)} propios.',
