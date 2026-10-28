@@ -107,8 +107,9 @@ def prepare(cr):
         cr.execute('UPDATE ir_ui_view SET arch_db=%s::jsonb WHERE id=%s', (json.dumps(result), ident))
     # Translate field paths and saved expressions, preserving their identities.
     import re
-    mapping = {OLD: NEW, **MODEL_FIELDS, **PRODUCT_FIELDS}
-    def translate(value):
+    def translate(value, aptitude=False):
+        mapping = {OLD: NEW, **PRODUCT_FIELDS}
+        if aptitude: mapping.update(MODEL_FIELDS)
         if not value: return value
         for old, new in sorted(mapping.items(), key=lambda item: -len(item[0])):
             value = re.sub(r'(?<![A-Za-z0-9_])' + re.escape(old) + r'(?![A-Za-z0-9_])', lambda match: new, value)
@@ -116,9 +117,17 @@ def prepare(cr):
     targets = [('ir_model_fields','related'),('ir_model_fields','depends'),('ir_act_window','domain'),('ir_act_window','context'),('ir_rule','domain_force'),('ir_filters','domain'),('ir_filters','context'),('ir_act_server','code')]
     for table, col in targets:
         if not exists(cr, table) or col not in columns(cr, table): continue
-        cr.execute(sql.SQL('SELECT id,{} FROM {} WHERE {} IS NOT NULL').format(sql.Identifier(col),sql.Identifier(table),sql.Identifier(col)))
-        for ident, value in cr.fetchall():
-            updated = translate(value)
+        if table == 'ir_model_fields':
+            scope = "model"
+        elif table == 'ir_act_window':
+            scope = "res_model"
+        elif table == 'ir_filters':
+            scope = "model_id"
+        else:
+            scope = "(SELECT model FROM ir_model WHERE id=t.model_id)"
+        cr.execute(sql.SQL('SELECT id,{},' + scope + ' FROM {} t WHERE {} IS NOT NULL').format(sql.Identifier(col),sql.Identifier(table),sql.Identifier(col)))
+        for ident, value, resource_model in cr.fetchall():
+            updated = translate(value, aptitude=resource_model == NEW)
             if updated != value:
                 cr.execute(sql.SQL('UPDATE {} SET {}=%s WHERE id=%s').format(sql.Identifier(table),sql.Identifier(col)), (updated,ident))
 

@@ -697,6 +697,8 @@ def main():
                         run('rsync', '-a', str(store) + '/', str(backup / 'filestore') + '/')
                 before = snapshot(database)
                 (backup / 'business_before.json').write_text(json.dumps(before, indent=2))
+                if args.kind == 'product-bpa':
+                    run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'prepare',database)
                 if args.kind == 'agriculture-records':
                     agriculture_migrate('prepare', database, release_root / 'step_agriculture_records')
                 new_paths = str(release_root) + ',' + opts['addons_path']
@@ -709,6 +711,8 @@ def main():
                 result = subprocess.run(base + options + ['-d', database] + init_options + update_options + ['--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
+                if args.kind == 'product-bpa':
+                    run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'finalize',database)
                 if args.kind == 'agriculture-records':
                     agriculture_migrate('finalize', database, release_root / 'step_agriculture_records')
                 if args.kind == 'packing-stock':
