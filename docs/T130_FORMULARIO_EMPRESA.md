@@ -67,3 +67,37 @@ Referencia técnica: [instructivo de emisión SII](https://www.sii.cl/factura_el
 Publicar el mismo paquete comprobado en copias frescas, con respaldo y bloqueo,
 sin refrescar QA-Cerro ni alterar su aislamiento. Las evidencias se guardan fuera
 del repositorio público.
+
+## Entrega completada el 28-10-2026
+
+T130 quedó Solved con nota interna 9778 y comprobación de cero correos o
+notificaciones. T129 ya estaba Solved y no se modificó. No hay tickets nuevos
+posteriores al 130 en la consulta final de esta entrega.
+
+Paquete: `1b066c9243085ef6138893cb8b0b700592564972`.
+SHA-256: `f4d274378755f55d3fe0f6e7f0811f0a355fbbbca615468ee17da6dae8b2067e`.
+Versiones 18.0.1.0.0 de `step_company_form_restore`,
+`step_company_form_restore_payroll` y `step_company_edi_readiness`.
+
+| Destino | Copia fresca aprobada | Respaldo de la publicación final |
+| --- | --- | --- |
+| Desarrollo | MANAGEMENT_QA_DEVELOPMENT_t130d5 | management_development_20261028T204350Z |
+| Cerro | MANAGEMENT_QA_CERRO_t130c5 | management_cerro_20261028T204529Z |
+| QA-Cerro | MANAGEMENT_QA_QA-CERRO_t130q5 | management_qa-cerro_20261028T204729Z |
+
+Once pruebas por copia: **33 ejecuciones aprobadas**. Se verificaron después
+de publicar versión y fuente efectivas, menú, listado, formulario completo,
+pestañas heredadas y Previred, aviso DTE y ausencia de obligatoriedad fiscal
+en el guardado general. Folios y Bodega Packing conservaron sus accesos explícitos.
+Los perfiles existentes se usaron sin elevar permisos. Las huellas de datos
+originales se conservaron, sin alterar contactos, empresas, monedas, instituciones,
+tasas, resolución SII ni correo DTE. No se generaron documentos reales de prueba.
+
+QA-Cerro conserva sus datos de capacitación, bloqueo de salida y denegación de
+acceso a producción. El paquete idéntico se publicó con respaldo, bloqueo y
+validación de concurrencia, mediante overlays privados. Todos los cambios útiles
+se integraron a la rama canónica del producto.
+
+Evidencias privadas: `/opt/steps-validation/t130-20261028/evidence/` y
+`~/.codex/local-artifacts/tickets-20261028-new/evidence/`. Respaldos completos
+bajo `/opt/steps_backups/` con permisos privados.
