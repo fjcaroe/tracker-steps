@@ -31,7 +31,20 @@ def main():
         log=folder/'tests.log'
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
-        paths='/opt/odoo18/odoo/addons,/opt/odoo18/addons,'+str(a.source)
+        # The server's addons directory mixes Community and commercial addons.
+        # Expose only modules with an explicit open-source manifest license.
+        clean=folder/'community-addons';clean.mkdir()
+        licenses={}
+        for parent in (Path('/opt/odoo18/odoo/addons'),Path('/opt/odoo18/addons')):
+            for module in parent.iterdir():
+                file=module/'__manifest__.py'
+                if not file.is_file(): continue
+                info=ast.literal_eval(file.read_text(encoding='utf-8'))
+                license=info.get('license','LGPL-3')
+                if license in ('LGPL-3','AGPL-3','GPL-3','GPL-2','MIT','BSD-3','Other OSI approved licence') and not (clean/module.name).exists():
+                    (clean/module.name).symlink_to(module,target_is_directory=True)
+                    licenses[module.name]=license
+        paths=str(clean)+','+str(a.source)
         run('sudo','-u','odoo','/usr/bin/python3.10','/opt/odoo18/odoo-bin','-c','/etc/dev_odoo18.conf',
             '-d',database,'--db-filter=^'+database+'$','--addons-path='+paths,'--data-dir='+str(folder/'data'),
             '--no-http','--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0','--workers=0','--max-cron-threads=0','--without-demo=all','-i','step_product_bpa',
@@ -41,7 +54,8 @@ def main():
         result=run('sudo','-u','postgres','psql','-At','-d',database,'-c',"SELECT json_agg(name ORDER BY name) FROM ir_module_module WHERE state='installed'",text=True,capture_output=True)
         installed=json.loads(result.stdout)
         assert not set(installed)&{'web_enterprise','web_studio','studio_customization'}
-        proof={'community_only':True,'versions':{'step_product_bpa':manifest['version']},'database':database,'installed':installed,'tests_passed':True}
+        assert all(name=='step_product_bpa' or name in licenses for name in installed)
+        proof={'community_only':True,'versions':{'step_product_bpa':manifest['version']},'database':database,'installed':installed,'licenses':{name:licenses.get(name,'AGPL-3') for name in installed},'tests_passed':True}
         (folder/'passed.json').write_text(json.dumps(proof,indent=2))
         print('BPA_COMMUNITY_ONLY_OK '+json.dumps(proof),flush=True)
 
