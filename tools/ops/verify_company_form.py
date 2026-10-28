@@ -20,6 +20,9 @@ try:
     for name in ('name','vat','currency_id','country_id','phone','email'):
         assert arch.xpath("//field[@name='%s']"%name),name
     assert arch.xpath('//notebook/page')
+    for name in ('l10n_cl_dte_email','l10n_cl_dte_resolution_number','l10n_cl_dte_resolution_date'):
+        assert all(node.get('required') in ('False','0') for node in arch.xpath("//field[@name='%s']"%name))
+    assert arch.xpath("//div[@role='alert'][@invisible='not step_sii_configuration_pending']")
     assert len(arch.xpath("//page[@name='steps_previred']"))==1
     assert not arch.xpath(".//field[starts-with(@name,'x_studio_caja_compensacin')]")
     native_pages=[node.get('name') or node.get('string') for node in arch.xpath('//notebook/page')]
@@ -52,6 +55,10 @@ try:
         assert form.phone=='QA PHONE' and company.phone==original_phone
         assert company.read(['name','vat','partner_id','currency_id'])[0]==before
         assert model.search_count([])==count
+        pending_before=company.read(['l10n_cl_dte_email','l10n_cl_dte_resolution_number','l10n_cl_dte_resolution_date'])[0]
+        with Form(company) as saved:saved.phone='QA PHONE'
+        assert company.phone=='QA PHONE'
+        assert company.read(['l10n_cl_dte_email','l10n_cl_dte_resolution_number','l10n_cl_dte_resolution_date'])[0]==pending_before
         print('T130_NATIVE_COMPANY_FORM_FLOW_OK rollback_required=True')
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':130,'versions':EXPECTED,'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,'complete_pages':native_pages,'compact_actions_preserved':True,'writes':False}))
 finally:
