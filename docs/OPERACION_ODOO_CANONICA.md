@@ -76,6 +76,11 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T130 autoriza `company-form` en Desarrollo, Cerro y QA-Cerro para recuperar
+el formulario completo de Ajustes / Empresas. Se conservan los formularios
+específicos de Folios y Bodega Packing, los datos y los permisos. Copia fresca
+de cada destino, paquete idéntico, respaldo y bloqueo; no refrescar QA-Cerro.
+
 El 28-10-2026 el usuario autorizó `manual-contact` en Cerro y QA-Cerro para
 crear proveedores sin el aviso de créditos del autocompletado IAP. Se revisa
 primero en Desarrollo y se exige copia fresca de cada destino, paquete idéntico,
