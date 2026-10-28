@@ -12,9 +12,13 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     def test_paid_or_validated_slip_is_never_recomputed(self):
         for state,paid in [('done',False),('draft',True)]:
             slip=self.slip();slip.compute_sheet();slip.write({'state':state,'paid':paid})
-            before=slip.line_ids.read(['amount','quantity','total'])
+            self.env.flush_all()
+            query='SELECT to_jsonb(t) FROM hr_payslip_line t WHERE slip_id=%s ORDER BY id'
+            self.env.cr.execute(query,(slip.id,));before=self.env.cr.fetchall()
             with self.assertRaises(UserError):slip.compute_sheet()
-            self.assertEqual(slip.line_ids.read(['amount','quantity','total']),before)
+            self.env.flush_all()
+            self.env.cr.execute(query,(slip.id,))
+            self.assertEqual(self.env.cr.fetchall(),before)
 
     def test_rule_foreign_key_updates_real_oca_membership(self):
         self.assertIn(self.rule,self.structure.rule_ids)

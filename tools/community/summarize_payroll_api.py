@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 
@@ -16,12 +17,16 @@ def main():
     packets=[read(mode,'source-files') for mode in ('community','cerro-reference')]
     assert packets[0]==packets[1], 'Different addon packets'
     for name,digest in packets[0].items():
-        assert hashlib.sha256((repo/name).read_bytes()).hexdigest()==digest, name
+        blob=subprocess.check_output(['git','-C',str(repo),'show','HEAD:'+name])
+        assert hashlib.sha256(blob).hexdigest()==digest, name
+        assert (repo/name).read_bytes().replace(b'\r\n',b'\n')==blob.replace(b'\r\n',b'\n'),name
     results={mode:read(mode,'passed') for mode in ('community','cerro-reference')}
     assert results['community']['counts']['enterprise']==0
     assert results['cerro-reference']['counts']['enterprise']==140
     assert all(not r['writes_to_source'] and not r['historical_conversion'] and not r['simpledigital_certified'] for r in results.values())
     assert len({r['source_files_sha256'] for r in results.values()})==1
+    validator=subprocess.check_output(['git','-C',str(repo),'show','HEAD:tools/community/validate_payroll_api.py'])
+    assert all(r['validator_sha256']==hashlib.sha256(validator).hexdigest() for r in results.values())
     before=read('cerro-reference','business-before')
     for name in ('business-after-upgrade','business-after'):
         after=read('cerro-reference',name)
