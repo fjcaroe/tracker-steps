@@ -25,7 +25,7 @@ try:
     assert action.views[0]==(scoped.ref('base.view_company_tree').id,'list')
     assert model._get_view(view_type='list')[1]==scoped.ref('base.view_company_tree')
     visible=scoped['ir.ui.menu']._visible_menu_ids()
-    menus=scoped['ir.ui.menu'].search([('id','in',list(visible)),('action','=',str(action))])
+    menus=scoped['ir.ui.menu'].search([('id','in',list(visible)),('action','=','ir.actions.act_window,%s'%action.id)])
     assert menus,'Existing settings company menu required'
     previous=config['test_enable'];config['test_enable']=True
     try:
