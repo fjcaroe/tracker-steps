@@ -1554,3 +1554,31 @@ YTD/asientos/Previred/CSV, DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/F
 demás productos y conversión integral restaurable cero Enterprise. El 31 sigue
 en riesgo alto. Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_BOOK_INSTALL.md](COMMUNITY_BOOK_INSTALL.md).
+
+
+## Libro: descargas y tablero por HTTP real — 28-10-2026
+
+Paquete B, código 562624c: 164 pruebas en Community oficial/OCA (71 módulos,
+cero Enterprise), 104 en copia fresca nativa (380 módulos/140 Enterprise), sin
+fallos. Se prueba descarga firmada, contenido del Excel, auditoría del actor,
+firma/vencimiento de enlace/compañía/período/titular y bloqueo sin reporte ante
+líneas ocultas. El tablero responde por JSON-RPC con acciones reales y totales
+almacenados; respeta el permiso independiente Previred sin elevar privilegios.
+El CSV oficial OCA del Libro propio continúa bloqueado por falta de certificación.
+
+Mismo paquete de 196 archivos, preservando 919 tablas/proyecciones, 140 contadores,
+59.039 XML IDs y los 1.614/283 vínculos de permisos originales. No se cambian
+modelos, relaciones, IDs, ACL ni dependencia genérica. El candidato privado sigue
+cambiando solamente el prerequisito por el puente Simple Digital real. El mapa
+permanece en 934 campos ausentes: no acredita adopción histórica ni conversión.
+
+Quedan referencia aprobada BASIC/IMP/GROSS, identidad/almacenamiento del motor,
+71 reglas, estructuras/entradas, días reales, YTD/asientos, Previred/CSV oficiales
+no vacíos, PDF binario y aceptación visual, rutas del proveedor, DTE/CAF/SII,
+Tesorería, Calidad, Studio/Documentos/Firma y demás productos. La producción sigue
+con 140 Enterprise; 52 apps propias mantienen caminos Enterprise. Falta conversión
+integral restaurable cero Enterprise, conciliación y aceptación. El 31 sigue en
+riesgo alto; no se escribe en producción ni se refresca QA-Cerro.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_BOOK_HTTP.md](COMMUNITY_BOOK_HTTP.md).

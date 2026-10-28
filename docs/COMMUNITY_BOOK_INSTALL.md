@@ -127,3 +127,7 @@ y copia fresca aislada de Cerro, con respaldo, overlay y bloqueo. No escribas en
 producción, recalcules pagadas, alteres vencimientos, refresques QA-Cerro ni emitas
 SII real. Respeta Calendar, Boolean bancario y 210233. Guarda evidencia, commits y
 push, integra solo lo validado y ejecuta verify_handoff.py --require-pushed.
+
+
+Continuación validada: [COMMUNITY_BOOK_HTTP.md](COMMUNITY_BOOK_HTTP.md), con rutas
+HTTP y tablero reales. Conserva pendientes financieros y de conversión integral.
