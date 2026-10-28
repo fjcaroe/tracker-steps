@@ -21,6 +21,7 @@ from datetime import datetime
 
 from odoo import _, http
 from odoo.exceptions import AccessError, UserError
+from odoo.addons.step_payroll_contracts.access import has_payroll_role
 from odoo.http import request
 
 from odoo.addons.l10n_cl_simpledigital_payroll.controllers.previred_txt import (
@@ -52,7 +53,7 @@ class SecuredPreviredExportController(PreviredExportController):
             raise AccessError(_(
                 "Necesita el permiso «Previred: generar exportaciones» para "
                 "descargar el archivo previsional."))
-        if not user.has_group("hr_payroll.group_hr_payroll_manager"):
+        if not has_payroll_role(request.env,'manager'):
             raise AccessError(_(
                 "El archivo Previred contiene la nómina corporativa completa. "
                 "Sólo un Administrador de Nómina puede descargarlo."))
@@ -133,6 +134,8 @@ class SecuredPreviredExportController(PreviredExportController):
         dataset = wizard._build()
         if dataset.errors:
             raise UserError("\n".join(issue.message for issue in dataset.errors))
+        if not dataset.records:
+            raise UserError(_("No hay liquidaciones que exportar; no se genera un archivo vacío."))
         from odoo.addons.step_hr_previred.tools import previred
         payload = previred.txt_bytes(previred.render_records(dataset.records))
         filename = previred.txt_filename(dataset.company_vat, dataset.period)

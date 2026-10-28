@@ -238,8 +238,7 @@ class TestSimpleDigitalRouteSecurity(HttpCase):
             password="sd_plain")
         cls.exporter = new_test_user(
             cls.env, login="sd_exporter", password="sd_exporter",
-            groups="step_hr_previred.group_previred_generate,"
-                   "hr_payroll.group_hr_payroll_manager")
+            groups="step_hr_previred.group_previred_generate")
 
     # 1) usuario sin grupo
     def test_user_without_group_is_rejected(self):

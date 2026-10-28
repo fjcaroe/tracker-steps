@@ -121,7 +121,7 @@ class SimpleDigitalAdapter(adapters.EngineAdapter):
             else data.decode(previred.ENCODING, errors="replace")
         if not text.strip():
             return [], [previred.Issue(
-                previred.SEVERITY_WARNING, "engine_empty",
+                previred.SEVERITY_ERROR, "engine_empty",
                 _("El generador de %s no devolvió ninguna línea para el "
                   "período solicitado.", cls.label))]
 

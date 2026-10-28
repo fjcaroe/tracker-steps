@@ -3,6 +3,7 @@
 from decimal import Decimal, ROUND_HALF_UP
 
 from odoo import models
+from odoo.addons.step_payroll_contracts.history import stored_line_total
 
 from odoo.addons.step_hr_previred.tools import previred
 
@@ -29,12 +30,7 @@ class PreviredExtractor(models.AbstractModel):
         # evita depender de la tasa o de si la liquidación ya fue recalculada.
         afp_lines = payslip.line_ids.filtered(lambda line: line.code == "AFP")
         if afp_lines:
-            def line_total(line):
-                return line.total or (
-                    line.amount * line.quantity * line.rate / 100.0
-                )
-
-            base_afp = sum(line_total(line) for line in afp_lines)
+            base_afp = stored_line_total(afp_lines)
             row[previred.F_AFP_CONTRIBUTION - 1] = str(int(Decimal(
                 str(base_afp)
             ).quantize(Decimal("1"), rounding=ROUND_HALF_UP)))
@@ -48,10 +44,8 @@ class PreviredExtractor(models.AbstractModel):
                 lambda line: line.code == "AFP_EMP"
             )
             if current.isdigit() and employer_lines:
-                employer = int(Decimal(str(sum(
-                    line.total or (
-                        line.amount * line.quantity * line.rate / 100.0
-                    ) for line in employer_lines
+                employer = int(Decimal(str(stored_line_total(
+                    employer_lines
                 ))).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
                 row[previred.F_AFP_CONTRIBUTION - 1] = str(max(
                     0, int(current) - employer

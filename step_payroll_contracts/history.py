@@ -69,3 +69,17 @@ def assert_community_engine(cr):
     cr.execute("SELECT 1 FROM ir_module_module WHERE name='hr_payroll' AND state NOT IN ('uninstalled','uninstallable') LIMIT 1")
     if cr.fetchone():
         raise UserError(_('Retire the native engine through the audited identity conversion before installing the Community bridge.'))
+
+
+def stored_line_total(lines):
+    """Read the authoritative SQL snapshot, including zero, without recomputation."""
+    if not lines:return 0.0
+    if lines._name!='hr.payslip.line':raise ValueError('Expected actual payroll lines')
+    lines.check_access('read')
+    if any(not isinstance(ident,int) for ident in lines.ids):
+        raise UserError(_('Save the real payroll lines before exporting stored totals.'))
+    lines.env.cr.execute('SELECT id,total FROM hr_payslip_line WHERE id=ANY(%s)',(lines.ids,))
+    rows=lines.env.cr.fetchall()
+    if len(rows)!=len(lines) or any(value is None for ident,value in rows):
+        raise UserError(_('Original stored payroll line totals are incomplete; no amount will be reconstructed.'))
+    return sum(value for ident,value in rows)

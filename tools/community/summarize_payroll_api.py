@@ -20,12 +20,14 @@ def main():
     assert packets[0]==packets[1], 'Different addon packets'
     # git archive applies export EOL filters too. Pin the Windows export used
     # for the accepted package instead of confusing export bytes with raw blobs.
-    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred')
+    simpledigital=read('community','passed').get('profile') in ('simpledigital','previred','previred-simpledigital')
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
-    previred=read('community','passed').get('profile')=='previred'
+    previred=read('community','passed').get('profile') in ('previred','previred-simpledigital')
+    bridge=read('community','passed').get('profile')=='previred-simpledigital'
     if previred:paths+=['step_hr_previred']
+    if bridge:paths+=['step_hr_previred_simpledigital']
     group_proof=args.evidence/'group-preservation.json'
     if group_proof.exists():paths+=['tools/community/verify_payroll_group_preservation.py']
     configuration=args.evidence/'community/configuration.json'

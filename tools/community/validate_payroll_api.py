@@ -28,18 +28,20 @@ def main():
     global MODULES
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode',choices=('community','cerro-reference'))
-    parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone'),default='api')
+    parser.add_argument('--profile',choices=('api','simpledigital','previred','previred-standalone','previred-simpledigital'),default='api')
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
-    simpledigital=args.profile in ('simpledigital','previred')
-    previred=args.profile=='previred'
+    simpledigital=args.profile in ('simpledigital','previred','previred-simpledigital')
+    previred=args.profile in ('previred','previred-simpledigital')
+    bridge=args.profile=='previred-simpledigital'
     standalone=args.profile=='previred-standalone'
     if simpledigital:
         MODULES=MODULES+('step_simpledigital_oca_base','step_simpledigital_oca_security','l10n_cl_simpledigital_payroll')
     if previred:MODULES+=('step_hr_previred',)
+    if bridge:MODULES+=('step_hr_previred_simpledigital',)
     if standalone:
         assert args.mode=='community'
         MODULES=('step_payroll_contracts','step_hr_previred')
@@ -55,7 +57,7 @@ def main():
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
     data=stage/'data';data.mkdir();overlay=stage/'addons';overlay.mkdir()
-    for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
+    for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ())+(('step_hr_previred_simpledigital',) if bridge else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
     preservation.MODULES=preservation.BASE_MODULES+preservation.PRODUCER_MODULES+preservation.OPERATIONS_MODULES+preservation.LABOR_MODULES+preservation.HARVEST_MODULES+preservation.HR_MODULES
@@ -113,6 +115,7 @@ def main():
             '--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0','--without-demo='+('' if pure else 'all')]
         modules=('step_simpledigital_oca_security' if simpledigital else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'+(',step_simpledigital_oca_security' if simpledigital else '')
         if previred:modules+=',step_hr_previred'
+        if bridge:modules+=',step_hr_previred_simpledigital'
         if standalone:modules='step_hr_previred'
         def execute(name,flags):
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
@@ -122,14 +125,20 @@ def main():
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',text),str(stage/(name+'.log'))
             return text
         if not pure:
-            execute('upgrade',['-i',modules.replace(',step_hr_previred',''),'-u','step_hr_previred'] if previred else ['-i',modules])
+            existing=['step_hr_previred']+(['step_hr_previred_simpledigital'] if bridge else []) if previred else []
+            execute('upgrade',['-i',','.join(name for name in modules.split(',') if name not in existing)]+(['-u',','.join(existing)] if existing else []))
             upgraded=snapshot();dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
         tags=(('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')+(',/step_simpledigital_oca_security'+(',/step_simpledigital_oca_base' if pure else '') if simpledigital else ''))
         if previred:tags+=',/step_hr_previred:TestCoreIsolation'
-        if standalone:tags='/step_hr_previred:TestCoreIsolation'
+        if bridge:
+            tags+=',/step_hr_previred_simpledigital:TestSimpleDigitalMatrix,/step_hr_previred_simpledigital:TestSimpleDigitalRouteSecurity'
+            methods=('manager_guard_uses_real_role','foreign_and_hidden_salary_are_denied','real_vendor_empty_is_an_error',
+                'closed_zero_total_is_authoritative','missing_total_is_rejected','employer_zero_does_not_reconstruct_deduction')
+            tags+=','+','.join('/step_hr_previred_simpledigital:CommunityBridgeContracts.test_community_'+name for name in methods)
+        if standalone:tags='/step_hr_previred:TestCoreIsolation' 
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (68 if pure else 15)+((38 if pure else 31) if simpledigital else 0)+(7 if previred else 0)
+        expected=7 if standalone else (68 if pure else 15)+((38 if pure else 31) if simpledigital else 0)+(7 if previred else 0)+(25 if bridge else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -157,6 +166,7 @@ def main():
         if standalone:
             assert engine_models==0 and sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name IN ('payroll','hr_payroll') AND state='installed'")=='0'
         if previred or standalone:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred' AND state='installed'")=='18.0.3.8.8'
+        if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'counts':counts,'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
