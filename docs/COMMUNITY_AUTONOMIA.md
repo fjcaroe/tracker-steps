@@ -16,7 +16,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
    el último documento de aceptación (actualmente COMMUNITY_PREVIRED_SIMPLEDIGITAL.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md distingue 93 apps instaladas,
+   COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md distingue 95 apps propias instaladas,
    52 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.

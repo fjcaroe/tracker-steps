@@ -3,8 +3,9 @@
 ## Alcance
 
 Base canónica 657c731; rama propia codex/community-previred-simpledigital-20261028.
-Se conserva el inventario completo: 374 instalados, 93 propios, 140 Enterprise en
-producción y 52 apps instaladas con caminos EE pendientes. El proveedor original
+El corte usado en la aceptación C tenía 374 instalados, 93 propios y 140 Enterprise.
+Tras la entrega concurrente de BPA, una nueva auditoría de solo lectura registra
+376 instalados y 95 propios; siguen 140 Enterprise y 52 apps con caminos EE. El proveedor original
 sigue bloqueado por BASIC/GROSS y la adopción de las 71 reglas. Esta etapa cierra
 interfaces del puente; no certifica liquidaciones chilenas ni el archivo oficial.
 
@@ -129,7 +130,8 @@ integral restaurable cero Enterprise y el riesgo del 31.
 La canónica avanzó con T127/BPA mientras se ejecutaban estas pruebas. Se integran
 sus commits sin reemplazarlos; no modifican ninguno de los 149 archivos del paquete
 HR aceptado ni su validador. El resumidor vuelve a comprobar su identidad tras el
-merge. La matriz actualizada incluye ahora 113 módulos propios en repo y 24 fuera
-del inventario instalado de Cerro. La aceptación/publicación de BPA tiene su propio
+merge. La matriz actualizada incluye ahora 113 módulos propios en repo y, tras la publicación BPA, 22 fuera
+del inventario instalado de Cerro. Se conserva separado el inventario del corte C
+y el actual; el próximo ensayo debe partir de una copia nueva que ya incluya BPA. La aceptación/publicación de BPA tiene su propio
 runbook y evidencia; esta automatización conserva la prohibición de escribir en
 producción y no ejecuta ese corte ni refresca QA-Cerro.
