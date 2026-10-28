@@ -38,7 +38,7 @@ def main():
     keep=[backup_path(value) for value in plan['keep_backups']]
     delete=[backup_path(value) for value in plan['delete_backups']]
     assert keep and not set(keep)&set(delete)
-    report={'read_only_production':True,'databases':[],'backups':[],'retained_backups':[],
+    report={'tool_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'plan_sha256':hashlib.sha256(a.plan.read_bytes()).hexdigest(),'read_only_production':True,'databases':[],'backups':[],'retained_backups':[],
         'backup_bytes_retired':0,'database_bytes_retired':0,'apply':a.apply}
     output=a.plan.with_name('cleanup-result.json')
     def save():output.write_text(json.dumps(report,indent=2),encoding='utf-8')
@@ -57,7 +57,11 @@ def main():
         for name in names:
             size=int(query("SELECT pg_database_size(oid) FROM pg_database WHERE datname='"+name+"'"))
             # dropdb refuses active connections; never terminate sessions or use FORCE.
-            subprocess.run(['sudo','-u','postgres','dropdb',name],check=True,capture_output=True,text=True)
+            try:
+                subprocess.run(['sudo','-u','postgres','dropdb',name],check=True,capture_output=True,text=True)
+            except subprocess.CalledProcessError as exc:
+                report['failure']={'database':name,'exit_code':exc.returncode,'reason':exc.stderr};save()
+                raise
             report['databases'].append({'name':name,'bytes':size});report['database_bytes_retired']+=size;save()
         for path in delete:
             size=path.stat().st_size;path.unlink()
