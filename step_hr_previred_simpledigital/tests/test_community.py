@@ -1,5 +1,4 @@
 """Real engine/ORM and actual supplier execution; only the HTTP context is local."""
-import calendar
 from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -38,8 +37,7 @@ class CommunityBridgeContracts(PayrollContractMixin,TransactionCase):
             'model_id':self.env['ir.model']._get_id('hr.payslip'),
             'domain_force':repr([('id','!=',slip.id)]),'perm_read':True,
             'perm_create':False,'perm_write':False,'perm_unlink':False})
-        # The vendor selects by date_from; the guard must see the same month.
-        slip.sudo().write({'date_to':slip.date_from.replace(day=calendar.monthrange(slip.date_from.year,slip.date_from.month)[1])})
+        # The actual vendor also selects partial periods, including this month-to-date slip.
         with patch.object(secured,'request',request):
             with self.assertRaises(AccessError):
                 secured.SecuredPreviredExportController()._previred_guard(period,str(self.company.id))

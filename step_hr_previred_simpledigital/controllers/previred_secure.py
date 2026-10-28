@@ -109,8 +109,8 @@ class SecuredPreviredExportController(PreviredExportController):
         date_to = parsed.date().replace(day=last_day)
         domain = [
             ("company_id", "=", requested),
-            ("date_from", "=", date_from),
-            ("date_to", "=", date_to),
+            ("date_from", ">=", date_from),
+            ("date_from", "<=", date_to),
             ("state", "in", ["verify", "done", "paid"]),
         ]
         visible = payslips.search_count(domain)

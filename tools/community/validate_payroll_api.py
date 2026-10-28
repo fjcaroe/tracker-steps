@@ -136,7 +136,7 @@ def main():
             methods=('manager_guard_uses_real_role','foreign_and_hidden_salary_are_denied','real_vendor_empty_is_an_error',
                 'closed_zero_total_is_authoritative','missing_total_is_rejected','employer_zero_does_not_reconstruct_deduction')
             tags+=','+','.join('/step_hr_previred_simpledigital:CommunityBridgeContracts.test_community_'+name for name in methods)
-        if standalone:tags='/step_hr_previred:TestCoreIsolation' 
+        if standalone:tags='/step_hr_previred:TestCoreIsolation'
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         expected=7 if standalone else (68 if pure else 15)+((38 if pure else 31) if simpledigital else 0)+(7 if previred else 0)+(25 if bridge else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'

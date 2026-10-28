@@ -28,7 +28,7 @@ Previred Steps — puente con el motor SimpleDigital
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",
     "license": "LGPL-3",
-    "depends": ["step_hr_previred", "l10n_cl_simpledigital_payroll"],
+    "depends": ["step_hr_previred", "l10n_cl_simpledigital_payroll", "step_payroll_contracts"],
     "data": [
         "data/previred_profile.xml",
         "views/menu_views.xml",
