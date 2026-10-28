@@ -85,10 +85,11 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             'name':kind.name,'code':kind.code,'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
         self.assertFalse(line.is_paid);self.assertEqual(line.amount,0)
         kind.unpaid_structure_ids=[Command.clear()]
-        self.assertTrue(line.is_paid);self.assertAlmostEqual(line.amount,self.contract.wage/30)
+        self.assertTrue(line.is_paid);self.assertEqual(line.amount,self.company.currency_id.round(self.contract.wage/30))
 
     def test_validated_salary_is_immutable(self):
         slip=self.slip();slip.compute_sheet();slip.state='done'
+        self.env.flush_all();slip.line_ids.invalidate_recordset()
         before=slip.line_ids.read(['amount','quantity','total'])
         with self.assertRaises(UserError):slip.compute_sheet()
         self.assertEqual(slip.line_ids.read(['amount','quantity','total']),before)
