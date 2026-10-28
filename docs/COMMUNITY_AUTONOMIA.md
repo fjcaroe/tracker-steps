@@ -13,7 +13,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_PREVIRED_CORE.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_PREVIRED_SIMPLEDIGITAL.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
    COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md distingue 93 apps instaladas,
@@ -70,3 +70,21 @@ La migración solo termina al cumplir todas las puertas de la tabla; entonces
 informar el resultado acumulado y finalizar la programación. No desplegar el
 corte de producción automáticamente: requiere el paquete integral y la decisión
 operativa de corte del usuario.
+
+
+## Retención y reserva de espacio — autorización 28-10-2026
+
+El usuario autorizó eliminar respaldos antiguos para evitar falta de espacio.
+Antes de un ensayo comprobar el volumen de SHOW data_directory, no solo /opt.
+Mantener 5 GiB libres en PostgreSQL y 2 GiB en artefactos; si no alcanza, no
+crear/restaurar ni insistir sobre una base incompleta. pg_restore se detiene
+al primer fallo y conserva el log privado.
+
+Se pueden retirar copias de ensayos propios inactivas y dumps obsoletos mediante
+un plan explícito revisado y tools/community/cleanup_payroll_rehearsals.py, bajo
+el mismo bloqueo. Conservar una referencia reciente validada, casos dorados
+necesarios y respaldos recientes totalmente decodificados; preservar código,
+logs y JSON de aceptación. No aplicar planes ya consumidos ni adivinar propiedad
+por un nombre genérico. Nunca DROP FORCE, terminar sesiones ajenas, borrar
+producción/QA-Cerro ni copias de otros productos sin autorización específica.
+El plan y resultado deben quedar privados y su resumen versionado en continuidad.

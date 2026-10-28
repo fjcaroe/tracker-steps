@@ -468,3 +468,24 @@ Estado, evidencia y **siguiente prompt vigente**:
 configuración original y las 71 reglas, YTD restante, puente Simple Digital de
 Previred, Libro/consumidores, DTE/CAF/SII y conversión integral restaurable cero EE.
 El 31 sigue en riesgo alto. Producción y QA-Cerro permanecen intactos.
+
+
+## Puente Previred Simple Digital y capacidad — 28-10-2026
+
+Paquete C, addons 647fa7a: 139 pruebas Community y 79 copia fresca nativa.
+El puente carga con OCA real, conserva paid, respeta cero/NULL almacenados y
+controla salarios parciales ocultos antes de sudo; el generador real no vacío
+aún no está certificado. Se preservan 918 tablas/proyecciones, 140 contadores,
+58.956 XML IDs y exactamente 1.614 relaciones usuario-grupo/283 implicaciones.
+Quedan 52 apps con caminos EE y producción conserva 140; el mapa mantiene 984
+ausencias y baja de seis a cinco diferencias de selección.
+
+El usuario autorizó limpieza de respaldos antiguos: se retiraron 60 bases
+temporales inactivas y 19 dumps redundantes, conservando referencias y tres
+respaldos completamente comprobados antes de retirarlos. El volumen PostgreSQL
+era distinto al de /opt; el validador ahora exige 5 GiB allí y 2 GiB en artefactos,
+con bloqueo y restauración que se detiene al primer error. No se borró producción,
+QA-Cerro ni datos/respaldos de otros productos. Estado, evidencia y siguiente prompt:
+[COMMUNITY_PREVIRED_SIMPLEDIGITAL.md](COMMUNITY_PREVIRED_SIMPLEDIGITAL.md).
+No hay conversión integral ni resolución del 31; siguen configuración/71 reglas,
+Previred no vacío, Libro/consumidores, YTD restante y DTE/CAF/SII.
