@@ -1,0 +1,1 @@
+{'name': 'Steps Manual Contact Entry', 'version': '18.0.1.0.0', 'license': 'AGPL-3', 'depends': ['partner_autocomplete'], 'assets': {'web.assets_backend': ['step_partner_manual_entry/static/src/js/partner_field.js']}, 'installable': True}

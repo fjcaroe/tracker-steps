@@ -76,6 +76,12 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+El 28-10-2026 el usuario autorizó `manual-contact` en Cerro y QA-Cerro para
+crear proveedores sin el aviso de créditos del autocompletado IAP. Se revisa
+primero en Desarrollo y se exige copia fresca de cada destino, paquete idéntico,
+respaldo y bloqueo. Se conserva la búsqueda local, permisos, contactos y datos
+de capacitación; no se compran créditos ni se refresca QA-Cerro.
+
 T127 autoriza `product-bpa` en Desarrollo, Cerro y QA-CERROELPLOMO. El
 28-10-2026 el usuario confirmó implementar como producto Community los campos
 y el maestro BPA heredados de Studio. El núcleo depende solo de Product y Mail;
