@@ -197,6 +197,12 @@ def main():
         expected_version=ast.literal_eval(source['step_payroll_contracts/__manifest__.py'].decode('utf-8-sig'))['version']
         assert set(proof['versions'].values())=={expected_version}
         result['contracts_versions']=proof['versions']
+    api_version=args.evidence/'api-version-proof.json'
+    if api_version.exists():
+        proof=json.loads(api_version.read_text())
+        assert proof['read_only'] and not proof['reference_api_installed']
+        assert proof['community_api']==ast.literal_eval(source['step_payroll_oca_api/__manifest__.py'].decode('utf-8-sig'))['version']
+        result['community_api_version']=proof['community_api']
     if document.exists():
         proof=json.loads(document.read_text())
         executed=(document.parent/'exporter.py').read_bytes();pdf=(document.parent/'reference.pdf').read_bytes()
