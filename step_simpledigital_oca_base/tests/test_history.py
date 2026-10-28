@@ -80,6 +80,7 @@ class HistoryCase(PayrollContractMixin,TransactionCase):
     def test_direct_closed_creation_cannot_invent_missing_history(self):
         slip=self.slip()
         with self.assertRaises(UserError):slip.copy({'state':'done'})
+        with self.assertRaises(UserError):slip.write({'date_from':slip.date_from,'state':'done'})
         self.assertFalse(slip.step_history_locked)
 
     def test_upgrade_is_rejected_before_creating_a_missing_snapshot_column(self):

@@ -120,6 +120,8 @@ class Payslip(models.Model):
             raise UserError(_('The payroll history lock is managed by validation.'))
         closing=(values.get('paid') or ('state' in values and values['state'] not in ('draft','verify')))
         if closing:
+            if {'employee_id','company_id','contract_id','struct_id','date_from','date_to','line_ids','input_line_ids','worked_days_line_ids'} & values.keys():
+                raise UserError(_('Update the draft payroll context before closing its stored amounts.'))
             # Materialize while still draft; never derive a closed snapshot from today's wage.
             self.mapped('worked_days_line_ids').flush_recordset(['amount','is_paid'])
             self.flush_recordset(['basic_wage','gross_wage','net_wage'])

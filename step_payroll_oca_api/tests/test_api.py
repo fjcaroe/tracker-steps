@@ -143,10 +143,11 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     def test_clp_policy_keeps_earlier_period_and_validated_states(self):
         from datetime import date
         self.structure.step_clp_concept_rounding=True
-        slip=self.slip()
         for month in (9,10):
             for state in ('draft','verify','done','cancel'):
-                slip.write({'date_from':date(2026,month,1),'date_to':date(2026,month,28),'state':state})
+                slip=self.slip()
+                slip.write({'date_from':date(2026,month,1),'date_to':date(2026,month,28)})
+                slip.state=state
                 self.assertEqual(slip._get_payslip_line_total(10.6,1,100,self.rule),11 if month==10 and state in ('draft','verify') else 10.6)
 
     def test_work_hours_do_not_elevate_company_access(self):
