@@ -247,7 +247,7 @@ class PayrollContractMixin:
         slip=self.slip(125);slip.compute_sheet()
         line=slip.line_ids.filtered(lambda row:row.code==code)
         self.assertEqual(len(line),1)
-        rule=self.rule.copy({'name':'Private historical second rule'}) if distinct else self.rule
+        rule=self.rule.copy({'name':'Private historical second rule'}) if distinct else line.salary_rule_id
         duplicate=line.copy({'salary_rule_id':rule.id,'code':code,'amount':0,'quantity':1,'rate':100,'total':0,'ytd':0})
         self.env.flush_all()
         self.env.cr.execute('SELECT total FROM hr_payslip_line WHERE id=%s',(duplicate.id,))
