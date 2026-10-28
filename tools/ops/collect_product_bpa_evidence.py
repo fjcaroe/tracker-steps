@@ -1,5 +1,6 @@
 """Collect T127 immutable proofs outside Git; never copies credentials/dumps."""
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -27,8 +28,14 @@ def main():
         versions[target]={'original_aptitudes':before.get('x_aptitud_plaguicidas', [0])[0]}
         if target=='development':
             assert versions[target]['original_aptitudes']==63
-    community=root/'BPA_COMMUNITY_t127oss'/'passed.json'
-    shutil.copyfile(community,a.output/'community.json')
+    community=root/'BPA_COMMUNITY_t127oss2'/'passed.json'
+    community_proof=json.loads(community.read_text())
+    tested=root/'management_development_t127d4'/'addons'
+    release=json.loads((tested/'release.json').read_text())
+    core={name:hashlib.sha256((tested/name).read_bytes()).hexdigest() for name in release['files'] if name.startswith('step_product_bpa/')}
+    assert core=={name:value for name,value in release['files'].items() if name.startswith('step_product_bpa/')}
+    community_proof.update({'package_commit':release['commit'],'core_source_files':core})
+    (a.output/'community.json').write_text(json.dumps(community_proof,indent=2))
     result=subprocess.run(['/usr/bin/python3.10',str(Path(__file__).with_name('provision_cerro_qa.py')),'verify'],text=True,capture_output=True)
     (a.output/'qa-final-isolation.log').write_text(result.stdout+result.stderr)
     assert result.returncode==0

@@ -16,10 +16,13 @@ def run(*args, **kwargs):
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('source',type=Path);p.add_argument('run_id');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('source',type=Path);p.add_argument('run_id');p.add_argument('--runtime',type=Path,default=Path('/opt/steps-validation/community-foundation-20261027/community-runtime'));a=p.parse_args()
     assert os.geteuid()==0 and re.fullmatch('[a-z0-9_]{1,20}',a.run_id)
     manifest=ast.literal_eval((a.source/'step_product_bpa/__manifest__.py').read_text())
     assert manifest['depends']==['product','mail']
+    assert run('git','-C',str(a.runtime),'remote','get-url','origin',text=True,capture_output=True).stdout.strip()=='https://github.com/odoo/odoo.git'
+    assert not run('git','-C',str(a.runtime),'status','--porcelain',text=True,capture_output=True).stdout.strip()
+    runtime_commit=run('git','-C',str(a.runtime),'rev-parse','HEAD',text=True,capture_output=True).stdout.strip()
     with open('/run/lock/steps-environments.lock','a') as lock:
         print('BPA_COMMUNITY_WAITING_FOR_LEASE',flush=True);fcntl.flock(lock,fcntl.LOCK_EX)
         c=configparser.ConfigParser(interpolation=None);c.read('/etc/dev_odoo18.conf')
@@ -35,7 +38,7 @@ def main():
         # Expose only modules with an explicit open-source manifest license.
         clean=folder/'community-addons';clean.mkdir()
         licenses={}
-        for parent in (Path('/opt/odoo18/odoo/addons'),Path('/opt/odoo18/addons')):
+        for parent in (a.runtime/'odoo/addons',a.runtime/'addons'):
             for module in parent.iterdir():
                 file=module/'__manifest__.py'
                 if not file.is_file(): continue
@@ -45,7 +48,7 @@ def main():
                     (clean/module.name).symlink_to(module,target_is_directory=True)
                     licenses[module.name]=license
         paths=str(clean)+','+str(a.source)
-        run('sudo','-u','odoo','/usr/bin/python3.10','/opt/odoo18/odoo-bin','-c','/etc/dev_odoo18.conf',
+        run('sudo','-u','odoo','/usr/bin/python3.10',str(a.runtime/'odoo-bin'),'-c','/etc/dev_odoo18.conf',
             '-d',database,'--db-filter=^'+database+'$','--addons-path='+paths,'--data-dir='+str(folder/'data'),
             '--no-http','--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0','--workers=0','--max-cron-threads=0','--without-demo=all','-i','step_product_bpa',
             '--test-enable','--test-tags=/step_product_bpa','--stop-after-init','--logfile='+str(log))
@@ -55,7 +58,7 @@ def main():
         installed=json.loads(result.stdout)
         assert not set(installed)&{'web_enterprise','web_studio','studio_customization'}
         assert all(name=='step_product_bpa' or name in licenses for name in installed)
-        proof={'community_only':True,'versions':{'step_product_bpa':manifest['version']},'database':database,'installed':installed,'licenses':{name:licenses.get(name,'AGPL-3') for name in installed},'tests_passed':True}
+        proof={'community_only':True,'official_runtime_commit':runtime_commit,'versions':{'step_product_bpa':manifest['version']},'database':database,'installed':installed,'licenses':{name:licenses.get(name,'AGPL-3') for name in installed},'tests_passed':True}
         (folder/'passed.json').write_text(json.dumps(proof,indent=2))
         print('BPA_COMMUNITY_ONLY_OK '+json.dumps(proof),flush=True)
 

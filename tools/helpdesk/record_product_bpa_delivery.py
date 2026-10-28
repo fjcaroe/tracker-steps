@@ -14,6 +14,7 @@ def main():
     expected=json.loads((root/'delivery-reviewed.json').read_text())['127']
     community=json.loads((root/'community.json').read_text())
     assert community['community_only'] and community['tests_passed']
+    assert community['package_commit']==expected['commit'] and community['core_source_files']
     assert 'step_product_bpa' in community['installed']
     assert all(license not in ('OEEL-1','OPL-1') for license in community['licenses'].values())
     for target in ('development','cerro','qa-cerro'):
