@@ -49,6 +49,8 @@ def main():
     if resize.exists():paths+=['tools/ops/resize_community_data_disk.py']
     collisions=args.evidence/'rule-collisions'
     if collisions.exists():paths+=['tools/community/probe_payroll_rule_collisions.py','tools/community/run_payroll_rule_probe.py']
+    temporal=args.evidence/'temporal-basis.json'
+    if temporal.exists():paths+=['tools/community/audit_sys_payroll_temporal_basis.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -193,6 +195,17 @@ def main():
         assert observations['community']==observations['cerro-reference']
         assert set(observations['community'])=={'same_sequence_distinct_categories','reverse_sequence','same_category','second_zero'}
         result['rule_collision_observations']={'cases':4,'engines_match':True,'synthetic_only':True,'financial_certified':False}
+    if temporal.exists():
+        proof=json.loads(temporal.read_text())
+        executed=(args.evidence/'temporal-auditor.py').read_bytes()
+        assert proof['auditor_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_sys_payroll_temporal_basis.py'].replace(b'\r\n',b'\n')
+        assert proof['capsule_sha256']==hashlib.sha256(sys_reference.read_bytes()).hexdigest()
+        assert proof['read_only'] and not any(proof[key] for key in ('orm_reads','payroll_computed','financial_certified',
+            'historical_wage_proven','private_payroll_amounts_exported','direct_employee_identifiers_exported',
+            'formula_bodies_exported','absence_of_tracking_proves_no_change','history_relation_is_an_immutable_snapshot'))
+        result['temporal_basis']={key:proof[key] for key in ('selected_period','current_contract_modified_after_period',
+            'contract_history_relation_kind','tracking_event_counts','historical_wage_proven')}
     ui=args.evidence/'community'/'configuration-probe.json'
     if ui.exists():
         probe=json.loads(ui.read_text(encoding='utf-8'))
