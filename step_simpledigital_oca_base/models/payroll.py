@@ -1,6 +1,7 @@
 """Functional model contracts for the actual Simple Digital provider on OCA."""
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.addons.step_payroll_contracts.history import history_protected, restore_snapshot_cache
 
 
 class StructureType(models.Model):
@@ -42,6 +43,16 @@ class Structure(models.Model):
 class Rule(models.Model):
     _inherit = 'hr.salary.rule'
     note = fields.Html()
+
+    def write(self,values):
+        if self._name=='hr.salary.rule' and 'code' in values and any(rule.code!=values['code'] for rule in self):
+            used=self.env['hr.payslip.line'].sudo().search_count([
+                ('salary_rule_id','in',self.ids),'|',('slip_id.step_history_locked','=',True),
+                '|',('slip_id.paid','=',True),('slip_id.state','not in',('draft','verify'))])
+            if used:
+                raise UserError(_('Codes used in closed payroll retain their historical identity. Create a new rule.'))
+        return super().write(values)
+
     appears_on_employee_cost_dashboard = fields.Boolean(default=False)
     appears_on_payroll_report = fields.Boolean(default=False)
 
@@ -73,12 +84,14 @@ class Contract(models.Model):
 class WorkedDays(models.Model):
     _inherit = 'hr.payslip.worked_days'
     currency_id = fields.Many2one(related='payslip_id.company_id.currency_id')
-    is_paid = fields.Boolean(compute='_compute_payment')
-    amount = fields.Monetary(compute='_compute_payment',currency_field='currency_id')
+    is_paid = fields.Boolean(compute='_compute_payment',store=True)
+    amount = fields.Monetary(compute='_compute_payment',currency_field='currency_id',store=True)
 
     @api.depends('number_of_days','contract_id.wage','work_entry_type_id.unpaid_structure_ids','payslip_id.struct_id')
     def _compute_payment(self):
-        for line in self:
+        frozen=self.filtered(lambda line:history_protected(line.payslip_id))
+        restore_snapshot_cache(frozen)
+        for line in self-frozen:
             line.is_paid = line.payslip_id.struct_id not in line.work_entry_type_id.unpaid_structure_ids
             if line.contract_id.schedule_pay not in (False,'monthly'):
                 raise UserError(_('Only the audited monthly payroll basis is supported by this provider bridge.'))
@@ -89,9 +102,35 @@ class Payslip(models.Model):
     _inherit = 'hr.payslip'
     currency_id = fields.Many2one(related='company_id.currency_id')
     use_worked_day_lines = fields.Boolean(related='struct_id.use_worked_day_lines')
-    net_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
-    basic_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
-    gross_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
+    net_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id',store=True)
+    basic_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id',store=True)
+    gross_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id',store=True)
+
+    step_history_locked = fields.Boolean(string='Liquidación cerrada',default=False,copy=False,readonly=True)
+
+    @api.model_create_multi
+    def create(self,values_list):
+        for values in values_list:
+            if values.get('state','draft') not in ('draft','verify') or values.get('paid') or values.get('step_history_locked'):
+                raise UserError(_('Create draft payroll normally; import closed history through the audited migration.'))
+        return super().create(values_list)
+
+    def write(self,values):
+        if 'step_history_locked' in values:
+            raise UserError(_('The payroll history lock is managed by validation.'))
+        closing=(values.get('paid') or ('state' in values and values['state'] not in ('draft','verify')))
+        if closing:
+            # Materialize while still draft; never derive a closed snapshot from today's wage.
+            self.mapped('worked_days_line_ids').flush_recordset(['amount','is_paid'])
+            self.flush_recordset(['basic_wage','gross_wage','net_wage'])
+        if values.get('paid') or values.get('state') in ('done','paid'):
+            values=dict(values,step_history_locked=True)
+        return super().write(values)
+
+    def compute_sheet(self):
+        if any(history_protected(slip) for slip in self):
+            raise UserError(_('Closed payroll history cannot be recalculated.'))
+        return super().compute_sheet()
 
     @property
     def paid_amount(self):
@@ -117,9 +156,11 @@ class Payslip(models.Model):
     def _get_unpaid_amount(self):
         return self._get_contract_wage()-self._get_paid_amount()
 
-    @api.depends('worked_days_line_ids.amount','line_ids.total','line_ids.code')
+    @api.depends('line_ids.total','line_ids.code')
     def _compute_provider_totals(self):
-        for slip in self:
+        frozen=self.filtered(history_protected)
+        restore_snapshot_cache(frozen)
+        for slip in self-frozen:
             totals = slip._get_line_values(['BASIC','GROSS','NET'])
             slip.basic_wage = totals['BASIC'][slip.id]['total']
             slip.gross_wage = totals['GROSS'][slip.id]['total']

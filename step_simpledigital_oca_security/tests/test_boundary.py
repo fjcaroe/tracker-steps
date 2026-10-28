@@ -5,6 +5,7 @@ from odoo.tests import TransactionCase, tagged
 from werkzeug.exceptions import BadRequest, Forbidden
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
 from ..controllers import authorized_company
+from odoo.addons.step_payroll_contracts.history import assert_history_snapshots
 
 
 @tagged('post_install','-at_install')
@@ -103,6 +104,10 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         before=slip.line_ids.read(['amount','quantity','total'])
         with self.assertRaises(UserError):slip.compute_sheet()
         self.assertEqual(slip.line_ids.read(['amount','quantity','total']),before)
+        for record,values in ((slip.input_line_ids,{'amount':999}),(slip.line_ids,{'amount':999})):
+            with self.assertRaises(UserError):record.write(values)
+            with self.assertRaises(UserError):record.unlink()
+        with self.assertRaises(UserError):slip.input_line_ids.copy()
 
     def test_inverse_input_membership_cannot_change_used_type(self):
         if not self.oca:return
@@ -145,3 +150,18 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         slip._get_line_values(['LIQ'])
         self.assertEqual(slip.line_ids.read(['id','code','salary_rule_id']),before)
         self.assertIn(self.rule.code,slip.line_ids.mapped('code'))
+
+    def test_history_admission_reads_original_stored_values(self):
+        slip=self.slip();slip.compute_sheet();slip.state='done';self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(t) FROM hr_payslip t WHERE id=%s',(slip.id,));before=self.env.cr.fetchone()
+        assert_history_snapshots(self.env.cr)
+        self.env.cr.execute('SELECT to_jsonb(t) FROM hr_payslip t WHERE id=%s',(slip.id,))
+        self.assertEqual(self.env.cr.fetchone(),before)
+
+    def test_incomplete_closed_snapshot_is_rejected_without_backfill(self):
+        slip=self.slip();slip.compute_sheet();slip.state='done';self.env.flush_all()
+        with self.assertRaises(UserError),self.env.cr.savepoint():
+            self.env.cr.execute('UPDATE hr_payslip SET net_wage=NULL WHERE id=%s',(slip.id,))
+            assert_history_snapshots(self.env.cr)
+        self.env.cr.execute('SELECT net_wage IS NOT NULL FROM hr_payslip WHERE id=%s',(slip.id,))
+        self.assertTrue(self.env.cr.fetchone()[0])

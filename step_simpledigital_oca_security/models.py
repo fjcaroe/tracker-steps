@@ -1,10 +1,23 @@
 """Require country-specific data at payroll processing, never invent old master data."""
-from odoo import models, _
+from odoo import api, models, _
+from odoo.addons.step_payroll_contracts.history import assert_mutable, history_protected
 from odoo.exceptions import UserError
 
 
 class Payslip(models.Model):
     _inherit = 'hr.payslip'
+
+    def write(self,values):
+        financial={'employee_id','company_id','contract_id','struct_id','date_from','date_to',
+                   'line_ids','input_line_ids','worked_days_line_ids','basic_wage','gross_wage','net_wage'}
+        if financial & values.keys():assert_mutable(self)
+        if 'paid' in values and any(history_protected(slip) and 'paid' in slip._fields and slip.paid!=values['paid'] for slip in self):
+            raise UserError(_('Closed payroll payment status cannot be reset.'))
+        return super().write(values)
+
+    def unlink(self):
+        assert_mutable(self)
+        return super().unlink()
 
     def compute_sheet(self):
         if any(slip.state not in ('draft','verify') or ('paid' in slip._fields and slip.paid) for slip in self):
@@ -26,3 +39,59 @@ class Payslip(models.Model):
                 raise UserError(_('This provider rehearsal supports audited monthly wage payroll only.'))
         with self.env.cr.savepoint():
             return super().compute_sheet()
+
+
+def ensure_target_open(records,values,parent):
+    assert_mutable(records.mapped(parent))
+    if values.get(parent):assert_mutable(records.env['hr.payslip'].browse(values[parent]))
+
+
+class WorkedDays(models.Model):
+    _inherit='hr.payslip.worked_days'
+
+    @api.model_create_multi
+    def create(self,values_list):
+        for values in values_list:ensure_target_open(self,values,'payslip_id')
+        return super().create(values_list)
+
+    def write(self,values):
+        ensure_target_open(self,values,'payslip_id')
+        return super().write(values)
+
+    def unlink(self):
+        assert_mutable(self.mapped('payslip_id'))
+        return super().unlink()
+
+
+class Input(models.Model):
+    _inherit='hr.payslip.input'
+
+    @api.model_create_multi
+    def create(self,values_list):
+        for values in values_list:ensure_target_open(self,values,'payslip_id')
+        return super().create(values_list)
+
+    def write(self,values):
+        ensure_target_open(self,values,'payslip_id')
+        return super().write(values)
+
+    def unlink(self):
+        assert_mutable(self.mapped('payslip_id'))
+        return super().unlink()
+
+
+class Line(models.Model):
+    _inherit='hr.payslip.line'
+
+    @api.model_create_multi
+    def create(self,values_list):
+        for values in values_list:ensure_target_open(self,values,'slip_id')
+        return super().create(values_list)
+
+    def write(self,values):
+        ensure_target_open(self,values,'slip_id')
+        return super().write(values)
+
+    def unlink(self):
+        assert_mutable(self.mapped('slip_id'))
+        return super().unlink()
