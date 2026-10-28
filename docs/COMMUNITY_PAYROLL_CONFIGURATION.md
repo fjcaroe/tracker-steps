@@ -120,3 +120,9 @@ avanza otra frontera operativa concreta. Mantén las protecciones de históricos
 Calendar, Boolean bancario y 210233; no recalcules pagadas, alteres vencimientos,
 retires EE en producción, refresques QA-Cerro ni emitas al SII real. Guarda commits,
 push, integra solo lo validado y verifica handoff. Actualiza estado y siguiente bloque.
+
+
+Continuidad posterior: el usuario aportó SyS como referencia real. Ver
+[COMMUNITY_SYS_REFERENCE.md](COMMUNITY_SYS_REFERENCE.md) para aceptación del
+lector histórico, evidencia privada y siguiente bloque. No repetir la pregunta
+sobre qué base usar; certificación financiera e identidad siguen pendientes.

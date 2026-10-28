@@ -1609,3 +1609,35 @@ sigue en riesgo alto. No se escribe en producción ni se refresca QA-Cerro.
 
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_BOOK_PDF.md](COMMUNITY_BOOK_PDF.md).
+
+
+## SyS real, identidad histórica y capacidad — 28-10-2026
+
+Referencia aportada por el usuario: SyS, auditada por SQL de solo lectura.
+623 liquidaciones done, 622 completas sin ambigüedad y una con NET de dos reglas
+(8/32). Cápsula privada de septiembre preparada; falta reproducción con hechos
+históricos probados, sin usar sueldo/fórmulas actuales como historia.
+
+step_payroll_contracts 18.0.1.6.0 impide sumar dos identidades de regla para
+BASIC/GROSS/NET al exportar con el lector compartido; conserva filas repetidas
+de la misma regla y los originales. Paquete F de 04c8e43: 163 pruebas Community
+oficial y 103 copia fresca nativa, sin errores. Mismos 196 archivos, Libro real
+instalado, 71/0 módulos/EE en Community y 383/140 en referencia. Preservados
+919 tablas/proyecciones, 140 contadores, 59.048 XML IDs y permisos originales.
+
+Se retiraron ocho bases propias obsoletas (914.938.744 bytes), cero dumps,
+verificando cinco respaldos distintos. El usuario autorizó ampliar el disco
+compartido de 100 a 150 GiB: dumps SyS/Cerro decodificados, snapshot READY,
+ext4 ampliado bajo bloqueo, sin DML de negocio ni reinicios. Reserva final
+de la ampliación 54.364.999.680 bytes. Sin refrescar QA-Cerro.
+
+Inventario posterior a T130: 380 instalados, 99 propios y 140 Enterprise;
+117 manifiestos propios, 22 fuera de Cerro, 54 apps instaladas con caminos EE.
+Siguen pendientes identidad/almacén del motor (934 campos ausentes), evaluación
+real de NET duplicado, configuración/certificación de 71 reglas, días/entradas/
+YTD/asientos, Previred y CSV no vacíos, DTE/CAF/SII, Tesorería, Calidad, Studio/
+Documentos/Firma y otros productos. Falta conversión integral restaurable cero
+Enterprise y aceptación: el 31 sigue en riesgo alto.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_SYS_REFERENCE.md](COMMUNITY_SYS_REFERENCE.md).

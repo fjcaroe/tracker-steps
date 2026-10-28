@@ -13,11 +13,11 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_BOOK_PDF.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_SYS_REFERENCE.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md distingue 96 apps propias instaladas,
-   52 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
+   COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md distingue 99 apps propias instaladas,
+   54 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.
 3. Elegir un bloque concreto que desbloquee la siguiente puerta. Registrar una
@@ -88,3 +88,15 @@ logs y JSON de aceptación. No aplicar planes ya consumidos ni adivinar propieda
 por un nombre genérico. Nunca DROP FORCE, terminar sesiones ajenas, borrar
 producción/QA-Cerro ni copias de otros productos sin autorización específica.
 El plan y resultado deben quedar privados y su resumen versionado en continuidad.
+
+
+## Capacidad autorizada y referencia humana — 28-10-2026
+
+SyS fue indicada por el usuario como referencia de nómina real; consultar
+COMMUNITY_SYS_REFERENCE.md y su cápsula privada antes de repetir preguntas.
+Se autorizaron y completaron 150 GiB en el disco compartido, con dos dumps
+decodificados y snapshot READY, bajo bloqueo y sin DML/reinicio. No es permiso
+para nuevos costos o ampliaciones automáticas. Conservar reserva 5/2 GiB.
+Las bases nuevas del bloque usan tablespaces privados; ninguna base existente
+se movió ni se modificó configuración/credenciales de PostgreSQL. La ampliación
+y un snapshot no certifican recuperación integral Community.

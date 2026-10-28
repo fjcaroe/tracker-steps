@@ -3,15 +3,15 @@
 Generada con `tools/community/build_enterprise_backlog.py` desde auditoría de solo lectura.
 No contiene datos de negocio, rutas de servidor ni parámetros de licencia.
 
-Producción: 377 módulos instalados, 140 Enterprise y 96 propios.
-Código candidato: 52 apps propias instaladas aún alcanzan Enterprise por sus dependencias.
+Producción: 380 módulos instalados, 140 Enterprise y 99 propios.
+Código candidato: 54 apps propias instaladas aún alcanzan Enterprise por sus dependencias.
 Producción conserva Enterprise. Ninguna fila autoriza desinstalación ni acredita reemplazo integral.
 Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cada módulo;
 «código candidato» usa los manifiestos del checkout. Cero dependientes propios no significa cero uso.
 
 | Módulo Enterprise | Familia | Apps en producción | Código candidato | Puerta de retiro |
 | --- | --- | ---: | ---: | --- |
-| `account_accountant` | Contabilidad / Tesorería | 54 | 41 | Pendiente de ensayo integral |
+| `account_accountant` | Contabilidad / Tesorería | 55 | 42 | Pendiente de ensayo integral |
 | `account_accountant_batch_payment` | Contabilidad / Tesorería | 0 | 0 | Pendiente de ensayo integral |
 | `account_accountant_fleet` | Contabilidad / Tesorería | 0 | 0 | Pendiente de ensayo integral |
 | `account_asset` | Contabilidad / Tesorería | 0 | 0 | Pendiente de ensayo integral |
@@ -37,7 +37,7 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `accountant` | Contabilidad / Tesorería | 50 | 37 | Pendiente de ensayo integral |
 | `analytic_enterprise` | Contabilidad / Tesorería | 0 | 0 | Pendiente de ensayo integral |
 | `base_automation_hr_contract` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `certificate` | DTE / Chile | 43 | 35 | Pendiente de ensayo integral |
+| `certificate` | DTE / Chile | 44 | 36 | Pendiente de ensayo integral |
 | `contacts_enterprise` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `currency_rate_live` | Contabilidad / Tesorería | 0 | 0 | Pendiente de ensayo integral |
 | `digest_enterprise` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
@@ -63,14 +63,14 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `hr_contract_sign` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_expense_extract` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_expense_predict_product` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_gantt` | Personal / Nómina / Planificación | 75 | 9 | Pendiente de ensayo integral |
+| `hr_gantt` | Personal / Nómina / Planificación | 76 | 10 | Pendiente de ensayo integral |
 | `hr_holidays_contract_gantt` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_holidays_gantt` | Personal / Nómina / Planificación | 65 | 0 | Pendiente de ensayo integral |
 | `hr_mobile` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_payroll` | Personal / Nómina / Planificación | 74 | 8 | Pendiente de ensayo integral |
-| `hr_payroll_account` | Personal / Nómina / Planificación | 4 | 4 | Pendiente de ensayo integral |
+| `hr_payroll` | Personal / Nómina / Planificación | 75 | 9 | Pendiente de ensayo integral |
+| `hr_payroll_account` | Personal / Nómina / Planificación | 5 | 5 | Pendiente de ensayo integral |
 | `hr_payroll_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_payroll_expense` | Personal / Nómina / Planificación | 4 | 4 | Pendiente de ensayo integral |
+| `hr_payroll_expense` | Personal / Nómina / Planificación | 5 | 5 | Pendiente de ensayo integral |
 | `hr_payroll_fleet` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_payroll_holidays` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_payroll_planning` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
@@ -78,17 +78,17 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `hr_recruitment_reports` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_recruitment_sign` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_work_entry_contract_enterprise` | Personal / Nómina / Planificación | 75 | 9 | Pendiente de ensayo integral |
+| `hr_work_entry_contract_enterprise` | Personal / Nómina / Planificación | 76 | 10 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_planning` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_planning_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_holidays_enterprise` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `iap_extract` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
-| `l10n_cl_edi` | DTE / Chile | 43 | 35 | Pendiente de ensayo integral |
+| `l10n_cl_edi` | DTE / Chile | 44 | 36 | Pendiente de ensayo integral |
 | `l10n_cl_edi_exports` | DTE / Chile | 43 | 35 | Pendiente de ensayo integral |
 | `l10n_cl_edi_factoring` | DTE / Chile | 0 | 0 | Pendiente de ensayo integral |
 | `l10n_cl_edi_stock` | DTE / Chile | 0 | 0 | Pendiente de ensayo integral |
 | `l10n_cl_reports` | DTE / Chile | 0 | 0 | Pendiente de ensayo integral |
-| `mail_enterprise` | Interfaz / Integraciones | 54 | 41 | Pendiente de ensayo integral |
+| `mail_enterprise` | Interfaz / Integraciones | 55 | 42 | Pendiente de ensayo integral |
 | `mail_mobile` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `mrp_account_enterprise` | Inventario / Fabricación | 0 | 0 | Pendiente de ensayo integral |
 | `mrp_accountant` | Inventario / Fabricación | 0 | 0 | Pendiente de ensayo integral |
@@ -141,11 +141,11 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `stock_enterprise` | Inventario / Fabricación | 0 | 0 | Pendiente de ensayo integral |
 | `stock_fleet_enterprise` | Inventario / Fabricación | 0 | 0 | Pendiente de ensayo integral |
 | `web_cohort` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
-| `web_enterprise` | Interfaz / Integraciones | 55 | 45 | Pendiente de ensayo integral |
-| `web_gantt` | Interfaz / Integraciones | 75 | 28 | Pendiente de ensayo integral |
+| `web_enterprise` | Interfaz / Integraciones | 56 | 46 | Pendiente de ensayo integral |
+| `web_gantt` | Interfaz / Integraciones | 76 | 29 | Pendiente de ensayo integral |
 | `web_grid` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `web_map` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
-| `web_mobile` | Interfaz / Integraciones | 54 | 41 | Pendiente de ensayo integral |
+| `web_mobile` | Interfaz / Integraciones | 55 | 42 | Pendiente de ensayo integral |
 | `web_studio` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `website_documents` | Documentos / Firma | 0 | 0 | Pendiente de ensayo integral |
 | `website_enterprise` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
@@ -162,6 +162,7 @@ Esta lista usa producción; los puentes ya extraídos se mantienen instalados al
 | `step_account_treasury_batch` | `account_batch_payment` |
 | `step_accounting_multicurrency` | `account_reports` |
 | `step_agricultural_branding` | `hr_work_entry_contract_enterprise` |
+| `step_company_edi_readiness` | `l10n_cl_edi` |
 | `step_cosecha` | `hr_holidays_gantt`, `hr_payroll`, `hr_work_entry_contract_enterprise` |
 | `step_expire_database` | `web_enterprise` |
 | `step_export` | `l10n_cl_edi_exports` |
@@ -195,6 +196,8 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 | `step_agro_traceability` | 4 | Sí |
 | `step_application_profiles` | 10 | Sí |
 | `step_bank_security` | 1 | Sí |
+| `step_company_edi_readiness` | 2 | Sí |
+| `step_company_form_restore_payroll` | 10 | Sí |
 | `step_expire_database` | 1 | Sí |
 | `step_export` | 9 | Sí |
 | `step_export_catalog_currency` | 10 | Sí |
@@ -241,7 +244,7 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 
 ## Alcance de productos fuera del inventario instalado
 
-El repositorio contiene 114 módulos propios con manifiesto; 22 no están instalados en este inventario de Cerro.
+El repositorio contiene 117 módulos propios con manifiesto; 22 no están instalados en este inventario de Cerro.
 Los módulos operativos requieren aceptación Community; separar herramientas de ensayo como step_payroll_enterprise_reference, que solo compara el motor nativo en clones privados. La ausencia de caminos declarados no acredita imports, assets, permisos ni flujos; las fuentes desconocidas quedan pendientes.
 
 | Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |

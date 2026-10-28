@@ -218,3 +218,17 @@ técnica detallada queda en el acta interna. No enviar mensajes ni notificacione
 externas sin la autorización correspondiente.
 
 Terminar con commits, push y `python tools/git/verify_handoff.py --require-pushed`.
+
+
+## Ampliación de capacidad autorizada — 28-10-2026
+
+El usuario autorizó explícitamente ampliar odoo-data-balanced-20260923 de 100
+a 150 GiB, con respaldo verificado y bloqueo compartido. Se completó en odoo-new
+(stepsconsulting/us-central1-c): dumps SyS/CERRO_EL_PLOMO totalmente decodificados,
+snapshot odoo-data-pre150-20261028-205103 READY y ext4 ampliado en línea.
+Sin DML de negocio, reinicio, cambio de credenciales o particionado.
+Prueba privada: /opt/steps-validation/community-payroll-disk-resize-20261028/
+proof.json y resize.py, verificables con tools/community/summarize_payroll_api.py.
+No repetir la operación ni interpretar esta autorización de infraestructura como
+permiso para desplegar cambios de negocio en producción o refrescar QA-Cerro.
+Ver COMMUNITY_SYS_REFERENCE.md para paquete F y alcance pendiente.

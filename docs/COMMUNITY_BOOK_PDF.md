@@ -141,3 +141,9 @@ y bloqueo; prueba paquete exacto en Community oficial y copia fresca aislada.
 No escribas en producción, recalcules pagadas, alteres vencimientos, refresques
 QA-Cerro ni emitas SII real. Respeta Calendar, Boolean bancario y 210233. Guarda
 evidencia, commits y push, integra solo lo validado y verifica handoff.
+
+
+Continuidad posterior: el usuario aportó SyS como referencia real. Ver
+[COMMUNITY_SYS_REFERENCE.md](COMMUNITY_SYS_REFERENCE.md) para aceptación del
+lector histórico, evidencia privada y siguiente bloque. No repetir la pregunta
+sobre qué base usar; certificación financiera e identidad siguen pendientes.
