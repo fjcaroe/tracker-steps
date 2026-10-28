@@ -1504,3 +1504,29 @@ Siguen DTE/CAF/SII, Tesorería, Calidad, Studio/Documentos/Firma, demás product
 y conversión integral restaurable cero Enterprise. El 31 sigue en riesgo alto.
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_PAYROLL_BOOK_LINES.md](COMMUNITY_PAYROLL_BOOK_LINES.md).
+
+
+## Consumidores del Libro propio — 28-10-2026
+
+Código 151c585, paquete C: 153 pruebas Community y 94 en copia fresca nativa.
+Se adopta el mapa por código/ID de liquidación original en el extractor del Libro
+propio y sus adaptadores de reglas, sin reconstruir totales ni eludir permisos.
+La captura se pasa por lote a la resolución. Se mantiene hr_payroll y solo se
+explicita el contrato neutral ya transitivo; aún no se instala el Libro completo
+en Community. Allí se prueba su biblioteca Python real con OCA/Simple Digital;
+la referencia nativa actualiza el módulo real 3.4.0->3.4.1 y su extractor registrado.
+Los ámbitos se comprueban por SQL y no se presentan como conversión de Cerro.
+
+Se preservan 919 tablas/proyecciones, 140 contadores, 59.039 XML IDs y exactamente
+1.614 relaciones usuario-grupo/283 implicaciones. El inventario conserva 377
+instalados/96 propios/140 EE, 114 manifiestos y 22 fuera de Cerro; siguen 52 apps
+con caminos EE. La retención revisada retira cuatro copias propias obsoletas,
+conserva casos dorados/referencia E y cuatro respaldos decodificados; no borra dumps.
+
+Quedan Libro completo (herencia, menús, acciones, vistas, permisos), fuentes vivas,
+tablero/archivo oficial, configuración original/71 reglas e identidad del motor,
+casos chilenos, YTD/contabilización/Previred, DTE/CAF/SII, Tesorería, Calidad,
+Studio/Documentos/Firma, demás productos y conversión integral restaurable cero EE.
+La referencia humana BASIC/IMP/GROSS sigue pendiente. El 31 continúa en riesgo alto.
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_OWN_BOOK_CONTRACTS.md](COMMUNITY_OWN_BOOK_CONTRACTS.md).

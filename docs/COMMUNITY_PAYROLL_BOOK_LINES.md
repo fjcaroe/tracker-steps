@@ -149,3 +149,8 @@ respaldo, overlay privado y bloqueo compartido. No escribas en producción, reca
 pagadas, cambies vencimientos, refresques QA-Cerro ni emitas al SII real. Respeta
 Calendar, Boolean bancario y 210233. Guarda evidencia, commits y push, integra solo
 lo validado y ejecuta python tools/git/verify_handoff.py --require-pushed.
+
+
+Continuación aceptada, evidencia y siguiente prompt vigentes:
+[COMMUNITY_OWN_BOOK_CONTRACTS.md](COMMUNITY_OWN_BOOK_CONTRACTS.md). Su alcance
+Community es biblioteca real del Libro, con la aplicación completa aún pendiente.
