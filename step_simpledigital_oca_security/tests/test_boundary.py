@@ -380,3 +380,37 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         current.write({'date_from':'2026-02-01','date_to':'2026-02-28'})
         with self.assertRaises(AccessError):current.compute_sheet()
         self.assertFalse(current.line_ids)
+
+    def test_closed_wage_basis_does_not_follow_current_contract(self):
+        slip=self.slip();slip.compute_sheet();slip.state='done';self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(s) FROM hr_payslip s WHERE id=%s',(slip.id,))
+        before=self.env.cr.fetchone()
+        self.contract.wage=1200000
+        for method in ('_get_contract_wage','_get_paid_amount','_get_unpaid_amount'):
+            with self.assertRaisesRegex(UserError,'stored wage basis'):
+                getattr(slip,method)()
+        with self.assertRaisesRegex(UserError,'stored wage basis'):
+            _=slip.paid_amount
+        self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(s) FROM hr_payslip s WHERE id=%s',(slip.id,))
+        self.assertEqual(self.env.cr.fetchone(),before)
+
+    def test_closed_wage_basis_context_cannot_replace_history_with_zero(self):
+        slip=self.slip();slip.compute_sheet();slip.state='done';self.env.flush_all()
+        for context in ({'no_paid_amount':True},{'salary_simulation':True}):
+            with self.assertRaisesRegex(UserError,'stored wage basis'):
+                _=slip.with_context(**context).paid_amount
+        self.assertTrue(slip.read(['basic_wage','gross_wage','net_wage']))
+
+    def test_cancelled_wage_basis_is_not_a_draft_calculation(self):
+        slip=self.slip();slip.compute_sheet();slip.state='cancel'
+        for method in ('_get_contract_wage','_get_paid_amount','_get_unpaid_amount'):
+            with self.assertRaisesRegex(UserError,'stored wage basis'):
+                getattr(slip,method)()
+
+    def test_wage_basis_checks_salary_visibility_before_history_state(self):
+        slip=self.slip();slip.compute_sheet();slip.state='done'
+        stranger=self.employee_user('private-sd-wage-stranger')
+        for method in ('_get_contract_wage','_get_paid_amount','_get_unpaid_amount'):
+            with self.assertRaises(AccessError):
+                getattr(slip.with_user(stranger),method)()

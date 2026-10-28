@@ -8,6 +8,26 @@ from odoo.exceptions import UserError
 class Payslip(models.Model):
     _inherit = 'hr.payslip'
 
+    def _step_require_open_wage_basis(self):
+        """Live contract helpers are calculation APIs, never historical snapshots."""
+        self.ensure_one()
+        self.check_access('read')
+        if history_protected(self):
+            raise UserError(_('Closed payroll has no certified stored wage basis for this calculation. '
+                              'Read its original stored payroll totals instead; no current contract wage will be used.'))
+
+    def _get_contract_wage(self):
+        self._step_require_open_wage_basis()
+        return super()._get_contract_wage()
+
+    def _get_paid_amount(self):
+        self._step_require_open_wage_basis()
+        return super()._get_paid_amount()
+
+    def _get_unpaid_amount(self):
+        self._step_require_open_wage_basis()
+        return super()._get_unpaid_amount()
+
     def write(self,values):
         financial={'employee_id','company_id','contract_id','struct_id','date_from','date_to',
                    'line_ids','input_line_ids','worked_days_line_ids','credit_note','basic_wage','gross_wage','net_wage'}
