@@ -50,6 +50,11 @@ def configuration_report(structure):
     rules=structure.with_context(active_test=False).rule_ids.filtered('active')
     rules.check_access('read')
     errors=[];chosen={}
+    # A duplicate code is a shared evaluation key, even with distinct categories
+    # or conditions. Never certify a configuration by silently choosing a row.
+    duplicate_codes={code:group.sorted(lambda rule:(rule.sequence,rule.id)).ids
+                     for code,group in rules.grouped('code').items() if len(group)>1}
+    errors.extend('RULE_CODE_AMBIGUOUS:'+code for code in sorted(duplicate_codes) if code not in ESSENTIAL)
     for code in ESSENTIAL:
         found=rules.filtered(lambda rule:rule.code==code)
         if len(found)!=1:errors.append(code+('_MISSING' if not found else '_AMBIGUOUS'))
@@ -75,6 +80,7 @@ def configuration_report(structure):
         elif not any(coefficient>0 and (kind=='category' and name in category_chain(gross.category_id) or kind=='rule' and name=='GROSS') for (kind,name),coefficient in refs.items()):
             errors.append('NET_DISCONNECTED_FROM_GROSS')
     return {'structure_id':structure.id,'rule_count':len(rules),'essential_ids':{code:rule.id for code,rule in chosen.items()},
+            'duplicate_code_ids':duplicate_codes,
             'essential_candidate_ids':{code:rules.filtered(lambda rule:rule.code==code).sorted(lambda rule:(rule.sequence,rule.id)).ids for code in ESSENTIAL},
             'errors':errors,'structural_checks_passed':not errors,'financial_certified':False,
             'rule_body_sha256':{str(rule.id):hashlib.sha256((rule.amount_python_compute or '').encode()).hexdigest() for rule in rules}}

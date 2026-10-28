@@ -51,6 +51,9 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
     def test_out_of_contract_days_use_original_calendar(self):
         PayrollContractMixin.test_out_of_contract_days_use_original_calendar(self)
 
+    def test_duplicate_code_category_effects_match_native_observations(self):
+        PayrollContractMixin.test_duplicate_code_category_effects_match_native_observations(self)
+
     def test_stored_essential_distinct_rule_identities_are_not_summed(self):
         PayrollContractMixin.test_stored_essential_distinct_rule_identities_are_not_summed(self)
 

@@ -240,6 +240,30 @@ class PayrollContractMixin:
         self.assertEqual(rows[0]['number_of_days'],2)
         self.assertFalse(slip._get_worked_day_lines(check_out_of_contract=False))
 
+    def test_duplicate_code_category_effects_match_native_observations(self):
+        (self.structure.rule_ids-self.rule).unlink()
+        category=self.rule.category_id
+        other=self.scope['hr.salary.rule.category'].create({'name':'Private second category','code':'PRIVATE_SECOND'})
+        self.rule.write({'code':'PRIVATE_COLLISION','sequence':10,'amount_python_compute':'result = 10'})
+        second=self.rule.copy({'sequence':10,'category_id':other.id,'amount_python_compute':'result = 20'})
+        for code,expression in [('PRIVATE_FIRST_READ',"categories['PRIVATE_NET']"),
+                                ('PRIVATE_SECOND_READ',"categories['PRIVATE_SECOND']"),
+                                ('PRIVATE_RULE_READ',"result_rules['PRIVATE_COLLISION']['total']")]:
+            self.rule.copy({'code':code,'sequence':20,'category_id':self.scope['hr.salary.rule.category'].create(
+                {'name':code,'code':code}).id,'amount_python_compute':'result = '+expression})
+        for changes,expected,chosen in [({},(20,10,10,20),second),
+                ({'sequence':5},(10,-10,20,10),self.rule),
+                ({'sequence':10,'category_id':category.id},(20,20,0,20),second),
+                ({'amount_python_compute':'result = 0'},(0,0,0,0),second)]:
+            if changes:second.write(changes)
+            slip=self.slip();slip.compute_sheet()
+            self.assertFalse(slip.env.su)
+            collision=slip.line_ids.filtered(lambda line:line.code=='PRIVATE_COLLISION')
+            self.assertEqual(len(collision),1)
+            self.assertEqual(collision.salary_rule_id,chosen)
+            codes=['PRIVATE_COLLISION','PRIVATE_FIRST_READ','PRIVATE_SECOND_READ','PRIVATE_RULE_READ']
+            self.assertEqual(tuple(slip._get_line_values(codes)[code][slip.id]['total'] for code in codes),expected)
+
     def _stored_identity_fixture(self, code, distinct):
         # Use actual engine/model rows. Reproduce a historical duplicate before
         # closing; the reader must not choose a rule or reconstruct the amounts.

@@ -9,6 +9,9 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_duplicate_code_category_effects_match_native_observations(self):
+        PayrollContractMixin.test_duplicate_code_category_effects_match_native_observations(self)
+
     def test_paid_or_validated_slip_is_never_recomputed(self):
         for state,paid in [('done',False),('draft',True)]:
             slip=self.slip();slip.compute_sheet();slip.write({'state':state,'paid':paid})

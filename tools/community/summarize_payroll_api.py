@@ -47,6 +47,8 @@ def main():
     if storage.exists():paths+=['tools/community/prepare_payroll_storage.py']
     resize=args.evidence/'disk-resize-proof.json'
     if resize.exists():paths+=['tools/ops/resize_community_data_disk.py']
+    collisions=args.evidence/'rule-collisions'
+    if collisions.exists():paths+=['tools/community/probe_payroll_rule_collisions.py','tools/community/run_payroll_rule_probe.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -173,8 +175,24 @@ def main():
     if versions.exists():
         proof=json.loads(versions.read_text(encoding='utf-8'))
         assert proof['read_only'] and set(proof['versions'])=={'community','cerro-reference'}
-        assert set(proof['versions'].values())=={'18.0.1.6.0'}
+        assert set(proof['versions'].values())=={'18.0.1.7.0'}
         result['contracts_versions']=proof['versions']
+    if collisions.exists():
+        probe=(collisions/'probe.py').read_bytes();runner=(collisions/'runner.py').read_bytes()
+        for name,blob in [('probe_payroll_rule_collisions.py',probe),('run_payroll_rule_probe.py',runner)]:
+            assert blob.replace(b'\r\n',b'\n')==source['tools/community/'+name].replace(b'\r\n',b'\n')
+        observations={}
+        for mode in ('community','cerro-reference'):
+            proof=json.loads((collisions/mode/'observations.json').read_text())
+            assert proof['probe_sha256']==hashlib.sha256(probe).hexdigest()
+            assert proof['runner_sha256']==hashlib.sha256(runner).hexdigest()
+            assert proof['normal_actor'] and proof['synthetic_only'] and proof['fixtures_rolled_back']
+            assert not proof['writes_to_source'] and not proof['financial_certified']
+            assert proof['baseline_source_files_sha256']=='3d854cda1fff74e8b3db8c685be9d8da45606260cdda1fd075ae70d800732773'
+            observations[mode]=proof['observations']
+        assert observations['community']==observations['cerro-reference']
+        assert set(observations['community'])=={'same_sequence_distinct_categories','reverse_sequence','same_category','second_zero'}
+        result['rule_collision_observations']={'cases':4,'engines_match':True,'synthetic_only':True,'financial_certified':False}
     ui=args.evidence/'community'/'configuration-probe.json'
     if ui.exists():
         probe=json.loads(ui.read_text(encoding='utf-8'))

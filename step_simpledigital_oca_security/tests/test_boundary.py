@@ -290,6 +290,38 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         with self.assertRaisesRegex(UserError,'NET_AMBIGUOUS'):self.structure._step_validate_configuration()
         self.assertEqual((self.net_rule|second).read(['id','active','amount_python_compute']),before)
 
+    def test_nonessential_collision_stops_chile_before_existing_lines_change(self):
+        self.valid_configuration()
+        extra=self.rule.copy({'code':'PRIVATE_COLLISION','sequence':50,'amount_python_compute':'result = 10'})
+        slip=self.slip();slip.compute_sheet()
+        second=extra.copy({'category_id':self.gross_rule.category_id.id,
+                           'condition_select':'python','condition_python':'result = False'})
+        self.structure.name='Nómina Chile'
+        self.env.flush_all()
+        self.env.cr.execute('SELECT id,code,salary_rule_id,total,write_date FROM hr_payslip_line WHERE slip_id=%s ORDER BY id',(slip.id,))
+        before=self.env.cr.fetchall()
+        masters=(extra|second).read(['id','active','sequence','category_id','condition_python'])
+        report=self.structure._step_configuration_report()
+        self.assertEqual(report['duplicate_code_ids']['PRIVATE_COLLISION'],[extra.id,second.id])
+        self.assertFalse(report['financial_certified'])
+        with self.assertRaisesRegex(UserError,'RULE_CODE_AMBIGUOUS:PRIVATE_COLLISION'):slip.compute_sheet()
+        self.env.flush_all()
+        self.env.cr.execute('SELECT id,code,salary_rule_id,total,write_date FROM hr_payslip_line WHERE slip_id=%s ORDER BY id',(slip.id,))
+        self.assertEqual(self.env.cr.fetchall(),before)
+        self.assertEqual((extra|second).read(['id','active','sequence','category_id','condition_python']),masters)
+        self.assertEqual(slip.state,'draft')
+
+    def test_archived_and_other_structure_codes_are_not_collisions(self):
+        self.valid_configuration()
+        archived=self.net_rule.copy({'active':False})
+        other=self.structure.copy({'name':'Private other configuration','rule_ids':[Command.clear()]})
+        elsewhere=self.net_rule.copy({'struct_id':other.id})
+        report=self.structure._step_validate_configuration()
+        self.assertTrue(report['structural_checks_passed'])
+        self.assertFalse(report['duplicate_code_ids'])
+        self.assertFalse(archived.active)
+        self.assertTrue(elsewhere.active)
+
     def ytd_configuration(self):
         (self.structure.rule_ids-self.rule).unlink()
         self.structure.ytd_computation=True
