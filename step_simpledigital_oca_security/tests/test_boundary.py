@@ -503,7 +503,7 @@ class OwnBookConsumers(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
 
     def movement_slip(self,total):
-        kind=self.env['hr.employee.movement.type'].create({'name':'Private book movement','bono_ok':True})
+        kind=self.env['hr.employee.movement.type'].create({'name':'Private book movement','bono_ok':True,'earn_type':'imponible'})
         self.assertTrue(kind.salary_rule_id)
         self.rule.code=kind.salary_rule_id.code
         slip=self.slip();slip.compute_sheet();self.env.flush_all()
