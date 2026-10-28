@@ -117,3 +117,8 @@ Community oficial y copia fresca aislada. No escribas en producción, recalcules
 pagadas, alteres vencimientos, refresques QA-Cerro ni emitas SII real. Respeta
 Calendar, Boolean bancario y 210233. Guarda evidencia, commits y push, integra
 solo lo validado y ejecuta verify_handoff.py --require-pushed.
+
+
+Continuación validada: [COMMUNITY_BOOK_PDF.md](COMMUNITY_BOOK_PDF.md), con PDF binario,
+ceros visibles, alcance/propiedad y recursos/fuentes reales. Conserva pendientes
+financieros y de conversión integral.

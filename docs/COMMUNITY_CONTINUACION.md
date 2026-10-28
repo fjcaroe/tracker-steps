@@ -1582,3 +1582,30 @@ riesgo alto; no se escribe en producción ni se refresca QA-Cerro.
 
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_BOOK_HTTP.md](COMMUNITY_BOOK_HTTP.md).
+
+
+## Libro: PDF binario real y alcance — 28-10-2026
+
+Paquete D, exportado de53d8d: 167 pruebas Community oficial/OCA y 107 en copia
+fresca nativa, sin fallos. Libro real instalado en ambos; Community 71 módulos,
+cero Enterprise; referencia 380/140. Conserva ceros visibles, fuente local,
+propiedad del asistente, rechazo de IDs múltiples y auditoría única por PDF.
+Los dos formatos se descargan por HTTP autenticado con wkhtmltopdf real,
+no-store y recursos reales del runtime. Cuatro PDF/textos/tamaños/fuentes y PNG
+verificados; alcance de una línea/página por formato, no certificación financiera,
+aceptación del navegador ni prueba de volúmenes reales.
+
+Mismo paquete de 196 archivos, preservando 919 tablas/proyecciones, 140 contadores,
+59.039 XML IDs, 1.614 vínculos usuario-grupo y 283 implicaciones. Dependencia
+genérica intacta; candidato privado específico cambia solo el prerequisito real.
+934 campos siguen ausentes: no se acepta adopción histórica del motor.
+
+Permanecen configuración aprobada BASIC/IMP/GROSS y 71 reglas, identidad/almacén,
+entradas/días/YTD/asientos, Previred/CSV oficiales no vacíos, rutas del proveedor,
+DTE/CAF/folios/firma/respuestas SII, Tesorería, Calidad, Studio/Documentos/Firma y
+otros productos. Producción conserva 140 EE; 52 apps propias aún tienen caminos
+EE. Falta conversión integral restaurable cero Enterprise y aceptación. El 31
+sigue en riesgo alto. No se escribe en producción ni se refresca QA-Cerro.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_BOOK_PDF.md](COMMUNITY_BOOK_PDF.md).
