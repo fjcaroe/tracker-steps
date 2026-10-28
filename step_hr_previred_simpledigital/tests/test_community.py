@@ -85,3 +85,16 @@ class CommunityBridgeContracts(PayrollContractMixin,TransactionCase):
         slip,line=self.closed_imported_zero('AFP_EMP')
         self.assertEqual(self.enrich(slip,12)[previred.F_AFP_CONTRIBUTION-1],'12')
         self.env.cr.execute('SELECT amount,total FROM hr_payslip_line WHERE id=%s',(line.id,));self.assertEqual(self.env.cr.fetchone(),(100,0))
+
+    def test_community_paid_state_keeps_original_totals(self):
+        slip=self.slip();slip.compute_sheet();self.env.flush_all()
+        before=stored_line_total(slip.line_ids)
+        slip.write({'state':'paid','paid':True});self.env.flush_all()
+        self.contract.wage=1200000
+        self.assertEqual(stored_line_total(slip.line_ids),before)
+        self.assertIn('paid',self.env.ref('step_hr_previred_simpledigital.profile_simpledigital_v98').state_list())
+        with self.assertRaises(UserError):slip.compute_sheet()
+        if self.env['ir.module.module'].search_count([('name','=','payroll'),('state','=','installed')]):
+            from odoo.addons.step_payroll_oca_api.models.payroll import preserve_paid_state
+            with self.assertRaises(UserError):preserve_paid_state(slip)
+        self.assertEqual(stored_line_total(slip.line_ids),before)

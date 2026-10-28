@@ -175,8 +175,16 @@ class WorkedDaysMapping(WorkedDays):
         return self.dict.get(code, default)
 
 
+def preserve_paid_state(records):
+    if records:
+        raise UserError(_('Adopt original paid state identity before removing this API.'))
+
+
 class Payslip(models.Model):
     _inherit = 'hr.payslip'
+
+    state = fields.Selection(selection_add=[('paid','Paid'),('cancel',)],
+        ondelete={'paid':preserve_paid_state})
 
     def _get_salary_rules(self):
         # A same-sequence rule retains its original ID tie-breaker after import.
