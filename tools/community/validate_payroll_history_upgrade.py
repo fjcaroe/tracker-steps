@@ -52,7 +52,17 @@ def exercise(env,mode,root):
         class Fixture(PayrollContractMixin,FixtureBase):
             payroll_group='payroll.group_payroll_manager'
             oca=True
-        Fixture.env=env;Fixture.setUpClass();case=Fixture()
+        # Finish the real company's chart precommit before creating salary journals.
+        # TransactionCase normally settles these callbacks; this probe uses a real cursor.
+        from unittest.mock import patch
+        company_class=type(env['res.company']);original_create=company_class.create
+        def create_ready_company(records,values):
+            company=original_create(records,values)
+            records.env.cr.flush()
+            return company
+        Fixture.env=env
+        with patch.object(company_class,'create',create_ready_company):Fixture.setUpClass()
+        case=Fixture()
         case.rule.code='BASIC'
         case.rule.copy({'code':'GROSS','sequence':2,'amount_python_compute':"result = result_rules['BASIC']['total']"})
         case.rule.copy({'code':'NET','sequence':3,'amount_python_compute':"result = result_rules['GROSS']['total']"})
