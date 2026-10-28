@@ -145,9 +145,17 @@ def main():
         if bridge:modules+=',step_hr_previred_simpledigital'
         if own_book and (not pure or full_book):modules+=',step_hr_remuneration_book'
         if standalone:modules='step_hr_previred'
+        execution_env=dict(os.environ)
+        if (root/'basis-input.json').exists():
+            assert simpledigital
+            private_input=stage/'basis-reference-input.json'
+            private_input.write_bytes((root/'basis-input.json').read_bytes())
+            os.chown(private_input,identity.pw_uid,identity.pw_gid);os.chmod(private_input,0o600)
+            execution_env.update(STEPS_PAYROLL_BASIC_REFERENCE_JSON=str(private_input),
+                                 STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT=str(stage/'monthly-basis.json'))
         def execute(name,flags):
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
-                status=subprocess.run(base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init'],stdout=stream,stderr=subprocess.STDOUT)
+                status=subprocess.run(base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init'],stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
             text=(stage/(name+'.log')).read_text(errors='replace')
             if args.tablespace:
                 current=os.statvfs(sql('postgres','SHOW data_directory'))
@@ -180,7 +188,7 @@ def main():
             methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions','actual_pdf_binary_and_employee_sheets']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (77 if pure else 21)+((53 if pure else 46) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
+        expected=7 if standalone else (77 if pure else 21)+((54 if pure else 47) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -191,17 +199,12 @@ def main():
             report_log=(stage/'configuration.log').read_text(errors='replace')
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Configuration inspector failed'
         if (root/'basis-input.json').exists():
-            assert simpledigital
-            probe=source/'tools/community/probe_monthly_basis.py'
-            payload=json.loads((root/'basis-input.json').read_text())
-            expression="import runpy; runpy.run_path("+repr(str(probe))+")["+repr('exercise')+"](env,"+repr(payload)+","+repr(str(stage/'monthly-basis.json'))+")"
-            with (stage/'monthly-basis-bootstrap.log').open('w') as stream:
-                status=subprocess.run(base+['shell']+opts+['--no-http','--logfile='+str(stage/'monthly-basis.log')],
-                    input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
-            report_log=(stage/'monthly-basis.log').read_text(errors='replace')
-            assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Monthly BASIC-only reference replay failed'
             replay=json.loads((stage/'monthly-basis.json').read_text())
-            assert replay['basic_matches_original_snapshot'] and replay['fixtures_rolled_back'] and replay['normal_actor']
+            assert replay['basic_matches_original_snapshot'] and replay['transaction_case'] and replay['normal_actor']
+            remaining=json.loads(sql(args.database,"SELECT json_build_object('companies',(SELECT count(*) FROM res_company WHERE name='Private payroll API fixture'),'users',(SELECT count(*) FROM res_users WHERE login='private-payroll-api-manager'))"))
+            assert remaining=={'companies':0,'users':0},'Transactional payroll fixture leaked'
+            replay.update(fixtures_rolled_back=True,rollback_verified=True,fixture_master_counts=remaining)
+            dump_json('monthly-basis',replay)
         if not pure:
             after=snapshot();current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))

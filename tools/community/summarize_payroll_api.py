@@ -248,6 +248,7 @@ def main():
         for proof in observations.values():
             assert proof['probe_sha256']==hashlib.sha256(probe).hexdigest()
             assert proof['normal_actor'] and proof['real_engine'] and proof['new_fixture_only'] and proof['fixtures_rolled_back']
+            assert proof['transaction_case'] and proof['rollback_verified'] and proof['fixture_master_counts']=={'companies':0,'users':0}
             assert proof['basic_matches_original_snapshot']
             assert not any(proof[key] for key in ('source_payroll_computed','source_written','financial_certified','master_timeline_certified','full_payroll_replay','identity_conversion'))
             assert all(proof[key]==inputs[key] for key in ('capsule_sha256','pdf_sha256','formula_sha256'))

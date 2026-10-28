@@ -15,6 +15,16 @@ from odoo.addons.step_payroll_contracts.history import assert_history_snapshots,
 
 @tagged('post_install','-at_install')
 class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
+    def test_private_monthly_basic_reference_replay(self):
+        import os,json,runpy
+        from pathlib import Path
+        source=os.environ.get('STEPS_PAYROLL_BASIC_REFERENCE_JSON')
+        output=os.environ.get('STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT')
+        if not source:self.skipTest('Private reference inputs are not distributed with the addon')
+        inputs=json.loads(Path(source).read_text())
+        probe=Path(__file__).resolve().parents[2]/'tools/community/probe_monthly_basis.py'
+        runpy.run_path(str(probe))['exercise'](self,inputs,output)
+
     @classmethod
     def setUpClass(cls):
         cls.payroll_group='payroll.group_payroll_manager'
