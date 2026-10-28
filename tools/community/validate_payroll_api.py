@@ -161,8 +161,11 @@ def main():
         if full_book:
             methods=['real_views_menus_and_actions','real_consolidated_outputs','partial_user_cannot_export_full_book','engine_alias_retirement_preserves_records']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookInstall.test_'+name for name in methods)
+        if full_book:
+            methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions']
+            tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (68 if pure else 15)+((49 if pure else 42) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(4 if full_book else 0)
+        expected=7 if standalone else (68 if pure else 15)+((49 if pure else 42) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(10 if full_book else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -189,7 +192,7 @@ def main():
         book_installed=sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name='step_hr_remuneration_book' AND state='installed'")=='1'
         if own_book:
             assert book_installed==bool(not pure or full_book),'Distinguish Community library tests from native full-module upgrade'
-            if not pure:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_remuneration_book'")=='18.0.3.5.0'
+            if not pure:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_remuneration_book'")=='18.0.3.5.1'
 
         engine_models=int(sql(args.database,"SELECT count(*) FROM ir_model WHERE model='hr.payslip'"))
         if standalone:

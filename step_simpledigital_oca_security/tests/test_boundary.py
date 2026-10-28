@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from odoo import api, Command
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import TransactionCase, HttpCase, tagged
 from werkzeug.exceptions import BadRequest, Forbidden
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
 from ..controllers import authorized_company, Book
@@ -580,9 +580,8 @@ class FullBookInstall(PayrollContractMixin,TransactionCase):
         for name,target in engine_alias_targets(self.env).items():
             self.assertEqual(self.env.ref('step_hr_remuneration_book.'+name),target)
 
-    def test_real_consolidated_outputs(self):
+    def book_reference(self):
         from odoo.addons.step_hr_remuneration_book.tools import dt_book
-        from odoo.addons.step_hr_remuneration_book.tools.xlsx_book import build_workbook
         self.employee.identification_id='12345678-5'
         self.rule.amount_python_compute="result = inputs['PRIVATE_BONUS'].amount"
         zero=self.rule.copy({'name':'Private zero rule','code':'PRIVATE_ZERO','sequence':5,'amount_python_compute':'result = 0'})
@@ -599,6 +598,12 @@ class FullBookInstall(PayrollContractMixin,TransactionCase):
         self.company.remuneration_book_profile_id=profile
         wizard=self.scope['step.hr.remuneration.book.wizard'].create({'company_id':self.company.id,
             'month':str(slip.date_from.month),'year':slip.date_from.year,'mode':'full'})
+        return slip,wizard
+
+    def test_real_consolidated_outputs(self):
+        from odoo.addons.step_hr_remuneration_book.tools import dt_book
+        from odoo.addons.step_hr_remuneration_book.tools.xlsx_book import build_workbook
+        slip,wizard=self.book_reference()
         dataset=wizard.build_dataset()
         self.assertFalse(dataset.errors,[issue.code for issue in dataset.errors])
         self.assertEqual(len(dataset.lines),1)
@@ -636,3 +641,95 @@ class FullBookInstall(PayrollContractMixin,TransactionCase):
             self.assertFalse(self.env.ref('step_hr_remuneration_book.'+name,raise_if_not_found=False))
         ensure_engine_aliases(self.env)
         for name,record in targets.items():self.assertEqual(self.env.ref('step_hr_remuneration_book.'+name),record)
+
+
+@tagged('post_install','-at_install')
+class FullBookHttp(FullBookInstall,HttpCase):
+    """Real sessions and routes; no replacement generator, response or payroll model."""
+
+    def login_owner(self):
+        import uuid
+        password=uuid.uuid4().hex
+        self.scope.user.sudo().with_context(no_reset_password=True).write({'password':password})
+        self.authenticate(self.scope.user.login,password)
+
+    def change_url(self,url,**updates):
+        from urllib.parse import urlsplit,parse_qsl,urlencode,urlunsplit
+        parts=urlsplit(url);query=dict(parse_qsl(parts.query));query.update(updates)
+        return urlunsplit((parts.scheme,parts.netloc,parts.path,urlencode(query),parts.fragment))
+
+    def test_signed_xlsx_response_and_audit(self):
+        import io,zipfile
+        slip,wizard=self.book_reference();self.login_owner()
+        logs=self.scope['step.remuneration.book.log']
+        domain=[('company_id','=',self.company.id),('user_id','=',self.scope.uid),('output','=','xlsx')]
+        before=logs.search_count(domain)
+        response=self.url_open(wizard.action_download_xlsx()['url'])
+        self.assertEqual(response.status_code,200)
+        self.assertIn('spreadsheetml',response.headers.get('Content-Type',''))
+        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+            self.assertIn(b'<v>125</v>',archive.read('xl/worksheets/sheet1.xml'))
+            self.assertIn(b'Private API employee',archive.read('xl/sharedStrings.xml'))
+        self.env.invalidate_all()
+        self.assertEqual(logs.search_count(domain),before+1)
+        self.assertEqual(logs.search(domain,order='id desc',limit=1).user_id,self.scope.user)
+
+    def test_tampered_links_rejected(self):
+        slip,wizard=self.book_reference();self.login_owner()
+        url=wizard.action_download_xlsx()['url']
+        for values in ({'token':'invalid'},{'exp':'0'},{'company_id':str(self.env.company.id)},
+                       {'date_to':wizard.date_from.isoformat()}):
+            response=self.url_open(self.change_url(url,**values))
+            self.assertEqual(response.status_code,404)
+            self.assertFalse(response.content.startswith(b'PK'))
+
+    def test_foreign_owner_rejected(self):
+        import uuid
+        from odoo.addons.step_payroll_contracts.access import payroll_role_group
+        slip,wizard=self.book_reference();url=wizard.action_download_xlsx()['url']
+        password=uuid.uuid4().hex
+        other=self.env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private book other manager','login':'private-book-other-owner','password':password,
+            'company_id':self.company.id,'company_ids':[Command.set(self.company.ids)],
+            'groups_id':[Command.set([self.env.ref('base.group_user').id,payroll_role_group(self.env,'manager').id])]})
+        self.authenticate(other.login,password)
+        response=self.url_open(url);self.assertEqual(response.status_code,404)
+        self.assertFalse(response.content.startswith(b'PK'))
+
+    def test_hidden_line_denied_without_report(self):
+        slip,wizard=self.book_reference();self.login_owner()
+        self.env['ir.rule'].create({'name':'Private HTTP hidden salary',
+            'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
+            'domain_force':repr([('id','not in',slip.line_ids.ids)]),
+            'perm_read':True,'perm_write':False,'perm_create':False,'perm_unlink':False})
+        response=self.url_open(wizard.action_download_xlsx()['url'])
+        self.assertEqual(response.status_code,404);self.assertFalse(response.content.startswith(b'PK'))
+        self.env.invalidate_all()
+        record=self.scope['step.remuneration.book.log'].search([
+            ('company_id','=',self.company.id),('output','=','xlsx')],order='id desc',limit=1)
+        self.assertEqual((record.result,record.detail),('blocked','salary_access'))
+
+    def test_official_csv_policy_over_http(self):
+        slip,wizard=self.book_reference();self.login_owner()
+        url=wizard._download_url('/step/payroll/remuneration-book/official-csv','csv')['url']
+        self.assertEqual(self.url_open(self.change_url(url,token='invalid')).status_code,404)
+        if self.env['ir.module.module'].search_count([('name','=','payroll'),('state','=','installed')]):
+            response=self.url_open(url);self.assertEqual(response.status_code,400)
+            self.assertIn('certific',response.text)
+            self.assertNotIn('text/csv',response.headers.get('Content-Type',''))
+
+    def test_dashboard_rpc_uses_real_engine_actions(self):
+        import json
+        slip,wizard=self.book_reference();self.login_owner()
+        batch=self.scope['hr.payslip.run'].create({'name':'Private HTTP batch','company_id':self.company.id,
+            'date_start':wizard.date_from,'date_end':wizard.date_to})
+        payload={'jsonrpc':'2.0','method':'call','id':1,'params':{'model':'hr.payslip',
+            'method':'get_steps_payroll_dashboard','args':[],
+            'kwargs':{'period':wizard.date_from.strftime('%Y-%m'),'context':{'allowed_company_ids':self.company.ids}}}}
+        response=self.url_open('/web/dataset/call_kw/hr.payslip/get_steps_payroll_dashboard',
+            data=json.dumps(payload),headers={'Content-Type':'application/json'})
+        data=response.json();self.assertNotIn('error',data)
+        result=data['result'];self.assertEqual((result['gross'],result['net']),(125,125))
+        self.assertTrue(result['engine_actions']['payslips']);self.assertTrue(result['book_available'])
+        self.assertIn(batch.id,[row['id'] for row in result['recent_batches']])
+        self.assertFalse(result['contributions']['available'])

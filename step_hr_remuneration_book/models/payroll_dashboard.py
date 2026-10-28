@@ -124,7 +124,7 @@ class HrPayslip(models.Model):
             return result
         lines, issues = extractor.extract_lines(payslips, profile)
         dataset = dt_book.build_dataset(lines, issues=issues)
-        if not dataset.lines:
+        if dataset.errors or not dataset.lines:
             return result
         result.update(self._steps_book_values(dataset))
         return result
@@ -159,7 +159,10 @@ class HrPayslip(models.Model):
                 company, month_start, strict=False)
             if not profile or profile.availability_error():
                 return empty
-            dataset = self.env["step.previred.extractor"].build_dataset(
+            extractor = self.env["step.previred.extractor"]
+            if not extractor.eligible_payslips(company, month_start, month_end, profile.state_list()):
+                return empty
+            dataset = extractor.build_dataset(
                 company=company,
                 date_from=month_start,
                 date_to=month_end,
@@ -171,6 +174,8 @@ class HrPayslip(models.Model):
                 spec_url=profile.source_url,
                 spec_effective_from=profile.effective_from,
             )
+            if dataset.errors:
+                return empty
             return self._steps_summarize_previred_records(dataset.records)
         except Exception:
             # El panel sigue disponible si el motor PreviRed no responde; la

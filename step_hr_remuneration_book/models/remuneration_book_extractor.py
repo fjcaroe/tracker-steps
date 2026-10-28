@@ -319,6 +319,10 @@ class RemunerationBookExtractor(models.AbstractModel):
         reconstruye desde el libro consolidado de 24 columnas.
         """
         module, label = self.official_csv_source()
+        if module:
+            # A provider controller may elevate internally; validate the complete
+            # salary visibility of the actual requesting user before delegation.
+            stored_payslip_code_totals(wizard._payslips())
         if module == "l10n_cl_simpledigital_payroll":
             return self._official_csv_simpledigital(wizard), label
         if module == "l10n_cl_hr_electronic_book":

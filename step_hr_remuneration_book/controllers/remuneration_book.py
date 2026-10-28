@@ -141,6 +141,10 @@ class StepsRemunerationBookController(http.Controller):
             return error
         try:
             dataset = wizard.generate("xlsx")
+        except AccessError:
+            request.env['step.remuneration.book.log'].record(
+                wizard, 'xlsx', result='blocked', detail='salary_access', user=request.env.user)
+            return request.not_found()
         except UserError as exception:
             return self._blocked(exception.args[0] if exception.args else "")
         output = io.BytesIO()
@@ -178,6 +182,9 @@ class StepsRemunerationBookController(http.Controller):
         extractor = request.env["step.remuneration.book.extractor"]
         try:
             content, source = extractor.official_csv(wizard)
+        except AccessError:
+            Log.record(wizard, 'csv', result='blocked', detail='salary_access', user=request.env.user)
+            return request.not_found()
         except UserError as exception:
             Log.record(wizard, "csv", result="blocked", detail="user_error",
                        user=request.env.user)
