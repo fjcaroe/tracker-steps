@@ -557,5 +557,5 @@ class OwnBookConsumers(PayrollContractMixin,TransactionCase):
         self.assertEqual(extractor._rule_totals(slip)[code],0)
         profile=self.env['step.remuneration.book.profile'].create({'name':'Private snapshot profile','code':'PRIVATE_SNAPSHOT'})
         mapping=self.env['step.remuneration.book.profile.line'].create({
-            'profile_id':profile.id,'dt_code':'1101','source_type':'rule','rule_codes':code})
-        self.assertEqual(extractor._resolve_values(slip,mapping,{}),{'1101':0})
+            'profile_id':profile.id,'dt_code':'2101','source_type':'rule','rule_codes':code})
+        self.assertEqual(extractor._resolve_values(slip,mapping,{}),{'2101':0})
