@@ -489,3 +489,22 @@ QA-Cerro ni datos/respaldos de otros productos. Estado, evidencia y siguiente pr
 [COMMUNITY_PREVIRED_SIMPLEDIGITAL.md](COMMUNITY_PREVIRED_SIMPLEDIGITAL.md).
 No hay conversión integral ni resolución del 31; siguen configuración/71 reglas,
 Previred no vacío, Libro/consumidores, YTD restante y DTE/CAF/SII.
+
+
+## Base salarial histórica y auditoría completa — 28-10-2026
+
+Código c8ab6e3/780c9c8, paquete A: 143 pruebas Community (cero Enterprise) y
+83 en copia fresca nativa. El puente rechaza helpers que derivan una liquidación
+cerrada desde el contrato vigente, incluidos contextos que retornarían cero;
+conserva acceso a los importes originales almacenados y las ACL. No añade campos,
+backfill ni dependencias. Se preservan 919 tablas/proyecciones, 140 contadores,
+59.036 XML IDs y 1.614 relaciones usuario-grupo/283 implicaciones. Esta copia ya
+incluye BPA; no mezclar sus recuentos con el corte anterior.
+
+El auditor revisa todas las reglas chilenas y categorías sin exportar fórmulas.
+Sigue bloqueada la desconexión BASIC/IMP/GROSS; SyS tiene dos NET activos y no es
+una configuración para importar automáticamente. El Libro consulta además datos
+vivos que aún requieren cierre histórico. Quedan 52 apps con caminos EE y 140
+Enterprise en producción. No hay conversión integral ni certificación salarial,
+Previred/Libro oficial o resolución del 31. Estado, evidencia y **siguiente prompt
+vigente**: [COMMUNITY_PAYROLL_WAGE_BASIS.md](COMMUNITY_PAYROLL_WAGE_BASIS.md).

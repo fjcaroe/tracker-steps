@@ -135,3 +135,7 @@ del inventario instalado de Cerro. Se conserva separado el inventario del corte 
 y el actual; el próximo ensayo debe partir de una copia nueva que ya incluya BPA. La aceptación/publicación de BPA tiene su propio
 runbook y evidencia; esta automatización conserva la prohibición de escribir en
 producción y no ejecuta ese corte ni refresca QA-Cerro.
+
+
+Continuación aceptada, alcance y siguiente prompt vigentes: [COMMUNITY_PAYROLL_WAGE_BASIS.md](COMMUNITY_PAYROLL_WAGE_BASIS.md),
+con protección de helpers salariales históricos y auditoría completa de categorías.
