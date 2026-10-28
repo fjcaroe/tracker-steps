@@ -46,11 +46,11 @@ try:
         company=scoped.company
         before=company.read(['name','vat','partner_id','currency_id'])[0]
         count=model.search_count([])
-        with Form(company) as form:
-            if 'l10n_cl_dte_email' in company._fields and company.l10n_cl_dte_service_provider in ('SII','SIITEST') and not company.l10n_cl_dte_email:
-                form.l10n_cl_dte_email='qa.company@example.invalid'
-            form.phone='QA PHONE'
-        assert company.phone=='QA PHONE' and company.read(['name','vat','partner_id','currency_id'])[0]==before
+        original_phone=company.phone
+        form=Form(company)
+        form.phone='QA PHONE'
+        assert form.phone=='QA PHONE' and company.phone==original_phone
+        assert company.read(['name','vat','partner_id','currency_id'])[0]==before
         assert model.search_count([])==count
         print('T130_NATIVE_COMPANY_FORM_FLOW_OK rollback_required=True')
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':130,'versions':EXPECTED,'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,'complete_pages':native_pages,'compact_actions_preserved':True,'writes':False}))

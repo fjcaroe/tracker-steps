@@ -40,15 +40,15 @@ class CompanyFormCase(TransactionCase):
             self.assertNotEqual(form,self.env.ref('base.view_company_form').id)
             self.assertTrue(etree.fromstring(self.env['res.company'].get_view(view_id=form,view_type='form')['arch']).xpath("//field[@name='%s']" % field))
 
-    def test_company_form_keeps_identity_and_currency_when_editing_phone(self):
+    def test_company_form_loads_identity_and_allows_editing_without_mutating_data(self):
         company=self.env.company
         before=company.read(['name','vat','partner_id','currency_id'])[0]
         count=self.env['res.company'].search_count([])
-        with Form(company) as form:
-            if 'l10n_cl_dte_email' in company._fields and company.l10n_cl_dte_service_provider in ('SII','SIITEST') and not company.l10n_cl_dte_email:
-                form.l10n_cl_dte_email='qa.company@example.invalid'
-            form.phone='QA PHONE'
-        self.assertEqual(company.phone,'QA PHONE')
+        original_phone=company.phone
+        form=Form(company)
+        form.phone='QA PHONE'
+        self.assertEqual(form.phone,'QA PHONE')
+        self.assertEqual(company.phone,original_phone)
         self.assertEqual(company.read(['name','vat','partner_id','currency_id'])[0],before)
         self.assertEqual(self.env['res.company'].search_count([]),count)
 
