@@ -25,13 +25,17 @@ def run(*args,**kw):return subprocess.run(args,check=True,**kw)
 
 
 def main():
+    global MODULES
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode',choices=('community','cerro-reference'))
+    parser.add_argument('--profile',choices=('api','simpledigital'),default='api')
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
+    if args.profile=='simpledigital':
+        MODULES=MODULES+('step_simpledigital_oca_base','step_simpledigital_oca_security','l10n_cl_simpledigital_payroll')
     assert os.geteuid()==0 and str(args.root.resolve()).startswith('/opt/steps-validation/')
     assert re.fullmatch(('COMMUNITY_PAYROLL_API_' if args.mode=='community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_')+'[A-Za-z0-9_]+',args.database)
     root=args.root.resolve();source=root/'addons';stage=root/args.mode
@@ -44,7 +48,7 @@ def main():
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
     data=stage/'data';data.mkdir();overlay=stage/'addons';overlay.mkdir()
-    for m in (MODULES[:2] if pure else (MODULES[0],MODULES[2])):(overlay/m).symlink_to(source/m)
+    for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else (MODULES[0],MODULES[2])):(overlay/m).symlink_to(source/m)
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
     preservation.MODULES=preservation.BASE_MODULES+preservation.PRODUCER_MODULES+preservation.OPERATIONS_MODULES+preservation.LABOR_MODULES+preservation.HARVEST_MODULES+preservation.HR_MODULES
@@ -84,7 +88,7 @@ def main():
         opts=['-c',str(conf),'-d',args.database,'--db-filter=^'+args.database+'$','--addons-path='+paths,
             '--data-dir='+str(data),'--load=base,web','--workers=0','--max-cron-threads=0',
             '--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0','--without-demo='+('' if pure else 'all')]
-        modules='step_payroll_oca_api' if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'
+        modules=('step_simpledigital_oca_security' if args.profile=='simpledigital' else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'
         def execute(name,flags):
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
                 status=subprocess.run(base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init'],stdout=stream,stderr=subprocess.STDOUT)
@@ -96,6 +100,10 @@ def main():
             execute('upgrade',['-i',modules])
             upgraded=preservation.snapshot(args.database);dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
+        if args.profile=='simpledigital':
+            execute('provider-install',['-i',modules])
+            print('PROVIDER_REGISTRY_OK '+args.mode,flush=True)
+            return
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')])
         assert re.search(r'0 failed, 0 error\(s\) of '+str(68 if pure else 15)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if not pure:

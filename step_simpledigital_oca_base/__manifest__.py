@@ -1,0 +1,1 @@
+{'name': 'Simple Digital OCA model boundary', 'version': '18.0.1.0.0', 'license': 'LGPL-3', 'depends': ['step_payroll_oca_api', 'hr_expense'], 'data': ['views/compatibility.xml'], 'installable': True}

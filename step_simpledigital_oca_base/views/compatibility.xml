@@ -1,0 +1,12 @@
+<odoo>
+    <menuitem id="payroll_reports" name="Informes" parent="payroll.payroll_menu_root" groups="payroll.group_payroll_manager"/>
+    <menuitem id="payroll_employees" name="Personal" parent="payroll.payroll_menu_root" groups="payroll.group_payroll_manager"/>
+    <template id="report_payslip" inherit_id="payroll.report_payslip" primary="True">
+        <xpath expr="//div[@class='page']" position="inside">
+            <div id="worked_days_table"><table class="table"><tr t-foreach="o.worked_days_line_ids" t-as="day"><td t-field="day.name"/><td t-field="day.number_of_hours"/><td t-field="day.number_of_days"/></tr></table></div>
+            <div id="payslip_lines_table"><table class="table"><tr t-foreach="o.line_ids" t-as="line"><td t-field="line.name"/><td t-field="line.total"/></tr></table></div>
+            <div id="to_pay"><span t-field="o.net_wage"/></div>
+        </xpath>
+        <xpath expr="//div[@class='page']/table[2]" position="replace"/>
+    </template>
+</odoo>

@@ -46,6 +46,9 @@ class PayrollContractMixin:
         if 'journal_id' in scope['hr.contract']._fields:vals['journal_id']=cls.journal.id
         field=scope['hr.contract']._fields.get('contract_type_id')
         if field:vals['contract_type_id']=scope[field.comodel_name].search([],limit=1).id
+        if scope['hr.contract']._fields.get('analytic_account_id') and scope['hr.contract']._fields['analytic_account_id'].required:
+            plan=scope['account.analytic.plan'].create({'name':'Private payroll analytic plan'})
+            vals['analytic_account_id']=scope['account.analytic.account'].create({'name':'Private payroll cost center','plan_id':plan.id,'company_id':company.id}).id
         cls.contract=scope['hr.contract'].create(vals)
         cls.env['ir.sequence'].create({'name':'Private salary API numbering','code':'salary.slip','company_id':company.id,'prefix':'API/'})
 
