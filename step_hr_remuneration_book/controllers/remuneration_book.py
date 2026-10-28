@@ -144,7 +144,8 @@ class StepsRemunerationBookController(http.Controller):
         except AccessError:
             request.env['step.remuneration.book.log'].record(
                 wizard, 'xlsx', result='blocked', detail='salary_access', user=request.env.user)
-            return request.not_found()
+            # A normal response preserves the minimal denial audit in this request.
+            return request.make_response('', headers=[('Cache-Control', 'no-store')], status=404)
         except UserError as exception:
             return self._blocked(exception.args[0] if exception.args else "")
         output = io.BytesIO()
@@ -184,7 +185,8 @@ class StepsRemunerationBookController(http.Controller):
             content, source = extractor.official_csv(wizard)
         except AccessError:
             Log.record(wizard, 'csv', result='blocked', detail='salary_access', user=request.env.user)
-            return request.not_found()
+            # A normal response preserves the minimal denial audit in this request.
+            return request.make_response('', headers=[('Cache-Control', 'no-store')], status=404)
         except UserError as exception:
             Log.record(wizard, "csv", result="blocked", detail="user_error",
                        user=request.env.user)

@@ -714,7 +714,7 @@ class FullBookHttp(FullBookInstall,HttpCase):
         url=wizard._download_url('/step/payroll/remuneration-book/official-csv','csv')['url']
         self.assertEqual(self.url_open(self.change_url(url,token='invalid')).status_code,404)
         if self.env['ir.module.module'].search_count([('name','=','payroll'),('state','=','installed')]):
-            response=self.url_open(url);self.assertEqual(response.status_code,400)
+            response=self.url_open(url);self.assertEqual(response.status_code,409)
             self.assertIn('certific',response.text)
             self.assertNotIn('text/csv',response.headers.get('Content-Type',''))
 

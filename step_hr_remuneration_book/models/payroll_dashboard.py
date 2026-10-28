@@ -177,6 +177,9 @@ class HrPayslip(models.Model):
             if dataset.errors:
                 return empty
             return self._steps_summarize_previred_records(dataset.records)
+        except AccessError:
+            # Payroll access does not grant permission to Previred profiles.
+            return empty
         except Exception:
             # El panel sigue disponible si el motor PreviRed no responde; la
             # sección de imposiciones queda rotulada como no disponible.
