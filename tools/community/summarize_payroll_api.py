@@ -54,6 +54,8 @@ def main():
     if temporal.exists():paths+=['tools/community/audit_sys_payroll_temporal_basis.py']
     document=args.evidence/'document/document-proof.json'
     if document.exists():paths+=['tools/community/export_sys_reference_document.py']
+    comparison=args.evidence/'document-comparison.json'
+    if comparison.exists():paths+=['tools/community/compare_sys_reference_document.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -147,6 +149,8 @@ def main():
         result['sys_reference']={'closed_slips':proof['closed_slips'],'unambiguous_complete_slips':proof['unambiguous_complete_slips'],
             'ambiguous_concepts':len(proof['ambiguous_concepts']),'incomplete_slips':len(proof['incomplete_slip_ids']),
             'selected_period':selected['date_to'][:7],'financial_certified':False,'source_read_only':True}
+        if 'selection_helper_sha256' in proof:
+            result['sys_reference'].update({key:proof[key] for key in ('positive_closed_previous_month_cases','selected_case_has_positive_essential_totals','zero_cases_preserved')})
     if sys_provider.exists():
         proof=json.loads(sys_provider.read_text(encoding='utf-8'))
         executed=(args.evidence/'sys-provider-inspector.py').read_bytes()
@@ -202,6 +206,20 @@ def main():
         assert pdf.startswith(b'%PDF-') and hashlib.sha256(pdf).hexdigest()==proof['pdf_sha256']
         assert hashlib.sha1(pdf).hexdigest()==proof['attachment']['checksum'] and len(pdf)==proof['attachment']['file_size']
         result['existing_reference_document']={'source_checksum_verified':True,'report_generated':False,'financial_certified':False,'historical_wage_proven':False}
+    if comparison.exists():
+        proof=json.loads(comparison.read_text())
+        executed=(args.evidence/'document-comparator.py').read_bytes()
+        assert proof['comparator_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/compare_sys_reference_document.py'].replace(b'\r\n',b'\n')
+        assert proof['capsule_sha256']==hashlib.sha256(sys_reference.read_bytes()).hexdigest()
+        assert proof['pdf_sha256']==hashlib.sha256((document.parent/'reference.pdf').read_bytes()).hexdigest()
+        assert proof['read_only'] and proof['documentary_wage_observed'] and proof['private_payroll_amounts_exported']
+        assert not any(proof[key] for key in ('report_generated','payroll_computed','financial_certified','master_timeline_certified',
+            'direct_employee_identifiers_exported','formula_bodies_exported'))
+        assert Decimal(proof['printed_contract_wage']).is_finite() and Decimal(proof['printed_contract_wage'])>0
+        assert proof['basic_matches_stored'] and proof['net_matches_stored']
+        result['documentary_reference']={key:proof[key] for key in ('documentary_wage_observed','basic_matches_stored','net_matches_stored',
+            'taxable_matches_stored_gross','total_earnings_matches_stored_gross','master_timeline_certified','financial_certified')}
     if collisions.exists():
         probe=(collisions/'probe.py').read_bytes();runner=(collisions/'runner.py').read_bytes()
         for name,blob in [('probe_payroll_rule_collisions.py',probe),('run_payroll_rule_probe.py',runner)]:
