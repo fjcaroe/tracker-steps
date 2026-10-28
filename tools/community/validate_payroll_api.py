@@ -116,7 +116,15 @@ def main():
             upgraded=snapshot();dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+(('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')+(',/step_simpledigital_oca_security'+(',/step_simpledigital_oca_base' if pure else '') if args.profile=='simpledigital' else ''))])
-        assert re.search(r'0 failed, 0 error\(s\) of '+str((68 if pure else 15)+((22 if pure else 15) if args.profile=='simpledigital' else 0))+r' tests',text), 'Expected all upstream and shared API contracts to run'
+        assert re.search(r'0 failed, 0 error\(s\) of '+str((68 if pure else 15)+((28 if pure else 21) if args.profile=='simpledigital' else 0))+r' tests',text), 'Expected all upstream and shared API contracts to run'
+        if args.profile=='simpledigital':
+            probe=source/'tools/community/inspect_payroll_configuration.py'
+            expression="import runpy; runpy.run_path("+repr(str(probe))+")["+repr('inspect')+"](env,"+repr(str(stage/'configuration.json'))+")"
+            with (stage/'configuration-bootstrap.log').open('w') as stream:
+                status=subprocess.run(base+['shell']+opts+['--no-http','--logfile='+str(stage/'configuration.log')],
+                    input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
+            report_log=(stage/'configuration.log').read_text(errors='replace')
+            assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Configuration inspector failed'
         if not pure:
             after=snapshot();current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))

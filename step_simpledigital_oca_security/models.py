@@ -1,6 +1,7 @@
 """Require country-specific data at payroll processing, never invent old master data."""
 from odoo import api, models, _
 from odoo.addons.step_payroll_contracts.history import assert_mutable, history_protected
+from odoo.addons.step_payroll_contracts.configuration import configuration_report, validate_configuration
 from odoo.exceptions import UserError
 
 
@@ -25,6 +26,7 @@ class Payslip(models.Model):
         for slip in self:
             if slip.struct_id.name != 'Nómina Chile':
                 continue
+            validate_configuration(slip.struct_id)
             contract=slip.contract_id
             missing=[field for field in ('contract_type_id','analytic_account_id','health_institution','pension_option','income_tax_type','work_schedule_id') if not contract[field]]
             for field in ('hr_commune','identification_id','country_id','birthday','gender'):
@@ -95,3 +97,13 @@ class Line(models.Model):
     def unlink(self):
         assert_mutable(self.mapped('slip_id'))
         return super().unlink()
+
+
+class Structure(models.Model):
+    _inherit='hr.payroll.structure'
+
+    def _step_configuration_report(self):
+        return configuration_report(self)
+
+    def _step_validate_configuration(self):
+        return validate_configuration(self)

@@ -171,3 +171,66 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             assert_community_engine(self.env.cr)
         else:
             with self.assertRaises(UserError):assert_community_engine(self.env.cr)
+
+    def valid_configuration(self):
+        (self.structure.rule_ids-self.rule).unlink()
+        self.rule.write({'code':'BASIC','amount_python_compute':'result = payslip.paid_amount','sequence':1})
+        gross_cat=self.scope['hr.salary.rule.category'].create({'name':'Private structural gross','code':'PRIVATE_GROSS'})
+        self.gross_rule=self.rule.copy({'code':'GROSS','sequence':100,'category_id':gross_cat.id,
+            'amount_python_compute':"result = categories['PRIVATE_NET']"})
+        self.net_rule=self.rule.copy({'code':'NET','sequence':200,
+            'amount_python_compute':"result = categories.get('PRIVATE_GROSS', 0)"})
+
+    def test_actual_provider_configuration_and_original_rule_aliases(self):
+        # Grant this new fixture actor access to the original configuration company.
+        company=self.env.company
+        self.scope.user.sudo().write({'company_ids':[Command.link(company.id)]})
+        original=self.env.ref('l10n_cl_simpledigital_payroll.structure_chile')
+        structure=original.with_user(self.scope.user).with_context(allowed_company_ids=company.ids)
+        before=structure.rule_ids.read(['id','code','category_id','amount_python_compute','sequence'])
+        report=structure._step_configuration_report()
+        self.assertFalse(report['financial_certified'])
+        if report['errors']:
+            with self.assertRaises(UserError):structure._step_validate_configuration()
+        else:self.assertTrue(structure._step_validate_configuration()['structural_checks_passed'])
+        self.assertEqual(structure.rule_ids.read(['id','code','category_id','amount_python_compute','sequence']),before)
+        if not self.oca:
+            for code in ('BASIC','GROSS','NET'):
+                self.assertEqual(self.env.ref('step_simpledigital_oca_security.chile_rule_'+code.lower()),
+                    structure.rule_ids.filtered(lambda rule:rule.code==code))
+        else:self.assertTrue({'BASIC_MISSING','GROSS_MISSING','NET_MISSING'}<=set(report['errors']))
+
+    def test_structural_configuration_and_real_category_parent_bridge(self):
+        self.valid_configuration()
+        self.assertTrue(self.structure._step_validate_configuration()['structural_checks_passed'])
+        proxy=self.scope['hr.salary.rule.category'].create({'name':'Private parent category','code':'PRIVATE_PROXY'})
+        self.rule.category_id.parent_id=proxy
+        self.gross_rule.amount_python_compute="result = categories.PRIVATE_PROXY"
+        self.assertTrue(self.structure._step_validate_configuration()['structural_checks_passed'])
+
+    def test_disconnected_gross_is_rejected_without_rewriting_configuration(self):
+        self.valid_configuration()
+        self.gross_rule.amount_python_compute="result = categories.get('PRIVATE_GROSS', 0)"
+        before=self.gross_rule.read(['id','amount_python_compute','category_id'])
+        with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):
+            self.structure._step_validate_configuration()
+        self.assertEqual(self.gross_rule.read(['id','amount_python_compute','category_id']),before)
+
+    def test_inactive_basic_cannot_silently_disappear_from_payroll(self):
+        self.valid_configuration();self.rule.active=False
+        with self.assertRaisesRegex(UserError,'BASIC_MISSING'):
+            self.structure._step_validate_configuration()
+
+    def test_essential_configuration_requires_execution_order(self):
+        self.valid_configuration();self.gross_rule.sequence=201
+        with self.assertRaisesRegex(UserError,'ESSENTIAL_SEQUENCE'):
+            self.structure._step_validate_configuration()
+
+    def test_configuration_is_checked_before_any_payroll_calculation(self):
+        self.valid_configuration()
+        self.structure.name='Nómina Chile'
+        self.gross_rule.amount_python_compute="result = categories.get('PRIVATE_GROSS', 0)"
+        slip=self.slip()
+        with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):slip.compute_sheet()
+        self.assertFalse(slip.line_ids)
+        self.assertEqual(slip.state,'draft')

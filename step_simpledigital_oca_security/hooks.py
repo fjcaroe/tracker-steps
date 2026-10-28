@@ -17,3 +17,20 @@ def pre_init_hook(env):
                 raise UserError('Conflicting payroll identity alias: '+name)
         else:
             env['ir.model.data'].create({'module':'payroll','name':name,'model':record._name,'res_id':record.id,'noupdate':True})
+
+
+def post_init_hook(env):
+    """Retain original rule IDs as aliases, with no change to formulas or categories."""
+    native=env['ir.module.module'].search_count([('name','=','hr_payroll'),('state','=','installed')])
+    if not native:return
+    if not env.cr.dbname.startswith('MANAGEMENT_QA_CERRO_PAYROLL_API_'):
+        raise UserError('Native rule identity preparation is limited to private rehearsals.')
+    structure=env.ref('l10n_cl_simpledigital_payroll.structure_chile')
+    for code in ('BASIC','GROSS','NET'):
+        rules=structure.with_context(active_test=False).rule_ids.filtered(lambda rule:rule.code==code and rule.active)
+        if len(rules)!=1:raise UserError('Ambiguous original rule identity: '+code)
+        name='chile_rule_'+code.lower()
+        alias=env['ir.model.data'].search([('module','=','step_simpledigital_oca_security'),('name','=',name)])
+        if alias:
+            if alias.model!='hr.salary.rule' or alias.res_id!=rules.id:raise UserError('Conflicting original rule identity: '+code)
+        else:env['ir.model.data'].create({'module':'step_simpledigital_oca_security','name':name,'model':'hr.salary.rule','res_id':rules.id,'noupdate':True})
