@@ -1,4 +1,8 @@
 """Shared assertions executed against real OCA and real Enterprise reference engines."""
+from datetime import datetime, time, timedelta
+
+import pytz
+
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
 
@@ -15,7 +19,7 @@ class PayrollContractMixin:
             'name':'Private payroll API manager','login':'private-payroll-api-manager','tz':'UTC',
             'company_id':company.id,'company_ids':[Command.set(company.ids)],
             'groups_id':[Command.set([cls.env.ref(g).id for g in
-                ('base.group_user',cls.payroll_group,'account.group_account_manager')])]})
+                ('base.group_user',cls.payroll_group,'account.group_account_manager','hr.group_hr_manager')])]})
         cls.scope=api.Environment(cls.env.cr,actor.id,dict(cls.env.context,allowed_company_ids=company.ids),su=False)
         cls.company=company
         scope=cls.scope
@@ -92,3 +96,81 @@ class PayrollContractMixin:
         portal=self.env['res.users'].with_context(no_reset_password=True).create({
             'name':'Private API portal','login':'private-api-portal','groups_id':[Command.set(self.env.ref('base.group_portal').ids)]})
         with self.assertRaises(AccessError):slip.with_user(portal).read(['line_ids'])
+
+    def test_repeated_input_amounts_aggregate_without_changing_rows(self):
+        slip=self.slip(10)
+        slip.input_line_ids.copy({'amount':20})
+        original=slip.input_line_ids.read(['id','amount','contract_id','input_type_id'])
+        slip.compute_sheet()
+        self.assertEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],800030)
+        self.assertEqual(slip.input_line_ids.read(['id','amount','contract_id','input_type_id']),original)
+
+    def test_repeated_input_nonlinear_rule_is_evaluated_per_line(self):
+        self.rule.write({'code':'PRIVATE_BONUS',
+            'amount_python_compute':"result = inputs['PRIVATE_BONUS'].amount ** 2"})
+        slip=self.slip(2);slip.input_line_ids.copy({'amount':3});slip.compute_sheet()
+        lines=slip.line_ids.filtered(lambda line:line.code=='PRIVATE_BONUS')
+        self.assertEqual(len(lines),2)
+        self.assertEqual(slip._get_line_values(['PRIVATE_BONUS'])['PRIVATE_BONUS'][slip.id]['total'],13)
+        self.assertEqual(len(slip.input_line_ids),2)
+
+    def test_quantities_rates_and_categories_preserve_clp_rounding(self):
+        self.input_type.is_quantity=True
+        self.rule.write({'code':'PRIVATE_BONUS',
+            'amount_python_compute':"result = 100.6\nresult_qty = inputs['PRIVATE_BONUS'].amount\nresult_rate = 50"})
+        self.rule.copy({'code':'PRIVATE_CHAIN','sequence':2,'amount_python_compute':'result = categories.PRIVATE_NET'})
+        slip=self.slip(0.5);slip.input_line_ids.copy({'amount':1.5});slip.compute_sheet()
+        values=slip._get_line_values(['PRIVATE_BONUS','PRIVATE_CHAIN'])
+        self.assertEqual(values['PRIVATE_BONUS'][slip.id]['total'],100)
+        self.assertEqual(values['PRIVATE_CHAIN'][slip.id]['total'],101)
+        self.env.flush_all()
+        slip.line_ids.invalidate_recordset()
+        self.assertEqual(slip._get_line_values(['PRIVATE_BONUS'])['PRIVATE_BONUS'][slip.id]['total'],100)
+
+    def test_fractional_negative_rate_uses_real_engine(self):
+        self.rule.amount_python_compute='result = -10.6\nresult_qty = 1.5\nresult_rate = 50'
+        slip=self.slip();slip.compute_sheet()
+        self.env.flush_all();slip.line_ids.invalidate_recordset()
+        values=slip._get_line_values(['LIQ'],['amount','quantity','total'])['LIQ'][slip.id]
+        self.assertEqual(values,{'amount':-11.0,'quantity':1.5,'total':-8.0})
+
+    def work_calendar(self, tz='UTC'):
+        calendar=self.scope['resource.calendar'].create({'name':'Private actual payroll calendar',
+            'company_id':self.company.id,'tz':tz,'attendance_ids':[Command.clear()]+[
+                Command.create({'name':'Private shift','dayofweek':str(day),'hour_from':8,'hour_to':16,'day_period':'morning'})
+                for day in range(5)]})
+        self.contract.resource_calendar_id=calendar
+        return calendar
+
+    def test_actual_work_entries_types_and_domain(self):
+        self.work_calendar()
+        slip=self.slip()
+        first=fields.Date.today().replace(day=1)
+        monday=first+timedelta(days=(-first.weekday())%7)
+        work=self.scope['hr.work.entry.type'].create({'name':'Private actual attendance','code':'PAPI_WORK','sequence':10})
+        leave=self.scope['hr.work.entry.type'].create({'name':'Private actual leave','code':'PAPI_LEAVE','is_leave':True,'sequence':20})
+        entries=self.scope['hr.work.entry'].create([
+            {'name':'Private work','employee_id':self.employee.id,'contract_id':self.contract.id,'company_id':self.company.id,
+             'work_entry_type_id':work.id,'date_start':datetime.combine(monday,time(8)),'date_stop':datetime.combine(monday,time(12))},
+            {'name':'Private leave','employee_id':self.employee.id,'contract_id':self.contract.id,'company_id':self.company.id,
+             'work_entry_type_id':leave.id,'date_start':datetime.combine(monday,time(12)),'date_stop':datetime.combine(monday,time(16))}])
+        before=entries.read(['date_start','date_stop','duration','state','contract_id','work_entry_type_id'])
+        rows={row['work_entry_type_id']:row for row in slip._get_worked_day_lines_values()}
+        self.assertAlmostEqual(rows[work.id]['number_of_hours'],4)
+        self.assertAlmostEqual(rows[work.id]['number_of_days'],0.5)
+        self.assertAlmostEqual(rows[leave.id]['number_of_hours'],4)
+        filtered=slip._get_worked_day_lines_values([('work_entry_type_id','=',leave.id)])
+        self.assertEqual([row['work_entry_type_id'] for row in filtered],[leave.id])
+        self.assertEqual(entries.read(['date_start','date_stop','duration','state','contract_id','work_entry_type_id']),before)
+
+    def test_calendar_timezone_clips_work_entry_at_payroll_boundary(self):
+        self.work_calendar('America/Santiago')
+        slip=self.slip()
+        zone=pytz.timezone('America/Santiago')
+        boundary=zone.localize(datetime.combine(slip.date_from,time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private boundary attendance','code':'PAPI_BOUNDARY'})
+        self.scope['hr.work.entry'].create({'name':'Private crossing entry','employee_id':self.employee.id,
+            'contract_id':self.contract.id,'company_id':self.company.id,'work_entry_type_id':kind.id,
+            'date_start':boundary-timedelta(hours=2),'date_stop':boundary+timedelta(hours=3)})
+        hours=self.contract.get_work_hours(slip.date_from,slip.date_to)
+        self.assertAlmostEqual(hours[kind.id],3,places=5)

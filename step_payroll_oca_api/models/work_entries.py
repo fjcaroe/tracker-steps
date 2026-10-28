@@ -1,0 +1,112 @@
+"""Work-entry payroll boundary using actual Community contracts and calendars."""
+from collections import defaultdict
+from datetime import datetime, time
+
+import pytz
+
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
+from odoo.osv import expression
+from odoo.tools.float_utils import float_round
+
+
+class WorkEntryType(models.Model):
+    _inherit = 'hr.work.entry.type'
+
+    round_days = fields.Selection([('NO', 'No rounding'), ('HALF', 'Half day'),
+                                   ('FULL', 'Full day')], default='NO', required=True)
+    round_days_type = fields.Selection([('UP', 'Up'), ('DOWN', 'Down')],
+                                       default='UP', required=True)
+
+
+class Contract(models.Model):
+    _inherit = 'hr.contract'
+
+    def get_work_hours(self, date_from, date_to, domain=None):
+        """Read actual entries within calendar-local dates, without elevating access."""
+        self.check_access('read')
+        totals = defaultdict(float)
+        first, last = fields.Date.to_date(date_from), fields.Date.to_date(date_to)
+        if not first or not last or first > last:
+            raise UserError(_('A valid payroll period is required.'))
+        for contract in self:
+            calendar = contract.resource_calendar_id or contract.employee_id.resource_calendar_id
+            if not calendar:
+                raise UserError(_('Work-entry payroll requires a working calendar.'))
+            zone = pytz.timezone(calendar.tz or 'UTC')
+            start = zone.localize(datetime.combine(first, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
+            stop = zone.localize(datetime.combine(last, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+            entries = self.env['hr.work.entry'].search(expression.AND([domain or [], [
+                ('contract_id', '=', contract.id), ('company_id', '=', contract.company_id.id),
+                ('state', 'in', ['draft', 'validated']), ('date_start', '<', stop), ('date_stop', '>', start)]]))
+            for entry in entries:
+                if not entry.work_entry_type_id:
+                    raise UserError(_('Every payroll work entry must retain its type.'))
+                left, right = max(start, entry.date_start), min(stop, entry.date_stop)
+                if entry.date_start >= start and entry.date_stop <= stop:
+                    hours = entry.duration
+                elif entry.work_entry_type_id.is_leave:
+                    hours = contract.employee_id._get_work_days_data_batch(
+                        pytz.UTC.localize(left), pytz.UTC.localize(right), compute_leaves=False,
+                        calendar=calendar)[contract.employee_id.id]['hours']
+                else:
+                    hours = (right-left).total_seconds()/3600
+                totals[entry.work_entry_type_id.id] += hours
+        return dict(totals)
+
+
+class Structure(models.Model):
+    _inherit = 'hr.payroll.structure'
+
+    use_work_entries = fields.Boolean(string='Payroll from work entries', default=False,
+        help='Explicit opt-in. Read actual work entries; keep legacy OCA calendar payroll otherwise.')
+
+
+class WorkedDays(models.Model):
+    _inherit = 'hr.payslip.worked_days'
+
+    work_entry_type_id = fields.Many2one('hr.work.entry.type', ondelete='restrict')
+
+
+class Payslip(models.Model):
+    _inherit = 'hr.payslip'
+
+    def _get_worked_day_lines_hours_per_day(self):
+        self.ensure_one()
+        return self.contract_id.resource_calendar_id.hours_per_day
+
+    def _round_days(self, work_entry_type, days):
+        if work_entry_type.round_days == 'NO':
+            return days
+        return float_round(days, precision_rounding=0.5 if work_entry_type.round_days == 'HALF' else 1,
+                           rounding_method=work_entry_type.round_days_type)
+
+    def _get_worked_day_lines_values(self, domain=None):
+        self.ensure_one()
+        self.check_access('read')
+        self.contract_id.ensure_one()
+        hours_per_day = self._get_worked_day_lines_hours_per_day()
+        if not hours_per_day or hours_per_day <= 0:
+            raise UserError(_('Payroll requires positive calendar hours per day.'))
+        hours = self.contract_id.get_work_hours(self.date_from, self.date_to, domain=domain)
+        # Keep the total days residue on the largest attendance group.
+        result, residue = [], 0.0
+        ordered = sorted(hours, key=lambda kind: (hours[kind], kind))
+        for index, kind in enumerate(ordered):
+            entry_type = self.env['hr.work.entry.type'].browse(kind)
+            days = round(hours[kind]/hours_per_day, 5)
+            adjusted = days + residue if index == len(ordered)-1 else days
+            rounded = self._round_days(entry_type, adjusted)
+            residue += adjusted-rounded if index == len(ordered)-1 else days-rounded
+            result.append({'sequence': entry_type.sequence, 'work_entry_type_id': kind,
+                'number_of_days': rounded, 'number_of_hours': hours[kind],
+                'name': entry_type.name, 'code': entry_type.code, 'contract_id': self.contract_id.id})
+        return sorted(result, key=lambda row: (row['sequence'], row['work_entry_type_id']))
+
+    def get_worked_day_lines(self, contracts, date_from, date_to):
+        if not self.struct_id.use_work_entries:
+            return super().get_worked_day_lines(contracts, date_from, date_to)
+        self.ensure_one()
+        if contracts != self.contract_id or date_from != self.date_from or date_to != self.date_to:
+            raise UserError(_('Work-entry payroll requires the payslip own contract and period.'))
+        return self._get_worked_day_lines_values()

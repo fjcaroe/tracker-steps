@@ -23,3 +23,21 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
 
     def test_portal_cannot_read_salary_lines(self):
         PayrollContractMixin.test_portal_cannot_read_salary_lines(self)
+
+    def test_repeated_input_amounts_aggregate_without_changing_rows(self):
+        PayrollContractMixin.test_repeated_input_amounts_aggregate_without_changing_rows(self)
+
+    def test_repeated_input_nonlinear_rule_is_evaluated_per_line(self):
+        PayrollContractMixin.test_repeated_input_nonlinear_rule_is_evaluated_per_line(self)
+
+    def test_quantities_rates_and_categories_preserve_clp_rounding(self):
+        PayrollContractMixin.test_quantities_rates_and_categories_preserve_clp_rounding(self)
+
+    def test_fractional_negative_rate_uses_real_engine(self):
+        PayrollContractMixin.test_fractional_negative_rate_uses_real_engine(self)
+
+    def test_actual_work_entries_types_and_domain(self):
+        PayrollContractMixin.test_actual_work_entries_types_and_domain(self)
+
+    def test_calendar_timezone_clips_work_entry_at_payroll_boundary(self):
+        PayrollContractMixin.test_calendar_timezone_clips_work_entry_at_payroll_boundary(self)

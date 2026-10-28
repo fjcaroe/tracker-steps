@@ -4,7 +4,7 @@ No Chilean rate policy or historical migration is implemented here.
 """
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
-from odoo.addons.payroll.models.base_browsable import WorkedDays, InputLine
+from odoo.addons.payroll.models.base_browsable import WorkedDays, InputLine, BaseBrowsableObject
 
 
 class Structure(models.Model):
@@ -124,8 +124,32 @@ class Input(models.Model):
                 raise ValidationError(_('Input type is not available for this structure.'))
             if kind.country_id and kind.country_id != slip.company_id.country_id:
                 raise ValidationError(_('Input type belongs to another country.'))
-            if line.contract_id.employee_id != slip.employee_id or line.contract_id.company_id != slip.company_id:
+            if line.contract_id != slip.contract_id or line.contract_id.employee_id != slip.employee_id or line.contract_id.company_id != slip.company_id:
                 raise ValidationError(_('Input must retain the payslip employee and company contract.'))
+
+
+class InputAmountGroup:
+    """Rule context over real inputs, with additive amounts and original row IDs."""
+    def __init__(self, records):
+        self.records = records
+
+    @property
+    def amount(self):
+        return sum(self.records.mapped('amount'))
+
+    def __getattr__(self, name):
+        return getattr(self.records, name)
+
+    def __bool__(self):
+        return bool(self.records)
+
+
+class ValueMapping(BaseBrowsableObject):
+    def __getitem__(self, code):
+        return self.dict[code]
+
+    def get(self, code, default=None):
+        return self.dict.get(code, default)
 
 
 class InputLineMapping(InputLine):
@@ -146,10 +170,49 @@ class Payslip(models.Model):
 
     def _get_baselocaldict(self, contracts):
         result=super()._get_baselocaldict(contracts)
-        result['inputs']=InputLineMapping(self.employee_id.id,result['inputs'].dict,self.env)
+        grouped = self.input_line_ids.grouped('code')
+        inputs = dict(result['inputs'].dict)
+        for code, lines in grouped.items():
+            if len(lines)>1 and lines.input_type_id:
+                if len(lines.input_type_id)!=1 or any(not line.input_type_id for line in lines):
+                    raise UserError(_('Repeated input codes must use the same explicit input type.'))
+                inputs[code] = InputAmountGroup(lines)
+        result['inputs']=InputLineMapping(self.employee_id.id,inputs,self.env)
+        result['result_rules']=ValueMapping(result['result_rules'].dict)
         result['worked_days']=WorkedDaysMapping(self.employee_id.id,
             {line.code:line for line in self.worked_days_line_ids if line.code},self.env)
         return result
+
+    def _compute_payslip_line(self, rule, localdict, lines_dict):
+        group = localdict['inputs'].get(rule.code)
+        if not isinstance(group, InputAmountGroup):
+            result = super()._compute_payslip_line(rule, localdict, lines_dict)
+            values = localdict['result_rules'].dict.get(rule.code)
+            if values is not None:
+                localdict['result_rules'].dict[rule.code] = ValueMapping(values.dict)
+            return result
+        # Evaluate nonlinear and quantity rules per actual input, retaining each row.
+        original = localdict.get(rule.code)
+        total = 0.0
+        try:
+            for line in group.records:
+                localdict['inputs'].dict[rule.code] = line
+                localdict[rule.code] = 0.0
+                localdict.update(result=None, result_qty=1.0, result_rate=100.0, result_name=False)
+                super()._compute_payslip_line(rule, localdict, lines_dict)
+                key = rule.code+'-'+str(localdict['contract'].id)
+                values = lines_dict.pop(key)
+                total += values['total']
+                lines_dict[key+'-input-'+str(line.id)] = values
+        finally:
+            localdict['inputs'].dict[rule.code] = group
+            if original is None:
+                localdict.pop(rule.code, None)
+            else:
+                localdict[rule.code] = original
+        localdict['result_rules'].dict[rule.code] = ValueMapping(
+            {'total': total, 'amount': total, 'quantity': 1.0, 'rate': 100.0})
+        return localdict, lines_dict
 
     @api.constrains('struct_id','employee_id','company_id','contract_id')
     def _check_existing_typed_inputs(self):
@@ -158,10 +221,12 @@ class Payslip(models.Model):
     def compute_sheet(self):
         if any(slip.paid or slip.state not in ('draft','verify') for slip in self):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
+        self.mapped('input_line_ids')._check_typed_input()
         for slip in self:
-            typed_codes=set(slip.input_line_ids.filtered('input_type_id').mapped('code'))
-            if any(len(slip.input_line_ids.filtered(lambda line:line.code==code))>1 for code in typed_codes):
-                raise UserError(_('Duplicate typed input codes require a validated aggregation policy.'))
+            for lines in slip.input_line_ids.grouped('code').values():
+                if len(lines)>1 and lines.input_type_id and (
+                        len(lines.input_type_id)!=1 or any(not line.input_type_id for line in lines)):
+                    raise UserError(_('Repeated input codes must use the same explicit input type.'))
         return super().compute_sheet()
 
     def _get_line_values(self, code_list, vals_list=None, compute_sum=False):

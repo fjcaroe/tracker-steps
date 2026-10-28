@@ -69,7 +69,7 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         PayrollContractMixin.test_portal_cannot_read_salary_lines(self)
 
     def test_duplicate_typed_inputs_are_not_silently_overwritten(self):
-        for typed in (True,False):
+        for typed in (False,):
             slip=self.slip()
             if typed:
                 slip.input_line_ids.copy({'payslip_id':slip.id})
@@ -95,3 +95,21 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         with self.assertRaises(ValidationError),self.env.cr.savepoint():
             slip.struct_id=other
         self.assertEqual(slip.struct_id,self.structure)
+
+    def test_repeated_input_amounts_aggregate_without_changing_rows(self):
+        PayrollContractMixin.test_repeated_input_amounts_aggregate_without_changing_rows(self)
+
+    def test_repeated_input_nonlinear_rule_is_evaluated_per_line(self):
+        PayrollContractMixin.test_repeated_input_nonlinear_rule_is_evaluated_per_line(self)
+
+    def test_quantities_rates_and_categories_preserve_clp_rounding(self):
+        PayrollContractMixin.test_quantities_rates_and_categories_preserve_clp_rounding(self)
+
+    def test_fractional_negative_rate_uses_real_engine(self):
+        PayrollContractMixin.test_fractional_negative_rate_uses_real_engine(self)
+
+    def test_actual_work_entries_types_and_domain(self):
+        PayrollContractMixin.test_actual_work_entries_types_and_domain(self)
+
+    def test_calendar_timezone_clips_work_entry_at_payroll_boundary(self):
+        PayrollContractMixin.test_calendar_timezone_clips_work_entry_at_payroll_boundary(self)
