@@ -23,7 +23,10 @@
             <xpath expr="//field[@name='worked_days_line_ids']/form//field[@name='code']" position="before">
                 <field name="work_entry_type_id" options="{'no_create': True}"/>
             </xpath>
-            <xpath expr="//field[@name='worked_days_line_ids']//field[@name='code']" position="attributes">
+            <xpath expr="//field[@name='worked_days_line_ids']/list/field[@name='code']" position="attributes">
+                <attribute name="readonly">work_entry_type_id</attribute>
+            </xpath>
+            <xpath expr="//field[@name='worked_days_line_ids']/form//field[@name='code']" position="attributes">
                 <attribute name="readonly">work_entry_type_id</attribute>
             </xpath>
         </field>
