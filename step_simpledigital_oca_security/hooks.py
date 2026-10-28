@@ -34,3 +34,16 @@ def post_init_hook(env):
         if alias:
             if alias.model!='hr.salary.rule' or alias.res_id!=rules.id:raise UserError('Conflicting original rule identity: '+code)
         else:env['ir.model.data'].create({'module':'step_simpledigital_oca_security','name':name,'model':'hr.salary.rule','res_id':rules.id,'noupdate':True})
+
+
+def uninstall_hook(env):
+    # These are aliases of user configuration, not records owned by this bridge.
+    # Detach them before Odoo deletes module data; never delete the salary rules.
+    aliases=env['ir.model.data'].search([('module','=','step_simpledigital_oca_security'),
+        ('name','in',['chile_rule_basic','chile_rule_gross','chile_rule_net'])])
+    for alias in aliases:
+        if alias.model!='hr.salary.rule':raise UserError('Conflicting rule alias during retirement.')
+        rule=env['hr.salary.rule'].browse(alias.res_id).exists()
+        if rule and rule.code.lower()!=alias.name.removeprefix('chile_rule_'):
+            raise UserError('Original rule identity changed; retirement requires review.')
+    aliases.unlink()

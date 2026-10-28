@@ -16,7 +16,11 @@ def inspect(env,output):
     scope=api.Environment(env.cr,actor.id,dict(env.context,allowed_company_ids=company.ids,active_test=False),su=False)
     reports=[s._step_configuration_report() for s in scope['hr.payroll.structure'].search([],order='id')]
     chile=scope.ref('l10n_cl_simpledigital_payroll.structure_chile')
-    result={'database':env.cr.dbname,'normal_actor':not scope.su,'read_only_configuration':True,
+    aliases={}
+    for code in ('BASIC','GROSS','NET'):
+        record=scope.ref('step_simpledigital_oca_security.chile_rule_'+code.lower(),raise_if_not_found=False)
+        if record:aliases[code]=record.id
+    result={'chile_rule_alias_ids':aliases,'database':env.cr.dbname,'normal_actor':not scope.su,'read_only_configuration':True,
             'chile_structure_id':chile.id,'reports':reports,'financial_certified':False,
             'writes_to_source':False,'fixtures_rolled_back':True}
     env.cr.rollback()

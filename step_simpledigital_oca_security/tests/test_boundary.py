@@ -198,6 +198,12 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             for code in ('BASIC','GROSS','NET'):
                 self.assertEqual(self.env.ref('step_simpledigital_oca_security.chile_rule_'+code.lower()),
                     structure.rule_ids.filtered(lambda rule:rule.code==code))
+            from ..hooks import uninstall_hook
+            original_ids=structure.rule_ids.ids
+            uninstall_hook(self.env)
+            self.assertEqual(structure.rule_ids.ids,original_ids)
+            self.assertEqual(structure.rule_ids.read(['id','code','category_id','amount_python_compute','sequence']),before)
+            self.assertFalse(self.env['ir.model.data'].search_count([('module','=','step_simpledigital_oca_security'),('name','in',['chile_rule_basic','chile_rule_gross','chile_rule_net'])]))
         else:self.assertTrue({'BASIC_MISSING','GROSS_MISSING','NET_MISSING'}<=set(report['errors']))
 
     def test_structural_configuration_and_real_category_parent_bridge(self):
