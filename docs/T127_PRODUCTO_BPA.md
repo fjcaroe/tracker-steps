@@ -1,5 +1,7 @@
 # T127 — campos de la hoja BPA de productos
 
+Entrega completada: `docs/T127_ENTREGA_20261028.md`.
+
 Inventario histórico del 27-10-2026. La implementación iniciada el 28-10 está
 descrita en `docs/T127_IMPLEMENTACION_BPA_COMMUNITY.md`; las afirmaciones de
 pendiente de este inventario describen el estado anterior a esa implementación.
