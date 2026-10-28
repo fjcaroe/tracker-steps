@@ -26,6 +26,8 @@ def main():
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
     previred=read('community','passed').get('profile')=='previred'
     if previred:paths+=['step_hr_previred']
+    group_proof=args.evidence/'group-preservation.json'
+    if group_proof.exists():paths+=['tools/community/verify_payroll_group_preservation.py']
     configuration=args.evidence/'community/configuration.json'
     if configuration.exists():paths+=['tools/community/inspect_payroll_configuration.py']
     origins=args.evidence/'profile-origins.json'
@@ -141,6 +143,14 @@ def main():
         assert proof['extra']['overlapping']==95 and proof['extra']['same_period']==104
         result['native_ytd_observations']={'synthetic_only':True,'normal_actor':True,
             'fixtures_rolled_back':True,'financial_certified':False,'observations':proof['observations'],'extra':proof['extra']}
+    if group_proof.exists():
+        proof=json.loads(group_proof.read_text(encoding='utf-8'))
+        executed=(args.evidence/'group-verifier.py').read_bytes()
+        assert proof['verifier_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/verify_payroll_group_preservation.py'].replace(b'\r\n',b'\n')
+        assert proof['read_only'] and not proof['writes_to_source']
+        assert all(row['identical'] and row['original_rows']==row['current_rows'] and row['original_sha256']==row['current_sha256'] for row in proof['bindings'].values())
+        result['original_group_bindings_preserved']=proof
     standalone=args.evidence/'core-standalone/passed.json'
     if standalone.exists():
         proof=json.loads(standalone.read_text(encoding='utf-8'))
