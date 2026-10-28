@@ -1311,3 +1311,33 @@ está resuelto. No se modifican producción, QA-Cerro, vencimientos ni pagadas.
 
 Estado detallado, límites, hashes, evidencia privada reproducible y **prompt de
 continuidad vigente** en [COMMUNITY_PAYROLL_API.md](COMMUNITY_PAYROLL_API.md).
+
+
+## Días reales, entradas repetidas y redondeo OCA — 28-10-2026
+
+Código `bebf5ab`, paquete F: tres addons/17 archivos idénticos, 68 pruebas
+Community oficial (64/0 EE) y 15 contratos compartidos contra Nómina real en
+copia fresca de Cerro (376/140 EE). Se conservan 918 tablas/proyecciones,
+140 contadores exactos incluso después de fixtures, 58.956 XML IDs, relaciones,
+permisos, históricos y saldos. Menú, formulario, configuración y onchange de
+liquidación se comprueban con permisos normales y fixtures revertidas.
+
+Se implementan horas/días sobre work entries y calendarios reales, tipos FK,
+OUT sin maestros paralelos y actualización de días conservando IDs. El cálculo
+con ese modo rechaza entradas faltantes, conflictos y relaciones heredadas sin
+adoptar. Las repeticiones tipadas homogéneas ahora se evalúan y agregan sin perder
+filas, incluidos conceptos no lineales, categorías y el helper de totales OCA;
+la mezcla ambigua con entradas sin tipo sigue rechazada. Se contrasta el
+redondeo CLP por concepto con dos escenarios del puente chileno, sin cambiarlo
+en producción ni recalcular pagadas. YTD sigue explícitamente pendiente.
+
+La copia es referencia con su motor original; no instala OCA ni representa una
+conversión integral. El nuevo mapa de lectura registra diferencias de campos,
+FK/M2M, HTML/selecciones/estados que deben cerrarse antes de cambiar dependencias.
+Simple Digital completo, las 71 reglas, Previred/libro, históricos pagados,
+DTE/CAF/SII y el ensayo integral cero EE siguen pendientes. No se actualizan
+servicios activos ni QA-Cerro, no se cambian vencimientos. Siguen 53 clausuras EE
+sobre 93 apps inventariadas y 140 EE en producción. El 31 continúa con riesgo alto.
+
+Alcance vigente, hashes, evidencia, mapa y **siguiente prompt** en
+[COMMUNITY_PAYROLL_WORK_ENTRIES.md](COMMUNITY_PAYROLL_WORK_ENTRIES.md).
