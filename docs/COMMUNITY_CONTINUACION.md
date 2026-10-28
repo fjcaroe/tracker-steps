@@ -1420,3 +1420,21 @@ Matriz completa regenerada sin cambios: 374 instalados, 93 propios, 140 EE y
 configuración original y las 71 reglas, YTD restante, Previred/libro, consumidores,
 DTE/CAF/SII y conversión integral restaurable cero Enterprise. El 31 sigue en riesgo
 alto. No se modifican producción ni QA-Cerro.
+
+
+## Núcleo Previred independiente del motor — 28-10-2026
+
+Código 9044539, paquete A: 113 pruebas Community con OCA/proveedor y 53 en copia
+fresca nativa. Siete pruebas adicionales instalan el núcleo en Community sin motor,
+sin hr.payslip registrado ni Enterprise. Se conservan sus modelos, relaciones,
+perfiles, lotes, acciones, grupos y ACL; los roles resuelven el grupo real sin
+fabricar identidades. Solo después de cerrar esa frontera se admite la dependencia
+neutra step_payroll_contracts. Se preservan 918 tablas/proyecciones, 140 contadores
+y 58.956 XML IDs. El mapa parcial baja de 1.076 a 984 campos ausentes; no se adoptan
+IDs del motor ni se certifica Previred oficial. La matriz completa baja de 53 a 52
+apps propias con caminos EE pendientes; producción sigue con 140 Enterprise.
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_PREVIRED_CORE.md](COMMUNITY_PREVIRED_CORE.md). Siguen pendientes la
+configuración original y las 71 reglas, YTD restante, puente Simple Digital de
+Previred, Libro/consumidores, DTE/CAF/SII y conversión integral restaurable cero EE.
+El 31 sigue en riesgo alto. Producción y QA-Cerro permanecen intactos.

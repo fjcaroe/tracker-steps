@@ -4,7 +4,7 @@ Generada con `tools/community/build_enterprise_backlog.py` desde auditoría de s
 No contiene datos de negocio, rutas de servidor ni parámetros de licencia.
 
 Producción: 374 módulos instalados, 140 Enterprise y 93 propios.
-Código candidato: 53 apps propias instaladas aún alcanzan Enterprise por sus dependencias.
+Código candidato: 52 apps propias instaladas aún alcanzan Enterprise por sus dependencias.
 Producción conserva Enterprise. Ninguna fila autoriza desinstalación ni acredita reemplazo integral.
 Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cada módulo;
 «código candidato» usa los manifiestos del checkout. Cero dependientes propios no significa cero uso.
@@ -63,11 +63,11 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `hr_contract_sign` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_expense_extract` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_expense_predict_product` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_gantt` | Personal / Nómina / Planificación | 74 | 10 | Pendiente de ensayo integral |
+| `hr_gantt` | Personal / Nómina / Planificación | 74 | 9 | Pendiente de ensayo integral |
 | `hr_holidays_contract_gantt` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_holidays_gantt` | Personal / Nómina / Planificación | 64 | 0 | Pendiente de ensayo integral |
 | `hr_mobile` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_payroll` | Personal / Nómina / Planificación | 73 | 9 | Pendiente de ensayo integral |
+| `hr_payroll` | Personal / Nómina / Planificación | 73 | 8 | Pendiente de ensayo integral |
 | `hr_payroll_account` | Personal / Nómina / Planificación | 4 | 4 | Pendiente de ensayo integral |
 | `hr_payroll_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_payroll_expense` | Personal / Nómina / Planificación | 4 | 4 | Pendiente de ensayo integral |
@@ -78,7 +78,7 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `hr_recruitment_reports` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_recruitment_sign` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
-| `hr_work_entry_contract_enterprise` | Personal / Nómina / Planificación | 74 | 10 | Pendiente de ensayo integral |
+| `hr_work_entry_contract_enterprise` | Personal / Nómina / Planificación | 74 | 9 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_planning` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_contract_planning_attendance` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
 | `hr_work_entry_holidays_enterprise` | Personal / Nómina / Planificación | 0 | 0 | Pendiente de ensayo integral |
@@ -142,7 +142,7 @@ Las columnas cuentan apps propias instaladas cuya clausura declarada alcanza cad
 | `stock_fleet_enterprise` | Inventario / Fabricación | 0 | 0 | Pendiente de ensayo integral |
 | `web_cohort` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `web_enterprise` | Interfaz / Integraciones | 54 | 45 | Pendiente de ensayo integral |
-| `web_gantt` | Interfaz / Integraciones | 74 | 29 | Pendiente de ensayo integral |
+| `web_gantt` | Interfaz / Integraciones | 74 | 28 | Pendiente de ensayo integral |
 | `web_grid` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `web_map` | Interfaz / Integraciones | 0 | 0 | Pendiente de ensayo integral |
 | `web_mobile` | Interfaz / Integraciones | 53 | 41 | Pendiente de ensayo integral |
@@ -212,7 +212,6 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 | `step_hr_contract_lifecycle` | 4 | Sí |
 | `step_hr_contract_lifecycle_simpledigital` | 10 | Sí |
 | `step_hr_payroll_rounding` | 10 | Sí |
-| `step_hr_previred` | 4 | Sí |
 | `step_hr_previred_simpledigital` | 10 | Sí |
 | `step_hr_remuneration_book` | 4 | Sí |
 | `step_inventory_packing` | 9 | Sí |
@@ -257,7 +256,7 @@ Los módulos operativos requieren aceptación Community; separar herramientas de
 | `step_helpdesk_whatsapp` | 0 | 1 |
 | `step_hr_contract_lifecycle_agriculture` | 4 | 1 |
 | `step_hr_payroll_bridge` | 5 | 0 |
-| `step_hr_previred_blueminds` | 4 | 1 |
+| `step_hr_previred_blueminds` | 0 | 1 |
 | `step_labor_operations_core` | 0 | 0 |
 | `step_labor_payroll_wizards` | 4 | 0 |
 | `step_labor_reports` | 0 | 0 |
