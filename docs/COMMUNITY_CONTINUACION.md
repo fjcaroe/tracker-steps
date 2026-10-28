@@ -1387,3 +1387,19 @@ no se trasladan ni corrigen configuraciones automáticamente. Estado, evidencia,
 límites y **siguiente prompt vigente** en
 [COMMUNITY_PAYROLL_CONFIGURATION.md](COMMUNITY_PAYROLL_CONFIGURATION.md).
 No hay conversión integral ni certificación financiera; el 31 sigue en riesgo.
+
+
+## Orden de reglas e identidad histórica — 28-10-2026
+
+Código f79071a, paquete A: 99 pruebas Community oficial y 39 copia fresca nativa.
+Orden OCA explícito por secuencia/ID original, contratos reales de NET repetido
+y condicionado, y diagnóstico de todos los IDs candidatos sin adoptar ambiguos.
+Se preservan 918 tablas/proyecciones, 140 contadores y 58.956 XML IDs. Auditoría
+de solo lectura conserva visibles las tres identidades NET referidas históricamente
+en SyS; no se recalcula ni cambia ninguna. Matriz completa regenerada sin diferencias:
+374 instalados, 93 propios, 140 EE y 53 clausuras EE candidatas pendientes.
+Estado, evidencia, límites y **siguiente prompt vigente**:
+[COMMUNITY_PAYROLL_RULE_ORDER.md](COMMUNITY_PAYROLL_RULE_ORDER.md).
+La configuración original sigue bloqueada; 71 reglas, YTD, Previred/libro,
+DTE/CAF/SII y conversión integral cero Enterprise no están certificados. El 31
+sigue en riesgo alto; producción y QA-Cerro permanecen intactos.
