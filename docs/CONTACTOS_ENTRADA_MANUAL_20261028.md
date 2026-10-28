@@ -32,3 +32,25 @@ privados. QA-Cerro conserva sus datos y aislamiento, sin refrescar su base.
 
 Al terminar la publicación, recargar la página permite que una sesión abierta
 cargue el selector nativo del nuevo paquete.
+
+## Entrega verificada
+
+Publicado el mismo paquete en los tres destinos el 28-10-2026:
+
+| Destino | Copia aprobada | Respaldo |
+| --- | --- | --- |
+| Desarrollo | MANAGEMENT_QA_DEVELOPMENT_mc_d | management_development_20261028T142117Z |
+| Cerro | MANAGEMENT_QA_CERRO_mc_c | management_cerro_20261028T142403Z |
+| QA-Cerro | MANAGEMENT_QA_QA-CERRO_mc_q | management_qa-cerro_20261028T142604Z |
+
+Cuatro pruebas por copia, doce ejecuciones aprobadas. Flujos de creación y
+búsqueda con perfiles existentes, sin solicitudes de enriquecimiento externo.
+El asset efectivo se compiló en las copias. Tras publicar se comprobaron
+versiones, rutas del código, menús, formularios y disponibilidad de los tres
+servicios. Las huellas de los contactos y registros originales se conservaron.
+QA-Cerro mantiene el bloqueo de salida y la denegación de acceso a producción.
+No se enviaron mensajes ni se creó o modificó el proveedor real del usuario.
+
+Evidencias privadas: `/opt/steps-validation/manual-contact-20261028/evidence/`
+y `~/.codex/local-artifacts/manual-contact-20261028/evidence/`. Los respaldos
+completos quedan en `/opt/steps_backups/` con permisos privados.
