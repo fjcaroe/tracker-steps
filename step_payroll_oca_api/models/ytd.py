@@ -36,6 +36,8 @@ class Payslip(models.Model):
         if any(slip.contract_id!=self.contract_id for slip in slips):
             raise UserError(_('Cross-contract YTD requires a separately validated conversion.'))
         lines=slips.mapped('line_ids');lines.check_access('read')
+        if len(lines)!=self.env['hr.payslip.line'].sudo().search_count([('slip_id','in',slips.ids)]):
+            raise AccessError(_('The complete concept history must be readable for YTD.'))
         return lines
 
     def compute_sheet(self):

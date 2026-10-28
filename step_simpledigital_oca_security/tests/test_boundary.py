@@ -367,3 +367,16 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         with self.assertRaisesRegex(UserError,'repeated concept lines'):slip.compute_sheet()
         self.assertFalse(slip.line_ids)
         self.assertEqual(len(slip.input_line_ids),2)
+
+    def test_community_ytd_cannot_silently_skip_hidden_historical_lines(self):
+        if not self.oca:return
+        self.ytd_configuration()
+        old=self.period_slip('2026-01-01','2026-01-31',10,True)
+        self.env['ir.rule'].create({'name':'Private restricted historical concept',
+            'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
+            'domain_force':repr([('id','!=',old.line_ids.id)]),
+            'perm_read':True,'perm_write':False,'perm_create':False,'perm_unlink':False})
+        current=self.slip(30)
+        current.write({'date_from':'2026-02-01','date_to':'2026-02-28'})
+        with self.assertRaises(AccessError):current.compute_sheet()
+        self.assertFalse(current.line_ids)
