@@ -43,6 +43,7 @@ def main():
         'selected_period':case['date_to'][:7],
         'current_contract_modified_after_period':date.fromisoformat(current)>period,
         'contract_history_relation_kind':query("SELECT relkind FROM pg_class WHERE oid=to_regclass('hr_contract_history')"),
+        'contract_history_reads_current_contract_wage':query("SELECT EXISTS(SELECT 1 FROM pg_rewrite r JOIN pg_depend d ON d.classid='pg_rewrite'::regclass AND d.objid=r.oid JOIN pg_class c ON c.oid=d.refobjid JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=d.refobjsubid WHERE r.ev_class=to_regclass('hr_contract_history') AND c.relname='hr_contract' AND a.attname='wage')")=='t',
         'tracking_event_counts':counts,
         'tracking_events_after_period':sum(date.fromisoformat(str(row['date'])[:10])>period for row in events),
         'absence_of_tracking_proves_no_change':False,

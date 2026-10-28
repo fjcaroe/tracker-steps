@@ -205,7 +205,7 @@ def main():
             'historical_wage_proven','private_payroll_amounts_exported','direct_employee_identifiers_exported',
             'formula_bodies_exported','absence_of_tracking_proves_no_change','history_relation_is_an_immutable_snapshot'))
         result['temporal_basis']={key:proof[key] for key in ('selected_period','current_contract_modified_after_period',
-            'contract_history_relation_kind','tracking_event_counts','historical_wage_proven')}
+            'contract_history_relation_kind','contract_history_reads_current_contract_wage','tracking_event_counts','historical_wage_proven')}
     ui=args.evidence/'community'/'configuration-probe.json'
     if ui.exists():
         probe=json.loads(ui.read_text(encoding='utf-8'))
