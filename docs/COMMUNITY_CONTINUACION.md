@@ -1403,3 +1403,20 @@ Estado, evidencia, límites y **siguiente prompt vigente**:
 La configuración original sigue bloqueada; 71 reglas, YTD, Previred/libro,
 DTE/CAF/SII y conversión integral cero Enterprise no están certificados. El 31
 sigue en riesgo alto; producción y QA-Cerro permanecen intactos.
+
+
+## YTD calendario almacenado — 28-10-2026
+
+Código 7191d77, paquete E: 106 pruebas Community oficial y 46 copia fresca nativa.
+Motor OCA real con YTD calendario almacenado y API de lectura, admisión de snapshots
+originales e inmutabilidad de credit_note en cerradas; falla si el acceso oculta
+liquidaciones o líneas del histórico. El alcance deja bloqueados fiscalidad especial,
+cambios de contrato, créditos actuales y conceptos repetidos hasta validarlos.
+Se preservan 918 tablas/proyecciones, 140 contadores y 58.956 XML IDs. Cinco campos
+cierran su ausencia (1.081->1.076); no se adoptan IDs ni cambian dependencias.
+Matriz completa regenerada sin cambios: 374 instalados, 93 propios, 140 EE y
+53 clausuras EE candidatas pendientes. Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_PAYROLL_YTD.md](COMMUNITY_PAYROLL_YTD.md). Siguen pendientes la
+configuración original y las 71 reglas, YTD restante, Previred/libro, consumidores,
+DTE/CAF/SII y conversión integral restaurable cero Enterprise. El 31 sigue en riesgo
+alto. No se modifican producción ni QA-Cerro.
