@@ -1,10 +1,15 @@
 """Exercise actual supplier/OCA records and native ID aliases with real users."""
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from odoo import api, Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from werkzeug.exceptions import BadRequest, Forbidden
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
-from ..controllers import authorized_company
+from ..controllers import authorized_company, Book
+from .. import controllers as secured_book
+from odoo.addons.step_payroll_contracts.history import stored_payslip_totals
 from odoo.addons.step_payroll_contracts.history import assert_history_snapshots, assert_community_engine
 
 
@@ -414,3 +419,72 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         for method in ('_get_contract_wage','_get_paid_amount','_get_unpaid_amount'):
             with self.assertRaises(AccessError):
                 getattr(slip.with_user(stranger),method)()
+
+    def closed_book_slip(self, total=0):
+        slip=self.slip();slip.compute_sheet();self.env.flush_all()
+        self.env.cr.execute('UPDATE hr_payslip_line SET amount=100,total=%s WHERE slip_id=%s',(total,slip.id))
+        slip.line_ids.invalidate_recordset();slip.state='done';self.env.flush_all()
+        return slip
+
+    def test_book_stored_zero_overrides_legacy_components(self):
+        slip=self.closed_book_slip()
+        self.env.cr.execute('SELECT to_jsonb(l) FROM hr_payslip_line l WHERE slip_id=%s',(slip.id,))
+        before=self.env.cr.fetchall()
+        self.contract.wage=1200000
+        with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+            self.assertEqual(Book()._get_payslip_lines(slip,'LIQ'),0)
+        self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(l) FROM hr_payslip_line l WHERE slip_id=%s',(slip.id,))
+        self.assertEqual(self.env.cr.fetchall(),before)
+
+    def test_book_missing_original_total_does_not_become_zero(self):
+        slip=self.closed_book_slip()
+        with self.assertRaises(UserError),self.env.cr.savepoint():
+            self.env.cr.execute('UPDATE hr_payslip_line SET total=NULL WHERE slip_id=%s',(slip.id,))
+            with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+                Book()._get_payslip_lines(slip,'LIQ')
+        self.assertEqual(stored_payslip_totals(slip),{slip.id:0})
+
+    def test_book_hidden_salary_line_rejects_partial_total(self):
+        slip=self.closed_book_slip(250)
+        self.env['ir.rule'].create({'name':'Private hidden book salary line',
+            'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
+            'domain_force':repr([('id','not in',slip.line_ids.ids)]),
+            'perm_read':True,'perm_write':False,'perm_create':False,'perm_unlink':False})
+        with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+            with self.assertRaises(AccessError):Book()._get_payslip_lines(slip.sudo(),'LIQ')
+            with self.assertRaises(AccessError):Book()._get_payslip_lines(slip.sudo(),'MISSING')
+
+    def test_book_rebinds_elevated_payslip_to_http_actor(self):
+        slip=self.closed_book_slip(250)
+        other=self.employee_user('private-sd-book-stranger')
+        scope=api.Environment(self.env.cr,other.id,dict(self.scope.context),su=False)
+        with patch.object(secured_book,'request',SimpleNamespace(env=scope)):
+            with self.assertRaises(AccessError):Book()._get_payslip_lines(slip.sudo())
+
+    def test_book_queries_terminal_slips_without_elevation(self):
+        closed=self.closed_book_slip(250)
+        draft=self.slip()
+        paid=self.closed_book_slip(300);paid.state='paid'
+        with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+            found=Book()._get_payslips(closed.date_from,closed.date_to,self.company.id)
+            self.assertEqual(set(found.ids),{closed.id,paid.id})
+            self.assertNotIn(draft,found);self.assertFalse(found.env.su)
+            with self.assertRaises(Forbidden):Book()._get_payslips(closed.date_from,closed.date_to,self.env.company.id)
+            with self.assertRaises(BadRequest):Book()._get_payslips(closed.date_to,closed.date_from.replace(day=1).replace(year=2025),self.company.id)
+
+    def test_book_preserves_supplier_code_filter_and_integer_contract(self):
+        first=self.closed_book_slip(12.9);second=self.closed_book_slip(-12.9)
+        self.assertEqual(stored_payslip_totals(first|second,'LIQ'),{first.id:12.9,second.id:-12.9})
+        with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+            book=Book()
+            self.assertEqual(book._get_payslip_lines(first,['LIQ','MISSING']),12)
+            self.assertEqual(book._get_payslip_lines(second,'LIQ'),-12)
+            self.assertEqual(book._get_payslip_lines(first,'MISSING'),0)
+            self.assertEqual(book._get_payslip_lines(first,[]),12)
+
+    def test_book_invalid_parent_is_not_an_empty_report(self):
+        with patch.object(secured_book,'request',SimpleNamespace(env=self.scope)):
+            with self.assertRaises(UserError):Book()._get_payslip_lines(self.scope['hr.payslip'])
+            with self.assertRaises(UserError):Book()._get_payslip_lines(self.scope['hr.payslip'].new({}))
+        self.assertEqual(stored_payslip_totals(self.scope['hr.payslip']),{})

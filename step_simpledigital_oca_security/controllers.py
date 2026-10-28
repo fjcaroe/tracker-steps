@@ -1,6 +1,8 @@
 """Authorize the supplier download routes before any supplier sudo search."""
-from odoo import http
+from odoo import http, _
 from odoo.http import request
+from odoo.exceptions import UserError
+from odoo.addons.step_payroll_contracts.history import stored_payslip_totals
 from werkzeug.exceptions import BadRequest, Forbidden
 from odoo.addons.l10n_cl_simpledigital_payroll.controllers.previred_txt import PreviredExportController
 from odoo.addons.l10n_cl_simpledigital_payroll.controllers.libro_remuneraciones import LibroRemuneracionesController
@@ -37,6 +39,26 @@ class Previred(PreviredExportController):
 
 
 class Book(LibroRemuneracionesController):
+    def _get_payslips(self, date_from, date_to, company_id):
+        company_id = authorized_company(request.env, company_id)
+        if date_from > date_to:
+            raise BadRequest()
+        # Keep the supplier's period and terminal-state contract, without elevation.
+        return request.env['hr.payslip'].search([
+            ('date_from', '>=', date_from), ('date_to', '<=', date_to),
+            ('company_id', '=', company_id), ('state', 'in', ['done', 'paid'])],
+            order='employee_id, date_from')
+
+    def _get_payslip_lines(self, payslip, rule_codes=None):
+        if not payslip or payslip._name != 'hr.payslip' or len(payslip) != 1:
+            raise UserError(_('The remuneration book requires one real saved payroll slip.'))
+        # Never retain a supplier sudo environment or swallow incomplete history.
+        actual = request.env['hr.payslip'].browse(payslip.id)
+        totals = stored_payslip_totals(actual, rule_codes)
+        # Preserve the real supplier API's integer truncation; this is not a new
+        # Chile rounding policy or certification of its remaining CSV columns.
+        return int(totals[actual.id])
+
     @http.route()
     def export_libro_remuneraciones_csv(self,date_from,date_to,include_header='True',company_id=None,**kwargs):
         return super().export_libro_remuneraciones_csv(date_from,date_to,include_header=include_header,
