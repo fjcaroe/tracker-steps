@@ -769,6 +769,13 @@ class FullBookHttp(FullBookInstall,HttpCase):
         origin=self.base_url();cache={};missing=[];unused_font_urls=set();todo=[]
         for html in documents:
             todo.extend(etree.fromstring(html).xpath('//link[@href]/@href | //script[@src]/@src | //img[@src]/@src'))
+        # Native website requests scope asset URLs by website. Prefetch the exact
+        # scoped PDF URLs too: _prepare_html outside HTTP produces unscoped URLs.
+        scopes={match.group(1) for link in todo
+                if (match:=re.match(r'^/web/assets/([0-9]+)/[0-9a-f]+/',urlsplit(link).path))}
+        for link in list(todo):
+            match=re.match(r'^/web/assets/([0-9a-f]+/[^/]+)$',urlsplit(link).path)
+            if match:todo.extend('/web/assets/'+scope+'/'+match.group(1) for scope in scopes)
         while todo:
             link=todo.pop()
             if link.startswith('data:'):continue
