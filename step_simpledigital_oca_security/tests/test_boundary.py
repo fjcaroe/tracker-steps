@@ -777,9 +777,9 @@ class FullBookHttp(FullBookInstall,HttpCase):
             key=parsed.path
             if key in cache:continue
             response=self.url_open(key+('?' + parsed.query if parsed.query else ''))
-            self.assertEqual(response.status_code,200,(key,response.status_code))
-            cache[key]=(response.content,response.headers.get('Content-Type','application/octet-stream'))
-            if 'text/css' in cache[key][1]:
+            self.assertIn(response.status_code,(200,404),(key,response.status_code))
+            cache[key]=(response.content,response.headers.get('Content-Type','application/octet-stream'),response.status_code)
+            if cache[key][2]==200 and 'text/css' in cache[key][1]:
                 css=response.content.decode('utf-8')
                 for raw in re.findall(r'url\(\s*([^)]*?)\s*\)',css):
                     value=raw.strip('\"\' ')
@@ -795,7 +795,9 @@ class FullBookHttp(FullBookInstall,HttpCase):
                 key=urlsplit(handler.path).path
                 if key not in cache:
                     missing.append(key);handler.send_error(404);return
-                payload,mime=cache[key];handler.send_response(200)
+                payload,mime,status=cache[key]
+                if status!=200:missing.append(key)
+                handler.send_response(status)
                 handler.send_header('Content-Type',mime);handler.send_header('Content-Length',str(len(payload)))
                 handler.end_headers();handler.wfile.write(payload)
             def log_message(handler,*args):pass
