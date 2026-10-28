@@ -72,7 +72,8 @@ def main():
     for rule in rules:
         rule['body_sha256'] = hashlib.sha256((rule.pop('body') or '').encode()).hexdigest()
     result = {'reference': 'sys_user_approved', 'read_only': True, 'orm_reads': False,
-              'payroll_computed': False, 'employee_data_exported': False, 'formula_bodies_exported': False,
+              'payroll_computed': False, 'direct_employee_identifiers_exported': False,
+              'private_payroll_amounts_exported': True, 'formula_bodies_exported': False,
               'financial_certified': False, 'identity_conversion': False,
               'provider_license': manifest['license'], 'provider_version': manifest['version'],
               'snapshot_sha256': hashlib.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest(),
