@@ -7,7 +7,9 @@ from odoo.addons.l10n_cl_simpledigital_payroll.controllers.libro_remuneraciones 
 
 
 def authorized_company(env, company_id):
-    if not env.user.has_group('payroll.group_payroll_manager'):
+    manager=env.ref('payroll.group_payroll_manager')
+    # Group definitions pick one primary XML ID; an alias is not a has_group key.
+    if manager not in env.user.groups_id:
         raise Forbidden()
     try:
         selected=int(company_id or env.company.id)

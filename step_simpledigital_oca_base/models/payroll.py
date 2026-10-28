@@ -89,15 +89,37 @@ class Payslip(models.Model):
     _inherit = 'hr.payslip'
     currency_id = fields.Many2one(related='company_id.currency_id')
     use_worked_day_lines = fields.Boolean(related='struct_id.use_worked_day_lines')
-    paid_amount = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
     net_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
     basic_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
     gross_wage = fields.Monetary(compute='_compute_provider_totals',currency_field='currency_id')
 
+    @property
+    def paid_amount(self):
+        return self._get_paid_amount()
+
+    def _get_contract_wage(self):
+        self.ensure_one();self.check_access('read')
+        if self.contract_id.wage_type!='monthly' or self.contract_id.schedule_pay!='monthly':
+            raise UserError(_('This provider bridge supports audited monthly wages only.'))
+        return self.contract_id.wage
+
+    def _get_paid_amount(self):
+        self.ensure_one();self.check_access('read')
+        if self.env.context.get('no_paid_amount'):
+            return 0.0
+        if self.env.context.get('salary_simulation'):
+            raise UserError(_('Salary simulation requires a separate certified payroll contract.'))
+        if not self.use_worked_day_lines:
+            return self._get_contract_wage()
+        self.worked_days_line_ids.check_access('read')
+        return sum(self.worked_days_line_ids.mapped('amount'))
+
+    def _get_unpaid_amount(self):
+        return self._get_contract_wage()-self._get_paid_amount()
+
     @api.depends('worked_days_line_ids.amount','line_ids.total','line_ids.code')
     def _compute_provider_totals(self):
         for slip in self:
-            slip.paid_amount = sum(slip.worked_days_line_ids.mapped('amount'))
             totals = slip._get_line_values(['BASIC','GROSS','NET'])
             slip.basic_wage = totals['BASIC'][slip.id]['total']
             slip.gross_wage = totals['GROSS'][slip.id]['total']

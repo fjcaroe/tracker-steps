@@ -26,6 +26,8 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         if not self.oca:
             for alias,original in [('group_payroll_user','group_hr_payroll_user'),('group_payroll_manager','group_hr_payroll_manager')]+[('model_'+m,'model_'+m) for m in ('hr_payslip','hr_payslip_line','hr_payslip_input','hr_payslip_worked_days')]:
                 self.assertEqual(self.env.ref('payroll.'+alias),self.env.ref('hr_payroll.'+original))
+            self.assertTrue(self.scope.user.has_group('hr_payroll.group_hr_payroll_manager'))
+            self.assertIn(self.env.ref('payroll.group_payroll_manager'),self.scope.user.groups_id)
         else:
             self.assertFalse(self.env['ir.module.module'].search_count([('name','=','hr_payroll'),('state','=','installed')]))
             self.assertEqual(self.env['hr.payslip']._table,'hr_payslip')
@@ -36,6 +38,9 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.employee.user_id=owner
         slip=self.slip();slip.compute_sheet()
         self.assertTrue(slip.with_user(owner).read(['line_ids']))
+        public=self.scope['hr.employee.public'].with_user(owner).browse(self.employee.id)
+        action=public.action_view_payslips()
+        self.assertIn(slip,self.scope['hr.payslip'].with_user(owner).search(action['domain']))
         self.assertTrue(slip.line_ids.with_user(owner).read(['total']))
         self.assertTrue(slip.input_line_ids.with_user(owner).read(['amount']))
         for record,columns in [(slip,['line_ids']),(slip.line_ids,['total']),(slip.input_line_ids,['amount'])]:
@@ -55,9 +60,10 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
 
     def test_existing_provider_fields_and_views_load(self):
         for model,names in {'hr.contract':['health_institution','pension_option','analytic_account_id','hourly_wage'],
-                'hr.employee':['hr_commune'],'hr.payslip':['paid_amount','net_wage'],
+                'hr.employee':['hr_commune'],'hr.payslip':['net_wage'],
                 'hr.work.entry.type':['unpaid_structure_ids']}.items():
-            self.assertTrue(set(names)<=set(self.scope[model]._fields))
+            self.assertTrue(set(names)<=set(self.scope[model]._fields),(model,set(names)-set(self.scope[model]._fields)))
+        self.assertEqual(self.slip().paid_amount,self.contract.wage)
         model=self.scope['hr.payslip']
         view=self.env.ref('payroll.hr_payslip_view_form' if self.oca else 'hr_payroll.view_hr_payslip_form')
         self.assertTrue(model.get_view(view_id=view.id,view_type='form')['arch'])
@@ -83,9 +89,13 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
             'unpaid_structure_ids':[Command.set(self.structure.ids)]})
         line=self.scope['hr.payslip.worked_days'].create({'payslip_id':slip.id,'contract_id':self.contract.id,
             'name':kind.name,'code':kind.code,'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
+        self.structure.use_worked_day_lines=True
         self.assertFalse(line.is_paid);self.assertEqual(line.amount,0)
+        self.assertEqual(slip.paid_amount,0)
         kind.unpaid_structure_ids=[Command.clear()]
         self.assertTrue(line.is_paid);self.assertEqual(line.amount,self.company.currency_id.round(self.contract.wage/30))
+        self.assertEqual(slip.paid_amount,line.amount)
+        self.assertEqual(slip.with_context(no_paid_amount=True).paid_amount,0)
 
     def test_validated_salary_is_immutable(self):
         slip=self.slip();slip.compute_sheet();slip.state='done'

@@ -58,6 +58,13 @@ def main():
                         if keyword.arg=='required' and isinstance(keyword.value,ast.Constant) and keyword.value.value is True:
                             keyword.value=ast.Constant(False)
             content=ast.unparse(tree)+'\n'
+        if name=='views/hr_employee.xml':
+            tree=ET.fromstring(content)
+            for record in tree.iter('record'):
+                if record.get('id')=='view_employee_form_inherit_payslip_button':
+                    for button in record.iter('button'):
+                        if button.get('name')=='action_view_payslips':button.set('groups','hr.group_hr_user')
+            content=ET.tostring(tree,encoding='unicode')
         if name=='data/hr_salary_structure.xml':
             tree=ET.fromstring(content)
             for record in tree.iter('record'):
