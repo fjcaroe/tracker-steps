@@ -136,3 +136,16 @@ retires allí EE, alteres vencimientos, refresques QA-Cerro ni emitas al SII rea
 Respeta Calendar, Boolean bancario y 210233. Prueba el mismo paquete en Community
 oficial y copia fresca aislada, commits/push, integra solo lo validado y ejecuta
 python tools/git/verify_handoff.py --require-pushed. Actualiza evidencia y siguiente bloque.
+
+
+## Configuración esencial y procedencia — 28-10-2026
+
+Paquete B de código 510b7d2: 96 pruebas Community y 36 en copia fresca nativa,
+conservando 918 tablas/proyecciones, 140 contadores y 58.956 XML IDs. El guard
+estructural detecta que la configuración de Cerro no demuestra la conexión
+BASIC/GROSS. Se conservan sus reglas y los aliases de tres IDs originales, con
+retiro seguro. SyS fue consultado únicamente en lectura para contrastar perfiles;
+no se trasladan ni corrigen configuraciones automáticamente. Estado, evidencia,
+límites y **siguiente prompt vigente** en
+[COMMUNITY_PAYROLL_CONFIGURATION.md](COMMUNITY_PAYROLL_CONFIGURATION.md).
+No hay conversión integral ni certificación financiera; el 31 sigue en riesgo.

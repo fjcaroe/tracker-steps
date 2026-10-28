@@ -270,3 +270,16 @@ Estado, evidencia, límites y **siguiente prompt vigente** en
 [COMMUNITY_PAYROLL_HISTORY.md](COMMUNITY_PAYROLL_HISTORY.md). La configuración
 original, histórico real, DTE/CAF/SII y conversión integral siguen pendientes;
 no se considera resuelto el 31 y no se modifican producción ni QA-Cerro.
+
+
+## Configuración esencial y procedencia — 28-10-2026
+
+Paquete B de código 510b7d2: 96 pruebas Community y 36 en copia fresca nativa,
+conservando 918 tablas/proyecciones, 140 contadores y 58.956 XML IDs. El guard
+estructural detecta que la configuración de Cerro no demuestra la conexión
+BASIC/GROSS. Se conservan sus reglas y los aliases de tres IDs originales, con
+retiro seguro. SyS fue consultado únicamente en lectura para contrastar perfiles;
+no se trasladan ni corrigen configuraciones automáticamente. Estado, evidencia,
+límites y **siguiente prompt vigente** en
+[COMMUNITY_PAYROLL_CONFIGURATION.md](COMMUNITY_PAYROLL_CONFIGURATION.md).
+No hay conversión integral ni certificación financiera; el 31 sigue en riesgo.

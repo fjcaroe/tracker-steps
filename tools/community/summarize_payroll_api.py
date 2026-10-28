@@ -24,6 +24,10 @@ def main():
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
+    configuration=args.evidence/'community/configuration.json'
+    if configuration.exists():paths+=['tools/community/inspect_payroll_configuration.py']
+    origins=args.evidence/'profile-origins.json'
+    if origins.exists():paths+=['tools/community/audit_payroll_profile_sources.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
     if upgrade.exists():paths+=['tools/community/validate_payroll_history_upgrade.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
@@ -100,6 +104,27 @@ def main():
         proof['ledger_row_counts']={name:len(seed['original_rows'][name]) for name in ('account_move','account_move_line')}
         assert all(proof['ledger_row_counts'].values())
         result['history_upgrade']=proof
+    if configuration.exists():
+        executed=(args.evidence/'configuration-inspector.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/inspect_payroll_configuration.py'].replace(b'\r\n',b'\n')
+        reports={}
+        for mode in ('community','cerro-reference'):
+            value=read(mode,'configuration')
+            assert value['normal_actor'] and value['read_only_configuration'] and value['fixtures_rolled_back']
+            assert not value['writes_to_source'] and not value['financial_certified']
+            chile=next(row for row in value['reports'] if row['structure_id']==value['chile_structure_id'])
+            assert not chile['financial_certified']
+            if mode=='cerro-reference':assert value['chile_rule_alias_ids']==chile['essential_ids']
+            reports[mode]={'normal_actor':True,'total_rules':sum(row['rule_count'] for row in value['reports']),
+                'chile_rules':chile['rule_count'],'chile_errors':chile['errors'],
+                'original_essential_ids':chile['essential_ids'],'rule_alias_ids':value['chile_rule_alias_ids']}
+        result['configuration']=reports
+    if origins.exists():
+        value=json.loads(origins.read_text(encoding='utf-8'))
+        assert value['read_only'] and not value['formula_bodies_exported'] and not value['employee_data_exported'] and not value['financial_certified']
+        executed=(args.evidence/'profile-auditor.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_payroll_profile_sources.py'].replace(b'\r\n',b'\n')
+        result['profile_origins']={name:profile['active_essential_ids'] for name,profile in value['profiles'].items()}
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 
