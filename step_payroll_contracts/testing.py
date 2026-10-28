@@ -248,7 +248,10 @@ class PayrollContractMixin:
         line=slip.line_ids.filtered(lambda row:row.code==code)
         self.assertEqual(len(line),1)
         rule=self.rule.copy({'name':'Private historical second rule'}) if distinct else self.rule
-        line.copy({'salary_rule_id':rule.id,'amount':0,'quantity':1,'rate':100})
+        duplicate=line.copy({'salary_rule_id':rule.id,'code':code,'amount':0,'quantity':1,'rate':100,'total':0,'ytd':0})
+        self.env.flush_all()
+        self.env.cr.execute('SELECT total FROM hr_payslip_line WHERE id=%s',(duplicate.id,))
+        self.assertEqual(self.env.cr.fetchone()[0],0)
         slip.state='done';self.env.flush_all()
         return slip
 
@@ -256,6 +259,12 @@ class PayrollContractMixin:
         self.env.flush_all()
         self.env.cr.execute('SELECT id,code,salary_rule_id,total,write_date FROM hr_payslip_line WHERE slip_id=%s ORDER BY id',(slip.id,))
         return self.env.cr.fetchall()
+
+    @staticmethod
+    def _expected_identity_totals(rows):
+        result={}
+        for ident,code,rule,total,stamp in rows:result[code]=result.get(code,0)+total
+        return result
 
     def test_stored_essential_distinct_rule_identities_are_not_summed(self):
         from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals,stored_payslip_totals
@@ -268,13 +277,13 @@ class PayrollContractMixin:
     def test_stored_same_rule_rows_remain_additive_and_stable(self):
         from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals
         slip=self._stored_identity_fixture('NET',False);before=self._identity_snapshot(slip)
-        self.assertEqual(stored_payslip_code_totals(slip),{slip.id:{'NET':125}})
+        self.assertEqual(stored_payslip_code_totals(slip),{slip.id:self._expected_identity_totals(before)})
         self.contract.wage=1200000
-        self.assertEqual(stored_payslip_code_totals(slip),{slip.id:{'NET':125}})
+        self.assertEqual(stored_payslip_code_totals(slip),{slip.id:self._expected_identity_totals(before)})
         self.assertEqual(self._identity_snapshot(slip),before)
 
     def test_stored_nonessential_distinct_rules_keep_additive_contract(self):
         from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals
         slip=self._stored_identity_fixture('PRIVATE_HISTORY',True);before=self._identity_snapshot(slip)
-        self.assertEqual(stored_payslip_code_totals(slip),{slip.id:{'PRIVATE_HISTORY':125}})
+        self.assertEqual(stored_payslip_code_totals(slip),{slip.id:self._expected_identity_totals(before)})
         self.assertEqual(self._identity_snapshot(slip),before)
