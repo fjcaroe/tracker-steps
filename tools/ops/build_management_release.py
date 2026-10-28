@@ -60,7 +60,7 @@ def main():
         modules = ('step_partner_manual_entry',)
     if args.kind == 'company-form':
         assert args.environment in ('development','cerro','qa-cerro')
-        modules = ('step_company_form_restore',)
+        modules = ('step_company_form_restore','step_company_form_restore_payroll')
     if args.kind == 'species-tariff':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules=('step_species_tariff',)

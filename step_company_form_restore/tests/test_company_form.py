@@ -48,3 +48,8 @@ class CompanyFormCase(TransactionCase):
         self.assertEqual(company.phone,'QA PHONE')
         self.assertEqual(company.read(['name','vat','partner_id','currency_id'])[0],before)
         self.assertEqual(self.env['res.company'].search_count([]),count)
+
+    def test_obsolete_previred_fields_are_not_rendered(self):
+        from odoo.addons.step_company_form_restore.hooks import LEGACY
+        arch=self.env['res.company']._get_view(view_type='form')[0]
+        self.assertFalse({node.get('name') for node in arch.xpath('.//field')} & LEGACY)

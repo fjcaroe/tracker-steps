@@ -20,6 +20,8 @@ try:
     for name in ('name','vat','currency_id','country_id','phone','email'):
         assert arch.xpath("//field[@name='%s']"%name),name
     assert arch.xpath('//notebook/page')
+    assert len(arch.xpath("//page[@name='steps_previred']"))==1
+    assert not arch.xpath(".//field[starts-with(@name,'x_studio_caja_compensacin')]")
     native_pages=[node.get('name') or node.get('string') for node in arch.xpath('//notebook/page')]
     action=scoped.ref('base.action_res_company_form')
     assert action.views[0]==(scoped.ref('base.view_company_tree').id,'list')
