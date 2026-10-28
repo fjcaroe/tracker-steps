@@ -760,6 +760,46 @@ class FullBookHttp(FullBookInstall,HttpCase):
         self.assertIn(batch.id,[row['id'] for row in result['recent_batches']])
         self.assertFalse(result['contributions']['available'])
 
+    def _pdf_asset_sidecar(self, html):
+        """Serve exact prefetched runtime assets, avoiding nested test-cursor deadlocks."""
+        import re,threading,hashlib
+        from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+        from urllib.parse import urljoin,urlsplit
+        from lxml import html as etree
+        origin=self.base_url();cache={};missing=[]
+        todo=etree.fromstring(html).xpath('//link[@href]/@href | //script[@src]/@src | //img[@src]/@src')
+        while todo:
+            link=todo.pop()
+            if link.startswith('data:'):continue
+            parsed=urlsplit(urljoin(origin,link))
+            self.assertEqual(parsed.netloc,urlsplit(origin).netloc,'Only private runtime assets may be prefetched')
+            key=parsed.path
+            if key in cache:continue
+            response=self.url_open(key+('?' + parsed.query if parsed.query else ''))
+            self.assertEqual(response.status_code,200,(key,response.status_code))
+            cache[key]=(response.content,response.headers.get('Content-Type','application/octet-stream'))
+            if 'text/css' in cache[key][1]:
+                css=response.content.decode('utf-8')
+                for raw in re.findall(r'url\(\s*([^)]*?)\s*\)',css):
+                    value=raw.strip('\"\' ')
+                    if value and not value.startswith('data:'):
+                        # Asset URLs in runtime bundles must remain relative for this static mirror.
+                        self.assertFalse(urlsplit(value).netloc,'Absolute asset callback cannot use the test mirror')
+                        todo.append(urljoin(key,value))
+        self.assertTrue(cache)
+        class Handler(BaseHTTPRequestHandler):
+            def do_GET(handler):
+                key=urlsplit(handler.path).path
+                if key not in cache:
+                    missing.append(key);handler.send_error(404);return
+                payload,mime=cache[key];handler.send_response(200)
+                handler.send_header('Content-Type',mime);handler.send_header('Content-Length',str(len(payload)))
+                handler.end_headers();handler.wfile.write(payload)
+            def log_message(handler,*args):pass
+        server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+        thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        return server,thread,missing,{key:hashlib.sha256(value[0]).hexdigest() for key,value in cache.items()}
+
     def test_actual_pdf_binary_and_employee_sheets(self):
         import io,json,hashlib
         from pathlib import Path
@@ -767,15 +807,25 @@ class FullBookHttp(FullBookInstall,HttpCase):
         from PyPDF2 import PdfFileReader
         from odoo import tools
         slip,wizard=self.book_reference();self.login_owner()
-        # Only the private test listener may receive renderer callbacks.
         self.env['ir.config_parameter'].sudo().set_param('report.url',self.base_url())
-        before=stored_payslip_totals(slip,'LIQ')
-        proofs=[]
+        before=stored_payslip_totals(slip,'LIQ');proofs=[]
         for name,output,dimensions in [('consolidated_book','pdf',(1008,612)),
                                        ('employee_sheets','sheets',(595,842))]:
             context={'force_report_rendering':True,'allowed_company_ids':self.company.ids}
-            url='/report/pdf/step_hr_remuneration_book.%s/%s?'%(name,wizard.id)+urlencode({'context':json.dumps(context)})
-            response=self.url_open(url,timeout=120)
+            suffix='step_hr_remuneration_book.%s/%s?'%(name,wizard.id)+urlencode({'context':json.dumps(context)})
+            html=self.url_open('/report/html/'+suffix)
+            self.assertEqual(html.status_code,200)
+            server,thread,missing,assets=self._pdf_asset_sidecar(html.content)
+            domain=[('company_id','=',self.company.id),('output','=',output)]
+            self.env.invalidate_all()
+            count=self.scope['step.remuneration.book.log'].search_count(domain)
+            self.env['ir.config_parameter'].sudo().set_param('report.url','http://127.0.0.1:%s'%server.server_port)
+            try:
+                response=self.url_open('/report/pdf/'+suffix,timeout=120)
+            finally:
+                server.shutdown();server.server_close();thread.join(timeout=5)
+                self.env['ir.config_parameter'].sudo().set_param('report.url',self.base_url())
+            self.assertFalse(missing,missing)
             self.assertEqual(response.status_code,200)
             self.assertIn('application/pdf',response.headers.get('Content-Type',''))
             self.assertEqual(response.headers.get('Cache-Control'),'no-store')
@@ -784,17 +834,15 @@ class FullBookHttp(FullBookInstall,HttpCase):
             page=reader.getPage(0);width,height=map(float,(page.mediaBox.getWidth(),page.mediaBox.getHeight()))
             self.assertAlmostEqual(width,dimensions[0],delta=2);self.assertAlmostEqual(height,dimensions[1],delta=2)
             self.env.invalidate_all()
-            logs=self.scope['step.remuneration.book.log'].search([
-                ('company_id','=',self.company.id),('output','=',output)])
-            self.assertEqual(len(logs),1);self.assertEqual(logs.user_id,self.scope.user)
-            self.assertEqual(logs.result,'ok')
-            self.assertEqual(stored_payslip_totals(slip,'LIQ'),before)
+            logs=self.scope['step.remuneration.book.log'].search(domain,order='id desc')
+            self.assertEqual(len(logs),count+1);self.assertEqual(logs[0].user_id,self.scope.user)
+            self.assertEqual(logs[0].result,'ok');self.assertEqual(stored_payslip_totals(slip,'LIQ'),before)
             directory=Path(tools.config['data_dir']).parent/'pdf-evidence'
             if str(directory).startswith('/opt/steps-validation/community-payroll-book-'):
-                directory.mkdir(exist_ok=True)
-                (directory/(name+'.pdf')).write_bytes(response.content)
+                directory.mkdir(exist_ok=True);(directory/(name+'.pdf')).write_bytes(response.content)
                 proofs.append({'report':name,'output':output,'pages':reader.getNumPages(),
                     'width':width,'height':height,'sha256':hashlib.sha256(response.content).hexdigest(),
-                    'normal_actor':not self.scope.su,'single_audit':True,'history_preserved':True})
+                    'normal_actor':not self.scope.su,'single_audit':True,'history_preserved':True,
+                    'asset_source':'exact_runtime_prefetch','asset_sha256':assets,'missing_assets':missing})
         if proofs:
             (directory/'pdf-proof.json').write_text(json.dumps(proofs,indent=2),encoding='utf-8')
