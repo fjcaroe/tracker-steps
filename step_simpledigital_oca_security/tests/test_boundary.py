@@ -293,7 +293,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
     def test_nonessential_collision_stops_chile_before_existing_lines_change(self):
         self.valid_configuration()
         extra=self.rule.copy({'code':'PRIVATE_COLLISION','sequence':50,'amount_python_compute':'result = 10'})
-        slip=self.slip();slip.compute_sheet()
+        slip=self.slip();slip.compute_sheet();original_state=slip.state
         second=extra.copy({'category_id':self.gross_rule.category_id.id,
                            'condition_select':'python','condition_python':'result = False'})
         self.structure.name='Nómina Chile'
@@ -309,7 +309,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.env.cr.execute('SELECT id,code,salary_rule_id,total,write_date FROM hr_payslip_line WHERE slip_id=%s ORDER BY id',(slip.id,))
         self.assertEqual(self.env.cr.fetchall(),before)
         self.assertEqual((extra|second).read(['id','active','sequence','category_id','condition_python']),masters)
-        self.assertEqual(slip.state,'draft')
+        self.assertEqual(slip.state,original_state)
 
     def test_archived_and_other_structure_codes_are_not_collisions(self):
         self.valid_configuration()
