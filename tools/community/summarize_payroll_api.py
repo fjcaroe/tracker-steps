@@ -28,6 +28,8 @@ def main():
     bridge=read('community','passed').get('profile')=='previred-simpledigital'
     if previred:paths+=['step_hr_previred']
     if bridge:paths+=['step_hr_previred_simpledigital']
+    cleanup=args.evidence/'retention/cleanup-result.json'
+    if cleanup.exists():paths+=['tools/community/cleanup_payroll_rehearsals.py']
     group_proof=args.evidence/'group-preservation.json'
     if group_proof.exists():paths+=['tools/community/verify_payroll_group_preservation.py']
     configuration=args.evidence/'community/configuration.json'
@@ -153,6 +155,22 @@ def main():
         assert proof['read_only'] and not proof['writes_to_source']
         assert all(row['identical'] and row['original_rows']==row['current_rows'] and row['original_sha256']==row['current_sha256'] for row in proof['bindings'].values())
         result['original_group_bindings_preserved']=proof
+    if cleanup.exists():
+        proof=json.loads(cleanup.read_text(encoding='utf-8'))
+        executed=(args.evidence/'retention/cleanup.py').read_bytes()
+        plan_path=args.evidence/'retention/cleanup-plan-resume.json'
+        plan=json.loads(plan_path.read_text(encoding='utf-8'))
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert proof['plan_sha256']==hashlib.sha256(plan_path.read_bytes()).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/cleanup_payroll_rehearsals.py'].replace(b'\r\n',b'\n')
+        assert proof['apply'] and proof['read_only_production'] and not proof.get('failure')
+        assert {row['name'] for row in proof['databases']}==set(plan['delete_databases'])
+        assert not set(plan['keep_databases'])&set(plan['delete_databases'])
+        assert {row['path'] for row in proof['retained_backups']}==set(plan['keep_backups'])
+        assert all(row['fully_decoded'] for row in proof['retained_backups'])
+        result['retention_cleanup']={'retired_databases':len(proof['databases'])+len(plan.get('already_retired_databases',[])),
+            'retired_backups':len(proof['backups']),'retained_decoded_backups':len(proof['retained_backups']),
+            'postgres_available_bytes_after':proof['postgres_available_bytes_after']}
     standalone=args.evidence/'core-standalone/passed.json'
     if standalone.exists():
         proof=json.loads(standalone.read_text(encoding='utf-8'))
