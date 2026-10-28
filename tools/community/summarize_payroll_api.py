@@ -5,6 +5,7 @@ import io
 import tarfile
 import json
 import subprocess
+from decimal import Decimal
 from pathlib import Path
 
 
@@ -40,6 +41,8 @@ def main():
     if origins.exists():paths+=['tools/community/audit_payroll_profile_sources.py']
     sys_reference=args.evidence/'sys-reference.json'
     if sys_reference.exists():paths+=['tools/community/audit_sys_payroll_reference.py']
+    sys_provider=args.evidence/'sys-provider-source.json'
+    if sys_provider.exists():paths+=['tools/community/audit_payroll_community.py']
     ytd=args.evidence/'native-ytd/observations.json'
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
@@ -121,9 +124,26 @@ def main():
         selected=proof['selected_case']
         assert selected and selected['state'] in ('done','paid') and set(selected['concepts'])=={'BASIC','GROSS','NET'}
         assert all(len({row['salary_rule_id'] for row in rows})==1 for rows in selected['concepts'].values())
+        assert all(sum((Decimal(row['total']) for row in rows),Decimal(0))==Decimal(selected['stored_totals'][code]) for code,rows in selected['concepts'].items())
         result['sys_reference']={'closed_slips':proof['closed_slips'],'unambiguous_complete_slips':proof['unambiguous_complete_slips'],
             'ambiguous_concepts':len(proof['ambiguous_concepts']),'incomplete_slips':len(proof['incomplete_slip_ids']),
             'selected_period':selected['date_to'][:7],'financial_certified':False,'source_read_only':True}
+    if sys_provider.exists():
+        proof=json.loads(sys_provider.read_text(encoding='utf-8'))
+        executed=(args.evidence/'sys-provider-inspector.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_payroll_community.py'].replace(b'\r\n',b'\n')
+        assert proof['read_only'] and not proof['formula_bodies_exported']
+        provider=proof['module_source'];assert provider['manifest']['license']=='AGPL-3'
+        inventory=json.loads((args.evidence/'inventory-current.json').read_text(encoding='utf-8'))
+        same=provider['source_sha256']==inventory['modules']['l10n_cl_simpledigital_payroll']['source_sha256']
+        assert same==proof['same_as_cerro_original']
+        result['sys_provider']={'files':provider['files'],'license':provider['manifest']['license'],'same_as_cerro_original':same}
+    versions=args.evidence/'contracts-version-proof.json'
+    if versions.exists():
+        proof=json.loads(versions.read_text(encoding='utf-8'))
+        assert proof['read_only'] and set(proof['versions'])=={'community','cerro-reference'}
+        assert set(proof['versions'].values())=={'18.0.1.6.0'}
+        result['contracts_versions']=proof['versions']
     ui=args.evidence/'community'/'configuration-probe.json'
     if ui.exists():
         probe=json.loads(ui.read_text(encoding='utf-8'))
