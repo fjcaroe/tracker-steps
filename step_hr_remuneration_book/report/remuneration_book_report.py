@@ -1,5 +1,5 @@
 from odoo import api, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 
 from ..tools import dt_book
 
@@ -32,6 +32,8 @@ class _BookReportMixin(models.AbstractModel):
             raise UserError(_("Seleccione un solo asistente para generar el informe."))
         # Preserve transient ownership and record rules before reading its scope.
         wizard.check_access('read')
+        if not self.env.su and wizard.create_uid.id != self.env.uid:
+            raise AccessError(_("No tiene acceso a este asistente de remuneraciones."))
         dataset = wizard.generate(self._step_output)
         return {
             "doc_ids": docids,

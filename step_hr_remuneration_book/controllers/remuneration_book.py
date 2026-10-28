@@ -7,12 +7,33 @@ from odoo import http
 from odoo.addons.step_payroll_contracts.access import has_payroll_role
 from odoo.exceptions import AccessError, UserError
 from odoo.http import content_disposition, request
+from odoo.addons.web.controllers.report import ReportController
 
 from ..tools.xlsx_book import build_workbook
 
 #: El libro corporativo y el CSV oficial exigen el permiso de exportación
 #: completa: ocultar botones no es una medida de seguridad.
 PARTIAL_GROUP = "hr_payroll.group_hr_payroll_user"
+
+BOOK_REPORTS = frozenset((
+    'step_hr_remuneration_book.consolidated_book',
+    'step_hr_remuneration_book.employee_sheets',
+))
+
+
+def book_report_readonly(controller):
+    """Only these two reports write their required audit in the request transaction."""
+    parts = request.httprequest.path.strip('/').split('/')
+    return not (len(parts) >= 3 and parts[0] == 'report' and parts[2] in BOOK_REPORTS)
+
+
+class StepsBookReportController(ReportController):
+    @http.route(readonly=book_report_readonly)
+    def report_routes(self, reportname, docids=None, converter=None, **data):
+        response = super().report_routes(reportname, docids=docids, converter=converter, **data)
+        if reportname in BOOK_REPORTS:
+            response.headers['Cache-Control'] = 'no-store'
+        return response
 
 
 class StepsRemunerationBookController(http.Controller):

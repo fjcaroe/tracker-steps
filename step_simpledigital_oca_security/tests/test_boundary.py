@@ -626,6 +626,7 @@ class FullBookInstall(PayrollContractMixin,TransactionCase):
         for ids in ([],wizard.ids+wizard.ids):
             with self.assertRaises(UserError):report._get_report_values(ids)
         foreign=wizard.with_env(self.env).copy()  # Admin owns this private transient, not the reporting actor.
+        self.assertNotEqual(foreign.create_uid,self.scope.user)
         with self.assertRaises(AccessError):report._get_report_values(foreign.ids)
         self.env['ir.rule'].create({'name':'Private PDF hidden salary',
             'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
@@ -777,6 +778,7 @@ class FullBookHttp(FullBookInstall,HttpCase):
             response=self.url_open(url,timeout=120)
             self.assertEqual(response.status_code,200)
             self.assertIn('application/pdf',response.headers.get('Content-Type',''))
+            self.assertEqual(response.headers.get('Cache-Control'),'no-store')
             self.assertTrue(response.content.startswith(b'%PDF-'))
             reader=PdfFileReader(io.BytesIO(response.content));self.assertGreater(reader.getNumPages(),0)
             page=reader.getPage(0);width,height=map(float,(page.mediaBox.getWidth(),page.mediaBox.getHeight()))
