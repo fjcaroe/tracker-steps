@@ -15,7 +15,7 @@ class Structure(models.Model):
 
     type_id = fields.Many2one('hr.payroll.structure.type', string='Type', ondelete='restrict')
     step_clp_concept_rounding = fields.Boolean(string='Redondear conceptos en pesos (Chile)',
-        help='Redondea cada concepto antes de acumular categorÃ­as desde octubre de 2026. No modifica liquidaciones validadas.')
+        help='Redondea cada concepto antes de acumular categorías desde octubre de 2026. No modifica liquidaciones validadas.')
 
     @api.constrains('rule_ids')
     def _check_primary_rule_membership(self):
