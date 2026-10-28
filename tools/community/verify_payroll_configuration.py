@@ -3,7 +3,8 @@ import json
 import os
 from pathlib import Path
 from lxml import etree
-from odoo import api, Command
+from datetime import datetime, time, timedelta
+from odoo import api, Command, fields
 
 assert env.cr.dbname.startswith('COMMUNITY_PAYROLL_API_')
 assert not env['ir.module.module'].search_count([('state','=','installed'),('license','=','OEEL-1')])
@@ -35,9 +36,26 @@ try:
         'use_work_entries':True,'step_clp_concept_rounding':True})
     assert structure.use_work_entries and structure.step_clp_concept_rounding
     assert not structure.env.su
+    calendar=scoped['resource.calendar'].create({'name':'Private UI calendar','company_id':company.id,'tz':'UTC'})
+    employee=scoped['hr.employee'].create({'name':'Private UI employee','company_id':company.id,'resource_calendar_id':calendar.id})
+    employee.resource_id.tz='UTC'
+    first=fields.Date.today().replace(day=1)
+    contract=scoped['hr.contract'].create({'name':'Private UI contract','employee_id':employee.id,'company_id':company.id,
+        'date_start':first,'state':'open','wage':1000,'resource_calendar_id':calendar.id,'struct_id':structure.id,'structure_type_id':kind.id})
+    work_type=scoped['hr.work.entry.type'].create({'name':'Private UI attendance','code':'PAPI_UI'})
+    monday=first+timedelta(days=(-first.weekday())%7)
+    scoped['hr.work.entry'].create({'name':'Private UI work entry','employee_id':employee.id,'company_id':company.id,
+        'contract_id':contract.id,'work_entry_type_id':work_type.id,
+        'date_start':datetime.combine(monday,time(8)),'date_stop':datetime.combine(monday,time(12))})
+    # Actual unsaved form records exercise native onchanges; no substitute model.
+    draft=scoped['hr.payslip'].with_context(contract=True).new({'employee_id':employee.id,'company_id':company.id,
+        'contract_id':contract.id,'struct_id':structure.id,'date_from':first,'date_to':fields.Date.today()})
+    draft.onchange_employee()
+    assert draft.worked_days_line_ids.work_entry_type_id==work_type
+    assert draft.worked_days_line_ids.number_of_hours==4
     result={'menu_visible':True,'menu_chain':chain,'action_model':menu.action.res_model,
         'form_fields':list(required),'configuration_saved_with_normal_permissions':True,
-        'actor_sudo':False,'fixtures_rolled_back':True}
+        'native_payroll_form_onchange':True,'actor_sudo':False,'fixtures_rolled_back':True}
 finally:
     env.cr.rollback()
 output.write_text(json.dumps(result,indent=2),encoding='utf-8')

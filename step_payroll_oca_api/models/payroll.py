@@ -265,6 +265,17 @@ class Payslip(models.Model):
                     raise UserError(_('Repeated input codes must use the same explicit input type.'))
         return super().compute_sheet()
 
+    def get_salary_line_total(self, code):
+        self.ensure_one()
+        self.check_access('read')
+        lines = self.line_ids.filtered(lambda line:line.code==code)
+        # Native OCA assumes one line per code. Typed repeated inputs now retain
+        # several real lines; its legacy total helper must read all those lines.
+        if len(lines)>1 and self.input_line_ids.filtered(lambda line:line.code==code and line.input_type_id):
+            lines.check_access('read')
+            return sum(lines.mapped('total'))
+        return super().get_salary_line_total(code)
+
     def _get_line_values(self, code_list, vals_list=None, compute_sum=False):
         self.check_access('read')
         values=vals_list or ['total']

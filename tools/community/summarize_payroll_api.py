@@ -54,6 +54,18 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    ui=args.evidence/'community'/'configuration-probe.json'
+    if ui.exists():
+        probe=json.loads(ui.read_text(encoding='utf-8'))
+        assert probe['menu_visible'] and probe['configuration_saved_with_normal_permissions']
+        assert not probe['actor_sudo'] and probe['fixtures_rolled_back']
+        result['configuration_probe']=probe
+    schema=args.evidence/'schema-delta.json'
+    if schema.exists():
+        mapping=json.loads(schema.read_text(encoding='utf-8'))
+        assert mapping['read_only'] and not mapping['identity_migration_accepted']
+        assert not mapping['simpledigital_certified'] and not mapping['vendor']['simpledigital_installed']
+        result['schema_delta_counts']=mapping['counts']
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 

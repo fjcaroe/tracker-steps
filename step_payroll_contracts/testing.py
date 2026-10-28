@@ -113,6 +113,8 @@ class PayrollContractMixin:
         slip=self.slip(2);slip.input_line_ids.copy({'amount':3});slip.compute_sheet()
         lines=slip.line_ids.filtered(lambda line:line.code=='PRIVATE_BONUS')
         self.assertEqual(len(lines),2)
+        if self.oca:
+            self.assertEqual(slip.get_salary_line_total('PRIVATE_BONUS'),13)
         self.assertEqual(slip._get_line_values(['PRIVATE_BONUS'])['PRIVATE_BONUS'][slip.id]['total'],13)
         self.assertEqual(len(slip.input_line_ids),2)
         self.assertEqual(slip._get_line_values(['PRIVATE_RESULT_CHAIN'])['PRIVATE_RESULT_CHAIN'][slip.id]['total'],13)
