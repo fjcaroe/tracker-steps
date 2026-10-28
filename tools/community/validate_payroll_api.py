@@ -154,8 +154,14 @@ def main():
             execution_env.update(STEPS_PAYROLL_BASIC_REFERENCE_JSON=str(private_input),
                                  STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT=str(stage/'monthly-basis.json'))
         def execute(name,flags):
+            command=base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init']
+            if (root/'basis-input.json').exists():
+                # sudo resets arbitrary environment variables. Pass only these
+                # private file paths explicitly, never payroll contents/secrets.
+                command=base[:3]+['env',*['%s=%s'%(key,execution_env[key]) for key in
+                    ('STEPS_PAYROLL_BASIC_REFERENCE_JSON','STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT')]]+command[3:]
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
-                status=subprocess.run(base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init'],stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
+                status=subprocess.run(command,stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
             text=(stage/(name+'.log')).read_text(errors='replace')
             if args.tablespace:
                 current=os.statvfs(sql('postgres','SHOW data_directory'))
