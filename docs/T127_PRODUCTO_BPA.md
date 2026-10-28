@@ -1,5 +1,9 @@
 # T127 — campos de la hoja BPA de productos
 
+Inventario histórico del 27-10-2026. La implementación iniciada el 28-10 está
+descrita en `docs/T127_IMPLEMENTACION_BPA_COMMUNITY.md`; las afirmaciones de
+pendiente de este inventario describen el estado anterior a esa implementación.
+
 Solicitud revisada el 27-10-2026: cuatro tickets abiertos, T124 a T127.
 T127 pide equiparar la hoja BPA de `product.template` de Cerro y QA-Cerro
 con Desarrollo. Se leyeron descripción, comentarios y adjunto 3418 con sus

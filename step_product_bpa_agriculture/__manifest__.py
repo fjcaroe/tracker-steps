@@ -1,0 +1,1 @@
+{'name': 'Steps BPA Agricultural Integration', 'version': '18.0.1.0.0', 'license': 'AGPL-3', 'depends': ['step_product_bpa', 'step_agriculture_records'], 'data': ['views/product.xml'], 'installable': True}
