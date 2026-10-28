@@ -12,4 +12,20 @@
             </field>
         </field>
     </record>
+    <record id="payroll_worked_day_community_master_form" model="ir.ui.view">
+        <field name="name">hr.payslip.worked.days.community.master.form</field>
+        <field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="payroll.hr_payslip_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='worked_days_line_ids']/list/field[@name='code']" position="before">
+                <field name="work_entry_type_id" options="{'no_create': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='worked_days_line_ids']/form//field[@name='code']" position="before">
+                <field name="work_entry_type_id" options="{'no_create': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='worked_days_line_ids']//field[@name='code']" position="attributes">
+                <attribute name="readonly">work_entry_type_id</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>

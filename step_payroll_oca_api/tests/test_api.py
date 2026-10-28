@@ -9,6 +9,17 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_worked_day_master_is_available_in_normal_payroll_form(self):
+        from lxml import etree
+        arch=etree.fromstring(self.scope['hr.payslip'].get_view(view_type='form')['arch'])
+        for subview in ('list','form'):
+            self.assertTrue(arch.xpath("//field[@name='worked_days_line_ids']/"+subview+"//field[@name='work_entry_type_id']"))
+            self.assertEqual(arch.xpath("//field[@name='worked_days_line_ids']/"+subview+"//field[@name='code']/@readonly"),['work_entry_type_id'])
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private form day','code':'PRIVATE_FORM_DAY'})
+        line=self.scope['hr.payslip.worked_days'].new({'work_entry_type_id':kind.id})
+        line._onchange_type_code()
+        self.assertEqual(line.code,kind.code)
+
     def test_typed_worked_day_code_keeps_master_and_historical_identity(self):
         slip=self.slip()
         kind=self.scope['hr.work.entry.type'].create({'name':'Private typed day','code':'PRIVATE_TYPED_DAY'})
