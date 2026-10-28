@@ -245,24 +245,25 @@ class PayrollContractMixin:
         from odoo.addons.step_payroll_contracts.reference import select_closed_reference
         from odoo.addons.step_payroll_contracts.history import stored_payslip_code_totals
         (self.structure.rule_ids-self.rule).unlink()
-        self.contract.date_start=date(2026,1,1)
+        period=fields.Date.today().replace(day=1)
+        following=date(period.year+(period.month==12),1 if period.month==12 else period.month+1,1)
         self.rule.write({'code':'BASIC','amount_python_compute':"result = inputs['PRIVATE_BONUS'].amount"})
         self.rule.copy({'code':'GROSS','sequence':2,'amount_python_compute':"result = result_rules['BASIC']['total']"})
         self.rule.copy({'code':'NET','sequence':3,'amount_python_compute':"result = result_rules['GROSS']['total']"})
         cases=[];slips=self.scope['hr.payslip']
-        for amount,month,closed in [(100,9,True),(0,9,True),(200,10,True),(300,9,False)]:
-            slip=self.slip(amount);slip.write({'date_from':date(2026,month,1),'date_to':date(2026,month,28)})
+        for amount,month,closed in [(100,period,True),(0,period,True),(200,following,True),(300,period,False)]:
+            slip=self.slip(amount);slip.write({'date_from':month,'date_to':month.replace(day=28)})
             slip.compute_sheet()
             if closed:slip.state='done'
             slips|=slip
             cases.append({'id':slip.id,'state':slip.state,'date_from':slip.date_from.isoformat(),
                 'date_to':slip.date_to.isoformat(),'stored_totals':stored_payslip_code_totals(slip)[slip.id]})
         before=[self._identity_snapshot(slip) for slip in slips]
-        selected=select_closed_reference(cases,date(2026,10,28))
+        selected=select_closed_reference(cases,following)
         self.assertEqual(selected['selected_case']['id'],cases[0]['id'])
         self.assertEqual(selected['positive_closed_previous_month_cases'],1)
         self.assertTrue(selected['selected_case_has_positive_essential_totals'])
-        fallback=select_closed_reference(cases[1:],date(2026,10,28))
+        fallback=select_closed_reference(cases[1:],following)
         self.assertEqual(fallback['selected_case']['id'],cases[1]['id'])
         self.assertFalse(fallback['selected_case_has_positive_essential_totals'])
         self.assertTrue(fallback['zero_cases_preserved'])
