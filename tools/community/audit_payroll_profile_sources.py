@@ -24,7 +24,7 @@ def main():
         assert query('SHOW default_transaction_read_only')=='on'
         kind=query("SELECT udt_name FROM information_schema.columns WHERE table_name='hr_payroll_structure' AND column_name='name'")
         name="s.name->>'en_US'" if kind=='jsonb' else 's.name'
-        raw=query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',r.id,'code',r.code,'active',r.active,'sequence',r.sequence,'structure_id',s.id,'category_id',r.category_id,'body',r.amount_python_compute) ORDER BY r.id),'[]'::jsonb) FROM hr_salary_rule r JOIN hr_payroll_structure s ON s.id=r.struct_id WHERE "+name+"='Nómina Chile' AND r.code IN ('BASIC','GROSS','NET')")
+        raw=query("SELECT coalesce(jsonb_agg(jsonb_build_object('id',r.id,'code',r.code,'active',r.active,'sequence',r.sequence,'condition_select',r.condition_select,'amount_select',r.amount_select,'structure_id',s.id,'category_id',r.category_id,'body',r.amount_python_compute) ORDER BY r.id),'[]'::jsonb) FROM hr_salary_rule r JOIN hr_payroll_structure s ON s.id=r.struct_id WHERE "+name+"='Nómina Chile' AND r.code IN ('BASIC','GROSS','NET')")
         rules=json.loads(raw)
         for row in rules:
             body=row.pop('body') or '';row['body_sha256']=hashlib.sha256(body.encode()).hexdigest()
@@ -37,7 +37,8 @@ def main():
                 row['category_references']=sorted(str(x) for x in refs)
             except SyntaxError:row['parse_error']=True
         categories=json.loads(query("SELECT jsonb_agg(jsonb_build_object('id',id,'code',code,'parent_id',parent_id) ORDER BY id) FROM hr_salary_rule_category WHERE code IN ('BASIC','IMP','ALW','GROSS','NET')"))
-        result['profiles'][key]={'rules':rules,'categories':categories,'active_essential_ids':{code:[r['id'] for r in rules if r['active'] and r['code']==code] for code in ('BASIC','GROSS','NET')}}
+        historical_net=json.loads(query("SELECT coalesce(jsonb_agg(row_to_json(t) ORDER BY t.salary_rule_id),'[]'::jsonb) FROM (SELECT salary_rule_id,count(*) AS line_count FROM hr_payslip_line WHERE code='NET' GROUP BY salary_rule_id) t"))
+        result['profiles'][key]={'historical_net_rule_counts':historical_net,'rules':rules,'categories':categories,'active_essential_ids':{code:[r['id'] for r in rules if r['active'] and r['code']==code] for code in ('BASIC','GROSS','NET')}}
     a.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps({key:value['active_essential_ids'] for key,value in result['profiles'].items()}))
 

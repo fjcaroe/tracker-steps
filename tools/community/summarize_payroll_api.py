@@ -125,6 +125,9 @@ def main():
         executed=(args.evidence/'profile-auditor.py').read_bytes()
         assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_payroll_profile_sources.py'].replace(b'\r\n',b'\n')
         result['profile_origins']={name:profile['active_essential_ids'] for name,profile in value['profiles'].items()}
+        if all('historical_net_rule_counts' in profile for profile in value['profiles'].values()):
+            result['profile_net_history']={name:profile['historical_net_rule_counts'] for name,profile in value['profiles'].items()}
+            assert all(row['line_count']>0 and row['salary_rule_id'] for rows in result['profile_net_history'].values() for row in rows)
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps(result,indent=2))
 
