@@ -137,7 +137,7 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.assertTrue(fields['work_schedule_id'].required)
         self.assertFalse(self.scope['hr.payslip.line']._fields['code'].required)
         code=self.scope['hr.payslip.line']._fields['code']
-        self.assertEqual(tuple(code.related),('salary_rule_id','code'))
+        self.assertEqual(tuple(code.related.split('.') if isinstance(code.related,str) else code.related),('salary_rule_id','code'))
         self.assertTrue(code.readonly)
         slip=self.slip();slip.compute_sheet()
         self.env.flush_all();slip.line_ids.invalidate_recordset()
