@@ -92,12 +92,23 @@ def main():
     with open('/run/lock/steps-environments.lock','a') as lock:
         print('PAYROLL_API_WAITING_FOR_SHARED_LEASE '+args.mode,flush=True);fcntl.flock(lock,fcntl.LOCK_EX)
         assert not sql('postgres',"SELECT 1 FROM pg_database WHERE datname='"+args.database+"'")
+        # PostgreSQL can live on a separate volume from /opt; check both under
+        # the shared lease before creating or restoring another private clone.
+        pgstat=os.statvfs(sql('postgres','SHOW data_directory'))
+        rootstat=os.statvfs(root)
+        capacity={'postgres_available_bytes':pgstat.f_bavail*pgstat.f_frsize,
+            'artifact_available_bytes':rootstat.f_bavail*rootstat.f_frsize,
+            'postgres_minimum_bytes':5*1024**3,'artifact_minimum_bytes':2*1024**3}
+        dump_json('storage-preflight',capacity)
+        assert capacity['postgres_available_bytes']>=capacity['postgres_minimum_bytes'],'PostgreSQL volume reserve too low; retire owned rehearsals before continuing'
+        assert capacity['artifact_available_bytes']>=capacity['artifact_minimum_bytes'],'Private artifact volume reserve too low'
         run('sudo','-u','postgres','createdb','--owner='+config['options']['db_user'],args.database)
         baseline=original=history=contract=None
         if not pure:
             assert config['options']['db_name']=='CERRO_EL_PLOMO'
             with (stage/'source.dump').open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc','CERRO_EL_PLOMO',stdout=out)
-            with (stage/'source.dump').open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role='+config['options']['db_user'],'-d',args.database,stdin=inp)
+            with (stage/'source.dump').open('rb') as inp,(stage/'restore.log').open('w') as restore_log:
+                run('sudo','-u','postgres','pg_restore','--exit-on-error','--no-owner','--no-acl','--no-comments','--role='+config['options']['db_user'],'-d',args.database,stdin=inp,stderr=restore_log)
             sql(args.database,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
             store=data/'filestore'/args.database;store.mkdir(parents=True)
             run('rsync','-a',str(Path(config['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/')
