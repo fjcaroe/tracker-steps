@@ -228,3 +228,33 @@ Guarda commits, push, integra solo lo validado y ejecuta
 python tools/git/verify_handoff.py --require-pushed. Entrega estado acumulado,
 evidencia, pendientes, valoración honesta del 31 y siguiente prompt.
 ```
+
+
+## Contratos API Simple Digital–OCA — 27-10-2026
+
+Nuevo bloque de código `7c95671`: adaptador sobre OCA real, sin `hr.payslip`
+simulado ni fachada `hr_payroll`. Paquete G: tres addons/15 archivos idénticos,
+53 pruebas Community oficial (64 instalados/0 EE) y seis contratos compartidos
+en copia fresca nativa de Cerro (376/140 EE). Se preservan 918 tablas/proyecciones,
+140 contadores exactos incluso tras fixtures, 58.956 XML IDs, permisos, relaciones,
+históricos y saldos. No se repite ni se suma la regresión HR anterior 468/516.
+
+Se implementan tipos de entrada/FK, enlace de tipos de estructura, relación
+primaria de reglas con M2M OCA, totales por código y acceso real a entradas por
+diccionario. Se bloquea recálculo pagado/validado, repetición ambigua de entradas
+tipadas y cambios de relación inconsistentes. `payslip` ya era un registro real
+OCA; no se sustituyó. La comparación genérica incluye moneda CLP y asiento real.
+Las siete brechas del inventario de API anterior son el diagnóstico inicial;
+no interpretar su implementación parcial como certificación de Simple Digital.
+
+Quedan días/ausencias/work entries, agregación, cantidades/redondeos/YTD,
+instalación real del proveedor sobre OCA, adopción de modelos/campos/XML IDs/grupos,
+71 reglas chilenas, Previred/libro e históricos pagados representativos. OCA
+hereda líneas desde reglas: requiere mapear ese esquema en la conversión.
+Siguen DTE/CAF/SII y la conversión integral con cero EE, recuperación y aceptación.
+No cambian las 53 clausuras Enterprise sobre 93 apps del inventario anterior;
+producción conserva 140 EE. El riesgo del 31 sigue alto y el vencimiento no
+está resuelto. No se modifican producción, QA-Cerro, vencimientos ni pagadas.
+
+Estado detallado, límites, hashes, evidencia privada reproducible y **prompt de
+continuidad vigente** en [COMMUNITY_PAYROLL_API.md](COMMUNITY_PAYROLL_API.md).

@@ -1,6 +1,8 @@
 """Verify exported private API evidence against this checkout, without database access."""
 import argparse
 import hashlib
+import io
+import tarfile
 import json
 import subprocess
 from pathlib import Path
@@ -16,8 +18,16 @@ def main():
         return json.loads((args.evidence/mode/(name+'.json')).read_text(encoding='utf-8'))
     packets=[read(mode,'source-files') for mode in ('community','cerro-reference')]
     assert packets[0]==packets[1], 'Different addon packets'
+    # git archive applies export EOL filters too. Pin the Windows export used
+    # for the accepted package instead of confusing export bytes with raw blobs.
+    paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
+           'tools/community/validate_payroll_api.py']
+    exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
+        '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
+    with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
+        source={m.name:archive.extractfile(m).read() for m in archive.getmembers() if m.isfile()}
     for name,digest in packets[0].items():
-        blob=subprocess.check_output(['git','-C',str(repo),'show','HEAD:'+name])
+        blob=source[name]
         assert hashlib.sha256(blob).hexdigest()==digest, name
         assert (repo/name).read_bytes().replace(b'\r\n',b'\n')==blob.replace(b'\r\n',b'\n'),name
     results={mode:read(mode,'passed') for mode in ('community','cerro-reference')}
@@ -25,7 +35,7 @@ def main():
     assert results['cerro-reference']['counts']['enterprise']==140
     assert all(not r['writes_to_source'] and not r['historical_conversion'] and not r['simpledigital_certified'] for r in results.values())
     assert len({r['source_files_sha256'] for r in results.values()})==1
-    validator=subprocess.check_output(['git','-C',str(repo),'show','HEAD:tools/community/validate_payroll_api.py'])
+    validator=source['tools/community/validate_payroll_api.py']
     assert all(r['validator_sha256']==hashlib.sha256(validator).hexdigest() for r in results.values())
     before=read('cerro-reference','business-before')
     for name in ('business-after-upgrade','business-after'):
