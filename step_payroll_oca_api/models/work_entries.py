@@ -22,6 +22,14 @@ class WorkEntryType(models.Model):
 class Contract(models.Model):
     _inherit = 'hr.contract'
 
+    def _payroll_period_bounds(self, date_from, date_to):
+        self.ensure_one()
+        calendar = self.resource_calendar_id or self.employee_id.resource_calendar_id
+        zone = pytz.timezone(calendar.tz or 'UTC')
+        bounds = (datetime.combine(fields.Date.to_date(date_from), time.min),
+                  datetime.combine(fields.Date.to_date(date_to), time.max))
+        return tuple(zone.localize(value).astimezone(pytz.UTC).replace(tzinfo=None) for value in bounds)
+
     def get_work_hours(self, date_from, date_to, domain=None):
         """Read actual entries within calendar-local dates, without elevating access."""
         self.check_access('read')
@@ -33,9 +41,7 @@ class Contract(models.Model):
             calendar = contract.resource_calendar_id or contract.employee_id.resource_calendar_id
             if not calendar:
                 raise UserError(_('Work-entry payroll requires a working calendar.'))
-            zone = pytz.timezone(calendar.tz or 'UTC')
-            start = zone.localize(datetime.combine(first, time.min)).astimezone(pytz.UTC).replace(tzinfo=None)
-            stop = zone.localize(datetime.combine(last, time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+            start, stop = contract._payroll_period_bounds(first, last)
             entries = self.env['hr.work.entry'].search(expression.AND([domain or [], [
                 ('contract_id', '=', contract.id), ('company_id', '=', contract.company_id.id),
                 ('state', 'in', ['draft', 'validated']), ('date_start', '<', stop), ('date_stop', '>', start)]]))
@@ -58,7 +64,7 @@ class Contract(models.Model):
 class Structure(models.Model):
     _inherit = 'hr.payroll.structure'
 
-    use_work_entries = fields.Boolean(string='Payroll from work entries', default=False,
+    use_work_entries = fields.Boolean(string='Usar entradas de trabajo', default=False,
         help='Explicit opt-in. Read actual work entries; keep legacy OCA calendar payroll otherwise.')
 
 
@@ -110,3 +116,37 @@ class Payslip(models.Model):
         if contracts != self.contract_id or date_from != self.date_from or date_to != self.date_to:
             raise UserError(_('Work-entry payroll requires the payslip own contract and period.'))
         return self._get_worked_day_lines_values()
+
+    def compute_sheet(self):
+        if any(slip.paid or slip.state not in ('draft','verify') for slip in self):
+            raise UserError(_('Validated or paid payroll cannot be recalculated.'))
+        pending = []
+        for slip in self.filtered(lambda record: record.struct_id.use_work_entries):
+            rows = slip._get_worked_day_lines_values()
+            if not rows:
+                raise UserError(_('Generate actual work entries before calculating this payroll.'))
+            start, stop = slip.contract_id._payroll_period_bounds(slip.date_from,slip.date_to)
+            if self.env['hr.work.entry'].search_count([
+                    ('contract_id','=',slip.contract_id.id),('company_id','=',slip.company_id.id),
+                    ('state','=','conflict'),('date_start','<',stop),('date_stop','>',start)]):
+                raise UserError(_('Resolve conflicting work entries before calculating payroll.'))
+            existing = {}
+            for line in slip.worked_days_line_ids:
+                if not line.work_entry_type_id or line.work_entry_type_id.id in existing or line.contract_id != slip.contract_id:
+                    raise UserError(_('Adopt the original worked-day type relations before enabling work-entry payroll.'))
+                existing[line.work_entry_type_id.id] = line
+            pending.append((slip, rows, existing))
+        # Validate the whole batch first. A later engine error rolls back the refresh too.
+        with self.env.cr.savepoint():
+            for slip, rows, existing in pending:
+                current = {row['work_entry_type_id'] for row in rows}
+                for row in rows:
+                    kind = row['work_entry_type_id']
+                    if kind in existing:
+                        existing[kind].write(row)
+                    else:
+                        self.env['hr.payslip.worked_days'].create(dict(row,payslip_id=slip.id))
+                for kind, line in existing.items():
+                    if kind not in current:
+                        line.write({'number_of_days':0.0,'number_of_hours':0.0})
+            return super().compute_sheet()

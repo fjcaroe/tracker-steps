@@ -146,3 +146,39 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
             for state in ('draft','verify','done','cancel'):
                 slip.write({'date_from':date(2026,month,1),'date_to':date(2026,month,28),'state':state})
                 self.assertEqual(slip._get_payslip_line_total(10.6,1,100,self.rule),11 if month==10 and state in ('draft','verify') else 10.6)
+
+    def test_work_hours_do_not_elevate_company_access(self):
+        company=self.env.ref('base.main_company')
+        actor=self.env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private other company HR','login':'private-payroll-other-company',
+            'company_id':company.id,'company_ids':[Command.set(company.ids)],
+            'groups_id':[Command.set([self.env.ref('base.group_user').id,self.env.ref('hr.group_hr_manager').id])]})
+        with self.assertRaises(AccessError):
+            self.contract.with_user(actor).with_context(allowed_company_ids=company.ids).get_work_hours(self.contract.date_start,self.contract.date_start)
+
+    def test_work_entry_payroll_refreshes_actual_days_without_replacing_ids(self):
+        from datetime import datetime,time,timedelta
+        from odoo import fields
+        self.work_calendar();self.structure.use_work_entries=True
+        first=fields.Date.today().replace(day=1);monday=first+timedelta(days=(-first.weekday())%7)
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private payroll attendance','code':'PAPI_AUTO'})
+        entry=self.scope['hr.work.entry'].create({'name':'Private actual payroll entry','employee_id':self.employee.id,
+            'company_id':self.company.id,'contract_id':self.contract.id,'work_entry_type_id':kind.id,
+            'date_start':datetime.combine(monday,time(8)),'date_stop':datetime.combine(monday,time(12))})
+        self.rule.amount_python_compute="result = worked_days.get('PAPI_AUTO').number_of_hours"
+        slip=self.slip();slip.compute_sheet()
+        ids=slip.worked_days_line_ids.ids
+        self.assertEqual(slip.worked_days_line_ids.work_entry_type_id,kind)
+        self.assertEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],4)
+        entry.date_stop=datetime.combine(monday,time(10))
+        slip.compute_sheet()
+        self.assertEqual(slip.worked_days_line_ids.ids,ids)
+        self.assertEqual(slip.worked_days_line_ids.number_of_hours,2)
+        self.assertEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],2)
+
+    def test_empty_work_entry_payroll_never_assumes_full_wage(self):
+        self.structure.use_work_entries=True
+        slip=self.slip()
+        with self.assertRaises(UserError):slip.compute_sheet()
+        self.assertFalse(slip.worked_days_line_ids)
+        self.assertFalse(slip.line_ids)

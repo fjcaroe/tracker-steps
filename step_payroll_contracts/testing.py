@@ -121,7 +121,7 @@ class PayrollContractMixin:
         self.input_type.is_quantity=True
         self.rule.write({'code':'PRIVATE_BONUS',
             'amount_python_compute':"result = 100.6\nresult_qty = inputs['PRIVATE_BONUS'].amount\nresult_rate = 50"})
-        self.rule.copy({'code':'PRIVATE_CHAIN','sequence':2,'amount_python_compute':'result = categories.PRIVATE_NET'})
+        self.rule.copy({'code':'PRIVATE_CHAIN','sequence':2,'amount_python_compute':"result = categories['PRIVATE_NET']"})
         slip=self.slip(0.5);slip.input_line_ids.copy({'amount':1.5});slip.compute_sheet()
         values=slip._get_line_values(['PRIVATE_BONUS','PRIVATE_CHAIN'])
         self.assertEqual(values['PRIVATE_BONUS'][slip.id]['total'],100)
