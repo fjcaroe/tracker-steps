@@ -30,7 +30,7 @@ def main():
     if accelerated:
         hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
         paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
-            'step_account_treasury_batch','step_bank_security','step_l10n_cl_edi_core',
+            'step_account_treasury_batch','step_bank_security','step_l10n_cl_edi_core','step_accounting_multicurrency',
             'tools/community/accelerated_acceptance.py','tools/community/hr_consumers_candidate.py','tools/community/finance_frontier_contract.py']
     previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install','book-history')
@@ -68,6 +68,8 @@ def main():
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
     if upgrade.exists():paths+=['tools/community/validate_payroll_history_upgrade.py']
+    relation_storage=args.evidence/'sys-storage/passed.json'
+    if relation_storage.exists():paths+=['tools/community/validate_payroll_relation_storage.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -148,9 +150,28 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if relation_storage.exists():
+        proof=json.loads(relation_storage.read_text())
+        executed=(relation_storage.parent/'validator.py').read_bytes()
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_payroll_relation_storage.py'].replace(b'\r\n',b'\n')
+        old=json.loads((relation_storage.parent/'original-before.json').read_text())
+        now=json.loads((relation_storage.parent/'original-after.json').read_text())
+        assert old==now and len(old)==proof['original_contracts_preserved']
+        assert proof['idempotence_verified'] and proof['backup_decoded'] and proof['original_metadata_preserved']
+        assert not any(proof[k] for k in ('writes_to_source','orm_loaded','paid_payroll_recomputed','engine_converted','financial_certified'))
+        assert set(proof['tables'])=={'hr_payslip_worked_days','hr_payslip_input'}
+        for table,row in proof['tables'].items():
+            assert old[table]['rows']==row['rows'] and not {'code','contract_id'} & set(row['original_columns'])
+        for filename in ('storage-after-restore.json','storage-after.json'):
+            capacity=json.loads((relation_storage.parent/filename).read_text())
+            assert capacity['postgres']['available_bytes']>=5*1024**3 and capacity['artifacts']['available_bytes']>=2*1024**3
+        result['sys_related_storage']={'original_contracts_preserved':len(old),
+            'rows':{table:row['rows'] for table,row in proof['tables'].items()},
+            'idempotence_verified':True,'orm_loaded':False,'engine_converted':False,'financial_certified':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==228 and results['cerro-reference']['expected_test_count']==199
+        assert results['community']['expected_test_count']==239 and results['cerro-reference']['expected_test_count']==210
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])

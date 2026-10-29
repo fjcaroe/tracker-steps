@@ -57,7 +57,8 @@ def main():
         from accelerated_acceptance import HR_MODULES,HR_TEST_COUNT,HR_TEST_TAGS,prepare_hr_overlay
         from finance_frontier_contract import metadata_snapshot,verify_metadata
         finance_modules=('step_accounting_multicurrency_core','step_account_balance_analytic',
-                         'step_bank_export_core','step_account_treasury_batch','step_bank_security')
+                         'step_bank_export_core','step_account_treasury_batch','step_bank_security',
+                         'step_accounting_multicurrency')
         MODULES+=HR_MODULES+finance_modules+('step_l10n_cl_edi_core',)
     assert os.geteuid()==0 and str(args.root.resolve()).startswith('/opt/steps-validation/')
     assert re.fullmatch(('COMMUNITY_PAYROLL_API_' if args.mode=='community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_')+'[A-Za-z0-9_]+',args.database)
@@ -77,7 +78,7 @@ def main():
         # Generic consumer sources are in the identical packet; the only CE
         # derivation is separately fingerprinted before any registry is loaded.
         if pure:
-            for m in HR_MODULES+('step_account_treasury_batch','step_bank_security'):
+            for m in HR_MODULES+('step_account_treasury_batch','step_bank_security','step_accounting_multicurrency'):
                 (overlay/m).unlink()
         hr_overlay=prepare_hr_overlay(source,stage,overlay,community=pure)
         dump_candidate={str(p.relative_to(hr_overlay if pure else source)):hashlib.sha256(p.read_bytes()).hexdigest()
@@ -183,7 +184,7 @@ def main():
         if standalone:modules='step_hr_previred'
         if args.accelerated:
             modules+=','+','.join(HR_MODULES+finance_modules[:3]+('step_l10n_cl_edi_core',))
-            if not pure:modules+=',step_account_treasury_batch,step_bank_security'
+            if not pure:modules+=',step_account_treasury_batch,step_bank_security,step_accounting_multicurrency'
         execution_env=dict(os.environ)
         if (root/'basis-input.json').exists():
             assert simpledigital
@@ -226,7 +227,7 @@ def main():
             tags+=','+','.join('/step_hr_previred_simpledigital:CommunityBridgeContracts.test_community_'+name for name in methods)
         if standalone:tags='/step_hr_previred:TestCoreIsolation'
         if args.accelerated:
-            tags+=','+HR_TEST_TAGS+',/step_bank_export_core,/step_account_balance_analytic,/step_l10n_cl_edi_core'
+            tags+=','+HR_TEST_TAGS+',/step_bank_export_core,/step_account_balance_analytic,/step_l10n_cl_edi_core,/step_accounting_multicurrency_core'
             if not pure:tags+=',/step_account_treasury_batch,/step_bank_security'
         if own_book:
             methods=['code_snapshots_preserve_original_zero_in_batch','actual_movement_adapter_reads_stored_totals','actual_movement_adapter_rejects_hidden_lines']
@@ -240,7 +241,7 @@ def main():
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         expected=7 if standalone else (85 if pure else 25)+((54 if pure else 47) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
-        if args.accelerated:expected+=HR_TEST_COUNT+30+18+(0 if pure else 38)
+        if args.accelerated:expected+=HR_TEST_COUNT+30+18+11+(0 if pure else 38)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
