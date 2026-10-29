@@ -86,8 +86,16 @@ class InputType(models.Model):
 
     @api.constrains('code','country_id','struct_ids','active')
     def _check_code_scope(self):
+        self.flush_model(['code','country_id','active','struct_ids'])
         for record in self.filtered('active'):
-            others=self.search([('id','!=',record.id),('code','=',record.code)])
+            # A country rule may hide an overlapping global-code candidate.
+            # Read IDs only, then require normal access before qualification.
+            self.env.cr.execute("""SELECT id FROM hr_payslip_input_type
+                WHERE id!=%s AND code=%s AND active
+                AND (country_id IS NULL OR %s IS NULL OR country_id=%s)""",
+                (record.id,record.code,record.country_id.id or None,record.country_id.id or None))
+            others=self.browse([row[0] for row in self.env.cr.fetchall()])
+            others.check_access('read')
             if others.filtered(lambda other: (not other.country_id or not record.country_id or other.country_id==record.country_id)
                     and (not other.struct_ids or not record.struct_ids or bool(other.struct_ids & record.struct_ids))):
                 raise ValidationError(_('Input code is ambiguous for this country/structure.'))

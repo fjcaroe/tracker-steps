@@ -1,0 +1,22 @@
+<odoo>
+    <!-- Native configuration has global country policies. These intersect the
+         existing OCA company rules and grant no additional model permissions. -->
+    <record id="structure_original_country_scope" model="ir.rule">
+        <field name="name">Payroll structure: original country scope</field>
+        <field name="model_id" ref="payroll.model_hr_payroll_structure"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('country_id', '=', False), ('country_id', 'in', user.env.companies.mapped('country_id').ids)]</field>
+    </record>
+    <record id="salary_rule_original_country_scope" model="ir.rule">
+        <field name="name">Salary rule: original structure country scope</field>
+        <field name="model_id" ref="payroll.model_hr_salary_rule"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('struct_id.country_id', '=', False), ('struct_id.country_id', 'in', user.env.companies.mapped('country_id').ids)]</field>
+    </record>
+    <record id="input_original_country_scope" model="ir.rule">
+        <field name="name">Payroll input type: original country scope</field>
+        <field name="model_id" ref="model_hr_payslip_input_type"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('country_id', '=', False), ('country_id', 'in', user.env.companies.mapped('country_id').ids)]</field>
+    </record>
+</odoo>
