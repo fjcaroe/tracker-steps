@@ -1,0 +1,265 @@
+"""Functional consumer flows on the installed, actual payroll provider."""
+from datetime import date, datetime, time
+from unittest.mock import patch
+
+import pytz
+
+from odoo import api, Command
+from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tests import TransactionCase, tagged
+
+
+@tagged("post_install", "-at_install", "hr_consumers")
+class HrConsumersCase(TransactionCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.oca = bool(cls.env.ref("payroll.group_payroll_manager", raise_if_not_found=False))
+        payroll_group = "payroll.group_payroll_manager" if cls.oca else "hr_payroll.group_hr_payroll_manager"
+        company = cls.env["res.company"].create({"name": "Private HR consumer fixture",
+            "country_id": cls.env.ref("base.cl").id, "currency_id": cls.env.ref("base.CLP").id})
+        groups = [cls.env.ref(name).id for name in ("base.group_user", payroll_group,
+            "hr.group_hr_manager", "account.group_account_manager",
+            "steps_hr_payroll_correction.group_payroll_correction")]
+        for name in ("group_contract_management_view", "group_severance_calc"):
+            group = cls.env.ref("step_hr_contract_lifecycle." + name, raise_if_not_found=False)
+            if group:
+                groups.append(group.id)
+        user = cls.env["res.users"].with_context(no_reset_password=True).create({
+            "name": "Private HR consumer manager", "login": "private-hr-consumer-manager", "tz": "UTC",
+            "company_id": company.id, "company_ids": [Command.set(company.ids)], "groups_id": [Command.set(groups)]})
+        cls.scope = api.Environment(cls.env.cr, user.id, dict(cls.env.context, allowed_company_ids=company.ids), su=False)
+        cls.company, cls.actor = company, user
+        scope = cls.scope
+        cls.kind = scope["hr.payroll.structure.type"].create({"name": "Private consumer structure type"})
+        values = {"name": "Private consumer structure", "code": "PRIVATE_CONSUMER", "type_id": cls.kind.id}
+        for name, value in (("company_id", company.id), ("parent_id", False), ("use_worked_day_lines", False)):
+            if name in scope["hr.payroll.structure"]._fields:
+                values[name] = value
+        cls.structure = scope["hr.payroll.structure"].create(values)
+        cls.rule = scope["hr.salary.rule"].create({"name": "Private consumer actual rule", "code": "PRIVATE_HR_AMOUNT",
+            "sequence": 1, "struct_id": cls.structure.id,
+            "category_id": scope["hr.salary.rule.category"].create({"name": "Private consumer category", "code": "PRIVATE_HR"}).id,
+            "condition_select": "none", "amount_select": "code", "quantity": "1.0",
+            "amount_python_compute": "result = contract.wage"})
+        cls.calendar = scope["resource.calendar"].create({"name": "Private consumer calendar", "company_id": company.id,
+            "tz": "UTC", "attendance_ids": [Command.clear()] + [Command.create({"name": "Private shift",
+                "dayofweek": str(day), "hour_from": 8, "hour_to": 16, "day_period": "morning"}) for day in range(5)]})
+        cls.employee = scope["hr.employee"].create({"name": "Private consumer employee", "company_id": company.id,
+            "resource_calendar_id": cls.calendar.id})
+        values = {"name": "Private consumer contract", "employee_id": cls.employee.id, "company_id": company.id,
+            "state": "open", "date_start": date(2026, 10, 1), "wage": 800000, "structure_type_id": cls.kind.id,
+            "resource_calendar_id": cls.calendar.id}
+        if "struct_id" in scope["hr.contract"]._fields:
+            values["struct_id"] = cls.structure.id
+        if "contract_type_id" in scope["hr.contract"]._fields:
+            model = scope["hr.contract"]._fields["contract_type_id"].comodel_name
+            values["contract_type_id"] = scope[model].search([], limit=1).id
+        cls.contract = scope["hr.contract"].create(values)
+        cls.work_type = scope["hr.work.entry.type"].create({"name": "Private consumer worked time", "code": "PRIVATE_HR_WORK"})
+        if "use_work_entries" in cls.structure._fields:
+            cls.structure.use_work_entries = True
+            cls.structure.out_of_contract_work_entry_type_id = scope["hr.work.entry.type"].create({
+                "name": "Private consumer out of contract", "code": "PRIVATE_HR_OUT"})
+        cls.env["ir.sequence"].create({"name": "Private consumer slips", "code": "salary.slip",
+            "company_id": company.id, "prefix": "PRIVATE-HR/"})
+
+    def slip(self):
+        return self.scope["hr.payslip"].create({"name": "Private consumer payslip", "employee_id": self.employee.id,
+            "company_id": self.company.id, "contract_id": self.contract.id, "struct_id": self.structure.id,
+            "date_from": date(2026, 10, 1), "date_to": date(2026, 10, 31)})
+
+    def entry(self, day=5):
+        return self.scope["hr.work.entry"].create({"name": "Private consumer work", "employee_id": self.employee.id,
+            "contract_id": self.contract.id, "company_id": self.company.id, "work_entry_type_id": self.work_type.id,
+            "date_start": datetime(2026, 10, day, 8), "date_stop": datetime(2026, 10, day, 16)})
+
+    def wizard(self):
+        return self.scope["hr.termination.correction.wizard"].create({"employee_id": self.employee.id,
+            "actual_termination_date": date(2026, 10, 7), "confirm": True})
+
+    def stored(self, slip):
+        self.env.flush_all()
+        self.env.cr.execute("SELECT to_jsonb(s) FROM hr_payslip s WHERE id=%s", (slip.id,))
+        result = self.env.cr.fetchall()
+        self.env.cr.execute("SELECT to_jsonb(l) FROM hr_payslip_line l WHERE slip_id=%s ORDER BY id", (slip.id,))
+        return result, self.env.cr.fetchall()
+
+    def test_closed_history_blocks_contract_work_entries_and_amounts(self):
+        self.entry()
+        extra = self.entry(9)
+        slip = self.slip()
+        slip.compute_sheet()
+        slip.state = "done"
+        original = self.stored(slip)
+        wizard = self.wizard()
+        self.assertEqual(wizard.blocked_payslip_ids, slip)
+        self.assertFalse(wizard.payslip_ids)
+        with self.assertRaises(UserError):
+            wizard.action_apply()
+        self.assertFalse(self.contract.date_end)
+        self.assertTrue(extra.exists())
+        self.assertEqual(self.stored(slip), original)
+
+    def test_open_paid_flag_and_history_lock_are_not_recomputed(self):
+        for field in ("paid", "step_history_locked"):
+            if field not in self.scope["hr.payslip"]._fields:
+                continue
+            with self.env.cr.savepoint():
+                self.entry()
+                extra = self.entry(9)
+                slip = self.slip()
+                slip.compute_sheet()
+                slip.write({field: True})
+                original = self.stored(slip)
+                with self.assertRaises(UserError):
+                    self.wizard().action_apply()
+                self.assertFalse(self.contract.date_end)
+                self.assertTrue(extra.exists())
+                self.assertEqual(self.stored(slip), original)
+
+    def test_apply_rechecks_a_preview_validated_in_another_session(self):
+        self.entry()
+        slip = self.slip()
+        slip.compute_sheet()
+        wizard = self.wizard()
+        self.assertEqual(wizard.payslip_ids, slip)
+        slip.state = "done"
+        original = self.stored(slip)
+        with self.assertRaises(UserError):
+            wizard.action_apply()
+        self.assertEqual(self.stored(slip), original)
+        self.assertFalse(self.contract.date_end)
+
+    def test_rpc_requires_correction_group(self):
+        user = self.env["res.users"].with_context(no_reset_password=True).create({"name": "Private HR unauthorized",
+            "login": "private-hr-unauthorized", "company_id": self.company.id, "company_ids": [Command.set(self.company.ids)],
+            "groups_id": [Command.set(self.env.ref("base.group_user").ids)]})
+        with self.assertRaises(AccessError):
+            self.wizard().with_user(user).action_apply()
+        self.assertFalse(self.contract.date_end)
+
+    def test_correction_cannot_cross_allowed_companies(self):
+        foreign = self.env["res.company"].create({"name": "Private foreign HR company"})
+        employee = self.env["hr.employee"].create({"name": "Private foreign HR employee", "company_id": foreign.id})
+        wizard = self.env["hr.termination.correction.wizard"].create({"employee_id": employee.id,
+            "actual_termination_date": date(2026, 10, 7), "confirm": True})
+        with self.assertRaises(AccessError):
+            wizard.with_env(self.scope).action_apply()
+
+    def test_open_correction_uses_actual_engine_and_preserves_input_identity(self):
+        kept, removed = self.entry(), self.entry(9)
+        slip = self.slip()
+        kind = self.scope["hr.payslip.input.type"].create({"name": "Private consumer original input", "code": "PRIVATE_HR_INPUT",
+            "struct_ids": [Command.set(self.structure.ids)]})
+        self.scope["hr.payslip.input"].create({"name": "Private consumer original input", "payslip_id": slip.id,
+            "contract_id": self.contract.id, "input_type_id": kind.id, "amount": 321})
+        slip.compute_sheet()
+        inputs = slip.input_line_ids.read(["id", "code", "amount"])
+        action = self.wizard().action_apply()
+        self.assertEqual(self.contract.date_end, date(2026, 10, 7))
+        self.assertTrue(kept.exists())
+        self.assertFalse(removed.exists())
+        self.assertIn(slip.id, action["domain"][0][2])
+        self.assertIn(slip.state, ("draft", "verify"))
+        self.assertEqual(slip.input_line_ids.read(["id", "code", "amount"]), inputs)
+        self.assertTrue(slip.line_ids)
+        worked = slip.worked_days_line_ids.filtered(lambda line: line.work_entry_type_id == self.work_type)
+        self.assertEqual(sum(worked.mapped("number_of_hours")), 8)
+
+    def test_engine_failure_rolls_back_contract_and_work_entry_changes(self):
+        self.entry()
+        extra = self.entry(9)
+        slip = self.slip()
+        slip.compute_sheet()
+        original = self.stored(slip)
+        with patch.object(type(slip), "compute_sheet", side_effect=UserError("Private technical failure")):
+            with self.assertRaises(UserError):
+                self.wizard().action_apply()
+        self.assertFalse(self.contract.date_end)
+        self.assertTrue(extra.exists())
+        self.assertEqual(self.stored(slip), original)
+
+    def test_calendar_termination_cutoff_uses_local_day(self):
+        self.calendar.tz = "America/Santiago"
+        wizard = self.wizard()
+        zone = pytz.timezone("America/Santiago")
+        expected = zone.localize(datetime.combine(date(2026, 10, 7), time.max)).astimezone(pytz.UTC).replace(tzinfo=None)
+        self.assertEqual(wizard._cutoff_datetime(), expected)
+
+    def test_crossing_work_entry_requires_real_hour_review(self):
+        entry = self.entry()
+        entry.write({"date_start": datetime(2026, 10, 7, 22), "date_stop": datetime(2026, 10, 8, 6)})
+        before = entry.read(["date_start", "date_stop", "state"])
+        with self.assertRaises(UserError):
+            self.wizard().action_apply()
+        self.assertFalse(self.contract.date_end)
+        self.assertEqual(entry.read(["date_start", "date_stop", "state"]), before)
+
+    def test_existing_relation_tables_and_acl_ownership_remain(self):
+        fields = self.scope["hr.termination.correction.wizard"]._fields
+        self.assertEqual(fields["payslip_ids"].relation, "hr_termination_correction_payslip_rel")
+        self.assertEqual(fields["blocked_payslip_ids"].relation, "hr_termination_correction_blocked_rel")
+        self.assertEqual(fields["payslip_ids"].comodel_name, "hr.payslip")
+        action = self.env.ref("steps_hr_payroll_correction.action_hr_termination_correction_from_employee")
+        self.assertIn(self.env.ref("steps_hr_payroll_correction.group_payroll_correction"), action.groups_id)
+        self.assertTrue(self.scope["hr.termination.correction.wizard"].get_view(view_type="form")["arch"])
+
+    def test_community_refuses_theoretical_days_before_mutation(self):
+        if not self.oca:
+            self.skipTest("The native engine uses its real worked-day refresh")
+        extra = self.entry(9)
+        self.slip()
+        self.structure.use_work_entries = False
+        with self.assertRaises(UserError):
+            self.wizard().action_apply()
+        self.assertFalse(self.contract.date_end)
+        self.assertTrue(extra.exists())
+
+    def test_lifecycle_has_real_city_payslip_relations_views_and_menus(self):
+        if "hr.severance" not in self.scope:
+            self.skipTest("Lifecycle is not installed in this consumer-only database")
+        self.assertEqual(self.scope["hr.contract"]._fields["work_commune_id"].comodel_name, "res.city")
+        self.assertIn("res.city", self.scope)
+        self.assertEqual(self.scope["hr.severance"]._fields["last_payslip_ids"].comodel_name, "hr.payslip")
+        for xmlid in ("menu_hr_severance", "menu_hr_contract_lifecycle_termino", "menu_hr_labor_document"):
+            menu = self.env.ref("step_hr_contract_lifecycle." + xmlid)
+            self.assertTrue(menu.parent_id)
+        self.assertTrue(self.scope["hr.contract"].get_view(view_type="form")["arch"])
+        self.assertTrue(self.scope["hr.severance"].get_view(view_type="form")["arch"])
+
+    def test_lifecycle_preserves_paid_severance_and_worker_identity(self):
+        if "hr.severance" not in self.scope:
+            self.skipTest("Lifecycle is not installed in this consumer-only database")
+        cause = self.env["step.hr.termination.cause"].create({"name": "Private consumer cause", "code": "PRIVATE_HR_CONSUMER"})
+        slip = self.slip()
+        severance = self.scope["hr.severance"].create({"contract_id": self.contract.id, "company_id": self.company.id,
+            "causal_id": cause.id, "date_termino": date(2026, 10, 7), "last_payslip_ids": [Command.set(slip.ids)]})
+        severance.state = "paid"
+        original = severance.read(["state", "renta_base", "total_a_pagar", "last_payslip_ids"])
+        with self.assertRaises(UserError):
+            severance.action_prevalidate()
+        self.assertEqual(severance.read(["state", "renta_base", "total_a_pagar", "last_payslip_ids"]), original)
+        foreign_employee = self.scope["hr.employee"].create({"name": "Private second employee", "company_id": self.company.id})
+        foreign_slip = slip.copy({"employee_id": foreign_employee.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            severance.last_payslip_ids = foreign_slip
+
+    def test_transition_uses_actual_payroll_manager_and_keeps_review_on_missing_masters(self):
+        if "step_payroll_migration_review" not in self.contract._fields:
+            self.skipTest("Transition is not installed in this consumer-only database")
+        self.contract.step_payroll_migration_review = True
+        with self.assertRaises(UserError):
+            self.contract.action_confirm_payroll_migration()
+        self.assertTrue(self.contract.step_payroll_migration_review)
+        self.assertFalse(self.contract.employee_id.hr_commune)
+
+    def test_transition_preserves_structure_and_forbids_old_engine_recalculation(self):
+        if "step_legacy_payroll" not in self.structure._fields:
+            self.skipTest("Transition is not installed in this consumer-only database")
+        slip = self.slip()
+        self.structure.step_legacy_payroll = True
+        original = self.stored(slip)
+        with self.assertRaises(UserError):
+            slip.compute_sheet()
+        self.assertEqual(self.stored(slip), original)

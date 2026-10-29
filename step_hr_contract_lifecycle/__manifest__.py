@@ -1,6 +1,6 @@
 {
     "name": "Steps - Gestión Contractual y Finiquitos (Núcleo)",
-    "version": "18.0.2.0.1",
+    "version": "18.0.2.1.0",
     "category": "Human Resources/Employees",
     "summary": "Núcleo contractual independiente de motor: contratos, cargas DT, avisos de término y finiquitos",
     "description": """
@@ -46,6 +46,7 @@ este módulo: se resuelven mediante los métodos
         "hr_work_entry_contract_enterprise",
         "mail",
         "analytic",
+        "base_address_extended",
     ],
     "data": [
         "security/hr_contract_lifecycle_groups.xml",

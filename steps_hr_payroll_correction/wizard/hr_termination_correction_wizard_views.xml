@@ -24,13 +24,14 @@
                     <strong>Atención:</strong> las liquidaciones
                     <field name="blocked_payslip_ids" widget="many2many_tags" nolabel="1"
                            readonly="1" class="d-inline"/>
-                    ya están pagadas y no se corrigen automáticamente. Revíselas a mano.
+                    están validadas, pagadas o protegidas como históricas. La operación
+                    completa queda bloqueada hasta que Nómina revise la corrección.
                 </div>
                 <field name="has_action" invisible="1"/>
                 <div class="mt-3" invisible="not has_action or blocked_payslip_ids">
                     <field name="confirm"/>
                     <label for="confirm"
-                           string="Confirmo que quiero aplicar esta corrección: desbloqueará liquidaciones confirmadas y eliminará asistencia validada."/>
+                           string="Confirmo que quiero corregir las liquidaciones abiertas y eliminar la asistencia posterior al término."/>
                 </div>
                 <footer>
                     <button name="action_apply" type="object" string="Aplicar corrección"

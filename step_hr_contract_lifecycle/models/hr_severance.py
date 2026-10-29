@@ -2,7 +2,7 @@
 from datetime import timedelta
 
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 from .hr_severance_calc import (
     compute_feriado_proporcional,
@@ -186,6 +186,8 @@ class HrSeverance(models.Model):
         return super().create(vals_list)
 
     def action_prevalidate(self):
+        if any(sev.state not in ("draft", "reopened") for sev in self):
+            raise UserError(_("Sólo se prevalida un finiquito en borrador o reabierto; se conserva la historia aprobada."))
         for sev in self:
             existing = self.search(
                 [
@@ -208,6 +210,13 @@ class HrSeverance(models.Model):
                     )
                 )
             sev.state = "prevalidated"
+
+    @api.constrains("last_payslip_ids", "contract_id", "company_id")
+    def _check_last_payslip_identity(self):
+        for sev in self:
+            if any(slip.employee_id != sev.employee_id or slip.company_id != sev.company_id
+                   for slip in sev.last_payslip_ids):
+                raise ValidationError(_("Las liquidaciones de referencia deben pertenecer al trabajador y compañía del finiquito."))
 
     def action_calculate(self):
         for sev in self:
