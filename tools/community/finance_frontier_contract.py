@@ -109,12 +109,25 @@ def verify(env, mode):
     assert wizard._fields['file_data'].attachment is False
     acl = env['ir.model.access'].search([('model_id.model', '=', wizard._name)])
     assert len(acl) == 1 and acl.group_id == env.ref('account.group_account_manager')
+    assert all(acl[name] for name in ('perm_read', 'perm_write', 'perm_create', 'perm_unlink'))
+    for name, domain in (('rule_bank_export_wizard_owner', "[('create_uid', '=', user.id)]"),
+                         ('rule_bank_export_wizard_company', "[('company_id', 'in', company_ids)]")):
+        rule = env.ref('step_bank_export_core.' + name)
+        assert rule.model_id.model == wizard._name and not rule.groups and rule.active
+        assert rule.domain_force == domain
+        assert all(rule[field] for field in ('perm_read', 'perm_write', 'perm_create', 'perm_unlink'))
     menu = env.ref('step_bank_export_core.menu_bank_export_wizard')
     action = env.ref('step_bank_export_core.action_bank_export_wizard')
     assert menu.groups_id == env.ref('account.group_account_manager') and menu.action == action
     assert action.res_model == wizard._name and action.binding_model_id.model == 'account.payment'
+    assert action.groups_id == env.ref('account.group_account_manager')
     view = env.ref('step_bank_export_core.view_bank_export_wizard_form')
     wizard.get_view(view_id=view.id, view_type='form')
+    for table in ('step_bank_export_wizard', 'step_bank_export_wizard_payment_rel'):
+        # These are the only new transient containers. Fixtures must roll back
+        # completely; no financial master or payment table is excluded.
+        env.cr.execute('SELECT count(*) FROM ' + table)
+        assert env.cr.fetchone()[0] == 0, 'Bank export fixture leaked into ' + table
     balance = env['ir.module.module'].search([('name', '=', 'step_account_balance_analytic')])
     assert balance.dependencies_id.mapped('name') == ['step_accounting_multicurrency_core']
     if mode == 'community':
