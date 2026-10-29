@@ -68,6 +68,10 @@ class StoredPayslipReportCase(StoredReportFixture, TransactionCase):
         self.structure.active = False
         before = self.stored_snapshot(slip)
         self.assertIn(b'Stored BASIC', self.rendered_html(slip, owner))
+        renderer = self.scope['report.step_simpledigital_oca_base.report_payslip'].with_user(owner).sudo().with_context(uid=1)
+        values = renderer._get_report_values(slip.ids, data={'uid': 1, 'report_sudo': True})
+        self.assertFalse(values['docs'].env.su)
+        self.assertEqual(values['docs'].env.uid, owner.id)
         with self.assertRaises(AccessError):
             self.structure.with_user(owner).read(['payslip_name'])
         with self.assertRaises(AccessError):
@@ -75,6 +79,8 @@ class StoredPayslipReportCase(StoredReportFixture, TransactionCase):
         other = self.employee_actor('private-stored-pdf-other')
         with self.assertRaises(AccessError):
             self.rendered_html(slip, other)
+        with self.assertRaises(AccessError):
+            renderer.with_user(other).sudo()._get_report_values(slip.ids, data={'uid': owner.id})
         self.assertEqual(self.stored_snapshot(slip), before)
 
     def test_hidden_salary_or_day_refuses_entire_report(self):
@@ -88,6 +94,8 @@ class StoredPayslipReportCase(StoredReportFixture, TransactionCase):
                 'domain_force': repr([('id', '!=', record.id)])})
             with self.assertRaises(AccessError):
                 self.rendered_html(slip, owner)
+            with self.assertRaises(AccessError):
+                self.scope['report.step_simpledigital_oca_base.report_payslip'].with_user(owner).sudo()._get_report_values(slip.ids)
             rule.unlink()
 
     def test_field_acl_cannot_be_bypassed_by_stored_sql_payload(self):

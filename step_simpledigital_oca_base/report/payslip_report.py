@@ -35,6 +35,13 @@ class StoredPayslipReport(models.AbstractModel):
 
     @api.model
     def _get_report_values(self, docids, data=None):
+        # Report actions may be resolved with sudo internally. Preserve the
+        # authenticated environment UID/context, explicitly drop elevation and
+        # never take a UID, company authority or financial payload from data.
+        return self.sudo(False)._get_stored_report_values(docids)
+
+    @api.model
+    def _get_stored_report_values(self, docids):
         if not isinstance(docids, (list, tuple)) or not docids or any(type(value) is not int or value <= 0 for value in docids):
             raise UserError(_('Select existing payslips to print.'))
         if len(set(docids)) != len(docids):
