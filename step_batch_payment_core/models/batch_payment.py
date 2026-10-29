@@ -157,9 +157,9 @@ class AccountBatchPayment(models.Model):
                     Command.LINK, Command.UNLINK, Command.CLEAR, Command.SET):
                 raise UserError(_('Seleccione pagos existentes; el grupo no crea, cambia ni elimina pagos.'))
             if command[0] == Command.SET:
-                ids = set(self.env['step.batch.payment.grouping']._ids(command[2]))
+                ids = set(self.env['step.batch.payment.grouping']._existing_payment_ids(command[2]))
             elif command[0] == Command.LINK:
-                self.env['step.batch.payment.grouping']._ids([command[1]])
+                self.env['step.batch.payment.grouping']._existing_payment_ids([command[1]])
                 ids.add(command[1])
             elif command[0] == Command.UNLINK:
                 ids.discard(command[1])

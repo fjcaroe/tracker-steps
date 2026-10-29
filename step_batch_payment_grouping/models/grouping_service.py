@@ -22,7 +22,7 @@ class BatchPaymentGroupingService(models.AbstractModel):
         return model
 
     @api.model
-    def _ids(self, values):
+    def _existing_payment_ids(self, values):
         if not isinstance(values, (list, tuple)) or not values or any(
                 type(value) is not int or value <= 0 for value in values):
             raise UserError(_('Seleccione pagos existentes mediante sus IDs.'))
@@ -32,7 +32,7 @@ class BatchPaymentGroupingService(models.AbstractModel):
 
     @api.model
     def _lock_payments(self, values):
-        ids = self._ids(values)
+        ids = self._existing_payment_ids(values)
         payments = self.env['account.payment'].browse(ids)
         payments.check_access('read')
         payments.check_access('write')
@@ -143,7 +143,7 @@ class BatchPaymentGroupingService(models.AbstractModel):
     @api.model
     def _replace_group_payments(self, batch_id, payment_ids):
         batch = self._lock_batch(batch_id)
-        ids = self._ids(payment_ids)
+        ids = self._existing_payment_ids(payment_ids)
         original_ids = self._group_payment_ids(batch)
         locked = self._lock_payments(sorted(set(ids + original_ids)))
         original = locked.browse(original_ids)
