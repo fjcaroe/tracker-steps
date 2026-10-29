@@ -1,5 +1,7 @@
 # Nombres originales y propiedad de reglas de nómina — 29-10-2026
 
+Continuación vigente: [COMMUNITY_ENTRADAS_GUARDADAS.md](COMMUNITY_ENTRADAS_GUARDADAS.md).
+
 Aceptación Schema B y upgrade de nombres completada; resumen privado reproducible verificado.
 Base canónica `78e5cde8`; paquete congelado en `e08ee7f4`.
 351 archivos, huella común

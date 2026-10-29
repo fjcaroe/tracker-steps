@@ -1,11 +1,12 @@
 # Preflight de identidad, permisos y traducciones de configuración
 
-Estado vigente y siguiente prompt: [COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md](COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md).
-Schema B pasa 448/294 casos, cero fallos/errores: API1.12, nombres literales
-sin pérdida y propiedad FK/M2M atómica separada de las líneas históricas.
-Upgrade desde Período C y preservación de 921 tablas, 140 contadores y 59.079 XML IDs.
-Hay 27 contratos de campo cerrados; quedan siete brechas y cinco físicas,
-identidad/ACL/120 maestros/71 reglas y certificación/conversión integral.
+Estado vigente y siguiente prompt: [COMMUNITY_ENTRADAS_GUARDADAS.md](COMMUNITY_ENTRADAS_GUARDADAS.md).
+Inputs C pasa 460/294 casos, cero fallos/errores: API1.13, Base1.6 y Security1.7;
+cálculo real OCA de borradores con entradas/días guardados y permisos normales.
+Upgrade D desde Schema B: 674 filas comparadas, 672 literales y dos timestamps XML auditados;
+921 tablas/proyecciones, 140 contadores y 59.079 XML IDs preservados en la referencia nativa.
+Se mantienen 27 contratos de configuración cerrados, siete brechas y cinco físicas;
+faltan identidad/ACL/120 maestros/71 reglas, certificación y conversión integral.
 54 apps propias instaladas conservan caminos EE; el 31 sigue en riesgo alto.
 El contenido inferior conserva su alcance histórico.
 

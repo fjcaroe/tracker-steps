@@ -1,6 +1,6 @@
 # Período local y asistente real de nómina — 29-10-2026
 
-Continuación vigente: [COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md](COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md).
+Continuación vigente: [COMMUNITY_ENTRADAS_GUARDADAS.md](COMMUNITY_ENTRADAS_GUARDADAS.md).
 Esta aceptación Período C se conserva como origen del upgrade siguiente.
 
 Aceptación de pareja y upgrade Período C completada; resumen privado reproducible verificado.

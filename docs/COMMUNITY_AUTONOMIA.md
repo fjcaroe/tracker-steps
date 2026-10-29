@@ -17,7 +17,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_ENTRADAS_GUARDADAS.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
    COMMUNITY_INVENTARIO_ENTERPRISE_20261029.md distingue 100 apps propias instaladas,
