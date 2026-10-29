@@ -80,6 +80,7 @@ def main():
         baseline=Path('/opt/steps-validation/community-original-configuration-20261029D/community')
         files['properties-upgrade/source-acceptance.json']=baseline/'passed.json'
         files['properties-upgrade/source-packet.json']=baseline/'source-files.json'
+        files['properties-upgrade/source-consumer-packet.json']=baseline/'consumer-source-files.json'
     assert all(path.is_file() and not path.is_symlink() for path in files.values())
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:

@@ -253,6 +253,8 @@ def main():
         assert baseline['database']==proof['source_database'] and baseline['counts']['enterprise']==0
         baseline_packet=json.loads((folder/'source-packet.json').read_text())
         assert hashlib.sha256((folder/'source-packet.json').read_bytes()).hexdigest()==baseline['source_files_sha256']
+        consumer_packet=json.loads((folder/'source-consumer-packet.json').read_text())
+        assert helper.digest(consumer_packet)==proof['source_consumer_files_sha256']
         package=json.loads((folder/'package-files.json').read_text())
         assert helper.digest(package)==proof['package_files_sha256']
         assert xml_audit['package_files_sha256']==hashlib.sha256((folder/'package-files.json').read_bytes()).hexdigest()
@@ -261,7 +263,10 @@ def main():
         assert packets[0]['l10n_cl_simpledigital_payroll/'+helper.CONFIG_XML]==helper.DERIVED_CONFIG_XML_SHA256
         for name,digest in baseline_packet.items():
             module,relative=name.split('/',1)
-            if module in package:assert package[module]['legacy'][relative]==digest
+            if module in package:assert package[module]['legacy'][relative]==consumer_packet.get(name,digest),name
+        for name,digest in consumer_packet.items():
+            module,relative=name.split('/',1)
+            assert package[module]['legacy'][relative]==digest,name
         for module,versions in helper.VERSIONS.items():
             assert proof['original_versions'][module]==versions[0] and proof['target_versions'][module]==versions[1]
             manifest=ast.literal_eval(source[module+'/__manifest__.py'].decode('utf-8-sig'))
