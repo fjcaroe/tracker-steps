@@ -93,9 +93,13 @@ class BatchPaymentGroupingService(models.AbstractModel):
         if first.company_id not in self.env.companies:
             raise AccessError(_('La empresa del pago no está habilitada para este usuario.'))
         first.journal_id.check_access('read')
-        if first.journal_id.type != 'bank' or not first.payment_method_id:
+        if (first.journal_id.type != 'bank' or first.journal_id.company_id != first.company_id
+                or not first.payment_method_id or first.payment_method_id.payment_type != first.payment_type):
             raise UserError(_('El grupo requiere un diario bancario y un método de pago real.'))
         for payment in payments:
+            if (not payment.payment_method_line_id
+                    or payment.payment_method_line_id.journal_id != payment.journal_id):
+                raise UserError(_('La línea del método de pago debe pertenecer al diario seleccionado.'))
             if payment.batch_payment_id and payment.batch_payment_id != batch:
                 raise UserError(_('Un pago ya pertenece a otro lote; sepárelo allí primero.'))
             if payment.state in ('canceled', 'cancel', 'rejected') or payment.is_sent or payment.is_matched:
