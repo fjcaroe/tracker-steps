@@ -106,6 +106,51 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.assertEqual(day.amount, self.company.currency_id.round(self.contract.wage / 30.0 * day.number_of_days))
         self.assertEqual(day.id, original_id)
 
+    def test_real_unsaved_preview_checks_normal_policy_without_rows_or_closed_origin_override(self):
+        original_formula = self.rule.amount_python_compute
+        self.rule.amount_python_compute = 'result = 1 / 0'
+        preview = self.scope['hr.payslip'].new({'name': 'Private actual ORM payroll preview',
+            'employee_id': self.contract.employee_id.id, 'company_id': self.company.id,
+            'contract_id': self.contract.id, 'struct_id': self.structure.id,
+            'date_from': fields.Date.today().replace(day=1), 'date_to': fields.Date.today(),
+            'worked_days_line_ids': [Command.create({'name': 'Private real typed preview day',
+                'contract_id': self.contract.id, 'work_entry_type_id': self.entry_type.id,
+                'code': self.entry_type.code, 'number_of_days': 2, 'number_of_hours': 16})]})
+        self.assertFalse(preview._origin)
+        self.scope.flush_all()
+        self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
+        before = self.env.cr.fetchone()
+        self.assertTrue(preview._step_check_original_configuration(operation='calculate'))
+        with patch.object(self.entry_type._fields['country_id'], 'groups', 'base.group_system'), self.assertRaises(AccessError):
+            preview.sudo()._step_check_original_configuration(operation='calculate')
+        self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
+        self.assertEqual(self.env.cr.fetchone(), before)
+        foreign = self.env['res.company'].create({'name': 'Private preview foreign country', 'country_id': self.env.ref('base.fr').id})
+        self.scope.user.with_env(self.env).write({'company_ids': [Command.link(foreign.id)]})
+        original_country = self.entry_type.country_id
+        self.entry_type.with_env(self.env).country_id = foreign.country_id
+        with self.assertRaisesRegex(UserError, 'country boundaries'):
+            preview.with_context(allowed_company_ids=(self.company | foreign).ids)._step_check_original_configuration(operation='calculate')
+        self.entry_type.with_env(self.env).country_id = original_country
+        self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
+        self.assertEqual(self.env.cr.fetchone(), before)
+        # Admission never evaluated the intentionally invalid synthetic rule.
+        # Only this fresh saved fixture now follows the actual closing workflow.
+        self.rule.amount_python_compute = original_formula
+        saved = self._slip()
+        self._day(saved)
+        saved.compute_sheet()
+        saved.with_context(without_compute_sheet=True).action_payslip_done()
+        self.env.flush_all()
+        stored = self._stored(saved)
+        masquerade = self.scope['hr.payslip'].new({'state': 'draft', 'paid': False, 'step_history_locked': False,
+            'employee_id': self.contract.employee_id.id, 'company_id': self.company.id,
+            'contract_id': self.contract.id, 'struct_id': self.structure.id,
+            'date_from': saved.date_from, 'date_to': saved.date_to}, origin=saved)
+        with self.assertRaisesRegex(UserError, 'Closed payroll'):
+            masquerade._step_check_original_configuration(operation='calculate')
+        self.assertEqual(self._stored(saved), stored)
+
     def test_real_closed_workflow_keeps_days_lines_and_ledger_exact_after_policy_change(self):
         slip = self._slip()
         day = self._day(slip)
