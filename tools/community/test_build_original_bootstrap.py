@@ -1,5 +1,9 @@
 """Pure synthetic reference-graph and byte-custody tests; no client data."""
 import unittest
+from unittest.mock import patch
+import os
+from pathlib import Path
+import tempfile
 
 import build_original_bootstrap as builder
 
@@ -28,6 +32,17 @@ EXTERNAL = {"base.real_view": "ir.ui.view", "web.html_container": "ir.ui.view", 
 
 
 class OriginalBootstrapBuilderCase(unittest.TestCase):
+    def test_receipt_is_exclusive_and_private_at_creation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "private.json"
+            with patch.object(builder.os, "open", wraps=os.open) as opened:
+                builder._write_receipt(path, {"synthetic": True})
+            opened.assert_called_once_with(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            before = path.read_bytes()
+            with self.assertRaises(FileExistsError):
+                builder._write_receipt(path, {"replacement": True})
+            self.assertEqual(path.read_bytes(), before)
+
     def test_omits_only_two_seed_files_and_keeps_runtime_views_acl_bytes(self):
         original = fixture()
         result, closure = builder.plan_profile(original, EXTERNAL)
