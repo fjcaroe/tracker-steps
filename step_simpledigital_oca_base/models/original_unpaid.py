@@ -224,7 +224,8 @@ class Payslip(models.Model):
         result = super()._step_check_original_configuration(operation=operation)
         days = normal.env["hr.payslip.worked_days"]
         for slip in normal:
-            saved_id = slip.id if type(slip.id) is int else slip._origin.id if slip._origin else None
+            origin_id = slip._origin.id if slip._origin else None
+            saved_id = slip.id if type(slip.id) is int else origin_id if type(origin_id) is int else None
             if saved_id:
                 days.flush_model(["payslip_id", "work_entry_type_id"])
                 normal.env.cr.execute("SELECT id FROM hr_payslip_worked_days WHERE payslip_id=%s", (saved_id,))
