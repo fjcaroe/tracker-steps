@@ -303,12 +303,12 @@ class HrConsumersCase(TransactionCase):
             self.skipTest("Lifecycle is not installed in this consumer-only database")
         from odoo.addons.step_hr_contract_lifecycle.models.dt_contract_field_catalog import DT_CONTRACT_COLUMNS
         from odoo.addons.step_hr_contract_lifecycle.models.hr_labor_template import TEMPLATE_VARIABLES
+        self.assertEqual(self.contract.adequacy_state, "adequate")
         self.calendar.attendance_ids.filtered(lambda row: row.dayofweek == "4").hour_to = 20
         original = self.calendar.attendance_ids.read(["id", "hour_from", "hour_to"])
         self.assertEqual(self.calendar._steps_contract_weekly_hours(), 44)
         self.assertEqual(float(dict(DT_CONTRACT_COLUMNS)["DURACION_JORNADA"](self.contract)), 44)
         self.assertEqual(float(TEMPLATE_VARIABLES["contrato.jornada_semanal"](self.contract)), 44)
-        self.contract._compute_adequacy_state()
         self.assertEqual(self.contract.adequacy_state, "exception")
         transition = self.scope["hr.legal.workweek.calendar"].create({"date_from": date(2035, 1, 1),
             "max_weekly_hours": 36, "company_id": self.company.id})
