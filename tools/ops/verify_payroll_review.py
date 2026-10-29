@@ -53,12 +53,13 @@ try:
         # Replay the reported workers through the actual native wizard. All
         # work-entry generation and draft calculations stay inside this clone
         # transaction, and the final rollback removes them.
-        company=env['res.company'].search([('id','=',7),('name','ilike','Emca')])
+        fixture=json.loads((Path(PROBE_TOOLS).parents[1]/'payroll-replay.json').read_text())
+        company=env['res.company'].browse(fixture['company_id']).exists()
         assert len(company)==1
         manager=users.filtered(lambda u: company in u.company_ids)[:1]
         assert manager
         business=env(user=manager,su=False,context=dict(env.context,allowed_company_ids=company.ids))
-        staff=business['hr.employee'].search([('company_id','=',company.id),('name','in',['Nicol Morales Bueno','Viviana Pereira Díaz'])])
+        staff=business['hr.employee'].search([('company_id','=',company.id),('id','in',fixture['employee_ids'])])
         assert len(staff)==2
         entries=business['hr.work.entry'].search([('employee_id','in',staff.ids),('state','=','conflict'),('date_start','>=','2026-09-30'),('date_stop','<=','2026-10-01')])
         assert entries
