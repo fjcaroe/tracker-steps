@@ -402,7 +402,7 @@ def main():
         assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
         assert proof['capsule_sha256']==hashlib.sha256(capsule.read_bytes()).hexdigest()
         assert proof['target_database']==results['community']['database']
-        assert proof['source_database']==sealed['source_database']
+        assert proof['source_database']==sealed['database']
         assert proof['read_only'] and proof['source_configuration_matches_capsule']
         assert not any(proof[key] for key in ('orm_loaded','rules_evaluated','salary_formulas_exposed'))
         sys.path.insert(0,str(repo/'tools/community'))
