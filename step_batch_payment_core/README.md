@@ -31,9 +31,14 @@ siguen pendientes. `validate_batch_button` rechaza la operación explícitamente
 El formulario sólo ofrece comprobar la coherencia del grupo en borrador. Los
 formatos bancarios sobre pagos existentes siguen en `step_bank_export_core`.
 
-Este addon **no se instala junto al proveedor Enterprise** ni sobre una tabla
-nativa histórica sin una conversión fría certificada. Los guards de registro
-y preinstalación lo impiden. No se cambian dependencias de Tesorería, no se
+La preinstalación ensayada rechaza proveedores nativos instalados o pendientes
+en el mismo grafo, y una tabla previa sin propietario Community certificado.
+Ese control prueba instalación limpia y rechazo de almacenamiento frío; no
+certifica cambios posteriores de proveedor ni adopción histórica. Cualquier
+transición futura exige admisión completa de modelos, identidad, relaciones,
+permisos y flujos antes de convertir. La aceptación oficial CE usa únicamente
+fuentes Community; la referencia nativa excluye este núcleo.
+No se cambian dependencias de Tesorería, no se
 crean sustitutos vacíos de los wizards de error/rechazo ni de `bank.rec.widget`.
 Quedan por adoptar originales de modelos, campos, XML IDs, ACL, M2M, chatter,
 archivos, secuencias y estados enviados/conciliados en la conversión integral.
