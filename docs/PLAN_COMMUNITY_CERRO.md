@@ -1,10 +1,11 @@
 # Plan de independencia de Enterprise para Cerro El Plomo
 
-Última aceptación y siguiente bloque:
-[COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md), paquete F de
-4705aa85 y upgrade privado I. Pasan 375/252 casos; se preservan 59.048 XML IDs
-con noupdate. La configuración original, DTE/SII y la conversión integral
-siguen abiertos; el vencimiento del 31 no está resuelto.
+Estado vigente y siguiente prompt: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
+La pareja C pasa 420/276 casos, con 26 contratos de campos originales cerrados,
+59.048 XML IDs con noupdate preservados y upgrade privado C API1.10→1.11/Base1.3→1.4.
+Quedan ocho diferencias de campos, seis de columnas, permisos/configuración
+original, certificación y conversión integral. El 31 sigue en riesgo alto.
+El contenido inferior conserva su alcance histórico.
 
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,
 conservando datos y funcionalidad de los módulos propios. La ejecución empieza

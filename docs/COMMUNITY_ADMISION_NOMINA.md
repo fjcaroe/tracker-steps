@@ -1,6 +1,6 @@
 # Admisión de configuración, días no pagados y etiquetas — 29-10-2026
 
-PENDING_C: cierre condicionado a la aceptación de la pareja y upgrade C.
+Aceptación de la pareja y upgrade C completada; resumen privado reproducible verificado.
 Paquete de addons congelado en `6de3729a`, desde la canónica `c12c1f6e`;
 se conserva además la integración concurrente T131 de `96e40339`.
 Las herramientas/documentos posteriores no modifican el paquete probado.
@@ -15,6 +15,9 @@ La pareja C prueba **420 casos en Community oficial y 276 en copia fresca de
 Cerro**, cero fallos/errores y dos omisiones previstas por entorno. Community
 instala 95 módulos con cero Enterprise; la referencia Cerro instala 389 y
 conserva sus 140 Enterprise. **Esta referencia nativa no es una conversión.**
+Las dos omisiones CE requieren la aprobación/observación monetaria del proveedor
+nativo de lotes; las dos nativas corresponden a las guardas Community de días
+teóricos e historial bloqueado, que ese motor no implementa.
 
 Se cierran cuatro contratos de campos adicionales, **26 acumulados** en el
 preflight original: nombre obligatorio del tipo, relación inversa de días no

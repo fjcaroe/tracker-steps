@@ -1,9 +1,11 @@
 # Adaptación de contratos Simple Digital–OCA
 
-Estado vigente y siguiente bloque: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md).
-La pareja F pasa 375/252 casos, con 22 contratos originales cerrados; el upgrade
-I preserva historial en la referencia OCA. Quedan la configuración original,
-ACL/identidad y conversión integral. El contenido inferior conserva su alcance histórico.
+Estado vigente y siguiente prompt: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
+La pareja C pasa 420/276 casos, con 26 contratos de campos originales cerrados,
+59.048 XML IDs con noupdate preservados y upgrade privado C API1.10→1.11/Base1.3→1.4.
+Quedan ocho diferencias de campos, seis de columnas, permisos/configuración
+original, certificación y conversión integral. El 31 sigue en riesgo alto.
+El contenido inferior conserva su alcance histórico.
 
 ## Alcance del bloque
 

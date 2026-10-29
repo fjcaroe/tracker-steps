@@ -1,12 +1,11 @@
 # Continuidad de migración Community — Cerro El Plomo
 
-Estado acumulado, aceptación y siguiente prompt vigentes:
-[COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md). Pareja F de
-4705aa85: 375/252 casos, dos omisiones por entorno, cero fallos; 22 contratos
-originales cerrados y 59.048 XML IDs con noupdate preservados. Upgrade privado I
-API1.9→1.10/Base1.2→1.3 con historial protegido y dos fechas XML auditadas.
-La configuración original de 120 maestros/71 reglas y la conversión integral
-siguen abiertas; el 31 mantiene riesgo alto. Los hitos inferiores son históricos.
+Estado vigente y siguiente prompt: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
+La pareja C pasa 420/276 casos, con 26 contratos de campos originales cerrados,
+59.048 XML IDs con noupdate preservados y upgrade privado C API1.10→1.11/Base1.3→1.4.
+Quedan ocho diferencias de campos, seis de columnas, permisos/configuración
+original, certificación y conversión integral. El 31 sigue en riesgo alto.
+El contenido inferior conserva su alcance histórico.
 
 ## Pedido y límites
 

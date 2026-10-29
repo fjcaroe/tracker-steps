@@ -1,5 +1,7 @@
 # Etiquetas contables originales en la preparación OCA
 
+Aceptación en pareja y upgrade C: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
+
 El bloque conserva `hr.salary.rule.debit_tag_ids` y `credit_tag_ids` como
 Many2many reales a `account.account.tag`, almacenados, copiables y editables.
 Usa exactamente `hr_salary_rule_debit_tag_rel` y
@@ -88,24 +90,25 @@ crea etiquetas ni concede roles. No hay menús alternativos o fuente OEEL.
 
 ## Wiring y validación
 
-El coordinador importa `models.original_account_tags` y
+El paquete aceptado importa `models.original_account_tags` y
 `tests.test_original_account_tags`, y añade
-`views/original_account_tags.xml` al manifest de la versión que acepte.
+`views/original_account_tags.xml` al manifest de la versión aceptada.
 No hace falta una proyección DDL: el ORM real conserva una tabla M2M ya
 existente y sus pares. La adopción integral debe cerrar todavía los IDs de
 campos y maestros, propietarios de relaciones y referencias externas; no se
 retargetean aliases ni se importa sobre los maestros demo de Community.
 
-Ocho pruebas funcionales nuevas cubren formulario, columnas/FK/pares,
+Nueve pruebas funcionales nuevas cubren formulario, columnas/FK/pares,
 cuatro combinaciones de signo/credit note, posting y fiscal inversion reales,
 unión de una etiqueta devuelta por la preparación tributaria OCA real,
 ACL de fila/campo con caché y sudo, compañía/país/aplicabilidad/archivo e
-históricos publicados. La prueba de unión no certifica una declaración de IVA
+históricos publicados y copia completa de pares con defaults y visibilidad.
+La prueba de unión no certifica una declaración de IVA
 ni reemplaza la certificación chilena integral. El payload de observación
 nativa tiene rollback obligatorio y se ejecuta únicamente por el coordinador
 en una copia privada bajo las barreras operativas; nunca contra F o producción.
 
-Este documento describe el alcance del código. La aceptación exige el paquete
-exacto en Community oficial y copia fresca de Cerro, snapshots y evidencia
-independiente. El bloque no convierte integralmente el motor ni resuelve la
+La aceptación C contrasta el paquete exacto en Community oficial y copia fresca
+de Cerro, snapshots y evidencia independiente, incluidos los límites anteriores.
+El bloque no convierte integralmente el motor ni resuelve la
 fecha del 31 de octubre.

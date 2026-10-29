@@ -1,7 +1,7 @@
 # Obligatoriedad original y frontera OCA
 
-Bloque preparado desde `c12c1f6e`; **pendiente de aceptación del paquete exacto**
-en Community oficial, copia fresca de Cerro y upgrade privado por el coordinador.
+Bloque aceptado desde `c12c1f6e` en la pareja y upgrade C.
+Resultados y límites: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
 No es adopción de los 120 maestros ni conversión integral con cero Enterprise.
 
 ## Contrato auditado
@@ -86,7 +86,7 @@ cálculo OCA legítimo con categoría opcional y proveedor real sin código (sin
 persistir una línea que contradiga el contrato Base); ACL con caché y país;
 preflight NULL sin backfill.
 La prueba de preflight usa una tabla temporal privada, nunca maestros originales.
-El coordinador debe registrar resultados reales antes de aceptar este bloque.
+La pareja C registra estos casos reales en Community; el upgrade C verifica el almacenamiento.
 
 Producción y QA-Cerro permanecen fuera. Se conservan Calendar, Boolean bancario,
 210233, pagadas, históricos, saldos, correlativos y restricciones del vencimiento.

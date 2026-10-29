@@ -1,7 +1,7 @@
 # Relación original de días no pagados
 
 Bloque preparado junto a la obligatoriedad original desde `c12c1f6e`.
-**Aceptación del paquete exacto pendiente del coordinador.**
+Aceptación en pareja y upgrade C: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
 
 `hr.payroll.structure.unpaid_work_entry_type_ids` y
 `hr.work.entry.type.unpaid_structure_ids` comparten la tabla existente
@@ -72,10 +72,10 @@ tipo. Exige igualdad completa de cabecera, días, líneas salariales, asiento y
 apuntes originales de ese caso sintético. No marca una liquidación comercial
 como pagada ni interpreta esa prueba como certificación de la nómina de SyS.
 
-## Wiring y pruebas previstas
+## Integración y pruebas
 
-El coordinador debe importar `models/original_unpaid.py` en StepBase, los dos
-wrappers de pruebas y actualizar versión/conteos. No hace falta una migración
+El paquete aceptado importa `models/original_unpaid.py` en StepBase y los dos
+wrappers de pruebas, con las versiones y conteos verificados. No hace falta una migración
 que toque pares existentes: la nueva relación es el inverso del campo existente.
 
 Siete casos CE reales cubren metadata/inverso/pares; archivo/copia; recálculo de
