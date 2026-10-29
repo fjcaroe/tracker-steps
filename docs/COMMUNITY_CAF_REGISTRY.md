@@ -45,8 +45,12 @@ identidad de tabla; campos/compute/grupos; firmas sin defaults sensibles;
 classmethod/staticmethod; wrappers cíclicos; MRO; cero ORM/records; metadata
 intacta. Los proveedores sintéticos lanzan error si se ejecuta cualquier método.
 
-Antes de la ejecución del coordinador no se afirma confirmada la política del
-registry real. Los resultados mantienen `adoption_ready` y
+El coordinador ejecutó el contrato sobre el registro nativo B y confirmó
+Binary.attachment=True, store=True, required=False, sin columna caf_file en su
+tabla, lecturas de payload o ejecución del proveedor. Las tablas y correlativos
+permanecieron exactos; ver [COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md).
+Community confirma que el modelo está ausente, sin simularlo.
+Los resultados mantienen `adoption_ready` y
 `folio_allocation_ready` en false. Persisten asignador/concurrencia, aceptación
 de payload/histórico/permisos, ancla oficial y CAF real. Este bloque no asigna
 folios, no firma/emite DTE y no resuelve la conversión integral ni el 31.

@@ -34,8 +34,9 @@ IDs específicos de cada producto:
 
 - Modelo `l10n_cl.dte.caf`, tabla `l10n_cl_dte_caf`, 14 campos y 12 columnas.
   El campo `display_name` no está almacenado; `caf_file` es binary/store pero
-  carece de columna propia. La vía física pendiente de confirmar en runtime es
-  `ir.attachment` con `res_model`/`res_field` originales. No crear una columna
+  carece de columna propia. El registro B confirmó Binary.attachment=True;
+  la aceptación funcional de `ir.attachment` con `res_model`/`res_field` originales
+  e historia real sigue pendiente. No crear una columna
   bytea nueva ni otra tabla para sustituir ese almacenamiento.
 - Metadatos propios del CAF: `filename`, `issued_date`, `start_nb`, `final_nb`,
   `status`, `company_id`, `l10n_latam_document_type_id` y auditoría original.
