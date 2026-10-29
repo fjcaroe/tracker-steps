@@ -1,0 +1,40 @@
+<odoo>
+  <record id="receiving_packing" model="ir.ui.view">
+    <field name="name">stock.picking.receiving.packing</field><field name="model">stock.picking</field>
+    <field name="inherit_id" ref="stock.view_picking_form"/><field name="priority">80</field>
+    <field name="arch" type="xml">
+      <xpath expr="//label[@for='scheduled_date']" position="before">
+        <field name="step_receiving_packing_id" invisible="not step_fruit_reception_kind"
+               readonly="state in ('done','cancel')" options="{'no_create':True}"/>
+      </xpath>
+    </field>
+  </record>
+  <record id="production_header" model="ir.ui.view">
+    <field name="name">packing.production.header.revision</field><field name="model">step.packing.production</field>
+    <field name="inherit_id" ref="step_packing_ot_layout.production_form_layout"/>
+    <field name="priority">100</field><field name="arch" type="xml">
+      <xpath expr="//field[@name='step_packing_order_id']" position="before">
+        <xpath expr="//field[@name='packing_partner_id']" position="move"/>
+        <xpath expr="//field[@name='date']" position="move"/>
+      </xpath>
+      <xpath expr="//field[@name='packing_partner_id']" position="attributes">
+        <attribute name="string">Packing</attribute>
+        <attribute name="domain">[('step_export_packing','=',True)]</attribute>
+        <attribute name="options">{'no_create':True}</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_fundo_id']" position="attributes">
+        <attribute name="domain">[('partner_id','=',fruit_grower_id),('company_id','in',[False,company_id])]</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_fundo_id']" position="after">
+        <xpath expr="//field[@name='company_id']" position="move"/>
+      </xpath>
+      <xpath expr="//notebook" position="inside">
+        <page name="prototype_history" string="Antecedentes del prototipo"
+              invisible="not (step_legacy_packing_partner_id or step_legacy_process_date or step_previous_process_date)">
+          <group><field name="step_legacy_packing_partner_id"/><field name="step_legacy_process_date"/>
+            <field name="step_previous_process_date"/></group>
+        </page>
+      </xpath>
+    </field>
+  </record>
+</odoo>

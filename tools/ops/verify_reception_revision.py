@@ -42,6 +42,22 @@ try:
     assert arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='package_id']/@column_invisible") == ['True']
     assert arch.xpath("//field[@name='step_container_transfer_ids']/@invisible") == ['1']
     assert arch.xpath("//button[@name='action_prepare_fruit_stock']/@invisible") == ['1']
+    tag_columns=arch.xpath("//field[@name='fruit_tag_line_ids']/list/field")
+    visible=[n.get('name') for n in tag_columns if n.get('column_invisible') not in ('1','True') and n.get('optional')!='hide']
+    assert visible[:13]==['sequence','tag_number','product_id','packaging_id','uom_id','caliber_id','category_id','brand','quantity','gross_kg','tare_kg','kilos','step_kg_per_box']
+    assert 'net_kg' not in visible
+    assert model._fields['step_receiving_packing_id'].comodel_name=='res.partner'
+    report_menu=scoped.ref('step_packing_ticket_revision.reports')
+    assert report_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+    for category in ('fruit','materials'):
+        report=scoped['stock.quant'].action_steps_packing_stock(category)
+        assert report['res_model']=='stock.quant' and report['domain']
+        scoped['stock.quant'].search(report['domain'],limit=1)
+    production=scoped['step.packing.production']
+    production_arch=etree.fromstring(production.get_view(view_type='form')['arch'])
+    assert production_arch.xpath("//group[@name='ot_identity_left']/field/@name")[:3]==['packing_partner_id','date','step_packing_order_id']
+    assert production_arch.xpath("//field[@name='fruit_fundo_id']")[0].getnext().get('name')=='company_id'
+    print('T132_T134_NATIVE_REPORTS_AND_HEADERS_OK')
     previous = config['test_enable']; config['test_enable'] = True
     try:
         from odoo.tests import Form

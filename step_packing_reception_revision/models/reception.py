@@ -56,7 +56,8 @@ class Move(models.Model):
         string='Cantidad envases', compute='_compute_fruit_packaging_qty',
         inverse='_inverse_fruit_packaging_qty', store=True, digits='Product Unit of Measure')
 
-    @api.depends('product_packaging_id')
+    @api.depends('product_packaging_id', 'picking_id.fruit_tag_line_ids.quantity',
+                 'picking_id.fruit_tag_line_ids.product_id', 'picking_id.fruit_tag_line_ids.packaging_id')
     def _compute_fruit_packaging_qty(self):
         # Initialize once (and on packaging changes), never recompute boxes
         # because the operator adjusts actual kilos. Existing unambiguous tag
@@ -66,7 +67,7 @@ class Move(models.Model):
             picking = move.picking_id
             rows = self.env['step.packing.picking.tag.line']
             if picking.step_fruit_reception_kind == 'process':
-                operations = picking.move_ids
+                operations = picking.move_ids.filtered(lambda m: m.state != 'cancel')
                 for row in picking.fruit_tag_line_ids:
                     candidates = operations
                     if row.product_id:

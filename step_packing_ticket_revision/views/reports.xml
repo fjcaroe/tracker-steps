@@ -1,0 +1,77 @@
+<odoo>
+  <record id="stock_list" model="ir.ui.view">
+    <field name="name">packing.stock.report.list</field><field name="model">stock.quant</field>
+    <field name="arch" type="xml"><list create="0" edit="0" delete="0">
+      <field name="product_id"/><field name="location_id"/><field name="package_id" optional="hide"/>
+      <field name="lot_id" optional="hide"/><field name="owner_id" optional="hide"/>
+      <field name="quantity"/><field name="reserved_quantity"/><field name="available_quantity"/>
+      <field name="product_uom_id"/><field name="company_id" groups="base.group_multi_company"/>
+    </list></field>
+  </record>
+  <record id="stock_search" model="ir.ui.view">
+    <field name="name">packing.stock.report.search</field><field name="model">stock.quant</field>
+    <field name="arch" type="xml"><search><field name="product_id"/><field name="location_id"/>
+      <field name="package_id"/><field name="owner_id"/>
+      <filter name="positive" string="Con existencias" domain="[('quantity','!=',0)]"/>
+      <group><filter name="product" string="Producto" context="{'group_by':'product_id'}"/>
+        <filter name="location" string="Ubicación" context="{'group_by':'location_id'}"/>
+        <filter name="company" string="Compañía" context="{'group_by':'company_id'}" groups="base.group_multi_company"/>
+      </group></search></field>
+  </record>
+  <record id="stock_pivot" model="ir.ui.view">
+    <field name="name">packing.stock.report.pivot</field><field name="model">stock.quant</field>
+    <field name="arch" type="xml"><pivot><field name="product_id" type="row"/>
+      <field name="quantity" type="measure"/><field name="reserved_quantity" type="measure"/>
+    </pivot></field>
+  </record>
+  <record id="stock_fruit" model="ir.actions.server">
+    <field name="name">Stock de fruta</field><field name="model_id" ref="stock.model_stock_quant"/>
+    <field name="state">code</field><field name="code">action = env['stock.quant'].action_steps_packing_stock('fruit')</field>
+    <field name="groups_id" eval="[(4,ref('stock.group_stock_user'))]"/>
+  </record>
+  <record id="stock_materials" model="ir.actions.server">
+    <field name="name">Stock de materiales de embalajes</field><field name="model_id" ref="stock.model_stock_quant"/>
+    <field name="state">code</field><field name="code">action = env['stock.quant'].action_steps_packing_stock('materials')</field>
+    <field name="groups_id" eval="[(4,ref('stock.group_stock_user'))]"/>
+  </record>
+  <record id="tag_list" model="ir.ui.view">
+    <field name="name">packing.tag.report.list</field><field name="model">stock.quant.package</field>
+    <field name="arch" type="xml"><list create="0" edit="0" delete="0">
+      <field name="name"/><field name="step_tag_state"/><field name="step_tag_kind"/>
+      <field name="package_type_id"/><field name="especie_id"/><field name="variedad_id"/>
+      <field name="box_count" sum="Total envases"/><field name="step_actual_kg"/>
+      <field name="step_producer_id"/><field name="fundo_id"/><field name="step_packing_partner_id"/>
+      <field name="location_id"/><field name="company_id" groups="base.group_multi_company"/>
+      <field name="step_packaging_id" optional="hide"/><field name="step_packing_date" optional="hide"/>
+      <field name="received_at" optional="hide"/><field name="fruit_type" optional="hide"/>
+      <field name="fruit_category_id" optional="hide"/>
+    </list></field>
+  </record>
+  <record id="tag_search" model="ir.ui.view">
+    <field name="name">packing.tag.report.search</field><field name="model">stock.quant.package</field>
+    <field name="arch" type="xml"><search><field name="name"/><field name="step_producer_id"/>
+      <field name="fundo_id"/><field name="especie_id"/><field name="variedad_id"/>
+      <field name="step_packing_partner_id"/>
+      <filter name="internal" string="En ubicaciones internas" domain="[('location_id.usage','=','internal')]"/>
+      <group><filter name="location" string="Ubicación" context="{'group_by':'location_id'}"/>
+        <filter name="packing" string="Packing" context="{'group_by':'step_packing_partner_id'}"/>
+        <filter name="producer" string="Productor" context="{'group_by':'step_producer_id'}"/>
+        <filter name="species" string="Especie" context="{'group_by':'especie_id'}"/>
+      </group></search></field>
+  </record>
+  <record id="tags" model="ir.actions.act_window">
+    <field name="name">Informe de tarjas</field><field name="res_model">stock.quant.package</field>
+    <field name="view_mode">list,form</field><field name="view_id" ref="tag_list"/>
+    <field name="search_view_id" ref="tag_search"/><field name="domain">[('is_fruit_tag','=',True)]</field>
+    <field name="context">{'search_default_internal':1}</field>
+  </record>
+  <menuitem id="reports" name="Informes" parent="step_packing_operations.menu_packing_operations_root"
+            sequence="60" groups="stock.group_stock_user"/>
+  <menuitem id="stock_fruit_menu" name="Stock de fruta" parent="reports" action="stock_fruit" sequence="10"/>
+  <menuitem id="stock_materials_menu" name="Stock de materiales de embalajes" parent="reports" action="stock_materials" sequence="20"/>
+  <menuitem id="process_receptions" name="Informe fruta a proceso" parent="reports"
+            action="step_producer_fruit_reports.action_process" sequence="30"/>
+  <menuitem id="packed_receptions" name="Informe fruta embalada" parent="reports"
+            action="step_producer_fruit_reports.action_packed" sequence="40"/>
+  <menuitem id="tag_report" name="Informe de tarjas" parent="reports" action="tags" sequence="50"/>
+</odoo>

@@ -215,3 +215,30 @@ class SimpleReceptionCase(TransactionCase):
             picking.button_validate()
         self.assertFalse(row.package_id)
         self.assertEqual(picking.move_ids.quantity, 400)
+
+    def test_real_kilo_correction_preserves_600_physical_containers(self):
+        from odoo.tests import Form
+        self.packaging.qty=2
+        picking=self.receipt((408,400,392.5),demand=1200.5)
+        for row in picking.fruit_tag_line_ids:row.quantity=200
+        move=picking.move_ids
+        self.assertEqual(move.step_fruit_packaging_qty,600)
+        move.step_fruit_packaging_qty=600
+        self.assertEqual(move.quantity,1200)
+        with Form(picking,view='step_packing_reception_revision.view_process_reception_form') as form:
+            with form.move_ids_without_package.edit(0) as line:line.quantity=1200.5
+        self.env.flush_all();move.invalidate_recordset()
+        self.assertEqual(move.quantity,1200.5)
+        self.assertEqual(move.step_fruit_packaging_qty,600)
+        self.assertEqual(move.product_uom_qty,1200.5)
+        picking.button_validate()
+        self.assertEqual(picking.state,'done')
+        self.assertEqual(move.step_fruit_packaging_qty,600)
+        self.assertEqual(sum(picking.fruit_tag_line_ids.package_id.mapped('box_count')),600)
+        self.assertAlmostEqual(sum(picking.fruit_tag_line_ids.package_id.quant_ids.mapped('quantity')),1200.5)
+
+    def test_net_weight_ratio_and_safe_empty_count(self):
+        row=self.env['step.packing.picking.tag.line'].new({'quantity':200,'kilos':408})
+        self.assertAlmostEqual(row.step_kg_per_box,2.04)
+        row.quantity=0
+        self.assertEqual(row.step_kg_per_box,0)
