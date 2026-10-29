@@ -263,7 +263,7 @@ def main():
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         expected=7 if standalone else (101 if pure else 25)+((55 if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         if args.accelerated:expected+=HR_TEST_COUNT+33+18+11+(0 if pure else 39)
-        if args.custody_grouping:expected+=49 if pure else 29
+        if args.custody_grouping:expected+=54 if pure else 29
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
