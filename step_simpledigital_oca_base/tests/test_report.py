@@ -119,7 +119,7 @@ class StoredPayslipReportCase(StoredReportFixture, TransactionCase):
         action = report.report_action(slip, config=False)
         self.assertEqual(action['report_name'], 'step_simpledigital_oca_base.report_payslip')
         self.assertEqual(action['report_type'], 'qweb-pdf')
-        self.assertEqual(report.binding_model_id.model, 'hr.payslip')
+        self.assertEqual(self.env.ref('payroll.action_report_payslip').binding_model_id.model, 'hr.payslip')
         self.assertFalse(report.attachment_use)
         self.assertEqual(self.scope.ref('payroll.action_report_payslip').id, action_id)
         self.assertFalse(self.scope.ref('hr_payroll.action_report_payslip', raise_if_not_found=False))

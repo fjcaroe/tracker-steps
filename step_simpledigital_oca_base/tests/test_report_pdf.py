@@ -32,9 +32,14 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
             match = re.match(r'^/web/assets/([0-9a-f]+/[^/]+)$', urlsplit(link).path)
             if match:
                 todo += ['/web/assets/' + scope + '/' + match.group(1) for scope in scopes]
-        cache, missing = {}, []
+        # HTML-linked resources are required. CSS also declares editor-only
+        # decorations that the PDF never uses; prefetch 404 is not evidence of
+        # a failed render. The sidecar still rejects every actually requested
+        # missing resource, so no required asset is replaced or fabricated.
+        todo = [(link, True) for link in todo]
+        cache, missing, optional_prefetch_missing = {}, [], []
         while todo:
-            link = todo.pop()
+            link, required = todo.pop()
             if link.startswith('data:'):
                 continue
             parsed = urlsplit(urljoin(origin, link))
@@ -42,6 +47,9 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
             if parsed.path in cache:
                 continue
             response = self.url_open(parsed.path + ('?' + parsed.query if parsed.query else ''))
+            if response.status_code == 404 and not required:
+                optional_prefetch_missing.append(parsed.path)
+                continue
             self.assertEqual(response.status_code, 200, parsed.path)
             mime = response.headers.get('Content-Type', 'application/octet-stream')
             cache[parsed.path] = response.content, mime
@@ -53,7 +61,7 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
                         if host:
                             self.assertEqual(host, 'fonts.odoocdn.com')
                         else:
-                            todo.append(urljoin(parsed.path, value))
+                            todo.append((urljoin(parsed.path, value), False))
         self.assertTrue(cache)
 
         class Handler(BaseHTTPRequestHandler):
@@ -76,7 +84,7 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
         server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
-        return server, thread, missing, {key: hashlib.sha256(value[0]).hexdigest() for key, value in cache.items()}
+        return server, thread, missing, {key: hashlib.sha256(value[0]).hexdigest() for key, value in cache.items()}, optional_prefetch_missing
 
     def test_actual_employee_pdf_active_archived_and_basic_visibility(self):
         slip = self.closed_slip()
@@ -106,7 +114,7 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
             self.assertIn('Stored NULL_VALUE', html.text)
             action = self.scope.ref('payroll.action_report_payslip')
             bodies, ids, header, footer, paper = action._prepare_html(html.content, report_model='hr.payslip')
-            server, thread, missing, assets = self.asset_sidecar([html.content, *bodies, header, footer])
+            server, thread, missing, assets, optional_missing = self.asset_sidecar([html.content, *bodies, header, footer])
             self.env['ir.config_parameter'].sudo().set_param('report.url', 'http://127.0.0.1:%s' % server.server_port)
             try:
                 with ExitStack() as stack:
@@ -133,6 +141,7 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
                 'pages': reader.getNumPages(), 'actor_id': owner.id, 'normal_employee': True,
                 'archived_structure': archived, 'basic_hidden': hide, 'stored_history_unchanged': True,
                 'missing_assets': missing, 'runtime_asset_sha256': assets,
+                'unused_css_prefetch_404': sorted(set(optional_missing)),
                 'financial_verified_html_sha256': hashlib.sha256(html.content).hexdigest(),
                 'offline_pdf_text_verification_required': True,
                 'visual_pdf_review_required': True})
