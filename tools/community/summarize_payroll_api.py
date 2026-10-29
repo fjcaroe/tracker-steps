@@ -91,6 +91,8 @@ def main():
     if config_storage.exists():paths+=['tools/community/prepare_payroll_configuration_storage.py']
     adoption_preflight=args.evidence/'configuration-preflight/after.json'
     if adoption_preflight.exists():paths+=['tools/community/payroll_configuration_adoption_preflight.py']
+    security_admission=args.evidence/'configuration-preflight/security-admission.json'
+    if security_admission.exists():paths+=['tools/community/payroll_original_security_admission.py']
     identity_snapshotter=args.evidence/'identity-snapshotter.py'
     if identity_snapshotter.exists():paths+=['tools/community/validate_agriculture_core.py']
     property_upgrade=args.evidence/'properties-upgrade/passed.json'
@@ -390,6 +392,31 @@ def main():
                 'origin_xmlid_rows':88,'new_reference_aliases':3,'named_references_and_noupdate_match':True,
                 'all_91_metadata_primary_keys_match':False,'native_before_noupdate_not_captured':not all('noupdate' in row for row in original['original_xmlids']),
                 'engine_converted':False,'financial_certified':False}
+    if security_admission.exists():
+        import importlib.util
+        folder=security_admission.parent
+        executed=(folder/'security-auditor.py').read_bytes()
+        expected=source['tools/community/payroll_original_security_admission.py']
+        assert executed.replace(b'\r\n',b'\n')==expected.replace(b'\r\n',b'\n')
+        proof=json.loads(security_admission.read_text())
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert proof['capsule_sha256']==hashlib.sha256(capsule.read_bytes()).hexdigest()
+        assert proof['target_database']==results['community']['database']
+        assert proof['source_database']==sealed['source_database']
+        assert proof['read_only'] and proof['source_configuration_matches_capsule']
+        assert not any(proof[key] for key in ('orm_loaded','rules_evaluated','salary_formulas_exposed'))
+        sys.path.insert(0,str(repo/'tools/community'))
+        spec=importlib.util.spec_from_file_location('security_admission',repo/'tools/community/payroll_original_security_admission.py')
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        plan=helper.preservation_plan(proof['source'],proof['target'])
+        assert proof['plan']==plan
+        assert not plan['metadata_preservation_admissible'] and plan['blockers']
+        assert plan['new_acl_grants']==[] and plan['functional_actor_acceptance_required']
+        assert not any(plan[key] for key in ('group_memberships_changed','manager_assigned','field_groups_changed',
+            'database_writes','import_authorized','dependency_change_authorized','record_rule_equivalence_certified','engine_converted'))
+        result['original_security_admission']={key:plan[key] for key in ('metadata_preservation_admissible','blockers',
+            'original_acl_count','original_record_rule_count','new_acl_grants','functional_actor_acceptance_required',
+            'record_rule_equivalence_certified','engine_converted')}
     if rule_source.exists():
         proof=json.loads(rule_source.read_text())
         executed=(args.evidence/'rule-source-auditor.py').read_bytes()
