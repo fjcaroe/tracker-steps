@@ -75,6 +75,9 @@ def main():
     if products.exists():paths+=['tools/community/audit_product_frontier.py']
     rule_source=args.evidence/'rule-source-proof.json'
     if rule_source.exists():paths+=['tools/community/hr_rule_source_audit.py']
+    registry=args.evidence/'adoption-registry'
+    if registry.exists():paths+=['tools/community/'+name for name in (
+        'validate_adoption_registry.py','batch_registry_contract.py','caf_registry_contract.py','validate_payroll_relation_storage.py')]
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -233,6 +236,41 @@ def main():
                 'hr_payslip_input_contract_id_fkey','hr_payslip_worked_days_contract_id_fkey'}
             result['sys_related_storage'].update(contract_fks_prepared=True,original_foreign_keys_preserved=True,
                                                  orm_metadata_adopted=False,native_nullability_changed=False)
+    if registry.exists():
+        executed=(registry/'validator.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_adoption_registry.py'].replace(b'\r\n',b'\n')
+        result['loaded_adoption_registry']={}
+        for mode in ('community','cerro-reference'):
+            folder=registry/mode
+            proof=json.loads((folder/'passed.json').read_text())
+            reports=json.loads((folder/'registry.json').read_text())
+            before=json.loads((folder/'business-before.json').read_text());after=json.loads((folder/'business-after.json').read_text())
+            assert before==after and len(before)==proof['exact_tables_and_counters_preserved']
+            assert proof['runner_sha256']==hashlib.sha256(executed).hexdigest()
+            assert proof['source_packet_sha256']==results[mode]['source_files_sha256']
+            assert proof['database']==results[mode]['database'] and proof['read_only'] and proof['metadata_only']
+            assert not any(proof[key] for key in ('upgraded','business_records_read','source_bodies_exported','functional_conversion_certified'))
+            for name,digest in proof['helpers_sha256'].items():
+                helper=(registry/name).read_bytes()
+                assert hashlib.sha256(helper).hexdigest()==digest
+                assert helper.replace(b'\r\n',b'\n')==source['tools/community/'+name].replace(b'\r\n',b'\n')
+            batch,caf=reports['batch'],reports['caf']
+            assert batch['read_only'] and not batch['business_records_read'] and not batch['functional_provider_certified']
+            assert caf['transaction_read_only'] and not any(caf[key] for key in (
+                'orm_records_accessed','payloads_read','provider_methods_called','adoption_ready'))
+            if mode=='community':
+                assert not batch['model_present'] and not caf['model_present']
+                target=reports['payroll_relations']
+                assert target['read_only'] and target['enterprise']==0 and not target['orm_loaded']
+                if relation_storage.exists() and json.loads(relation_storage.read_text()).get('contract_fks_prepared'):
+                    previous=json.loads((relation_storage.parent/'community-contract.json').read_text())
+                    signature=lambda report:[{key:value for key,value in row.items() if key!='id'} for row in report['fields']]
+                    assert signature(previous)==signature(target),'Prepared FK semantics changed in the latest OCA registry'
+            else:
+                assert batch['model_present'] and caf['binary_attachment_policy_proven']
+                assert not caf['folio_allocation_ready'] and not caf['payload_storage_preservation_verified']
+            result['loaded_adoption_registry'][mode]={'metadata_only':True,'exact_tables_and_counters_preserved':len(before),
+                'caf_attachment_metadata':bool(caf.get('binary_attachment_policy_proven')),'functional_conversion_certified':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
         assert results['community']['expected_test_count']==252 and results['cerro-reference']['expected_test_count']==215
