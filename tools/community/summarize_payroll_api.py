@@ -202,8 +202,8 @@ def main():
         assert reviewed['offline_proof_sha256']==hashlib.sha256(stored_pdf.read_bytes()).hexdigest()
         page_hashes={}
         for row in offline['pdfs']:
-            original=next(r for r in records if r['file']==Path(row['pdf']).name)
-            assert row['pdf_sha256']==original['sha256'] and len(row['pages'])==original['pages']
+            original_pdf=next(r for r in records if r['file']==Path(row['pdf']).name)
+            assert row['pdf_sha256']==original_pdf['sha256'] and len(row['pages'])==original_pdf['pages']
             assert all(row[key] for key in ('actual_pdf_labels_references_verified','zero_negative_net_values_verified',
                 'source_history_unchanged_as_tested','null_row_verified_blank','signature_block_on_single_page'))
             assert not row['classification_history_certified']
@@ -293,6 +293,48 @@ def main():
             'remaining_field_differences':len(assessment['field_differences']),
             'remaining_selection_differences':len(assessment['selection_value_differences']),
             'adoption_ready':False,'remaining_gates':assessment['remaining_gates']}
+        native_file=folder/'native-source.json'
+        if native_file.exists():
+            proof=json.loads(native_file.read_text())
+            assert proof['read_only'] and proof['two_readonly_snapshots_equal']
+            assert not any(proof[key] for key in ('orm_loaded','rules_evaluated','historical_payroll_read',
+                'salary_formulas_exposed','adoption_authorized','engine_converted','financial_certified'))
+            assert proof['native_database']==results['cerro-reference']['database']
+            assert proof['capsule_sha256']==hashlib.sha256(capsule.read_bytes()).hexdigest()
+            assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+            native=proof['native_metadata_before']
+            assert native==proof['native_metadata_after'] and native['transaction']==[{'mode':'on'}]
+            assert helper.digest(native)==proof['before_metadata_sha256']==proof['after_metadata_sha256']
+            for table,rows in sealed['tables'].items():
+                assert native['source_hash:'+table]==[{'rows_sha256':rows['rows_sha256']}]
+                assert native['row_count:'+table]==[{'row_count':rows['row_count']}]
+            attributes={'type':'ttype','relation':'relation','required':'required','readonly':'readonly',
+                'store':'store','related':'related','company_dependent':'company_dependent'}
+            by_field={(row['model'],row['name']):row for row in native['fields']}
+            for field in sealed['field_metadata']:
+                assert all(field[key]==by_field[field['model'],field['name']][value] for key,value in attributes.items())
+            aliases={(row['module'],row['name']):row for row in native['xmlids']}
+            expected={(row['module'],row['name']):row for row in sealed['xmlids']}
+            assert aliases.keys()==expected.keys()
+            reference_names={('step_simpledigital_oca_security','chile_rule_'+name) for name in ('basic','gross','net')}
+            source_aliases={(row['module'],row['name']):row for row in original['ir_model_data']}
+            assert reference_names.isdisjoint(source_aliases)
+            for key,row in expected.items():
+                assert all(row[name]==aliases[key][name] for name in ('module','name','model','res_id','noupdate'))
+                if key not in reference_names:
+                    assert row==aliases[key]
+                    assert all(row[name]==source_aliases[key][name] for name in ('id','module','name','model','res_id'))
+            classification=json.loads((folder/'native-xmlid-classification.json').read_text())
+            assert classification['identity_before_sha256']==hashlib.sha256((args.evidence/'cerro-reference/identity-before.json').read_bytes()).hexdigest()
+            assert classification['native_provenance_sha256']==hashlib.sha256(native_file.read_bytes()).hexdigest()
+            assert classification['origin_xmlids_present_before_upgrade']==88 and classification['reference_aliases_absent_before_upgrade']==3
+            assert not classification['unexpected_drift']
+            hook=classification['adapter_source']
+            assert hook['sha256']==hashlib.sha256(source['step_simpledigital_oca_security/hooks.py']).hexdigest()
+            result['native_configuration_provenance']={'exact_master_rows':120,'exact_tables':6,
+                'origin_xmlid_rows':88,'new_reference_aliases':3,'named_references_and_noupdate_match':True,
+                'all_91_metadata_primary_keys_match':False,'native_before_noupdate_not_captured':True,
+                'engine_converted':False,'financial_certified':False}
     if rule_source.exists():
         proof=json.loads(rule_source.read_text())
         executed=(args.evidence/'rule-source-auditor.py').read_bytes()
