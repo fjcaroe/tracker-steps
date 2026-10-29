@@ -202,6 +202,15 @@ def main():
         helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
         seed=json.loads((folder/'seed.json').read_text())
         after_rows=json.loads((folder/'rows-after.json').read_text())
+        assert proof['seed_sha256']==hashlib.sha256((folder/'seed.json').read_bytes()).hexdigest()
+        assert proof['rows_after_sha256']==hashlib.sha256((folder/'rows-after.json').read_bytes()).hexdigest()
+        witness_path=folder/'synthetic-paid-marker-before.json'
+        witness=json.loads(witness_path.read_text())
+        assert proof['synthetic_paid_marker_witness_sha256']==seed['synthetic_paid_marker_witness_sha256']==hashlib.sha256(witness_path.read_bytes()).hexdigest()
+        assert witness['synthetic_fixture_only'] and witness['database']==proof['database']
+        assert witness['id']==seed['slip'] and witness['state']=='done' and witness['step_history_locked'] is True
+        assert witness['paid'] is None or witness['paid'] is False
+        assert proof['synthetic_paid_marker_original_sql_value']==seed['synthetic_paid_marker_original_sql_value']==witness['paid']
         check=helper.verify_rows(seed['raw_rows'],after_rows)
         assert all(proof[key]==value for key,value in check.items())
         assert all(proof[key] for key in ('actual_upgrade','normal_actor','real_oca_engine','historical_read_unchanged',
