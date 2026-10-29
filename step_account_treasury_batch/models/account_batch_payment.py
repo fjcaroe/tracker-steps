@@ -11,10 +11,9 @@ import csv
 import io
 import re
 
-import xlsxwriter
-
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.addons.step_bank_export_core.models.bank_export_service import clean_rut
 
 
 class StepTreasuryBankExportAdapter(models.AbstractModel):
@@ -97,7 +96,7 @@ class AccountBatchPayment(models.Model):
 
     @api.model
     def _bancoestado_clean_rut(self, vat):
-        return re.sub(r"[^0-9Kk]", "", vat or "").upper()
+        return clean_rut(vat)
 
     @api.model
     def _bancoestado_bank_code(self, bank):
@@ -110,86 +109,21 @@ class AccountBatchPayment(models.Model):
 
     def _bancoestado_rows(self):
         self.ensure_one()
+        self.check_access('write')
         if self.batch_type != "outbound":
             raise UserError(_("BancoEstado sólo admite lotes de pagos salientes."))
-        if not self.payment_ids:
-            raise UserError(_("Agregue pagos al lote antes de exportarlo."))
         self._check_batch_approval()
-        rows = []
-        for payment in self.payment_ids.sorted(key=lambda item: (item.partner_id.name or "", item.id)):
-            partner = payment.partner_id
-            bank_account = payment.partner_bank_id
-            if not partner.vat:
-                raise UserError(_("El beneficiario %s no tiene RUT.") % partner.display_name)
-            if not bank_account:
-                partner_accounts = partner.bank_ids
-                if len(partner_accounts) == 1:
-                    # El pago no trae cuenta seleccionada pero el proveedor sólo
-                    # tiene una registrada en Contactos: se usa esa, sin ambigüedad.
-                    bank_account = partner_accounts
-                elif not partner_accounts:
-                    raise UserError(_(
-                        "El proveedor %s no tiene ninguna cuenta bancaria registrada "
-                        "en Contactos.") % partner.display_name)
-                else:
-                    raise UserError(_(
-                        "El pago de %(partner)s no tiene una cuenta bancaria "
-                        "beneficiaria seleccionada: el proveedor tiene %(count)s "
-                        "cuentas registradas en Contactos, elija una en el pago antes "
-                        "de incluirlo en el lote.",
-                        partner=partner.display_name, count=len(partner_accounts)))
-            if not bank_account.bank_id:
-                raise UserError(_("La cuenta %s no tiene banco asociado.") % bank_account.acc_number)
-            account_number = re.sub(r"\D", "", bank_account.acc_number or "")
-            if not account_number or len(account_number) > 17:
-                raise UserError(_(
-                    "La cuenta de %(partner)s debe contener sólo números y un máximo "
-                    "de 17 dígitos.", partner=partner.display_name))
-            method = bank_account.step_bancoestado_payment_method or "01"
-            bank_code = self._bancoestado_bank_code(bank_account.bank_id)
-            if method == "02" and bank_code != "012":
-                raise UserError(_(
-                    "La forma de pago 02 (cuenta de ahorro) sólo se permite para "
-                    "cuentas BancoEstado, código 012."))
-            rows.append((
-                self._bancoestado_clean_rut(partner.vat), partner.name or partner.display_name,
-                partner.email or "", bank_code, method, account_number, payment.amount,
-            ))
-        return rows
+        return self.env['step.bank.export.service'].bancoestado_rows(self.payment_ids, self.company_id)
 
     def action_export_bancoestado_xlsx(self):
         """Genera el formato oficial Pago 7 Columnas de BancoEstado."""
         self.ensure_one()
         rows = self._bancoestado_rows()
-        stream = io.BytesIO()
-        workbook = xlsxwriter.Workbook(stream, {"in_memory": True})
-        sheet = workbook.add_worksheet("Pago 7 Columnas")
-        header = workbook.add_format({"bold": True, "bg_color": "#D9EAF7", "border": 1})
-        text_format = workbook.add_format({"num_format": "@"})
-        amount_format = workbook.add_format({"num_format": "#,##0.00"})
-        columns = [
-            "RUT", "NOMBRES Y APELLIDOS O RAZÓN SOCIAL", "EMAIL", "BANCO",
-            "FORMA DE PAGO", "N° DE CUENTA", "MONTO DEL PAGO",
-        ]
-        for column, title in enumerate(columns):
-            sheet.write(0, column, title, header)
-        for row_index, values in enumerate(rows, start=1):
-            for column, value in enumerate(values):
-                if column == 6:
-                    sheet.write_number(row_index, column, value, amount_format)
-                else:
-                    sheet.write_string(row_index, column, str(value), text_format)
-        sheet.set_column(0, 0, 14)
-        sheet.set_column(1, 1, 42)
-        sheet.set_column(2, 2, 32)
-        sheet.set_column(3, 5, 18)
-        sheet.set_column(6, 6, 20)
-        sheet.freeze_panes(1, 0)
-        workbook.close()
+        payload = self.env['step.bank.export.service'].bancoestado_file(self.payment_ids, self.company_id)
         safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", self.name or "lote")
         attachment = self.env["ir.attachment"].create({
             "name": "%s_BANCOESTADO_7_COLUMNAS.xlsx" % safe_name,
-            "type": "binary", "datas": base64.b64encode(stream.getvalue()),
+            "type": "binary", "datas": base64.b64encode(payload),
             "res_model": self._name, "res_id": self.id,
             "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         })
@@ -203,6 +137,7 @@ class AccountBatchPayment(models.Model):
     def action_export_treasury_review_csv(self):
         """CSV de control humano, deliberadamente incompatible con bancos."""
         self.ensure_one()
+        self.check_access('write')
         if not self.payment_ids:
             raise UserError(_("Agregue pagos al lote antes de generar la revisión."))
 
