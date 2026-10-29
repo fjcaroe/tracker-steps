@@ -26,6 +26,51 @@ XMLIDS = {
 }
 
 
+def adapt_payslip_report_xml(content):
+    """Use the real AGPL layout with authorized stored-report values only."""
+    tree = ET.fromstring(content)
+    replacements = {
+        "o.line_ids.filtered(lambda l: l.appears_on_payslip)": 'step_report_lines(o)',
+        "o.worked_days_line_ids.filtered(lambda worked_days: worked_days.code != 'OUT')": 'step_report_days(o)',
+        "sum(plines.filtered(lambda l: l.category_id.code == 'GROSS').mapped('total')) + sum(plines.filtered(lambda l: l.category_id.code == 'habIMP').mapped('total'))": "step_report_category_total(o, ['GROSS', 'habIMP'])",
+        "sum(plines.filtered(lambda l: l.category_id.code == 'TOTAL_DESC').mapped('total'))": "step_report_category_total(o, ['TOTAL_DESC'])",
+        'o.use_worked_day_lines': 'step_report_days(o)',
+        'o.overtime_hours > 0': 'step_report_overtime_hours(o) is not None and step_report_overtime_hours(o) > 0',
+        'round(o.overtime_hours, 2)': 'step_report_overtime_hours(o)',
+        'o.net_wage': 'step_report_net(o)',
+        'hl.total': 'step_report_total(hl)',
+        'dl.total': 'step_report_total(dl)',
+    }
+    for key in ('hours', 'days'):
+        original = 'number_of_' + key
+        replacements['round(worked_days.' + original + ', 2)'] = (
+            "round(step_report_day_value(worked_days, '%s'), 2) if step_report_day_value(worked_days, '%s') is not None else ''" % (key, key))
+        replacements["round(sum(worked_days_lines.mapped('%s')), 2)" % original] = (
+            "round(step_report_day_sum(o, '%s'), 2) if step_report_day_sum(o, '%s') is not None else ''" % (key, key))
+    expected = {'plines': 0, 'worked_days_lines': 0}
+    for node in tree.iter():
+        for attr, original in list(node.attrib.items()):
+            if not attr.startswith('t-'):
+                continue
+            value = replacements.get(original, original)
+            for name in ('hl', 'dl', 'l'):
+                value = value.replace(name + '.category_id.code', 'step_report_category(' + name + ')')
+            node.set(attr, value)
+        if node.get('t-set') in expected:
+            expected[node.get('t-set')] += 1
+        if node.get('t-out') in ('step_report_total(hl)', 'step_report_total(dl)',
+                                  'step_report_net(o)', 'total_haberes', 'total_descuentos'):
+            node.set('t-if', node.get('t-out') + ' is not None')
+    assert expected == {'plines': 1, 'worked_days_lines': 1}, 'Pinned provider report structure drift'
+    result = ET.tostring(tree, encoding='unicode')
+    assert 'o.net_wage' not in result and 'o.overtime_hours' not in result
+    assert ".mapped('total')" not in result, 'Report must read authorized stored totals'
+    forbidden = ('contract.wage', 'contract_id.wage', 'o.paid_amount', 'o.basic_wage',
+                 'o.gross_wage', '_get_paid_amount', '_get_contract_wage')
+    assert not any(value in result for value in forbidden), 'Current financial helpers are not historical report snapshots'
+    return result
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,required=True)
@@ -73,6 +118,8 @@ def main():
                 if record.get('id')=='structure_chile':
                     flag=ET.SubElement(record,'field',name='use_work_entries');flag.text='True'
             content=ET.tostring(tree,encoding='unicode')
+        if name=='report/report_payslip_templates.xml':
+            content=adapt_payslip_report_xml(content)
         if content!=before:
             dest.write_text(content,encoding='utf-8');changes.append(name)
     manifest['depends']=['step_simpledigital_oca_base']
