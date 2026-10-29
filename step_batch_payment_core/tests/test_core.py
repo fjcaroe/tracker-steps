@@ -200,6 +200,12 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         for values in ({'state': 'sent'}, {'amount': 1}, {'amount_residual': 1}, {'export_file': 'YQ=='}):
             with self.assertRaises(UserError):
                 self.Batch.create(dict(values, name='No importar', payment_ids=[Command.set(self.payments.ids)]))
+            defaults = {'default_' + key: value for key, value in values.items()}
+            with self.assertRaises(UserError):
+                self.Batch.with_context(**defaults).create({'name': 'No importar contexto',
+                    'payment_ids': [Command.set(self.payments.ids)]})
+            with self.assertRaises(UserError):
+                self.Batch.with_context(**defaults).default_get(['name', 'payment_ids'])
         batch = self.group()
         for values in ({'state': 'reconciled'}, {'amount': 1}, {'export_file': 'YQ=='}):
             with self.assertRaises(UserError):

@@ -9,6 +9,10 @@ from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError
 
 
+CONTROLLED_FIELDS = frozenset({'state', 'amount', 'amount_residual', 'amount_residual_currency',
+    'export_file', 'export_file_create_date', 'export_filename', 'currency_id', 'company_currency_id', 'company_id'})
+
+
 class AccountBatchPayment(models.Model):
     _name = 'account.batch.payment'
     _description = 'Batch Payment'
@@ -169,6 +173,7 @@ class AccountBatchPayment(models.Model):
 
     @api.model
     def default_get(self, fields_list):
+        self._check_import_fields({})
         self._selected_ids(self.env.context.get('default_payment_ids', []))
         values = super().default_get(fields_list)
         ids = self._selected_ids(values.get('payment_ids', []))
@@ -182,6 +187,11 @@ class AccountBatchPayment(models.Model):
                     values[field] = actual
         return values
 
+    @api.model
+    def _check_import_fields(self, values):
+        if CONTROLLED_FIELDS & values.keys() or any('default_' + field in self.env.context for field in CONTROLLED_FIELDS):
+            raise UserError(_('El proveedor calcula los importes; no importa estados o archivos históricos por RPC.'))
+
     @api.model_create_multi
     def create(self, values_list):
         with self.env.cr.savepoint():
@@ -189,14 +199,13 @@ class AccountBatchPayment(models.Model):
 
     def _create_existing_payment_groups(self, values_list):
         self.check_access('create')
+        self._check_import_fields({})
         self._selected_ids(self.env.context.get('default_payment_ids', []))
         service = self.env['step.batch.payment.grouping']
         prepared = []
         for values in values_list:
             values = dict(values)
-            if {'state', 'amount', 'amount_residual', 'amount_residual_currency', 'export_file',
-                    'export_file_create_date', 'export_filename', 'currency_id', 'company_currency_id'} & values.keys():
-                raise UserError(_('El proveedor calcula los importes; no importa estados o archivos históricos por RPC.'))
+            self._check_import_fields(values)
             ids = self._selected_ids(values.get('payment_ids', self.env.context.get('default_payment_ids', [])))
             payments = service._lock_payments(ids)
             first = service._validate_payments(payments)
