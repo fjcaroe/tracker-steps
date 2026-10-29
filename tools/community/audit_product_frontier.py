@@ -36,12 +36,18 @@ def main():
             "'depends',(SELECT coalesce(jsonb_agg(d.name ORDER BY d.name),'[]'::jsonb) FROM ir_module_module_dependency d WHERE d.module_id=m.id)) ORDER BY m.name) "
             "FROM ir_module_module m WHERE m.state='installed'"))
         roots=[Path(value.strip()) for value in config['options']['addons_path'].split(',')]
+        recovery_roots=[Path('/opt/odoo18/custom_addons')]
         for module in modules:
             source=next((root/module['name'] for root in roots if (root/module['name']/'__manifest__.py').exists()),None)
+            module['active_source_available']=source is not None
+            if source is None:
+                source=next((root/module['name'] for root in recovery_roots if (root/module['name']/'__manifest__.py').exists()),None)
             module['source_available']=source is not None
             if source:
                 manifest=ast.literal_eval((source/'__manifest__.py').read_text(encoding='utf-8-sig'))
                 module['manifest']={key:manifest.get(key) for key in ('version','license','depends')}
+                module['manifest']['depends']=manifest.get('depends') or []
+                assert isinstance(module['manifest']['depends'],list)
                 if module['name'].startswith('step') or module['name']=='l10n_cl_simpledigital_payroll':
                     assert manifest.get('license')!='OEEL-1','Do not inventory Enterprise bodies as owned source'
                     files={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(source.rglob('*'))
@@ -57,7 +63,8 @@ def main():
         own=[module for module in modules if module['name'].startswith('step')]
         result['products'][name]={'modules':modules,'installed':len(modules),
             'enterprise':sum(module['license']=='OEEL-1' for module in modules),
-            'own':len(own),'own_without_source':[module['name'] for module in own if not module['source_available']]}
+            'own':len(own),'own_without_source':[module['name'] for module in own if not module['source_available']],
+            'own_without_active_source':[module['name'] for module in own if not module['active_source_available']]}
     args.output.write_text(json.dumps(result,indent=2),encoding='utf-8')
     print(json.dumps({name:{key:value for key,value in row.items() if key!='modules'} for name,row in result['products'].items()}))
 
