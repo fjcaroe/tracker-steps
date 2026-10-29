@@ -1,5 +1,8 @@
 # Admisión de configuración, días no pagados y etiquetas — 29-10-2026
 
+Continuación vigente: [COMMUNITY_PERIODO_NOMINA.md](COMMUNITY_PERIODO_NOMINA.md).
+Esta aceptación de Admisión C se conserva como antecedente del upgrade siguiente.
+
 Aceptación de la pareja y upgrade C completada; resumen privado reproducible verificado.
 Paquete de addons congelado en `6de3729a`, desde la canónica `c12c1f6e`;
 se conserva además la integración concurrente T131 de `96e40339`.

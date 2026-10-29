@@ -1,10 +1,12 @@
 # Configuración original de nómina: captura y puertas de adopción
 
-Estado vigente y siguiente prompt: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
-La pareja C pasa 420/276 casos, con 26 contratos de campos originales cerrados,
-59.048 XML IDs con noupdate preservados y upgrade privado C API1.10→1.11/Base1.3→1.4.
-Quedan ocho diferencias de campos, seis de columnas, permisos/configuración
-original, certificación y conversión integral. El 31 sigue en riesgo alto.
+Estado vigente y siguiente prompt: [COMMUNITY_PERIODO_NOMINA.md](COMMUNITY_PERIODO_NOMINA.md).
+Período C pasa 439/294 casos, cero fallos/errores: cinco consumidores HR,
+asistente real con días y entradas de trabajo existentes, Base1.5/API1.11 y upgrade privado.
+Preserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs con noupdate.
+Continúan los 26 contratos de campo cerrados; faltan ocho brechas de campos,
+seis físicas, identidad/ACL/120 maestros/71 reglas y certificación integral.
+Hay 54 apps propias instaladas con caminos EE; el 31 sigue en riesgo alto.
 El contenido inferior conserva su alcance histórico.
 
 Auditoría del 29-10-2026, desde la canónica `6e3c8298`. Complementa
