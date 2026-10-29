@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--properties-upgrade', type=Path)
     parser.add_argument('--admission-upgrade', type=Path)
     parser.add_argument('--native-tags', type=Path)
+    parser.add_argument('--benefits-audit', type=Path)
     args = parser.parse_args()
     assert os.geteuid() == 0
     for path in vars(args).values():
@@ -78,6 +79,11 @@ def main():
     files['configuration-capsule.json'] = args.capsule
     files['configuration-exporter.py'] = args.capsule_tool
     files['collector.py'] = Path(__file__)
+    if args.benefits_audit:
+        benefit_root = args.benefits_audit.resolve()
+        files['benefits-audit/auditor.py'] = benefit_root / 'source/tools/community/audit_payroll_salary_benefits-v2.py'
+        for name in ('benefits-cerro-v2.json', 'benefits-sys-v2.json', 'benefits-contract.json'):
+            files['benefits-audit/' + name] = benefit_root / name
     if args.properties_upgrade:
         upgrade=args.properties_upgrade.resolve()
         assert (upgrade/'passed.json').is_file()

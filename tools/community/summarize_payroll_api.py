@@ -108,6 +108,8 @@ def main():
     native_tags=args.evidence/'native-tags/passed.json'
     if native_tags.exists():paths+=['tools/community/observe_native_payroll_tags.py','tools/community/probe_native_payroll_tags.py',
         'tools/community/verify_native_payroll_tags.py']
+    benefits=args.evidence/'benefits-audit'
+    if benefits.exists():paths+=['tools/community/audit_payroll_salary_benefits.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -200,6 +202,25 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if benefits.exists():
+        executed=(benefits/'auditor.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_payroll_salary_benefits.py'].replace(b'\r\n',b'\n')
+        family={}
+        for product,database in (('cerro','CERRO_EL_PLOMO'),('sys','SyS')):
+            report=json.loads((benefits/('benefits-'+product+'-v2.json')).read_text(encoding='utf-8'))
+            assert report['database']==database and report['tool_sha256']==hashlib.sha256(executed).hexdigest()
+            assert all(report[key] for key in ('read_only','metadata_captures_equal'))
+            assert not any(report[key] for key in ('orm_loaded','database_writes','source_bodies_exported',
+                'salary_amounts_exported','rules_evaluated','runtime_model_table_mapping_certified','functional_benefit_engine_certified'))
+            metadata=report['metadata_before'];assert metadata==report['metadata_after']
+            assert metadata['transaction']==[{'database':database,'read_only':'on'}]
+            assert report['usage']['transaction']==metadata['transaction']
+            rows={name[6:]:value[0]['rows'] for name,value in report['usage'].items() if name.startswith('table:')}
+            assert 'hr_contract_salary_benefit' in rows
+            family[product]={'family_models':sum(row['model'].startswith('hr.contract.salary.') for row in metadata['models']),
+                'tables':len(rows),'rows':sum(rows.values()),'configured_benefits':rows['hr_contract_salary_benefit'],
+                'read_only':True,'functional_engine_certified':False}
+        result['native_benefits_audit']=family
     if identity_snapshotter.exists():
         executed=identity_snapshotter.read_bytes()
         assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_agriculture_core.py'].replace(b'\r\n',b'\n')
