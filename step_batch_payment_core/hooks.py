@@ -4,6 +4,9 @@ from odoo.exceptions import UserError
 
 
 def require_clean_provider(env):
+    # Compare the current transaction's module ownership, not a stale SQL view
+    # of a pending ORM transition. No business record or amount is touched.
+    env['ir.module.module'].flush_model(['state'])
     env.cr.execute("SELECT name FROM ir_module_module WHERE name IN "
         "('account_batch_payment','account_accountant_batch_payment') AND state IN ('installed','to upgrade','to remove')")
     if env.cr.fetchone():
