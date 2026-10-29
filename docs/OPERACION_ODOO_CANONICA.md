@@ -82,7 +82,8 @@ informes que consultan stock/recepciones nativos y encabezado de proceso.
 Convertir los cuatro campos de los prototipos de QA en el sitio, con IDs y datos
 conservados y vistas originales archivadas. No refrescar capacitación ni crear
 maestros paralelos. La divergencia de fecha nativa/prototipo de una OT requiere
-la decisión humana solicitada antes de su migración. Copias frescas, mismo
+la decisión humana solicitada antes de cambiar el valor nativo. Se pueden
+adoptar ambos campos conservando los dos valores mientras se espera. Copias frescas, mismo
 paquete, respaldo y bloqueo compartido; no simular una entrega con Studio.
 
 

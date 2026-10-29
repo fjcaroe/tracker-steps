@@ -44,10 +44,12 @@ def fingerprint(rows):
 
 def prepare(cr, proof):
     production = 'step_packing_production'
-    if 'x_studio_fecha_proceso' in columns(cr, production):
-        cr.execute('SELECT count(*) FROM step_packing_production WHERE x_studio_fecha_proceso IS NOT NULL AND x_studio_fecha_proceso IS DISTINCT FROM date')
-        assert not cr.fetchone()[0] or DATE_POLICY in ('native', 'prototype'), 'T134 requires the human date decision before migrating the prototype'
-    result = {'fields': [], 'views': [], 'date_policy': DATE_POLICY, 'previous_dates': []}
+    # Pending means preserve the current native date and the separate prototype
+    # value. It never means approval to choose or overwrite either date.
+    result = {'fields': [], 'views': [], 'date_policy': DATE_POLICY, 'previous_dates': [], 'pending_dates': []}
+    if 'x_studio_fecha_proceso' in columns(cr, production) and DATE_POLICY == 'pending':
+        cr.execute('SELECT id,to_jsonb(date),to_jsonb(x_studio_fecha_proceso) FROM step_packing_production WHERE x_studio_fecha_proceso IS NOT NULL AND x_studio_fecha_proceso IS DISTINCT FROM date ORDER BY id')
+        result['pending_dates'] = cr.fetchall()
     # Retire only the two recognized layouts; keep their IDs and original arch.
     old_names = {name for fields in MAPPING.values() for name in fields}
     cr.execute("SELECT id,model,name,arch_db FROM ir_ui_view WHERE active AND model IN ('stock.picking','step.packing.production')")
@@ -113,6 +115,9 @@ def finalize(cr, proof):
     for ident, old_date in source['previous_dates']:
         cr.execute('SELECT to_jsonb(step_previous_process_date) FROM step_packing_production WHERE id=%s', [ident])
         assert cr.fetchone()[0] == old_date, 'Previous native process date lost'
+    for ident, native, prototype in source['pending_dates']:
+        cr.execute('SELECT to_jsonb(date),to_jsonb(step_legacy_process_date) FROM step_packing_production WHERE id=%s', [ident])
+        assert cr.fetchone() == (native, prototype), 'Pending date decision must preserve both values'
 
 
 def snapshot_row(table, original_columns, current_columns):
