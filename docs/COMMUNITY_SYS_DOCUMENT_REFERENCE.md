@@ -132,3 +132,9 @@ Respeta Calendar, Boolean bancario y 210233. Usa overlays, respaldos, reserva
 5/2 GiB y bloqueo compartido; prueba paquete exacto en Community y copia fresca
 de Cerro, guarda evidencia privada, commits/push, integra solo lo validado y
 ejecuta python tools/git/verify_handoff.py --require-pushed.
+
+
+Continuación posterior: [COMMUNITY_PAYROLL_REAL_BASIS.md](COMMUNITY_PAYROLL_REAL_BASIS.md)
+cierra BASIC mensual aislado y tipo/código/vistas de días trabajados, con
+rollback comprobado. Consultar allí la última aceptación y siguiente prompt;
+la certificación financiera y conversión integral siguen pendientes.

@@ -727,3 +727,33 @@ producción, recálculos de originales ni refresco QA-Cerro.
 
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_SYS_DOCUMENT_REFERENCE.md](COMMUNITY_SYS_DOCUMENT_REFERENCE.md).
+
+
+## BASIC mensual y relación tipada de días — 28-10-2026
+
+Núcleo 18.0.1.9.0 reconoce sin ejecutar Python la base mensual por días
+explícitos; conserva guardas de ambigüedad/conexión y financial_certified=false.
+API Community 18.0.1.5.0 conserva la relación tipo/código obligatorio al crear
+y editar días abiertos, bloquea cambios de códigos usados y no reconstruye
+históricos al leer. Lista y subformulario usan el maestro existente sin creación
+rápida. Sin cambios de dependencias ni ACL.
+
+Paquete F de 648d15e: 131 pruebas Community oficial/OCA y 68 copia fresca nativa,
+cero errores. BASIC aislado de SyS coincide con SQL original en ambos motores
+reales, con sueldo documental y snapshots de días/horas. TransactionCase y
+verificación SQL de cero empresas/usuarios restantes: rollback comprobado.
+WORK100 conserva ID 1. No es replay completo de período/empleado, certificación
+de 71 reglas ni adopción de identidad. E se rechazó por un alta de fixture desde
+shell que autoinstaló módulos/dejó empresa solo en la base privada Community.
+
+Mismos 96 archivos; Community 68/0 módulos/EE, referencia 383/140. Preservados
+919 tablas/proyecciones, 140 contadores, 59.048 XML IDs y permisos originales.
+Matriz completa idéntica: 380 instalados/99 propios/140 EE, 117 manifiestos,
+22 fuera de Cerro y 54 apps con caminos EE. Siguen campos/almacén/IDs históricos,
+amount/quantity/rate, reglas/estructuras, GROSS imponible y NET 8/32, días reales,
+YTD/asientos, Previred/libro no vacíos, DTE/CAF/SII y demás productos. Falta
+conversión integral restaurable cero EE y aceptación. El 31 sigue en riesgo alto.
+Sin publicación en producción, recálculos originales ni refresco QA-Cerro.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_PAYROLL_REAL_BASIS.md](COMMUNITY_PAYROLL_REAL_BASIS.md).
