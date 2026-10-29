@@ -61,12 +61,17 @@ class SalaryRule(models.Model):
     def create(self, vals_list):
         if self._name != "hr.salary.rule":
             return super().create(vals_list)
-        self.sudo(False).check_access("create")
         # Defaults can be applied inside super.create.  Validate its real
-        # stored result within a savepoint too, so caught errors are atomic.
+        # stored property within a savepoint too, so caught errors are atomic.
+        # A physical NULL has no company slot to validate: trusted module data
+        # may legitimately create a rule owned by another company in that
+        # case. Leave its ordinary create ACL/company policy to the provider.
         with self.env.cr.savepoint():
             records = super().create(vals_list)
-            for record in records:
+            records.flush_recordset(["analytic_account_id"])
+            self.env.cr.execute("""SELECT id FROM hr_salary_rule WHERE id=ANY(%s)
+                AND analytic_account_id IS NOT NULL""", (records.ids,))
+            for record in records.browse([row[0] for row in self.env.cr.fetchall()]):
                 record._step_original_analytic_account()
             return records
 

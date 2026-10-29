@@ -90,6 +90,16 @@ class OriginalAnalyticCase(TransactionCase):
             self.assertTrue(all(not line.analytic_distribution for line in slip.move_id.line_ids))
 
     def test_rule_json_metadata_and_line_scalar_remain_independent(self):
+        # Trusted module-data/fixture author, context A, explicit owner B.
+        # With no analytic property the provider's ordinary create policy is
+        # authoritative; the adapter must not invent a company slot/context.
+        other_company = self.env["res.company"].create({"name": "Private NULL analytic rule owner"})
+        author = self.env["hr.salary.rule"].with_company(self.company)
+        other_rule = author.create({"name": "Private other-owner NULL analytic rule", "code": "PRIVATE_OTHER_NULL_ANALYTIC",
+            "sequence": 1, "category_id": self.rule.category_id.id, "company_id": other_company.id})
+        other_rule.flush_recordset(["company_id", "analytic_account_id"])
+        self.env.cr.execute("SELECT company_id,analytic_account_id,analytic_account_id IS NULL FROM hr_salary_rule WHERE id=%s", (other_rule.id,))
+        self.assertEqual(self.env.cr.fetchone(), (other_company.id, None, True))
         rule_field = self.rule._fields["analytic_account_id"]
         line_field = self.scope["hr.payslip.line"]._fields["analytic_account_id"]
         self.assertTrue(rule_field.company_dependent)
