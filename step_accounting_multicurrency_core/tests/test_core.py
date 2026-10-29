@@ -3,7 +3,7 @@ from datetime import timedelta
 from odoo import Command, fields
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, Form, tagged
-from ..hooks import CORE, LEGACY, VIEWS, FIELDS, alias, adopt_legacy_records, preserve_legacy_xmlids
+from ..hooks import CORE, LEGACY, VIEWS, FIELDS, MODELS, alias, adopt_legacy_records, preserve_legacy_xmlids
 
 
 @tagged('post_install', '-at_install')
@@ -100,9 +100,14 @@ class CommunityCurrencyCase(TransactionCase):
         self.assertIn('operational_currency_id', settings)
 
     def test_legacy_and_core_xmlids_reference_the_same_records(self):
-        names = list(VIEWS) + ['field_%s__%s' % (model.replace('.', '_'), name) for model, fields_ in FIELDS.items() for name in fields_]
+        names = list(VIEWS) + ['model_' + model.replace('.', '_') for model in MODELS] + [
+            'field_%s__%s' % (model.replace('.', '_'), name) for model, fields_ in FIELDS.items() for name in fields_]
+        self.assertEqual(len(names), 37)
         for name in names:
             self.assertEqual(self.env.ref(CORE+'.'+name), self.env.ref(LEGACY+'.'+name))
+        for field_name in FIELDS['account.bank.statement.line']:
+            field = self.env.ref(CORE + '.field_account_bank_statement_line__' + field_name)
+            self.assertEqual(field.related, 'move_id.' + field_name)
 
     def test_metadata_adoption_is_idempotent(self):
         before = {(record.module, record.name): (record.model, record.res_id) for record in self.env['ir.model.data'].search([
