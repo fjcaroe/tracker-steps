@@ -77,7 +77,7 @@ def main():
         modules = ('step_packing_operations','step_packing_stock_flow')
     if args.kind == 'reception-revision':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
-        modules = ('step_packing_reception_revision',)
+        modules = ('step_packing_reception_revision', 'step_packing_ticket_revision')
     if args.kind == 'packing-tare':
         assert args.environment in ('development', 'cerro', 'qa-cerro')
         modules = ('step_packing_tare',)

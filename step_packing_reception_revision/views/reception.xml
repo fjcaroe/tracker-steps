@@ -54,6 +54,33 @@
       <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='box_count']" position="attributes">
         <attribute name="column_invisible">True</attribute>
       </xpath>
+      <!-- kilos is the existing authoritative net weight, checked against
+           gross minus tare by the native weighing constraint. Show it once. -->
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='net_kg']" position="attributes">
+        <attribute name="column_invisible">True</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='tag_number']" position="after">
+        <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='product_id']" position="move"/>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='packaging_id']" position="after">
+        <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='uom_id']" position="move"/>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='gross_kg']" position="attributes">
+        <attribute name="sum">Total peso bruto kg</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='tare_kg']" position="attributes">
+        <attribute name="sum">Total destare kg</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='tare_kg']" position="after">
+        <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='kilos']" position="move"/>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='kilos']" position="attributes">
+        <attribute name="string">Peso neto kg</attribute>
+        <attribute name="sum">Total peso neto kg</attribute>
+      </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='kilos']" position="after">
+        <field name="step_kg_per_box" avg="Promedio kg x caja" readonly="1"/>
+      </xpath>
       <xpath expr="//field[@name='fruit_tag_line_ids']" position="before">
         <div class="text-muted">Distribuya los kilos recibidos entre números de tarja distintos. Al validar se crean y vinculan automáticamente las tarjas C.</div>
       </xpath>

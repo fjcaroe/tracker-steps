@@ -31,6 +31,12 @@ def verify_flow(root, scoped):
         setup['step.packing.picking.tag.line'].create({
             'picking_id': picking.id, 'tag_number': 'QA120-FLOW-%s-%s' % (picking.id, index),
             'quantity': kilos / 8, 'kilos': kilos, 'packaging_id': packaging.id})
+    # A physical 50-box count survives a correction of measured kilograms.
+    assert move.step_fruit_packaging_qty==50
+    move.quantity=401
+    assert move.step_fruit_packaging_qty==50
+    move.quantity=400
+    print('T132_WEIGHT_CORRECTION_PRESERVES_CONTAINERS_OK')
     operator = picking.with_env(scoped)
     operator.button_validate()
     assert operator.state == 'done'

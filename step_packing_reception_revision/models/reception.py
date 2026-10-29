@@ -51,15 +51,35 @@ class Move(models.Model):
 
     step_fruit_pallet_type_id = fields.Many2one('stock.package.type', string='Tipo pallet')
     step_fruit_pallet_qty = fields.Float(string='Cantidad tipo pallet', digits='Product Unit of Measure')
-    # Editable presentation of the existing count; no duplicate stored quantity.
+    # Physical container count: snapshot independently of measured stock weight.
     step_fruit_packaging_qty = fields.Float(
         string='Cantidad envases', compute='_compute_fruit_packaging_qty',
-        inverse='_inverse_fruit_packaging_qty', digits='Product Unit of Measure')
+        inverse='_inverse_fruit_packaging_qty', store=True, digits='Product Unit of Measure')
 
-    @api.depends('product_packaging_quantity')
+    @api.depends('product_packaging_id', 'picking_id.fruit_tag_line_ids.quantity',
+                 'picking_id.fruit_tag_line_ids.product_id', 'picking_id.fruit_tag_line_ids.packaging_id')
     def _compute_fruit_packaging_qty(self):
+        # Initialize once (and on packaging changes), never recompute boxes
+        # because the operator adjusts actual kilos. Existing unambiguous tag
+        # distributions are authoritative; otherwise retain the former display.
         for move in self:
-            move.step_fruit_packaging_qty = move.product_packaging_quantity
+            count = move.product_packaging_quantity
+            picking = move.picking_id
+            rows = self.env['step.packing.picking.tag.line']
+            if picking.step_fruit_reception_kind == 'process':
+                operations = picking.move_ids.filtered(lambda m: m.state != 'cancel')
+                for row in picking.fruit_tag_line_ids:
+                    candidates = operations
+                    if row.product_id:
+                        candidates = candidates.filtered(lambda m: m.product_id == row.product_id)
+                    if row.packaging_id:
+                        candidates = candidates.filtered(lambda m: m.product_id == row.packaging_id.product_id
+                                                        and m.product_packaging_id == row.packaging_id)
+                    if len(candidates) == 1 and candidates == move:
+                        rows |= row
+                if rows:
+                    count = sum(rows.mapped('quantity'))
+            move.step_fruit_packaging_qty = count
 
     def _inverse_fruit_packaging_qty(self):
         for move in self:
@@ -74,3 +94,14 @@ class Move(models.Model):
     def _check_fruit_pallet_qty(self):
         if any(move.step_fruit_pallet_qty < 0 for move in self):
             raise ValidationError(_('La cantidad de pallets no puede ser negativa.'))
+
+
+class TagLine(models.Model):
+    _inherit = 'step.packing.picking.tag.line'
+
+    step_kg_per_box = fields.Float(string='Kg x caja', compute='_compute_kg_per_box', digits=(16, 2))
+
+    @api.depends('kilos', 'quantity')
+    def _compute_kg_per_box(self):
+        for row in self:
+            row.step_kg_per_box = row.kilos / row.quantity if row.quantity else 0.0

@@ -88,3 +88,21 @@ pruebas por destino, marcador T131 de creación revertida, paquete idéntico y
 pruebas de aislamiento antes de permitir el cierre interno silencioso. Revisar
 mensajes posteriores a 9790 antes del cierre. Artefactos del gestor en
 `/opt/steps-validation/t131-20261029/`; adjuntos locales en la ruta ya indicada.
+
+## Entrega final
+
+El paquete 2965b1d3 / ce035541289a92d4e11fc06cac499c64e4391be55da3653c033ca3cb5cb128c2
+quedó publicado y verificado en los tres destinos. Copias t131d/t131c/t131q:
+13 pruebas por destino (39), formulario procesado sin contacto exigible por el
+cliente y creación nativa de sucursal con contacto propio, revertida en copia.
+El contacto sigue siendo obligatorio en ORM y lo genera la creación estándar.
+No se crearon sucursales reales ni se modificaron compañías o permisos.
+
+Respaldos: management_development_20261029T135853Z,
+management_cerro_20261029T180101Z y management_qa-cerro_20261029T182304Z.
+QA-Cerro conserva ejercicios, red y correo neutralizados; verificación de
+bloqueo de salida y acceso denegado a la base fuente aprobada.
+T131 cerrado con nota interna 9818, sin correos ni notificaciones. La evidencia
+privada está en /opt/steps-validation/t131-20261029/evidence y la carpeta local
+ya documentada. Los estados pendientes anteriores quedan como bitácora de la
+secuencia, reemplazados por esta entrega final.

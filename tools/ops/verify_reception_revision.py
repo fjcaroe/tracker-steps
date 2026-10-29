@@ -1,4 +1,4 @@
-"""Verify T118's effective reception action, native fields and business profile."""
+"""Verify T132-T134 while retaining the T118-T120 native reception flow."""
 import importlib
 import json
 from pathlib import Path
@@ -42,6 +42,22 @@ try:
     assert arch.xpath("//field[@name='fruit_tag_line_ids']/list/field[@name='package_id']/@column_invisible") == ['True']
     assert arch.xpath("//field[@name='step_container_transfer_ids']/@invisible") == ['1']
     assert arch.xpath("//button[@name='action_prepare_fruit_stock']/@invisible") == ['1']
+    tag_columns=arch.xpath("//field[@name='fruit_tag_line_ids']/list/field")
+    visible=[n.get('name') for n in tag_columns if n.get('column_invisible') not in ('1','True') and n.get('optional')!='hide']
+    assert visible[:13]==['sequence','tag_number','product_id','packaging_id','uom_id','caliber_id','category_id','brand','quantity','gross_kg','tare_kg','kilos','step_kg_per_box']
+    assert 'net_kg' not in visible
+    assert model._fields['step_receiving_packing_id'].comodel_name=='res.partner'
+    report_menu=scoped.ref('step_packing_ticket_revision.reports')
+    assert report_menu.id in scoped['ir.ui.menu']._visible_menu_ids()
+    for category in ('fruit','materials'):
+        report=scoped['stock.quant'].action_steps_packing_stock(category)
+        assert report['res_model']=='stock.quant' and report['domain']
+        scoped['stock.quant'].search(report['domain'],limit=1)
+    production=scoped['step.packing.production']
+    production_arch=production._get_view(view_type='form')[0]
+    assert production_arch.xpath("//group[@name='ot_identity_left']/field/@name")[:3]==['packing_partner_id','date','step_packing_order_id']
+    assert production_arch.xpath("//field[@name='fruit_fundo_id']")[0].getnext().get('name')=='company_id'
+    print('T132_T134_NATIVE_REPORTS_AND_HEADERS_OK')
     previous = config['test_enable']; config['test_enable'] = True
     try:
         from odoo.tests import Form
@@ -49,12 +65,13 @@ try:
         config['test_enable'] = previous
     record = model.search([('step_fruit_reception_kind','=','process')], limit=1)
     Form(record or model.with_context(default_step_fruit_reception_kind='process'), view=view)
+    Form(production.search([],limit=1) or production)
     clone_flow = False
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
         from probe_reception_flow import verify_flow
         verify_flow(env, scoped)
         clone_flow = True
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':120,'versions':EXPECTED,
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':132,'tickets':[132,133,134],'versions':EXPECTED,
         'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,
         'automatic_tags':True,'simplified_form':True,'clone_flow':clone_flow,'native_list':True,'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
 finally:

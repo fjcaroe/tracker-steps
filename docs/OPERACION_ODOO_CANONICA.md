@@ -76,6 +76,17 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T132/T133/T134 amplían `reception-revision` en Desarrollo, Cerro y QA-Cerro:
+envases físicos independientes del peso, detalle de tarjas, selector de Packing,
+informes que consultan stock/recepciones nativos y encabezado de proceso.
+Convertir los cuatro campos de los prototipos de QA en el sitio, con IDs y datos
+conservados y vistas originales archivadas. No refrescar capacitación ni crear
+maestros paralelos. La divergencia de fecha nativa/prototipo de una OT requiere
+la decisión humana solicitada antes de cambiar el valor nativo. Se pueden
+adoptar ambos campos conservando los dos valores mientras se espera. Copias frescas, mismo
+paquete, respaldo y bloqueo compartido; no simular una entrega con Studio.
+
+
 T128 y T135 autorizan `payroll-review` exclusivamente en Desarrollo y SyS:
 mensajes con trabajadores y contratos pendientes, y validación de entradas del
 período local del lote. No confirmar parámetros, corregir asistencias ni calcular

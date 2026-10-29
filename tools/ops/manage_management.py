@@ -51,6 +51,8 @@ AGRICULTURE_COLUMNS = None
 MATERIAL_HIERARCHY_PLAN = {}
 PACKING_CONFIG_LIMITS = {}
 PACKING_INACTIVE_TYPES = {}
+PACKING_TICKET_SCHEMA = None
+PACKING_TICKET_SOURCE = None
 PACKING_ANALYTIC_PLAN_MAX = 0
 
 
@@ -235,10 +237,20 @@ def snapshot(database):
                 row, condition = snapshot_filter(table, row, PACKING_CONFIG_LIMITS, PACKING_INACTIVE_TYPES)
             if TICKET_REVISION == 'packing-controls' and table == 'account_analytic_plan':
                 condition=' WHERE id <= %s'%PACKING_ANALYTIC_PLAN_MAX
+            if TICKET_REVISION == 'reception-revision' and PACKING_TICKET_SCHEMA:
+                row = PACKING_TICKET_SCHEMA.snapshot_row(table, PROMOTION_COLUMNS[table], current_columns[table])
             statements.append("SELECT '%s',json_build_object('count',count(*),'digest',md5(COALESCE(string_agg(%s::text,'|' ORDER BY %s::text),'')))::text FROM %s t%s" % (table, row, row, table, condition))
     # One SQL statement sees a consistent MVCC snapshot across every table.
     # It preserves the same row normalization and hashes as the former loop.
     return dict(line.split('|', 1) for line in query(database, ' UNION ALL '.join(statements)).splitlines()) if statements else {}
+
+
+def packing_schema(action, database, root, stage):
+    target = stage / ('packing-schema-' + database + '.json')
+    if not target.exists():
+        target.touch(mode=0o666)
+    os.chown(target, pwd.getpwnam('postgres').pw_uid, pwd.getpwnam('postgres').pw_gid)
+    run('sudo','-u','postgres','/usr/bin/python3.10',str(root/'step_packing_ticket_revision/migrate_schema.py'),action,database,str(target))
 
 
 def extract(release, target):
@@ -300,7 +312,7 @@ def main():
     args = parser.parse_args()
     settings_lease = None
     if args.wait_for_lease:
-        assert args.action in ('qa', 'compatibility', 'deploy') and args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'payroll-review')
+        assert args.action in ('qa', 'compatibility', 'deploy') and args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'payroll-review', 'reception-revision')
         assert os.geteuid() == 0
         settings_lease = open('/run/lock/steps-environments.lock', 'a')
         print('MANAGEMENT_WAITING_FOR_SHARED_LEASE', flush=True)
@@ -354,7 +366,7 @@ def main():
             assert args.environment == 'development', 'T92 solo autoriza Desarrollo'
         SETTINGS = True
         assert args.environment in (('development', 'cerro', 'qa-cerro') if args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare') else ('development', 'cerro'))
-        MODULES = ({'product-bpa':('step_product_bpa','step_product_bpa_agriculture'),'manual-contact':('step_partner_manual_entry',),'company-form':('step_company_form_restore','step_company_form_restore_payroll','step_company_edi_readiness'),'species-tariff':('step_species_tariff',),'packaging-master':('step_packing_packaging_master',),'invoice-payments':('step_treasury_invoice_payment',),'packing-controls':('step_packing_analytics','step_application_profiles'),'packing-stock':('step_packing_operations','step_packing_stock_flow'),'reception-revision':('step_packing_reception_revision',),'packing-tare':('step_packing_tare',),'sag-traceability':('step_inventory_packing','step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability'),'traceability':('step_export_traceability',),'sag-lot':('step_packing_operations','step_packing_dispatch','step_packing_sag'),'sag-prototype':('step_packing_sag',),'email-login':('step_auth_email_casefold',),'dispatch-improvements':('step_packing_dispatch_improvements',),'treasury-seasons':('step_bank_security','step_season_navigation'),'estimate-cancel-folios':('step_producer_estimate_cancel','step_export_folio_settings'),'supply-comparison':('step_export_supply_comparison',),'packing-ot-layout':('step_packing_ot_layout',),'export-catalog-currency':('step_export_catalog_currency',),'agriculture-records':('step_agriculture_records','step_bpa_irrigation','step_bpa_inventory','step_qa','step_agro_traceability','step_budget_design','step_cosecha','step_cosecha_operations'),'harvest-operations':('step_cosecha_operations',),'harvest-planning':('step_cosecha_planning',),'agro-analytics':('step_agro_analytics',),'export-dashboard':('step_export_dashboard',),'dispatch-design':('step_packing_dispatch',),'export-control':('step_export_control',),'balance-analytic':('step_account_balance_analytic',),'producer-change':('step_packing_producer_change',),'purchase-mode':('step_producer_purchase_mode',),'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',),'fruit-categories':('step_fruit_category_unification',),'daily-estimate':('step_producer_daily_estimate',),'shipment-provision':('step_export_shipment_provision',),'budget-design':('step_budget_design',),'shipping-design':('step_export_shipping_design',),'document-design':('step_export_document_revision',)})[args.kind]
+        MODULES = ({'product-bpa':('step_product_bpa','step_product_bpa_agriculture'),'manual-contact':('step_partner_manual_entry',),'company-form':('step_company_form_restore','step_company_form_restore_payroll','step_company_edi_readiness'),'species-tariff':('step_species_tariff',),'packaging-master':('step_packing_packaging_master',),'invoice-payments':('step_treasury_invoice_payment',),'packing-controls':('step_packing_analytics','step_application_profiles'),'packing-stock':('step_packing_operations','step_packing_stock_flow'),'reception-revision':('step_packing_reception_revision','step_packing_ticket_revision'),'packing-tare':('step_packing_tare',),'sag-traceability':('step_inventory_packing','step_packing_operations','step_packing_dispatch','step_packing_sag','step_export_traceability'),'traceability':('step_export_traceability',),'sag-lot':('step_packing_operations','step_packing_dispatch','step_packing_sag'),'sag-prototype':('step_packing_sag',),'email-login':('step_auth_email_casefold',),'dispatch-improvements':('step_packing_dispatch_improvements',),'treasury-seasons':('step_bank_security','step_season_navigation'),'estimate-cancel-folios':('step_producer_estimate_cancel','step_export_folio_settings'),'supply-comparison':('step_export_supply_comparison',),'packing-ot-layout':('step_packing_ot_layout',),'export-catalog-currency':('step_export_catalog_currency',),'agriculture-records':('step_agriculture_records','step_bpa_irrigation','step_bpa_inventory','step_qa','step_agro_traceability','step_budget_design','step_cosecha','step_cosecha_operations'),'harvest-operations':('step_cosecha_operations',),'harvest-planning':('step_cosecha_planning',),'agro-analytics':('step_agro_analytics',),'export-dashboard':('step_export_dashboard',),'dispatch-design':('step_packing_dispatch',),'export-control':('step_export_control',),'balance-analytic':('step_account_balance_analytic',),'producer-change':('step_packing_producer_change',),'purchase-mode':('step_producer_purchase_mode',),'estimate-report':('step_producer_estimate_report',),'contract-report':('step_producer_contract_report',),'fruit-reports':('step_producer_fruit_reports',),'estimate-revision':('step_producer_estimate_revision',),'fruit-categories':('step_fruit_category_unification',),'daily-estimate':('step_producer_daily_estimate',),'shipment-provision':('step_export_shipment_provision',),'budget-design':('step_budget_design',),'shipping-design':('step_export_shipping_design',),'document-design':('step_export_document_revision',)})[args.kind]
         registry = json.loads((HERE / 'environments.json').read_text())
         target_db = registry['environments'][args.environment]['database']
         SAG_PROTOTYPE_INITIAL = args.kind == 'sag-prototype' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_packing_sag' AND state='installed'")
@@ -372,6 +384,9 @@ def main():
         if args.kind == 'estimate-revision':
             assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producer_fruit_reports','step_producer_estimate_report') AND state='installed'") == '2'
         FRUIT_REPORTS_INITIAL = args.kind == 'fruit-reports' and not query(target_db, "SELECT 1 FROM ir_module_module WHERE name='step_producer_fruit_reports' AND state='installed'")
+        if args.kind == 'reception-revision':
+            required = ('step_packing_operations','step_inventory_packing','step_producer_fruit_reports','step_export_document_revision','step_packing_ot_layout')
+            assert int(query(target_db, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in required))) == len(required), 'Packing/report parents must already be installed'
         if args.kind == 'fruit-reports':
             assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producer_fruit_flow','step_export_client_revision') AND state='installed'") == '2'
         BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'hr_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_bank','l10n_cl_customs_port')) ORDER BY tablename").splitlines())
@@ -434,6 +449,16 @@ def main():
     if requires_native_schema and not query(database,
             "SELECT 1 FROM ir_module_module WHERE name='step_agriculture_records' AND state='installed'"):
         assert args.kind == 'agriculture-records', 'The agricultural native schema requires its complete in-place migration package'
+    if args.kind == 'reception-revision':
+        import importlib.util
+        global PACKING_TICKET_SCHEMA, PACKING_TICKET_SOURCE
+        PACKING_TICKET_SOURCE = staged / 'step_packing_ticket_revision'
+        specification = importlib.util.spec_from_file_location('packing_ticket_schema', PACKING_TICKET_SOURCE / 'migrate_schema.py')
+        PACKING_TICKET_SCHEMA = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(PACKING_TICKET_SCHEMA)
+        run('setfacl','-m','u:postgres:x',str(stage))
+        for directory in (staged, PACKING_TICKET_SOURCE):
+            run('setfacl','-m','u:postgres:rx',str(directory))
     if args.kind == 'product-bpa':
         global BPA_SOURCE, BPA_BASELINE
         BPA_SOURCE = staged / 'step_product_bpa'
@@ -621,6 +646,8 @@ def main():
             print('MANAGEMENT_TEST_SCOPE ' + json.dumps(test_modules), flush=True)
             init_options = ['-i', ','.join(install)] if install else []
             update_options = ['-u', ','.join(update)] if update else []
+            if args.kind == 'reception-revision':
+                packing_schema('prepare',qa_db,staged,stage)
             if args.kind == 'product-bpa':
                 run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'prepare',qa_db)
             if args.kind == 'agriculture-records':
@@ -630,6 +657,8 @@ def main():
             print('\n'.join(line for line in text.splitlines() if 'tests.result' in line or ' ERROR ' in line or ' FAIL' in line)[-7000:], flush=True)
             results = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database ' + re.escape("'" + qa_db + "'"), text)
             assert result.returncode == 0 and (results or (args.kind == 'homepage' and 'Modules loaded.' in text)) and not errors(text, allowed_missing), 'QA failed: ' + str(log)
+            if args.kind == 'reception-revision':
+                packing_schema('finalize',qa_db,staged,stage)
             if args.kind == 'product-bpa':
                 run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'finalize',qa_db)
             if args.kind == 'agriculture-records':
@@ -699,6 +728,8 @@ def main():
                         run('rsync', '-a', str(store) + '/', str(backup / 'filestore') + '/')
                 before = snapshot(database)
                 (backup / 'business_before.json').write_text(json.dumps(before, indent=2))
+                if args.kind == 'reception-revision':
+                    packing_schema('prepare',database,release_root,stage)
                 if args.kind == 'product-bpa':
                     run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'prepare',database)
                 if args.kind == 'agriculture-records':
@@ -713,6 +744,8 @@ def main():
                 result = subprocess.run(base + options + ['-d', database] + init_options + update_options + ['--stop-after-init', '--logfile=' + str(log)])
                 text = log.read_text(errors='replace')
                 assert result.returncode == 0 and 'Modules loaded.' in text and not errors(text, allowed_missing), str(log)
+                if args.kind == 'reception-revision':
+                    packing_schema('finalize',database,release_root,stage)
                 if args.kind == 'product-bpa':
                     run('sudo','-u','postgres','/usr/bin/python3.10',str(BPA_SOURCE/'migrate_schema.py'),'finalize',database)
                 if args.kind == 'agriculture-records':
