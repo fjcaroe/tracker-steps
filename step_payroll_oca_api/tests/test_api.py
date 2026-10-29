@@ -1,4 +1,4 @@
-from odoo import Command
+from odoo import api, Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
@@ -17,6 +17,133 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
                 'company_id':self.company.id,'parent_id':parent.id if parent else False}
         values.update(extra)
         return self.scope['hr.payroll.structure'].create(values)
+
+    def _global_scope_fixture(self):
+        structure=self._scope_structure(company_id=False,country_id=self.env.ref('base.cl').id)
+        self.rule.category_id.company_id=False
+        self.rule.write({'company_id':False,'struct_id':structure.id})
+        return structure
+
+    def _foreign_scope_fixture(self):
+        company=self.env['res.company'].create({'name':'Private foreign configuration company','country_id':self.env.ref('base.fr').id})
+        actor=self.env['res.users'].with_context(no_reset_password=True).create({
+            'name':'Private foreign configuration manager','login':'private-foreign-configuration-manager',
+            'company_id':company.id,'company_ids':[Command.set(company.ids)],
+            'groups_id':[Command.set([self.env.ref(xmlid).id for xmlid in
+                ('base.group_user','payroll.group_payroll_manager','hr.group_hr_manager')])]})
+        return api.Environment(self.env.cr,actor.id,dict(self.env.context,allowed_company_ids=company.ids),su=False)
+
+    def test_original_global_country_configuration_calculates_without_inventing_owner(self):
+        global_structure=self._global_scope_fixture()
+        self.input_type.struct_ids=[Command.link(global_structure.id)]
+        self.contract.struct_id=global_structure
+        self.structure=global_structure
+        before=global_structure.read(['id','company_id','country_id'])
+        slip=self.slip();slip.compute_sheet()
+        self.assertEqual(slip.line_ids.salary_rule_id,self.rule)
+        self.assertEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],self.company.currency_id.round(800123.45))
+        self.assertFalse(global_structure.company_id)
+        self.assertFalse(self.rule.company_id)
+        self.assertFalse(self.rule.category_id.company_id)
+        self.assertEqual(global_structure.read(['id','company_id','country_id']),before)
+
+    def test_original_country_policies_restrict_structure_and_rule_without_hiding_global_categories(self):
+        structure=self._global_scope_fixture()
+        category=self.rule.category_id
+        global_input=self.input_type.copy({'code':'PRIVATE_GLOBAL_INPUT','country_id':False,
+            'struct_ids':[Command.set(structure.ids)]})
+        universal=self._scope_structure(company_id=False,country_id=False,code='PRIVATE_UNIVERSAL_SCOPE')
+        # OCA M2M configuration legitimately has rules without struct_id. A
+        # dotted country domain alone excludes that NULL relation, even though
+        # it has no foreign primary country. Company rules must still apply.
+        rules=self.scope['hr.salary.rule'].create([
+            {'name':'Private own unbound rule','code':'PRIVATE_UNBOUND_OWN','sequence':21,
+             'category_id':category.id,'company_id':self.company.id,'struct_id':False,
+             'condition_select':'none','amount_select':'fix','amount_fix':1.0},
+            {'name':'Private global unbound rule','code':'PRIVATE_UNBOUND_GLOBAL','sequence':22,
+             'category_id':category.id,'company_id':False,'struct_id':False,
+             'condition_select':'none','amount_select':'fix','amount_fix':2.0},
+        ])
+        own_rule,global_rule=rules
+        own_parent=self._scope_structure(country_id=False,code='PRIVATE_UNBOUND_PARENT')
+        own_parent.rule_ids=[Command.set(rules.ids)]
+        own_child=self._scope_structure(own_parent,code='PRIVATE_UNBOUND_CHILD')
+        self.assertEqual(set(own_child._step_effective_rule_scope()['rules'].ids),set(rules.ids))
+        universal.rule_ids=[Command.link(global_rule.id)]
+        global_child=self._scope_structure(universal,code='PRIVATE_GLOBAL_UNBOUND_CHILD')
+        self.assertEqual(global_child._step_effective_rule_scope()['rules'],global_rule)
+        self.assertFalse(rules.struct_id)
+        foreign=self._foreign_scope_fixture()
+        self.assertFalse(foreign.su)
+        for record in (structure,self.rule,own_rule):
+            with self.assertRaises(AccessError):
+                record.with_env(foreign).read(['id'])
+        self.assertEqual(global_rule.with_env(foreign).read(['id','struct_id','company_id']),
+            [{'id':global_rule.id,'struct_id':False,'company_id':False}])
+        self.assertEqual(universal.with_env(foreign)._step_effective_rule_scope()['rules'].ids,global_rule.ids)
+        self.assertEqual(category.with_env(foreign).read(['id','company_id']),[{'id':category.id,'company_id':False}])
+        self.assertFalse(global_input.with_env(foreign).country_id)
+        self.assertIn(universal,foreign['hr.payroll.structure'].search([('id','=',universal.id)]))
+        self.assertNotIn(structure,foreign['hr.payroll.structure'].search([]))
+
+    def test_owned_child_uses_original_global_parent_and_rejects_foreign_country(self):
+        parent=self._global_scope_fixture()
+        child=self._scope_structure(parent)
+        self.input_type.struct_ids=[Command.link(child.id)]
+        self.contract.struct_id=child
+        self.structure=child
+        self.assertEqual(self.slip()._get_salary_rules(),self.rule)
+        self.assertFalse(parent.company_id)
+        foreign=self._foreign_scope_fixture()
+        other=foreign.company
+        self.scope.user.with_env(self.env).write({'company_ids':[Command.link(other.id)]})
+        scope=self.scope['hr.payroll.structure'].with_context(allowed_company_ids=(self.company|other).ids).env
+        foreign_parent=scope['hr.payroll.structure'].create({'name':'Private original foreign parent',
+            'code':'PRIVATE_FOREIGN_GLOBAL','company_id':False,'country_id':other.country_id.id})
+        with self.assertRaises(ValidationError),self.env.cr.savepoint():
+            child.with_env(scope).parent_id=foreign_parent
+        self.assertEqual(child.parent_id,parent)
+        unscoped=self._scope_structure(company_id=False,country_id=False,code='PRIVATE_UNSCOPED_MEMBERSHIP')
+        unscoped.rule_ids=[Command.link(self.rule.id)]
+        with self.assertRaisesRegex(UserError,'country'):
+            unscoped._step_effective_rule_scope()
+
+    def test_country_rule_cannot_hide_a_conflicting_global_input_code(self):
+        foreign=self._foreign_scope_fixture()
+        code='PRIVATE_CROSS_COUNTRY_INPUT'
+        other=foreign['hr.payslip.input.type'].create({'name':'Private foreign input','code':code,
+            'country_id':foreign.company.country_id.id})
+        self.assertTrue(other)
+        # Disjoint explicit countries remain legitimate; a global code must
+        # not be admitted by dropping the hidden foreign candidate.
+        self.scope['hr.payslip.input.type'].create({'name':'Private local input','code':code,
+            'country_id':self.company.country_id.id})
+        with self.assertRaises(AccessError),self.env.cr.savepoint():
+            self.scope['hr.payslip.input.type'].create({'name':'Private global collision','code':code,'country_id':False})
+
+    def test_scope_metadata_keeps_normal_company_default_and_native_nullable_country(self):
+        model=self.scope['hr.payroll.structure']
+        self.assertFalse(model._fields['company_id'].required)
+        country=model._fields['country_id']
+        self.assertTrue(country.store)
+        self.assertFalse(country.required)
+        self.assertFalse(country.readonly)
+        self.assertFalse(country.related)
+        self.assertEqual(country.comodel_name,'res.country')
+        self.env.cr.execute("""SELECT attname,attnotnull FROM pg_attribute
+            WHERE attrelid='hr_payroll_structure'::regclass AND attname IN ('company_id','country_id')""")
+        self.assertEqual(dict(self.env.cr.fetchall()),{'company_id':False,'country_id':False})
+        self.env.cr.execute("""SELECT a.attname,c.confdeltype,c.convalidated FROM pg_constraint c
+            JOIN pg_attribute a ON a.attrelid=c.conrelid AND c.conkey=ARRAY[a.attnum]::smallint[]
+            WHERE c.conrelid='hr_payroll_structure'::regclass AND c.contype='f'
+            AND a.attname IN ('company_id','country_id') ORDER BY a.attname""")
+        self.assertEqual(self.env.cr.fetchall(),[('company_id','r',True),('country_id','n',True)])
+        normal=model.create({'name':'Private ordinary structure','code':'PRIVATE_NORMAL_SCOPE'})
+        self.assertEqual(normal.company_id,self.company)
+        self.assertFalse(normal.country_id)
+        self.assertFalse(normal.parent_id)
+        self.assertNotIn('country_id',self.scope['hr.salary.rule']._fields)
+        self.assertNotIn('country_id',self.scope['hr.salary.rule.category']._fields)
 
     def test_structure_default_does_not_adopt_demo_or_legacy_namespace(self):
         original=self.scope['hr.salary.rule'].search([]).ids

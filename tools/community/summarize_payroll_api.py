@@ -28,6 +28,11 @@ def main():
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
     accelerated=read('community','passed').get('accelerated',False)
+    custody_grouping=read('community','passed').get('custody_grouping',False)
+    assert custody_grouping==read('cerro-reference','passed').get('custody_grouping',False)
+    if custody_grouping:
+        paths+=['step_batch_payment_grouping','step_batch_payment_core','step_l10n_cl_caf_custody_core',
+                'step_l10n_cl_caf_storage','step_l10n_cl_caf_native_reference']
     if accelerated:
         hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
         paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
@@ -78,6 +83,8 @@ def main():
     registry=args.evidence/'adoption-registry'
     if registry.exists():paths+=['tools/community/'+name for name in (
         'validate_adoption_registry.py','batch_registry_contract.py','caf_registry_contract.py','validate_payroll_relation_storage.py')]
+    capsule=args.evidence/'configuration-capsule.json'
+    if capsule.exists():paths+=['tools/community/export_payroll_configuration.py','tools/community/hr_configuration_scope_audit.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -165,6 +172,27 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if capsule.exists():
+        sealed=json.loads(capsule.read_text(encoding='utf-8'))
+        executed=(args.evidence/'configuration-exporter.py').read_bytes()
+        assert sealed['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/export_payroll_configuration.py'].replace(b'\r\n',b'\n')
+        assert sealed['read_only'] and not any(sealed[key] for key in (
+            'orm_loaded','rules_evaluated','historical_payroll_read','engine_converted','financial_certified','import_authorized_by_capsule'))
+        expected_configuration={'hr_payroll_structure':4,'hr_payroll_structure_type':5,
+            'hr_payslip_input_type':6,'hr_salary_rule':71,'hr_salary_rule_category':34,
+            'hr_payroll_structure_hr_payslip_input_type_rel':0}
+        assert {table:report['row_count'] for table,report in sealed['tables'].items()}==expected_configuration
+        for report in sealed['tables'].values():
+            assert report['row_count']==len(report['rows_json'])
+            assert report['rows_sha256']==hashlib.sha256('\n'.join(report['rows_json']).encode()).hexdigest()
+        assert len(sealed['xmlids'])==91 and not sealed['unresolved_company_properties']
+        journals=sealed['external_references']['hr_payroll_structure.journal_id']
+        assert journals['company_dependent'] and journals['company_ids']==[1,2,3,4]
+        assert journals['ids']==[8,16,24,32] and len(journals['original_values'])==12
+        result['original_configuration_capsule']={'sha256':hashlib.sha256(capsule.read_bytes()).hexdigest(),
+            'configuration_rows':expected_configuration,'xmlids':91,'all_company_properties_preserved':True,
+            'adopted_on_oca':False,'financial_certified':False}
     if rule_source.exists():
         proof=json.loads(rule_source.read_text())
         executed=(args.evidence/'rule-source-auditor.py').read_bytes()
@@ -259,7 +287,12 @@ def main():
             assert caf['transaction_read_only'] and not any(caf[key] for key in (
                 'orm_records_accessed','payloads_read','provider_methods_called','adoption_ready'))
             if mode=='community':
-                assert not batch['model_present'] and not caf['model_present']
+                if custody_grouping:
+                    assert batch['model_present'] and batch['table']=='account_batch_payment'
+                    assert caf['binary_attachment_policy_proven'] and len(caf['fields'])==14
+                    assert not batch['related_providers']['bank.rec.widget']['present']
+                    assert batch['method_signatures']['create']['module'].startswith('odoo.addons.step_batch_payment_core.')
+                else:assert not batch['model_present'] and not caf['model_present']
                 target=reports['payroll_relations']
                 assert target['read_only'] and target['enterprise']==0 and not target['orm_loaded']
                 if relation_storage.exists() and json.loads(relation_storage.read_text()).get('contract_fks_prepared'):
@@ -273,7 +306,8 @@ def main():
                 'caf_attachment_metadata':bool(caf.get('binary_attachment_policy_proven')),'functional_conversion_certified':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==254 and results['cerro-reference']['expected_test_count']==215
+        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)
+        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])
@@ -289,7 +323,8 @@ def main():
             assert len(finance['multicurrency_legacy_aliases'])==37
         result['accelerated']={'hr_consumers_installed':list(hr_modules),'bank_aliases_preserved':15,
             'multicurrency_aliases_preserved':37,
-            'caf_authenticity_core_only':True,'full_dte_certified':False,'batch_conversion_certified':False}
+            'caf_custody_provider':custody_grouping,'draft_grouping_provider':custody_grouping,
+            'caf_authenticity_core_only':not custody_grouping,'full_dte_certified':False,'batch_conversion_certified':False}
     if all(report.get('pdf_binary_reports') for report in results.values()):
         result['pdf_binary_reports']={}
         for mode in ('community','cerro-reference'):

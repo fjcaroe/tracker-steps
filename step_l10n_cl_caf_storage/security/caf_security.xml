@@ -1,0 +1,7 @@
+<odoo>
+    <record id="caf_company_rule" model="ir.rule">
+        <field name="name">Dte Caf multi-company</field>
+        <field name="model_id" ref="model_l10n_cl_dte_caf"/>
+        <field name="domain_force">[('company_id', 'in', company_ids + [False])]</field>
+    </record>
+</odoo>

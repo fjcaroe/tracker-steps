@@ -1,8 +1,8 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
 Estado acumulado posterior y siguiente prompt:
-[COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md). La pareja B
-valida jerarquías/fallback, permisos y FK históricos; la configuración
+[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md). La pareja G
+valida el alcance global/país, custodia CAF y agrupación real; la configuración
 original BASIC/GROSS/NET, 71 reglas e identidad histórica siguen pendientes.
 
 ## Contrato del bloque

@@ -243,7 +243,7 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 
 ## Alcance de productos fuera del inventario instalado
 
-El repositorio contiene 119 módulos propios con manifiesto; 24 no están instalados en este inventario de Cerro.
+El repositorio contiene 124 módulos propios con manifiesto; 29 no están instalados en este inventario de Cerro.
 Los módulos operativos requieren aceptación Community; separar herramientas de ensayo como step_payroll_enterprise_reference, que solo compara el motor nativo en clones privados. La ausencia de caminos declarados no acredita imports, assets, permisos ni flujos; las fuentes desconocidas quedan pendientes.
 
 | Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |
@@ -253,6 +253,8 @@ Los módulos operativos requieren aceptación Community; separar herramientas de
 | `step_agriculture_core` | 0 | 0 |
 | `step_agriculture_format_core` | 0 | 0 |
 | `step_bank_export_core` | 0 | 0 |
+| `step_batch_payment_core` | 0 | 0 |
+| `step_batch_payment_grouping` | 0 | 0 |
 | `step_bpa_inventory` | 0 | 0 |
 | `step_budget_design` | 0 | 0 |
 | `step_colaciones` | 0 | 0 |
@@ -260,6 +262,9 @@ Los módulos operativos requieren aceptación Community; separar herramientas de
 | `step_hr_contract_lifecycle_agriculture` | 4 | 1 |
 | `step_hr_payroll_bridge` | 5 | 0 |
 | `step_hr_previred_blueminds` | 0 | 1 |
+| `step_l10n_cl_caf_custody_core` | 0 | 0 |
+| `step_l10n_cl_caf_native_reference` | 2 | 0 |
+| `step_l10n_cl_caf_storage` | 0 | 0 |
 | `step_l10n_cl_edi_core` | 0 | 0 |
 | `step_labor_operations_core` | 0 | 0 |
 | `step_labor_payroll_wizards` | 4 | 0 |
