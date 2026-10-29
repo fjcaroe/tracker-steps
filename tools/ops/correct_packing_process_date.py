@@ -47,7 +47,8 @@ try:
         versions[module] = version
     tags = scoped['stock.quant.package'].search([('step_packing_production_id','=',record.id)])
     field = tags._fields['step_packing_date']
-    assert tuple(field.related) == ('step_packing_production_id','date')
+    related = field.related.split('.') if isinstance(field.related,str) else field.related
+    assert tuple(related) == ('step_packing_production_id','date'), repr(field.related)
     before = record.read(['date','step_previous_process_date','step_legacy_process_date','state'])[0]
     stock = {}
     for table in ('stock_quant','stock_move','stock_move_line','stock_quant_package','stock_picking'):
