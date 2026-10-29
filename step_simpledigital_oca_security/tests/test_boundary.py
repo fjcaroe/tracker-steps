@@ -282,6 +282,20 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):slip.compute_sheet()
         self.assertFalse(slip.line_ids)
         self.assertEqual(slip.state,'draft')
+        if self.oca:
+            slip.input_line_ids.unlink()
+            slip.struct_id=False
+            with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):
+                slip.compute_sheet()
+            slip.contract_id=False
+            with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):
+                slip.compute_sheet()
+            self.gross_rule.amount_python_compute="result = categories['PRIVATE_NET']"
+            with self.assertRaisesRegex(UserError,'Chile.*explicitly'):
+                slip.compute_sheet()
+            self.assertFalse(slip.line_ids)
+            self.assertFalse(slip.struct_id)
+            self.assertFalse(slip.contract_id)
 
     def duplicate_rules(self):
         (self.structure.rule_ids-self.rule).unlink()

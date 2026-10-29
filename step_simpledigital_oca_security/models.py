@@ -44,9 +44,21 @@ class Payslip(models.Model):
         if any(slip.state not in ('draft','verify') or ('paid' in slip._fields and slip.paid) for slip in self):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
         for slip in self:
-            if slip.struct_id.name != 'Nómina Chile':
+            roots=slip._step_selected_payroll_structures() if hasattr(slip,'_step_selected_payroll_structures') else slip.struct_id
+            chile=self.env['hr.payroll.structure']
+            for root in roots:
+                hierarchy=root._step_effective_rule_scope()['structures'] if hasattr(root,'_step_effective_rule_scope') else root
+                if hierarchy.filtered(lambda structure:structure.name=='Nómina Chile'):
+                    chile |= root
+            if not chile:
                 continue
-            report=validate_configuration(slip.struct_id)
+            reports={structure.id:validate_configuration(structure) for structure in chile}
+            # Provider Chile helpers are defined on an explicit payslip profile
+            # and contract. Diagnose the real fallback first, then refuse an
+            # uncertified implicit context instead of assigning new masters.
+            if not slip.struct_id or slip.struct_id.name!='Nómina Chile' or not slip.contract_id:
+                raise UserError(_('Select the original Chile payroll structure and contract explicitly before calculation.'))
+            report=reports[slip.struct_id.id]
             contract=slip.contract_id
             missing=[field for field in ('contract_type_id','analytic_account_id','health_institution','pension_option','income_tax_type','work_schedule_id') if not contract[field]]
             for field in ('hr_commune','identification_id','country_id','birthday','gender'):

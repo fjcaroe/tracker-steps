@@ -86,8 +86,63 @@ class Structure(models.Model):
 class Payslip(models.Model):
     _inherit = "hr.payslip"
 
+    def _get_employee_contracts(self):
+        model = self.env["hr.contract"]
+        names = ["employee_id", "company_id", "state", "date_start", "date_end", "struct_id"]
+        if "active" in model._fields:
+            names.append("active")
+        model.flush_model(names)
+        expected = set()
+        for slip in self:
+            slip.employee_id.check_access("read")
+            if slip.contract_id:
+                original = slip.contract_id
+            elif slip.employee_id and slip.date_from and slip.date_to:
+                active = " AND active" if "active" in model._fields and slip.employee_id.env.context.get("active_test", True) else ""
+                self.env.cr.execute("""SELECT id FROM hr_contract
+                    WHERE employee_id=%s AND state='open' AND date_start<=%s
+                    AND (date_end IS NULL OR date_end>=%s)""" + active,
+                    (slip.employee_id.id, slip.date_to, slip.date_from))
+                original = model.browse([row[0] for row in self.env.cr.fetchall()])
+            else:
+                raise UserError(_("Select the original employee and payslip period before resolving contracts."))
+            original.check_access("read")
+            if any(contract.employee_id != slip.employee_id or
+                   (slip.company_id and contract.company_id != slip.company_id) for contract in original):
+                raise UserError(_("Payroll must retain its original employee and company contracts."))
+            expected.update(original.ids)
+        selected = super()._get_employee_contracts()
+        selected.check_access("read")
+        if set(selected.ids) != expected:
+            raise UserError(_("Payroll contract selection is incomplete or changed; review the original scope."))
+        return selected
+
+    def _step_selected_payroll_structures(self):
+        """Validate the same explicit/fallback structure set the real OCA API uses."""
+        structures = self.struct_id
+        if structures:
+            for slip in self:
+                if slip.struct_id and slip.company_id and slip.struct_id.company_id != slip.company_id:
+                    raise UserError(_("Payroll structure must belong to the original payslip company."))
+        else:
+            contracts = self._get_employee_contracts()
+            for contract in contracts:
+                if contract.struct_id and contract.struct_id.company_id != contract.company_id:
+                    raise UserError(_("Payroll contract structure crosses company boundaries."))
+            structures = contracts.struct_id
+        structures.check_access("read")
+        for structure in structures:
+            structure._step_effective_rule_scope()
+        return structures
+
     def _get_salary_rules(self):
-        self.ensure_one()
-        if self.struct_id:
-            return self.struct_id._step_effective_rule_scope()["rules"]
-        return super()._get_salary_rules()
+        expected = self.env["hr.salary.rule"]
+        for structure in self._step_selected_payroll_structures():
+            expected |= structure._step_effective_rule_scope()["rules"]
+        # Keep the existing chain, including its original (sequence, id) tie
+        # breaker. A scope validator must not replace the provider's policy.
+        selected = super()._get_salary_rules()
+        selected.check_access("read")
+        if set(selected.ids) != set(expected.ids):
+            raise UserError(_("Payroll rule selection is incomplete or changed; review the original scope."))
+        return selected

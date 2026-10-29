@@ -45,6 +45,43 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         self.assertEqual(slip.input_line_ids.input_type_id,self.input_type)
         self.assertEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],self.company.currency_id.round(800123.45))
 
+    def test_inherited_equal_sequence_keeps_original_id_priority(self):
+        parent=self.structure
+        child=self._scope_structure(parent)
+        self.rule.code='PRIVATE_EARLY_CHILD'
+        later=self.rule.copy({'code':'PRIVATE_LATE_PARENT','struct_id':parent.id})
+        self.rule.struct_id=child
+        self.input_type.struct_ids=[Command.link(child.id)]
+        self.contract.struct_id=child
+        self.structure=child
+        slip=self.slip()
+        self.assertLess(self.rule.id,later.id)
+        self.assertEqual(self.rule.sequence,later.sequence)
+        self.assertEqual(child.get_structure_with_parents().ids,[parent.id,child.id])
+        self.assertEqual(self.rule.struct_id,child)
+        self.assertEqual(later.struct_id,parent)
+        self.assertEqual(slip._get_salary_rules().ids,[self.rule.id,later.id])
+
+    def test_missing_structure_preserves_complete_original_contract_and_rule_scope(self):
+        slip=self.slip()
+        slip.input_line_ids.unlink()
+        slip.struct_id=False
+        self.assertEqual(slip._get_salary_rules(),self.rule)
+        slip.contract_id=False
+        self.assertEqual(slip._get_salary_rules(),self.rule)
+        hidden=self.env['ir.rule'].create({'name':'Private hidden fallback contract',
+            'model_id':self.env['ir.model']._get_id('hr.contract'),
+            'domain_force':"[('id','!=',%d)]" % self.contract.id})
+        with self.assertRaises(AccessError):
+            slip._get_salary_rules()
+        hidden.unlink()
+        self.env['ir.rule'].create({'name':'Private hidden fallback salary rule',
+            'model_id':self.env['ir.model']._get_id('hr.salary.rule'),
+            'domain_force':"[('id','!=',%d)]" % self.rule.id})
+        self.structure.invalidate_recordset(['rule_ids'])
+        with self.assertRaises(AccessError):
+            slip._get_salary_rules()
+
     def test_configuration_reports_the_actual_inherited_essential_rules(self):
         self.rule.write({'code':'BASIC','sequence':1,'amount_python_compute':'result = payslip.paid_amount'})
         category=self.scope['hr.salary.rule.category'].create({'name':'Private hierarchy gross','code':'PRIVATE_HIERARCHY_GROSS'})
