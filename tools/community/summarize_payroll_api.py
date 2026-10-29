@@ -91,6 +91,8 @@ def main():
     if config_storage.exists():paths+=['tools/community/prepare_payroll_configuration_storage.py']
     adoption_preflight=args.evidence/'configuration-preflight/after.json'
     if adoption_preflight.exists():paths+=['tools/community/payroll_configuration_adoption_preflight.py']
+    identity_snapshotter=args.evidence/'identity-snapshotter.py'
+    if identity_snapshotter.exists():paths+=['tools/community/validate_agriculture_core.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -178,6 +180,13 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if identity_snapshotter.exists():
+        executed=identity_snapshotter.read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_agriculture_core.py'].replace(b'\r\n',b'\n')
+        assert all(report['identity_snapshot_tool_sha256']==hashlib.sha256(executed).hexdigest() for report in results.values())
+        assert results['cerro-reference']['original_xmlid_noupdate_captured']
+        assert all('noupdate' in row for row in original['original_xmlids'])
+        result['original_xmlid_noupdate_preserved']=True
     if results['community'].get('stored_payslip_pdf_reports'):
         assert results['community']['stored_payslip_pdf_reports']==2
         directory=args.evidence/'community/payslip-pdf-evidence'
@@ -230,7 +239,7 @@ def main():
         assert not any(proof[key] for key in ('orm_loaded','engine_converted','financial_certified','writes_to_source','paid_payroll_recomputed'))
         prior_contract=json.loads((folder/'community-contract.json').read_text())
         current_contract=json.loads((folder/'community-current-contract.json').read_text())
-        assert current_contract['versions']['step_payroll_oca_api']=='18.0.1.9.0'
+        assert current_contract['versions']['step_payroll_oca_api']==ast.literal_eval(source['step_payroll_oca_api/__manifest__.py'].decode('utf-8-sig'))['version']
         assert current_contract['read_only'] and not current_contract['orm_loaded']
         assert all(prior_contract[key]==current_contract[key] for key in ('fields','relation'))
         result['configuration_storage']={key:proof[key] for key in ('database','memberships','original_contracts_preserved',
@@ -333,7 +342,7 @@ def main():
             assert hook['sha256']==hashlib.sha256(source['step_simpledigital_oca_security/hooks.py']).hexdigest()
             result['native_configuration_provenance']={'exact_master_rows':120,'exact_tables':6,
                 'origin_xmlid_rows':88,'new_reference_aliases':3,'named_references_and_noupdate_match':True,
-                'all_91_metadata_primary_keys_match':False,'native_before_noupdate_not_captured':True,
+                'all_91_metadata_primary_keys_match':False,'native_before_noupdate_not_captured':not all('noupdate' in row for row in original['original_xmlids']),
                 'engine_converted':False,'financial_certified':False}
     if rule_source.exists():
         proof=json.loads(rule_source.read_text())

@@ -55,6 +55,7 @@ def main():
     files['provider-derivation.json'] = root / 'provider-derivation.json'
     files['basis-input.json'] = root / 'basis-input.json'
     files['configuration-inspector.py'] = source / 'tools/community/inspect_payroll_configuration.py'
+    files['identity-snapshotter.py'] = source / 'tools/community/validate_agriculture_core.py'
     # The same approved SyS reference is reused, with provenance and documentary
     # proof. New monthly-basis outcomes come from this exact pair's CLI tests.
     prior_names = ('sys-reference.json', 'reference-auditor.py', 'selection-helper.py',

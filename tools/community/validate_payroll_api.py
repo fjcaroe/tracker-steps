@@ -348,6 +348,8 @@ def main():
             'expected_test_count':expected,
             'api_test_count':api_test_count if pure else 0,'base_test_count':base_test_count if pure else 0,
             'stored_payslip_pdf_reports':stored_pdf_count,
+            'identity_snapshot_tool_sha256':hashlib.sha256((source/'tools/community/validate_agriculture_core.py').read_bytes()).hexdigest(),
+            'original_xmlid_noupdate_captured':bool(not pure and original.get('original_xmlids') and all('noupdate' in row for row in original['original_xmlids'])),
             'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py','hr_consumer_metadata.py')} if args.accelerated else {},
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)

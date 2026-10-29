@@ -189,7 +189,7 @@ def identity_contract(database):
         queries.append("SELECT '" + table + "' AS name,coalesce(jsonb_agg(to_jsonb(t)-'write_date'-'write_uid' "
                        "ORDER BY to_jsonb(t)::text),'[]'::jsonb) AS value FROM " + table + ' t')
     if 'step_cosecha' in MODULES:
-        queries.append("SELECT 'original_xmlids' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]'::jsonb) AS value FROM (SELECT id,module,name,model,res_id FROM ir_model_data) t")
+        queries.append("SELECT 'original_xmlids' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY id),'[]'::jsonb) AS value FROM (SELECT id,module,name,model,res_id,noupdate FROM ir_model_data) t")
         queries.append("SELECT 'harvest_constraints' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb) AS value FROM (SELECT conrelid::regclass::text AS table_name,conname,contype,convalidated,pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE connamespace='public'::regnamespace AND (conrelid::regclass::text LIKE 'step_cosecha%' OR conrelid::regclass::text LIKE 'step_agriculture_%' OR conrelid::regclass::text IN ('product_packaging','stock_package_type','report_step_hrs_wizard','report_by_process_wizard','employee_wizard_rel','employee_process_rel','step_hr_payslip_rel','hr_input_step_wizard','hr_entry_xls_wizard','success_message'))) t")
     if 'step_labor_operations_core' in MODULES:
         queries.append("SELECT 'labor_constraints' AS name,coalesce(jsonb_agg(to_jsonb(t) ORDER BY "
