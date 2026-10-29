@@ -6,7 +6,7 @@ from psycopg2 import sql
 
 from ..translation_storage import (
     TranslationStorageError, _convert_literal_column, original_translation_payload,
-    prepare_original_translation_storage,
+    migrate_original_translation_storage, prepare_original_translation_storage,
 )
 
 
@@ -115,6 +115,7 @@ class OriginalTranslationCase(TransactionCase):
         first = prepare_original_translation_storage(self.env.cr)
         second = prepare_original_translation_storage(self.env.cr)
         self.assertEqual(first, second)
+        self.assertEqual(migrate_original_translation_storage(self.env.cr), first)
         self.assertTrue(all(not value["converted"] for value in first["columns"].values()))
         self.assertFalse(first["historical_lines_changed"])
         self.assertEqual((self._raw(self.rule, "note"), self._raw(self.input_type, "name")), before)
