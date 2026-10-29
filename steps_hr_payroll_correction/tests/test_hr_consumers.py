@@ -185,6 +185,11 @@ class HrConsumersCase(TransactionCase):
             wizard.with_env(self.scope).action_apply()
 
     def test_open_correction_uses_actual_engine_and_preserves_input_identity(self):
+        if "default_work_entry_type_id" in self.kind._fields:
+            # The native provider consolidates ordinary attendance under its
+            # structure type's configured master. Keep that real relation
+            # coherent with the two original fixture work entries.
+            self.kind.default_work_entry_type_id = self.work_type
         if not self.oca:
             # The shared fixture disables native day lines for unrelated API
             # cases. This operational flow must ask the real provider to use
@@ -212,12 +217,15 @@ class HrConsumersCase(TransactionCase):
             rows = slip._get_worked_day_lines()
             _logger.info("HR_CONSUMER_NATIVE_REFRESH %s", {
                 "synthetic_slip_id": slip.id, "synthetic_structure_id": self.structure.id,
+                "actual_slip_structure_id": slip.struct_id.id,
+                "structure_default_work_type_id": self.kind.default_work_entry_type_id.id,
                 "structure_uses_worked_days": self.structure.use_worked_day_lines,
                 "slip_uses_worked_days": slip.use_worked_day_lines,
                 "edited": slip.edited if "edited" in slip._fields else None,
                 "state": slip.state, "validated_synthetic_entries": len(kept | removed),
                 "work_type_id": self.work_type.id, "actual_hours": actual_before[self.work_type.id],
                 "stored_day_rows": len(slip.worked_days_line_ids), "provider_day_rows": len(rows),
+                "provider_rows": [{key: row.get(key) for key in ("work_entry_type_id", "number_of_hours", "number_of_days")} for row in rows],
                 "provider_day_rows_sha256": hashlib.sha256(json.dumps(rows, sort_keys=True, default=str).encode()).hexdigest(),
             })
         slip.compute_sheet()
