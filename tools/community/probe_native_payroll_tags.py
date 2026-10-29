@@ -71,17 +71,19 @@ def observe(env, output):
                         'comodel': field.comodel_name, 'store': field.store, 'readonly': field.readonly,
                         'copy': field.copy, 'related': field.related, 'computed': bool(field.compute),
                         'relation': field.relation, 'column1': field.column1, 'column2': field.column2,
-                        'domain': domain})
+                        'domain': domain, 'domain_expression': field.domain if isinstance(field.domain, str) else None})
             observations = []
             for index, (amount, credit_note) in enumerate(((100, False), (-100, False), (100, True), (-100, True)), 1):
                 fixture.rule.amount_fix = amount
                 slip = fixture.slip(amount=0)
                 slip.write({'number': 'PRIVATE/TAGS/REFERENCE/%s' % index, 'credit_note': credit_note})
                 slip.compute_sheet()
+                credit_note_before = slip.credit_note
                 stored_before = slip.line_ids.read(['id', 'salary_rule_id', 'amount', 'quantity', 'rate', 'total'])
                 computed_before = slip.line_ids.read(['id', 'debit_tag_ids', 'credit_tag_ids'])
                 slip.action_payslip_done()
                 observations.append({'amount': amount, 'credit_note': credit_note,
+                    'credit_note_before': credit_note_before, 'credit_note_after': slip.credit_note,
                     'normal_actor': not slip.env.su, 'state': slip.state, 'number': slip.number,
                     'salary_before': stored_before, 'line_tags_before': computed_before,
                     'salary_after': slip.line_ids.read(['id', 'salary_rule_id', 'amount', 'quantity', 'rate', 'total']),
