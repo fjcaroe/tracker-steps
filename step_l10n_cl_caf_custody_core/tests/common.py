@@ -1,12 +1,33 @@
 import base64
+from contextlib import contextmanager
 import hashlib
 import json
 
 from cryptography.hazmat.primitives.asymmetric import rsa
 from odoo import Command, fields
 from odoo.exceptions import AccessError, UserError
+from odoo.http import Request, _request_stack
 from odoo.tests.common import new_test_user
 from odoo.addons.step_l10n_cl_edi_core.tests.caf_cases import CAFCaseMixin
+from werkzeug.wrappers import Request as WerkzeugRequest
+
+
+@contextmanager
+def real_request_context(env):
+    """Bind a real request to the existing private transaction, no HTTP mock.
+
+    Stream/filestore implementations stay real. Avoid Request._post_init(),
+    which would discover/open sessions/databases unrelated to this test cursor.
+    """
+    request = Request(WerkzeugRequest.from_values('/steps/caf/custody/test/download'))
+    request.db = env.cr.dbname
+    request.registry = env.registry
+    request.env = env
+    _request_stack.push(request)
+    try:
+        yield request
+    finally:
+        assert _request_stack.pop() is request
 
 
 class CAFCustodyAssertions:
@@ -144,19 +165,42 @@ class CAFCustodyAssertions:
             unrelated.write({'res_model': record._name, 'res_id': record.id, 'res_field': 'caf_file'})
         self.assertEqual(hashlib.sha256(record._step_custody_original_bytes()).hexdigest(),
                          hashlib.sha256(self.original).hexdigest())
+        # Only this synthetic fixture becomes a previously empty CAF. Keep its
+        # original metadata unchanged, then exercise direct attachment creation
+        # (which cannot rely on the CE model's upload preparation).
+        self.env.cr.execute('DELETE FROM ir_attachment WHERE id=ANY(%s)', [attachment.ids])
+        attachment.invalidate_recordset()
+        record.invalidate_recordset(['caf_file'])
+        attachments = self.env['ir.attachment'].with_user(self.manager).with_context(
+            allowed_company_ids=[self.company.id])
+        values = {'name': 'SYNTHETIC_MISMATCH.xml', 'res_model': record._name,
+                  'res_id': record.id, 'res_field': 'caf_file'}
+        for original, changed in ((b'<TD>33</TD>', b'<TD>34</TD>'),
+                                  (b'<D>50</D>', b'<D>51</D>'),
+                                  (b'<H>101</H>', b'<H>102</H>'),
+                                  (b'<FA>2026-10-01</FA>', b'<FA>2026-10-02</FA>')):
+            raw = self.original.replace(original, changed)
+            with self.assertRaises(AccessError):
+                attachments.create(dict(values, datas=base64.b64encode(raw)))
+            self.assertFalse(self.attachment(record))
+        with self.assertRaises(AccessError):
+            attachments.with_context(default_public=True).create(
+                dict(values, datas=base64.b64encode(self.original)))
+        self.assertFalse(self.attachment(record))
 
     def assert_cached_download_revoked(self):
         record = self.custody_record()
         binary = self.env['ir.binary'].with_user(self.manager).with_context(allowed_company_ids=[self.company.id])
-        cached = binary._find_record(res_model=record._name, res_id=record.id, field='caf_file')
-        stream = binary._record_to_stream(cached, 'caf_file')
-        self.assertEqual(hashlib.sha256(stream.read()).hexdigest(), hashlib.sha256(self.original).hexdigest())
-        self.manager.write({'groups_id': [Command.unlink(self.env.ref('account.group_account_manager').id)]})
-        for stale in (cached, self.attachment(record).sudo()):
+        with real_request_context(binary.env):
+            cached = binary._find_record(res_model=record._name, res_id=record.id, field='caf_file')
+            stream = binary._record_to_stream(cached, 'caf_file')
+            self.assertEqual(hashlib.sha256(stream.read()).hexdigest(), hashlib.sha256(self.original).hexdigest())
+            self.manager.write({'groups_id': [Command.unlink(self.env.ref('account.group_account_manager').id)]})
+            for stale in (cached, self.attachment(record).sudo()):
+                with self.assertRaises(AccessError):
+                    binary._record_to_stream(stale, 'caf_file' if stale._name == record._name else 'raw')
             with self.assertRaises(AccessError):
-                binary._record_to_stream(stale, 'caf_file' if stale._name == record._name else 'raw')
-        with self.assertRaises(AccessError):
-            binary._find_record(res_model=record._name, res_id=record.id, field='caf_file')
+                binary._find_record(res_model=record._name, res_id=record.id, field='caf_file')
 
     def assert_no_fiscal_operation(self):
         record = self.custody_record()
