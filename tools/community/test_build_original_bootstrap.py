@@ -96,7 +96,10 @@ class OriginalBootstrapBuilderCase(unittest.TestCase):
         normal = fixture()
         profile, closure = builder.plan_profile(normal, EXTERNAL)
         source = {"trusted.py": b"# synthetic exact source\n"}
-        report = {"source_files": builder.hashes(source), "normal_files": builder.hashes(normal),
+        report = {"schema": 1, "profile": "original-bootstrap-without-salary-seeds", "license": "AGPL-3",
+            "database_accessed": False, "engine_converted": False, "financial_certified": False,
+            "community_pin": builder.PIN_COMMUNITY, "oca_pin": builder.PIN_OCA,
+            "source_files": builder.hashes(source), "normal_files": builder.hashes(normal),
             "profile_files": builder.hashes(profile), "closure": closure}
         report["seal_sha256"] = builder.digest(report)
         pin = {"files": builder.hashes(source)}
@@ -107,7 +110,8 @@ class OriginalBootstrapBuilderCase(unittest.TestCase):
         with self.assertRaisesRegex(builder.BootstrapError, "source-pin-drift"):
             builder.verify_snapshots({"trusted.py": b"changed"}, normal, profile, report, EXTERNAL, pin)
         report["financial_certified"] = True
-        with self.assertRaisesRegex(builder.BootstrapError, "report-seal-drift"):
+        report["seal_sha256"] = builder.digest({key: value for key, value in report.items() if key != "seal_sha256"})
+        with self.assertRaisesRegex(builder.BootstrapError, "report-cannot-certify-adoption"):
             builder.verify_snapshots(source, normal, profile, report, EXTERNAL, pin)
 
     def test_unimported_python_cannot_supply_generated_model_alias(self):

@@ -135,6 +135,10 @@ def inventory(module, files, *, scan_references=True):
                     if scan_references:
                         raise BootstrapError("dynamic-model-identity") from None
                     continue
+                if values is None or values is False:
+                    continue
+                require(isinstance(values, (str, list, tuple)) and all(isinstance(value, str)
+                    for value in ([values] if isinstance(values, str) else values)), "invalid-model-identity")
                 for model in ([values] if isinstance(values, str) else values):
                     definitions[module + ".model_" + model.replace(".", "_")] = "ir.model"
     for file in spec.get("data", []):
@@ -261,6 +265,10 @@ def dependencies(roots, entry="step_simpledigital_oca_base"):
 
 def verify_snapshots(source_files, normal_files, profile_files, report, external_definitions, pin):
     """Pure verifier; snapshots are bytes, never executable evidence scripts."""
+    require(report.get("schema") == 1 and report.get("profile") == "original-bootstrap-without-salary-seeds"
+        and report.get("license") == "AGPL-3", "report-profile-contract")
+    require(all(report.get(name) is False for name in ("database_accessed", "engine_converted", "financial_certified")), "report-cannot-certify-adoption")
+    require(report.get("community_pin") == PIN_COMMUNITY and report.get("oca_pin") == PIN_OCA, "report-runtime-pin-drift")
     require(hashes(source_files) == pin["files"], "source-pin-drift")
     expected, closure = plan_profile(normal_files, external_definitions)
     require(hashes(expected) == hashes(profile_files), "profile-file-drift")
