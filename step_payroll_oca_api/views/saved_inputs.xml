@@ -1,0 +1,21 @@
+<odoo>
+    <record id="view_payslip_saved_input_types" model="ir.ui.view">
+        <field name="name">hr.payslip.saved.input.types</field>
+        <field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="payroll.hr_payslip_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='input_line_ids']/list/field[@name='code']" position="before">
+                <field name="input_type_id" options="{'no_create': True, 'no_create_edit': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='input_line_ids']/form/group/field[@name='code']" position="before">
+                <field name="input_type_id" options="{'no_create': True, 'no_create_edit': True}"/>
+            </xpath>
+            <xpath expr="//field[@name='input_line_ids']/list/field[@name='code']" position="attributes">
+                <attribute name="readonly">input_type_id != False</attribute>
+            </xpath>
+            <xpath expr="//field[@name='input_line_ids']/form/group/field[@name='code']" position="attributes">
+                <attribute name="readonly">input_type_id != False</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
