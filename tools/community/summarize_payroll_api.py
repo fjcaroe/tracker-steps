@@ -85,6 +85,10 @@ def main():
         'validate_adoption_registry.py','batch_registry_contract.py','caf_registry_contract.py','validate_payroll_relation_storage.py')]
     capsule=args.evidence/'configuration-capsule.json'
     if capsule.exists():paths+=['tools/community/export_payroll_configuration.py','tools/community/hr_configuration_scope_audit.py']
+    stored_pdf=args.evidence/'pdf-reviewed/offline-pdf-proof.json'
+    if stored_pdf.exists():paths+=['tools/community/verify_stored_payslip_pdf.py']
+    config_storage=args.evidence/'configuration-storage/passed.json'
+    if config_storage.exists():paths+=['tools/community/prepare_payroll_configuration_storage.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -172,6 +176,58 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if results['community'].get('stored_payslip_pdf_reports'):
+        assert results['community']['stored_payslip_pdf_reports']==2
+        directory=args.evidence/'community/payslip-pdf-evidence'
+        proofs=list(directory.glob('proof-*.json'));assert len(proofs)==1
+        records=json.loads(proofs[0].read_text(encoding='utf-8'))
+        assert len(records)==2 and {(r['archived_structure'],r['basic_hidden']) for r in records}=={(False,False),(True,True)}
+        for row in records:
+            assert Path(row['file']).name==row['file']
+            blob=(directory/row['file']).read_bytes()
+            assert blob.startswith(b'%PDF-') and hashlib.sha256(blob).hexdigest()==row['sha256']
+            assert row['normal_employee'] and row['stored_history_unchanged'] and not row['missing_assets'] and row['pages']>0
+        assert stored_pdf.exists(),'Actual PDF text, row geometry and rendered-page review are required'
+        offline=json.loads(stored_pdf.read_text(encoding='utf-8'))
+        assert offline['input_proof_sha256']==hashlib.sha256(proofs[0].read_bytes()).hexdigest()
+        executed=(stored_pdf.parent/'verifier.py').read_bytes()
+        assert hashlib.sha256(executed).hexdigest()==offline['tool_sha256']
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/verify_stored_payslip_pdf.py'].replace(b'\r\n',b'\n')
+        assert offline['all_pages_rendered'] and not any(offline[key] for key in (
+            'server_modified','substitute_pdf_generated','original_action_462_adopted','financial_payroll_certified'))
+        reviewed=json.loads((stored_pdf.parent/'visual-review.json').read_text(encoding='utf-8'))
+        assert reviewed['all_pages_inspected'] and reviewed['readable_without_clipping'] and reviewed['null_zero_negative_visibility_verified']
+        assert reviewed['offline_proof_sha256']==hashlib.sha256(stored_pdf.read_bytes()).hexdigest()
+        page_hashes={}
+        for row in offline['pdfs']:
+            original=next(r for r in records if r['file']==Path(row['pdf']).name)
+            assert row['pdf_sha256']==original['sha256'] and len(row['pages'])==original['pages']
+            assert all(row[key] for key in ('actual_pdf_labels_references_verified','zero_negative_net_values_verified',
+                'source_history_unchanged_as_tested','null_row_verified_blank'))
+            assert not row['classification_history_certified']
+            for page in row['pages']:
+                assert Path(page['file']).name==page['file']
+                digest=hashlib.sha256((stored_pdf.parent/page['file']).read_bytes()).hexdigest()
+                assert digest==page['sha256'];page_hashes[page['file']]=digest
+        assert reviewed['pages']==page_hashes
+        result['stored_payslip_pdf']={'actual_pdfs':2,'rendered_pages_reviewed':len(page_hashes),
+            'normal_employee':True,'stored_history_unchanged':True,'null_zero_negative_preserved':True,
+            'original_action_462_adopted':False,'financial_payroll_certified':False}
+    if config_storage.exists():
+        folder=config_storage.parent
+        proof=json.loads(config_storage.read_text(encoding='utf-8'))
+        executed=(folder/'preparer.py').read_bytes()
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/prepare_payroll_configuration_storage.py'].replace(b'\r\n',b'\n')
+        before_storage=json.loads((folder/'original-before.json').read_text())
+        assert before_storage==json.loads((folder/'original-after.json').read_text())
+        assert len(before_storage)==proof['original_contracts_preserved']
+        assert proof['memberships']==71 and proof['company_or_parent_values_assigned']==0
+        assert json.loads((folder/'relations.json').read_text())['sha256']==proof['sha256']
+        assert all(proof[key] for key in ('backup_decoded','idempotence_verified','original_metadata_preserved'))
+        assert not any(proof[key] for key in ('orm_loaded','engine_converted','financial_certified','writes_to_source','paid_payroll_recomputed'))
+        result['configuration_storage']={key:proof[key] for key in ('database','memberships','original_contracts_preserved',
+            'backup_decoded','backup_sha256','idempotence_verified','engine_converted','financial_certified')}
     if capsule.exists():
         sealed=json.loads(capsule.read_text(encoding='utf-8'))
         executed=(args.evidence/'configuration-exporter.py').read_bytes()
