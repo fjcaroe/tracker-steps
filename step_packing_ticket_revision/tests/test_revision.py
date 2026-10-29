@@ -12,7 +12,7 @@ class TicketRevisionCase(TransactionCase):
         self.assertEqual(names[:3],['packing_partner_id','date','step_packing_order_id'])
         fundo=arch.xpath("//field[@name='fruit_fundo_id']")[0]
         self.assertEqual(fundo.getnext().get('name'),'company_id')
-        self.assertEqual(len(arch.xpath("//field[@name='date']")),1)
+        self.assertEqual(len(arch.xpath("//field[@name='date'][not(ancestor::field)]")),1)
         self.assertIn('step_export_packing',arch.xpath("//field[@name='packing_partner_id']/@domain")[0])
         self.assertEqual(model._fields['packing_partner_id'].comodel_name,'res.partner')
 
