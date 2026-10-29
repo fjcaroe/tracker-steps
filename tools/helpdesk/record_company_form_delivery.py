@@ -10,8 +10,10 @@ import xmlrpc.client
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('evidence',type=Path)
-    args=parser.parse_args();args.ticket=130;root=args.evidence
-    expected=json.loads((root/'delivery-reviewed.json').read_text())['130']
+    parser.add_argument('--ticket',type=int,choices=(130,131),default=130)
+    args=parser.parse_args();root=args.evidence
+    test_count=13 if args.ticket==131 else 11
+    expected=json.loads((root/'delivery-reviewed.json').read_text())[str(args.ticket)]
     for target in ('development','cerro','qa-cerro'):
         proof=json.loads((root/(target+'-qa.json')).read_text())
         qa=(root/(target+'-qa.log')).read_text(encoding='utf-8-sig')
@@ -21,8 +23,9 @@ def main():
         assert proof['commit']==deployment['commit']==expected['commit']
         assert proof['release_sha256']==deployment['sha256']==expected['sha256']
         assert Path(deployment['overlay']).name==expected['commit']
-        assert re.search(r'0 failed, 0 error\(s\) of 11 tests',qa)
+        assert re.search(r'0 failed, 0 error\(s\) of %s tests'%test_count,qa)
         assert 'T130_NATIVE_COMPANY_FORM_FLOW_OK' in flow and 'rollback_required=True' in flow
+        if args.ticket==131:assert 'T131_NATIVE_BRANCH_FLOW_OK generated_contact=True rollback_required=True' in flow
         assert 'MANAGEMENT_VERIFY_OK' in live and expected['commit'] in live
         payloads=[json.loads(line.split('MANAGEMENT_REGISTRY_OK ',1)[1]) for line in live.splitlines() if line.startswith('MANAGEMENT_REGISTRY_OK ')]
         assert any(p.get('existing_profile',1)!=1 and p.get('native_menu_and_form') and p.get('compact_actions_preserved') and 'steps_previred' in p.get('complete_pages',[]) and p.get('writes') is False for p in payloads)
@@ -36,6 +39,14 @@ def main():
         'Once pruebas por copia y flujo nativo con perfiles existentes aprobados. Datos y permisos preservados; QA conserva su aislamiento. '
         'Según respuesta del usuario, la configuración DTE puede quedar pendiente sin impedir guardar la empresa: se muestra aviso con los datos faltantes. Se conservan las validaciones nativas al procesar DTE y se comprueba la resolución antes de generar documentos; no se inventaron correos ni resoluciones. '
         'Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.')
+    if args.ticket==131:
+        body=('T131: corregida la validación «Empresa» al crear sucursales desde Ajustes / Empresas. '
+              'El contacto técnico permanece oculto y no se exige antes de guardar; Odoo genera el contacto propio de la sucursal y conserva su validación obligatoria en servidor. '
+              'Se mantiene la relación nativa con la matriz, su moneda y las pestañas del formulario. '
+              'Mismo paquete probado en copias frescas y publicado con respaldo y bloqueo en Desarrollo, Cerro El Plomo y QA-Cerro. '
+              'Trece pruebas por copia, menú y formulario con usuarios existentes y creación nativa con contacto propio en copia, revertida al terminar. '
+              'No se crearon sucursales de prueba en los ambientes activos. QA mantiene sus ejercicios y aislamiento. '
+              'Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.')
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'))
     url='https://soporte.stepsapp.cl'
     uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(c['db'],c['username'],c['api_key'],{})
