@@ -1,0 +1,79 @@
+<odoo>
+    <record id="payroll_structure_original_config_form" model="ir.ui.view">
+        <field name="name">hr.payroll.structure.original.configuration.form</field>
+        <field name="model">hr.payroll.structure</field>
+        <field name="inherit_id" ref="payroll.hr_payroll_structure_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="before">
+                <group string="Configuración original" groups="payroll.group_payroll_manager">
+                    <field name="active" string="Activo"/>
+                    <field name="journal_id" string="Diario de sueldos (compañía activa)"
+                           domain="[('type', '=', 'general')]" options="{'no_create': True, 'no_create_edit': True}"/>
+                    <field name="payslip_name" string="Nombre de liquidación"/>
+                    <field name="hide_basic_on_pdf" string="Ocultar sueldo base en el PDF"/>
+                    <field name="report_id" string="Plantilla original (ruta en revisión)" readonly="1"
+                           options="{'no_create': True, 'no_open': True}"/>
+                </group>
+                <div class="alert alert-info" role="alert" groups="payroll.group_payroll_manager">
+                    El diario corresponde a la compañía activa. La contabilización se detiene si no coincide
+                    con el diario original del contrato. La plantilla conserva su identidad y no puede
+                    reasignarse desde este formulario mientras se verifica su ruta de impresión.
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="salary_rule_original_config_form" model="ir.ui.view">
+        <field name="name">hr.salary.rule.original.configuration.form</field>
+        <field name="model">hr.salary.rule</field>
+        <field name="inherit_id" ref="payroll.hr_salary_rule_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="before">
+                <group string="Opciones originales no habilitadas" groups="payroll.group_payroll_manager">
+                    <field name="condition_other_input_id" string="Entrada de condición original" readonly="1"
+                           options="{'no_create': True, 'no_open': True}"/>
+                    <field name="amount_other_input_id" string="Entrada de importe original" readonly="1"
+                           options="{'no_create': True, 'no_open': True}"/>
+                    <field name="partner_id" string="Tercero original" readonly="1"
+                           options="{'no_create': True, 'no_open': True}"/>
+                    <field name="not_computed_in_net" string="Excluir del neto contable (no habilitado)" readonly="1"/>
+                    <field name="split_move_lines" string="Separar líneas contables (no habilitado)" readonly="1"/>
+                </group>
+                <div class="alert alert-warning" role="alert" groups="payroll.group_payroll_manager">
+                    Estas opciones se conservan para la migración. No están habilitadas en Community:
+                    si están configuradas, el cálculo y la contabilización se detienen hasta certificar
+                    su implementación. Mostrarlas no activa su comportamiento original.
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Official Community has no primary form for this real model in the
+         audited package. Use the existing type relation, without a new menu,
+         action, model, master record or model-access grant. -->
+    <record id="payroll_structure_type_original_form" model="ir.ui.view">
+        <field name="name">hr.payroll.structure.type.original.configuration.form</field>
+        <field name="model">hr.payroll.structure.type</field>
+        <field name="arch" type="xml">
+            <form string="Tipo de estructura salarial">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                    <group string="Política original" groups="payroll.group_payroll_manager">
+                        <field name="default_schedule_pay" string="Frecuencia de pago original"/>
+                        <field name="wage_type" string="Modalidad de sueldo original" required="1"/>
+                        <field name="default_work_entry_type_id" string="Tipo de asistencia original" required="1"
+                               options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"/>
+                        <field name="sequence" string="Secuencia original" readonly="1"/>
+                    </group>
+                    <div class="alert alert-warning" role="alert" groups="payroll.group_payroll_manager">
+                        La frecuencia diaria, dos pagos al mes y la modalidad por hora se conservan para
+                        la migración y no están habilitadas. La selección en contratos y el cálculo se
+                        detienen si se usan. La secuencia original se muestra sin cambiar el orden de selección.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,6 +1,8 @@
 """Four independent cases for real type policies, onchanges and generated work."""
 from datetime import timedelta
 
+from lxml import etree
+
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
@@ -73,6 +75,24 @@ class OriginalTypeCase(TransactionCase):
         self.assertEqual(normal.default_work_entry_type_id, self.env.ref("hr_work_entry.work_entry_type_attendance"))
         self.assertEqual(normal.wage_type, "monthly")
         self.assertFalse(normal.default_schedule_pay)
+        form = self.scope.ref("step_payroll_oca_api.payroll_structure_type_original_form")
+        self.assertEqual(form.model, "hr.payroll.structure.type")
+        self.assertFalse(form.inherit_id)
+        arch = etree.fromstring(self.scope["hr.payroll.structure.type"].get_view(view_id=form.id, view_type="form")["arch"])
+        for name in expected:
+            nodes = arch.xpath("//field[@name=$name]", name=name)
+            self.assertTrue(nodes, name)
+            if expected[name][1]:
+                self.assertTrue(all(node.get("required") in ("1", "True") for node in nodes), name)
+        self.assertEqual(arch.xpath("//field[@name='sequence']/@readonly"), ["1"])
+        officer = self.env["res.users"].with_context(no_reset_password=True).create({
+            "name": "Private original type officer", "login": "private-original-type-officer",
+            "company_id": self.company.id, "company_ids": [Command.set(self.company.ids)],
+            "groups_id": [Command.set([self.env.ref(xmlid).id for xmlid in ("base.group_user", "payroll.group_payroll_user")])]})
+        self.assertFalse(officer.has_group("payroll.group_payroll_manager"))
+        officer_arch = etree.fromstring(self.scope["hr.payroll.structure.type"].with_user(officer).get_view(view_id=form.id, view_type="form")["arch"])
+        for name in expected:
+            self.assertFalse(officer_arch.xpath("//field[@name=$name]", name=name), name)
 
     def test_real_onchanges_preserve_calendar_and_structure_chain_and_apply_supported_policy(self):
         other = self.calendar.copy({"name": "Private pre-onchange calendar"})

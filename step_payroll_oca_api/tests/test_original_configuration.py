@@ -1,6 +1,8 @@
 """Original configuration storage and fail-closed admission on the real OCA API."""
 import json
 
+from lxml import etree
+
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
@@ -113,6 +115,28 @@ class OriginalConfigurationCase(TransactionCase):
                     else "bool" if names[name] == "boolean" else "int4")
         self.assertTrue(self.structure._fields["journal_id"].company_dependent)
         self.assertTrue(self.structure.active)
+        officer = self.env["res.users"].with_context(no_reset_password=True).create({
+            "name": "Private original configuration officer", "login": "private-original-config-officer",
+            "company_id": self.company.id, "company_ids": [Command.set(self.company.ids)],
+            "groups_id": [Command.set([self.env.ref(xmlid).id for xmlid in ("base.group_user", "payroll.group_payroll_user")])]})
+        for model_name, original_xmlid, extension_xmlid, names in (
+                ("hr.payroll.structure", "payroll.hr_payroll_structure_view_form", "step_payroll_oca_api.payroll_structure_original_config_form", list(expected["hr.payroll.structure"])),
+                ("hr.salary.rule", "payroll.hr_salary_rule_view_form", "step_payroll_oca_api.salary_rule_original_config_form", list(expected["hr.salary.rule"]))):
+            original = self.scope.ref(original_xmlid)
+            extension = self.scope.ref(extension_xmlid)
+            self.assertEqual(extension.inherit_id, original)
+            self.assertEqual(extension.model, model_name)
+            model = self.scope[model_name]
+            arch = etree.fromstring(model.get_view(view_id=original.id, view_type="form")["arch"])
+            for name in names:
+                nodes = arch.xpath("//field[@name=$name]", name=name)
+                self.assertTrue(nodes, name)
+                if model_name == "hr.salary.rule" or name == "report_id":
+                    self.assertTrue(all(node.get("readonly") in ("1", "True") for node in nodes), name)
+            officer_arch = etree.fromstring(model.with_user(officer).get_view(view_id=original.id, view_type="form")["arch"])
+            self.assertFalse(officer.has_group("payroll.group_payroll_manager"))
+            for name in names:
+                self.assertFalse(officer_arch.xpath("//field[@name=$name]", name=name), name)
 
     def test_original_direct_foreign_keys_keep_set_null_policy(self):
         for model_name, names in {
