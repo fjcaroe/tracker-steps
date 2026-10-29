@@ -2,10 +2,24 @@
     <menuitem id="payroll_reports" name="Informes" parent="payroll.payroll_menu_root" groups="payroll.group_payroll_manager"/>
     <menuitem id="payroll_employees" name="Personal" parent="payroll.payroll_menu_root" groups="payroll.group_payroll_manager"/>
     <template id="report_payslip" inherit_id="payroll.report_payslip" primary="True">
+        <xpath expr="//div[@class='page']/h2" position="replace"><h2 t-out="step_report_title(o)"/></xpath>
         <xpath expr="//div[@class='page']" position="inside">
-            <div id="worked_days_table"><table class="table"><tr t-foreach="o.worked_days_line_ids" t-as="day"><td t-field="day.name"/><td t-field="day.number_of_hours"/><td t-field="day.number_of_days"/></tr></table></div>
-            <div id="payslip_lines_table"><table class="table"><tr t-foreach="o.line_ids" t-as="line"><td t-field="line.name"/><td t-field="line.total"/></tr></table></div>
-            <div id="to_pay"><span t-field="o.net_wage"/></div>
+            <div id="worked_days_table" t-if="step_report_days(o)"><table class="table"><tr t-foreach="step_report_days(o)" t-as="day"><td t-field="day.name"/>
+                <td t-out="step_report_day_value(day, 'hours') if step_report_day_value(day, 'hours') is not None else ''"/>
+                <td t-out="step_report_day_value(day, 'days') if step_report_day_value(day, 'days') is not None else ''"/>
+            </tr></table></div>
+            <div id="payslip_lines_table"><table class="table"><tr t-foreach="step_report_lines(o)" t-as="line"><td t-field="line.name"/><td><span t-if="step_report_total(line) is not None" t-out="step_report_total(line)"/></td></tr></table></div>
+            <div id="to_pay"><span t-if="step_report_net(o) is not None" t-out="step_report_net(o)"/></div>
+        </xpath>
+        <xpath expr="//div[@id='payslip_lines_table']" position="after">
+            <div id="step_other_stored_lines" t-if="step_report_other_lines(o)">
+                <h3>Otros conceptos almacenados</h3>
+                <table class="table table-sm"><tr t-foreach="step_report_other_lines(o)" t-as="line">
+                    <td t-field="line.code"/><td t-field="line.name"/>
+                    <td class="text-end"><span t-if="step_report_total(line) is not None" t-out="step_report_total(line)"
+                        t-options='{"widget":"monetary","display_currency":o.company_id.currency_id}'/></td>
+                </tr></table>
+            </div>
         </xpath>
         <xpath expr="//div[@class='page']/table[2]" position="replace"/>
     </template>
