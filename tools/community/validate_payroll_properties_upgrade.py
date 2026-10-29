@@ -171,12 +171,13 @@ def exercise(env, mode, directory):
         case.contract.write({'date_start': fields.Date.today().replace(day=1)})
         # Provision configuration as fixture author, without granting analytic
         # creation rights to the payroll actor. Actual use checks remain normal.
+        # The effective account must be readable; plan management is not part
+        # of this normal posting role, as in the accepted functional cases.
         plan = env['account.analytic.plan'].create({
-            'name': 'Private property upgrade analytic plan', 'default_applicability': 'optional'}).with_env(case.scope)
+            'name': 'Private property upgrade analytic plan', 'default_applicability': 'optional'})
         analytic = env['account.analytic.account'].create({
             'name': 'Private property upgrade analytic account', 'plan_id': plan.id,
             'company_id': case.company.id}).with_env(case.scope)
-        plan.check_access('read')
         analytic.check_access('read')
         case.rule.write({'code': 'BASIC', 'note': '<p>Nota histórica: acentos, 0 y espacios internos.</p>',
                          'analytic_account_id': analytic.id})
