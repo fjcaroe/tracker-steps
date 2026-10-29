@@ -10,6 +10,12 @@ from ..models.bank_export import clean_rut, whole_pesos
 
 @tagged('post_install', '-at_install')
 class SecurityExportCase(AccountTestInvoicingCommon):
+    def setUp(self):
+        super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
+
     def make_batch(self):
         self.env.user.groups_id |= self.env.ref('account.group_validate_bank_account')
         self.env.company.treasury_batch_approval_threshold = 0

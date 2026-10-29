@@ -15,13 +15,16 @@ from .test_bank_export_core import make_bank_payment
 class BankExportWizardCase(AccountTestInvoicingCommon):
     def setUp(self):
         super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
         self.payment, self.bank = make_bank_payment(self)
-        self.manager = self.user('bank_wizard_manager')
+        self.manager = self.new_actor('bank_wizard_manager')
         self.Wizard = self.env['step.bank.export.wizard'].with_user(self.manager)
         if 'treasury_batch_approval_threshold' in self.env.company._fields:
             self.env.company.treasury_batch_approval_threshold = 0
 
-    def user(self, login, groups='account.group_account_manager,account.group_validate_bank_account,base.group_multi_company'):
+    def new_actor(self, login, groups='account.group_account_manager,account.group_validate_bank_account,base.group_multi_company'):
         return new_test_user(self.env, login=login, groups=groups,
                              company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
 
@@ -62,7 +65,7 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
         self.assertEqual(self.env['ir.attachment'].search_count([]), attachment_count)
 
     def test_billing_user_cannot_create_or_download_bank_wizard(self):
-        user = self.user('bank_wizard_billing', groups='account.group_account_invoice')
+        user = self.new_actor('bank_wizard_billing', groups='account.group_account_invoice')
         with self.assertRaises(AccessError):
             self.Wizard.with_user(user).create({})
         wizard = self.wizard()
@@ -73,7 +76,7 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
     def test_other_manager_cannot_read_generate_or_fetch_binary(self):
         wizard = self.wizard()
         wizard.action_generate_file()
-        other = self.user('bank_wizard_other_manager')
+        other = self.new_actor('bank_wizard_other_manager')
         with self.assertRaises(AccessError):
             wizard.write({'create_uid': other.id})
         with self.assertRaises(AccessError):
@@ -133,7 +136,7 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
     def test_original_treasury_approver_cannot_be_bypassed(self):
         if 'treasury_batch_approval_threshold' not in self.env.company._fields:
             self.skipTest('The Enterprise batch approval policy is only present on the native reference')
-        other = self.user('bank_wizard_approver')
+        other = self.new_actor('bank_wizard_approver')
         self.env.company.write({'treasury_batch_approval_threshold': 100, 'treasury_batch_approver_id': other.id})
         wizard = self.wizard()
         with self.assertRaises(UserError):

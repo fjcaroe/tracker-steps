@@ -32,6 +32,12 @@ def make_bank_payment(self):
 
 @tagged('post_install', '-at_install')
 class BankExportCoreCase(AccountTestInvoicingCommon):
+    def setUp(self):
+        super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
+
     def payment(self):
         return make_bank_payment(self)
 
