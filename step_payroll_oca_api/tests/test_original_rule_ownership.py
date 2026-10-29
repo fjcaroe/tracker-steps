@@ -152,10 +152,11 @@ class OriginalRuleOwnershipCase(TransactionCase):
             with patch.object(self.owner._fields["rule_ids"], "groups", "base.group_system"):
                 self.owner.sudo().write({"rule_ids": [Command.set(self.rule.ids)]})
         self.assertEqual(self._configuration(), before)
-        # Once visible again, removing a real primary is a consistency error
-        # after the relation operation; that direct write is atomic too.
+        # Include the archived primary in the ORM operation: default CLEAR
+        # preserves archived pairs outside its active relation cache. An
+        # actual removal must fail atomically after the relation operation.
         with TestCase.assertRaisesRegex(self, ValidationError, "primary structure"):
-            self.owner.write({"rule_ids": [Command.clear()]})
+            self.owner.with_context(active_test=False).write({"rule_ids": [Command.clear()]})
         self.assertEqual(self._configuration(), before)
 
     def test_classical_payslip_line_has_its_own_namespace_during_real_calculation(self):
