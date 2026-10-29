@@ -146,6 +146,6 @@ class TestContractAdequacyBatch(TransactionCase):
         target = batch.with_user(approver).with_context(allowed_company_ids=company.ids).with_company(company)
         self.assertFalse(target.env.su)
         self.assertTrue(target.env.user.has_group("step_hr_contract_lifecycle.group_contract_adequacy_approve"))
-        with self.assertRaises(UserError):
+        with self.assertRaisesRegex(UserError, "distribución"):
             target.action_approve()
         self.assertEqual(batch.state, "simulated")
