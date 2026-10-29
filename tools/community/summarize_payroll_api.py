@@ -93,6 +93,8 @@ def main():
     if adoption_preflight.exists():paths+=['tools/community/payroll_configuration_adoption_preflight.py']
     identity_snapshotter=args.evidence/'identity-snapshotter.py'
     if identity_snapshotter.exists():paths+=['tools/community/validate_agriculture_core.py']
+    property_upgrade=args.evidence/'properties-upgrade/passed.json'
+    if property_upgrade.exists():paths+=['tools/community/validate_payroll_properties_upgrade.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -187,6 +189,41 @@ def main():
         assert results['cerro-reference']['original_xmlid_noupdate_captured']
         assert all('noupdate' in row for row in original['original_xmlids'])
         result['original_xmlid_noupdate_preserved']=True
+    if property_upgrade.exists():
+        import importlib.util
+        folder=property_upgrade.parent
+        proof=json.loads(property_upgrade.read_text())
+        executed=(folder/'upgrade-probe.py').read_bytes()
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_payroll_properties_upgrade.py'].replace(b'\r\n',b'\n')
+        spec=importlib.util.spec_from_file_location('property_upgrade',repo/'tools/community/validate_payroll_properties_upgrade.py')
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        seed=json.loads((folder/'seed.json').read_text())
+        after_rows=json.loads((folder/'rows-after.json').read_text())
+        check=helper.verify_rows(seed['raw_rows'],after_rows)
+        assert all(proof[key]==value for key,value in check.items())
+        assert all(proof[key] for key in ('actual_upgrade','normal_actor','real_oca_engine','historical_read_unchanged',
+            'synthetic_fixture_only','synthetic_paid_marker','current_wage_changed_after_closure',
+            'source_unchanged','source_filestore_unchanged','backup_decoded'))
+        assert not any(proof[key] for key in ('closed_payroll_recomputed','payment_workflow_certified','customer_payroll_certified',
+            'engine_conversion','writes_to_source','module_states_rewritten','full_community_conversion'))
+        original_source=json.loads((folder/'source-before.json').read_text())
+        assert original_source==json.loads((folder/'source-after.json').read_text())
+        assert helper.digest(original_source)==proof['source_snapshot_sha256']
+        baseline=json.loads((folder/'source-acceptance.json').read_text())
+        assert hashlib.sha256((folder/'source-acceptance.json').read_bytes()).hexdigest()==proof['source_acceptance_sha256']
+        assert baseline['database']==proof['source_database'] and baseline['counts']['enterprise']==0
+        assert hashlib.sha256((folder/'source-packet.json').read_bytes()).hexdigest()==baseline['source_files_sha256']
+        package=json.loads((folder/'package-files.json').read_text())
+        assert helper.digest(package)==proof['package_files_sha256']
+        for module,versions in helper.VERSIONS.items():
+            assert proof['original_versions'][module]==versions[0] and proof['target_versions'][module]==versions[1]
+            manifest=ast.literal_eval(source[module+'/__manifest__.py'].decode('utf-8-sig'))
+            assert manifest['version']==versions[1]
+            assert all(packets[0].get(module+'/'+name)==digest for name,digest in package[module]['candidate'].items())
+        result['property_upgrade']={key:proof[key] for key in ('original_versions','target_versions','raw_rows_preserved',
+            'model_ids_preserved','field_ids_preserved','historical_read_unchanged','source_unchanged',
+            'synthetic_paid_marker','payment_workflow_certified','customer_payroll_certified','full_community_conversion')}
     if results['community'].get('stored_payslip_pdf_reports'):
         assert results['community']['stored_payslip_pdf_reports']==2
         directory=args.evidence/'community/payslip-pdf-evidence'

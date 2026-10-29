@@ -15,10 +15,11 @@ def main():
     parser.add_argument('--inventory', type=Path, required=True)
     parser.add_argument('--capsule', type=Path, required=True)
     parser.add_argument('--capsule-tool', type=Path, required=True)
+    parser.add_argument('--properties-upgrade', type=Path)
     args = parser.parse_args()
     assert os.geteuid() == 0
     for path in vars(args).values():
-        assert Path('/opt/steps-validation') in path.resolve().parents
+        if path is not None:assert Path('/opt/steps-validation') in path.resolve().parents
     assert not args.output.exists()
     root, source = args.root.resolve(), args.root.resolve() / 'addons'
     files = {}
@@ -70,6 +71,15 @@ def main():
     files['configuration-capsule.json'] = args.capsule
     files['configuration-exporter.py'] = args.capsule_tool
     files['collector.py'] = Path(__file__)
+    if args.properties_upgrade:
+        upgrade=args.properties_upgrade.resolve()
+        assert (upgrade/'passed.json').is_file()
+        for path in upgrade.iterdir():
+            if path.is_file() and (path.suffix in ('.json','.log') or path.name=='upgrade-probe.py'):
+                files['properties-upgrade/'+path.name]=path
+        baseline=Path('/opt/steps-validation/community-original-configuration-20261029D/community')
+        files['properties-upgrade/source-acceptance.json']=baseline/'passed.json'
+        files['properties-upgrade/source-packet.json']=baseline/'source-files.json'
     assert all(path.is_file() and not path.is_symlink() for path in files.values())
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:
