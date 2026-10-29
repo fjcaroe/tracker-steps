@@ -24,7 +24,9 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
             'input_type_id':self.input_type.id,'amount':7})
         self.assertEqual(day.contract_id,slip.contract_id)
         self.assertEqual(entry.contract_id,slip.contract_id)
-        other=self.contract.copy({'name':'Private second actual contract'})
+        other=self.scope['hr.contract'].create({'name':'Private second actual contract',
+            'employee_id':self.employee.id,'company_id':self.company.id,'date_start':self.contract.date_start,
+            'wage':800000,'structure_type_id':self.kind.id,'struct_id':self.structure.id})
         for line in (day,entry):
             with self.assertRaises(ValidationError),self.env.cr.savepoint():
                 line.write({'contract_id':other.id})
