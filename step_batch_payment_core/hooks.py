@@ -8,7 +8,7 @@ def require_clean_provider(env):
     # of a pending ORM transition. No business record or amount is touched.
     env['ir.module.module'].flush_model(['state'])
     env.cr.execute("SELECT name FROM ir_module_module WHERE name IN "
-        "('account_batch_payment','account_accountant_batch_payment') AND state IN ('installed','to upgrade','to remove')")
+        "('account_batch_payment','account_accountant_batch_payment') AND state IN ('to install','installed','to upgrade','to remove')")
     if env.cr.fetchone():
         raise UserError(_('No instale este proveedor junto al motor nativo. La conversión fría aún no está certificada.'))
     env.cr.execute("SELECT to_regclass('account_batch_payment')")
