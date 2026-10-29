@@ -4,4 +4,21 @@
     <record id="base.view_company_form" model="ir.ui.view"><field name="priority">5</field></record>
     <record id="base.view_company_tree" model="ir.ui.view"><field name="priority">5</field></record>
     <record id="base.action_res_company_form" model="ir.actions.act_window"><field name="view_id" ref="base.view_company_tree"/></record>
+    <record id="company_generated_contact" model="ir.ui.view">
+        <field name="name">res.company.generated.contact</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <!-- Keep this field in the processed form for ordinary users.
+                 Otherwise a domain dependency reinjects it with ORM required=True;
+                 the x2many dialog merges that with the visible branch list and
+                 demands a contact before native company.create can generate it. -->
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="groups"/>
+                <attribute name="invisible">True</attribute>
+                <attribute name="readonly">True</attribute>
+                <attribute name="required">False</attribute>
+            </xpath>
+        </field>
+    </record>
 </odoo>
