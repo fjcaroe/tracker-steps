@@ -19,7 +19,7 @@ las almacenadas en `account.move.line.tax_tag_ids`, no esa proyección.
 
 Se auditó el proveedor LGPL OCA `payroll_account 18.0.1.0.6` y los modelos
 Account de Community oficial `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`.
-El probe privado B ejecutado por el coordinador sobre el proveedor nativo real
+El probe privado C ejecutado por el coordinador sobre el proveedor nativo real
 observó cuatro combinaciones de signo y solicitud de `credit_note`. Las
 etiquetas de débito permanecieron en la cuenta configurada como débito y las
 de crédito en la cuenta configurada como crédito, incluso cuando el importe
@@ -57,9 +57,17 @@ la equivalencia del flujo nativo de notas de crédito continúa pendiente.
 
 La admisión de contabilización comprueba reglas efectivas y todas las reglas
 de líneas ya calculadas. Para cada relación lee primero ACL de regla/campo,
-luego los pares físicos completos y el acceso normal a cada etiqueta. Un
-record rule que oculte sólo una contribución no produce un asiento parcial.
+luego los pares físicos completos y el acceso normal a cada etiqueta. En las
+dos relaciones originales débito/crédito, un record rule que oculte sólo una
+contribución bloquea la operación, sin producir un asiento parcial.
 Ni `sudo` entrante ni una caché caliente sustituyen al actor original.
+
+Esta garantía no abarca etiquetas tributarias que OCA haya filtrado antes de
+devolver el resultado de `super`: el adaptador verifica las etiquetas recibidas,
+pero no reconstruye las relaciones fiscales del proveedor. La proyección de
+etiquetas en líneas también exige acceso normal a su regla salarial. Las
+pruebas de etiquetas usan al responsable autorizado; falta certificar la lectura
+original de empleado/oficial por rol, sin ampliar sus ACL para obtener acceso.
 
 Las etiquetas originales no vacías deben estar activas, aplicarse a impuestos
 y tener el país fiscal de la liquidación o país vacío compartido. Una relación
