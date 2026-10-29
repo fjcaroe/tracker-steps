@@ -127,7 +127,7 @@ class Payslip(models.Model):
                 if not code or code != kind.code:
                     raise UserError(_("Saved input codes must match their explicit original types."))
                 if amount is None:
-                    raise UserError(_("Complete the amount on the existing saved input. SQL NULL is missing data; a saved zero is valid."))
+                    raise UserError(_("Complete the amount on the existing input and save it. A saved zero is valid."))
                 if isinstance(amount, bool) or not Decimal(str(amount)).is_finite():
                     raise UserError(_("Original saved input amounts must be finite."))
                 by_code[code].add(kind_id)
