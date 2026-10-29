@@ -42,7 +42,7 @@ class Structure(models.Model):
 
 class Rule(models.Model):
     _inherit = 'hr.salary.rule'
-    note = fields.Html()
+    note = fields.Html(translate=True)
 
     def write(self,values):
         if self._name=='hr.salary.rule' and 'code' in values and any(rule.code!=values['code'] for rule in self):

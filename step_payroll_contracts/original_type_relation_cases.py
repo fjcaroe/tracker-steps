@@ -42,6 +42,12 @@ class OriginalTypeRelationCases:
         self.structures.flush_recordset(["type_id"])
         self.env.cr.execute("SELECT id FROM hr_payroll_structure WHERE type_id=%s ORDER BY id", [self.kinds[0].id])
         self.assertEqual([row[0] for row in self.env.cr.fetchall()], sorted(self.structures.ids))
+        if not self.NATIVE:
+            view = self.scope["hr.payroll.structure.type"].get_view(
+                view_id=self.scope.ref("step_payroll_oca_api.payroll_structure_type_original_form").id,
+                view_type="form")
+            self.assertIn('name="struct_ids"', view["arch"])
+            self.assertIn('name="struct_type_count"', view["arch"])
 
     def case_type_inverse_write_moves_the_real_fk_and_related_schedule(self):
         structure = self.structures[0]
