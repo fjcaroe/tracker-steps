@@ -24,6 +24,12 @@ PIN='4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e'
 def run(*args,**kw):return subprocess.run(args,check=True,**kw)
 
 
+def concrete_test_count(source, module):
+    return sum(1 for path in (source/module/'tests').glob('test_*.py')
+        for cls in ast.parse(path.read_text(encoding='utf-8-sig')).body if isinstance(cls,ast.ClassDef)
+        for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
+
+
 def main():
     global MODULES
     parser=argparse.ArgumentParser(description=__doc__)
@@ -73,6 +79,8 @@ def main():
     fp={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for m in MODULES
         for p in sorted((source/m).rglob('*')) if p.is_file() and '__pycache__' not in p.parts}
     assert all((source/m/'__manifest__.py').exists() for m in MODULES)
+    api_test_count=concrete_test_count(source,'step_payroll_oca_api')
+    base_test_count=concrete_test_count(source,'step_simpledigital_oca_base') if simpledigital else 0
     (stage/'source-files.json').write_text(json.dumps(fp,indent=2))
     pure=args.mode=='community';conf=Path('/etc/dev_odoo18.conf' if pure else '/etc/odoo18-cerroelplomo.conf')
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
@@ -261,7 +269,7 @@ def main():
             methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions','actual_pdf_binary_and_employee_sheets']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (101 if pure else 25)+((55 if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
+        expected=7 if standalone else ((38+api_test_count) if pure else 25)+((48+base_test_count if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         if args.accelerated:expected+=HR_TEST_COUNT+33+18+11+(0 if pure else 39)
         if args.custody_grouping:expected+=54 if pure else 29
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
@@ -327,6 +335,7 @@ def main():
             'counts':counts,'pdf_binary_reports':2 if binary_book else 0,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'expected_test_count':expected,
+            'api_test_count':api_test_count if pure else 0,'base_test_count':base_test_count if pure else 0,
             'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py','hr_consumer_metadata.py')} if args.accelerated else {},
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)

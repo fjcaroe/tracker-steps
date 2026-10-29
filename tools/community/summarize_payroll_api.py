@@ -306,7 +306,9 @@ def main():
                 'caf_attachment_metadata':bool(caf.get('binary_attachment_policy_proven')),'functional_conversion_certified':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)
+        api_count=results['community'].get('api_test_count',63)
+        base_count=results['community'].get('base_test_count',7)
+        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)
         assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
