@@ -1,0 +1,15 @@
+<odoo>
+    <record id="existing_draft_batch_form" model="ir.ui.view">
+        <field name="name">payroll.saved.draft.batch.form</field>
+        <field name="model">hr.payslip.run</field>
+        <field name="inherit_id" ref="payroll.hr_payslip_run_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_step_compute_existing_drafts" type="object"
+                    string="Calcular borradores guardados" groups="payroll.group_payroll_manager"
+                    invisible="state != 'draft'"
+                    confirm="Se calcularán todos los borradores ya guardados de este lote usando sus importes de entrada guardados, incluidos los ceros. No se crearán liquidaciones ni días. Revise los datos antes de continuar."/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

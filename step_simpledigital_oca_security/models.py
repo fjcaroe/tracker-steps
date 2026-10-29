@@ -40,7 +40,7 @@ class Payslip(models.Model):
         assert_mutable(self)
         return super().unlink()
 
-    def compute_sheet(self):
+    def _step_check_country_calculation_configuration(self):
         if any(slip.state not in ('draft','verify') or ('paid' in slip._fields and slip.paid) for slip in self):
             raise UserError(_('Validated or paid payroll cannot be recalculated.'))
         for slip in self:
@@ -71,6 +71,10 @@ class Payslip(models.Model):
                 raise UserError(_('Generate actual work entries before calculating Chile payroll.'))
             if contract.wage_type!='monthly' or contract.schedule_pay!='monthly':
                 raise UserError(_('This provider rehearsal supports audited monthly wage payroll only.'))
+        return True
+
+    def compute_sheet(self):
+        self._step_check_country_calculation_configuration()
         with self.env.cr.savepoint():
             return super().compute_sheet()
 
