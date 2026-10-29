@@ -1,6 +1,6 @@
 # Entradas guardadas y cálculo real de lotes — 29-10-2026
 
-Paquete de implementación congelado en `3edf5dbb`, desde la canónica `f589ba62`.
+Paquete de implementación congelado en `4bb59f9b`, desde la canónica `f589ba62`.
 La aceptación conjunta está en curso; este documento no acredita todavía el cierre.
 API **18.0.1.13.0**, Base **18.0.1.6.0**, Security **18.0.1.7.0**.
 Conserva [Schema B](COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md), Período C y sus guardas.
@@ -27,6 +27,10 @@ Se permiten líneas repetidas del mismo tipo mediante la agregación existente.
 Un importe guardado cero es válido; no certifica su procedencia ni aprobación.
 SQL NULL se distingue del cero que presenta la caché Float de OCA y se rechaza,
 igual que NaN e infinitos. El operador debe completar y guardar el valor.
+La escritura explícita de `amount` invalida sólo su caché después de permisos e
+historia y delega al ORM real sin prefetch; así un cero solicitado se persiste
+aunque la caché anterior presentara NULL como cero. Una lectura o una escritura
+sin ese campo no convierte NULL en cero.
 Las vistas reales de entradas exponen el maestro sin permitir crearlo desde allí.
 
 Los días ya guardados deben coincidir con los obtenidos de entradas de trabajo
@@ -50,6 +54,13 @@ calcula importes ni reabre liquidaciones pagadas o validadas.
 
 ## Aceptación pendiente
 
+A queda como diagnóstico: cero fallos y cuatro errores de 460 casos CE. Tres
+eran fixtures de permisos (copia completa de contrato sensible, eliminación de
+work entry y vista de lotes exclusiva de manager). El cuarto reveló la omisión
+del cero explícito por la caché Float; B incorpora el ajuste del producto y
+pruebas de escritura explícita, denegaciones y conservación de NULL. La rama
+nativa de A no se ejecutó. No se reutilizan sus bases como aceptación B.
+
 Se prepararon doce casos funcionales nuevos: seis de entradas y seis de lotes,
 incluidos cero/NULL, agregación, permisos con caché elevada, cobertura, formulario,
 dos cálculos reales, conflictos, límite horario local y rollback ante fórmula errónea.
@@ -61,9 +72,9 @@ actualiza los tres módulos. Debe conservar historia cerrada, almacenamiento,
 IDs, relaciones, contadores y origen/filestore, con respaldo decodificado, además
 de comprobar la negativa real a admitir entradas de historia cerrada.
 
-Ejecución privada A: `/opt/steps-validation/community-payroll-inputs-20261029A`.
-Upgrade: `/opt/steps-validation/community-inputs-upgrade-20261029A`.
-Preflight: `/opt/steps-validation/community-inputs-preflight-20261029A`.
+Ejecución privada B: `/opt/steps-validation/community-payroll-inputs-20261029B`.
+Upgrade: `/opt/steps-validation/community-inputs-upgrade-20261029B`.
+Preflight: `/opt/steps-validation/community-inputs-preflight-20261029B`.
 Exportación local: `C:/Users/tito4/.codex/local-artifacts/community-payroll-inputs-20261029`.
 
 ## Estado acumulado y siguiente puerta
@@ -80,6 +91,16 @@ de selecciones, 12 bloqueos de seguridad, 24 IDs ocupados, 60 colisiones XML y
 la acción 462. Este bloque admite valores guardados explícitos; no importa la
 configuración original ni resuelve esas colisiones. El catálogo de beneficios
 nativo tampoco se sustituye por modelos vacíos o por ventajas OCA no equivalentes.
+
+El siguiente bloque debe preparar un bootstrap privado sin demo ni semillas
+salariales del proveedor y comprobar su cierre XML antes de adoptar datos.
+Quitar demo solamente no basta: Simple Digital carga reglas/estructuras desde
+XML productivo y `hr_contract` crea cuatro tipos reales. Su coadopción requiere
+demostrar identidad completa, PK y aliases; no sobrescribir por coincidencia de
+nombre/ID. También deben cerrarse compañías, calendarios, tipos de trabajo,
+diarios, propiedades y el renderer original 462 antes de importar los maestros.
+La proyección del FK original de cada regla a su mismo par M2M puede conservar
+el motor genérico optional/copy/share; no implica cambiar su campo global a O2M.
 
 Falta certificar reglas chilenas con los procesos reales de SyS, períodos
 parciales, redondeo/YTD, reembolsos, asientos, Previred/libro y consumidores HR.
