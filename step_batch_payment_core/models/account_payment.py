@@ -22,6 +22,9 @@ class AccountPayment(models.Model):
             payments = service._lock_payments(self.ids)
             for batch in payments.batch_payment_id:
                 service._lock_batch(batch.id)
+                original = service._group_payments(batch)
+                if original:
+                    service._validate_payments(original, batch)
             if values['batch_payment_id']:
                 batch = service._lock_batch(values['batch_payment_id'])
                 service._validate_payments(payments, batch)

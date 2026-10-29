@@ -42,8 +42,8 @@ referencia nativa se instala únicamente ese servicio: el proveedor original
 conserva su clase y almacenamiento. En Community se instala además este núcleo.
 Los mismos casos de agrupación operan contra ambos proveedores reales.
 
-Tags: `/step_batch_payment_grouping` (15 casos, una observación nativa omitida
-en CE) y `/step_batch_payment_core` (11 casos, sólo CE). Los fixtures usan
+Tags: `/step_batch_payment_grouping` (20 casos, una observación nativa omitida
+en CE) y `/step_batch_payment_core` (12 casos, sólo CE). Los fixtures usan
 compañías y secuencias privadas `no_gap`; no consumen ni reinician correlativos
 de negocio. La observación `BATCH_NATIVE_REFERENCE` captura importes y estados
 reales de dos pagos en borrador y dos publicados, sin asumir su fórmula.

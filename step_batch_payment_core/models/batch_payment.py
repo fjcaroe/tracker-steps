@@ -217,6 +217,8 @@ class AccountBatchPayment(models.Model):
             original = service._group_payment_ids(batch)
             ids = batch._selected_ids(values.get('payment_ids', []), original)
             locked = service._lock_payments(sorted(set(original + ids)))
+            if original:
+                service._validate_payments(locked.browse(original), batch)
             service._validate_payments(locked.browse(ids), batch)
         return super().write(values)
 
@@ -224,7 +226,9 @@ class AccountBatchPayment(models.Model):
         service = self.env['step.batch.payment.grouping']
         for batch in self:
             service._lock_batch(batch.id)
-            service._group_payments(batch)
+            original = service._group_payments(batch)
+            if original:
+                service._validate_payments(original, batch)
         self.check_access('unlink')
         return super().unlink()
 

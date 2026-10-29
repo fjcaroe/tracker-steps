@@ -166,6 +166,17 @@ class BatchCoreCase(AccountTestInvoicingCommon):
             with self.assertRaises(UserError):
                 batch.write(values)
 
+    def test_direct_api_cannot_remove_protected_legacy_draft_member(self):
+        batch = self.group()
+        self.payments.flush_recordset()
+        self.env.cr.execute('UPDATE account_payment SET is_sent=TRUE WHERE id=%s', [self.payments[-1].id])
+        for callback in (lambda: self.payments[-1].with_user(self.actor).write({'batch_payment_id': False}),
+                         lambda: batch.write({'payment_ids': [Command.set(self.payments[:1].ids)]}),
+                         lambda: batch.unlink()):
+            with self.assertRaises(UserError):
+                callback()
+        self.assertEqual(set(batch.payment_ids.ids), set(self.payments.ids))
+
     def test_core_refuses_cold_native_storage_in_preinit(self):
         from ..hooks import require_clean_provider
         # The hook must accept an already installed core, and refuse an existing
