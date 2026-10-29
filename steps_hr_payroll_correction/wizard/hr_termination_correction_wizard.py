@@ -167,6 +167,9 @@ class HrTerminationCorrectionWizard(models.TransientModel):
         contracts = self._affected_contracts()
         contracts.check_access("write")
         extra_entries = self.env["hr.work.entry"].sudo().search(self._work_entry_domain())
+        # The correction role permits the technical reset of validated entries,
+        # but never grants visibility through another company's/record's rules.
+        extra_entries.with_env(self.env).check_access("read")
         if self.env["hr.work.entry"].sudo().search_count([
                 ("employee_id", "=", self.employee_id.id), ("company_id", "=", self.company_id.id),
                 ("date_start", "<=", self._cutoff_datetime()), ("date_stop", ">", self._cutoff_datetime())]):
