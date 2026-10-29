@@ -94,9 +94,11 @@ class OriginalAnalyticCase(TransactionCase):
         # With no analytic property the provider's ordinary create policy is
         # authoritative; the adapter must not invent a company slot/context.
         other_company = self.env["res.company"].create({"name": "Private NULL analytic rule owner"})
+        other_category = self.env["hr.salary.rule.category"].with_company(other_company).create({
+            "name": "Private other-owner analytic category", "code": "PRIVATE_OTHER_ANALYTIC_CATEGORY", "company_id": other_company.id})
         author = self.env["hr.salary.rule"].with_company(self.company)
         other_rule = author.create({"name": "Private other-owner NULL analytic rule", "code": "PRIVATE_OTHER_NULL_ANALYTIC",
-            "sequence": 1, "category_id": self.rule.category_id.id, "company_id": other_company.id})
+            "sequence": 1, "category_id": other_category.id, "company_id": other_company.id})
         other_rule.flush_recordset(["company_id", "analytic_account_id"])
         self.env.cr.execute("SELECT company_id,analytic_account_id,analytic_account_id IS NULL FROM hr_salary_rule WHERE id=%s", (other_rule.id,))
         self.assertEqual(self.env.cr.fetchone(), (other_company.id, None, True))
