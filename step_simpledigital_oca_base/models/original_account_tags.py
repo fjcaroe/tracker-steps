@@ -141,10 +141,18 @@ class Payslip(models.Model):
             # Standard relation-only ORM commands are safe to combine on the
             # new move line. Never execute a provider command on tag masters.
             for command in existing:
+                if getattr(command, '_name', None) == 'account.account.tag':
+                    # Pinned OCA's account_tax_id-only branch starts with []
+                    # and extends it with a real tag recordset. Preserve that
+                    # list-of-records provider contract as well.
+                    ids.update(command.ids)
+                    continue
                 if not isinstance(command, (tuple, list)) or len(command) != 3:
                     raise UserError(_('Unsupported OCA payroll tax-grid payload.'))
                 operation, ident, values = command
                 if operation == Command.SET and ident == 0 and isinstance(values, (list, tuple)):
+                    if any(type(value) is not int or not 0 < value < 2**31 for value in values):
+                        raise UserError(_('Invalid OCA payroll tax-grid reference.'))
                     ids = set(values)
                 elif operation == Command.LINK and values == 0:
                     ids.add(ident)
