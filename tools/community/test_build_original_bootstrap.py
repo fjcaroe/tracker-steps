@@ -18,6 +18,7 @@ def fixture(extra_xml="", python=""):
         "models/real.py": ("from odoo import models\nclass Real(models.Model):\n _name='synthetic.actual'\n" + python).encode(),
         builder.OMIT[0]: b"<odoo><record id='structure_chile' model='hr.payroll.structure'/></odoo>",
         builder.OMIT[1]: b"<odoo><record id='original_rule' model='hr.salary.rule'/></odoo>",
+        builder.OMIT[2]: b"<odoo><record id='movement_type' model='hr.employee.movement.type'/><record id='movement_event' model='hr.employee.hr.event.type'/></odoo>",
         builder.DEFER_FILE: ("<odoo><record id='work_entry_type_unpaid_cl' model='hr.work.entry.type'>"
             "<field name='name'>Synthetic real unpaid type</field>"
             "<field name='unpaid_structure_ids' eval=\"[(4, ref('l10n_cl_simpledigital_payroll.structure_chile'))]\"/>"
@@ -43,7 +44,7 @@ class OriginalBootstrapBuilderCase(unittest.TestCase):
                 builder._write_receipt(path, {"replacement": True})
             self.assertEqual(path.read_bytes(), before)
 
-    def test_omits_only_two_seed_files_and_keeps_runtime_views_acl_bytes(self):
+    def test_omits_only_three_seed_files_and_keeps_runtime_views_acl_bytes(self):
         original = fixture()
         result, closure = builder.plan_profile(original, EXTERNAL)
         self.assertEqual(set(original) - set(result), set(builder.OMIT))
@@ -53,7 +54,9 @@ class OriginalBootstrapBuilderCase(unittest.TestCase):
         self.assertFalse(closure["deferred_seed_assignment"]["adopted"])
         self.assertEqual(closure["retained_salary_records"], [])
         self.assertFalse(closure["original_aliases_guaranteed"])
-        self.assertEqual(len(closure["omitted_definitions"]), 2)
+        self.assertEqual(len(closure["omitted_definitions"]), 4)
+        self.assertEqual(len(closure["deferred_movement_catalogue"]["records"]), 2)
+        self.assertFalse(closure["deferred_movement_catalogue"]["generated_rules_adopted"])
 
     def test_required_reference_to_omitted_original_aborts_even_if_external_claims_it(self):
         original = fixture("<record id='bad' model='ir.ui.view'><field name='inherit_id' ref='structure_chile'/></record>")
@@ -106,6 +109,15 @@ class OriginalBootstrapBuilderCase(unittest.TestCase):
         original["__manifest__.py"] = repr(dict(spec, demo=["demo.xml"])).encode()
         with self.assertRaisesRegex(builder.BootstrapError, "provider-demo-not-authorized"):
             builder.plan_profile(original, EXTERNAL)
+
+    def test_any_other_retained_dynamic_salary_producer_or_movement_orphan_aborts(self):
+        original = fixture("<record id='unexpected_movement' model='hr.employee.movement.type'/>")
+        original["models/real.py"] += ("\nclass Movement(models.Model):\n _name='hr.employee.movement.type'\n"
+            " def create(self, values):\n  return self.env['hr.salary.rule'].create(values)\n").encode()
+        with self.assertRaisesRegex(builder.BootstrapError, "retained-dynamic-salary-producer"):
+            builder.plan_profile(original, EXTERNAL)
+        with self.assertRaisesRegex(builder.BootstrapError, "orphan-reference"):
+            builder.plan_profile(fixture("<record id='unexpected_view' model='ir.ui.view'><field name='inherit_id' ref='movement_type'/></record>"), EXTERNAL)
 
     def test_snapshot_verifier_rejects_modified_runtime_source_and_receipt(self):
         normal = fixture()
