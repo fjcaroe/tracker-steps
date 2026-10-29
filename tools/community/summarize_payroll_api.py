@@ -240,6 +240,13 @@ def main():
         assert inputs['pdf_sha256']==documentary['pdf_sha256']
         assert Decimal(inputs['printed_contract_wage'])==Decimal(documentary['printed_contract_wage'])
         assert Decimal(inputs['expected_basic'])==Decimal(reference['selected_case']['stored_totals']['BASIC'])
+        original_line=reference['selected_case']['concepts']['BASIC'][0]
+        components=inputs['expected_components']
+        assert inputs['components_read_only_sql'] and components['id']==original_line['id']
+        assert components['slip_id']==reference['selected_case']['id'] and components['salary_rule_id']==original_line['salary_rule_id']
+        assert components['code']=='BASIC' and components['write_date']==original_line['write_date']
+        assert all(components[key] is not None and Decimal(components[key]).is_finite() for key in ('amount','quantity','rate','total'))
+        assert Decimal(components['total'])==Decimal(inputs['expected_basic'])
         original_id=reference['selected_case']['concepts']['BASIC'][0]['salary_rule_id']
         assert inputs['formula_sha256']==next(row['body_sha256'] for row in reference['essential_rule_origins'] if row['id']==original_id)
         assert inputs['read_only_source'] and inputs['contains_private_formula_and_payroll_data']
@@ -250,12 +257,14 @@ def main():
             assert proof['normal_actor'] and proof['real_engine'] and proof['new_fixture_only'] and proof['fixtures_rolled_back']
             assert proof['transaction_case'] and proof['rollback_verified'] and proof['fixture_master_counts']=={'companies':0,'users':0}
             assert proof['basic_matches_original_snapshot']
+            assert proof['stored_component_reader'] and proof['component_matches']==dict.fromkeys(('amount','quantity','rate','total'),True)
             assert not any(proof[key] for key in ('source_payroll_computed','source_written','financial_certified','master_timeline_certified','full_payroll_replay','identity_conversion'))
             assert all(proof[key]==inputs[key] for key in ('capsule_sha256','pdf_sha256','formula_sha256'))
             assert all(row['source_id'] and row['target_id'] and row['code'] for row in proof['worked_day_master_mapping'])
         result['monthly_basic_reference']={'engines':2,'basic_matches_original_snapshot':True,'real_engine':True,
             'fixtures_rolled_back':True,'rollback_verified':True,'transaction_case':True,
             'full_payroll_replay':False,'financial_certified':False,'identity_conversion':False,
+            'component_matches':dict.fromkeys(('amount','quantity','rate','total'),True),
             'basis':inputs['basis'],'rule_write_date_precedes_period':inputs['rule_write_date_precedes_period']}
     if collisions.exists():
         probe=(collisions/'probe.py').read_bytes();runner=(collisions/'runner.py').read_bytes()
