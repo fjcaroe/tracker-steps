@@ -55,3 +55,36 @@ solo lectura y no exigible por el formulario para todos los usuarios. Mantener
 la obligatoriedad y la generación del contacto en ORM. Pruebas de la vista
 procesada y de creación nativa con contacto propio; copias y publicación aún
 pendientes. No se cierra el ticket por este diagnóstico.
+
+## Avance conservado, revisión automática del 29-10-2026
+
+Paquete candidato `2965b1d3c63ea3fb256430ab0bf98e78eabd3a3f`, SHA-256
+`ce035541289a92d4e11fc06cac499c64e4391be55da3653c033ca3cb5cb128c2`.
+`step_company_form_restore` sube a 18.0.1.0.1; los dos puentes del paquete
+company-form mantienen 18.0.1.0.0. No se cambió la obligatoriedad ORM.
+
+La copia fresca de Desarrollo `MANAGEMENT_QA_DEVELOPMENT_t131d` pasó 13 pruebas,
+sin fallos, más menú, formulario procesado del usuario existente, conservación
+de vistas específicas y creación de sucursal con contacto propio y matriz/moneda
+correctas. La creación de prueba se revirtió. Prueba aprobada en
+`/opt/steps-validation/management_development_t131d/qa_passed.json`.
+
+La compatibilidad de Cerro quedó en cola legítima por el bloqueo compartido;
+no interrumpir al propietario ni saltarse la exclusión. Proceso lanzado:
+`python3 /opt/steps-validation/t131-20261029/tools/ops/manage_management.py compatibility cerro /opt/steps-validation/t131-20261029/company-form-t131.tar.gz t131c --kind company-form --wait-for-lease`.
+Log persistente `/tmp/t131-qa-c.log`. Revisar si terminó antes de volver a ejecutarlo.
+No se lanzó ninguna publicación ni se cerró T131.
+
+Pendiente: comprobar el resultado de t131c; compatibilidad de QA-Cerro con run
+`t131q`; publicar el mismo paquete aprobado en Desarrollo, Cerro y QA-Cerro,
+respectivamente con los runs t131d/t131c/t131q y logs
+`/tmp/t131-deploy-d.log`, `/tmp/t131-deploy-c.log`, `/tmp/t131-deploy-q.log`.
+Cada publicación exige huella inicial vigente, respaldo y bloqueo. Si la huella
+cambió mientras esperaba, repetir la copia/pruebas conforme al gestor, sin
+forzarla. No refrescar datos de QA-Cerro.
+
+El recolector y registrador existentes aceptan `--ticket 131` y exigen las 13
+pruebas por destino, marcador T131 de creación revertida, paquete idéntico y
+pruebas de aislamiento antes de permitir el cierre interno silencioso. Revisar
+mensajes posteriores a 9790 antes del cierre. Artefactos del gestor en
+`/opt/steps-validation/t131-20261029/`; adjuntos locales en la ruta ya indicada.
