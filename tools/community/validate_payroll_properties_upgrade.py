@@ -212,8 +212,25 @@ def exercise(env, mode, directory):
         # The legacy security provider deliberately forbids paid changes after
         # done. This marker is NOT a payment workflow: it is authorized only on
         # this just-created synthetic clone row, before its preservation seal.
+        env.cr.execute("SELECT id,employee_id,contract_id,company_id,state,step_history_locked,paid "
+            "FROM hr_payslip WHERE id=%s", (slip.id,))
+        found = env.cr.fetchone()
+        assert found is not None, 'Synthetic payslip disappeared before marker'
+        marker_before = dict(zip(('id', 'employee_id', 'contract_id', 'company_id',
+                                  'state', 'step_history_locked', 'paid'), found))
+        write_private(root / 'synthetic-paid-marker-before.json', dict(marker_before,
+            synthetic_fixture_only=True, database=env.cr.dbname,
+            original_not_paid_predicate_matches=marker_before['paid'] is False,
+            null_aware_predicate_matches=marker_before['paid'] is not True))
+        assert (marker_before['employee_id'], marker_before['contract_id'], marker_before['company_id']) == (
+            case.employee.id, case.contract.id, case.company.id), 'Synthetic marker identity mismatch'
+        assert marker_before['state'] == 'done' and marker_before['step_history_locked'] is True, 'Actual closed-history guard missing'
+        assert marker_before['paid'] is None or marker_before['paid'] is False, 'Synthetic row is already marked paid'
+        # OCA's optional Boolean has no default. An omitted value may be SQL
+        # NULL (ORM False); SQL NOT paid rejects that row. Keep the closed-state
+        # guard exact and admit only False/NULL, never an existing True marker.
         env.cr.execute("UPDATE hr_payslip SET paid=true WHERE id=%s AND employee_id=%s "
-            "AND contract_id=%s AND company_id=%s AND state='done' AND step_history_locked=true AND NOT paid",
+            "AND contract_id=%s AND company_id=%s AND state='done' AND step_history_locked=true AND paid IS NOT TRUE",
             (slip.id, case.employee.id, case.contract.id, case.company.id))
         assert env.cr.rowcount == 1, 'Synthetic paid marker refused'
         slip.invalidate_recordset(['paid'])
@@ -242,12 +259,19 @@ def exercise(env, mode, directory):
             'slip': slip.id, 'day': day.id, 'move': entry['id'], 'draft_amounts': amounts,
             'draft_day_values': day_values, 'raw_rows': rows,
             'synthetic_paid_marker': True, 'payment_workflow_certified': False,
+            'synthetic_paid_marker_original_sql_value': marker_before['paid'],
+            'synthetic_paid_marker_witness_sha256': hashlib.sha256((root / 'synthetic-paid-marker-before.json').read_bytes()).hexdigest(),
             'confirmation_uses_existing_oca_draft_option': True,
             'current_wage_changed_after_closure': True}
         write_private(root / 'seed.json', seed)
         env.cr.commit()
     elif mode == 'verify':
         seed = json.loads((root / 'seed.json').read_text())
+        witness = (root / 'synthetic-paid-marker-before.json').read_bytes()
+        assert hashlib.sha256(witness).hexdigest() == seed['synthetic_paid_marker_witness_sha256'], 'Synthetic marker witness changed'
+        marker = json.loads(witness)
+        assert marker['id'] == seed['slip'] and marker['state'] == 'done' and marker['step_history_locked'] is True
+        assert marker['paid'] is None or marker['paid'] is False
         scope = api.Environment(env.cr, seed['actor'], dict(env.context, allowed_company_ids=[seed['company']]), su=False)
         assert not scope.su
         # Access checks do not ask computed monetary/inherited field values.
@@ -269,6 +293,8 @@ def exercise(env, mode, directory):
         write_private(root / 'verified.json', dict(proof, actual_upgrade=True, normal_actor=True,
             real_oca_engine=True, historical_read_unchanged=True, closed_payroll_recomputed=False,
             synthetic_fixture_only=True, synthetic_paid_marker=True, payment_workflow_certified=False,
+            synthetic_paid_marker_witness_sha256=seed['synthetic_paid_marker_witness_sha256'],
+            synthetic_paid_marker_original_sql_value=seed['synthetic_paid_marker_original_sql_value'],
             current_wage_changed_after_closure=True,
             customer_payroll_certified=False, engine_conversion=False))
         env.cr.rollback()
@@ -452,6 +478,8 @@ def main():
             backup_decoded=True, backup_sha256=hashlib.sha256(backup.read_bytes()).hexdigest(),
             package_files_sha256=digest(files), writes_to_source=False, module_states_rewritten=False,
             source_consumer_files_sha256=digest(consumer_fingerprints),
+            seed_sha256=hashlib.sha256((root / 'seed.json').read_bytes()).hexdigest(),
+            rows_after_sha256=hashlib.sha256((root / 'rows-after.json').read_bytes()).hexdigest(),
             official_community_revision=OFFICIAL_PIN, oca_revision=OCA_PIN,
             tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), full_community_conversion=False)
         write_private(root / 'passed.json', proof)
