@@ -6,7 +6,7 @@ from psycopg2 import sql
 
 from ..translation_storage import (
     TranslationStorageError, _convert_literal_column, original_translation_payload,
-    migrate_original_translation_storage, prepare_original_translation_storage,
+    migrate_original_translation_storage, original_translation_table_admission, prepare_original_translation_storage,
 )
 
 
@@ -120,3 +120,20 @@ class OriginalTranslationCase(TransactionCase):
         self.assertFalse(first["historical_lines_changed"])
         self.assertEqual((self._raw(self.rule, "note"), self._raw(self.input_type, "name")), before)
         self.assertEqual((self.rule.read(["id", "write_uid", "write_date"]), self.input_type.read(["id", "write_uid", "write_date"])), audit)
+
+    def test_cold_input_table_admission_never_hides_a_missing_upgrade_table(self):
+        # Pure admission over the same facts queried from PostgreSQL: no real
+        # application table is dropped or renamed to manufacture this scenario.
+        cold = original_translation_table_admission("to install", {"hr_salary_rule"})
+        self.assertEqual(cold, {"existing_tables": ["hr_salary_rule"], "input_table_pending_orm": True})
+        complete = {"hr_salary_rule", "hr_payslip_input_type"}
+        for state in ("to install", "installed", "to upgrade"):
+            self.assertFalse(original_translation_table_admission(state, complete)["input_table_pending_orm"])
+        for state in ("installed", "to upgrade"):
+            with self.assertRaisesRegex(TranslationStorageError, "missing-on-upgrade"):
+                original_translation_table_admission(state, {"hr_salary_rule"})
+        with self.assertRaisesRegex(TranslationStorageError, "actual-oca-rule-table-required"):
+            original_translation_table_admission("to install", set())
+        for state in (None, "uninstalled", "to remove"):
+            with self.assertRaisesRegex(TranslationStorageError, "state-not-admitted"):
+                original_translation_table_admission(state, complete)
