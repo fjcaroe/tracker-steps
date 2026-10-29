@@ -16,6 +16,11 @@ SALARY_MODELS = {'hr.salary.rule', 'hr.salary.rule.category', 'hr.payroll.struct
                  'hr.payroll.structure.type', 'hr.payslip.input.type'}
 IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_.-]*\Z')
 PLACEHOLDER = re.compile(r'%\(([A-Za-z_][A-Za-z0-9_.-]*)\)[ds]')
+MODULE = 'l10n_cl_simpledigital_payroll'
+SALARY_SEED_FILES = ('data/hr_salary_rule.xml', 'data/hr_salary_structure.xml')
+DEFER_FILE = 'data/hr_work_entry_type.xml'
+DEFER_OWNER = MODULE + '.work_entry_type_unpaid_cl'
+DEFER_TARGET = MODULE + '.structure_chile'
 
 
 def canonical(value, module):
@@ -162,21 +167,119 @@ def analyze_addon(addon, *, omit=(), allowed_files=None, approved_external=()):
         'bootstrap_certified': False, 'identity_adopted': False}
 
 
+def verify_bootstrap_profile(normal_addon, profile_addon, *, allowed_files):
+    """Prove two omitted seeds and one deferred assignment, never waive a ref.
+
+    This is an independent XML/CSV audit. The builder additionally proves
+    mandatory dependency/Python reference closure; actual registry installation
+    and the original configuration remain separate acceptance gates.
+    """
+    normal_addon, profile_addon = Path(normal_addon), Path(profile_addon)
+    assert normal_addon.name == profile_addon.name == MODULE, 'Provider identity drift'
+    # License metadata is admitted before reading any runtime body from either
+    # root, including a mistaken Enterprise directory supplied by the caller.
+    for folder in (normal_addon, profile_addon):
+        path = folder / '__manifest__.py'
+        assert not path.is_symlink(), 'Symlink provider manifest'
+        declaration = ast.literal_eval(path.read_text(encoding='utf-8-sig'))
+        assert declaration.get('license') == 'AGPL-3', 'Free provider required'
+
+    def snapshot(folder):
+        files = {}
+        for path in folder.rglob('*'):
+            assert not path.is_symlink(), 'Symlink in provider snapshot'
+            if not path.is_file():
+                continue
+            name = relative(path.relative_to(folder).as_posix())
+            assert name in allowed_files, 'Unexpected provider runtime file'
+            files[name] = path.read_bytes()
+        return files
+
+    normal, profile = snapshot(normal_addon), snapshot(profile_addon)
+    assert set(normal) == set(allowed_files), 'Incomplete normal runtime snapshot'
+    assert set(profile) == set(normal) - set(SALARY_SEED_FILES), 'Only salary seed files may disappear'
+    normal_manifest = ast.literal_eval(normal['__manifest__.py'].decode('utf-8-sig'))
+    profile_manifest = ast.literal_eval(profile['__manifest__.py'].decode('utf-8-sig'))
+    assert normal_manifest.get('license') == 'AGPL-3', 'Free provider required'
+    assert normal_manifest.get('depends') == ['step_simpledigital_oca_base'], 'Normal provider dependency drift'
+    assert not normal_manifest.get('demo'), 'Provider demo is not authorized'
+    assert all(normal_manifest.get('data', []).count(name) == 1 for name in SALARY_SEED_FILES), 'Salary seed list drift'
+    expected_manifest = dict(normal_manifest,
+        data=[name for name in normal_manifest['data'] if name not in SALARY_SEED_FILES])
+    assert profile_manifest == expected_manifest, 'Unexpected profile manifest change'
+    assert normal_manifest['data'].count(DEFER_FILE) == 1, 'Deferred type loader drift'
+
+    baseline = analyze_addon(normal_addon, omit=SALARY_SEED_FILES, allowed_files=allowed_files)
+    expected_edge = {'file': DEFER_FILE, 'owner': DEFER_OWNER, 'field': 'unpaid_structure_ids',
+        'attribute': 'eval', 'kind': 'loader-eval', 'target': DEFER_TARGET, 'resolution': 'removed-seed-reference'}
+    assert len(baseline['removed_seed_blockers']) == 1, 'Unexpected omitted seed reference'
+    edge = baseline['removed_seed_blockers'][0]
+    assert all(edge[key] == value for key, value in expected_edge.items()), 'Deferred reference identity drift'
+    # Safe parser already admitted this exact source in analyze_addon. Inspect
+    # only the approved field's attributes; never evaluate its expression.
+    tree = etree.fromstring(normal[DEFER_FILE], parser=etree.XMLParser(
+        resolve_entities=False, load_dtd=False, no_network=True, remove_comments=True))
+    owners = [node for node in tree.iter('record') if node.get('id')
+        and canonical(node.get('id'), MODULE) == DEFER_OWNER]
+    assert len(owners) == 1 and owners[0].get('model') == 'hr.work.entry.type', 'Deferred field owner drift'
+    fields = [node for node in owners[0].findall('field') if node.get('name') == 'unpaid_structure_ids']
+    assert len(fields) == 1 and set(fields[0].attrib) == {'name', 'eval'}, 'Deferred assignment drift'
+    expected_expression = ast.dump(ast.parse("[(4, ref(%r))]" % DEFER_TARGET, mode='eval'))
+    assert ast.dump(ast.parse(fields[0].get('eval'), mode='eval')) == expected_expression, 'Deferred expression drift'
+    spans = list(re.finditer(rb'<field\b[^>]*\bname=[\"\']unpaid_structure_ids[\"\'][^>]*/>', normal[DEFER_FILE]))
+    assert len(spans) == 1, 'Ambiguous deferred field byte span'
+    span = spans[0]
+    assert profile[DEFER_FILE] == normal[DEFER_FILE][:span.start()] + normal[DEFER_FILE][span.end():], 'Deferred field bytes changed beyond one assignment'
+    assert all(profile[name] == value for name, value in normal.items()
+        if name not in (*SALARY_SEED_FILES, DEFER_FILE, '__manifest__.py')), 'Unexpected provider runtime modification'
+
+    graph = analyze_addon(profile_addon, allowed_files=allowed_files)
+    assert not graph['remaining_salary_master_records'], 'Profile still creates salary masters'
+    removed = set(baseline['removed_xmlids'])
+    assert DEFER_TARGET in removed, 'Deferred target is not an omitted salary seed'
+    orphans = [row for row in graph['references'] if row['target'] in removed
+        or row['resolution'] in ('removed-seed-reference', 'missing-provider-definition')]
+    assert not orphans, 'Profile has another unresolved provider reference'
+    assert not graph['side_effect_nodes'], 'Unexpected loader side effects'
+    graph.update(schema=2, profile='original-bootstrap-without-salary-seeds',
+        normal_manifest_sha256=hashlib.sha256(normal['__manifest__.py']).hexdigest(),
+        omitted_salary_seed_files=list(SALARY_SEED_FILES), omitted_salary_xmlids=sorted(removed),
+        deferred_original_unpaid_link={
+            'file': DEFER_FILE, 'record_xmlid': DEFER_OWNER, 'field': 'unpaid_structure_ids',
+            'structure_xmlid': DEFER_TARGET, 'relation': 'hr_payroll_structure_hr_work_entry_type_rel',
+            'original_fragment_sha256': hashlib.sha256(span.group()).hexdigest(),
+            'original_file_sha256': hashlib.sha256(normal[DEFER_FILE]).hexdigest(),
+            'profile_file_sha256': hashlib.sha256(profile[DEFER_FILE]).hexdigest(),
+            'assignment_absent_in_profile': True, 'adopted': False,
+            'original_policy_preserved_in_target': False, 'must_adopt_before_chile_processing': True},
+        other_local_orphans=[], static_xml_csv_profile_closed=True,
+        python_and_dependency_closure_certified=False, operational_payroll_package=False)
+    return graph
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--addon', type=Path, required=True)
     parser.add_argument('--pin', type=Path, required=True)
     parser.add_argument('--verify-source-pin', action='store_true')
     parser.add_argument('--omit', action='append', default=[])
+    parser.add_argument('--baseline-addon', type=Path,
+        help='Normal derived provider for strict two-seed/one-assignment profile comparison')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     pin = json.loads(args.pin.read_text())
     assert pin['license'] == 'AGPL-3' and len(pin['files']) == 52
+    declaration = ast.literal_eval((args.addon / '__manifest__.py').read_text(encoding='utf-8-sig'))
+    assert declaration.get('license') == 'AGPL-3', 'Free provider required before source inspection'
     if args.verify_source_pin:
         assert all(hashlib.sha256((args.addon / relative(name)).read_bytes()).hexdigest() == value for name, value in pin['files'].items()), 'Original runtime pin mismatch'
     output = args.output.resolve()
     assert Path('/opt/steps-validation') in output.parents and not output.exists()
-    report = analyze_addon(args.addon, omit=args.omit, allowed_files=set(pin['files']))
+    if args.baseline_addon:
+        assert not args.omit and not args.verify_source_pin, 'Profile comparison uses its normal derived baseline'
+        report = verify_bootstrap_profile(args.baseline_addon, args.addon, allowed_files=set(pin['files']))
+    else:
+        report = analyze_addon(args.addon, omit=args.omit, allowed_files=set(pin['files']))
     report.update(tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), source_pin_sha256=hashlib.sha256(args.pin.read_bytes()).hexdigest(), original_pin_verified=args.verify_source_pin)
     fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as stream: json.dump(report, stream, indent=2)
