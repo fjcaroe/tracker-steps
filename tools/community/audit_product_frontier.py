@@ -9,6 +9,7 @@ import configparser
 import hashlib
 import json
 from pathlib import Path
+import re
 import subprocess
 
 
@@ -47,6 +48,12 @@ def main():
                            if p.is_file() and '__pycache__' not in p.parts and p.suffix in ('.py','.xml','.csv','.js','.scss','.css','.html')}
                     module['owned_source']={'path':str(source),'files':len(files),
                         'fingerprint_sha256':hashlib.sha256(json.dumps(files,sort_keys=True).encode()).hexdigest()}
+            elif module['name'].startswith('step'):
+                assert re.fullmatch('[a-z0-9_]+',module['name'])
+                module['source_absent_metadata']=json.loads(query(
+                    "SELECT json_build_object('imported',to_jsonb(m)->'imported','owned_records',"
+                    "(SELECT coalesce(json_object_agg(model,n),'{}'::json) FROM (SELECT model,count(*) n FROM ir_model_data WHERE module='"+
+                    module['name']+"' GROUP BY model) t)) FROM ir_module_module m WHERE m.name='"+module['name']+"'"))
         own=[module for module in modules if module['name'].startswith('step')]
         result['products'][name]={'modules':modules,'installed':len(modules),
             'enterprise':sum(module['license']=='OEEL-1' for module in modules),
