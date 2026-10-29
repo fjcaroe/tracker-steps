@@ -1,8 +1,8 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
 Estado acumulado posterior y siguiente prompt:
-[COMMUNITY_PAQUETE_ACELERADO.md](COMMUNITY_PAQUETE_ACELERADO.md). La pareja M
-valida consumidores HR, almacenamiento preparatorio y bancos; la configuración
+[COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md). La pareja B
+valida jerarquías/fallback, permisos y FK históricos; la configuración
 original BASIC/GROSS/NET, 71 reglas e identidad histórica siguen pendientes.
 
 ## Contrato del bloque
