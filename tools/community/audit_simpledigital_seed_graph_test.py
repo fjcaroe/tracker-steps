@@ -1,5 +1,6 @@
 """Static graph tests: no Odoo, database, business formulas or XML evaluation."""
 import json
+import ast
 from pathlib import Path
 import tempfile
 import unittest
@@ -85,6 +86,95 @@ class SeedGraphCase(unittest.TestCase):
             report = graph.analyze_addon(addon, omit=['data/rules.xml'])
             self.assertEqual(report['removed_xmlids'], ['provider.basic'])
             self.assertEqual(len(report['removed_seed_blockers']), 1)
+
+    def profiles(self, folder):
+        normal = Path(folder) / 'normal' / graph.MODULE
+        profile = Path(folder) / 'cold' / graph.MODULE
+        fragment = '<field name="unpaid_structure_ids" eval="[(4, ref(\'l10n_cl_simpledigital_payroll.structure_chile\'))]"/>'
+        files = {'__init__.py': '# unchanged runtime\n',
+            'data/hr_salary_rule.xml': '<odoo><record id="basic" model="hr.salary.rule"><field name="amount_python_compute">PRIVATE FORMULA MUST NEVER EXPORT</field></record></odoo>',
+            'data/hr_salary_structure.xml': '<odoo><record id="structure_chile" model="hr.payroll.structure"/></odoo>',
+            graph.DEFER_FILE: '<odoo><record id="work_entry_type_unpaid_cl" model="hr.work.entry.type"><field name="name">Ausencia sin goce</field>' + fragment + '</record></odoo>',
+            'views/form.xml': '<odoo><record id="form" model="ir.ui.view"><field name="inherit_id" ref="base.layout"/></record></odoo>'}
+        data = [name for name in files if name.endswith('.xml')]
+        spec = {'license': 'AGPL-3', 'depends': ['step_simpledigital_oca_base'], 'data': data}
+        files['__manifest__.py'] = repr(spec)
+        filtered = {name: content for name, content in files.items() if name not in graph.SALARY_SEED_FILES}
+        filtered['__manifest__.py'] = repr(dict(spec, data=[name for name in data if name not in graph.SALARY_SEED_FILES]))
+        filtered[graph.DEFER_FILE] = files[graph.DEFER_FILE].replace(fragment, '')
+        for root, snapshot in ((normal, files), (profile, filtered)):
+            for name, content in snapshot.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(content.encode())
+        return normal, profile, set(files)
+
+    def test_profile_proves_only_one_actual_deferred_link_without_claiming_adoption(self):
+        with tempfile.TemporaryDirectory() as folder:
+            normal, profile, allowed = self.profiles(folder)
+            report = graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)
+            self.assertEqual(report['omitted_salary_seed_files'], list(graph.SALARY_SEED_FILES))
+            self.assertEqual(report['omitted_salary_xmlids'], [graph.MODULE + '.basic', graph.DEFER_TARGET])
+            self.assertEqual(report['remaining_salary_master_records'], [])
+            self.assertEqual(report['other_local_orphans'], [])
+            self.assertTrue(report['deferred_original_unpaid_link']['assignment_absent_in_profile'])
+            self.assertFalse(report['deferred_original_unpaid_link']['original_policy_preserved_in_target'])
+            self.assertFalse(report['identity_adopted'])
+            self.assertFalse(report['bootstrap_certified'])
+            self.assertNotIn('PRIVATE FORMULA', json.dumps(report))
+
+    def test_profile_never_waives_a_present_dangling_assignment_or_an_extra_orphan(self):
+        for mutation in ('present-assignment', 'another-removed-ref', 'missing-local-ref'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as folder:
+                normal, profile, allowed = self.profiles(folder)
+                if mutation == 'present-assignment':
+                    (profile / graph.DEFER_FILE).write_bytes((normal / graph.DEFER_FILE).read_bytes())
+                else:
+                    target = 'basic' if mutation == 'another-removed-ref' else 'missing'
+                    for root in (normal, profile):
+                        path = root / 'views/form.xml'
+                        path.write_bytes(path.read_bytes().replace(b'</record>',
+                            ('<field name="other" ref="%s"/></record>' % target).encode()))
+                with self.assertRaises(AssertionError):
+                    graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)
+
+    def test_profile_rejects_unapproved_runtime_manifest_type_or_field_changes(self):
+        for mutation in ('runtime', 'manifest', 'type-value', 'extra-file', 'retained-seed'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as folder:
+                normal, profile, allowed = self.profiles(folder)
+                if mutation == 'runtime':
+                    (profile / '__init__.py').write_text('# other runtime\n')
+                elif mutation == 'manifest':
+                    path = profile / '__manifest__.py'
+                    spec = ast.literal_eval(path.read_text())
+                    spec['depends'] = ['hr_payroll']
+                    path.write_text(repr(spec))
+                elif mutation == 'type-value':
+                    path = profile / graph.DEFER_FILE
+                    path.write_bytes(path.read_bytes().replace(b'Ausencia', b'Alterada'))
+                elif mutation == 'extra-file':
+                    (profile / 'new.py').write_text('')
+                else:
+                    name = graph.SALARY_SEED_FILES[0]
+                    (profile / name).write_bytes((normal / name).read_bytes())
+                with self.assertRaises(AssertionError):
+                    graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)
+
+    def test_profile_rejects_different_link_semantics_or_ambiguous_field_owner(self):
+        for mutation in ('replace-command', 'different-model', 'duplicate-span'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as folder:
+                normal, profile, allowed = self.profiles(folder)
+                path = normal / graph.DEFER_FILE
+                content = path.read_bytes()
+                if mutation == 'replace-command':
+                    content = content.replace(b'[(4, ref(', b'[(6, 0, ref(')
+                elif mutation == 'different-model':
+                    content = content.replace(b'model="hr.work.entry.type"', b'model="hr.employee"')
+                else:
+                    content = content.replace(b'</record>', b'<field name="unpaid_structure_ids" eval="[]"/></record>')
+                path.write_bytes(content)
+                with self.assertRaises(AssertionError):
+                    graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)
 
 
 if __name__ == '__main__':
