@@ -82,7 +82,7 @@ class CAFCustodyAssertions:
              values['issued_date'], 'in_use'])
         record = self.manager_model().browse(record_id)
         self.assertEqual(record.exists().ids, [record_id], 'Negative fixture must be a persisted ORM record')
-        self.env['ir.attachment'].with_context(allowed_company_ids=[self.company.id]).create({
+        self.env['ir.attachment'].with_user(self.manager).with_context(allowed_company_ids=[self.company.id]).create({
             'name': values['filename'], 'type': 'binary', 'res_model': record._name,
             'res_id': record_id, 'res_field': 'caf_file', 'company_id': self.company.id,
             'datas': base64.b64encode(self.original), 'mimetype': 'application/xml'})
