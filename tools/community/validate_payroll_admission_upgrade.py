@@ -45,11 +45,12 @@ NEW_FIELDS = {('hr.payroll.structure', 'unpaid_work_entry_type_ids'),
     ('hr.payslip.line', 'debit_tag_ids'), ('hr.payslip.line', 'credit_tag_ids')}
 ADMISSION_NEW_FIELDS = frozenset(NEW_FIELDS)
 UPGRADE_PROFILE = 'admission'
+SOURCE_INSTALLED_COUNT = 95
 
 
 def configure_profile(name):
-    """Two approved private baselines only; never accept arbitrary source DBs."""
-    global SOURCE_DB, SOURCE_ROOT, VERSIONS, NEW_FIELDS, UPGRADE_PROFILE
+    """Fixed accepted private baselines only; never arbitrary source DBs."""
+    global SOURCE_DB, SOURCE_ROOT, VERSIONS, NEW_FIELDS, UPGRADE_PROFILE, SOURCE_INSTALLED_COUNT
     if name == 'admission':
         database = 'COMMUNITY_PAYROLL_API_PROPERTIES_20261029F'
         root = Path('/opt/steps-validation/community-payroll-properties-20261029F')
@@ -62,11 +63,18 @@ def configure_profile(name):
         versions = {'step_payroll_oca_api': ('18.0.1.11.0', '18.0.1.11.0'),
                     'step_simpledigital_oca_base': ('18.0.1.4.0', '18.0.1.5.0')}
         new_fields = set()
+    elif name == 'name-scalar':
+        database = 'COMMUNITY_PAYROLL_API_PERIOD_20261029C'
+        root = Path('/opt/steps-validation/community-payroll-period-20261029C')
+        versions = {'step_payroll_oca_api': ('18.0.1.11.0', '18.0.1.12.0'),
+                    'step_simpledigital_oca_base': ('18.0.1.5.0', '18.0.1.5.0')}
+        new_fields = set()
     else:
         raise ValueError('Unknown fixed private upgrade profile')
     SOURCE_DB, SOURCE_ROOT, VERSIONS, NEW_FIELDS = database, root, versions, new_fields
     common.SOURCE_DB, common.SOURCE_ROOT = SOURCE_DB, SOURCE_ROOT
     UPGRADE_PROFILE = name
+    SOURCE_INSTALLED_COUNT = 96 if name == 'name-scalar' else 95
 
 
 def raw_rows(env):
@@ -92,13 +100,17 @@ def raw_rows(env):
         AND c.relname IN ('hr_salary_rule','hr_payslip_line') AND a.attname='category_id'
         ORDER BY c.relname""")
     result['category_foreign_keys'] = [list(row) for row in env.cr.fetchall()]
+    if UPGRADE_PROFILE == 'name-scalar':
+        env.cr.execute("SELECT data_type,is_nullable,column_default FROM information_schema.columns "
+                       "WHERE table_schema='public' AND table_name='hr_payslip_input_type' AND column_name='name'")
+        result['input_name_column'] = list(env.cr.fetchone())
     return result
 
 
 def verify_rows(before, after, xml_audit=None):
-    """JSON is already historical storage: never project, normalize or backfill."""
+    """Keep history/JSON exact; permit only the explicitly admitted name wrapper."""
     allowed = common.configuration_reload_allowlist(before, after, xml_audit) if xml_audit else set()
-    date_changes, checked = [], 0
+    date_changes, input_name_changes, checked = [], [], 0
     for table in RAW_TABLES:
         original = {row['id']: row for row in before[table]}
         current = {row['id']: row for row in after[table]}
@@ -111,6 +123,12 @@ def verify_rows(before, after, xml_audit=None):
                     assert value is not None and now[name] is not None
                     assert common.utc_datetime(xml_audit['sql_utc_before']) <= common.utc_datetime(now[name]) <= common.utc_datetime(xml_audit['sql_utc_after']), 'Configuration date outside SQL upgrade window'
                     date_changes.append({'table': table, 'field': name, 'id': ident})
+                elif (UPGRADE_PROFILE == 'name-scalar' and table == 'hr_payslip_input_type'
+                      and name == 'name' and isinstance(value, dict)):
+                    assert set(value) == {'en_US'} and isinstance(value['en_US'], str), 'Unadmitted original input translation'
+                    assert type(now[name]) is str and now[name] == value['en_US'], 'Original input literal changed'
+                    input_name_changes.append({'table': table, 'field': name, 'id': ident,
+                        'source_sha256': digest(value), 'literal_sha256': digest(now[name])})
                 else:
                     assert digest(now[name]) == digest(value), 'Original stored field changed: ' + table + '.' + name
             checked += 1
@@ -133,7 +151,7 @@ def verify_rows(before, after, xml_audit=None):
     old_fields = {(row['model'], row['name']) for row in before['all_field_ids']}
     new_fields = [row for row in after['all_field_ids'] if (row['model'], row['name']) not in old_fields]
     assert {(row['model'], row['name']) for row in new_fields} == NEW_FIELDS, 'Unexpected or missing new admission fields'
-    return {'raw_rows_compared': checked, 'raw_rows_preserved': checked - len(date_changes),
+    result = {'raw_rows_compared': checked, 'raw_rows_preserved': checked - len(date_changes) - len(input_name_changes),
         'all_original_raw_fields_exact': all(digest(before[t]) == digest(after[t]) for t in RAW_TABLES),
         'expected_write_date_changes': len(date_changes), 'expected_write_date_change_records': date_changes,
         'write_date_exception_justification': 'Only the two pinned original XML configuration masters were rewritten with unchanged data by the real module loader inside the SQL UTC upgrade window.' if date_changes else None,
@@ -142,6 +160,14 @@ def verify_rows(before, after, xml_audit=None):
         'business_sequences_preserved': True, 'historical_line_text_and_scalar_preserved': True,
         'rule_note_html_and_analytic_values_preserved': True, 'rule_json_properties_preserved_exactly': True,
         'structure_type_name_not_null': True, 'rule_category_ondelete': 'restrict', 'line_category_ondelete': 'set null'}
+    if UPGRADE_PROFILE == 'name-scalar':
+        assert before['input_name_column'] == ['jsonb', 'NO', None]
+        assert after['input_name_column'] == ['character varying', 'NO', None]
+        assert input_name_changes, 'Actual nonempty input-name conversion must be witnessed'
+        result.update(input_name_projection_records=input_name_changes,
+                      input_name_literal_values_preserved=True, input_name_not_null_preserved=True,
+                      input_name_sql_default_absent=True)
+    return result
 
 
 def offline_command(runtime, overlay, data, database, logfile, flags=(), shell=False):
@@ -160,6 +186,44 @@ def verify_dependency(directory):
     seal = json.loads((root / 'probe-dependencies.json').read_text())
     assert hashlib.sha256(HELPER_PATH.read_bytes()).hexdigest() == seal[HELPER_NAME], 'Frozen helper changed'
     assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest() == seal['upgrade-probe.py'], 'Frozen probe changed'
+
+
+def rejected_input_name_upgrade(env, case, root):
+    """Exercise the actual candidate pre-migration on this saved fixture only.
+
+    The extra language lives under an outer SQL savepoint and is rolled back.
+    An actual customer translation is never removed to make an upgrade pass.
+    """
+    import runpy
+    path = root / 'candidate-addons/step_payroll_oca_api/translation_storage.py'
+    candidate = runpy.run_path(str(path))
+    initial = raw_rows(env)
+    env.cr.execute('SAVEPOINT step_private_name_language')
+    try:
+        env.cr.execute("UPDATE hr_payslip_input_type SET name=jsonb_set(name,'{es_CL}',to_jsonb(%s::text)) WHERE id=%s",
+                       ('Private extra-language upgrade witness', case.input_type.id))
+        assert env.cr.rowcount == 1
+        before = raw_rows(env)
+        try:
+            candidate['migrate_original_translation_storage'](env.cr)
+        except candidate['TranslationStorageError'] as error:
+            assert str(error) == 'original-input-name-requires-one-literal-without-extra-languages'
+        else:
+            raise AssertionError('An extra input-name language was silently discarded')
+        after = raw_rows(env)
+        assert before == after, 'Rejected migration changed rows, IDs, schema or counters'
+    finally:
+        env.cr.execute('ROLLBACK TO SAVEPOINT step_private_name_language')
+        env.cr.execute('RELEASE SAVEPOINT step_private_name_language')
+    assert raw_rows(env) == initial, 'Private language fixture rollback was incomplete'
+    write_private(root / 'input-name-rejected-upgrade.json', {
+        'candidate_helper_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+        'private_fixture_id': case.input_type.id, 'synthetic_fixture_only': True,
+        'actual_candidate_migration': True, 'extra_language_rejected': True,
+        'rejection_code': 'original-input-name-requires-one-literal-without-extra-languages',
+        'before_sha256': digest(before), 'after_sha256': digest(after),
+        'rows_and_schema_unchanged': True, 'fixture_language_rolled_back': True,
+        'writes_to_source': False, 'closed_payroll_recomputed': False})
 
 
 def exercise(env, mode, directory):
@@ -274,6 +338,8 @@ def exercise(env, mode, directory):
         # current-contract edit must not replace the previously closed values.
         case.contract.write({'wage': 1200000})
         env.flush_all()
+        if UPGRADE_PROFILE == 'name-scalar':
+            rejected_input_name_upgrade(env, case, root)
         rows = raw_rows(env)
         selected = next(row for row in rows['hr_payslip'] if row['id'] == slip.id)
         assert selected['paid'] and selected['step_history_locked'], 'History must be locked by the real closing flow'
@@ -390,7 +456,7 @@ def main():
     for name in ('root', 'candidate', 'runtime', 'oca'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--source-root', type=Path)
-    parser.add_argument('--profile', choices=('admission', 'period'), default='admission')
+    parser.add_argument('--profile', choices=('admission', 'period', 'name-scalar'), default='admission')
     parser.add_argument('--database', required=True)
     args = parser.parse_args()
     configure_profile(args.profile)
@@ -407,6 +473,7 @@ def main():
     acceptance_path = source_root / 'community/passed.json'
     accepted = json.loads(acceptance_path.read_text())
     assert accepted['database'] == SOURCE_DB and accepted['mode'] == 'community' and accepted['counts']['enterprise'] == 0
+    assert accepted['counts']['installed'] == SOURCE_INSTALLED_COUNT
     assert accepted['official_community_revision'] == OFFICIAL_PIN and accepted['oca_revision'] == OCA_PIN
     assert hashlib.sha256((source_root / 'community/source-files.json').read_bytes()).hexdigest() == accepted['source_files_sha256']
     for relative, expected in json.loads((source_root / 'community/source-files.json').read_text()).items():

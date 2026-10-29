@@ -97,7 +97,8 @@ def main():
                 files['admission-upgrade/'+path.name]=path
         approved_baselines={
             'COMMUNITY_PAYROLL_API_PROPERTIES_20261029F':Path('/opt/steps-validation/community-payroll-properties-20261029F/community'),
-            'COMMUNITY_PAYROLL_API_ADMISSION_20261029C':Path('/opt/steps-validation/community-payroll-admission-20261029C/community')}
+            'COMMUNITY_PAYROLL_API_ADMISSION_20261029C':Path('/opt/steps-validation/community-payroll-admission-20261029C/community'),
+            'COMMUNITY_PAYROLL_API_PERIOD_20261029C':Path('/opt/steps-validation/community-payroll-period-20261029C/community')}
         baseline=approved_baselines[json.loads((upgrade/'passed.json').read_text())['source_database']]
         for name,original in (('source-acceptance','passed'),('source-packet','source-files'),('source-consumer-packet','consumer-source-files')):
             files['admission-upgrade/'+name+'.json']=baseline/(original+'.json')

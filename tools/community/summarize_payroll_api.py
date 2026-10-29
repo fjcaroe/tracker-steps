@@ -416,6 +416,9 @@ def main():
             newly_closed={('hr.payroll.structure','unpaid_work_entry_type_ids'),
                 ('hr.payroll.structure.type','name'),('hr.salary.rule','debit_tag_ids'),('hr.salary.rule','credit_tag_ids')}
             closed|=newly_closed
+        scalar_input_name = 'step_payroll_oca_api/migrations/18.0.1.12.0/pre-migration.py' in packets[0]
+        if scalar_input_name:
+            closed.add(('hr.payslip.input.type','name'))
         assert closed<={(row['model'],row['name']) for row in current['target_metadata']['fields']}
         assert not closed & {(row['model'],row['field']) for row in assessment['field_differences']}
         selection_unknowns=[]
@@ -434,6 +437,7 @@ def main():
             'physical_original_field_contracts_closed':14,'additional_original_field_contracts_closed':len(additional),
             'original_field_contracts_closed':len(closed),
             'newly_closed_original_field_contracts':len(newly_closed),
+            'scalar_input_name_contracts_closed':int(scalar_input_name),
             'source_masters':assessment['source_master_count'],'source_xmlids':assessment['source_xmlid_count'],
             'occupied_ids':len(assessment['occupied_source_ids']),'xmlid_conflicts':len(assessment['xmlid_conflicts']),
             'remaining_field_differences':len(assessment['field_differences']),

@@ -41,6 +41,33 @@ def fixtures():
 
 
 class AdmissionUpgradeCase(unittest.TestCase):
+    def test_name_scalar_upgrade_has_one_explicit_literal_projection_only(self):
+        try:
+            probe.configure_profile('name-scalar')
+            self.assertEqual(probe.SOURCE_DB, 'COMMUNITY_PAYROLL_API_PERIOD_20261029C')
+            self.assertEqual(probe.SOURCE_INSTALLED_COUNT, 96)
+            self.assertEqual(probe.VERSIONS['step_payroll_oca_api'], ('18.0.1.11.0', '18.0.1.12.0'))
+            before, after, audit = fixtures()
+            for item in (before, after):
+                item['structure_type_name_nullable'] = 'NO'
+                item['category_foreign_keys'] = after['category_foreign_keys']
+            before['input_name_column'] = ['jsonb', 'NO', None]
+            after['input_name_column'] = ['character varying', 'NO', None]
+            before['hr_payslip_input_type'] = [dict(id=345, name={'en_US': '  Exact literal  '})]
+            after['hr_payslip_input_type'] = [dict(id=345, name='  Exact literal  ')]
+            result = probe.verify_rows(before, after, audit)
+            self.assertTrue(result['input_name_literal_values_preserved'])
+            self.assertEqual(result['input_name_projection_records'][0]['id'], 345)
+            self.assertEqual(result['raw_rows_compared'] - result['raw_rows_preserved'], 3)
+            for bad in ('Exact literal', None, {'en_US': '  Exact literal  '}):
+                changed = copy.deepcopy(after)
+                changed['hr_payslip_input_type'][0]['name'] = bad
+                with self.assertRaises(AssertionError): probe.verify_rows(before, changed, audit)
+            before['hr_payslip_input_type'][0]['name']['es_CL'] = '  Exact literal  '
+            with self.assertRaises(AssertionError): probe.verify_rows(before, after, audit)
+        finally:
+            probe.configure_profile('admission')
+
     def test_period_upgrade_is_bound_to_accepted_c_without_new_fields(self):
         try:
             probe.configure_profile('period')

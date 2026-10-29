@@ -107,7 +107,7 @@ def _load_versioned_helper(folder, git_source, proof):
 
 
 def _verify_package(package, baseline_packet, consumer_packet, current_packet, git_source, helper):
-    assert len(package) == 95 and {'payroll', 'payroll_account'} <= package.keys(), 'Accepted F installed set is incomplete'
+    assert len(package) == helper.SOURCE_INSTALLED_COUNT and {'payroll', 'payroll_account'} <= package.keys(), 'Accepted installed set is incomplete'
     baseline, consumers, current = _packet(baseline_packet), _packet(consumer_packet), _packet(current_packet)
     assert set(consumers) <= set(package) and set(consumer_packet) <= set(baseline_packet), 'Unapproved consumer derivation'
     checked = 0
@@ -247,7 +247,7 @@ def verify_admission_evidence(folder, git_source, current_packet):
     assert _sha(baseline_bytes) == proof['source_acceptance_sha256']
     baseline = _json(baseline_bytes)
     assert baseline['mode'] == 'community' and baseline['database'] == helper.SOURCE_DB
-    assert baseline['counts'] == {'installed': 95, 'enterprise': 0}
+    assert baseline['counts'] == {'installed': helper.SOURCE_INSTALLED_COUNT, 'enterprise': 0}
     assert baseline['official_community_revision'] == helper.OFFICIAL_PIN and baseline['oca_revision'] == helper.OCA_PIN
     baseline_packet_bytes = _blob(folder, 'source-packet.json')
     assert _sha(baseline_packet_bytes) == baseline['source_files_sha256']
@@ -283,7 +283,21 @@ def verify_admission_evidence(folder, git_source, current_packet):
         'rule_json_properties_preserved_exactly', 'original_required_admission_normal_actor',
         'original_unpaid_inverse_preserved', 'frozen_compute_preserved', 'closed_compute_refused',
         'structure_type_name_not_null', 'rule_category_ondelete', 'line_category_ondelete')
-    return dict({key: proof[key] for key in keys}, source_installed_modules=95, source_enterprise_modules=0,
+    extra = {}
+    if helper.UPGRADE_PROFILE == 'name-scalar':
+        rejection = _load(folder, 'input-name-rejected-upgrade.json')
+        assert rejection['candidate_helper_sha256'] == _sha(git_source['step_payroll_oca_api/translation_storage.py'])
+        assert rejection['private_fixture_id'] in {row['id'] for row in seed['raw_rows']['hr_payslip_input_type']}
+        assert all(rejection[name] for name in ('synthetic_fixture_only', 'actual_candidate_migration',
+            'extra_language_rejected', 'rows_and_schema_unchanged', 'fixture_language_rolled_back'))
+        assert rejection['rejection_code'] == 'original-input-name-requires-one-literal-without-extra-languages'
+        assert rejection['before_sha256'] == rejection['after_sha256']
+        _hash(rejection['before_sha256'])
+        assert not rejection['writes_to_source'] and not rejection['closed_payroll_recomputed']
+        extra = {name: proof[name] for name in ('input_name_projection_records',
+            'input_name_literal_values_preserved', 'input_name_not_null_preserved', 'input_name_sql_default_absent')}
+        extra['multilingual_input_upgrade_rejected_without_changes'] = True
+    return dict({key: proof[key] for key in keys}, **extra, source_installed_modules=helper.SOURCE_INSTALLED_COUNT, source_enterprise_modules=0,
         legacy_owned_addons_checked=legacy_checked, current_addons_checked=2, backup_decoded=True,
         backup_archive_hash_checked=backup_checked, backup_redecoded_offline=False,
         source_filestore_manifest_entries=len(filestore), filesystem_only=True)
