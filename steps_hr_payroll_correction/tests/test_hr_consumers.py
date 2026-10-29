@@ -199,25 +199,26 @@ class HrConsumersCase(TransactionCase):
         if "default_work_entry_type_id" in self.kind._fields:
             # The native provider consolidates ordinary attendance under its
             # structure type's configured master. Keep that real relation
-            # coherent with the two original fixture work entries.
+            # coherent with the real calendar's generated work entries.
             self.kind.default_work_entry_type_id = self.work_type
+        if "work_entry_type_id" in self.calendar.attendance_ids._fields:
+            self.calendar.attendance_ids.work_entry_type_id = self.work_type
+        else:
+            self.work_type = self.scope["hr.work.entry.type"].browse(self.contract._get_default_work_entry_type_id())
         if not self.oca:
             # The shared fixture disables native day lines for unrelated API
             # cases. This operational flow must ask the real provider to use
             # its actual work entries instead of omitting those lines.
             self.structure.use_worked_day_lines = True
-        kept, removed = self.entry(), self.entry(9)
-        (kept | removed).action_validate()
-        self.assertEqual(set((kept | removed).mapped("state")), {"validated"})
-        expected_hours = kept.duration
-        self.assertGreater(expected_hours, 0)
+        # Both engines use the official generator. The native day-line refresh
+        # legitimately generates the complete calendar; two manually inserted
+        # rows would not represent the operational source it consumes.
+        self.contract.generate_work_entries(date(2026, 10, 1), date(2026, 10, 31))
         slip = self.slip()
         kind = self.scope["hr.payslip.input.type"].create({"name": "Private consumer original input", "code": "PRIVATE_HR_INPUT",
             "struct_ids": [Command.set(self.structure.ids)]})
         self.scope["hr.payslip.input"].create({"name": "Private consumer original input", "payslip_id": slip.id,
             "contract_id": self.contract.id, "input_type_id": kind.id, "amount": 321})
-        actual_before = self.contract.get_work_hours(slip.date_from, slip.date_to)
-        self.assertAlmostEqual(actual_before.get(self.work_type.id, 0), sum((kept | removed).mapped("duration")))
         if not self.oca:
             if "edited" in slip._fields:
                 slip.edited = False
@@ -225,6 +226,26 @@ class HrConsumersCase(TransactionCase):
             # compute_sheet alone consumes the existing rows; reproduce that
             # real provider step, as action_apply itself does after correction.
             slip._compute_worked_days_line_ids()
+        entries = self.scope["hr.work.entry"].search([
+            ("contract_id", "=", self.contract.id), ("company_id", "=", self.company.id),
+            ("date_start", ">=", datetime(2026, 10, 1)), ("date_stop", "<=", datetime(2026, 10, 31, 23, 59, 59)),
+            ("state", "!=", "cancelled"), ("duration", ">", 0)])
+        self.assertTrue(entries)
+        entries.action_validate()
+        self.assertEqual(set(entries.mapped("state")), {"validated"})
+        wizard = self.wizard()
+        kept = entries.filtered(lambda entry: entry.date_start <= wizard._cutoff_datetime())
+        removed = entries - kept
+        kept_typed = kept.filtered(lambda entry: entry.work_entry_type_id == self.work_type)
+        removed_typed = removed.filtered(lambda entry: entry.work_entry_type_id == self.work_type)
+        self.assertTrue(kept_typed)
+        self.assertTrue(removed_typed)
+        expected_hours = sum(kept_typed.mapped("duration"))
+        self.assertGreater(expected_hours, 0)
+        kept_rows = kept.read(["id", "date_start", "date_stop", "duration", "state", "work_entry_type_id", "contract_id"])
+        actual_before = self.contract.get_work_hours(slip.date_from, slip.date_to)
+        self.assertAlmostEqual(actual_before.get(self.work_type.id, 0), sum((kept_typed | removed_typed).mapped("duration")))
+        if not self.oca:
             rows = slip._get_worked_day_lines()
             values = slip._get_worked_day_lines_values()
             origins = {name: [{"class": cls.__name__, "module": cls.__module__}
@@ -259,9 +280,10 @@ class HrConsumersCase(TransactionCase):
         before = slip.worked_days_line_ids.filtered(lambda line: line.work_entry_type_id == self.work_type)
         self.assertAlmostEqual(sum(before.mapped("number_of_hours")), actual_before[self.work_type.id])
         inputs = slip.input_line_ids.read(["id", "code", "amount"])
-        action = self.wizard().action_apply()
+        action = wizard.action_apply()
         self.assertEqual(self.contract.date_end, date(2026, 10, 7))
-        self.assertTrue(kept.exists())
+        self.assertEqual(kept.exists(), kept)
+        self.assertEqual(kept.read(["id", "date_start", "date_stop", "duration", "state", "work_entry_type_id", "contract_id"]), kept_rows)
         self.assertFalse(removed.exists())
         self.assertIn(slip.id, action["domain"][0][2])
         self.assertIn(slip.state, ("draft", "verify"))
