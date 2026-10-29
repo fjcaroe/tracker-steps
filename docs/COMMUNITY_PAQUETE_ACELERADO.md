@@ -116,7 +116,8 @@ los 59.048 XML IDs, 1.218 modelos, 27.045 campos, 5.076 selecciones, 2.324 ACL,
 610 reglas, 1.330 menús, 417 vínculos acción-vista, 463 relaciones y 529
 restricciones originales. También se conservan las relaciones originales de
 grupos, reglas y menús. Los únicos cambios de presentación de campos admitidos
-son tres textos exactos del asistente Corrección, contrastados con su AST;
+son las ayudas de tres campos y el título de uno de ellos en el asistente
+Corrección, contrastados exactamente con su AST;
 las demás propiedades e idiomas originales permanecen intactos.
 
 Los 15 aliases bancarios y 37 multimoneda están verificados en los registros y
