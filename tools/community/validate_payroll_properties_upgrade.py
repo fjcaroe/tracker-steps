@@ -115,6 +115,13 @@ def raw_rows(env):
 
 
 def utc_datetime(value):
+    # PostgreSQL JSON omits trailing fractional zeros. Python 3.10 accepts
+    # exactly 3/6 digits, unlike newer Python; pad without rounding/truncation.
+    assert re.fullmatch(r'\d{4}-\d\d-\d\d[T ]\d\d:\d\d:\d\d(?:\.\d{1,6})?(?:Z|[+-]\d\d:\d\d)?', value), 'Unsupported SQL timestamp representation'
+    value = re.sub(r'\.(\d{1,6})(?=(?:Z|[+-]\d\d:\d\d)?$)',
+        lambda match: '.' + match.group(1).ljust(6, '0'), value)
+    if value.endswith('Z'):
+        value = value[:-1] + '+00:00'
     parsed = datetime.fromisoformat(value)
     return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
 

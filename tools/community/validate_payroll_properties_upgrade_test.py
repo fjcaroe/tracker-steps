@@ -127,5 +127,19 @@ class PayrollPropertiesAuditCase(unittest.TestCase):
         with self.assertRaises(AssertionError): probe.verify_rows(before,after,audit)
 
 
+class PostgreSQLClockTest(unittest.TestCase):
+    def test_fractional_json_precision_is_exact_on_python_310(self):
+        from datetime import timedelta
+        for fraction in ('1', '12', '123', '1234', '39977', '123456'):
+            for zone in ('', 'Z', '+00:00'):
+                value = probe.utc_datetime('2026-10-29T10:53:59.' + fraction + zone)
+                self.assertEqual(value.microsecond, int(fraction.ljust(6, '0')))
+                self.assertEqual(value.utcoffset(), timedelta(0))
+        self.assertEqual(probe.utc_datetime('2026-10-29 10:53:59').microsecond, 0)
+        for invalid in ('2026-10-29', '2026-10-29T10:53:59.1234567', '2026-10-29T10:53:59.invalid'):
+            with self.assertRaises((ValueError, AssertionError)):
+                probe.utc_datetime(invalid)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
