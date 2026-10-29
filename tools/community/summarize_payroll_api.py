@@ -26,6 +26,12 @@ def main():
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
+    accelerated=read('community','passed').get('accelerated',False)
+    if accelerated:
+        hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
+        paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
+            'step_account_treasury_batch','step_bank_security','step_l10n_cl_edi_core',
+            'tools/community/accelerated_acceptance.py','tools/community/hr_consumers_candidate.py','tools/community/finance_frontier_contract.py']
     previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install','book-history')
     if previred:paths+=['step_hr_previred']
@@ -89,6 +95,30 @@ def main():
         pin=json.loads(source['tools/community/simpledigital_runtime_source.json'].decode('utf-8-sig'))
         assert derivation['source_files']==pin['files'] and derivation['license']=='AGPL-3'
         assert derivation['builder_sha256']==hashlib.sha256(source['tools/community/build_simpledigital_candidate.py']).hexdigest()
+    if accelerated:
+        proof=read('community','hr-consumers-derivation')
+        assert proof['community_candidate'] and not proof['identity_conversion_accepted']
+        assert proof['builder_sha256']==hashlib.sha256(source['tools/community/hr_consumers_candidate.py']).hexdigest()
+        # Reproduce each declared transformation from the exact Git packet.
+        dependencies={'hr_payroll':'step_simpledigital_oca_security','hr_work_entry_contract_enterprise':'hr_work_entry_contract'}
+        actual=read('community','consumer-source-files');native=read('cerro-reference','consumer-source-files')
+        expected={}
+        for module in hr_modules:
+            for relative,hashes in proof['modules'][module]['files'].items():
+                name=module+'/'+relative;blob=source[name]
+                assert hashlib.sha256(blob).hexdigest()==hashes['source']==packets[0][name]==native[name]
+                if relative=='__manifest__.py':
+                    manifest=ast.literal_eval(blob.decode('utf-8-sig'))
+                    manifest['depends']=list(dict.fromkeys(dependencies.get(d,d) for d in manifest['depends']))
+                    blob=(repr(manifest)+'\n').encode()
+                elif name.endswith(('.xml','.csv')):
+                    text=blob.decode('utf-8-sig')
+                    for old,new in proof['xmlid_map'].items():text=text.replace(old,new)
+                    blob=text.encode()
+                digest=hashlib.sha256(blob).hexdigest()
+                assert actual[name]==hashes['candidate']==digest,name
+                expected[name]=digest
+        assert actual==expected and set(native)==set(expected)
     results={mode:read(mode,'passed') for mode in ('community','cerro-reference')}
     assert results['community']['counts']['enterprise']==0
     assert results['cerro-reference']['counts']['enterprise']==140
@@ -118,6 +148,23 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if accelerated:
+        assert results['cerro-reference']['accelerated']
+        assert results['community']['expected_test_count']==210 and results['cerro-reference']['expected_test_count']==181
+        for report in results.values():
+            assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
+                       for name in report['accelerated_tools_sha256'])
+        bank_before=read('cerro-reference','bank-metadata-before');bank_after=read('cerro-reference','bank-metadata-after')
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('finance_frontier_contract',repo/'tools/community/finance_frontier_contract.py')
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        assert (repo/'tools/community/finance_frontier_contract.py').read_bytes().replace(b'\r\n',b'\n')==source['tools/community/finance_frontier_contract.py'].replace(b'\r\n',b'\n')
+        assert helper.verify_metadata(bank_before,bank_after)==read('cerro-reference','bank-metadata-proof')
+        for mode in ('community','cerro-reference'):
+            finance=read(mode,'finance-frontier')
+            assert len(finance['aliases'])==11 and finance['payment_formats_use_original_model'] and not finance['batch_conversion_certified']
+        result['accelerated']={'hr_consumers_installed':list(hr_modules),'bank_aliases_preserved':11,
+            'caf_authenticity_core_only':True,'full_dte_certified':False,'batch_conversion_certified':False}
     if all(report.get('pdf_binary_reports') for report in results.values()):
         result['pdf_binary_reports']={}
         for mode in ('community','cerro-reference'):

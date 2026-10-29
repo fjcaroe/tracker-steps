@@ -55,6 +55,7 @@ def main():
         assert args.profile=='simpledigital'
         sys.path.insert(0,str(args.root/'addons/tools/community'))
         from accelerated_acceptance import HR_MODULES,HR_TEST_COUNT,HR_TEST_TAGS,prepare_hr_overlay
+        from finance_frontier_contract import metadata_snapshot,verify_metadata
         finance_modules=('step_accounting_multicurrency_core','step_account_balance_analytic',
                          'step_bank_export_core','step_account_treasury_batch','step_bank_security')
         MODULES+=HR_MODULES+finance_modules+('step_l10n_cl_edi_core',)
@@ -79,6 +80,10 @@ def main():
             for m in HR_MODULES+('step_account_treasury_batch','step_bank_security'):
                 (overlay/m).unlink()
         hr_overlay=prepare_hr_overlay(source,stage,overlay,community=pure)
+        dump_candidate={str(p.relative_to(hr_overlay if pure else source)):hashlib.sha256(p.read_bytes()).hexdigest()
+            for m in HR_MODULES for p in sorted(((hr_overlay if pure else source)/m).rglob('*'))
+            if p.is_file() and '__pycache__' not in p.parts}
+        (stage/'consumer-source-files.json').write_text(json.dumps(dump_candidate,indent=2))
         if not pure:
             for m in finance_modules+('step_l10n_cl_edi_core',):
                 (overlay/m).symlink_to(source/m)
@@ -149,6 +154,7 @@ def main():
             run('rsync','-a',str(Path(config['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/')
             contract=runtime_contract(conf);dump_json('source-contract',contract)
             baseline=snapshot();original=preservation.identity_contract(args.database);history=preservation.history_contract(args.database)
+            if args.accelerated:dump_json('bank-metadata-before',metadata_snapshot(sql,args.database))
             for name,value in [('business-before',baseline),('identity-before',original),('history-before',history)]:dump_json(name,value)
         for p in [stage,*stage.rglob('*')]:
             if not p.is_symlink():os.chown(p,identity.pw_uid,identity.pw_gid)
@@ -257,6 +263,9 @@ def main():
                     assert all(now.get(r['id'])==r for r in rows),(name,'Original metadata changed')
                 else:assert all(row in current[name] for row in rows),name
             assert preservation.history_contract(args.database)==history
+            if args.accelerated:
+                bank_after=metadata_snapshot(sql,args.database);dump_json('bank-metadata-after',bank_after)
+                dump_json('bank-metadata-proof',verify_metadata(json.loads((stage/'bank-metadata-before.json').read_text()),bank_after))
             assert runtime_contract(conf)==contract,'Active source configuration/versions changed'
         assert all(hashlib.sha256((source/key).read_bytes()).hexdigest()==value for key,value in fp.items())
         counts=json.loads(sql(args.database,"SELECT json_build_object('installed',count(*),'enterprise',count(*) FILTER (WHERE license='OEEL-1')) FROM ir_module_module WHERE state='installed'"))
@@ -281,6 +290,8 @@ def main():
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'counts':counts,'pdf_binary_reports':2 if binary_book else 0,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
+            'expected_test_count':expected,
+            'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py')} if args.accelerated else {},
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)
 
