@@ -53,9 +53,23 @@ def verify_metadata(before, after):
         if row['noupdate'] is False:
             changed.append(row['module'] + '.' + row['name'])
     assert len(before['views']) == len(after['views']) == 2
-    assert before['views'] == after['views'], 'Original banking view metadata/architecture changed'
+    current_views = {row['id']: row for row in after['views']}
+    for row in before['views']:
+        got = current_views.get(row['id'])
+        assert got, 'Original banking view ID changed'
+        # Odoo's native _inverse_arch records the new source file and keeps
+        # the previous source architecture when the same XML moves modules.
+        audit = {'arch_fs', 'arch_prev', 'arch_updated'}
+        assert {k: v for k, v in row.items() if k not in audit} == {
+            k: v for k, v in got.items() if k not in audit}, 'Original banking view architecture/permissions changed'
+        assert got['arch_fs'] == 'step_bank_export_core/views/res_partner_bank_views.xml'
+        assert got['arch_updated'] is False
+        original_arch = row['arch_db'].get('en_US') if isinstance(row['arch_db'], dict) else row['arch_db']
+        assert got['arch_prev'] in (row['arch_prev'], original_arch), 'Original banking view previous architecture changed'
     return {'original_xmlids_preserved': 11, 'original_views_exact': 2,
-            'only_noupdate_false_to_true': changed}
+            'only_noupdate_false_to_true': changed,
+            'view_source_file': 'step_bank_export_core/views/res_partner_bank_views.xml',
+            'view_architecture_and_permissions_exact': True}
 
 
 def verify(env, mode):
