@@ -46,14 +46,14 @@ class Payslip(models.Model):
         for slip in self:
             if slip.struct_id.name != 'Nómina Chile':
                 continue
-            validate_configuration(slip.struct_id)
+            report=validate_configuration(slip.struct_id)
             contract=slip.contract_id
             missing=[field for field in ('contract_type_id','analytic_account_id','health_institution','pension_option','income_tax_type','work_schedule_id') if not contract[field]]
             for field in ('hr_commune','identification_id','country_id','birthday','gender'):
                 if not slip.employee_id[field]:missing.append(field)
             if missing:
                 raise UserError(_('Complete Chile payroll data before calculation: %s',', '.join(missing)))
-            if not {'BASIC','GROSS','NET'} <= set(slip.struct_id.rule_ids.mapped('code')):
+            if not {'BASIC','GROSS','NET'} <= set(report['essential_ids']):
                 raise UserError(_('Adopt the original base, gross and net rules before processing Chile payroll.'))
             if not contract.get_work_hours(slip.date_from,slip.date_to):
                 raise UserError(_('Generate actual work entries before calculating Chile payroll.'))

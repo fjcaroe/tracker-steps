@@ -3,7 +3,7 @@ import ast
 import hashlib
 from collections import Counter
 from odoo import _
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
 from .basis import monthly_worked_day_basis
 
 ESSENTIAL=('BASIC','GROSS','NET')
@@ -48,7 +48,21 @@ def references(code):
 
 def configuration_report(structure):
     structure.ensure_one();structure.check_access('read')
-    rules=structure.with_context(active_test=False).rule_ids.filtered('active')
+    if hasattr(structure, '_step_effective_rule_scope'):
+        scope=structure._step_effective_rule_scope()
+    else:
+        rules=structure.with_context(active_test=False).rule_ids.filtered('active')
+        field=structure._fields['rule_ids']
+        if field.type=='one2many' and field.inverse_name=='struct_id':
+            structure.env.cr.execute('SELECT id FROM hr_salary_rule WHERE struct_id=%s AND active',(structure.id,))
+            original=structure.env['hr.salary.rule'].with_context(active_test=False).browse([row[0] for row in structure.env.cr.fetchall()])
+            original.check_access('read')
+            if set(original.ids)!=set(rules.ids):
+                raise AccessError(_('The original payroll configuration requires visibility of every salary rule.'))
+        scope={'rules':rules,
+               'structures':structure,'direct_rule_ids':rules.ids,
+               'backend':'native-direct'}
+    rules=scope['rules']
     rules.check_access('read')
     errors=[];chosen={}
     # A duplicate code is a shared evaluation key, even with distinct categories
@@ -83,6 +97,9 @@ def configuration_report(structure):
         elif not any(coefficient>0 and (kind=='category' and name in category_chain(gross.category_id) or kind=='rule' and name=='GROSS') for (kind,name),coefficient in refs.items()):
             errors.append('NET_DISCONNECTED_FROM_GROSS')
     return {'structure_id':structure.id,'rule_count':len(rules),'essential_ids':{code:rule.id for code,rule in chosen.items()},
+            'selected_structure_ids':scope['structures'].ids,'selection_backend':scope['backend'],
+            'direct_rule_ids':scope['direct_rule_ids'],
+            'inherited_rule_ids':sorted(set(rules.ids)-set(scope['direct_rule_ids'])),
             'duplicate_code_ids':duplicate_codes,
             'basic_basis':basic_basis,
             'essential_candidate_ids':{code:rules.filtered(lambda rule:rule.code==code).sorted(lambda rule:(rule.sequence,rule.id)).ids for code in ESSENTIAL},
