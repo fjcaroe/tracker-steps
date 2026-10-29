@@ -3,6 +3,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests import Form, tagged
 from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from lxml import etree
 
 
 @tagged('post_install', '-at_install', 'batch_core')
@@ -61,8 +62,12 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         menu = self.env.ref('step_batch_payment_core.menu_batch_payment_groups')
         self.assertEqual(menu.action, action)
         self.assertEqual(menu.groups_id, self.env.ref('account.group_account_invoice'))
-        self.assertIn('pendientes', self.Batch.get_view(
-            view_id=self.env.ref('step_batch_payment_core.view_batch_payment_form').id)['arch'])
+        arch = self.Batch.get_view(view_id=self.env.ref('step_batch_payment_core.view_batch_payment_form').id)['arch']
+        self.assertIn('pendientes', arch)
+        selection = etree.fromstring(arch).xpath("//field[@name='payment_ids']")[0]
+        self.assertEqual(selection.get('widget'), 'many2many')
+        self.assertEqual(selection.xpath('./list')[0].get('create'), '0')
+        self.assertEqual(selection.xpath('./list')[0].get('edit'), '0')
         self.assertEqual(self.payments.read(list(before[0].keys() - {'id'})), before)
 
     def test_validation_never_claims_success_or_changes_payments(self):
