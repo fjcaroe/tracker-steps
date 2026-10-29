@@ -1,4 +1,6 @@
 """Original configuration storage and fail-closed admission on the real OCA API."""
+import json
+
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
@@ -341,6 +343,25 @@ class OriginalConfigurationCase(TransactionCase):
             slip.action_payslip_done()
         self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before)
         scope, foreign_journal = self._other_company_journal()
+        self.env["ir.default"].set("hr.payroll.structure", "journal_id", self.journal.id, company_id=self.company.id)
+        for incomplete in ({}, {str(scope.company.id): foreign_journal.id},
+                {str(self.company.id): None}, {str(self.company.id): False},
+                {str(self.company.id): 0}, {str(self.company.id): 2**31},
+                {str(self.company.id): str(self.journal.id)}):
+            self.structure.flush_recordset(["journal_id"])
+            self.env.cr.execute("UPDATE hr_payroll_structure SET journal_id=%s::jsonb WHERE id=%s",
+                (json.dumps(incomplete), self.structure.id))
+            self.structure.invalidate_recordset(["journal_id"])
+            if str(self.company.id) not in incomplete:
+                # A real ORM default can make the visible journal appear
+                # compatible even though the original company key is absent.
+                self.assertEqual(self.structure.with_company(self.company).journal_id, self.journal)
+            with self.assertRaisesRegex(UserError, "property is incomplete"):
+                slip.with_context(without_compute_sheet=True).action_payslip_done()
+            self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before)
+            self.structure.flush_recordset(["journal_id"])
+            self.env.cr.execute("SELECT journal_id FROM hr_payroll_structure WHERE id=%s", (self.structure.id,))
+            self.assertEqual(self.env.cr.fetchone()[0], incomplete)
         caller = slip.with_env(scope).with_company(self.company)
         self.structure.with_env(caller.env).with_company(self.company).journal_id = foreign_journal
         with self.assertRaisesRegex(UserError, "structure salary journal must belong"):
