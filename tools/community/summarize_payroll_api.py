@@ -254,7 +254,8 @@ def main():
             assert all(proof[key]==inputs[key] for key in ('capsule_sha256','pdf_sha256','formula_sha256'))
             assert all(row['source_id'] and row['target_id'] and row['code'] for row in proof['worked_day_master_mapping'])
         result['monthly_basic_reference']={'engines':2,'basic_matches_original_snapshot':True,'real_engine':True,
-            'fixtures_rolled_back':True,'full_payroll_replay':False,'financial_certified':False,'identity_conversion':False,
+            'fixtures_rolled_back':True,'rollback_verified':True,'transaction_case':True,
+            'full_payroll_replay':False,'financial_certified':False,'identity_conversion':False,
             'basis':inputs['basis'],'rule_write_date_precedes_period':inputs['rule_write_date_precedes_period']}
     if collisions.exists():
         probe=(collisions/'probe.py').read_bytes();runner=(collisions/'runner.py').read_bytes()
