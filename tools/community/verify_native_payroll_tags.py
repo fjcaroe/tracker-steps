@@ -17,6 +17,16 @@ def verify_native_payroll_tags(folder, source):
         executed=(folder/exported).read_bytes()
         assert hashlib.sha256(executed).hexdigest()==proof[key]
         assert executed.replace(b'\r\n',b'\n')==source[original].replace(b'\r\n',b'\n')
+    export=folder/'runner-export.json'
+    if export.exists():
+        derivation=read('runner-export.json')
+        archived=source['tools/community/observe_native_payroll_tags.py']
+        assert derivation['source_archive_sha256']==hashlib.sha256(archived).hexdigest()
+        assert derivation['executed_runner_sha256']==proof['runner_sha256']
+        assert derivation['execution_seal_changed'] is False
+        assert derivation['transformation'] in ('identity','CRLF-to-LF')
+        reconstructed=archived if derivation['transformation']=='identity' else archived.replace(b'\r\n',b'\n')
+        assert (folder/'runner.py').read_bytes()==reconstructed
     blob=(folder/'observations.json').read_bytes()
     assert hashlib.sha256(blob).hexdigest()==proof['observations_sha256']
     before=read('before.json')
