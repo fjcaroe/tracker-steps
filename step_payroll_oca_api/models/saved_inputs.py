@@ -11,6 +11,7 @@ from psycopg2 import sql
 
 from odoo import _, models
 from odoo.exceptions import UserError
+from odoo.addons.step_payroll_contracts.history import assert_mutable
 
 
 def _existing(records, ids):
@@ -18,6 +19,34 @@ def _existing(records, ids):
     if set(records.exists().ids) != set(ids):
         raise UserError(_("Original saved payroll input references are incomplete."))
     return records
+
+
+class Input(models.Model):
+    _inherit = "hr.payslip.input"
+
+    def write(self, values):
+        if "amount" not in values:
+            return super().write(values)
+        normal = self.sudo(False)
+        _existing(normal, normal.ids)
+        normal.check_access("write")
+        normal.check_field_access_rights("write", list(values))
+        normal.check_field_access_rights("read", ["payslip_id"])
+        parents = normal.payslip_id
+        if values.get("payslip_id"):
+            parents |= normal.env["hr.payslip"].browse(values["payslip_id"])
+        parents.check_access("read")
+        parents.check_field_access_rights("read", [name for name in
+            ("state", "paid", "step_history_locked") if name in parents._fields])
+        assert_mutable(parents)
+        # Float's cached NULL and 0 compare equal. Honour only an explicitly
+        # supplied amount, through the real write chain and its normal guards.
+        # Suppressing prefetch prevents parent/history checks in that chain
+        # from repopulating this amount with a cache-only zero before writing.
+        with normal.env.cr.savepoint():
+            normal.flush_recordset(["amount"])
+            normal.invalidate_recordset(["amount"])
+            return super(Input, normal.with_context(prefetch_fields=False)).write(values)
 
 
 class Payslip(models.Model):

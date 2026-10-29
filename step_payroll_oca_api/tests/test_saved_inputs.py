@@ -98,6 +98,11 @@ class SavedInputValuesCase(TransactionCase):
         with self.assertRaisesRegex(UserError, "Complete the amount"):
             slip.sudo()._step_check_saved_input_values()
         self.assertEqual(self._snapshot(slip), before)
+        row.write({"name": "Private input still awaiting an amount"})
+        row.flush_recordset()
+        self.assertEqual(row.amount, 0.0)
+        self.env.cr.execute("SELECT amount FROM hr_payslip_input WHERE id=%s", (row.id,))
+        self.assertEqual(self.env.cr.fetchone(), (None,), "An unrelated write cannot acknowledge a missing amount")
         # Model.write is the explicit saved-value RPC contract. Verify the
         # physical zero rather than accepting Float's NULL-to-zero cache view.
         row.write({"amount": 0.0})
@@ -121,12 +126,15 @@ class SavedInputValuesCase(TransactionCase):
         row.read(["amount", "input_type_id"])
         self.input_type.read(["code", "struct_ids"])
         descriptor.read(["code"])
-        for record in (row, self.input_type, descriptor, other):
+        for record in (slip, row, self.input_type, descriptor, other):
             before = self._snapshot(slip)
             restriction = self.env["ir.rule"].create({"name": "Private hidden saved-input reference",
                 "model_id": self.env["ir.model"]._get_id(record._name), "domain_force": "[('id','!=',%d)]" % record.id})
             with self.assertRaises(AccessError):
                 slip.sudo()._step_check_saved_input_values()
+            if record._name in ("hr.payslip", "hr.payslip.input"):
+                with self.assertRaises(AccessError):
+                    row.sudo().write({"amount": 0.0})
             restriction.unlink()
             self.assertEqual(self._snapshot(slip), before)
 
@@ -143,6 +151,9 @@ class SavedInputValuesCase(TransactionCase):
             with patch.object(field, "groups", "base.group_system"), self.assertRaises(AccessError):
                 slip.sudo()._step_check_saved_input_values()
             self.assertEqual(self._snapshot(slip), before)
+        with patch.object(row._fields["amount"], "groups", "base.group_system"), self.assertRaises(AccessError):
+            row.sudo().write({"amount": 0.0})
+        self.assertEqual(self._snapshot(slip), before)
 
     def test_configured_type_coverage_uses_saved_fk_and_legacy_codes_must_be_unambiguous(self):
         slip = self._slip()
@@ -210,4 +221,6 @@ class SavedInputValuesCase(TransactionCase):
         closed = self._snapshot(slip)
         with self.assertRaisesRegex(UserError, "Closed payroll"):
             slip._step_check_saved_input_values()
+        with self.assertRaises(UserError):
+            row.sudo().write({"amount": 0.0})
         self.assertEqual(self._snapshot(slip), closed)
