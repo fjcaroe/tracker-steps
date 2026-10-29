@@ -18,4 +18,3 @@ class OriginalSecurityNativeActorCase(OriginalSecurityActorCases, TransactionCas
 
     def test_original_global_country_policy_has_no_invented_company_owner(self):
         self.case_global_originals_and_company_boundary_remain_distinct()
-
