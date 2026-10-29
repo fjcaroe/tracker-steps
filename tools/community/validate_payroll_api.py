@@ -15,6 +15,7 @@ import re
 import socket
 import subprocess
 import sys
+from offline_process import offline_odoo
 
 MODULES=('step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference')
 OFFICIAL_PIN='4b4efe68291d6def5bb7d2e1f2b829e0cda577d4'
@@ -82,6 +83,7 @@ def main():
     api_test_count=concrete_test_count(source,'step_payroll_oca_api')
     reference_test_count=concrete_test_count(source,'step_payroll_enterprise_reference')
     base_test_count=concrete_test_count(source,'step_simpledigital_oca_base') if simpledigital else 0
+    dte_test_count=concrete_test_count(source,'step_l10n_cl_edi_core') if args.accelerated else 0
     (stage/'source-files.json').write_text(json.dumps(fp,indent=2))
     pure=args.mode=='community';conf=Path('/etc/dev_odoo18.conf' if pure else '/etc/odoo18-cerroelplomo.conf')
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
@@ -193,6 +195,7 @@ def main():
         entry=args.runtime/'odoo-bin' if pure else source/'tools/ops/run_agriculture_upgrade.py'
         base=['sudo','-u',user,'/usr/bin/python3.10',str(entry)]
         opts=['-c',str(conf),'-d',args.database,'--db-filter=^'+args.database+'$','--addons-path='+paths,
+            '--db_host=/var/run/postgresql',
             '--data-dir='+str(data),'--load=base,web','--workers=0','--max-cron-threads=0',
             '--http-interface=127.0.0.1','--http-port='+str(port),'--gevent-port=0','--without-demo='+('' if pure else 'all')]
         modules=('step_simpledigital_oca_security' if simpledigital else 'step_payroll_oca_api') if pure else 'step_payroll_contracts,step_payroll_enterprise_reference'+(',step_simpledigital_oca_security' if simpledigital else '')
@@ -221,7 +224,7 @@ def main():
                 command=base[:3]+['env',*['%s=%s'%(key,execution_env[key]) for key in
                     ('STEPS_PAYROLL_BASIC_REFERENCE_JSON','STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT')]]+command[3:]
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
-                status=subprocess.run(command,stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
+                status=subprocess.run(offline_odoo(command),stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
             text=(stage/(name+'.log')).read_text(errors='replace')
             if args.tablespace:
                 current=os.statvfs(sql('postgres','SHOW data_directory'))
@@ -282,14 +285,14 @@ def main():
             stored_pdf_count=len(proofs)
             dump_json('stored-payslip-pdf',{'actual_pdf_count':stored_pdf_count,'proofs':proofs,'financial_certified':False})
         expected=7 if standalone else ((38+api_test_count) if pure else reference_test_count)+((48+base_test_count if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
-        if args.accelerated:expected+=HR_TEST_COUNT+33+18+11+(0 if pure else 39)
+        if args.accelerated:expected+=HR_TEST_COUNT+33+dte_test_count+11+(0 if pure else 39)
         if args.custody_grouping:expected+=54 if pure else 29
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
             expression="import runpy; runpy.run_path("+repr(str(probe))+")["+repr('inspect')+"](env,"+repr(str(stage/'configuration.json'))+")"
             with (stage/'configuration-bootstrap.log').open('w') as stream:
-                status=subprocess.run(base+['shell']+opts+['--no-http','--logfile='+str(stage/'configuration.log')],
+                status=subprocess.run(offline_odoo(base+['shell']+opts+['--no-http','--logfile='+str(stage/'configuration.log')]),
                     input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
             report_log=(stage/'configuration.log').read_text(errors='replace')
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Configuration inspector failed'
@@ -297,7 +300,7 @@ def main():
             checker=source/'tools/community/finance_frontier_contract.py'
             expression="import runpy,json; proof=runpy.run_path("+repr(str(checker))+")[\"verify\"](env,"+repr('community' if pure else 'cerro-copy')+",draft_grouping="+repr(args.custody_grouping)+");open("+repr(str(stage/'finance-frontier.json'))+",'w').write(json.dumps(proof,indent=2))"
             with (stage/'finance-bootstrap.log').open('w') as stream:
-                status=subprocess.run(base+['shell']+opts+['--no-http','--logfile='+str(stage/'finance.log')],input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
+                status=subprocess.run(offline_odoo(base+['shell']+opts+['--no-http','--logfile='+str(stage/'finance.log')]),input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
             report_log=(stage/'finance.log').read_text(errors='replace')
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log) and (stage/'finance-frontier.json').exists(),'Finance registry contract failed'
         if (root/'basis-input.json').exists():
@@ -349,6 +352,8 @@ def main():
             'expected_test_count':expected,
             'api_test_count':api_test_count if pure else 0,'base_test_count':base_test_count if pure else 0,
             'reference_test_count':reference_test_count if not pure else 0,
+            'dte_test_count':dte_test_count,'external_network_disabled':True,'loopback_http_only':True,
+            'postgres_unix_socket':True,'offline_runner_sha256':hashlib.sha256((source/'tools/community/offline_process.py').read_bytes()).hexdigest(),
             'stored_payslip_pdf_reports':stored_pdf_count,
             'identity_snapshot_tool_sha256':hashlib.sha256((source/'tools/community/validate_agriculture_core.py').read_bytes()).hexdigest(),
             'original_xmlid_noupdate_captured':bool(not pure and original.get('original_xmlids') and all('noupdate' in row for row in original['original_xmlids'])),

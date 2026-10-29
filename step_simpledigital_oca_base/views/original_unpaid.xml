@@ -1,0 +1,13 @@
+<odoo>
+    <record id="payroll_structure_original_unpaid_form" model="ir.ui.view">
+        <field name="name">hr.payroll.structure.original.unpaid.form</field>
+        <field name="model">hr.payroll.structure</field>
+        <field name="inherit_id" ref="step_payroll_oca_api.payroll_structure_original_config_form"/>
+        <field name="arch" type="xml">
+            <field name="schedule_pay" position="after">
+                <field name="unpaid_work_entry_type_ids" widget="many2many_tags"
+                       groups="payroll.group_payroll_manager" options="{'no_create': True}"/>
+            </field>
+        </field>
+    </record>
+</odoo>

@@ -67,6 +67,9 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
 
     def test_real_unpaid_relation_metadata_inverse_and_raw_pairs(self):
         self.case_real_unpaid_relation_metadata_inverse_and_raw_pairs()
+        view = self.scope['hr.payroll.structure'].get_view(
+            view_id=self.scope.ref('payroll.hr_payroll_structure_view_form').id, view_type='form')
+        self.assertIn('name="unpaid_work_entry_type_ids"', view['arch'])
         days = self.scope["hr.payslip.worked_days"]
         for name in ("is_paid", "amount"):
             field = days._fields[name]
