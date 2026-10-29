@@ -623,8 +623,14 @@ def main():
         assert results['cerro-reference']['accelerated']
         api_count=results['community'].get('api_test_count',63)
         base_count=results['community'].get('base_test_count',7)
-        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)
-        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)+(results['cerro-reference'].get('reference_test_count',25)-25)
+        dte_count=results['community'].get('dte_test_count',18)
+        assert results['cerro-reference'].get('dte_test_count',18)==dte_count
+        actual_dte=sum(1 for name,blob in source.items() if name.startswith('step_l10n_cl_edi_core/tests/test_') and name.endswith('.py')
+            for cls in ast.parse(blob.decode('utf-8-sig')).body if isinstance(cls,ast.ClassDef)
+            for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
+        assert actual_dte==dte_count
+        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)+(dte_count-18)
+        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)+(results['cerro-reference'].get('reference_test_count',25)-25)+(dte_count-18)
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])
