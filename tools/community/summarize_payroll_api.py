@@ -93,6 +93,8 @@ def main():
     if adoption_preflight.exists():paths+=['tools/community/payroll_configuration_adoption_preflight.py']
     security_admission=args.evidence/'configuration-preflight/security-admission.json'
     if security_admission.exists():paths+=['tools/community/payroll_original_security_admission.py']
+    native_configuration_verifier=args.evidence/'configuration-preflight/native-verifier.py'
+    if native_configuration_verifier.exists():paths+=['tools/community/verify_native_payroll_configuration.py']
     identity_snapshotter=args.evidence/'identity-snapshotter.py'
     if identity_snapshotter.exists():paths+=['tools/community/validate_agriculture_core.py']
     property_upgrade=args.evidence/'properties-upgrade/passed.json'
@@ -441,6 +443,10 @@ def main():
         native_file=folder/'native-source.json'
         if native_file.exists():
             proof=json.loads(native_file.read_text())
+            if native_configuration_verifier.exists():
+                executed_generator=native_configuration_verifier.read_bytes()
+                assert proof['generator_sha256']==hashlib.sha256(executed_generator).hexdigest()
+                assert executed_generator.replace(b'\r\n',b'\n')==source['tools/community/verify_native_payroll_configuration.py'].replace(b'\r\n',b'\n')
             assert proof['read_only'] and proof['two_readonly_snapshots_equal']
             assert not any(proof[key] for key in ('orm_loaded','rules_evaluated','historical_payroll_read',
                 'salary_formulas_exposed','adoption_authorized','engine_converted','financial_certified'))
