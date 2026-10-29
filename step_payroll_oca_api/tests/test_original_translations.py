@@ -42,7 +42,11 @@ class OriginalTranslationCase(TransactionCase):
         self.env.cr.execute("""SELECT table_name,data_type FROM information_schema.columns WHERE table_schema='public'
             AND column_name='note' AND table_name IN ('hr_salary_rule','hr_payslip_line') ORDER BY table_name""")
         self.assertEqual(self.env.cr.fetchall(), [("hr_payslip_line", "text"), ("hr_salary_rule", "jsonb")])
-        self.rule.with_context(lang="es_CL").note = "<p>Nota chilena explícita</p>"
+        # Sanitized Html uses a callable term translator in official Odoo.
+        # Its ordinary write edits the source; authorized translations use the
+        # actual public API with source terms, not a language-only setter.
+        self.rule.update_field_translations("note", {
+            "es_CL": {"Texto original": "Nota chilena explícita"}}, source_lang="en_US")
         stored = self._raw(self.rule, "note")
         self.assertEqual(stored["en_US"], "<p>Texto original</p>")
         self.assertEqual(stored["es_CL"], "<p>Nota chilena explícita</p>")
@@ -109,8 +113,11 @@ class OriginalTranslationCase(TransactionCase):
 
     def test_real_json_columns_are_idempotent_and_existing_language_objects_remain_exact(self):
         self.input_type.with_context(lang="es_CL").name = "Nombre explícito"
-        self.rule.with_context(lang="es_CL").note = "<p>Nota explícita</p>"
+        self.rule.update_field_translations("note", {
+            "es_CL": {"Texto original": "Nota explícita"}}, source_lang="en_US")
         before = self._raw(self.rule, "note"), self._raw(self.input_type, "name")
+        self.assertEqual(before[0]["en_US"], "<p>Texto original</p>")
+        self.assertEqual(before[0]["es_CL"], "<p>Nota explícita</p>")
         audit = self.rule.read(["id", "write_uid", "write_date"]), self.input_type.read(["id", "write_uid", "write_date"])
         first = prepare_original_translation_storage(self.env.cr)
         second = prepare_original_translation_storage(self.env.cr)
