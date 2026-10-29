@@ -7,6 +7,57 @@ format engine and balance analytics. No bank transmission is supported.
 import json
 
 
+LEGACY_XMLIDS = {
+    'step_account_treasury_batch': (
+        'field_res_partner_bank__step_bancoestado_payment_method',
+        'selection__res_partner_bank__step_bancoestado_payment_method__01',
+        'selection__res_partner_bank__step_bancoestado_payment_method__02',
+        'view_partner_bank_form_bancoestado'),
+    'step_bank_security': (
+        'field_res_partner_bank__step_security_credit_type',
+        'selection__res_partner_bank__step_security_credit_type__1',
+        'selection__res_partner_bank__step_security_credit_type__2',
+        'selection__res_partner_bank__step_security_credit_type__3',
+        'selection__res_partner_bank__step_security_credit_type__4',
+        'selection__res_partner_bank__step_security_credit_type__5',
+        'view_partner_bank_security'),
+}
+
+
+def metadata_snapshot(sql, database):
+    """Capture BEFORE/AFTER from the new private native clone, with original IDs.
+
+    `sql` is the validator's existing read-only query helper. Bank views retain
+    their exact original architecture; only these eleven legacy XMLIDs may
+    change noupdate from false to true. No business snapshot is normalized.
+    """
+    clauses = []
+    for module, names in LEGACY_XMLIDS.items():
+        clauses.append("(d.module='" + module + "' AND d.name IN (" +
+                       ','.join("'" + name + "'" for name in names) + '))')
+    scope = ' OR '.join(clauses)
+    xmlids = sql(database, "SELECT coalesce(jsonb_agg(to_jsonb(d)-'write_date'-'write_uid' ORDER BY d.id),'[]'::jsonb) FROM ir_model_data d WHERE " + scope)
+    views = sql(database, "SELECT coalesce(jsonb_agg(to_jsonb(v)-'write_date'-'write_uid' ORDER BY v.id),'[]'::jsonb) FROM ir_ui_view v WHERE v.id IN (SELECT d.res_id FROM ir_model_data d WHERE d.model='ir.ui.view' AND (" + scope + '))')
+    return {'xmlids': json.loads(xmlids), 'views': json.loads(views)}
+
+
+def verify_metadata(before, after):
+    expected = {(module, name) for module, names in LEGACY_XMLIDS.items() for name in names}
+    assert {(row['module'], row['name']) for row in before['xmlids']} == expected, 'Missing original banking XMLIDs'
+    assert len(before['xmlids']) == len(after['xmlids']) == 11
+    now = {row['id']: row for row in after['xmlids']}
+    changed = []
+    for row in before['xmlids']:
+        got = now.get(row['id'])
+        assert got and got == dict(row, noupdate=True), ('Banking XMLID identity changed', row['id'])
+        if row['noupdate'] is False:
+            changed.append(row['module'] + '.' + row['name'])
+    assert len(before['views']) == len(after['views']) == 2
+    assert before['views'] == after['views'], 'Original banking view metadata/architecture changed'
+    return {'original_xmlids_preserved': 11, 'original_views_exact': 2,
+            'only_noupdate_false_to_true': changed}
+
+
 def verify(env, mode):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
