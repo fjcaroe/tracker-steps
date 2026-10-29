@@ -40,6 +40,9 @@ def main():
             if path.is_file() and path.suffix in ('.json', '.log', '.py'):
                 files['adoption-registry/' + mode + '/' + path.name] = path
     assert packets[0] == packets[1]
+    for name in ('validate_adoption_registry.py','batch_registry_contract.py',
+                 'caf_registry_contract.py','validate_payroll_relation_storage.py'):
+        files['adoption-registry/' + ('validator.py' if name=='validate_adoption_registry.py' else name)] = source / 'tools/community' / name
     for name in packets[0]:
         if name.startswith('l10n_cl_simpledigital_payroll/'):
             files['provider/' + name] = source / name
