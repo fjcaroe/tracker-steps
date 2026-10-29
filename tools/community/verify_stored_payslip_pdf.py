@@ -22,7 +22,9 @@ def outside_repository(path):
 
 
 def numeric_values(text):
-    text = text.replace('\u2212', '-').replace('\u2013', '-')
+    # The official monetary widget inserts U+200B after a minus sign. It is
+    # invisible in the real PDF, but must not turn a negative into a positive.
+    text = text.replace('\u200b', '').replace('\u2212', '-').replace('\u2013', '-')
     return [float(value.replace(',', '.')) for value in re.findall(r'(?<![\w.])[-+]?\d+(?:[.,]\d+)?(?![\w.])', text)]
 
 
@@ -38,7 +40,7 @@ def row_values(document, label):
 
 
 def verify(proof_file, output_directory):
-    import fitz
+    import pymupdf as fitz
     proof_file = outside_repository(proof_file)
     output_directory = outside_repository(output_directory)
     if output_directory.exists():
@@ -79,6 +81,11 @@ def verify(proof_file, output_directory):
             raise ValueError('NEGATIVE row lost its sign/value')
         if rows['Stored NULL_VALUE'] is not None and rows['Stored NULL_VALUE']:
             raise ValueError('NULL row acquired a numeric amount')
+        signature_pages = {index for index, page in enumerate(document) if 'Firma Trabajador' in page.get_text('text')}
+        certification_pages = {index for index, page in enumerate(document) if 'CERTIFICO:' in page.get_text('text')}
+        identity_pages = {index for index, page in enumerate(document) if 'RUN:' in page.get_text('text')}
+        if len(signature_pages) != 1 or signature_pages != certification_pages or signature_pages != identity_pages:
+            raise ValueError('Actual PDF splits the original certification/signature/identity block across pages')
         text_path = output_directory / (path.stem + '.txt')
         text_path.write_text(text, encoding='utf-8')
         pages = []
@@ -91,6 +98,7 @@ def verify(proof_file, output_directory):
             'actual_pdf_labels_references_verified': True, 'basic_hidden': record['basic_hidden'],
             'zero_negative_net_values_verified': True, 'row_geometry_values': rows,
             'null_row_verified_blank': rows['Stored NULL_VALUE'] == [],
+            'signature_block_on_single_page': True,
             'classification_history_certified': False, 'source_history_unchanged_as_tested': True,
             'pdf_text_sha256': hashlib.sha256(text.encode()).hexdigest(), 'visual_review_still_required': True})
         document.close()

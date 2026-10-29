@@ -205,7 +205,7 @@ def main():
             original=next(r for r in records if r['file']==Path(row['pdf']).name)
             assert row['pdf_sha256']==original['sha256'] and len(row['pages'])==original['pages']
             assert all(row[key] for key in ('actual_pdf_labels_references_verified','zero_negative_net_values_verified',
-                'source_history_unchanged_as_tested','null_row_verified_blank'))
+                'source_history_unchanged_as_tested','null_row_verified_blank','signature_block_on_single_page'))
             assert not row['classification_history_certified']
             for page in row['pages']:
                 assert Path(page['file']).name==page['file']

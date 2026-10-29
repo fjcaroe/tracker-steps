@@ -48,7 +48,13 @@ def adapt_payslip_report_xml(content):
         replacements["round(sum(worked_days_lines.mapped('%s')), 2)" % original] = (
             "round(step_report_day_sum(o, '%s'), 2) if step_report_day_sum(o, '%s') is not None else ''" % (key, key))
     expected = {'plines': 0, 'worked_days_lines': 0}
+    signatures = 0
     for node in tree.iter():
+        if node.get('id') == 'signature_section':
+            # Keep the original legal/signature block together in actual
+            # wkhtmltopdf output; an orphaned name/RUN is not a usable signature.
+            node.set('style', 'page-break-inside: avoid; break-inside: avoid;')
+            signatures += 1
         for attr, original in list(node.attrib.items()):
             if not attr.startswith('t-'):
                 continue
@@ -69,6 +75,7 @@ def adapt_payslip_report_xml(content):
                                   'step_report_net(o)', 'total_haberes', 'total_descuentos'):
             node.set('t-if', node.get('t-out') + ' is not None')
     assert expected == {'plines': 1, 'worked_days_lines': 1}, 'Pinned provider report structure drift'
+    assert signatures == 1, 'Pinned provider signature structure drift'
     result = ET.tostring(tree, encoding='unicode')
     assert 'o.net_wage' not in result and 'o.overtime_hours' not in result
     assert ".mapped('total')" not in result, 'Report must read authorized stored totals'
