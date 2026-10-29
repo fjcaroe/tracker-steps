@@ -18,12 +18,74 @@ class Structure(models.Model):
     step_clp_concept_rounding = fields.Boolean(string='Redondear conceptos en pesos (Chile)',
         help='Redondea cada concepto antes de acumular categorías desde octubre de 2026. No modifica liquidaciones validadas.')
 
+    def _step_rule_membership_access(self, commands=()):
+        """Authorize physical memberships and primary FKs, including archives.
+
+        Visibility is checked before editing; consistency afterwards. This
+        allows an authorized explicit repair without hiding an original rule
+        behind a filtered search or a warm/sudo relation cache.
+        """
+        normal = self.sudo(False).with_context(active_test=False)
+        normal.check_access('read')
+        normal.check_field_access_rights('read', ['rule_ids'])
+        rules = normal.env['hr.salary.rule'].with_context(active_test=False)
+        rules.check_access('read')
+        rules.check_field_access_rights('read', ['struct_id'])
+        rules.flush_model(['struct_id'])
+        normal.flush_recordset(['rule_ids'])
+        normal.env.cr.execute('SELECT struct_id,rule_id FROM hr_structure_salary_rule_rel WHERE struct_id=ANY(%s)', (normal.ids,))
+        pairs = set(normal.env.cr.fetchall())
+        normal.env.cr.execute('SELECT id,struct_id FROM hr_salary_rule WHERE struct_id=ANY(%s)', (normal.ids,))
+        primary = normal.env.cr.fetchall()
+        ids = {rule_id for struct_id, rule_id in pairs} | {rule_id for rule_id, struct_id in primary}
+        if getattr(commands, '_name', None) == 'hr.salary.rule':
+            ids.update(commands.ids)
+        else:
+            for command in commands or ():
+                if type(command) is int:
+                    ids.add(command)
+                elif isinstance(command, (tuple, list)) and command:
+                    if command[0] in (1, 2, 3, 4) and len(command) > 1 and command[1]:
+                        ids.add(command[1])
+                    elif command[0] == 6 and len(command) > 2:
+                        ids.update(command[2])
+        original = rules.browse(sorted(ids))
+        original.check_access('read')
+        if set(original.exists().ids) != ids:
+            raise ValidationError(_('Select existing original salary-rule references.'))
+        return pairs, primary
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        if not any('rule_ids' in values for values in vals_list) and 'default_rule_ids' not in self.env.context:
+            return super().create(vals_list)
+        normal = self.sudo(False)
+        normal.check_access('create')
+        normal.check_field_access_rights('write', ['rule_ids'])
+        for values in vals_list:
+            normal._step_rule_membership_access(values.get('rule_ids', normal.env.context.get('default_rule_ids', ())))
+        with normal.env.cr.savepoint():
+            records = super(Structure, normal).create(vals_list)
+            records._check_primary_rule_membership()
+            return records
+
+    def write(self, values):
+        if 'rule_ids' not in values:
+            return super().write(values)
+        normal = self.sudo(False)
+        normal.check_access('write')
+        normal.check_field_access_rights('write', ['rule_ids'])
+        normal._step_rule_membership_access(values['rule_ids'])
+        with normal.env.cr.savepoint():
+            result = super(Structure, normal).write(values)
+            normal._check_primary_rule_membership()
+            return result
+
     @api.constrains('rule_ids')
     def _check_primary_rule_membership(self):
-        for structure in self:
-            primary=self.env['hr.salary.rule'].search([('struct_id','=',structure.id)])
-            if primary-structure.rule_ids:
-                raise ValidationError(_('Move the rule primary structure before removing its membership.'))
+        pairs, primary = self._step_rule_membership_access()
+        if any((structure_id, rule_id) not in pairs for rule_id, structure_id in primary):
+            raise ValidationError(_('Move the rule primary structure before removing its membership.'))
 
 
 class Rule(models.Model):
@@ -33,28 +95,82 @@ class Rule(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        records = super().create(vals_list)
-        records._link_original_structure()
-        return records
+        if self._name != 'hr.salary.rule':
+            return super().create(vals_list)
+        normal = self.sudo(False)
+        normal.check_access('create')
+        with normal.env.cr.savepoint():
+            records = super(Rule, normal).create(vals_list)
+            records._link_original_structure()
+            records._step_check_primary_membership()
+            return records
 
     def write(self, values):
-        old = {rule.id:rule.struct_id for rule in self} if 'struct_id' in values else {}
-        result = super().write(values)
-        for rule in self:
-            if rule.id in old and old[rule.id] and old[rule.id] != rule.struct_id:
-                old[rule.id].write({'rule_ids': [fields.Command.unlink(rule.id)]})
-        if 'struct_id' in values:
-            self._link_original_structure()
-        return result
+        if self._name != 'hr.salary.rule':
+            return super().write(values)
+        normal = self.sudo(False)
+        normal.check_access('write')
+        normal.check_field_access_rights('write', list(values))
+        if not {'struct_id', 'company_id'} & values.keys():
+            return super(Rule, normal).write(values)
+        normal._step_rule_owner_references()
+        old = {rule.id: rule.struct_id for rule in normal} if 'struct_id' in values else {}
+        if values.get('struct_id'):
+            target_id = normal._fields['struct_id'].convert_to_cache(values['struct_id'], normal)
+            target = normal.env['hr.payroll.structure'].browse(target_id)
+            target.check_access('read')
+            target.check_field_access_rights('read', ['company_id', 'rule_ids'])
+        with normal.env.cr.savepoint():
+            result = super(Rule, normal).write(values)
+            for rule in normal:
+                if old.get(rule.id) and old[rule.id] != rule.struct_id:
+                    old[rule.id].write({'rule_ids': [fields.Command.unlink(rule.id)]})
+            if 'struct_id' in values:
+                normal._link_original_structure()
+            normal._step_check_primary_membership()
+            return result
+
+    def _step_rule_owner_references(self):
+        if self._name != 'hr.salary.rule':
+            return self.env['hr.payroll.structure']
+        normal = self.sudo(False)
+        normal.check_access('read')
+        normal.check_field_access_rights('read', ['struct_id', 'company_id'])
+        structures = normal.struct_id
+        structures.check_access('read')
+        structures.check_field_access_rights('read', ['company_id', 'rule_ids'])
+        normal.company_id.check_access('read')
+        structures.company_id.check_access('read')
+        return structures
+
+    def _step_check_primary_membership(self):
+        if self._name != 'hr.salary.rule':
+            return
+        normal = self.sudo(False)
+        structures = normal._step_rule_owner_references()
+        normal.flush_recordset(['struct_id'])
+        structures.flush_recordset(['rule_ids'])
+        normal.env.cr.execute('SELECT rule_id,struct_id FROM hr_structure_salary_rule_rel WHERE rule_id=ANY(%s)', (normal.ids,))
+        pairs = set(normal.env.cr.fetchall())
+        if any(rule.struct_id and (rule.id, rule.struct_id.id) not in pairs for rule in normal):
+            raise ValidationError(_('Move the rule primary structure before removing its membership.'))
 
     @api.constrains('company_id','struct_id')
     def _check_structure_company(self):
-        for rule in self.filtered('struct_id'):
+        if self._name != 'hr.salary.rule':
+            return
+        normal = self.sudo(False)
+        normal._step_rule_owner_references()
+        for rule in normal.filtered('struct_id'):
             if rule.company_id and rule.struct_id.company_id != rule.company_id:
                 raise ValidationError(_('Rule and structure must belong to the same company.'))
 
     def _link_original_structure(self):
-        for rule in self.filtered('struct_id'):
+        if self._name != 'hr.salary.rule':
+            return
+        normal = self.sudo(False)
+        normal._step_rule_owner_references()
+        for rule in normal.filtered('struct_id'):
             if rule.company_id and rule.struct_id.company_id != rule.company_id:
                 raise ValidationError(_('Rule and structure must belong to the same company.'))
             if rule not in rule.struct_id.rule_ids:
