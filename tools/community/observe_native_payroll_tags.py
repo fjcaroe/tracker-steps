@@ -100,17 +100,27 @@ def main():
         target_store = root / 'data/filestore' / args.database
         shutil.copytree(store, target_store)
         assert files(target_store) == source_files
-        before = baseline(args.database)
-        assert before == source_before, 'Fresh private clone differs from the accepted reference'
-        dump(root / 'before.json', before)
+        restored = baseline(args.database)
+        assert restored == source_before, 'Fresh private clone differs from the accepted reference'
+        dump(root / 'restored-before-neutralization.json', restored)
+        neutralized = {}
         with connect(args.database) as conn:
             with conn.cursor() as cursor:
-                cursor.execute('SET TRANSACTION READ ONLY')
                 for table in ('ir_cron', 'ir_mail_server'):
+                    # F never ran cron workers. Addon installation can add new
+                    # active cron definitions; neutralize this NEW clone only.
+                    cursor.execute('UPDATE ' + table + ' SET active=false WHERE active RETURNING id')
+                    neutralized[table] = sorted(row[0] for row in cursor.fetchall())
                     cursor.execute('SELECT count(*) FROM ' + table + ' WHERE active')
                     assert not cursor.fetchone()[0], 'Private reference is not neutralized'
                 cursor.execute("SELECT count(*) FROM ir_module_module WHERE state IN ('to install','to upgrade','to remove')")
                 assert not cursor.fetchone()[0]
+        dump(root / 'neutralized-activation-ids.json', neutralized)
+        before = baseline(args.database)
+        assert set(before) == set(restored)
+        assert all(before[name] == value for name, value in restored.items()
+                   if name not in ('ir_cron', 'ir_mail_server')), 'Neutralization changed unrelated values'
+        dump(root / 'before.json', before)
         for path in (root, *root.rglob('*')):
             os.chown(path, identity.pw_uid, identity.pw_gid)
         expression = ('import runpy; runpy.run_path(' + repr(str(payload)) + ')["observe"](env,'
