@@ -121,9 +121,24 @@ class Payslip(models.Model):
             original = structure.with_company(company)
             original.check_access("read")
             original.check_field_access_rights("read", ["journal_id"])
+            original.flush_recordset(["journal_id"])
+            self.env.cr.execute("SELECT journal_id FROM hr_payroll_structure WHERE id=%s", (original.id,))
+            row = self.env.cr.fetchone()
+            if row is None:
+                raise UserError(_("The original structure salary journal property is unavailable."))
+            stored = row[0]
+            if stored is None:
+                # Only a wholly NULL original property permits the audited
+                # contract fallback. ir.default must not choose a new journal.
+                continue
+            value = stored.get(str(company.id)) if isinstance(stored, dict) else None
+            if not isinstance(value, int) or isinstance(value, bool) or not 0 < value < 2**31:
+                raise UserError(_("The original structure salary journal property is incomplete for the payslip company."))
             configured_journal = original.journal_id
             configured_journal.check_access("read")
             configured_journal.check_field_access_rights("read", ["company_id"])
+            if configured_journal.id != value:
+                raise UserError(_("The original structure salary journal property does not resolve its exact company value."))
             if configured_journal and configured_journal.company_id != company:
                 raise UserError(_("The original structure salary journal must belong to the payslip's original company."))
             if configured_journal and configured_journal != journal:
