@@ -1,7 +1,12 @@
 # Entradas guardadas y cálculo real de lotes — 29-10-2026
 
-Paquete de implementación congelado en `4bb59f9b`, desde la canónica `f589ba62`.
+Paquete de implementación congelado en `5343efe1`, desde la canónica `f589ba62`.
 La aceptación conjunta está en curso; este documento no acredita todavía el cierre.
+358 archivos de addons; huella común `6a471a2115e519f598dcdff597a94cede079bde3e18b41658e03434a8d0437eb`.
+Tar Git C SHA256 `8840f905a138595f6e30696fc459415438636c3a51fe749683fdc1873345afdc`.
+El paquete incluye el verificador corregido en `26c6923f`;
+el verificador original de versiones consultaba dos módulos aunque actualizaba tres.
+Los intentos de upgrade A/B conservan ese rechazo diagnóstico y no se aceptan.
 API **18.0.1.13.0**, Base **18.0.1.6.0**, Security **18.0.1.7.0**.
 Conserva [Schema B](COMMUNITY_IDENTIDAD_REGLAS_NOMINA.md), Período C y sus guardas.
 
@@ -59,12 +64,15 @@ eran fixtures de permisos (copia completa de contrato sensible, eliminación de
 work entry y vista de lotes exclusiva de manager). El cuarto reveló la omisión
 del cero explícito por la caché Float; B incorpora el ajuste del producto y
 pruebas de escritura explícita, denegaciones y conservación de NULL. La rama
-nativa de A no se ejecutó. No se reutilizan sus bases como aceptación B.
+nativa de A no se ejecutó. B terminó con un fallo y cero errores: la expectativa
+de un aviso de país no respetaba la denegación anterior de la regla de acceso
+original. C corrige sólo esa expectativa; mantiene la regla y prueba el paquete
+completo en bases nuevas. Las ramas nativas de A/B no se ejecutaron.
 
 Se prepararon doce casos funcionales nuevos: seis de entradas y seis de lotes,
 incluidos cero/NULL, agregación, permisos con caché elevada, cobertura, formulario,
 dos cálculos reales, conflictos, límite horario local y rollback ante fórmula errónea.
-Las 28 pruebas puras de herramientas pasan: 17 del upgrade, seis del verificador
+Las 29 pruebas puras de herramientas pasan: 18 del upgrade, seis del verificador
 y cinco del auditor de beneficios. Son adicionales a las pruebas de Odoo.
 
 El perfil de upgrade `saved-inputs` parte exclusivamente de Schema B aceptado y
@@ -72,9 +80,9 @@ actualiza los tres módulos. Debe conservar historia cerrada, almacenamiento,
 IDs, relaciones, contadores y origen/filestore, con respaldo decodificado, además
 de comprobar la negativa real a admitir entradas de historia cerrada.
 
-Ejecución privada B: `/opt/steps-validation/community-payroll-inputs-20261029B`.
-Upgrade: `/opt/steps-validation/community-inputs-upgrade-20261029B`.
-Preflight: `/opt/steps-validation/community-inputs-preflight-20261029B`.
+Ejecución privada C: `/opt/steps-validation/community-payroll-inputs-20261029C`.
+Upgrade: `/opt/steps-validation/community-inputs-upgrade-20261029D`.
+Preflight: `/opt/steps-validation/community-inputs-preflight-20261029C`.
 Exportación local: `C:/Users/tito4/.codex/local-artifacts/community-payroll-inputs-20261029`.
 
 ## Estado acumulado y siguiente puerta
