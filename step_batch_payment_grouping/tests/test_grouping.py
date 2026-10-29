@@ -1,3 +1,8 @@
+import json
+import logging
+import os
+from pathlib import Path
+
 from odoo import Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
@@ -179,3 +184,33 @@ class BatchGroupingCase(AccountTestInvoicingCommon):
         batch = self.env['account.batch.payment'].browse(batch_id)
         self.assertEqual(batch.name, 'Grupo propio')
         self.assertEqual(str(batch.date), '2026-10-29')
+
+    def test_native_reference_observes_draft_and_posted_amount_contract(self):
+        """Observe actual behavior; do not assert an invented monetary formula."""
+        if not self.env['ir.module.module'].sudo().search_count([
+                ('name', '=', 'account_batch_payment'), ('state', '=', 'installed')]):
+            self.skipTest('Native monetary observation requires the untouched native provider')
+        result = {'database': self.env.cr.dbname,
+                  'provider': self.env['account.batch.payment'].create.__module__,
+                  'groups': {}}
+        for label, payments in (('draft', self.first | self.second),
+                                ('posted', self.make_payment(80) | self.make_payment(120))):
+            if label == 'posted':
+                payments.action_post()
+            before = self.payment_snapshot(payments)
+            batch = self.group(payments)
+            result['groups'][label] = {
+                'batch': batch.read(['state', 'amount', 'amount_residual', 'amount_residual_currency',
+                    'currency_id', 'company_currency_id', 'batch_type'])[0],
+                'payments': payments.read(['amount', 'amount_signed', 'amount_company_currency_signed',
+                    'state', 'move_id', 'currency_id', 'company_currency_id', 'is_sent', 'is_matched']),
+            }
+            self.assertEqual(self.payment_snapshot(payments), before)
+        logging.getLogger(__name__).info('BATCH_NATIVE_REFERENCE %s', json.dumps(result, default=str, sort_keys=True))
+        output = os.environ.get('COMMUNITY_BATCH_REFERENCE_OUTPUT')
+        if output:
+            path = Path(output).resolve()
+            if '/opt/steps-validation/' not in str(path) or self.env.cr.dbname.startswith(('CERRO_', 'SyS')):
+                raise AssertionError('Reference output must be a private acceptance artifact')
+            with path.open('x', encoding='utf-8') as handle:
+                json.dump(result, handle, default=str, sort_keys=True, indent=2)
