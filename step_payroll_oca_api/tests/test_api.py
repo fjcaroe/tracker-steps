@@ -53,11 +53,34 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         global_input=self.input_type.copy({'code':'PRIVATE_GLOBAL_INPUT','country_id':False,
             'struct_ids':[Command.set(structure.ids)]})
         universal=self._scope_structure(company_id=False,country_id=False,code='PRIVATE_UNIVERSAL_SCOPE')
+        # OCA M2M configuration legitimately has rules without struct_id. A
+        # dotted country domain alone excludes that NULL relation, even though
+        # it has no foreign primary country. Company rules must still apply.
+        rules=self.scope['hr.salary.rule'].create([
+            {'name':'Private own unbound rule','code':'PRIVATE_UNBOUND_OWN','sequence':21,
+             'category_id':category.id,'company_id':self.company.id,'struct_id':False,
+             'condition_select':'none','amount_select':'fix','amount_fix':1.0},
+            {'name':'Private global unbound rule','code':'PRIVATE_UNBOUND_GLOBAL','sequence':22,
+             'category_id':category.id,'company_id':False,'struct_id':False,
+             'condition_select':'none','amount_select':'fix','amount_fix':2.0},
+        ])
+        own_rule,global_rule=rules
+        own_parent=self._scope_structure(country_id=False,code='PRIVATE_UNBOUND_PARENT')
+        own_parent.rule_ids=[Command.set(rules.ids)]
+        own_child=self._scope_structure(own_parent,code='PRIVATE_UNBOUND_CHILD')
+        self.assertEqual(set(own_child._step_effective_rule_scope()['rules'].ids),set(rules.ids))
+        universal.rule_ids=[Command.link(global_rule.id)]
+        global_child=self._scope_structure(universal,code='PRIVATE_GLOBAL_UNBOUND_CHILD')
+        self.assertEqual(global_child._step_effective_rule_scope()['rules'],global_rule)
+        self.assertFalse(rules.struct_id)
         foreign=self._foreign_scope_fixture()
         self.assertFalse(foreign.su)
-        for record in (structure,self.rule):
+        for record in (structure,self.rule,own_rule):
             with self.assertRaises(AccessError):
                 record.with_env(foreign).read(['id'])
+        self.assertEqual(global_rule.with_env(foreign).read(['id','struct_id','company_id']),
+            [{'id':global_rule.id,'struct_id':False,'company_id':False}])
+        self.assertEqual(universal.with_env(foreign)._step_effective_rule_scope()['rules'].ids,global_rule.ids)
         self.assertEqual(category.with_env(foreign).read(['id','company_id']),[{'id':category.id,'company_id':False}])
         self.assertFalse(global_input.with_env(foreign).country_id)
         self.assertIn(universal,foreign['hr.payroll.structure'].search([('id','=',universal.id)]))
