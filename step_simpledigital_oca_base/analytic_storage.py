@@ -83,7 +83,7 @@ def _storage_plan(cr):
                 if (not isinstance(key, str) or not key.isdecimal() or str(int(key)) != key
                         or int(key) not in companies):
                     raise AnalyticStorageError("Original analytic JSON property has an invalid company key.")
-                if target is not None and target is not False:
+                if target is not None:
                     check_target(int(key), target)
     cr.execute("""SELECT c.conname,c.contype,c.conkey=ARRAY[a.attnum]::smallint[],
             c.confrelid='account_analytic_account'::regclass,

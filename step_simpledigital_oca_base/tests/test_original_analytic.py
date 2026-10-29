@@ -155,7 +155,7 @@ class OriginalAnalyticCase(TransactionCase):
         self._assert_posted(slip, self.alternate)
 
     def test_null_property_stays_null_and_no_unapproved_default_is_posted(self):
-        for value in (None, {str(self.company.id): None}, {str(self.company.id): False}):
+        for value in (None, {str(self.company.id): None}):
             self._raw_property(value)
             original = self._slip()
             original.compute_sheet()
@@ -163,6 +163,24 @@ class OriginalAnalyticCase(TransactionCase):
             self._assert_posted(original, self.scope["account.analytic.account"])
             self.env.cr.execute("SELECT analytic_account_id FROM hr_salary_rule WHERE id=%s", (self.rule.id,))
             self.assertEqual(self.env.cr.fetchone()[0], value)
+        # Python False remains the ordinary ORM clear operation. It must be
+        # normalized by the real provider, not stored as a JSON boolean M2O.
+        self.rule.analytic_account_id = self.analytic
+        self.rule.analytic_account_id = False
+        self.rule.flush_recordset(["analytic_account_id"])
+        self.env.cr.execute("SELECT analytic_account_id,analytic_account_id IS NULL FROM hr_salary_rule WHERE id=%s", (self.rule.id,))
+        cleared, sql_null = self.env.cr.fetchone()
+        if sql_null:
+            self.assertIsNone(cleared)
+        else:
+            self.assertIsInstance(cleared, dict)
+            self.assertIn(str(self.company.id), cleared)
+            self.assertIsNone(cleared[str(self.company.id)])
+        self.assertFalse(self.rule.analytic_account_id)
+        cleared_slip = self._slip()
+        cleared_slip.compute_sheet()
+        cleared_slip.with_context(without_compute_sheet=True).action_payslip_done()
+        self._assert_posted(cleared_slip, self.scope["account.analytic.account"])
         self._raw_property(None)
         slip = self._slip()
         slip.compute_sheet()
@@ -181,7 +199,8 @@ class OriginalAnalyticCase(TransactionCase):
         caller = slip.with_env(scope).with_company(self.company)
         before = self._snapshot(slip)
         for value in ({}, {str(scope.company.id): foreign.id}, {str(self.company.id): "wrong"},
-                {str(self.company.id): 0}, {str(self.company.id): 2**31}, {str(self.company.id): foreign.id}):
+                {str(self.company.id): 0}, {str(self.company.id): 2**31}, {str(self.company.id): False},
+                {str(self.company.id): True}, {str(self.company.id): foreign.id}):
             self._raw_property(value)
             with self.assertRaises(UserError):
                 caller.with_context(without_compute_sheet=True).action_payslip_done()
@@ -310,7 +329,7 @@ class OriginalAnalyticStorageCase(TransactionCase):
         self._temporary_rules("jsonb")
         value = {str(self.company.id): self.account.id, str(self.other.id): None}
         self.env.cr.execute("INSERT INTO hr_salary_rule VALUES(1,NULL,NULL),(2,NULL,%s::jsonb),(3,NULL,'{}'::jsonb),(4,NULL,%s::jsonb)",
-            (json.dumps(value), json.dumps({str(self.company.id): False})))
+            (json.dumps(value), json.dumps({str(self.company.id): None})))
         self.env.cr.execute("SELECT id,company_id,analytic_account_id FROM hr_salary_rule ORDER BY id")
         before = self.env.cr.fetchall()
         self.assertEqual(prepare_original_analytic_storage(self.env.cr), {"storage": "jsonb", "converted": 0})
@@ -320,6 +339,13 @@ class OriginalAnalyticStorageCase(TransactionCase):
             self.env.cr.execute("UPDATE hr_salary_rule SET analytic_account_id=%s::jsonb WHERE id=3", (malformed,))
             with self.assertRaises(AnalyticStorageError):
                 prepare_original_analytic_storage(self.env.cr)
+        for boolean in (False, True):
+            value = {str(self.company.id): boolean}
+            self.env.cr.execute("UPDATE hr_salary_rule SET analytic_account_id=%s::jsonb WHERE id=3", (json.dumps(value),))
+            with self.assertRaises(AnalyticStorageError):
+                prepare_original_analytic_storage(self.env.cr)
+            self.env.cr.execute("SELECT analytic_account_id FROM hr_salary_rule WHERE id=3")
+            self.assertEqual(self.env.cr.fetchone()[0], value)
 
     def test_unapproved_column_default_aborts_without_rewriting_null(self):
         self._temporary_rules(default=" DEFAULT 0")

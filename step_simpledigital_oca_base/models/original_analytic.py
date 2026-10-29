@@ -46,7 +46,7 @@ class SalaryRule(models.Model):
         if not isinstance(stored, dict) or key not in stored:
             raise UserError(_("The original payroll analytic property is incomplete for the payslip company."))
         ident = stored[key]
-        if ident is None or ident is False:
+        if ident is None:
             if normal.analytic_account_id:
                 raise UserError(_("The original payroll analytic property does not resolve its exact company value."))
             return normal.env["account.analytic.account"]

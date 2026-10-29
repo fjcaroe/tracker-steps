@@ -25,7 +25,10 @@ exacta del contrato o del slot de la regla en la empresa de la liquidación.
 No cambia importes ni reconstruye distribuciones históricas.
 
 Una propiedad SQL NULL sin default admite ausencia de distribución. Un slot
-explícitamente nulo o falso también representa ausencia. Una propiedad poblada
+JSON explícitamente nulo también representa ausencia. La operación ORM Python
+`False` limpia la relación mediante la normalización real del proveedor; un
+booleano físico JSON no es un ID M2O válido y se rechaza antes de su lectura ORM.
+Una propiedad poblada
 sin slot de la empresa, un default implícito, un ID inválido, una cuenta oculta
 o una cuenta de otra empresa bloquean el proceso antes de mutar la liquidación.
 Las cuentas compartidas son válidas con permisos normales. La impresión y
