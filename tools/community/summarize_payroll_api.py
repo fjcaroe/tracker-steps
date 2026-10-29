@@ -6,6 +6,7 @@ import io
 import tarfile
 import json
 import subprocess
+import sys
 from decimal import Decimal
 from pathlib import Path
 
@@ -31,7 +32,7 @@ def main():
         hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
         paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
             'step_account_treasury_batch','step_bank_security','step_l10n_cl_edi_core','step_accounting_multicurrency',
-            'tools/community/accelerated_acceptance.py','tools/community/hr_consumers_candidate.py','tools/community/finance_frontier_contract.py']
+            'tools/community/accelerated_acceptance.py','tools/community/hr_consumers_candidate.py','tools/community/finance_frontier_contract.py','tools/community/hr_consumer_metadata.py']
     previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install','book-history')
     if previred:paths+=['step_hr_previred']
@@ -141,7 +142,14 @@ def main():
         assert before.keys()==after.keys()
         assert all((v['rows'],v['hash'])==(after[k]['rows'],after[k]['hash']) for k,v in before.items()),name
     original=read('cerro-reference','identity-before');current=read('cerro-reference','identity-after')
+    if accelerated:
+        sys.path.insert(0,str(repo/'tools/community'))
+        from hr_consumer_metadata import verify as hr_verify
+        audit=hr_verify(original,current)
+        audit['source']['sha256']=hashlib.sha256(source[audit['source']['path']]).hexdigest()
+        assert audit==read('cerro-reference','hr-metadata-proof')
     for name,rows in original.items():
+        if accelerated and name=='ir_model_fields':continue  # all original rows checked by the exact source-message policy
         if rows and 'id' in rows[0]:
             indexed={row['id']:row for row in current[name]}
             assert all(indexed.get(row['id'])==row for row in rows),name

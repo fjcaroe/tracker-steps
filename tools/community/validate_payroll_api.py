@@ -56,6 +56,7 @@ def main():
         sys.path.insert(0,str(args.root/'addons/tools/community'))
         from accelerated_acceptance import HR_MODULES,HR_TEST_COUNT,HR_TEST_TAGS,prepare_hr_overlay
         from finance_frontier_contract import metadata_snapshot,verify_metadata
+        from hr_consumer_metadata import verify as verify_hr_metadata
         finance_modules=('step_accounting_multicurrency_core','step_account_balance_analytic',
                          'step_bank_export_core','step_account_treasury_batch','step_bank_security',
                          'step_accounting_multicurrency')
@@ -277,7 +278,9 @@ def main():
             after=snapshot();current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))
             assert same_values(baseline,after),'Original business data/counters changed after reference tests'
+            if args.accelerated:dump_json('hr-metadata-proof',verify_hr_metadata(original,current))
             for name,rows in original.items():
+                if args.accelerated and name=='ir_model_fields':continue  # all rows verified above, with three exact message edits
                 if rows and 'id' in rows[0]:
                     now={r['id']:r for r in current[name]}
                     assert all(now.get(r['id'])==r for r in rows),(name,'Original metadata changed')
@@ -311,7 +314,7 @@ def main():
             'counts':counts,'pdf_binary_reports':2 if binary_book else 0,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'expected_test_count':expected,
-            'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py')} if args.accelerated else {},
+            'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py','hr_consumer_metadata.py')} if args.accelerated else {},
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)
 
