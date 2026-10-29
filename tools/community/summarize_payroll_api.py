@@ -150,7 +150,7 @@ def main():
         'simpledigital_certified':False,'deadline_resolved':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==210 and results['cerro-reference']['expected_test_count']==181
+        assert results['community']['expected_test_count']==228 and results['cerro-reference']['expected_test_count']==199
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])

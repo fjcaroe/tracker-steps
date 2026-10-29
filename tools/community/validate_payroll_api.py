@@ -117,8 +117,16 @@ def main():
     def snapshot():
         result=preservation.snapshot(args.database)
         if args.accelerated:
+            # These two new transient containers have no historical business
+            # rows. Every original table remains under the exact comparison.
+            for table in ('step_bank_export_wizard','step_bank_export_wizard_payment_rel'):
+                if table in result:
+                    assert result[table]['rows']==0,'Bank export fixture leaked'
+                    result.pop(table)
             for table in ('res_partner_bank','res_bank'):
                 result[table]=json.loads(sql(args.database,"SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM "+table+' t'))
+            result['ir_ui_menu_group_rel']=json.loads(sql(args.database,
+                "SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM ir_ui_menu_group_rel t WHERE menu_id NOT IN (SELECT res_id FROM ir_model_data WHERE model='ir.ui.menu' AND (module IN ('step_agriculture_core','step_labor_operations_core') OR (module='step_bank_export_core' AND name='menu_bank_export_wizard')))"))
         if simpledigital:
             result['rule_group_rel']=json.loads(sql(args.database,"SELECT json_build_object('rows',count(*),'hash',md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),''))) FROM rule_group_rel t WHERE rule_group_id NOT IN (SELECT res_id FROM ir_model_data WHERE module='step_simpledigital_oca_security' AND model='ir.rule')"))
         return result
@@ -232,7 +240,7 @@ def main():
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         expected=7 if standalone else (85 if pure else 25)+((54 if pure else 47) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
-        if args.accelerated:expected+=HR_TEST_COUNT+19+18+(0 if pure else 38)
+        if args.accelerated:expected+=HR_TEST_COUNT+30+18+(0 if pure else 38)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
