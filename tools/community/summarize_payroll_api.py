@@ -368,8 +368,18 @@ def main():
                 ('hr.salary.rule','analytic_account_id'),('hr.salary.rule','note')}
             closed|=additional
         assert closed<={(row['model'],row['name']) for row in current['target_metadata']['fields']}
-        for name in ('field_differences','selection_value_differences'):
-            assert not closed & {(row['model'],row['field']) for row in assessment[name]}
+        assert not closed & {(row['model'],row['field']) for row in assessment['field_differences']}
+        selection_unknowns=[]
+        for row in assessment['selection_value_differences']:
+            if (row['model'],row['field']) not in closed:continue
+            # Both engines reflect this real related Selection without a SQL
+            # catalogue. Its relationship/observed values are tested, but two
+            # empty metadata lists cannot certify every callable choice.
+            assert (row['model'],row['field'])==('hr.payroll.structure','schedule_pay')
+            assert row['source_catalogue_empty'] and row['target_catalogue_empty']
+            assert not row['missing_target_values'] and not row['target_only_values']
+            assert not row['shared_order_differs'] and not row['runtime_choices_certified']
+            selection_unknowns.append(row)
         assert not closed & {(helper.TABLES[row['table']],row['field']) for row in assessment['column_differences']}
         result['configuration_adoption_preflight']={'read_only_evidence_unchanged':True,
             'physical_original_field_contracts_closed':14,'additional_original_field_contracts_closed':len(additional),
@@ -379,6 +389,7 @@ def main():
             'remaining_field_differences':len(assessment['field_differences']),
             'remaining_column_differences':len(assessment['column_differences']),
             'remaining_selection_differences':len(assessment['selection_value_differences']),
+            'empty_related_selection_catalogue_unknowns':selection_unknowns,
             'adoption_ready':False,'remaining_gates':assessment['remaining_gates']}
         native_file=folder/'native-source.json'
         if native_file.exists():
