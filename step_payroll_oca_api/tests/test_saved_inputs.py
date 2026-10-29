@@ -98,7 +98,12 @@ class SavedInputValuesCase(TransactionCase):
         with self.assertRaisesRegex(UserError, "Complete the amount"):
             slip.sudo()._step_check_saved_input_values()
         self.assertEqual(self._snapshot(slip), before)
-        row.amount = 0.0
+        # Model.write is the explicit saved-value RPC contract. Verify the
+        # physical zero rather than accepting Float's NULL-to-zero cache view.
+        row.write({"amount": 0.0})
+        row.flush_recordset(["amount"])
+        self.env.cr.execute("SELECT amount FROM hr_payslip_input WHERE id=%s", (row.id,))
+        self.assertEqual(self.env.cr.fetchone(), (0.0,))
         self.assertTrue(slip._step_check_saved_input_values())
         for value in (float("nan"), float("inf"), float("-inf")):
             self.env.cr.execute("UPDATE hr_payslip_input SET amount=%s WHERE id=%s", (value, row.id))
@@ -171,7 +176,10 @@ class SavedInputValuesCase(TransactionCase):
             slip._step_check_saved_input_values()
         self.assertFalse(legacy.input_type_id)
         legacy.unlink()
-        other_contract = self.contract.copy({"name": "Private other saved-input contract", "state": "draft"})
+        # Full contract duplication reads sensitive HR fields. Provision this
+        # private master as fixture author; every tested operation stays normal.
+        other_contract = self.contract.with_env(self.env).copy({
+            "name": "Private other saved-input contract", "state": "draft"}).with_env(self.scope)
         for column, bad, original in (("code", "PRIVATE_WRONG_CODE", row.code), ("contract_id", other_contract.id, self.contract.id)):
             self.env.cr.execute("UPDATE hr_payslip_input SET " + column + "=%s WHERE id=%s", (bad, row.id))
             before = self._snapshot(slip)
