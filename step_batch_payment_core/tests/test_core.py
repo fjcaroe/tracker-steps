@@ -55,6 +55,8 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         batch = form.record
         self.assertEqual(set(batch.payment_ids.ids), set(self.payments.ids))
         self.assertEqual(batch.state, 'draft')
+        # Observed against the unmodified native provider, reference C.
+        self.assertEqual((batch.amount, batch.amount_residual, batch.amount_residual_currency), (-350, 0, 0))
         self.assertEqual(batch.action_check_group()['tag'], 'display_notification')
         action = self.env.ref('step_batch_payment_core.action_batch_payment_groups')
         self.assertEqual(action.res_model, batch._name)
@@ -79,6 +81,20 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         self.assertFalse(batch.file_generation_enabled)
         self.assertFalse(batch.export_file)
         self.assertEqual(self.payments.read(list(before[0].keys() - {'id'})), before)
+
+    def test_posted_payments_keep_entries_and_real_outstanding_amounts(self):
+        self.payments.action_post()
+        self.assertTrue(self.payments.move_id)
+        before = self.payments.read(['amount', 'state', 'move_id', 'is_sent', 'is_matched'])
+        lines = self.payments.move_id.line_ids
+        line_before = lines.read(['balance', 'amount_currency', 'amount_residual', 'amount_residual_currency',
+                                 'account_id', 'currency_id', 'move_id'])
+        batch = self.group()
+        self.assertEqual(batch.state, 'draft')
+        self.assertEqual(batch.currency_id, batch.company_currency_id)
+        self.assertEqual((batch.amount, batch.amount_residual, batch.amount_residual_currency), (-350, -350, -350))
+        self.assertEqual(self.payments.read(list(before[0].keys() - {'id'})), before)
+        self.assertEqual(lines.read(list(line_before[0].keys() - {'id'})), line_before)
 
     def test_direct_relation_cannot_steal_or_cross_scope(self):
         batch = self.group()

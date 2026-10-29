@@ -19,9 +19,12 @@ No se confía en una One2many filtrada para comprobar el grupo completo.
 Los importes de borrador parten de pagos y líneas contables reales. `amount`
 usa `account.payment.amount_signed`; los residuales leen las líneas de la
 cuenta pendiente, en sus monedas almacenadas. No se convierte con la tasa
-actual ni se modifica el importe de un pago al leer el grupo. La comparación
-con el proveedor nativo real debe quedar en evidencia antes de aceptar este
-bloque; la metadata por sí sola no certifica esta fórmula.
+actual ni se modifica el importe de un pago al leer el grupo. La observación
+privada `community-batch-grouping-reference-20261029C` confirmó en el proveedor
+nativo intacto dos pagos de borrador (importe firmado, residual cero) y dos
+pagos publicados (importe y residuales negativos pendientes), en moneda de
+compañía. No certifica divisas, conciliaciones parciales ni estados enviados/
+conciliados; la metadata por sí sola tampoco acredita esos flujos.
 
 La validación, envío, rechazo, congelación y conciliación bancaria del lote
 siguen pendientes. `validate_batch_button` rechaza la operación explícitamente.
@@ -43,7 +46,7 @@ conserva su clase y almacenamiento. En Community se instala además este núcleo
 Los mismos casos de agrupación operan contra ambos proveedores reales.
 
 Tags: `/step_batch_payment_grouping` (20 casos, una observación nativa omitida
-en CE) y `/step_batch_payment_core` (12 casos, sólo CE). Los fixtures usan
+en CE) y `/step_batch_payment_core` (13 casos, sólo CE). Los fixtures usan
 compañías y secuencias privadas `no_gap`; no consumen ni reinician correlativos
 de negocio. La observación `BATCH_NATIVE_REFERENCE` captura importes y estados
 reales de dos pagos en borrador y dos publicados, sin asumir su fórmula.
