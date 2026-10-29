@@ -1,4 +1,4 @@
-"""Materialize four original related values on a NEW private SyS clone, SQL only.
+"""Prepare original related values and optional real OCA FKs on a new SyS clone.
 
 This is storage preparation, not an engine switch or a financial certification.
 Never import Odoo: closed payroll amounts and computations remain untouched.
@@ -22,6 +22,70 @@ RELATIONS = (
     ('hr_payslip_worked_days', 'hr_work_entry_type', 'work_entry_type_id'),
     ('hr_payslip_input', 'hr_payslip_input_type', 'input_type_id'),
 )
+
+
+def foreign_keys(cursor):
+    cursor.execute("SELECT oid,conrelid::regclass::text,conname,pg_get_constraintdef(oid),convalidated "
+        "FROM pg_constraint WHERE contype='f' AND conrelid IN "
+        "('hr_payslip_worked_days'::regclass,'hr_payslip_input'::regclass) ORDER BY oid")
+    return [dict(zip(('oid','table','name','definition','validated'),row)) for row in cursor.fetchall()]
+
+
+def community_contract(cursor):
+    """Admit the actual installed engine's contract, without ORM or demo rules."""
+    cursor.execute("SELECT name,latest_version FROM ir_module_module WHERE state='installed' "
+                   "AND name IN ('payroll','step_payroll_oca_api') ORDER BY name")
+    versions=dict(cursor.fetchall())
+    if set(versions)!={'payroll','step_payroll_oca_api'}:
+        raise ValueError('The reference must contain the real OCA engine and API')
+    cursor.execute("SELECT count(*) FROM ir_module_module WHERE state='installed' AND license='OEEL-1'")
+    if cursor.fetchone()[0]:raise ValueError('The target reference must have zero Enterprise')
+    cursor.execute("SELECT id,model,name,ttype,relation,store,required,on_delete,related FROM ir_model_fields "
+        "WHERE model IN ('hr.payslip.worked_days','hr.payslip.input') "
+        "AND name IN ('code','contract_id') ORDER BY model,name")
+    rows=[dict(zip(('id','model','name','type','relation','store','required','on_delete','related'),row))
+          for row in cursor.fetchall()]
+    if len(rows)!=4:raise ValueError('Missing actual related-storage target fields')
+    for row in rows:
+        if not row['store'] or not row['required'] or row['related']:
+            raise ValueError('Unexpected target storage attributes')
+        expected=('char',None,None) if row['name']=='code' else ('many2one','hr.contract','restrict')
+        if (row['type'],row['relation'],row['on_delete'])!=expected:
+            raise ValueError('Unexpected target relation semantics')
+    constraints=foreign_keys(cursor)
+    for table,_,_ in RELATIONS:
+        expected='FOREIGN KEY (contract_id) REFERENCES hr_contract(id) ON DELETE RESTRICT'
+        matches=[row for row in constraints if row['table']==table and row['name']==table+'_contract_id_fkey']
+        if len(matches)!=1 or matches[0]['definition']!=expected or not matches[0]['validated']:
+            raise ValueError('Actual Community contract FK is not validated RESTRICT: '+table)
+    return {'modules':versions,'fields':rows,'foreign_keys':constraints,'orm_loaded':False,
+            'read_only':True,'enterprise':0}
+
+
+def adopt_contract_foreign_keys(cursor):
+    """Enforce two real target relations, never replace a preexisting constraint.
+
+    Native related fields stay nonstored in registry metadata. New SQL columns
+    stay nullable until the complete ORM conversion; no historical row changes.
+    """
+    before=foreign_keys(cursor)
+    for table,_,_ in RELATIONS:
+        expected='FOREIGN KEY (contract_id) REFERENCES hr_contract(id) ON DELETE RESTRICT'
+        name=table+'_contract_id_fkey'
+        current=[row for row in before if row['table']==table and
+                 (row['name']==name or row['definition'].startswith('FOREIGN KEY (contract_id)'))]
+        if current:
+            if len(current)!=1 or current[0]['name']!=name or current[0]['definition']!=expected or not current[0]['validated']:
+                raise ValueError('Existing contract FK requires explicit review: '+table)
+            continue
+        cursor.execute(sql.SQL('ALTER TABLE {} ADD CONSTRAINT {} FOREIGN KEY (contract_id) '
+            'REFERENCES hr_contract(id) ON DELETE RESTRICT NOT VALID').format(sql.Identifier(table),sql.Identifier(name)))
+        cursor.execute(sql.SQL('ALTER TABLE {} VALIDATE CONSTRAINT {}').format(sql.Identifier(table),sql.Identifier(name)))
+    after=foreign_keys(cursor)
+    indexed={row['oid']:row for row in after}
+    if any(indexed.get(row['oid'])!=row for row in before):
+        raise ValueError('An original foreign key changed')
+    return after
 
 
 def connect(database):
@@ -105,11 +169,14 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
+    parser.add_argument('--community-database',help='Existing private zero-Enterprise OCA reference; enables FK preparation')
     args=parser.parse_args()
     assert os.geteuid()==0
     root=args.root.resolve()
     assert str(root).startswith('/opt/steps-validation/') and not root.exists()
     assert re.fullmatch('MANAGEMENT_QA_SYS_PAYROLL_STORAGE_[A-Za-z0-9_]+',args.database)
+    if args.community_database:
+        assert re.fullmatch('COMMUNITY_PAYROLL_API_[A-Za-z0-9_]+',args.community_database)
     config=configparser.ConfigParser(interpolation=None)
     assert config.read('/etc/odoo18-sys.conf') and config['options']['db_name']=='SyS'
     root.mkdir(mode=0o700)
@@ -131,6 +198,11 @@ def main():
                 cur.execute('SELECT 1 FROM pg_database WHERE datname=%s',(args.database,));assert not cur.fetchone()
                 cur.execute("SELECT pg_database_size('SyS')");estimated=cur.fetchone()[0]*2
         dump('storage-preflight',capacity(pg_directory,estimated))
+        if args.community_database:
+            with connect(args.community_database) as conn:
+                with conn.cursor() as cur:
+                    cur.execute('SET TRANSACTION READ ONLY')
+                    dump('community-contract',community_contract(cur))
         backup=root/'source.dump'
         with backup.open('wb') as stream:run('sudo','-u','postgres','pg_dump','-Fc','SyS',stdout=stream)
         with backup.open('rb') as stream,(root/'backup-decode.log').open('wb') as log:
@@ -152,21 +224,31 @@ def main():
             with conn.cursor() as cur:
                 cur.execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE')
                 before=snapshot(cur);dump('original-before',before)
+                original_foreign_keys=foreign_keys(cur);dump('foreign-keys-before',original_foreign_keys)
                 projection=materialize(cur)
+                prepared_foreign_keys=adopt_contract_foreign_keys(cur) if args.community_database else foreign_keys(cur)
                 originals={table:proof['original_columns'] for table,proof in projection.items()}
                 after=snapshot(cur,originals)
                 assert before==after,'Original data/IDs/metadata/ACL/amounts/counters changed'
                 again=materialize(cur)
+                if args.community_database:
+                    assert adopt_contract_foreign_keys(cur)==prepared_foreign_keys,'Repeated FK preparation changed identities'
                 assert all(again[table]['projection_sha256']==proof['projection_sha256'] for table,proof in projection.items())
                 assert snapshot(cur,originals)==before,'Repeated preparation changed original data'
                 dump('original-after',after);dump('relations',projection)
+                dump('foreign-keys-after',prepared_foreign_keys)
         with connect(args.database) as conn:
-            with conn.cursor() as cur:assert snapshot(cur,originals)==before
+            with conn.cursor() as cur:
+                assert snapshot(cur,originals)==before
+                assert foreign_keys(cur)==prepared_foreign_keys
         dump('storage-after',capacity(pg_directory))
         dump('passed',{'database':args.database,'source':'SyS','original_contracts_preserved':len(before),
             'tables':projection,'backup_decoded':True,'backup_sha256':backup_sha,
             'tool_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'original_metadata_preserved':True,'original_input_null_labels_preserved':True,
+            'contract_fks_prepared':bool(args.community_database),'community_reference':args.community_database,
+            'original_foreign_keys_preserved':True,'orm_metadata_adopted':False,
+            'native_nullability_changed':False,
             'idempotence_verified':True,'writes_to_source':False,'orm_loaded':False,
             'paid_payroll_recomputed':False,'engine_converted':False,'financial_certified':False})
         print('PAYROLL_RELATED_STORAGE_OK',flush=True)
