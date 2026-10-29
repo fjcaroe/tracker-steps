@@ -9,6 +9,74 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_typed_rows_inherit_only_the_actual_parent_contract(self):
+        slip=self.slip()
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private related day','code':'PRIVATE_RELATED_DAY'})
+        day=self.scope['hr.payslip.worked_days'].create({'name':'Private day','payslip_id':slip.id,
+            'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
+        entry=self.scope['hr.payslip.input'].create({'payslip_id':slip.id,
+            'input_type_id':self.input_type.id,'amount':7})
+        self.assertEqual(day.contract_id,slip.contract_id)
+        self.assertEqual(entry.contract_id,slip.contract_id)
+        other=self.contract.copy({'name':'Private second actual contract'})
+        for line in (day,entry):
+            with self.assertRaises(ValidationError),self.env.cr.savepoint():
+                line.write({'contract_id':other.id})
+        self.assertEqual(day.contract_id,slip.contract_id)
+        self.assertEqual(entry.contract_id,slip.contract_id)
+
+    def test_null_input_name_remains_null_after_master_changes_and_closed_read(self):
+        slip=self.slip()
+        entry=self.scope['hr.payslip.input'].create({'name':False,'payslip_id':slip.id,
+            'input_type_id':self.input_type.id,'amount':7})
+        slip.compute_sheet();slip.state='done'
+        self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(t) FROM hr_payslip_input t WHERE id=%s',(entry.id,))
+        before=self.env.cr.fetchone()[0]
+        self.assertIsNone(before['name'])
+        self.input_type.name='Renamed actual master'
+        entry.invalidate_recordset()
+        self.assertFalse(entry.name)
+        self.env.flush_all()
+        self.env.cr.execute('SELECT to_jsonb(t) FROM hr_payslip_input t WHERE id=%s',(entry.id,))
+        self.assertEqual(self.env.cr.fetchone()[0],before)
+
+    def test_closed_day_and_input_cannot_move_rewrite_or_delete(self):
+        slip=self.slip()
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private frozen day','code':'PRIVATE_FROZEN_DAY'})
+        day=self.scope['hr.payslip.worked_days'].create({'name':'Private day','payslip_id':slip.id,
+            'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
+        entry=slip.input_line_ids
+        slip.compute_sheet();slip.state='done'
+        self.env.flush_all()
+        def snapshot():
+            result=[]
+            for table,ident in [('hr_payslip_worked_days',day.id),('hr_payslip_input',entry.id)]:
+                self.env.cr.execute('SELECT to_jsonb(t) FROM '+table+' t WHERE id=%s',(ident,))
+                result.append(self.env.cr.fetchone()[0])
+            return result
+        before=snapshot();open_slip=self.slip()
+        for line in (day,entry):
+            for operation in (lambda:line.write({'payslip_id':open_slip.id}),
+                              lambda:line.write({'name':'Changed'}),lambda:line.unlink()):
+                with self.assertRaises(UserError),self.env.cr.savepoint():operation()
+        self.assertEqual(snapshot(),before)
+
+    def test_open_rows_cannot_be_appended_or_moved_to_closed_payroll(self):
+        closed=self.slip();closed.compute_sheet();closed.state='done'
+        opened=self.slip()
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private target day','code':'PRIVATE_TARGET_DAY'})
+        specifications=[('hr.payslip.worked_days',{'name':'Private day','work_entry_type_id':kind.id,
+                         'number_of_days':1,'number_of_hours':8}),
+                        ('hr.payslip.input',{'input_type_id':self.input_type.id,'amount':7})]
+        for model,values in specifications:
+            with self.assertRaises(UserError),self.env.cr.savepoint():
+                self.scope[model].create(dict(values,payslip_id=closed.id))
+            line=self.scope[model].create(dict(values,payslip_id=opened.id))
+            with self.assertRaises(UserError),self.env.cr.savepoint():
+                line.write({'payslip_id':closed.id})
+            self.assertEqual(line.payslip_id,opened)
+
     def test_stored_components_keep_rounded_total_and_original_factors(self):
         PayrollContractMixin.test_stored_components_keep_rounded_total_and_original_factors(self)
 
