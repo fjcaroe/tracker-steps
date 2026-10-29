@@ -231,3 +231,15 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         with self.assertRaises(UserError), self.env.cr.savepoint():
             module.state = 'uninstalled'
             require_clean_provider(self.env)
+        # Refuse either native provider even when it is merely queued in this
+        # same graph, before its class/table has been initialized. Metadata-only
+        # private fixtures: no Enterprise addon is imported or installed.
+        modules = self.env['ir.module.module'].sudo()
+        for name in ('account_batch_payment', 'account_accountant_batch_payment'):
+            with self.assertRaises(UserError), self.env.cr.savepoint():
+                native = modules.search([('name', '=', name)])
+                if native:
+                    native.state = 'to install'
+                else:
+                    modules.create({'name': name, 'state': 'to install'})
+                require_clean_provider(self.env)
