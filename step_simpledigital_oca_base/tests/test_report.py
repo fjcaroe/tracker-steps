@@ -103,10 +103,14 @@ class StoredPayslipReportCase(StoredReportFixture, TransactionCase):
         slip = self.closed_slip()
         owner = self.employee_actor()
         self.employee.user_id = owner
-        field = self.env['hr.payslip.line']._fields['total']
-        with patch.object(field, 'groups', 'payroll.group_payroll_manager'):
-            with self.assertRaises(AccessError):
-                self.rendered_html(slip, owner)
+        for model, name in (('hr.payslip.line', 'total'), ('hr.payroll.structure', 'payslip_name'),
+                            ('hr.payroll.structure', 'hide_basic_on_pdf'), ('hr.salary.rule.category', 'code')):
+            field = self.env[model]._fields[name]
+            with patch.object(field, 'groups', 'payroll.group_payroll_manager'):
+                with self.assertRaises(AccessError):
+                    self.rendered_html(slip, owner)
+                with self.assertRaises(AccessError):
+                    self.scope['report.step_simpledigital_oca_base.report_payslip'].with_user(owner).sudo()._get_report_values(slip.ids)
 
     def test_action_identity_selection_and_untrusted_report_data(self):
         slip = self.closed_slip()
