@@ -33,6 +33,10 @@ RELATIONS = ('hr_structure_salary_rule_rel', 'hr_payroll_structure_hr_payslip_in
              'hr_payroll_structure_hr_work_entry_type_rel')
 CONFIG_XML = 'data/hr_salary_structure.xml'
 CONFIG_XML_SHA256 = 'a736508a6ad2cd39bfdd184383f88da38fb1d2dbac00e99b954f2e3e902d3166'
+DERIVED_CONFIG_XML_SHA256 = '7938803cbad9f15f8eb24253f41865a8a528610392493833728b1ea2730ab104'
+PROVIDER_BUILDER_SHA256 = 'a0165457028b3bfda4442a62cb01bd90f71cb896e43a72058cded7012bf19674'
+PROVIDER_DERIVATION_SHA256 = 'cc567a8b0db6776ce7f2ae611783f3b3ca6b6c4fcc0ca65421a253734b2b0c81'
+PROVIDER_SOURCE_FILES_SHA256 = '45e4efcd56318f9206c4fed65616b3c466e06e4102bbfaaee7becdea5e238786'
 CONFIG_ALIASES = {
     'structure_chile': ('hr_payroll_structure', 'hr.payroll.structure'),
     'structure_type_chile': ('hr_payroll_structure_type', 'hr.payroll.structure.type'),
@@ -119,8 +123,14 @@ def configuration_reload_allowlist(before, after, audit):
     """Explicit audit exception for two unchanged XML configuration records."""
     assert re.fullmatch(DATABASE_PATTERN, audit['database'])
     assert audit['license'] == 'AGPL-3'
-    for key in ('approved_xml_sha256', 'legacy_xml_sha256', 'candidate_xml_sha256', 'package_xml_sha256'):
-        assert audit[key] == CONFIG_XML_SHA256, 'XML configuration source pin changed'
+    assert audit['approved_xml_sha256'] == CONFIG_XML_SHA256, 'Original AGPL XML source pin changed'
+    for key in ('approved_derived_xml_sha256', 'legacy_xml_sha256', 'candidate_xml_sha256', 'package_xml_sha256'):
+        assert audit[key] == DERIVED_CONFIG_XML_SHA256, 'Derived XML configuration pin changed'
+    assert audit['provider_source_file_count'] == 52 and audit['provider_source_files_sha256'] == PROVIDER_SOURCE_FILES_SHA256
+    for key in ('legacy_builder_sha256', 'candidate_builder_sha256'):
+        assert audit[key] == PROVIDER_BUILDER_SHA256, 'Provider builder pin changed'
+    for key in ('legacy_provider_derivation_sha256', 'candidate_provider_derivation_sha256'):
+        assert audit[key] == PROVIDER_DERIVATION_SHA256, 'Approved provider derivation changed'
     for key in ('source_pin_manifest_sha256', 'package_files_sha256', 'upgrade_log_sha256',
                 'sql_clock_before_sha256', 'sql_clock_after_sha256'):
         assert re.fullmatch('[0-9a-f]{64}', audit[key]), 'Missing source/log provenance hash'
@@ -346,6 +356,13 @@ def exercise(env, mode, directory):
         assert hashlib.sha256(pin_bytes).hexdigest() == xml_audit['source_pin_manifest_sha256']
         pin = json.loads(pin_bytes)
         assert pin['license'] == 'AGPL-3' and pin['files'][CONFIG_XML] == CONFIG_XML_SHA256
+        assert len(pin['files']) == 52 and digest(pin['files']) == PROVIDER_SOURCE_FILES_SHA256
+        for prefix in ('legacy', 'candidate'):
+            derivation_bytes = (root / (prefix + '-provider-derivation.json')).read_bytes()
+            assert hashlib.sha256(derivation_bytes).hexdigest() == xml_audit[prefix + '_provider_derivation_sha256']
+            derivation = json.loads(derivation_bytes)
+            assert derivation['license'] == 'AGPL-3' and derivation['source_files'] == pin['files']
+            assert derivation['builder_sha256'] == xml_audit[prefix + '_builder_sha256'] == PROVIDER_BUILDER_SHA256
         for phase in ('before', 'after'):
             clock_bytes = (root / ('upgrade-sql-clock-' + phase + '.json')).read_bytes()
             assert hashlib.sha256(clock_bytes).hexdigest() == xml_audit['sql_clock_' + phase + '_sha256']
@@ -510,9 +527,24 @@ def main():
         pin_bytes = pin_path.read_bytes()
         source_pin = json.loads(pin_bytes)
         assert source_pin['license'] == 'AGPL-3' and source_pin['files'][CONFIG_XML] == CONFIG_XML_SHA256
+        assert len(source_pin['files']) == 52 and digest(source_pin['files']) == PROVIDER_SOURCE_FILES_SHA256
         assert manifest(legacy / 'l10n_cl_simpledigital_payroll')['license'] == 'AGPL-3'
-        assert files['l10n_cl_simpledigital_payroll']['legacy'][CONFIG_XML] == CONFIG_XML_SHA256
-        assert files['l10n_cl_simpledigital_payroll']['candidate'][CONFIG_XML] == CONFIG_XML_SHA256
+        for phase in ('legacy', 'candidate'):
+            assert set(files['l10n_cl_simpledigital_payroll'][phase]) == set(source_pin['files'])
+            assert files['l10n_cl_simpledigital_payroll'][phase][CONFIG_XML] == DERIVED_CONFIG_XML_SHA256
+        derivations = {}
+        for phase, package in (('legacy', source_root), ('candidate', candidate.parent)):
+            derivation_bytes = (package / 'provider-derivation.json').read_bytes()
+            assert hashlib.sha256(derivation_bytes).hexdigest() == PROVIDER_DERIVATION_SHA256
+            derivation = json.loads(derivation_bytes)
+            assert derivation['license'] == 'AGPL-3' and derivation['source_files'] == source_pin['files']
+            builder = package / 'addons/tools/community/build_simpledigital_candidate.py'
+            assert hashlib.sha256(builder.read_bytes()).hexdigest() == derivation['builder_sha256'] == PROVIDER_BUILDER_SHA256
+            assert CONFIG_XML in derivation['transformed_files'] and not derivation['identity_conversion_accepted']
+            derivations[phase] = derivation
+            with (root / (phase + '-provider-derivation.json')).open('xb') as stream:
+                stream.write(derivation_bytes)
+        assert derivations['legacy'] == derivations['candidate']
         with (root / 'xml-config-source-pin.json').open('xb') as stream:
             stream.write(pin_bytes)
         for path in (root, *root.rglob('*')):
@@ -550,6 +582,13 @@ def main():
             if 'odoo.modules.loading: loading l10n_cl_simpledigital_payroll/' + CONFIG_XML in line]
         xml_audit = {'database': args.database, 'license': 'AGPL-3',
             'approved_xml_sha256': source_pin['files'][CONFIG_XML],
+            'approved_derived_xml_sha256': DERIVED_CONFIG_XML_SHA256,
+            'provider_source_file_count': len(source_pin['files']),
+            'provider_source_files_sha256': digest(source_pin['files']),
+            'legacy_builder_sha256': derivations['legacy']['builder_sha256'],
+            'candidate_builder_sha256': derivations['candidate']['builder_sha256'],
+            'legacy_provider_derivation_sha256': hashlib.sha256((root / 'legacy-provider-derivation.json').read_bytes()).hexdigest(),
+            'candidate_provider_derivation_sha256': hashlib.sha256((root / 'candidate-provider-derivation.json').read_bytes()).hexdigest(),
             'legacy_xml_sha256': files['l10n_cl_simpledigital_payroll']['legacy'][CONFIG_XML],
             'candidate_xml_sha256': files['l10n_cl_simpledigital_payroll']['candidate'][CONFIG_XML],
             'package_xml_sha256': files['l10n_cl_simpledigital_payroll']['candidate'][CONFIG_XML],
