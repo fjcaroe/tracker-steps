@@ -20,8 +20,13 @@ class StoredReportFixture:
             'code': 'PRIVATE_PRINT', 'company_id': self.company.id, 'type_id': self.kind.id,
             'use_worked_day_lines': False, 'payslip_name': '<literal> Stored remuneration', 'active': True})
         self.employee = self.scope['hr.employee'].create({'name': 'Private stored PDF employee', 'company_id': self.company.id})
+        self.period_start = fields.Date.start_of(fields.Date.today(), 'month')
+        self.period_end = fields.Date.end_of(fields.Date.today(), 'month')
         self.contract = self.scope['hr.contract'].create({'name': 'Private stored PDF contract',
-            'employee_id': self.employee.id, 'company_id': self.company.id, 'date_start': '2026-01-01',
+            # A new private contract has no accrued vacation. Exercise printing
+            # without creating an unrelated allocation in the provider's global
+            # leave type/company, and without granting extra time-off ACLs.
+            'employee_id': self.employee.id, 'company_id': self.company.id, 'date_start': self.period_start,
             'wage': 1000, 'schedule_pay': 'monthly', 'structure_type_id': self.kind.id,
             'struct_id': self.structure.id, 'state': 'open'})
         self.categories = {code: self.scope['hr.salary.rule.category'].create({'name': 'Private stored ' + code, 'code': code})
@@ -38,18 +43,20 @@ class StoredReportFixture:
     def closed_slip(self, split_net=False, ambiguous_net=False):
         slip = self.scope['hr.payslip'].create({'name': 'Original stored payslip name', 'number': 'PRIVATE/PDF/1',
             'employee_id': self.employee.id, 'company_id': self.company.id, 'contract_id': self.contract.id,
-            'struct_id': self.structure.id, 'date_from': '2026-10-01', 'date_to': '2026-10-31'})
+            'struct_id': self.structure.id, 'date_from': self.period_start, 'date_to': self.period_end})
         values = {'BASIC': 100, 'GROSS': 100, 'NET': 75, 'NEGATIVE': -25, 'ZERO': 0,
                   'NULL_VALUE': 0, 'OTHER': 12, 'TOTAL_DED': 25}
         for code, amount in values.items():
             rule = self.rules[code]
             self.scope['hr.payslip.line'].create({'slip_id': slip.id, 'salary_rule_id': rule.id,
-                'name': rule.name, 'category_id': rule.category_id.id, 'sequence': rule.sequence,
+                'code': rule.code, 'name': rule.name, 'category_id': rule.category_id.id, 'sequence': rule.sequence,
+                'employee_id': self.employee.id, 'contract_id': self.contract.id,
                 'amount': amount, 'quantity': 1, 'rate': 100, 'appears_on_payslip': True})
         if split_net or ambiguous_net:
             rule = self.rules['NET'].copy({'name': 'Stored other NET identity'}) if ambiguous_net else self.rules['NET']
             self.scope['hr.payslip.line'].create({'slip_id': slip.id, 'salary_rule_id': rule.id,
-                'name': rule.name, 'category_id': rule.category_id.id, 'amount': 25,
+                'code': rule.code, 'name': rule.name, 'category_id': rule.category_id.id,
+                'employee_id': self.employee.id, 'contract_id': self.contract.id, 'sequence': rule.sequence, 'amount': 25,
                 'quantity': 1, 'rate': 100, 'appears_on_payslip': True})
         work_type = self.scope['hr.work.entry.type'].create({'name': 'Private stored work', 'code': 'PRIVATE_PDF_WORK'})
         self.scope['hr.payslip.worked_days'].create({'name': 'Stored attendance', 'code': 'PRIVATE_PDF_WORK',
