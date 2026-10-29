@@ -56,3 +56,38 @@ class CompanyFormCase(TransactionCase):
         from odoo.addons.step_company_form_restore.hooks import LEGACY
         arch=self.env['res.company']._get_view(view_type='form')[0]
         self.assertFalse({node.get('name') for node in arch.xpath('.//field')} & LEGACY)
+
+    def test_branch_dialog_generated_contact_is_not_required_by_client(self):
+        from odoo.tests.common import new_test_user
+        user=new_test_user(self.env,login='branch_view_regression',groups='base.group_system')
+        self.assertFalse(user.has_group('base.group_no_one'))
+        # A real exporter bank domain also depends on partner_id. Make that
+        # dependency explicit even in a minimal Community-only installation.
+        self.env['ir.ui.view'].create({
+            'name':'branch.contact.dependency.regression','model':'res.company',
+            'inherit_id':self.env.ref('base.view_company_form').id,
+            'arch':"<field name='email' position='attributes'><attribute name='invisible'>not partner_id</attribute></field>"})
+        model=self.env['res.company'].with_user(user)
+        for kind in ('form','list'):
+            arch=etree.fromstring(model.get_view(view_type=kind)['arch'])
+            nodes=arch.xpath("//field[@name='partner_id']")
+            self.assertTrue(nodes)
+            self.assertTrue(all(n.get('required') in ('0','False') for n in nodes))
+        self.assertTrue(model._fields['partner_id'].required,
+                        'Native database invariant must remain required')
+
+    def test_native_branch_creation_generates_its_own_contact(self):
+        root=self.env.company
+        before=root.read(['name','partner_id','currency_id'])[0]
+        count=self.env['res.company'].search_count([('parent_id','=',root.id)])
+        parent=Form(root)
+        with parent.child_ids.new() as branch:
+            branch.name='Branch Native Contact Regression'
+        parent.save()
+        child=self.env['res.company'].search([('parent_id','=',root.id),('name','=','Branch Native Contact Regression')])
+        self.assertEqual(len(child),1)
+        self.assertTrue(child.partner_id)
+        self.assertNotEqual(child.partner_id,root.partner_id)
+        self.assertEqual(child.currency_id,root.currency_id)
+        self.assertEqual(root.read(['name','partner_id','currency_id'])[0],before)
+        self.assertEqual(self.env['res.company'].search_count([('parent_id','=',root.id)]),count+1)

@@ -36,3 +36,22 @@ publicar con respaldo y bloqueo y verificar menú, formulario, versión y flujo 
 
 Artefactos privados: `~/.codex/local-artifacts/t131-20261028/` y
 `/opt/steps-validation/t131-branch-repro.log`. No guardar los adjuntos en Git.
+
+## Respuesta 9790 del 29-10-2026
+
+Se leyó el adjunto 3432 completo: el cliente web muestra «Campos no válidos:
+Empresa» al guardar el diálogo de sucursal. Empresa es `res.company.partner_id`,
+no la matriz `parent_id`. La creación nativa genera ese contacto al guardar.
+
+La vista procesada para el usuario operativo elimina el contacto técnico por
+`base.group_no_one`, pero una dependencia del dominio bancario lo reinyecta
+invisible con la obligatoriedad ORM. El cliente web combina esa configuración
+con el contacto visible de la lista de sucursales: combina invisible con AND y
+required con OR, haciendo exigible un contacto aún inexistente. El ensayo Form
+inicial no ejercitaba esa combinación del navegador.
+
+Corrección en preparación: conservar explícitamente el contacto técnico oculto,
+solo lectura y no exigible por el formulario para todos los usuarios. Mantener
+la obligatoriedad y la generación del contacto en ORM. Pruebas de la vista
+procesada y de creación nativa con contacto propio; copias y publicación aún
+pendientes. No se cierra el ticket por este diagnóstico.

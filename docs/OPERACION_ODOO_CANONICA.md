@@ -76,6 +76,13 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T131 amplía `company-form` en Desarrollo, Cerro y QA-Cerro para corregir la
+validación del contacto generado al crear sucursales nativas. La respuesta
+humana 9790 y el adjunto 3432 permiten reproducir la validación del cliente web.
+No modificar la obligatoriedad ORM del contacto ni crear sucursales reales
+durante la verificación. Exigir copias frescas, mismo paquete, respaldo, bloqueo
+y preservación de la capacitación y aislamiento de QA-Cerro.
+
 T130 autoriza `company-form` en Desarrollo, Cerro y QA-Cerro para recuperar
 el formulario completo de Ajustes / Empresas. Se conservan los formularios
 específicos de Folios y Bodega Packing, los datos y los permisos. Copia fresca
