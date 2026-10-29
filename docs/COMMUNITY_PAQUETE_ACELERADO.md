@@ -1,5 +1,9 @@
 # Paquete ampliado HR, bancos y CAF — 29-10-2026 UTC
 
+Continuación y aceptación posteriores:
+[COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md). Este documento
+conserva la evidencia histórica de M; no reemplaza el estado/prompt vigente.
+
 Continuación de f56e221d. El usuario pidió ampliar los bloques y autorizó hasta
 tres agentes adicionales. Se usaron cuatro worktrees propios; los upgrades y
 respaldos siguieron en serie bajo `/run/lock/steps-environments.lock`. No se

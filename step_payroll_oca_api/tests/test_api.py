@@ -2,12 +2,177 @@ from odoo import Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
+from odoo.addons.step_payroll_contracts.configuration import configuration_report
+from odoo.tools import mute_logger
+from psycopg2 import IntegrityError
 
 
 @tagged('post_install','-at_install')
 class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
+
+    def _scope_structure(self, parent=False, **extra):
+        values={'name':'Private hierarchy structure','code':'PRIVATE_HIERARCHY','type_id':self.kind.id,
+                'company_id':self.company.id,'parent_id':parent.id if parent else False}
+        values.update(extra)
+        return self.scope['hr.payroll.structure'].create(values)
+
+    def test_structure_default_does_not_adopt_demo_or_legacy_namespace(self):
+        original=self.scope['hr.salary.rule'].search([]).ids
+        child=self.scope['hr.payroll.structure'].create({'name':'Private explicit configuration',
+            'code':'PRIVATE_NO_IMPLICIT_BASE','type_id':self.kind.id,'company_id':self.company.id})
+        self.assertFalse(child.parent_id)
+        self.assertFalse(child.rule_ids)
+        explicit=self.scope['hr.payroll.structure'].with_context(default_parent_id=self.structure.id).create({
+            'name':'Private explicit parent','code':'PRIVATE_EXPLICIT_PARENT','type_id':self.kind.id,'company_id':self.company.id})
+        self.assertEqual(explicit.parent_id,self.structure)
+        self.assertEqual(self.scope['hr.salary.rule'].search([]).ids,original)
+
+    def test_actual_engine_keeps_inherited_rule_identity_and_typed_inputs(self):
+        parent=self.structure
+        child=self._scope_structure(parent)
+        self.input_type.struct_ids=[Command.link(child.id)]
+        self.contract.struct_id=child
+        self.structure=child
+        slip=self.slip()
+        self.assertFalse(child.rule_ids)
+        self.assertEqual(child._step_effective_rule_scope()['structures'].ids,[parent.id,child.id])
+        self.assertEqual(slip._get_salary_rules(),self.rule)
+        slip.compute_sheet()
+        self.assertEqual(slip.line_ids.salary_rule_id,self.rule)
+        self.assertEqual(self.rule.struct_id,parent)
+        self.assertEqual(slip.input_line_ids.input_type_id,self.input_type)
+        self.assertEqual(slip._get_line_values(['LIQ'])['LIQ'][slip.id]['total'],self.company.currency_id.round(800123.45))
+
+    def test_inherited_equal_sequence_keeps_original_id_priority(self):
+        parent=self.structure
+        child=self._scope_structure(parent)
+        self.rule.code='PRIVATE_EARLY_CHILD'
+        later=self.rule.copy({'code':'PRIVATE_LATE_PARENT','struct_id':parent.id})
+        self.rule.struct_id=child
+        self.input_type.struct_ids=[Command.link(child.id)]
+        self.contract.struct_id=child
+        self.structure=child
+        slip=self.slip()
+        self.assertLess(self.rule.id,later.id)
+        self.assertEqual(self.rule.sequence,later.sequence)
+        self.assertEqual(child.get_structure_with_parents().ids,[parent.id,child.id])
+        self.assertEqual(self.rule.struct_id,child)
+        self.assertEqual(later.struct_id,parent)
+        self.assertEqual(slip._get_salary_rules().ids,[self.rule.id,later.id])
+
+    def test_missing_structure_preserves_complete_original_contract_and_rule_scope(self):
+        slip=self.slip()
+        slip.input_line_ids.unlink()
+        slip.struct_id=False
+        self.assertEqual(slip._get_salary_rules(),self.rule)
+        slip.contract_id=False
+        self.assertEqual(slip._get_salary_rules(),self.rule)
+        hidden=self.env['ir.rule'].create({'name':'Private hidden fallback contract',
+            'model_id':self.env['ir.model']._get_id('hr.contract'),
+            'domain_force':"[('id','!=',%d)]" % self.contract.id})
+        with self.assertRaises(AccessError):
+            slip._get_salary_rules()
+        hidden.unlink()
+        self.env['ir.rule'].create({'name':'Private hidden fallback salary rule',
+            'model_id':self.env['ir.model']._get_id('hr.salary.rule'),
+            'domain_force':"[('id','!=',%d)]" % self.rule.id})
+        self.structure.invalidate_recordset(['rule_ids'])
+        with self.assertRaises(AccessError):
+            slip._get_salary_rules()
+
+    def test_configuration_reports_the_actual_inherited_essential_rules(self):
+        self.rule.write({'code':'BASIC','sequence':1,'amount_python_compute':'result = payslip.paid_amount'})
+        category=self.scope['hr.salary.rule.category'].create({'name':'Private hierarchy gross','code':'PRIVATE_HIERARCHY_GROSS'})
+        gross=self.rule.copy({'code':'GROSS','sequence':100,'category_id':category.id,
+            'amount_python_compute':"result = categories['PRIVATE_NET']"})
+        net=self.rule.copy({'code':'NET','sequence':200,'amount_python_compute':"result = categories['PRIVATE_HIERARCHY_GROSS']"})
+        child=self._scope_structure(self.structure)
+        report=configuration_report(child)
+        self.assertFalse(child.rule_ids)
+        self.assertTrue(report['structural_checks_passed'])
+        self.assertFalse(report['financial_certified'])
+        self.assertEqual(report['essential_ids'],{'BASIC':self.rule.id,'GROSS':gross.id,'NET':net.id})
+        self.assertEqual(set(report['inherited_rule_ids']),set((self.rule|gross|net).ids))
+        self.assertEqual(set(report['selected_structure_ids']),set((child|self.structure).ids))
+
+    def test_configuration_rejects_duplicate_codes_across_real_structures(self):
+        child=self._scope_structure(self.structure)
+        duplicate=self.rule.copy({'struct_id':child.id})
+        report=configuration_report(child)
+        self.assertIn('RULE_CODE_AMBIGUOUS:LIQ',report['errors'])
+        self.assertEqual(set(report['duplicate_code_ids']['LIQ']),set((self.rule|duplicate).ids))
+        self.assertEqual(child._step_effective_rule_scope()['rules'],
+            child.get_structure_with_parents().get_all_rules().filtered('active'))
+        duplicate.active=False
+        self.assertNotIn('RULE_CODE_AMBIGUOUS:LIQ',configuration_report(child)['errors'])
+        self.assertEqual(child._step_effective_rule_scope()['rules'],self.rule)
+        child.parent_id=False
+        self.assertFalse(child._step_effective_rule_scope()['rules'])
+        child.rule_ids=[Command.link(self.rule.id)]
+        scope=child._step_effective_rule_scope()
+        self.assertEqual(scope['rules'],self.rule)
+        self.assertEqual(scope['direct_rule_ids'],self.rule.ids)
+
+    def test_hidden_parent_membership_blocks_actual_engine_selection(self):
+        child=self._scope_structure(self.structure)
+        self.input_type.struct_ids=[Command.link(child.id)]
+        self.contract.struct_id=child
+        self.structure=child
+        slip=self.slip()
+        self.env['ir.rule'].create({'name':'Private hidden inherited rule',
+            'model_id':self.env['ir.model']._get_id('hr.salary.rule'),
+            'domain_force':"[('id','!=',%d)]" % self.rule.id})
+        with self.assertRaises(AccessError):
+            slip._get_salary_rules()
+
+    def test_original_parent_cannot_cross_authorized_companies(self):
+        other=self.env['res.company'].create({'name':'Private second hierarchy company'})
+        self.scope.user.with_env(self.env).write({'company_ids':[Command.link(other.id)]})
+        scope=self.scope['hr.payroll.structure'].with_context(allowed_company_ids=(self.company|other).ids).env
+        foreign=scope['hr.payroll.structure'].with_company(other).create({'name':'Private foreign parent',
+            'code':'PRIVATE_FOREIGN_PARENT','type_id':self.kind.id,'company_id':other.id})
+        with self.assertRaises(ValidationError),self.env.cr.savepoint():
+            self.structure.with_env(scope).parent_id=foreign
+        self.assertFalse(self.structure.parent_id)
+
+    def test_legacy_structure_cycle_is_detected_before_oca_recursion(self):
+        child=self._scope_structure(self.structure)
+        self.env.flush_all()
+        self.env.cr.execute('UPDATE hr_payroll_structure SET parent_id=%s WHERE id=%s',(child.id,self.structure.id))
+        (child|self.structure).invalidate_recordset(['parent_id'])
+        with self.assertRaisesRegex(UserError,'cycle'):
+            child._step_effective_rule_scope()
+
+    def test_legacy_rule_cycle_is_detected_before_oca_recursion(self):
+        child=self.rule.copy({'code':'PRIVATE_HIERARCHY_CHILD','parent_rule_id':self.rule.id})
+        self.env.flush_all()
+        self.env.cr.execute('UPDATE hr_salary_rule SET parent_rule_id=%s WHERE id=%s',(child.id,self.rule.id))
+        (child|self.rule).invalidate_recordset(['parent_rule_id'])
+        with self.assertRaisesRegex(UserError,'cycle'):
+            self.structure._step_effective_rule_scope()
+
+    def test_actual_typed_contract_foreign_keys_reject_missing_original_master(self):
+        slip=self.slip()
+        kind=self.scope['hr.work.entry.type'].create({'name':'Private FK worked type','code':'PRIVATE_FK_WORK'})
+        day=self.scope['hr.payslip.worked_days'].create({'name':'Private FK day','payslip_id':slip.id,
+            'work_entry_type_id':kind.id,'number_of_days':1,'number_of_hours':8})
+        self.env.flush_all()
+        self.env.cr.execute('SELECT coalesce(max(id),0)+1000000 FROM hr_contract')
+        missing=self.env.cr.fetchone()[0]
+        for line in (day,slip.input_line_ids):
+            table=line._table
+            self.env.cr.execute("""SELECT convalidated,confdeltype FROM pg_constraint
+                WHERE contype='f' AND conrelid=%s::regclass AND confrelid='hr_contract'::regclass
+                AND conkey=ARRAY[(SELECT attnum FROM pg_attribute
+                    WHERE attrelid=%s::regclass AND attname='contract_id')]::smallint[]""",(table,table))
+            self.assertEqual(self.env.cr.fetchall(),[(True,'r')])
+            before=line.read(['id','contract_id','payslip_id'])
+            with mute_logger('odoo.sql_db'),self.assertRaises(IntegrityError),self.env.cr.savepoint():
+                self.env.cr.execute('UPDATE '+table+' SET contract_id=%s WHERE id=%s',(missing,line.id))
+            line.invalidate_recordset(['contract_id'])
+            self.assertEqual(line.read(['id','contract_id','payslip_id']),before)
 
     def test_typed_rows_inherit_only_the_actual_parent_contract(self):
         for model in ('hr.payslip.input','hr.payslip.worked_days'):

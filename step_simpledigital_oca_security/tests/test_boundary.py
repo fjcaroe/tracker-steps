@@ -247,6 +247,15 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         self.gross_rule.amount_python_compute="result = categories.PRIVATE_PROXY"
         self.assertTrue(self.structure._step_validate_configuration()['structural_checks_passed'])
 
+    def test_configuration_cannot_certify_a_hidden_original_rule(self):
+        self.valid_configuration()
+        self.env['ir.rule'].create({'name':'Private hidden configuration gross',
+            'model_id':self.env['ir.model']._get_id('hr.salary.rule'),
+            'domain_force':"[('id','!=',%d)]" % self.gross_rule.id})
+        self.structure.invalidate_recordset(['rule_ids'])
+        with self.assertRaises(AccessError):
+            self.structure._step_configuration_report()
+
     def test_disconnected_gross_is_rejected_without_rewriting_configuration(self):
         self.valid_configuration()
         self.gross_rule.amount_python_compute="result = categories.get('PRIVATE_GROSS', 0)"
@@ -273,6 +282,20 @@ class SimpleDigitalBoundary(PayrollContractMixin,TransactionCase):
         with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):slip.compute_sheet()
         self.assertFalse(slip.line_ids)
         self.assertEqual(slip.state,'draft')
+        if self.oca:
+            slip.input_line_ids.unlink()
+            slip.struct_id=False
+            with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):
+                slip.compute_sheet()
+            slip.contract_id=False
+            with self.assertRaisesRegex(UserError,'GROSS_DISCONNECTED_FROM_BASIC'):
+                slip.compute_sheet()
+            self.gross_rule.amount_python_compute="result = categories['PRIVATE_NET']"
+            with self.assertRaisesRegex(UserError,'Chile.*explicitly'):
+                slip.compute_sheet()
+            self.assertFalse(slip.line_ids)
+            self.assertFalse(slip.struct_id)
+            self.assertFalse(slip.contract_id)
 
     def duplicate_rules(self):
         (self.structure.rule_ids-self.rule).unlink()

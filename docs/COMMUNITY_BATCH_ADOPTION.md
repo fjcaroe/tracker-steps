@@ -97,8 +97,12 @@ importe, almacenamiento `attachment` de binarios, `_auto`, dependencias de
 cálculo y firmas de métodos. `batch_registry_contract.inspect_registry(env)`
 es un payload para que el operador inspeccione un registro privado ya cargado,
 en una transacción obligatoriamente de solo lectura. Sólo inspecciona atributos
-y firmas; no lee registros de negocio ni ejecuta los métodos. Este payload no
-se ha ejecutado como parte de la auditoría SQL y sigue siendo una puerta pendiente.
+y firmas; no lee registros de negocio ni ejecuta los métodos. Este payload
+se ejecutó posteriormente por el coordinador en la pareja B, con READ ONLY y
+comparación exacta de todas las tablas/correlativos; ver
+[COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md). Se obtuvieron esos
+atributos y firmas reales sin registros, computes ni cuerpos. Eso cierra la
+captura de metadata del registro, no la equivalencia de comportamiento.
 
 ## Evidencia y siguiente bloque
 
@@ -110,7 +114,7 @@ modificaciones; Community confirma ausencia del proveedor, almacenamiento y
 relación de lote. `conversion_ready=false` y `dependencies_may_change=false`
 son obligatorios: la herramienta no certifica el motor por metadata o licencia.
 
-El siguiente bloque debe cerrar el registro efectivo y escoger una adaptación
+El siguiente bloque debe usar el registro efectivo obtenido y escoger una adaptación
 que mantenga `account.batch.payment`/tabla/IDs/ACL, originales de error/rechazo,
 M2M y archivos. Debe agrupar pagos existentes sin duplicarlos ni volver a publicar
 pagos históricos; probar validación, congelación del grupo, eliminación segura,
