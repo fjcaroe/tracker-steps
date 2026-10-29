@@ -15,6 +15,7 @@ class TicketRevisionCase(TransactionCase):
         self.assertEqual(len(arch.xpath("//field[@name='date'][not(ancestor::field)]")),1)
         self.assertIn('step_export_packing',arch.xpath("//field[@name='packing_partner_id']/@domain")[0])
         self.assertEqual(model._fields['packing_partner_id'].comodel_name,'res.partner')
+        self.assertTrue(arch.xpath("//field[@name='inspection_ids']/list/field[@name='date']"), 'Moving the process date must preserve inspection dates')
 
     def test_producer_proposes_first_own_fundo_and_retains_operator_choice(self):
         producer=self.env['res.partner'].create({'name':'QA Packing producer','is_productor':True})

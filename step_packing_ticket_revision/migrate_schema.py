@@ -47,8 +47,11 @@ def prepare(cr, proof):
     # Pending means preserve the current native date and the separate prototype
     # value. It never means approval to choose or overwrite either date.
     result = {'fields': [], 'views': [], 'date_policy': DATE_POLICY, 'previous_dates': [], 'pending_dates': []}
-    if 'x_studio_fecha_proceso' in columns(cr, production) and DATE_POLICY == 'pending':
-        cr.execute('SELECT id,to_jsonb(date),to_jsonb(x_studio_fecha_proceso) FROM step_packing_production WHERE x_studio_fecha_proceso IS NOT NULL AND x_studio_fecha_proceso IS DISTINCT FROM date ORDER BY id')
+    source_columns = columns(cr, production)
+    prototype_date = ('x_studio_fecha_proceso' if 'x_studio_fecha_proceso' in source_columns
+                      else 'step_legacy_process_date' if 'step_legacy_process_date' in source_columns else None)
+    if prototype_date and DATE_POLICY == 'pending':
+        cr.execute(sql.SQL('SELECT id,to_jsonb(date),to_jsonb({0}) FROM step_packing_production WHERE {0} IS NOT NULL AND {0} IS DISTINCT FROM date ORDER BY id').format(sql.Identifier(prototype_date)))
         result['pending_dates'] = cr.fetchall()
     # Retire only the two recognized layouts; keep their IDs and original arch.
     old_names = {name for fields in MAPPING.values() for name in fields}
@@ -77,11 +80,12 @@ def prepare(cr, proof):
             cr.execute("UPDATE ir_model_fields SET name=%s,state='base' WHERE id=%s", [new, field[0]])
             adopt(cr, 'ir.model.fields', field[0], 'field_%s__%s' % (table, new))
     actual = columns(cr, production)
-    if 'step_legacy_packing_partner_id' in actual:
+    adopted = {field['name'] for field in result['fields'] if field['model'] == 'step.packing.production'}
+    if 'step_legacy_packing_partner_id' in adopted:
         cr.execute('SELECT count(*) FROM step_packing_production WHERE step_legacy_packing_partner_id IS NOT NULL AND packing_partner_id IS NOT NULL AND step_legacy_packing_partner_id<>packing_partner_id')
         assert cr.fetchone()[0] == 0, 'Conflicting native/prototype Packing requires review'
         cr.execute('UPDATE step_packing_production SET packing_partner_id=step_legacy_packing_partner_id WHERE packing_partner_id IS NULL AND step_legacy_packing_partner_id IS NOT NULL')
-    if DATE_POLICY == 'prototype' and 'step_legacy_process_date' in actual:
+    if DATE_POLICY == 'prototype' and 'step_legacy_process_date' in adopted:
         cr.execute('SELECT id,to_jsonb(date) FROM step_packing_production WHERE step_legacy_process_date IS NOT NULL AND step_legacy_process_date IS DISTINCT FROM date ORDER BY id')
         result['previous_dates'] = cr.fetchall()
         cr.execute('ALTER TABLE step_packing_production ADD COLUMN IF NOT EXISTS step_previous_process_date date')
@@ -134,11 +138,11 @@ def snapshot_row(table, original_columns, current_columns):
     additions = sorted(set(current_columns) - permitted)
     if additions:
         row = "(%s-ARRAY[%s])" % (row, ','.join("'%s'" % name for name in additions))
-    if table == 'step_packing_production':
+    if table == 'step_packing_production' and 'x_studio_packing' in original_columns:
         # This copy only fills an empty native field; conflicting values stop.
         row = "jsonb_set(%s,'{packing_partner_id}',COALESCE(NULLIF(%s->'packing_partner_id','null'::jsonb),%s->'step_legacy_packing_partner_id','null'::jsonb))" % (row, row, row)
-        if DATE_POLICY == 'prototype':
-            row = "jsonb_set(%s,'{date}',COALESCE(NULLIF(%s->'step_legacy_process_date','null'::jsonb),%s->'date','null'::jsonb))" % (row, row, row)
+    if table == 'step_packing_production' and DATE_POLICY == 'prototype' and 'x_studio_fecha_proceso' in original_columns:
+        row = "jsonb_set(%s,'{date}',COALESCE(NULLIF(%s->'step_legacy_process_date','null'::jsonb),%s->'date','null'::jsonb))" % (row, row, row)
     return row
 
 
