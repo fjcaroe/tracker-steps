@@ -408,6 +408,11 @@ def main():
                 ('hr.salary.rule','account_credit'),('hr.salary.rule','account_debit'),
                 ('hr.salary.rule','analytic_account_id'),('hr.salary.rule','note')}
             closed|=additional
+        newly_closed=set()
+        if 'step_simpledigital_oca_base/models/original_unpaid.py' in packets[0]:
+            newly_closed={('hr.payroll.structure','unpaid_work_entry_type_ids'),
+                ('hr.payroll.structure.type','name'),('hr.salary.rule','debit_tag_ids'),('hr.salary.rule','credit_tag_ids')}
+            closed|=newly_closed
         assert closed<={(row['model'],row['name']) for row in current['target_metadata']['fields']}
         assert not closed & {(row['model'],row['field']) for row in assessment['field_differences']}
         selection_unknowns=[]
@@ -425,6 +430,7 @@ def main():
         result['configuration_adoption_preflight']={'read_only_evidence_unchanged':True,
             'physical_original_field_contracts_closed':14,'additional_original_field_contracts_closed':len(additional),
             'original_field_contracts_closed':len(closed),
+            'newly_closed_original_field_contracts':len(newly_closed),
             'source_masters':assessment['source_master_count'],'source_xmlids':assessment['source_xmlid_count'],
             'occupied_ids':len(assessment['occupied_source_ids']),'xmlid_conflicts':len(assessment['xmlid_conflicts']),
             'remaining_field_differences':len(assessment['field_differences']),

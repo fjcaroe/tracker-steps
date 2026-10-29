@@ -30,6 +30,8 @@ def verify_native_payroll_tags(folder, source):
     data=read('observations.json')
     assert data['business_fixture_rolled_back'] and not data['equivalence_certified'] and not data['engine_replaced']
     assert len(data['metadata'])==4
+    assert {(row['model'],row['name']) for row in data['metadata']}=={
+        (model,name) for model in ('hr.salary.rule','hr.payslip.line') for name in ('debit_tag_ids','credit_tag_ids')}
     for row in data['metadata']:
         assert row['name'] in ('debit_tag_ids','credit_tag_ids')
         assert row['type']=='many2many' and row['comodel']=='account.account.tag'
