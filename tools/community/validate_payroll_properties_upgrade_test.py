@@ -32,8 +32,13 @@ def fixtures():
             row['data_type'] = 'jsonb'
     database = 'COMMUNITY_PAYROLL_API_PROPERTIES_UPGRADE_SYNTHETIC'
     audit = dict(database=database, license='AGPL-3',
-        approved_xml_sha256=probe.CONFIG_XML_SHA256, legacy_xml_sha256=probe.CONFIG_XML_SHA256,
-        candidate_xml_sha256=probe.CONFIG_XML_SHA256, package_xml_sha256=probe.CONFIG_XML_SHA256,
+        approved_xml_sha256=probe.CONFIG_XML_SHA256, approved_derived_xml_sha256=probe.DERIVED_CONFIG_XML_SHA256,
+        legacy_xml_sha256=probe.DERIVED_CONFIG_XML_SHA256,
+        candidate_xml_sha256=probe.DERIVED_CONFIG_XML_SHA256, package_xml_sha256=probe.DERIVED_CONFIG_XML_SHA256,
+        provider_source_file_count=52, provider_source_files_sha256=probe.PROVIDER_SOURCE_FILES_SHA256,
+        legacy_builder_sha256=probe.PROVIDER_BUILDER_SHA256, candidate_builder_sha256=probe.PROVIDER_BUILDER_SHA256,
+        legacy_provider_derivation_sha256=probe.PROVIDER_DERIVATION_SHA256,
+        candidate_provider_derivation_sha256=probe.PROVIDER_DERIVATION_SHA256,
         source_pin_manifest_sha256='a'*64, package_files_sha256='b'*64, upgrade_log_sha256='c'*64,
         sql_clock_before_sha256='d'*64, sql_clock_after_sha256='e'*64,
         clock_source='PostgreSQL clock_timestamp AT TIME ZONE UTC',
@@ -58,10 +63,18 @@ class PayrollPropertiesAuditCase(unittest.TestCase):
         with self.assertRaises(AssertionError): probe.verify_rows(before,after)
 
     def test_source_pin_changes_or_missing_real_reload_are_rejected(self):
-        for key in ('approved_xml_sha256','legacy_xml_sha256','candidate_xml_sha256','package_xml_sha256'):
+        for key in ('approved_xml_sha256','approved_derived_xml_sha256','legacy_xml_sha256','candidate_xml_sha256','package_xml_sha256'):
             before,after,audit = fixtures();audit[key]='d'*64
             with self.assertRaises(AssertionError): probe.verify_rows(before,after,audit)
         before,after,audit = fixtures();audit['reload_log_lines']=[]
+        with self.assertRaises(AssertionError): probe.verify_rows(before,after,audit)
+
+    def test_original_and_derived_pins_require_both_approved_52_file_provenances(self):
+        for key in ('provider_source_files_sha256', 'legacy_builder_sha256', 'candidate_builder_sha256',
+                    'legacy_provider_derivation_sha256', 'candidate_provider_derivation_sha256'):
+            before,after,audit=fixtures();audit[key]='d'*64
+            with self.assertRaises(AssertionError): probe.verify_rows(before,after,audit)
+        before,after,audit=fixtures();audit['provider_source_file_count']=50
         with self.assertRaises(AssertionError): probe.verify_rows(before,after,audit)
         before,after,audit = fixtures();audit['reload_log_lines']=['another_database '+audit['reload_log_lines'][0].split(' ',1)[1]]
         with self.assertRaises(AssertionError): probe.verify_rows(before,after,audit)
