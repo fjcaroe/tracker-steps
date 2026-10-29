@@ -76,6 +76,14 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T128 y T135 autorizan `payroll-review` exclusivamente en Desarrollo y SyS:
+mensajes con trabajadores y contratos pendientes, y validación de entradas del
+período local del lote. No confirmar parámetros, corregir asistencias ni calcular
+nómina real durante la publicación. Probar el asistente en copias frescas,
+conservar las liquidaciones históricas y publicar el mismo paquete con respaldo
+y bloqueo compartido. SyS continúa con Simple Digital.
+
+
 T131 amplía `company-form` en Desarrollo, Cerro y QA-Cerro para corregir la
 validación del contacto generado al crear sucursales nativas. La respuesta
 humana 9790 y el adjunto 3432 permiten reproducir la validación del cliente web.
