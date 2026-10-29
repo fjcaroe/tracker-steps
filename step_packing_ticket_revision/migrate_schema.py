@@ -8,6 +8,10 @@ from psycopg2 import sql
 
 MODULE = 'step_packing_ticket_revision'
 DATE_POLICY = 'pending'
+KNOWN_LAYOUTS = {
+    'stock.picking': {'1414010ace55ef9a0d3a495494a275b1dde698e6c243660039c52eea25cf8b5d'},
+    'step.packing.production': {'9953869bbfb8c46da025e165fa1ce2cb24314649dea6701d6d7f1000e1280519'},
+}
 MAPPING = {
     'stock.picking': {'x_studio_planta_frigorfico': 'step_receiving_packing_id'},
     'step.packing.production': {'x_studio_packing': 'step_legacy_packing_partner_id',
@@ -42,11 +46,28 @@ def fingerprint(rows):
     return hashlib.sha256(json.dumps(rows, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
 
 
+def business_hash(cr, table, original_columns):
+    current = columns(cr, table)
+    assert set(original_columns) <= current, 'Original business column lost'
+    ignored = sorted((current - set(original_columns)) | {'write_uid', 'write_date'})
+    row = sql.SQL('(to_jsonb(t)-ARRAY[{}])').format(sql.SQL(',').join(sql.Literal(c) for c in ignored))
+    cr.execute(sql.SQL("SELECT count(*),md5(coalesce(string_agg({}::text,'|' ORDER BY id),'')) FROM {} t").format(row, sql.Identifier(table)))
+    return list(cr.fetchone())
+
+
 def prepare(cr, proof):
     production = 'step_packing_production'
     # Pending means preserve the current native date and the separate prototype
     # value. It never means approval to choose or overwrite either date.
-    result = {'fields': [], 'views': [], 'date_policy': DATE_POLICY, 'previous_dates': [], 'pending_dates': []}
+    result = {'fields': [], 'views': [], 'date_policy': DATE_POLICY, 'previous_dates': [], 'pending_dates': [], 'audit': {}}
+    # Stored projections are initialized by Odoo, which touches log-access
+    # columns. Preserve the original document authors/dates, but only after
+    # proving every original non-audit business value and row is identical.
+    for table in ('stock_move', 'stock_quant_package'):
+        original = sorted(columns(cr, table))
+        cr.execute(sql.SQL('SELECT id,write_uid,to_jsonb(write_date) FROM {} ORDER BY id').format(sql.Identifier(table)))
+        result['audit'][table] = {'columns': original, 'rows': cr.fetchall(),
+                                  'business': business_hash(cr, table, original)}
     source_columns = columns(cr, production)
     prototype_date = ('x_studio_fecha_proceso' if 'x_studio_fecha_proceso' in source_columns
                       else 'step_legacy_process_date' if 'step_legacy_process_date' in source_columns else None)
@@ -62,6 +83,11 @@ def prepare(cr, proof):
         if not found & old_names:
             continue
         assert name.startswith('Odoo Studio:') and found <= old_names, 'Mixed custom layout requires explicit migration'
+        from lxml import etree
+        for arch in translations.values():
+            tree = etree.fromstring(arch, etree.XMLParser(remove_blank_text=True))
+            digest = hashlib.sha256(etree.tostring(tree, method='c14n')).hexdigest()
+            assert digest in KNOWN_LAYOUTS[model], 'Prototype layout changed: re-inventory and repeat target-copy tests'
         result['views'].append({'id': ident, 'arch': translations})
         adopt(cr, 'ir.ui.view', ident, 'legacy_view_%s' % ident)
         cr.execute('UPDATE ir_ui_view SET active=FALSE WHERE id=%s', [ident])
@@ -108,6 +134,13 @@ def prepare(cr, proof):
 
 def finalize(cr, proof):
     source = json.loads(proof.read_text())
+    for table, original in source['audit'].items():
+        assert business_hash(cr, table, original['columns']) == original['business'], 'Stock/package business values changed while initializing projections'
+        command = sql.SQL('UPDATE {} SET write_uid=%s,write_date=%s WHERE id=%s AND (write_uid IS DISTINCT FROM %s OR write_date IS DISTINCT FROM %s)').format(sql.Identifier(table))
+        for ident, author, date in original['rows']:
+            cr.execute(command, [author, date, ident, author, date])
+        cr.execute(sql.SQL('SELECT id,write_uid,to_jsonb(write_date) FROM {} ORDER BY id').format(sql.Identifier(table)))
+        assert [list(row) for row in cr.fetchall()] == original['rows'], 'Document audit provenance changed'
     for field in source['fields']:
         cr.execute('SELECT name,state FROM ir_model_fields WHERE id=%s', [field['id']])
         assert cr.fetchone() == (field['name'], 'base'), 'Original field identity lost'
