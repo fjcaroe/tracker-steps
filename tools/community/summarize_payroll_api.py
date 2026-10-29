@@ -317,7 +317,7 @@ def main():
             expected={(row['module'],row['name']):row for row in sealed['xmlids']}
             assert aliases.keys()==expected.keys()
             reference_names={('step_simpledigital_oca_security','chile_rule_'+name) for name in ('basic','gross','net')}
-            source_aliases={(row['module'],row['name']):row for row in original['ir_model_data']}
+            source_aliases={(row['module'],row['name']):row for row in original['original_xmlids']}
             assert reference_names.isdisjoint(source_aliases)
             for key,row in expected.items():
                 assert all(row[name]==aliases[key][name] for name in ('module','name','model','res_id','noupdate'))
