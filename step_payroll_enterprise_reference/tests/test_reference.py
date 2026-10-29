@@ -57,6 +57,9 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
     def test_stored_components_keep_rounded_total_and_original_factors(self):
         PayrollContractMixin.test_stored_components_keep_rounded_total_and_original_factors(self)
 
+    def test_stored_components_reject_missing_or_nonfinite_without_repair(self):
+        PayrollContractMixin.test_stored_components_reject_missing_or_nonfinite_without_repair(self)
+
     def test_stored_components_enforce_field_and_complete_line_access(self):
         PayrollContractMixin.test_stored_components_enforce_field_and_complete_line_access(self)
 

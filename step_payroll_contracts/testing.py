@@ -256,6 +256,17 @@ class PayrollContractMixin:
         self.env.cr.execute('SELECT id,slip_id,code,salary_rule_id,amount,quantity,rate,total FROM hr_payslip_line WHERE slip_id=%s ORDER BY slip_id,id',(slip.id,))
         self.assertEqual(self.env.cr.fetchall(),before)
 
+    def test_stored_components_reject_missing_or_nonfinite_without_repair(self):
+        from odoo.addons.step_payroll_contracts.history import stored_payslip_line_components
+        slip=self.slip();slip.compute_sheet();slip.state='done';self.env.flush_all()
+        line=slip.line_ids[0]
+        query='SELECT amount::text,quantity::text,rate::text,total::text,write_date FROM hr_payslip_line WHERE id=%s'
+        for value in (None,float('nan')):
+            self.env.cr.execute('UPDATE hr_payslip_line SET amount=%s WHERE id=%s',(value,line.id))
+            self.env.cr.execute(query,(line.id,));before=self.env.cr.fetchone()
+            with self.assertRaisesRegex(UserError,'components are incomplete or non-finite'):stored_payslip_line_components(slip)
+            self.env.cr.execute(query,(line.id,));self.assertEqual(self.env.cr.fetchone(),before)
+
     def test_stored_components_enforce_field_and_complete_line_access(self):
         from unittest.mock import patch
         from odoo.addons.step_payroll_contracts.history import stored_payslip_line_components
