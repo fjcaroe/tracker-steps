@@ -222,6 +222,17 @@ def main():
         pin_bytes=(folder/'xml-config-source-pin.json').read_bytes()
         assert xml_audit['source_pin_manifest_sha256']==hashlib.sha256(pin_bytes).hexdigest()
         assert pin_bytes==source['tools/community/simpledigital_runtime_source.json']
+        pin=json.loads(pin_bytes)
+        assert len(pin['files'])==xml_audit['provider_source_file_count']==52
+        assert helper.digest(pin['files'])==xml_audit['provider_source_files_sha256']
+        for phase in ('legacy','candidate'):
+            derived_path=folder/(phase+'-provider-derivation.json')
+            assert xml_audit[phase+'_provider_derivation_sha256']==hashlib.sha256(derived_path.read_bytes()).hexdigest()
+            derived=json.loads(derived_path.read_text())
+            assert derived['source_files']==pin['files'] and derived['license']=='AGPL-3'
+            assert derived['builder_sha256']==xml_audit[phase+'_builder_sha256']==hashlib.sha256(source['tools/community/build_simpledigital_candidate.py']).hexdigest()
+            assert helper.CONFIG_XML in derived['transformed_files'] and not derived['identity_conversion_accepted']
+        assert (folder/'legacy-provider-derivation.json').read_bytes()==(folder/'candidate-provider-derivation.json').read_bytes()==(args.evidence/'provider-derivation.json').read_bytes()
         for phase in ('before','after'):
             clock_path=folder/('upgrade-sql-clock-'+phase+'.json')
             assert xml_audit['sql_clock_'+phase+'_sha256']==hashlib.sha256(clock_path.read_bytes()).hexdigest()
@@ -240,13 +251,17 @@ def main():
         baseline=json.loads((folder/'source-acceptance.json').read_text())
         assert hashlib.sha256((folder/'source-acceptance.json').read_bytes()).hexdigest()==proof['source_acceptance_sha256']
         assert baseline['database']==proof['source_database'] and baseline['counts']['enterprise']==0
+        baseline_packet=json.loads((folder/'source-packet.json').read_text())
         assert hashlib.sha256((folder/'source-packet.json').read_bytes()).hexdigest()==baseline['source_files_sha256']
         package=json.loads((folder/'package-files.json').read_text())
         assert helper.digest(package)==proof['package_files_sha256']
         assert xml_audit['package_files_sha256']==hashlib.sha256((folder/'package-files.json').read_bytes()).hexdigest()
         for phase in ('legacy','candidate'):
-            assert package['l10n_cl_simpledigital_payroll'][phase][helper.CONFIG_XML]==helper.CONFIG_XML_SHA256
-        assert packets[0]['l10n_cl_simpledigital_payroll/'+helper.CONFIG_XML]==helper.CONFIG_XML_SHA256
+            assert package['l10n_cl_simpledigital_payroll'][phase][helper.CONFIG_XML]==helper.DERIVED_CONFIG_XML_SHA256
+        assert packets[0]['l10n_cl_simpledigital_payroll/'+helper.CONFIG_XML]==helper.DERIVED_CONFIG_XML_SHA256
+        for name,digest in baseline_packet.items():
+            module,relative=name.split('/',1)
+            if module in package:assert package[module]['legacy'][relative]==digest
         for module,versions in helper.VERSIONS.items():
             assert proof['original_versions'][module]==versions[0] and proof['target_versions'][module]==versions[1]
             manifest=ast.literal_eval(source[module+'/__manifest__.py'].decode('utf-8-sig'))
