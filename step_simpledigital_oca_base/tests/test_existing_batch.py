@@ -116,7 +116,10 @@ class ExistingDraftBatchCase(TransactionCase):
             "login": "private-saved-batch-officer", "company_id": self.company.id, "company_ids": [Command.set(self.company.ids)],
             "groups_id": [Command.set([self.env.ref(name).id for name in ("base.group_user", "payroll.group_payroll_user")])]})
         other = run.with_user(officer)
-        self.assertNotIn("action_step_compute_existing_drafts", other.get_view(view_type="form")["arch"])
+        # OCA grants this actual batch model only to managers. A missing read
+        # right is the real UI boundary, not merely a hidden action button.
+        with TestCase.assertRaises(self, AccessError):
+            other.get_view(view_type="form")
         with TestCase.assertRaises(self, AccessError):
             other.sudo().action_step_compute_existing_drafts()
 
@@ -186,7 +189,9 @@ class ExistingDraftBatchCase(TransactionCase):
         with TestCase.assertRaisesRegex(self, UserError, "conflicts|overlapping"):
             run.action_step_compute_existing_drafts()
         self.assertEqual(self._snapshot(run), before)
-        conflict.unlink()
+        # The ordinary tested actor cannot delete work entries. Only fixture
+        # cleanup uses its author; the batch action continues as that actor.
+        conflict.with_env(self.env).unlink()
         # Conflict state is left untouched by admission. Remove only fixture
         # conflict classification before exercising the separate day mismatch.
         entries = self.scope["hr.work.entry"].search([("contract_id", "in", slips.contract_id.ids)])
