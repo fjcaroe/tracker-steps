@@ -1,4 +1,4 @@
-"""Verify T118's effective reception action, native fields and business profile."""
+"""Verify T132-T134 while retaining the T118-T120 native reception flow."""
 import importlib
 import json
 from pathlib import Path
@@ -71,7 +71,7 @@ try:
         from probe_reception_flow import verify_flow
         verify_flow(env, scoped)
         clone_flow = True
-    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':120,'versions':EXPECTED,
+    print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':132,'tickets':[132,133,134],'versions':EXPECTED,
         'existing_profile':scoped.uid,'company_id':scoped.company.id,'native_menu_and_form':True,
         'automatic_tags':True,'simplified_form':True,'clone_flow':clone_flow,'native_list':True,'list_first':True,'fruit_selector':True,'operations_order':True,'freights_tab':True,'master_class':True,'contract_scope':True,'writes':False}))
 finally:
