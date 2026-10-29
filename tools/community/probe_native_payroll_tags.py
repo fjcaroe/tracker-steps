@@ -17,6 +17,7 @@ class _RollbackObservation(Exception):
 def observe(env, output):
     from odoo import Command
     from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
+    from unittest.mock import patch
 
     env.cr.execute("SELECT name,state FROM ir_module_module WHERE name IN ('hr_payroll','hr_payroll_account')")
     if dict(env.cr.fetchall()) != {'hr_payroll': 'installed', 'hr_payroll_account': 'installed'}:
@@ -37,7 +38,17 @@ def observe(env, output):
     NativeTagFixture.env = env
     try:
         with env.cr.savepoint():
-            NativeTagFixture.setUpClass()
+            # Settle the actual company chart callbacks, as TransactionCase
+            # normally does. No engine, permission or financial result is
+            # mocked; the trusted author still creates the real company.
+            company_class = type(env['res.company'])
+            original_create = company_class.create
+            def create_ready_company(records, values):
+                company = original_create(records, values)
+                records.env.cr.flush()
+                return company
+            with patch.object(company_class, 'create', create_ready_company):
+                NativeTagFixture.setUpClass()
             fixture = NativeTagFixture()
             scope = fixture.scope
             if scope.su:
