@@ -16,6 +16,7 @@ import subprocess
 import sys
 
 from accelerated_acceptance import HR_MODULES, prepare_hr_overlay
+from build_original_bootstrap import verify_reproduction
 from offline_process import offline_odoo
 from validate_payroll_api import OFFICIAL_PIN, PIN
 from validate_community_reports import sql
@@ -45,7 +46,7 @@ def write(path, value):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=('community', 'cerro-reference'))
-    for name in ('root', 'runtime', 'oca'):
+    for name in ('root', 'runtime', 'oca', 'provider-source'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--database', required=True)
     parser.add_argument('--tablespace', required=True)
@@ -55,6 +56,9 @@ def main():
     assert root.is_relative_to(Path('/opt/steps-validation'))
     source = root / 'addons'
     assert (root / 'original-bootstrap-derivation.json').is_file()
+    assert (source / 'l10n_cl_simpledigital_payroll').resolve() == (root / 'profile-addons/l10n_cl_simpledigital_payroll').resolve()
+    verify_reproduction(args.provider_source, root / 'profile-addons',
+        dependency_roots=[source], community_root=args.runtime, oca_root=args.oca)
     if args.mode == 'cerro-reference':
         # The real unchanged native engine and source backup/lease/identity
         # checks remain in the already accepted runner. No cold provider is
