@@ -69,11 +69,15 @@ class Structure(models.Model):
                 current = parents[current]
 
         # Invoke the real OCA APIs, never reconstruct their calculation order.
-        rules = structures.with_context(active_test=True).get_all_rules().filtered("active")
+        ordered = self.with_context(active_test=True).get_structure_with_parents()
+        ordered.check_access("read")
+        if set(ordered.ids) != seen:
+            raise UserError(_("Salary structure selection changed; review the original hierarchy."))
+        rules = ordered.get_all_rules().filtered("active")
         rules.check_access("read")
         if set(rules.ids) != set(parents):
             raise UserError(_("Salary rule selection changed or is incomplete; review the original hierarchy."))
-        return {"rules": rules, "structures": structures,
+        return {"rules": rules, "structures": ordered,
                 "direct_rule_ids": sorted(direct), "backend": "oca-structures-with-parents"}
 
 
