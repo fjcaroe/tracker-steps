@@ -110,11 +110,13 @@ class Payslip(models.Model):
         contract.check_field_access_rights("read", ["journal_id", "company_id"])
         journal = self.journal_id
         journal.check_access("read")
-        journal.check_field_access_rights("read", ["company_id"])
+        journal.check_field_access_rights("read", ["company_id", "type"])
         contract_journal = contract.journal_id
         contract_journal.check_access("read")
         if not journal or journal.company_id != company:
             raise UserError(_("The OCA salary journal must belong to the payslip's original company."))
+        if journal.type != "general":
+            raise UserError(_("Payroll posting requires a general salary journal."))
         if journal != contract_journal:
             raise UserError(_("The original contract salary journal differs from the OCA posting journal."))
         for structure in self._step_selected_payroll_structures():
@@ -136,11 +138,13 @@ class Payslip(models.Model):
                 raise UserError(_("The original structure salary journal property is incomplete for the payslip company."))
             configured_journal = original.journal_id
             configured_journal.check_access("read")
-            configured_journal.check_field_access_rights("read", ["company_id"])
+            configured_journal.check_field_access_rights("read", ["company_id", "type"])
             if configured_journal.id != value:
                 raise UserError(_("The original structure salary journal property does not resolve its exact company value."))
             if configured_journal and configured_journal.company_id != company:
                 raise UserError(_("The original structure salary journal must belong to the payslip's original company."))
+            if configured_journal and configured_journal.type != "general":
+                raise UserError(_("Payroll posting requires a general salary journal."))
             if configured_journal and configured_journal != journal:
                 raise UserError(_("The original structure salary journal differs from the OCA posting journal; adopt its accounting policy before posting."))
         return True
@@ -160,5 +164,8 @@ class Payslip(models.Model):
     def action_payslip_done(self):
         # payroll_account calls super (changing state) before creating moves.
         # Revalidate changes made after calculation before entering that chain.
-        self._step_check_original_configuration(operation="account")
-        return super().action_payslip_done()
+        # OCA may change the state/recalculate before a late accounting error.
+        # Own the transaction boundary even when the caller catches that error.
+        with self.env.cr.savepoint():
+            self._step_check_original_configuration(operation="account")
+            return super().action_payslip_done()
