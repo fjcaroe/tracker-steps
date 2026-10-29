@@ -14,8 +14,10 @@ def counts(env):
     tables = ('hr_payroll_structure', 'hr_salary_rule', 'hr_salary_rule_category',
               'hr_payslip_input_type', 'hr_payslip', 'hr_payslip_input',
               'hr_payslip_line', 'hr_payslip_worked_days', 'hr_contract')
+    tables += tuple(env[name]._table for name in ('hr.employee.movement.type', 'hr.employee.hr.event.type'))
     result = {}
     for table in tables:
+        assert re.fullmatch('[a-z_][a-z0-9_]*', table)
         env.cr.execute('SELECT count(*) FROM ' + table)
         result[table] = env.cr.fetchone()[0]
     return result
@@ -91,6 +93,7 @@ def exercise(env, output):
     internal = actor('private-cold-registry-internal', ('base.group_user',))
     assert not internal['hr.salary.rule'].has_access('write')
     assert not internal['hr.salary.rule'].has_access('create')
+    assert counts(env) == before, 'Reading forms/defaults must not create payroll configuration or history'
     result = {'database': env.cr.dbname, 'real_oca_engine': True, 'normal_actor': True,
         'forms': forms, 'defaults': defaults, 'visible_payroll_root': True,
         'payslip_actions': len(actions), 'officer_batch_read_denied': True,
