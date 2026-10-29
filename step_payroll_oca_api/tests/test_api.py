@@ -9,6 +9,15 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     payroll_group='payroll.group_payroll_manager'
     oca=True
 
+    def test_stored_components_keep_rounded_total_and_original_factors(self):
+        PayrollContractMixin.test_stored_components_keep_rounded_total_and_original_factors(self)
+
+    def test_stored_components_enforce_field_and_complete_line_access(self):
+        PayrollContractMixin.test_stored_components_enforce_field_and_complete_line_access(self)
+
+    def test_stored_components_retain_ambiguous_rules_as_separate_lines(self):
+        PayrollContractMixin.test_stored_components_retain_ambiguous_rules_as_separate_lines(self)
+
     def test_worked_day_master_is_available_in_normal_payroll_form(self):
         from lxml import etree
         arch=etree.fromstring(self.scope['hr.payslip'].get_view(view_type='form')['arch'])

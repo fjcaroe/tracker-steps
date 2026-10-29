@@ -54,6 +54,15 @@ class EnterpriseReferenceCase(PayrollContractMixin,TransactionCase):
     def test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self):
         PayrollContractMixin.test_monthly_worked_day_basis_uses_real_rows_and_missing_day_is_zero(self)
 
+    def test_stored_components_keep_rounded_total_and_original_factors(self):
+        PayrollContractMixin.test_stored_components_keep_rounded_total_and_original_factors(self)
+
+    def test_stored_components_enforce_field_and_complete_line_access(self):
+        PayrollContractMixin.test_stored_components_enforce_field_and_complete_line_access(self)
+
+    def test_stored_components_retain_ambiguous_rules_as_separate_lines(self):
+        PayrollContractMixin.test_stored_components_retain_ambiguous_rules_as_separate_lines(self)
+
     def test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self):
         PayrollContractMixin.test_reference_selection_preserves_zero_cases_and_prefers_closed_positive(self)
 

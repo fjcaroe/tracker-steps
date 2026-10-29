@@ -28,11 +28,20 @@ def main():
     assert document['basic_matches_stored'] and document['net_matches_stored']
     assert document['capsule_sha256']==hashlib.sha256(a.capsule.read_bytes()).hexdigest()
     selected=capsule['selected_case'];rows=selected['concepts']['BASIC'];ids={row['salary_rule_id'] for row in rows}
-    assert len(ids)==1;ident=int(next(iter(ids)))
+    assert len(rows)==1 and len(ids)==1,'Component replay requires one original BASIC line'
+    ident=int(next(iter(ids)))
     def query(sql):
         return subprocess.check_output(['sudo','-u','postgres','env','PGOPTIONS=-c default_transaction_read_only=on',
             'psql','-XAt','-v','ON_ERROR_STOP=1','-d','SyS','-c',sql],text=True).strip()
     assert query('SHOW default_transaction_read_only')=='on'
+    state=query('SELECT state FROM hr_payslip WHERE id='+str(int(selected['id'])))
+    assert state==selected['state'] and state in ('done','paid')
+    components=json.loads(query("SELECT jsonb_build_object('id',id,'slip_id',slip_id,'salary_rule_id',salary_rule_id,'code',code,'amount',amount::text,'quantity',quantity::text,'rate',rate::text,'total',total::text,'write_date',write_date) FROM hr_payslip_line WHERE id="+str(int(rows[0]['id']))+' AND slip_id='+str(int(selected['id']))))
+    assert components['salary_rule_id']==ident and components['code']=='BASIC'
+    assert components['write_date']==rows[0]['write_date'],'Original BASIC line changed since the preserved capsule'
+    from decimal import Decimal
+    assert all(components[key] is not None and Decimal(components[key]).is_finite() for key in ('amount','quantity','rate','total'))
+    assert Decimal(components['total'])==Decimal(selected['stored_totals']['BASIC'])
     rule=json.loads(query("SELECT jsonb_build_object('id',id,'code',code,'body',amount_python_compute,'write_date',write_date,'active',active,'amount_select',amount_select,'condition_select',condition_select) FROM hr_salary_rule WHERE id="+str(ident)))
     origin=next(row for row in capsule['essential_rule_origins'] if row['id']==ident)
     digest=hashlib.sha256(rule['body'].encode()).hexdigest()
@@ -48,7 +57,8 @@ def main():
         'formula_sha256':digest,'formula':rule['body'],'basis':recognized,
         'rule_write_date_precedes_period':str(rule['write_date'])[:10]<selected['date_from'],
         'printed_contract_wage':document['printed_contract_wage'],
-        'worked_days':selected['basis']['worked_days'],'expected_basic':selected['stored_totals']['BASIC']}
+        'worked_days':selected['basis']['worked_days'],'expected_basic':selected['stored_totals']['BASIC'],
+        'expected_components':components,'components_read_only_sql':True}
     a.output.write_text(json.dumps(result,indent=2));os.chmod(a.output,0o600)
     print(json.dumps({'read_only_source':True,'recognized':recognized,'financial_certified':False}))
 

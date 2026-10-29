@@ -1,6 +1,7 @@
 """Read-only admission and cache restoration of real, stored payroll history."""
 from odoo import _
 from odoo.exceptions import AccessError, UserError
+from decimal import Decimal
 
 SNAPSHOTS={'hr_payslip':('basic_wage','gross_wage','net_wage'),
            'hr_payslip_worked_days':('amount','is_paid')}
@@ -112,6 +113,27 @@ def _stored_payslip_rows(payslips):
     if any(total is None or not code for ident, slip_id, code, total, rule_id in rows):
         raise UserError(_('Original stored payroll line totals or codes are incomplete; no amount will be reconstructed.'))
     return rows
+
+
+def stored_payslip_line_components(payslips, rule_codes=None):
+    """Authorized raw line snapshots, never summed or reconstructed from factors.
+
+    Distinct rule identities remain distinct for diagnosis. Use the guarded
+    aggregate API for code totals; this reader never chooses an essential rule.
+    """
+    original=_stored_payslip_rows(payslips)
+    if not original:return []
+    payslips.env['hr.payslip.line'].check_field_access_rights('read',['amount','quantity','rate'])
+    payslips.env.cr.execute('SELECT id,slip_id,code,salary_rule_id,amount,quantity,rate,total FROM hr_payslip_line WHERE slip_id=ANY(%s) ORDER BY slip_id,id',(payslips.ids,))
+    rows=payslips.env.cr.fetchall()
+    expected={ident:(slip,code,total,rule) for ident,slip,code,total,rule in original}
+    if {row[0]:(row[1],row[2],row[7],row[3]) for row in rows}!=expected:
+        raise UserError(_('Original payroll line identity changed during snapshot reading.'))
+    if any(value is None or not Decimal(str(value)).is_finite() for row in rows for value in row[4:]):
+        raise UserError(_('Original stored payroll line components are incomplete or non-finite; no amount will be reconstructed.'))
+    requested={rule_codes} if isinstance(rule_codes,str) else set(rule_codes or ())
+    names=('id','slip_id','code','salary_rule_id','amount','quantity','rate','total')
+    return [dict(zip(names,row)) for row in rows if not requested or row[2] in requested]
 
 
 def stored_payslip_code_totals(payslips, rule_codes=None):

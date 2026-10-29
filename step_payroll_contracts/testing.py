@@ -240,6 +240,43 @@ class PayrollContractMixin:
         self.assertEqual(rows[0]['number_of_days'],2)
         self.assertFalse(slip._get_worked_day_lines(check_out_of_contract=False))
 
+    def test_stored_components_keep_rounded_total_and_original_factors(self):
+        from odoo.addons.step_payroll_contracts.history import stored_payslip_line_components
+        self.chile_rounding_structure()
+        self.rule.amount_python_compute='result = 100.6\nresult_qty = 0.5\nresult_rate = 50'
+        slip=self.slip();slip.compute_sheet();slip.state='done';self.env.flush_all()
+        self.env.cr.execute('SELECT id,slip_id,code,salary_rule_id,amount,quantity,rate,total FROM hr_payslip_line WHERE slip_id=%s ORDER BY slip_id,id',(slip.id,))
+        before=self.env.cr.fetchall();names=('id','slip_id','code','salary_rule_id','amount','quantity','rate','total')
+        expected=[dict(zip(names,row)) for row in before]
+        tested=next(row for row in expected if row['code']=='LIQ')
+        self.assertNotEqual(tested['total'],tested['amount']*tested['quantity']*tested['rate']/100)
+        self.assertEqual(stored_payslip_line_components(slip),expected)
+        self.contract.wage=1200000
+        self.assertEqual(stored_payslip_line_components(slip),expected)
+        self.env.cr.execute('SELECT id,slip_id,code,salary_rule_id,amount,quantity,rate,total FROM hr_payslip_line WHERE slip_id=%s ORDER BY slip_id,id',(slip.id,))
+        self.assertEqual(self.env.cr.fetchall(),before)
+
+    def test_stored_components_enforce_field_and_complete_line_access(self):
+        from unittest.mock import patch
+        from odoo.addons.step_payroll_contracts.history import stored_payslip_line_components
+        slip=self.slip();slip.compute_sheet();line=slip.line_ids[0]
+        with patch.object(line._fields['rate'],'groups','base.group_system'):
+            with self.assertRaises(AccessError):stored_payslip_line_components(slip)
+        self.env['ir.rule'].create({'name':'Private hidden component contribution',
+            'model_id':self.env['ir.model']._get_id('hr.payslip.line'),
+            'domain_force':"[('id','!=',%d)]"%line.id})
+        with self.assertRaises(AccessError):stored_payslip_line_components(slip,'PRIVATE_ABSENT')
+
+    def test_stored_components_retain_ambiguous_rules_as_separate_lines(self):
+        from odoo.addons.step_payroll_contracts.history import stored_payslip_line_components,stored_payslip_totals
+        slip=self._stored_identity_fixture('NET',True);before=self._identity_snapshot(slip)
+        rows=stored_payslip_line_components(slip,'NET')
+        self.assertEqual(len(rows),2)
+        self.assertEqual(len({row['salary_rule_id'] for row in rows}),2)
+        self.assertEqual({row['id'] for row in rows},{row[0] for row in before})
+        with self.assertRaisesRegex(UserError,'multiple rule identities'):stored_payslip_totals(slip,'NET')
+        self.assertEqual(self._identity_snapshot(slip),before)
+
     @staticmethod
     def monthly_basis_fixture_formula():
         return """first = worked_days.get('PRIVATE_DAY_A')
