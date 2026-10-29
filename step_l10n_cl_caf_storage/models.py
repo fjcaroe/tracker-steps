@@ -5,6 +5,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.addons.step_l10n_cl_caf_custody_core.custody import (
     CAFCustodyMixin, MODEL, company_rut, decode_original, parse_original,
 )
+from .hooks import check_model_registration
 
 
 class CAFCustody(CAFCustodyMixin, models.Model):
@@ -26,6 +27,11 @@ class CAFCustody(CAFCustodyMixin, models.Model):
     status = fields.Selection([('in_use', 'En uso'), ('spent', 'Agotado')], string='Estado legado')
 
     _sql_constraints = [('filename_unique', 'unique(filename)', 'El nombre del archivo CAF debe ser único.')]
+
+    @classmethod
+    def _build_model(cls, pool, cr):
+        check_model_registration(pool, cr)
+        return super()._build_model(pool, cr)
 
     @api.model
     def _step_prepare_custody_values(self, values):

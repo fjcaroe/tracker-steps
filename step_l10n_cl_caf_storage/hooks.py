@@ -6,12 +6,39 @@ from odoo.addons.step_l10n_cl_caf_custody_core.custody import MODEL
 CORE = 'step_l10n_cl_caf_storage'
 
 
+def reject_pending_native_provider(cr):
+    cr.execute("SELECT name FROM ir_module_module WHERE name IN (%s,%s) "
+               "AND state IN ('installed','to install','to upgrade','to remove') LIMIT 1",
+               ['l10n_cl_edi', 'step_l10n_cl_caf_native_reference'])
+    if cr.fetchone():
+        raise UserError('El proveedor CAF nativo está instalado o participa en la misma transición; no mezclar proveedores.')
+
+
+def check_model_registration(pool, cr):
+    """Before _build_model: reject overwrite, same-graph EE and cold tables."""
+    if MODEL in pool:
+        raise UserError('CAF ya tiene una clase registrada; no se reemplaza ningún proveedor existente.')
+    reject_pending_native_provider(cr)
+    cr.execute('SELECT to_regclass(%s)', ['public.l10n_cl_dte_caf'])
+    if not cr.fetchone()[0]:
+        return
+    # A cold table must never be interpreted as an empty clean installation.
+    # Only a prior installation of this exact provider can load its own table;
+    # original native tables need a separately accepted identity transition.
+    cr.execute("SELECT d.res_id FROM ir_model_data d JOIN ir_model m ON m.id=d.res_id "
+               "JOIN ir_module_module p ON p.name=d.module WHERE d.model='ir.model' "
+               "AND d.module=%s AND d.name='model_l10n_cl_dte_caf' AND m.model=%s "
+               "AND p.state IN ('installed','to upgrade')", [CORE, MODEL])
+    owners = cr.fetchall()
+    if len(owners) != 1:
+        raise UserError('Existe una tabla CAF fría sin propiedad Community comprobada; se requiere adopción explícita.')
+
+
 def check_provider_boundary(env):
+    reject_pending_native_provider(env.cr)
     provider = env.registry.models.get(MODEL)
-    if provider and any(base.__dict__.get('_module') == 'l10n_cl_edi' for base in provider.__mro__):
+    if provider and provider._original_module != CORE:
         raise UserError('CAF ya tiene proveedor cargado; usar el puente nativo de referencia, no reemplazar su clase.')
-    if env['ir.module.module'].search_count([('name', '=', 'l10n_cl_edi'), ('state', '=', 'installed')]):
-        raise UserError('La transición del proveedor CAF Enterprise requiere su aceptación integral independiente.')
 
 
 def _alias(env, owner, name, model, record_id):
