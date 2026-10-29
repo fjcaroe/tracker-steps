@@ -110,31 +110,43 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
     def test_real_unsaved_preview_checks_normal_policy_without_rows_or_closed_origin_override(self):
         original_formula = self.rule.amount_python_compute
         self.rule.amount_python_compute = 'result = 1 / 0'
-        preview = self.scope['hr.payslip'].new({'name': 'Private actual ORM payroll preview',
+        preview_values = {'name': 'Private actual ORM payroll preview',
             'employee_id': self.contract.employee_id.id, 'company_id': self.company.id,
             'contract_id': self.contract.id, 'struct_id': self.structure.id,
-            'date_from': fields.Date.today().replace(day=1), 'date_to': fields.Date.today(),
-            'worked_days_line_ids': [Command.create({'name': 'Private real typed preview day',
-                'contract_id': self.contract.id, 'work_entry_type_id': self.entry_type.id,
-                'code': self.entry_type.code, 'number_of_days': 2, 'number_of_hours': 16})]})
-        self.assertFalse(preview._origin)
+            'date_from': fields.Date.today().replace(day=1), 'date_to': fields.Date.today()}
+        preview_day_values = {'name': 'Private real typed preview day', 'contract_id': self.contract.id,
+            'work_entry_type_id': self.entry_type.id, 'code': self.entry_type.code,
+            'number_of_days': 2, 'number_of_hours': 16}
+
+        def fresh_preview(scope=None):
+            scope = self.scope if scope is None else scope
+            # Company/user writes can invalidate all NewId cache values. Keep
+            # only plain source values and build fresh real ORM records after
+            # those operations; never recover data from a stale virtual row.
+            return scope['hr.payslip'].new(dict(preview_values,
+                worked_days_line_ids=[Command.create(dict(preview_day_values))]))
+
         self.scope.flush_all()
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
         before = self.env.cr.fetchone()
+        preview = fresh_preview()
+        self.assertFalse(preview._origin)
         self.assertTrue(preview._step_check_original_configuration(operation='calculate'))
         # Odoo's AccessError assertion deliberately clears the entire cache,
         # which erases unsaved ORM values. This guard is strictly read-only;
         # use unittest's assertion without a savepoint/cache-reset wrapper.
         with patch.object(self.entry_type._fields['country_id'], 'groups', 'base.group_system'), TestCase.assertRaises(self, AccessError):
-            preview.sudo()._step_check_original_configuration(operation='calculate')
+            fresh_preview().sudo()._step_check_original_configuration(operation='calculate')
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
         self.assertEqual(self.env.cr.fetchone(), before)
         foreign = self.env['res.company'].create({'name': 'Private preview foreign country', 'country_id': self.env.ref('base.fr').id})
         self.scope.user.with_env(self.env).write({'company_ids': [Command.link(foreign.id)]})
         original_country = self.entry_type.country_id
         self.entry_type.with_env(self.env).country_id = foreign.country_id
+        country_scope = self.scope['hr.payslip'].with_context(allowed_company_ids=(self.company | foreign).ids).env
+        country_preview = fresh_preview(country_scope)
         with TestCase.assertRaisesRegex(self, UserError, 'country boundaries'):
-            preview.with_context(allowed_company_ids=(self.company | foreign).ids)._step_check_original_configuration(operation='calculate')
+            country_preview._step_check_original_configuration(operation='calculate')
         self.entry_type.with_env(self.env).country_id = original_country
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
         self.assertEqual(self.env.cr.fetchone(), before)
