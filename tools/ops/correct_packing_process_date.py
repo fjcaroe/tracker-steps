@@ -159,7 +159,8 @@ def main():
         backup.mkdir(mode=0o700)
         with (backup/'source.dump').open('wb') as stream:
             run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
-        run('sudo','-u','postgres','pg_restore','--list',str(backup/'source.dump'),stdout=subprocess.DEVNULL)
+        with (backup/'source.dump').open('rb') as stream:
+            run('sudo','-u','postgres','pg_restore','--list',stdin=stream,stdout=subprocess.DEVNULL)
         (backup/'odoo.conf').write_bytes(conf.read_bytes())
         live=probe(database,True)
         assert tested['before']==live['before'] and tested['after']==live['after']
