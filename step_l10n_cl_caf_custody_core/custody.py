@@ -45,6 +45,11 @@ def company_rut(company):
 class CAFCustodyMixin:
     """Ordinary Python mixin; no Odoo model/table or parallel storage."""
 
+    # Odoo reassigns registry class bases in _prepare_setup. Adding an instance
+    # __dict__ here would change the native recordset layout and reject that
+    # reassignment before the original provider can load.
+    __slots__ = ()
+
     def _step_custody_scope(self, operation='read'):
         if self._name != MODEL or self._table != 'l10n_cl_dte_caf':
             raise AccessError(_('La custodia requiere el registro CAF original.'))
