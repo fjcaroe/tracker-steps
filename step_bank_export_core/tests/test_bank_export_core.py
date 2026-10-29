@@ -11,25 +11,29 @@ from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES
 from ..models.bank_export_service import clean_rut, whole_pesos
 
 
+def make_bank_payment(self):
+    self.env.user.groups_id |= self.env.ref('account.group_validate_bank_account')
+    currency = self.env.ref('base.CLP')
+    currency.active = True
+    journal = self.company_data['default_journal_bank']
+    journal.currency_id = currency
+    self.partner_a.write({'vat': '12.345.678-5', 'email': 'qa@example.cl'})
+    bank = self.env['res.bank'].create({'name': 'Banco formato prueba', 'bic': '012'})
+    account = self.env['res.partner.bank'].create({
+        'partner_id': self.partner_a.id, 'bank_id': bank.id, 'acc_number': '00123456789',
+        'step_security_credit_type': '2', 'allow_out_payment': True})
+    payment = self.env['account.payment'].create({
+        'payment_type': 'outbound', 'partner_type': 'supplier', 'partner_id': self.partner_a.id,
+        'amount': 125000, 'currency_id': currency.id, 'date': fields.Date.today(),
+        'journal_id': journal.id, 'payment_method_line_id': journal.outbound_payment_method_line_ids[:1].id,
+        'partner_bank_id': account.id, 'memo': 'Prueba formato Community'})
+    return payment, account
+
+
 @tagged('post_install', '-at_install')
 class BankExportCoreCase(AccountTestInvoicingCommon):
     def payment(self):
-        self.env.user.groups_id |= self.env.ref('account.group_validate_bank_account')
-        currency = self.env.ref('base.CLP')
-        currency.active = True
-        journal = self.company_data['default_journal_bank']
-        journal.currency_id = currency
-        self.partner_a.write({'vat': '12.345.678-5', 'email': 'qa@example.cl'})
-        bank = self.env['res.bank'].create({'name': 'Banco formato prueba', 'bic': '012'})
-        account = self.env['res.partner.bank'].create({
-            'partner_id': self.partner_a.id, 'bank_id': bank.id, 'acc_number': '00123456789',
-            'step_security_credit_type': '2', 'allow_out_payment': True})
-        payment = self.env['account.payment'].create({
-            'payment_type': 'outbound', 'partner_type': 'supplier', 'partner_id': self.partner_a.id,
-            'amount': 125000, 'currency_id': currency.id, 'date': fields.Date.today(),
-            'journal_id': journal.id, 'payment_method_line_id': journal.outbound_payment_method_line_ids[:1].id,
-            'partner_bank_id': account.id, 'memo': 'Prueba formato Community'})
-        return payment, account
+        return make_bank_payment(self)
 
     @property
     def service(self):
@@ -108,7 +112,9 @@ class BankExportCoreCase(AccountTestInvoicingCommon):
     def test_beneficiary_account_must_belong_to_original_partner(self):
         payment, account = self.payment()
         # Exercise the service guard independently of payment form domains.
+        account.allow_out_payment = False
         account.partner_id = self.partner_b
+        account.allow_out_payment = True
         with self.assertRaises(UserError):
             self.service.security_rows(payment, self.env.company)
 
@@ -137,7 +143,9 @@ class BankExportCoreCase(AccountTestInvoicingCommon):
         with self.assertRaises(UserError):
             self.service.bancoestado_rows(payment, self.env.company)
         account.step_bancoestado_payment_method = '01'
+        account.allow_out_payment = False
         account.acc_number = '1' * 18
+        account.allow_out_payment = True
         with self.assertRaises(UserError):
             self.service.bancoestado_rows(payment, self.env.company)
 

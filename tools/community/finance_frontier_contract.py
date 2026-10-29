@@ -66,7 +66,7 @@ def verify_metadata(before, after):
         assert got['arch_updated'] is False
         original_arch = row['arch_db'].get('en_US') if isinstance(row['arch_db'], dict) else row['arch_db']
         assert got['arch_prev'] in (row['arch_prev'], original_arch), 'Original banking view previous architecture changed'
-    return {'original_xmlids_preserved': 11, 'original_views_exact': 2,
+    return {'original_xmlids_preserved': 11, 'original_view_ids_preserved': 2,
             'only_noupdate_false_to_true': changed,
             'view_source_file': 'step_bank_export_core/views/res_partner_bank_views.xml',
             'view_architecture_and_permissions_exact': True}
@@ -75,7 +75,7 @@ def verify_metadata(before, after):
 def verify(env, mode):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
-                'step_bank_export_core': '18.0.1.0.0'}
+                'step_bank_export_core': '18.0.1.1.0'}
     if mode == 'cerro-copy':
         versions.update({'step_account_treasury_batch': '18.0.1.5.0',
                          'step_bank_security': '18.0.1.1.0'})
@@ -104,6 +104,17 @@ def verify(env, mode):
     assert form.count('name="step_security_credit_type"') == 1
     assert env['step.bank.export.service']._abstract
     assert not env['ir.model.access'].search([('model_id.model', '=', 'step.bank.export.service')])
+    wizard = env['step.bank.export.wizard']
+    assert wizard._transient and wizard._fields['payment_ids'].comodel_name == 'account.payment'
+    assert wizard._fields['file_data'].attachment is False
+    acl = env['ir.model.access'].search([('model_id.model', '=', wizard._name)])
+    assert len(acl) == 1 and acl.group_id == env.ref('account.group_account_manager')
+    menu = env.ref('step_bank_export_core.menu_bank_export_wizard')
+    action = env.ref('step_bank_export_core.action_bank_export_wizard')
+    assert menu.groups_id == env.ref('account.group_account_manager') and menu.action == action
+    assert action.res_model == wizard._name and action.binding_model_id.model == 'account.payment'
+    view = env.ref('step_bank_export_core.view_bank_export_wizard_form')
+    wizard.get_view(view_id=view.id, view_type='form')
     balance = env['ir.module.module'].search([('name', '=', 'step_account_balance_analytic')])
     assert balance.dependencies_id.mapped('name') == ['step_accounting_multicurrency_core']
     if mode == 'community':
