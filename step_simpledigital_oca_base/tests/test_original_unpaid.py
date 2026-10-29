@@ -15,6 +15,7 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.structures.parent_id = False
+        cls.structures.country_id = cls.company.country_id
         cls.structure.use_worked_day_lines = True
         cls.journal = cls.scope["account.journal"].create({"name": "Private unpaid salary journal", "code": "UPD",
             "type": "general", "company_id": cls.company.id})
@@ -114,23 +115,46 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.assertEqual(day.read(["id", "amount", "is_paid"]), original)
         self.assertEqual(self._stored(slip), before)
 
-    def test_hidden_component_cannot_be_cleared_copied_or_deleted(self):
-        self.entry_type.unpaid_structure_ids = [Command.set(self.structures.ids)]
-        self.other_structure.active = False
-        self.structure.with_context(active_test=False).unpaid_work_entry_type_ids.read(["name"])
-        before = self.unpaid_pairs()
-        self.env["ir.rule"].create({"name": "Private hidden unpaid structure neighbour",
-            "model_id": self.env.ref("payroll.model_hr_payroll_structure").id,
-            "domain_force": "[('id','!=',%d)]" % self.other_structure.id})
+    def test_global_type_does_not_read_foreign_neighbours_but_type_mutation_protects_all_its_pairs(self):
+        foreign_company = self.env["res.company"].create({"name": "Private inaccessible unpaid relation company",
+            "country_id": self.env.ref("base.fr").id})
+        foreign = self.env["hr.payroll.structure"].create({"name": "Private inaccessible unpaid relation structure",
+            "code": "PRIVATE_INACCESSIBLE_UNPAID", "type_id": self.kind.id, "company_id": foreign_company.id,
+            "country_id": foreign_company.country_id.id, "parent_id": False, "active": False})
+        self.entry_type.country_id = False
+        self.entry_type.with_env(self.env).unpaid_structure_ids = [Command.set([self.structure.id, foreign.id])]
+        with self.assertRaises(AccessError):
+            foreign.with_env(self.scope).read(["id"])
+        slip = self._slip()
+        day = self._day(slip)
+        self.assertEqual(day.amount, 0)
+        self.assertFalse(day.is_paid)
+        copied = self.structure.copy({"name": "Private independent unpaid policy copy", "code": "PRIVATE_INDEPENDENT_UNPAID"})
+        self.assertEqual(copied.unpaid_work_entry_type_ids, self.entry_type)
+        self.env.cr.execute("""SELECT hr_payroll_structure_id,hr_work_entry_type_id
+            FROM hr_payroll_structure_hr_work_entry_type_rel WHERE hr_work_entry_type_id=%s ORDER BY 1""", (self.entry_type.id,))
+        before = self.env.cr.fetchall()
         for operation in (
-            lambda: self.structure.write({"unpaid_work_entry_type_ids": [Command.clear()]}),
-            lambda: self.entry_type.write({"unpaid_structure_ids": [Command.clear()]}),
-            lambda: self.structure.copy({"name": "Private forbidden hidden copy"}),
+            lambda: self.entry_type.write({"unpaid_structure_ids": [Command.set(self.structure.ids)]}),
+            lambda: self.entry_type.copy({"name": "Private forbidden global type copy", "code": "PRIVATE_FORBIDDEN_UNPAID"}),
             lambda: self.entry_type.unlink(),
         ):
             with self.assertRaises(AccessError):
                 operation()
-            self.assertEqual(self.unpaid_pairs(), before)
+            self.env.cr.execute("""SELECT hr_payroll_structure_id,hr_work_entry_type_id
+                FROM hr_payroll_structure_hr_work_entry_type_rel WHERE hr_work_entry_type_id=%s ORDER BY 1""", (self.entry_type.id,))
+            self.assertEqual(self.env.cr.fetchall(), before)
+        # This edit owns A's membership only, and must not authorize or inspect
+        # the unrelated archived/foreign B configuration behind the global type.
+        self.structure.unpaid_work_entry_type_ids = [Command.clear()]
+        self.assertTrue(day.is_paid)
+        expected = self.company.currency_id.round(self.contract.wage / 30.0 * day.number_of_days)
+        self.assertEqual(day.amount, expected)
+        slip.compute_sheet()
+        self.assertEqual(slip.line_ids.total, expected)
+        self.env.cr.execute("""SELECT hr_payroll_structure_id FROM hr_payroll_structure_hr_work_entry_type_rel
+            WHERE hr_work_entry_type_id=%s ORDER BY 1""", (self.entry_type.id,))
+        self.assertEqual([row[0] for row in self.env.cr.fetchall()], sorted([foreign.id, copied.id]))
 
     def test_field_acl_is_enforced_before_calculation_and_stored_payment_compute(self):
         slip = self._slip()
@@ -170,6 +194,19 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         with self.assertRaisesRegex(UserError, "country boundaries"):
             slip.compute_sheet()
         self.assertEqual(self._stored(slip), before)
+        # Even a real OCA default owner is not native-country provenance.
+        # Unknown setup country is stored pending, rather than reassigned or
+        # treated as a certified policy. Use still requires the real company.
+        pending = scope["hr.payroll.structure"].create({"name": "Private unresolved default-owner unpaid structure",
+            "code": "PRIVATE_DEFAULT_OWNER_UNPAID", "company_id": self.company.id, "country_id": False,
+            "type_id": self.kind.id, "unpaid_work_entry_type_ids": [Command.link(foreign.id)]})
+        pending_slip = self._slip(pending).with_env(scope)
+        pending_before = self._stored(pending_slip)
+        with self.assertRaisesRegex(UserError, "country boundaries"):
+            pending_slip.compute_sheet()
+        self.assertEqual(self._stored(pending_slip), pending_before)
+        self.assertEqual(pending.company_id.id, self.company.id)
+        self.assertFalse(pending.country_id)
         # An isolated synthetic SQL pair represents pre-existing bad policy;
         # no original master or amount is changed to manufacture this case.
         self.env.cr.execute("""INSERT INTO hr_payroll_structure_hr_work_entry_type_rel
