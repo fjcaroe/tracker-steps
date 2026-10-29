@@ -26,6 +26,8 @@ FIELDS = {
 VIEWS = ('view_move_form_multicurrency_steps', 'view_move_line_tree_multicurrency_steps',
          'view_account_payment_form_operational_currency', 'view_account_payment_register_operational_currency',
          'res_config_settings_view_form_operational_currency')
+VIEW_MODELS = dict(zip(VIEWS, ('account.move', 'account.move.line', 'account.payment',
+                              'account.payment.register', 'res.config.settings')))
 
 
 def owned_names():
@@ -47,27 +49,42 @@ def alias_target(env, name, model, res_id, namespace, noupdate):
     else:
         data.create({'module': namespace, 'name': name, 'model': model,
                      'res_id': res_id, 'noupdate': noupdate})
+    loaded = data._load_xmlid(namespace + '.' + name)
+    if not loaded or (loaded._name, loaded.id) != (model, res_id):
+        raise UserError('El identificador multimoneda cargado no coincide: %s.%s' % (namespace, name))
+
+
+def _validate_owned_record(env, record, require_runtime=True):
+    if record.model == 'ir.model.fields':
+        field = env['ir.model.fields'].browse(record.res_id).exists()
+        if not field or field.name not in FIELDS.get(field.model, ()) or (
+                record.name != 'field_%s__%s' % (field.model.replace('.', '_'), field.name)):
+            raise UserError('El campo multimoneda heredado no coincide con su definición: %s' % record.name)
+        if require_runtime and (field.model not in env.registry or field.name not in env[field.model]._fields
+                or field.ttype != env[field.model]._fields[field.name].type):
+            raise UserError('El proveedor del campo multimoneda no coincide: %s' % record.name)
+        if field.model == 'account.bank.statement.line' and field.related != 'move_id.' + field.name:
+            raise UserError('El campo multimoneda delegado perdió su relación original: %s' % record.name)
+    elif record.model == 'ir.model':
+        model = env['ir.model'].browse(record.res_id).exists()
+        if not model or model.model not in MODELS or model.model not in env.registry or record.name != 'model_' + model.model.replace('.', '_'):
+            raise UserError('El modelo multimoneda heredado no coincide: %s' % record.name)
+    elif record.model == 'ir.ui.view' and record.name in VIEW_MODELS:
+        view = env['ir.ui.view'].browse(record.res_id).exists()
+        if not view or view.model != VIEW_MODELS[record.name]:
+            raise UserError('La vista multimoneda heredada no coincide: %s' % record.name)
+    else:
+        raise UserError('El identificador multimoneda heredado tiene un modelo inesperado: %s' % record.name)
 
 
 def adopt_legacy_records(env):
     records = env['ir.model.data'].search([('module', '=', LEGACY), ('name', 'in', sorted(owned_names()))])
     for record in records:
-        if record.model == 'ir.model.fields':
-            field = env['ir.model.fields'].browse(record.res_id).exists()
-            if not field or field.name not in FIELDS.get(field.model, ()):
-                raise UserError('El campo multimoneda heredado no coincide con su definición: %s' % record.name)
-            if field.model == 'account.bank.statement.line' and field.related != 'move_id.' + field.name:
-                raise UserError('El campo multimoneda delegado perdió su relación original: %s' % record.name)
-        elif record.model == 'ir.model':
-            model = env['ir.model'].browse(record.res_id).exists()
-            if not model or model.model not in MODELS or record.name != 'model_' + model.model.replace('.', '_'):
-                raise UserError('El modelo multimoneda heredado no coincide: %s' % record.name)
-        elif record.model != 'ir.ui.view' or record.name not in VIEWS:
-            raise UserError('El identificador multimoneda heredado tiene un modelo inesperado: %s' % record.name)
+        # Odoo invokes pre-init before registry.load(core): the persisted
+        # identity can be validated now, the live field only after setup.
+        _validate_owned_record(env, record, require_runtime=False)
         alias(env, record, CORE, record.noupdate)
-        # Keep the old API identifier, without letting an upgrade of the report
-        # bridge remove data now maintained by the Community module.
-        record.noupdate = True
+        env['ir.model.data']._load_xmlid(LEGACY + '.' + record.name)
 
 
 def preserve_legacy_xmlids(env):
@@ -86,4 +103,5 @@ def preserve_legacy_xmlids(env):
     if len(records) != len(owned_names()):
         raise UserError('La propiedad multimoneda Community está incompleta.')
     for record in records:
+        _validate_owned_record(env, record)
         alias(env, record, LEGACY, True)
