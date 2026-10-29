@@ -68,6 +68,15 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         self.assertEqual(set(report['duplicate_code_ids']['LIQ']),set((self.rule|duplicate).ids))
         self.assertEqual(child._step_effective_rule_scope()['rules'],
             child.get_structure_with_parents().get_all_rules().filtered('active'))
+        duplicate.active=False
+        self.assertNotIn('RULE_CODE_AMBIGUOUS:LIQ',configuration_report(child)['errors'])
+        self.assertEqual(child._step_effective_rule_scope()['rules'],self.rule)
+        child.parent_id=False
+        self.assertFalse(child._step_effective_rule_scope()['rules'])
+        child.rule_ids=[Command.link(self.rule.id)]
+        scope=child._step_effective_rule_scope()
+        self.assertEqual(scope['rules'],self.rule)
+        self.assertEqual(scope['direct_rule_ids'],self.rule.ids)
 
     def test_hidden_parent_membership_blocks_actual_engine_selection(self):
         child=self._scope_structure(self.structure)

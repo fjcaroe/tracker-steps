@@ -51,6 +51,9 @@ def configuration_report(structure):
     if hasattr(structure, '_step_effective_rule_scope'):
         scope=structure._step_effective_rule_scope()
     else:
+        structure.flush_model([name for name in ('parent_id','company_id','rule_ids') if name in structure._fields])
+        model=structure.env['hr.salary.rule']
+        model.flush_model([name for name in ('active','parent_rule_id','company_id','struct_id') if name in model._fields])
         rules=structure.with_context(active_test=False).rule_ids.filtered('active')
         field=structure._fields['rule_ids']
         if field.type=='one2many' and field.inverse_name=='struct_id':
