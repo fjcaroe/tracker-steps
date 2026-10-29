@@ -11,13 +11,33 @@ class Structure(models.Model):
     # silently make sample payroll a Chilean production configuration. Existing
     # parents remain intact; an original adopted parent is chosen explicitly.
     parent_id = fields.Many2one(default=False)
+    # Native configuration is global or country-scoped, with no company owner.
+    # Keep OCA's normal company default for new records; adoption supplies an
+    # explicit NULL rather than assigning an invented owner to original data.
+    company_id = fields.Many2one(required=False, ondelete="restrict")
+    country_id = fields.Many2one("res.country", string="Country", ondelete="set null")
 
-    @api.constrains("parent_id", "company_id")
+    def _step_scope_problem(self, company, country=False):
+        self.ensure_one()
+        if self.company_id and self.company_id != company:
+            return "company"
+        effective_country = country or company.country_id
+        if self.country_id and self.country_id != effective_country:
+            return "country"
+        return False
+
+    def _step_check_payroll_scope(self, company):
+        if any(structure._step_scope_problem(company) for structure in self):
+            raise UserError(_("Payroll configuration is outside the original company or country scope."))
+
+    @api.constrains("parent_id", "company_id", "country_id")
     def _check_original_parent_company(self):
         for structure in self:
             parent = structure.parent_id
-            if parent and parent.company_id != structure.company_id:
-                raise ValidationError(_("Salary structure and its original parent must belong to the same company."))
+            if parent and parent._step_scope_problem(structure.company_id, structure.country_id):
+                raise ValidationError(_("Salary structure and its original parent have incompatible company or country scope."))
+            if structure.company_id and structure.country_id and structure.country_id != structure.company_id.country_id:
+                raise ValidationError(_("Salary structure country must match its original company."))
 
     def _step_effective_rule_scope(self):
         """Match OCA's public hierarchy API, after checking its complete scope.
@@ -28,9 +48,9 @@ class Structure(models.Model):
         """
         self.ensure_one()
         self.check_access("read")
-        self.check_field_access_rights("read", ["parent_id", "rule_ids", "company_id"])
-        self.env["hr.payroll.structure"].flush_model(["parent_id", "company_id", "rule_ids"])
-        self.env["hr.salary.rule"].flush_model(["active", "parent_rule_id", "company_id"])
+        self.check_field_access_rights("read", ["parent_id", "rule_ids", "company_id", "country_id"])
+        self.env["hr.payroll.structure"].flush_model(["parent_id", "company_id", "country_id", "rule_ids"])
+        self.env["hr.salary.rule"].flush_model(["active", "parent_rule_id", "company_id", "struct_id"])
         structures = self.env["hr.payroll.structure"]
         seen = set()
         current = self
@@ -38,8 +58,8 @@ class Structure(models.Model):
             current.check_access("read")
             if current.id in seen:
                 raise UserError(_("Salary structure hierarchy contains a cycle."))
-            if current.company_id != self.company_id:
-                raise UserError(_("Salary structure hierarchy crosses company boundaries."))
+            if current._step_scope_problem(self.company_id, self.country_id):
+                raise UserError(_("Salary structure hierarchy crosses company or country boundaries."))
             seen.add(current.id)
             structures |= current
             current = current.parent_id
@@ -55,9 +75,13 @@ class Structure(models.Model):
         while frontier:
             records = self.env["hr.salary.rule"].with_context(active_test=False).browse(sorted(frontier))
             records.check_access("read")
-            records.check_field_access_rights("read", ["active", "parent_rule_id", "company_id"])
+            records.check_field_access_rights("read", ["active", "parent_rule_id", "company_id", "struct_id"])
             if any(rule.company_id and rule.company_id != self.company_id for rule in records):
                 raise UserError(_("Salary rule hierarchy crosses company boundaries."))
+            for rule in records.filtered("struct_id"):
+                rule.struct_id.check_access("read")
+                if rule.struct_id._step_scope_problem(self.company_id, self.country_id):
+                    raise UserError(_("Salary rule primary structure crosses company or country boundaries."))
             parents.update({rule.id: rule.parent_rule_id.id or False for rule in records})
             self.env.cr.execute("SELECT id FROM hr_salary_rule WHERE parent_rule_id=ANY(%s) AND active", (sorted(frontier),))
             frontier = {row[0] for row in self.env.cr.fetchall()} - parents.keys()
@@ -122,13 +146,13 @@ class Payslip(models.Model):
         structures = self.struct_id
         if structures:
             for slip in self:
-                if slip.struct_id and slip.company_id and slip.struct_id.company_id != slip.company_id:
-                    raise UserError(_("Payroll structure must belong to the original payslip company."))
+                if slip.struct_id and slip.company_id:
+                    slip.struct_id._step_check_payroll_scope(slip.company_id)
         else:
             contracts = self._get_employee_contracts()
             for contract in contracts:
-                if contract.struct_id and contract.struct_id.company_id != contract.company_id:
-                    raise UserError(_("Payroll contract structure crosses company boundaries."))
+                if contract.struct_id:
+                    contract.struct_id._step_check_payroll_scope(contract.company_id)
             structures = contracts.struct_id
         structures.check_access("read")
         for structure in structures:
