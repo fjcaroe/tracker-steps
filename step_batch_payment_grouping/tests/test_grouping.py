@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 from odoo import Command, fields
 from odoo.exceptions import AccessError, UserError
@@ -184,6 +185,86 @@ class BatchGroupingCase(AccountTestInvoicingCommon):
         batch = self.env['account.batch.payment'].browse(batch_id)
         self.assertEqual(batch.name, 'Grupo propio')
         self.assertEqual(str(batch.date), '2026-10-29')
+
+    def _protected_original(self, column):
+        batch = self.group()
+        self.payments = self.first | self.second
+        self.payments.flush_recordset()
+        self.assertFalse(self.second[column])  # deliberately precache the old value
+        # Only this private fixture row: emulate a legacy/concurrent change
+        # without running the provider's state compute. Its batch remains draft.
+        if column == 'is_sent':
+            self.env.cr.execute('UPDATE account_payment SET is_sent=TRUE WHERE id=%s', [self.second.id])
+        else:
+            self.env.cr.execute('UPDATE account_payment SET is_matched=TRUE WHERE id=%s', [self.second.id])
+        for method, args in ((self.service.replace_group_payments, (batch.id, self.first.ids)),
+                             (self.service.delete_draft_group, (batch.id,))):
+            with self.assertRaises(UserError):
+                method(*args)
+        self.assertEqual(set(batch.sudo().payment_ids.ids), set(self.payments.ids))
+        self.assertTrue(batch.exists())
+
+    def test_sent_original_cannot_be_removed_or_deleted_from_legacy_draft(self):
+        self._protected_original('is_sent')
+
+    def test_matched_original_cannot_be_removed_or_deleted_from_legacy_draft(self):
+        self._protected_original('is_matched')
+
+    def test_create_late_provider_error_rolls_back_real_membership(self):
+        count = self.env['account.batch.payment'].search_count([])
+        before = self.payment_snapshot(self.first | self.second)
+        real = type(self.service)._group_payments
+
+        def fail_after_creation(service, current):
+            payments = real(service, current)
+            if set(payments.ids) == set((self.first | self.second).ids):
+                raise UserError('Late provider check')
+            return payments
+
+        with patch.object(type(self.service), '_group_payments', fail_after_creation):
+            with self.assertRaises(UserError):
+                self.group()
+        self.assertEqual(self.env['account.batch.payment'].search_count([]), count)
+        self.assertFalse((self.first | self.second).mapped('batch_payment_id'))
+        self.assertEqual(self.payment_snapshot(self.first | self.second), before)
+
+    def test_replace_late_provider_error_rolls_back_real_membership(self):
+        batch = self.group()
+        third = self.make_payment(30)
+        before = self.payment_snapshot(self.first | self.second | third)
+        real = type(self.service)._group_payments
+
+        def fail_after_replacement(service, current):
+            # Core uses this helper during FK writes; let actual mutations run,
+            # then fail only the final service postcondition.
+            payments = real(service, current)
+            if set(payments.ids) == set((self.second | third).ids):
+                raise UserError('Late provider check')
+            return payments
+
+        with patch.object(type(self.service), '_group_payments', fail_after_replacement):
+            with self.assertRaises(UserError):
+                self.service.replace_group_payments(batch.id, (self.second | third).ids)
+        self.assertEqual(set(batch.payment_ids.ids), set((self.first | self.second).ids))
+        self.assertFalse(third.batch_payment_id)
+        self.assertEqual(self.payment_snapshot(self.first | self.second | third), before)
+
+    def test_delete_late_provider_error_restores_group_and_links(self):
+        batch = self.group()
+        before = self.payment_snapshot(self.first | self.second)
+        model = type(batch)
+        real = model.unlink
+
+        def fail_after_unlink(records):
+            real(records)
+            raise UserError('Late provider unlink')
+
+        with patch.object(model, 'unlink', fail_after_unlink):
+            with self.assertRaises(UserError):
+                self.service.delete_draft_group(batch.id)
+        self.assertTrue(batch.exists())
+        self.assertEqual(set(batch.payment_ids.ids), set((self.first | self.second).ids))
+        self.assertEqual(self.payment_snapshot(self.first | self.second), before)
 
     def test_native_reference_observes_draft_and_posted_amount_contract(self):
         """Observe actual behavior; do not assert an invented monetary formula."""

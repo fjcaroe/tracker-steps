@@ -36,12 +36,14 @@ class BatchPaymentGroupingService(models.AbstractModel):
         payments = self.env['account.payment'].browse(ids)
         payments.check_access('read')
         payments.check_access('write')
-        payments.flush_recordset(['batch_payment_id'])
+        validation_fields = ['batch_payment_id', 'state', 'is_sent', 'is_matched',
+            'company_id', 'journal_id', 'currency_id', 'payment_type', 'payment_method_id', 'payment_method_line_id']
+        payments.flush_recordset(validation_fields)
         # Lock only IDs, after ORM access. No amounts or private values bypass ORM.
         self.env.cr.execute('SELECT id FROM account_payment WHERE id IN %s ORDER BY id FOR UPDATE', [tuple(ids)])
         if [row[0] for row in self.env.cr.fetchall()] != ids:
             raise UserError(_('Uno de los pagos seleccionados ya no existe.'))
-        payments.invalidate_recordset(['batch_payment_id'])
+        payments.invalidate_recordset(validation_fields)
         return payments
 
     @api.model
@@ -102,6 +104,11 @@ class BatchPaymentGroupingService(models.AbstractModel):
     @api.model
     def create_group(self, payment_ids, name, date=None):
         """Return the real batch ID. Existing payments keep their identity/state."""
+        with self.env.cr.savepoint():
+            return self._create_group(payment_ids, name, date)
+
+    @api.model
+    def _create_group(self, payment_ids, name, date=None):
         provider = self._provider()
         provider.check_access('create')
         if not isinstance(name, str) or not name.strip() or len(name) > 200:
@@ -122,12 +129,19 @@ class BatchPaymentGroupingService(models.AbstractModel):
     @api.model
     def replace_group_payments(self, batch_id, payment_ids):
         """Replace membership atomically; never create/update/delete payment rows."""
+        with self.env.cr.savepoint():
+            return self._replace_group_payments(batch_id, payment_ids)
+
+    @api.model
+    def _replace_group_payments(self, batch_id, payment_ids):
         batch = self._lock_batch(batch_id)
         ids = self._ids(payment_ids)
         original_ids = self._group_payment_ids(batch)
         locked = self._lock_payments(sorted(set(ids + original_ids)))
         original = locked.browse(original_ids)
         payments = locked.browse(ids)
+        if original:
+            self._validate_payments(original, batch)
         self._validate_payments(payments, batch)
         batch.write({'payment_ids': [Command.set(payments.ids)]})
         if set(self._group_payments(batch).ids) != set(payments.ids):
@@ -138,8 +152,15 @@ class BatchPaymentGroupingService(models.AbstractModel):
     @api.model
     def delete_draft_group(self, batch_id):
         """Detach existing payments and delete only the draft group."""
+        with self.env.cr.savepoint():
+            return self._delete_draft_group(batch_id)
+
+    @api.model
+    def _delete_draft_group(self, batch_id):
         batch = self._lock_batch(batch_id)
         batch.check_access('unlink')
-        self._group_payments(batch)
+        payments = self._group_payments(batch)
+        if payments:
+            self._validate_payments(payments, batch)
         batch.unlink()
         return True
