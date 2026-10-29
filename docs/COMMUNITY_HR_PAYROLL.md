@@ -1,5 +1,9 @@
 # HR operacional y candidato de Nómina Community
 
+Estado vigente y siguiente bloque: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
+El cierre de catorce campos y el reporte almacenado no adoptan los maestros ni
+certifican la conversión integral; el contenido inferior conserva su alcance histórico.
+
 ## Alcance y contratos
 
 `step_hr` 18.0.1.10.0 conserva la aplicación Actividades original, sus menús,

@@ -1,5 +1,11 @@
 # Liquidación PDF Community desde líneas almacenadas
 
+Aceptación vigente: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
+D valida HTML, dos PDF reales y cuatro páginas revisadas; también la guarda
+contable descrita como propuesta en esta auditoría inicial. La acción 462 y la
+configuración original todavía no están adoptadas. El contenido inferior
+conserva el contrato y las propuestas del bloque inicial.
+
 Bloque preparado desde `db398fba`, sin cambio de motor, importación de maestros,
 publicación ni recálculo de originales. La aceptación del paquete y su PDF real
 corresponde al coordinador; esta hoja no la presume.

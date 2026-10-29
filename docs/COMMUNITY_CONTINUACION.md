@@ -1,9 +1,11 @@
 # Continuidad de migración Community — Cerro El Plomo
 
 Estado acumulado, aceptación y siguiente prompt vigentes:
-[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md), pareja G de
-ccdae62e, 313/244 casos sin fallos y dos omisiones por entorno. Los hitos
-inferiores son históricos; no sustituyen las puertas pendientes de esa hoja.
+[COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md), pareja D
+de e097560b: 343/244 casos sin fallos y dos omisiones por entorno, catorce campos
+originales y reporte desde valores almacenados. La configuración original y la
+conversión integral siguen abiertas. Los hitos inferiores son históricos; no
+sustituyen las puertas pendientes de esa hoja.
 
 ## Pedido y límites
 

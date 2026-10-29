@@ -1,5 +1,9 @@
 # Preflight de identidad, permisos y traducciones de configuración
 
+Estado vigente y siguiente bloque: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
+El cierre de catorce campos y el reporte almacenado no adoptan los maestros ni
+certifican la conversión integral; el contenido inferior conserva su alcance histórico.
+
 Bloque de solo lectura desde canónica `db398fba`, rama propia
 `codex/community-payroll-config-acl-20261029`. Complementa
 `COMMUNITY_PAYROLL_CONFIG_ORIGINAL.md`; no modifica la API de configuración ni

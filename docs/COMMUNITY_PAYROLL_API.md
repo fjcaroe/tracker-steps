@@ -1,5 +1,9 @@
 # Adaptación de contratos Simple Digital–OCA
 
+Estado vigente y siguiente bloque: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
+El cierre de catorce campos y el reporte almacenado no adoptan los maestros ni
+certifican la conversión integral; el contenido inferior conserva su alcance histórico.
+
 ## Alcance del bloque
 
 Base canónica `128b9ed`, trabajo en `codex/community-payroll-api-20261027`.

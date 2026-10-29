@@ -1,9 +1,11 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
 Estado acumulado posterior y siguiente prompt:
-[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md). La pareja G
-valida el alcance global/país, custodia CAF y agrupación real; la configuración
-original BASIC/GROSS/NET, 71 reglas e identidad histórica siguen pendientes.
+[COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md). La pareja D
+cierra catorce campos originales y lectura/impresión desde valores almacenados.
+El alcance global/país, custodia CAF y agrupación real siguen probados; la
+configuración original BASIC/GROSS/NET, 71 reglas e identidad histórica siguen
+pendientes. Las secciones inferiores describen el bloque histórico inicial.
 
 ## Contrato del bloque
 
