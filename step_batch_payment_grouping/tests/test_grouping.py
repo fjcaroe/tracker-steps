@@ -122,9 +122,11 @@ class BatchGroupingCase(AccountTestInvoicingCommon):
         # An RPC can select a method line outside its UI domain. A uniform
         # journal/method code does not make that foreign line compatible.
         second.write({'journal_id': self.journal.id})
-        if second.payment_method_line_id.journal_id != self.journal:
-            with self.assertRaises(UserError):
-                self.group(self.first | second)
+        second.flush_recordset()
+        self.env.cr.execute('UPDATE account_payment SET payment_method_line_id=%s WHERE id=%s',
+            [journal.outbound_payment_method_line_ids[:1].id, second.id])
+        with self.assertRaises(UserError):
+            self.group(self.first | second)
 
     def test_different_currency_is_rejected(self):
         currency = self.env.ref('base.EUR') if self.first.currency_id != self.env.ref('base.EUR') else self.env.ref('base.USD')
