@@ -32,7 +32,7 @@ HR_TEST_METHODS = {
     ),
     ("steps_hr_payroll_correction", "HrConsumersCase"): (
         "test_closed_history_blocks_contract_work_entries_and_amounts",
-        "test_open_paid_flag_and_history_lock_are_not_recomputed",
+        "test_open_paid_flag_is_not_recomputed", "test_open_history_lock_is_not_recomputed",
         "test_apply_rechecks_a_preview_validated_in_another_session",
         "test_rpc_requires_correction_group", "test_correction_cannot_cross_allowed_companies",
         "test_open_correction_uses_actual_engine_and_preserves_input_identity",

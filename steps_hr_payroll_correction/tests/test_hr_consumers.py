@@ -101,22 +101,26 @@ class HrConsumersCase(TransactionCase):
         self.assertTrue(extra.exists())
         self.assertEqual(self.stored(slip), original)
 
-    def test_open_paid_flag_and_history_lock_are_not_recomputed(self):
-        for field in ("paid", "step_history_locked"):
-            if field not in self.scope["hr.payslip"]._fields:
-                continue
-            with self.env.cr.savepoint():
-                self.entry()
-                extra = self.entry(9)
-                slip = self.slip()
-                slip.compute_sheet()
-                slip.write({field: True})
-                original = self.stored(slip)
-                with self.assertRaises(UserError):
-                    self.wizard().action_apply()
-                self.assertFalse(self.contract.date_end)
-                self.assertTrue(extra.exists())
-                self.assertEqual(self.stored(slip), original)
+    def _assert_flag_protected(self, field):
+        if field not in self.scope["hr.payslip"]._fields:
+            self.skipTest("The installed real engine has no " + field + " flag")
+        self.entry()
+        extra = self.entry(9)
+        slip = self.slip()
+        slip.compute_sheet()
+        slip.write({field: True})
+        original = self.stored(slip)
+        with self.assertRaises(UserError):
+            self.wizard().action_apply()
+        self.assertFalse(self.contract.date_end)
+        self.assertTrue(extra.exists())
+        self.assertEqual(self.stored(slip), original)
+
+    def test_open_paid_flag_is_not_recomputed(self):
+        self._assert_flag_protected("paid")
+
+    def test_open_history_lock_is_not_recomputed(self):
+        self._assert_flag_protected("step_history_locked")
 
     def test_apply_rechecks_a_preview_validated_in_another_session(self):
         self.entry()
@@ -241,7 +245,8 @@ class HrConsumersCase(TransactionCase):
             severance.action_prevalidate()
         self.assertEqual(severance.read(["state", "renta_base", "total_a_pagar", "last_payslip_ids"]), original)
         foreign_employee = self.scope["hr.employee"].create({"name": "Private second employee", "company_id": self.company.id})
-        foreign_slip = slip.copy({"employee_id": foreign_employee.id})
+        foreign_contract = self.contract.copy({"employee_id": foreign_employee.id})
+        foreign_slip = slip.copy({"employee_id": foreign_employee.id, "contract_id": foreign_contract.id})
         with self.assertRaises(ValidationError), self.env.cr.savepoint():
             severance.last_payslip_ids = foreign_slip
 
