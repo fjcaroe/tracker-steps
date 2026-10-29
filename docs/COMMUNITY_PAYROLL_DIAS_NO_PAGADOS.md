@@ -21,20 +21,28 @@ No se introduce otra fórmula ni una escritura manual de importes almacenados.
 La invalidación inversa M2M y la cola de cómputo ORM deben demostrar el cambio en
 borradores durante la aceptación; no se declara probado por leer el código.
 
-El lector privado de política obtiene IDs completos del componente M2M por SQL,
-incluidos registros archivados, y exige permiso normal sobre todos los extremos
-y campos. No permite que una restricción de registro o campo transforme una
-relación oculta en un supuesto día pagado. Los cómputos almacenados restablecen
+El lector privado de política obtiene por SQL todos los pares directamente
+afectados, incluidos registros archivados, y exige permiso normal sobre sus
+extremos y campos. Una escritura/copia/eliminación de estructura inspecciona sus
+tipos; la operación equivalente de un tipo inspecciona todas sus estructuras.
+No expande vecinos de vecinos: procesar A con un tipo global compartido no
+requiere leer valores de una estructura B que la operación no modifica.
+No permite que una restricción de registro o campo transforme una relación
+efectivamente afectada oculta en un supuesto día pagado. Los cómputos almacenados restablecen
 el entorno del UID original sin elevarlo, pues Odoo usa `compute_sudo=True`.
-La pertenencia de país se valida con el país explícito de la estructura o de su
-compañía real. Para una estructura global sin país, el contexto sólo se resuelve
+El setup valida sólo el país explícito de la estructura. Un país desconocido
+queda almacenable y pendiente, incluso si OCA asignó una compañía por defecto:
+ese default no prueba propiedad nativa. El contexto desconocido sólo se resuelve
 al procesar con la compañía real de la liquidación; nunca se crea propietario.
+Así se conserva el par demo F con dueño predeterminado US/tipo CL, pero su
+procesamiento sigue bloqueado. No se presenta ese bootstrap como configuración
+chilena original adoptada ni certificada.
 
-En escrituras de ambos sentidos se comprueba antes la visibilidad completa,
-y después el alcance restante dentro de un savepoint. La validación previa no
+En escrituras de ambos sentidos se comprueba antes la visibilidad completa de
+los pares afectados, y después su alcance restante dentro de un savepoint. La validación previa no
 exige que una relación antigua inválida ya esté corregida: permite quitar un
 extremo visible incorrecto. Copia y eliminación también requieren visibilidad
-del componente. Las copias conservan los extremos archivados aun con el contexto
+de sus pares directamente afectados. Las copias conservan los extremos archivados aun con el contexto
 de lectura predeterminado, sin cambiar el resto de la política estándar de copia.
 
 La guarda de cálculo/contabilización inspecciona también los IDs completos de
@@ -62,7 +70,7 @@ wrappers de pruebas y actualizar versión/conteos. No hace falta una migración
 que toque pares existentes: la nueva relación es el inverso del campo existente.
 
 Siete casos CE reales cubren metadata/inverso/pares; archivo/copia; recálculo de
-borradores e IDs; workflow cerrado/asiento exacto; componentes ocultos; ACL de
+borradores e IDs; workflow cerrado/asiento exacto; lados propietarios con pares ocultos; ACL de
 campo incluso bajo cómputo privilegiado; y país/global/corrección de par legado.
 Dos casos compartidos de referencia nativa prueban sólo contrato físico,
 inverso ORM/SQL y pares archivados: no se infiere su fórmula ni se copia OEEL.

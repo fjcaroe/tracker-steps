@@ -27,32 +27,33 @@ def _command_ids(commands):
     return result
 
 
-def _policy_component(env, structure_ids=(), type_ids=(), validate=False, company=None):
-    """Read every original endpoint, including hidden/archived neighbours.
+def _policy_component(env, structure_ids=(), type_ids=(), owner="structure", validate=False, company=None):
+    """Read the owner's direct pairs, never unrelated neighbours of neighbours.
 
-    Raw IDs detect omission; every endpoint and field still needs ordinary
-    access. Before editing, only visibility is required so a visible invalid
-    country relationship can be removed. After editing, remaining pairs must
-    have compatible explicit scope. A global structure is never given an owner.
+    Structure edits affect only their own memberships; type edits affect all
+    structures linked to that type. Actual processing reads its structures and
+    used types, without authorizing an unrelated company's policy. Raw IDs
+    detect omissions, including archived endpoints. Setup checks explicit
+    country only; the real payslip company resolves unknown country at use.
     """
+    if owner not in {"structure", "type", "processing", "references"}:
+        raise ValueError("Unknown original unpaid-policy owner")
     structures_model = _normal(env["hr.payroll.structure"]).with_context(active_test=False)
     types_model = structures_model.env["hr.work.entry.type"].with_context(active_test=False)
     structures_model.flush_model(["unpaid_work_entry_type_ids", "company_id", "country_id"])
     types_model.flush_model(["unpaid_structure_ids", "country_id"])
     structure_ids, type_ids = set(structure_ids), set(type_ids)
+    used_structure_ids, used_type_ids = set(structure_ids), set(type_ids)
     pairs = set()
-    while True:
+    if owner != "references":
+        column = "hr_work_entry_type_id" if owner == "type" else "hr_payroll_structure_id"
+        identifiers = type_ids if owner == "type" else structure_ids
         env.cr.execute("""SELECT hr_payroll_structure_id,hr_work_entry_type_id
             FROM hr_payroll_structure_hr_work_entry_type_rel
-            WHERE hr_payroll_structure_id=ANY(%s) OR hr_work_entry_type_id=ANY(%s)""",
-            (sorted(structure_ids), sorted(type_ids)))
-        found = set(env.cr.fetchall())
-        all_structures = structure_ids | {row[0] for row in found}
-        all_types = type_ids | {row[1] for row in found}
-        pairs |= found
-        if (all_structures, all_types) == (structure_ids, type_ids):
-            break
-        structure_ids, type_ids = all_structures, all_types
+            WHERE """ + column + "=ANY(%s)", (sorted(identifiers),))
+        pairs = set(env.cr.fetchall())
+        structure_ids |= {row[0] for row in pairs}
+        type_ids |= {row[1] for row in pairs}
     structures = structures_model.browse(sorted(structure_ids))
     types = types_model.browse(sorted(type_ids))
     if structures:
@@ -70,14 +71,16 @@ def _policy_component(env, structure_ids=(), type_ids=(), validate=False, compan
             company = company.with_env(structures.env)
             company.check_access("read")
             company.check_field_access_rights("read", ["country_id"])
-        for structure_id, type_id in pairs:
+        scope_pairs = set(pairs)
+        if owner == "processing":
+            # A used type must also belong to the actual processing country
+            # even when it has no unpaid membership in this structure.
+            scope_pairs |= {(structure_id, type_id) for structure_id in used_structure_ids for type_id in used_type_ids}
+        for structure_id, type_id in scope_pairs:
             structure, kind = by_structure[structure_id], by_type[type_id]
-            structure.company_id.check_access("read")
-            structure.company_id.check_field_access_rights("read", ["country_id"])
-            country = structure.country_id or structure.company_id.country_id
-            # Only actual processing supplies its real payslip company. Setup
-            # deliberately leaves a country-less global structure unresolved.
-            country = country or (company.country_id if company else False)
+            # An OCA default company on imported configuration is not proof of
+            # native ownership. Never qualify setup from that default owner.
+            country = structure.country_id or (company.country_id if company else False)
             if kind.country_id and country and kind.country_id != country:
                 raise UserError(_("Original unpaid payroll policy crosses country boundaries."))
     return {"structures": structures, "types": types, "pairs": pairs}
@@ -94,7 +97,7 @@ class Structure(models.Model):
     def create(self, vals_list):
         planned = set().union(*(_command_ids(vals.get("unpaid_work_entry_type_ids")) for vals in vals_list))
         if planned:
-            _policy_component(self.env, type_ids=planned)
+            _policy_component(self.env, type_ids=planned, owner="references")
         with self.env.cr.savepoint():
             records = super().create(vals_list)
             _policy_component(self.env, structure_ids=records.ids, validate=True)
@@ -136,10 +139,10 @@ class WorkEntryType(models.Model):
     def create(self, vals_list):
         planned = set().union(*(_command_ids(vals.get("unpaid_structure_ids")) for vals in vals_list))
         if planned:
-            _policy_component(self.env, structure_ids=planned)
+            _policy_component(self.env, structure_ids=planned, owner="references")
         with self.env.cr.savepoint():
             records = super().create(vals_list)
-            _policy_component(self.env, type_ids=records.ids, validate=True)
+            _policy_component(self.env, type_ids=records.ids, owner="type", validate=True)
             return records
 
     def write(self, vals):
@@ -148,18 +151,18 @@ class WorkEntryType(models.Model):
         normal = _normal(self)
         normal.check_access("write")
         normal.check_field_access_rights("write", list(set(vals) & {"unpaid_structure_ids", "country_id"}))
-        _policy_component(normal.env, type_ids=self.ids, structure_ids=_command_ids(vals.get("unpaid_structure_ids")))
+        _policy_component(normal.env, type_ids=self.ids, structure_ids=_command_ids(vals.get("unpaid_structure_ids")), owner="type")
         with self.env.cr.savepoint():
             result = super().write(vals)
-            _policy_component(normal.env, type_ids=self.ids, validate=True)
+            _policy_component(normal.env, type_ids=self.ids, owner="type", validate=True)
             return result
 
     def unlink(self):
-        _policy_component(self.env, type_ids=self.ids)
+        _policy_component(self.env, type_ids=self.ids, owner="type")
         return super().unlink()
 
     def copy_data(self, default=None):
-        policy = _policy_component(self.env, type_ids=self.ids)
+        policy = _policy_component(self.env, type_ids=self.ids, owner="type")
         result = super().copy_data(default=default)
         if "unpaid_structure_ids" not in (default or {}):
             for record, values in zip(self, result):
@@ -187,7 +190,7 @@ class WorkedDays(models.Model):
             line.contract_id.check_field_access_rights("read", ["wage", "schedule_pay"])
             slip.struct_id._step_check_payroll_scope(slip.company_id)
             _policy_component(normal.env, structure_ids=slip.struct_id.ids,
-                type_ids=line.work_entry_type_id.ids, validate=True, company=slip.company_id)
+                type_ids=line.work_entry_type_id.ids, owner="processing", validate=True, company=slip.company_id)
         # The actual existing formula and frozen-cache restoration remain the
         # provider. active_test=False prevents archiving from changing policy.
         return super(WorkedDays, self.with_context(active_test=False))._compute_payment()
@@ -209,5 +212,5 @@ class Payslip(models.Model):
             if original_days and not slip.struct_id:
                 raise UserError(_("Select the original payslip structure before calculating worked-day payment."))
             _policy_component(normal.env, structure_ids=slip._step_selected_payroll_structures().ids,
-                type_ids=original_days.work_entry_type_id.ids, validate=True, company=slip.company_id)
+                type_ids=original_days.work_entry_type_id.ids, owner="processing", validate=True, company=slip.company_id)
         return result

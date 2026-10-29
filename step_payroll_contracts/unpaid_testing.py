@@ -17,12 +17,16 @@ class UnpaidRelationFixture:
                 "base.group_user", cls.payroll_group, "hr.group_hr_manager", "account.group_account_manager")])]})
         cls.scope = api.Environment(cls.env.cr, actor.id, dict(cls.env.context, allowed_company_ids=cls.company.ids), su=False)
         cls.kind = cls.scope["hr.payroll.structure.type"].create({"name": "Private unpaid relation type"})
-        cls.structures = cls.scope["hr.payroll.structure"].create([
+        values = [
             {"name": "Private unpaid relation structure", "code": "PRIVATE_UNPAID_RELATION",
-                "type_id": cls.kind.id, "company_id": cls.company.id},
+                "type_id": cls.kind.id},
             {"name": "Private archived unpaid relation structure", "code": "PRIVATE_UNPAID_ARCHIVE",
-                "type_id": cls.kind.id, "company_id": cls.company.id},
-        ])
+                "type_id": cls.kind.id},
+        ]
+        if "company_id" in cls.scope["hr.payroll.structure"]._fields:
+            for values_row in values:
+                values_row["company_id"] = cls.company.id
+        cls.structures = cls.scope["hr.payroll.structure"].create(values)
         cls.structure, cls.other_structure = cls.structures
         cls.entry_types = cls.scope["hr.work.entry.type"].create([
             {"name": "Private unpaid relation entry", "code": "PRIVATE_UNPAID_ENTRY", "country_id": cls.company.country_id.id},
