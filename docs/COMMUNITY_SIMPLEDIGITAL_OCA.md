@@ -1,5 +1,10 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
+Estado acumulado posterior y siguiente prompt:
+[COMMUNITY_PAQUETE_ACELERADO.md](COMMUNITY_PAQUETE_ACELERADO.md). La pareja M
+valida consumidores HR, almacenamiento preparatorio y bancos; la configuración
+original BASIC/GROSS/NET, 71 reglas e identidad histórica siguen pendientes.
+
 ## Contrato del bloque
 
 Base canónica 498c09c; rama propia codex/community-simpledigital-20261028.

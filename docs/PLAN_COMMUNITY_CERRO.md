@@ -1,5 +1,10 @@
 # Plan de independencia de Enterprise para Cerro El Plomo
 
+Última aceptación y siguiente bloque:
+[COMMUNITY_PAQUETE_ACELERADO.md](COMMUNITY_PAQUETE_ACELERADO.md), paquete M de
+caa8bc94. La conversión integral, configuración original de nómina y DTE/SII
+siguen abiertos; el vencimiento del 31 no está resuelto.
+
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,
 conservando datos y funcionalidad de los módulos propios. La ejecución empieza
 en entornos privados de ingeniería, dentro del circuito de Desarrollo. No se
