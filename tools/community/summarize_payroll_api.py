@@ -278,7 +278,16 @@ def main():
                 'orm_loaded','rules_evaluated','salary_formulas_exposed','historical_payroll_read','record_rule_equivalence_certified'))
         comparison=helper.compare_reports(prior,current)
         assert current['read_only_comparison']==comparison and comparison['read_only_evidence_unchanged']
+        closed={('hr.payroll.structure',name) for name in ('active','hide_basic_on_pdf','journal_id','payslip_name','report_id')}
+        closed|={('hr.payroll.structure.type',name) for name in ('default_schedule_pay','default_work_entry_type_id','sequence','wage_type')}
+        closed|={('hr.salary.rule',name) for name in ('amount_other_input_id','condition_other_input_id','partner_id','not_computed_in_net','split_move_lines')}
+        assert len(closed)==14
+        assert closed<={(row['model'],row['name']) for row in current['target_metadata']['fields']}
+        for name in ('field_differences','selection_value_differences'):
+            assert not closed & {(row['model'],row['field']) for row in assessment[name]}
+        assert not closed & {(helper.TABLES[row['table']],row['field']) for row in assessment['column_differences']}
         result['configuration_adoption_preflight']={'read_only_evidence_unchanged':True,
+            'physical_original_field_contracts_closed':len(closed),
             'source_masters':assessment['source_master_count'],'source_xmlids':assessment['source_xmlid_count'],
             'occupied_ids':len(assessment['occupied_source_ids']),'xmlid_conflicts':len(assessment['xmlid_conflicts']),
             'remaining_field_differences':len(assessment['field_differences']),
