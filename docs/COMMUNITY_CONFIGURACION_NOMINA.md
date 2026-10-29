@@ -1,5 +1,8 @@
 # Configuración original y lectura histórica de nómina — 29-10-2026
 
+Aceptación posterior y siguiente prompt: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md),
+pareja F y upgrade privado I. Esta hoja conserva la evidencia histórica D.
+
 Bloque desde la canónica `db398fba`, worktree propio y rama
 `codex/community-payroll-configuration-20261029`. Addons congelados en
 `e097560b`; las herramientas posteriores sólo verifican/exportan evidencia.

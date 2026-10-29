@@ -1,8 +1,9 @@
 # Preflight de identidad, permisos y traducciones de configuración
 
-Estado vigente y siguiente bloque: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
-El cierre de catorce campos y el reporte almacenado no adoptan los maestros ni
-certifican la conversión integral; el contenido inferior conserva su alcance histórico.
+Estado vigente y siguiente bloque: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md).
+La pareja F pasa 375/252 casos y cierra 22 contratos; quedan 12 diferencias de
+campos y siete de columnas. La configuración original, ACL/identidad y
+conversión integral siguen abiertas. El contenido inferior conserva su alcance histórico.
 
 Bloque de solo lectura desde canónica `db398fba`, rama propia
 `codex/community-payroll-config-acl-20261029`. Complementa

@@ -1,8 +1,9 @@
 # Plan de independencia de Enterprise para Cerro El Plomo
 
 Última aceptación y siguiente bloque:
-[COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md), paquete D
-de e097560b. La conversión integral, configuración original de nómina y DTE/SII
+[COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md), paquete F de
+4705aa85 y upgrade privado I. Pasan 375/252 casos; se preservan 59.048 XML IDs
+con noupdate. La configuración original, DTE/SII y la conversión integral
 siguen abiertos; el vencimiento del 31 no está resuelto.
 
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,

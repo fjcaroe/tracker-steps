@@ -1,11 +1,11 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
-Estado acumulado posterior y siguiente prompt:
-[COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md). La pareja D
-cierra catorce campos originales y lectura/impresión desde valores almacenados.
-El alcance global/país, custodia CAF y agrupación real siguen probados; la
-configuración original BASIC/GROSS/NET, 71 reglas e identidad histórica siguen
-pendientes. Las secciones inferiores describen el bloque histórico inicial.
+Estado acumulado y siguiente prompt:
+[COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md). La pareja F
+pasa 375/252 casos y cierra ocho contratos adicionales; I prueba el upgrade de
+propiedades con historial protegido. La adopción de 120 maestros/71 reglas,
+permisos originales y conversión integral permanecen pendientes. Las secciones
+inferiores describen el bloque histórico inicial.
 
 ## Contrato del bloque
 

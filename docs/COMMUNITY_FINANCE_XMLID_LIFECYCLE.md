@@ -55,3 +55,7 @@ los valores bancarios y monetarios. `finance_frontier_contract` exige ahora
 igualdad exacta de la metadata bancaria; el testigo integral de preservación
 no recibe normalizaciones ni exclusiones. Las pruebas de la pareja exacta y
 su aceptación corresponden al coordinador.
+
+Aceptación: pareja F de [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md),
+375/252 casos sin fallos, preservación exacta de los 59.048 XML IDs originales
+con noupdate y de los 52 aliases financieros descritos aquí.

@@ -1,8 +1,9 @@
 # Configuración original de nómina: captura y puertas de adopción
 
-Estado vigente y siguiente bloque: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
-El cierre de catorce campos y el reporte almacenado no adoptan los maestros ni
-certifican la conversión integral; el contenido inferior conserva su alcance histórico.
+Estado vigente y siguiente bloque: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md).
+La pareja F pasa 375/252 casos y cierra 22 contratos; quedan 12 diferencias de
+campos y siete de columnas. La configuración original, ACL/identidad y
+conversión integral siguen abiertas. El contenido inferior conserva su alcance histórico.
 
 Auditoría del 29-10-2026, desde la canónica `6e3c8298`. Complementa
 [COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md),

@@ -1,5 +1,8 @@
 # Analítica original y contabilización OCA
 
+Aceptación de este bloque: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md),
+pareja F y upgrade privado I; configuración original y conversión integral pendientes.
+
 Este bloque conserva `hr.salary.rule.analytic_account_id` como propiedad JSONB
 por empresa, nullable, `copy=False` y `ondelete=set null`, según metadata de la
 referencia nativa. No cambia `account_debit`, `account_credit` ni la política
@@ -56,8 +59,9 @@ la cuenta real. Una regla global con valor scalar aborta: no se elige dueño a
 partir de la cuenta, estructura, usuario o empresa por defecto. Un JSON ya
 existente se valida sin reescribirlo. Se retira únicamente el FK scalar real
 `set null` hacia la cuenta analítica, que no es aplicable a un JSON; cualquier
-otra restricción inesperada aborta. No se escriben compañías, salarios,
-maestros, números, líneas, importes ni secuencias.
+otra restricción inesperada aborta. Se cambia la representación de la propiedad
+del maestro ya existente; no se crean ni reasignan maestros/compañías, salarios, números, líneas, importes o
+secuencias.
 
 ## Pruebas del bloque
 

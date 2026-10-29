@@ -1,8 +1,9 @@
 # Adaptación de contratos Simple Digital–OCA
 
-Estado vigente y siguiente bloque: [COMMUNITY_CONFIGURACION_NOMINA.md](COMMUNITY_CONFIGURACION_NOMINA.md).
-El cierre de catorce campos y el reporte almacenado no adoptan los maestros ni
-certifican la conversión integral; el contenido inferior conserva su alcance histórico.
+Estado vigente y siguiente bloque: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md).
+La pareja F pasa 375/252 casos, con 22 contratos originales cerrados; el upgrade
+I preserva historial en la referencia OCA. Quedan la configuración original,
+ACL/identidad y conversión integral. El contenido inferior conserva su alcance histórico.
 
 ## Alcance del bloque
 

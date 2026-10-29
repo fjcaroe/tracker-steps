@@ -1,5 +1,8 @@
 # Custodia CAF, agrupación de pagos y configuración original — 29-10-2026
 
+Estado acumulado posterior: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md),
+pareja F y upgrade I. Esta hoja conserva la aceptación histórica de custodia y lotes.
+
 Continuación de la canónica `6e3c8298`, rama propia
 `codex/community-original-config-20261029`. Tres agentes autorizados prepararon
 frentes independientes; las restauraciones, actualizaciones y verificaciones
