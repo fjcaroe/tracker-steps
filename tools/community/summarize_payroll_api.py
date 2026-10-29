@@ -103,7 +103,8 @@ def main():
     if admission_upgrade.exists():paths+=['tools/community/validate_payroll_admission_upgrade.py',
         'tools/community/validate_payroll_properties_upgrade.py','tools/community/verify_payroll_admission_evidence.py']
     native_tags=args.evidence/'native-tags/passed.json'
-    if native_tags.exists():paths+=['tools/community/observe_native_payroll_tags.py','tools/community/probe_native_payroll_tags.py']
+    if native_tags.exists():paths+=['tools/community/observe_native_payroll_tags.py','tools/community/probe_native_payroll_tags.py',
+        'tools/community/verify_native_payroll_tags.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -207,6 +208,10 @@ def main():
         sys.path.insert(0,str(repo/'tools/community'))
         from verify_payroll_admission_evidence import verify_admission_evidence
         result['admission_upgrade']=verify_admission_evidence(admission_upgrade.parent,source,packets[0])
+    if native_tags.exists():
+        sys.path.insert(0,str(repo/'tools/community'))
+        from verify_native_payroll_tags import verify_native_payroll_tags
+        result['native_payroll_tags_observation']=verify_native_payroll_tags(native_tags.parent,source)
     if property_upgrade.exists():
         import importlib.util
         folder=property_upgrade.parent
@@ -578,6 +583,9 @@ def main():
             assert proof['runner_sha256']==hashlib.sha256(executed).hexdigest()
             assert proof['source_packet_sha256']==results[mode]['source_files_sha256']
             assert proof['database']==results[mode]['database'] and proof['read_only'] and proof['metadata_only']
+            if offline_runner.exists():
+                assert proof['external_network_disabled'] and proof['postgres_unix_socket']
+                assert proof['offline_runner_sha256']==hashlib.sha256(offline_runner.read_bytes()).hexdigest()
             assert not any(proof[key] for key in ('upgraded','business_records_read','source_bodies_exported','functional_conversion_certified'))
             for name,digest in proof['helpers_sha256'].items():
                 helper=(registry/name).read_bytes()

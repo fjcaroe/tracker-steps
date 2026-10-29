@@ -32,6 +32,11 @@ Conserva importes, cuentas, impuestos, reparticiones e inversión fiscal del
 proveedor. La confirmación y publicación siguen siendo las operaciones reales
 OCA y Account; no existe un asiento o motor simulado.
 
+El probe nativo C deja sus cuatro movimientos en borrador: observa la preparación
+real tras confirmar la liquidación, sin ejecutar la publicación del asiento
+nativo. OCA sí publica en sus pruebas. Este bloque no certifica equivalencia
+del flujo de aprobación/publicación entre motores.
+
 No se afirma equivalencia monetaria de los reembolsos nativos con OCA.
 OCA invierte expresamente el importe cuando su `credit_note` real está activo.
 El probe nativo C confirma que su bandera efectiva permanece True antes/después
