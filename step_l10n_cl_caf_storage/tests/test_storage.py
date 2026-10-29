@@ -71,16 +71,18 @@ class TestCAFCustodyStorage(CAFCustodyAssertions, TransactionCase):
 
     def test_invalid_xml_never_leaves_a_caf_or_attachment(self):
         before = self.env['l10n_cl.dte.caf'].search_count([])
-        attachments = self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')])
+        domain = [('res_model', '=', 'l10n_cl.dte.caf'), ('res_field', '=', 'caf_file')]
+        attachments = self.env['ir.attachment'].search_count(domain)
         for raw in (b'not XML', b'<!DOCTYPE CAF [<!ENTITY x SYSTEM "file:///etc/passwd">]><CAF/>'):
             with self.assertRaises(UserError):
                 self.manager_model().create({'filename': 'SYNTHETIC_INVALID.xml', 'caf_file': base64.b64encode(raw)})
         self.assertEqual(self.env['l10n_cl.dte.caf'].search_count([]), before)
-        self.assertEqual(self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')]), attachments)
+        self.assertEqual(self.env['ir.attachment'].search_count(domain), attachments)
 
     def test_public_context_cannot_make_initial_binary_upload_public(self):
         count = self.env['l10n_cl.dte.caf'].search_count([])
-        attachments = self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')])
+        domain = [('res_model', '=', 'l10n_cl.dte.caf'), ('res_field', '=', 'caf_file')]
+        attachments = self.env['ir.attachment'].search_count(domain)
         # Binary's native clean_context removes default_* when creating its
         # attachment. Require the actual result to stay private; no weakened
         # guard or artificial exception is needed for an already safe path.
@@ -91,7 +93,8 @@ class TestCAFCustodyStorage(CAFCustodyAssertions, TransactionCase):
         self.assertFalse(attachment.public)
         self.assertFalse(attachment.access_token)
         self.assertEqual(self.env['l10n_cl.dte.caf'].search_count([]), count + 1)
-        self.assertEqual(self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')]), attachments + 1)
+        self.assertIn(attachment.id, self.env['ir.attachment'].search(domain).ids)
+        self.assertEqual(self.env['ir.attachment'].search_count(domain), attachments + 1)
 
     def test_filename_unique_and_original_record_is_immutable(self):
         record = self.custody_record()
