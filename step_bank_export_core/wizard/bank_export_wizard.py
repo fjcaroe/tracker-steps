@@ -24,6 +24,7 @@ class BankExportWizard(models.TransientModel):
 
     @api.model
     def default_get(self, fields_list):
+        self._check_payment_commands(self.env.context.get('default_payment_ids', []))
         values = super().default_get(fields_list)
         for field in ('file_data', 'file_name'):
             if field in fields_list:
@@ -101,6 +102,7 @@ class BankExportWizard(models.TransientModel):
 
     @api.model_create_multi
     def create(self, values_list):
+        self._check_payment_commands(self.env.context.get('default_payment_ids', []))
         if any({'create_uid', 'create_date', 'write_uid', 'write_date', 'id'} & values.keys()
                for values in values_list):
             raise AccessError(_('La propiedad del asistente la determina el usuario que lo crea.'))
