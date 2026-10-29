@@ -117,7 +117,11 @@ class BatchPaymentGroupingService(models.AbstractModel):
 
     @api.model
     def _create_group(self, payment_ids, name, date=None):
-        provider = self._provider()
+        # This API supplies its complete header and original membership. Do not
+        # let unrelated view defaults import archives, states or approvals into
+        # either provider after prevalidation.
+        provider = self._provider().with_context({key: value for key, value in self.env.context.items()
+                                                   if not key.startswith('default_')})
         provider.check_access('create')
         if not isinstance(name, str) or not name.strip() or len(name) > 200:
             raise UserError(_('Indique una referencia de grupo de hasta 200 caracteres.'))
