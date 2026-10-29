@@ -109,11 +109,17 @@ class Payslip(models.Model):
         contract.check_field_access_rights("read", ["company_id", "analytic_account_id"])
         if not contract or contract.company_id != company:
             raise UserError(_("Payroll analytics require the original contract in the payslip company."))
+        original_rule = rule.with_env(normal.env)
+        original_rule.ensure_one()
+        original_rule.check_access("read")
+        original_rule.check_field_access_rights("read", ["company_id"])
+        if original_rule.company_id and original_rule.company_id != company:
+            raise UserError(_("The original payroll analytic rule is outside the payslip company."))
         # This is OCA's actual priority, not a claim about the native engine.
         if contract.analytic_account_id:
             account = _checked_account(normal.env, contract.analytic_account_id.id, company)
         else:
-            account = rule.with_env(normal.env)._step_original_analytic_account()
+            account = original_rule._step_original_analytic_account()
         return {account.id: 100} if account else {}
 
     def _step_check_original_configuration(self, operation="calculate"):
