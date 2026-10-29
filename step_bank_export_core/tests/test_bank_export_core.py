@@ -7,7 +7,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
-from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS
+from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES
 from ..models.bank_export_service import clean_rut, whole_pesos
 
 
@@ -153,6 +153,10 @@ class BankExportCoreCase(AccountTestInvoicingCommon):
             field_name = 'field_res_partner_bank__' + name
             self.assertEqual(self.env.ref(namespace + '.' + field_name),
                              self.env.ref('step_bank_export_core.' + field_name))
+            for value in SELECTION_VALUES[name]:
+                selection = 'selection__res_partner_bank__%s__%s' % (name, value)
+                self.assertEqual(self.env.ref(namespace + '.' + selection),
+                                 self.env.ref('step_bank_export_core.' + selection))
         for namespace, name in LEGACY_VIEWS.items():
             self.assertEqual(self.env.ref(namespace + '.' + name), self.env.ref('step_bank_export_core.' + name))
         arch = self.env['res.partner.bank'].get_view(view_type='form')['arch']
