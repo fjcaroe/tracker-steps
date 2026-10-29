@@ -55,7 +55,14 @@ def adapt_payslip_report_xml(content):
             value = replacements.get(original, original)
             for name in ('hl', 'dl', 'l'):
                 value = value.replace(name + '.category_id.code', 'step_report_category(' + name + ')')
-            node.set(attr, value)
+            if attr == 't-field' and value != original:
+                node.attrib.pop(attr)
+                node.set('t-out', value)
+            elif attr == 't-esc':
+                node.attrib.pop(attr)
+                node.set('t-out', value)
+            else:
+                node.set(attr, value)
         if node.get('t-set') in expected:
             expected[node.get('t-set')] += 1
         if node.get('t-out') in ('step_report_total(hl)', 'step_report_total(dl)',
