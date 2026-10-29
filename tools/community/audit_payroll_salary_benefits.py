@@ -63,6 +63,9 @@ def metadata_queries():
         'acl': 'SELECT id,model_id,group_id,active,perm_read,perm_write,perm_create,perm_unlink FROM ir_model_access WHERE model_id IN (' + models + ') ORDER BY model_id,id',
         'record_rules': 'SELECT id,model_id,active,global,domain_force,perm_read,perm_write,perm_create,perm_unlink FROM ir_rule WHERE model_id IN (' + models + ') ORDER BY model_id,id',
         'rule_groups': 'SELECT rule_group_id,group_id FROM rule_group_rel WHERE rule_group_id IN (SELECT id FROM ir_rule WHERE model_id IN (' + models + ')) ORDER BY rule_group_id,group_id',
+        'group_aliases': "SELECT id,module,name,res_id,noupdate FROM ir_model_data WHERE model='res.groups' AND res_id IN ("
+            'SELECT group_id FROM ir_model_access WHERE model_id IN (' + models + ') UNION SELECT group_id FROM ir_model_fields_group_rel WHERE field_id IN (' + fields + ') '
+            'UNION SELECT group_id FROM rule_group_rel WHERE rule_group_id IN (SELECT id FROM ir_rule WHERE model_id IN (' + models + '))) ORDER BY module,name',
         'views': "SELECT id,model,type,inherit_id,active,key,encode(sha256(convert_to(arch_db::text,'UTF8')),'hex') AS architecture_sha256 FROM ir_ui_view WHERE model LIKE 'hr.contract.salary.%' OR arch_db::text LIKE '%salary_benefits_ids%' ORDER BY id",
         'actions': "SELECT id,res_model,view_mode FROM ir_act_window WHERE res_model LIKE 'hr.contract.salary.%' ORDER BY id",
         'tables': "SELECT c.relname,c.relkind FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p') AND c.relname LIKE 'hr_contract_salary_%' ORDER BY c.relname",
