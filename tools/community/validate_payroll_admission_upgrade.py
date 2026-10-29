@@ -164,9 +164,11 @@ def verify_rows(before, after, xml_audit=None):
         assert before['input_name_column'] == ['jsonb', 'NO', None]
         assert after['input_name_column'] == ['character varying', 'NO', None]
         assert input_name_changes, 'Actual nonempty input-name conversion must be witnessed'
+        assert any(isinstance(row.get('note'), dict) and {'en_US', 'es_CL'} <= row['note'].keys()
+                   and row['note']['en_US'] != row['note']['es_CL'] for row in before['hr_salary_rule']), 'Distinct stored note translations must be witnessed'
         result.update(input_name_projection_records=input_name_changes,
                       input_name_literal_values_preserved=True, input_name_not_null_preserved=True,
-                      input_name_sql_default_absent=True)
+                      input_name_sql_default_absent=True, multilingual_rule_note_preserved=True)
     return result
 
 
@@ -273,6 +275,10 @@ def exercise(env, mode, directory):
         analytic.check_access('read')
         case.rule.write({'code': 'BASIC', 'note': '<p>Nota histórica: acentos, 0 y espacios internos.</p>',
                          'analytic_account_id': analytic.id})
+        if UPGRADE_PROFILE == 'name-scalar':
+            env['res.lang']._activate_lang('es_CL')
+            case.rule.update_field_translations('note', {'es_CL': {
+                'Nota histórica: acentos, 0 y espacios internos.': 'Private preserved Chilean note translation'}}, source_lang='en_US')
         assert case.rule.company_id == case.company, 'Fixture must have its explicit original company'
         gross = case.rule.copy({'code': 'GROSS', 'sequence': 2, 'note': False, 'analytic_account_id': False,
             'account_debit': False, 'account_credit': False,

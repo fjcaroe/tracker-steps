@@ -295,7 +295,8 @@ def verify_admission_evidence(folder, git_source, current_packet):
         _hash(rejection['before_sha256'])
         assert not rejection['writes_to_source'] and not rejection['closed_payroll_recomputed']
         extra = {name: proof[name] for name in ('input_name_projection_records',
-            'input_name_literal_values_preserved', 'input_name_not_null_preserved', 'input_name_sql_default_absent')}
+            'input_name_literal_values_preserved', 'input_name_not_null_preserved', 'input_name_sql_default_absent',
+            'multilingual_rule_note_preserved')}
         extra['multilingual_input_upgrade_rejected_without_changes'] = True
     return dict({key: proof[key] for key in keys}, **extra, source_installed_modules=helper.SOURCE_INSTALLED_COUNT, source_enterprise_modules=0,
         legacy_owned_addons_checked=legacy_checked, current_addons_checked=2, backup_decoded=True,

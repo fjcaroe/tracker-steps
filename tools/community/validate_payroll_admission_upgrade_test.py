@@ -53,6 +53,8 @@ class AdmissionUpgradeCase(unittest.TestCase):
                 item['category_foreign_keys'] = after['category_foreign_keys']
             before['input_name_column'] = ['jsonb', 'NO', None]
             after['input_name_column'] = ['character varying', 'NO', None]
+            for item in (before, after):
+                item['hr_salary_rule'][0]['note']['es_CL'] = '<p>Distinct private note</p>'
             before['hr_payslip_input_type'] = [dict(id=345, name={'en_US': '  Exact literal  '})]
             after['hr_payslip_input_type'] = [dict(id=345, name='  Exact literal  ')]
             result = probe.verify_rows(before, after, audit)
