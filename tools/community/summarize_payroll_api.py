@@ -97,6 +97,13 @@ def main():
     if identity_snapshotter.exists():paths+=['tools/community/validate_agriculture_core.py']
     property_upgrade=args.evidence/'properties-upgrade/passed.json'
     if property_upgrade.exists():paths+=['tools/community/validate_payroll_properties_upgrade.py']
+    offline_runner=args.evidence/'offline-runner.py'
+    if offline_runner.exists():paths+=['tools/community/offline_process.py']
+    admission_upgrade=args.evidence/'admission-upgrade/passed.json'
+    if admission_upgrade.exists():paths+=['tools/community/validate_payroll_admission_upgrade.py',
+        'tools/community/validate_payroll_properties_upgrade.py','tools/community/verify_payroll_admission_evidence.py']
+    native_tags=args.evidence/'native-tags/passed.json'
+    if native_tags.exists():paths+=['tools/community/observe_native_payroll_tags.py','tools/community/probe_native_payroll_tags.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -160,6 +167,11 @@ def main():
     assert len({r['source_files_sha256'] for r in results.values()})==1
     validator=source['tools/community/validate_payroll_api.py']
     assert all(r['validator_sha256']==hashlib.sha256(validator).hexdigest() for r in results.values())
+    if offline_runner.exists():
+        executed=offline_runner.read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/offline_process.py'].replace(b'\r\n',b'\n')
+        assert all(r['external_network_disabled'] and r['loopback_http_only'] and r['postgres_unix_socket']
+            and r['offline_runner_sha256']==hashlib.sha256(executed).hexdigest() for r in results.values())
     before=read('cerro-reference','business-before')
     for name in ('business-after-upgrade','business-after'):
         after=read('cerro-reference',name)
@@ -191,6 +203,10 @@ def main():
         assert results['cerro-reference']['original_xmlid_noupdate_captured']
         assert all('noupdate' in row for row in original['original_xmlids'])
         result['original_xmlid_noupdate_preserved']=True
+    if admission_upgrade.exists():
+        sys.path.insert(0,str(repo/'tools/community'))
+        from verify_payroll_admission_evidence import verify_admission_evidence
+        result['admission_upgrade']=verify_admission_evidence(admission_upgrade.parent,source,packets[0])
     if property_upgrade.exists():
         import importlib.util
         folder=property_upgrade.parent

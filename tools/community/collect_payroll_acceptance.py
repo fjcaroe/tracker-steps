@@ -16,6 +16,8 @@ def main():
     parser.add_argument('--capsule', type=Path, required=True)
     parser.add_argument('--capsule-tool', type=Path, required=True)
     parser.add_argument('--properties-upgrade', type=Path)
+    parser.add_argument('--admission-upgrade', type=Path)
+    parser.add_argument('--native-tags', type=Path)
     args = parser.parse_args()
     assert os.geteuid() == 0
     for path in vars(args).values():
@@ -57,6 +59,9 @@ def main():
     files['basis-input.json'] = root / 'basis-input.json'
     files['configuration-inspector.py'] = source / 'tools/community/inspect_payroll_configuration.py'
     files['identity-snapshotter.py'] = source / 'tools/community/validate_agriculture_core.py'
+    if (source/'tools/community/offline_process.py').is_file():
+        files['offline-runner.py']=source/'tools/community/offline_process.py'
+        files['adoption-registry/offline_process.py']=source/'tools/community/offline_process.py'
     # The same approved SyS reference is reused, with provenance and documentary
     # proof. New monthly-basis outcomes come from this exact pair's CLI tests.
     prior_names = ('sys-reference.json', 'reference-auditor.py', 'selection-helper.py',
@@ -81,6 +86,24 @@ def main():
         files['properties-upgrade/source-acceptance.json']=baseline/'passed.json'
         files['properties-upgrade/source-packet.json']=baseline/'source-files.json'
         files['properties-upgrade/source-consumer-packet.json']=baseline/'consumer-source-files.json'
+    if args.admission_upgrade:
+        upgrade=args.admission_upgrade.resolve()
+        assert (upgrade/'passed.json').is_file()
+        allowed_python={'upgrade-probe.py','validate_payroll_properties_upgrade.py'}
+        for path in upgrade.iterdir():
+            if path.is_file() and (path.suffix in ('.json','.log') or path.name in allowed_python):
+                files['admission-upgrade/'+path.name]=path
+        baseline=Path('/opt/steps-validation/community-payroll-properties-20261029F/community')
+        for name,original in (('source-acceptance','passed'),('source-packet','source-files'),('source-consumer-packet','consumer-source-files')):
+            files['admission-upgrade/'+name+'.json']=baseline/(original+'.json')
+    if args.native_tags:
+        native=args.native_tags.resolve()
+        proof=json.loads((native/'passed.json').read_text())
+        assert proof['observation_only'] and proof['isolated_network_namespace'] and not proof['writes_to_source']
+        for name in ('passed.json','observations.json','before.json','after.json','source-before.json',
+                     'source-filestore.json','neutralized-activation-ids.json','restored-before-neutralization.json','probe.py','probe.log','bootstrap.log'):
+            files['native-tags/'+name]=native/name
+        files['native-tags/runner.py']=source/'tools/community/observe_native_payroll_tags.py'
     assert all(path.is_file() and not path.is_symlink() for path in files.values())
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:
