@@ -99,8 +99,11 @@ Los registros originales y correlativos no se consumen: los fixtures usan sus
 maestros privados y un número explícito. El PDF debe revisarse visualmente antes
 de declarar esta puerta aceptada. No sustituye la conversión de identidad ni
 la certificación de 71 reglas, Previred/libro o la puerta integral cero Enterprise.
-La verificación de texto del PDF usa `pypdf` privado: PyPDF2 1.26 devuelve texto
-vacío para estos PDFs wkhtml. El coordinador puede indicar su target aislado
-mediante `STEPS_PAYSLIP_PDF_PARSER_PATH`; no se cambia Python de producción.
-Se exige en el propio PDF el nombre y referencia originales, los conceptos
-negativo/cero/NULL y la presencia u ocultación de BASIC, además de validar HTML.
+La verificación offline del PDF usa PyMuPDF local mediante
+`tools/community/verify_stored_payslip_pdf.py`: PyPDF2 1.26 del servidor devuelve
+texto vacío para estos PDFs wkhtml. No se instalan dependencias en el servidor
+ni se cambia Python de producción. El helper comprueba los hashes del export,
+nombre/referencia, conceptos y BASIC en el PDF real, valores 0/-25/75 y las
+filas cuando su geometría es verificable; renderiza todas las páginas a PNG
+fuera del checkout y emite una prueba separada. Sigue faltando la revisión
+visual humana/agente de esas páginas para aceptar la presentación.
