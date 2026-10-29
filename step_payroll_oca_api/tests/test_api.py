@@ -107,6 +107,14 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
         self.assertFalse(country.readonly)
         self.assertFalse(country.related)
         self.assertEqual(country.comodel_name,'res.country')
+        self.env.cr.execute("""SELECT attname,attnotnull FROM pg_attribute
+            WHERE attrelid='hr_payroll_structure'::regclass AND attname IN ('company_id','country_id')""")
+        self.assertEqual(dict(self.env.cr.fetchall()),{'company_id':False,'country_id':False})
+        self.env.cr.execute("""SELECT a.attname,c.confdeltype,c.convalidated FROM pg_constraint c
+            JOIN pg_attribute a ON a.attrelid=c.conrelid AND c.conkey=ARRAY[a.attnum]::smallint[]
+            WHERE c.conrelid='hr_payroll_structure'::regclass AND c.contype='f'
+            AND a.attname IN ('company_id','country_id') ORDER BY a.attname""")
+        self.assertEqual(self.env.cr.fetchall(),[('company_id','r',True),('country_id','n',True)])
         normal=model.create({'name':'Private ordinary structure','code':'PRIVATE_NORMAL_SCOPE'})
         self.assertEqual(normal.company_id,self.company)
         self.assertFalse(normal.country_id)
