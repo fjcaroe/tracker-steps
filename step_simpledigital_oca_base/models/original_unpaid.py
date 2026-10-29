@@ -212,13 +212,31 @@ class Payslip(models.Model):
     _inherit = "hr.payslip"
 
     def _step_check_original_configuration(self, operation="calculate"):
-        result = super()._step_check_original_configuration(operation=operation)
         normal = _normal(self)
-        days = normal.env["hr.payslip.worked_days"]
-        days.flush_model(["payslip_id", "work_entry_type_id"])
         for slip in normal:
-            normal.env.cr.execute("SELECT id FROM hr_payslip_worked_days WHERE payslip_id=%s", (slip.id,))
-            original_days = days.browse([row[0] for row in normal.env.cr.fetchall()])
+            if type(slip.id) is not int and slip._origin:
+                origin = slip._origin
+                origin.check_access("read")
+                origin.check_field_access_rights("read", [name for name in
+                    ("state", "paid", "step_history_locked") if name in origin._fields])
+                if history_protected(origin):
+                    raise UserError(_("Closed payroll history cannot be used as a draft calculation preview."))
+        result = super()._step_check_original_configuration(operation=operation)
+        days = normal.env["hr.payslip.worked_days"]
+        for slip in normal:
+            saved_id = slip.id if type(slip.id) is int else slip._origin.id if slip._origin else None
+            if saved_id:
+                days.flush_model(["payslip_id", "work_entry_type_id"])
+                normal.env.cr.execute("SELECT id FROM hr_payslip_worked_days WHERE payslip_id=%s", (saved_id,))
+                original_days = days.browse([row[0] for row in normal.env.cr.fetchall()])
+            else:
+                # The real unsaved ORM preview has no SQL identity or business
+                # rows to flush. Check its actual child model and typed masters.
+                days.check_access("read")
+                slip.check_field_access_rights("read", ["worked_days_line_ids"])
+                original_days = days
+            if type(slip.id) is not int:
+                original_days |= slip.worked_days_line_ids
             original_days.check_access("read")
             original_days.check_field_access_rights("read", ["work_entry_type_id"])
             if original_days and not slip.struct_id:
