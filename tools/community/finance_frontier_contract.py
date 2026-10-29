@@ -17,13 +17,19 @@ def verify(env, mode):
     installed = env['ir.module.module'].search([('state', '=', 'installed')])
     actual = {module.name: module.latest_version for module in installed if module.name in versions}
     assert actual == versions, (actual, versions)
-    from odoo.addons.step_bank_export_core.hooks import LEGACY_FIELDS, LEGACY_VIEWS
+    from odoo.addons.step_bank_export_core.hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES
     aliases = {}
     for namespace, name in LEGACY_FIELDS.items():
         name = 'field_res_partner_bank__' + name
         source, core = env.ref(namespace + '.' + name), env.ref('step_bank_export_core.' + name)
         assert source == core and core.model == 'res.partner.bank' and core.ttype == 'selection'
         aliases[namespace + '.' + name] = core.id
+        field_name = core.name
+        for value in SELECTION_VALUES[field_name]:
+            name = 'selection__res_partner_bank__%s__%s' % (field_name, value)
+            source, core_selection = env.ref(namespace + '.' + name), env.ref('step_bank_export_core.' + name)
+            assert source == core_selection and core_selection.field_id == core and core_selection.value == value
+            aliases[namespace + '.' + name] = core_selection.id
     for namespace, name in LEGACY_VIEWS.items():
         source, core = env.ref(namespace + '.' + name), env.ref('step_bank_export_core.' + name)
         assert source == core and core.model == 'res.partner.bank'
