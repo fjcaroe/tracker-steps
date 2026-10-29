@@ -53,7 +53,11 @@ class BatchPeriodCase(TransactionCase):
                 'condition_select': 'none', 'amount_select': 'fix', 'amount_fix': 100})
 
     def contract(self, name):
-        employee = self.scope['hr.employee'].create({'name': name, 'company_id': self.company.id})
+        # Provision masters as the fixture author, including the existing
+        # lifecycle's real allocation callback. The wizard and all checks below
+        # still use the ordinary payroll actor without any additional group.
+        author = self.env['hr.contract'].with_company(self.company).env
+        employee = author['hr.employee'].create({'name': name, 'company_id': self.company.id})
         values = {'name': name, 'employee_id': employee.id, 'company_id': self.company.id,
             'state': 'open', 'date_start': '2026-01-01', 'wage': 300000,
             'resource_calendar_id': self.calendar.id, 'structure_type_id': self.kind.id}
@@ -63,11 +67,11 @@ class BatchPeriodCase(TransactionCase):
         field = self.scope['hr.contract']._fields.get('contract_type_id')
         if field:
             values['contract_type_id'] = self.scope[field.comodel_name].search([], limit=1).id
-        contract = self.scope['hr.contract'].create(values)
+        contract = author['hr.contract'].create(values)
         contract.resource_calendar_id = self.calendar
         employee.resource_calendar_id = self.calendar
         employee.resource_id.tz = self.calendar.tz
-        return contract
+        return contract.with_env(self.scope)
 
     def entry(self, contract, start, stop):
         return self.scope['hr.work.entry'].create({'name': 'Private batch entry',
@@ -115,10 +119,12 @@ class BatchPeriodCase(TransactionCase):
         self.assertEqual(self.stored_entries(rows), before)
         internal = {'context': dict(wizard.env.context, _steps_batch_period=(
             _PERIOD_SCOPE, run.id, '2026-10-01', '2026-10-31', ((contract.employee_id.id, contract.id),)))}
-        with self.assertRaises(TypeError):
-            json.dumps(internal, default=json_default)
-        public = json.loads(json.dumps(_public_result(internal), default=json_default))
+        # Official json_default may stringify arbitrary objects. The contract
+        # is to remove the capability, never to rely on an encoder exception.
+        public_text = json.dumps(_public_result(internal), default=json_default)
+        public = json.loads(public_text)
         self.assertNotIn('_steps_batch_period', public['context'])
+        self.assertNotIn(str(_PERIOD_SCOPE), public_text)
 
     def test_local_midnight_and_intersecting_overnight_entries(self):
         contract = self.contract('Private boundary worker')

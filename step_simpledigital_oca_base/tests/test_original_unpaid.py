@@ -1,4 +1,5 @@
 """Actual monthly day payment, original M2M custody and closed ledger snapshots."""
+from unittest import TestCase
 from unittest.mock import patch
 
 from odoo import Command, fields
@@ -121,7 +122,10 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
         before = self.env.cr.fetchone()
         self.assertTrue(preview._step_check_original_configuration(operation='calculate'))
-        with patch.object(self.entry_type._fields['country_id'], 'groups', 'base.group_system'), self.assertRaises(AccessError):
+        # Odoo's AccessError assertion deliberately clears the entire cache,
+        # which erases unsaved ORM values. This guard is strictly read-only;
+        # use unittest's assertion without a savepoint/cache-reset wrapper.
+        with patch.object(self.entry_type._fields['country_id'], 'groups', 'base.group_system'), TestCase.assertRaises(self, AccessError):
             preview.sudo()._step_check_original_configuration(operation='calculate')
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
         self.assertEqual(self.env.cr.fetchone(), before)
@@ -129,7 +133,7 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.scope.user.with_env(self.env).write({'company_ids': [Command.link(foreign.id)]})
         original_country = self.entry_type.country_id
         self.entry_type.with_env(self.env).country_id = foreign.country_id
-        with self.assertRaisesRegex(UserError, 'country boundaries'):
+        with TestCase.assertRaisesRegex(self, UserError, 'country boundaries'):
             preview.with_context(allowed_company_ids=(self.company | foreign).ids)._step_check_original_configuration(operation='calculate')
         self.entry_type.with_env(self.env).country_id = original_country
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
@@ -146,7 +150,7 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
                 'contract_id': self.contract.id, 'work_entry_type_id': self.entry_type.id,
                 'code': self.entry_type.code, 'number_of_days': 2, 'number_of_hours': 16})]}, origin=saved)
         self.assertTrue(draft_preview.worked_days_line_ids)
-        with patch.object(draft_preview._fields['worked_days_line_ids'], 'groups', 'base.group_system'), self.assertRaises(AccessError):
+        with patch.object(draft_preview._fields['worked_days_line_ids'], 'groups', 'base.group_system'), TestCase.assertRaises(self, AccessError):
             draft_preview.sudo()._step_check_original_configuration(operation='calculate')
         self.assertEqual(self._stored(saved), saved_before)
         # Admission never evaluated the intentionally invalid synthetic rule.
@@ -160,7 +164,7 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
             'employee_id': self.contract.employee_id.id, 'company_id': self.company.id,
             'contract_id': self.contract.id, 'struct_id': self.structure.id,
             'date_from': saved.date_from, 'date_to': saved.date_to}, origin=saved)
-        with self.assertRaisesRegex(UserError, 'Closed payroll'):
+        with TestCase.assertRaisesRegex(self, UserError, 'Closed payroll'):
             masquerade._step_check_original_configuration(operation='calculate')
         self.assertEqual(self._stored(saved), stored)
 
