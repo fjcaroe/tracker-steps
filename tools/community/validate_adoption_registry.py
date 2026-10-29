@@ -39,7 +39,8 @@ def main():
     config_path='/etc/dev_odoo18.conf' if pure else '/etc/odoo18-cerroelplomo.conf'
     config=configparser.ConfigParser(interpolation=None);assert config.read(config_path)
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
-    helpers={name:Path(__file__).with_name(name) for name in ('batch_registry_contract.py','caf_registry_contract.py')}
+    helpers={name:Path(__file__).with_name(name) for name in (
+        'batch_registry_contract.py','caf_registry_contract.py','validate_payroll_relation_storage.py')}
     assert all(path.is_file() for path in helpers.values())
     output.mkdir(mode=0o750);os.chown(output,identity.pw_uid,identity.pw_gid)
     def dump(name,data):(output/(name+'.json')).write_text(json.dumps(data,indent=2))
@@ -59,6 +60,8 @@ def main():
     expression+='reports["caf"]=(runpy.run_path('+repr(str(helpers['caf_registry_contract.py']))+')["inspect_registry"](env) '
     expression+='if "l10n_cl.dte.caf" in env.registry.models else {"model_present":False,"transaction_read_only":True,'
     expression+='"orm_records_accessed":False,"payloads_read":False,"provider_methods_called":False,"adoption_ready":False}); '
+    if pure:
+        expression+='reports["payroll_relations"]=runpy.run_path('+repr(str(helpers['validate_payroll_relation_storage.py']))+')["community_contract"](env.cr); '
     expression+='open('+repr(str(output/'registry.json'))+',"w").write(json.dumps(reports,indent=2)); env.cr.rollback()'
     (output/'payload.py').write_text(expression)
     paths=str(stage/'addons')+','+(str(args.runtime/'addons') if pure else config['options']['addons_path'])
@@ -83,6 +86,7 @@ def main():
         assert reports['batch']['read_only'] and not reports['batch']['business_records_read']
         assert reports['caf']['transaction_read_only'] and not any(reports['caf'][key] for key in
             ('orm_records_accessed','payloads_read','provider_methods_called','adoption_ready'))
+        if pure:assert reports['payroll_relations']['read_only'] and not reports['payroll_relations']['orm_loaded']
         dump('passed',{'database':database,'mode':args.mode,'exact_tables_and_counters_preserved':len(before),
             'read_only':True,'upgraded':False,'business_records_read':False,'source_bodies_exported':False,
             'functional_conversion_certified':False,'metadata_only':True,
