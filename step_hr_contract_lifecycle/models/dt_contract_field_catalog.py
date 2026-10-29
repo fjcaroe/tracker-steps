@@ -83,7 +83,7 @@ DT_CONTRACT_COLUMNS = [
     ("TIPO_JORNADA", lambda c: c._steps_contract_payload().get("tipo_jornada_code") or ""),
     ("NRO_RESOLUCION", lambda c: c.excepcion_jornada_resolution or ""),
     ("FECHA_RESOLUCION", lambda c: _fmt_date(c.excepcion_jornada_date)),
-    ("DURACION_JORNADA", lambda c: str(c.resource_calendar_id.hours_per_week or "")),
+    ("DURACION_JORNADA", lambda c: str(c.resource_calendar_id._steps_contract_weekly_hours() or "") if c.resource_calendar_id else ""),
     ("TURNOS", lambda c: ""),
     ("TIEMPO_COLACION", lambda c: str(c.colacion_minutes or "")),
     ("T_COLACION_IMP", lambda c: "1" if c.colacion_imputable else "0"),

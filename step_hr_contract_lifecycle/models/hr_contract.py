@@ -163,7 +163,7 @@ class HrContract(models.Model):
                 contract.adequacy_state = "not_applicable"
                 contract.adequacy_line_id = False
                 continue
-            current = contract.resource_calendar_id.hours_per_week
+            current = contract.resource_calendar_id._steps_contract_weekly_hours()
             if current <= contract.max_weekly_hours_legal:
                 contract.adequacy_state = "adequate"
                 contract.adequacy_line_id = False
