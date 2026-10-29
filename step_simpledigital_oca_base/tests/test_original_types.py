@@ -75,7 +75,9 @@ class OriginalTypeCase(TransactionCase):
         self.assertEqual(normal.default_work_entry_type_id, self.env.ref("hr_work_entry.work_entry_type_attendance"))
         self.assertEqual(normal.wage_type, "monthly")
         self.assertFalse(normal.default_schedule_pay)
-        form = self.scope.ref("step_payroll_oca_api.payroll_structure_type_original_form")
+        # Inspect technical identity as fixture author, without giving the
+        # payroll actor Settings access; compile forms with its normal role.
+        form = self.env.ref("step_payroll_oca_api.payroll_structure_type_original_form")
         self.assertEqual(form.model, "hr.payroll.structure.type")
         self.assertFalse(form.inherit_id)
         arch = etree.fromstring(self.scope["hr.payroll.structure.type"].get_view(view_id=form.id, view_type="form")["arch"])
@@ -130,6 +132,11 @@ class OriginalTypeCase(TransactionCase):
     def test_actual_work_entry_generation_uses_original_type_without_stale_cache_or_acl_bypass(self):
         first = self.contract.date_start
         self.assertEqual(self.contract._get_default_work_entry_type_id(), self.entry_type.id)
+        # Official Community gives explicit calendar attendance types priority
+        # over the contract default. Exercise its real nullable fallback path,
+        # rather than overwrite that precedence to satisfy a test expectation.
+        self.calendar.attendance_ids.work_entry_type_id = False
+        self.assertFalse(self.calendar.attendance_ids.work_entry_type_id)
         self.contract.generate_work_entries(first, first + timedelta(days=6))
         entries = self.scope["hr.work.entry"].search([("contract_id", "=", self.contract.id)])
         self.assertTrue(entries)
