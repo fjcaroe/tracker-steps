@@ -1,3 +1,6 @@
+import inspect
+
+from odoo import models
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_l10n_cl_caf_custody_core.tests.common import CAFCustodyAssertions
@@ -33,6 +36,8 @@ class TestNativeCAFCustody(CAFCustodyAssertions, TransactionCase):
         self.assertEqual(CAFCustodyMixin.__slots__, ())
         self.assertNotIn('__dict__', CAFCustodyMixin.__dict__)
         model = self.env.registry.models['l10n_cl.dte.caf']
+        self.assertIsNone(CAFCustodyMixin.__doc__)
+        self.assertEqual(inspect.getdoc(model), inspect.getdoc(models.Model))
         self.assertEqual(len(model._fields), 14)
         self.assertTrue(model._fields['caf_file'].attachment)
         for name in ('create', '_decode_caf', 'action_enable', 'action_spend'):
