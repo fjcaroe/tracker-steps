@@ -76,7 +76,7 @@ def verify_metadata(before, after):
             'view_architecture_and_permissions_exact': True}
 
 
-def verify(env, mode):
+def verify(env, mode, draft_grouping=False):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
                 'step_bank_export_core': '18.0.1.2.1',
@@ -179,8 +179,15 @@ def verify(env, mode):
     assert balance.dependencies_id.mapped('name') == ['step_accounting_multicurrency_core']
     if mode == 'community':
         assert not installed.filtered(lambda module: module.license == 'OEEL-1')
-        # Formats really run on Community payments. This is not a batch engine.
-        assert 'account.batch.payment' not in env.registry
+        if draft_grouping:
+            for name in ('step_batch_payment_grouping','step_batch_payment_core'):
+                assert installed.filtered(lambda module:module.name==name).latest_version=='18.0.1.0.0'
+            provider=env['account.batch.payment']
+            assert provider._table=='account_batch_payment' and provider._original_module=='step_batch_payment_core'
+            assert provider.create.__module__=='odoo.addons.step_batch_payment_core.models.batch_payment'
+            assert env['account.payment']._fields['batch_payment_id'].comodel_name==provider._name
+            assert 'bank.rec.widget' not in env.registry
+        else:assert 'account.batch.payment' not in env.registry
     else:
         assert 'account.batch.payment' in env.registry
         for name in ('view_batch_payment_form_treasury_review',):
@@ -189,6 +196,7 @@ def verify(env, mode):
         env['account.batch.payment'].get_view(view_id=env.ref('step_bank_security.view_batch_security').id,
                                             view_type='form')
     result = {'mode': mode, 'versions': versions, 'aliases': aliases,
+              'draft_grouping_provider': bool(draft_grouping),
               'multicurrency_legacy_aliases': currency_aliases,
               'payment_formats_use_original_model': env['account.payment']._table == 'account_payment',
               'batch_conversion_certified': False, 'writes_to_source': False}

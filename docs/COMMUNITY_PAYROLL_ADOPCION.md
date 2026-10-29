@@ -1,5 +1,9 @@
 # Jerarquías reales, permisos y FK históricos — 29-10-2026
 
+Estado posterior y siguiente prompt:
+[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md). La aceptación B
+detallada abajo se conserva como evidencia histórica.
+
 Continuación de la canónica 5d827f9e. Worktree propio y rama
 codex/community-payroll-adoption-20261029. Tres agentes autorizados preparan
 frentes independientes; respaldos, restauraciones, upgrades y comprobaciones de

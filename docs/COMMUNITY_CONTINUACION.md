@@ -1,8 +1,8 @@
 # Continuidad de migración Community — Cerro El Plomo
 
 Estado acumulado, aceptación y siguiente prompt vigentes:
-[COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md), pareja B de
-694bf2dc, 254/215 casos sin fallos y 1/2 omisiones por diferencias de API. Los hitos
+[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md), pareja G de
+ccdae62e, 313/244 casos sin fallos y dos omisiones por entorno. Los hitos
 inferiores son históricos; no sustituyen las puertas pendientes de esa hoja.
 
 ## Pedido y límites
