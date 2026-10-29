@@ -22,7 +22,8 @@ Permisos comprobados: `0600`. SHA256:
 La cápsula declara `read_only=true`, `orm_loaded=false`,
 `rules_evaluated=false`, `historical_payroll_read=false`,
 `engine_converted=false`, `financial_certified=false` e
-`import_authorized_by_capsule=false`. Su sellado no autoriza una importación.
+`import_authorized_by_capsule=false`. Su sellado no acredita que el destino
+esté preparado para importar; faltan las garantías técnicas descritas abajo.
 No se publican su contenido, fórmulas, traducciones privadas, identificadores
 personales ni el mapa de empresas y diarios.
 

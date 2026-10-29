@@ -287,7 +287,12 @@ def main():
             assert caf['transaction_read_only'] and not any(caf[key] for key in (
                 'orm_records_accessed','payloads_read','provider_methods_called','adoption_ready'))
             if mode=='community':
-                assert not batch['model_present'] and not caf['model_present']
+                if custody_grouping:
+                    assert batch['model_present'] and batch['table']=='account_batch_payment'
+                    assert caf['binary_attachment_policy_proven'] and len(caf['fields'])==14
+                    assert not batch['related_providers']['bank.rec.widget']['present']
+                    assert batch['method_signatures']['create']['module'].startswith('odoo.addons.step_batch_payment_core.')
+                else:assert not batch['model_present'] and not caf['model_present']
                 target=reports['payroll_relations']
                 assert target['read_only'] and target['enterprise']==0 and not target['orm_loaded']
                 if relation_storage.exists() and json.loads(relation_storage.read_text()).get('contract_fks_prepared'):
@@ -318,7 +323,8 @@ def main():
             assert len(finance['multicurrency_legacy_aliases'])==37
         result['accelerated']={'hr_consumers_installed':list(hr_modules),'bank_aliases_preserved':15,
             'multicurrency_aliases_preserved':37,
-            'caf_authenticity_core_only':True,'full_dte_certified':False,'batch_conversion_certified':False}
+            'caf_custody_provider':custody_grouping,'draft_grouping_provider':custody_grouping,
+            'caf_authenticity_core_only':not custody_grouping,'full_dte_certified':False,'batch_conversion_certified':False}
     if all(report.get('pdf_binary_reports') for report in results.values()):
         result['pdf_binary_reports']={}
         for mode in ('community','cerro-reference'):
