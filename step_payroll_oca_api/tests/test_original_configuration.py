@@ -38,7 +38,10 @@ class OriginalConfigurationCase(TransactionCase):
         cls.input_type = cls.scope["hr.payslip.input.type"].create({
             "name": "Private original configuration input", "code": "PRIVATE_ORIGINAL_INPUT",
             "country_id": company.country_id.id, "struct_ids": [Command.set(cls.structure.ids)]})
-        cls.partner = cls.scope["res.partner"].create({"name": "Private original rule partner", "company_id": company.id})
+        # The tested payroll role may read a real contact but does not grant
+        # Contact Creation. Provision only this private master as fixture author.
+        cls.partner = cls.env["res.partner"].create({
+            "name": "Private original rule partner", "company_id": company.id}).with_env(cls.scope)
         cls.employee = cls.scope["hr.employee"].create({"name": "Private original configuration employee", "company_id": company.id})
         values = {"name": "Private original configuration contract", "employee_id": cls.employee.id,
             "company_id": company.id, "state": "open", "date_start": fields.Date.today().replace(day=1),
@@ -122,8 +125,10 @@ class OriginalConfigurationCase(TransactionCase):
         for model_name, original_xmlid, extension_xmlid, names in (
                 ("hr.payroll.structure", "payroll.hr_payroll_structure_view_form", "step_payroll_oca_api.payroll_structure_original_config_form", list(expected["hr.payroll.structure"])),
                 ("hr.salary.rule", "payroll.hr_salary_rule_view_form", "step_payroll_oca_api.salary_rule_original_config_form", list(expected["hr.salary.rule"]))):
-            original = self.scope.ref(original_xmlid)
-            extension = self.scope.ref(extension_xmlid)
+            # Technical ir.ui.view metadata belongs to Settings. The actual
+            # form compilation below still runs as the normal tested actors.
+            original = self.env.ref(original_xmlid)
+            extension = self.env.ref(extension_xmlid)
             self.assertEqual(extension.inherit_id, original)
             self.assertEqual(extension.model, model_name)
             model = self.scope[model_name]
