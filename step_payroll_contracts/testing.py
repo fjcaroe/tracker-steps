@@ -284,7 +284,7 @@ class PayrollContractMixin:
         rows=stored_payslip_line_components(slip,'NET')
         self.assertEqual(len(rows),2)
         self.assertEqual(len({row['salary_rule_id'] for row in rows}),2)
-        self.assertEqual({row['id'] for row in rows},{row[0] for row in before})
+        self.assertEqual({row['id'] for row in rows},{row[0] for row in before if row[1]=='NET'})
         with self.assertRaisesRegex(UserError,'multiple rule identities'):stored_payslip_totals(slip,'NET')
         self.assertEqual(self._identity_snapshot(slip),before)
 
