@@ -150,6 +150,47 @@ class AdoptionPreflightCase(unittest.TestCase):
         report=gate.assess(*inputs)
         self.assertEqual(report['column_differences'],[dict(table='hr_payslip_input_type',field='name',differences=['data_type'])])
 
+    def test_matching_selection_type_cannot_hide_a_missing_original_key(self):
+        inputs=fixtures()
+        for metadata in inputs[1:3]:
+            field=dict(metadata['fields'][0],model='hr.payroll.structure.type',name='wage_type',
+                       ttype='selection',translate=False)
+            metadata['fields'].append(field)
+            metadata['selection_values']=[dict(model=field['model'],name=field['name'],value='monthly',sequence=1)]
+        inputs[1]['selection_values'].append(dict(model='hr.payroll.structure.type',name='wage_type',value='hourly',sequence=2))
+        report=gate.assess(*inputs)
+        self.assertFalse(any(row['field']=='wage_type' for row in report['field_differences']))
+        self.assertEqual(report['selection_value_differences'],[
+            dict(model='hr.payroll.structure.type',field='wage_type',missing_target_values=['hourly'],
+                 target_only_values=[],shared_order_differs=False,source_catalogue_empty=False,
+                 target_catalogue_empty=False,runtime_choices_certified=False)])
+        self.assertFalse(report['selection_contract_runtime_certified'])
+        query=gate.queries(inputs[0])['selection_values']
+        self.assertIn('s.value,s.sequence',query)
+        self.assertNotIn('s.name',query)
+
+    def test_unknown_selection_catalogue_does_not_pass_as_two_equal_empty_lists(self):
+        inputs=fixtures()
+        for metadata in inputs[1:3]:
+            metadata['fields'].append(dict(metadata['fields'][0],ttype='selection',name='dynamic_choice'))
+        report=gate.assess(*inputs)
+        item=report['selection_value_differences'][0]
+        self.assertTrue(item['source_catalogue_empty'])
+        self.assertTrue(item['target_catalogue_empty'])
+        self.assertFalse(item['runtime_choices_certified'])
+
+    def test_selection_additions_and_order_are_reported_without_authorizing_import(self):
+        source={'fields':[dict(model='hr.salary.rule',name='amount_select',ttype='selection')],
+                'selection_values':[dict(model='hr.salary.rule',name='amount_select',value=value,sequence=sequence)
+                                    for sequence,value in enumerate(('fix','code'))]}
+        target=dict(source,selection_values=[dict(model='hr.salary.rule',name='amount_select',value=value,sequence=sequence)
+                                             for sequence,value in enumerate(('code','fix','percentage'))])
+        item=gate.selection_differences(source,target)[0]
+        self.assertEqual(item['missing_target_values'],[])
+        self.assertEqual(item['target_only_values'],['percentage'])
+        self.assertTrue(item['shared_order_differs'])
+        self.assertFalse(item['runtime_choices_certified'])
+
     def test_source_fields_and_new_target_owners_require_explicit_policy(self):
         inputs=fixtures()
         original=inputs[1]['fields'][0]
