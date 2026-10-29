@@ -269,6 +269,17 @@ def main():
             methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions','actual_pdf_binary_and_employee_sheets']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
+        stored_pdf_count=0
+        if pure and simpledigital and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
+            pdf_directory=data/'payslip-pdf-evidence'
+            proofs=[row for path in pdf_directory.glob('proof-*.json') for row in json.loads(path.read_text())]
+            assert len(proofs)==2,'Both actual stored-line payslip PDF fixtures must run'
+            for row in proofs:
+                assert row['normal_employee'] and row['stored_history_unchanged'] and not row['missing_assets']
+                assert Path(row['file']).name==row['file'] and row['pages']>0
+                assert hashlib.sha256((pdf_directory/row['file']).read_bytes()).hexdigest()==row['sha256']
+            stored_pdf_count=len(proofs)
+            dump_json('stored-payslip-pdf',{'actual_pdf_count':stored_pdf_count,'proofs':proofs,'financial_certified':False})
         expected=7 if standalone else ((38+api_test_count) if pure else 25)+((48+base_test_count if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         if args.accelerated:expected+=HR_TEST_COUNT+33+18+11+(0 if pure else 39)
         if args.custody_grouping:expected+=54 if pure else 29
@@ -336,6 +347,7 @@ def main():
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'expected_test_count':expected,
             'api_test_count':api_test_count if pure else 0,'base_test_count':base_test_count if pure else 0,
+            'stored_payslip_pdf_reports':stored_pdf_count,
             'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py','hr_consumer_metadata.py')} if args.accelerated else {},
             'validator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
         print('PAYROLL_API_OK '+args.mode,flush=True)

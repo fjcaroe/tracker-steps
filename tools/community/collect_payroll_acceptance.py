@@ -34,6 +34,11 @@ def main():
         for path in stage.iterdir():
             if path.is_file() and path.suffix in ('.json', '.log'):
                 files[mode + '/' + path.name] = path
+        pdfs=stage/'data/payslip-pdf-evidence'
+        if pdfs.exists():
+            for path in pdfs.iterdir():
+                if path.is_file() and path.suffix in ('.json','.pdf'):
+                    files[mode+'/payslip-pdf-evidence/'+path.name]=path
         audit = root / 'adoption-registry' / mode
         assert (audit / 'passed.json').is_file()
         for path in audit.iterdir():
