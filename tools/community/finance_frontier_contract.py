@@ -9,11 +9,15 @@ import json
 
 LEGACY_XMLIDS = {
     'step_account_treasury_batch': (
+        'model_res_partner_bank',
+        'field_account_setup_bank_manual_config__step_bancoestado_payment_method',
         'field_res_partner_bank__step_bancoestado_payment_method',
         'selection__res_partner_bank__step_bancoestado_payment_method__01',
         'selection__res_partner_bank__step_bancoestado_payment_method__02',
         'view_partner_bank_form_bancoestado'),
     'step_bank_security': (
+        'model_res_partner_bank',
+        'field_account_setup_bank_manual_config__step_security_credit_type',
         'field_res_partner_bank__step_security_credit_type',
         'selection__res_partner_bank__step_security_credit_type__1',
         'selection__res_partner_bank__step_security_credit_type__2',
@@ -28,7 +32,7 @@ def metadata_snapshot(sql, database):
     """Capture BEFORE/AFTER from the new private native clone, with original IDs.
 
     `sql` is the validator's existing read-only query helper. Bank views retain
-    their exact original architecture; only these eleven legacy XMLIDs may
+    their exact original architecture; only these fifteen legacy XMLIDs may
     change noupdate from false to true. No business snapshot is normalized.
     """
     clauses = []
@@ -44,7 +48,7 @@ def metadata_snapshot(sql, database):
 def verify_metadata(before, after):
     expected = {(module, name) for module, names in LEGACY_XMLIDS.items() for name in names}
     assert {(row['module'], row['name']) for row in before['xmlids']} == expected, 'Missing original banking XMLIDs'
-    assert len(before['xmlids']) == len(after['xmlids']) == 11
+    assert len(before['xmlids']) == len(after['xmlids']) == 15
     now = {row['id']: row for row in after['xmlids']}
     changed = []
     for row in before['xmlids']:
@@ -66,7 +70,7 @@ def verify_metadata(before, after):
         assert got['arch_updated'] is False
         original_arch = row['arch_db'].get('en_US') if isinstance(row['arch_db'], dict) else row['arch_db']
         assert got['arch_prev'] in (row['arch_prev'], original_arch), 'Original banking view previous architecture changed'
-    return {'original_xmlids_preserved': 11, 'original_view_ids_preserved': 2,
+    return {'original_xmlids_preserved': 15, 'original_view_ids_preserved': 2,
             'only_noupdate_false_to_true': changed,
             'view_source_file': 'step_bank_export_core/views/res_partner_bank_views.xml',
             'view_architecture_and_permissions_exact': True}
@@ -75,7 +79,7 @@ def verify_metadata(before, after):
 def verify(env, mode):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
-                'step_bank_export_core': '18.0.1.2.0'}
+                'step_bank_export_core': '18.0.1.2.1'}
     if mode == 'cerro-copy':
         versions.update({'step_account_treasury_batch': '18.0.1.5.1',
                          'step_bank_security': '18.0.1.1.1',
@@ -83,7 +87,7 @@ def verify(env, mode):
     installed = env['ir.module.module'].search([('state', '=', 'installed')])
     actual = {module.name: module.latest_version for module in installed if module.name in versions}
     assert actual == versions, (actual, versions)
-    from odoo.addons.step_bank_export_core.hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES
+    from odoo.addons.step_bank_export_core.hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES, RELATED_MODEL
     aliases = {}
     for namespace, name in LEGACY_FIELDS.items():
         name = 'field_res_partner_bank__' + name
@@ -96,10 +100,21 @@ def verify(env, mode):
             source, core_selection = env.ref(namespace + '.' + name), env.ref('step_bank_export_core.' + name)
             assert source == core_selection and core_selection.field_id == core and core_selection.value == value
             aliases[namespace + '.' + name] = core_selection.id
+        model = env.ref(namespace + '.model_res_partner_bank')
+        assert model == env.ref('step_bank_export_core.model_res_partner_bank') and model.model == 'res.partner.bank'
+        aliases[namespace + '.model_res_partner_bank'] = model.id
+        if RELATED_MODEL in env.registry:
+            name = 'field_account_setup_bank_manual_config__' + field_name
+            field = env.ref(namespace + '.' + name)
+            assert field == env.ref('step_bank_export_core.' + name)
+            assert field.model == RELATED_MODEL and field.related == 'res_partner_bank_id.' + field_name
+            aliases[namespace + '.' + name] = field.id
+    assert len(aliases) == (13 if RELATED_MODEL in env.registry else 11)
     for namespace, name in LEGACY_VIEWS.items():
         source, core = env.ref(namespace + '.' + name), env.ref('step_bank_export_core.' + name)
         assert source == core and core.model == 'res.partner.bank'
         aliases[namespace + '.' + name] = core.id
+    assert len(aliases) == (15 if RELATED_MODEL in env.registry else 13)
     form = env['res.partner.bank'].get_view(view_type='form')['arch']
     assert form.count('name="step_bancoestado_payment_method"') == 1
     assert form.count('name="step_security_credit_type"') == 1

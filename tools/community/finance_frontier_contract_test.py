@@ -26,7 +26,7 @@ class FinanceMetadataContractTest(unittest.TestCase):
 
     def test_only_declared_owner_protection_and_native_source_audit_pass(self):
         before, after = self.snapshots()
-        self.assertEqual(verify_metadata(before, after)['original_xmlids_preserved'], 11)
+        self.assertEqual(verify_metadata(before, after)['original_xmlids_preserved'], 15)
 
     def test_replacing_an_original_xmlid_record_is_rejected(self):
         before, after = self.snapshots()

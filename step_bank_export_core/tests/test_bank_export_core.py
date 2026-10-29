@@ -7,7 +7,7 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
-from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES
+from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES, RELATED_MODEL
 from ..models.bank_export_service import clean_rut, whole_pesos
 
 
@@ -171,6 +171,14 @@ class BankExportCoreCase(AccountTestInvoicingCommon):
                 selection = 'selection__res_partner_bank__%s__%s' % (name, value)
                 self.assertEqual(self.env.ref(namespace + '.' + selection),
                                  self.env.ref('step_bank_export_core.' + selection))
+            self.assertEqual(self.env.ref(namespace + '.model_res_partner_bank'),
+                             self.env.ref('step_bank_export_core.model_res_partner_bank'))
+            if RELATED_MODEL in self.env.registry:
+                inherited = 'field_account_setup_bank_manual_config__' + name
+                field = self.env.ref(namespace + '.' + inherited)
+                self.assertEqual(field, self.env.ref('step_bank_export_core.' + inherited))
+                self.assertEqual(field.model, RELATED_MODEL)
+                self.assertEqual(field.related, 'res_partner_bank_id.' + name)
         for namespace, name in LEGACY_VIEWS.items():
             self.assertEqual(self.env.ref(namespace + '.' + name), self.env.ref('step_bank_export_core.' + name))
         arch = self.env['res.partner.bank'].get_view(view_type='form')['arch']
