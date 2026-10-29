@@ -499,7 +499,7 @@ def main():
     install = ['step_agriculture_catalogs'] if args.kind == 'management' else ['step_producers_integrations'] if PRODUCERS and 'step_producers_integrations' not in installed else []
     if args.kind in ('estimate-report','contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'):
         install = [name for name in MODULES if name not in installed]
-    if args.kind == 'payroll-rounding':
+    if args.kind in ('payroll-review','payroll-rounding'):
         install = [name for name in MODULES if name not in installed]
     if args.kind == 'agriculture-records' and args.environment == 'cerro':
         # Preserve Cerro's installed scope: no inventory bridge or budget app

@@ -7,6 +7,7 @@ from odoo.exceptions import UserError
 from odoo.tools import config
 
 try:
+    assert set(EXPECTED)=={'step_payroll_engine_transition','step_payroll_batch_period'}, 'Both payroll fixes must be installed and tested'
     for name, version in EXPECTED.items():
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
