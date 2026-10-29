@@ -169,9 +169,15 @@ def exercise(env, mode, directory):
         case = Fixture()
         assert not case.scope.su
         case.contract.write({'date_start': fields.Date.today().replace(day=1)})
-        plan = case.scope['account.analytic.plan'].create({'name': 'Private property upgrade analytic plan'})
-        analytic = case.scope['account.analytic.account'].create({
-            'name': 'Private property upgrade analytic account', 'plan_id': plan.id, 'company_id': case.company.id})
+        # Provision configuration as fixture author, without granting analytic
+        # creation rights to the payroll actor. Actual use checks remain normal.
+        plan = env['account.analytic.plan'].create({
+            'name': 'Private property upgrade analytic plan', 'default_applicability': 'optional'}).with_env(case.scope)
+        analytic = env['account.analytic.account'].create({
+            'name': 'Private property upgrade analytic account', 'plan_id': plan.id,
+            'company_id': case.company.id}).with_env(case.scope)
+        plan.check_access('read')
+        analytic.check_access('read')
         case.rule.write({'code': 'BASIC', 'note': '<p>Nota histórica: acentos, 0 y espacios internos.</p>',
                          'analytic_account_id': analytic.id})
         assert case.rule.company_id == case.company, 'Fixture must have its explicit original company'
