@@ -75,6 +75,9 @@ def verify(proof_file, output_directory):
         if any(value not in numbers for value in (0, -25, 75)):
             raise ValueError('Actual PDF does not contain the expected zero, negative and NET fixture values')
         rows = {label: row_values(document, label) for label in ('Stored ZERO', 'Stored NEGATIVE', 'Stored NULL_VALUE')}
+        rows['NET'] = row_values(document, 'LÍQUIDO A RECIBIR')
+        if rows['NET'] != [75]:
+            raise ValueError('Actual PDF NET row differs from the stored fixture value')
         if rows['Stored ZERO'] is not None and 0 not in rows['Stored ZERO']:
             raise ValueError('ZERO row is not a displayed zero')
         if rows['Stored NEGATIVE'] is not None and -25 not in rows['Stored NEGATIVE']:
