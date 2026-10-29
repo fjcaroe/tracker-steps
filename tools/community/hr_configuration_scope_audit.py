@@ -16,6 +16,43 @@ MODELS = {
     "hr.payroll.structure.type": ("hr_payroll_structure_type", ("company_id", "country_id", "default_struct_id", "default_work_entry_type_id")),
     "hr.payslip.input.type": ("hr_payslip_input_type", ("company_id", "country_id", "struct_ids", "active")),
 }
+NATIVE_GAPS = {
+    "hr.salary.rule": ("condition_other_input_id", "amount_other_input_id", "partner_id", "not_computed_in_net", "split_move_lines"),
+    "hr.payroll.structure": ("report_id", "payslip_name", "active", "hide_basic_on_pdf", "journal_id"),
+}
+
+
+def inspect_native_gaps(cursor):
+    cursor.execute("SHOW transaction_read_only")
+    assert cursor.fetchone()[0] == "on"
+    result = {"models": {}, "read_only": True, "salary_formulas_read": False, "orm_loaded": False}
+    for model, names in NATIVE_GAPS.items():
+        table = MODELS[model][0]
+        cursor.execute("""SELECT id,name,ttype,relation,required,readonly,store,related,on_delete
+            FROM ir_model_fields WHERE model=%s AND name=ANY(%s) ORDER BY name""", (model, list(names)))
+        fields = [dict(zip(("id", "name", "type", "relation", "required", "readonly", "store", "related", "on_delete"), row))
+                  for row in cursor.fetchall()]
+        cursor.execute("SELECT attname FROM pg_attribute WHERE attrelid=%s::regclass AND attnum>0 AND NOT attisdropped", (table,))
+        columns = {row[0] for row in cursor.fetchall()}
+        usage = {}
+        for field in fields:
+            name = field["name"]
+            if name not in columns:
+                usage[name] = {"physical_column": False}
+                continue
+            cursor.execute(sql.SQL("SELECT count(*),count({}),md5(coalesce(string_agg(coalesce({}::text,'NULL'),E'\\n' ORDER BY id),'')) FROM {}").format(
+                sql.Identifier(name), sql.Identifier(name), sql.Identifier(table)))
+            total, populated, digest = cursor.fetchone()
+            item = {"physical_column": True, "rows": total, "not_null": populated, "value_hash": digest}
+            if field["type"] in ("boolean", "many2one"):
+                cursor.execute(sql.SQL("SELECT {},count(*) FROM {} GROUP BY {} ORDER BY {} NULLS FIRST").format(
+                    sql.Identifier(name), sql.Identifier(table), sql.Identifier(name), sql.Identifier(name)))
+                item["values"] = [list(row) for row in cursor.fetchall()]
+            usage[name] = item
+        result["models"][model] = {"fields": fields, "usage": usage}
+    cursor.execute("SELECT condition_select,amount_select,count(*) FROM hr_salary_rule GROUP BY condition_select,amount_select ORDER BY condition_select,amount_select")
+    result["rule_modes"] = [list(row) for row in cursor.fetchall()]
+    return result
 
 
 def inspect_sql(cursor):
@@ -73,6 +110,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--native-gaps", action="store_true")
     args = parser.parse_args()
     assert os.geteuid() == 0
     assert re.fullmatch(r"(?:COMMUNITY_PAYROLL_API_|MANAGEMENT_QA_CERRO_PAYROLL_API_)[A-Za-z0-9_]+", args.database)
@@ -80,9 +118,9 @@ def main():
     with connect(args.database) as conn:
         conn.set_session(readonly=True)
         with conn.cursor() as cursor:
-            result = inspect_sql(cursor)
+            result = inspect_native_gaps(cursor) if args.native_gaps else inspect_sql(cursor)
     args.output.write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
-    print("HR_CONFIGURATION_SCOPE_AUDIT " + args.database + " " + str({name: len(value["rows"]) for name, value in result["models"].items()}))
+    print("HR_CONFIGURATION_SCOPE_AUDIT " + args.database + " " + str({name: len(value.get("rows", value.get("fields", []))) for name, value in result["models"].items()}))
 
 
 if __name__ == "__main__":
