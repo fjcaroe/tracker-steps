@@ -26,6 +26,7 @@ class StoredPayslipReportCase(StoredReportFixture, TransactionCase):
         self.assertIn('<literal> Stored remuneration', text)
         self.assertNotIn(b'<literal>', html)
         self.assertIn('Original stored payslip name', text)
+        self.assertIn('PRIVATE/PDF/1', text)
         self.assertIn('Stored BASIC', text)
         self.assertIn('Stored OTHER', text)
         self.assertIn('Stored attendance', text)

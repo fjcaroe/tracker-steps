@@ -99,3 +99,8 @@ Los registros originales y correlativos no se consumen: los fixtures usan sus
 maestros privados y un número explícito. El PDF debe revisarse visualmente antes
 de declarar esta puerta aceptada. No sustituye la conversión de identidad ni
 la certificación de 71 reglas, Previred/libro o la puerta integral cero Enterprise.
+La verificación de texto del PDF usa `pypdf` privado: PyPDF2 1.26 devuelve texto
+vacío para estos PDFs wkhtml. El coordinador puede indicar su target aislado
+mediante `STEPS_PAYSLIP_PDF_PARSER_PATH`; no se cambia Python de producción.
+Se exige en el propio PDF el nombre y referencia originales, los conceptos
+negativo/cero/NULL y la presencia u ocultación de BASIC, además de validar HTML.

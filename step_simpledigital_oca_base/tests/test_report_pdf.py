@@ -3,9 +3,11 @@ from contextlib import ExitStack
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import threading
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 from urllib.parse import urlencode, urljoin, urlsplit
@@ -125,6 +127,23 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
             self.assertTrue(response.content.startswith(b'%PDF-'))
             reader = PdfFileReader(io.BytesIO(response.content))
             self.assertGreater(reader.getNumPages(), 0)
+            parser_path = os.environ.get('STEPS_PAYSLIP_PDF_PARSER_PATH')
+            if parser_path:
+                parser_path = Path(parser_path).resolve()
+                self.assertTrue(parser_path.is_relative_to(Path('/opt/steps-validation')))
+                if str(parser_path) not in sys.path:
+                    sys.path.insert(0, str(parser_path))
+            try:
+                from pypdf import PdfReader
+            except ImportError:
+                self.fail('Install a private pypdf runtime for actual PDF text verification; PyPDF2 1.26 cannot extract this wkhtml output')
+            pdf_text = '\n'.join(page.extract_text() or '' for page in PdfReader(io.BytesIO(response.content)).pages)
+            normalized = re.sub(r'\s+', ' ', pdf_text)
+            self.assertTrue(normalized.strip(), 'Actual PDF text must be extractable')
+            for expected in ('Stored NEGATIVE', 'Stored ZERO', 'Stored NULL_VALUE',
+                             'PRIVATE/PDF/1', 'Original stored payslip name'):
+                self.assertIn(expected, normalized)
+            self.assertEqual('Stored BASIC' in normalized, not hide)
             self.assertEqual(self.stored_snapshot(slip), before)
             name = 'stored-%s-%s.pdf' % ('archived-hidden' if archived else 'active-basic', slip.id)
             with (output / name).open('xb') as handle:
@@ -134,6 +153,8 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
                 'archived_structure': archived, 'basic_hidden': hide, 'stored_history_unchanged': True,
                 'missing_assets': missing, 'runtime_asset_sha256': assets,
                 'financial_verified_html_sha256': hashlib.sha256(html.content).hexdigest(),
+                'verified_pdf_text_sha256': hashlib.sha256(pdf_text.encode()).hexdigest(),
+                'pdf_text_reference_labels_verified': True,
                 'visual_pdf_review_required': True})
         with (output / ('proof-%s.json' % slip.id)).open('x', encoding='utf-8') as handle:
             json.dump(proofs, handle, indent=2)
