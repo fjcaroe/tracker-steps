@@ -89,6 +89,8 @@ def main():
     if stored_pdf.exists():paths+=['tools/community/verify_stored_payslip_pdf.py']
     config_storage=args.evidence/'configuration-storage/passed.json'
     if config_storage.exists():paths+=['tools/community/prepare_payroll_configuration_storage.py']
+    adoption_preflight=args.evidence/'configuration-preflight/after.json'
+    if adoption_preflight.exists():paths+=['tools/community/payroll_configuration_adoption_preflight.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -226,6 +228,11 @@ def main():
         assert json.loads((folder/'relations.json').read_text())['sha256']==proof['sha256']
         assert all(proof[key] for key in ('backup_decoded','idempotence_verified','original_metadata_preserved'))
         assert not any(proof[key] for key in ('orm_loaded','engine_converted','financial_certified','writes_to_source','paid_payroll_recomputed'))
+        prior_contract=json.loads((folder/'community-contract.json').read_text())
+        current_contract=json.loads((folder/'community-current-contract.json').read_text())
+        assert current_contract['versions']['step_payroll_oca_api']=='18.0.1.9.0'
+        assert current_contract['read_only'] and not current_contract['orm_loaded']
+        assert all(prior_contract[key]==current_contract[key] for key in ('fields','relation'))
         result['configuration_storage']={key:proof[key] for key in ('database','memberships','original_contracts_preserved',
             'backup_decoded','backup_sha256','idempotence_verified','engine_converted','financial_certified')}
     if capsule.exists():
@@ -249,6 +256,34 @@ def main():
         result['original_configuration_capsule']={'sha256':hashlib.sha256(capsule.read_bytes()).hexdigest(),
             'configuration_rows':expected_configuration,'xmlids':91,'all_company_properties_preserved':True,
             'adopted_on_oca':False,'financial_certified':False}
+    if adoption_preflight.exists():
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('configuration_preflight',repo/'tools/community/payroll_configuration_adoption_preflight.py')
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        folder=adoption_preflight.parent
+        executed=(folder/'auditor.py').read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/payroll_configuration_adoption_preflight.py'].replace(b'\r\n',b'\n')
+        prior=json.loads((folder/'before.json').read_text())
+        current=json.loads(adoption_preflight.read_text())
+        for report in (prior,current):
+            assert report['tool_sha256']==hashlib.sha256(executed).hexdigest()
+            assert report['capsule_sha256']==hashlib.sha256(capsule.read_bytes()).hexdigest()
+            assert report['target_database']==results['community']['database']
+            assert report['assessment']==helper.assess(sealed,report['source_metadata'],report['target_metadata'],
+                report['source_external_metadata'],report['target_external_metadata'])
+            assessment=report['assessment']
+            assert assessment['source_capsule_matches_live_configuration'] and assessment['source_capsule_field_metadata_matches']
+            assert assessment['target_has_zero_enterprise'] and assessment['reference_target_only']
+            assert not any(assessment[key] for key in ('adoption_ready','import_authorized','permissions_expanded',
+                'orm_loaded','rules_evaluated','salary_formulas_exposed','historical_payroll_read','record_rule_equivalence_certified'))
+        comparison=helper.compare_reports(prior,current)
+        assert current['read_only_comparison']==comparison and comparison['read_only_evidence_unchanged']
+        result['configuration_adoption_preflight']={'read_only_evidence_unchanged':True,
+            'source_masters':assessment['source_master_count'],'source_xmlids':assessment['source_xmlid_count'],
+            'occupied_ids':len(assessment['occupied_source_ids']),'xmlid_conflicts':len(assessment['xmlid_conflicts']),
+            'remaining_field_differences':len(assessment['field_differences']),
+            'remaining_selection_differences':len(assessment['selection_value_differences']),
+            'adoption_ready':False,'remaining_gates':assessment['remaining_gates']}
     if rule_source.exists():
         proof=json.loads(rule_source.read_text())
         executed=(args.evidence/'rule-source-auditor.py').read_bytes()
