@@ -8,10 +8,16 @@ from odoo import Command, fields
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.addons.step_bank_export_core.tests.common import private_finance_sequences, BATCH_CODES
 
 
 @tagged("post_install", "-at_install")
 class TestTreasuryBatchReview(AccountTestInvoicingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        private_finance_sequences(cls.env, cls.env.company, BATCH_CODES)
+
     def setUp(self):
         super().setUp()
         self.env = self.env(context=dict(self.env.context, no_reset_password=True,

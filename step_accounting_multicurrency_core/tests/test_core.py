@@ -14,6 +14,18 @@ class CommunityCurrencyCase(TransactionCase):
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True, mail_notrack=True,
             no_reset_password=True, mail_create_nosubscribe=True, mail_notify_force_send=False))
         cls.company = cls.env.company
+        # Keep this core independently testable with only account installed.
+        # Its one payment must not consume the restored global payment code.
+        sequences = cls.env['ir.sequence'].sudo().with_company(cls.company)
+        if sequences.search([('code', '=', 'account.payment'), ('company_id', '=', cls.company.id)]):
+            raise AssertionError('Use an isolated currency fixture company: payment sequence already exists')
+        private = sequences.create({'name': 'Private currency payment fixture', 'code': 'account.payment',
+            'company_id': cls.company.id, 'implementation': 'no_gap', 'use_date_range': False,
+            'prefix': 'QA/CURRENCY/', 'padding': 6, 'number_next': 1})
+        selected = sequences.search([('code', '=', 'account.payment'),
+            ('company_id', 'in', [cls.company.id, False])], order='company_id', limit=1)
+        if selected != private:
+            raise AssertionError('Currency fixture would consume an original payment counter')
         cls.day = fields.Date.context_today(cls.company)
         cls.operational = cls.env['res.currency'].create({'name': 'XOC', 'symbol': 'OC', 'rounding': 0.01})
         cls.rate = cls.env['res.currency.rate'].create({'name': cls.day, 'currency_id': cls.operational.id,

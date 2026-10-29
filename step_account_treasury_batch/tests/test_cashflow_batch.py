@@ -7,6 +7,7 @@ from odoo import Command, fields
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.addons.step_bank_export_core.tests.common import private_finance_sequences, BATCH_CODES
 
 
 @tagged("post_install", "-at_install")
@@ -16,6 +17,7 @@ class TestCashflowBatch(AccountTestInvoicingCommon):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        private_finance_sequences(cls.env, cls.company, BATCH_CODES)
         # El usuario de las pruebas necesita el perfil completo de Tesorería.
         cls.env.user.groups_id = [Command.link(
             cls.env.ref("step_account_treasury.group_treasury_manager").id)]

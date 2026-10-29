@@ -9,6 +9,7 @@ from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES, RELATED_MODEL
 from ..models.bank_export_service import clean_rut, whole_pesos
+from .common import private_finance_sequences
 
 
 def make_bank_payment(self):
@@ -32,6 +33,11 @@ def make_bank_payment(self):
 
 @tagged('post_install', '-at_install')
 class BankExportCoreCase(AccountTestInvoicingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        private_finance_sequences(cls.env, cls.env.company)
+
     def setUp(self):
         super().setUp()
         self.env = self.env(context=dict(self.env.context, no_reset_password=True,
