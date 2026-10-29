@@ -1,4 +1,4 @@
-"""Lossless literal-base projections; no configuration import or payroll execution.
+"""Lossless translated notes and scalar input names; no payroll execution.
 
 The internal migration requires an actual Community/OCA engine, independently
 of the database's name. The private rehearsal wrapper additionally checks its
@@ -46,6 +46,25 @@ def original_translation_payload(original, existing=_UNSET):
             raise TranslationStorageError("existing-translation-conflict")
         result[language] = value
     return result
+
+
+def original_input_name_literal(original, existing=_UNSET):
+    """Remove only a technical single-language wrapper, never select a language.
+
+    Even an additional language with the same text is retained by refusing the
+    conversion. Its language membership is not ours to erase. SQL NULL and an
+    empty literal are separate values; JSON null is not SQL NULL.
+    """
+    if original is None or isinstance(original, str):
+        value = original
+    elif (isinstance(original, dict) and set(original) == {BASE_LANGUAGE}
+            and isinstance(original[BASE_LANGUAGE], str)):
+        value = original[BASE_LANGUAGE]
+    else:
+        raise TranslationStorageError("original-input-name-requires-one-literal-without-extra-languages")
+    if existing is not _UNSET and value != original_input_name_literal(existing):
+        raise TranslationStorageError("original-input-name-conflicts-with-existing-literal")
+    return value
 
 
 def _table_identifier(table):
@@ -118,6 +137,62 @@ def _convert_literal_column(cursor, table, column):
         "literal_projection_sha256": before[1], "required_preserved": True}
 
 
+def _input_name_projection(cursor, table, translated):
+    from psycopg2 import sql
+
+    value = sql.SQL("name->>'en_US'") if translated else sql.Identifier("name")
+    cursor.execute(sql.SQL("""SELECT count(*),encode(sha256(convert_to(coalesce(string_agg(
+        jsonb_build_object('id',id,'value',{})::text,E'\n' ORDER BY id),''),'UTF8')),'hex') FROM {}""").format(
+            value, _table_identifier(table)))
+    return cursor.fetchone()
+
+
+def _convert_input_name_column(cursor, table):
+    """Convert the real name in place, also usable on private PostgreSQL TEMPs.
+
+    Own a savepoint even when a Python caller catches a late verification error.
+    Never drop defaults, indexes or dependent views to force a conversion.
+    Operational callers own the backup, shared lease and outer transaction.
+    """
+    from psycopg2 import sql
+
+    cursor.execute("SAVEPOINT step_original_input_name_storage")
+    try:
+        cursor.execute(sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE").format(_table_identifier(table)))
+        kind, required, has_default = _column_contract(cursor, table, "name")
+        if kind not in {"text", "varchar", "jsonb"}:
+            raise TranslationStorageError("unsupported-original-input-name-column-type")
+        if has_default:
+            raise TranslationStorageError("original-input-name-sql-default-needs-explicit-policy")
+        if kind == "jsonb":
+            cursor.execute(sql.SQL("SELECT 1 FROM {} WHERE name IS NOT NULL AND jsonb_typeof(name) IS DISTINCT FROM 'object' LIMIT 1").format(
+                _table_identifier(table)))
+            if cursor.fetchone():
+                raise TranslationStorageError("original-input-name-requires-object-or-sql-null")
+            cursor.execute(sql.SQL("""SELECT 1 FROM {} WHERE name IS NOT NULL AND (
+                NOT (name ? 'en_US') OR jsonb_typeof(name->'en_US') IS DISTINCT FROM 'string'
+                OR (SELECT count(*) FROM jsonb_object_keys(name)) != 1) LIMIT 1""").format(_table_identifier(table)))
+            if cursor.fetchone():
+                raise TranslationStorageError("original-input-name-requires-one-literal-without-extra-languages")
+        before = _input_name_projection(cursor, table, translated=kind == "jsonb")
+        if kind != "varchar":
+            expression = sql.SQL("name->>'en_US'") if kind == "jsonb" else sql.Identifier("name")
+            cursor.execute(sql.SQL("ALTER TABLE {} ALTER COLUMN name TYPE varchar USING {}").format(
+                _table_identifier(table), expression))
+        after = _input_name_projection(cursor, table, translated=False)
+        if before != after or _column_contract(cursor, table, "name") != ("varchar", required, has_default):
+            raise TranslationStorageError("original-input-name-literal-projection-changed")
+        result = {"converted": kind != "varchar", "source_type": kind, "target_type": "varchar",
+            "rows": before[0], "literal_projection_sha256": before[1], "required_preserved": True,
+            "extra_languages_discarded": False}
+    except Exception:
+        cursor.execute("ROLLBACK TO SAVEPOINT step_original_input_name_storage")
+        cursor.execute("RELEASE SAVEPOINT step_original_input_name_storage")
+        raise
+    cursor.execute("RELEASE SAVEPOINT step_original_input_name_storage")
+    return result
+
+
 def original_translation_table_admission(api_state, existing_tables):
     """Distinguish a real cold model from an unexpectedly missing upgrade table.
 
@@ -157,17 +232,19 @@ def migrate_original_translation_storage(cursor):
 
         tables = sql.SQL(",").join(_table_identifier(("public", table)) for table in admission["existing_tables"])
         cursor.execute(sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE").format(tables))
-        result = {
-            "hr.salary.rule.note": _convert_literal_column(cursor, ("public", "hr_salary_rule"), "note"),
-        }
+        result = {}
         if admission["input_table_pending_orm"]:
             # This model is owned by the API being installed. Do not create a
             # surrogate table or any rows before its real ORM field setup.
             result["hr.payslip.input.type.name"] = {
                 "converted": False, "status": "absent-cold-real-orm-pending", "source_type": None,
-                "rows": None, "literal_projection_sha256": None, "required_preserved": None}
+                "target_type": "varchar", "rows": None, "literal_projection_sha256": None,
+                "required_preserved": None, "extra_languages_discarded": False}
         else:
-            result["hr.payslip.input.type.name"] = _convert_literal_column(cursor, ("public", "hr_payslip_input_type"), "name")
+            # Validate names first. A known extra language blocks before any
+            # other column DDL, and the outer savepoint also covers late errors.
+            result["hr.payslip.input.type.name"] = _convert_input_name_column(cursor, ("public", "hr_payslip_input_type"))
+        result["hr.salary.rule.note"] = _convert_literal_column(cursor, ("public", "hr_salary_rule"), "note")
     except Exception:
         cursor.execute("ROLLBACK TO SAVEPOINT step_original_translation_storage")
         cursor.execute("RELEASE SAVEPOINT step_original_translation_storage")
