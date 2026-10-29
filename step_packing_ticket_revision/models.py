@@ -1,5 +1,6 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from odoo.osv import expression
 
 
 class Picking(models.Model):
@@ -63,12 +64,12 @@ class Quant(models.Model):
 
     @api.model
     def action_steps_packing_stock(self, category):
-        label = {'fruit': '1 fruta', 'materials': '6 materiales de embalajes'}.get(category)
-        if not label:
+        labels = {'fruit': ['1 fruta'], 'materials': ['6 materiales de embalaje','6 materiales de embalajes']}.get(category)
+        if not labels:
             raise UserError(_('Categoría de informe desconocida.'))
-        root = self.env['product.category'].search([('name', '=ilike', label)])
+        root = self.env['product.category'].search(expression.OR([[('name','=ilike',name)] for name in labels]))
         if len(root) != 1:
-            raise UserError(_('El informe requiere una categoría única «%s» en el maestro existente.', label))
+            raise UserError(_('El informe requiere una categoría única «%s» en el maestro existente.', ' / '.join(labels)))
         return {
             'type': 'ir.actions.act_window', 'name': _('Stock: %s', root.display_name),
             'res_model': 'stock.quant', 'view_mode': 'list,pivot',

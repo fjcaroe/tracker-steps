@@ -54,7 +54,7 @@ try:
         assert report['res_model']=='stock.quant' and report['domain']
         scoped['stock.quant'].search(report['domain'],limit=1)
     production=scoped['step.packing.production']
-    production_arch=etree.fromstring(production.get_view(view_type='form')['arch'])
+    production_arch=production._get_view(view_type='form')[0]
     assert production_arch.xpath("//group[@name='ot_identity_left']/field/@name")[:3]==['packing_partner_id','date','step_packing_order_id']
     assert production_arch.xpath("//field[@name='fruit_fundo_id']")[0].getnext().get('name')=='company_id'
     print('T132_T134_NATIVE_REPORTS_AND_HEADERS_OK')
@@ -65,6 +65,7 @@ try:
         config['test_enable'] = previous
     record = model.search([('step_fruit_reception_kind','=','process')], limit=1)
     Form(record or model.with_context(default_step_fruit_reception_kind='process'), view=view)
+    Form(production.search([],limit=1) or production)
     clone_flow = False
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
         from probe_reception_flow import verify_flow

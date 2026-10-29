@@ -7,7 +7,7 @@ from odoo.tools.safe_eval import safe_eval
 class TicketRevisionCase(TransactionCase):
     def test_process_header_uses_existing_packing_date_and_fundo(self):
         model=self.env['step.packing.production']
-        arch=etree.fromstring(model.get_view(view_type='form')['arch'])
+        arch=model._get_view(view_type='form')[0]
         names=arch.xpath("//group[@name='ot_identity_left']/field/@name")
         self.assertEqual(names[:3],['packing_partner_id','date','step_packing_order_id'])
         fundo=arch.xpath("//field[@name='fruit_fundo_id']")[0]
@@ -25,7 +25,7 @@ class TicketRevisionCase(TransactionCase):
         self.assertEqual(form.fruit_fundo_id,first)
         form.fruit_fundo_id=second
         self.assertEqual(form.fruit_fundo_id,second)
-        form.fruit_grower_id=False
+        form.fruit_grower_id=self.env['res.partner']
         self.assertFalse(form.fruit_fundo_id)
 
     def test_reception_columns_are_ordered_with_one_editable_net_weight(self):
@@ -43,7 +43,7 @@ class TicketRevisionCase(TransactionCase):
     def test_stock_actions_reuse_native_quants_and_include_descendants(self):
         from odoo.osv import expression
         for code,label in [('fruit','1 fruta'),('materials','6 materiales de embalajes')]:
-            root=self.env['product.category'].search([('name','=ilike',label)])
+            root=self.env['product.category'].search(expression.OR([[('name','=ilike',label)], [('name','=ilike','6 materiales de embalaje')]])) if code=='materials' else self.env['product.category'].search([('name','=ilike',label)])
             self.assertEqual(len(root),1)
             child=self.env['product.category'].create({'name':'QA Packing child','parent_id':root.id})
             product=self.env['product.product'].create({'name':'QA Report stock','categ_id':child.id,'is_storable':True})
@@ -74,6 +74,8 @@ class TicketRevisionCase(TransactionCase):
         self.assertEqual(package.step_packing_partner_id,partner)
         other=self.env['res.partner'].create({'name':'QA Actual Packing','step_export_packing':True})
         production=self.env['step.packing.production'].create({'packing_partner_id':other.id,'date':'2026-10-23'})
-        package.step_packing_production_id=production
-        self.assertEqual(package.step_packing_partner_id,other)
-        self.assertEqual(str(package.step_packing_date),'2026-10-23')
+        output=self.env['stock.quant.package'].create({'name':'QA Actual Output','is_fruit_tag':True,'step_tag_kind':'E','company_id':self.env.company.id})
+        output.step_packing_production_id=production
+        self.assertEqual(output.step_packing_partner_id,other)
+        self.assertEqual(str(output.step_packing_date),'2026-10-23')
+        self.assertEqual(package.step_packing_partner_id,partner)
