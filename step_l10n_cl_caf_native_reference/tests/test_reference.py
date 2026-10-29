@@ -1,6 +1,7 @@
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_l10n_cl_caf_custody_core.tests.common import CAFCustodyAssertions
+from odoo.addons.step_l10n_cl_caf_custody_core.custody import CAFCustodyMixin
 
 
 @tagged('post_install', '-at_install')
@@ -29,6 +30,8 @@ class TestNativeCAFCustody(CAFCustodyAssertions, TransactionCase):
         self.assert_no_fiscal_operation()
 
     def test_native_provider_methods_fields_and_ownership_remain_original(self):
+        self.assertEqual(CAFCustodyMixin.__slots__, ())
+        self.assertNotIn('__dict__', CAFCustodyMixin.__dict__)
         model = self.env.registry.models['l10n_cl.dte.caf']
         self.assertEqual(len(model._fields), 14)
         self.assertTrue(model._fields['caf_file'].attachment)

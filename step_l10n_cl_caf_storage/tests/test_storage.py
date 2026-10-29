@@ -4,6 +4,7 @@ from odoo import fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_l10n_cl_caf_custody_core.tests.common import CAFCustodyAssertions
+from odoo.addons.step_l10n_cl_caf_custody_core.custody import CAFCustodyMixin
 from ..hooks import _alias, check_provider_boundary, preserve_original_aliases
 
 
@@ -32,6 +33,8 @@ class TestCAFCustodyStorage(CAFCustodyAssertions, TransactionCase):
         self.assert_no_fiscal_operation()
 
     def test_model_has_fourteen_fields_and_original_binary_storage(self):
+        self.assertEqual(CAFCustodyMixin.__slots__, ())
+        self.assertNotIn('__dict__', CAFCustodyMixin.__dict__)
         record = self.custody_record()
         self.assertEqual(len(record._fields), 14)
         self.assertTrue(record._fields['caf_file'].attachment)
