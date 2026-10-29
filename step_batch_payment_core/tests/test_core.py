@@ -120,7 +120,8 @@ class BatchCoreCase(AccountTestInvoicingCommon):
     def test_grouped_payment_accounting_changes_require_detach(self):
         batch = self.group()
         before = self.payments.read(['amount', 'state', 'move_id', 'is_sent', 'is_matched'])
-        for values in ({'amount': 2}, {'is_sent': True}, {'state': 'paid'}, {'currency_id': self.env.ref('base.EUR').id}):
+        for values in ({'amount': 2}, {'is_sent': True}, {'state': 'paid'},
+                       {'currency_id': self.env.ref('base.EUR').id}, {'batch_payment_id': False, 'amount': 2}):
             with self.assertRaises(UserError):
                 self.payments[:1].with_user(self.actor).write(values)
         with self.assertRaises(UserError):
