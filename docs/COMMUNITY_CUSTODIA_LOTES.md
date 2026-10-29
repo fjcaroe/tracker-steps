@@ -5,7 +5,7 @@ Continuación de la canónica `6e3c8298`, rama propia
 frentes independientes; las restauraciones, actualizaciones y verificaciones
 del registro usan una sola cola bajo `/run/lock/steps-environments.lock`.
 
-**Candidato F en aceptación.** Código `405f19b0`; esta hoja se completa con
+**Candidato G en aceptación.** Código `ccdae62e`; esta hoja se completa con
 el resultado del verificador antes de integrar. La aceptación anterior sigue
 en [COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md).
 
@@ -103,11 +103,11 @@ Ver [COMMUNITY_CAF_CUSTODY.md](COMMUNITY_CAF_CUSTODY.md).
 
 ## Aceptación y evidencia
 
-Pendiente: resultado completo F y verificación local de las huellas.
+Pendiente: resultado completo G y verificación local de las huellas.
 
-Raíz privada: `/opt/steps-validation/community-operational-custody-20261029F`.
-Bases nuevas `COMMUNITY_PAYROLL_API_CUSTODY_20261029F` y
-`MANAGEMENT_QA_CERRO_PAYROLL_API_CUSTODY_20261029F`. La segunda restaura un dump
+Raíz privada: `/opt/steps-validation/community-operational-custody-20261029G`.
+Bases nuevas `COMMUNITY_PAYROLL_API_CUSTODY_20261029G` y
+`MANAGEMENT_QA_CERRO_PAYROLL_API_CUSTODY_20261029G`. La segunda restaura un dump
 fresco de Cerro y copia su filestore; conserva el motor nativo como referencia.
 No se interpreta como conversión histórica ni ensayo de recuperación integral.
 
@@ -125,8 +125,10 @@ El inventario completo se repitió en sólo lectura antes de implementar:
 | Steps | 310 | 123 | 19 |
 | SyS | 331 | 142 | 16 |
 
-Siguen **53 apps propias instaladas con caminos Enterprise** y 24 manifiestos
-propios fuera de Cerro. `steps_transport` tiene fuente encontrada pero inactiva,
+Siguen **53 apps propias instaladas con caminos Enterprise**. Hay 124 manifiestos
+propios en el repositorio y 29 fuera del inventario instalado de Cerro, incluidos
+los cinco nuevos de este bloque y herramientas de referencia nativa que no son
+productos para instalar en el perfil CE. `steps_transport` tiene fuente encontrada pero inactiva,
 sin origen/licencia operativa acreditados; no se activó. No hay publicaciones
 en producción ni QA-Cerro, cambios de vencimiento o recálculo de originales.
 
