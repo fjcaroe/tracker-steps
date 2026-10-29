@@ -12,16 +12,19 @@ ejemplo) es un error humano que va a volver a pasar.
 Este wizard automatiza esos pasos con una vista previa antes de tocar nada:
 - Corrige `date_end` del o los contratos abiertos que cubren esa fecha.
 - Vuelve a borrador y elimina la asistencia validada posterior a esa fecha.
-- Desbloquea (si hace falta) y recalcula las liquidaciones afectadas.
+- Recalcula únicamente las liquidaciones abiertas afectadas.
 
-Las liquidaciones ya **pagadas** nunca se tocan automáticamente: el dinero ya
-salió, así que quedan marcadas para revisión manual en vez de corregirse solas.
+Las liquidaciones validadas, pagadas o históricas bloquean la operación completa.
+Requieren una corrección revisada por Nómina, conservando los importes originales.
 """
 
 from datetime import datetime, time
 
+import pytz
+
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError
+from odoo.addons.step_payroll_contracts.history import history_protected
 
 
 class HrTerminationCorrectionWizard(models.TransientModel):
@@ -53,19 +56,19 @@ class HrTerminationCorrectionWizard(models.TransientModel):
         "hr.payslip", "hr_termination_correction_payslip_rel", "wizard_id", "payslip_id",
         compute="_compute_preview", string="Liquidaciones a recalcular",
         help="Liquidaciones cuyo período llega después de la fecha real y que "
-             "todavía se pueden corregir (borrador, en verificación o confirmadas).",
+             "todavía se pueden corregir (borrador o en verificación).",
     )
     blocked_payslip_ids = fields.Many2many(
         "hr.payslip", "hr_termination_correction_blocked_rel", "wizard_id", "payslip_id",
-        compute="_compute_preview", string="Liquidaciones pagadas (requieren revisión manual)",
-        help="Ya se pagaron: no se tocan automáticamente. Corríjalas a mano si "
-             "corresponde, evaluando el impacto en lo ya pagado.",
+        compute="_compute_preview", string="Liquidaciones protegidas (revisión manual)",
+        help="Validadas, pagadas o históricas: bloquean toda la operación. "
+             "Nómina debe revisar la corrección sin modificar su historia.",
     )
     has_action = fields.Boolean(compute="_compute_preview")
     confirm = fields.Boolean(
         string="Confirmo que quiero aplicar esta corrección",
-        help="Esta acción desbloquea liquidaciones ya confirmadas y elimina "
-             "asistencia validada. No tiene deshacer automático.",
+        help="Esta acción recalcula liquidaciones abiertas y elimina asistencia "
+             "posterior al término. No tiene deshacer automático.",
     )
 
     # ------------------------------------------------------------------
@@ -73,7 +76,38 @@ class HrTerminationCorrectionWizard(models.TransientModel):
     # ------------------------------------------------------------------
     def _cutoff_datetime(self):
         self.ensure_one()
-        return datetime.combine(self.actual_termination_date, time(23, 59, 59))
+        calendar = self.employee_id.resource_calendar_id
+        zone = pytz.timezone(calendar.tz or "UTC")
+        end = zone.localize(datetime.combine(self.actual_termination_date, time.max))
+        return end.astimezone(pytz.UTC).replace(tzinfo=None)
+
+    def _affected_payslips(self):
+        """Do not let a hidden or stale payslip turn closed history into zero."""
+        self.ensure_one()
+        slips = self.env["hr.payslip"].sudo().search([
+            ("employee_id", "=", self.employee_id.id),
+            ("company_id", "=", self.company_id.id),
+            ("date_to", ">", self.actual_termination_date),
+        ]).with_env(self.env)
+        slips.check_access("read")
+        return slips
+
+    def _affected_contracts(self):
+        self.ensure_one()
+        contracts = self.env["hr.contract"].sudo().search([
+            ("employee_id", "=", self.employee_id.id),
+            ("company_id", "=", self.company_id.id),
+            ("state", "!=", "cancel"),
+            "|", ("date_start", "=", False), ("date_start", "<=", self.actual_termination_date),
+            "|", ("date_end", "=", False), ("date_end", ">", self.actual_termination_date),
+        ]).with_env(self.env)
+        contracts.check_access("read")
+        return contracts
+
+    def _work_entry_domain(self):
+        return [("employee_id", "=", self.employee_id.id),
+                ("company_id", "=", self.company_id.id),
+                ("date_start", ">", self._cutoff_datetime())]
 
     @api.depends("employee_id", "actual_termination_date")
     def _compute_preview(self):
@@ -86,28 +120,15 @@ class HrTerminationCorrectionWizard(models.TransientModel):
                 wizard.has_action = False
                 continue
 
-            cutoff = wizard.actual_termination_date
-            wizard.contract_ids = wizard.employee_id.contract_ids.filtered(
-                lambda c: c.state != "cancel"
-                and (not c.date_start or c.date_start <= cutoff)
-                and (not c.date_end or c.date_end > cutoff))
-
-            wizard.work_entry_count = self.env["hr.work.entry"].search_count([
-                ("employee_id", "=", wizard.employee_id.id),
-                ("date_start", ">", wizard._cutoff_datetime()),
-            ])
-
-            affected_domain = [
-                ("employee_id", "=", wizard.employee_id.id),
-                ("date_to", ">", cutoff),
-            ]
-            wizard.payslip_ids = self.env["hr.payslip"].search(
-                affected_domain + [("state", "in", ("draft", "verify", "done"))])
-            wizard.blocked_payslip_ids = self.env["hr.payslip"].search(
-                affected_domain + [("state", "=", "paid")])
+            wizard.employee_id.check_access("read")
+            wizard.contract_ids = wizard._affected_contracts()
+            wizard.work_entry_count = self.env["hr.work.entry"].search_count(wizard._work_entry_domain())
+            affected = wizard._affected_payslips()
+            wizard.blocked_payslip_ids = affected.filtered(history_protected)
+            wizard.payslip_ids = affected - wizard.blocked_payslip_ids
 
             wizard.has_action = bool(
-                wizard.contract_ids or wizard.work_entry_count or wizard.payslip_ids)
+                wizard.contract_ids or wizard.work_entry_count or affected)
 
     @api.onchange("employee_id")
     def _onchange_employee(self):
@@ -122,33 +143,54 @@ class HrTerminationCorrectionWizard(models.TransientModel):
     # ------------------------------------------------------------------
     def action_apply(self):
         self.ensure_one()
+        if not self.env.user.has_group("steps_hr_payroll_correction.group_payroll_correction"):
+            raise AccessError(_("Esta corrección requiere el permiso específico de Nómina."))
+        self.check_access("write")
+        self.employee_id.check_access("read")
+        if self.company_id not in self.env.companies:
+            raise AccessError(_("Seleccione una compañía autorizada para este trabajador."))
         if not self.confirm:
             raise UserError(_(
                 "Marque la casilla de confirmación antes de aplicar la corrección."))
-        if not self.has_action:
+        # Read again on the server: preview fields and their RPC values cannot
+        # authorize a correction, and a slip can have been validated meanwhile.
+        slips = self._affected_payslips()
+        if slips:
+            self.env.cr.execute("SELECT id FROM hr_payslip WHERE id=ANY(%s) ORDER BY id FOR UPDATE", (slips.ids,))
+            slips.invalidate_recordset([name for name in ("state", "paid", "step_history_locked") if name in slips._fields])
+        blocked = slips.filtered(history_protected)
+        if blocked:
+            raise UserError(_(
+                "Hay liquidaciones validadas, pagadas o históricas en el rango "
+                "afectado (%s). La operación completa queda bloqueada; Nómina "
+                "debe revisar una corrección que preserve sus importes originales.") % ", ".join(blocked.mapped("name")))
+        contracts = self._affected_contracts()
+        contracts.check_access("write")
+        extra_entries = self.env["hr.work.entry"].sudo().search(self._work_entry_domain())
+        # The correction role permits the technical reset of validated entries,
+        # but never grants visibility through another company's/record's rules.
+        extra_entries.with_env(self.env).check_access("read")
+        if self.env["hr.work.entry"].sudo().search_count([
+                ("employee_id", "=", self.employee_id.id), ("company_id", "=", self.company_id.id),
+                ("date_start", "<=", self._cutoff_datetime()), ("date_stop", ">", self._cutoff_datetime())]):
+            raise UserError(_("Hay una entrada de trabajo que cruza el término real; revise sus horas antes de corregir."))
+        if not (contracts or extra_entries or slips):
             raise UserError(_(
                 "No hay nada que corregir para %(employee)s con esa fecha: ni contratos, "
                 "ni asistencia, ni liquidaciones posteriores al %(date)s.",
                 employee=self.employee_id.display_name, date=self.actual_termination_date))
-        if self.blocked_payslip_ids:
-            raise UserError(_(
-                "Hay liquidaciones ya pagadas dentro del rango afectado (%s). Esas no se "
-                "corrigen automáticamente: requieren revisión manual porque el pago ya "
-                "se realizó.") % ", ".join(self.blocked_payslip_ids.mapped("name")))
+        slips.check_access("write")
+        for slip in slips:
+            # The OCA adapter refreshes actual entries in compute_sheet. A
+            # structure still using theoretical OCA days is not admitted here.
+            if not hasattr(slip, "_compute_worked_days_line_ids") and not (
+                    "use_work_entries" in slip.struct_id._fields and slip.struct_id.use_work_entries):
+                raise UserError(_("Active las entradas reales de trabajo antes de corregir esta nómina."))
+        with self.env.cr.savepoint():
+            return self._apply_open_correction(contracts, extra_entries, slips)
 
-        cutoff_dt = self._cutoff_datetime()
-
-        # 1. Liquidaciones confirmadas: desbloquear antes de tocar nada más.
-        # `action_payslip_cancel` exige el grupo técnico de Administrador de
-        # sistema para cancelar una liquidación 'done'. El resguardo real de
-        # esta herramienta es su propio permiso (group_payroll_correction) más
-        # la casilla de confirmación y el registro de auditoría de más abajo,
-        # así que se opera con sudo() para no exigirle a quien la usa el
-        # perfil completo de Administrador de sistema.
-        done_slips = self.payslip_ids.filtered(lambda p: p.state == "done")
-        if done_slips:
-            done_slips.sudo().action_payslip_cancel()
-            done_slips.sudo().action_payslip_draft()
+    def _apply_open_correction(self, contracts, extra_entries, slips):
+        """One atomic correction, after authorization and whole-batch admission."""
 
         # 2. Asistencia posterior a la fecha real: a borrador y eliminar.
         # Un registro de asistencia validado no se puede eliminar directamente
@@ -158,16 +200,12 @@ class HrTerminationCorrectionWizard(models.TransientModel):
         # **antes** de tocar el contrato: si se acorta `date_end` con esta
         # asistencia todavía validada, el propio `hr.contract.write()` de
         # Odoo intenta borrarla de golpe y choca con la misma regla.
-        extra_entries = self.env["hr.work.entry"].sudo().search([
-            ("employee_id", "=", self.employee_id.id),
-            ("date_start", ">", cutoff_dt),
-        ])
         removed = len(extra_entries)
         extra_entries.write({"state": "draft"})
         extra_entries.unlink()
 
         # 3. Contratos: fecha de término real, ya sin asistencia de más en el camino.
-        for contract in self.contract_ids:
+        for contract in contracts:
             old_end = contract.date_end
             contract.write({"date_end": self.actual_termination_date})
             contract.message_post(body=_(
@@ -182,14 +220,12 @@ class HrTerminationCorrectionWizard(models.TransientModel):
         # (vacaciones proporcionales, indemnización, etc.) es una decisión de
         # nómina que debe revisar una persona.
         recomputed = self.env["hr.payslip"]
-        for slip in self.payslip_ids:
-            slip = slip.exists()
-            if not slip or slip.state not in ("draft", "verify"):
-                continue
-            slip.write({"edited": False})
-            slip.worked_days_line_ids.unlink()
-            slip.line_ids.unlink()
-            slip._compute_worked_days_line_ids()
+        for slip in slips:
+            if "edited" in slip._fields:
+                slip.write({"edited": False})
+            # Both engines own the refresh and preserve reusable line IDs.
+            if hasattr(slip, "_compute_worked_days_line_ids"):
+                slip._compute_worked_days_line_ids()
             slip.compute_sheet()
             recomputed |= slip
 

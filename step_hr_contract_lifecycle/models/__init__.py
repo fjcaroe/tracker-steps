@@ -10,3 +10,4 @@ from . import hr_termination_notice
 from . import dt_termination_notice_batch
 from . import hr_severance
 from . import dt_severance_batch
+from . import resource_calendar

@@ -73,7 +73,7 @@ class HrContractAdequacyBatch(models.Model):
             lines = []
             for contract in contracts:
                 current = (
-                    contract.resource_calendar_id.hours_per_week
+                    contract.resource_calendar_id._steps_contract_weekly_hours()
                     if contract.resource_calendar_id
                     else 0.0
                 )

@@ -34,8 +34,13 @@ class Contract(models.Model):
         return super().write(values)
 
     def action_confirm_payroll_migration(self):
-        if not self.env.user.has_group('hr_payroll.group_hr_payroll_manager'):
+        groups = ('hr_payroll.group_hr_payroll_manager', 'payroll.group_payroll_manager')
+        if not any(self.env.ref(xmlid, raise_if_not_found=False)
+                   and self.env.user.has_group(xmlid) for xmlid in groups):
             raise UserError(_('La revisión corresponde al administrador de Nómina.'))
+        self.check_access('write')
+        if any(contract.company_id not in self.env.companies for contract in self):
+            raise UserError(_('La revisión requiere una compañía autorizada.'))
         for contract in self:
             names = ('health_institution', 'pension_option', 'income_tax_type', 'work_schedule_id', 'analytic_account_id', 'contract_type_id')
             if any(not contract[name] for name in names if name in contract._fields):
@@ -44,7 +49,7 @@ class Contract(models.Model):
                 raise UserError(_('Simple Digital no está instalado.'))
             if contract.pension_option == 'afp' and not contract.afp_option:
                 raise UserError(_('Seleccione la AFP del contrato.'))
-            if not contract.employee_id.hr_commune:
+            if 'hr_commune' not in contract.employee_id._fields or not contract.employee_id.hr_commune:
                 raise UserError(_('Seleccione la comuna del trabajador.'))
         self.with_context(_confirm_payroll_migration=_CONFIRM_MIGRATION).write({'step_payroll_migration_review': False})
 

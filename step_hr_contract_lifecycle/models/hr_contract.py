@@ -155,7 +155,13 @@ class HrContract(models.Model):
             _rec, hours = Calendar.get_effective_hours(ref_date, contract.company_id)
             contract.max_weekly_hours_legal = hours
 
-    @api.depends("resource_calendar_id", "max_weekly_hours_legal", "state")
+    @api.depends("resource_calendar_id", "max_weekly_hours_legal", "state",
+                 "resource_calendar_id.attendance_ids.hour_from", "resource_calendar_id.attendance_ids.hour_to",
+                 "resource_calendar_id.attendance_ids.date_from", "resource_calendar_id.attendance_ids.date_to",
+                 "resource_calendar_id.attendance_ids.resource_id", "resource_calendar_id.attendance_ids.week_type",
+                 "resource_calendar_id.attendance_ids.day_period", "resource_calendar_id.attendance_ids.display_type",
+                 "resource_calendar_id.two_weeks_calendar", "resource_calendar_id.flexible_hours",
+                 "resource_calendar_id.full_time_required_hours")
     def _compute_adequacy_state(self):
         AdequacyLine = self.env["hr.contract.adequacy.line"]
         for contract in self:
@@ -163,7 +169,7 @@ class HrContract(models.Model):
                 contract.adequacy_state = "not_applicable"
                 contract.adequacy_line_id = False
                 continue
-            current = contract.resource_calendar_id.hours_per_week
+            current = contract.resource_calendar_id._steps_contract_weekly_hours()
             if current <= contract.max_weekly_hours_legal:
                 contract.adequacy_state = "adequate"
                 contract.adequacy_line_id = False

@@ -5,6 +5,10 @@ medio y acceso local completo hasta completar la migración de los productos
 propios. La automatización debe trabajar en este mismo hilo. El usuario gestiona
 los restablecimientos de cuota; no se compran créditos ni se modifican límites.
 La programación no garantiza cuota ni disponibilidad de la máquina.
+El usuario pidió bloques mayores y autorizó hasta tres agentes adicionales el
+28-10-2026. Se pueden preparar frentes independientes en worktrees propios;
+integrar un paquete coherente y probado. Esa autorización no permite upgrades
+paralelos: respaldo, creación/restauración y aceptación usan el bloqueo compartido.
 Se verificó el contexto efectivo del hilo: gpt-6.1-sol, esfuerzo medium,
 approval_policy never y sandbox danger-full-access. El heartbeat continúa este
 hilo y hereda sus ajustes; no es un permiso para publicar en producción.
@@ -13,11 +17,11 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_PAYROLL_COMPONENTS.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_PAQUETE_ACELERADO.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261028.md distingue 99 apps propias instaladas,
-   54 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
+   COMMUNITY_INVENTARIO_ENTERPRISE_20261029.md distingue 99 apps propias instaladas,
+   53 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.
 3. Elegir un bloque concreto que desbloquee la siguiente puerta. Registrar una
