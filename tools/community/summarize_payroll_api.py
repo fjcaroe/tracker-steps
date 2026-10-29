@@ -208,8 +208,8 @@ def main():
         assert helper.verify_metadata(bank_before,bank_after)==read('cerro-reference','bank-metadata-proof')
         for mode in ('community','cerro-reference'):
             finance=read(mode,'finance-frontier')
-            assert len(finance['aliases'])==11 and finance['payment_formats_use_original_model'] and not finance['batch_conversion_certified']
-        result['accelerated']={'hr_consumers_installed':list(hr_modules),'bank_aliases_preserved':11,
+            assert len(finance['aliases'])==15 and finance['payment_formats_use_original_model'] and not finance['batch_conversion_certified']
+        result['accelerated']={'hr_consumers_installed':list(hr_modules),'bank_aliases_preserved':15,
             'caf_authenticity_core_only':True,'full_dte_certified':False,'batch_conversion_certified':False}
     if all(report.get('pdf_binary_reports') for report in results.values()):
         result['pdf_binary_reports']={}
