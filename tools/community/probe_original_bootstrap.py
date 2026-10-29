@@ -73,8 +73,9 @@ def exercise(env, output):
     assert 'action_step_compute_existing_drafts' in run_arch
     visible = scope['ir.ui.menu']._visible_menu_ids(debug=False)
     assert scope.ref('payroll.payroll_menu_root').id in visible
-    actions = scope['ir.actions.act_window'].search([('res_model', '=', 'hr.payslip')])
-    assert actions and any('form' in action.view_mode for action in actions)
+    action = scope['ir.actions.actions']._for_xml_id('payroll.hr_payslip_action')
+    assert action['res_model'] == 'hr.payslip' and 'form' in action['view_mode']
+    json.dumps(action, default=json_default)
     defaults = {
         'hr.contract': scope['hr.contract'].default_get(['structure_type_id', 'struct_id', 'schedule_pay', 'wage_type']),
         'hr.payslip': scope['hr.payslip'].default_get(['struct_id', 'contract_id']),
@@ -96,7 +97,7 @@ def exercise(env, output):
     assert counts(env) == before, 'Reading forms/defaults must not create payroll configuration or history'
     result = {'database': env.cr.dbname, 'real_oca_engine': True, 'normal_actor': True,
         'forms': forms, 'defaults': defaults, 'visible_payroll_root': True,
-        'payslip_actions': len(actions), 'officer_batch_read_denied': True,
+        'payslip_action_id': action['id'], 'officer_batch_read_denied': True,
         'internal_salary_rule_write_denied': True, 'official_structure_types': len(types),
         'salary_counts_before': before, 'input_columns': input_columns, 'deferred_unpaid_membership_adopted': False,
         'original_masters_imported': False, 'operational_package': False,
