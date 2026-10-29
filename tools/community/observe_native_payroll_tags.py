@@ -123,11 +123,15 @@ def main():
         dump(root / 'before.json', before)
         for path in (root, *root.rglob('*')):
             os.chown(path, identity.pw_uid, identity.pw_gid)
-        expression = ('import runpy; runpy.run_path(' + repr(str(payload)) + ')["observe"](env,'
+        expression = ('import runpy,threading; threading.current_thread().testing=True; runpy.run_path(' + repr(str(payload)) + ')["observe"](env,'
                       + repr(str(root / 'observations.json')) + '); env.cr.rollback()')
-        command = ['sudo', '-u', 'cerro_odoo18', '/usr/bin/python3.10',
+        # The standard Odoo test marker suppresses automatic IAP enrichment.
+        # A network namespace also makes accidental external I/O impossible;
+        # PostgreSQL remains available only through its existing Unix socket.
+        command = ['unshare', '--net', '--', 'sudo', '-u', 'cerro_odoo18', '/usr/bin/python3.10',
             str(SOURCE_ROOT / 'addons/tools/ops/run_agriculture_upgrade.py'), 'shell',
             '-c', '/etc/odoo18-cerroelplomo.conf', '-d', args.database,
+            '--db_host=/var/run/postgresql',
             '--db-filter=^' + args.database + '$', '--addons-path=' + str(stage / 'addons') + ',' + config['options']['addons_path'],
             '--data-dir=' + str(root / 'data'), '--load=base,web', '--no-http', '--workers=0',
             '--max-cron-threads=0', '--logfile=' + str(root / 'probe.log')]
@@ -147,7 +151,8 @@ def main():
             payload_sha256=hashlib.sha256(payload.read_bytes()).hexdigest(),
             runner_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             observations_sha256=hashlib.sha256((root / 'observations.json').read_bytes()).hexdigest(),
-            observation_only=True, fresh_production_acceptance=False, engine_converted=False, writes_to_source=False))
+            observation_only=True, isolated_network_namespace=True, postgres_unix_socket=True,
+            official_test_thread_marker=True, fresh_production_acceptance=False, engine_converted=False, writes_to_source=False))
         print('NATIVE_PAYROLL_TAGS_OBSERVED 4 actual-engine cases; fixture rolled back', flush=True)
 
 
