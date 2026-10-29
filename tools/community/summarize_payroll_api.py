@@ -70,6 +70,8 @@ def main():
     if upgrade.exists():paths+=['tools/community/validate_payroll_history_upgrade.py']
     relation_storage=args.evidence/'sys-storage/passed.json'
     if relation_storage.exists():paths+=['tools/community/validate_payroll_relation_storage.py']
+    products=args.evidence/'products-inventory.json'
+    if products.exists():paths+=['tools/community/audit_product_frontier.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -150,6 +152,21 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if products.exists():
+        proof=json.loads(products.read_text())
+        executed=(args.evidence/'products-auditor.py').read_bytes()
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_product_frontier.py'].replace(b'\r\n',b'\n')
+        assert proof['read_only'] and not any(proof[key] for key in ('orm_loaded','business_data_exported','source_bodies_exported','enterprise_sources_copied'))
+        assert set(proof['products'])=={'cerro','steps','sys'}
+        result['products']={}
+        for name,product in proof['products'].items():
+            modules=product['modules'];own=[m for m in modules if m['name'].startswith('step')]
+            assert product['installed']==len(modules) and product['own']==len(own)
+            assert product['enterprise']==sum(m['license']=='OEEL-1' for m in modules)
+            assert product['own_without_source']==[m['name'] for m in own if not m['source_available']]
+            assert product['own_without_active_source']==[m['name'] for m in own if not m['active_source_available']]
+            result['products'][name]={key:value for key,value in product.items() if key!='modules'}
     if relation_storage.exists():
         proof=json.loads(relation_storage.read_text())
         executed=(relation_storage.parent/'validator.py').read_bytes()
@@ -171,7 +188,7 @@ def main():
             'idempotence_verified':True,'orm_loaded':False,'engine_converted':False,'financial_certified':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==239 and results['cerro-reference']['expected_test_count']==210
+        assert results['community']['expected_test_count']==242 and results['cerro-reference']['expected_test_count']==214
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])
