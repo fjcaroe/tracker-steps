@@ -95,6 +95,29 @@ class BankExportWizard(models.TransientModel):
             payments.check_access('read')
         return result
 
+    def read(self, fields=None, load='_classic_read'):
+        self.check_access('read')
+        return super().read(fields=fields, load=load)
+
+    def _read_format(self, fnames, load='_classic_read'):
+        # search_read formats prefetched values without invoking read().
+        self.check_access('read')
+        return super()._read_format(fnames, load=load)
+
+    def web_read(self, specification):
+        self.check_access('read')
+        return super().web_read(specification)
+
+    def export_data(self, fields_to_export):
+        self.check_access('read')
+        return super().export_data(fields_to_export)
+
+    @api.model
+    def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
+        # A stored binary must not escape through a generic grouping RPC.
+        self.search(domain).check_access('read')
+        return super().read_group(domain, fields, groupby, offset=offset, limit=limit, orderby=orderby, lazy=lazy)
+
     @api.constrains('currency_id')
     def _check_currency(self):
         if any(wizard.currency_id != self.env.ref('base.CLP') for wizard in self):

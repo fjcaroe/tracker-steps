@@ -1,7 +1,7 @@
 {
     'name': 'Steps - Formatos bancarios Community',
     'summary': 'BancoEstado y Security sobre pagos y cuentas bancarias originales',
-    'version': '18.0.1.2.0',
+    'version': '18.0.1.2.1',
     'author': 'Steps Consulting',
     'license': 'LGPL-3',
     'depends': ['account'],

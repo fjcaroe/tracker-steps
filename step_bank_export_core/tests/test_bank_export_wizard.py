@@ -116,7 +116,7 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
     def test_one_hidden_payment_prevents_partial_file(self):
         other = self.payment.copy({'amount': 10})
         payments = self.payment | other
-        before = payments.read(['amount', 'state', 'date', 'write_date', 'partner_bank_id'])
+        before = payments.sudo().read(['amount', 'state', 'date', 'write_date', 'partner_bank_id'])
         wizard = self.Wizard.create({'payment_ids': [Command.set(payments.ids)]})
         self.env['ir.rule'].create({'name': 'Una selección bancaria no puede exportarse parcialmente',
             'model_id': self.env['ir.model']._get_id('account.payment'),
@@ -125,7 +125,7 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
         with self.assertRaises(AccessError):
             wizard.action_generate_file()
         self.assertFalse(wizard.sudo().file_data)
-        self.assertEqual(payments.read(list(before[0].keys() - {'id'})), before)
+        self.assertEqual(payments.sudo().read(list(before[0].keys() - {'id'})), before)
 
     def test_generated_private_file_is_revoked_when_one_payment_becomes_hidden(self):
         other = self.payment.copy({'amount': 10})
@@ -138,6 +138,14 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
             'perm_read': True, 'perm_write': False, 'perm_create': False, 'perm_unlink': False})
         with self.assertRaises(AccessError):
             wizard.read(['file_data'])
+        with self.assertRaises(AccessError):
+            wizard.search_read([('id', '=', wizard.id)], ['file_data'])
+        with self.assertRaises(AccessError):
+            wizard.web_read({'file_data': {}})
+        with self.assertRaises(AccessError):
+            wizard.export_data(['file_data'])
+        with self.assertRaises(AccessError):
+            wizard.read_group([('id', '=', wizard.id)], ['file_data'], ['file_data'])
         with self.assertRaises(AccessError):
             self.env['ir.binary'].with_user(self.manager)._find_record(res_model=wizard._name, res_id=wizard.id, field='file_data')
 

@@ -2,6 +2,7 @@
 from odoo.exceptions import UserError
 
 CORE = 'step_bank_export_core'
+RELATED_MODEL = 'account.setup.bank.manual.config'
 LEGACY_FIELDS = {
     'step_account_treasury_batch': 'step_bancoestado_payment_method',
     'step_bank_security': 'step_security_credit_type',
@@ -51,6 +52,27 @@ def adopt_legacy_fields(env):
                 raise UserError('La selección bancaria heredada no coincide: %s.%s' % (namespace, selection_name))
             _alias(env, CORE, selection_name, selection, selection_data.noupdate)
             selection_data.noupdate = True
+    for namespace, field_name in LEGACY_FIELDS.items():
+        name = 'model_res_partner_bank'
+        legacy = env['ir.model.data'].search([('module', '=', namespace), ('name', '=', name)])
+        if legacy:
+            model = env['ir.model'].browse(legacy.res_id).exists()
+            if len(legacy) != 1 or legacy.model != 'ir.model' or not model or model.model != 'res.partner.bank':
+                raise UserError('El modelo bancario heredado no coincide: %s.%s' % (namespace, name))
+            _alias(env, CORE, name, model, legacy.noupdate)
+            legacy.noupdate = True
+        name = 'field_account_setup_bank_manual_config__' + field_name
+        legacy = env['ir.model.data'].search([('module', '=', namespace), ('name', '=', name)])
+        if legacy:
+            field = env['ir.model.fields'].browse(legacy.res_id).exists()
+            if len(legacy) != 1 or legacy.model != 'ir.model.fields' or not field or (
+                    field.model, field.name, field.ttype, field.related) != (
+                    RELATED_MODEL, field_name, 'selection', 'res_partner_bank_id.' + field_name):
+                raise UserError('El campo bancario relacionado heredado no coincide: %s.%s' % (namespace, name))
+            if RELATED_MODEL not in env.registry:
+                raise UserError('Falta el proveedor original de %s; no se puede retirar su campo bancario.' % RELATED_MODEL)
+            _alias(env, CORE, name, field, legacy.noupdate)
+            legacy.noupdate = True
     for namespace, name in LEGACY_VIEWS.items():
         legacy = env['ir.model.data'].search([('module', '=', namespace), ('name', '=', name)])
         if not legacy:
@@ -71,5 +93,15 @@ def preserve_legacy_xmlids(env):
         for value in SELECTION_VALUES[field_name]:
             selection_name = 'selection__res_partner_bank__%s__%s' % (field_name, value)
             _alias(env, namespace, selection_name, env.ref(CORE + '.' + selection_name), True)
+        bank_model = env['ir.model']._get('res.partner.bank')
+        _alias(env, CORE, 'model_res_partner_bank', bank_model, False)
+        _alias(env, namespace, 'model_res_partner_bank', bank_model, True)
+        if RELATED_MODEL in env.registry:
+            if field_name not in env[RELATED_MODEL]._fields:
+                raise UserError('Falta el campo bancario del proveedor original: %s.%s' % (RELATED_MODEL, field_name))
+            related = env['ir.model.fields']._get(RELATED_MODEL, field_name)
+            name = 'field_account_setup_bank_manual_config__' + field_name
+            _alias(env, CORE, name, related, False)
+            _alias(env, namespace, name, related, True)
     for namespace, name in LEGACY_VIEWS.items():
         _alias(env, namespace, name, env.ref(CORE + '.' + name), True)
