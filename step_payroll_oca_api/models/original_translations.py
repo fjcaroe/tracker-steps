@@ -1,14 +1,14 @@
-"""Original master translations with an explicit, nonconflicting literal base."""
+"""Translated original notes and one scalar input-name plan, never master writes."""
 from odoo import _, fields, models
 from odoo.exceptions import ValidationError
 from psycopg2 import sql
 
-from ..translation_storage import TranslationStorageError, original_translation_payload
+from ..translation_storage import TranslationStorageError, original_input_name_literal, original_translation_payload
 
 
 def _prepare_record_translation(record, field_name, original):
     record.ensure_one()
-    if (record._name, field_name) not in {("hr.salary.rule", "note"), ("hr.payslip.input.type", "name")}:
+    if (record._name, field_name) != ("hr.salary.rule", "note"):
         raise ValidationError(_("Original translation preparation is limited to payroll configuration masters."))
     record.check_access("read")
     record.check_field_access_rights("read", [field_name])
@@ -39,10 +39,31 @@ class SalaryRule(models.Model):
 class InputType(models.Model):
     _inherit = "hr.payslip.input.type"
 
-    name = fields.Char(translate=True)
+    name = fields.Char(translate=False)
+
+    def _step_original_name_literal(self, original):
+        """Return a checked scalar plan; never write a master or choose a language."""
+        normal = self.sudo(False)
+        normal.ensure_one()
+        if normal._name != "hr.payslip.input.type":
+            raise ValidationError(_("Original literal-name preparation is limited to payroll input types."))
+        normal.check_access("read")
+        normal.check_field_access_rights("read", ["name"])
+        if type(normal.id) is not int or normal.id <= 0:
+            raise ValidationError(_("Save the original input type before preparing its literal name."))
+        normal.flush_recordset(["name"])
+        normal.env.cr.execute("SELECT name FROM hr_payslip_input_type WHERE id=%s", (normal.id,))
+        found = normal.env.cr.fetchone()
+        if found is None:
+            raise ValidationError(_("The original payroll input type is missing."))
+        try:
+            return original_input_name_literal(original, existing=found[0])
+        except TranslationStorageError:
+            raise ValidationError(_("Original input names require one unchanged literal without extra languages.")) from None
 
     def _step_original_name_translations(self, original):
-        return _prepare_record_translation(self, "name", original)
+        """Legacy planner alias: returns a scalar literal, never a translation map."""
+        return self._step_original_name_literal(original)
 
 
 class PayslipLine(models.Model):

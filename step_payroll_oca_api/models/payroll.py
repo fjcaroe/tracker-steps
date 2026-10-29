@@ -65,7 +65,7 @@ class InputType(models.Model):
     _name = 'hr.payslip.input.type'
     _description = 'Payroll input type'
 
-    name = fields.Char(required=True, translate=True)
+    name = fields.Char(required=True, translate=False)
     code = fields.Char(required=True)
     active = fields.Boolean(default=True)
     country_id = fields.Many2one('res.country', default=lambda self:self.env.company.country_id)
