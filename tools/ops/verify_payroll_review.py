@@ -16,6 +16,9 @@ try:
     users = env['res.users'].search([('active', '=', True), ('share', '=', False), ('id', '!=', 1)])
     users = users.filtered(lambda user: company in user.company_ids and user.has_group('hr_payroll.group_hr_payroll_manager'))
     assert users, 'Existing payroll manager required'
+    if 'hr.labor.document' in env:
+        users=users.filtered(lambda u: env['hr.labor.document'].with_user(u).check_access_rights('read',raise_exception=False))
+    assert users, 'Existing payroll manager with contract-form access required'
     user = users[:1]
     scoped = env(user=user, su=False, context=dict(env.context, allowed_company_ids=company.ids))
     visible = scoped['ir.ui.menu']._visible_menu_ids()
