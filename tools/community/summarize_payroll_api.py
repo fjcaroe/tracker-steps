@@ -93,10 +93,20 @@ def main():
     if adoption_preflight.exists():paths+=['tools/community/payroll_configuration_adoption_preflight.py']
     security_admission=args.evidence/'configuration-preflight/security-admission.json'
     if security_admission.exists():paths+=['tools/community/payroll_original_security_admission.py']
+    native_configuration_verifier=args.evidence/'configuration-preflight/native-verifier.py'
+    if native_configuration_verifier.exists():paths+=['tools/community/verify_native_payroll_configuration.py']
     identity_snapshotter=args.evidence/'identity-snapshotter.py'
     if identity_snapshotter.exists():paths+=['tools/community/validate_agriculture_core.py']
     property_upgrade=args.evidence/'properties-upgrade/passed.json'
     if property_upgrade.exists():paths+=['tools/community/validate_payroll_properties_upgrade.py']
+    offline_runner=args.evidence/'offline-runner.py'
+    if offline_runner.exists():paths+=['tools/community/offline_process.py']
+    admission_upgrade=args.evidence/'admission-upgrade/passed.json'
+    if admission_upgrade.exists():paths+=['tools/community/validate_payroll_admission_upgrade.py',
+        'tools/community/validate_payroll_properties_upgrade.py','tools/community/verify_payroll_admission_evidence.py']
+    native_tags=args.evidence/'native-tags/passed.json'
+    if native_tags.exists():paths+=['tools/community/observe_native_payroll_tags.py','tools/community/probe_native_payroll_tags.py',
+        'tools/community/verify_native_payroll_tags.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -160,6 +170,11 @@ def main():
     assert len({r['source_files_sha256'] for r in results.values()})==1
     validator=source['tools/community/validate_payroll_api.py']
     assert all(r['validator_sha256']==hashlib.sha256(validator).hexdigest() for r in results.values())
+    if offline_runner.exists():
+        executed=offline_runner.read_bytes()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/offline_process.py'].replace(b'\r\n',b'\n')
+        assert all(r['external_network_disabled'] and r['loopback_http_only'] and r['postgres_unix_socket']
+            and r['offline_runner_sha256']==hashlib.sha256(executed).hexdigest() for r in results.values())
     before=read('cerro-reference','business-before')
     for name in ('business-after-upgrade','business-after'):
         after=read('cerro-reference',name)
@@ -191,6 +206,14 @@ def main():
         assert results['cerro-reference']['original_xmlid_noupdate_captured']
         assert all('noupdate' in row for row in original['original_xmlids'])
         result['original_xmlid_noupdate_preserved']=True
+    if admission_upgrade.exists():
+        sys.path.insert(0,str(repo/'tools/community'))
+        from verify_payroll_admission_evidence import verify_admission_evidence
+        result['admission_upgrade']=verify_admission_evidence(admission_upgrade.parent,source,packets[0])
+    if native_tags.exists():
+        sys.path.insert(0,str(repo/'tools/community'))
+        from verify_native_payroll_tags import verify_native_payroll_tags
+        result['native_payroll_tags_observation']=verify_native_payroll_tags(native_tags.parent,source)
     if property_upgrade.exists():
         import importlib.util
         folder=property_upgrade.parent
@@ -387,6 +410,11 @@ def main():
                 ('hr.salary.rule','account_credit'),('hr.salary.rule','account_debit'),
                 ('hr.salary.rule','analytic_account_id'),('hr.salary.rule','note')}
             closed|=additional
+        newly_closed=set()
+        if 'step_simpledigital_oca_base/models/original_unpaid.py' in packets[0]:
+            newly_closed={('hr.payroll.structure','unpaid_work_entry_type_ids'),
+                ('hr.payroll.structure.type','name'),('hr.salary.rule','debit_tag_ids'),('hr.salary.rule','credit_tag_ids')}
+            closed|=newly_closed
         assert closed<={(row['model'],row['name']) for row in current['target_metadata']['fields']}
         assert not closed & {(row['model'],row['field']) for row in assessment['field_differences']}
         selection_unknowns=[]
@@ -404,6 +432,7 @@ def main():
         result['configuration_adoption_preflight']={'read_only_evidence_unchanged':True,
             'physical_original_field_contracts_closed':14,'additional_original_field_contracts_closed':len(additional),
             'original_field_contracts_closed':len(closed),
+            'newly_closed_original_field_contracts':len(newly_closed),
             'source_masters':assessment['source_master_count'],'source_xmlids':assessment['source_xmlid_count'],
             'occupied_ids':len(assessment['occupied_source_ids']),'xmlid_conflicts':len(assessment['xmlid_conflicts']),
             'remaining_field_differences':len(assessment['field_differences']),
@@ -414,6 +443,10 @@ def main():
         native_file=folder/'native-source.json'
         if native_file.exists():
             proof=json.loads(native_file.read_text())
+            if native_configuration_verifier.exists():
+                executed_generator=native_configuration_verifier.read_bytes()
+                assert proof['generator_sha256']==hashlib.sha256(executed_generator).hexdigest()
+                assert executed_generator.replace(b'\r\n',b'\n')==source['tools/community/verify_native_payroll_configuration.py'].replace(b'\r\n',b'\n')
             assert proof['read_only'] and proof['two_readonly_snapshots_equal']
             assert not any(proof[key] for key in ('orm_loaded','rules_evaluated','historical_payroll_read',
                 'salary_formulas_exposed','adoption_authorized','engine_converted','financial_certified'))
@@ -562,6 +595,9 @@ def main():
             assert proof['runner_sha256']==hashlib.sha256(executed).hexdigest()
             assert proof['source_packet_sha256']==results[mode]['source_files_sha256']
             assert proof['database']==results[mode]['database'] and proof['read_only'] and proof['metadata_only']
+            if offline_runner.exists():
+                assert proof['external_network_disabled'] and proof['postgres_unix_socket']
+                assert proof['offline_runner_sha256']==hashlib.sha256(offline_runner.read_bytes()).hexdigest()
             assert not any(proof[key] for key in ('upgraded','business_records_read','source_bodies_exported','functional_conversion_certified'))
             for name,digest in proof['helpers_sha256'].items():
                 helper=(registry/name).read_bytes()
@@ -593,8 +629,14 @@ def main():
         assert results['cerro-reference']['accelerated']
         api_count=results['community'].get('api_test_count',63)
         base_count=results['community'].get('base_test_count',7)
-        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)
-        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)+(results['cerro-reference'].get('reference_test_count',25)-25)
+        dte_count=results['community'].get('dte_test_count',18)
+        assert results['cerro-reference'].get('dte_test_count',18)==dte_count
+        actual_dte=sum(1 for name,blob in source.items() if name.startswith('step_l10n_cl_edi_core/tests/test_') and name.endswith('.py')
+            for cls in ast.parse(blob.decode('utf-8-sig')).body if isinstance(cls,ast.ClassDef)
+            for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
+        assert actual_dte==dte_count
+        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)+(dte_count-18)
+        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)+(results['cerro-reference'].get('reference_test_count',25)-25)+(dte_count-18)
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])

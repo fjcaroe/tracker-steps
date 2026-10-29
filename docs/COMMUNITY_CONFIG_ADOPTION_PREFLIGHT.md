@@ -1,9 +1,11 @@
 # Preflight de identidad, permisos y traducciones de configuración
 
-Estado vigente y siguiente bloque: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md).
-La pareja F pasa 375/252 casos y cierra 22 contratos; quedan 12 diferencias de
-campos y siete de columnas. La configuración original, ACL/identidad y
-conversión integral siguen abiertas. El contenido inferior conserva su alcance histórico.
+Estado vigente y siguiente prompt: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
+La pareja C pasa 420/276 casos, con 26 contratos de campos originales cerrados,
+59.048 XML IDs con noupdate preservados y upgrade privado C API1.10→1.11/Base1.3→1.4.
+Quedan ocho diferencias de campos, seis de columnas, permisos/configuración
+original, certificación y conversión integral. El 31 sigue en riesgo alto.
+El contenido inferior conserva su alcance histórico.
 
 Bloque de solo lectura desde canónica `db398fba`, rama propia
 `codex/community-payroll-config-acl-20261029`. Complementa

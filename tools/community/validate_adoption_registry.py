@@ -16,6 +16,7 @@ import re
 import subprocess
 
 from validate_payroll_relation_storage import connect, snapshot
+from offline_process import offline_odoo
 
 
 def main():
@@ -69,6 +70,7 @@ def main():
     entry=args.runtime/'odoo-bin' if pure else source/'tools/ops/run_agriculture_upgrade.py'
     command=['sudo','-u',user,'/usr/bin/python3.10',str(entry),'shell','-c',config_path,
         '-d',database,'--db-filter=^'+database+'$','--addons-path='+paths,
+        '--db_host=/var/run/postgresql',
         '--data-dir='+str(stage/'data'),'--load=base,web','--workers=0','--max-cron-threads=0',
         '--no-http','--http-interface=127.0.0.1','--http-port=0','--gevent-port=0',
         '--logfile='+str(output/'registry.log')]
@@ -76,7 +78,7 @@ def main():
         fcntl.flock(lease,fcntl.LOCK_EX)
         before=baseline();dump('business-before',before)
         with (output/'bootstrap.log').open('w') as stream:
-            status=subprocess.run(command,input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
+            status=subprocess.run(offline_odoo(command),input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
         after=baseline();dump('business-after',after)
         assert before==after,'Registry inspection changed original table values or business counters'
         assert status.returncode==0 and (output/'registry.json').is_file()
@@ -90,6 +92,8 @@ def main():
         dump('passed',{'database':database,'mode':args.mode,'exact_tables_and_counters_preserved':len(before),
             'read_only':True,'upgraded':False,'business_records_read':False,'source_bodies_exported':False,
             'functional_conversion_certified':False,'metadata_only':True,
+            'external_network_disabled':True,'postgres_unix_socket':True,
+            'offline_runner_sha256':hashlib.sha256(Path(__file__).with_name('offline_process.py').read_bytes()).hexdigest(),
             'source_packet_sha256':accepted['source_files_sha256'],
             'runner_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'helpers_sha256':{name:hashlib.sha256(path.read_bytes()).hexdigest() for name,path in helpers.items()}})

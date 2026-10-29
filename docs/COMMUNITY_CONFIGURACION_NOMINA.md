@@ -1,7 +1,11 @@
 # Configuración original y lectura histórica de nómina — 29-10-2026
 
-Aceptación posterior y siguiente prompt: [COMMUNITY_PROPIEDADES_NOMINA.md](COMMUNITY_PROPIEDADES_NOMINA.md),
-pareja F y upgrade privado I. Esta hoja conserva la evidencia histórica D.
+Estado vigente y siguiente prompt: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md).
+La pareja C pasa 420/276 casos, con 26 contratos de campos originales cerrados,
+59.048 XML IDs con noupdate preservados y upgrade privado C API1.10→1.11/Base1.3→1.4.
+Quedan ocho diferencias de campos, seis de columnas, permisos/configuración
+original, certificación y conversión integral. El 31 sigue en riesgo alto.
+El contenido inferior conserva su alcance histórico.
 
 Bloque desde la canónica `db398fba`, worktree propio y rama
 `codex/community-payroll-configuration-20261029`. Addons congelados en

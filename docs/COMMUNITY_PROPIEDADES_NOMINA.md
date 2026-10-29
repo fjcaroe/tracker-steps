@@ -1,6 +1,9 @@
 # Propiedades, traducciones y actores de nómina — aceptación del 29-10-2026
 
-Estado acumulado vigente desde la canónica `205b1311`. La pareja **F**, paquete
+Aceptación posterior vigente: [COMMUNITY_ADMISION_NOMINA.md](COMMUNITY_ADMISION_NOMINA.md),
+pareja y upgrade C. Esta hoja conserva la evidencia histórica F/I.
+
+Aceptación histórica desde la canónica `205b1311`. La pareja **F**, paquete
 de addons `4705aa85`, pasa **375 casos en Community y 252 en copia fresca de
 Cerro**, sin fallos ni errores y con dos omisiones por entorno según proveedor.
 Añade ocho contratos originales a los catorce del bloque anterior: **22 en total**.
