@@ -328,15 +328,24 @@ def main():
         closed|={('hr.payroll.structure.type',name) for name in ('default_schedule_pay','default_work_entry_type_id','sequence','wage_type')}
         closed|={('hr.salary.rule',name) for name in ('amount_other_input_id','condition_other_input_id','partner_id','not_computed_in_net','split_move_lines')}
         assert len(closed)==14
+        additional=set()
+        if 'step_payroll_oca_api/models/original_type_relations.py' in packets[0]:
+            additional={('hr.payroll.structure','schedule_pay'),('hr.payroll.structure.type','struct_ids'),
+                ('hr.payroll.structure.type','struct_type_count'),('hr.payroll.structure.type','default_struct_id'),
+                ('hr.salary.rule','account_credit'),('hr.salary.rule','account_debit'),
+                ('hr.salary.rule','analytic_account_id'),('hr.salary.rule','note')}
+            closed|=additional
         assert closed<={(row['model'],row['name']) for row in current['target_metadata']['fields']}
         for name in ('field_differences','selection_value_differences'):
             assert not closed & {(row['model'],row['field']) for row in assessment[name]}
         assert not closed & {(helper.TABLES[row['table']],row['field']) for row in assessment['column_differences']}
         result['configuration_adoption_preflight']={'read_only_evidence_unchanged':True,
-            'physical_original_field_contracts_closed':len(closed),
+            'physical_original_field_contracts_closed':14,'additional_original_field_contracts_closed':len(additional),
+            'original_field_contracts_closed':len(closed),
             'source_masters':assessment['source_master_count'],'source_xmlids':assessment['source_xmlid_count'],
             'occupied_ids':len(assessment['occupied_source_ids']),'xmlid_conflicts':len(assessment['xmlid_conflicts']),
             'remaining_field_differences':len(assessment['field_differences']),
+            'remaining_column_differences':len(assessment['column_differences']),
             'remaining_selection_differences':len(assessment['selection_value_differences']),
             'adoption_ready':False,'remaining_gates':assessment['remaining_gates']}
         native_file=folder/'native-source.json'
