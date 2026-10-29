@@ -211,8 +211,24 @@ def main():
         assert witness['id']==seed['slip'] and witness['state']=='done' and witness['step_history_locked'] is True
         assert witness['paid'] is None or witness['paid'] is False
         assert proof['synthetic_paid_marker_original_sql_value']==seed['synthetic_paid_marker_original_sql_value']==witness['paid']
-        check=helper.verify_rows(seed['raw_rows'],after_rows)
+        audit_path=folder/'xml-config-upgrade-audit.json'
+        xml_audit=json.loads(audit_path.read_text())
+        assert proof['xml_config_upgrade_audit_sha256']==hashlib.sha256(audit_path.read_bytes()).hexdigest()
+        assert xml_audit['database']==proof['database']
+        assert xml_audit['upgrade_log_sha256']==hashlib.sha256((folder/'upgrade.log').read_bytes()).hexdigest()
+        log=(folder/'upgrade.log').read_text()
+        assert xml_audit['reload_log_lines']==[line for line in log.splitlines()
+            if 'odoo.modules.loading: loading l10n_cl_simpledigital_payroll/'+helper.CONFIG_XML in line]
+        pin_bytes=(folder/'xml-config-source-pin.json').read_bytes()
+        assert xml_audit['source_pin_manifest_sha256']==hashlib.sha256(pin_bytes).hexdigest()
+        assert pin_bytes==source['tools/community/simpledigital_runtime_source.json']
+        for phase in ('before','after'):
+            clock_path=folder/('upgrade-sql-clock-'+phase+'.json')
+            assert xml_audit['sql_clock_'+phase+'_sha256']==hashlib.sha256(clock_path.read_bytes()).hexdigest()
+            assert json.loads(clock_path.read_text())['utc']==xml_audit['sql_utc_'+phase]
+        check=helper.verify_rows(seed['raw_rows'],after_rows,xml_audit)
         assert all(proof[key]==value for key,value in check.items())
+        assert proof['expected_write_date_changes']==2 and not proof['all_original_raw_fields_exact']
         assert all(proof[key] for key in ('actual_upgrade','normal_actor','real_oca_engine','historical_read_unchanged',
             'synthetic_fixture_only','synthetic_paid_marker','current_wage_changed_after_closure',
             'source_unchanged','source_filestore_unchanged','backup_decoded'))
@@ -227,12 +243,17 @@ def main():
         assert hashlib.sha256((folder/'source-packet.json').read_bytes()).hexdigest()==baseline['source_files_sha256']
         package=json.loads((folder/'package-files.json').read_text())
         assert helper.digest(package)==proof['package_files_sha256']
+        assert xml_audit['package_files_sha256']==hashlib.sha256((folder/'package-files.json').read_bytes()).hexdigest()
+        for phase in ('legacy','candidate'):
+            assert package['l10n_cl_simpledigital_payroll'][phase][helper.CONFIG_XML]==helper.CONFIG_XML_SHA256
+        assert packets[0]['l10n_cl_simpledigital_payroll/'+helper.CONFIG_XML]==helper.CONFIG_XML_SHA256
         for module,versions in helper.VERSIONS.items():
             assert proof['original_versions'][module]==versions[0] and proof['target_versions'][module]==versions[1]
             manifest=ast.literal_eval(source[module+'/__manifest__.py'].decode('utf-8-sig'))
             assert manifest['version']==versions[1]
             assert all(packets[0].get(module+'/'+name)==digest for name,digest in package[module]['candidate'].items())
-        result['property_upgrade']={key:proof[key] for key in ('original_versions','target_versions','raw_rows_preserved',
+        result['property_upgrade']={key:proof[key] for key in ('original_versions','target_versions','raw_rows_compared','raw_rows_preserved',
+            'all_original_raw_fields_exact','expected_write_date_changes','expected_write_date_change_records','write_date_exception_justification',
             'model_ids_preserved','field_ids_preserved','historical_read_unchanged','source_unchanged',
             'synthetic_paid_marker','payment_workflow_certified','customer_payroll_certified','full_community_conversion')}
     if results['community'].get('stored_payslip_pdf_reports'):
