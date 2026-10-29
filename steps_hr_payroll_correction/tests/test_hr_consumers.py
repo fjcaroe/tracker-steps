@@ -90,6 +90,10 @@ class HrConsumersCase(TransactionCase):
                 "name": "Private consumer out of contract", "code": "PRIVATE_HR_OUT"})
         cls.env["ir.sequence"].create({"name": "Private consumer slips", "code": "salary.slip",
             "company_id": company.id, "prefix": "PRIVATE-HR/"})
+        for code, prefix in (("hr.contract.adequacy.batch", "PRIVATE-HR-BATCH/"),
+                             ("hr.severance", "PRIVATE-HR-SEVERANCE/")):
+            cls.env["ir.sequence"].create({"name": "Private HR consumer " + code, "code": code,
+                "company_id": company.id, "prefix": prefix})
 
     def slip(self):
         return self.scope["hr.payslip"].create({"name": "Private consumer payslip", "employee_id": self.employee.id,
@@ -412,6 +416,7 @@ class HrConsumersCase(TransactionCase):
         transition = self.scope["hr.legal.workweek.calendar"].create({"date_from": date(2035, 1, 1),
             "max_weekly_hours": 36, "company_id": self.company.id})
         batch = self.scope["hr.contract.adequacy.batch"].create({"calendar_id": transition.id, "company_id": self.company.id})
+        self.assertTrue(batch.name.startswith("PRIVATE-HR-BATCH/"))
         batch.action_simulate()
         self.assertEqual(batch.line_ids.contract_id, self.contract)
         self.assertEqual(batch.line_ids.current_weekly_hours, 44)

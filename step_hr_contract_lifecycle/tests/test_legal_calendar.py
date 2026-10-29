@@ -88,11 +88,16 @@ class TestLegalWorkweekCalendar(TransactionCase):
 @tagged("post_install", "-at_install")
 class TestContractAdequacyBatch(TransactionCase):
     def test_approve_requires_distribution_note(self):
-        Batch = self.env["hr.contract.adequacy.batch"]
+        company = self.env["res.company"].create({"name": "Private adequacy batch fixture"})
+        self.env["ir.sequence"].create({"name": "Private adequacy batch numbering",
+            "code": "hr.contract.adequacy.batch", "company_id": company.id,
+            "prefix": "PRIVATE-ADEQUACY/"})
+        Batch = self.env["hr.contract.adequacy.batch"].with_company(company)
         calendar = self.env.ref("step_hr_contract_lifecycle.legal_workweek_2028")
         batch = Batch.create(
-            {"calendar_id": calendar.id, "company_id": self.env.company.id}
+            {"calendar_id": calendar.id, "company_id": company.id}
         )
+        self.assertTrue(batch.name.startswith("PRIVATE-ADEQUACY/"))
         batch.action_simulate()
         if not batch.line_ids:
             self.skipTest("No hay contratos con jornada > 40h en datos de prueba")
