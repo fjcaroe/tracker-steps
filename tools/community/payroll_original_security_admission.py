@@ -35,7 +35,7 @@ def security_queries(capsule):
     rule_ids = 'SELECT id FROM ir_rule WHERE model_id IN (' + model_ids + ')'
     groups = "SELECT res_id FROM ir_model_data WHERE model='res.groups' AND (module,name) IN " + selected
     result['security_xmlids'] = ('SELECT id,module,name,model,res_id,noupdate FROM ir_model_data WHERE '
-        "(model='res.groups' AND (module,name) IN " + selected + ') OR '
+        "(model='res.groups' AND res_id IN (" + groups + ')) OR '
         "(model='ir.model' AND res_id IN (" + model_ids + ')) OR '
         "(model='ir.model.access' AND res_id IN (" + acl_ids + ')) OR '
         "(model='ir.rule' AND res_id IN (" + rule_ids + ')) ORDER BY module,name')
@@ -90,8 +90,14 @@ def preservation_plan(source, target):
         if target_oca_model != original_oca_model:
             reject('original-model-xmlid-pk-or-noupdate-not-retained', xmlid=oca_model_name)
     elif (not native_model or not target_oca_model or target_oca_model['model'] != 'ir.model'
-          or target_oca_model['res_id'] != native_model['res_id'] or not target_oca_model['noupdate']):
+          or target_oca_model['res_id'] != native_model['res_id']
+          or target_oca_model['noupdate'] != native_model['noupdate']):
         reject('new-oca-model-alias-does-not-target-original-model', xmlid=oca_model_name)
+    # A model/group may have more than one namespace owner (for example the
+    # original accounting extension). Preserve every alias, not just payroll's.
+    for name, original in source_aliases.items():
+        if original['model'] in ('ir.model', 'res.groups') and target_aliases.get(name) != original:
+            reject('original-model-or-group-alias-not-retained', xmlid=name)
     if source.get('security_models') != target.get('security_models'):
         reject('original-model-primary-key-not-retained')
 
