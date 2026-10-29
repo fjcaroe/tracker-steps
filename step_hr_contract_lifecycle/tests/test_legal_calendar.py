@@ -143,7 +143,8 @@ class TestContractAdequacyBatch(TransactionCase):
         self.assertEqual(batch.line_ids.contract_id, contract)
         self.assertEqual(batch.line_ids.current_weekly_hours, 45)
         self.assertFalse(batch.line_ids.distribution_note)
-        target = batch.with_user(approver).with_company(company)
+        target = batch.with_user(approver).with_context(allowed_company_ids=company.ids).with_company(company)
+        self.assertFalse(target.env.su)
         self.assertTrue(target.env.user.has_group("step_hr_contract_lifecycle.group_contract_adequacy_approve"))
         with self.assertRaises(UserError):
             target.action_approve()
