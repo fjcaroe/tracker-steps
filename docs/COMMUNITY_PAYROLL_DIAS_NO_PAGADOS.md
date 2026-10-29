@@ -20,6 +20,15 @@ relación de tipo/estructura no pagada produce importe cero e `is_paid=False`.
 No se introduce otra fórmula ni una escritura manual de importes almacenados.
 La invalidación inversa M2M y la cola de cómputo ORM deben demostrar el cambio en
 borradores durante la aceptación; no se declara probado por leer el código.
+Las dependencias efectivas de `amount` e `is_paid` son explícitas en los campos:
+días, sueldo contractual, tipo usado, estructura de la liquidación y su relación
+de tipos no pagados. Se excluye el antiguo camino global
+`work_entry_type_id.unpaid_structure_ids`, que agenda días de B al editar sólo A.
+No basta un decorador nuevo: Odoo combina decoradores heredados; el parámetro
+real `depends` tiene precedencia y las pruebas verifican la lista efectiva del
+registro. No se usa `modified()` manual ni se escribe un importe para simular
+invalidación correcta. Un día real de borrador B debe conservar su fila completa
+cuando A modifica su propia relación, con flush ejecutado por el actor A.
 
 El lector privado de política obtiene por SQL todos los pares directamente
 afectados, incluidos registros archivados, y exige permiso normal sobre sus
