@@ -67,6 +67,11 @@ class Payslip(models.Model):
         if operation not in {"calculate", "account"}:
             raise UserError(_("Unsupported payroll configuration operation."))
         assert_mutable(self)
+        if operation == "account" and any(slip.company_id != self.env.company for slip in self):
+            # OCA reads company-dependent rule accounts in env.company. Until
+            # orchestration per company is certified, a mixed/wrong context
+            # cannot be made safe by merely resolving the journal property.
+            raise UserError(_("Select the payslip's original company context before posting payroll."))
         structures = self.env["hr.payroll.structure"]
         rules = self.env["hr.salary.rule"]
         for slip in self:
@@ -79,6 +84,50 @@ class Payslip(models.Model):
         if any(not structure.active for structure in structures):
             raise UserError(_("An archived original payroll structure cannot be calculated or posted."))
         rules._step_check_original_rule_semantics()
+        if operation == "account":
+            for slip in self:
+                slip._step_check_original_posting_journal()
+        return True
+
+    def _step_check_original_posting_journal(self):
+        """Verify compatibility with OCA's actual stored related journal.
+
+        OCA posts through slip.journal_id (contract_id.journal_id). An original
+        structure property has not yet acquired precedence over that provider
+        policy. Reject a disagreement rather than assign either relationship.
+        """
+        self.ensure_one()
+        self.check_access("read")
+        self.check_field_access_rights("read", ["company_id", "contract_id", "journal_id"])
+        company = self.company_id
+        company.check_access("read")
+        if not company or company != self.env.company:
+            raise UserError(_("Select the payslip's original company context before posting payroll."))
+        if not self.contract_id:
+            raise UserError(_("Select the original contract and salary journal before posting payroll."))
+        # Reuse the audited actual contract selection and identity checks.
+        contract = self._get_employee_contracts()
+        contract.check_field_access_rights("read", ["journal_id", "company_id"])
+        journal = self.journal_id
+        journal.check_access("read")
+        journal.check_field_access_rights("read", ["company_id"])
+        contract_journal = contract.journal_id
+        contract_journal.check_access("read")
+        if not journal or journal.company_id != company:
+            raise UserError(_("The OCA salary journal must belong to the payslip's original company."))
+        if journal != contract_journal:
+            raise UserError(_("The original contract salary journal differs from the OCA posting journal."))
+        for structure in self._step_selected_payroll_structures():
+            original = structure.with_company(company)
+            original.check_access("read")
+            original.check_field_access_rights("read", ["journal_id"])
+            configured_journal = original.journal_id
+            configured_journal.check_access("read")
+            configured_journal.check_field_access_rights("read", ["company_id"])
+            if configured_journal and configured_journal.company_id != company:
+                raise UserError(_("The original structure salary journal must belong to the payslip's original company."))
+            if configured_journal and configured_journal != journal:
+                raise UserError(_("The original structure salary journal differs from the OCA posting journal; adopt its accounting policy before posting."))
         return True
 
     def compute_sheet(self):
@@ -92,3 +141,9 @@ class Payslip(models.Model):
         # delegates here. Preserve the complete provider chain and ordering.
         self._step_check_original_configuration(operation="calculate")
         return super().get_lines_dict()
+
+    def action_payslip_done(self):
+        # payroll_account calls super (changing state) before creating moves.
+        # Revalidate changes made after calculation before entering that chain.
+        self._step_check_original_configuration(operation="account")
+        return super().action_payslip_done()

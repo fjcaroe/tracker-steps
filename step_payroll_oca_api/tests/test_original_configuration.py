@@ -57,6 +57,27 @@ class OriginalConfigurationCase(TransactionCase):
         return (slip.read(["id", "number", "state", "compute_date", "struct_id", "contract_id", "line_ids", "move_id"]),
             slip.line_ids.read(["id", "salary_rule_id", "amount", "quantity", "rate", "total"]))
 
+    def _accounting_snapshot(self):
+        moves = self.scope["account.move"].search([("journal_id", "=", self.journal.id)], order="id")
+        return (moves.read(["id", "name", "state", "journal_id", "line_ids"]),
+            moves.line_ids.read(["id", "move_id", "account_id", "debit", "credit"]))
+
+    def _accounting_rules(self):
+        debit = self.scope["account.account"].create({"name": "Private original configuration cost", "code": "940051",
+            "account_type": "expense", "company_ids": [Command.set(self.company.ids)]})
+        credit = self.scope["account.account"].create({"name": "Private original configuration debt", "code": "940052",
+            "account_type": "liability_current", "company_ids": [Command.set(self.company.ids)]})
+        self.rule.write({"account_debit": debit.id, "account_credit": credit.id})
+
+    def _other_company_journal(self):
+        company = self.env["res.company"].create({"name": "Private other original posting company",
+            "country_id": self.company.country_id.id, "currency_id": self.company.currency_id.id})
+        self.scope.user.with_env(self.env).write({"company_ids": [Command.link(company.id)]})
+        scope = self.scope["hr.payroll.structure"].with_context(allowed_company_ids=(self.company | company).ids).with_company(company).env
+        journal = scope["account.journal"].create({"name": "Private other original posting journal",
+            "code": "OPJ", "type": "general", "company_id": company.id})
+        return scope, journal
+
     def test_original_fields_match_nullable_storage_relations_and_translations(self):
         expected = {
             "hr.salary.rule": {"condition_other_input_id": "many2one", "amount_other_input_id": "many2one",
@@ -166,7 +187,7 @@ class OriginalConfigurationCase(TransactionCase):
         slip.compute_sheet()
         before = self._snapshot(slip)
         self.structure.active = False
-        for operation in (slip.compute_sheet, slip.get_lines_dict,
+        for operation in (slip.compute_sheet, slip.get_lines_dict, slip.action_payslip_done,
                 lambda: slip._get_payslip_lines(self.contract.ids, slip.id),
                 lambda: slip._step_check_original_configuration(operation="account")):
             with self.assertRaisesRegex(UserError, "archived"):
@@ -198,6 +219,7 @@ class OriginalConfigurationCase(TransactionCase):
                 ("not_computed_in_net", True), ("split_move_lines", True)):
             self.rule[name] = value
             for operation in (slip.compute_sheet, slip.get_lines_dict,
+                    lambda: slip.with_context(without_compute_sheet=True).action_payslip_done(),
                     lambda: slip._step_check_original_configuration(operation="account")):
                 with self.assertRaisesRegex(UserError, "certified Community"):
                     operation()
@@ -270,4 +292,96 @@ class OriginalConfigurationCase(TransactionCase):
         for operation in ("calculate", "account"):
             with self.assertRaisesRegex(UserError, "Closed payroll"):
                 slip._step_check_original_configuration(operation=operation)
+        with self.assertRaisesRegex(UserError, "Closed payroll"):
+            slip.action_payslip_done()
         self.assertEqual(self._snapshot(slip), before)
+
+    def test_posting_matching_structure_property_uses_actual_oca_move(self):
+        self._accounting_rules()
+        slip = self._slip()
+        slip.compute_sheet()
+        before = slip.line_ids.read(["id", "salary_rule_id", "amount", "quantity", "rate", "total"])
+        # Exercise OCA's genuine already-calculated confirmation route. The
+        # posting admission must not rely on compute_sheet being called again.
+        slip.with_context(without_compute_sheet=True).action_payslip_done()
+        self.assertEqual(slip.state, "done")
+        self.assertTrue(slip.move_id)
+        self.assertEqual(slip.move_id.state, "posted")
+        self.assertEqual(slip.move_id.journal_id, self.journal)
+        self.assertEqual(slip.move_id.company_id, self.company)
+        self.assertEqual(sum(slip.move_id.line_ids.mapped("balance")), 0.0)
+        self.assertEqual(sum(slip.move_id.line_ids.mapped("debit")), 100.0)
+        self.assertEqual(slip.line_ids.read(["id", "salary_rule_id", "amount", "quantity", "rate", "total"]), before)
+
+    def test_posting_null_structure_property_keeps_real_contract_fallback_and_null(self):
+        self._accounting_rules()
+        self.structure.flush_recordset(["journal_id"])
+        self.env.cr.execute("UPDATE hr_payroll_structure SET journal_id=NULL WHERE id=%s", (self.structure.id,))
+        self.structure.invalidate_recordset(["journal_id"])
+        slip = self._slip()
+        slip.compute_sheet()
+        self.assertFalse(self.structure.with_company(self.company).journal_id)
+        self.assertEqual(slip.journal_id, self.contract.journal_id)
+        slip.action_payslip_done()
+        self.assertEqual(slip.move_id.journal_id, self.journal)
+        self.assertEqual(slip.move_id.state, "posted")
+        self.structure.flush_recordset(["journal_id"])
+        self.env.cr.execute("SELECT journal_id FROM hr_payroll_structure WHERE id=%s", (self.structure.id,))
+        self.assertIsNone(self.env.cr.fetchone()[0])
+
+    def test_posting_mismatched_or_foreign_property_fails_before_state_or_moves(self):
+        self._accounting_rules()
+        slip = self._slip()
+        slip.compute_sheet()
+        before = self._snapshot(slip), self._accounting_snapshot()
+        alternate = self.scope["account.journal"].create({"name": "Private mismatched original journal",
+            "code": "OMJ", "type": "general", "company_id": self.company.id})
+        self.structure.with_company(self.company).journal_id = alternate
+        with self.assertRaisesRegex(UserError, "structure salary journal differs"):
+            slip.action_payslip_done()
+        self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before)
+        scope, foreign_journal = self._other_company_journal()
+        caller = slip.with_env(scope).with_company(self.company)
+        self.structure.with_env(caller.env).with_company(self.company).journal_id = foreign_journal
+        with self.assertRaisesRegex(UserError, "structure salary journal must belong"):
+            caller.action_payslip_done()
+        self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before)
+        self.assertEqual(self.structure.with_env(caller.env).with_company(self.company).journal_id, foreign_journal)
+
+    def test_posting_rechecks_normal_journal_access_even_with_warm_related_cache(self):
+        self._accounting_rules()
+        slip = self._slip()
+        slip.compute_sheet()
+        self.assertEqual(slip.journal_id, self.journal)
+        self.assertEqual(self.structure.journal_id, self.journal)
+        before = self._snapshot(slip), self._accounting_snapshot()
+        self.env["ir.rule"].create({"name": "Private hidden original salary journal",
+            "model_id": self.env.ref("account.model_account_journal").id,
+            "domain_force": "[('id','!=',%d)]" % self.journal.id})
+        with self.assertRaises(AccessError):
+            slip.with_context(without_compute_sheet=True).action_payslip_done()
+        self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before)
+
+    def test_posting_rejects_wrong_company_and_mixed_batch_before_compatible_fallback(self):
+        self._accounting_rules()
+        slip = self._slip()
+        slip.compute_sheet()
+        scope, journal = self._other_company_journal()
+        employee = scope["hr.employee"].create({"name": "Private other posting employee", "company_id": scope.company.id})
+        other = scope["hr.payslip"].create({"name": "Private other company draft payroll", "number": "PRIVATE/OTHER/CONFIG",
+            "employee_id": employee.id, "company_id": scope.company.id, "contract_id": False, "struct_id": False,
+            "date_from": fields.Date.today().replace(day=1), "date_to": fields.Date.today()})
+        own = slip.with_env(scope).with_company(self.company)
+        before = self._snapshot(own), self._snapshot(other), self._accounting_snapshot()
+        with self.assertRaisesRegex(UserError, "original company context"):
+            slip.with_env(scope).action_payslip_done()
+        with self.assertRaisesRegex(UserError, "original company context"):
+            (own | other.with_env(own.env)).action_payslip_done()
+        self.assertEqual((self._snapshot(own), self._snapshot(other), self._accounting_snapshot()), before)
+        self.structure.with_env(own.env).with_company(scope.company).journal_id = journal
+        # A different company's configured slot must not replace the actual
+        # company's compatible journal; only explicit with_company is allowed.
+        own.action_payslip_done()
+        self.assertEqual(own.move_id.journal_id, self.journal)
+        self.assertEqual(own.move_id.state, "posted")
+        self.assertEqual(self._snapshot(other), before[1])
