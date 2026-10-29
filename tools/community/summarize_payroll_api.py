@@ -276,8 +276,8 @@ def main():
             assert assessment['target_has_zero_enterprise'] and assessment['reference_target_only']
             assert not any(assessment[key] for key in ('adoption_ready','import_authorized','permissions_expanded',
                 'orm_loaded','rules_evaluated','salary_formulas_exposed','historical_payroll_read','record_rule_equivalence_certified'))
-        comparison=helper.compare_reports(prior,current)
-        assert current['read_only_comparison']==comparison and comparison['read_only_evidence_unchanged']
+        preflight_comparison=helper.compare_reports(prior,current)
+        assert current['read_only_comparison']==preflight_comparison and preflight_comparison['read_only_evidence_unchanged']
         closed={('hr.payroll.structure',name) for name in ('active','hide_basic_on_pdf','journal_id','payslip_name','report_id')}
         closed|={('hr.payroll.structure.type',name) for name in ('default_schedule_pay','default_work_entry_type_id','sequence','wage_type')}
         closed|={('hr.salary.rule',name) for name in ('amount_other_input_id','condition_other_input_id','partner_id','not_computed_in_net','split_move_lines')}
