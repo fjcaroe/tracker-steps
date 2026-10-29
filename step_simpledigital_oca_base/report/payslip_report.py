@@ -70,6 +70,14 @@ class StoredPayslipReport(models.AbstractModel):
             records.check_field_access_rights('read', fields)
             children[model] = records
 
+        # Presentation payload does not grant configuration model ACLs, but
+        # explicit field groups still apply even to these related labels.
+        required = ('payslip_name', 'hide_basic_on_pdf')
+        if any(name not in self.env['hr.payroll.structure']._fields for name in required):
+            raise UserError(_('Install the original payroll presentation field contract before printing.'))
+        self.env['hr.payroll.structure'].check_field_access_rights('read', list(required))
+        self.env['hr.salary.rule.category'].check_field_access_rights('read', ['code'])
+
         self.env.cr.execute("""SELECT l.id,l.slip_id,l.salary_rule_id,l.code,l.appears_on_payslip,
             l.amount,l.quantity,l.rate,l.total,c.code
             FROM hr_payslip_line l LEFT JOIN hr_salary_rule_category c ON c.id=l.category_id
@@ -85,9 +93,6 @@ class StoredPayslipReport(models.AbstractModel):
         # already authorized slip. Employees do not gain payroll configuration
         # ACLs, arbitrary metadata, formulas or access to another structure.
         structures = set(docs.mapped('struct_id').ids)
-        required = ('payslip_name', 'hide_basic_on_pdf')
-        if any(name not in self.env['hr.payroll.structure']._fields for name in required):
-            raise UserError(_('Install the original payroll presentation field contract before printing.'))
         self.env.cr.execute('SELECT id,payslip_name,hide_basic_on_pdf FROM hr_payroll_structure WHERE id=ANY(%s)',
                             [sorted(structures)])
         presentation = {row[0]: {'title': translated(row[1], self.env.lang), 'hide_basic': row[2]} for row in self.env.cr.fetchall()}

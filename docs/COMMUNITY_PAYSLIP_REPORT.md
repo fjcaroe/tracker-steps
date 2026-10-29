@@ -31,6 +31,8 @@ interna con `.with_user(empleado).sudo()`: sólo su liquidación sigue accesible
 La metadata G no tiene campo `report_sudo` en `ir.actions.report`; esa ausencia
 no sustituye la guarda, porque Odoo resuelve metadata de acciones con elevación
 y un caller interno puede entregar un entorno elevado.
+Los grupos de campo de título, bandera BASIC y código de categoría también se
+comprueban antes de la proyección SQL, sin conceder ACL de modelo de configuración.
 
 NULL se imprime como importe ausente; cero y negativos conservan su valor. NET
 se toma de las líneas de código NET: varias líneas de la misma regla original
