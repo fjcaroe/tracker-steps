@@ -2,7 +2,14 @@
     <menuitem id="payroll_reports" name="Informes" parent="payroll.payroll_menu_root" groups="payroll.group_payroll_manager"/>
     <menuitem id="payroll_employees" name="Personal" parent="payroll.payroll_menu_root" groups="payroll.group_payroll_manager"/>
     <template id="report_payslip" inherit_id="payroll.report_payslip" primary="True">
-        <xpath expr="//div[@class='page']/h2" position="replace"><h2 t-out="step_report_title(o)"/></xpath>
+        <xpath expr="//div[@class='page']/h2" position="replace">
+            <h2 t-out="step_report_title(o)"/>
+            <p id="step_stored_document_name" t-if="step_report_title(o) != o.name">
+                <strong>Documento:</strong> <span t-field="o.name"/>
+            </p>
+            <p id="step_stored_document_number"><strong>Referencia:</strong> <span t-field="o.number"/></p>
+        </xpath>
+        <xpath expr="//div[@class='page']/p[@t-field='o.name']" position="replace"/>
         <xpath expr="//div[@class='page']" position="inside">
             <div id="worked_days_table" t-if="step_report_days(o)"><table class="table"><tr t-foreach="step_report_days(o)" t-as="day"><td t-field="day.name"/>
                 <td t-out="step_report_day_value(day, 'hours') if step_report_day_value(day, 'hours') is not None else ''"/>
