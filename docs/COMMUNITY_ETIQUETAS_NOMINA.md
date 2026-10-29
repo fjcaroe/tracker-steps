@@ -33,12 +33,20 @@ proveedor. La confirmación y publicación siguen siendo las operaciones reales
 OCA y Account; no existe un asiento o motor simulado.
 
 No se afirma equivalencia monetaria de los reembolsos nativos con OCA.
-OCA invierte expresamente el importe cuando su `credit_note` real está activo;
-el probe nativo B no capturaba la bandera efectiva. El payload C añade esa
-bandera antes/después de confirmar, `tax_tag_invert` y el dominio string crudo,
-sin leer cuerpos OEEL. Sus observaciones y la pareja final deben quedar en la
-evidencia del coordinador. Este bloque no cambia la semántica de reembolsos
-para hacer coincidir artificialmente los importes de dos motores.
+OCA invierte expresamente el importe cuando su `credit_note` real está activo.
+El probe nativo C confirma que su bandera efectiva permanece True antes/después
+de confirmar y **no invierte el importe** en esos fixtures. Los cuatro asientos
+nativos conservan `tax_tag_invert=False` y etiquetas por cuenta configurada,
+igual que la aplicación de etiquetas CE. Se observó también que los cuatro
+campos nativos no declaran un dominio: la restricción CE a etiquetas fiscales
+activas/país compatible es una frontera de admisión propia más estricta,
+no una supuesta regla o dominio nativo.
+
+C se ejecutó offline en una copia nueva, con Unix socket PostgreSQL y contexto
+de pruebas real, sin leer cuerpos OEEL. Sus observaciones y la pareja final
+permanecen en la evidencia del coordinador. Este bloque no cambia la semántica
+de reembolsos para hacer coincidir artificialmente importes de dos motores;
+la equivalencia del flujo nativo de notas de crédito continúa pendiente.
 
 ## Permisos y preservación
 

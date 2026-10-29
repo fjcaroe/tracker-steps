@@ -142,10 +142,10 @@ class OriginalAccountTagsCase(TransactionCase):
             'company_id': self.company.id, 'country_id': self.company.country_id.id,
             'amount': 0, 'type_tax_use': 'none', 'tax_group_id': group.id,
             'invoice_repartition_line_ids': [Command.create({'repartition_type': 'base', 'tag_ids': [Command.set(provider_grid.ids)]}),
-                Command.create({'repartition_type': 'tax', 'account_id': self.debit.id})],
+                Command.create({'repartition_type': 'tax', 'account_id': self.debit.id, 'tag_ids': [Command.set(provider_grid.ids)]})],
             'refund_repartition_line_ids': [Command.create({'repartition_type': 'base', 'tag_ids': [Command.set(provider_grid.ids)]}),
-                Command.create({'repartition_type': 'tax', 'account_id': self.debit.id})]})
-        self.scope['hr.salary.rule'].create({'name': 'Private real OCA tax child', 'code': 'PRIVATE_ORIGINAL_GRID_TAX',
+                Command.create({'repartition_type': 'tax', 'account_id': self.debit.id, 'tag_ids': [Command.set(provider_grid.ids)]})]})
+        child = self.scope['hr.salary.rule'].create({'name': 'Private real OCA tax child', 'code': 'PRIVATE_ORIGINAL_GRID_TAX',
             'sequence': 2, 'company_id': self.company.id, 'category_id': self.rule.category_id.id,
             'struct_id': False, 'tax_base_id': self.rule.id, 'account_tax_id': tax.id,
             'condition_select': 'none', 'amount_select': 'fix', 'amount_fix': 0})
@@ -160,6 +160,21 @@ class OriginalAccountTagsCase(TransactionCase):
             self.assertEqual(result['account_id'], account.id)
             self.assertEqual(result['tax_tag_ids'], [Command.set(sorted((provider_grid | tag).ids))])
             self.assertEqual(result['tax_ids'], [(Command.LINK, tax.id, 0)])
+            self.assertEqual(result['debit'] + result['credit'], 100.0)
+        self.assertEqual(self._snapshot(slip), before)
+        # Exercise the other actual LGPL provider branch. Its [] += recordset
+        # produces a list of tag records, not ORM commands or a recordset.
+        child.tax_base_id = False
+        self.rule.account_tax_id = tax.with_env(self.scope)
+        for method, account, tag in ((slip._prepare_debit_line, self.debit, self.tags[0]),
+                (slip._prepare_credit_line, self.credit, self.tags[1])):
+            result = method(line, 100, slip.date_to, account.id, {})
+            self.assertEqual(result['tax_tag_ids'], [Command.set(sorted((provider_grid | tag).ids))])
+            self.assertFalse(result['tax_ids'])
+            self.assertEqual(result['tax_line_id'], tax.id)
+            self.assertEqual(result['tax_repartition_line_id'], tax.invoice_repartition_line_ids.filtered(
+                lambda row: row.repartition_type == 'tax').id)
+            self.assertEqual(result['account_id'], account.id)
             self.assertEqual(result['debit'] + result['credit'], 100.0)
         self.assertEqual(self._snapshot(slip), before)
 
