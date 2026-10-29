@@ -1,7 +1,7 @@
 {
     'name': 'Steps - Contabilidad multimoneda Community',
     'summary': 'Moneda operacional, asientos y pagos sin motor Enterprise de informes',
-    'version': '18.0.1.1.0',
+    'version': '18.0.1.1.1',
     'author': 'Steps Consulting',
     'license': 'LGPL-3',
     'depends': ['account'],

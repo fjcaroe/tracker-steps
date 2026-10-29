@@ -122,12 +122,37 @@ class CommunityCurrencyCase(TransactionCase):
             self.assertEqual(field.related, 'move_id.' + field_name)
 
     def test_metadata_adoption_is_idempotent(self):
-        before = {(record.module, record.name): (record.model, record.res_id) for record in self.env['ir.model.data'].search([
+        data = self.env['ir.model.data']
+        legacy = data.search([('module', '=', LEGACY), ('name', 'in', sorted(set(VIEWS) | {
+            'field_%s__%s' % (model.replace('.', '_'), name) for model, names in FIELDS.items() for name in names} | {
+                'model_' + model.replace('.', '_') for model in MODELS}))], order='id')
+        self.assertEqual(len(legacy), 37)
+        for index, record in enumerate(legacy):
+            record.noupdate = bool(index % 2)
+        before = {(record.module, record.name): (record.id, record.model, record.res_id, record.noupdate) for record in data.search([
             ('module', 'in', [CORE, LEGACY])])}
         adopt_legacy_records(self.env); preserve_legacy_xmlids(self.env)
-        after = {(record.module, record.name): (record.model, record.res_id) for record in self.env['ir.model.data'].search([
+        after = {(record.module, record.name): (record.id, record.model, record.res_id, record.noupdate) for record in data.search([
             ('module', 'in', [CORE, LEGACY])])}
         self.assertEqual(before, after)
+        # Simulate two later bridge-only loader cleanups, without rerunning the
+        # core hooks. Unrelated bridge data is marked as normally loaded; only
+        # the exact owned aliases rely on the core's lifecycle integration.
+        loaded = self.env.registry.loaded_xmlids
+        initial_loaded = set(loaded)
+        owned = {LEGACY + '.' + record.name for record in legacy}
+        try:
+            for unused in range(2):
+                loaded.update(LEGACY + '.' + record.name for record in data.search([('module', '=', LEGACY)]))
+                loaded.difference_update(owned)
+                data._process_end([LEGACY])
+                current = {(record.module, record.name): (record.id, record.model, record.res_id, record.noupdate) for record in data.search([
+                    ('module', 'in', [CORE, LEGACY])])}
+                self.assertEqual(current, before)
+                self.assertEqual(self.company.operational_currency_id, self.operational)
+        finally:
+            loaded.clear()
+            loaded.update(initial_loaded)
 
     def test_conflicting_alias_is_rejected(self):
         source = self.env['ir.model.data'].search([('module', '=', CORE), ('name', '=', VIEWS[0])])
@@ -141,7 +166,8 @@ class CommunityCurrencyCase(TransactionCase):
         names = [VIEWS[0], 'field_res_company__operational_currency_id']
         records = self.env['ir.model.data'].search([('module', '=', CORE), ('name', 'in', names)])
         self.assertEqual(len(records), 2)
-        for record in records: alias(self.env, record, namespace, True)
+        for record in records: alias(self.env, record, namespace, False)
+        self.assertFalse(any(self.env['ir.model.data'].search([('module', '=', namespace)]).mapped('noupdate')))
         field = self.env['res.company']._fields['operational_currency_id']
         prefetch = field.prefetch
         model_class = type(self.env['res.company'])
@@ -155,4 +181,6 @@ class CommunityCurrencyCase(TransactionCase):
             if not own_attribute:
                 delattr(model_class, 'operational_currency_id')
         for name in names: self.assertTrue(self.env.ref(CORE+'.'+name).exists())
+        self.assertFalse(self.env['ir.model.data'].search([('module', '=', namespace)]))
+        self.env.registry.loaded_xmlids.difference_update(namespace + '.' + name for name in names)
         self.assertEqual(self.company.operational_currency_id, self.operational)

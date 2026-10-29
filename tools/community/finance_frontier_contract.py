@@ -32,8 +32,8 @@ def metadata_snapshot(sql, database):
     """Capture BEFORE/AFTER from the new private native clone, with original IDs.
 
     `sql` is the validator's existing read-only query helper. Bank views retain
-    their exact original architecture; only these fifteen legacy XMLIDs may
-    change noupdate from false to true. No business snapshot is normalized.
+    their exact original architecture. Every original XMLID row, including
+    noupdate, remains exact. No business or identity snapshot is normalized.
     """
     clauses = []
     for module, names in LEGACY_XMLIDS.items():
@@ -50,12 +50,9 @@ def verify_metadata(before, after):
     assert {(row['module'], row['name']) for row in before['xmlids']} == expected, 'Missing original banking XMLIDs'
     assert len(before['xmlids']) == len(after['xmlids']) == 15
     now = {row['id']: row for row in after['xmlids']}
-    changed = []
     for row in before['xmlids']:
         got = now.get(row['id'])
-        assert got and got == dict(row, noupdate=True), ('Banking XMLID identity changed', row['id'])
-        if row['noupdate'] is False:
-            changed.append(row['module'] + '.' + row['name'])
+        assert got and got == row, ('Banking XMLID identity changed', row['id'])
     assert len(before['views']) == len(after['views']) == 2
     current_views = {row['id']: row for row in after['views']}
     for row in before['views']:
@@ -71,7 +68,7 @@ def verify_metadata(before, after):
         original_arch = row['arch_db'].get('en_US') if isinstance(row['arch_db'], dict) else row['arch_db']
         assert got['arch_prev'] in (row['arch_prev'], original_arch), 'Original banking view previous architecture changed'
     return {'original_xmlids_preserved': 15, 'original_view_ids_preserved': 2,
-            'only_noupdate_false_to_true': changed,
+            'original_noupdate_exact': True,
             'view_source_file': 'step_bank_export_core/views/res_partner_bank_views.xml',
             'view_architecture_and_permissions_exact': True}
 
@@ -79,8 +76,8 @@ def verify_metadata(before, after):
 def verify(env, mode, draft_grouping=False):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
-                'step_bank_export_core': '18.0.1.2.1',
-                'step_accounting_multicurrency_core': '18.0.1.1.0'}
+                'step_bank_export_core': '18.0.1.2.2',
+                'step_accounting_multicurrency_core': '18.0.1.1.1'}
     if mode == 'cerro-copy':
         versions.update({'step_account_treasury_batch': '18.0.1.5.1',
                          'step_bank_security': '18.0.1.1.1',

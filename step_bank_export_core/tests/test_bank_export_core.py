@@ -7,7 +7,8 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests import tagged
 from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
-from ..hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES, RELATED_MODEL
+from ..hooks import (CORE, LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES, RELATED_MODEL,
+                     _alias, adopt_legacy_fields, preserve_legacy_xmlids)
 from ..models.bank_export_service import clean_rut, whole_pesos
 from .common import private_finance_sequences
 
@@ -190,3 +191,54 @@ class BankExportCoreCase(AccountTestInvoicingCommon):
         arch = self.env['res.partner.bank'].get_view(view_type='form')['arch']
         self.assertEqual(arch.count('name="step_bancoestado_payment_method"'), 1)
         self.assertEqual(arch.count('name="step_security_credit_type"'), 1)
+        data = self.env['ir.model.data']
+        expected = {(namespace, name) for namespace, name in LEGACY_VIEWS.items()}
+        for namespace, field_name in LEGACY_FIELDS.items():
+            expected.update({(namespace, 'model_res_partner_bank'), (namespace, 'field_res_partner_bank__' + field_name)})
+            expected.update((namespace, 'selection__res_partner_bank__%s__%s' % (field_name, value))
+                            for value in SELECTION_VALUES[field_name])
+            if RELATED_MODEL in self.env.registry:
+                expected.add((namespace, 'field_account_setup_bank_manual_config__' + field_name))
+        legacy = data.search([('module', 'in', list(LEGACY_FIELDS))]).filtered(
+            lambda record: (record.module, record.name) in expected)
+        self.assertEqual(len(legacy), 15 if RELATED_MODEL in self.env.registry else 13)
+        for index, record in enumerate(legacy.sorted('id')):
+            record.noupdate = bool(index % 2)
+        fields_to_read = ['id', 'module', 'name', 'model', 'res_id', 'noupdate']
+        before = legacy.sorted('id').read(fields_to_read)
+        bank = self.env['res.partner.bank'].create({'partner_id': self.partner_a.id, 'acc_number': 'PRIVATE/ALIAS/PRESERVE',
+            'step_bancoestado_payment_method': '02', 'step_security_credit_type': '5'})
+        values = bank.read(['acc_number', 'step_bancoestado_payment_method', 'step_security_credit_type', 'write_date'])
+        adopt_legacy_fields(self.env)
+        preserve_legacy_xmlids(self.env)
+        self.assertEqual(legacy.sorted('id').read(fields_to_read), before)
+        loaded = self.env.registry.loaded_xmlids
+        initial_loaded = set(loaded)
+        owned = {record.module + '.' + record.name for record in legacy}
+        try:
+            for unused in range(2):
+                loaded.update(record.module + '.' + record.name for record in data.search([('module', 'in', list(LEGACY_FIELDS))]))
+                loaded.difference_update(owned)
+                data._process_end(list(LEGACY_FIELDS))
+                self.assertEqual(legacy.exists().sorted('id').read(fields_to_read), before)
+                self.assertEqual(bank.read(list(values[0].keys() - {'id'})), values)
+        finally:
+            loaded.clear()
+            loaded.update(initial_loaded)
+        # Native uninstall keeps records with an independent core owner even
+        # when the retiring namespace has noupdate=False. No actual bridge is
+        # uninstalled by a test or this extraction.
+        namespace = 'step_bank_alias_retirement_test'
+        name = LEGACY_VIEWS['step_account_treasury_batch']
+        view = self.env.ref(CORE + '.' + name)
+        selection_name = 'selection__res_partner_bank__step_bancoestado_payment_method__02'
+        selection = self.env.ref(CORE + '.' + selection_name)
+        _alias(self.env, namespace, name, view, False)
+        _alias(self.env, namespace, selection_name, selection, False)
+        self.assertFalse(any(data.search([('module', '=', namespace)]).mapped('noupdate')))
+        data._module_data_uninstall([namespace])
+        self.assertFalse(data.search([('module', '=', namespace)]))
+        self.assertEqual(self.env.ref(CORE + '.' + name), view.exists())
+        self.assertEqual(self.env.ref(CORE + '.' + selection_name), selection.exists())
+        self.assertEqual(bank.read(list(values[0].keys() - {'id'})), values)
+        loaded.difference_update((namespace + '.' + name, namespace + '.' + selection_name))

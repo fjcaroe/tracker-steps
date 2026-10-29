@@ -26,6 +26,10 @@ def _alias(env, namespace, name, record, noupdate):
     else:
         data.create({'module': namespace, 'name': name, 'model': record._name,
                      'res_id': record.id, 'noupdate': noupdate})
+    # This is Odoo's loader API for retaining an existing XMLID during the
+    # current upgrade. Do not turn the persisted original flag into a lease.
+    if data._load_xmlid(namespace + '.' + name) != record:
+        raise UserError('El identificador bancario cargado no coincide: %s.%s' % (namespace, name))
 
 
 def adopt_legacy_fields(env):
@@ -39,7 +43,7 @@ def adopt_legacy_fields(env):
                 field.model, field.name, field.ttype) != ('res.partner.bank', field_name, 'selection'):
             raise UserError('El campo bancario heredado no coincide: %s.%s' % (namespace, name))
         _alias(env, CORE, name, field, legacy.noupdate)
-        legacy.noupdate = True
+        env['ir.model.data']._load_xmlid(namespace + '.' + name)
         for value in SELECTION_VALUES[field_name]:
             selection_name = 'selection__res_partner_bank__%s__%s' % (field_name, value)
             selection_data = env['ir.model.data'].search([
@@ -51,7 +55,7 @@ def adopt_legacy_fields(env):
                     selection.field_id != field or selection.value != value):
                 raise UserError('La selección bancaria heredada no coincide: %s.%s' % (namespace, selection_name))
             _alias(env, CORE, selection_name, selection, selection_data.noupdate)
-            selection_data.noupdate = True
+            env['ir.model.data']._load_xmlid(namespace + '.' + selection_name)
     for namespace, field_name in LEGACY_FIELDS.items():
         name = 'model_res_partner_bank'
         legacy = env['ir.model.data'].search([('module', '=', namespace), ('name', '=', name)])
@@ -60,7 +64,7 @@ def adopt_legacy_fields(env):
             if len(legacy) != 1 or legacy.model != 'ir.model' or not model or model.model != 'res.partner.bank':
                 raise UserError('El modelo bancario heredado no coincide: %s.%s' % (namespace, name))
             _alias(env, CORE, name, model, legacy.noupdate)
-            legacy.noupdate = True
+            env['ir.model.data']._load_xmlid(namespace + '.' + name)
         name = 'field_account_setup_bank_manual_config__' + field_name
         legacy = env['ir.model.data'].search([('module', '=', namespace), ('name', '=', name)])
         if legacy:
@@ -72,7 +76,7 @@ def adopt_legacy_fields(env):
             if RELATED_MODEL not in env.registry:
                 raise UserError('Falta el proveedor original de %s; no se puede retirar su campo bancario.' % RELATED_MODEL)
             _alias(env, CORE, name, field, legacy.noupdate)
-            legacy.noupdate = True
+            env['ir.model.data']._load_xmlid(namespace + '.' + name)
     for namespace, name in LEGACY_VIEWS.items():
         legacy = env['ir.model.data'].search([('module', '=', namespace), ('name', '=', name)])
         if not legacy:
@@ -82,17 +86,23 @@ def adopt_legacy_fields(env):
                 view.model != 'res.partner.bank' or view.inherit_id != env.ref('base.view_partner_bank_form')):
             raise UserError('La vista bancaria heredada no coincide: %s.%s' % (namespace, name))
         _alias(env, CORE, name, view, legacy.noupdate)
-        legacy.noupdate = True
+        env['ir.model.data']._load_xmlid(namespace + '.' + name)
 
 
 def preserve_legacy_xmlids(env):
     for namespace, field_name in LEGACY_FIELDS.items():
         name = 'field_res_partner_bank__' + field_name
         field = env.ref(CORE + '.' + name)
+        if field._name != 'ir.model.fields' or (field.model, field.name, field.ttype) != (
+                'res.partner.bank', field_name, 'selection') or field_name not in env['res.partner.bank']._fields:
+            raise UserError('La propiedad bancaria Community no coincide: %s' % name)
         _alias(env, namespace, name, field, True)
         for value in SELECTION_VALUES[field_name]:
             selection_name = 'selection__res_partner_bank__%s__%s' % (field_name, value)
-            _alias(env, namespace, selection_name, env.ref(CORE + '.' + selection_name), True)
+            selection = env.ref(CORE + '.' + selection_name)
+            if selection._name != 'ir.model.fields.selection' or selection.field_id != field or selection.value != value:
+                raise UserError('La selección bancaria Community no coincide: %s' % selection_name)
+            _alias(env, namespace, selection_name, selection, True)
         bank_model = env['ir.model']._get('res.partner.bank')
         _alias(env, CORE, 'model_res_partner_bank', bank_model, False)
         _alias(env, namespace, 'model_res_partner_bank', bank_model, True)
@@ -104,4 +114,7 @@ def preserve_legacy_xmlids(env):
             _alias(env, CORE, name, related, False)
             _alias(env, namespace, name, related, True)
     for namespace, name in LEGACY_VIEWS.items():
-        _alias(env, namespace, name, env.ref(CORE + '.' + name), True)
+        view = env.ref(CORE + '.' + name)
+        if view._name != 'ir.ui.view' or view.model != 'res.partner.bank' or view.inherit_id != env.ref('base.view_partner_bank_form'):
+            raise UserError('La vista bancaria Community no coincide: %s' % name)
+        _alias(env, namespace, name, view, True)
