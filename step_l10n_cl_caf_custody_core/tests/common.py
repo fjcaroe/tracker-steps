@@ -143,12 +143,16 @@ class CAFCustodyAssertions:
         attachment.invalidate_recordset(['public', 'access_token'])
         self.assertFalse(attachment.public)
         self.assertFalse(attachment.access_token)
-        count = self.env['ir.attachment'].search_count([('res_model', '=', record._name)])
+        # _search intentionally hides Binary-field attachments unless the
+        # domain names res_field. Count the real stored CAF files explicitly.
+        domain = [('res_model', '=', record._name), ('res_field', '=', 'caf_file')]
+        count = self.env['ir.attachment'].search_count(domain)
+        self.assertIn(attachment.id, self.env['ir.attachment'].search(domain).ids)
         with self.assertRaises(AccessError):
             self.env['ir.attachment'].with_context(default_public=True).create({
                 'name': 'SYNTHETIC must rollback.xml', 'res_model': record._name, 'res_id': record.id,
                 'res_field': 'caf_file', 'datas': base64.b64encode(self.original)})
-        self.assertEqual(self.env['ir.attachment'].search_count([('res_model', '=', record._name)]), count)
+        self.assertEqual(self.env['ir.attachment'].search_count(domain), count)
 
     def assert_attachment_immutable(self):
         record = self.custody_record()
