@@ -87,7 +87,7 @@ def observe(env, output):
                     'salary_after': slip.line_ids.read(['id', 'salary_rule_id', 'amount', 'quantity', 'rate', 'total']),
                     'line_tags_after': slip.line_ids.read(['id', 'debit_tag_ids', 'credit_tag_ids']),
                     'move': slip.move_id.read(['id', 'state', 'journal_id', 'company_id']),
-                    'move_lines': slip.move_id.line_ids.read(['id', 'account_id', 'debit', 'credit', 'balance', 'tax_tag_ids'])})
+                    'move_lines': slip.move_id.line_ids.read(['id', 'account_id', 'debit', 'credit', 'balance', 'tax_tag_ids', 'tax_tag_invert'])})
             result = {'schema': 1, 'purpose': 'native-reference-observation', 'metadata': metadata,
                 'fixture_account_ids': {'debit': fixture.debit.id, 'credit': fixture.credit.id},
                 'fixture_tag_ids': {'debit': tags[0].id, 'credit': tags[1].id}, 'observations': observations,
