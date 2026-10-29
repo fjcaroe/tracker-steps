@@ -147,7 +147,8 @@ def main():
         assert before == after, 'Cold registry/form/default/ACL contract changed after tests'
         assert packet(source) == frozen, 'Frozen source packet changed'
         counts = json.loads(sql(args.database, "SELECT json_build_object('installed',count(*),'enterprise',count(*) FILTER (WHERE license='OEEL-1')) FROM ir_module_module WHERE state='installed'"))
-        assert counts == {'installed': 96, 'enterprise': 0}, 'Unexpected cold module graph'
+        assert counts == {'installed': 94, 'enterprise': 0}, 'Unexpected cold module graph'
+        assert sql(args.database, "SELECT count(*) FROM ir_module_module WHERE name IN ('l10n_us','l10n_us_account') AND state='installed'") == '0', 'Demo-only US localizations unexpectedly installed'
         assert sql(args.database, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND demo") == '0', 'Demo data was enabled'
         write(stage / 'passed.json', {'mode': 'community', 'profile': PROFILE, 'database': args.database,
             'counts': counts, 'package_files': len(frozen), 'source_files_sha256': hashlib.sha256((stage / 'source-files.json').read_bytes()).hexdigest(),

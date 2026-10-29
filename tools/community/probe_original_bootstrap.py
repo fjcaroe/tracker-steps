@@ -81,8 +81,11 @@ def exercise(env, output):
         'hr.payslip': scope['hr.payslip'].default_get(['struct_id', 'contract_id']),
     }
     assert all(not value.get('struct_id') for value in defaults.values()), 'No substitute salary structure may be selected'
-    unpaid = scope.ref('l10n_cl_simpledigital_payroll.work_entry_type_unpaid_cl')
+    # Administrative metadata check only: the default bootstrap company can
+    # legitimately be outside CL, so its normal actor must retain country rules.
+    unpaid = env.ref('l10n_cl_simpledigital_payroll.work_entry_type_unpaid_cl')
     assert not unpaid.unpaid_structure_ids, 'The original unpaid membership remains explicitly deferred'
+    deferred_type_visible = unpaid.with_env(scope).has_access('read')
 
     officer = actor('private-cold-registry-officer', ('base.group_user', 'payroll.group_payroll_user'))
     denied = False
@@ -100,6 +103,7 @@ def exercise(env, output):
         'payslip_action_id': action['id'], 'officer_batch_read_denied': True,
         'internal_salary_rule_write_denied': True, 'official_structure_types': len(types),
         'salary_counts_before': before, 'input_columns': input_columns, 'deferred_unpaid_membership_adopted': False,
+        'deferred_membership_administrative_metadata_only': True, 'normal_manager_deferred_type_visible': deferred_type_visible,
         'original_masters_imported': False, 'operational_package': False,
         'historical_conversion': False, 'financial_certified': False,
         'form_probe_created_payslips': False, 'form_probe_created_contracts': False}
