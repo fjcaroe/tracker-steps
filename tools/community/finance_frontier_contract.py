@@ -75,10 +75,10 @@ def verify_metadata(before, after):
 def verify(env, mode):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
-                'step_bank_export_core': '18.0.1.1.0'}
+                'step_bank_export_core': '18.0.1.2.0'}
     if mode == 'cerro-copy':
-        versions.update({'step_account_treasury_batch': '18.0.1.5.0',
-                         'step_bank_security': '18.0.1.1.0'})
+        versions.update({'step_account_treasury_batch': '18.0.1.5.1',
+                         'step_bank_security': '18.0.1.1.1'})
     installed = env['ir.module.module'].search([('state', '=', 'installed')])
     actual = {module.name: module.latest_version for module in installed if module.name in versions}
     assert actual == versions, (actual, versions)
