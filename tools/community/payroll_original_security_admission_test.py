@@ -97,6 +97,18 @@ class OriginalSecurityAdmissionCase(unittest.TestCase):
         next(row for row in target['security_xmlids']if row['module']+'.'+row['name']=='payroll.model_hr_salary_rule')['res_id']=999
         self.assertIn('new-oca-model-alias-does-not-target-original-model',contract.preservation_plan(source,target)['blockers'])
 
+    def test_all_original_model_aliases_and_false_noupdate_remain_significant(self):
+        source,target=fixtures()
+        for metadata in (source,target):
+            next(row for row in metadata['security_xmlids']if row['module']+'.'+row['name']=='hr_payroll.model_hr_salary_rule')['noupdate']=False
+        source['security_xmlids']=[row for row in source['security_xmlids']if row['module']+'.'+row['name']!='payroll.model_hr_salary_rule']
+        next(row for row in target['security_xmlids']if row['module']+'.'+row['name']=='payroll.model_hr_salary_rule')['noupdate']=False
+        extra=dict(next(row for row in source['security_xmlids']if row['model']=='ir.model'),module='hr_payroll_account',id=2222)
+        source['security_xmlids'].append(extra);target['security_xmlids'].append(copy.deepcopy(extra))
+        self.assertTrue(contract.preservation_plan(source,target)['metadata_preservation_admissible'])
+        target['security_xmlids'][-1]['noupdate']=True
+        self.assertIn('original-model-or-group-alias-not-retained',contract.preservation_plan(source,target)['blockers'])
+
     def test_original_acl_and_country_rule_xmlids_keep_noupdate(self):
         source,target=fixtures();target['security_xmlids'][-1]['noupdate']=False
         report=contract.preservation_plan(source,target)
