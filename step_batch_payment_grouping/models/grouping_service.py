@@ -44,6 +44,8 @@ class BatchPaymentGroupingService(models.AbstractModel):
         if [row[0] for row in self.env.cr.fetchall()] != ids:
             raise UserError(_('Uno de los pagos seleccionados ya no existe.'))
         payments.invalidate_recordset(validation_fields)
+        payments.check_access('read')
+        payments.check_access('write')
         return payments
 
     @api.model
@@ -58,6 +60,8 @@ class BatchPaymentGroupingService(models.AbstractModel):
         if not self.env.cr.fetchone():
             raise UserError(_('El lote ya no existe.'))
         batch.invalidate_recordset()
+        batch.check_access('read')
+        batch.check_access('write')
         if batch.state != 'draft':
             raise UserError(_('Sólo se pueden modificar grupos en borrador.'))
         return batch
