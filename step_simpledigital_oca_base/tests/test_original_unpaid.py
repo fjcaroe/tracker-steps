@@ -134,11 +134,24 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.entry_type.with_env(self.env).country_id = original_country
         self.env.cr.execute('SELECT (SELECT count(*) FROM hr_payslip),(SELECT count(*) FROM hr_payslip_worked_days)')
         self.assertEqual(self.env.cr.fetchone(), before)
+        saved = self._slip()
+        self._day(saved)
+        self.scope.flush_all()
+        saved_before = self._stored(saved)
+        draft_preview = self.scope['hr.payslip'].new({'state': 'draft',
+            'employee_id': self.contract.employee_id.id, 'company_id': self.company.id,
+            'contract_id': self.contract.id, 'struct_id': self.structure.id,
+            'date_from': saved.date_from, 'date_to': saved.date_to,
+            'worked_days_line_ids': [Command.create({'name': 'Private typed draft-origin preview day',
+                'contract_id': self.contract.id, 'work_entry_type_id': self.entry_type.id,
+                'code': self.entry_type.code, 'number_of_days': 2, 'number_of_hours': 16})]}, origin=saved)
+        self.assertTrue(draft_preview.worked_days_line_ids)
+        with patch.object(draft_preview._fields['worked_days_line_ids'], 'groups', 'base.group_system'), self.assertRaises(AccessError):
+            draft_preview.sudo()._step_check_original_configuration(operation='calculate')
+        self.assertEqual(self._stored(saved), saved_before)
         # Admission never evaluated the intentionally invalid synthetic rule.
         # Only this fresh saved fixture now follows the actual closing workflow.
         self.rule.amount_python_compute = original_formula
-        saved = self._slip()
-        self._day(saved)
         saved.compute_sheet()
         saved.with_context(without_compute_sheet=True).action_payslip_done()
         self.env.flush_all()

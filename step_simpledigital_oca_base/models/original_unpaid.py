@@ -234,9 +234,9 @@ class Payslip(models.Model):
                 # The real unsaved ORM preview has no SQL identity or business
                 # rows to flush. Check its actual child model and typed masters.
                 days.check_access("read")
-                slip.check_field_access_rights("read", ["worked_days_line_ids"])
                 original_days = days
             if type(slip.id) is not int:
+                slip.check_field_access_rights("read", ["worked_days_line_ids"])
                 original_days |= slip.worked_days_line_ids
             original_days.check_access("read")
             original_days.check_field_access_rights("read", ["work_entry_type_id"])
