@@ -43,8 +43,9 @@ def company_rut(company):
 
 
 class CAFCustodyMixin:
-    """Ordinary Python mixin; no Odoo model/table or parallel storage."""
-
+    # Ordinary Python mixin; no Odoo model/table or parallel storage. Keep this
+    # as a comment: inspect.getdoc() feeds ir.model.info and must retain the
+    # original provider's inherited Model documentation.
     # Odoo reassigns registry class bases in _prepare_setup. Adding an instance
     # __dict__ here would change the native recordset layout and reject that
     # reassignment before the original provider can load.
