@@ -138,6 +138,14 @@ class ExistingDraftBatchCase(TransactionCase):
 
     def test_verify_period_company_legacy_and_review_reject_before_first_calculation(self):
         run, slips = self._batch()
+        run.credit_note = True
+        slips.credit_note = True
+        before = self._snapshot(run)
+        with TestCase.assertRaisesRegex(self, UserError, "Refund batches"):
+            run.action_step_compute_existing_drafts()
+        self.assertEqual(self._snapshot(run), before)
+        run.credit_note = False
+        slips.credit_note = False
         slips[-1].state = "verify"
         before = self._snapshot(run)
         with TestCase.assertRaisesRegex(self, UserError, "Only existing draft"):
@@ -234,7 +242,7 @@ class ExistingDraftBatchCase(TransactionCase):
         row.invalidate_recordset(["amount"])
         self.assertEqual(row.amount, 0.0)
         before = self._snapshot(run)
-        with TestCase.assertRaisesRegex(self, UserError, "SQL NULL"):
+        with TestCase.assertRaisesRegex(self, UserError, "Complete the amount"):
             run.action_step_compute_existing_drafts()
         self.assertEqual(self._snapshot(run), before)
         row.amount = 0.0

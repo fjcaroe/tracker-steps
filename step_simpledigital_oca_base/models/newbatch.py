@@ -119,6 +119,8 @@ class PayslipRun(models.Model):
         _read(company, ["country_id"])
         if len(company) != 1 or company != normal.env.company or any(slip.company_id != company for slip in slips):
             raise UserError(_("Select the original batch company before calculating saved drafts."))
+        if normal.credit_note or any(slip.credit_note for slip in slips):
+            raise UserError(_("Refund batches require certified native/OCA parity before calculation."))
         if any(slip.date_from != normal.date_start or slip.date_to != normal.date_end
                 or slip.credit_note != normal.credit_note for slip in slips):
             raise UserError(_("Every saved draft must retain the batch period and refund policy."))
