@@ -272,6 +272,68 @@ class BatchPeriodCase(TransactionCase):
         self.assertFalse(run.slip_ids)
         self.assertTrue(self.rule.split_move_lines)
         self.rule.split_move_lines = False
+
+        def input_preview():
+            return self.scope['hr.payslip'].new({'state': 'draft',
+                'employee_id': contract.employee_id.id, 'company_id': self.company.id,
+                'contract_id': contract.id, 'struct_id': self.structure.id,
+                'date_from': run.date_start, 'date_to': run.date_end})
+
+        def assert_input_blocked(exception, message=None):
+            self.scope.flush_all()
+            self.env.cr.execute('SELECT last_value,is_called FROM hr_payslip_id_seq')
+            before_input_ids = self.env.cr.fetchone()
+            if message:
+                with self.assertRaisesRegex(exception, message):
+                    wizard.sudo().compute_sheet()
+            else:
+                with self.assertRaises(exception):
+                    wizard.sudo().compute_sheet()
+            self.env.cr.execute('SELECT last_value,is_called FROM hr_payslip_id_seq')
+            self.assertEqual(self.env.cr.fetchone(), before_input_ids)
+            self.assertFalse(run.slip_ids)
+
+        # An unrelated global master, even hidden, is not configured data for
+        # this structure and must not block the actual period input admission.
+        unused = self.scope['hr.payslip.input.type'].create({'name': 'Private unused global batch input',
+            'code': 'PRIVATE_BATCH_UNUSED_INPUT', 'country_id': False})
+        restriction = self.env['ir.rule'].create({'name': 'Private hidden unused global batch input',
+            'model_id': self.env.ref('step_payroll_oca_api.model_hr_payslip_input_type').id,
+            'domain_force': "[('id','!=',%d)]" % unused.id})
+        self.assertTrue(input_preview()._step_batch_period_input_admission())
+        restriction.unlink()
+
+        self.rule.input_ids = [Command.create({'name': 'Private configured rule period input',
+            'code': 'PRIVATE_BATCH_RULE_INPUT'})]
+        descriptor = self.rule.input_ids
+        descriptor_before = descriptor.read(['id', 'name', 'code', 'input_id', 'write_date'])
+        assert_input_blocked(UserError, 'Original payroll input data is missing')
+        self.assertEqual(descriptor.read(['id', 'name', 'code', 'input_id', 'write_date']), descriptor_before)
+        for field in (self.rule._fields['input_ids'], descriptor._fields['input_id'],
+                self.structure._fields['input_line_type_ids']):
+            with patch.object(field, 'groups', 'base.group_system'):
+                assert_input_blocked(AccessError)
+        restriction = self.env['ir.rule'].create({'name': 'Private hidden configured rule input',
+            'model_id': self.env.ref('payroll.model_hr_rule_input').id,
+            'domain_force': "[('id','!=',%d)]" % descriptor.id})
+        assert_input_blocked(AccessError)
+        restriction.unlink()
+        self.assertEqual(descriptor.read(['id', 'name', 'code', 'input_id', 'write_date']), descriptor_before)
+        # Only this newly provisioned private descriptor is removed to isolate
+        # the second source relation. No source/customer master is changed.
+        descriptor.unlink()
+
+        configured = self.scope['hr.payslip.input.type'].create({'name': 'Private configured structure period input',
+            'code': 'PRIVATE_BATCH_TYPED_INPUT', 'country_id': self.company.country_id.id})
+        self.structure.input_line_type_ids = [Command.link(configured.id)]
+        typed_before = configured.read(['id', 'name', 'code', 'struct_ids', 'write_date'])
+        assert_input_blocked(UserError, 'Original payroll input data is missing')
+        restriction = self.env['ir.rule'].create({'name': 'Private hidden configured structure input',
+            'model_id': self.env.ref('step_payroll_oca_api.model_hr_payslip_input_type').id,
+            'domain_force': "[('id','!=',%d)]" % configured.id})
+        assert_input_blocked(AccessError)
+        restriction.unlink()
+        self.assertEqual(configured.read(['id', 'name', 'code', 'struct_ids', 'write_date']), typed_before)
         self.structure.use_work_entries = False
         with self.assertRaisesRegex(UserError, 'política real'):
             wizard.compute_sheet()
