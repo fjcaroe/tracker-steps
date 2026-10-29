@@ -80,6 +80,7 @@ def main():
         for p in sorted((source/m).rglob('*')) if p.is_file() and '__pycache__' not in p.parts}
     assert all((source/m/'__manifest__.py').exists() for m in MODULES)
     api_test_count=concrete_test_count(source,'step_payroll_oca_api')
+    reference_test_count=concrete_test_count(source,'step_payroll_enterprise_reference')
     base_test_count=concrete_test_count(source,'step_simpledigital_oca_base') if simpledigital else 0
     (stage/'source-files.json').write_text(json.dumps(fp,indent=2))
     pure=args.mode=='community';conf=Path('/etc/dev_odoo18.conf' if pure else '/etc/odoo18-cerroelplomo.conf')
@@ -280,7 +281,7 @@ def main():
                 assert hashlib.sha256((pdf_directory/row['file']).read_bytes()).hexdigest()==row['sha256']
             stored_pdf_count=len(proofs)
             dump_json('stored-payslip-pdf',{'actual_pdf_count':stored_pdf_count,'proofs':proofs,'financial_certified':False})
-        expected=7 if standalone else ((38+api_test_count) if pure else 25)+((48+base_test_count if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
+        expected=7 if standalone else ((38+api_test_count) if pure else reference_test_count)+((48+base_test_count if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         if args.accelerated:expected+=HR_TEST_COUNT+33+18+11+(0 if pure else 39)
         if args.custody_grouping:expected+=54 if pure else 29
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
@@ -347,6 +348,7 @@ def main():
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
             'expected_test_count':expected,
             'api_test_count':api_test_count if pure else 0,'base_test_count':base_test_count if pure else 0,
+            'reference_test_count':reference_test_count if not pure else 0,
             'stored_payslip_pdf_reports':stored_pdf_count,
             'identity_snapshot_tool_sha256':hashlib.sha256((source/'tools/community/validate_agriculture_core.py').read_bytes()).hexdigest(),
             'original_xmlid_noupdate_captured':bool(not pure and original.get('original_xmlids') and all('noupdate' in row for row in original['original_xmlids'])),

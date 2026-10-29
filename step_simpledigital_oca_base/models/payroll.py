@@ -6,7 +6,7 @@ from odoo.addons.step_payroll_contracts.history import history_protected, restor
 
 class StructureType(models.Model):
     _inherit = 'hr.payroll.structure.type'
-    default_struct_id = fields.Many2one('hr.payroll.structure', ondelete='restrict')
+    default_struct_id = fields.Many2one('hr.payroll.structure', ondelete='set null')
 
 
 class Structure(models.Model):
