@@ -1727,3 +1727,31 @@ Sin publicación en producción, recálculos originales ni refresco QA-Cerro.
 
 Estado, evidencia y **siguiente prompt vigente**:
 [COMMUNITY_PAYROLL_REAL_BASIS.md](COMMUNITY_PAYROLL_REAL_BASIS.md).
+
+
+## Componentes históricos y BASIC — 29-10-2026 UTC
+
+Núcleo 18.0.1.10.0 añade lector SQL autorizado por línea: ID/liquidación/regla,
+código, amount/quantity/rate/total guardados. No suma factores ni reconstruye
+totales; rechaza nulos/no finitos y conserva reglas ambiguas como filas distintas.
+El agregado anterior continúa bloqueando NET ambiguo. Cuatro contratos reales
+prueban redondeo, estabilidad, permisos completos y falta de reparación al leer.
+
+Paquete D de c4e8d0b: 135 pruebas Community oficial/OCA y 72 copia fresca nativa,
+cero errores. BASIC positivo de SyS coincide por separado en sus cuatro
+componentes; FK aplicada y snapshot/write_date originales comprobados. Rollback
+verificado, cero empresas/usuarios de fixture. No es replay completo, certificación
+de 71 reglas ni adopción de identidad. Se preservan 919 tablas/proyecciones,
+140 contadores, 59.048 XML IDs y permisos; mismos 96 archivos entre entornos.
+Community 68/0 módulos/EE, referencia 383/140. Sin despliegue, recálculo original
+ni refresco QA-Cerro.
+
+Matriz completa idéntica: 380 instalados/99 propios/140 EE, 117 manifiestos,
+22 fuera de Cerro y 54 apps con caminos Enterprise. Prioridad siguiente:
+almacenamiento/identidad de días y códigos con históricos reales en copia privada
+SyS, antes de dependencias; después contexto efectivo, GROSS/NET, 71 reglas, YTD/
+asientos y salidas oficiales. DTE/CAF/SII y los otros productos siguen pendientes.
+Falta conversión integral restaurable cero EE y aceptación. El 31 sigue en riesgo alto.
+
+Estado, evidencia y **siguiente prompt vigente**:
+[COMMUNITY_PAYROLL_COMPONENTS.md](COMMUNITY_PAYROLL_COMPONENTS.md).

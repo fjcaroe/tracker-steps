@@ -150,3 +150,9 @@ Respeta Calendar, Boolean bancario y 210233; overlays privados, reserva 5/2 GiB,
 respaldo y bloqueo compartido. Prueba paquete exacto en Community y copia fresca
 de Cerro, guarda evidencia privada, commits/push, integra solo lo validado y
 ejecuta python tools/git/verify_handoff.py --require-pushed.
+
+
+Continuación posterior: [COMMUNITY_PAYROLL_COMPONENTS.md](COMMUNITY_PAYROLL_COMPONENTS.md)
+compara amount/quantity/rate/total de BASIC y protege lectura de componentes
+guardados. Consultar allí última aceptación y siguiente prompt; la conversión
+histórica y certificación completa siguen pendientes.
