@@ -202,7 +202,9 @@ class SavedInputValuesCase(TransactionCase):
         self.env.cr.execute("UPDATE hr_payslip_input_type SET country_id=%s WHERE id=%s", (self.env.ref("base.fr").id, self.input_type.id))
         self.input_type.invalidate_recordset(["country_id"])
         before = self._snapshot(slip)
-        with self.assertRaisesRegex(UserError, "payslip country"):
+        # The original country record rule hides this master before the
+        # business-country checker; preserve that earlier permission boundary.
+        with self.assertRaises(AccessError):
             slip._step_check_saved_input_values()
         self.assertEqual(self._snapshot(slip), before)
         self.env.cr.execute("UPDATE hr_payslip_input_type SET country_id=%s WHERE id=%s", (self.company.country_id.id, self.input_type.id))
