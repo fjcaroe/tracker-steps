@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from datetime import datetime, timezone
 
 
 SOURCE_DB = 'COMMUNITY_PAYROLL_API_CONFIGURATION_20261029D'
@@ -30,6 +31,12 @@ RAW_TABLES = ('hr_payslip', 'hr_payslip_line', 'hr_payslip_worked_days', 'hr_pay
               'hr_work_entry', 'ir_sequence')
 RELATIONS = ('hr_structure_salary_rule_rel', 'hr_payroll_structure_hr_payslip_input_type_rel',
              'hr_payroll_structure_hr_work_entry_type_rel')
+CONFIG_XML = 'data/hr_salary_structure.xml'
+CONFIG_XML_SHA256 = 'a736508a6ad2cd39bfdd184383f88da38fb1d2dbac00e99b954f2e3e902d3166'
+CONFIG_ALIASES = {
+    'structure_chile': ('hr_payroll_structure', 'hr.payroll.structure'),
+    'structure_type_chile': ('hr_payroll_structure_type', 'hr.payroll.structure.type'),
+}
 
 
 def run(*args, **kwargs):
@@ -97,12 +104,53 @@ def raw_rows(env):
                    "WHERE table_schema='public' AND table_name IN ('hr_salary_rule','hr_payslip_line') "
                    "AND column_name IN ('note','analytic_account_id') ORDER BY table_name,column_name")
     result['property_columns'] = [dict(zip(('table', 'field', 'data_type', 'is_nullable'), row)) for row in env.cr.fetchall()]
+    env.cr.execute("SELECT id,module,name,model,res_id,noupdate FROM ir_model_data "
+        "WHERE module='l10n_cl_simpledigital_payroll' AND name IN ('structure_chile','structure_type_chile') ORDER BY name")
+    result['xml_config_aliases'] = [dict(zip(('id', 'module', 'name', 'model', 'res_id', 'noupdate'), row)) for row in env.cr.fetchall()]
     return result
 
 
-def verify_rows(before, after):
-    """Only the two master properties may change representation, never values."""
+def utc_datetime(value):
+    parsed = datetime.fromisoformat(value)
+    return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+
+
+def configuration_reload_allowlist(before, after, audit):
+    """Explicit audit exception for two unchanged XML configuration records."""
+    assert re.fullmatch(DATABASE_PATTERN, audit['database'])
+    assert audit['license'] == 'AGPL-3'
+    for key in ('approved_xml_sha256', 'legacy_xml_sha256', 'candidate_xml_sha256', 'package_xml_sha256'):
+        assert audit[key] == CONFIG_XML_SHA256, 'XML configuration source pin changed'
+    for key in ('source_pin_manifest_sha256', 'package_files_sha256', 'upgrade_log_sha256',
+                'sql_clock_before_sha256', 'sql_clock_after_sha256'):
+        assert re.fullmatch('[0-9a-f]{64}', audit[key]), 'Missing source/log provenance hash'
+    assert audit['clock_source'] == 'PostgreSQL clock_timestamp AT TIME ZONE UTC'
+    assert utc_datetime(audit['sql_utc_before']) <= utc_datetime(audit['sql_utc_after'])
+    assert audit['reload_log_lines'] and all(audit['database'] in line and
+        'odoo.modules.loading: loading l10n_cl_simpledigital_payroll/' + CONFIG_XML in line
+        for line in audit['reload_log_lines']), 'Actual XML reload not witnessed'
+    original = before['xml_config_aliases']
+    assert original == after['xml_config_aliases'] == audit['aliases_before'], 'Original XML identity or noupdate changed'
+    assert len(original) == 2 and {row['name'] for row in original} == set(CONFIG_ALIASES)
+    allowed = set()
+    for row in original:
+        table, model = CONFIG_ALIASES[row['name']]
+        assert row['module'] == 'l10n_cl_simpledigital_payroll' and row['model'] == model
+        assert row['noupdate'] is False and type(row['id']) is int and type(row['res_id']) is int
+        assert any(value['id'] == row['res_id'] for value in before[table]), 'XML master missing before upgrade'
+        allowed.add((table, row['res_id']))
+    return allowed
+
+
+def verify_rows(before, after, xml_audit=None):
+    """Preserve values; optionally audit two precisely witnessed loader dates.
+
+    Omitting xml_audit retains strict comparison, including every timestamp.
+    No payroll, accounting, other master timestamp or write_uid is exempted.
+    """
     checked = 0
+    allowed = configuration_reload_allowlist(before, after, xml_audit) if xml_audit else set()
+    date_changes = []
     for table in RAW_TABLES:
         original = {row['id']: row for row in before[table]}
         current = {row['id']: row for row in after[table]}
@@ -122,18 +170,30 @@ def verify_rows(before, after):
                         assert type(value) is int and value > 0 and row.get('company_id'), 'Ambiguous scalar analytic owner'
                         expected = {str(row['company_id']): value}
                     assert actual == expected, 'Rule analytic value/owner/NULL changed'
+                elif name == 'write_date' and actual != value and (table, row_id) in allowed:
+                    assert value is not None and actual is not None
+                    assert utc_datetime(xml_audit['sql_utc_before']) <= utc_datetime(actual) <= utc_datetime(xml_audit['sql_utc_after']), 'Configuration date outside SQL upgrade window'
+                    date_changes.append({'table': table, 'field': name, 'id': row_id})
                 else:
                     assert name in now and actual == value, 'Original stored field changed: ' + table + '.' + name
             checked += 1
+    if xml_audit:
+        assert len(date_changes) == 2, 'Both expected XML loader dates must be witnessed'
     for key in ('model_ids', 'business_sequences', 'relations'):
         assert before[key] == after[key], 'Original identities or numbering changed: ' + key
+    if 'xml_config_aliases' in before:
+        assert before['xml_config_aliases'] == after['xml_config_aliases'], 'Original configuration XML aliases changed'
     current_fields = {(row['model'], row['name']): row['id'] for row in after['field_ids']}
     assert all(current_fields.get((row['model'], row['name'])) == row['id'] for row in before['field_ids']), 'Original field IDs changed'
     columns = {(row['table'], row['field']): row for row in after['property_columns']}
     for table, field, kind in (('hr_salary_rule', 'note', 'jsonb'), ('hr_salary_rule', 'analytic_account_id', 'jsonb'),
                                ('hr_payslip_line', 'note', 'text'), ('hr_payslip_line', 'analytic_account_id', 'integer')):
         assert columns[(table, field)]['data_type'] == kind, 'Unexpected master/line property storage'
-    return {'raw_rows_preserved': checked, 'model_ids_preserved': len(before['model_ids']),
+    return {'raw_rows_compared': checked, 'raw_rows_preserved': checked - len(date_changes),
+            'all_original_raw_fields_exact': all(before[table] == after[table] for table in RAW_TABLES),
+            'expected_write_date_changes': len(date_changes), 'expected_write_date_change_records': date_changes,
+            'write_date_exception_justification': 'Only the two pinned original XML configuration masters were rewritten with unchanged data by the real module loader inside the SQL UTC upgrade window.' if date_changes else None,
+            'model_ids_preserved': len(before['model_ids']),
             'field_ids_preserved': len(before['field_ids']), 'historical_line_text_and_scalar_preserved': True,
             'rule_note_html_and_analytic_values_preserved': True, 'business_sequences_preserved': True}
 
@@ -279,7 +339,18 @@ def exercise(env, mode, directory):
         scope['hr.payslip.line'].browse([row['id'] for row in seed['raw_rows']['hr_payslip_line']
                                        if row['slip_id'] == seed['slip']]).check_access('read')
         before_read = raw_rows(env)
-        proof = verify_rows(seed['raw_rows'], before_read)
+        xml_audit = json.loads((root / 'xml-config-upgrade-audit.json').read_text())
+        assert hashlib.sha256((root / 'upgrade.log').read_bytes()).hexdigest() == xml_audit['upgrade_log_sha256']
+        assert hashlib.sha256((root / 'package-files.json').read_bytes()).hexdigest() == xml_audit['package_files_sha256']
+        pin_bytes = (root / 'xml-config-source-pin.json').read_bytes()
+        assert hashlib.sha256(pin_bytes).hexdigest() == xml_audit['source_pin_manifest_sha256']
+        pin = json.loads(pin_bytes)
+        assert pin['license'] == 'AGPL-3' and pin['files'][CONFIG_XML] == CONFIG_XML_SHA256
+        for phase in ('before', 'after'):
+            clock_bytes = (root / ('upgrade-sql-clock-' + phase + '.json')).read_bytes()
+            assert hashlib.sha256(clock_bytes).hexdigest() == xml_audit['sql_clock_' + phase + '_sha256']
+            assert json.loads(clock_bytes)['utc'] == xml_audit['sql_utc_' + phase]
+        proof = verify_rows(seed['raw_rows'], before_read, xml_audit)
         # The real historical read API is required to use stored values. No
         # current wage/amount getter and no compute_sheet invocation occurs.
         slip = scope['hr.payslip'].browse(seed['slip'])
@@ -435,6 +506,15 @@ def main():
                 (upgraded / module).symlink_to((legacy / module).resolve(), target_is_directory=True)
             files[module] = {'legacy': file_manifest(legacy / module), 'candidate': file_manifest(upgraded / module)}
         write_private(root / 'package-files.json', files)
+        pin_path = candidate / 'tools/community/simpledigital_runtime_source.json'
+        pin_bytes = pin_path.read_bytes()
+        source_pin = json.loads(pin_bytes)
+        assert source_pin['license'] == 'AGPL-3' and source_pin['files'][CONFIG_XML] == CONFIG_XML_SHA256
+        assert manifest(legacy / 'l10n_cl_simpledigital_payroll')['license'] == 'AGPL-3'
+        assert files['l10n_cl_simpledigital_payroll']['legacy'][CONFIG_XML] == CONFIG_XML_SHA256
+        assert files['l10n_cl_simpledigital_payroll']['candidate'][CONFIG_XML] == CONFIG_XML_SHA256
+        with (root / 'xml-config-source-pin.json').open('xb') as stream:
+            stream.write(pin_bytes)
         for path in (root, *root.rglob('*')):
             if not path.is_symlink():
                 os.chown(path, identity.pw_uid, identity.pw_gid)
@@ -458,9 +538,33 @@ def main():
         seed = "import runpy; runpy.run_path(" + repr(probe) + ")[\"exercise\"](env,\"seed\"," + repr(str(root)) + ')'
         execute('legacy-seed', legacy, payload=seed)
         assert (root / 'seed.json').exists(), 'Legacy fixture did not commit evidence'
+        clock_query = "SELECT json_build_object('utc',clock_timestamp() AT TIME ZONE 'UTC')"
+        clock_before = json.loads(readonly_sql(args.database, clock_query))
+        write_private(root / 'upgrade-sql-clock-before.json', clock_before)
         execute('upgrade', upgraded, flags=('-u', ','.join(VERSIONS), '--stop-after-init'))
+        clock_after = json.loads(readonly_sql(args.database, clock_query))
+        write_private(root / 'upgrade-sql-clock-after.json', clock_after)
         actual = json.loads(readonly_sql(args.database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE name IN ('step_payroll_oca_api','step_simpledigital_oca_base') AND state='installed'"))
         assert actual == {module: versions[1] for module, versions in VERSIONS.items()}, 'Upgrade versions not installed'
+        reload_lines = [line for line in (root / 'upgrade.log').read_text().splitlines()
+            if 'odoo.modules.loading: loading l10n_cl_simpledigital_payroll/' + CONFIG_XML in line]
+        xml_audit = {'database': args.database, 'license': 'AGPL-3',
+            'approved_xml_sha256': source_pin['files'][CONFIG_XML],
+            'legacy_xml_sha256': files['l10n_cl_simpledigital_payroll']['legacy'][CONFIG_XML],
+            'candidate_xml_sha256': files['l10n_cl_simpledigital_payroll']['candidate'][CONFIG_XML],
+            'package_xml_sha256': files['l10n_cl_simpledigital_payroll']['candidate'][CONFIG_XML],
+            'source_pin_manifest_sha256': hashlib.sha256(pin_bytes).hexdigest(),
+            'package_files_sha256': hashlib.sha256((root / 'package-files.json').read_bytes()).hexdigest(),
+            'upgrade_log_sha256': hashlib.sha256((root / 'upgrade.log').read_bytes()).hexdigest(),
+            'sql_clock_before_sha256': hashlib.sha256((root / 'upgrade-sql-clock-before.json').read_bytes()).hexdigest(),
+            'sql_clock_after_sha256': hashlib.sha256((root / 'upgrade-sql-clock-after.json').read_bytes()).hexdigest(),
+            'clock_source': 'PostgreSQL clock_timestamp AT TIME ZONE UTC',
+            'sql_utc_before': clock_before['utc'], 'sql_utc_after': clock_after['utc'],
+            'reload_log_lines': reload_lines,
+            'aliases_before': json.loads((root / 'seed.json').read_text())['raw_rows']['xml_config_aliases']}
+        write_private(root / 'xml-config-upgrade-audit.json', xml_audit)
+        for name in ('xml-config-upgrade-audit.json', 'upgrade-sql-clock-before.json', 'upgrade-sql-clock-after.json'):
+            os.chown(root / name, identity.pw_uid, identity.pw_gid)
         verify = seed.replace('"seed"', '"verify"')
         execute('upgraded-verify', upgraded, payload=verify)
         assert (root / 'verified.json').exists(), 'Upgraded historical verification missing'
@@ -480,6 +584,7 @@ def main():
             source_consumer_files_sha256=digest(consumer_fingerprints),
             seed_sha256=hashlib.sha256((root / 'seed.json').read_bytes()).hexdigest(),
             rows_after_sha256=hashlib.sha256((root / 'rows-after.json').read_bytes()).hexdigest(),
+            xml_config_upgrade_audit_sha256=hashlib.sha256((root / 'xml-config-upgrade-audit.json').read_bytes()).hexdigest(),
             official_community_revision=OFFICIAL_PIN, oca_revision=OCA_PIN,
             tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), full_community_conversion=False)
         write_private(root / 'passed.json', proof)
