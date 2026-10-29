@@ -75,6 +75,45 @@ def seal(cursor):
         FROM ir_model_fields WHERE model=ANY(%s) ORDER BY model,name""", (list(TABLES.values()),))
     result['field_metadata'] = [dict(zip(('model', 'name', 'type', 'relation', 'required', 'readonly',
         'store', 'related', 'company_dependent'), row)) for row in cursor.fetchall()]
+    # Company-dependent Many2one fields are JSONB in Odoo 18 and have no
+    # ordinary SQL FK. Preserve every company key and close both master sets;
+    # treating journal/account properties as a scalar would lose source data.
+    property_tables = {'account.journal': 'account_journal', 'account.account': 'account_account',
+        'account.analytic.account': 'account_analytic_account'}
+    result['unresolved_company_properties'] = []
+    for field in result['field_metadata']:
+        if not field['company_dependent'] or field['type'] != 'many2one':
+            continue
+        table = next(table for table, model in TABLES.items() if model == field['model'])
+        if field['name'] not in {column['name'] for column in result['tables'][table]['columns']}:
+            continue
+        target = property_tables.get(field['relation'])
+        if not target:
+            result['unresolved_company_properties'].append({'model': field['model'], 'field': field['name'],
+                'relation': field['relation']})
+            continue
+        values = []
+        companies, masters = set(), set()
+        for raw in result['tables'][table]['rows_json']:
+            row = json.loads(raw)
+            mapping = row.get(field['name'])
+            if mapping is None:
+                continue
+            assert isinstance(mapping, dict), 'Expected original company-dependent JSON'
+            for company, value in mapping.items():
+                assert re.fullmatch(r'[1-9][0-9]*', company), 'Invalid original company property key'
+                companies.add(int(company))
+                assert value is None or type(value) is int and value > 0
+                if value is not None:
+                    masters.add(value)
+                values.append({'id': row['id'], 'company_id': int(company), 'value': value})
+        for target_table, ids in (('res_company', companies), (target, masters)):
+            cursor.execute(sql.SQL('SELECT count(*) FROM {} WHERE id=ANY(%s)').format(
+                sql.Identifier(target_table)), (sorted(ids),))
+            assert cursor.fetchone()[0] == len(ids), 'Missing company-dependent original master'
+        result['external_references'][table + '.' + field['name']] = {'target': target,
+            'company_dependent': True, 'company_ids': sorted(companies), 'ids': sorted(masters),
+            'original_values': values, 'target_adopted': False}
     for row in result['xmlids']:
         table = next(table for table, model in TABLES.items() if model == row['model'])
         assert row['res_id'] in {json.loads(value)['id'] for value in result['tables'][table]['rows_json']}
