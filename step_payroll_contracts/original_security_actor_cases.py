@@ -33,7 +33,7 @@ class OriginalSecurityActorCases:
         cls.foreign_rule = cls.env['hr.salary.rule'].create(cls._rule_values(cls.foreign_structure))
 
     @classmethod
-    def _structure(cls, name, country):
+    def _structure(cls, name, country, company=False):
         model = cls.env['hr.payroll.structure']
         values = {'name': name, 'type_id': cls.kind.id, 'country_id': country.id}
         if 'code' in model._fields:
@@ -41,7 +41,7 @@ class OriginalSecurityActorCases:
         if 'parent_id' in model._fields:
             values['parent_id'] = False
         if 'company_id' in model._fields:
-            values['company_id'] = False
+            values['company_id'] = company.id if company else False
         return model.create(values)
 
     @classmethod
@@ -109,7 +109,9 @@ class OriginalSecurityActorCases:
             record.check_access('read')
         else:
             self.assertFalse(record.company_id)
-            values = self._rule_values(self.structure)
+            other_structure = self._structure('Private other-company security structure',
+                self.other_company.country_id, company=self.other_company)
+            values = self._rule_values(other_structure)
             values['company_id'] = self.other_company.id
             other = self.env['hr.salary.rule'].create(values)
             other.read(['code'])
@@ -119,4 +121,3 @@ class OriginalSecurityActorCases:
             # through context to widen the actual company rule.
             with self.assertRaises(AccessError):
                 other.with_env(self.scope).with_context(allowed_company_ids=self.other_company.ids).read(['code'])
-

@@ -18,4 +18,3 @@ class OriginalSecurityCommunityActorCase(OriginalSecurityActorCases, Transaction
 
     def test_generic_oca_global_and_company_rules(self):
         self.case_global_originals_and_company_boundary_remain_distinct()
-
