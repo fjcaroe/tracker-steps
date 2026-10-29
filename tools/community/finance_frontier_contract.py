@@ -79,14 +79,45 @@ def verify_metadata(before, after):
 def verify(env, mode):
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
-                'step_bank_export_core': '18.0.1.2.1'}
+                'step_bank_export_core': '18.0.1.2.1',
+                'step_accounting_multicurrency_core': '18.0.1.1.0'}
     if mode == 'cerro-copy':
         versions.update({'step_account_treasury_batch': '18.0.1.5.1',
                          'step_bank_security': '18.0.1.1.1',
-                         'step_accounting_multicurrency':'18.0.2.1.0'})
+                         'step_accounting_multicurrency': '18.0.2.1.0'})
     installed = env['ir.module.module'].search([('state', '=', 'installed')])
     actual = {module.name: module.latest_version for module in installed if module.name in versions}
     assert actual == versions, (actual, versions)
+    from odoo.addons.step_accounting_multicurrency_core.hooks import (
+        CORE as CURRENCY_CORE, LEGACY as CURRENCY_LEGACY, FIELDS as CURRENCY_FIELDS,
+        MODELS as CURRENCY_MODELS, VIEWS as CURRENCY_VIEWS, owned_names as currency_names)
+    currency_aliases = {}
+    assert len(currency_names()) == 37 and 'model_account_report' not in currency_names()
+    for model_name in CURRENCY_MODELS:
+        name = 'model_' + model_name.replace('.', '_')
+        model = env.ref(CURRENCY_CORE + '.' + name)
+        assert model._name == 'ir.model' and model.model == model_name and model_name in env.registry
+        assert model == env.ref(CURRENCY_LEGACY + '.' + name)
+        currency_aliases[CURRENCY_LEGACY + '.' + name] = model.id
+    for model_name, names in CURRENCY_FIELDS.items():
+        assert model_name in env.registry
+        for field_name in names:
+            name = 'field_' + model_name.replace('.', '_') + '__' + field_name
+            field = env.ref(CURRENCY_CORE + '.' + name)
+            assert field._name == 'ir.model.fields' and (field.model, field.name) == (model_name, field_name)
+            assert field.ttype == env[model_name]._fields[field_name].type
+            assert field == env.ref(CURRENCY_LEGACY + '.' + name)
+            if model_name == 'account.bank.statement.line':
+                assert env[model_name]._fields['move_id'].comodel_name == 'account.move'
+                assert field.related == 'move_id.' + field_name
+            currency_aliases[CURRENCY_LEGACY + '.' + name] = field.id
+    for name, model_name in zip(CURRENCY_VIEWS, ('account.move', 'account.move.line', 'account.payment',
+                                                'account.payment.register', 'res.config.settings')):
+        view = env.ref(CURRENCY_CORE + '.' + name)
+        assert view._name == 'ir.ui.view' and view.model == model_name
+        assert view == env.ref(CURRENCY_LEGACY + '.' + name)
+        currency_aliases[CURRENCY_LEGACY + '.' + name] = view.id
+    assert len(currency_aliases) == 37
     from odoo.addons.step_bank_export_core.hooks import LEGACY_FIELDS, LEGACY_VIEWS, SELECTION_VALUES, RELATED_MODEL
     aliases = {}
     for namespace, name in LEGACY_FIELDS.items():
@@ -158,6 +189,7 @@ def verify(env, mode):
         env['account.batch.payment'].get_view(view_id=env.ref('step_bank_security.view_batch_security').id,
                                             view_type='form')
     result = {'mode': mode, 'versions': versions, 'aliases': aliases,
+              'multicurrency_legacy_aliases': currency_aliases,
               'payment_formats_use_original_model': env['account.payment']._table == 'account_payment',
               'batch_conversion_certified': False, 'writes_to_source': False}
     print('FINANCE_FRONTIER_OK ' + json.dumps(result, sort_keys=True))
