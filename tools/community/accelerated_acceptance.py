@@ -51,6 +51,7 @@ HR_TEST_METHODS = {
         "test_transition_uses_actual_payroll_manager_and_keeps_review_on_missing_masters",
         "test_transition_preserves_structure_and_forbids_old_engine_recalculation",
         "test_weekly_hours_feed_all_contract_consumers_without_changing_the_schedule",
+        "test_hidden_work_entries_cannot_be_deleted_through_the_correction_role",
     ),
 }
 HR_TEST_COUNT = sum(len(methods) for methods in HR_TEST_METHODS.values())

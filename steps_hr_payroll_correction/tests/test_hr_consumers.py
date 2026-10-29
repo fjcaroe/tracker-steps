@@ -325,3 +325,17 @@ class HrConsumersCase(TransactionCase):
         self.assertEqual(log.old_hours, 44)
         self.assertTrue(log.is_exception)
         self.assertEqual(self.calendar.attendance_ids.read(["id", "hour_from", "hour_to"]), original)
+
+    def test_hidden_work_entries_cannot_be_deleted_through_the_correction_role(self):
+        extra = self.entry(9)
+        original = extra.read(["id", "date_start", "date_stop", "state"])
+        messages = self.contract.message_ids.ids
+        wizard = self.wizard()
+        self.env["ir.rule"].create({"name": "Private hidden correction work entry",
+            "model_id": self.env["ir.model"]._get_id("hr.work.entry"),
+            "domain_force": "[('id','!=',%d)]" % extra.id})
+        with self.assertRaises(AccessError):
+            wizard.action_apply()
+        self.assertFalse(self.contract.date_end)
+        self.assertEqual(extra.sudo().read(["id", "date_start", "date_stop", "state"]), original)
+        self.assertEqual(self.contract.message_ids.ids, messages)
