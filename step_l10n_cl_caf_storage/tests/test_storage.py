@@ -78,14 +78,20 @@ class TestCAFCustodyStorage(CAFCustodyAssertions, TransactionCase):
         self.assertEqual(self.env['l10n_cl.dte.caf'].search_count([]), before)
         self.assertEqual(self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')]), attachments)
 
-    def test_public_context_during_initial_upload_rolls_back_everything(self):
+    def test_public_context_cannot_make_initial_binary_upload_public(self):
         count = self.env['l10n_cl.dte.caf'].search_count([])
         attachments = self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')])
-        with self.assertRaises(AccessError):
-            self.manager_model().with_context(default_public=True).create({
+        # Binary's native clean_context removes default_* when creating its
+        # attachment. Require the actual result to stay private; no weakened
+        # guard or artificial exception is needed for an already safe path.
+        record = self.manager_model().with_context(default_public=True,
+            default_access_token='SYNTHETIC_FORBIDDEN_TOKEN').create({
                 'filename': 'SYNTHETIC_CONTEXT_PRIVATE.xml', 'caf_file': base64.b64encode(self.original)})
-        self.assertEqual(self.env['l10n_cl.dte.caf'].search_count([]), count)
-        self.assertEqual(self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')]), attachments)
+        attachment = self.attachment(record)
+        self.assertFalse(attachment.public)
+        self.assertFalse(attachment.access_token)
+        self.assertEqual(self.env['l10n_cl.dte.caf'].search_count([]), count + 1)
+        self.assertEqual(self.env['ir.attachment'].search_count([('res_model', '=', 'l10n_cl.dte.caf')]), attachments + 1)
 
     def test_filename_unique_and_original_record_is_immutable(self):
         record = self.custody_record()

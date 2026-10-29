@@ -63,8 +63,16 @@ class Attachment(models.Model):
         by_id = {record.id: record for record in records}
         for attachment in attachments:
             parsed = parse_original(decode_original(attachment.with_context(bin_size=False).datas))
-            if parsed.issuer_rut != company_rut(by_id[attachment.res_id].company_id):
+            owner = by_id[attachment.res_id]
+            if parsed.issuer_rut != company_rut(owner.company_id):
                 raise AccessError(_('El emisor del archivo debe coincidir con la empresa del CAF.'))
+            document = owner.l10n_latam_document_type_id
+            document.check_access('read')
+            if (not document or document.country_id.code != 'CL'
+                    or document.code != str(parsed.document_type)
+                    or owner.start_nb != parsed.folio_from or owner.final_nb != parsed.folio_to
+                    or owner.issued_date != parsed.authorization_date):
+                raise AccessError(_('El tipo, rango y fecha del archivo deben coincidir con el registro CAF original.'))
 
     @api.model_create_multi
     def create(self, vals_list):
