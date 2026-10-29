@@ -426,7 +426,8 @@ def exercise(env, mode, directory):
         if UPGRADE_PROFILE == 'saved-inputs':
             try:
                 slip._step_check_saved_input_values()
-            except UserError:
+            except UserError as error:
+                assert str(error) == 'Closed payroll history cannot be processed as saved draft inputs.'
                 proof['closed_saved_input_admission_refused'] = True
             else:
                 raise AssertionError('Closed stored payroll was admitted as mutable saved inputs')
