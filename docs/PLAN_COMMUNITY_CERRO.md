@@ -1,8 +1,8 @@
 # Plan de independencia de Enterprise para Cerro El Plomo
 
 Última aceptación y siguiente bloque:
-[COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md), paquete B de
-694bf2dc. La conversión integral, configuración original de nómina y DTE/SII
+[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md), paquete G de
+ccdae62e. La conversión integral, configuración original de nómina y DTE/SII
 siguen abiertos; el vencimiento del 31 no está resuelto.
 
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,

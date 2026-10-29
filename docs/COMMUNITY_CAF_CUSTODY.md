@@ -2,9 +2,10 @@
 
 Base canónica `6e3c8298`, rama `codex/community-caf-custody-20261029`.
 Este bloque implementa almacenamiento y recuperación privados; no certifica
-folios, autenticidad SII ni conversión integral. La pareja Odoo queda pendiente
-de ejecución coordinada. No se hicieron upgrades, restores o escrituras DB
-durante la preparación del código.
+folios, autenticidad SII ni conversión integral. La pareja G fue aceptada en
+[COMMUNITY_CUSTODIA_LOTES.md](COMMUNITY_CUSTODIA_LOTES.md); esa hoja conserva
+el paquete exacto, resultados y límites. No se hicieron upgrades, restores o
+escrituras DB durante la preparación independiente del código.
 
 ## Paquete y aislamiento de proveedores
 

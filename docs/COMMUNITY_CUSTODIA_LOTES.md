@@ -5,8 +5,8 @@ Continuación de la canónica `6e3c8298`, rama propia
 frentes independientes; las restauraciones, actualizaciones y verificaciones
 del registro usan una sola cola bajo `/run/lock/steps-environments.lock`.
 
-**Candidato G en aceptación.** Código `ccdae62e`; esta hoja se completa con
-el resultado del verificador antes de integrar. La aceptación anterior sigue
+**G aceptado.** Código probado `ccdae62e`, paquete exacto cotejado con Git y
+verificador local sin errores. La aceptación anterior sigue
 en [COMMUNITY_PAYROLL_ADOPCION.md](COMMUNITY_PAYROLL_ADOPCION.md).
 
 ## Implementación
@@ -103,7 +103,44 @@ Ver [COMMUNITY_CAF_CUSTODY.md](COMMUNITY_CAF_CUSTODY.md).
 
 ## Aceptación y evidencia
 
-Pendiente: resultado completo G y verificación local de las huellas.
+| Entorno privado | Casos registrados | Correctos | Omisiones por API/política | Fallos/errores | Instalados / EE |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Community oficial + OCA | 313 | 311 | 2 | 0 / 0 | 95 / 0 |
+| Copia fresca Cerro, referencia nativa | 244 | 242 | 2 | 0 / 0 | 389 / 140 |
+
+Las omisiones son explícitas: política de aprobación nativa y observación del
+proveedor nativo en CE; refresco teórico de días e inexistencia del flag propio
+de historial en el motor nativo. No son resultados financieros certificados.
+El perfil incluye 63 casos API CE, 34 casos de lotes CE/20 nativos y 20 de
+custodia CE/9 nativos, junto a los contratos y consumidores del bloque previo.
+No se suman suites históricas de perfiles distintos.
+
+Mismos **288 archivos**, SHA256 de `source-files.json`:
+`54ad8235a56a95cee272ee4ea615acd3ae41cc596f9c0d9790c2062a95a932f0`.
+Community oficial `4b4efe68291d6def5bb7d2e1f2b829e0cda577d4` y OCA
+`4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e`; fuente/derivaciones AGPL
+y consumidores cotejados byte a byte. El exportador sólo cambió para incluir
+los inspectores ejecutados en el paquete de evidencia, sin cambiar addons.
+
+Preservados **921 tablas/proyecciones y 140 correlativos**, antes/después del
+upgrade y pruebas; **59.048 XML IDs**, 1.218 modelos, 27.045 campos, 5.076
+selecciones, 2.324 ACL, 610 reglas, 1.330 menús, 463 relaciones y 529
+restricciones originales. Sólo continúa la excepción previamente aceptada de
+presentación de tres campos de Corrección; no se añadió ninguna excepción.
+Se conservan los 15 aliases bancarios y 37 multimoneda. BASIC positivo de SyS
+coincide en amount/quantity/rate/total en ambos motores y sus fixtures hacen
+rollback; continúa sin certificación de nómina completa o línea temporal.
+
+También pasó la inspección pasiva de ambos registros: **613 contratos** de
+tablas/correlativos exactos CE y **1.602 nativos**, sin leer registros de negocio,
+payloads, cuerpos del proveedor ni ejecutar computes. Confirma ambos proveedores
+reales en CE, Binary CAF attachment=True y ausencia de un `bank.rec.widget`
+ficticio; la referencia conserva sus clases originales.
+
+Resumen privado verificado:
+`C:/Users/tito4/.codex/local-artifacts/community-original-config-20261029/acceptance-G-complete/summary.json`.
+Incluye comparaciones de preservación, origen completo de SyS, cápsula original,
+inventario, metadatos cargados y huellas del paquete/validadores.
 
 Raíz privada: `/opt/steps-validation/community-operational-custody-20261029G`.
 Bases nuevas `COMMUNITY_PAYROLL_API_CUSTODY_20261029G` y
