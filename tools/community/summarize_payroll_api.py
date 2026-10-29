@@ -83,6 +83,8 @@ def main():
     registry=args.evidence/'adoption-registry'
     if registry.exists():paths+=['tools/community/'+name for name in (
         'validate_adoption_registry.py','batch_registry_contract.py','caf_registry_contract.py','validate_payroll_relation_storage.py')]
+    capsule=args.evidence/'configuration-capsule.json'
+    if capsule.exists():paths+=['tools/community/export_payroll_configuration.py','tools/community/hr_configuration_scope_audit.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -170,6 +172,27 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if capsule.exists():
+        sealed=json.loads(capsule.read_text(encoding='utf-8'))
+        executed=(args.evidence/'configuration-exporter.py').read_bytes()
+        assert sealed['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/export_payroll_configuration.py'].replace(b'\r\n',b'\n')
+        assert sealed['read_only'] and not any(sealed[key] for key in (
+            'orm_loaded','rules_evaluated','historical_payroll_read','engine_converted','financial_certified','import_authorized_by_capsule'))
+        expected_configuration={'hr_payroll_structure':4,'hr_payroll_structure_type':5,
+            'hr_payslip_input_type':6,'hr_salary_rule':71,'hr_salary_rule_category':34,
+            'hr_payroll_structure_hr_payslip_input_type_rel':0}
+        assert {table:report['row_count'] for table,report in sealed['tables'].items()}==expected_configuration
+        for report in sealed['tables'].values():
+            assert report['row_count']==len(report['rows_json'])
+            assert report['rows_sha256']==hashlib.sha256('\n'.join(report['rows_json']).encode()).hexdigest()
+        assert len(sealed['xmlids'])==91 and not sealed['unresolved_company_properties']
+        journals=sealed['external_references']['hr_payroll_structure.journal_id']
+        assert journals['company_dependent'] and journals['company_ids']==[1,2,3,4]
+        assert journals['ids']==[8,16,24,32] and len(journals['original_values'])==12
+        result['original_configuration_capsule']={'sha256':hashlib.sha256(capsule.read_bytes()).hexdigest(),
+            'configuration_rows':expected_configuration,'xmlids':91,'all_company_properties_preserved':True,
+            'adopted_on_oca':False,'financial_certified':False}
     if rule_source.exists():
         proof=json.loads(rule_source.read_text())
         executed=(args.evidence/'rule-source-auditor.py').read_bytes()

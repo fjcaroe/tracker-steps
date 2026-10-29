@@ -133,6 +133,7 @@ def main():
         conn.set_session(readonly=True, isolation_level='REPEATABLE READ')
         with conn.cursor() as cursor:
             result = seal(cursor)
+    result['tool_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     encoded = json.dumps(result, indent=2, ensure_ascii=False, default=str).encode()
     fd = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'wb') as stream:
