@@ -146,10 +146,12 @@ def main():
                 assert not any(arg in ('-u','-i','--update','--init') or arg.startswith(('--update=','--init=')) for arg in argv), 'Concurrent upgrade'
         with clone_database_access(query,clone,args.evidence):
             with (args.evidence/'source.dump').open('wb') as stream:
+                os.fchmod(stream.fileno(),0o600)
                 run('sudo','-u','postgres','pg_dump','-Fc',database,stdout=stream)
             run('sudo','-u','postgres','createdb','-O',user,clone)
             query(clone,'CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS unaccent;')
-            run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',user,'-d',clone,str(args.evidence/'source.dump'))
+            with (args.evidence/'source.dump').open('rb') as stream:
+                run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',user,'-d',clone,stdin=stream)
             query(clone,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
             tested=probe(clone,False)
         assert baseline=={'config':hashlib.sha256(conf.read_bytes()).hexdigest(),'sources':{p:tree_hash(Path(p)) for p in sources}}
