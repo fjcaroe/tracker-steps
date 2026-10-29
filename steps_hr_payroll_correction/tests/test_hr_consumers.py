@@ -1,5 +1,8 @@
 """Functional consumer flows on the installed, actual payroll provider."""
 from datetime import date, datetime, time
+import hashlib
+import json
+import logging
 from unittest.mock import patch
 
 import pytz
@@ -7,6 +10,9 @@ import pytz
 from odoo import api, Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
+
+
+_logger = logging.getLogger(__name__)
 
 
 @tagged("post_install", "-at_install", "hr_consumers")
@@ -196,6 +202,24 @@ class HrConsumersCase(TransactionCase):
             "contract_id": self.contract.id, "input_type_id": kind.id, "amount": 321})
         actual_before = self.contract.get_work_hours(slip.date_from, slip.date_to)
         self.assertAlmostEqual(actual_before.get(self.work_type.id, 0), sum((kept | removed).mapped("duration")))
+        if not self.oca:
+            if "edited" in slip._fields:
+                slip.edited = False
+            # The native UI/onchange explicitly refreshes day lines. Payroll
+            # compute_sheet alone consumes the existing rows; reproduce that
+            # real provider step, as action_apply itself does after correction.
+            slip._compute_worked_days_line_ids()
+            rows = slip._get_worked_day_lines()
+            _logger.info("HR_CONSUMER_NATIVE_REFRESH %s", {
+                "synthetic_slip_id": slip.id, "synthetic_structure_id": self.structure.id,
+                "structure_uses_worked_days": self.structure.use_worked_day_lines,
+                "slip_uses_worked_days": slip.use_worked_day_lines,
+                "edited": slip.edited if "edited" in slip._fields else None,
+                "state": slip.state, "validated_synthetic_entries": len(kept | removed),
+                "work_type_id": self.work_type.id, "actual_hours": actual_before[self.work_type.id],
+                "stored_day_rows": len(slip.worked_days_line_ids), "provider_day_rows": len(rows),
+                "provider_day_rows_sha256": hashlib.sha256(json.dumps(rows, sort_keys=True, default=str).encode()).hexdigest(),
+            })
         slip.compute_sheet()
         before = slip.worked_days_line_ids.filtered(lambda line: line.work_entry_type_id == self.work_type)
         self.assertAlmostEqual(sum(before.mapped("number_of_hours")), actual_before[self.work_type.id])
