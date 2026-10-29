@@ -109,6 +109,10 @@ def queries(capsule, *, source=False):
                    "WHERE table_schema='public' AND table_name IN (" + tables + ') ORDER BY table_name,ordinal_position',
         'fields': 'SELECT id,model,name,ttype,relation,relation_field,required,readonly,store,related,'
                   'company_dependent,translate,on_delete FROM ir_model_fields WHERE model IN (' + models + ') ORDER BY model,name',
+        # Technical keys/order only: no translated labels or formula bodies.
+        'selection_values': 'SELECT f.model,f.name,s.value,s.sequence FROM ir_model_fields_selection s '
+                            'JOIN ir_model_fields f ON f.id=s.field_id WHERE f.model IN (' + models
+                            + ") AND f.ttype='selection' ORDER BY f.model,f.name,s.sequence,s.value",
         'field_groups': 'SELECT f.model,f.name,g.group_id FROM ir_model_fields_group_rel g JOIN ir_model_fields f ON f.id=g.field_id '
                         'WHERE f.model IN (' + models + ') ORDER BY f.model,f.name,g.group_id',
         'xmlids': 'SELECT id,module,name,model,res_id,noupdate FROM ir_model_data WHERE model IN (' + models
@@ -236,6 +240,34 @@ def field_visible_to_role(metadata, xmlid, model, name):
         return None
     allowed = {row['group_id'] for row in metadata['field_groups'] if (row['model'], row['name']) == (model, name)}
     return not allowed or bool(allowed & closure(aliases[xmlid], metadata['implied_groups']))
+
+
+def selection_differences(source, target):
+    """A Selection declaration alone does not preserve its stored value keys.
+
+    Metadata cannot certify callable runtime choices. Empty catalogues stay an
+    explicit unknown rather than passing because two empty lists compare equal.
+    """
+    result = []
+    for field in source['fields']:
+        if field['ttype'] != 'selection':
+            continue
+        key = field['model'], field['name']
+        choices = []
+        for metadata in (source, target):
+            rows = [row for row in metadata.get('selection_values', [])
+                    if (row['model'], row['name']) == key]
+            choices.append([row['value'] for row in sorted(rows, key=lambda row: (row['sequence'], row['value']))])
+        before, after = choices
+        if before != after or not before:
+            result.append({'model': key[0], 'field': key[1],
+                'missing_target_values': sorted(set(before) - set(after)),
+                'target_only_values': sorted(set(after) - set(before)),
+                'shared_order_differs': [value for value in before if value in after]
+                    != [value for value in after if value in before],
+                'source_catalogue_empty': not before, 'target_catalogue_empty': not after,
+                'runtime_choices_certified': False})
+    return result
 
 
 def assess(capsule, source, target, source_external, target_external):
@@ -384,6 +416,8 @@ def assess(capsule, source, target, source_external, target_external):
         'target_has_zero_enterprise': target_is_community,
         'source_master_count': sum(len(value) for value in rows.values()), 'source_xmlid_count': len(capsule['xmlids']),
         'occupied_source_ids': occupied, 'xmlid_conflicts': xmlid_conflicts, 'field_differences': field_differences,
+        'selection_value_differences': selection_differences(source, target),
+        'selection_contract_runtime_certified': False,
         'column_differences': column_differences,
         'target_only_company_fields': [{'model': model, 'field': name, 'explicit_null_required_for_originals': True}
             for model in ('hr.payroll.structure', 'hr.salary.rule', 'hr.salary.rule.category')
@@ -450,6 +484,7 @@ def main():
     print(json.dumps({'evidence': str(output), 'source_master_count': assessment['source_master_count'],
         'occupied_source_ids': len(assessment['occupied_source_ids']), 'xmlid_conflicts': len(assessment['xmlid_conflicts']),
         'field_differences': len(assessment['field_differences']), 'role_acl_differences': len(assessment['role_acl_differences']),
+        'selection_value_differences': len(assessment['selection_value_differences']),
         'report_action_type_conflicts': len(assessment['report_action_type_conflicts']), 'adoption_ready': False,
         'salary_formulas_exposed': False}))
     return 0 if (assessment['source_capsule_matches_live_configuration']
