@@ -42,7 +42,7 @@ class AccountBatchPayment(models.Model):
         currency_field='currency_id', copy=False, compute_sudo=False)
     batch_type = fields.Selection([('inbound', 'Inbound'), ('outbound', 'Outbound')], required=True)
     payment_method_id = fields.Many2one('account.payment.method', compute='_compute_payment_method_id',
-        store=True, readonly=False, compute_sudo=False, ondelete='set null')
+        store=True, readonly=False, copy=True, compute_sudo=False, ondelete='set null')
     available_payment_method_ids = fields.Many2many('account.payment.method', compute='_compute_available_payment_method_ids')
     payment_method_code = fields.Char(related='payment_method_id.code')
     export_file_create_date = fields.Date(readonly=True, copy=False)
