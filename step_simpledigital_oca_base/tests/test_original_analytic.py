@@ -38,11 +38,14 @@ class OriginalAnalyticCase(TransactionCase):
         credit = cls.scope["account.account"].create({"name": "Private analytic liability", "code": "940062",
             "account_type": "liability_current", "company_ids": [Command.set(cls.company.ids)]})
         cls.rule.write({"account_debit": debit.id, "account_credit": credit.id})
-        plan = cls.scope["account.analytic.plan"].create({"name": "Private original salary plan", "default_applicability": "optional"})
-        cls.analytic = cls.scope["account.analytic.account"].create({"name": "Private original salary analytic",
-            "company_id": cls.company.id, "plan_id": plan.id})
-        cls.alternate = cls.scope["account.analytic.account"].create({"name": "Private original contract analytic",
-            "company_id": cls.company.id, "plan_id": plan.id})
+        # Configuration masters are provisioned by the fixture author. The
+        # actual payroll actor receives no additional analytic creation role.
+        plan = cls.env["account.analytic.plan"].create({"name": "Private original salary plan", "default_applicability": "optional"})
+        cls.analytic = cls.env["account.analytic.account"].create({"name": "Private original salary analytic",
+            "company_id": cls.company.id, "plan_id": plan.id}).with_env(cls.scope)
+        cls.alternate = cls.env["account.analytic.account"].create({"name": "Private original contract analytic",
+            "company_id": cls.company.id, "plan_id": plan.id}).with_env(cls.scope)
+        (cls.analytic | cls.alternate).check_access("read")
         employee = cls.scope["hr.employee"].create({"name": "Private original analytic employee", "company_id": cls.company.id})
         values = {"name": "Private original analytic contract", "employee_id": employee.id, "company_id": cls.company.id,
             "state": "open", "date_start": fields.Date.today().replace(day=1), "wage": 100.0,
@@ -74,8 +77,9 @@ class OriginalAnalyticCase(TransactionCase):
             "country_id": self.company.country_id.id, "currency_id": self.company.currency_id.id})
         self.scope.user.with_env(self.env).write({"company_ids": [Command.link(company.id)]})
         scope = self.scope["account.analytic.account"].with_context(allowed_company_ids=(self.company | company).ids).with_company(company).env
-        other = scope["account.analytic.account"].create({"name": "Private other company analytic",
-            "company_id": company.id, "plan_id": self.analytic.plan_id.id})
+        other = self.env["account.analytic.account"].with_company(company).create({"name": "Private other company analytic",
+            "company_id": company.id, "plan_id": self.analytic.plan_id.id}).with_env(scope)
+        other.check_access("read")
         return scope, other
 
     def _assert_posted(self, slip, account):
@@ -130,8 +134,9 @@ class OriginalAnalyticCase(TransactionCase):
         slip.with_context(without_compute_sheet=True).action_payslip_done()
         self._assert_posted(slip, self.analytic)
         self.assertEqual(slip.line_ids.read(["id", "salary_rule_id", "amount", "quantity", "rate", "total", "analytic_account_id"]), before)
-        shared = self.scope["account.analytic.account"].create({"name": "Private shared salary analytic",
-            "company_id": False, "plan_id": self.analytic.plan_id.id})
+        shared = self.env["account.analytic.account"].create({"name": "Private shared salary analytic",
+            "company_id": False, "plan_id": self.analytic.plan_id.id}).with_env(self.scope)
+        shared.check_access("read")
         self.rule.analytic_account_id = shared
         other = self._slip()
         other.compute_sheet()
@@ -272,6 +277,8 @@ class OriginalAnalyticStorageCase(TransactionCase):
     def _temporary_rules(self, kind="integer", default=""):
         # pg_temp shadows only SQL in this test transaction, then rollback
         # removes it. There is no persistent parallel payroll model/master.
+        self.env.cr.execute("CREATE TEMP TABLE account_analytic_account(id integer PRIMARY KEY,company_id integer) ON COMMIT DROP")
+        self.env.cr.execute("INSERT INTO account_analytic_account VALUES(%s,%s)", (self.account.id, self.company.id))
         self.env.cr.execute("CREATE TEMP TABLE hr_salary_rule(id integer PRIMARY KEY,company_id integer,analytic_account_id " + kind + default + ") ON COMMIT DROP")
 
     def test_scalar_conversion_keeps_null_and_exact_owner_account_ids_and_other_schema(self):
