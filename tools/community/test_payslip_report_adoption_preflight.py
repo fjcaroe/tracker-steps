@@ -47,6 +47,7 @@ class PayslipReportAdmissionCase(unittest.TestCase):
             <span t-out="hl.total"/><span t-out="dl.total"/><span t-out="o.net_wage"/>
             <div t-if="o.overtime_hours > 0"><span t-out="round(o.overtime_hours, 2)"/></div>
             <t t-set="style" t-value="'bold' if hl.category_id.code else ''"/>
+            <div id="signature_section"/>
         </template></odoo>'''
         result = adapt_payslip_report_xml(source)
         self.assertNotIn('o.net_wage', result)
@@ -54,6 +55,9 @@ class PayslipReportAdmissionCase(unittest.TestCase):
         self.assertNotIn('hstep_report_category', result)
         self.assertIn('step_report_category(hl)', result)
         self.assertIn('step_report_net(o) is not None', result)
+        self.assertIn('page-break-inside: avoid', result)
+        with self.assertRaisesRegex(AssertionError, 'signature structure drift'):
+            adapt_payslip_report_xml(source.replace('<div id="signature_section"/>', ''))
 
     def test_provider_structure_drift_is_not_silently_accepted(self):
         with self.assertRaises(AssertionError):
