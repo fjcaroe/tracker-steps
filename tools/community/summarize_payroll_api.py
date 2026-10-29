@@ -509,7 +509,11 @@ def main():
             chile=next(row for row in value['reports'] if row['structure_id']==value['chile_structure_id'])
             assert not chile['financial_certified']
             if mode=='cerro-reference':assert value['chile_rule_alias_ids']==chile['essential_ids']
-            reports[mode]={'normal_actor':True,'total_rules':sum(row['rule_count'] for row in value['reports']),
+            memberships=sum(row['rule_count'] for row in value['reports'])
+            known=all('direct_rule_ids' in row and 'inherited_rule_ids' in row for row in value['reports'])
+            distinct={ident for row in value['reports'] for ident in row.get('direct_rule_ids',[])+row.get('inherited_rule_ids',[])}
+            reports[mode]={'normal_actor':True,'total_rules':len(distinct) if known else memberships,
+                'effective_rule_memberships':memberships,'distinct_rule_ids_available':known,
                 'chile_rules':chile['rule_count'],'chile_errors':chile['errors'],
                 'original_essential_ids':chile['essential_ids'],'rule_alias_ids':value['chile_rule_alias_ids']}
         result['configuration']=reports
