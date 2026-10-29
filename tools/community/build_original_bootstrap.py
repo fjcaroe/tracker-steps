@@ -1,8 +1,9 @@
 """Reproduce the real AGPL candidate without its two salary seed XML files.
 
-No database access, original configuration import, XML-ID reassignment or
-alternative payroll model is implemented. Runtime files use the existing,
-unchanged pinned derivation. Missing references fail before sealing a profile.
+One unpaid-type seed link is deferred explicitly until original adoption. No
+database access, configuration import, XML-ID reassignment or alternative
+payroll model is implemented. Runtime uses the unchanged pinned derivation.
+Missing references fail before sealing this non-operational bootstrap.
 """
 import argparse
 import ast
@@ -20,6 +21,9 @@ import xml.etree.ElementTree as ET
 
 MODULE = "l10n_cl_simpledigital_payroll"
 OMIT = ("data/hr_salary_structure.xml", "data/hr_salary_rule.xml")
+DEFER_FILE = "data/hr_work_entry_type.xml"
+DEFER_TYPE = MODULE + ".work_entry_type_unpaid_cl"
+DEFER_STRUCTURE = MODULE + ".structure_chile"
 PIN_COMMUNITY = "4b4efe68291d6def5bb7d2e1f2b829e0cda577d4"
 PIN_OCA = "4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e"
 SALARY_MODELS = {"hr.salary.rule", "hr.salary.rule.category", "hr.payroll.structure", "hr.payroll.structure.type", "hr.payslip.input.type"}
@@ -50,6 +54,7 @@ def hashes(files):
 
 def manifest(files):
     result = ast.literal_eval(files["__manifest__.py"].decode("utf-8-sig"))
+    result.setdefault("license", "LGPL-3")  # official Odoo manifest default
     require(result.get("license") in ("AGPL-3", "LGPL-3"), "nonfree-runtime-rejected")
     for name in result.get("data", []) + result.get("demo", []):
         require(not PurePosixPath(name).is_absolute() and ".." not in PurePosixPath(name).parts, "unsafe-manifest-path")
@@ -187,8 +192,25 @@ def plan_profile(normal_files, external_definitions):
     files["__manifest__.py"] = (repr(spec) + "\n").encode()
     for name in OMIT:
         files.pop(name)
+    # This real retained type has one required link to the omitted structure.
+    # Defer only that seed assignment; the relation/model and processing guards
+    # remain real. No missing structure or original policy is manufactured.
+    require(normal["data"].count(DEFER_FILE) == 1, "unpaid-seed-file-drift")
+    tree = ET.fromstring(files[DEFER_FILE])
+    owners = [node for node in tree.iter("record") if qualify(node.get("id", ""), MODULE) == DEFER_TYPE]
+    require(len(owners) == 1 and owners[0].get("model") == "hr.work.entry.type", "unpaid-seed-owner-drift")
+    assignments = [node for node in owners[0].findall("field") if node.get("name") == "unpaid_structure_ids"]
+    require(len(assignments) == 1 and set(assignments[0].attrib) == {"name", "eval"}, "unpaid-seed-assignment-drift")
+    expected = ast.dump(ast.parse("[(4, ref(%r))]" % DEFER_STRUCTURE, mode="eval"))
+    require(ast.dump(ast.parse(assignments[0].get("eval"), mode="eval")) == expected, "unpaid-seed-expression-drift")
+    pattern = rb"<field\b[^>]*\bname=[\"']unpaid_structure_ids[\"'][^>]*/>"
+    matches = list(re.finditer(pattern, files[DEFER_FILE]))
+    require(len(matches) == 1, "unpaid-seed-byte-span-drift")
+    fragment = matches[0].group()
+    files[DEFER_FILE] = files[DEFER_FILE][:matches[0].start()] + files[DEFER_FILE][matches[0].end():]
     before, after = inventory(MODULE, normal_files), inventory(MODULE, files)
     removed = set(before["definitions"]) - set(after["definitions"])
+    require(DEFER_STRUCTURE in removed, "deferred-structure-is-not-an-omitted-seed")
     require(not after["salary_records"], "retained-salary-seed-record")
     optional_missing, resolved = [], []
     for reference in after["references"]:
@@ -200,10 +222,16 @@ def plan_profile(normal_files, external_definitions):
         else:
             raise BootstrapError("orphan-reference:" + reference["file"] + ":" + name)
     return files, {"omitted_files": list(OMIT), "omitted_definitions": sorted(removed),
+        "deferred_seed_assignment": {"file": DEFER_FILE, "record_xmlid": DEFER_TYPE, "field": "unpaid_structure_ids",
+            "fragment": fragment.decode(), "fragment_sha256": hashlib.sha256(fragment).hexdigest(),
+            "structure_xmlid": DEFER_STRUCTURE, "relation": "hr_payroll_structure_hr_work_entry_type_rel",
+            "adopted": False, "original_policy_preserved_in_target": False,
+            "must_adopt_before_chile_processing": True},
         "omitted_salary_records": before["salary_records"], "retained_salary_records": [],
         "references": resolved, "optional_missing_seed_references": optional_missing,
         "python_files": after["python_files"], "no_demo_required": True,
-        "original_masters_imported": False, "original_aliases_guaranteed": False}
+        "original_masters_imported": False, "original_aliases_guaranteed": False,
+        "operational_payroll_package": False}
 
 
 def dependencies(roots, entry="step_simpledigital_oca_base"):
@@ -215,6 +243,10 @@ def dependencies(roots, entry="step_simpledigital_oca_base"):
         visiting.add(name)
         matches = [root / name for root in roots if (root / name / "__manifest__.py").is_file()]
         require(len(matches) == 1, "dependency-root-missing-or-ambiguous:" + name)
+        # Inspect licensing before reading any runtime body. A wrong root must
+        # not cause the resolver to inspect an Enterprise dependency's sources.
+        declaration = ast.literal_eval((matches[0] / "__manifest__.py").read_text(encoding="utf-8-sig"))
+        require(declaration.get("license", "LGPL-3") in ("AGPL-3", "LGPL-3"), "nonfree-runtime-rejected")
         files = snapshot(matches[0])
         spec = manifest(files)
         for parent in spec.get("depends", []):
@@ -242,8 +274,10 @@ def build(source, output, *, dependency_roots, community_root, oca_root):
     source, output = Path(source).resolve(), Path(output).resolve()
     require(output.is_relative_to(Path("/opt/steps-validation")) and not output.exists(), "new-private-output-required")
     for root, pin in ((community_root, PIN_COMMUNITY), (oca_root, PIN_OCA)):
-        actual = subprocess.check_output(["git", "-c", "safe.directory=" + str(Path(root).resolve()), "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        command = ["git", "-c", "safe.directory=" + str(Path(root).resolve()), "-C", str(root)]
+        actual = subprocess.check_output(command + ["rev-parse", "HEAD"], text=True).strip()
         require(actual == pin, "runtime-git-pin-drift")
+        require(not subprocess.check_output(command + ["status", "--porcelain", "--untracked-files=no"], text=True).strip(), "runtime-tracked-source-drift")
     base = Path(__file__).resolve().parent
     pin = json.loads((base / "simpledigital_runtime_source.json").read_text())
     source_files = {name: (source / name).read_bytes() for name in pin["files"]}

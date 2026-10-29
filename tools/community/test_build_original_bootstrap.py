@@ -5,15 +5,19 @@ import build_original_bootstrap as builder
 
 
 def fixture(extra_xml="", python=""):
-    data = list(builder.OMIT) + ["views/real.xml", "security/ir.model.access.csv"]
+    data = list(builder.OMIT) + [builder.DEFER_FILE, "views/real.xml", "security/ir.model.access.csv"]
     return {
         "__manifest__.py": repr({"name": "Synthetic real provider", "license": "AGPL-3",
             "depends": ["step_simpledigital_oca_base"], "data": data}).encode(),
         "__init__.py": b"from . import models\n",
         "models/__init__.py": b"from . import real\n",
         "models/real.py": ("from odoo import models\nclass Real(models.Model):\n _name='synthetic.actual'\n" + python).encode(),
-        builder.OMIT[0]: b"<odoo><record id='original_structure' model='hr.payroll.structure'/></odoo>",
+        builder.OMIT[0]: b"<odoo><record id='structure_chile' model='hr.payroll.structure'/></odoo>",
         builder.OMIT[1]: b"<odoo><record id='original_rule' model='hr.salary.rule'/></odoo>",
+        builder.DEFER_FILE: ("<odoo><record id='work_entry_type_unpaid_cl' model='hr.work.entry.type'>"
+            "<field name='name'>Synthetic real unpaid type</field>"
+            "<field name='unpaid_structure_ids' eval=\"[(4, ref('l10n_cl_simpledigital_payroll.structure_chile'))]\"/>"
+            "</record></odoo>").encode(),
         "views/real.xml": ("<odoo><record id='real_form' model='ir.ui.view'><field name='inherit_id' ref='base.real_view'/></record>"
             "<template id='real_report'><t t-call='web.html_container'/></template>" + extra_xml + "</odoo>").encode(),
         "security/ir.model.access.csv": b"id,name,model_id:id,group_id:id,perm_read\naccess_actual,Actual,model_synthetic_actual,base.group_user,1\n",
@@ -28,18 +32,33 @@ class OriginalBootstrapBuilderCase(unittest.TestCase):
         original = fixture()
         result, closure = builder.plan_profile(original, EXTERNAL)
         self.assertEqual(set(original) - set(result), set(builder.OMIT))
-        self.assertEqual([name for name in result if result[name] != original[name]], ["__manifest__.py"])
+        self.assertEqual([name for name in result if result[name] != original[name]], ["__manifest__.py", builder.DEFER_FILE])
+        fragment = closure["deferred_seed_assignment"]["fragment"].encode()
+        self.assertEqual(result[builder.DEFER_FILE], original[builder.DEFER_FILE].replace(fragment, b""))
+        self.assertFalse(closure["deferred_seed_assignment"]["adopted"])
         self.assertEqual(closure["retained_salary_records"], [])
         self.assertFalse(closure["original_aliases_guaranteed"])
         self.assertEqual(len(closure["omitted_definitions"]), 2)
 
     def test_required_reference_to_omitted_original_aborts_even_if_external_claims_it(self):
-        original = fixture("<record id='bad' model='ir.ui.view'><field name='inherit_id' ref='original_structure'/></record>")
+        original = fixture("<record id='bad' model='ir.ui.view'><field name='inherit_id' ref='structure_chile'/></record>")
         with self.assertRaisesRegex(builder.BootstrapError, "orphan-reference"):
-            builder.plan_profile(original, dict(EXTERNAL, **{builder.MODULE + ".original_structure": "hr.payroll.structure"}))
+            builder.plan_profile(original, dict(EXTERNAL, **{builder.MODULE + ".structure_chile": "hr.payroll.structure"}))
+
+    def test_only_exact_unpaid_assignment_is_deferred_and_other_orphans_abort(self):
+        for changed in (b"[(4, ref('other.structure'))]", b"[(6, 0, [ref('l10n_cl_simpledigital_payroll.structure_chile')])]",
+                b"[(4, ref('l10n_cl_simpledigital_payroll.structure_chile')), (4, ref('other.structure'))]"):
+            original = fixture()
+            original[builder.DEFER_FILE] = original[builder.DEFER_FILE].replace(
+                b"[(4, ref('l10n_cl_simpledigital_payroll.structure_chile'))]", changed)
+            with self.assertRaisesRegex(builder.BootstrapError, "unpaid-seed-expression-drift"):
+                builder.plan_profile(original, EXTERNAL)
+        original = fixture("<record id='other' model='ir.ui.view'><field name='inherit_id' ref='original_rule'/></record>")
+        with self.assertRaisesRegex(builder.BootstrapError, "orphan-reference"):
+            builder.plan_profile(original, EXTERNAL)
 
     def test_optional_python_missing_seed_requires_explicit_false_contract(self):
-        original = fixture(python=" def lookup(self):\n  return self.env.ref('l10n_cl_simpledigital_payroll.original_structure', raise_if_not_found=False)\n")
+        original = fixture(python=" def lookup(self):\n  return self.env.ref('l10n_cl_simpledigital_payroll.structure_chile', raise_if_not_found=False)\n")
         result, closure = builder.plan_profile(original, EXTERNAL)
         self.assertEqual(len(closure["optional_missing_seed_references"]), 1)
         self.assertEqual(result["models/real.py"], original["models/real.py"])
