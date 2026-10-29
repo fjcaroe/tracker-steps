@@ -72,6 +72,11 @@ class OriginalTypeRelationCases:
         self.assertEqual(self.kinds[0].struct_type_count, len(self.kinds[0].struct_ids))
         self.assertEqual(self.kinds[0].struct_type_count, 2)
         self.kinds[1].write({"struct_ids": [Command.link(self.structures[0].id)]})
+        if self.NATIVE:
+            # The observed native nonstored counter has no inverse-FK cache
+            # invalidation within this request. Compare a fresh form read,
+            # without requiring Community to reproduce that stale value.
+            self.kinds.invalidate_recordset(["struct_ids", "struct_type_count"])
         self.assertEqual(self.kinds[0].struct_type_count, 1)
         self.assertEqual(self.kinds[1].struct_type_count, 1)
         if not self.NATIVE:
