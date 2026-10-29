@@ -1,0 +1,7 @@
+<odoo noupdate="1">
+    <record id="account_batch_payment_comp_rule" model="ir.rule">
+        <field name="name">Account batch payment company rule</field>
+        <field name="model_id" ref="model_account_batch_payment"/>
+        <field name="domain_force">['|',('journal_id.company_id','=',False),('journal_id.company_id','parent_of', company_ids)]</field>
+    </record>
+</odoo>
