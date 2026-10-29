@@ -29,6 +29,8 @@ class Structure(models.Model):
         self.ensure_one()
         self.check_access("read")
         self.check_field_access_rights("read", ["parent_id", "rule_ids", "company_id"])
+        self.env["hr.payroll.structure"].flush_model(["parent_id", "company_id", "rule_ids"])
+        self.env["hr.salary.rule"].flush_model(["active", "parent_rule_id", "company_id"])
         structures = self.env["hr.payroll.structure"]
         seen = set()
         current = self
