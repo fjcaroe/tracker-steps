@@ -5,8 +5,9 @@ from odoo.tests import TransactionCase, tagged
 @tagged('post_install', '-at_install')
 class PayrollReviewCase(TransactionCase):
     def contract(self, name):
-        employee = self.env['hr.employee'].new({'name': name, 'company_id': self.env.company.id})
-        return self.env['hr.contract'].new({'name': 'Contrato ' + name, 'employee_id': employee,
+        employee = self.env['hr.employee'].create({'name': name, 'company_id': self.env.company.id})
+        return self.env['hr.contract'].create({'name': 'Contrato ' + name, 'employee_id': employee.id,
+            'date_start':'2026-01-01','wage':1000,'resource_calendar_id':self.env.company.resource_calendar_id.id,
             'company_id': self.env.company.id, 'step_payroll_migration_review': True})
 
     def slip(self, contract):
@@ -49,9 +50,8 @@ class PayrollReviewCase(TransactionCase):
         self.assertTrue(contract.step_payroll_migration_review)
 
     def test_legacy_payslip_cannot_be_recalculated(self):
-        contract = self.contract('QA Historico')
-        slip = self.slip(contract)
-        slip.struct_id = self.env['hr.payroll.structure'].new({'name': 'QA Historica', 'step_legacy_payroll': True})
+        structure = self.env['hr.payroll.structure'].new({'name': 'QA Historica', 'step_legacy_payroll': True})
+        slip = self.env['hr.payslip'].new({'struct_id':structure})
         with self.assertRaises(UserError) as error:
             slip.compute_sheet()
         self.assertIn('No se recalcula', str(error.exception))
