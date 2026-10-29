@@ -132,6 +132,13 @@ productos para instalar en el perfil CE. `steps_transport` tiene fuente encontra
 sin origen/licencia operativa acreditados; no se activó. No hay publicaciones
 en producción ni QA-Cerro, cambios de vencimiento o recálculo de originales.
 
+Retención revisada sin borrar: siete ensayos rechazados e inactivos de este
+bloque liberarían 671 MiB. Hay 49,9 GiB en PostgreSQL y 34,9 GiB en artefactos,
+por encima de las reservas 5/2 GiB; no se ejecutó cleanup. El plan privado
+`community-operational-custody-20261029-retention-plan/cleanup-plan-after-G.json`
+protege G, ADOPTION A/B, SyS C y todos los archivos/respaldos. Su eventual uso
+requiere aceptación de G, justificación y nueva comprobación bajo bloqueo.
+
 ## Pendientes y valoración del 31 de octubre
 
 1. Cerrar los diez campos, reporte Community real, diarios/contabilidad,

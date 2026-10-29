@@ -86,7 +86,7 @@ solo ofrece custodia de lectura. No llama al SII ni a la emisión nativa.
 
 ## Pruebas candidatas y puerta coordinada
 
-Hay **15 casos concretos CE y 9 nativos**, tags:
+Hay **20 casos concretos CE y 9 nativos**, tags:
 
 ```text
 /step_l10n_cl_caf_storage,/step_l10n_cl_caf_native_reference
