@@ -6,10 +6,22 @@ from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from odoo.exceptions import UserError, AccessError
 from ..models.bank_export import clean_rut, whole_pesos
+from odoo.addons.step_bank_export_core.tests.common import private_finance_sequences, BATCH_CODES
 
 
 @tagged('post_install', '-at_install')
 class SecurityExportCase(AccountTestInvoicingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        private_finance_sequences(cls.env, cls.env.company, BATCH_CODES)
+
+    def setUp(self):
+        super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
+
     def make_batch(self):
         self.env.user.groups_id |= self.env.ref('account.group_validate_bank_account')
         self.env.company.treasury_batch_approval_threshold = 0
@@ -126,3 +138,23 @@ class SecurityExportCase(AccountTestInvoicingCommon):
         account.allow_out_payment = False
         with self.assertRaises(UserError):
             batch._security_rows()
+
+    def test_hidden_payment_prevents_partial_native_batch_exports(self):
+        batch, payment, account = self.make_batch()
+        other = payment.copy({'amount': 10})
+        batch.payment_ids = [Command.link(other.id)]
+        payments = payment | other
+        before = payments.sudo().read(['amount', 'state', 'date', 'write_date', 'batch_payment_id'])
+        actor = new_test_user(self.env, login='bank_native_batch_manager',
+                              groups='account.group_account_manager,account.group_validate_bank_account',
+                              company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
+        self.assertEqual(len(batch.with_user(actor)._security_rows()), 2)
+        self.env['ir.rule'].create({'name': 'Lote no debe exportar selección parcial por permisos',
+            'model_id': self.env['ir.model']._get_id('account.payment'),
+            'domain_force': repr([('id', '!=', other.id)]),
+            'perm_read': True, 'perm_write': False, 'perm_create': False, 'perm_unlink': False})
+        for method in ('action_export_security_xls', 'action_export_bancoestado_xlsx', 'action_export_treasury_review_csv'):
+            with self.assertRaises(AccessError):
+                getattr(batch.with_user(actor), method)()
+        self.assertEqual(payments.sudo().read(list(before[0].keys() - {'id'})), before)
+        self.assertEqual((batch.security_export_count, batch.bancoestado_export_count), (0, 0))

@@ -3,7 +3,7 @@ from datetime import timedelta
 from odoo import Command, fields
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests import TransactionCase, Form, tagged
-from ..hooks import CORE, LEGACY, VIEWS, FIELDS, alias, adopt_legacy_records, preserve_legacy_xmlids
+from ..hooks import CORE, LEGACY, VIEWS, FIELDS, MODELS, alias, adopt_legacy_records, preserve_legacy_xmlids
 
 
 @tagged('post_install', '-at_install')
@@ -14,6 +14,18 @@ class CommunityCurrencyCase(TransactionCase):
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True, mail_notrack=True,
             no_reset_password=True, mail_create_nosubscribe=True, mail_notify_force_send=False))
         cls.company = cls.env.company
+        # Keep this core independently testable with only account installed.
+        # Its one payment must not consume the restored global payment code.
+        sequences = cls.env['ir.sequence'].sudo().with_company(cls.company)
+        if sequences.search([('code', '=', 'account.payment'), ('company_id', '=', cls.company.id)]):
+            raise AssertionError('Use an isolated currency fixture company: payment sequence already exists')
+        private = sequences.create({'name': 'Private currency payment fixture', 'code': 'account.payment',
+            'company_id': cls.company.id, 'implementation': 'no_gap', 'use_date_range': False,
+            'prefix': 'QA/CURRENCY/', 'padding': 6, 'number_next': 1})
+        selected = sequences.search([('code', '=', 'account.payment'),
+            ('company_id', 'in', [cls.company.id, False])], order='company_id', limit=1)
+        if selected != private:
+            raise AssertionError('Currency fixture would consume an original payment counter')
         cls.day = fields.Date.context_today(cls.company)
         cls.operational = cls.env['res.currency'].create({'name': 'XOC', 'symbol': 'OC', 'rounding': 0.01})
         cls.rate = cls.env['res.currency.rate'].create({'name': cls.day, 'currency_id': cls.operational.id,
@@ -100,9 +112,14 @@ class CommunityCurrencyCase(TransactionCase):
         self.assertIn('operational_currency_id', settings)
 
     def test_legacy_and_core_xmlids_reference_the_same_records(self):
-        names = list(VIEWS) + ['field_%s__%s' % (model.replace('.', '_'), name) for model, fields_ in FIELDS.items() for name in fields_]
+        names = list(VIEWS) + ['model_' + model.replace('.', '_') for model in MODELS] + [
+            'field_%s__%s' % (model.replace('.', '_'), name) for model, fields_ in FIELDS.items() for name in fields_]
+        self.assertEqual(len(names), 37)
         for name in names:
             self.assertEqual(self.env.ref(CORE+'.'+name), self.env.ref(LEGACY+'.'+name))
+        for field_name in FIELDS['account.bank.statement.line']:
+            field = self.env.ref(CORE + '.field_account_bank_statement_line__' + field_name)
+            self.assertEqual(field.related, 'move_id.' + field_name)
 
     def test_metadata_adoption_is_idempotent(self):
         before = {(record.module, record.name): (record.model, record.res_id) for record in self.env['ir.model.data'].search([

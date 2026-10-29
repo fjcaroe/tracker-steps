@@ -94,6 +94,11 @@ class WorkedDays(models.Model):
         prepared=[]
         for original in values_list:
             values=dict(original)
+            if values.get('payslip_id'):
+                slip=self.env['hr.payslip'].browse(values['payslip_id'])
+                assert_mutable(slip)
+                if values.get('work_entry_type_id') and 'contract_id' not in values:
+                    values['contract_id']=slip.contract_id.id
             if values.get('work_entry_type_id'):
                 kind=self.env['hr.work.entry.type'].browse(values['work_entry_type_id'])
                 kind.check_access('read')
@@ -105,8 +110,10 @@ class WorkedDays(models.Model):
         return super().create(prepared)
 
     def write(self,values):
+        assert_mutable(self.mapped('payslip_id'))
+        if values.get('payslip_id'):
+            assert_mutable(self.env['hr.payslip'].browse(values['payslip_id']))
         if {'code','work_entry_type_id'} & values.keys():
-            assert_mutable(self.mapped('payslip_id'))
             if 'work_entry_type_id' in values:
                 if not values['work_entry_type_id'] and self.work_entry_type_id:
                     raise ValidationError(_('A typed worked day must retain its master relation.'))
@@ -118,10 +125,18 @@ class WorkedDays(models.Model):
                     values=dict(values,code=kind.code)
         return super().write(values)
 
-    @api.constrains('code','work_entry_type_id')
+    def unlink(self):
+        assert_mutable(self.mapped('payslip_id'))
+        return super().unlink()
+
+    @api.constrains('code','work_entry_type_id','contract_id','payslip_id')
     def _check_type_code(self):
         if any(line.work_entry_type_id and line.code!=line.work_entry_type_id.code for line in self):
             raise ValidationError(_('The worked-day code must match its existing type.'))
+        for line in self.filtered('work_entry_type_id'):
+            slip=line.payslip_id
+            if line.contract_id != slip.contract_id or line.contract_id.employee_id != slip.employee_id or line.contract_id.company_id != slip.company_id:
+                raise ValidationError(_('Worked days must retain the payslip employee and company contract.'))
 
     @api.onchange('work_entry_type_id')
     def _onchange_type_code(self):

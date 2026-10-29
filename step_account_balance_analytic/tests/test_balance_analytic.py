@@ -1,9 +1,16 @@
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tests import TransactionCase, tagged
+from odoo.tests.common import new_test_user
 
 
 @tagged('post_install', '-at_install')
 class BalanceAnalyticCase(TransactionCase):
+    def setUp(self):
+        super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
+
     def prepare(self):
         self.company=self.env.company
         self.plan=self.env['account.analytic.plan'].create({'name':'Plan obligatorio QA T88','default_applicability':'mandatory'})
@@ -107,3 +114,28 @@ class BalanceAnalyticCase(TransactionCase):
         asset_line.analytic_distribution=False
         move.action_post()
         self.assertEqual(move.state,'posted')
+
+    def test_reading_balance_applicability_keeps_posted_amounts_and_history(self):
+        self.prepare()
+        asset = self.account('asset_current', 'R')
+        liability = self.account('liability_current', 'S')
+        move = self.move(asset, liability)
+        move.action_post()
+        fields = ['debit', 'credit', 'balance', 'amount_currency', 'analytic_distribution', 'write_date']
+        before = move.line_ids.read(fields)
+        original_date = move.write_date
+        for account in (asset, liability):
+            self.plan.get_relevant_plans(company_id=self.company.id, account=account.id, business_domain='general')
+        self.assertEqual(move.line_ids.read(fields), before)
+        self.assertEqual(move.write_date, original_date)
+        self.assertEqual(move.state, 'posted')
+
+    def test_community_extraction_does_not_grant_posting_rights(self):
+        self.prepare()
+        move = self.move(self.account('asset_current', 'R'), self.account('liability_current', 'S'))
+        user = new_test_user(self.env, login='balance_analytic_readonly',
+                             groups='account.group_account_readonly', company_id=self.company.id)
+        move.with_user(user).check_access('read')
+        with self.assertRaises(AccessError):
+            move.with_user(user).action_post()
+        self.assertEqual(move.state, 'draft')

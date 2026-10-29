@@ -6,6 +6,7 @@ import io
 import tarfile
 import json
 import subprocess
+import sys
 from decimal import Decimal
 from pathlib import Path
 
@@ -26,6 +27,12 @@ def main():
     paths=['step_payroll_contracts','step_payroll_oca_api','step_payroll_enterprise_reference',
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
+    accelerated=read('community','passed').get('accelerated',False)
+    if accelerated:
+        hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
+        paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
+            'step_account_treasury_batch','step_bank_security','step_l10n_cl_edi_core','step_accounting_multicurrency',
+            'tools/community/accelerated_acceptance.py','tools/community/hr_consumers_candidate.py','tools/community/finance_frontier_contract.py','tools/community/hr_consumer_metadata.py']
     previred=read('community','passed').get('profile') in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=read('community','passed').get('profile') in ('previred-simpledigital','book-consumers','book-install','book-history')
     if previred:paths+=['step_hr_previred']
@@ -62,6 +69,10 @@ def main():
     if ytd.exists():paths+=['tools/community/probe_payroll_ytd.py']
     upgrade=args.evidence/'history-upgrade/passed.json'
     if upgrade.exists():paths+=['tools/community/validate_payroll_history_upgrade.py']
+    relation_storage=args.evidence/'sys-storage/passed.json'
+    if relation_storage.exists():paths+=['tools/community/validate_payroll_relation_storage.py']
+    products=args.evidence/'products-inventory.json'
+    if products.exists():paths+=['tools/community/audit_product_frontier.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -89,6 +100,30 @@ def main():
         pin=json.loads(source['tools/community/simpledigital_runtime_source.json'].decode('utf-8-sig'))
         assert derivation['source_files']==pin['files'] and derivation['license']=='AGPL-3'
         assert derivation['builder_sha256']==hashlib.sha256(source['tools/community/build_simpledigital_candidate.py']).hexdigest()
+    if accelerated:
+        proof=read('community','hr-consumers-derivation')
+        assert proof['community_candidate'] and not proof['identity_conversion_accepted']
+        assert proof['builder_sha256']==hashlib.sha256(source['tools/community/hr_consumers_candidate.py']).hexdigest()
+        # Reproduce each declared transformation from the exact Git packet.
+        dependencies={'hr_payroll':'step_simpledigital_oca_security','hr_work_entry_contract_enterprise':'hr_work_entry_contract'}
+        actual=read('community','consumer-source-files');native=read('cerro-reference','consumer-source-files')
+        expected={}
+        for module in hr_modules:
+            for relative,hashes in proof['modules'][module]['files'].items():
+                name=module+'/'+relative;blob=source[name]
+                assert hashlib.sha256(blob).hexdigest()==hashes['source']==packets[0][name]==native[name]
+                if relative=='__manifest__.py':
+                    manifest=ast.literal_eval(blob.decode('utf-8-sig'))
+                    manifest['depends']=list(dict.fromkeys(dependencies.get(d,d) for d in manifest['depends']))
+                    blob=(repr(manifest)+'\n').encode()
+                elif name.endswith(('.xml','.csv')):
+                    text=blob.decode('utf-8-sig')
+                    for old,new in proof['xmlid_map'].items():text=text.replace(old,new)
+                    blob=text.encode()
+                digest=hashlib.sha256(blob).hexdigest()
+                assert actual[name]==hashes['candidate']==digest,name
+                expected[name]=digest
+        assert actual==expected and set(native)==set(expected)
     results={mode:read(mode,'passed') for mode in ('community','cerro-reference')}
     assert results['community']['counts']['enterprise']==0
     assert results['cerro-reference']['counts']['enterprise']==140
@@ -107,7 +142,14 @@ def main():
         assert before.keys()==after.keys()
         assert all((v['rows'],v['hash'])==(after[k]['rows'],after[k]['hash']) for k,v in before.items()),name
     original=read('cerro-reference','identity-before');current=read('cerro-reference','identity-after')
+    if accelerated:
+        sys.path.insert(0,str(repo/'tools/community'))
+        from hr_consumer_metadata import verify as hr_verify
+        audit=hr_verify(original,current)
+        audit['source']['sha256']=hashlib.sha256(source[audit['source']['path']]).hexdigest()
+        assert audit==read('cerro-reference','hr-metadata-proof')
     for name,rows in original.items():
+        if accelerated and name=='ir_model_fields':continue  # all original rows checked by the exact source-message policy
         if rows and 'id' in rows[0]:
             indexed={row['id']:row for row in current[name]}
             assert all(indexed.get(row['id'])==row for row in rows),name
@@ -118,6 +160,59 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if products.exists():
+        proof=json.loads(products.read_text())
+        executed=(args.evidence/'products-auditor.py').read_bytes()
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/audit_product_frontier.py'].replace(b'\r\n',b'\n')
+        assert proof['read_only'] and not any(proof[key] for key in ('orm_loaded','business_data_exported','source_bodies_exported','enterprise_sources_copied'))
+        assert set(proof['products'])=={'cerro','steps','sys'}
+        result['products']={}
+        for name,product in proof['products'].items():
+            modules=product['modules'];own=[m for m in modules if m['name'].startswith('step')]
+            assert product['installed']==len(modules) and product['own']==len(own)
+            assert product['enterprise']==sum(m['license']=='OEEL-1' for m in modules)
+            assert product['own_without_source']==[m['name'] for m in own if not m['source_available']]
+            assert product['own_without_active_source']==[m['name'] for m in own if not m['active_source_available']]
+            result['products'][name]={key:value for key,value in product.items() if key!='modules'}
+    if relation_storage.exists():
+        proof=json.loads(relation_storage.read_text())
+        executed=(relation_storage.parent/'validator.py').read_bytes()
+        assert proof['tool_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/validate_payroll_relation_storage.py'].replace(b'\r\n',b'\n')
+        old=json.loads((relation_storage.parent/'original-before.json').read_text())
+        now=json.loads((relation_storage.parent/'original-after.json').read_text())
+        assert old==now and len(old)==proof['original_contracts_preserved']
+        assert proof['idempotence_verified'] and proof['backup_decoded'] and proof['original_metadata_preserved']
+        assert not any(proof[k] for k in ('writes_to_source','orm_loaded','paid_payroll_recomputed','engine_converted','financial_certified'))
+        assert set(proof['tables'])=={'hr_payslip_worked_days','hr_payslip_input'}
+        for table,row in proof['tables'].items():
+            assert old[table]['rows']==row['rows'] and not {'code','contract_id'} & set(row['original_columns'])
+        for filename in ('storage-after-restore.json','storage-after.json'):
+            capacity=json.loads((relation_storage.parent/filename).read_text())
+            assert capacity['postgres']['available_bytes']>=5*1024**3 and capacity['artifacts']['available_bytes']>=2*1024**3
+        result['sys_related_storage']={'original_contracts_preserved':len(old),
+            'rows':{table:row['rows'] for table,row in proof['tables'].items()},
+            'idempotence_verified':True,'orm_loaded':False,'engine_converted':False,'financial_certified':False}
+    if accelerated:
+        assert results['cerro-reference']['accelerated']
+        assert results['community']['expected_test_count']==242 and results['cerro-reference']['expected_test_count']==214
+        for report in results.values():
+            assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
+                       for name in report['accelerated_tools_sha256'])
+        bank_before=read('cerro-reference','bank-metadata-before');bank_after=read('cerro-reference','bank-metadata-after')
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('finance_frontier_contract',repo/'tools/community/finance_frontier_contract.py')
+        helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
+        assert (repo/'tools/community/finance_frontier_contract.py').read_bytes().replace(b'\r\n',b'\n')==source['tools/community/finance_frontier_contract.py'].replace(b'\r\n',b'\n')
+        assert helper.verify_metadata(bank_before,bank_after)==read('cerro-reference','bank-metadata-proof')
+        for mode in ('community','cerro-reference'):
+            finance=read(mode,'finance-frontier')
+            assert len(finance['aliases'])==15 and finance['payment_formats_use_original_model'] and not finance['batch_conversion_certified']
+            assert len(finance['multicurrency_legacy_aliases'])==37
+        result['accelerated']={'hr_consumers_installed':list(hr_modules),'bank_aliases_preserved':15,
+            'multicurrency_aliases_preserved':37,
+            'caf_authenticity_core_only':True,'full_dte_certified':False,'batch_conversion_certified':False}
     if all(report.get('pdf_binary_reports') for report in results.values()):
         result['pdf_binary_reports']={}
         for mode in ('community','cerro-reference'):

@@ -8,10 +8,21 @@ from odoo import Command, fields
 from odoo.exceptions import UserError
 from odoo.tests import tagged
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
+from odoo.addons.step_bank_export_core.tests.common import private_finance_sequences, BATCH_CODES
 
 
 @tagged("post_install", "-at_install")
 class TestTreasuryBatchReview(AccountTestInvoicingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        private_finance_sequences(cls.env, cls.env.company, BATCH_CODES)
+
+    def setUp(self):
+        super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
 
     def test_batch_approval_dialog_does_not_replace_application_settings(self):
         settings = self.env['res.config.settings']
@@ -69,12 +80,14 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
 
     def _bancoestado_batch(self, bank_code="012", method="01"):
         journal = self.company_data["default_journal_bank"]
+        journal.currency_id = self.env.ref("base.CLP")
+        self.env.user.groups_id |= self.env.ref("account.group_validate_bank_account")
         partner = self.partner_a
-        partner.write({"vat": "76.123.456-7", "email": "pagos@example.cl"})
+        partner.write({"vat": "12.345.678-5", "email": "pagos@example.cl"})
         bank = self.env["res.bank"].create({"name": "Banco exportación", "bic": bank_code})
         partner_bank = self.env["res.partner.bank"].create({
             "partner_id": partner.id, "bank_id": bank.id,
-            "acc_number": "00123456789", "step_bancoestado_payment_method": method,
+            "acc_number": "00123456789", "step_bancoestado_payment_method": method, "allow_out_payment": True,
         })
         method_line = journal.outbound_payment_method_line_ids[:1]
         payment = self.env["account.payment"].create({
@@ -98,7 +111,7 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             shared = archive.read("xl/sharedStrings.xml").decode()
         self.assertIn("MONTO DEL PAGO", shared)
-        self.assertIn("761234567", shared)
+        self.assertIn("123456785", shared)
         self.assertIn("00123456789", shared)
 
     def test_savings_method_rejects_non_bancoestado(self):
@@ -120,8 +133,10 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
         No debe fallar con "no tiene cuenta bancaria" si el proveedor termina
         con una sola cuenta: se usa esa, sin ambigüedad."""
         journal = self.company_data["default_journal_bank"]
+        journal.currency_id = self.env.ref("base.CLP")
+        self.env.user.groups_id |= self.env.ref("account.group_validate_bank_account")
         partner = self.partner_a
-        partner.write({"vat": "76.123.456-7", "bank_ids": [Command.clear()]})
+        partner.write({"vat": "12.345.678-5", "bank_ids": [Command.clear()]})
         method_line = journal.outbound_payment_method_line_ids[:1]
         payment = self.env["account.payment"].create({
             "payment_type": "outbound", "partner_type": "supplier",
@@ -132,7 +147,7 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
         # La cuenta se agrega DESPUÉS de crear el pago, como en el caso real.
         bank = self.env["res.bank"].create({"name": "Banco exportación", "bic": "012"})
         self.env["res.partner.bank"].create({
-            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00123456789",
+            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00123456789", "allow_out_payment": True,
         })
         self.assertFalse(payment.partner_bank_id, (
             "Precondición del caso real: Odoo no recalcula partner_bank_id "
@@ -146,8 +161,10 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
 
     def test_payment_without_bank_account_and_no_partner_accounts_fails_clearly(self):
         journal = self.company_data["default_journal_bank"]
+        journal.currency_id = self.env.ref("base.CLP")
+        self.env.user.groups_id |= self.env.ref("account.group_validate_bank_account")
         partner = self.partner_a
-        partner.write({"vat": "76.123.456-7", "bank_ids": [Command.clear()]})
+        partner.write({"vat": "12.345.678-5", "bank_ids": [Command.clear()]})
         method_line = journal.outbound_payment_method_line_ids[:1]
         payment = self.env["account.payment"].create({
             "payment_type": "outbound", "partner_type": "supplier",
@@ -163,8 +180,10 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
 
     def test_payment_without_bank_account_and_multiple_partner_accounts_asks_to_choose(self):
         journal = self.company_data["default_journal_bank"]
+        journal.currency_id = self.env.ref("base.CLP")
+        self.env.user.groups_id |= self.env.ref("account.group_validate_bank_account")
         partner = self.partner_a
-        partner.write({"vat": "76.123.456-7", "bank_ids": [Command.clear()]})
+        partner.write({"vat": "12.345.678-5", "bank_ids": [Command.clear()]})
         method_line = journal.outbound_payment_method_line_ids[:1]
         payment = self.env["account.payment"].create({
             "payment_type": "outbound", "partner_type": "supplier",
@@ -174,10 +193,10 @@ class TestTreasuryBatchReview(AccountTestInvoicingCommon):
         self.assertFalse(payment.partner_bank_id)
         bank = self.env["res.bank"].create({"name": "Banco exportación", "bic": "012"})
         self.env["res.partner.bank"].create({
-            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00123456789",
+            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00123456789", "allow_out_payment": True,
         })
         self.env["res.partner.bank"].create({
-            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00198765432",
+            "partner_id": partner.id, "bank_id": bank.id, "acc_number": "00198765432", "allow_out_payment": True,
         })
         batch = self.env["account.batch.payment"].create({
             "batch_type": "outbound", "date": fields.Date.today(),

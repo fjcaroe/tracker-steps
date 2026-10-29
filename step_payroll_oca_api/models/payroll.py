@@ -7,6 +7,7 @@ from datetime import date
 from odoo.tools.float_utils import float_round
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.addons.step_payroll_contracts.history import assert_mutable
 from odoo.addons.payroll.models.base_browsable import WorkedDays, InputLine, BaseBrowsableObject
 
 
@@ -95,6 +96,9 @@ class InputType(models.Model):
 class Input(models.Model):
     _inherit = 'hr.payslip.input'
 
+    # Native historical inputs can have no label. Retain that SQL NULL instead
+    # of inventing a description from today's mutable master during adoption.
+    name = fields.Char(required=False)
     input_type_id = fields.Many2one('hr.payslip.input.type', ondelete='restrict')
 
     @api.model_create_multi
@@ -102,6 +106,11 @@ class Input(models.Model):
         prepared=[]
         for values in vals_list:
             values=dict(values)
+            if values.get('payslip_id'):
+                slip=self.env['hr.payslip'].browse(values['payslip_id'])
+                assert_mutable(slip)
+                if values.get('input_type_id') and 'contract_id' not in values:
+                    values['contract_id']=slip.contract_id.id
             if values.get('input_type_id'):
                 kind=self.env['hr.payslip.input.type'].browse(values['input_type_id'])
                 if values.get('code') and values['code'] != kind.code:
@@ -112,12 +121,21 @@ class Input(models.Model):
         return super().create(prepared)
 
     def write(self, values):
+        assert_mutable(self.mapped('payslip_id'))
+        if values.get('payslip_id'):
+            assert_mutable(self.env['hr.payslip'].browse(values['payslip_id']))
+        if 'input_type_id' in values and not values['input_type_id'] and self.input_type_id:
+            raise ValidationError(_('A typed input must retain its master relation.'))
         if 'input_type_id' in values and values['input_type_id']:
             code=self.env['hr.payslip.input.type'].browse(values['input_type_id']).code
             if values.get('code') and values['code'] != code:
                 raise ValidationError(_('Input code does not match its type.'))
             values=dict(values,code=code)
         return super().write(values)
+
+    def unlink(self):
+        assert_mutable(self.mapped('payslip_id'))
+        return super().unlink()
 
     @api.constrains('input_type_id','code','payslip_id','contract_id')
     def _check_typed_input(self):
