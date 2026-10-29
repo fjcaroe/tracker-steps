@@ -10,6 +10,12 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
     oca=True
 
     def test_typed_rows_inherit_only_the_actual_parent_contract(self):
+        for model in ('hr.payslip.input','hr.payslip.worked_days'):
+            for name in ('code','contract_id'):
+                field=self.env[model]._fields[name]
+                self.assertTrue(field.store)
+                self.assertFalse(field.related)
+            self.assertEqual(self.env[model]._fields['contract_id'].comodel_name,'hr.contract')
         slip=self.slip()
         kind=self.scope['hr.work.entry.type'].create({'name':'Private related day','code':'PRIVATE_RELATED_DAY'})
         day=self.scope['hr.payslip.worked_days'].create({'name':'Private day','payslip_id':slip.id,

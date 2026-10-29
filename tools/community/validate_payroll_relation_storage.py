@@ -54,6 +54,9 @@ def materialize(cursor):
             if field in names and names[field]!=dtype:
                 raise ValueError('Unexpected existing storage type: '+table+'.'+field)
             if field in names:
+                cursor.execute(sql.SQL('SELECT count(*) FROM {} WHERE {} IS NULL').format(sql.Identifier(table),sql.Identifier(field)))
+                if cursor.fetchone()[0]:
+                    raise ValueError('Existing stored NULL must be reviewed, never silently repaired: '+table+'.'+field)
                 expected=sql.SQL('m.code') if field=='code' else sql.SQL('s.contract_id')
                 cursor.execute(sql.SQL('SELECT count(*) FROM {} t JOIN {} m ON m.id=t.{} '
                     'JOIN hr_payslip s ON s.id=t.payslip_id WHERE t.{} IS NOT NULL AND t.{} IS DISTINCT FROM {}'
@@ -112,23 +115,35 @@ def main():
     root.mkdir(mode=0o700)
     def dump(name,value):(root/(name+'.json')).write_text(json.dumps(value,indent=2))
     def run(*command,**kw):return subprocess.run(command,check=True,**kw)
+    def capacity(pg_directory,required=0):
+        result={}
+        for name,directory,minimum in (('postgres',pg_directory,5*1024**3),('artifacts',root,2*1024**3)):
+            stats=os.statvfs(directory);available=stats.f_bavail*stats.f_frsize
+            assert available>=minimum+required,'Storage reserve too low: '+name
+            result[name]={'available_bytes':available,'minimum_bytes':minimum,'estimated_extra_bytes':required}
+        return result
     with open('/run/lock/steps-environments.lock','a') as lease:
+        print('PAYROLL_RELATED_STORAGE_WAITING_FOR_SHARED_LEASE',flush=True)
         fcntl.flock(lease,fcntl.LOCK_EX)
         with connect('postgres') as conn:
             with conn.cursor() as cur:
-                cur.execute('SHOW data_directory');directory=cur.fetchone()[0]
+                cur.execute('SHOW data_directory');pg_directory=cur.fetchone()[0]
                 cur.execute('SELECT 1 FROM pg_database WHERE datname=%s',(args.database,));assert not cur.fetchone()
-        for directory,minimum in ((directory,5*1024**3),(root,2*1024**3)):
-            stats=os.statvfs(directory);assert stats.f_bavail*stats.f_frsize>=minimum,'Storage reserve too low'
+                cur.execute("SELECT pg_database_size('SyS')");estimated=cur.fetchone()[0]*2
+        dump('storage-preflight',capacity(pg_directory,estimated))
         backup=root/'source.dump'
         with backup.open('wb') as stream:run('sudo','-u','postgres','pg_dump','-Fc','SyS',stdout=stream)
         with backup.open('rb') as stream,(root/'backup-decode.log').open('wb') as log:
             run('sudo','-u','postgres','pg_restore','--file=/dev/null',stdin=stream,stdout=log,stderr=subprocess.STDOUT)
-        backup_sha=hashlib.sha256(backup.read_bytes()).hexdigest()
+        digest=hashlib.sha256()
+        with backup.open('rb') as stream:
+            for block in iter(lambda:stream.read(1024*1024),b''):digest.update(block)
+        backup_sha=digest.hexdigest()
         run('sudo','-u','postgres','createdb','--owner='+config['options']['db_user'],args.database)
         with backup.open('rb') as stream,(root/'restore.log').open('w') as log:
             run('sudo','-u','postgres','pg_restore','--exit-on-error','--no-owner','--no-acl','--no-comments',
                 '--role='+config['options']['db_user'],'-d',args.database,stdin=stream,stdout=log,stderr=subprocess.STDOUT)
+        dump('storage-after-restore',capacity(pg_directory))
         with connect(args.database) as conn:
             with conn.cursor() as cur:
                 # Only the new clone is isolated. No ORM/server is ever loaded.
@@ -147,6 +162,7 @@ def main():
                 dump('original-after',after);dump('relations',projection)
         with connect(args.database) as conn:
             with conn.cursor() as cur:assert snapshot(cur,originals)==before
+        dump('storage-after',capacity(pg_directory))
         dump('passed',{'database':args.database,'source':'SyS','original_contracts_preserved':len(before),
             'tables':projection,'backup_decoded':True,'backup_sha256':backup_sha,
             'tool_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
