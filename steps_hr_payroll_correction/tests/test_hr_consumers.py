@@ -179,13 +179,26 @@ class HrConsumersCase(TransactionCase):
             wizard.with_env(self.scope).action_apply()
 
     def test_open_correction_uses_actual_engine_and_preserves_input_identity(self):
+        if not self.oca:
+            # The shared fixture disables native day lines for unrelated API
+            # cases. This operational flow must ask the real provider to use
+            # its actual work entries instead of omitting those lines.
+            self.structure.use_worked_day_lines = True
         kept, removed = self.entry(), self.entry(9)
+        (kept | removed).action_validate()
+        self.assertEqual(set((kept | removed).mapped("state")), {"validated"})
+        expected_hours = kept.duration
+        self.assertGreater(expected_hours, 0)
         slip = self.slip()
         kind = self.scope["hr.payslip.input.type"].create({"name": "Private consumer original input", "code": "PRIVATE_HR_INPUT",
             "struct_ids": [Command.set(self.structure.ids)]})
         self.scope["hr.payslip.input"].create({"name": "Private consumer original input", "payslip_id": slip.id,
             "contract_id": self.contract.id, "input_type_id": kind.id, "amount": 321})
+        actual_before = self.contract.get_work_hours(slip.date_from, slip.date_to)
+        self.assertAlmostEqual(actual_before.get(self.work_type.id, 0), sum((kept | removed).mapped("duration")))
         slip.compute_sheet()
+        before = slip.worked_days_line_ids.filtered(lambda line: line.work_entry_type_id == self.work_type)
+        self.assertAlmostEqual(sum(before.mapped("number_of_hours")), actual_before[self.work_type.id])
         inputs = slip.input_line_ids.read(["id", "code", "amount"])
         action = self.wizard().action_apply()
         self.assertEqual(self.contract.date_end, date(2026, 10, 7))
@@ -196,7 +209,9 @@ class HrConsumersCase(TransactionCase):
         self.assertEqual(slip.input_line_ids.read(["id", "code", "amount"]), inputs)
         self.assertTrue(slip.line_ids)
         worked = slip.worked_days_line_ids.filtered(lambda line: line.work_entry_type_id == self.work_type)
-        self.assertEqual(sum(worked.mapped("number_of_hours")), 8)
+        actual_after = self.contract.get_work_hours(slip.date_from, slip.date_to)
+        self.assertAlmostEqual(actual_after.get(self.work_type.id, 0), expected_hours)
+        self.assertAlmostEqual(sum(worked.mapped("number_of_hours")), expected_hours)
 
     def test_engine_failure_rolls_back_contract_and_work_entry_changes(self):
         self.entry()
