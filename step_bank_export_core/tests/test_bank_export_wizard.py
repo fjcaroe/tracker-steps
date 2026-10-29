@@ -1,9 +1,10 @@
 import base64
 import io
 import zipfile
+from types import SimpleNamespace
 
 import xlrd
-from odoo import Command
+from odoo import Command, http
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import Form, tagged
 from odoo.tests.common import new_test_user
@@ -50,9 +51,15 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
             self.assertNotIn('access_token', download['url'])
             binary = self.env['ir.binary'].with_user(self.manager)
             record = binary._find_record(res_model=wizard._name, res_id=wizard.id, field='file_data')
-            stream = binary._get_stream_from(record, field_name='file_data', filename_field='file_name')
+            request_context = SimpleNamespace(env=wizard.env, db=wizard.env.cr.dbname)
+            http._request_stack.push(request_context)
+            try:
+                stream = binary._get_stream_from(record, field_name='file_data', filename_field='file_name')
+            finally:
+                self.assertIs(http._request_stack.pop(), request_context)
             payload = base64.b64decode(wizard.file_data)
             self.assertEqual(stream.data, payload)
+            self.assertFalse(stream.public)
             if bank_format == 'bancoestado':
                 with zipfile.ZipFile(io.BytesIO(payload)) as archive:
                     self.assertIn('00123456789', archive.read('xl/sharedStrings.xml').decode())
@@ -105,6 +112,46 @@ class BankExportWizardCase(AccountTestInvoicingCommon):
             wizard.action_generate_file()
         with self.assertRaises(AccessError):
             self.wizard()
+
+    def test_one_hidden_payment_prevents_partial_file(self):
+        other = self.payment.copy({'amount': 10})
+        payments = self.payment | other
+        before = payments.read(['amount', 'state', 'date', 'write_date', 'partner_bank_id'])
+        wizard = self.Wizard.create({'payment_ids': [Command.set(payments.ids)]})
+        self.env['ir.rule'].create({'name': 'Una selección bancaria no puede exportarse parcialmente',
+            'model_id': self.env['ir.model']._get_id('account.payment'),
+            'domain_force': repr([('id', '!=', other.id)]),
+            'perm_read': True, 'perm_write': False, 'perm_create': False, 'perm_unlink': False})
+        with self.assertRaises(AccessError):
+            wizard.action_generate_file()
+        self.assertFalse(wizard.sudo().file_data)
+        self.assertEqual(payments.read(list(before[0].keys() - {'id'})), before)
+
+    def test_generated_private_file_is_revoked_when_one_payment_becomes_hidden(self):
+        other = self.payment.copy({'amount': 10})
+        wizard = self.Wizard.create({'payment_ids': [Command.set((self.payment | other).ids)]})
+        wizard.action_generate_file()
+        self.assertTrue(wizard.file_data)
+        self.env['ir.rule'].create({'name': 'Revocar lectura de archivo bancario con un pago oculto',
+            'model_id': self.env['ir.model']._get_id('account.payment'),
+            'domain_force': repr([('id', '!=', other.id)]),
+            'perm_read': True, 'perm_write': False, 'perm_create': False, 'perm_unlink': False})
+        with self.assertRaises(AccessError):
+            wizard.read(['file_data'])
+        with self.assertRaises(AccessError):
+            self.env['ir.binary'].with_user(self.manager)._find_record(res_model=wizard._name, res_id=wizard.id, field='file_data')
+
+    def test_context_and_relation_commands_cannot_mutate_payments(self):
+        before = self.payment.read(['amount', 'state', 'date', 'write_date'])
+        count = self.env['account.payment'].search_count([])
+        for command in (Command.create({'amount': 1}), Command.update(self.payment.id, {'amount': 1}),
+                        Command.delete(self.payment.id)):
+            with self.assertRaises(UserError):
+                self.Wizard.create({'payment_ids': [command]})
+            with self.assertRaises(UserError):
+                self.Wizard.with_context(default_payment_ids=[command]).create({})
+        self.assertEqual(self.env['account.payment'].search_count([]), count)
+        self.assertEqual(self.payment.read(list(before[0].keys() - {'id'})), before)
 
     def test_generated_file_cannot_be_injected_or_modified(self):
         with self.assertRaises(UserError):

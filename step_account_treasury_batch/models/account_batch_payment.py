@@ -113,13 +113,22 @@ class AccountBatchPayment(models.Model):
         if self.batch_type != "outbound":
             raise UserError(_("BancoEstado sólo admite lotes de pagos salientes."))
         self._check_batch_approval()
-        return self.env['step.bank.export.service'].bancoestado_rows(self.payment_ids, self.company_id)
+        return self.env['step.bank.export.service'].bancoestado_rows(self._treasury_export_payments(), self.company_id)
+
+    def _treasury_export_payments(self):
+        """Retain the full original batch selection when payment rules filter UI."""
+        self.ensure_one()
+        self.check_access('write')
+        self.env.cr.execute('SELECT id FROM account_payment WHERE batch_payment_id=%s ORDER BY id', [self.id])
+        payments = self.env['account.payment'].browse([row[0] for row in self.env.cr.fetchall()])
+        payments.check_access('read')
+        return payments
 
     def action_export_bancoestado_xlsx(self):
         """Genera el formato oficial Pago 7 Columnas de BancoEstado."""
         self.ensure_one()
         rows = self._bancoestado_rows()
-        payload = self.env['step.bank.export.service'].bancoestado_file(self.payment_ids, self.company_id)
+        payload = self.env['step.bank.export.service'].bancoestado_file(self._treasury_export_payments(), self.company_id)
         safe_name = re.sub(r"[^A-Za-z0-9_-]", "_", self.name or "lote")
         attachment = self.env["ir.attachment"].create({
             "name": "%s_BANCOESTADO_7_COLUMNAS.xlsx" % safe_name,
@@ -138,7 +147,8 @@ class AccountBatchPayment(models.Model):
         """CSV de control humano, deliberadamente incompatible con bancos."""
         self.ensure_one()
         self.check_access('write')
-        if not self.payment_ids:
+        payments = self._treasury_export_payments()
+        if not payments:
             raise UserError(_("Agregue pagos al lote antes de generar la revisión."))
 
         stream = io.StringIO(newline="")
@@ -146,7 +156,7 @@ class AccountBatchPayment(models.Model):
         writer.writerow(["DOCUMENTO INTERNO DE REVISION - NO CARGABLE AL BANCO"])
         writer.writerow(["Lote", self.name, "Fecha", self.date, "Tipo", self.batch_type])
         writer.writerow(["Referencia", "Tercero", "Fecha", "Moneda", "Importe", "Estado"])
-        for payment in self.payment_ids.sorted(key=lambda item: (item.date, item.id)):
+        for payment in payments.sorted(key=lambda item: (item.date, item.id)):
             writer.writerow([
                 payment.name or payment.memo or "",
                 payment.partner_id.display_name or "",

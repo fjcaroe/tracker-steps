@@ -29,12 +29,12 @@ class BatchPayment(models.Model):
             raise UserError(_('El lote no pertenece a una empresa activa.'))
         self._check_batch_approval()
         return self.env['step.bank.export.service'].security_rows(
-            self.payment_ids, self.company_id, self.security_description)
+            self._treasury_export_payments(), self.company_id, self.security_description)
 
     def action_export_security_xls(self):
         rows = self._security_rows()
         payload = self.env['step.bank.export.service'].security_file(
-            self.payment_ids, self.company_id, self.security_description)
+            self._treasury_export_payments(), self.company_id, self.security_description)
         safe = re.sub(r'[^A-Za-z0-9_-]', '_', self.name or 'lote')
         attachment = self.env['ir.attachment'].create({
             'name': safe + '_SECURITY.xls', 'type': 'binary', 'mimetype': 'application/vnd.ms-excel',
