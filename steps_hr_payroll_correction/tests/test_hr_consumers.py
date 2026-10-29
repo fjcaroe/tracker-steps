@@ -77,6 +77,12 @@ class HrConsumersCase(TransactionCase):
             values["journal_id"] = journal.id
         cls.contract_values = values
         cls.contract = scope["hr.contract"].create(values)
+        # Contract creation can synchronize the employee/resource calendar from
+        # its structure type. Apply the intended original fixture calendar to
+        # all three real relations afterwards, as the shared native API case.
+        cls.contract.resource_calendar_id = cls.calendar
+        cls.employee.resource_calendar_id = cls.calendar
+        cls.employee.resource_id.tz = "UTC"
         cls.work_type = scope["hr.work.entry.type"].create({"name": "Private consumer worked time", "code": "PRIVATE_HR_WORK"})
         if "use_work_entries" in cls.structure._fields:
             cls.structure.use_work_entries = True
@@ -185,6 +191,11 @@ class HrConsumersCase(TransactionCase):
             wizard.with_env(self.scope).action_apply()
 
     def test_open_correction_uses_actual_engine_and_preserves_input_identity(self):
+        self.assertEqual(self.contract.resource_calendar_id, self.calendar)
+        self.assertEqual(self.employee.resource_calendar_id, self.calendar)
+        self.assertEqual(self.employee.resource_id.calendar_id, self.calendar)
+        self.assertEqual(self.employee.resource_id.tz, "UTC")
+        self.assertEqual(self.contract.structure_type_id, self.kind)
         if "default_work_entry_type_id" in self.kind._fields:
             # The native provider consolidates ordinary attendance under its
             # structure type's configured master. Keep that real relation
@@ -226,6 +237,9 @@ class HrConsumersCase(TransactionCase):
                 "actual_employee_id": slip.employee_id.id, "synthetic_employee_id": self.employee.id,
                 "actual_contract_id": slip.contract_id.id, "synthetic_contract_id": self.contract.id,
                 "actual_calendar_id": slip.contract_id.resource_calendar_id.id, "synthetic_calendar_id": self.calendar.id,
+                "employee_calendar_id": slip.employee_id.resource_calendar_id.id,
+                "resource_calendar_id": slip.employee_id.resource_id.calendar_id.id,
+                "resource_timezone": slip.employee_id.resource_id.tz,
                 "actual_structure_type_id": slip.contract_id.structure_type_id.id,
                 "date_from": str(slip.date_from), "date_to": str(slip.date_to),
                 "contract_date_start": str(slip.contract_id.date_start), "contract_date_end": str(slip.contract_id.date_end),
