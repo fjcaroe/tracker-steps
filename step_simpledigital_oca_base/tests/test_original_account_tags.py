@@ -133,6 +133,77 @@ class OriginalAccountTagsCase(TransactionCase):
                 self.assertFalse(entry.tax_tag_invert)
             self.assertEqual(slip.line_ids.read(['id', 'salary_rule_id', 'amount', 'quantity', 'rate', 'total']), before)
 
+    def test_copy_preserves_complete_visible_pairs_and_rejects_hidden_members_before_defaults(self):
+        defaults = {'name': 'Private complete original grid copy', 'code': 'PRIVATE_COMPLETE_GRID_COPY', 'struct_id': False}
+        values = self.rule.copy_data(default=defaults)[0]
+        self.assertEqual(values['debit_tag_ids'], [Command.set(self.tags[0].ids)])
+        self.assertEqual(values['credit_tag_ids'], [Command.set(self.tags[1].ids)])
+        copied = self.rule.copy(default=defaults)
+        self.assertFalse(copied.env.su)
+        self.assertEqual(copied._step_original_account_tag_members('debit_tag_ids'), self.tags[0])
+        self.assertEqual(copied._step_original_account_tag_members('credit_tag_ids'), self.tags[1])
+        incompatible = self.env['account.account.tag'].create({'name': 'Private visible incompatible copied grid',
+            'applicability': 'accounts'}).with_env(self.scope)
+        self.rule.write({'debit_tag_ids': [Command.set((self.tags[0] | incompatible).ids)]})
+        self.rule.invalidate_recordset(['debit_tag_ids'])
+        # The regular domain hides this visible incompatible pair. It must not
+        # be silently dropped by Model.copy_data's ordinary M2M getter.
+        self.assertEqual(self.rule.debit_tag_ids, self.tags[0])
+        source_ids = sorted((self.tags[0] | incompatible).ids)
+        values = self.rule.copy_data(default=defaults)[0]
+        self.assertEqual(values['debit_tag_ids'], [Command.set(source_ids)])
+        copied = self.rule.copy(default=defaults)
+        self.assertEqual(sorted(copied._step_original_account_tag_members('debit_tag_ids').ids), source_ids)
+        with self.assertRaisesRegex(UserError, 'active tax grids'):
+            copied._step_original_account_tags('debit_tag_ids', self.company)
+        # An explicit, authorized replacement remains an intentional operation.
+        replaced = self.rule.copy(default=dict(defaults, debit_tag_ids=[Command.set(self.tags[2].ids)]))
+        self.assertEqual(replaced._step_original_account_tag_members('debit_tag_ids'), self.tags[2])
+        self.assertEqual(replaced._step_original_account_tag_members('credit_tag_ids'), self.tags[1])
+
+        def pairs():
+            result = {}
+            for side in ('debit', 'credit'):
+                self.env.cr.execute('SELECT account_account_tag_id FROM hr_salary_rule_' + side
+                    + '_tag_rel WHERE hr_salary_rule_id=%s ORDER BY account_account_tag_id', (self.rule.id,))
+                result[side] = self.env.cr.fetchall()
+            return result
+
+        before_pairs = pairs()
+        before_count = self.scope['hr.salary.rule'].search_count([])
+        self.assertTrue(incompatible.name)
+        hidden = self.env['ir.rule'].create({'name': 'Private hidden original copied grid',
+            'model_id': self.env.ref('account.model_account_account_tag').id,
+            'domain_force': "[('id','!=',%d)]" % incompatible.id})
+        for operation in (lambda: self.rule.copy_data(default=defaults),
+                lambda: self.rule.sudo().copy_data(default=dict(defaults, debit_tag_ids=False)),
+                lambda: self.rule.copy(default=dict(defaults, debit_tag_ids=[Command.clear()])),
+                lambda: self.rule.sudo().copy(default=dict(defaults, debit_tag_ids=[Command.set(self.tags[2].ids)])),
+                lambda: self.rule.sudo().with_context(default_debit_tag_ids=[Command.clear()]).copy(default=defaults)):
+            with self.assertRaises(AccessError):
+                operation()
+            self.assertEqual(pairs(), before_pairs)
+            self.assertEqual(self.scope['hr.salary.rule'].search_count([]), before_count)
+        hidden.unlink()
+        # Explicit replacement cannot smuggle a newly hidden target either.
+        hidden = self.env['ir.rule'].create({'name': 'Private hidden copied grid replacement',
+            'model_id': self.env.ref('account.model_account_account_tag').id,
+            'domain_force': "[('id','!=',%d)]" % self.tags[2].id})
+        for method in (self.rule.copy_data, self.rule.sudo().copy):
+            with self.assertRaises(AccessError):
+                method(default=dict(defaults, debit_tag_ids=[Command.set(self.tags[2].ids)]))
+        hidden.unlink()
+        masters_before = self.env['account.account.tag'].search_count([])
+        original_name = self.tags[0].name
+        for command in (Command.create({'name': 'Private forbidden copied master', 'applicability': 'taxes'}),
+                Command.update(self.tags[0].id, {'name': 'Private forbidden master update'}), Command.delete(self.tags[0].id)):
+            with self.assertRaisesRegex(UserError, 'cannot change tag masters'):
+                self.rule.sudo().copy(default=dict(defaults, debit_tag_ids=[command]))
+            self.assertEqual(pairs(), before_pairs)
+            self.assertEqual(self.scope['hr.salary.rule'].search_count([]), before_count)
+            self.assertEqual(self.env['account.account.tag'].search_count([]), masters_before)
+            self.assertEqual(self.tags[0].name, original_name)
+
     def test_actual_oca_tax_preparation_unions_existing_provider_grid_without_changing_values(self):
         provider_grid = self.env['account.account.tag'].create({'name': '+Private real OCA base grid',
             'applicability': 'taxes', 'country_id': self.company.country_id.id}).with_env(self.scope)
