@@ -1,4 +1,4 @@
-"""Rehearse API 1.10/Base 1.3 -> API 1.11/Base 1.4 on a NEW accepted-F clone.
+"""Rehearse the fixed admission or period upgrade on a NEW accepted F/C clone.
 
 This is not an original-configuration adoption or a payment certification.
 The old properties-upgrade helper remains byte-identical and is copied beside
@@ -43,6 +43,30 @@ PROVIDER_SOURCE_FILES_SHA256 = common.PROVIDER_SOURCE_FILES_SHA256
 NEW_FIELDS = {('hr.payroll.structure', 'unpaid_work_entry_type_ids'),
     ('hr.salary.rule', 'debit_tag_ids'), ('hr.salary.rule', 'credit_tag_ids'),
     ('hr.payslip.line', 'debit_tag_ids'), ('hr.payslip.line', 'credit_tag_ids')}
+ADMISSION_NEW_FIELDS = frozenset(NEW_FIELDS)
+UPGRADE_PROFILE = 'admission'
+
+
+def configure_profile(name):
+    """Two approved private baselines only; never accept arbitrary source DBs."""
+    global SOURCE_DB, SOURCE_ROOT, VERSIONS, NEW_FIELDS, UPGRADE_PROFILE
+    if name == 'admission':
+        database = 'COMMUNITY_PAYROLL_API_PROPERTIES_20261029F'
+        root = Path('/opt/steps-validation/community-payroll-properties-20261029F')
+        versions = {'step_payroll_oca_api': ('18.0.1.10.0', '18.0.1.11.0'),
+                    'step_simpledigital_oca_base': ('18.0.1.3.0', '18.0.1.4.0')}
+        new_fields = set(ADMISSION_NEW_FIELDS)
+    elif name == 'period':
+        database = 'COMMUNITY_PAYROLL_API_ADMISSION_20261029C'
+        root = Path('/opt/steps-validation/community-payroll-admission-20261029C')
+        versions = {'step_payroll_oca_api': ('18.0.1.11.0', '18.0.1.11.0'),
+                    'step_simpledigital_oca_base': ('18.0.1.4.0', '18.0.1.5.0')}
+        new_fields = set()
+    else:
+        raise ValueError('Unknown fixed private upgrade profile')
+    SOURCE_DB, SOURCE_ROOT, VERSIONS, NEW_FIELDS = database, root, versions, new_fields
+    common.SOURCE_DB, common.SOURCE_ROOT = SOURCE_DB, SOURCE_ROOT
+    UPGRADE_PROFILE = name
 
 
 def raw_rows(env):
@@ -365,15 +389,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('root', 'candidate', 'runtime', 'oca'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--source-root', type=Path, default=SOURCE_ROOT)
+    parser.add_argument('--source-root', type=Path)
+    parser.add_argument('--profile', choices=('admission', 'period'), default='admission')
     parser.add_argument('--database', required=True)
     args = parser.parse_args()
+    configure_profile(args.profile)
     assert hasattr(os, 'geteuid') and os.geteuid() == 0, 'Linux root execution required'
     import fcntl
     import pwd
     assert re.fullmatch(DATABASE_PATTERN, args.database)
     os.umask(0o077)
-    root, source_root, candidate = args.root.resolve(), args.source_root.resolve(), args.candidate.resolve()
+    root, source_root, candidate = args.root.resolve(), (args.source_root or SOURCE_ROOT).resolve(), args.candidate.resolve()
     assert Path('/opt/steps-validation') in root.parents and not root.exists()
     assert source_root == SOURCE_ROOT and Path('/opt/steps-validation') in candidate.parents
     assert source_root not in root.parents, 'Never place rehearsal artifacts inside accepted F'
@@ -521,7 +547,7 @@ def main():
             assert status.returncode == 0 and not re.search(r' (ERROR|CRITICAL) ', log), 'Blocked; inspect private log: ' + str(logfile)
             capacity()
         probe = str(probe_copy)
-        seed = "import sys,threading,runpy; threading.current_thread().testing=True; sys.path.insert(0," + repr(str(root)) + "); runpy.run_path(" + repr(probe) + ")[\"exercise\"](env,\"seed\"," + repr(str(root)) + ')'
+        seed = "import sys,threading,runpy; threading.current_thread().testing=True; sys.path.insert(0," + repr(str(root)) + "); probe=runpy.run_path(" + repr(probe) + "); probe['configure_profile'](" + repr(UPGRADE_PROFILE) + "); probe[\"exercise\"](env,\"seed\"," + repr(str(root)) + ')'
         execute('legacy-seed', legacy, payload=seed)
         assert (root / 'seed.json').exists(), 'Legacy fixture did not commit evidence'
         clock_query = "SELECT json_build_object('utc',clock_timestamp() AT TIME ZONE 'UTC')"
@@ -569,7 +595,7 @@ def main():
         assert all(file_manifest(legacy / module) == value['legacy'] and file_manifest(upgraded / module) == value['candidate']
                    for module, value in files.items()), 'Frozen upgrade code changed'
         proof = json.loads((root / 'verified.json').read_text())
-        proof.update(source_database=SOURCE_DB, database=args.database, original_versions={m: v[0] for m, v in VERSIONS.items()},
+        proof.update(upgrade_profile=UPGRADE_PROFILE, source_database=SOURCE_DB, database=args.database, original_versions={m: v[0] for m, v in VERSIONS.items()},
             target_versions=actual, source_acceptance_sha256=hashlib.sha256(acceptance_path.read_bytes()).hexdigest(),
             source_snapshot_sha256=digest(source_after), source_unchanged=True, source_filestore_unchanged=True,
             backup_decoded=True, backup_sha256=hashlib.sha256(backup.read_bytes()).hexdigest(),

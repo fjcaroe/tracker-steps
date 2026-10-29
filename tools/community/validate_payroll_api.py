@@ -353,6 +353,7 @@ def main():
             'api_test_count':api_test_count if pure else 0,'base_test_count':base_test_count if pure else 0,
             'reference_test_count':reference_test_count if not pure else 0,
             'dte_test_count':dte_test_count,'external_network_disabled':True,'loopback_http_only':True,
+            'hr_test_count':HR_TEST_COUNT if args.accelerated else 0,
             'postgres_unix_socket':True,'offline_runner_sha256':hashlib.sha256((source/'tools/community/offline_process.py').read_bytes()).hexdigest(),
             'stored_payslip_pdf_reports':stored_pdf_count,
             'identity_snapshot_tool_sha256':hashlib.sha256((source/'tools/community/validate_agriculture_core.py').read_bytes()).hexdigest(),

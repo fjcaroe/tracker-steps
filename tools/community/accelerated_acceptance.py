@@ -37,6 +37,27 @@ HR_TEST_METHODS = {
     ("step_payroll_engine_transition", "TestTransition"): (
         "test_rpc_context_cannot_clear_review", "test_legacy_structure_cannot_be_recomputed",
     ),
+    ("step_payroll_engine_transition", "PayrollReviewCase"): (
+        "test_batch_identifies_every_pending_contract_and_keeps_review_gate",
+        "test_same_contract_is_not_repeated_for_multiple_slips",
+        "test_missing_parameter_is_named_instead_of_generic_failure",
+        "test_direct_flag_write_remains_protected", "test_non_manager_cannot_confirm",
+        "test_legacy_payslip_cannot_be_recalculated",
+    ),
+    ("step_payroll_batch_period", "BatchPeriodCase"): (
+        "test_september_conflicts_do_not_block_october_or_get_changed",
+        "test_real_october_conflicts_remain_blocked",
+        "test_local_midnight_and_intersecting_overnight_entries",
+        "test_external_context_cannot_disable_normal_validation",
+        "test_notification_identifies_all_workers_in_local_time",
+        "test_dst_boundaries_use_real_short_and_long_santiago_days",
+        "test_hidden_entry_and_contract_block_complete_batch_under_normal_actor",
+        "test_closed_run_wrong_model_missing_run_and_invalid_dates_are_rejected",
+        "test_wrong_company_context_is_rejected_without_new_payroll",
+        "test_oca_real_wizard_creates_actual_days_and_preserves_original_entries",
+        "test_oca_missing_actual_policy_or_entries_never_persist_theoretical_days",
+        "test_oca_actual_engine_error_rolls_back_created_slips_and_private_number",
+    ),
     ("steps_hr_payroll_correction", "HrConsumersCase"): (
         "test_closed_history_blocks_contract_work_entries_and_amounts",
         "test_open_paid_flag_is_not_recomputed", "test_open_history_lock_is_not_recomputed",

@@ -15,7 +15,10 @@ import shutil
 MODULES = (
     "step_hr_contract_lifecycle", "step_hr_contract_lifecycle_simpledigital",
     "step_payroll_engine_transition", "steps_hr_payroll_correction",
+    "step_payroll_batch_period",
 )
+LICENSES = {name: "LGPL-3" for name in MODULES}
+LICENSES["step_payroll_batch_period"] = "AGPL-3"
 XMLIDS = {
     "hr_payroll.group_hr_payroll_manager": "payroll.group_payroll_manager",
     "hr_payroll.view_hr_payslip_form": "payroll.hr_payslip_view_form",
@@ -43,7 +46,7 @@ def build(source, output, *, community):
     for name in MODULES:
         module = source / name
         manifest = ast.literal_eval((module / "__manifest__.py").read_text(encoding="utf-8-sig"))
-        if manifest.get("license") != "LGPL-3":
+        if manifest.get("license") != LICENSES[name]:
             raise ValueError("Unexpected consumer license: " + name)
         files = {}
         target = output / name
@@ -68,7 +71,8 @@ def build(source, output, *, community):
             manifest["depends"] = list(dict.fromkeys(DEPENDENCIES.get(dep, dep) for dep in manifest["depends"]))
             (target / "__manifest__.py").write_text(repr(manifest) + "\n", encoding="utf-8")
             files["__manifest__.py"]["candidate"] = hashlib.sha256((target / "__manifest__.py").read_bytes()).hexdigest()
-        evidence["modules"][name] = {"version": manifest["version"], "depends": manifest["depends"], "files": files}
+        evidence["modules"][name] = {"version": manifest["version"], "license": manifest['license'],
+                                    "depends": manifest["depends"], "files": files}
     (output.parent / "hr-consumers-derivation.json").write_text(json.dumps(evidence, indent=2), encoding="utf-8")
     return evidence
 

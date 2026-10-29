@@ -95,7 +95,10 @@ def main():
         for path in upgrade.iterdir():
             if path.is_file() and (path.suffix in ('.json','.log') or path.name in allowed_python):
                 files['admission-upgrade/'+path.name]=path
-        baseline=Path('/opt/steps-validation/community-payroll-properties-20261029F/community')
+        approved_baselines={
+            'COMMUNITY_PAYROLL_API_PROPERTIES_20261029F':Path('/opt/steps-validation/community-payroll-properties-20261029F/community'),
+            'COMMUNITY_PAYROLL_API_ADMISSION_20261029C':Path('/opt/steps-validation/community-payroll-admission-20261029C/community')}
+        baseline=approved_baselines[json.loads((upgrade/'passed.json').read_text())['source_database']]
         for name,original in (('source-acceptance','passed'),('source-packet','source-files'),('source-consumer-packet','consumer-source-files')):
             files['admission-upgrade/'+name+'.json']=baseline/(original+'.json')
     if args.native_tags:

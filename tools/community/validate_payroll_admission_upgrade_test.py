@@ -41,6 +41,25 @@ def fixtures():
 
 
 class AdmissionUpgradeCase(unittest.TestCase):
+    def test_period_upgrade_is_bound_to_accepted_c_without_new_fields(self):
+        try:
+            probe.configure_profile('period')
+            self.assertEqual(probe.SOURCE_DB, 'COMMUNITY_PAYROLL_API_ADMISSION_20261029C')
+            self.assertEqual(probe.SOURCE_ROOT, Path('/opt/steps-validation/community-payroll-admission-20261029C'))
+            self.assertEqual(probe.VERSIONS['step_simpledigital_oca_base'], ('18.0.1.4.0', '18.0.1.5.0'))
+            self.assertEqual(probe.NEW_FIELDS, set())
+            self.assertEqual(probe.common.SOURCE_DB, probe.SOURCE_DB)
+            self.assertEqual(legacy.SOURCE_DB, 'COMMUNITY_PAYROLL_API_CONFIGURATION_20261029D')
+        finally:
+            probe.configure_profile('admission')
+
+    def test_unknown_profile_cannot_change_the_accepted_source(self):
+        previous = (probe.SOURCE_DB, probe.SOURCE_ROOT, dict(probe.VERSIONS), set(probe.NEW_FIELDS))
+        for name in ('CERRO_EL_PLOMO', 'period ', '', None):
+            with self.assertRaises(ValueError):
+                probe.configure_profile(name)
+            self.assertEqual(previous, (probe.SOURCE_DB, probe.SOURCE_ROOT, probe.VERSIONS, probe.NEW_FIELDS))
+
     def test_already_json_and_closed_history_are_preserved_without_projection(self):
         proof = probe.verify_rows(*fixtures())
         self.assertTrue(proof['rule_json_properties_preserved_exactly'])

@@ -182,6 +182,7 @@ def verify_admission_evidence(folder, git_source, current_packet):
     folder = Path(folder).resolve()
     proof = _load(folder, 'passed.json')
     helper = _load_versioned_helper(folder, git_source, proof)
+    helper.configure_profile(proof.get('upgrade_profile', 'admission'))
     assert re.fullmatch(helper.DATABASE_PATTERN, proof['database']) and proof['source_database'] == helper.SOURCE_DB
     assert proof['original_versions'] == {name: values[0] for name, values in helper.VERSIONS.items()}
     assert proof['target_versions'] == {name: values[1] for name, values in helper.VERSIONS.items()}

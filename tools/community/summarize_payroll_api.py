@@ -35,6 +35,7 @@ def main():
                 'step_l10n_cl_caf_storage','step_l10n_cl_caf_native_reference']
     if accelerated:
         hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
+        if any(name.startswith('step_payroll_batch_period/') for name in packets[0]):hr_modules+=('step_payroll_batch_period',)
         paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
             'step_account_treasury_batch','step_bank_security','step_l10n_cl_edi_core','step_accounting_multicurrency',
             'tools/community/accelerated_acceptance.py','tools/community/hr_consumers_candidate.py','tools/community/finance_frontier_contract.py','tools/community/hr_consumer_metadata.py']
@@ -635,8 +636,20 @@ def main():
             for cls in ast.parse(blob.decode('utf-8-sig')).body if isinstance(cls,ast.ClassDef)
             for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
         assert actual_dte==dte_count
-        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)+(dte_count-18)
-        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)+(results['cerro-reference'].get('reference_test_count',25)-25)+(dte_count-18)
+        hr_count=results['community'].get('hr_test_count',41)
+        assert results['cerro-reference'].get('hr_test_count',41)==hr_count
+        actual_hr={}
+        for name,blob in source.items():
+            if any(name.startswith(module+'/tests/test_') for module in hr_modules) and name.endswith('.py'):
+                for cls in ast.parse(blob.decode('utf-8-sig')).body:
+                    if isinstance(cls,ast.ClassDef):
+                        methods=tuple(method.name for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
+                        if methods:actual_hr[(name.split('/')[0],cls.name)]=methods
+        sys.path.insert(0,str(repo/'tools/community'))
+        from accelerated_acceptance import HR_TEST_METHODS, HR_TEST_COUNT
+        assert actual_hr==HR_TEST_METHODS and sum(map(len,actual_hr.values()))==hr_count==HR_TEST_COUNT
+        assert results['community']['expected_test_count']==(313 if custody_grouping else 259)+(api_count-63)+(base_count-7)+(dte_count-18)+(hr_count-41)
+        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)+(results['cerro-reference'].get('reference_test_count',25)-25)+(dte_count-18)+(hr_count-41)
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])

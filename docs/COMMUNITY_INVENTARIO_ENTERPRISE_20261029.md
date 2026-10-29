@@ -243,7 +243,7 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 
 ## Alcance de productos fuera del inventario instalado
 
-El repositorio contiene 124 módulos propios con manifiesto; 29 no están instalados en este inventario de Cerro.
+El repositorio contiene 125 módulos propios con manifiesto; 30 no están instalados en este inventario de Cerro.
 Los módulos operativos requieren aceptación Community; separar herramientas de ensayo como step_payroll_enterprise_reference, que solo compara el motor nativo en clones privados. La ausencia de caminos declarados no acredita imports, assets, permisos ni flujos; las fuentes desconocidas quedan pendientes.
 
 | Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |
@@ -270,6 +270,7 @@ Los módulos operativos requieren aceptación Community; separar herramientas de
 | `step_labor_payroll_wizards` | 4 | 0 |
 | `step_labor_reports` | 0 | 0 |
 | `step_operations_core` | 0 | 0 |
+| `step_payroll_batch_period` | 4 | 0 |
 | `step_payroll_contracts` | 0 | 0 |
 | `step_payroll_enterprise_reference` | 9 | 0 |
 | `step_payroll_oca_api` | 0 | 1 |
