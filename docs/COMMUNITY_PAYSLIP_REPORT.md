@@ -25,6 +25,12 @@ documentos ya autorizados. El empleado conserva sus ACL: imprimir lo propio no
 le concede acceso global a estructuras, categorías, fórmulas ni salarios ajenos.
 No hay `sudo` de importes ni concesiones ACL nuevas. Las estructuras archivadas
 y sus liquidaciones cerradas se pueden imprimir sin invocar guardas de cálculo.
+El entrypoint elimina explícitamente `env.su` conservando el UID del entorno;
+no acepta UID/autoridad de `data` o del contexto. También se prueba una llamada
+interna con `.with_user(empleado).sudo()`: sólo su liquidación sigue accesible.
+La metadata G no tiene campo `report_sudo` en `ir.actions.report`; esa ausencia
+no sustituye la guarda, porque Odoo resuelve metadata de acciones con elevación
+y un caller interno puede entregar un entorno elevado.
 
 NULL se imprime como importe ausente; cero y negativos conservan su valor. NET
 se toma de las líneas de código NET: varias líneas de la misma regla original
