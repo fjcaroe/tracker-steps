@@ -27,6 +27,13 @@ HR_TEST_METHODS = {
         "test_ias_anual_tope_11_years", "test_ias_anual_tope_uf90", "test_ias_mensual_temporada",
         "test_ias_mensual_under_one_month", "test_mes_aviso",
     ),
+    ("step_hr_contract_lifecycle", "TestContractWeeklyHours"): (
+        "test_fractional_work_week_uses_real_global_attendance_without_lunch",
+        "test_two_week_cycle_uses_actual_average_and_native_reference",
+        "test_dated_and_resource_specific_schedule_require_contractual_review",
+        "test_flexible_schedule_keeps_native_value_or_requires_original_reference",
+        "test_two_week_schedule_cannot_hide_an_unassigned_original_week",
+    ),
     ("step_payroll_engine_transition", "TestTransition"): (
         "test_rpc_context_cannot_clear_review", "test_legacy_structure_cannot_be_recomputed",
     ),
@@ -43,6 +50,7 @@ HR_TEST_METHODS = {
         "test_lifecycle_preserves_paid_severance_and_worker_identity",
         "test_transition_uses_actual_payroll_manager_and_keeps_review_on_missing_masters",
         "test_transition_preserves_structure_and_forbids_old_engine_recalculation",
+        "test_weekly_hours_feed_all_contract_consumers_without_changing_the_schedule",
     ),
 }
 HR_TEST_COUNT = sum(len(methods) for methods in HR_TEST_METHODS.values())

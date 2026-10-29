@@ -25,7 +25,7 @@ TEMPLATE_VARIABLES = {
     "contrato.fecha_celebracion": lambda c: c.date_signature and c.date_signature.strftime("%d/%m/%Y") or "",
     "contrato.comuna_celebracion": lambda c: c.commune_signature_id.name or "",
     "contrato.sueldo_base": lambda c: "{:,.0f}".format(c.wage or 0).replace(",", "."),
-    "contrato.jornada_semanal": lambda c: str(c.resource_calendar_id.hours_per_week or 0),
+    "contrato.jornada_semanal": lambda c: str(c.resource_calendar_id._steps_contract_weekly_hours()) if c.resource_calendar_id else "",
     "contrato.jornada_maxima_legal": lambda c: str(c.max_weekly_hours_legal or 0),
     "contrato.lugar_trabajo": lambda c: ", ".join(
         filter(

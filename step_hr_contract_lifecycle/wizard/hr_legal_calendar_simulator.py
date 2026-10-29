@@ -29,7 +29,7 @@ class HrLegalCalendarSimulator(models.TransientModel):
                 )
                 for c in candidates:
                     hours = (
-                        c.resource_calendar_id.hours_per_week
+                        c.resource_calendar_id._steps_contract_weekly_hours()
                         if c.resource_calendar_id
                         else 0.0
                     )

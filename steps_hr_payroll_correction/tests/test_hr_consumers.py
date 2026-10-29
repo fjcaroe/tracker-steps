@@ -27,6 +27,7 @@ class HrConsumersCase(TransactionCase):
                 groups.append(group.id)
         user = cls.env["res.users"].with_context(no_reset_password=True).create({
             "name": "Private HR consumer manager", "login": "private-hr-consumer-manager", "tz": "UTC",
+            "email": "private-hr-consumer@example.invalid",
             "company_id": company.id, "company_ids": [Command.set(company.ids)], "groups_id": [Command.set(groups)]})
         cls.scope = api.Environment(cls.env.cr, user.id, dict(cls.env.context, allowed_company_ids=company.ids), su=False)
         cls.company, cls.actor = company, user
@@ -37,11 +38,19 @@ class HrConsumersCase(TransactionCase):
             if name in scope["hr.payroll.structure"]._fields:
                 values[name] = value
         cls.structure = scope["hr.payroll.structure"].create(values)
+        journal = scope["account.journal"].create({"name": "Private consumer payroll journal", "code": "HRC",
+            "type": "general", "company_id": company.id})
+        if "journal_id" in cls.structure._fields:
+            cls.structure.journal_id = journal
+        debit = scope["account.account"].create({"name": "Private consumer payroll cost", "code": "940004",
+            "account_type": "expense", "company_ids": [Command.set(company.ids)]})
+        credit = scope["account.account"].create({"name": "Private consumer payroll debt", "code": "940005",
+            "account_type": "liability_current", "company_ids": [Command.set(company.ids)]})
         cls.rule = scope["hr.salary.rule"].create({"name": "Private consumer actual rule", "code": "PRIVATE_HR_AMOUNT",
             "sequence": 1, "struct_id": cls.structure.id,
             "category_id": scope["hr.salary.rule.category"].create({"name": "Private consumer category", "code": "PRIVATE_HR"}).id,
             "condition_select": "none", "amount_select": "code", "quantity": "1.0",
-            "amount_python_compute": "result = contract.wage"})
+            "amount_python_compute": "result = contract.wage", "account_debit": debit.id, "account_credit": credit.id})
         cls.calendar = scope["resource.calendar"].create({"name": "Private consumer calendar", "company_id": company.id,
             "tz": "UTC", "attendance_ids": [Command.clear()] + [Command.create({"name": "Private shift",
                 "dayofweek": str(day), "hour_from": 8, "hour_to": 16, "day_period": "morning"}) for day in range(5)]})
@@ -55,6 +64,9 @@ class HrConsumersCase(TransactionCase):
         if "contract_type_id" in scope["hr.contract"]._fields:
             model = scope["hr.contract"]._fields["contract_type_id"].comodel_name
             values["contract_type_id"] = scope[model].search([], limit=1).id
+        if "journal_id" in scope["hr.contract"]._fields:
+            values["journal_id"] = journal.id
+        cls.contract_values = values
         cls.contract = scope["hr.contract"].create(values)
         cls.work_type = scope["hr.work.entry.type"].create({"name": "Private consumer worked time", "code": "PRIVATE_HR_WORK"})
         if "use_work_entries" in cls.structure._fields:
@@ -108,7 +120,19 @@ class HrConsumersCase(TransactionCase):
         extra = self.entry(9)
         slip = self.slip()
         slip.compute_sheet()
-        slip.write({field: True})
+        if field == "step_history_locked":
+            slip.action_payslip_done()
+            self.assertTrue(slip.step_history_locked)
+            # An isolated import fixture represents an original lock retained
+            # on an open legacy state. No RPC can set this flag. The real
+            # engine created the snapshot/lock above; only this fixture's
+            # state is changed and the TransactionCase rolls it all back.
+            self.assertTrue(self.env.cr.dbname.startswith(("COMMUNITY_PAYROLL_API_", "MANAGEMENT_QA_CERRO_PAYROLL_API_")))
+            self.env.flush_all()
+            self.env.cr.execute("UPDATE hr_payslip SET state='draft' WHERE id=%s", (slip.id,))
+            slip.invalidate_recordset(["state"])
+        else:
+            slip.write({field: True})
         original = self.stored(slip)
         with self.assertRaises(UserError):
             self.wizard().action_apply()
@@ -146,7 +170,7 @@ class HrConsumersCase(TransactionCase):
     def test_correction_cannot_cross_allowed_companies(self):
         foreign = self.env["res.company"].create({"name": "Private foreign HR company"})
         employee = self.env["hr.employee"].create({"name": "Private foreign HR employee", "company_id": foreign.id})
-        wizard = self.env["hr.termination.correction.wizard"].create({"employee_id": employee.id,
+        wizard = self.scope["hr.termination.correction.wizard"].sudo().create({"employee_id": employee.id,
             "actual_termination_date": date(2026, 10, 7), "confirm": True})
         with self.assertRaises(AccessError):
             wizard.with_env(self.scope).action_apply()
@@ -202,9 +226,14 @@ class HrConsumersCase(TransactionCase):
 
     def test_existing_relation_tables_and_acl_ownership_remain(self):
         fields = self.scope["hr.termination.correction.wizard"]._fields
-        self.assertEqual(fields["payslip_ids"].relation, "hr_termination_correction_payslip_rel")
-        self.assertEqual(fields["blocked_payslip_ids"].relation, "hr_termination_correction_blocked_rel")
-        self.assertEqual(fields["payslip_ids"].comodel_name, "hr.payslip")
+        for name in ("payslip_ids", "blocked_payslip_ids"):
+            self.assertFalse(fields[name].store)
+            self.assertIsNone(fields[name].relation)
+            self.assertEqual(fields[name].comodel_name, "hr.payslip")
+        # The original declarations name relations, but nonstored computed
+        # fields never created those tables. Preserve that actual contract.
+        self.env.cr.execute("SELECT to_regclass('hr_termination_correction_payslip_rel'), to_regclass('hr_termination_correction_blocked_rel')")
+        self.assertEqual(self.env.cr.fetchone(), (None, None))
         action = self.env.ref("steps_hr_payroll_correction.action_hr_termination_correction_from_employee")
         self.assertIn(self.env.ref("steps_hr_payroll_correction.group_payroll_correction"), action.groups_id)
         self.assertTrue(self.scope["hr.termination.correction.wizard"].get_view(view_type="form")["arch"])
@@ -245,7 +274,7 @@ class HrConsumersCase(TransactionCase):
             severance.action_prevalidate()
         self.assertEqual(severance.read(["state", "renta_base", "total_a_pagar", "last_payslip_ids"]), original)
         foreign_employee = self.scope["hr.employee"].create({"name": "Private second employee", "company_id": self.company.id})
-        foreign_contract = self.contract.copy({"employee_id": foreign_employee.id})
+        foreign_contract = self.scope["hr.contract"].create(dict(self.contract_values, employee_id=foreign_employee.id))
         foreign_slip = slip.copy({"employee_id": foreign_employee.id, "contract_id": foreign_contract.id})
         with self.assertRaises(ValidationError), self.env.cr.savepoint():
             severance.last_payslip_ids = foreign_slip
@@ -268,3 +297,31 @@ class HrConsumersCase(TransactionCase):
         with self.assertRaises(UserError):
             slip.compute_sheet()
         self.assertEqual(self.stored(slip), original)
+
+    def test_weekly_hours_feed_all_contract_consumers_without_changing_the_schedule(self):
+        if "hr.severance" not in self.scope:
+            self.skipTest("Lifecycle is not installed in this consumer-only database")
+        from odoo.addons.step_hr_contract_lifecycle.models.dt_contract_field_catalog import DT_CONTRACT_COLUMNS
+        from odoo.addons.step_hr_contract_lifecycle.models.hr_labor_template import TEMPLATE_VARIABLES
+        self.calendar.attendance_ids.filtered(lambda row: row.dayofweek == "4").hour_to = 20
+        original = self.calendar.attendance_ids.read(["id", "hour_from", "hour_to"])
+        self.assertEqual(self.calendar._steps_contract_weekly_hours(), 44)
+        self.assertEqual(float(dict(DT_CONTRACT_COLUMNS)["DURACION_JORNADA"](self.contract)), 44)
+        self.assertEqual(float(TEMPLATE_VARIABLES["contrato.jornada_semanal"](self.contract)), 44)
+        self.contract._compute_adequacy_state()
+        self.assertEqual(self.contract.adequacy_state, "exception")
+        transition = self.scope["hr.legal.workweek.calendar"].create({"date_from": date(2035, 1, 1),
+            "max_weekly_hours": 36, "company_id": self.company.id})
+        batch = self.scope["hr.contract.adequacy.batch"].create({"calendar_id": transition.id, "company_id": self.company.id})
+        batch.action_simulate()
+        self.assertEqual(batch.line_ids.contract_id, self.contract)
+        self.assertEqual(batch.line_ids.current_weekly_hours, 44)
+        simulator = self.scope["hr.legal.calendar.simulator"].create({"calendar_id": transition.id, "company_id": self.company.id})
+        self.assertEqual(simulator.affected_contract_ids, self.contract)
+        self.assertEqual(simulator.total_hours_to_reduce, 8)
+        transition._apply_transition()
+        log = self.scope["hr.legal.calendar.execution.log"].search([("calendar_id", "=", transition.id),
+            ("contract_id", "=", self.contract.id)])
+        self.assertEqual(log.old_hours, 44)
+        self.assertTrue(log.is_exception)
+        self.assertEqual(self.calendar.attendance_ids.read(["id", "hour_from", "hour_to"]), original)

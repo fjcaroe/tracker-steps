@@ -219,7 +219,7 @@ class HrLegalWorkweekCalendar(models.Model):
                 ]
             )
             for contract in contracts:
-                current_hours = contract.resource_calendar_id.hours_per_week if contract.resource_calendar_id else 0.0
+                current_hours = contract.resource_calendar_id._steps_contract_weekly_hours() if contract.resource_calendar_id else 0.0
                 if current_hours <= new_max:
                     continue
                 line = self.env["hr.contract.adequacy.line"].search(
