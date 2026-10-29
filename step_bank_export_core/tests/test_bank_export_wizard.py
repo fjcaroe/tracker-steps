@@ -10,10 +10,16 @@ from odoo.tests import Form, tagged
 from odoo.tests.common import new_test_user
 from odoo.addons.account.tests.common import AccountTestInvoicingCommon
 from .test_bank_export_core import make_bank_payment
+from .common import private_finance_sequences
 
 
 @tagged('post_install', '-at_install')
 class BankExportWizardCase(AccountTestInvoicingCommon):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        private_finance_sequences(cls.env, cls.env.company)
+
     def setUp(self):
         super().setUp()
         self.env = self.env(context=dict(self.env.context, no_reset_password=True,
