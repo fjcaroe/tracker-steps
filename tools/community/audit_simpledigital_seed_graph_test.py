@@ -94,13 +94,14 @@ class SeedGraphCase(unittest.TestCase):
         files = {'__init__.py': '# unchanged runtime\n',
             'data/hr_salary_rule.xml': '<odoo><record id="basic" model="hr.salary.rule"><field name="amount_python_compute">PRIVATE FORMULA MUST NEVER EXPORT</field></record></odoo>',
             'data/hr_salary_structure.xml': '<odoo><record id="structure_chile" model="hr.payroll.structure"/></odoo>',
+            graph.MOVEMENT_SEED_FILE: '<odoo><record id="movement_type" model="hr.employee.movement.type"/><record id="movement_event" model="hr.employee.hr.event.type"><field name="movement_id" ref="movement_type"/></record></odoo>',
             graph.DEFER_FILE: '<odoo><record id="work_entry_type_unpaid_cl" model="hr.work.entry.type"><field name="name">Ausencia sin goce</field>' + fragment + '</record></odoo>',
             'views/form.xml': '<odoo><record id="form" model="ir.ui.view"><field name="inherit_id" ref="base.layout"/></record></odoo>'}
         data = [name for name in files if name.endswith('.xml')]
         spec = {'license': 'AGPL-3', 'depends': ['step_simpledigital_oca_base'], 'data': data}
         files['__manifest__.py'] = repr(spec)
-        filtered = {name: content for name, content in files.items() if name not in graph.SALARY_SEED_FILES}
-        filtered['__manifest__.py'] = repr(dict(spec, data=[name for name in data if name not in graph.SALARY_SEED_FILES]))
+        filtered = {name: content for name, content in files.items() if name not in graph.BOOTSTRAP_SEED_FILES}
+        filtered['__manifest__.py'] = repr(dict(spec, data=[name for name in data if name not in graph.BOOTSTRAP_SEED_FILES]))
         filtered[graph.DEFER_FILE] = files[graph.DEFER_FILE].replace(fragment, '')
         for root, snapshot in ((normal, files), (profile, filtered)):
             for name, content in snapshot.items():
@@ -115,6 +116,13 @@ class SeedGraphCase(unittest.TestCase):
             report = graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)
             self.assertEqual(report['omitted_salary_seed_files'], list(graph.SALARY_SEED_FILES))
             self.assertEqual(report['omitted_salary_xmlids'], [graph.MODULE + '.basic', graph.DEFER_TARGET])
+            self.assertEqual(report['omitted_seed_files'], list(graph.BOOTSTRAP_SEED_FILES))
+            self.assertEqual(report['deferred_movement_catalog']['model_counts'],
+                {'hr.employee.movement.type': 1, 'hr.employee.hr.event.type': 1})
+            self.assertFalse(report['deferred_movement_catalog']['adopted'])
+            self.assertFalse(report['deferred_movement_catalog']['original_catalog_preserved_in_target'])
+            self.assertFalse(report['deferred_movement_catalog']['generated_salary_rules_adopted'])
+            self.assertFalse(report['deferred_movement_catalog']['rule_generation_executed'])
             self.assertEqual(report['remaining_salary_master_records'], [])
             self.assertEqual(report['other_local_orphans'], [])
             self.assertTrue(report['deferred_original_unpaid_link']['assignment_absent_in_profile'])
@@ -124,13 +132,13 @@ class SeedGraphCase(unittest.TestCase):
             self.assertNotIn('PRIVATE FORMULA', json.dumps(report))
 
     def test_profile_never_waives_a_present_dangling_assignment_or_an_extra_orphan(self):
-        for mutation in ('present-assignment', 'another-removed-ref', 'missing-local-ref'):
+        for mutation in ('present-assignment', 'another-removed-ref', 'removed-movement-ref', 'missing-local-ref'):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as folder:
                 normal, profile, allowed = self.profiles(folder)
                 if mutation == 'present-assignment':
                     (profile / graph.DEFER_FILE).write_bytes((normal / graph.DEFER_FILE).read_bytes())
                 else:
-                    target = 'basic' if mutation == 'another-removed-ref' else 'missing'
+                    target = {'another-removed-ref': 'basic', 'removed-movement-ref': 'movement_type'}.get(mutation, 'missing')
                     for root in (normal, profile):
                         path = root / 'views/form.xml'
                         path.write_bytes(path.read_bytes().replace(b'</record>',
@@ -139,7 +147,7 @@ class SeedGraphCase(unittest.TestCase):
                     graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)
 
     def test_profile_rejects_unapproved_runtime_manifest_type_or_field_changes(self):
-        for mutation in ('runtime', 'manifest', 'type-value', 'extra-file', 'retained-seed'):
+        for mutation in ('runtime', 'manifest', 'type-value', 'extra-file', 'retained-seed', 'retained-movement', 'fourth-omission'):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as folder:
                 normal, profile, allowed = self.profiles(folder)
                 if mutation == 'runtime':
@@ -154,8 +162,14 @@ class SeedGraphCase(unittest.TestCase):
                     path.write_bytes(path.read_bytes().replace(b'Ausencia', b'Alterada'))
                 elif mutation == 'extra-file':
                     (profile / 'new.py').write_text('')
+                elif mutation == 'fourth-omission':
+                    (profile / 'views/form.xml').unlink()
+                    path = profile / '__manifest__.py'
+                    spec = ast.literal_eval(path.read_text())
+                    spec['data'].remove('views/form.xml')
+                    path.write_text(repr(spec))
                 else:
-                    name = graph.SALARY_SEED_FILES[0]
+                    name = graph.MOVEMENT_SEED_FILE if mutation == 'retained-movement' else graph.SALARY_SEED_FILES[0]
                     (profile / name).write_bytes((normal / name).read_bytes())
                 with self.assertRaises(AssertionError):
                     graph.verify_bootstrap_profile(normal, profile, allowed_files=allowed)

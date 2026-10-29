@@ -18,6 +18,8 @@ IDENT = re.compile(r'[A-Za-z_][A-Za-z0-9_.-]*\Z')
 PLACEHOLDER = re.compile(r'%\(([A-Za-z_][A-Za-z0-9_.-]*)\)[ds]')
 MODULE = 'l10n_cl_simpledigital_payroll'
 SALARY_SEED_FILES = ('data/hr_salary_rule.xml', 'data/hr_salary_structure.xml')
+MOVEMENT_SEED_FILE = 'data/hr_employee_movement.xml'
+BOOTSTRAP_SEED_FILES = (*SALARY_SEED_FILES, MOVEMENT_SEED_FILE)
 DEFER_FILE = 'data/hr_work_entry_type.xml'
 DEFER_OWNER = MODULE + '.work_entry_type_unpaid_cl'
 DEFER_TARGET = MODULE + '.structure_chile'
@@ -168,7 +170,7 @@ def analyze_addon(addon, *, omit=(), allowed_files=None, approved_external=()):
 
 
 def verify_bootstrap_profile(normal_addon, profile_addon, *, allowed_files):
-    """Prove two omitted seeds and one deferred assignment, never waive a ref.
+    """Prove three omitted seeds and one deferred assignment, never waive a ref.
 
     This is an independent XML/CSV audit. The builder additionally proves
     mandatory dependency/Python reference closure; actual registry installation
@@ -197,19 +199,19 @@ def verify_bootstrap_profile(normal_addon, profile_addon, *, allowed_files):
 
     normal, profile = snapshot(normal_addon), snapshot(profile_addon)
     assert set(normal) == set(allowed_files), 'Incomplete normal runtime snapshot'
-    assert set(profile) == set(normal) - set(SALARY_SEED_FILES), 'Only salary seed files may disappear'
+    assert set(profile) == set(normal) - set(BOOTSTRAP_SEED_FILES), 'Only the three approved seed files may disappear'
     normal_manifest = ast.literal_eval(normal['__manifest__.py'].decode('utf-8-sig'))
     profile_manifest = ast.literal_eval(profile['__manifest__.py'].decode('utf-8-sig'))
     assert normal_manifest.get('license') == 'AGPL-3', 'Free provider required'
     assert normal_manifest.get('depends') == ['step_simpledigital_oca_base'], 'Normal provider dependency drift'
     assert not normal_manifest.get('demo'), 'Provider demo is not authorized'
-    assert all(normal_manifest.get('data', []).count(name) == 1 for name in SALARY_SEED_FILES), 'Salary seed list drift'
+    assert all(normal_manifest.get('data', []).count(name) == 1 for name in BOOTSTRAP_SEED_FILES), 'Approved seed list drift'
     expected_manifest = dict(normal_manifest,
-        data=[name for name in normal_manifest['data'] if name not in SALARY_SEED_FILES])
+        data=[name for name in normal_manifest['data'] if name not in BOOTSTRAP_SEED_FILES])
     assert profile_manifest == expected_manifest, 'Unexpected profile manifest change'
     assert normal_manifest['data'].count(DEFER_FILE) == 1, 'Deferred type loader drift'
 
-    baseline = analyze_addon(normal_addon, omit=SALARY_SEED_FILES, allowed_files=allowed_files)
+    baseline = analyze_addon(normal_addon, omit=BOOTSTRAP_SEED_FILES, allowed_files=allowed_files)
     expected_edge = {'file': DEFER_FILE, 'owner': DEFER_OWNER, 'field': 'unpaid_structure_ids',
         'attribute': 'eval', 'kind': 'loader-eval', 'target': DEFER_TARGET, 'resolution': 'removed-seed-reference'}
     assert len(baseline['removed_seed_blockers']) == 1, 'Unexpected omitted seed reference'
@@ -231,7 +233,7 @@ def verify_bootstrap_profile(normal_addon, profile_addon, *, allowed_files):
     span = spans[0]
     assert profile[DEFER_FILE] == normal[DEFER_FILE][:span.start()] + normal[DEFER_FILE][span.end():], 'Deferred field bytes changed beyond one assignment'
     assert all(profile[name] == value for name, value in normal.items()
-        if name not in (*SALARY_SEED_FILES, DEFER_FILE, '__manifest__.py')), 'Unexpected provider runtime modification'
+        if name not in (*BOOTSTRAP_SEED_FILES, DEFER_FILE, '__manifest__.py')), 'Unexpected provider runtime modification'
 
     graph = analyze_addon(profile_addon, allowed_files=allowed_files)
     assert not graph['remaining_salary_master_records'], 'Profile still creates salary masters'
@@ -241,9 +243,24 @@ def verify_bootstrap_profile(normal_addon, profile_addon, *, allowed_files):
         or row['resolution'] in ('removed-seed-reference', 'missing-provider-definition')]
     assert not orphans, 'Profile has another unresolved provider reference'
     assert not graph['side_effect_nodes'], 'Unexpected loader side effects'
-    graph.update(schema=2, profile='original-bootstrap-without-salary-seeds',
+    movements = baseline['files'][MOVEMENT_SEED_FILE]['definitions']
+    movement_models = {'hr.employee.movement.type', 'hr.employee.hr.event.type'}
+    assert movements and all(row['model'] in movement_models for row in movements), 'Movement catalog identity drift'
+    salary_xmlids = {row['xmlid'] for name in SALARY_SEED_FILES
+        for row in baseline['files'][name]['definitions']}
+    graph.update(schema=3, profile='original-bootstrap-without-salary-seeds',
         normal_manifest_sha256=hashlib.sha256(normal['__manifest__.py']).hexdigest(),
-        omitted_salary_seed_files=list(SALARY_SEED_FILES), omitted_salary_xmlids=sorted(removed),
+        omitted_seed_files=list(BOOTSTRAP_SEED_FILES), omitted_provider_xmlids=sorted(removed),
+        omitted_salary_seed_files=list(SALARY_SEED_FILES), omitted_salary_xmlids=sorted(salary_xmlids),
+        deferred_movement_catalog={
+            'file': MOVEMENT_SEED_FILE,
+            'original_file_sha256': hashlib.sha256(normal[MOVEMENT_SEED_FILE]).hexdigest(),
+            'definitions': [{'xmlid': row['xmlid'], 'model': row['model']} for row in movements],
+            'model_counts': {model: sum(row['model'] == model for row in movements) for model in sorted(movement_models)},
+            'adopted': False, 'original_catalog_preserved_in_target': False,
+            'generated_salary_rules_adopted': False, 'rule_generation_executed': False,
+            'generated_salary_rule_count_certified': False,
+            'must_adopt_before_original_movement_processing': True},
         deferred_original_unpaid_link={
             'file': DEFER_FILE, 'record_xmlid': DEFER_OWNER, 'field': 'unpaid_structure_ids',
             'structure_xmlid': DEFER_TARGET, 'relation': 'hr_payroll_structure_hr_work_entry_type_rel',
@@ -264,7 +281,7 @@ def main():
     parser.add_argument('--verify-source-pin', action='store_true')
     parser.add_argument('--omit', action='append', default=[])
     parser.add_argument('--baseline-addon', type=Path,
-        help='Normal derived provider for strict two-seed/one-assignment profile comparison')
+        help='Normal derived provider for strict three-seed/one-assignment profile comparison')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     pin = json.loads(args.pin.read_text())
