@@ -69,6 +69,22 @@ def synthetic_closed_fixture(paid=None):
 
 
 class AdmissionEvidenceCase(unittest.TestCase):
+    def test_saved_inputs_requires_all_three_updated_packages(self):
+        try:
+            runner.configure_profile('saved-inputs')
+            args = synthetic_package()
+            self.assertEqual(len(args[0]), 96)
+            self.assertEqual(verifier._verify_package(*args, runner), 4)
+            package, baseline, consumers, current, source = synthetic_package()
+            package['step_simpledigital_oca_security']['candidate'] = package['step_simpledigital_oca_security']['legacy']
+            with self.assertRaises(AssertionError):
+                verifier._verify_package(package, baseline, consumers, current, source, runner)
+            package, *rest = synthetic_package()
+            package.pop('vendor_0')
+            with self.assertRaises(AssertionError): verifier._verify_package(package, *rest, runner)
+        finally:
+            runner.configure_profile('admission')
+
     def test_packet_checks_complete_legacy_consumer_override_and_current_git_addons(self):
         args = synthetic_package()
         self.assertEqual(verifier._verify_package(*args, runner), 3)
