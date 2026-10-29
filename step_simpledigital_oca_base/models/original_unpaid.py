@@ -6,6 +6,10 @@ from odoo.addons.step_payroll_contracts.history import history_protected
 
 
 RELATION = "hr_payroll_structure_hr_work_entry_type_rel"
+PAYMENT_DEPENDENCIES = (
+    "number_of_days", "contract_id.wage", "work_entry_type_id", "payslip_id.struct_id",
+    "payslip_id.struct_id.unpaid_work_entry_type_ids",
+)
 
 
 def _normal(records):
@@ -174,6 +178,14 @@ class WorkEntryType(models.Model):
 class WorkedDays(models.Model):
     _inherit = "hr.payslip.worked_days"
 
+    # Explicit field dependencies take precedence over the inherited method's
+    # depends list. A decorator alone would merge its old global-type path and
+    # schedule unrelated company B days after editing only A's membership.
+    # The existing compute, columns, formula and frozen restoration are kept.
+    is_paid = fields.Boolean(depends=PAYMENT_DEPENDENCIES)
+    amount = fields.Monetary(depends=PAYMENT_DEPENDENCIES)
+
+    @api.depends(*PAYMENT_DEPENDENCIES)
     def _compute_payment(self):
         # Closed rows must restore stored values even when today's policy is
         # hidden, archived, incompatible or simply different from the past.

@@ -6,6 +6,8 @@ from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_payroll_contracts.unpaid_testing import UnpaidRelationFixture
 
+from ..models.original_unpaid import PAYMENT_DEPENDENCIES
+
 
 @tagged("post_install", "-at_install")
 class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
@@ -65,6 +67,14 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
 
     def test_real_unpaid_relation_metadata_inverse_and_raw_pairs(self):
         self.case_real_unpaid_relation_metadata_inverse_and_raw_pairs()
+        days = self.scope["hr.payslip.worked_days"]
+        for name in ("is_paid", "amount"):
+            field = days._fields[name]
+            self.assertTrue(field.store)
+            self.assertEqual(field.compute, "_compute_payment")
+            self.assertEqual(set(field.get_depends(days)[0]), set(PAYMENT_DEPENDENCIES))
+            self.assertEqual(set(self.scope.registry.field_depends[field]), set(PAYMENT_DEPENDENCIES))
+            self.assertNotIn("work_entry_type_id.unpaid_structure_ids", self.scope.registry.field_depends[field])
 
     def test_archived_pairs_and_default_copy_keep_both_original_endpoints(self):
         self.case_real_unpaid_relation_keeps_archived_original_pairs()
@@ -123,6 +133,35 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
             "country_id": foreign_company.country_id.id, "parent_id": False, "active": False})
         self.entry_type.country_id = False
         self.entry_type.with_env(self.env).unpaid_structure_ids = [Command.set([self.structure.id, foreign.id])]
+        # A real draft day in B is intentionally outside A's permissions. A's
+        # relation edit must not enqueue and try to recompute B through a global
+        # type dependency. Provision it with the fixture author's real company.
+        author = self.env["hr.contract"].with_company(foreign_company).env
+        foreign_kind = author["hr.payroll.structure.type"].create({
+            "name": "Private inaccessible unpaid payroll type", "country_id": foreign_company.country_id.id})
+        foreign.type_id = foreign_kind
+        journal = author["account.journal"].create({"name": "Private inaccessible unpaid salary journal",
+            "code": "UPB", "type": "general", "company_id": foreign_company.id})
+        employee = author["hr.employee"].create({"name": "Private inaccessible unpaid employee", "company_id": foreign_company.id})
+        values = {"name": "Private inaccessible unpaid contract", "employee_id": employee.id,
+            "company_id": foreign_company.id, "state": "open", "date_start": fields.Date.today().replace(day=1),
+            "wage": 750000, "schedule_pay": "monthly", "struct_id": foreign.id,
+            "structure_type_id": foreign_kind.id, "journal_id": journal.id}
+        field = author["hr.contract"]._fields.get("contract_type_id")
+        if field:
+            values["contract_type_id"] = author[field.comodel_name].search([], limit=1).id
+        contract = author["hr.contract"].create(values)
+        foreign_slip = author["hr.payslip"].create({"name": "Private inaccessible unpaid salary slip",
+            "number": "PRIVATE/UNPAID/B", "company_id": foreign_company.id, "employee_id": employee.id,
+            "contract_id": contract.id, "struct_id": foreign.id,
+            "date_from": fields.Date.today().replace(day=1), "date_to": fields.Date.today()})
+        foreign_day = author["hr.payslip.worked_days"].create({"name": "Private inaccessible real typed day",
+            "payslip_id": foreign_slip.id, "contract_id": contract.id, "work_entry_type_id": self.entry_type.id,
+            "number_of_days": 3, "number_of_hours": 24})
+        self.assertFalse(foreign_day.is_paid)
+        author.flush_all()
+        self.env.cr.execute("SELECT to_jsonb(t) FROM hr_payslip_worked_days t WHERE id=%s", (foreign_day.id,))
+        foreign_before = self.env.cr.fetchone()
         with self.assertRaises(AccessError):
             foreign.with_env(self.scope).read(["id"])
         slip = self._slip()
@@ -147,6 +186,7 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         # This edit owns A's membership only, and must not authorize or inspect
         # the unrelated archived/foreign B configuration behind the global type.
         self.structure.unpaid_work_entry_type_ids = [Command.clear()]
+        self.scope.flush_all()
         self.assertTrue(day.is_paid)
         expected = self.company.currency_id.round(self.contract.wage / 30.0 * day.number_of_days)
         self.assertEqual(day.amount, expected)
@@ -155,6 +195,8 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.env.cr.execute("""SELECT hr_payroll_structure_id FROM hr_payroll_structure_hr_work_entry_type_rel
             WHERE hr_work_entry_type_id=%s ORDER BY 1""", (self.entry_type.id,))
         self.assertEqual([row[0] for row in self.env.cr.fetchall()], sorted([foreign.id, copied.id]))
+        self.env.cr.execute("SELECT to_jsonb(t) FROM hr_payslip_worked_days t WHERE id=%s", (foreign_day.id,))
+        self.assertEqual(self.env.cr.fetchone(), foreign_before)
 
     def test_field_acl_is_enforced_before_calculation_and_stored_payment_compute(self):
         slip = self._slip()
