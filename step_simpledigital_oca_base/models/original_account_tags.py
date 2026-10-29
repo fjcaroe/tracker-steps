@@ -65,6 +65,87 @@ class SalaryRule(models.Model):
             raise UserError(_('The original payroll tax grid must match the payslip fiscal country or be shared.'))
         return tags
 
+    def _step_original_account_tag_copy_plan(self, default=None):
+        """Authorize every source pair before considering any replacement.
+
+        Read domains are selection aids, not authority to silently discard a
+        visible incompatible original value while duplicating a real rule.
+        """
+        normal = self.sudo(False)
+        plan = {record.id: {name: set(record._step_original_account_tag_members(name).ids)
+                           for name in TAG_RELATIONS} for record in normal}
+        for name in TAG_RELATIONS.keys() & (default or {}).keys():
+            value = default[name]
+            ids, references = set(), set()
+            if value is None or value is False:
+                commands = []
+            elif getattr(value, '_name', None) == 'account.account.tag':
+                commands = [Command.set(value.ids)]
+            elif isinstance(value, (tuple, list)):
+                commands = value
+            else:
+                raise UserError(_('Unsupported original tax-grid copy default.'))
+            for command in commands:
+                if not isinstance(command, (tuple, list)) or len(command) != 3:
+                    raise UserError(_('Unsupported original tax-grid copy default.'))
+                operation, ident, values = command
+                if operation == Command.SET and ident == 0 and isinstance(values, (tuple, list)):
+                    if any(type(item) is not int or not 0 < item < 2**31 for item in values):
+                        raise UserError(_('Invalid original tax-grid copy reference.'))
+                    ids = set(values)
+                    references.update(ids)
+                elif operation in (Command.LINK, Command.UNLINK) and values == 0 and type(ident) is int and 0 < ident < 2**31:
+                    references.add(ident)
+                    if operation == Command.LINK:
+                        ids.add(ident)
+                    else:
+                        ids.discard(ident)
+                elif operation == Command.CLEAR and ident == 0 and values == 0:
+                    ids.clear()
+                else:
+                    raise UserError(_('Copying payroll tax grids cannot change tag masters.'))
+            targets = normal.env['account.account.tag'].with_context(active_test=False).browse(sorted(references))
+            if references:
+                targets.check_access('read')
+                if set(targets.exists().ids) != references:
+                    raise UserError(_('An original tax-grid copy reference is missing.'))
+            for record in normal:
+                plan[record.id][name] = set(ids)
+        return plan
+
+    def copy_data(self, default=None):
+        if self._name != 'hr.salary.rule':
+            return super().copy_data(default=default)
+        normal = self.sudo(False)
+        plan = normal._step_original_account_tag_copy_plan(default)
+        # Do not pass master-changing commands to any provider copy hook.
+        safe_default = dict(default or {})
+        for name in TAG_RELATIONS.keys() & safe_default.keys():
+            if normal:
+                safe_default[name] = [Command.set(sorted(plan[normal[0].id][name]))]
+        result = super(SalaryRule, normal).copy_data(default=safe_default)
+        for record, values in zip(normal, result):
+            if values is not None:
+                for name in TAG_RELATIONS:
+                    values[name] = [Command.set(sorted(plan[record.id][name]))]
+        return result
+
+    def copy(self, default=None):
+        if self._name != 'hr.salary.rule':
+            return super().copy(default=default)
+        normal = self.sudo(False)
+        plan = normal._step_original_account_tag_copy_plan(default)
+        normal.check_access('create')
+        with self.env.cr.savepoint():
+            result = super(SalaryRule, normal).copy(default=default)
+            if len(result) != len(normal):
+                raise UserError(_('The original payroll tax-grid copy is incomplete.'))
+            for source, copied in zip(normal, result):
+                for name in TAG_RELATIONS:
+                    if set(copied._step_original_account_tag_members(name).ids) != plan[source.id][name]:
+                        raise UserError(_('The original payroll tax-grid pairs changed during copy.'))
+            return result
+
 
 class PayslipLine(models.Model):
     _inherit = 'hr.payslip.line'
