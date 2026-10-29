@@ -60,7 +60,8 @@ class OriginalTypeRelationCases:
 
     def case_schedule_is_readonly_related_and_changes_without_storing_a_new_value(self):
         field = self.scope["hr.payroll.structure"]._fields["schedule_pay"]
-        self.assertEqual(tuple(field.related), ("type_id", "default_schedule_pay"))
+        related = field.related if isinstance(field.related, str) else ".".join(field.related)
+        self.assertEqual(related, "type_id.default_schedule_pay")
         self.assertFalse(field.store)
         self.assertTrue(field.readonly)
         self.assertEqual(self.structures.mapped("schedule_pay"), ["monthly", "monthly"])
@@ -73,3 +74,8 @@ class OriginalTypeRelationCases:
         self.kinds[1].write({"struct_ids": [Command.link(self.structures[0].id)]})
         self.assertEqual(self.kinds[0].struct_type_count, 1)
         self.assertEqual(self.kinds[1].struct_type_count, 1)
+        if not self.NATIVE:
+            self.structures[1].active = False
+            self.assertEqual(self.kinds[0].struct_type_count, 0)
+            self.assertEqual(self.kinds[0].with_context(active_test=False).struct_type_count, 1)
+            self.assertEqual(self.kinds[0].struct_type_count, 0)
