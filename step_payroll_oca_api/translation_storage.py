@@ -118,6 +118,25 @@ def _convert_literal_column(cursor, table, column):
         "literal_projection_sha256": before[1], "required_preserved": True}
 
 
+def original_translation_table_admission(api_state, existing_tables):
+    """Distinguish a real cold model from an unexpectedly missing upgrade table.
+
+    Production reads api_state and table presence directly from PostgreSQL;
+    they are not options a caller can pass to the migration entry point.
+    """
+    present = set(existing_tables)
+    if api_state not in {"to install", "installed", "to upgrade"}:
+        raise TranslationStorageError("payroll-api-module-state-not-admitted")
+    if present - {"hr_salary_rule", "hr_payslip_input_type"}:
+        raise TranslationStorageError("unexpected-translation-table-admission")
+    if "hr_salary_rule" not in present:
+        raise TranslationStorageError("actual-oca-rule-table-required")
+    if "hr_payslip_input_type" not in present and api_state != "to install":
+        raise TranslationStorageError("original-input-type-table-missing-on-upgrade")
+    return {"existing_tables": sorted(present),
+        "input_table_pending_orm": "hr_payslip_input_type" not in present}
+
+
 def migrate_original_translation_storage(cursor):
     """Internal product migration; no lab-name requirement or engine bypass."""
     cursor.execute("""SELECT 1 FROM ir_module_module WHERE state IN ('installed','to upgrade','to install','to remove')
@@ -127,19 +146,35 @@ def migrate_original_translation_storage(cursor):
     cursor.execute("SELECT 1 FROM ir_module_module WHERE name='payroll' AND state IN ('installed','to upgrade')")
     if not cursor.fetchone():
         raise TranslationStorageError("actual-oca-reference-required")
+    cursor.execute("SELECT state FROM ir_module_module WHERE name='step_payroll_oca_api'")
+    api = cursor.fetchone()
+    cursor.execute("SELECT to_regclass('public.hr_salary_rule') IS NOT NULL,to_regclass('public.hr_payslip_input_type') IS NOT NULL")
+    admission = original_translation_table_admission(api[0] if api else None,
+        [table for table, present in zip(("hr_salary_rule", "hr_payslip_input_type"), cursor.fetchone()) if present])
     cursor.execute("SAVEPOINT step_original_translation_storage")
     try:
-        cursor.execute("LOCK TABLE public.hr_salary_rule,public.hr_payslip_input_type IN ACCESS EXCLUSIVE MODE")
+        from psycopg2 import sql
+
+        tables = sql.SQL(",").join(_table_identifier(("public", table)) for table in admission["existing_tables"])
+        cursor.execute(sql.SQL("LOCK TABLE {} IN ACCESS EXCLUSIVE MODE").format(tables))
         result = {
             "hr.salary.rule.note": _convert_literal_column(cursor, ("public", "hr_salary_rule"), "note"),
-            "hr.payslip.input.type.name": _convert_literal_column(cursor, ("public", "hr_payslip_input_type"), "name"),
         }
+        if admission["input_table_pending_orm"]:
+            # This model is owned by the API being installed. Do not create a
+            # surrogate table or any rows before its real ORM field setup.
+            result["hr.payslip.input.type.name"] = {
+                "converted": False, "status": "absent-cold-real-orm-pending", "source_type": None,
+                "rows": None, "literal_projection_sha256": None, "required_preserved": None}
+        else:
+            result["hr.payslip.input.type.name"] = _convert_literal_column(cursor, ("public", "hr_payslip_input_type"), "name")
     except Exception:
         cursor.execute("ROLLBACK TO SAVEPOINT step_original_translation_storage")
         cursor.execute("RELEASE SAVEPOINT step_original_translation_storage")
         raise
     cursor.execute("RELEASE SAVEPOINT step_original_translation_storage")
-    return {"columns": result, "base_language": BASE_LANGUAGE, "historical_lines_changed": False,
+    return {"columns": result, "base_language": BASE_LANGUAGE, "input_table_pending_orm": admission["input_table_pending_orm"],
+        "historical_lines_changed": False,
         "metadata_or_xmlids_changed": False, "rules_evaluated": False, "configuration_imported": False}
 
 
