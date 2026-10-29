@@ -28,6 +28,11 @@ def main():
            'tools/community/validate_payroll_api.py']
     if simpledigital:paths+=['step_simpledigital_oca_base','step_simpledigital_oca_security','tools/community/build_simpledigital_candidate.py','tools/community/simpledigital_runtime_source.json']
     accelerated=read('community','passed').get('accelerated',False)
+    custody_grouping=read('community','passed').get('custody_grouping',False)
+    assert custody_grouping==read('cerro-reference','passed').get('custody_grouping',False)
+    if custody_grouping:
+        paths+=['step_batch_payment_grouping','step_batch_payment_core','step_l10n_cl_caf_custody_core',
+                'step_l10n_cl_caf_storage','step_l10n_cl_caf_native_reference']
     if accelerated:
         hr_modules=('step_hr_contract_lifecycle','step_hr_contract_lifecycle_simpledigital','step_payroll_engine_transition','steps_hr_payroll_correction')
         paths+=list(hr_modules)+['step_accounting_multicurrency_core','step_account_balance_analytic','step_bank_export_core',
@@ -273,7 +278,8 @@ def main():
                 'caf_attachment_metadata':bool(caf.get('binary_attachment_policy_proven')),'functional_conversion_certified':False}
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==254 and results['cerro-reference']['expected_test_count']==215
+        assert results['community']['expected_test_count']==(308 if custody_grouping else 259)
+        assert results['cerro-reference']['expected_test_count']==(244 if custody_grouping else 215)
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])

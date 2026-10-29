@@ -33,6 +33,7 @@ def main():
     parser.add_argument('--database',required=True)
     parser.add_argument('--tablespace')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
+    parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
@@ -43,6 +44,9 @@ def main():
     previred=args.profile in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=args.profile in ('previred-simpledigital','book-consumers','book-install','book-history')
     standalone=args.profile=='previred-standalone'
+    assert not args.custody_grouping or args.accelerated
+    custody_modules=('step_l10n_cl_caf_custody_core','step_l10n_cl_caf_storage','step_l10n_cl_caf_native_reference')
+    grouping_modules=('step_batch_payment_grouping','step_batch_payment_core')
     if simpledigital:
         MODULES=MODULES+('step_simpledigital_oca_base','step_simpledigital_oca_security','l10n_cl_simpledigital_payroll')
     if previred:MODULES+=('step_hr_previred',)
@@ -61,6 +65,7 @@ def main():
                          'step_bank_export_core','step_account_treasury_batch','step_bank_security',
                          'step_accounting_multicurrency')
         MODULES+=HR_MODULES+finance_modules+('step_l10n_cl_edi_core',)
+        if args.custody_grouping:MODULES+=custody_modules+grouping_modules
     assert os.geteuid()==0 and str(args.root.resolve()).startswith('/opt/steps-validation/')
     assert re.fullmatch(('COMMUNITY_PAYROLL_API_' if args.mode=='community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_')+'[A-Za-z0-9_]+',args.database)
     root=args.root.resolve();source=root/'addons';stage=root/args.mode
@@ -73,7 +78,7 @@ def main():
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
     data=stage/'data';data.mkdir();overlay=stage/'addons';overlay.mkdir()
-    for m in (tuple(m for m in MODULES if m!='step_payroll_enterprise_reference') if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ())+(('step_hr_previred_simpledigital',) if bridge else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
+    for m in (tuple(m for m in MODULES if m not in ('step_payroll_enterprise_reference','step_l10n_cl_caf_native_reference')) if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ())+(('step_hr_previred_simpledigital',) if bridge else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
     hr_overlay=None
     if args.accelerated:
         # Generic consumer sources are in the identical packet; the only CE
@@ -89,6 +94,9 @@ def main():
         if not pure:
             for m in finance_modules+('step_l10n_cl_edi_core',):
                 (overlay/m).symlink_to(source/m)
+            if args.custody_grouping:
+                for m in ('step_l10n_cl_caf_custody_core','step_l10n_cl_caf_native_reference','step_batch_payment_grouping'):
+                    (overlay/m).symlink_to(source/m)
     if own_book and args.mode!='community':(overlay/'step_hr_remuneration_book').symlink_to(source/'step_hr_remuneration_book')
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
@@ -186,6 +194,8 @@ def main():
         if args.accelerated:
             modules+=','+','.join(HR_MODULES+finance_modules[:3]+('step_l10n_cl_edi_core',))
             if not pure:modules+=',step_account_treasury_batch,step_bank_security,step_accounting_multicurrency'
+        if args.custody_grouping:
+            modules+=',step_batch_payment_grouping,'+('step_batch_payment_core,step_l10n_cl_caf_storage' if pure else 'step_l10n_cl_caf_native_reference')
         execution_env=dict(os.environ)
         if (root/'basis-input.json').exists():
             assert simpledigital
@@ -238,6 +248,8 @@ def main():
         if args.accelerated:
             tags+=','+HR_TEST_TAGS+',/step_bank_export_core,/step_account_balance_analytic,/step_l10n_cl_edi_core,/step_accounting_multicurrency_core'
             if not pure:tags+=',/step_account_treasury_batch,/step_bank_security'
+        if args.custody_grouping:
+            tags+=',/step_batch_payment_grouping,'+('/step_batch_payment_core,/step_l10n_cl_caf_storage' if pure else '/step_l10n_cl_caf_native_reference')
         if own_book:
             methods=['code_snapshots_preserve_original_zero_in_batch','actual_movement_adapter_reads_stored_totals','actual_movement_adapter_rejects_hidden_lines']
             if not pure or full_book:methods.append('native_registered_extractor_uses_original_code_map')
@@ -249,8 +261,9 @@ def main():
             methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions','actual_pdf_binary_and_employee_sheets']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
-        expected=7 if standalone else (96 if pure else 25)+((55 if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
+        expected=7 if standalone else (101 if pure else 25)+((55 if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         if args.accelerated:expected+=HR_TEST_COUNT+33+18+11+(0 if pure else 39)
+        if args.custody_grouping:expected+=49 if pure else 29
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -309,7 +322,7 @@ def main():
             assert engine_models==0 and sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name IN ('payroll','hr_payroll') AND state='installed'")=='0'
         if previred or standalone:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred' AND state='installed'")=='18.0.3.8.8'
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
-        dump_json('passed',{'mode':args.mode,'profile':args.profile,'accelerated':args.accelerated,'database':args.database,'writes_to_source':False,'package_files':len(fp),
+        dump_json('passed',{'mode':args.mode,'profile':args.profile,'accelerated':args.accelerated,'custody_grouping':args.custody_grouping,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'counts':counts,'pdf_binary_reports':2 if binary_book else 0,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
             'test_results':[l for l in text.splitlines() if 'tests.result' in l],
