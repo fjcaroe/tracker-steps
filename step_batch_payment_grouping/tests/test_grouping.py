@@ -189,10 +189,20 @@ class BatchGroupingCase(AccountTestInvoicingCommon):
             self.service.with_context(allowed_company_ids=other.ids).create_group(self.first.ids, 'No empresa')
 
     def test_group_date_and_reference_are_explicit_without_sequence_draw(self):
-        batch_id = self.service.create_group(self.first.ids, '  Grupo propio  ', '2026-10-29')
+        count = self.env['account.payment'].search_count([])
+        service = self.service.with_context(default_name='No usar', default_state='sent',
+            default_amount=999, default_export_file='YQ==', default_approved_by_id=self.actor.id,
+            default_payment_ids=[Command.create({'amount': 1})])
+        batch_id = service.create_group(self.first.ids, '  Grupo propio  ', '2026-10-29')
         batch = self.env['account.batch.payment'].browse(batch_id)
         self.assertEqual(batch.name, 'Grupo propio')
         self.assertEqual(str(batch.date), '2026-10-29')
+        self.assertEqual(batch.state, 'draft')
+        self.assertFalse(batch.export_file)
+        self.assertEqual(batch.amount, -100)
+        if 'approved_by_id' in batch._fields:
+            self.assertFalse(batch.approved_by_id)
+        self.assertEqual(self.env['account.payment'].search_count([]), count)
 
     def _protected_original(self, column):
         batch = self.group()
