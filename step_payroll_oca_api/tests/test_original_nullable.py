@@ -51,10 +51,12 @@ class OriginalNullableCase(TransactionCase):
             "employee_id": self.contract.employee_id.id, "contract_id": self.contract.id,
             "struct_id": self.structure.id, "date_from": fields.Date.today().replace(day=1), "date_to": fields.Date.today()})
 
-    def _snapshot(self):
-        return (self.structure.read(["id", "type_id", "company_id", "country_id", "rule_ids", "write_date"]),
-            self.rule.read(["id", "code", "struct_id", "category_id", "active", "write_date"]),
-            self.category.read(["id", "code", "parent_id", "write_date"]), self.kind.read(["id", "name", "write_date"]))
+    def _snapshot(self, scope=None):
+        scope = scope if scope is not None else self.scope
+        return (self.structure.with_env(scope).read(["id", "type_id", "company_id", "country_id", "rule_ids", "write_date"]),
+            self.rule.with_env(scope).read(["id", "code", "struct_id", "category_id", "active", "write_date"]),
+            self.category.with_env(scope).read(["id", "code", "parent_id", "write_date"]),
+            self.kind.with_env(scope).read(["id", "name", "write_date"]))
 
     def test_required_type_name_and_independent_rule_line_delete_metadata(self):
         self.assertTrue(self.kind._fields["name"].required)
@@ -85,7 +87,7 @@ class OriginalNullableCase(TransactionCase):
         self.assertEqual(slip.line_ids.salary_rule_id, self.rule)
         before = slip.line_ids.read(["id", "code", "salary_rule_id", "amount", "quantity", "rate", "total"])
         self.category.check_access("unlink")
-        with self.assertRaises(UserError), self.env.cr.savepoint():
+        with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"), self.env.cr.savepoint():
             self.category.unlink()
         self.assertTrue(self.category.exists())
         self.assertEqual(self.rule.category_id, self.category)
@@ -172,10 +174,19 @@ class OriginalNullableCase(TransactionCase):
                 self.structure._step_check_original_required_contract()
             restriction.unlink()
         self.kind.country_id = self.env.ref("base.fr")
-        before = self._snapshot()
+        # Authorize the foreign country in this fixture's company context so
+        # the type is deliberately visible. The tested actor keeps its roles;
+        # this isolates the actual country-scope rejection from a read ACL.
+        foreign_company = self.env["res.company"].create({"name": "Private visible foreign required-type company",
+            "country_id": self.env.ref("base.fr").id})
+        self.scope.user.with_env(self.env).write({"company_ids": [Command.link(foreign_company.id)]})
+        scope = self.structure.with_context(allowed_company_ids=(self.company | foreign_company).ids).env
+        self.assertFalse(scope.su)
+        self.kind.with_env(scope).check_access("read")
+        before = self._snapshot(scope)
         with self.assertRaisesRegex(UserError, "country scope"):
-            self.structure._step_check_original_required_contract()
-        self.assertEqual(self._snapshot(), before)
+            self.structure.with_env(scope)._step_check_original_required_contract()
+        self.assertEqual(self._snapshot(scope), before)
 
     def test_pre_orm_null_admission_aborts_without_backfill_or_ownership_changes(self):
         self.assertTrue(original_type_name_table_admission("to install", False)["type_table_pending_orm"])

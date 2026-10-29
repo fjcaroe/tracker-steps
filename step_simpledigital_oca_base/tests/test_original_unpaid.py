@@ -235,6 +235,9 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
         self.assertFalse(global_structure.company_id)
         self.assertFalse(global_structure.country_id)
         slip = self._slip(global_structure).with_env(scope)
+        # Fresh draft totals are genuine pending computed defaults. Store them
+        # before taking the preservation baseline, not during its comparison.
+        scope.flush_all()
         before = self._stored(slip)
         with self.assertRaisesRegex(UserError, "country boundaries"):
             slip.compute_sheet()
@@ -246,6 +249,7 @@ class OriginalUnpaidCase(UnpaidRelationFixture, TransactionCase):
             "code": "PRIVATE_DEFAULT_OWNER_UNPAID", "company_id": self.company.id, "country_id": False,
             "type_id": self.kind.id, "unpaid_work_entry_type_ids": [Command.link(foreign.id)]})
         pending_slip = self._slip(pending).with_env(scope)
+        scope.flush_all()
         pending_before = self._stored(pending_slip)
         with self.assertRaisesRegex(UserError, "country boundaries"):
             pending_slip.compute_sheet()
