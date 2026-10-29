@@ -17,6 +17,8 @@ class AccountPayment(models.Model):
         self.check_access('write')
         service = self.env['step.batch.payment.grouping']
         if 'batch_payment_id' in values:
+            if set(values) != {'batch_payment_id'}:
+                raise UserError(_('La selección de un grupo sólo puede cambiar la relación del pago.'))
             payments = service._lock_payments(self.ids)
             for batch in payments.batch_payment_id:
                 service._lock_batch(batch.id)
