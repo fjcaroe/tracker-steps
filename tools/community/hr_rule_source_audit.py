@@ -43,6 +43,7 @@ def audit(provider, oca):
     assert manifest["version"] == pin["version"]
     assert subprocess.run(["git", "-C", str(oca), "rev-parse", "HEAD"], check=True,
                           capture_output=True, text=True).stdout.strip() == OCA_REVISION
+    subprocess.run(["git", "-C", str(oca), "diff", "--quiet", "HEAD", "--", "payroll"],check=True)
     assert all(hashlib.sha256((provider / name).read_bytes()).hexdigest() == digest
                for name, digest in pin["files"].items()), "Pinned AGPL runtime drift"
     oca_manifest = ast.literal_eval((oca / "payroll/__manifest__.py").read_text(encoding="utf-8-sig"))
@@ -58,7 +59,8 @@ def audit(provider, oca):
     legacy_refs = [node.args[0].value for node in ast.walk(parent_default) if isinstance(node, ast.Call)
                    and isinstance(node.func, ast.Attribute) and node.func.attr == "ref" and node.args
                    and isinstance(node.args[0], ast.Constant)]
-    return {"provider_license": manifest["license"], "provider_version": manifest["version"], "oca_revision": OCA_REVISION,
+    return {"auditor_sha256":hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "provider_license": manifest["license"], "provider_version": manifest["version"], "oca_revision": OCA_REVISION,
             "source_files_pinned": len(pin["files"]), "provider_records": original,
             "provider_data_essential_rules": essentials(original),
             "oca_data_essential_rules": essentials(production), "oca_demo_essential_rules": essentials(demo),

@@ -73,6 +73,8 @@ def main():
     if relation_storage.exists():paths+=['tools/community/validate_payroll_relation_storage.py']
     products=args.evidence/'products-inventory.json'
     if products.exists():paths+=['tools/community/audit_product_frontier.py']
+    rule_source=args.evidence/'rule-source-proof.json'
+    if rule_source.exists():paths+=['tools/community/hr_rule_source_audit.py']
     exported=subprocess.check_output(['git','-C',str(repo),'-c','core.autocrlf=true',
         '-c','core.eol=crlf','archive','--format=tar','HEAD',*paths])
     with tarfile.open(fileobj=io.BytesIO(exported)) as archive:
@@ -160,6 +162,18 @@ def main():
         'original_identity_rows_preserved':{key:len(rows) for key,rows in original.items()},
         'exact_packet_matches_checkout':True,'full_cerro_conversion':False,
         'simpledigital_certified':False,'deadline_resolved':False}
+    if rule_source.exists():
+        proof=json.loads(rule_source.read_text())
+        executed=(args.evidence/'rule-source-auditor.py').read_bytes()
+        assert proof['auditor_sha256']==hashlib.sha256(executed).hexdigest()
+        assert executed.replace(b'\r\n',b'\n')==source['tools/community/hr_rule_source_audit.py'].replace(b'\r\n',b'\n')
+        assert proof['provider_license']=='AGPL-3' and proof['source_files_pinned']==52
+        assert proof['oca_revision']==results['community']['oca_revision']
+        assert not proof['provider_data_essential_rules'] and not proof['oca_data_essential_rules']
+        assert {row['code']['text'] for row in proof['oca_demo_essential_rules']}=={'BASIC','GROSS','NET'}
+        assert proof['demo_is_not_original_configuration'] and not any(proof[k] for k in ('formulas_exposed','database_reads','financial_certified'))
+        result['essential_rule_provenance']={'provider_production':0,'oca_production':0,'oca_demo':3,
+                                            'demo_adopted':False,'financial_certified':False}
     if products.exists():
         proof=json.loads(products.read_text())
         executed=(args.evidence/'products-auditor.py').read_bytes()
@@ -194,9 +208,34 @@ def main():
         result['sys_related_storage']={'original_contracts_preserved':len(old),
             'rows':{table:row['rows'] for table,row in proof['tables'].items()},
             'idempotence_verified':True,'orm_loaded':False,'engine_converted':False,'financial_certified':False}
+        if proof.get('contract_fks_prepared'):
+            initial=json.loads((relation_storage.parent/'foreign-keys-before.json').read_text())
+            final=json.loads((relation_storage.parent/'foreign-keys-after.json').read_text())
+            target=json.loads((relation_storage.parent/'community-contract.json').read_text())
+            indexed={row['oid']:row for row in final}
+            assert all(indexed.get(row['oid'])==row for row in initial)
+            assert proof['original_foreign_keys_preserved'] and not proof['orm_metadata_adopted']
+            assert not proof['native_nullability_changed']
+            assert target['read_only'] and not target['orm_loaded'] and target['enterprise']==0
+            assert set(target['modules'])=={'payroll','step_payroll_oca_api'}
+            assert len(target['fields'])==4
+            for row in target['fields']:
+                assert row['store'] and row['required'] and not row['related']
+                assert (row['type'],row['relation'],row['on_delete'])==(
+                    ('char',None,None) if row['name']=='code' else ('many2one','hr.contract','restrict'))
+            for table in ('hr_payslip_input','hr_payslip_worked_days'):
+                name=table+'_contract_id_fkey'
+                for rows in (final,target['foreign_keys']):
+                    match=[row for row in rows if row['table']==table and row['name']==name]
+                    assert len(match)==1 and match[0]['validated']
+                    assert match[0]['definition']=='FOREIGN KEY (contract_id) REFERENCES hr_contract(id) ON DELETE RESTRICT'
+            assert {row['name'] for row in final if row['oid'] not in {item['oid'] for item in initial}}<= {
+                'hr_payslip_input_contract_id_fkey','hr_payslip_worked_days_contract_id_fkey'}
+            result['sys_related_storage'].update(contract_fks_prepared=True,original_foreign_keys_preserved=True,
+                                                 orm_metadata_adopted=False,native_nullability_changed=False)
     if accelerated:
         assert results['cerro-reference']['accelerated']
-        assert results['community']['expected_test_count']==242 and results['cerro-reference']['expected_test_count']==214
+        assert results['community']['expected_test_count']==252 and results['cerro-reference']['expected_test_count']==215
         for report in results.values():
             assert all(report['accelerated_tools_sha256'][name]==hashlib.sha256(source['tools/community/'+name]).hexdigest()
                        for name in report['accelerated_tools_sha256'])
