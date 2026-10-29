@@ -1,8 +1,9 @@
 """Lossless literal-base projections; no configuration import or payroll execution.
 
-The pre-registry SQL entry point requires an existing private Community/OCA
-database. Its caller owns /run/lock/steps-environments.lock and the surrounding
-transaction, backup and full preservation comparison. It never commits.
+The internal migration requires an actual Community/OCA engine, independently
+of the database's name. The private rehearsal wrapper additionally checks its
+database prefix. Operational callers own the lock, surrounding transaction,
+backup and full preservation comparison. Neither entry point commits.
 """
 import re
 
@@ -117,14 +118,9 @@ def _convert_literal_column(cursor, table, column):
         "literal_projection_sha256": before[1], "required_preserved": True}
 
 
-def prepare_original_translation_storage(cursor):
-    """Only two master columns, atomic and idempotent; never historical lines."""
-    database = getattr(cursor, "dbname", None)
-    if database is None:
-        database = cursor.connection.info.dbname
-    if not re.fullmatch(r"COMMUNITY_PAYROLL_API_[A-Za-z0-9_]+", database):
-        raise TranslationStorageError("private-community-reference-required")
-    cursor.execute("""SELECT 1 FROM ir_module_module WHERE state IN ('installed','to upgrade','to install')
+def migrate_original_translation_storage(cursor):
+    """Internal product migration; no lab-name requirement or engine bypass."""
+    cursor.execute("""SELECT 1 FROM ir_module_module WHERE state IN ('installed','to upgrade','to install','to remove')
         AND (license='OEEL-1' OR name='hr_payroll') LIMIT 1""")
     if cursor.fetchone():
         raise TranslationStorageError("native-engine-or-enterprise-target-not-admitted")
@@ -145,3 +141,13 @@ def prepare_original_translation_storage(cursor):
     cursor.execute("RELEASE SAVEPOINT step_original_translation_storage")
     return {"columns": result, "base_language": BASE_LANGUAGE, "historical_lines_changed": False,
         "metadata_or_xmlids_changed": False, "rules_evaluated": False, "configuration_imported": False}
+
+
+def prepare_original_translation_storage(cursor):
+    """Private CLI/rehearsal admission, delegating to the same engine checks."""
+    database = getattr(cursor, "dbname", None)
+    if database is None:
+        database = cursor.connection.info.dbname
+    if not re.fullmatch(r"COMMUNITY_PAYROLL_API_[A-Za-z0-9_]+", database):
+        raise TranslationStorageError("private-community-reference-required")
+    return migrate_original_translation_storage(cursor)
