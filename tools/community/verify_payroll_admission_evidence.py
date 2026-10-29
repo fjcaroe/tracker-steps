@@ -284,6 +284,9 @@ def verify_admission_evidence(folder, git_source, current_packet):
         'original_unpaid_inverse_preserved', 'frozen_compute_preserved', 'closed_compute_refused',
         'structure_type_name_not_null', 'rule_category_ondelete', 'line_category_ondelete')
     extra = {}
+    if helper.UPGRADE_PROFILE == 'saved-inputs':
+        assert proof['closed_saved_input_admission_refused'] is True
+        extra['closed_saved_input_admission_refused'] = True
     if helper.UPGRADE_PROFILE == 'name-scalar':
         rejection = _load(folder, 'input-name-rejected-upgrade.json')
         assert rejection['candidate_helper_sha256'] == _sha(git_source['step_payroll_oca_api/translation_storage.py'])
@@ -299,6 +302,6 @@ def verify_admission_evidence(folder, git_source, current_packet):
             'multilingual_rule_note_preserved')}
         extra['multilingual_input_upgrade_rejected_without_changes'] = True
     return dict({key: proof[key] for key in keys}, **extra, source_installed_modules=helper.SOURCE_INSTALLED_COUNT, source_enterprise_modules=0,
-        legacy_owned_addons_checked=legacy_checked, current_addons_checked=2, backup_decoded=True,
+        legacy_owned_addons_checked=legacy_checked, current_addons_checked=len(helper.VERSIONS), backup_decoded=True,
         backup_archive_hash_checked=backup_checked, backup_redecoded_offline=False,
         source_filestore_manifest_entries=len(filestore), filesystem_only=True)

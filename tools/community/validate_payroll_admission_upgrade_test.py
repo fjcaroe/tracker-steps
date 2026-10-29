@@ -41,6 +41,24 @@ def fixtures():
 
 
 class AdmissionUpgradeCase(unittest.TestCase):
+    def test_saved_inputs_upgrade_has_three_fixed_models_without_new_fields(self):
+        try:
+            probe.configure_profile('saved-inputs')
+            self.assertEqual(probe.SOURCE_DB, 'COMMUNITY_PAYROLL_API_SCHEMA_20261029B')
+            self.assertEqual(probe.SOURCE_INSTALLED_COUNT, 96)
+            self.assertEqual(probe.VERSIONS, {
+                'step_payroll_oca_api': ('18.0.1.12.0', '18.0.1.13.0'),
+                'step_simpledigital_oca_base': ('18.0.1.5.0', '18.0.1.6.0'),
+                'step_simpledigital_oca_security': ('18.0.1.6.0', '18.0.1.7.0')})
+            self.assertEqual(probe.NEW_FIELDS, set())
+            before, after, audit = fixtures()
+            for item in (before, after):
+                item['structure_type_name_nullable'] = 'NO'
+                item['category_foreign_keys'] = after['category_foreign_keys']
+            self.assertEqual(probe.verify_rows(before, after, audit)['expected_write_date_changes'], 2)
+        finally:
+            probe.configure_profile('admission')
+
     def test_name_scalar_upgrade_has_one_explicit_literal_projection_only(self):
         try:
             probe.configure_profile('name-scalar')

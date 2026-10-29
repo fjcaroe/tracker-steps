@@ -69,12 +69,19 @@ def configure_profile(name):
         versions = {'step_payroll_oca_api': ('18.0.1.11.0', '18.0.1.12.0'),
                     'step_simpledigital_oca_base': ('18.0.1.5.0', '18.0.1.5.0')}
         new_fields = set()
+    elif name == 'saved-inputs':
+        database = 'COMMUNITY_PAYROLL_API_SCHEMA_20261029B'
+        root = Path('/opt/steps-validation/community-payroll-schema-20261029B')
+        versions = {'step_payroll_oca_api': ('18.0.1.12.0', '18.0.1.13.0'),
+                    'step_simpledigital_oca_base': ('18.0.1.5.0', '18.0.1.6.0'),
+                    'step_simpledigital_oca_security': ('18.0.1.6.0', '18.0.1.7.0')}
+        new_fields = set()
     else:
         raise ValueError('Unknown fixed private upgrade profile')
     SOURCE_DB, SOURCE_ROOT, VERSIONS, NEW_FIELDS = database, root, versions, new_fields
     common.SOURCE_DB, common.SOURCE_ROOT = SOURCE_DB, SOURCE_ROOT
     UPGRADE_PROFILE = name
-    SOURCE_INSTALLED_COUNT = 96 if name == 'name-scalar' else 95
+    SOURCE_INSTALLED_COUNT = 96 if name in ('name-scalar', 'saved-inputs') else 95
 
 
 def raw_rows(env):
@@ -416,6 +423,13 @@ def exercise(env, mode, directory):
         # The real historical read API is required to use stored values. No
         # current wage/amount getter and no compute_sheet invocation occurs.
         slip = scope['hr.payslip'].browse(seed['slip'])
+        if UPGRADE_PROFILE == 'saved-inputs':
+            try:
+                slip._step_check_saved_input_values()
+            except UserError:
+                proof['closed_saved_input_admission_refused'] = True
+            else:
+                raise AssertionError('Closed stored payroll was admitted as mutable saved inputs')
         values = slip._get_line_values(['BASIC', 'GROSS', 'NET'])
         expected = {row['code']: row['total'] for row in seed['raw_rows']['hr_payslip_line'] if row['slip_id'] == seed['slip']}
         for code in ('BASIC', 'GROSS', 'NET'):
@@ -462,7 +476,7 @@ def main():
     for name in ('root', 'candidate', 'runtime', 'oca'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--source-root', type=Path)
-    parser.add_argument('--profile', choices=('admission', 'period', 'name-scalar'), default='admission')
+    parser.add_argument('--profile', choices=('admission', 'period', 'name-scalar', 'saved-inputs'), default='admission')
     parser.add_argument('--database', required=True)
     args = parser.parse_args()
     configure_profile(args.profile)
