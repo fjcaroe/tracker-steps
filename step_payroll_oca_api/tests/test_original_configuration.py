@@ -303,6 +303,16 @@ class OriginalConfigurationCase(TransactionCase):
         slip = self._slip()
         slip.compute_sheet()
         before = slip.line_ids.read(["id", "salary_rule_id", "amount", "quantity", "rate", "total"])
+        before_post = self._snapshot(slip), self._accounting_snapshot()
+        debit = self.rule.account_debit
+        debit.deprecated = True
+        # A real late account.move.line constraint, after OCA confirmation has
+        # entered its state/recalculation chain. The caller only catches it;
+        # there is deliberately no test-owned savepoint masking partial work.
+        with self.assertRaisesRegex(UserError, "deprecated"):
+            slip.with_context(lang="en_US", without_compute_sheet=False).action_payslip_done()
+        self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before_post)
+        debit.deprecated = False
         # Exercise OCA's genuine already-calculated confirmation route. The
         # posting admission must not rely on compute_sheet being called again.
         slip.with_context(without_compute_sheet=True).action_payslip_done()
@@ -336,6 +346,17 @@ class OriginalConfigurationCase(TransactionCase):
         slip = self._slip()
         slip.compute_sheet()
         before = self._snapshot(slip), self._accounting_snapshot()
+        nongeneral = self.scope["account.journal"].create({"name": "Private non-general original journal",
+            "code": "ONG", "type": "purchase", "company_id": self.company.id})
+        self.contract.journal_id = nongeneral
+        self.structure.with_company(self.company).journal_id = nongeneral
+        self.assertEqual(slip.journal_id, nongeneral)
+        with self.assertRaisesRegex(UserError, "requires a general"):
+            slip.with_context(without_compute_sheet=True).action_payslip_done()
+        self.assertEqual((self._snapshot(slip), self._accounting_snapshot()), before)
+        self.assertFalse(self.scope["account.move"].search([("journal_id", "=", nongeneral.id)]))
+        self.contract.journal_id = self.journal
+        self.structure.with_company(self.company).journal_id = self.journal
         alternate = self.scope["account.journal"].create({"name": "Private mismatched original journal",
             "code": "OMJ", "type": "general", "company_id": self.company.id})
         self.structure.with_company(self.company).journal_id = alternate
