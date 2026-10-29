@@ -215,6 +215,14 @@ def main():
             if args.accelerated:
                 installed=set(sql(args.database,"SELECT name FROM ir_module_module WHERE state='installed'").splitlines())
                 existing=[name for name in modules.split(',') if name in installed]
+                from packaging.version import Version
+                deployed=json.loads(sql(args.database,"SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE state='installed'"))
+                admission={}
+                for name in existing:
+                    candidate=ast.literal_eval((source/name/'__manifest__.py').read_text(encoding='utf-8-sig'))['version']
+                    assert deployed[name] and Version(candidate)>=Version(deployed[name]),'Candidate downgrade refused: '+name
+                    admission[name]={'original':deployed[name],'candidate':candidate,'downgrade':False}
+                dump_json('version-admission',admission)
             execute('upgrade',['-i',','.join(name for name in modules.split(',') if name not in existing)]+(['-u',','.join(existing)] if existing else []))
             upgraded=snapshot();dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
