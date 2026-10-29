@@ -14,7 +14,10 @@ class HrConsumersCase(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.oca = bool(cls.env.ref("payroll.group_payroll_manager", raise_if_not_found=False))
+        # Native reference aliases retain role IDs. An alias is not evidence
+        # that the OCA engine itself was installed or the source was converted.
+        cls.oca = bool(cls.env["ir.module.module"].search_count([
+            ("name", "=", "payroll"), ("state", "=", "installed")]))
         payroll_group = "payroll.group_payroll_manager" if cls.oca else "hr_payroll.group_hr_payroll_manager"
         company = cls.env["res.company"].create({"name": "Private HR consumer fixture",
             "country_id": cls.env.ref("base.cl").id, "currency_id": cls.env.ref("base.CLP").id})
