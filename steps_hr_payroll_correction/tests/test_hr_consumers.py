@@ -215,10 +215,21 @@ class HrConsumersCase(TransactionCase):
             # real provider step, as action_apply itself does after correction.
             slip._compute_worked_days_line_ids()
             rows = slip._get_worked_day_lines()
+            values = slip._get_worked_day_lines_values()
+            origins = {name: [{"class": cls.__name__, "module": cls.__module__}
+                              for cls in type(slip).__mro__ if name in cls.__dict__]
+                       for name in ("_get_worked_day_lines", "_get_worked_day_lines_values", "_compute_worked_days_line_ids")}
             _logger.info("HR_CONSUMER_NATIVE_REFRESH %s", {
                 "synthetic_slip_id": slip.id, "synthetic_structure_id": self.structure.id,
                 "actual_slip_structure_id": slip.struct_id.id,
                 "structure_default_work_type_id": self.kind.default_work_entry_type_id.id,
+                "actual_employee_id": slip.employee_id.id, "synthetic_employee_id": self.employee.id,
+                "actual_contract_id": slip.contract_id.id, "synthetic_contract_id": self.contract.id,
+                "actual_calendar_id": slip.contract_id.resource_calendar_id.id, "synthetic_calendar_id": self.calendar.id,
+                "actual_structure_type_id": slip.contract_id.structure_type_id.id,
+                "date_from": str(slip.date_from), "date_to": str(slip.date_to),
+                "contract_date_start": str(slip.contract_id.date_start), "contract_date_end": str(slip.contract_id.date_end),
+                "work_entry_source": slip.contract_id.work_entry_source if "work_entry_source" in slip.contract_id._fields else None,
                 "structure_uses_worked_days": self.structure.use_worked_day_lines,
                 "slip_uses_worked_days": slip.use_worked_day_lines,
                 "edited": slip.edited if "edited" in slip._fields else None,
@@ -226,6 +237,8 @@ class HrConsumersCase(TransactionCase):
                 "work_type_id": self.work_type.id, "actual_hours": actual_before[self.work_type.id],
                 "stored_day_rows": len(slip.worked_days_line_ids), "provider_day_rows": len(rows),
                 "provider_rows": [{key: row.get(key) for key in ("work_entry_type_id", "number_of_hours", "number_of_days")} for row in rows],
+                "provider_value_rows": [{key: row.get(key) for key in ("work_entry_type_id", "number_of_hours", "number_of_days")} for row in values],
+                "method_origins": origins,
                 "provider_day_rows_sha256": hashlib.sha256(json.dumps(rows, sort_keys=True, default=str).encode()).hexdigest(),
             })
         slip.compute_sheet()
