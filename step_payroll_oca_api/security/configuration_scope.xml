@@ -11,7 +11,11 @@
         <field name="name">Salary rule: original structure country scope</field>
         <field name="model_id" ref="payroll.model_hr_salary_rule"/>
         <field name="global" eval="True"/>
-        <field name="domain_force">['|', ('struct_id.country_id', '=', False), ('struct_id.country_id', 'in', user.env.companies.mapped('country_id').ids)]</field>
+        <!-- OCA also permits genuine M2M rules without a primary structure.
+             A dotted-domain becomes an ANY lookup and does not match a NULL
+             first relation. Keep those rules subject to the company policy;
+             a real primary structure still determines their country scope. -->
+        <field name="domain_force">['|', ('struct_id', '=', False), '|', ('struct_id.country_id', '=', False), ('struct_id.country_id', 'in', user.env.companies.mapped('country_id').ids)]</field>
     </record>
     <record id="input_original_country_scope" model="ir.rule">
         <field name="name">Payroll input type: original country scope</field>
