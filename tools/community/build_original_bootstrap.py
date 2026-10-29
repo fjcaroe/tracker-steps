@@ -1,4 +1,4 @@
-"""Reproduce the real AGPL candidate without its two salary seed XML files.
+"""Reproduce the real AGPL candidate without three payroll-producing seed files.
 
 One unpaid-type seed link is deferred explicitly until original adoption. No
 database access, configuration import, XML-ID reassignment or alternative
@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 
 
 MODULE = "l10n_cl_simpledigital_payroll"
-OMIT = ("data/hr_salary_structure.xml", "data/hr_salary_rule.xml")
+OMIT = ("data/hr_salary_structure.xml", "data/hr_salary_rule.xml", "data/hr_employee_movement.xml")
 DEFER_FILE = "data/hr_work_entry_type.xml"
 DEFER_TYPE = MODULE + ".work_entry_type_unpaid_cl"
 DEFER_STRUCTURE = MODULE + ".structure_chile"
@@ -119,10 +119,55 @@ def _python_references(tree, module, file, references):
             "kind": "python:" + name, "optional": optional})
 
 
+def creation_graph(files):
+    """Identify actual model create overrides and their direct model creates.
+
+    The pinned movement-type producer is an actual salary-rule creator, even
+    though its XML records do not have model='hr.salary.rule'. Report only its
+    model/method/site; do not export its rule names, expressions or defaults.
+    """
+    edges, sites = {}, []
+    for file in loaded_python(files):
+        for cls in ast.parse(files[file].decode("utf-8-sig")).body:
+            if not isinstance(cls, ast.ClassDef):
+                continue
+            owners = []
+            for assignment in cls.body:
+                if isinstance(assignment, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "_name" for target in assignment.targets):
+                    if isinstance(assignment.value, ast.Constant) and isinstance(assignment.value.value, str):
+                        owners = [assignment.value.value]
+            if not owners:
+                for assignment in cls.body:
+                    if isinstance(assignment, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "_inherit" for target in assignment.targets):
+                        if isinstance(assignment.value, ast.Constant) and isinstance(assignment.value.value, str):
+                            owners = [assignment.value.value]
+            for method in cls.body:
+                if not isinstance(method, ast.FunctionDef) or method.name != "create":
+                    continue
+                for call in ast.walk(method):
+                    if not isinstance(call, ast.Call) or not isinstance(call.func, ast.Attribute) or call.func.attr != "create":
+                        continue
+                    receiver = call.func.value
+                    if not isinstance(receiver, ast.Subscript):
+                        continue  # super().create is the actual provider chain
+                    require(isinstance(receiver.slice, ast.Constant) and isinstance(receiver.slice.value, str), "dynamic-create-model")
+                    target = receiver.slice.value
+                    for owner in owners:
+                        edges.setdefault(owner, set()).add(target)
+                        sites.append({"model": owner, "method": "create", "target": target, "file": file, "line": call.lineno})
+    producers = set(SALARY_MODELS)
+    while True:
+        enlarged = producers | {owner for owner, targets in edges.items() if targets & producers}
+        if enlarged == producers:
+            break
+        producers = enlarged
+    return producers, [site for site in sites if site["target"] in producers]
+
+
 def inventory(module, files, *, scan_references=True):
     """Definitions/references only. Never emit XML text, evals or formula code."""
     spec = manifest(files)
-    definitions, references, master_records = {}, [], []
+    definitions, references, master_records, records = {}, [], [], []
     for file in loaded_python(files):
         tree = ast.parse(files[file].decode("utf-8-sig"))
         if scan_references:
@@ -158,6 +203,7 @@ def inventory(module, files, *, scan_references=True):
                 if ident and node.tag in ("record", "template", "menuitem", "act_window", "report"):
                     model = model or {"template": "ir.ui.view", "menuitem": "ir.ui.menu", "act_window": "ir.actions.act_window", "report": "ir.actions.report"}.get(node.tag)
                     definitions[qualify(ident, module)] = model
+                    records.append({"file": file, "xmlid": qualify(ident, module), "model": model})
                     if model in SALARY_MODELS:
                         master_records.append({"file": file, "xmlid": qualify(ident, module), "model": model})
                 if not scan_references:
@@ -191,7 +237,7 @@ def inventory(module, files, *, scan_references=True):
                             references.append({"xmlid": qualify(item.strip(), module), "file": file,
                                 "line": number, "kind": "csv:" + column, "optional": False})
     return {"definitions": definitions, "references": references, "salary_records": master_records,
-        "python_files": loaded_python(files)}
+        "records": records, "python_files": loaded_python(files)}
 
 
 def plan_profile(normal_files, external_definitions):
@@ -224,6 +270,8 @@ def plan_profile(normal_files, external_definitions):
     removed = set(before["definitions"]) - set(after["definitions"])
     require(DEFER_STRUCTURE in removed, "deferred-structure-is-not-an-omitted-seed")
     require(not after["salary_records"], "retained-salary-seed-record")
+    producers, producer_sites = creation_graph(files)
+    require(not any(row["model"] in producers for row in after["records"]), "retained-dynamic-salary-producer")
     optional_missing, resolved = [], []
     for reference in after["references"]:
         name = reference["xmlid"]
@@ -240,6 +288,10 @@ def plan_profile(normal_files, external_definitions):
             "adopted": False, "original_policy_preserved_in_target": False,
             "must_adopt_before_chile_processing": True},
         "omitted_salary_records": before["salary_records"], "retained_salary_records": [],
+        "deferred_movement_catalogue": {"file": "data/hr_employee_movement.xml",
+            "records": [row for row in before["records"] if row["file"] == "data/hr_employee_movement.xml"],
+            "dynamic_rule_producer_sites": producer_sites, "catalogue_adopted": False,
+            "generated_rules_adopted": False, "must_adopt_before_movement_processing": True},
         "references": resolved, "optional_missing_seed_references": optional_missing,
         "python_files": after["python_files"], "no_demo_required": True,
         "original_masters_imported": False, "original_aliases_guaranteed": False,
