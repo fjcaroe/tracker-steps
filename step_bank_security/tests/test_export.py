@@ -138,7 +138,7 @@ class SecurityExportCase(AccountTestInvoicingCommon):
         other = payment.copy({'amount': 10})
         batch.payment_ids = [Command.link(other.id)]
         payments = payment | other
-        before = payments.read(['amount', 'state', 'date', 'write_date', 'batch_payment_id'])
+        before = payments.sudo().read(['amount', 'state', 'date', 'write_date', 'batch_payment_id'])
         actor = new_test_user(self.env, login='bank_native_batch_manager',
                               groups='account.group_account_manager,account.group_validate_bank_account',
                               company_id=self.env.company.id, company_ids=[Command.set(self.env.company.ids)])
@@ -150,5 +150,5 @@ class SecurityExportCase(AccountTestInvoicingCommon):
         for method in ('action_export_security_xls', 'action_export_bancoestado_xlsx', 'action_export_treasury_review_csv'):
             with self.assertRaises(AccessError):
                 getattr(batch.with_user(actor), method)()
-        self.assertEqual(payments.read(list(before[0].keys() - {'id'})), before)
+        self.assertEqual(payments.sudo().read(list(before[0].keys() - {'id'})), before)
         self.assertEqual((batch.security_export_count, batch.bancoestado_export_count), (0, 0))
