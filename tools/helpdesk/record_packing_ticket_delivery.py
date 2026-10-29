@@ -9,9 +9,29 @@ import xmlrpc.client
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('evidence',type=Path);parser.add_argument('--ticket',type=int,choices=(132,133,134),required=True)
+    parser.add_argument('--date-decision',type=Path,help='Private proof of a human-approved date correction, T134 only')
     args=parser.parse_args();root=args.evidence
     expected=json.loads((root/'delivery.json').read_text());expected['reviewed_message_id']=expected['tickets'][str(args.ticket)]
     pending=args.ticket==134 and bool(expected['pending_dates'])
+    decision=None
+    if args.date_decision:
+        assert args.ticket==134 and pending
+        decision=json.loads(args.date_decision.read_text(encoding='utf-8-sig'))
+        plan=decision['plan']; tested=decision['tested']; live=decision['live']
+        assert expected['pending_dates']==[[plan['production_id'],plan['previous_date'],plan['approved_date']]]
+        assert tested['before']==live['before'] and tested['after']==live['after']
+        assert tested['committed'] is False and live['committed'] is True
+        assert tested['database'].startswith('MANAGEMENT_QA_QA-CERRO_date') and live['database']=='QA-CERROELPLOMO'
+        for proof in (tested,live):
+            assert proof['native_menu_form'] and proof['inventory_unchanged'] and proof['user']!=1
+            assert proof['after']['date']==plan['approved_date']
+            assert proof['after']['step_previous_process_date']==plan['previous_date']
+            assert proof['after']['step_legacy_process_date']==plan['approved_date']
+            assert all(value==plan['approved_date'] for value in proof['tag_dates'])
+        assert decision['backup'].startswith('/opt/steps_backups/packing_date_')
+        # 9821 is the already-reviewed delivery note that kept this choice open.
+        expected['reviewed_message_id']=9821
+        pending=False
     for target in ('development','cerro','qa-cerro'):
         proof=json.loads((root/(target+'-qa.json')).read_text())
         deployment=json.loads((root/(target+'-deployment.json')).read_text())
@@ -33,6 +53,8 @@ def main():
         133:'T133: selector Packing vinculado al contacto existente marcado como Packing. Menú Informes después de Despacho, con stock nativo limitado a las categorías de fruta y materiales de embalajes y sus subcategorías, informes existentes de fruta a proceso/embalada y tarjas con Packing de recepción o proceso. Se reutilizan quants, paquetes y maestros, sin tablas de stock paralelas.',
         134:'T134: encabezado de proceso con Packing y fecha nativa que alimenta Date Packing de las tarjas; compañía debajo del fundo. Al seleccionar productor se propone su primer fundo y se conserva una elección válida del operador. Los prototipos fueron convertidos a campos nativos, conservando IDs y valores y archivando los XML originales.'}
     body=bodies[args.ticket]
+    if decision:
+        body+=' El usuario confirmó por este chat la fecha del adjunto. Corregida la fecha nativa de proceso a '+plan['approved_date']+' en la OT indicada de QA-Cerro; conservada '+plan['previous_date']+' en Fecha nativa anterior y la fecha del prototipo como antecedente. Probada primero la edición nativa en copia fresca, con usuario existente, formulario, menú y proyección Date Packing de tarjas. Inventario y demás datos de las OT conservados; respaldo y bloqueo compartido. No se refrescó la capacitación. La decisión pendiente queda resuelta.'
     if pending:
         body+=' Queda pendiente la elección humana sobre una fecha discordante del prototipo en QA-Cerro, consultada por este chat. Se conservaron ambos valores y la fecha nativa continúa sin cambios. El ticket permanece En Espera por ese dato; la publicación del formulario no implica resolver la discrepancia.'
     body+=' Mismo paquete publicado y verificado en Desarrollo, Cerro y QA-Cerro después de 30 pruebas por copia, flujo nativo con usuarios existentes, respaldo y bloqueo. Se preservaron cantidades, registros, autores y fechas originales. QA conserva ejercicios y aislamiento. Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.'
