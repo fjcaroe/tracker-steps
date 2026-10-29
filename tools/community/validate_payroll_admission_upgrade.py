@@ -471,6 +471,14 @@ def exercise(env, mode, directory):
         raise AssertionError('Unsupported private rehearsal payload')
 
 
+def installed_versions(database):
+    """Read every module declared by the fixed upgrade profile."""
+    assert VERSIONS and all(re.fullmatch(r"[a-z0-9_]+", name) for name in VERSIONS)
+    names = ",".join("'" + name + "'" for name in VERSIONS)
+    return json.loads(readonly_sql(database, "SELECT json_object_agg(name,latest_version) "
+        "FROM ir_module_module WHERE name IN (" + names + ") AND state='installed'"))
+
+
 def main():
     import configparser
     parser = argparse.ArgumentParser(description=__doc__)
@@ -644,7 +652,7 @@ def main():
         execute('upgrade', upgraded, flags=('-u', ','.join(VERSIONS), '--stop-after-init'))
         clock_after = json.loads(readonly_sql(args.database, clock_query))
         write_private(root / 'upgrade-sql-clock-after.json', clock_after)
-        actual = json.loads(readonly_sql(args.database, "SELECT json_object_agg(name,latest_version) FROM ir_module_module WHERE name IN ('step_payroll_oca_api','step_simpledigital_oca_base') AND state='installed'"))
+        actual = installed_versions(args.database)
         assert actual == {module: versions[1] for module, versions in VERSIONS.items()}, 'Upgrade versions not installed'
         reload_lines = [line for line in (root / 'upgrade.log').read_text().splitlines()
             if 'odoo.modules.loading: loading l10n_cl_simpledigital_payroll/' + CONFIG_XML in line]

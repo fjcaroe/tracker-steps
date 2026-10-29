@@ -164,6 +164,20 @@ class AdmissionUpgradeCase(unittest.TestCase):
             with self.subTest(table=table):
                 with self.assertRaises(AssertionError): probe.verify_rows(before, after, audit)
 
+    def test_installed_version_query_includes_every_fixed_profile_module(self):
+        original = probe.UPGRADE_PROFILE
+        try:
+            probe.configure_profile('saved-inputs')
+            expected = {name: versions[1] for name, versions in probe.VERSIONS.items()}
+            with patch.object(probe, 'readonly_sql', return_value=json.dumps(expected)) as query:
+                self.assertEqual(probe.installed_versions('private_test'), expected)
+            statement = query.call_args.args[1]
+            for name in expected:
+                self.assertIn("'" + name + "'", statement)
+            self.assertIn("state='installed'", statement)
+        finally:
+            probe.configure_profile(original)
+
     def test_all_three_relations_require_actual_nonempty_preserved_pairs(self):
         for name in probe.RELATIONS:
             before, after, audit = fixtures()
