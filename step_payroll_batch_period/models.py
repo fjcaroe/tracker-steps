@@ -272,6 +272,7 @@ class PayslipEmployees(models.TransientModel):
                 preview = normal.env['hr.payslip'].new({'employee_id': contract.employee_id.id,
                     'company_id': contract.company_id.id, 'contract_id': contract.id, 'struct_id': structure.id,
                     'date_from': data['start'], 'date_to': data['end']})
+                preview._step_batch_period_input_admission()
                 actual_days = preview._get_worked_day_lines()
                 preview.worked_days_line_ids = [Command.create(values) for values in actual_days]
                 preview._step_check_original_configuration(operation='calculate')
@@ -286,6 +287,76 @@ class PayslipEmployees(models.TransientModel):
 
 class Payslip(models.Model):
     _inherit = 'hr.payslip'
+
+    def _step_batch_period_input_admission(self):
+        """Reject configured inputs whose original period values are not adopted.
+
+        The OCA wizard asks get_payslip_vals on an empty payslip recordset, so
+        its generated input list is not evidence that the selected structure
+        has no inputs. Authorize complete physical memberships, including
+        hidden/archived descriptors, without inventing zero-valued inputs.
+        """
+        normal = _normal(self).with_context(active_test=False)
+        if not _oca(normal.env):
+            return True  # Native generation retains its actual provider policy.
+        normal.ensure_one()
+        normal.check_access('read')
+        normal.check_field_access_rights('read', ['struct_id'])
+        structures = normal.env['hr.payroll.structure']
+        rules = normal.env['hr.salary.rule']
+        for root in normal._step_selected_payroll_structures():
+            scope = root._step_effective_rule_scope()
+            structures |= scope['structures']
+            rules |= scope['rules']
+
+        # Legacy OCA descriptors belong to a rule through its real inverse
+        # Many2one. Read IDs only after authorizing the source and target fields;
+        # a filtered One2many must not turn configured input into no input.
+        rules.check_access('read')
+        rules.check_field_access_rights('read', ['input_ids'])
+        relation = rules._fields['input_ids']
+        if relation.type != 'one2many' or not relation.inverse_name:
+            raise UserError(_('The original rule input relation requires audited storage before batch generation.'))
+        descriptors = normal.env[relation.comodel_name]
+        inverse = descriptors._fields.get(relation.inverse_name)
+        if (not descriptors._auto or not inverse
+                or inverse.type != 'many2one' or not inverse.store
+                or inverse.comodel_name != rules._name):
+            raise UserError(_('The original rule input relation requires audited storage before batch generation.'))
+        descriptors.check_access('read')
+        descriptors.check_field_access_rights('read', [inverse.name])
+        descriptors.flush_model([inverse.name])
+        normal.env.cr.execute(sql.SQL('SELECT id FROM {} WHERE {}=ANY(%s)').format(
+            sql.Identifier(descriptors._table), sql.Identifier(inverse.name)), (rules.ids,))
+        descriptor_ids = {row[0] for row in normal.env.cr.fetchall()}
+        original_descriptors = descriptors.browse(sorted(descriptor_ids))
+        original_descriptors.check_access('read')
+        if set(original_descriptors.exists().ids) != descriptor_ids:
+            raise UserError(_('The original rule input references are incomplete.'))
+
+        # Only this structure's actual configured M2M is relevant. Global input
+        # masters elsewhere are not original period values for this batch.
+        structures.check_access('read')
+        structures.check_field_access_rights('read', ['input_line_type_ids'])
+        typed_relation = structures._fields['input_line_type_ids']
+        if (typed_relation.type != 'many2many' or not typed_relation.store
+                or not typed_relation.relation or not typed_relation.column1 or not typed_relation.column2):
+            raise UserError(_('The original structure input relation requires audited storage before batch generation.'))
+        types = normal.env[typed_relation.comodel_name]
+        types.check_access('read')
+        structures.flush_model(['input_line_type_ids'])
+        normal.env.cr.execute(sql.SQL('SELECT {} FROM {} WHERE {}=ANY(%s)').format(
+            sql.Identifier(typed_relation.column2), sql.Identifier(typed_relation.relation),
+            sql.Identifier(typed_relation.column1)), (structures.ids,))
+        type_ids = {row[0] for row in normal.env.cr.fetchall()}
+        original_types = types.browse(sorted(type_ids))
+        original_types.check_access('read')
+        if set(original_types.exists().ids) != type_ids:
+            raise UserError(_('The original structure input references are incomplete.'))
+        if descriptor_ids or type_ids:
+            raise UserError(_('Original payroll input data is missing for this batch period. '
+                'Configured rule or structure inputs require certified original period values before generation.'))
+        return True
 
     def get_payslip_vals(self, date_from, date_to, employee_id=False, contract_id=False, struct_id=False):
         scope = _scope(self.env.context)
@@ -317,5 +388,6 @@ class Payslip(models.Model):
         # Never compute_sheet, a persisted placeholder or an invented master.
         preview = normal.new({'employee_id': employee_id, 'company_id': contract.company_id.id,
             'contract_id': contract.id, 'struct_id': structure.id, 'date_from': date_from, 'date_to': date_to})
+        preview._step_batch_period_input_admission()
         values['worked_days_line_ids'] = preview._get_worked_day_lines()
         return result
