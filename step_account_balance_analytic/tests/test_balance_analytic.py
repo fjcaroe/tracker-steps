@@ -5,6 +5,12 @@ from odoo.tests.common import new_test_user
 
 @tagged('post_install', '-at_install')
 class BalanceAnalyticCase(TransactionCase):
+    def setUp(self):
+        super().setUp()
+        self.env = self.env(context=dict(self.env.context, no_reset_password=True,
+            tracking_disable=True, mail_notrack=True, mail_create_nosubscribe=True,
+            mail_notify_force_send=False))
+
     def prepare(self):
         self.company=self.env.company
         self.plan=self.env['account.analytic.plan'].create({'name':'Plan obligatorio QA T88','default_applicability':'mandatory'})
