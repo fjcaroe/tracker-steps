@@ -184,6 +184,10 @@ class AccountBatchPayment(models.Model):
 
     @api.model_create_multi
     def create(self, values_list):
+        with self.env.cr.savepoint():
+            return self._create_existing_payment_groups(values_list)
+
+    def _create_existing_payment_groups(self, values_list):
         self.check_access('create')
         self._selected_ids(self.env.context.get('default_payment_ids', []))
         service = self.env['step.batch.payment.grouping']
@@ -208,6 +212,10 @@ class AccountBatchPayment(models.Model):
         return super().create(prepared)
 
     def write(self, values):
+        with self.env.cr.savepoint():
+            return self._write_draft_payment_groups(values)
+
+    def _write_draft_payment_groups(self, values):
         self.check_access('write')
         if set(values) - {'name', 'date', 'payment_ids'}:
             raise UserError(_('En esta etapa sólo se edita la referencia, fecha y selección de un grupo en borrador.'))
@@ -223,6 +231,10 @@ class AccountBatchPayment(models.Model):
         return super().write(values)
 
     def unlink(self):
+        with self.env.cr.savepoint():
+            return self._unlink_draft_payment_groups()
+
+    def _unlink_draft_payment_groups(self):
         service = self.env['step.batch.payment.grouping']
         for batch in self:
             service._lock_batch(batch.id)

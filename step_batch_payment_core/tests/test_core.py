@@ -131,6 +131,24 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         self.assertEqual(self.env['account.payment'].search_count([]), count)
         self.assertEqual(self.payments.mapped('amount'), [100, 250])
 
+    def test_create_multi_is_atomic_when_later_group_tries_to_reuse_payment(self):
+        count = self.Batch.search_count([])
+        before = self.payments.read(['amount', 'state', 'move_id', 'is_sent', 'is_matched'])
+        with self.assertRaises(UserError):
+            self.Batch.create([
+                {'name': 'Primero real', 'payment_ids': [Command.set(self.payments.ids)]},
+                {'name': 'Segundo inválido', 'payment_ids': [Command.set(self.payments[:1].ids)]},
+            ])
+        self.assertEqual(self.Batch.search_count([]), count)
+        self.assertFalse(self.payments.batch_payment_id)
+        self.assertEqual(self.payments.read(list(before[0].keys() - {'id'})), before)
+        batches = self.Batch.create([
+            {'name': 'Primero independiente', 'payment_ids': [Command.set(self.payments[:1].ids)]},
+            {'name': 'Segundo independiente', 'payment_ids': [Command.set(self.payments[-1:].ids)]},
+        ])
+        self.assertEqual(len(batches), 2)
+        self.assertEqual(set(self.payments.batch_payment_id.ids), set(batches.ids))
+
     def test_payment_creation_cannot_inject_relation_by_values_or_context(self):
         batch = self.group()
         for model, values in ((self.env['account.payment'].with_user(self.actor), {'batch_payment_id': batch.id}),
