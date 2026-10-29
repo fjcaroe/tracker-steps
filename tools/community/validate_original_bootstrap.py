@@ -97,7 +97,9 @@ def main():
     identity = pwd.getpwnam('odoo')
     config = configparser.ConfigParser(interpolation=None)
     assert config.read('/etc/dev_odoo18.conf')
-    assert config['options']['db_user'] == 'odoo'
+    database_user = config['options']['db_user']
+    assert re.fullmatch('[a-z_][a-z0-9_]*', database_user)
+    assert config['options']['db_name'] == 'LAB_TAREAS'
     with open('/run/lock/steps-environments.lock', 'a') as lease:
         print('COLD_BOOTSTRAP_WAITING_FOR_SHARED_LEASE', flush=True)
         fcntl.flock(lease, fcntl.LOCK_EX)
@@ -110,8 +112,8 @@ def main():
             assert capacity[name] >= reserve, name + ' reserve below minimum'
         write(stage / 'storage-preflight.json', capacity)
         assert sql('postgres', "SELECT pg_tablespace_location(oid) FROM pg_tablespace WHERE spcname='" + args.tablespace + "'") == '/opt/steps-validation/community-payroll-storage-20261028/community'
-        assert sql('postgres', "SELECT pg_get_userbyid(spcowner) FROM pg_tablespace WHERE spcname='" + args.tablespace + "'") == 'odoo'
-        subprocess.run(['sudo', '-u', 'postgres', 'createdb', '--owner=odoo', '--tablespace=' + args.tablespace, args.database], check=True)
+        assert sql('postgres', "SELECT pg_get_userbyid(spcowner) FROM pg_tablespace WHERE spcname='" + args.tablespace + "'") == database_user
+        subprocess.run(['sudo', '-u', 'postgres', 'createdb', '--owner=' + database_user, '--tablespace=' + args.tablespace, args.database], check=True)
         for path in (stage, *stage.rglob('*')):
             if not path.is_symlink():
                 os.chown(path, identity.pw_uid, identity.pw_gid)
