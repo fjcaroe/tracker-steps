@@ -11,6 +11,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -50,6 +51,13 @@ def snapshot(root):
 
 def hashes(files):
     return {name: hashlib.sha256(value).hexdigest() for name, value in sorted(files.items())}
+
+
+def _write_receipt(path, report):
+    # Private from the instant of creation, including under an open umask.
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(report, indent=2, sort_keys=True) + "\n")
 
 
 def manifest(files):
@@ -315,7 +323,12 @@ def build(source, output, *, dependency_roots, community_root, oca_root):
             path = output / MODULE / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(value)
-        (output.parent / REPORT).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+            path.chmod(0o644)
+        # Only the newly owned runtime subtree is public to the Odoo role.
+        # Its sibling receipt and the enclosing private evidence stay private.
+        for directory in (output, *(path for path in output.rglob("*") if path.is_dir())):
+            directory.chmod(0o755)
+        _write_receipt(output.parent / REPORT, report)
     return report
 
 
