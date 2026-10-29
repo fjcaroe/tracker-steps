@@ -1,0 +1,11 @@
+<RECEPCIONDTE>
+  <RUTSENDER>07880442-4</RUTSENDER>
+  <RUTCOMPANY>88888888-8</RUTCOMPANY>
+  <FILE>ENVFIN_100_sign.xml</FILE>
+  <TIMESTAMP>2003-10-31 10:04:26</TIMESTAMP>
+  <STATUS>7</STATUS>
+  <DETAIL>
+    <ERROR>LSX-00265: attribute "version" value "3.2" is wrong (must be ".2")</ERROR>
+    <ERROR>LSX-00213: only 0 occurrences of particle "sequence", minimum is 1</ERROR>
+  </DETAIL>
+</RECEPCIONDTE>

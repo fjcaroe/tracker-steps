@@ -1,0 +1,26 @@
+{
+  "source_url": "https://www.sii.cl/factura_electronica/factura_mercado/envio.pdf",
+  "source_document": "OI2003_UPDTE_MDE_1.5",
+  "source_pdf_sha256": "875792e9e2926f363614edade4271055a4c39cd88730c86e2a9e02b630e75b2d",
+  "transcription_note": "Published manual examples transcribed as machine XML: PDF graphical dash and typographic spacing/wrapping are not payload bytes. These are not received responses, authenticated sources or operational taxpayers.",
+  "fixtures": {
+    "upload_manual_success.xml": {
+      "figure": "2.1",
+      "pdf_page_one_based": 9,
+      "sha256": "f0eceecadefd36ad3eb69d9472c1e879b0cfbf5da67a368f5e321d3c40523770",
+      "live_sii_response": false
+    },
+    "upload_manual_failure.xml": {
+      "figure": "2.2",
+      "pdf_page_one_based": 10,
+      "sha256": "43b88c5bed58d24153d8068ec651233f7d925db38d78bf4a56465e2344750bb3",
+      "live_sii_response": false
+    },
+    "upload_manual_schema_failure.xml": {
+      "figure": "2.3",
+      "pdf_page_one_based": 10,
+      "sha256": "63d062407c54700ad632159bf801a41397e727de222081c651807f9478466123",
+      "live_sii_response": false
+    }
+  }
+}
