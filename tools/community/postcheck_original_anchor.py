@@ -14,7 +14,7 @@ from odoo.addons.step_payroll_contracts.original_benefit_cohort import (
 from odoo.addons.step_payroll_contracts.original_payroll_roles import (
     OCA_ONLY_MODELS, plan_original_payroll_role_bindings,
     verify_original_payroll_role_bindings, admit_empty_oca_models_readonly_manager)
-from probe_original_handover import run as probe
+from probe_original_handover import run as probe, sealed_json
 
 
 def run(env, stage, *, database, reference, capsule_sha256, identity_sha256):
@@ -22,7 +22,8 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256):
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', database)
     assert reference == database.replace('_HANDOVER_', '_REFERENCE_') and env.cr.dbname == database
     assert not (stage / 'cohort-admission.json').exists()
-    capsule = json.loads((stage / 'capsule.json').read_text())
+    capsule = sealed_json(stage / 'capsule.json', capsule_sha256)
+    sealed_json(stage / 'identity-before.json', identity_sha256)
     type_ids = [json.loads(row)['id'] for row in capsule['tables']['hr_payroll_structure_type']['rows_json']]
     # This cursor observes the actual fresh native control with its original
     # installed provider. No native ORM, source rules or payslips are evaluated.
