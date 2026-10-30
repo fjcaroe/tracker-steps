@@ -149,6 +149,16 @@ class Package(models.Model):
 class Production(models.Model):
     _inherit = 'step.packing.production'
 
+    @api.onchange('fruit_grower_id', 'company_id')
+    def _onchange_producer_fundo(self):
+        for production in self:
+            fundos = self.env['step.fundo'].search([
+                ('partner_id', '=', production.fruit_grower_id.id),
+                ('company_ids', 'in', production.company_id.ids),
+            ], order='id') if production.fruit_grower_id else self.env['step.fundo']
+            if production.fruit_fundo_id not in fundos:
+                production.fruit_fundo_id = fundos[:1]
+
     @api.constrains('company_id', 'fruit_fundo_id')
     def _check_agricultural_masters(self):
         check_document_masters(self)
@@ -168,3 +178,13 @@ class Estimate(models.Model):
     @api.constrains('company_id', 'fundo_id')
     def _check_agricultural_masters(self):
         check_document_masters(self)
+
+
+class ShipmentLine(models.Model):
+    _inherit = 'step.export.shipment.line'
+
+    @api.constrains('quality_id', 'shipment_id')
+    def _check_quality_company(self):
+        for line in self:
+            if line.quality_id and line.shipment_id.company_id not in line.quality_id.sudo().company_ids:
+                raise ValidationError(_('La calidad debe estar asignada a la empresa del embarque.'))

@@ -107,3 +107,26 @@ class TestMasters(TransactionCase):
         record = self.make('step.fundo')
         with self.assertRaises(ValidationError), self.cr.savepoint():
             record.write({'company_id': self.b.id})
+
+    def test_native_packing_fundo_onchange_and_save(self):
+        producer = self.env['res.partner'].create({'name': 'QA shared producer', 'is_productor': True})
+        farm = self.make('step.fundo', partner_id=producer.id, company_ids=[Command.set((self.a | self.b).ids)])
+        model = self.env['step.packing.production'].with_company(self.b)
+        draft = model.new({'company_id': self.b.id, 'fruit_grower_id': producer.id})
+        draft._onchange_producer_fundo()
+        self.assertEqual(draft.fruit_fundo_id, farm)
+        production = model.create({'company_id': self.b.id, 'fruit_grower_id': producer.id, 'fruit_fundo_id': farm.id})
+        self.assertEqual(production.fruit_fundo_id, farm)
+        foreign = self.make('step.fundo', company_id=self.c.id, partner_id=producer.id)
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            production.write({'fruit_fundo_id': foreign.id})
+
+    def test_native_shipment_quality_consistency(self):
+        quality = self.make('step.management.fruit.quality', company_ids=[Command.set((self.a | self.b).ids)])
+        shipment = self.env['step.export.shipment'].new({'company_id': self.b.id})
+        line = self.env['step.export.shipment.line'].new({'shipment_id': shipment, 'quality_id': quality.id})
+        line._check_quality_company()
+        foreign = self.make('step.management.fruit.quality', company_id=self.c.id)
+        line.quality_id = foreign
+        with self.assertRaises(ValidationError):
+            line._check_quality_company()
