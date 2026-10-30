@@ -8,8 +8,9 @@ ni errores; 120/398 instalados y 0/140 EE. Preserva 925 tablas/proyecciones,
 numérico tipado T2 y postflight físico antes/después del upgrade y las pruebas.
 F materializó realmente 71 relaciones de reglas sobre OCA y cero al repetir,
 bajo UID7: 120 maestros, modelo 600/reporte 462 y permisos conservados (118/2).
-F admite sólo relaciones; metadatos, interfaz completa, históricos y fórmulas
-continúan pendientes. La referencia SyS readonly y R3/S se conservan.
+G validó cinco formularios y cuatro menús contra el Source nativo real, sin
+ampliar permisos. Metadatos, flujos legados, históricos y fórmulas siguen
+pendientes. La referencia SyS readonly y R3/S se conservan.
 Inventario actual: 101 apps propias en Cerro, 134 en repo/37 fuera de Cerro
 y 55 con caminos EE. Quedan certificación de Nómina, DTE, Calidad y conversión
 integral restaurable. Producción conserva 140 EE. El 31 sigue en riesgo alto.

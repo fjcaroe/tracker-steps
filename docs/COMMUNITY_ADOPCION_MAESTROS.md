@@ -10,7 +10,9 @@ La copia original S7 completó además la proyección real de sus 71 reglas bajo
 UID7: **71 relaciones creadas y cero en la segunda ejecución**, con commit.
 Los 120 maestros originales, sus datos, IDs, ACL, reporte 462/modelo 600 y
 contadores permanecen. Esto cierra la proyección de relaciones; no certifica
-sus importes ni la adopción completa de metadatos, interfaz e históricos.
+sus importes ni la adopción completa de metadatos, interfaz legada e históricos.
+G validó por separado cinco formularios y cuatro menús de configuración contra
+el testigo nativo real, conservando la categoría oculta y los otros tres visibles.
 Ninguna de estas puertas convierte integralmente Cerro ni resuelve el 31.
 Este bloque no publicó cambios en producción ni en QA-Cerro.
 
@@ -69,7 +71,24 @@ visibles y categorías ocultas con `debug=False`. No se infiere permiso desde
 el nombre ni se añade el grupo técnico. Kernel y todas las conexiones PG fueron
 readonly, sin ejecutar acciones ni leer nómina histórica. Source de menús:
 `c5a81c31ba8242207920d301e5ee1baeb07813285f9d93157168c8485497e289`.
-Su equivalencia Target y el cierre de interfaz completa se validan por separado.
+**G terminó con commit y los tres flags verdaderos**:
+`source_menu_witness_validated`, `source_menu_visibility_parity`,
+`core_ui_admitted`. Validó cinco formularios por la API real y los cuatro menús,
+sus lecturas/ACL, acciones/modelos y visibilidad normal contra aquel Source.
+El renderer original conservó su ruta/configuración bajo el actor normal;
+no se imprimió una liquidación histórica ni se certificó su validez legal.
+G observó **cero/cero inserciones** sobre las 71 membresías ya creadas por F.
+Maestros, alias, auditoría, política original y contadores permanecieron exactos.
+No hay excepción por país o grupo técnico: la categoría se conserva oculta
+porque esa denegación fue observada realmente en ambos motores.
+
+G: `/opt/steps-validation/community-original-handover-20261030S7/anchor/probe-source-full-G`.
+Probe `511e52c07e1bb368fe51d7cb39e85014290748e27cc54accab8fbf44164701d4`;
+recibo después del commit `1c101c590ecc180abf23d8b3c72ef03f00731e849be030cec42d1b7728a46c3d`.
+Las copias locales se verificaron por hash y como datos inertes. `full` designa
+el alcance del probe de configuración, **no la conversión completa**:
+`all_legacy_flows_certified`, `original_metadata_semantics_admitted`,
+`financial_certified` e `integral_conversion` siguen falsos.
 
 Inventario vigente después de T139/T140: Cerro **382/140 EE/101 propias**;
 Steps **310/123/19** y SyS **332/142/17**. Repo **134 propias / 37 fuera de Cerro**,
@@ -211,7 +230,7 @@ replay independiente exacto: `297c761304a1badea7b23101161ff54793f360b6debbbd612e
 
 Adoptar Foundation 1.16.0 en un overlay anclado nuevo y cerrar las diferencias
 de almacenamiento/constraints. Conservar la proyección F y sus dos denegaciones;
-contrastar los menús con el Source nativo real, sin conceder acceso técnico.
+conservar la paridad G de menús con el Source nativo real, sin conceder acceso técnico.
 Cerrar menús legados y
 referencias opacas, y certificar reglas, Previred/libro con casos equivalentes
 probados. DTE/CAF/folios/firma/respuestas SII, demás productos y copia integral
@@ -246,8 +265,11 @@ estuviera pendiente ni atribuyas certificación financiera a esa proyección.
 Reutiliza el Sourceproof nativo S7B y conserva su partición 118/2 bajo UID7.
 La lectura core de vistas y los savepoints UUID1 quedaron probados con sus
 fuentes y objetos reales; no vuelvas a ampliar SQL por conjetura. El Source
-real de menús c5a81c31… confirmó categoría oculta y tres visibles; contrasta
-Target con ese testigo. No repitas el bloqueo como si faltara probar el origen.
+real de menús c5a81c31… confirmó categoría oculta y tres visibles; G ya contrastó
+Target con ese testigo, cinco formularios y cuatro menús, con cero/cero nuevas
+inserciones. No repitas esos bloqueos como si faltara probar origen o Target.
+Conserva F y G separados y sus límites: no certifican los importes ni todos
+los flujos legados. Recupera las herramientas validadas de la rama indicada.
 Usa un overlay nuevo para 1.16.0, sin sobrescribir S7 ni sus fuentes congeladas.
 Revisa todos los metadatos, columnas, constraints,
 referencias opacas y menús legados antes de aceptar la cohorte. Evita el cambio
