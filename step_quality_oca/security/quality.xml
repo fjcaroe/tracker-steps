@@ -1,0 +1,17 @@
+<odoo>
+    <record id="inspection_line_company_scope" model="ir.rule">
+        <field name="name">Inspection lines: original parent company</field>
+        <field name="model_id" ref="quality_control_oca.model_qc_inspection_line"/>
+        <field name="domain_force">['|', ('inspection_id.company_id', '=', False), ('inspection_id.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="question_company_scope" model="ir.rule">
+        <field name="name">Quality questions: original test company</field>
+        <field name="model_id" ref="quality_control_oca.model_qc_test_question"/>
+        <field name="domain_force">['|', ('test.company_id', '=', False), ('test.company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="answer_company_scope" model="ir.rule">
+        <field name="name">Quality answers: original test company</field>
+        <field name="model_id" ref="quality_control_oca.model_qc_test_question_value"/>
+        <field name="domain_force">['|', ('test_line.test.company_id', '=', False), ('test_line.test.company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>
