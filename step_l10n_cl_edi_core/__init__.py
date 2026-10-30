@@ -2,3 +2,4 @@
 
 from . import caf
 from . import upload_response
+from . import ted
