@@ -27,6 +27,7 @@ def main():
     if not pending:
         definition=json.loads((root/'inventory-definition.json').read_text())
         assert definition['database']=='CERRO_EL_PLOMO' and definition['after'] is True and definition['business_unchanged']
+        assert json.loads((root/'active-inventory.json').read_text())=={'CERRO_EL_PLOMO':True,'QA-CERROELPLOMO':True}
     body=('T137: corregida la validación de cuadratura para tarjas E/N ya validadas de su propia OT, '
         'sin existencias ni historial de movimientos. Se conserva su validación y se impide producir stock por duplicado. '
         'También comprobado el cierre nativo con tarjas previamente validadas. Publicado el mismo paquete en Desarrollo, '
