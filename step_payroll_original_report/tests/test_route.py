@@ -37,7 +37,9 @@ class OriginalPayrollReportRouteCase(TransactionCase):
                 stack.enter_context(patch.object(type(slip), method, side_effect=AssertionError('Cannot recompute history')))
             stack.enter_context(patch.object(type(slip.line_ids), '_compute_total', side_effect=AssertionError('Cannot compute totals')))
             html = self.render(slip)
-        text = etree.fromstring(html).text_content()
+        # The real monetary widget inserts U+FEFF between a negative sign and
+        # its digits to keep them together; do not treat it as a changed amount.
+        text = etree.fromstring(html).text_content().replace('\ufeff', '')
         for value in ('Stored BASIC', 'Stored NEGATIVE', 'Stored ZERO', 'Stored NULL_VALUE',
                       'Original stored payslip name', 'PRIVATE/PDF/1', '-25', '75'):
             self.assertIn(value, text)
@@ -121,7 +123,10 @@ class OriginalPayrollReportRouteCase(TransactionCase):
         for ids in (None, [], slip.ids + slip.ids, [True], ['1'], [0]):
             with self.assertRaises(UserError):
                 reports._render_qweb_html(self.action.id, ids)
-        for data in ({'docs': slip}, {'uid': 1}, {'step_report_net': 999}, {'report_type': 'text'}):
+        self.assertIn(b'Stored NEGATIVE', reports._render_qweb_html(
+            self.action.id, slip.ids, data={'debug': False})[0])
+        for data in ({'docs': slip}, {'uid': 1}, {'step_report_net': 999}, {'report_type': 'text'},
+                     {'debug': True}, {'debug': 0}, {'debug': 'False'}):
             with self.assertRaises(UserError):
                 reports._render_qweb_html(self.action.id, slip.ids, data=data)
         for context in ({'uid': 1}, {'user_id': 1}, {'report_sudo': True}, {'employee_id': f.employee.id}):
