@@ -1,8 +1,8 @@
 {
     "name": "Steps - Días de contratos parciales",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.2.0",
     "category": "Human Resources/Payroll",
-    "summary": "Días de contratos parciales y descuento de horas de atraso (LEAVECL131)",
+    "summary": "Contratos parciales, faltas sobre base mensual de 30 días y horas de atraso",
     "author": "Steps Consulting",
     "license": "LGPL-3",
     "depends": ["l10n_cl_simpledigital_payroll"],

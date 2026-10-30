@@ -6,6 +6,53 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged("post_install", "-at_install")
 class TestContractDays(TransactionCase):
+    def test_full_month_absences_use_fixed_thirty_day_salary(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        absence=self.env['hr.work.entry.type'].search([('code','=','FALT')],limit=1)
+        if not absence:absence=self.env['hr.work.entry.type'].create({'name':'QA absence','code':'FALT','is_leave':True})
+        structure=self.env['hr.payroll.structure'].new({'name':'Nómina Chile'})
+        for year,month,last in [(2026,2,28),(2028,2,29),(2026,9,30),(2026,10,31)]:
+            for absent in (0.5,1,2,30):
+                for present in (True,False):
+                    slip=self.env['hr.payslip'].new({'struct_id':structure,
+                        'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':'monthly'}),
+                        'date_from':date(year,month,1),'date_to':date(year,month,last)})
+                    source=[{'work_entry_type_id':absence.id,'number_of_days':absent,'number_of_hours':absent*8,'amount':0}]
+                    if present:source.append({'work_entry_type_id':work.id,'number_of_days':max(last-absent,0),'amount':600000})
+                    unchanged=dict(source[0]);lines=slip._step_monthly_absence_days(source)
+                    attendance=[l for l in lines if l['work_entry_type_id']==work.id]
+                    expected=max(30-absent,0)
+                    self.assertEqual(sum(l['number_of_days'] for l in attendance),expected)
+                    self.assertEqual(sum(l['amount'] for l in attendance),600000/30*expected)
+                    self.assertEqual(lines[0],unchanged)
+
+    def test_absence_correction_leaves_medical_and_partial_periods_to_provider(self):
+        entries=self.env['hr.work.entry.type']
+        def entry(code):return entries.search([('code','=',code)],limit=1) or entries.create({'name':'QA '+code,'code':code,'is_leave':True})
+        work=entry('WORK100');absence=entry('FALT');medical=entry('LIC')
+        for start,end,contract_start,contract_end,license_days in [
+                (1,31,1,False,1),(2,31,1,False,0),(1,30,1,False,0),
+                (1,31,2,False,0),(1,31,1,15,0)]:
+            slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':'Nómina Chile'}),
+                'contract_id':self.env['hr.contract'].new({'date_start':date(2026,10,contract_start),
+                    'date_end':date(2026,10,contract_end) if contract_end else False,'wage':600000,'wage_type':'monthly'}),
+                'date_from':date(2026,10,start),'date_to':date(2026,10,end)})
+            source=[{'work_entry_type_id':work.id,'number_of_days':29,'amount':561290},
+                    {'work_entry_type_id':absence.id,'number_of_days':1}]
+            if license_days:source.append({'work_entry_type_id':medical.id,'number_of_days':license_days})
+            before=[dict(l) for l in source]
+            self.assertEqual(slip._step_monthly_absence_days(source),before)
+
+    def test_hourly_or_other_structure_is_not_repriced(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        for wage_type,structure in [('hourly','Nómina Chile'),('monthly','QA Other')]:
+            slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':structure}),
+                'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':wage_type}),
+                'date_from':date(2026,10,1),'date_to':date(2026,10,31)})
+            source=[{'work_entry_type_id':work.id,'number_of_days':30,'amount':600000}]
+            before=[dict(l) for l in source]
+            self.assertEqual(slip._step_monthly_absence_days(source),before)
+
     def test_contract_boundaries_and_absences(self):
         work = self.env["hr.work.entry.type"].search([("code", "=", "WORK100")], limit=1)
         self.assertTrue(work)

@@ -1,3 +1,4 @@
+from calendar import monthrange
 from datetime import datetime, time
 
 from odoo import fields, models
@@ -12,7 +13,41 @@ class HrPayslip(models.Model):
     def _get_worked_day_lines_values(self, domain=None):
         lines = super()._get_worked_day_lines_values(domain=domain)
         lines = self._step_contract_days_lines(lines)
+        lines = self._step_monthly_absence_days(lines)
         return self._step_deduct_late_hours(lines)
+
+    def _step_monthly_absence_days(self, lines):
+        """Full-month fixed wages: unjustified absence is deducted from 30.
+
+        The provider groups FALT with medical leave and selects base/divisor 31.
+        Keep medical leave and partial-contract policies outside this correction.
+        Source leaves/work entries and already stored payslips are never edited.
+        """
+        self.ensure_one()
+        start, end, contract = self.date_from, self.date_to, self.contract_id
+        if (self.struct_id.name != 'Nómina Chile' or contract.wage_type!='monthly' or not start or not end
+                or (start.year,start.month)!=(end.year,end.month) or start.day!=1
+                or end.day!=monthrange(end.year,end.month)[1]
+                or not contract.date_start or contract.date_start>start
+                or contract.date_end and contract.date_end<end):
+            return lines
+        types=self.env['hr.work.entry.type']
+        by_code={}
+        for line in lines:
+            by_code.setdefault(types.browse(line['work_entry_type_id']).code,[]).append(line)
+        days=lambda code:sum(line.get('number_of_days',0.0) for line in by_code.get(code,[]))
+        if days('FALT')<=0 or days('LIC')>0 or days('LEAVECL130')>0:
+            return lines
+        attendance=max(30.0-days('FALT')-days('LEAVECL120'),0.0)
+        work=(by_code.get('WORK100') or [None])[0]
+        if work is None and attendance:
+            entry=types.search([('code','=','WORK100')],limit=1)
+            if entry:
+                work={'sequence':entry.sequence,'work_entry_type_id':entry.id};lines.append(work)
+        if work is not None:
+            work.update(number_of_days=attendance,number_of_hours=attendance*HOURS_PER_DAY,
+                        amount=contract.wage/30.0*attendance)
+        return lines
 
     def _step_late_hours(self):
         """Horas de atraso (entradas LEAVECL131) del trabajador en el período."""

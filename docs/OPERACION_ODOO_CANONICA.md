@@ -76,6 +76,14 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T138 autoriza `payroll-days` exclusivamente en Desarrollo, SyS, Demo-SYS y Cerro:
+inasistencias injustificadas de contratos mensuales que cubren el mes completo,
+base de 30 días menos faltas. Conservar licencias, contratos parciales, atrasos
+y liquidaciones almacenadas. Probar los casos reportados por cálculo nativo en
+copia de SyS; no recalcular recibos reales ni históricos al publicar. Demo-SYS
+exige el alcance instalado de SyS, sin addons adicionales. Mismo paquete en
+copias frescas de cada destino, respaldo, bloqueo y overlays privados.
+
 T137 amplía `packing-stock` en Desarrollo, Cerro y QA-Cerro para admitir las
 tarjas E/N ya validadas de la misma OT que aún no tienen existencias ni
 movimientos. La validación de la tarja no genera inventario. Conservar las
