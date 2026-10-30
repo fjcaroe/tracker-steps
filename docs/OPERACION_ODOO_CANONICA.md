@@ -80,7 +80,8 @@ T141 autoriza `reception-report` en Desarrollo, Cerro y QA-Cerro: adaptar el
 recibo de entrega nativo para recepciones entrantes de fruta según el adjunto.
 Conservar acción, logo, direcciones y documentos de stock ajenos a Packing.
 Guía, tipo/clase, lote, operaciones, tarjas con pesos y totales y transporte
-proceden de los registros existentes. No validar recepciones reales ni cambiar
+proceden de los registros existentes. El recibo conserva formato numérico y
+fechas de español de Chile sin cambiar el idioma del usuario. No validar recepciones reales ni cambiar
 pesos o existencias. Mismo paquete en copias frescas, PDF nativo corto y largo,
 revisión visual, respaldo, bloqueo, paridad e aislamiento de QA-Cerro.
 

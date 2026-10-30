@@ -34,7 +34,7 @@ def main():
     body=('T141: recibo nativo de entrega/recepción adaptado para las entradas de fruta de Packing. '
           'Incluye logo y direcciones existentes, guía, tipo y clase de fruta, lote, operaciones, '
           'envases físicos, detalle de pallets con cajas y pesos bruto/tara/neto, promedio ponderado, '
-          'totales y transporte/chofer. Se conservan el mismo acceso de impresión y el formato de '
+          'totales y transporte/chofer. El recibo usa español de Chile para fechas y cifras, sin cambiar el idioma del usuario. Se conservan el mismo acceso de impresión y el formato de '
           'documentos de stock ajenos a Packing. Probados y revisados visualmente PDFs cortos y '
           'multipágina, incluido el recibo real del adjunto en una copia de QA-Cerro. '
           'No se validaron recepciones reales ni cambiaron pesos, existencias o datos de capacitación. '
