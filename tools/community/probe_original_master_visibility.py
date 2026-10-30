@@ -12,6 +12,9 @@ import re
 
 
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
+SOURCE_GRAPH_PROFILE = 'source-graph-20261030'
+SOURCE_INVENTORY_SHA256 = '9358e34e6592f8693785bffe4be4f8bcd4735abe6b7d51c3568d6eeaabe7240e'
+SOURCE_GRAPH_PROJECTION_SHA256 = '63c8c3c796dc73970b5585b2ae36c2685f0b773401b44d5169b440399b15bdb5'
 SPECS = {
     'hr_payroll_structure': ('hr.payroll.structure', ('id', 'country_id', 'type_id', 'active')),
     'hr_payroll_structure_type': ('hr.payroll.structure.type', ('id', 'country_id')),
@@ -37,6 +40,66 @@ def encode(value):
 def identifier(value):
     require(re.fullmatch(r'[a-z_][a-z0-9_]*', value) is not None, 'invalid-static-identifier')
     return '"' + value + '"'
+
+
+def validate_installed_modules(modules):
+    require(isinstance(modules, list) and modules, 'complete-installed-module-list-required')
+    require(all(isinstance(row, dict) and set(row) == {'name', 'version', 'license', 'state'}
+        and isinstance(row['name'], str) and re.fullmatch(r'[A-Za-z0-9_]+', row['name'])
+        and (row['version'] is None or isinstance(row['version'], str) and row['version'])
+        and isinstance(row['license'], str) and row['license'] and row['state'] == 'installed' for row in modules),
+        'installed-module-name-version-license-state-required')
+    require(len({row['name'] for row in modules}) == len(modules)
+        and modules == sorted(modules, key=lambda row: row['name']), 'sorted-unique-installed-module-list-required')
+    return sha(encode(modules))
+
+
+def source_inventory_graph(raw):
+    """The fixed private inventory records installed rows; manifests are unused."""
+    require(isinstance(raw, bytes) and sha(raw) == SOURCE_INVENTORY_SHA256, 'source-inventory9358-seal-required')
+    inventory = json.loads(raw)
+    require(inventory.get('read_only') is True and inventory.get('orm_loaded') is False
+        and all(inventory.get(key) is False for key in ('business_data_exported', 'source_bodies_exported',
+            'enterprise_sources_copied')), 'readonly-metadata-only-source-inventory-required')
+    product = inventory['products']['cerro']
+    require(product['installed'] == len(product['modules']) == 382 and product['enterprise'] == 140,
+        'pinned-source382-native140-inventory-required')
+    modules = sorted(({'name': row['name'], 'version': row['version'], 'license': row['license'],
+        'state': 'installed'} for row in product['modules']), key=lambda row: row['name'])
+    require(validate_installed_modules(modules) == SOURCE_GRAPH_PROJECTION_SHA256,
+        'pinned-complete-cerro-inventory-projection-differs')
+    return modules
+
+
+def validate_source_graph_admission(admission, engine):
+    require(isinstance(admission, dict) and set(admission) == {'schema', 'profile', 'product',
+        'inventory_sha256', 'inventory_projection_sha256', 'observed_projection_sha256',
+        'installed_modules', 'installed', 'enterprise', 'complete_graph_equal', 'database_writes'},
+        'explicit-complete-source-graph-admission-required')
+    modules = admission['installed_modules']
+    digest = validate_installed_modules(modules)
+    require(admission['schema'] == 1 and admission['profile'] == SOURCE_GRAPH_PROFILE and admission['product'] == 'cerro'
+        and admission['inventory_sha256'] == SOURCE_INVENTORY_SHA256
+        and admission['inventory_projection_sha256'] == admission['observed_projection_sha256']
+        == SOURCE_GRAPH_PROJECTION_SHA256 == digest and admission['complete_graph_equal'] is True
+        and admission['database_writes'] is False, 'pinned-exact-source-graph-admission-differs')
+    require(admission['installed'] == engine['installed'] == len(modules) == 382
+        and admission['enterprise'] == engine['enterprise'] == sum(row['license'] == 'OEEL-1' for row in modules) == 140
+        and engine['module_metadata_sha256'] == digest, 'source-graph-engine-count-or-full-projection-differs')
+    return modules
+
+
+def admit_source_graph(modules, inventory_raw):
+    expected = source_inventory_graph(inventory_raw)
+    require(modules == expected, 'actual-source-installed-graph-differs-from-pinned-inventory')
+    admission = {'schema': 1, 'profile': SOURCE_GRAPH_PROFILE, 'product': 'cerro',
+        'inventory_sha256': SOURCE_INVENTORY_SHA256, 'inventory_projection_sha256': SOURCE_GRAPH_PROJECTION_SHA256,
+        'observed_projection_sha256': validate_installed_modules(modules), 'installed_modules': modules,
+        'installed': len(modules), 'enterprise': sum(row['license'] == 'OEEL-1' for row in modules),
+        'complete_graph_equal': True, 'database_writes': False}
+    validate_source_graph_admission(admission, {'installed': len(modules), 'enterprise': admission['enterprise'],
+        'module_metadata_sha256': sha(encode(modules))})
+    return admission
 
 
 def expected_projection(capsule):
@@ -110,7 +173,8 @@ def counter_snapshot(cr):
     return result
 
 
-def run(env, capsule_path, capsule_sha256, *, actor_uid=7, company_ids=(1, 2, 3, 4), active_company_id=2, output):
+def run(env, capsule_path, capsule_sha256, *, actor_uid=7, company_ids=(1, 2, 3, 4), active_company_id=2,
+        output, source_inventory_path=None):
     from odoo import api, sql_db
     from odoo.exceptions import AccessError
 
@@ -123,6 +187,14 @@ def run(env, capsule_path, capsule_sha256, *, actor_uid=7, company_ids=(1, 2, 3,
     raw = Path(capsule_path).read_bytes()
     require(capsule_sha256 == CAPSULE_SHA256 == sha(raw), 'original-source-capsule-seal-differs')
     capsule = json.loads(raw); expected = expected_projection(capsule)
+    inventory_raw = None
+    if source_inventory_path is not None:
+        inventory_path = Path(source_inventory_path)
+        require(inventory_path.is_file() and not inventory_path.is_symlink()
+            and inventory_path.resolve().is_relative_to(Path('/opt/steps-validation'))
+            and inventory_path.stat().st_mode & 0o777 == 0o600, 'private-source-graph-inventory-required')
+        inventory_raw = inventory_path.read_bytes()
+        source_inventory_graph(inventory_raw)  # Before the first observer DB connection.
     require(type(actor_uid) is int and actor_uid > 0 and len(set(company_ids)) == len(company_ids)
         and active_company_id in company_ids, 'explicit-existing-actor-and-company-context-required')
     mro = [klass.__module__ + '.' + klass.__name__ for klass in type(env['hr.payslip']).__mro__]
@@ -137,8 +209,12 @@ def run(env, capsule_path, capsule_sha256, *, actor_uid=7, company_ids=(1, 2, 3,
             'real-primary-readonly-repeatable-read-cursor-required')
         cr.execute("SELECT name,latest_version,license,state FROM ir_module_module WHERE state='installed' ORDER BY name")
         modules = [dict(zip(('name', 'version', 'license', 'state'), row)) for row in cr.fetchall()]
-        require(len(modules) == 381 and sum(row['license'] == 'OEEL-1' for row in modules) == 140,
-            'untouched-source381-native140-required')
+        graph_admission = None
+        if inventory_raw is None:
+            require(len(modules) == 381 and sum(row['license'] == 'OEEL-1' for row in modules) == 140,
+                'untouched-source381-native140-required')
+        else:
+            graph_admission = admit_source_graph(modules, inventory_raw)
         require(any(row['name'] == 'hr_payroll' and row['license'] == 'OEEL-1' for row in modules)
             and not any(row['name'] in ('payroll', 'payroll_account') for row in modules), 'native-provider-scope-differs')
         cr.execute("SELECT count(*) FROM ir_module_module WHERE state IN ('to install','to upgrade','to remove')")
@@ -190,6 +266,8 @@ def run(env, capsule_path, capsule_sha256, *, actor_uid=7, company_ids=(1, 2, 3,
             'historical_payroll_read': False, 'salary_rules_evaluated': False, 'salary_amounts_read': False,
             'formula_bodies_read_from_database': False, 'database_writes': False, 'financial_certified': False,
             'identity_conversion': False, 'all_products_operational': False, 'deadline_resolved': False}
+        if graph_admission is not None:
+            proof['source_graph_admission'] = graph_admission
     body = json.dumps(proof, indent=2, ensure_ascii=False).encode()
     with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         stream.write(body)

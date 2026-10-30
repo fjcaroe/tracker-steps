@@ -1,23 +1,48 @@
 """Run the actual native control registry entirely read-only, under the lease."""
 import argparse
 import configparser
-import fcntl
 import hashlib
 import json
 import os
 from pathlib import Path
-import pwd
 import re
 import subprocess
 
 from offline_process import offline_odoo
+from probe_original_master_visibility import source_inventory_graph
+
+
+def copy_source_inventory(source, output, owner):
+    """The only opt-in graph is the sealed metadata inventory9358."""
+    source = Path(source)
+    assert source.is_file() and not source.is_symlink() and source.resolve().is_relative_to(Path('/opt/steps-validation'))
+    raw = source.read_bytes()
+    source_inventory_graph(raw)
+    destination = output / 'source-inventory.json'
+    with os.fdopen(os.open(destination,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as stream:stream.write(raw)
+    os.chown(destination,owner.pw_uid,owner.pw_gid)
+    return destination
+
+
+def observation_expression(tools, capsule, digest, actor, output, source_inventory=None):
+    option = '' if source_inventory is None else ',source_inventory_path=' + repr(str(source_inventory))
+    return ('import sys;sys.path.insert(0,'+repr(str(tools))+'); '
+        'from probe_original_master_visibility import run; result=run(env,'+repr(str(capsule))+','+repr(digest)
+        +',actor_uid='+repr(actor['uid'])+',company_ids='+repr(actor['allowed_company_ids'])
+        +',active_company_id='+repr(actor['active_company_id'])+',output='+repr(str(output/'source.json'))
+        +option+'); print("NATIVE_MASTER_VISIBILITY",result["allowed_master_ids"],result["denied_master_ids"])')
 
 
 def main():
+    import fcntl
+    import pwd
+
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--tools',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--source-inventory',type=Path,
+        help='Opt in to source-graph-20261030 using the exact sealed inventory9358; default S7 remains381')
     args=parser.parse_args();root=args.root.resolve();tools=args.tools.resolve();stage=root/'anchor'
     assert os.geteuid()==0 and root.parent==Path('/opt/steps-validation')
     assert root.name.startswith('community-original-handover-') and tools.is_relative_to(Path('/opt/steps-validation'))
@@ -36,11 +61,8 @@ def main():
     capsule=output/'capsule.json';body=(stage/'capsule.json').read_bytes()
     with os.fdopen(os.open(capsule,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as stream:stream.write(body)
     os.chown(capsule,owner.pw_uid,owner.pw_gid);digest=hashlib.sha256(body).hexdigest()
-    expression=('import sys;sys.path.insert(0,'+repr(str(tools))+'); '
-        'from probe_original_master_visibility import run; result=run(env,'+repr(str(capsule))+','+repr(digest)
-        +',actor_uid='+repr(actor['uid'])+',company_ids='+repr(actor['allowed_company_ids'])
-        +',active_company_id='+repr(actor['active_company_id'])+',output='+repr(str(output/'source.json'))
-        +'); print("NATIVE_MASTER_VISIBILITY",result["allowed_master_ids"],result["denied_master_ids"])')
+    source_inventory = copy_source_inventory(args.source_inventory,output,owner) if args.source_inventory is not None else None
+    expression=observation_expression(tools,capsule,digest,actor,output,source_inventory)
     command=['sudo','-u','cerro_odoo18','/usr/bin/python3.10',str(tools/'original_external_references_readonly_bootstrap.py'),
         '/opt/odoo18','/opt/odoo18/odoo-bin',database,'shell','-c','/etc/dev_odoo18.conf',
         '-d',database,'--db-filter=^'+database+'$','--db_host=/var/run/postgresql',

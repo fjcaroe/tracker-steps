@@ -11,10 +11,15 @@ from pathlib import Path
 import re
 
 
-SOURCE_OBSERVER_HASHES = {
+LEGACY_SOURCE_OBSERVER_HASHES = {
     'b48f3310adde9899020f6b77d3207a0be73f35cb36e0affb27c9bd6e2fa9f5e1',  # Git LF
     '97f70446aa35138a3e4742de64e0f1669fc5531890b409e18d2d34b4125b3889',  # same CRLF
 }
+GRAPH_SOURCE_OBSERVER_HASHES = {
+    'f0f5cce2f26b1f0974895a43989ac2e046e985a57433fd4313e13673a4d2114b',  # explicit source-graph observer LF
+    'd51527c653ea33314625be6df99b7315f6414d10769ad179d370b0edd653fa80',  # same CRLF
+}
+SOURCE_OBSERVER_HASHES = LEGACY_SOURCE_OBSERVER_HASHES | GRAPH_SOURCE_OBSERVER_HASHES
 POLICY_TABLES = {'ir_model_access', 'ir_rule', 'rule_group_rel', 'ir_model_fields_group_rel',
     'res_groups', 'res_groups_users_rel', 'res_groups_implied_rel', 'res_company_users_rel'}
 
@@ -35,7 +40,7 @@ def sha(body):
 def observer():
     module = importlib.import_module('probe_original_master_visibility')
     need(sha(Path(module.__file__).read_bytes()) in SOURCE_OBSERVER_HASHES,
-        'target-observer-source-does-not-match-approved-git35b9')
+        'target-observer-source-does-not-match-approved-pinned-observer')
     return module
 
 
@@ -56,7 +61,16 @@ def validate_source(proof, capsule, *, target_database, original_model_id, origi
     need(proof.get('transaction') == {'read_only': True, 'odoo_cursor_readonly': True,
         'isolation': 'repeatable read', 'local_primary': True}, 'actual-source-readonly-cursor-not-proven')
     engine = proof.get('engine', {})
-    need(engine.get('installed') == 381 and engine.get('enterprise') == 140
+    graph = proof.get('source_graph_admission')
+    if graph is None:
+        need(engine.get('installed') == 381, 'legacy-s7-source381-required-without-explicit-graph-admission')
+    else:
+        need(proof.get('probe_sha256') in GRAPH_SOURCE_OBSERVER_HASHES,
+            'explicit-graph-requires-new-pinned-source-observer')
+        source.validate_source_graph_admission(graph, engine)
+        need(engine.get('payslip_model_id') == 600 and engine.get('report_rows') == [[462, 'hr.payslip']],
+            'explicit-source-graph-preserves-original-model600-report462')
+    need(engine.get('enterprise') == 140
         and engine.get('oca_installed') is False and engine.get('payslip_model_id') == original_model_id
         and engine.get('report_rows') == [[value, 'hr.payslip'] for value in sorted(original_report_ids)]
         and re.fullmatch('[a-f0-9]{64}', engine.get('module_metadata_sha256', ''))
