@@ -161,11 +161,23 @@ class NativeBenefitReferenceCase(TransactionCase):
         self.assertFalse(facts.metadata()['integral_conversion'])
         self.assertEqual(self._snapshot(), before)
 
+    def _ensure_matching_oca_role_aliases(self, plan):
+        """Keep aliases already supplied by the real native security provider."""
+        data = self.env['ir.model.data']
+        keys = ('module', 'name', 'model', 'res_id', 'noupdate')
+        for binding in plan.bindings:
+            existing = data.search([('module', '=', binding[0]), ('name', '=', binding[1])])
+            self.assertLessEqual(len(existing), 1)
+            if existing:
+                self.assertEqual(tuple(existing[key] for key in keys), binding)
+            else:
+                data.create(dict(zip(keys, binding)))
+        data.flush_model(list(keys))
+
     def test_two_new_role_aliases_preserve_actual_groups_memberships_and_common_policy(self):
         plan = plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
         before = self._snapshot()
-        self.env['ir.model.data'].create([dict(zip(('module', 'name', 'model', 'res_id', 'noupdate'), row))
-            for row in plan.bindings])
+        self._ensure_matching_oca_role_aliases(plan)
         result = verify_original_payroll_role_bindings(self.env.cr, plan, expected_database=self.env.cr.dbname)
         self.assertTrue(result['original_common_policy_exact'])
         self.assertFalse(result['common_model_grants_added'])
@@ -180,16 +192,32 @@ class NativeBenefitReferenceCase(TransactionCase):
 
     def test_role_alias_collision_and_real_added_common_acl_fail_without_repair_or_grants(self):
         plan = plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
-        values = dict(zip(('module', 'name', 'model', 'res_id', 'noupdate'), plan.bindings[0]))
+        self._ensure_matching_oca_role_aliases(plan)
+        binding = plan.bindings[0]
+        data = self.env['ir.model.data']
+        alias = data.search([('module', '=', binding[0]), ('name', '=', binding[1])])
+        original_alias_id = alias.id
         wrong_group = self.env.ref('base.group_user')
-        self.assertNotEqual(values['res_id'], wrong_group.id)
-        wrong = self.env['ir.model.data'].create(dict(values, res_id=wrong_group.id))
-        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'alias-collision-no-update'):
-            plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
-        self.assertEqual(wrong.res_id, wrong_group.id)
-        wrong.unlink()  # Only the private fixture alias, never an original row.
-        self.env['ir.model.data'].create([dict(zip(('module', 'name', 'model', 'res_id', 'noupdate'), row))
-            for row in plan.bindings])
+        self.assertNotEqual(binding[3], wrong_group.id)
+
+        class PrivateAliasRollback(Exception):
+            pass
+
+        # Deliberately collide the actual technical alias only inside this
+        # rollback savepoint. Never delete/recreate an existing provider alias.
+        with TestCase.assertRaises(self, PrivateAliasRollback):
+            with self.env.cr.savepoint():
+                alias.write({'res_id': wrong_group.id})
+                alias.flush_recordset(['res_id'])
+                with TestCase.assertRaisesRegex(self, BenefitCohortError, 'alias-collision-no-update'):
+                    plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
+                self.assertEqual(alias.res_id, wrong_group.id)
+                raise PrivateAliasRollback()
+        restored = data.search([('module', '=', binding[0]), ('name', '=', binding[1])])
+        self.assertEqual(restored.id, original_alias_id)
+        self.assertEqual(tuple(restored[key] for key in ('module', 'name', 'model', 'res_id', 'noupdate')), binding)
+        self.assertTrue(verify_original_payroll_role_bindings(self.env.cr, plan,
+            expected_database=self.env.cr.dbname)['original_common_policy_exact'])
         before = self._snapshot()
         self.env['ir.model.access'].create({'name': 'Private unexpected original common-model grant',
             'model_id': self.env['ir.model']._get_id('hr.salary.rule'),
