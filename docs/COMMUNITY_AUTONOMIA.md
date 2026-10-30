@@ -6,9 +6,17 @@ propios. La automatización debe trabajar en este mismo hilo. El usuario gestion
 los restablecimientos de cuota; no se compran créditos ni se modifican límites.
 La programación no garantiza cuota ni disponibilidad de la máquina.
 El usuario pidió bloques mayores y autorizó hasta tres agentes adicionales el
-28-10-2026. Se pueden preparar frentes independientes en worktrees propios;
-integrar un paquete coherente y probado. Esa autorización no permite upgrades
-paralelos: respaldo, creación/restauración y aceptación usan el bloqueo compartido.
+28-10-2026; el 30-10-2026 amplió la autorización a hasta cinco agentes para avanzar
+la migración. Usar las plazas simultáneas realmente disponibles y reutilizar los
+agentes al cerrar cada frente; no volver a pedir autorización dentro de ese límite.
+La capacidad observada de este hilo es de cuatro participantes simultáneos: el
+coordinador y tres agentes adicionales. La autorización no cambia esa capacidad
+ni garantiza cinco agentes simultáneos. Si cambia, respetar el límite humano de
+cinco participantes.
+
+Se pueden preparar frentes independientes en worktrees propios; integrar un
+paquete coherente y probado. Esa autorización no permite upgrades paralelos:
+respaldo, creación/restauración y aceptación usan el bloqueo compartido.
 Se verificó el contexto efectivo del hilo: gpt-6.1-sol, esfuerzo medium,
 approval_policy never y sandbox danger-full-access. El heartbeat continúa este
 hilo y hereda sus ajustes; no es un permiso para publicar en producción.
@@ -27,6 +35,27 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 3. Elegir un bloque concreto que desbloquee la siguiente puerta. Registrar una
    hipótesis comprobable y trabajar en worktree propio. No tocar cambios ajenos.
    Evitar solapar actualizaciones; usar /run/lock/steps-environments.lock.
+
+## Paralelismo ampliado — 30-10-2026
+
+Base aceptada `ce24087d`, pareja H y custodia de COMMUNITY_MULTIFRENTE.md.
+El 30-10-2026 se activaron tres agentes sobre ramas propias desde esa canónica:
+
+| Frente | Responsable / siguiente resultado concreto |
+| --- | --- |
+| Beneficios y Nómina | Agente HR: motor libre OCA de ventajas con cálculo, límites, permisos, contabilización e historia reales. Conservar separados los diez modelos/catorce tablas nativos hasta demostrar su puente. |
+| DTE | Agente fiscal: construcción/firma XMLDSig y verificación offline con TED, CAF, certificado y contexto explícitos; demostrar el contrato criptográfico sin atribuir confianza oficial ni activar folios. |
+| Lotes y pagos | Agente financiero: operaciones Community reales sobre pagos/asientos, atomicidad, cancelación y permisos; comparar el contrato nativo antes de atribuir equivalencia a validar. |
+| Coadopción original | Coordinador: referencias externas, reporte 462 y plan ejecutable de adopción sin colisiones; coordinar paquete exacto, copias y aceptación. |
+| Calidad y Documentos/Firma | Siguiente plaza libre: elegir un consumidor real del inventario, cerrar modelos/relaciones/vistas/permisos y flujo con alternativa libre antes de cambiar dependencias. |
+
+Los encargos incluyen código y pruebas funcionales, no sólo informes. Los agentes
+preparan implementaciones y commits/push; el coordinador ejecuta las pruebas en
+bases privadas bajo la exclusión compartida y sólo integra lo validado. Los tres
+primeros frentes tienen archivos de producto separados. El quinto frente se
+asigna al primer agente que libere su plaza, sin detener los otros ni inventar
+resultados para reducir el inventario. Conservar los límites de autoridad fiscal,
+cohortes SyS, fuentes privadas y permisos que sigan sin resolver.
 
 ## Orden de trabajo y puertas de aceptación
 
