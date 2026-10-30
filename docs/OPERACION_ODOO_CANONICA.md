@@ -76,6 +76,15 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T141 autoriza `reception-report` en Desarrollo, Cerro y QA-Cerro: adaptar el
+recibo de entrega nativo para recepciones entrantes de fruta según el adjunto.
+Conservar acción, logo, direcciones y documentos de stock ajenos a Packing.
+Guía, tipo/clase, lote, operaciones, tarjas con pesos y totales y transporte
+proceden de los registros existentes. No validar recepciones reales ni cambiar
+pesos o existencias. Mismo paquete en copias frescas, PDF nativo corto y largo,
+revisión visual, respaldo, bloqueo, paridad e aislamiento de QA-Cerro.
+
+
 T139/T140 autorizan `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro:
 selección explícita de empresas y sucursales para Fundos de productores,
 categoría, clase, calidad y color de fruta. Reutilizar los maestros y conservar
