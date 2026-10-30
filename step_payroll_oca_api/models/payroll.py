@@ -170,11 +170,17 @@ class Rule(models.Model):
             return
         normal = self.sudo(False)
         normal._step_rule_owner_references()
+        pending = {}
         for rule in normal.filtered('struct_id'):
             if rule.company_id and rule.struct_id.company_id != rule.company_id:
                 raise ValidationError(_('Rule and structure must belong to the same company.'))
             if rule not in rule.struct_id.rule_ids:
-                rule.struct_id.write({'rule_ids':[fields.Command.link(rule.id)]})
+                pending.setdefault(rule.struct_id.id, []).append(fields.Command.link(rule.id))
+        # create_multi already saved every primary FK. Link each complete
+        # structure group before its genuine ownership constraint is checked;
+        # per-rule writes would expose the other new members as missing.
+        for structure_id in sorted(pending):
+            normal.env['hr.payroll.structure'].browse(structure_id).write({'rule_ids': pending[structure_id]})
 
 
 class InputType(models.Model):
