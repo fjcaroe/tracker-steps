@@ -7,12 +7,22 @@ import audit_stock_package_representation as audit
 
 
 class DumpReconstructionCase(unittest.TestCase):
-    def test_only_original_bootstrap_or_contracts_private_root_is_admitted(self):
+    def test_original_bootstrap_or_contracts_private_roots_remain_admitted(self):
         for name in ('community-original-bootstrap-20261029F', 'community-original-contracts-20261030B'):
             self.assertTrue(audit.native_root_allowed(PurePosixPath('/opt/steps-validation') / name))
         for value in ('/opt/steps-validation/community-sys-20261030B', '/var/lib/postgresql/community-original-contracts-20261030B',
                       'community-original-contracts-20261030B', '/opt/steps-validation/../community-original-contracts-20261030B',
                       '/opt/steps-validation/community-original-contracts-20261030B/other'):
+            with self.subTest(value=value):
+                self.assertFalse(audit.native_root_allowed(PurePosixPath(value)))
+
+    def test_multifront_prefix_requires_private_parent_and_exact_prefix(self):
+        self.assertTrue(audit.native_root_allowed(PurePosixPath('/opt/steps-validation/community-multifront-20261030A')))
+        for value in ('/opt/steps-validation-other/community-multifront-20261030A',
+                      '/opt/steps-validation/community-multifront',
+                      '/opt/steps-validation/other-community-multifront-20261030A',
+                      '/opt/steps-validation/../community-multifront-20261030A',
+                      'community-multifront-20261030A'):
             with self.subTest(value=value):
                 self.assertFalse(audit.native_root_allowed(PurePosixPath(value)))
 
