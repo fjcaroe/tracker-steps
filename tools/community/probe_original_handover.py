@@ -16,6 +16,7 @@ import stat
 import traceback
 
 import payroll_configuration_adoption_preflight as gate
+import original_handover_visibility_contract as visibility
 
 
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
@@ -325,7 +326,7 @@ def engine_contract(env, identity):
         'model_identity_scope': ['id', 'model'], 'real_oca_engine': True}
 
 
-def existing_manager(env, identity, source_rows, actor_uid):
+def existing_manager(env, identity, source_rows, actor_uid, source_actor=None):
     from odoo import api
 
     aliases = {(row['module'], row['name']): row for row in identity['original_xmlids']}
@@ -349,21 +350,30 @@ def existing_manager(env, identity, source_rows, actor_uid):
         actor_uid = (regular or candidates)[0]
     user = env['res.users'].browse(actor_uid)
     companies = user.company_ids
-    allowed = companies.ids
-    require(allowed and user.company_id.id in allowed, 'existing-company-membership-required')
+    memberships = companies.ids
+    require(memberships and user.company_id.id in memberships, 'existing-company-membership-required')
     countries = {row.get('country_id') for row in source_rows['hr_payroll_structure'] if row.get('country_id')}
     compatible = companies.filtered(lambda company: not countries or company.country_id.id in countries)
     require(compatible, 'legacy-manager-has-no-compatible-original-country-company')
-    company = user.company_id if user.company_id in compatible else compatible.sorted('id')[0]
+    if source_actor is not None:
+        require(actor_uid == source_actor['uid'] and sorted(memberships) == source_actor['original_company_memberships']
+            and set(source_actor['allowed_company_ids']) <= set(memberships), 'source-actor-or-company-memberships-drift')
+        allowed = list(source_actor['allowed_company_ids'])
+        company = companies.filtered(lambda record: record.id == source_actor['active_company_id'])
+        require(len(company) == 1 and company in compatible, 'exact-source-active-company-not-projectable')
+    else:
+        allowed = memberships
+        company = user.company_id if user.company_id in compatible else compatible.sorted('id')[0]
     selected = [company.id] + sorted(set(allowed) - {company.id})
     scope = api.Environment(env.cr, actor_uid, {'allowed_company_ids': selected,
-        'active_test': False, 'lang': user.lang or 'en_US'}, su=False)
+        'active_test': False, 'lang': 'en_US' if source_actor is not None else user.lang or 'en_US'}, su=False)
     require(not scope.su and scope.uid != 1 and scope.company.id == company.id
-        and set(scope.user.company_ids.ids) == set(allowed), 'normal-actor-company-boundary')
+        and set(scope.user.company_ids.ids) == set(memberships), 'normal-actor-company-boundary')
     require(scope.user.has_group('hr_payroll.group_hr_payroll_manager')
         and scope.user.has_group('base.group_user'), 'legacy-normal-internal-manager-required')
     return scope, {'uid': actor_uid, 'legacy_manager_group_id': manager['res_id'],
         'allowed_company_ids': sorted(allowed), 'active_company_id': company.id,
+        'original_company_memberships': sorted(memberships),
         'superuser': False, 'system_group_member': user.has_group('base.group_system'),
         'users_created': False, 'permissions_granted': False, 'company_memberships_changed': False}
 
@@ -480,7 +490,8 @@ def private_access_error(output, error):
         'private_potentially_sensitive_context': True, 'exception_message_published': False}
 
 
-def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256, output_path, actor_uid=None):
+def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256, output_path, actor_uid=None,
+        *, source_visibility_path=None, source_visibility_sha256=None):
     """No commit: the caller owns the clone, lease, outer transaction and seal.
 
     On any rejection, the private receipt has ``passed=False`` and the real
@@ -511,7 +522,33 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         originals, reference, report_alias = source_alias_contract(capsule, identity)
         source_report, report_row = report_contract(identity, report_alias)
         aliases = originals + [report_alias]
+        source_visibility = None
+        if source_visibility_path is not None or source_visibility_sha256 is not None:
+            checkpoint('sealed-real-native-source-visibility')
+            require(source_visibility_path is not None and source_visibility_sha256 is not None,
+                'both-source-visibility-path-and-sha256-required')
+            source_visibility = sealed_json(source_visibility_path, source_visibility_sha256)
+            model_ids = [row['id'] for row in identity['ir_model'] if row.get('model') == 'hr.payslip']
+            require(len(model_ids) == 1, 'single-original-payslip-identity-required')
+            report_ids = {row['report_id'] for row in rows['hr_payroll_structure'] if row.get('report_id')}
+            visibility.validate_source(source_visibility, capsule, target_database=env.cr.dbname,
+                original_model_id=model_ids[0], original_report_ids=report_ids)
+            require(actor_uid is None or type(actor_uid) is int and actor_uid == source_visibility['actor']['uid'],
+                'source-actor-uid-cannot-be-overridden')
+            actor_uid = source_visibility['actor']['uid']
+            result['source_visibility_sha256'] = source_visibility_sha256
+            result['source_visibility_database'] = source_visibility['database']
         with env.cr.savepoint(flush=False):
+            if source_visibility is not None:
+                checkpoint('original-source-policy-before')
+                # These pinned functions contain SELECT-only metadata/counter
+                # snapshots (E'\\n' literals), outside the form/API SQL lexer.
+                # The savepoint still encloses every observation and M2M write.
+                source_observer = visibility.observer()
+                policy_before = source_observer.policy_snapshot(env.cr)
+                native_counters_before = source_observer.counter_snapshot(env.cr)
+                result['source_security_policy'] = visibility.check_policy_and_counters(
+                    source_visibility, policy_before, native_counters_before)
             with observe_cursor(env.cr) as observation:
                 checkpoint('original-sql-guards')
                 from run_original_anchor_loader import check_database_guards
@@ -527,13 +564,28 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                 require(report_before == source_report['rows_json'], 'full-original-report-row-drift')
                 audit_before, counter_before = master_audit(env.cr), counters(env.cr)
                 checkpoint('existing-native-manager')
-                scope, actor = existing_manager(env, identity, rows, actor_uid)
+                scope, actor = existing_manager(env, identity, rows, actor_uid,
+                    source_visibility['actor'] if source_visibility is not None else None)
                 result['actor'] = actor
+                observed_visibility = {}
                 for table, model in gate.TABLES.items():
                     checkpoint('original-master-normal-read', model)
-                    records = scope[model].browse(sorted(row['id'] for row in rows[table]))
-                    records.check_access('read')
-                    require(set(records.exists().ids) == set(records.ids), 'original-master-not-visible:' + model)
+                    if source_visibility is not None:
+                        from odoo.exceptions import AccessError
+                        require(scope[model]._table == table, 'actual-config-model-table-binding-drift')
+                        observed_visibility[model] = visibility.compare_model(scope[model],
+                            source_visibility['models'][model], access_error=AccessError)
+                    else:
+                        records = scope[model].browse(sorted(row['id'] for row in rows[table]))
+                        records.check_access('read')
+                        require(set(records.exists().ids) == set(records.ids), 'original-master-not-visible:' + model)
+                if source_visibility is not None:
+                    result['source_target_visibility_parity'] = {'models': observed_visibility,
+                        'actual_search_and_id_read_exact': True,
+                        'source_allowed_ids': source_visibility['allowed_master_ids'],
+                        'source_denied_ids': source_visibility['denied_master_ids'],
+                        'source_denials_reproduced_as_actual_access_errors': True,
+                        'country_or_id_exceptions_added': False, 'permissions_granted': False}
                 result['forms'], result['menus'] = forms_and_menus(scope, checkpoint)
                 checkpoint('legacy-menu-boundaries')
                 result['legacy_menu_boundaries'] = legacy_menu_boundaries(scope, identity)
@@ -588,11 +640,20 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                     remaining_adoption_blockers=['original-field-metadata-requires-separate-admission',
                         'opaque-reference-semantics-not-certified', 'legacy-menu-flows-not-exercised',
                         'salary-financial-certification-pending', 'integral-enterprise-conversion-pending'])
-                checkpoint('complete')
+            if source_visibility is not None:
+                checkpoint('post-projection-original-source-security')
+                policy_after = source_observer.policy_snapshot(env.cr)
+                native_counters_after = source_observer.counter_snapshot(env.cr)
+                require(policy_after == policy_before and native_counters_after == native_counters_before,
+                    'original-actor-policy-or-any-business-counter-changed-during-probe')
+                require(visibility.check_policy_and_counters(source_visibility, policy_after, native_counters_after)
+                    == result['source_security_policy'], 'source-security-parity-changed')
+                result['source_security_policy_exact_after'] = True
+            checkpoint('complete')
         write_receipt(output, result)
         return result
     except Exception as error:
-        code = str(error) if isinstance(error, ProbeBlocked) else 'actual-api-or-guard-rejected:' + type(error).__name__
+        code = str(error) if isinstance(error, (ProbeBlocked, visibility.VisibilityBlocked)) else 'actual-api-or-guard-rejected:' + type(error).__name__
         try:
             private = private_access_error(output, error)
             if private:

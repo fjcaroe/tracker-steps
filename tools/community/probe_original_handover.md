@@ -12,6 +12,29 @@ proof = run(env, capsule_path, capsule_sha256, identity_before_path,
             identity_sha256, output_path, actor_uid=None)
 ```
 
+Para contrastar visibilidad contra el control nativo real, el coordinador puede
+añadir `source_visibility_path=...` y `source_visibility_sha256=...`. Se exigen
+ambos, archivo privado `0600`, la misma cápsula y el control `REFERENCE` de la
+misma restauración. El recibo debe proceder del observer Git `35b9b94d`, con
+cursor PostgreSQL readonly real, actor/compañías explícitos y política original
+inmutable. Su ausencia conserva la admisión estricta previa; no activa un bypass.
+
+Con ese recibo se usa exactamente el actor/contexto certificado. El Target
+ejecuta búsquedas y `read(['id'])` normales para los 120 IDs, y debe reproducir
+**cada** permiso y **cada** `AccessError` del Source. Los subconjuntos se derivan
+del control observado; no hay listas de países, IDs excepcionales ni conteos
+permitidos fijos. Las cuatro estructuras y las 71 reglas deben ser visibles al
+actor Source para permitir la API de proyección normal. Los 120 maestros
+siguen comparándose por SQL literal, incluidos los que el actor Source no lee.
+
+Se comparan antes/después las ocho tablas de seguridad del contrato Source y
+todos sus contadores originales. Una adición de field groups también bloquea;
+no se descarta como diferencia legítima sin evidencia adicional. Los contadores
+nuevos del Target se enumeran aparte y deben mantenerse exactos durante el
+probe. Los snapshots SQL de seguridad del observer fijado se ejecutan fuera
+del lexer de formularios, dentro del mismo savepoint; contienen sólo SELECT de
+metadata y contadores. No se consulta historia salarial por esa vía.
+
 Los dos archivos de entrada deben ser archivos regulares privados `0600`,
 sellados por SHA256, bajo `/opt/steps-validation`. Se exige la cápsula C
 `14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140`.
