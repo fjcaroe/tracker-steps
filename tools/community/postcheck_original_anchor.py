@@ -14,19 +14,38 @@ from odoo.addons.step_payroll_contracts.original_benefit_cohort import (
 from odoo.addons.step_payroll_contracts.original_payroll_roles import (
     OCA_ONLY_MODELS, plan_original_payroll_role_bindings,
     verify_original_payroll_role_bindings, admit_empty_oca_models_readonly_manager)
-from probe_original_handover import run as probe, sealed_json
+from probe_original_handover import (run as probe, sealed_json, admission_scope_contract,
+    admission_receipt_name)
+import original_handover_visibility_contract as visibility
+
+
+def verify_reusable_read_acl(existing, manager_id):
+    assert len(existing) == 1 and existing.group_id.id == manager_id and existing.perm_read
+    assert not any((existing.perm_write, existing.perm_create, existing.perm_unlink))
 
 
 def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
-        source_visibility_path=None, source_visibility_sha256=None, output_stage=None):
+        source_visibility_path=None, source_visibility_sha256=None, output_stage=None, admission_scope='full'):
+    admission_scope_contract(admission_scope, source_visibility_path, source_visibility_sha256)
     stage = Path(stage)
     output_stage=Path(output_stage) if output_stage is not None else stage
     assert output_stage.is_relative_to(stage) and output_stage.is_dir()
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', database)
     assert reference == database.replace('_HANDOVER_', '_REFERENCE_') and env.cr.dbname == database
-    assert not (output_stage / 'cohort-admission.json').exists()
+    assert not (output_stage / admission_receipt_name(admission_scope)).exists()
     capsule = sealed_json(stage / 'capsule.json', capsule_sha256)
-    sealed_json(stage / 'identity-before.json', identity_sha256)
+    identity = sealed_json(stage / 'identity-before.json', identity_sha256)
+    if source_visibility_path is not None or source_visibility_sha256 is not None:
+        assert source_visibility_path is not None and source_visibility_sha256 is not None
+        source_proof = sealed_json(source_visibility_path, source_visibility_sha256)
+        model_ids = [row['id'] for row in identity['ir_model'] if row.get('model') == 'hr.payslip']
+        assert len(model_ids) == 1
+        report_ids = {json.loads(row)['report_id'] for row in capsule['tables']['hr_payroll_structure']['rows_json']
+            if json.loads(row).get('report_id')}
+        # Reject a stale/forged/incompatible source receipt before even the
+        # two authorized new-only technical ACLs can be prepared.
+        visibility.validate_source(source_proof, capsule, target_database=database,
+            original_model_id=model_ids[0], original_report_ids=report_ids)
     type_ids = [json.loads(row)['id'] for row in capsule['tables']['hr_payroll_structure_type']['rows_json']]
     # This cursor observes the actual fresh native control with its original
     # installed provider. No native ORM, source rules or payslips are evaluated.
@@ -41,19 +60,32 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
     for name in OCA_ONLY_MODELS:
         model = env['ir.model'].search([('model', '=', name)])
         assert len(model) == 1
-        assert not env['ir.model.access'].search([('model_id', '=', model.id), ('active', '=', True)])
+        existing = env['ir.model.access'].search([('model_id', '=', model.id), ('active', '=', True)])
         # Only absent-in-source, empty actual OCA models get these new
         # technical read ACLs. The source plan proved their original absence.
         env.cr.execute('SELECT count(*) FROM "' + env[name]._table + '"')
         assert env.cr.fetchone() == (0,)
-        acl = env['ir.model.access'].create({'name': 'Original cohort read only: ' + name,
-            'model_id': model.id, 'group_id': manager_id, 'perm_read': True,
-            'perm_write': False, 'perm_create': False, 'perm_unlink': False})
-        new_acls.append({'id': acl.id, 'model': name, 'existing_manager_group_id': manager_id})
+        if existing:
+            # A completed data projection can be followed by a separate full
+            # UI attempt. Reuse only its exact empty-model read policy; never
+            # delete, update or broaden a colliding ACL to make it fit.
+            verify_reusable_read_acl(existing, manager_id)
+            acl = existing
+        else:
+            acl = env['ir.model.access'].create({'name': 'Original cohort read only: ' + name,
+                'model_id': model.id, 'group_id': manager_id, 'perm_read': True,
+                'perm_write': False, 'perm_create': False, 'perm_unlink': False})
+        new_acls.append({'id': acl.id, 'model': name, 'existing_manager_group_id': manager_id,
+            'created': not bool(existing), 'reused_without_write': bool(existing)})
     empty_models = admit_empty_oca_models_readonly_manager(env, manager_group_id=manager_id)
     actual = probe(env, str(stage / 'capsule.json'), capsule_sha256,
         str(stage / 'identity-before.json'), identity_sha256, str(output_stage / 'cohort-probe.json'),
-        source_visibility_path=source_visibility_path, source_visibility_sha256=source_visibility_sha256)
+        source_visibility_path=source_visibility_path, source_visibility_sha256=source_visibility_sha256,
+        admission_scope=admission_scope)
+    assert actual['passed'] is True and actual['admission_scope'] == admission_scope
+    assert actual['data_projection_scope_passed'] is True
+    assert (actual['ui_scope_exercised'], actual['ui_admission']) == ((True, True)
+        if admission_scope == 'full' else (False, False))
     # Creation of new-only read ACLs and projection must not change one byte of
     # any original role, member/implied edge or common-model access policy.
     assert verify_original_payroll_role_bindings(env.cr, roles,
@@ -61,6 +93,8 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
     assert admit_target_benefit_cohort(env, benefits,
         expected_database=database, mode='anchored-preserved') == benefit_proof
     result = {'schema': 1, 'database': database, 'native_control_database': reference,
+        'admission_scope': admission_scope, 'ui_scope_exercised': actual['ui_scope_exercised'],
+        'ui_admission': actual['ui_admission'], 'data_projection_scope_passed': True,
         'source_benefits': benefits.metadata(), 'benefit_data_admission': benefit_proof,
         'original_role_policy': role_proof, 'empty_upstream_models': empty_models,
         'new_empty_model_readonly_acls': new_acls, 'actual_original_cohort_probe': actual,
