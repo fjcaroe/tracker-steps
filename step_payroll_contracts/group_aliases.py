@@ -74,8 +74,34 @@ def verified_role_definitions(core, rows):
     return PayrollGroupDefinitions(core, normalizations, blocked) if normalizations or blocked else core
 
 
+def _queue_original_rule_group_constraint(groups):
+    """Keep the original owner-side FK when only res.groups is initialized.
+
+    Official Odoo 18 Many2many.update_db_foreign_keys proposes CASCADE for its
+    owning column with force=False. The inverse res.groups.rule_groups is not
+    the owner of the deletion policy on group_id: ir.rule.groups supplies the
+    explicit RESTRICT. Extending res.groups alone must therefore also delegate
+    the real rule field's updater, after the inverse field's queued updater.
+    No schema SQL, field replacement, record or permission change is involved.
+    """
+    rules = groups.env['ir.rule']
+    field = rules._fields['groups']
+    actual = (field.type, field.comodel_name, field.relation,
+        field.column1, field.column2, field.ondelete)
+    expected = ('many2many', 'res.groups', 'rule_group_rel',
+        'rule_group_id', 'group_id', 'restrict')
+    if actual != expected:
+        raise RuntimeError('Original ir.rule.groups foreign-key contract changed; initialization requires review.')
+    groups.pool.post_init(field.update_db_foreign_keys, rules)
+
+
 class Groups(models.Model):
     _inherit = 'res.groups'
+
+    def init(self):
+        result = super().init()
+        _queue_original_rule_group_constraint(self)
+        return result
 
     @api.model
     def _get_group_definitions(self):

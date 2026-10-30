@@ -2,6 +2,7 @@
 import ast
 from pathlib import Path
 import unittest
+from types import SimpleNamespace
 
 
 class AliasAccessError(Exception):
@@ -46,6 +47,48 @@ def fixture(reverse=False):
         rows += [(original, 'res.groups', ident, ident), (alias, 'res.groups', ident, ident)]
         refs[alias if reverse else original] = ident
     return function, pairs, rows, Core(refs)
+
+
+def constraint_policy():
+    path = Path(__file__).resolve().parents[2] / 'step_payroll_contracts/group_aliases.py'
+    tree = ast.parse(path.read_text(encoding='utf-8-sig'))
+    nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+        and node.name == '_queue_original_rule_group_constraint']
+    scope = {}
+    exec(compile(ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[])), str(path), 'exec'), scope)
+    return scope['_queue_original_rule_group_constraint']
+
+
+class RuleConstraintPolicyCase(unittest.TestCase):
+    def fixture(self, **changes):
+        calls = []
+        def updater(model):
+            calls.append(('actual_original_field_updater', model))
+        values = dict(type='many2many', comodel_name='res.groups', relation='rule_group_rel',
+            column1='rule_group_id', column2='group_id', ondelete='restrict', update_db_foreign_keys=updater)
+        values.update(changes)
+        rules = SimpleNamespace(_fields={'groups': SimpleNamespace(**values)})
+        queue = [('existing_inverse_updater',)]
+        groups = SimpleNamespace(env={'ir.rule': rules},
+            pool=SimpleNamespace(post_init=lambda function, model: queue.append((function, model))))
+        return groups, rules, queue, updater, calls
+
+    def test_original_real_updater_is_queued_after_inverse_and_only_delegated_on_execution(self):
+        groups, rules, queue, updater, calls = self.fixture()
+        constraint_policy()(groups)
+        self.assertEqual(queue, [('existing_inverse_updater',), (updater, rules)])
+        self.assertEqual(calls, [])
+        queue[1][0](queue[1][1])
+        self.assertEqual(calls, [('actual_original_field_updater', rules)])
+
+    def test_changed_owner_inverse_target_or_policy_cannot_enqueue_a_guessed_constraint(self):
+        for changes in ({'type': 'one2many'}, {'comodel_name': 'ir.rule'}, {'relation': 'other_rel'},
+                {'column1': 'group_id'}, {'column2': 'rule_group_id'}, {'ondelete': 'cascade'}):
+            groups, rules, queue, updater, calls = self.fixture(**changes)
+            with self.subTest(changes=changes), self.assertRaisesRegex(RuntimeError, 'requires review'):
+                constraint_policy()(groups)
+            self.assertEqual(queue, [('existing_inverse_updater',)])
+            self.assertEqual(calls, [])
 
 
 class PayrollAliasPolicyCase(unittest.TestCase):

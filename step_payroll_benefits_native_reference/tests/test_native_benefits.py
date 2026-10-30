@@ -13,6 +13,7 @@ from odoo.addons.step_payroll_contracts.original_benefit_cohort import (
 from odoo.addons.step_payroll_contracts.original_payroll_roles import (
     plan_original_payroll_role_bindings, verify_original_payroll_role_bindings,
 )
+from odoo.addons.step_payroll_contracts.testing import assert_original_rule_group_constraint
 
 
 @tagged('post_install', '-at_install')
@@ -176,6 +177,7 @@ class NativeBenefitReferenceCase(TransactionCase):
         data.flush_model(list(keys))
 
     def test_two_new_role_aliases_preserve_actual_groups_memberships_and_common_policy(self):
+        assert_original_rule_group_constraint(self)
         internal = self.env['res.users'].with_context(no_reset_password=True).create({
             'name': 'Private plain payroll alias reader', 'login': 'private-plain-payroll-alias-reader',
             'company_id': self.company.id, 'company_ids': [Command.set(self.company.ids)],
