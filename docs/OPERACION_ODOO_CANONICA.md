@@ -76,7 +76,24 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
-T138 autoriza `payroll-days` exclusivamente en Desarrollo, SyS, Demo-SYS y Cerro:
+### Paridad de las entregas de Cerro y QA-Cerro — 30-10-2026
+
+El usuario indicó mantener QA-Cerro incluido en los cambios aplicables que se
+entreguen a Cerro producción, para evitar versiones dispares y promociones
+erróneas. Para cada módulo afectado, comprobar versión y código efectivo de
+ambos antes de registrar la entrega. Usar el mismo paquete certificado en
+Desarrollo, con prueba fresca de cada destino, respaldo y bloqueo. La copia
+del cliente conserva capacitación, aislamiento y datos propios; no se refresca.
+No promover código, configuraciones de ejercicio o datos desde QA-Cerro hacia
+producción por coincidencia de versiones. Las restricciones de prototipos SAG
+y de la migración Community se conservan; esta regla no publica prototipos.
+
+La ampliación actual de T138 incluye expresamente QA-Cerro con `payroll-days`,
+mismo paquete y versión 18.0.1.2.0 que ya se verificó en Cerro. Se conserva
+deploy_enabled=false para promociones genéricas; los gestores incorporan cada
+tipo de paquete conforme a su alcance, sin habilitar instalaciones arbitrarias.
+
+T138 autoriza `payroll-days` en Desarrollo, SyS, Demo-SYS, Cerro y QA-Cerro:
 inasistencias injustificadas de contratos mensuales que cubren el mes completo,
 base de 30 días menos faltas. Conservar licencias, contratos parciales, atrasos
 y liquidaciones almacenadas. Probar los casos reportados por cálculo nativo en
