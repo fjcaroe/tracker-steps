@@ -7,7 +7,7 @@ import unittest
 import audit_multifront_installation as audit
 
 
-def fixture_source(operational_extensions=False):
+def fixture_source(operational_extensions=False, quality_extension=False):
     root = Path(__file__).resolve().parents[2]
     source = {module + '/__manifest__.py': (root / module / '__manifest__.py').read_bytes()
               for module in audit.OWN_MODULES}
@@ -20,12 +20,15 @@ def fixture_source(operational_extensions=False):
         # presented as product source or database acceptance.
         source.update({name + '/__manifest__.py': repr({'license': 'LGPL-3', 'version': '18.0.1.0.0'}).encode()
             for name in audit.EXTENSION_MODULES})
+    if quality_extension:
+        source.update({name + '/__manifest__.py': (root / name / '__manifest__.py').read_bytes()
+            for name in audit.QUALITY_MODULES})
     return source
 
 
-def fixture(mode, operational_extensions=False):
-    root = fixture_source(operational_extensions)
-    plan = audit.plan(root, mode, operational_extensions=operational_extensions)
+def fixture(mode, operational_extensions=False, quality_extension=False):
+    root = fixture_source(operational_extensions, quality_extension)
+    plan = audit.plan(root, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
     rows = [{'name': name, 'latest_version': spec['version'], 'license': spec['license'], 'state': 'installed'}
             for name, spec in plan['required'].items()]
     if mode != 'community':
@@ -35,10 +38,12 @@ def fixture(mode, operational_extensions=False):
                  for index in range(138)]
     database = ('COMMUNITY_PAYROLL_API_' if mode == 'community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_') + 'SYNTHETIC'
     passed = {'mode': mode, 'multifront': True, 'focused_development_pass': False,
-              'expected_test_count': (audit.EXTENSION_TESTS if operational_extensions else audit.EXPECTED_TESTS)[mode], 'database': database, 'writes_to_source': False,
+              'expected_test_count': (audit.QUALITY_TESTS if quality_extension else audit.EXTENSION_TESTS if operational_extensions else audit.EXPECTED_TESTS)[mode], 'database': database, 'writes_to_source': False,
               'counts': {'installed': len(rows), 'enterprise': 0 if mode == 'community' else 140}}
     if operational_extensions:
         passed['operational_extensions'] = True
+    if quality_extension:
+        passed['quality_extension'] = True
     metadata = {'database': database, 'transaction_read_only': 'on', 'installed': rows, 'pending': [],
                 'payslip_models': [{'id': 555, 'model': 'hr.payslip'}], 'payslip_table_exists': True,
                 'payslip_model_aliases': [{'id': 777, 'module': 'payroll' if mode == 'community' else 'hr_payroll',
@@ -47,6 +52,49 @@ def fixture(mode, operational_extensions=False):
 
 
 class MultifrontInstallationCase(unittest.TestCase):
+    def test_quality_profile_requires_exact_thirtythree_and_distinct_oca_native_providers(self):
+        for mode, total in (('community', 31), ('cerro-reference', 27)):
+            source, passed, metadata = fixture(mode, True, True)
+            proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
+                operational_extensions=True, quality_extension=True)
+            self.assertEqual(len(audit.owned_modules(True, True)), 33)
+            self.assertEqual(proof['plan']['owned_required'], 26)
+            self.assertEqual(len(proof['plan']['required']), total)
+            self.assertEqual(proof['plan']['quality_vendor_pin'], audit.QUALITY_PIN)
+            self.assertEqual(audit.QUALITY_PROVIDER in proof['plan']['required'], mode == 'community')
+            self.assertIn('step_quality_contracts', proof['plan']['required'])
+            for count in (576, 391, 637, 437, 646, 441, passed['expected_test_count'] + 1):
+                if count == passed['expected_test_count']: continue
+                calls = []
+                with self.subTest(mode=mode, count=count), self.assertRaises(ValueError):
+                    audit.audit(lambda *args: calls.append(args), mode, source, dict(passed, expected_test_count=count),
+                        operational_extensions=True, quality_extension=True)
+                self.assertEqual(calls, [])
+            legacy = dict(passed, quality_extension=False, expected_test_count=audit.EXTENSION_TESTS[mode])
+            with self.assertRaisesRegex(ValueError, 'Quality modules require their explicit profile'):
+                audit.audit(lambda *args: json.dumps(metadata), mode, source, legacy, operational_extensions=True)
+        for operational, quality in ((False, True), (1, True), (True, 1)):
+            with self.assertRaises(ValueError): audit.owned_modules(operational, quality)
+
+    def test_quality_missing_tampered_and_cross_mode_provider_cannot_be_hidden_by_counts(self):
+        for mode in audit.EXCLUDED:
+            source, passed, metadata = fixture(mode, True, True)
+            for change in ('missing', 'version', 'license', 'cross_provider', 'profile'):
+                altered, receipt = deepcopy(metadata), deepcopy(passed)
+                name = audit.QUALITY_PROVIDER if mode == 'community' else 'step_qa_native_reference'
+                row = next(row for row in altered['installed'] if row['name'] == name)
+                if change == 'missing': altered['installed'].remove(row)
+                elif change == 'version': row['latest_version'] = '18.0.0.0.0'
+                elif change == 'license': row['license'] = 'LGPL-3'
+                elif change == 'cross_provider': altered['installed'].append({'name':
+                    'step_qa_native_reference' if mode == 'community' else audit.QUALITY_PROVIDER,
+                    'latest_version': audit.QUALITY_VERSION, 'license': 'AGPL-3', 'state': 'installed'})
+                else: receipt['quality_extension'] = False
+                receipt['counts']['installed'] = len(altered['installed'])
+                with self.subTest(mode=mode, change=change), self.assertRaises(ValueError):
+                    audit.audit(lambda *args: json.dumps(altered), mode, source, receipt,
+                        operational_extensions=True, quality_extension=True)
+
     def test_operational_profile_requires_exact_30_owned_and_mode_specific_provider(self):
         for mode in audit.EXCLUDED:
             source, passed, metadata = fixture(mode, True)
