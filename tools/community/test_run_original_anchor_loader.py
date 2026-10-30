@@ -54,10 +54,14 @@ class OriginalAnchorLoaderCase(unittest.TestCase):
                     loader.parse_arguments(own + ['--'] + self.argv())
 
     def test_cli_rejects_other_database_duplicates_server_or_tests_modes(self):
-        for mode in ('other-db', 'duplicate-db', 'workers', 'cron', 'demo', 'http', 'no-stop', 'no-install', 'test', 'shell', 'password'):
+        for mode in ('other-db', 'duplicate-db', 'attached-db', 'abbreviated-db', 'abbreviated-workers',
+                     'workers', 'cron', 'demo', 'http', 'no-stop', 'no-install', 'test', 'shell', 'password', 'short-password'):
             args = self.argv()
             if mode == 'other-db': args[3] = 'CERROELPLOMO'
             elif mode == 'duplicate-db': args += ['--database=' + self.database]
+            elif mode == 'attached-db': args += ['-dCERROELPLOMO']
+            elif mode == 'abbreviated-db': args += ['--databas=CERROELPLOMO']
+            elif mode == 'abbreviated-workers': args += ['--work=2']
             elif mode in ('workers', 'cron', 'demo'):
                 index = {'workers': 5, 'cron': 6, 'demo': 7}[mode]
                 args[index] = {'workers': '--workers=2', 'cron': '--max-cron-threads=1', 'demo': '--without-demo='}[mode]
@@ -67,6 +71,7 @@ class OriginalAnchorLoaderCase(unittest.TestCase):
             elif mode == 'test': args += ['--test-enable']
             elif mode == 'shell': args = ['shell'] + args
             elif mode == 'password': args += ['--db_password=never-log-this']
+            elif mode == 'short-password': args += ['-wnever-log-this']
             with self.subTest(mode=mode), self.assertRaises(ValueError):
                 loader.validate_odoo_arguments(args, self.database)
 
