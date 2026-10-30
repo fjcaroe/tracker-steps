@@ -23,7 +23,11 @@ def fixture():
     aliases += [dict(id=50000 + i, module='hr_payroll', name='rule_' + str(i),
                     model='hr.salary.rule', res_id=i, noupdate=False) for i in range(1, 72)]
     aliases += [dict(id=51000 + i, module='l10n_cl_simpledigital_payroll', name='category_' + str(i),
-                    model='hr.salary.rule.category', res_id=i, noupdate=True) for i in range(1, 14)]
+                    model='hr.salary.rule.category', res_id=i, noupdate=True) for i in range(1, 12)]
+    aliases += [dict(id=58549, module='l10n_cl_simpledigital_payroll', name='structure_type_chile',
+                    model='hr.payroll.structure.type', res_id=5, noupdate=False),
+                dict(id=58550, module='l10n_cl_simpledigital_payroll', name='structure_chile',
+                    model='hr.payroll.structure', res_id=4, noupdate=False)]
     original = copy.deepcopy(aliases)
     aliases += [dict(id=221718 + i, module=module, name=name, model='hr.salary.rule',
                     res_id=i + 1, noupdate=True) for i, (module, name) in enumerate(sorted(plan.REFERENCE_ALIASES))]
@@ -31,12 +35,19 @@ def fixture():
                         model='ir.actions.report', res_id=462, noupdate=False)
     capsule['xmlids'] = aliases
     identity = {'original_xmlids': original + [report_alias],
-        'ir_model': [{'id': 600, 'model': 'hr.payslip', 'transient': False}],
-        'ir_model_fields': [{'id': 900, 'model': 'hr.payslip', 'name': 'number'}],
+        'ir_model': [{'id': 600, 'model': 'hr.payslip', 'transient': False, 'state': 'base'},
+                     {'id': 601, 'model': 'hr.payroll.structure', 'transient': False, 'state': 'base'},
+                     {'id': 602, 'model': 'hr.payroll.structure.type', 'transient': False, 'state': 'base'}],
+        'ir_model_fields': [{'id': 900, 'model': 'hr.payslip', 'name': 'number', 'state': 'base'},
+                            {'id': 902, 'model': 'hr.payroll.structure', 'name': 'name', 'state': 'base'},
+                            {'id': 903, 'model': 'hr.payroll.structure.type', 'name': 'name', 'state': 'base'}],
         'ir_model_fields_selection': [{'id': 901, 'field_id': 900, 'value': 'draft'}]}
     preflight = {'source_external_metadata': {'external:ir_act_report_xml': [
         {'id': 462, 'model': 'hr.payslip', 'report_name': 'hr_payroll.report_payslip_lang',
-         'report_type': 'qweb-pdf', 'binding_model_id': 600}]}}
+         'report_type': 'qweb-pdf', 'binding_model_id': 600}]},
+         'source_metadata': {'columns': [{'table_name': 'ir_act_report_xml', 'column_name': column}
+             for column in ['id', 'type', 'name', 'model', 'report_type', 'report_name',
+                            'binding_model_id', 'attachment', 'attachment_use', 'paperformat_id']]}}
     return capsule, identity, preflight
 
 

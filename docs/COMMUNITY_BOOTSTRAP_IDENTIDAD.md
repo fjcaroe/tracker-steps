@@ -91,15 +91,37 @@ y que falten filas originales. Crea funciones/triggers con nombres nuevos (sin
 
 - `ir_model_data`: todos los PK originales del anclaje, módulo/nombre/modelo/
   res_id/noupdate; no convierte False en True.
-- `ir_model`, `ir_model_fields`, selecciones: PK y claves de modelo/campo/valor.
+- `ir_model`, `ir_model_fields`, selecciones: PK y claves de modelo/campo/valor/
+  estado; no congela etiquetas, help, tipos o required que el relevo debe admitir
+  individualmente en su contrato de metadata.
 - Los 120 maestros: todos sus valores en columnas originales, incluidos NULL y
   auditoría. Una columna OCA nueva nullable no da permiso para tocar las previas.
-- Núcleo de la acción 462 y sus pares de grupos: no renumera ni cambia renderer.
+- Todas las columnas originales de la acción 462 (desde el catálogo sellado de
+  la fuente) y sus pares de grupos: no renumera ni cambia renderer/attachment.
 
 La guarda **aborta**, no omite un unlink ni devuelve éxito falso. Un fallo debe
 conservarse y resolverse con propiedad/retención explícita admitida. Retener un
 alias False mediante `loaded_xmlids` sólo es válido tras verificar modelo,
 registro y proveedor real; no se implementa una retención global a ciegas.
+
+`retain_original_bootstrap_aliases.retain_original_aliases(env, *, capsule_path,
+capsule_sha256, original_identity_path, original_identity_sha256)` proporciona
+esa retención exacta de los dos aliases anteriores. Su única mutación es al
+set real `env.registry.loaded_xmlids`. Exige cápsula C fijada, ambos archivos
+privados 0600/hash exacto, base clonada, cero EE/motores nativos activos y ningún
+`to remove`; comprueba MRO real OCA/oficial, modelos persistentes y sus tablas,
+PK/modelo/nombre/estado de metadata, binding/noupdate de ambos aliases y la
+proyección PostgreSQL exacta de todas sus columnas originales (NULL/auditoría
+incluidos). JSON original se interpreta en PostgreSQL, sin conversión numérica
+por Python. Todas las comprobaciones son SELECT, sin ORM de históricos.
+
+Debe llamarla el addon admitido del coordinador **antes** del `_process_end`
+real, una vez presentes los proveedores; un post-init del addon posterior a
+Simple Digital puede servir para el primer ensayo. Si cualquier comprobación
+falla, no se añade ninguno de los dos aliases. Para posteriores actualizaciones
+de esos namespaces hay que volver a ejecutar la comprobación antes de limpiar;
+un post-init ejecutado sólo una vez no certifica esa continuidad. No se añaden
+aliases de propiedad ficticios ni se altera False a True para conservarlos.
 
 **Límites:** los tests puros verifican generación, no ejecución de triggers en
 PostgreSQL. El coordinador debe probar savepoint, intento real DELETE/retarget/

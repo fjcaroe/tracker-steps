@@ -18,8 +18,8 @@ from plan_original_payroll_bootstrap import original_aliases, source_report
 
 IDENTITY_TABLES = {
     'ir_model_data': ('id', 'module', 'name', 'model', 'res_id', 'noupdate'),
-    'ir_model': ('id', 'model'),
-    'ir_model_fields': ('id', 'model', 'name'),
+    'ir_model': ('id', 'model', 'state'),
+    'ir_model_fields': ('id', 'model', 'name', 'state'),
     'ir_model_fields_selection': ('id', 'field_id', 'value'),
 }
 
@@ -56,9 +56,13 @@ def guard_specs(capsule, original_identity, anchor_identity, preflight):
         gate.require(all(set(row) == columns for row in rows), 'inconsistent-source-row-columns')
         specs.append({'table': table, 'key': 'id', 'ids': _ids(rows), 'columns': sorted(columns),
                       'scope': 'all-original-master-column-values'})
+    report_columns = sorted(row['column_name'] for row in preflight['source_metadata']['columns']
+                            if row['table_name'] == 'ir_act_report_xml')
+    gate.require(len(set(report_columns)) == len(report_columns)
+        and {'id', 'type', 'name', 'model', 'report_type', 'report_name', 'binding_model_id',
+             'attachment', 'attachment_use'} <= set(report_columns), 'original-report-all-column-catalog-required')
     specs.append({'table': 'ir_act_report_xml', 'key': 'id', 'ids': [462],
-        'columns': ['id', 'type', 'model', 'report_type', 'report_name', 'binding_model_id'],
-        'scope': 'original-report-core-identity'})
+        'columns': report_columns, 'scope': 'all-original-report-columns'})
     specs.append({'table': 'res_groups_report_rel', 'key': 'uid', 'ids': [462],
         'columns': ['uid', 'gid'], 'scope': 'original-report-role-pairs'})
     return specs
