@@ -110,6 +110,12 @@ conserva. No se certifican layout legal/productivo ni adopción original 462.
   SHA256 `d8179f0f3adf4670c1562fcc689b197d67c297a3805d283b92b1296a3e95aec5`.
   Incluye fuentes vendor libres, manifiesto, logs/recibos/pipelines/assets;
   no exporta dump, filestore, credenciales ni cuerpos OEEL.
+- Sello `accepted-evidence-R3-sealed.tar.gz`: 1.110 miembros, 11.536.353 bytes,
+  SHA256 `bb7447176221219403ba0b57db52fcee8f65b01793cb5806e671f6f586de4635`.
+  Resumen canónico SHA256
+  `9bc8c6032e73bea410b7367340968f502c18bdf4c43c6cc65913da185244e461`;
+  recibo adyacente y permisos privados 0600. Replay independiente de todos los
+  miembros y resumen byte por byte contra el verificador Git confiable.
 - Testigo tipado R3 SHA256
   `1617a861aea2ec37ec4ddd256c29231ad4571781f3223a9259271a70a53ad286`.
 - Revisión de cabecera SHA256
