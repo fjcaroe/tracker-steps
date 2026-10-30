@@ -29,6 +29,26 @@ def packet_fixture():
 
 
 class MultifrontEvidenceCase(unittest.TestCase):
+    def test_complete_manual_setup_alias_set_rejects_missing_related_or_wrong_references(self):
+        from finance_frontier_contract import LEGACY_XMLIDS
+        aliases = {module + '.' + name: 100 + index for index, (module, name) in enumerate(
+            (module, name) for module, names in LEGACY_XMLIDS.items() for name in names)}
+        for module in LEGACY_XMLIDS:
+            aliases[module + '.model_res_partner_bank'] = 9
+        self.assertEqual(verifier.expected_alias_contract(aliases), {'exact_legacy_aliases': 15,
+            'manual_setup_related_field_aliases': 2, 'shared_bank_model_reference_exact': True})
+        related = next(name for name in aliases if '.field_account_setup_bank_manual_config__' in name)
+        for edit in ('missing_related', 'wrong_related_name', 'wrong_model_ref', 'duplicate_field_ref', 'bool_ref', 'extra'):
+            changed = dict(aliases)
+            if edit == 'missing_related': changed.pop(related)
+            elif edit == 'wrong_related_name': changed[related.replace('manual_config__', 'wrong_config__')] = changed.pop(related)
+            elif edit == 'wrong_model_ref': changed[next(iter(LEGACY_XMLIDS)) + '.model_res_partner_bank'] = 999
+            elif edit == 'duplicate_field_ref': changed[related] = changed[next(name for name in changed if '.field_res_partner_bank__' in name)]
+            elif edit == 'bool_ref': changed[related] = True
+            else: changed['unexpected_namespace.original_model'] = 9
+            with self.subTest(edit=edit), self.assertRaises(verifier.base.EvidenceError):
+                verifier.expected_alias_contract(changed)
+
     def test_exact_27_and_normal_52_packet_rejects_cold_missing_extra_and_hash_drift(self):
         source, provider, packet = packet_fixture()
         with tempfile.TemporaryDirectory() as folder:
