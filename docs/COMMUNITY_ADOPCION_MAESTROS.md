@@ -1,15 +1,83 @@
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
-Continúa desde `a983b501`. Se acepta el paquete normal S7 congelado en
-`9a42297f`: **671 casos Community y 462 nativos, cero fallos y errores**.
-La adopción completa de los 120 maestros/71 reglas conserva puertas pendientes;
-esta aceptación no convierte integralmente Cerro ni resuelve el 31 de octubre.
-La revisión física posterior S7 encontró además una cuarta FK alterada por el
-adaptador de grupos. Foundation 1.16.0 está preservada en la rama experimental
-con su corrección por API oficial; la pareja T nueva debe pasar antes de admitir
-esa revisión de esquema. No se ha publicado el paquete en producción.
+La pareja normal vigente es **T2**, congelada en `10278323`: **671 casos
+Community y 462 nativos, cero fallos y errores**. Foundation **1.16.0** corrige
+la FK de seguridad detectada después de S7 mediante la API original de Odoo.
+El paquete exacto y el postflight físico pasaron en ambos entornos. S7 queda
+conservado como evidencia histórica, con su regresión diagnosticada.
 
-## Código y aceptación normal
+La copia original S7 completó además la proyección real de sus 71 reglas bajo
+UID7: **71 relaciones creadas y cero en la segunda ejecución**, con commit.
+Los 120 maestros originales, sus datos, IDs, ACL, reporte 462/modelo 600 y
+contadores permanecen. Esto cierra la proyección de relaciones; no certifica
+sus importes ni la adopción completa de metadatos, interfaz e históricos.
+Ninguna de estas puertas convierte integralmente Cerro ni resuelve el 31.
+Este bloque no publicó cambios en producción ni en QA-Cerro.
+
+## Pareja T2 y proyección original aceptada por alcance
+
+T2 conserva **33 addons propios / 461 archivos propios + 52 AGPL = 513**,
+API **18.0.1.16.0** y Foundation **18.0.1.16.0**. El archivo Git seleccionado
+coincide con el paquete probado y su evidencia fue reproducida offline desde
+el worktree de integración. Pasaron 212/168 métodos críticos y 31/27 versiones
+exactas. Grafos medidos independientemente: **120/0 EE Community y 398/140 EE
+en referencia nativa**. La referencia sigue usando Enterprise.
+
+Se preservaron **925 tablas/proyecciones, 147 contadores y 59.113 XML IDs**
+del respaldo fresco posterior a T139/T140. Son 1.072 contratos: 1.071 literales
+y el único cambio tipado `base_weight` ID1 `15.00`→`15`, sin Float ni redondeo.
+El testigo T2 se reconstruyó desde su propio dump; SHA256
+`0632c34720d3b9edb32ddc82826085f027c8d8eca0a876bd636afb205e175314`.
+Los históricos, vencimientos e identidades originales se compararon antes y
+después; no se reutilizan los snapshots anteriores para afirmar esta conservación.
+
+Las pruebas de borrado reales verificaron RESTRICT con actor Settings normal
+en ambos motores. El postflight T exige además la FK validada, no diferida,
+sus columnas/extremos, modelos y campos originales. En nativa contrastó antes
+del upgrade, después del upgrade, tras las pruebas y desde otra lectura final;
+en CE frío no se inventó un baseline nativo. El OID queda informativo. T1 pasó
+671 pruebas CE pero falló al leer OID como JSON; nativa T1 detuvo antes del
+upgrade. Se conservan esos intentos y se repitió T2 con `oid::bigint`, sin
+relajar la política de borrado ni fabricar un recibo T1 de aceptación.
+
+Evidencia privada T2: `/opt/steps-validation/community-multifront-parallel-20261030T2`
+y `~/.codex/local-artifacts/community-adoption-20261030S/accepted-normal-T2`.
+Archivo 1.106 miembros: `11c01c60ba0263a1f87becaca404140af08350ff8b8be15f656883da139d5b57`.
+Sello offline 1.108 miembros, 11.512.292 bytes:
+`aafb9c8b073fe04ef90822b50bdabe41c0e217d7fd999a7b6eb1218481dbe55d`.
+Resumen: `8bdd1318b54c00c4d5d9f54b73a89e43444743775a987c6630bc36e9aa74bb81`.
+
+El intento anclado **F** usó sólo los contratos de datos/seguridad y la API
+real de proyección. No saltó una excepción de menú: el alcance `projection-only`
+es explícito y el alcance `full` permanece estricto. El Source nativo real es
+obligatorio, con actor/contexto y partición 118 permitidos/dos denegados exactos.
+Se observaron las 71 inserciones y la segunda llamada idempotente, con todas las
+columnas originales, auditoría de maestros, políticas y contadores intactos.
+Se conservaron 88 aliases de origen; los tres de referencia no se adoptaron.
+Sólo los dos modelos OCA nuevos, vacíos y ausentes en origen recibieron lectura
+del gerente existente. No se agregaron grants sobre los modelos originales.
+
+F: `/opt/steps-validation/community-original-handover-20261030S7/anchor/probe-source-projection-F`.
+Probe: `a21e327512a1ba4bc349793a64f8770d6288b9c412c1e751b405bcbca4ecd480`.
+Recibo después del commit: `f926c064d3494dd7a97cc507f4bdd37f7e9aa98da8d6a11add952a59dc0d9b73`.
+Mantiene `ui_admission=False`, metadatos/refs opacas no admitidos, certificación
+financiera e integral falsas. El runtime anclado S7 permanece congelado en 1.15;
+la corrección 1.16 probada en T2 debe adoptarse en un overlay nuevo, sin pisarlo.
+
+El observador nativo readonly de menús confirmó, bajo el mismo UID7, tres menús
+visibles y categorías ocultas con `debug=False`. No se infiere permiso desde
+el nombre ni se añade el grupo técnico. Kernel y todas las conexiones PG fueron
+readonly, sin ejecutar acciones ni leer nómina histórica. Source de menús:
+`c5a81c31ba8242207920d301e5ee1baeb07813285f9d93157168c8485497e289`.
+Su equivalencia Target y el cierre de interfaz completa se validan por separado.
+
+Inventario vigente después de T139/T140: Cerro **382/140 EE/101 propias**;
+Steps **310/123/19** y SyS **332/142/17**. Repo **134 propias / 37 fuera de Cerro**,
+**55 apps instaladas con caminos EE**. La nueva app multiempresa explica el
+aumento de alcance; no se atribuye a una regresión o retiro Enterprise de esta
+migración. Ver la matriz y su fuente readonly `9358e34e…7240e`.
+
+## Histórico S7: código y aceptación funcional
 
 - Foundation `step_payroll_contracts` **18.0.1.15.0** conserva la familia nativa
   de beneficios como datos, sin fingir su API. Sus observadores contrastan
@@ -141,16 +209,19 @@ replay independiente exacto: `297c761304a1badea7b23101161ff54793f360b6debbbd612e
 
 ## Siguiente puerta
 
-Completar la paridad de visibilidad Source→Target y ejecutar la proyección real
-idempotente de 71 pares bajo el usuario autorizado, conservando las dos
-denegaciones. Cerrar después almacenamiento/constraints, menús legados y
+Adoptar Foundation 1.16.0 en un overlay anclado nuevo y cerrar las diferencias
+de almacenamiento/constraints. Conservar la proyección F y sus dos denegaciones;
+contrastar los menús con el Source nativo real, sin conceder acceso técnico.
+Cerrar menús legados y
 referencias opacas, y certificar reglas, Previred/libro con casos equivalentes
 probados. DTE/CAF/folios/firma/respuestas SII, demás productos y copia integral
 restaurable con cero Enterprise continúan en el camino crítico. Quedan 55 apps
 instaladas con caminos EE en código; producción conserva 140 EE.
 
-El 31 sigue en riesgo. No se ha intervenido producción, QA-Cerro, vencimientos
-ni saldos. No hubo emisión SII, mensajes externos ni recálculo de pagadas.
+El 31 sigue en riesgo. Esta migración no intervino producción, QA-Cerro,
+vencimientos ni saldos. No hubo emisión SII, mensajes externos ni recálculo
+de pagadas. T139/T140 es una entrega concurrente de otro frente autorizada
+por sus propios tickets; sus cambios fueron conservados e inventariados.
 
 ## Prompt de continuación
 
@@ -160,20 +231,25 @@ worktree propio. Lee AGENTS.md, ~/.odoo/environments.json, operación canónica,
 workflow, plan, COMMUNITY_CONTINUACION.md, COMMUNITY_ADOPCION_MAESTROS.md,
 COMMUNITY_AUTONOMIA.md y sus referencias e inventario completo vigente.
 
-S7 normal acepta 671 CE/462 nativos, 33 propios/513 archivos y preservación de
-921 tablas/proyecciones, 140 contadores y 59.079 XML IDs. Conserva R3/Q4/D/H.
+T2 normal acepta 671 CE/462 nativos, 33 propios/513 archivos y preservación de
+925 tablas/proyecciones, 147 contadores y 59.113 XML IDs. Conserva R3/S/Q4/D/H.
 Recupera las herramientas experimentales útiles de
 origin/codex/community-original-adoption-20261030; no confundas sus ensayos
 con la pareja normal aceptada ni integres código experimental sin pruebas.
 
 Prioriza cerrar la adopción original de 120 maestros/71 reglas sobre OCA:
-recupera primero el resultado de la pareja T1 congelada en ab9e7685 y su
-postflight físico de seguridad. No declares aceptada la corrección 1.16.0 sólo
-por las pruebas puras ni reutilices los recibos de S para T.
-reutiliza el Sourceproof nativo S7B y conserva su partición 118/2 bajo UID7.
-Diagnostica el rechazo de SQL en el formulario del intento S7 source-parity-A,
-sin relajar el guard por suposición; prueba formularios/menús y materialización
-real idempotente de 71 pares. Revisa todos los metadatos, columnas, constraints,
+T2 congelada en 10278323 pasó 671/462 con postflight físico de seguridad y
+preservó 925 tablas/proyecciones, 147 contadores y 59.113 XML IDs. Conserva sus
+recibos separados de S y T1. F proyectó realmente 71 pares, luego cero, con
+commit bajo UID7 y sin modificar maestros. No repitas una inserción como si
+estuviera pendiente ni atribuyas certificación financiera a esa proyección.
+Reutiliza el Sourceproof nativo S7B y conserva su partición 118/2 bajo UID7.
+La lectura core de vistas y los savepoints UUID1 quedaron probados con sus
+fuentes y objetos reales; no vuelvas a ampliar SQL por conjetura. El Source
+real de menús c5a81c31… confirmó categoría oculta y tres visibles; contrasta
+Target con ese testigo. No repitas el bloqueo como si faltara probar el origen.
+Usa un overlay nuevo para 1.16.0, sin sobrescribir S7 ni sus fuentes congeladas.
+Revisa todos los metadatos, columnas, constraints,
 referencias opacas y menús legados antes de aceptar la cohorte. Evita el cambio
 VARCHAR→JSONB y restaura la semántica de las tres FK sólo con pruebas y guardas
 reales de históricos; CASCADE exige proteger run.unlink incluso ante hijos
