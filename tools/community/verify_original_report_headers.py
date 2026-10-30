@@ -40,33 +40,86 @@ def checked_file(root, entry):
     return path, raw
 
 
-def header_contract(raw, company_name, country_name):
+def checked_pipeline(root, repetition, diagnostic_unhashed=False):
+    path = private_file(root, repetition['pipeline'])
+    raw = path.read_bytes()
+    if 'pipeline_sha256' not in repetition or 'pipeline_bytes' not in repetition:
+        if not diagnostic_unhashed:
+            raise HeaderReviewError('Pipeline hash and byte count must be recorded by the functional test')
+        return path, raw, False
+    if sha(raw) != repetition['pipeline_sha256'] or len(raw) != repetition['pipeline_bytes']:
+        raise HeaderReviewError('Pipeline bytes differ from their functional-test receipt')
+    return path, raw, True
+
+
+def white_pixels(image):
+    """Composite premultiplied RGB(A) on white without changing geometry."""
+    if image.colorspace != pymupdf.csRGB:
+        image = pymupdf.Pixmap(pymupdf.csRGB, image)
+    raw = image.samples
+    if image.alpha:
+        raw = bytes(min(255, raw[index + channel] + 255 - raw[index + 3])
+                    for index in range(0, len(raw), 4) for channel in range(3))
+    return raw
+
+
+def pixel_difference(expected, actual):
+    if len(expected) != len(actual) or not expected:
+        return None
+    differences = [abs(left - right) for left, right in zip(expected, actual)]
+    maximum, mean = max(differences), sum(differences) / len(differences)
+    # Qt's PNG -> RGB + soft-mask split quantizes alpha by one channel level.
+    # This is a bounded encoding comparison, not a perceptual similarity score.
+    return {'maximum_channel_error': maximum, 'mean_channel_error': mean,
+            'matches': maximum <= 1}
+
+
+def header_logos(raw):
     tree = etree.fromstring(raw)
-    text = tree.text_content()
     images = []
     for source in tree.xpath('//img[@alt="Logo"]/@src'):
         if not source.startswith('data:') or ';base64,' not in source:
             raise HeaderReviewError('Company logo is not captured as original embedded bytes')
         original = base64.b64decode(source.split(';base64,', 1)[1], validate=True)
         image = pymupdf.Pixmap(original)
-        if image.alpha:
-            image = pymupdf.Pixmap(image, 0)
-        images.append({'source_sha256': sha(original), 'pixel_digest_md5': image.digest.hex()})
+        pixels = white_pixels(image)
+        images.append({'source_sha256': sha(original), 'white_pixel_sha256': sha(pixels),
+                       'width': image.width, 'height': image.height, '_pixels': pixels})
+    return images
+
+
+def header_contract(raw, company_name, country_name):
+    text = etree.fromstring(raw).text_content()
     return {'company_name_present': company_name in text, 'country_name_present': country_name in text,
-            'logos': images}
+            'logos': [{key: value for key, value in image.items() if key != '_pixels'}
+                      for image in header_logos(raw)]}
 
 
-def review_pages(pdf_bytes, company_name, country_name, expected_logo_digests):
+def review_pages(pdf_bytes, company_name, country_name, references):
     pages = []
     with pymupdf.open(stream=pdf_bytes, filetype='pdf') as doc:
         for index, page in enumerate(doc):
             text = page.get_text()
             images = page.get_image_info(hashes=True)
-            found = {image['digest'].hex() for image in images}
+            matches = []
+            for item in page.get_images(full=True):
+                image = pymupdf.Pixmap(doc, item[0])
+                if item[1]:
+                    image = pymupdf.Pixmap(image, pymupdf.Pixmap(doc, item[1]))
+                placements = page.get_image_rects(item[0])
+                if not any(rect.intersects(page.rect) for rect in placements):
+                    continue
+                for reference in references:
+                    if (image.width, image.height) != (reference['width'], reference['height']):
+                        continue
+                    comparison = pixel_difference(reference['_pixels'], white_pixels(image))
+                    if comparison and comparison['matches']:
+                        matches.append({'source_sha256': reference['source_sha256'],
+                                        'xref': item[0], **comparison})
             pages.append({
                 'page': index + 1, 'company_name_present': company_name in text,
                 'country_name_present': country_name in text,
-                'expected_logo_present': bool(expected_logo_digests & found),
+                'expected_logo_present': bool(matches), 'logo_comparisons': matches,
                 'text_sha256': sha(text.encode('utf-8')),
                 'images': [{'bbox': list(image['bbox']), 'pixel_digest_md5': image['digest'].hex()}
                            for image in images],
@@ -74,7 +127,7 @@ def review_pages(pdf_bytes, company_name, country_name, expected_logo_digests):
     return pages
 
 
-def verify(directory, output):
+def verify(directory, output, diagnostic_unhashed_pipeline=False):
     directory, output = Path(directory), Path(output)
     proof_path = private_file(directory, 'proof.json')
     proof = json.loads(proof_path.read_text(encoding='utf-8'))
@@ -92,12 +145,14 @@ def verify(directory, output):
     receipt = {'schema': 'original-report-header-review-v1', 'proof_sha256': sha(proof_path.read_bytes()),
                'reviewer_sha256': sha(Path(__file__).read_bytes()), 'repetitions': [],
                'technical_headers_passed': False, 'productive_layout_accepted': False,
-               'legal_validity_certified': False}
+               'legal_validity_certified': False, 'pipeline_provenance_verified': True}
     all_passed = True
     for index, repetition in enumerate(repetitions, 1):
         path, pdf = checked_file(directory, repetition)
-        pipeline_path = private_file(directory, repetition['pipeline'])
-        pipeline = json.loads(pipeline_path.read_text(encoding='utf-8'))
+        pipeline_path, pipeline_raw, provenance = checked_pipeline(
+            directory, repetition, diagnostic_unhashed_pipeline)
+        receipt['pipeline_provenance_verified'] &= provenance
+        pipeline = json.loads(pipeline_raw)
         if any(len(pipeline.get(key, [])) != 1 for key in ('prepare_calls', 'run_calls', 'argument_calls')):
             raise HeaderReviewError('Actual prepare, conversion and argument calls must each occur once')
         prepared, run, arguments = (pipeline[key][0] for key in ('prepare_calls', 'run_calls', 'argument_calls'))
@@ -116,11 +171,11 @@ def verify(directory, output):
             raise HeaderReviewError('Prepared footer differs from actual converter input')
         _, header = checked_file(pipeline_path.parent, run['header'])
         contract = header_contract(header, proof['company_name'], proof['country_name'])
-        digests = {image['pixel_digest_md5'] for image in contract['logos']}
-        pages = review_pages(pdf, proof['company_name'], proof['country_name'], digests)
+        references = header_logos(header)
+        pages = review_pages(pdf, proof['company_name'], proof['country_name'], references)
         if len(pages) != repetition['pages'] or not pages:
             raise HeaderReviewError('PDF page count differs from its receipt')
-        passed = bool(contract['company_name_present'] and contract['country_name_present'] and digests
+        passed = bool(contract['company_name_present'] and contract['country_name_present'] and references
                       and all(page['company_name_present'] and page['country_name_present']
                               and page['expected_logo_present'] for page in pages))
         all_passed &= passed
@@ -137,9 +192,9 @@ def verify(directory, output):
             'pipeline_sha256': sha(pipeline_path.read_bytes()), 'header': contract, 'pages': pages,
             'paperformat': arguments['paperformat'], 'converter_arguments': arguments['arguments'],
             'passed': passed, 'loss_boundary': None if passed else (
-                'before_conversion' if not contract['company_name_present'] or not contract['country_name_present'] or not digests
+                'before_conversion' if not contract['company_name_present'] or not contract['country_name_present'] or not references
                 else 'pdf_conversion_or_pagination')})
-    receipt['technical_headers_passed'] = all_passed
+    receipt['technical_headers_passed'] = all_passed and receipt['pipeline_provenance_verified']
     raw = json.dumps(receipt, indent=2, sort_keys=True).encode('utf-8') + b'\n'
     target = output / 'review.json'
     with target.open('xb') as handle:
@@ -152,8 +207,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
+    parser.add_argument('--diagnostic-unhashed-pipeline', action='store_true',
+                        help='Inspect pre-hash Q2 only; can never return technical acceptance')
     args = parser.parse_args()
-    result = verify(args.evidence, args.output)
+    result = verify(args.evidence, args.output, args.diagnostic_unhashed_pipeline)
     print(json.dumps({'technical_headers_passed': result['technical_headers_passed'],
                       'repetitions': len(result['repetitions'])}))
     return 0 if result['technical_headers_passed'] else 1
