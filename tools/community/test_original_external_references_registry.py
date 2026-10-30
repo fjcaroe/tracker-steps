@@ -44,6 +44,18 @@ class RegistryCase(unittest.TestCase):
             with self.assertRaises(ValueError):
                 audit.inspect_registry(env, source_packet_sha256=pin, acceptance_sha256='2' * 64)
 
+    def test_polymorphic_discriminator_metadata_does_not_execute_compute(self):
+        env = self.env()
+        model = env.registry.models['custom.owner']
+        def forbidden(*args):
+            raise AssertionError('Do not compute a discriminator')
+        model._fields['res_id'] = SimpleNamespace(type='many2one_reference', store=True, model_field='model_name')
+        model._fields['model_name'] = SimpleNamespace(type='char', store=False, compute=forbidden)
+        result = audit.inspect_registry(env, source_packet_sha256='1' * 64, acceptance_sha256='2' * 64)
+        row = next(row for row in result['models'][0]['fields'] if row['name'] == 'res_id')
+        self.assertEqual(row['discriminator_field'], {'name': 'model_name', 'type': 'char', 'store': False,
+            'compute': True, 'company_dependent': False, 'related': []})
+
 
 if __name__ == '__main__':
     unittest.main()

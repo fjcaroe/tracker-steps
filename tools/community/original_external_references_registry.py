@@ -53,6 +53,7 @@ def inspect_registry(env, *, source_packet_sha256, acceptance_sha256):
                 'column2': _name(getattr(field, 'column2', None)) if kind == 'many2many' else None,
                 'inverse_name': _name(getattr(field, 'inverse_name', None)),
                 'model_field': _name(getattr(field, 'model_field', None)),
+                'discriminator_field': None,
                 'selection_models': None, 'selection_callable': False}
             if kind == 'reference':
                 selection = getattr(field, 'selection', None)
@@ -62,6 +63,14 @@ def inspect_registry(env, *, source_packet_sha256, acceptance_sha256):
                     row['selection_models'] = [item[0] for item in selection]
                 else:
                     row['selection_callable'] = callable(selection) or isinstance(selection, str)
+            if kind == 'many2one_reference' and row['model_field']:
+                discriminator = model._fields.get(row['model_field'])
+                if discriminator is not None:
+                    related = getattr(discriminator, 'related', None)
+                    row['discriminator_field'] = {'name': row['model_field'], 'type': discriminator.type,
+                        'store': bool(discriminator.store), 'compute': bool(getattr(discriminator, 'compute', False)),
+                        'company_dependent': bool(getattr(discriminator, 'company_dependent', False)),
+                        'related': related.split('.') if isinstance(related, str) else list(related or ())}
             fields.append(row)
         models.append({'model': model_name, 'table': table,
             'auto': bool(getattr(model, '_auto', False)), 'abstract': bool(getattr(model, '_abstract', False)),
