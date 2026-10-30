@@ -8,7 +8,7 @@ import argparse
 import ast
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import shutil
 import xml.etree.ElementTree as ET
 
@@ -31,7 +31,8 @@ def ui_profile(manifest, files):
     assert spec.get('license', 'LGPL-3') == 'LGPL-3'
     selected, omitted = [], []
     for name in spec.get('data', []):
-        assert name in files and not Path(name).is_absolute() and '..' not in Path(name).parts
+        assert (name in files and '\\' not in name and not PurePosixPath(name).is_absolute()
+            and not PureWindowsPath(name).drive and '..' not in PurePosixPath(name).parts)
         if name.startswith(('security/', 'data/')):
             omitted.append(name)
             continue

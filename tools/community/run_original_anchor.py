@@ -102,6 +102,23 @@ def prepare_roles(database):
     return roles
 
 
+def prepare_nullable_company_columns(database):
+    """New provider columns do not invent an owner for global native masters."""
+    result = []
+    for table, column in (('hr_payroll_structure', 'company_id'), ('hr_payroll_structure', 'parent_id'),
+            ('hr_salary_rule', 'company_id'), ('hr_salary_rule_category', 'company_id')):
+        exists = sql(database, "SELECT data_type FROM information_schema.columns WHERE table_schema='public' "
+            'AND table_name=' + gate.literal(table) + ' AND column_name=' + gate.literal(column))
+        if not exists:
+            sql(database, 'ALTER TABLE ' + gate.identifier(table) + ' ADD COLUMN ' + gate.identifier(column) + ' integer')
+            assert sql(database, 'SELECT count(*) FROM ' + gate.identifier(table) + ' WHERE ' + gate.identifier(column) + ' IS NOT NULL') == '0'
+        else:
+            assert exists == 'integer', 'Existing company storage needs its own reviewed bridge'
+        result.append({'table': table, 'column': column, 'added_nullable': not bool(exists),
+            'original_owner_or_parent_inferred': False})
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,required=True);parser.add_argument('--database',required=True)
@@ -168,6 +185,7 @@ def main():
             assert r.returncode!=0 and 'Original anchor guard:' in r.stderr
             tests.append({'denied':True,'statement_sha256':hashlib.sha256(statement.encode()).hexdigest()})
         write(stage/'guard-runtime-negative-tests.json',tests)
+        write(stage/'new-company-columns.json',prepare_nullable_company_columns(database))
         installed=json.loads(sql(database,"SELECT json_agg(t) FROM (SELECT name,state,license,latest_version FROM ir_module_module WHERE state='installed' ORDER BY name) t"))
         keep=set(required)
         for row in installed:
@@ -196,7 +214,22 @@ def main():
         write(stage/'install-status.json',{'exit_code':status.returncode,'all_products_operational':False,'production_changed':False})
         assert status.returncode==0, 'Inspect private guarded install log; no acceptance claimed'
         write(stage/'business-after-install.json',column_snapshot(database,columns))
-        print('ORIGINAL_ANCHOR_INSTALLED_REQUIRES_COHORT_PROBE',flush=True)
+        expression = ('import sys,json; sys.path.insert(0,' + repr(str(source/'tools/community')) + '); '
+            'from postcheck_original_anchor import run; result=run(env,' + repr(str(stage))
+            + ',database=' + repr(database) + ',reference=' + repr(reference)
+            + ',capsule_sha256=' + repr(CAPSULE_SHA) + ',identity_sha256=' + repr(sha(stage/'identity-before.json'))
+            + '); env.cr.commit(); open(' + repr(str(stage/'cohort-admission.json'))
+            + ',"x").write(json.dumps(result,indent=2)); print("ORIGINAL_COHORT_PROBE_OK")')
+        normal=['sudo','-u','odoo','/usr/bin/python3.10',str(RUNTIME/'odoo-bin'),'shell']
+        normal_opts=opts[:-2]  # ordinary CLI, no init/upgrade and no retention wrapper
+        with (stage/'cohort-bootstrap.log').open('x') as log:
+            status=subprocess.run(offline_odoo(normal+normal_opts+['--logfile='+str(stage/'cohort.log')]),
+                input=expression,text=True,stdout=log,stderr=subprocess.STDOUT)
+        assert status.returncode==0 and (stage/'cohort-admission.json').is_file(), 'Original cohort probe failed; inspect private evidence'
+        (stage/'cohort-admission.json').chmod(0o600)
+        write(stage/'business-after-cohort.json',column_snapshot(database,columns))
+        write(stage/'identity-after.json',preservation.identity_contract(database))
+        print('ORIGINAL_ANCHOR_COHORT_PROBED_REQUIRES_COMPLETE_PRESERVATION_REVIEW',flush=True)
 
 
 if __name__=='__main__':main()
