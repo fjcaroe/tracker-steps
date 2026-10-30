@@ -44,7 +44,7 @@ QUALITY_MODULES = ('step_quality_contracts', 'step_quality_oca', 'step_qa_native
 QUALITY_TESTS = {'community': 646, 'cerro-reference': 441}
 CRITICAL_TESTS = {'community': 665, 'cerro-reference': 457}
 CRITICAL_GENERATIONS = {'R3': CRITICAL_TESTS, 'S': {'community': 671, 'cerro-reference': 462}}
-S_VERSIONS = {'step_payroll_contracts': '18.0.1.14.0', 'step_payroll_oca_api': '18.0.1.16.0'}
+S_VERSIONS = {'step_payroll_contracts': '18.0.1.15.0', 'step_payroll_oca_api': '18.0.1.16.0'}
 QUALITY_PROVIDER = 'quality_control_oca'
 QUALITY_PIN = '2d6084f553490408f7a341f05ba6ddd6e641a879'
 QUALITY_VERSION = '18.0.1.4.0'
@@ -122,7 +122,7 @@ def receipt_profile(passed, mode, operational_extensions=False, quality_extensio
         and passed['focused_development_pass'] is False and passed['expected_test_count'] == expected[mode],
         'Exact full MF profile/count receipt required')
     if critical_generation == 'S':
-        require(passed.get('package_files') == 512, 'S requires the exact 512-file normal provider package')
+        require(passed.get('package_files') == 513, 'S requires the exact 513-file normal provider package')
 
 
 def plan(source, mode, *, operational_extensions=False, quality_extension=False):
