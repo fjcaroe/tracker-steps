@@ -17,10 +17,12 @@ from build_numeric_input_engine import source_files, plan, verify as verify_engi
 from collect_original_contracts import git_proof
 import verify_multifront_evidence as verifier
 import audit_multifront_installation as installation
+import oca_vendor_contract as vendor
 
 
 def collect(root, output, original_provider, oca, inventory_root, *,
-            expected_community_installed, expected_native_installed, postflight_tool, representation=None):
+            expected_community_installed, expected_native_installed, postflight_tool, representation=None,
+            operational_extensions=False):
     root, output = Path(root).resolve(), Path(output)
     source = root / 'addons'
     assert root.is_relative_to(Path('/opt/steps-validation')) and root.name.startswith('community-multifront-')
@@ -32,17 +34,18 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     graph = {'source': 'independently_measured_by_coordinator',
              'community': {'installed': expected_community_installed, 'enterprise': 0},
              'cerro-reference': {'installed': expected_native_installed, 'enterprise': 140}}
-    packets = [json.loads((root / mode / 'source-files.json').read_text()) for mode in verifier.EXPECTED_TESTS]
-    assert packets[0] == packets[1] and {name.split('/')[0] for name in packets[0]} == set(verifier.OWN_MODULES) | {'l10n_cl_simpledigital_payroll'}
+    tests = verifier.expected_tests(operational_extensions)
+    packets = [json.loads((root / mode / 'source-files.json').read_text()) for mode in tests]
+    assert packets[0] == packets[1] and {name.split('/')[0] for name in packets[0]} == set(verifier.own_modules(operational_extensions)) | {'l10n_cl_simpledigital_payroll'}
     assert all(hashlib.sha256((source / name).read_bytes()).hexdigest() == value for name, value in packets[0].items())
-    for mode, expected in verifier.EXPECTED_TESTS.items():
+    for mode, expected in tests.items():
         receipt = json.loads((root / mode / 'passed.json').read_text())
         assert receipt['mode'] == mode and receipt['multifront'] is True and receipt['expected_test_count'] == expected
-        assert receipt.get('focused_development_pass') is False
+        assert receipt.get('focused_development_pass') is False and receipt.get('operational_extensions', False) is operational_extensions
         assert receipt['counts'] == graph[mode] and receipt['writes_to_source'] is False
         proof = json.loads((root / mode / 'module-installation.json').read_text())
         assert proof['tool_sha256'] == postflight_sha256
-        installation.verify(proof, mode, source, receipt)
+        installation.verify(proof, mode, source, receipt, operational_extensions=operational_extensions)
     # License gate before reading any original provider bodies.
     original_provider = Path(original_provider).resolve()
     assert ast.literal_eval((original_provider / '__manifest__.py').read_text(encoding='utf-8-sig'))['license'] == 'AGPL-3'
@@ -59,7 +62,7 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     original_engine = source_files(Path(oca)); candidate_engine = plan(original_engine)
     assert len(original_engine) == len(candidate_engine) == 144
     files, blobs = {}, {}
-    for mode in verifier.EXPECTED_TESTS:
+    for mode in tests:
         for path in (root / mode).iterdir():
             if path.is_file() and path.suffix in ('.json', '.log'):
                 files[mode + '/' + path.name] = path
@@ -68,6 +71,14 @@ def collect(root, output, original_provider, oca, inventory_root, *,
             for path in pdf.iterdir():
                 assert path.is_file() and not path.is_symlink() and path.suffix in ('.pdf', '.json')
                 files[mode + '/payslip-pdf-evidence/' + path.name] = path
+        if operational_extensions and mode == 'community':
+            original_pdf = root / mode / 'data/original-report-pdf-evidence'
+            receipt = json.loads((original_pdf / 'proof.json').read_text())
+            assert receipt['file'] == Path(receipt['file']).name
+            assert {path.name for path in original_pdf.iterdir()} == {'proof.json', receipt['file']}
+            for path in original_pdf.iterdir():
+                assert path.is_file() and not path.is_symlink() and path.suffix in ('.pdf', '.json')
+                files[mode + '/original-report-pdf-evidence/' + path.name] = path
     files['oca-input-numeric-derivation.json'] = root / 'oca-input-numeric-derivation.json'
     for folder, mapping in (('original-provider', original), ('normal-provider', normal),
                             ('engine-original/payroll', original_engine), ('engine-candidate/payroll', candidate_engine)):
@@ -101,6 +112,12 @@ def collect(root, output, original_provider, oca, inventory_root, *,
         'dump_exported': False, 'database_accessed_by_collector': False}, indent=2).encode()
     blobs['graph-admission.json'] = json.dumps(graph, indent=2).encode()
     blobs['engine-git-proof.json'] = json.dumps(git_proof(Path(oca)), indent=2).encode()
+    if operational_extensions:
+        proof, sources = vendor.capture(oca)
+        assert json.loads((root / 'community/vendor-files.json').read_text()) == {name: verifier.sha(body) for name, body in sources.items()}
+        blobs['oca-vendor-git-proof.json'] = json.dumps(proof, indent=2).encode()
+        blobs.update({'oca-vendor/' + name: body for name, body in sources.items()})
+        files['vendor-auditor.py'] = Path(vendor.__file__)
     files['collector.py'] = Path(__file__)
     files['postflight-tools/audit_multifront_installation.py'] = postflight_tool
     assert not set(files) & set(blobs)
@@ -109,6 +126,8 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     manifest = {'schema': 1, 'files': {name: hashlib.sha256(body).hexdigest() for name, body in sorted(bodies.items())},
         'database_accessed': False, 'database_writes': False, 'dump_exported': False,
         'enterprise_source_bodies_exported': False}
+    if operational_extensions:
+        manifest['operational_extensions'] = True
     bodies['evidence-files.json'] = json.dumps(manifest, indent=2).encode()
     with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:
@@ -123,13 +142,15 @@ def main():
     for name in ('root', 'output', 'original-provider', 'oca', 'inventory-root', 'postflight-tool'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--representation', type=Path)
+    parser.add_argument('--operational-extensions', action='store_true')
     parser.add_argument('--expected-community-installed', type=int, required=True)
     parser.add_argument('--expected-native-installed', type=int, required=True)
     args = parser.parse_args()
     assert os.geteuid() == 0
     count = collect(args.root, args.output, args.original_provider, args.oca, args.inventory_root,
         expected_community_installed=args.expected_community_installed, expected_native_installed=args.expected_native_installed,
-        postflight_tool=args.postflight_tool, representation=args.representation)
+        postflight_tool=args.postflight_tool, representation=args.representation,
+        operational_extensions=args.operational_extensions)
     print('PRIVATE_MULTIFRONT_EXPORTED', count, 'files; no dump or Enterprise bodies')
 
 
