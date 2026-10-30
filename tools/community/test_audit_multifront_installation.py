@@ -7,7 +7,7 @@ import unittest
 import audit_multifront_installation as audit
 
 
-def fixture_source():
+def fixture_source(operational_extensions=False):
     root = Path(__file__).resolve().parents[2]
     source = {module + '/__manifest__.py': (root / module / '__manifest__.py').read_bytes()
               for module in audit.OWN_MODULES}
@@ -15,12 +15,17 @@ def fixture_source():
     source[name] = (root / name).read_bytes()
     source[audit.PROVIDER + '/__manifest__.py'] = repr({'license': 'AGPL-3', 'version': '18.0.1.1.0',
         'depends': ['step_simpledigital_oca_base']}).encode()
+    if operational_extensions:
+        # Synthetic manifests test metadata policy only; they are never
+        # presented as product source or database acceptance.
+        source.update({name + '/__manifest__.py': repr({'license': 'LGPL-3', 'version': '18.0.1.0.0'}).encode()
+            for name in audit.EXTENSION_MODULES})
     return source
 
 
-def fixture(mode):
-    root = fixture_source()
-    plan = audit.plan(root, mode)
+def fixture(mode, operational_extensions=False):
+    root = fixture_source(operational_extensions)
+    plan = audit.plan(root, mode, operational_extensions=operational_extensions)
     rows = [{'name': name, 'latest_version': spec['version'], 'license': spec['license'], 'state': 'installed'}
             for name, spec in plan['required'].items()]
     if mode != 'community':
@@ -30,8 +35,10 @@ def fixture(mode):
                  for index in range(138)]
     database = ('COMMUNITY_PAYROLL_API_' if mode == 'community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_') + 'SYNTHETIC'
     passed = {'mode': mode, 'multifront': True, 'focused_development_pass': False,
-              'expected_test_count': audit.EXPECTED_TESTS[mode], 'database': database, 'writes_to_source': False,
+              'expected_test_count': (audit.EXTENSION_TESTS if operational_extensions else audit.EXPECTED_TESTS)[mode], 'database': database, 'writes_to_source': False,
               'counts': {'installed': len(rows), 'enterprise': 0 if mode == 'community' else 140}}
+    if operational_extensions:
+        passed['operational_extensions'] = True
     metadata = {'database': database, 'transaction_read_only': 'on', 'installed': rows, 'pending': [],
                 'payslip_models': [{'id': 555, 'model': 'hr.payslip'}], 'payslip_table_exists': True,
                 'payslip_model_aliases': [{'id': 777, 'module': 'payroll' if mode == 'community' else 'hr_payroll',
@@ -40,6 +47,49 @@ def fixture(mode):
 
 
 class MultifrontInstallationCase(unittest.TestCase):
+    def test_operational_profile_requires_exact_30_owned_and_mode_specific_provider(self):
+        for mode in audit.EXCLUDED:
+            source, passed, metadata = fixture(mode, True)
+            proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed, operational_extensions=True)
+            self.assertTrue(proof['operational_extensions'])
+            self.assertEqual(proof['plan']['owned_required'], 24)
+            self.assertEqual(len(proof['plan']['required']), 28 if mode == 'community' else 25)
+            self.assertEqual(audit.verify(proof, mode, source, passed, operational_extensions=True), proof['observed'])
+            self.assertIn('step_payroll_original_report', proof['plan']['required'])
+            self.assertEqual('payroll_contract_advantages' in proof['plan']['required'], mode == 'community')
+            for count in (576, 391, 637, 437, passed['expected_test_count'] + 1):
+                if count == passed['expected_test_count']:
+                    continue
+                calls = []
+                changed = dict(passed, expected_test_count=count)
+                with self.assertRaises(ValueError):
+                    audit.audit(lambda db, sql: calls.append(sql), mode, source, changed, operational_extensions=True)
+                self.assertEqual(calls, [])
+            with self.assertRaises(ValueError):
+                audit.audit(lambda db, sql: json.dumps(metadata), mode, source, passed)
+            # A forged H label/count cannot hide the actual extension modules.
+            legacy = dict(passed, expected_test_count=audit.EXPECTED_TESTS[mode], operational_extensions=False)
+            with self.assertRaisesRegex(ValueError, 'require their explicit profile'):
+                audit.audit(lambda db, sql: json.dumps(metadata), mode, source, legacy)
+
+    def test_operational_vendor_absence_wrong_version_and_cross_provider_fail_closed(self):
+        for mode in audit.EXCLUDED:
+            source, passed, metadata = fixture(mode, True)
+            for edit in ('missing', 'wrong_version', 'wrong_license', 'foreign_provider', 'hidden_profile'):
+                changed, receipt = deepcopy(metadata), deepcopy(passed)
+                target = 'payroll_contract_advantages' if mode == 'community' else 'step_payroll_benefits_native_reference'
+                row = next(row for row in changed['installed'] if row['name'] == target)
+                if edit == 'missing': changed['installed'].remove(row)
+                elif edit == 'wrong_version': row['latest_version'] = '18.0.0.0.0'
+                elif edit == 'wrong_license': row['license'] = 'AGPL-3'
+                elif edit == 'foreign_provider': changed['installed'].append({'name':
+                    'step_payroll_benefits_native_reference' if mode == 'community' else 'payroll_contract_advantages',
+                    'latest_version': '18.0.1.0.0', 'license': 'LGPL-3', 'state': 'installed'})
+                else: receipt['operational_extensions'] = False
+                receipt['counts']['installed'] = len(changed['installed'])
+                with self.subTest(mode=mode, edit=edit), self.assertRaises(ValueError):
+                    audit.audit(lambda db, query: json.dumps(changed), mode, source, receipt, operational_extensions=True)
+
     def test_mode_plans_cover_new_treasury_t138_and_caf_versions(self):
         root = fixture_source()
         for mode, version_count in (('community', 25), ('cerro-reference', 23)):

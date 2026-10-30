@@ -37,6 +37,9 @@ OCA_VERSIONS = {'payroll': '18.0.1.4.0', 'payroll_account': '18.0.1.0.6'}
 NATIVE_ENGINES = {'hr_payroll', 'hr_payroll_account'}
 PROVIDER = 'l10n_cl_simpledigital_payroll'
 EXPECTED_TESTS = {'community': 576, 'cerro-reference': 391}
+EXTENSION_MODULES = ('step_payroll_advantages_oca', 'step_payroll_benefits_native_reference', 'step_payroll_original_report')
+EXTENSION_TESTS = {'community': 637, 'cerro-reference': 437}
+EXTENSION_OCA_VERSIONS = dict(OCA_VERSIONS, payroll_contract_advantages='18.0.1.0.0')
 QUERY = """BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SELECT json_build_object(
  'database',current_database(),'transaction_read_only',current_setting('transaction_read_only'),
@@ -71,19 +74,43 @@ def _body(source, name):
     return path.read_bytes()
 
 
-def plan(source, mode):
+def owned_modules(operational_extensions=False):
+    require(type(operational_extensions) is bool, 'Explicit operational extension profile required')
+    return OWN_MODULES + (EXTENSION_MODULES if operational_extensions else ())
+
+
+def mode_excluded(mode, operational_extensions=False):
+    value = set(EXCLUDED[mode])
+    if operational_extensions:
+        value.add('step_payroll_benefits_native_reference' if mode == 'community' else 'step_payroll_advantages_oca')
+    return value
+
+
+def receipt_profile(passed, mode, operational_extensions=False):
+    expected = EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    require(passed.get('operational_extensions', False) is operational_extensions
+        and passed['mode'] == mode and passed['multifront'] is True
+        and passed['focused_development_pass'] is False and passed['expected_test_count'] == expected[mode],
+        'Exact full MF profile/count receipt required')
+
+
+def plan(source, mode, *, operational_extensions=False):
     require(mode in EXCLUDED, 'Unknown MF installation mode')
     manifests, expected, fingerprints = {}, {}, {}
-    for module in OWN_MODULES:
+    modules = owned_modules(operational_extensions)
+    excluded = mode_excluded(mode, operational_extensions)
+    oca_versions = EXTENSION_OCA_VERSIONS if operational_extensions else OCA_VERSIONS
+    required_owned = 24 if operational_extensions else 22
+    for module in modules:
         name = module + '/__manifest__.py'
         body = _body(source, name)
         spec = ast.literal_eval(body.decode('utf-8-sig'))
         require(spec['license'] in ('LGPL-3', 'AGPL-3') and isinstance(spec['version'], str), 'Nonfree/invalid owned manifest')
         manifests[module] = spec
         fingerprints[name] = sha(body)
-        if module not in EXCLUDED[mode]:
+        if module not in excluded:
             expected[module] = {'version': spec['version'], 'license': spec['license']}
-    require(len(OWN_MODULES) == 27 and len(expected) == 22, 'MF mode-owned module plan changed')
+    require(len(modules) == (30 if operational_extensions else 27) and len(expected) == required_owned, 'MF mode-owned module plan changed')
     if mode == 'community':
         body = _body(source, PROVIDER + '/__manifest__.py')
         provider = ast.literal_eval(body.decode('utf-8-sig'))
@@ -91,23 +118,26 @@ def plan(source, mode):
                 'Real normal Community provider manifest required')
         fingerprints[PROVIDER + '/__manifest__.py'] = sha(body)
         expected[PROVIDER] = {'version': provider['version'], 'license': 'AGPL-3'}
-        expected.update({module: {'version': version, 'license': 'LGPL-3'} for module, version in OCA_VERSIONS.items()})
-        forbidden = EXCLUDED[mode] | NATIVE_ENGINES | {'account_reports', 'account_accountant', 'account_batch_payment'}
+        expected.update({module: {'version': version, 'license': 'LGPL-3'} for module, version in oca_versions.items()})
+        forbidden = excluded | NATIVE_ENGINES | {'account_reports', 'account_accountant', 'account_batch_payment'}
     else:
         name = 'tools/community/simpledigital_runtime_source.json'
         body = _body(source, name); pin = json.loads(body.decode('utf-8-sig'))
         require(pin['license'] == 'AGPL-3' and len(pin['files']) == 52, 'Original native AGPL provider pin required')
         fingerprints[name] = sha(body)
         expected[PROVIDER] = {'version': pin['version'], 'license': pin['license']}
-        forbidden = EXCLUDED[mode] | set(OCA_VERSIONS)
-    return {'required': expected, 'forbidden': sorted(forbidden), 'owned_required': 22,
-            'source_manifest_sha256': fingerprints, 'oca_pin': OCA_PIN}
+        forbidden = excluded | set(oca_versions)
+    result = {'required': expected, 'forbidden': sorted(forbidden), 'owned_required': required_owned,
+              'source_manifest_sha256': fingerprints, 'oca_pin': OCA_PIN}
+    if operational_extensions:
+        result['operational_extensions'] = True
+    return result
 
 
-def verify(proof, mode, source, passed):
-    expected = plan(source, mode)
-    require(passed['mode'] == mode and passed['multifront'] is True and passed['focused_development_pass'] is False
-            and passed['expected_test_count'] == EXPECTED_TESTS[mode] and passed['writes_to_source'] is False,
+def verify(proof, mode, source, passed, *, operational_extensions=False):
+    expected = plan(source, mode, operational_extensions=operational_extensions)
+    receipt_profile(passed, mode, operational_extensions)
+    require(proof.get('operational_extensions', False) is operational_extensions and passed['writes_to_source'] is False,
             'Full accepted MF receipt required for installation postflight')
     prefix = 'COMMUNITY_PAYROLL_API_' if mode == 'community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_'
     require(re.fullmatch(prefix + r'[A-Za-z0-9_]+', passed['database']), 'Private MF database required')
@@ -118,6 +148,9 @@ def verify(proof, mode, source, passed):
     data = proof['metadata']
     require(data['database'] == passed['database'] and data['transaction_read_only'] == 'on', 'Readonly private metadata transaction not proven')
     installed = {row['name']: row for row in data['installed']}
+    if not operational_extensions:
+        require(not set(installed) & (set(EXTENSION_MODULES) | {'payroll_contract_advantages'}),
+            'Operational extension modules require their explicit profile')
     require(len(installed) == len(data['installed']) and all(row['state'] == 'installed' for row in installed.values()), 'Installed module identities/states differ')
     graph = {'installed': len(installed), 'enterprise': sum(row['license'] == 'OEEL-1' for row in installed.values())}
     require(graph == passed['counts'] and graph['enterprise'] == (0 if mode == 'community' else 140), 'Actual module graph differs from accepted receipt')
@@ -143,7 +176,7 @@ def verify(proof, mode, source, passed):
                 for row in data['payslip_model_aliases']), 'A payslip provider alias targets another identity')
     require(len(aliases) == 1 and aliases[0]['model'] == 'ir.model'
             and aliases[0]['res_id'] == data['payslip_models'][0]['id'], 'Payslip provider model identity differs')
-    observed = {'counts': graph, 'owned_required_versions_verified': 22,
+    observed = {'counts': graph, 'owned_required_versions_verified': expected['owned_required'],
                 'required_module_versions_verified': len(expected['required']),
                 'engine_modules': {name: installed[name]['latest_version'] for name in sorted(engines)},
                 'community_engine_installed': mode == 'community', 'native_engine_retained': mode != 'community',
@@ -153,13 +186,11 @@ def verify(proof, mode, source, passed):
     return observed
 
 
-def audit(sql, mode, source, passed):
+def audit(sql, mode, source, passed, *, operational_extensions=False):
     # The callback executes exactly this readonly metadata transaction; there
     # are no dynamic business table names or user values in the query.
-    expected = plan(source, mode)
-    require(passed['mode'] == mode and passed['multifront'] is True
-            and passed['focused_development_pass'] is False and passed['expected_test_count'] == EXPECTED_TESTS[mode],
-            'Only the full MF pair may be audited')
+    expected = plan(source, mode, operational_extensions=operational_extensions)
+    receipt_profile(passed, mode, operational_extensions)
     prefix = 'COMMUNITY_PAYROLL_API_' if mode == 'community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_'
     require(re.fullmatch(prefix + r'[A-Za-z0-9_]+', passed['database']), 'Private MF database required')
     metadata = json.loads(sql(passed['database'], QUERY))
@@ -169,12 +200,14 @@ def audit(sql, mode, source, passed):
              'database_writes': False, 'orm_loaded': False, 'query_sha256': sha(QUERY.encode()),
              'tool_sha256': sha(Path(__file__).read_bytes()), 'plan': expected, 'metadata': metadata,
              'observed': {'counts': {'installed': len(installed), 'enterprise': sum(row['license'] == 'OEEL-1' for row in installed.values())},
-                'owned_required_versions_verified': 22, 'required_module_versions_verified': len(expected['required']),
+                'owned_required_versions_verified': expected['owned_required'], 'required_module_versions_verified': len(expected['required']),
                 'engine_modules': {name: installed[name]['latest_version'] for name in sorted(engines) if name in installed},
                 'community_engine_installed': mode == 'community', 'native_engine_retained': mode != 'community',
                 'native_reference_only': mode != 'community', 'registry_class_introspection': False,
                 'historical_conversion': False, 'production_changed': False}}
-    verify(proof, mode, source, passed)
+    if operational_extensions:
+        proof['operational_extensions'] = True
+    verify(proof, mode, source, passed, operational_extensions=operational_extensions)
     return proof
 
 
@@ -189,10 +222,11 @@ def readonly_sql(database, statement):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('mode', choices=EXCLUDED)
+    parser.add_argument('--operational-extensions', action='store_true')
     for name in ('source', 'passed', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     args = parser.parse_args()
-    proof = audit(readonly_sql, args.mode, args.source, json.loads(args.passed.read_text()))
+    proof = audit(readonly_sql, args.mode, args.source, json.loads(args.passed.read_text()), operational_extensions=args.operational_extensions)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w', encoding='utf-8') as stream:
         json.dump(proof, stream, indent=2)
     print('MULTIFRONT_INSTALLATION_VERIFIED', proof['observed']['required_module_versions_verified'], 'exact module versions; readonly')
