@@ -6,6 +6,10 @@ from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_simpledigital_oca_base.tests.report_fixture import StoredReportFixture
+from odoo.addons.step_payroll_contracts.original_benefit_cohort import (
+    BenefitCohortError, admit_source_benefit_cohort, admit_target_benefit_cohort,
+    inspect_oca_benefit_boundary, _family_snapshot,
+)
 
 
 @tagged('post_install', '-at_install')
@@ -251,3 +255,28 @@ class ContractAdvantageCase(StoredReportFixture, TransactionCase):
         self.assertEqual(self._snapshot(first | second), before)
         self.assertEqual(first.state, 'draft')
         self.assertEqual(second.state, 'draft')
+
+    def test_actual_oca_boundary_does_not_invent_a_native_benefit_interface_or_family(self):
+        slip = self._slip()
+        before = self._snapshot(slip)
+        boundary = inspect_oca_benefit_boundary(self.scope)
+        self.assertTrue(boundary['actual_oca_payslip_registry'])
+        self.assertFalse(boundary['salary_benefits_ids_implemented'])
+        self.assertFalse(boundary['configuration_data_cohort_admissible'])
+        self.assertFalse(boundary['integral_conversion'])
+        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'exact-native-family-required'):
+            _family_snapshot(self.env.cr)
+        self.assertEqual(self._snapshot(slip), before)
+
+    def test_community_rejects_native_source_claims_and_serialized_zero_membership_receipts(self):
+        slip = self._slip()
+        before = self._snapshot(slip)
+        with self.registry.cursor(readonly=True) as cr:
+            with TestCase.assertRaisesRegex(self, BenefitCohortError, 'native-source-provider-required'):
+                admit_source_benefit_cohort(cr, self.kind.ids, expected_database=self.env.cr.dbname)
+        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'actual-readonly-source-plan-required'):
+            admit_target_benefit_cohort(self.scope, {'cohort_benefit_memberships': 0, 'source_rows': 58},
+                expected_database=self.env.cr.dbname, mode='anchored-preserved')
+        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'explicit-anchored-preserved-mode-required'):
+            admit_target_benefit_cohort(self.scope, None, expected_database=self.env.cr.dbname, mode='detached-absent')
+        self.assertEqual(self._snapshot(slip), before)
