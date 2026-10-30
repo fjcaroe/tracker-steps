@@ -24,10 +24,12 @@ class TestTreasuryCommon(AccountTestInvoicingCommon):
         super().setUpClass()
         cls.company = cls.env.company
         # The common accounting fixture owns a newly created company. Give it
-        # private counters before creating flows/proformas: falling back to the
+        # private counters before creating flows/proformas/orders: falling back to the
         # production global standard sequence would consume values on rollback.
         for code, prefix in (('step.cashflow', 'FC%(year)s'),
-                             ('step.vendor.proforma', 'PRF%(year)s')):
+                             ('step.vendor.proforma', 'PRF%(year)s'),
+                             ('sale.order', 'SO-PRIVATE-'),
+                             ('purchase.order', 'PO-PRIVATE-')):
             sequence = cls.env['ir.sequence'].create({
                 'name': 'Private Treasury fixture ' + code, 'code': code,
                 'company_id': cls.company.id, 'prefix': prefix, 'padding': 4,
