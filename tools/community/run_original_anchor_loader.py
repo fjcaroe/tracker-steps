@@ -98,7 +98,14 @@ def validate_odoo_arguments(arguments, database):
 
 def validate_runtime(runtime):
     runtime = Path(runtime).resolve()
-    git = ['git', '-c', 'safe.directory=' + str(runtime), '-C', str(runtime)]
+    gate.require((runtime / '.git').is_dir() and not (runtime / '.git').is_symlink(),
+                 'explicit-pinned-runtime-git-directory-required')
+    # Ubuntu's Git 2.25.1 ownership backport ignores command-line
+    # safe.directory when discovering with -C. Selecting this exact already
+    # admitted repository/worktree works without a global config mutation.
+    # Disable optional index refresh locks: source verification is read-only.
+    git = ['git', '--no-optional-locks', '-c', 'safe.directory=' + str(runtime),
+           '--git-dir=' + str(runtime / '.git'), '--work-tree=' + str(runtime)]
     gate.require(subprocess.check_output(git + ['rev-parse', 'HEAD'], text=True).strip() == PIN,
                  'official-community-runtime-pin-required')
     gate.require(not subprocess.check_output(git + ['status', '--porcelain'], text=True).strip(),

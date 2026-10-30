@@ -82,14 +82,18 @@ class OriginalAnchorLoaderCase(unittest.TestCase):
         method_hash = hashlib.sha256(ast.get_source_segment(raw.decode(), method).encode()).hexdigest()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            (root / '.git').mkdir()
             source = root / loader.MODEL_FILE
             source.parent.mkdir(parents=True)
             source.write_bytes(raw)
             with patch.object(loader, 'MODEL_SHA256', hashlib.sha256(raw).hexdigest()), \
                     patch.object(loader, 'METHOD_SHA256', method_hash), \
-                    patch.object(loader.subprocess, 'check_output', side_effect=[loader.PIN + '\n', '', raw]):
+                    patch.object(loader.subprocess, 'check_output', side_effect=[loader.PIN + '\n', '', raw]) as git:
                 proof = loader.validate_runtime(root)
                 self.assertEqual(proof['official_pin'], loader.PIN)
+                self.assertIn('--git-dir=' + str(root.resolve() / '.git'), git.call_args_list[0].args[0])
+                self.assertIn('--work-tree=' + str(root.resolve()), git.call_args_list[0].args[0])
+                self.assertIn('--no-optional-locks', git.call_args_list[0].args[0])
             for observations in (['wrong\n'], [loader.PIN + '\n', ' M source\n'], [loader.PIN + '\n', '', b'other']):
                 with patch.object(loader.subprocess, 'check_output', side_effect=observations), self.assertRaises(ValueError):
                     loader.validate_runtime(root)
