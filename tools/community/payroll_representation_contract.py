@@ -98,6 +98,11 @@ def verify(before, upgraded, after, proof):
     require(before['hash'] == upgraded['hash'] == after['hash'], 'numeric or business value fingerprint changed')
     require(upgraded == after, 'representation changed again during tests')
     first, last = proof['before_rows_json'], proof['after_rows_json']
+    columns = proof['schema_columns']
+    require(isinstance(columns, dict) and len(columns) == 19 and columns == proof['current_schema_columns'], 'original package schema types changed')
+    require(proof['schema_definition'] == proof['current_schema_definition']
+        and {name: kind for name, kind, not_null in proof['schema_definition']} == columns,
+        'original package column order or nullability changed')
     require(len(first) == len(last) == 5, 'representation proof must include every original row')
     require(raw_hash(first) == before['representation_hash'], 'raw original rows do not match baseline fingerprint')
     require(raw_hash(last) == upgraded['representation_hash'] == after['representation_hash'], 'raw current rows do not match both final fingerprints')
@@ -105,6 +110,7 @@ def verify(before, upgraded, after, proof):
     for lines, target in ((first, old), (last, new)):
         for raw in lines:
             row, normalized = _row(raw)
+            require(set(row) == set(columns), 'raw proof omitted original package columns')
             require(row['id'] not in target, 'duplicate original row ID')
             target[row['id']] = (row, normalized)
     require(old.keys() == new.keys(), 'original package type IDs changed')
@@ -120,6 +126,8 @@ def verify(before, upgraded, after, proof):
                 require(isinstance(value, _Number) and isinstance(other, _Number), 'numeric field changed JSON type')
                 if value != other:
                     require(field != 'id' and _numeric_literal(value) == _numeric_literal(other), 'number changed beyond fractional trailing zeros')
+                    require(re.fullmatch(r'numeric(?:\([0-9]+(?:\s*,\s*[0-9]+)?\))?|double precision', columns[field]),
+                        'integer or nonnumeric SQL storage changed representation')
                     changes.append({'id': int(ident), 'field': field, 'before_literal': str(value), 'after_literal': str(other)})
     require(changes and before['representation_hash'] != after['representation_hash'], 'no fractional-zero change established')
     return {'table': TABLE, 'rows': 5, 'all_original_ids_preserved': True, 'values_equal': True,
