@@ -45,10 +45,14 @@ def compare(stage, database):
     bank_columns=original_columns(reference,('res_bank','res_partner_bank'))
     assert not (set(columns)&set(bank_columns))
     columns.update(bank_columns)
+    views=json.loads(sql(reference,"SELECT coalesce(json_agg(viewname ORDER BY viewname),'[]'::json) FROM pg_views WHERE schemaname='public'"))
+    new_views=sorted(set(views)-set(columns))
+    view_columns=original_columns(reference,new_views) if new_views else {}
+    columns.update(view_columns)
     actual_columns=original_columns(database, columns)
-    assert all(set(names) <= set(actual_columns[table]) for table,names in columns.items())
     before = json.loads((stage/'business-before.json').read_text())
     before.update(column_snapshot(reference,bank_columns))
+    if view_columns:before.update(column_snapshot(reference,view_columns))
     after = column_snapshot(database, columns)
     changed = {table:{'before':value,'after':after[table]} for table,value in before.items() if after[table]!=value}
     preservation.MODULES=('step_cosecha','step_labor_operations_core')
@@ -85,6 +89,9 @@ def compare(stage, database):
         'all_products_operational':False,'financial_certified':False,'integral_conversion':False,
         'deadline_resolved':False,'acceptance_authorized_by_this_review':False,
         'bank_baseline_from_untouched_same_restore_control':True,
+        'extra_original_view_projections_from_same_control':len(view_columns),
+        'original_columns_missing_after':{table:sorted(set(names)-set(actual_columns[table]))
+            for table,names in columns.items() if not set(names)<=set(actual_columns[table])},
         'history_and_expiration_exact':preservation.history_contract(reference)==preservation.history_contract(database),
         'original_physical_schema_differences_requiring_review':schema_differences,
         'source_dump_sha256':plan['source_dump_sha256']}
