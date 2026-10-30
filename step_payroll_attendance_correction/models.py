@@ -22,6 +22,7 @@ class WorkEntry(models.Model):
             self.env.cr.execute("SELECT id FROM hr_payslip WHERE employee_id=%s AND company_id=%s AND date_from<=%s AND date_to>=%s AND state!='cancel' ORDER BY id FOR UPDATE",
                                 [entry.employee_id.id, entry.company_id.id, last, first])
             slips = self.env['hr.payslip'].browse([row[0] for row in self.env.cr.fetchall()])
+            slips.invalidate_recordset()
             slips.check_access('read')
             if (not slips or any(slip.state != 'draft' or slip.contract_id != entry.contract_id or
                     slip.date_from > first or slip.date_to < last or
