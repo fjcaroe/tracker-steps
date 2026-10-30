@@ -12,6 +12,7 @@ try:
         assert module.state=='installed' and module.latest_version==version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
     scoped=scoped_business_environment(env)
+    scoped=scoped(context=dict(scoped.context,lang=scoped.user.lang or 'en_US'))
     action=scoped.ref('stock.action_report_delivery')
     assert action.model=='stock.picking' and action.report_name=='stock.report_deliveryslip'
     assert action.report_type=='qweb-pdf' and action.binding_model_id.model=='stock.picking'
