@@ -43,6 +43,9 @@ def main():
     parser.add_argument('--focused-multifront',action='store_true',help='Community development pass for the changed functional contracts')
     parser.add_argument('--operational-extensions',action='store_true',help='Real OCA contract advantages, native benefit reference and accounting posting')
     parser.add_argument('--focused-extensions',action='store_true',help='Development only: run the new operational extension tests')
+    parser.add_argument('--quality-extension',action='store_true',help='Real pinned OCA Quality and original native consumer reference')
+    parser.add_argument('--focused-quality',action='store_true',help='Development only: Quality contracts and the repeated original PDF')
+    parser.add_argument('--quality-oca',type=Path)
     parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
     parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
@@ -59,6 +62,8 @@ def main():
     assert not args.focused_multifront or (args.multifront and args.mode=='community')
     assert not args.operational_extensions or args.multifront
     assert not args.focused_extensions or (args.operational_extensions and not args.focused_multifront)
+    assert not args.quality_extension or (args.operational_extensions and args.quality_oca)
+    assert not args.focused_quality or (args.quality_extension and not args.focused_extensions and not args.focused_multifront)
     assert not args.multifront or (args.accelerated and args.custody_grouping and simpledigital)
     assert not args.numeric_input_engine or (args.mode == 'community' and not standalone)
     assert not args.custody_grouping or args.accelerated
@@ -89,6 +94,8 @@ def main():
         from treasury_launcher_contract import snapshot as treasury_snapshot,verify as verify_treasury
     extension_modules=('step_payroll_advantages_oca','step_payroll_benefits_native_reference','step_payroll_original_report')
     if args.operational_extensions:MODULES+=extension_modules
+    quality_modules=('step_quality_contracts','step_quality_oca','step_qa_native_reference')
+    if args.quality_extension:MODULES+=quality_modules
     assert os.geteuid()==0 and str(args.root.resolve()).startswith('/opt/steps-validation/')
     assert re.fullmatch(('COMMUNITY_PAYROLL_API_' if args.mode=='community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_')+'[A-Za-z0-9_]+',args.database)
     root=args.root.resolve();source=root/'addons';stage=root/args.mode
@@ -105,7 +112,7 @@ def main():
     config=configparser.ConfigParser(interpolation=None);assert config.read(conf)
     user='odoo' if pure else 'cerro_odoo18';identity=pwd.getpwnam(user)
     data=stage/'data';data.mkdir();overlay=stage/'addons';overlay.mkdir()
-    for m in (tuple(m for m in MODULES if m not in ('step_payroll_enterprise_reference','step_l10n_cl_caf_native_reference','step_payroll_benefits_native_reference')) if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ())+(('step_hr_previred_simpledigital',) if bridge else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
+    for m in (tuple(m for m in MODULES if m not in ('step_payroll_enterprise_reference','step_l10n_cl_caf_native_reference','step_payroll_benefits_native_reference','step_qa_native_reference')) if pure else ((MODULES[0],MODULES[2],'step_simpledigital_oca_security')+(('step_hr_previred',) if previred else ())+(('step_hr_previred_simpledigital',) if bridge else ()) if simpledigital else (MODULES[0],MODULES[2]))):(overlay/m).symlink_to(source/m)
     hr_overlay=None
     if args.accelerated:
         # Generic consumer sources are in the identical packet; the only CE
@@ -129,6 +136,15 @@ def main():
     if args.operational_extensions and not pure:
         (overlay/extension_modules[1]).symlink_to(source/extension_modules[1])
         (overlay/extension_modules[2]).symlink_to(source/extension_modules[2])
+    if args.quality_extension:
+        sys.path.insert(0,str(source/'tools/community'))
+        from quality_vendor_contract import capture as capture_quality
+        quality_proof,quality_files=capture_quality(args.quality_oca)
+        (stage/'quality-vendor-proof.json').write_text(json.dumps(quality_proof,indent=2))
+        (stage/'quality-vendor-files.json').write_text(json.dumps({name:hashlib.sha256(body).hexdigest() for name,body in quality_files.items()},indent=2))
+        if pure:(overlay/'quality_control_oca').symlink_to(args.quality_oca/'quality_control_oca')
+        else:
+            for m in (quality_modules[0],quality_modules[2]):(overlay/m).symlink_to(source/m)
     if own_book and args.mode!='community':(overlay/'step_hr_remuneration_book').symlink_to(source/'step_hr_remuneration_book')
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
@@ -242,6 +258,7 @@ def main():
             modules+=',step_batch_payment_grouping,'+('step_batch_payment_core,step_l10n_cl_caf_storage' if pure else 'step_l10n_cl_caf_native_reference')
         if args.multifront:modules+=','+','.join(treasury_modules)+','+('step_hr_contract_days_oca' if pure else 'step_hr_contract_days')
         if args.operational_extensions:modules+=','+extension_modules[0 if pure else 1]+','+extension_modules[2]
+        if args.quality_extension:modules+=','+quality_modules[0]+','+quality_modules[1 if pure else 2]
         execution_env=dict(os.environ)
         if (root/'basis-input.json').exists():
             assert simpledigital
@@ -301,6 +318,7 @@ def main():
             tags+=',/step_batch_payment_grouping,'+('/step_batch_payment_core,/step_l10n_cl_caf_storage' if pure else '/step_l10n_cl_caf_native_reference')
         report_tags=('/step_payroll_original_report:OriginalPayrollReportRouteCase,/step_payroll_original_report:OriginalPayrollReportPdfCase' if pure else '/step_payroll_original_report:NativeOriginalPayrollReportRouteCase')
         if args.operational_extensions:tags+=',/'+extension_modules[0 if pure else 1]+','+report_tags
+        if args.quality_extension:tags+=',/'+quality_modules[1 if pure else 2]
         if own_book:
             methods=['code_snapshots_preserve_original_zero_in_batch','actual_movement_adapter_reads_stored_totals','actual_movement_adapter_rejects_hidden_lines']
             if not pure or full_book:methods.append('native_registered_extractor_uses_original_code_map')
@@ -320,6 +338,8 @@ def main():
             tags=('/'+extension_modules[0 if pure else 1]+',/step_batch_payment_grouping,'
                 +('/step_batch_payment_core,/step_l10n_cl_caf_storage:TestDTESignatureCustodyStorage' if pure else '/step_l10n_cl_caf_native_reference:TestDTESignatureNativeCAFCustody')
                 +',/step_l10n_cl_edi_core:TestDTESignatureCore,/step_l10n_cl_edi_core:TestEnvioDTECore,'+report_tags)
+        if args.focused_quality:
+            tags='/'+quality_modules[1 if pure else 2]+(',/step_payroll_original_report:OriginalPayrollReportPdfCase' if pure else '')
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         stored_pdf_count=0
         original_pdf_count=0
@@ -335,7 +355,7 @@ def main():
             pdf=original_pdf_receipt.parent/original_proof['file']
             assert pdf.stat().st_size==original_proof['bytes'] and hashlib.sha256(pdf.read_bytes()).hexdigest()==original_proof['sha256']
             original_pdf_count=1
-        if pure and simpledigital and not (args.focused_multifront or args.focused_extensions) and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
+        if pure and simpledigital and not (args.focused_multifront or args.focused_extensions or args.focused_quality) and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
             pdf_directory=data/'payslip-pdf-evidence'
             proofs=[row for path in pdf_directory.glob('proof-*.json') for row in json.loads(path.read_text())]
             assert len(proofs)==2,'Both actual stored-line payslip PDF fixtures must run'
@@ -352,9 +372,11 @@ def main():
         if args.multifront:
             expected+=sum(concrete_test_count(source,m) for m in treasury_modules)+concrete_test_count(source,'step_hr_contract_days')+(concrete_test_count(source,'step_hr_contract_days_oca') if pure else 0)
         if args.operational_extensions:expected+=concrete_test_count(source,extension_modules[0 if pure else 1])+(8 if pure else 1)
+        if args.quality_extension:expected+=concrete_test_count(source,quality_modules[1 if pure else 2])
         if args.focused_multifront:expected=128
         if args.focused_extensions:
             expected=concrete_test_count(source,extension_modules[0 if pure else 1])+concrete_test_count(source,'step_batch_payment_grouping')+(concrete_test_count(source,'step_batch_payment_core') if pure else 0)+5+14+11+(8 if pure else 1)
+        if args.focused_quality:expected=concrete_test_count(source,quality_modules[1 if pure else 2])+(1 if pure else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -428,8 +450,10 @@ def main():
             'dte_test_count':dte_test_count,'external_network_disabled':True,'loopback_http_only':True,
             'hr_test_count':HR_TEST_COUNT if args.accelerated else 0,
             'postgres_unix_socket':True,'offline_runner_sha256':hashlib.sha256((source/'tools/community/offline_process.py').read_bytes()).hexdigest(),
-            'multifront':args.multifront,'focused_development_pass':bool(args.focused_multifront or args.focused_extensions),
+            'multifront':args.multifront,'focused_development_pass':bool(args.focused_multifront or args.focused_extensions or args.focused_quality),
             'operational_extensions':args.operational_extensions,
+            'quality_extension':args.quality_extension,
+            'quality_vendor_revision':quality_proof['oca_pin'] if args.quality_extension else None,
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
             'stored_payslip_pdf_reports':stored_pdf_count,

@@ -23,12 +23,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', required=True)
     parser.add_argument('--receipt', type=Path, required=True)
+    parser.add_argument('--quality-extension',action='store_true')
     args = parser.parse_args()
     assert re.fullmatch('/opt/steps-validation/community-multifront-parallel-[A-Za-z0-9-]+', args.root)
     repo = Path(__file__).resolve().parents[2]
     assert not subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo).strip(), 'Commit the exact candidate first'
     revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip()
-    modules = tuple(dict.fromkeys((*OWN_MODULES, *EXTENSIONS)))
+    quality=('step_quality_contracts','step_quality_oca','step_qa_native_reference') if args.quality_extension else ()
+    modules = tuple(dict.fromkeys((*OWN_MODULES, *EXTENSIONS,*quality)))
     body = subprocess.check_output(['git', 'archive', '--format=tar', revision, *modules,
                                     'tools/community', 'tools/ops'], cwd=repo)
     digest = hashlib.sha256(body).hexdigest()
