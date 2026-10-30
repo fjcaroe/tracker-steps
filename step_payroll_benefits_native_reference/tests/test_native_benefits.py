@@ -21,6 +21,12 @@ class NativeBenefitReferenceCase(TransactionCase):
                 'hr_contract.group_hr_contract_manager', 'hr.group_hr_manager', 'hr_payroll.group_hr_payroll_manager')])]})
         cls.scope = api.Environment(cls.env.cr, cls.actor.id, dict(cls.env.context,
             allowed_company_ids=cls.company.ids, lang='en_US', tracking_disable=True), su=False)
+        configurator = cls.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'Private native benefit configurator', 'login': 'private-native-benefit-configurator',
+            'company_id': cls.company.id, 'company_ids': [Command.set(cls.company.ids)],
+            'groups_id': [Command.set([cls.env.ref('base.group_user').id, cls.env.ref('base.group_system').id])]})
+        cls.configuration_scope = api.Environment(cls.env.cr, configurator.id,
+            dict(cls.scope.context), su=False)
         cls.kind = cls.scope['hr.payroll.structure.type'].create({'name': 'Private native benefit type'})
 
     def _snapshot(self):
@@ -58,11 +64,18 @@ class NativeBenefitReferenceCase(TransactionCase):
         # original catalogue row, XML ID or production sequence is rewritten.
         with self.env.cr.savepoint() as point:
             benefit = self._benefit()
-            value = self.scope['hr.contract.salary.benefit.value'].create({'name': 'Private native selectable value',
-                'benefit_id': benefit.id, 'value': 25.5})
+            values = {'name': 'Private native selectable value', 'benefit_id': benefit.id, 'value': 25.5}
+            self.assertFalse(self.scope.user.has_group('base.group_system'))
+            self.assertFalse(self.configuration_scope.su)
+            # Native policy reserves value configuration to Settings. A
+            # separate normal configurator provisions the real catalogue;
+            # the HR manager retains only its existing selection/read access.
+            with TestCase.assertRaises(self, AccessError):
+                self.scope['hr.contract.salary.benefit.value'].create(values)
+            value = self.configuration_scope['hr.contract.salary.benefit.value'].create(values).with_env(self.scope)
             self.assertIn(benefit, self.kind.salary_benefits_ids)
             self.assertIn(value, benefit.value_ids)
-            self.assertEqual(value.value, 25.5)
+            self.assertEqual(value.read(['value'])[0]['value'], 25.5)
             benefit.description = '<p>Private catalogue edit</p>'
             self.assertIn('Private catalogue edit', benefit.description)
             point.rollback()
