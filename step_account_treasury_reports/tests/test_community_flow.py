@@ -44,8 +44,10 @@ class TreasuryCommunityBridgeFlowCase(AccountTestInvoicingCommon):
 
     def _open(self, kind, actor=None):
         actor = actor or self.actor
-        action = self.env.ref(MODULE + '.action_' + kind).with_user(actor)
-        context = dict(safe_eval(action.context), allowed_company_ids=self.company.ids)
+        # The web client loads actions through this authorized framework API;
+        # ordinary accountants do not have Settings access to read action rows.
+        action = self.env['ir.actions.actions'].with_user(actor)._for_xml_id(MODULE + '.action_' + kind)
+        context = dict(safe_eval(action['context']), allowed_company_ids=self.company.ids)
         with Form(self.env['step.treasury.report'].with_user(actor).with_context(**context),
                   view=MODULE + '.view_report_form') as form:
             form.company_id = self.company
