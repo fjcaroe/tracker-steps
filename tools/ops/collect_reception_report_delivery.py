@@ -21,7 +21,7 @@ def main():
         stage = Path('/opt/steps-validation') / ('management_' + target + '_t141' + code + args.suffix)
         qa = json.loads((stage / 'qa_passed.json').read_text())
         test = Path(qa['log']); matches = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database', test.read_text())
-        assert matches and int(matches[-1]) >= 8
+        assert matches and int(matches[-1]) >= 9
         count += int(matches[-1])
         flow = stage / ('verify-' + qa['database'] + '.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()

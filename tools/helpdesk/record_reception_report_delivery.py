@@ -23,7 +23,7 @@ def main():
         assert any(p.get('existing_profile',1)!=1 and p.get('native_menu_and_form') and p.get('writes') is False for p in payloads)
     assert all(m in (root/'isolation.log').read_text() for m in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
     pair=json.loads((root/'pair.json').read_text())
-    assert pair['cerro']['step_packing_reception_report']['version']==pair['qa-cerro']['step_packing_reception_report']['version']=='18.0.1.0.0'
+    assert pair['cerro']['step_packing_reception_report']['version']==pair['qa-cerro']['step_packing_reception_report']['version']=='18.0.1.0.1'
     assert pair['cerro']['step_packing_reception_report']['sha256']==pair['qa-cerro']['step_packing_reception_report']['sha256']
     for target in ('development','cerro','qa-cerro'):
         review=json.loads((root/(target+'-visual-review.json')).read_text(encoding='utf-8-sig'))

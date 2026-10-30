@@ -9,6 +9,16 @@ class Picking(models.Model):
         self.check_access('read')
         return self.picking_type_code == 'incoming' and self.step_fruit_reception_kind in ('process', 'packed')
 
+    def _get_report_lang(self):
+        # This local receipt follows the Spanish Chilean form even when the
+        # operator or vendor uses English. Other stock reports retain native
+        # partner/user language selection.
+        if self._step_is_fruit_receipt():
+            for code in ('es_CL','es_ES'):
+                if self.env['res.lang'].search_count([('code','=',code),('active','=',True)]):
+                    return code
+        return super()._get_report_lang()
+
     def _step_receipt_operations(self):
         self.ensure_one()
         self.check_access('read')

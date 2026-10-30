@@ -83,3 +83,12 @@ class ReceiptReportCase(TransactionCase):
         self.render()
         self.assertEqual(lines.read(fields_to_check),before)
         self.assertFalse(self.env.ref('stock.action_report_delivery').attachment_use)
+
+    def test_receipt_language_does_not_inherit_english(self):
+        self.picking.partner_id.lang='en_US'
+        self.assertEqual(self.picking._get_report_lang(),'es_CL')
+        content=self.render()
+        self.assertNotIn('Shipping Date',content)
+        self.assertIn('1.200,50',html.fromstring(content).text_content())
+        self.picking.step_fruit_reception_kind=False
+        self.assertEqual(self.picking._get_report_lang(),'en_US')
