@@ -65,6 +65,10 @@ def main():
     for path in (args.baseline / 'configuration-storage').iterdir():
         if path.is_file() and path.suffix in ('.json', '.py') and path.name != 'community-current-contract.json':
             files['configuration-storage/' + path.name] = path
+    required = {'before.json', 'after.json', 'security-admission.json', 'native-source.json',
+        'native-xmlid-classification.json', 'community-current-contract.json', 'auditor.py',
+        'security-auditor.py', 'native-verifier.py'}
+    assert all((args.preflight / name).is_file() and not (args.preflight / name).is_symlink() for name in required), 'Incomplete readonly preflight evidence'
     for path in args.preflight.iterdir():
         if path.is_file() and path.suffix in ('.json', '.py'):
             if path.name == 'community-current-contract.json':
