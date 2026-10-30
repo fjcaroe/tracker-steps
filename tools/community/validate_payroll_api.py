@@ -138,11 +138,16 @@ def main():
         (overlay/extension_modules[2]).symlink_to(source/extension_modules[2])
     if args.quality_extension:
         sys.path.insert(0,str(source/'tools/community'))
-        from quality_vendor_contract import capture as capture_quality
+        from quality_vendor_contract import capture as capture_quality,materialize as materialize_quality
         quality_proof,quality_files=capture_quality(args.quality_oca)
         (stage/'quality-vendor-proof.json').write_text(json.dumps(quality_proof,indent=2))
         (stage/'quality-vendor-files.json').write_text(json.dumps({name:hashlib.sha256(body).hexdigest() for name,body in quality_files.items()},indent=2))
-        if pure:(overlay/'quality_control_oca').symlink_to(args.quality_oca/'quality_control_oca')
+        if pure:
+            # Never expose the private Git checkout or rely on its ancestor
+            # permissions. Materialize exact proven blobs in this overlay.
+            vendor_root=root/'quality-vendor-addons'
+            materialize_quality(args.quality_oca,vendor_root,root/'quality-vendor-materialization.json')
+            (overlay/'quality_control_oca').symlink_to(vendor_root/'quality_control_oca')
         else:
             for m in (quality_modules[0],quality_modules[2]):(overlay/m).symlink_to(source/m)
     if own_book and args.mode!='community':(overlay/'step_hr_remuneration_book').symlink_to(source/'step_hr_remuneration_book')
