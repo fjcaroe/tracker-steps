@@ -54,12 +54,13 @@ class OriginalAnchorLoaderCase(unittest.TestCase):
                     loader.parse_arguments(own + ['--'] + self.argv())
 
     def test_cli_rejects_other_database_duplicates_server_or_tests_modes(self):
-        for mode in ('other-db', 'duplicate-db', 'attached-db', 'abbreviated-db', 'abbreviated-workers',
+        for mode in ('other-db', 'duplicate-db', 'attached-db', 'short-equals-db', 'abbreviated-db', 'abbreviated-workers',
                      'workers', 'cron', 'demo', 'http', 'no-stop', 'no-install', 'test', 'shell', 'password', 'short-password'):
             args = self.argv()
             if mode == 'other-db': args[3] = 'CERROELPLOMO'
             elif mode == 'duplicate-db': args += ['--database=' + self.database]
             elif mode == 'attached-db': args += ['-dCERROELPLOMO']
+            elif mode == 'short-equals-db': args[2:4] = ['-d=' + self.database]
             elif mode == 'abbreviated-db': args += ['--databas=CERROELPLOMO']
             elif mode == 'abbreviated-workers': args += ['--work=2']
             elif mode in ('workers', 'cron', 'demo'):

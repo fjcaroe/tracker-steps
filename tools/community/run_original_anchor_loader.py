@@ -63,7 +63,7 @@ def option_values(arguments, names):
             gate.require(index + 1 < len(arguments) and not arguments[index + 1].startswith('-'), 'missing-odoo-option-value')
             values.append(arguments[index + 1])
         for name in names:
-            if argument.startswith(name + '='):
+            if name.startswith('--') and argument.startswith(name + '='):
                 values.append(argument[len(name) + 1:])
             elif len(name) == 2 and argument.startswith(name) and argument != name:
                 # optparse also accepts -dDATABASE / -iMODULE. Do not let an
@@ -88,7 +88,8 @@ def validate_odoo_arguments(arguments, database):
         gate.require(option_values(arguments, names) == [value], 'explicit-single-private-odoo-scope-required')
     gate.require('--stop-after-init' in arguments and '--no-http' in arguments,
                  'one-shot-no-http-installer-required')
-    gate.require(len(option_values(arguments, ('-i', '--init'))) == 1,
+    modules = option_values(arguments, ('-i', '--init'))
+    gate.require(len(modules) == 1 and re.fullmatch(r'[a-z_][a-z0-9_]*(?:,[a-z_][a-z0-9_]*)*', modules[0]),
                  'explicit-real-module-install-required')
     gate.require('--test-enable' not in arguments and '--save' not in arguments
         and not any(argument.startswith(('--db_password', '--db-password', '-w')) for argument in arguments),
