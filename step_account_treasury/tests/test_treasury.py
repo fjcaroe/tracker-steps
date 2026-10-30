@@ -23,6 +23,21 @@ class TestTreasuryCommon(AccountTestInvoicingCommon):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # The common accounting fixture owns a newly created company. Give it
+        # private counters before creating flows/proformas: falling back to the
+        # production global standard sequence would consume values on rollback.
+        for code, prefix in (('step.cashflow', 'FC%(year)s'),
+                             ('step.vendor.proforma', 'PRF%(year)s')):
+            sequence = cls.env['ir.sequence'].create({
+                'name': 'Private Treasury fixture ' + code, 'code': code,
+                'company_id': cls.company.id, 'prefix': prefix, 'padding': 4,
+                'implementation': 'standard',
+            })
+            selected = cls.env['ir.sequence'].with_company(cls.company).search([
+                ('code', '=', code), ('company_id', 'in', [cls.company.id, False]),
+            ], order='company_id', limit=1)
+            if selected != sequence:
+                raise AssertionError('Treasury fixture must use its own counter: ' + code)
         # El usuario de las pruebas necesita el perfil completo de Tesorería.
         cls.env.user.groups_id = [Command.link(
             cls.env.ref("step_account_treasury.group_treasury_manager").id)]
