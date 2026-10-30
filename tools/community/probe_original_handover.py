@@ -209,7 +209,7 @@ def admit_sql(code, *, projection=False):
 
 
 @contextmanager
-def observe_cursor(cr):
+def observe_cursor(cr, rejected=None):
     """Delegate unchanged real SQL; no fake result or permission bypass."""
     cls, execute = type(cr), type(cr).execute
     observation = {'projection': False, 'statements': 0, 'inserts': 0,
@@ -221,7 +221,12 @@ def observe_cursor(cr):
         if code is None and hasattr(query, 'as_string'):
             code = query.as_string(cursor._cnx)
         require(isinstance(code, str), 'unreviewed-sql-object')
-        command = admit_sql(code, projection=observation['projection'])
+        try:
+            command = admit_sql(code, projection=observation['projection'])
+        except ProbeBlocked as error:
+            if rejected is not None:
+                rejected(code, error, observation['projection'])
+            raise
         observation['statements'] += 1
         observation['inserts'] += int(command == 'insert')
         return execute(cursor, query, *args, **kwargs)
@@ -490,6 +495,33 @@ def private_access_error(output, error):
         'private_potentially_sensitive_context': True, 'exception_message_published': False}
 
 
+def private_sql_rejection(output, statement, error, projection):
+    """Keep the rejected code and exact call chain private, never SQL params.
+
+    A rejected statement is not executed, normalized, retried or admitted.
+    Stack frames contain locations/names only, with no source lines or locals.
+    """
+    path = Path(output).with_name(Path(output).name + '.rejected-sql.json')
+    # walk_stack reads code locations only; extract_stack would consult
+    # linecache and read source lines even if they were omitted from output.
+    frames = [{'file': frame.f_code.co_filename, 'line': line, 'function': frame.f_code.co_name}
+        for frame, line in traceback.walk_stack(None)]
+    frames.reverse()
+    first = re.match(r'\s*([A-Za-z]+)', statement)
+    value = {'schema': 1, 'statement': statement, 'statement_sha256': sha(statement.encode()),
+        'first_keyword': first.group(1).upper() if first else None,
+        'denial_code': str(error), 'projection_phase': projection, 'stack_frames': frames,
+        'sql_parameters_captured': False, 'source_lines_or_locals_captured': False,
+        'statement_executed': False, 'retry_or_allowlist_change': False}
+    raw = (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
+        stream.write(raw)
+    return {'path': str(path), 'sha256': sha(raw), 'bytes': len(raw),
+        'statement_sha256': value['statement_sha256'], 'first_keyword': value['first_keyword'],
+        'sql_parameters_captured': False, 'statement_executed': False,
+        'private_potentially_sensitive_sql': True}
+
+
 def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256, output_path, actor_uid=None,
         *, source_visibility_path=None, source_visibility_sha256=None):
     """No commit: the caller owns the clone, lease, outer transaction and seal.
@@ -511,6 +543,14 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
 
     def checkpoint(phase, model=None):
         result['checkpoint'] = {'phase': phase, 'model': model}
+
+    def rejected(statement, error, projection):
+        try:
+            result['private_rejected_sql'] = private_sql_rejection(output, statement, error, projection)
+        except OSError:
+            # Preserve the original deny even if private capture cannot be
+            # created. Never route a diagnostic failure to real execution.
+            result['private_rejected_sql_capture_failed'] = True
 
     try:
         checkpoint('sealed-source-admission')
@@ -549,7 +589,7 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                 native_counters_before = source_observer.counter_snapshot(env.cr)
                 result['source_security_policy'] = visibility.check_policy_and_counters(
                     source_visibility, policy_before, native_counters_before)
-            with observe_cursor(env.cr) as observation:
+            with observe_cursor(env.cr, rejected) as observation:
                 checkpoint('original-sql-guards')
                 from run_original_anchor_loader import check_database_guards
                 result['database_guards'] = check_database_guards(env.cr)
