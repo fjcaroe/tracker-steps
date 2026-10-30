@@ -22,9 +22,18 @@ def compare(stage, database):
     plan = json.loads((stage/'handover-plan.json').read_text())
     assert plan['database'] == database and stage.parent.parent == Path('/opt/steps-validation')
     columns = json.loads((stage/'original-columns.json').read_text())
+    reference=plan['reference_database']
+    assert reference==database.replace('_HANDOVER_','_REFERENCE_')
+    # The preserved native control was cloned from the exact fresh restore,
+    # before any provider or cohort write. Include the two banking tables
+    # covered by the normal acceptance's accelerated snapshot as well.
+    bank_columns=original_columns(reference,('res_bank','res_partner_bank'))
+    assert not (set(columns)&set(bank_columns))
+    columns.update(bank_columns)
     actual_columns=original_columns(database, columns)
     assert all(set(names) <= set(actual_columns[table]) for table,names in columns.items())
     before = json.loads((stage/'business-before.json').read_text())
+    before.update(column_snapshot(reference,bank_columns))
     after = column_snapshot(database, columns)
     changed = {table:{'before':value,'after':after[table]} for table,value in before.items() if after[table]!=value}
     preservation.MODULES=('step_cosecha','step_labor_operations_core')
@@ -53,6 +62,8 @@ def compare(stage, database):
             if set(names)!=set(columns[table])},
         'all_products_operational':False,'financial_certified':False,'integral_conversion':False,
         'deadline_resolved':False,'acceptance_authorized_by_this_review':False,
+        'bank_baseline_from_untouched_same_restore_control':True,
+        'history_and_expiration_exact':preservation.history_contract(reference)==preservation.history_contract(database),
         'source_dump_sha256':plan['source_dump_sha256']}
     return result
 
