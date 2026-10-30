@@ -17,6 +17,7 @@ import build_original_bootstrap as cold
 from derive_original_anchor_company import apply_original_company_derivation
 from derive_original_anchor_properties import apply_original_property_derivation
 from derive_original_payroll_storage import apply_anchor_storage_derivation
+from derive_original_anchor_history_deletion import apply_anchor_history_deletion
 
 
 OWN = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
@@ -65,6 +66,9 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
     if original_storage:
         storage_derivation = apply_anchor_storage_derivation(oca, engine, schema_plan,
             Path('/opt/steps-validation/community-original-config-20261029/configuration-capsule-C.json'))
+        history_deletion_derivation = apply_anchor_history_deletion(oca, engine, schema_plan,
+            Path('/opt/steps-validation/community-original-config-20261029/configuration-capsule-C.json'),
+            source / 'step_payroll_oca_api')
     changes = {}
     for module in ('payroll', 'payroll_account'):
         folder = engine / module
@@ -113,6 +117,7 @@ def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=N
         'deadline_resolved': False}
     if original_storage:
         proof['original_storage_derivation'] = storage_derivation
+        proof['original_history_deletion_derivation'] = history_deletion_derivation
     cold._write_receipt(root / 'anchor-profile.json', proof)
     for folder in (engine, root / 'owned-profile'):
         for path in (folder, *folder.rglob('*')):
