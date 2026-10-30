@@ -1,5 +1,5 @@
 """Dump reconstruction boundaries; no database, float or private row fixtures."""
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import tempfile
 import unittest
 
@@ -7,6 +7,15 @@ import audit_stock_package_representation as audit
 
 
 class DumpReconstructionCase(unittest.TestCase):
+    def test_only_original_bootstrap_or_contracts_private_root_is_admitted(self):
+        for name in ('community-original-bootstrap-20261029F', 'community-original-contracts-20261030B'):
+            self.assertTrue(audit.native_root_allowed(PurePosixPath('/opt/steps-validation') / name))
+        for value in ('/opt/steps-validation/community-sys-20261030B', '/var/lib/postgresql/community-original-contracts-20261030B',
+                      'community-original-contracts-20261030B', '/opt/steps-validation/../community-original-contracts-20261030B',
+                      '/opt/steps-validation/community-original-contracts-20261030B/other'):
+            with self.subTest(value=value):
+                self.assertFalse(audit.native_root_allowed(PurePosixPath(value)))
+
     def schema(self):
         columns = ',\n'.join('    ' + name + ' ' + kind + (' NOT NULL' if required else '')
             for name, kind, required in audit.COLUMNS)
