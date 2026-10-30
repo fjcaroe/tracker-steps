@@ -7,3 +7,7 @@ from . import test_original_translations
 from . import test_original_nullable
 from . import test_original_rule_ownership
 from . import test_saved_inputs
+
+from . import test_original_input_storage
+
+from . import test_original_rule_projection

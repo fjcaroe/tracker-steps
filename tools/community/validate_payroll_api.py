@@ -39,6 +39,7 @@ def main():
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--tablespace')
+    parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
     parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
     parser.add_argument('--runtime',type=Path,required=True)
@@ -51,6 +52,7 @@ def main():
     previred=args.profile in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=args.profile in ('previred-simpledigital','book-consumers','book-install','book-history')
     standalone=args.profile=='previred-standalone'
+    assert not args.numeric_input_engine or (args.mode == 'community' and not standalone)
     assert not args.custody_grouping or args.accelerated
     custody_modules=('step_l10n_cl_caf_custody_core','step_l10n_cl_caf_storage','step_l10n_cl_caf_native_reference')
     grouping_modules=('step_batch_payment_grouping','step_batch_payment_core')
@@ -132,7 +134,15 @@ def main():
         assert run('git','-C',str(args.runtime),'rev-parse','HEAD',capture_output=True,text=True).stdout.strip()==OFFICIAL_PIN
         assert run('git','-C',str(args.oca),'rev-parse','HEAD',capture_output=True,text=True).stdout.strip()==PIN
         if not standalone:
-            for m in ('payroll','payroll_account'):(overlay/m).symlink_to(args.oca/m)
+            engine_root = args.oca
+            if args.numeric_input_engine:
+                from build_numeric_input_engine import build as build_numeric, verify as verify_numeric
+                numeric_root = root / 'engine-addons'
+                if numeric_root.exists():verify_numeric(args.oca, numeric_root)
+                else:build_numeric(args.oca, numeric_root)
+                engine_root = numeric_root
+            for m in ('payroll','payroll_account'):
+                (overlay/m).symlink_to((engine_root if m == 'payroll' else args.oca)/m)
         dump_json('vendor-files',{str(p.relative_to(args.oca)):hashlib.sha256(p.read_bytes()).hexdigest()
             for m in ('payroll','payroll_account') for p in sorted((args.oca/m).rglob('*')) if p.is_file() and '__pycache__' not in p.parts})
     def snapshot():
@@ -355,6 +365,8 @@ def main():
             'dte_test_count':dte_test_count,'external_network_disabled':True,'loopback_http_only':True,
             'hr_test_count':HR_TEST_COUNT if args.accelerated else 0,
             'postgres_unix_socket':True,'offline_runner_sha256':hashlib.sha256((source/'tools/community/offline_process.py').read_bytes()).hexdigest(),
+            'numeric_input_engine':bool(pure and args.numeric_input_engine),
+            'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
             'stored_payslip_pdf_reports':stored_pdf_count,
             'identity_snapshot_tool_sha256':hashlib.sha256((source/'tools/community/validate_agriculture_core.py').read_bytes()).hexdigest(),
             'original_xmlid_noupdate_captured':bool(not pure and original.get('original_xmlids') and all('noupdate' in row for row in original['original_xmlids'])),

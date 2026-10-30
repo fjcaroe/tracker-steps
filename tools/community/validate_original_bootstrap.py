@@ -19,6 +19,7 @@ from accelerated_acceptance import HR_MODULES, prepare_hr_overlay
 from build_original_bootstrap import verify_reproduction
 from offline_process import offline_odoo
 from validate_payroll_api import OFFICIAL_PIN, PIN
+from build_numeric_input_engine import build as build_numeric, verify as verify_numeric
 from validate_community_reports import sql
 
 
@@ -48,6 +49,7 @@ def main():
     parser.add_argument('mode', choices=('community', 'cerro-reference'))
     for name in ('root', 'runtime', 'oca', 'provider-source'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--input-contracts', action='store_true', help='Real NUMERIC-first storage and original rule projection cases')
     parser.add_argument('--database', required=True)
     parser.add_argument('--tablespace', required=True)
     args = parser.parse_args()
@@ -87,8 +89,24 @@ def main():
     for name in HR_MODULES + ('step_account_treasury_batch', 'step_bank_security', 'step_accounting_multicurrency'):
         (overlay / name).unlink()
     hr_overlay = prepare_hr_overlay(source, stage, overlay, community=True)
+    expected_tests = 12
+    tags = TAGS
+    if args.input_contracts:
+        import ast
+        numeric_root = root / 'engine-addons'
+        if numeric_root.exists():verify_numeric(args.oca, numeric_root)
+        else:build_numeric(args.oca, numeric_root)
+        for filename, classname in (('test_original_input_storage.py','OriginalInputStorageCase'),
+                                    ('test_original_rule_projection.py','OriginalRuleProjectionCase')):
+            tree = ast.parse((source / 'step_payroll_oca_api/tests' / filename).read_text(encoding='utf-8-sig'))
+            classes = [node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == classname]
+            assert len(classes) == 1, 'Exact functional contract test class required'
+            count = sum(isinstance(node, ast.FunctionDef) and node.name.startswith('test_') for node in classes[0].body)
+            assert count > 0
+            expected_tests += count
+            tags += ',/step_payroll_oca_api:' + classname
     for name in ('payroll', 'payroll_account'):
-        (overlay / name).symlink_to(args.oca / name)
+        (overlay / name).symlink_to((root / 'engine-addons' if args.input_contracts and name == 'payroll' else args.oca) / name)
     frozen = packet(source)
     write(stage / 'source-files.json', frozen)
     write(stage / 'consumer-source-files.json', {str(path.relative_to(hr_overlay)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -137,13 +155,13 @@ def main():
         execute('install', ('-i', ','.join(install), '--stop-after-init'))
         probe = source / 'tools/community/probe_original_bootstrap.py'
         def inspect(label):
-            expression = 'import runpy; runpy.run_path(' + repr(str(probe)) + ")[\"exercise\"](env," + repr(str(stage / (label + '.json'))) + ')'
+            expression = 'import runpy; runpy.run_path(' + repr(str(probe)) + ")[\"exercise\"](env," + repr(str(stage / (label + '.json'))) + ', input_storage=' + repr('numeric' if args.input_contracts else 'float8') + ')'
             execute(label, expression=expression)
             return json.loads((stage / (label + '.json')).read_text())
         before = inspect('registry-before')
         updates = ('step_payroll_oca_api', 'step_simpledigital_oca_base') + install
-        text = execute('tests', ('-u', ','.join(updates), '--test-enable', '--test-tags=' + TAGS, '--stop-after-init'))
-        assert re.search(r'0 failed, 0 error\(s\) of 12 tests', text), 'All twelve real saved-input/batch cases must execute'
+        text = execute('tests', ('-u', ','.join(updates), '--test-enable', '--test-tags=' + tags, '--stop-after-init'))
+        assert re.search(r'0 failed, 0 error\(s\) of %s tests' % expected_tests, text), 'Every declared real functional contract case must execute'
         after = inspect('registry-after')
         assert before == after, 'Cold registry/form/default/ACL contract changed after tests'
         assert packet(source) == frozen, 'Frozen source packet changed'
@@ -153,7 +171,8 @@ def main():
         assert sql(args.database, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND demo") == '0', 'Demo data was enabled'
         write(stage / 'passed.json', {'mode': 'community', 'profile': PROFILE, 'database': args.database,
             'counts': counts, 'package_files': len(frozen), 'source_files_sha256': hashlib.sha256((stage / 'source-files.json').read_bytes()).hexdigest(),
-            'expected_test_count': 12, 'test_results': [line for line in text.splitlines() if 'tests.result' in line],
+            'expected_test_count': expected_tests, 'numeric_input_engine': args.input_contracts,
+            'numeric_engine_derivation_sha256': hashlib.sha256((root / 'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if args.input_contracts else None, 'test_results': [line for line in text.splitlines() if 'tests.result' in line],
             'official_community_revision': OFFICIAL_PIN, 'oca_revision': PIN,
             'operational_package': False, 'historical_conversion': False, 'original_masters_imported': False,
             'simpledigital_certified': False, 'financial_certified': False, 'writes_to_source': False,

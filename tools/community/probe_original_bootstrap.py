@@ -23,7 +23,7 @@ def counts(env):
     return result
 
 
-def exercise(env, output):
+def exercise(env, output, *, input_storage="float8"):
     from odoo import api, Command
     from odoo.exceptions import AccessError
     from odoo.tools import json_default
@@ -46,7 +46,11 @@ def exercise(env, output):
         "FROM pg_attribute WHERE attrelid='hr_payslip_input'::regclass AND attnum>0 AND NOT attisdropped "
         "AND attname IN ('amount','code','contract_id') ORDER BY attname")
     input_columns = env.cr.fetchall()
-    assert input_columns == [('amount', 'double precision', False, False),
+    assert input_storage in ('float8', 'numeric')
+    if input_storage == 'numeric':
+        field = env['hr.payslip.input']._fields['amount']
+        assert field.column_type == ('numeric', 'numeric') and field.get_digits(env) is False
+    assert input_columns == [('amount', 'numeric' if input_storage == 'numeric' else 'double precision', False, False),
         ('code', 'character varying', True, False), ('contract_id', 'integer', True, False)]
     company = env.company
 
