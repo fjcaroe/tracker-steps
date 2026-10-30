@@ -39,8 +39,9 @@ class QualityOcaOperationCase(TransactionCase):
         wizard = self.scope['qc.inspection.set.test'].with_context(active_model='qc.inspection', active_id=inspection.id).create({'test': self.test.id})
         self.assertTrue(wizard.action_create_test())
         for line in inspection.inspection_lines:
-            if line.question_type == 'quantitative' and measured is not None:
-                line.quantitative_value = measured
+            if line.question_type == 'quantitative':
+                if measured is not None:
+                    line.quantitative_value = measured
             elif accepted is not None:
                 answer = line.possible_ql_values.filtered(lambda row: row.ok == accepted)
                 self.assertEqual(len(answer), 1)
