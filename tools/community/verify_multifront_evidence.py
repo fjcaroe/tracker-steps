@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import subprocess
 import tarfile
+import tempfile
 
 import build_original_bootstrap as builder
 import build_numeric_input_engine as numeric
@@ -21,6 +22,7 @@ import payroll_representation_contract as representation
 import treasury_launcher_contract as treasury
 import audit_multifront_installation as installation
 import oca_vendor_contract as vendor
+import quality_vendor_contract as quality_vendor
 import verify_original_bootstrap_evidence as base
 import verify_original_contracts_evidence as previous
 
@@ -40,13 +42,16 @@ TOOLS = tuple(dict.fromkeys(previous.TOOLS + EXECUTED_TOOLS + (
 EXPECTED_TESTS = {'community': 576, 'cerro-reference': 391}
 
 
-def own_modules(operational_extensions=False):
-    return OWN_MODULES + (installation.EXTENSION_MODULES if operational_extensions else ())
+def own_modules(operational_extensions=False, quality_extension=False):
+    require(type(operational_extensions) is bool and type(quality_extension) is bool
+        and (not quality_extension or operational_extensions), 'Quality requires explicit operational extensions')
+    return OWN_MODULES + (installation.EXTENSION_MODULES if operational_extensions else ()) + (installation.QUALITY_MODULES if quality_extension else ())
 
 
-def expected_tests(operational_extensions=False):
+def expected_tests(operational_extensions=False, quality_extension=False):
     require(type(operational_extensions) is bool, 'Explicit operational extensions profile required')
-    return installation.EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    own_modules(operational_extensions, quality_extension)
+    return installation.QUALITY_TESTS if quality_extension else installation.EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
 
 
 def expected_alias_contract(aliases):
@@ -70,21 +75,22 @@ def expected_alias_contract(aliases):
             'shared_bank_model_reference_exact': True}
 
 
-def git_sources(repo, *, operational_extensions=False):
-    paths = list(own_modules(operational_extensions)) + ['tools/community/' + name
-        for name in TOOLS + (('oca_vendor_contract.py',) if operational_extensions else ())]
+def git_sources(repo, *, operational_extensions=False, quality_extension=False):
+    paths = list(own_modules(operational_extensions, quality_extension)) + ['tools/community/' + name
+        for name in TOOLS + (('oca_vendor_contract.py',) if operational_extensions else ())
+        + (('quality_vendor_contract.py', 'verify_original_report_headers.py') if quality_extension else ())]
     body = subprocess.check_output(['git', '-C', str(repo), '-c', 'core.autocrlf=true',
         '-c', 'core.eol=crlf', 'archive', '--format=tar', 'HEAD', *paths])
     with tarfile.open(fileobj=io.BytesIO(body)) as archive:
         return {item.name: archive.extractfile(item).read() for item in archive.getmembers() if item.isfile()}
 
 
-def verify_packets(root, source, *, operational_extensions=False):
+def verify_packets(root, source, *, operational_extensions=False, quality_extension=False):
     packets = [read(root, mode + '/source-files.json') for mode in EXPECTED_TESTS]
     require(packets[0] == packets[1], 'MF Community/native source packets differ')
-    modules = own_modules(operational_extensions)
+    modules = own_modules(operational_extensions, quality_extension)
     own = {name: sha(body) for name, body in source.items() if name.split('/')[0] in modules}
-    require(len(modules) == (30 if operational_extensions else 27) and {name.split('/')[0] for name in own} == set(modules),
+    require(len(modules) == (33 if quality_extension else 30 if operational_extensions else 27) and {name.split('/')[0] for name in own} == set(modules),
             'MF must include the exact reviewed owned module profile')
     pin = json.loads(source['tools/community/simpledigital_runtime_source.json'].decode('utf-8-sig'))
     for folder in ('original-provider', 'normal-provider'):
@@ -103,7 +109,7 @@ def verify_packets(root, source, *, operational_extensions=False):
     return packets[0]
 
 
-def verify_executed_tools(root, source, *, operational_extensions=False):
+def verify_executed_tools(root, source, *, operational_extensions=False, quality_extension=False):
     directory = safe_path(root, 'executed-tools')
     require(directory.is_dir() and {path.name for path in directory.iterdir()} == set(EXECUTED_TOOLS),
             'MF executed helper inventory differs')
@@ -116,14 +122,18 @@ def verify_executed_tools(root, source, *, operational_extensions=False):
                    'audit_multifront_installation.py', source)
     if operational_extensions:
         base.tool_hash(sha(safe_path(root, 'vendor-auditor.py').read_bytes()), 'oca_vendor_contract.py', source)
+    if quality_extension:
+        base.tool_hash(sha(safe_path(root, 'quality-vendor-auditor.py').read_bytes()), 'quality_vendor_contract.py', source)
+        base.tool_hash(sha(safe_path(root, 'original-report-header-reviewer.py').read_bytes()), 'verify_original_report_headers.py', source)
 
 
-def verify_file_manifest(root, *, operational_extensions=False):
+def verify_file_manifest(root, *, operational_extensions=False, quality_extension=False):
     receipt = read(root, 'evidence-files.json')
     require(receipt['schema'] == 1 and receipt['database_accessed'] is False
             and receipt['database_writes'] is False and receipt['dump_exported'] is False
             and receipt['enterprise_source_bodies_exported'] is False
-            and receipt.get('operational_extensions', False) is operational_extensions, 'MF collector custody/scope differs')
+            and receipt.get('operational_extensions', False) is operational_extensions
+            and receipt.get('quality_extension', False) is quality_extension, 'MF collector custody/scope differs')
     actual = set()
     for path in root.rglob('*'):
         require(not path.is_symlink(), 'MF evidence symlink refused')
@@ -134,7 +144,7 @@ def verify_file_manifest(root, *, operational_extensions=False):
         require(sha(safe_path(root, name).read_bytes()) == digest, 'MF capsule member hash differs: ' + name)
 
 
-def critical_methods(source, log, mode, *, operational_extensions=False):
+def critical_methods(source, log, mode, *, operational_extensions=False, quality_extension=False):
     modules = NEW_MODULES if mode == 'community' else NEW_MODULES[:-1]
     selected = [(name, None) for name in source if '/tests/test_' in name and name.endswith('.py')
                 and name.split('/')[0] in modules]
@@ -156,6 +166,9 @@ def critical_methods(source, log, mode, *, operational_extensions=False):
         else:
             selected += [('step_payroll_benefits_native_reference/tests/test_native_benefits.py', 'NativeBenefitReferenceCase'),
                          ('step_payroll_original_report/tests/test_route.py', 'NativeOriginalPayrollReportRouteCase')]
+    if quality_extension:
+        selected += [('step_quality_oca/tests/test_inspection.py', 'QualityOcaOperationCase')] if mode == 'community' else [
+            ('step_qa_native_reference/tests/test_native_quality.py', 'NativeQualityConsumerCase')]
     result = {}
     for name, only_class in selected:
         require(name in source, 'Critical MF test source missing: ' + name)
@@ -177,12 +190,124 @@ def critical_methods(source, log, mode, *, operational_extensions=False):
         require(key not in result and len(re.findall(r'Starting ' + re.escape(key) + r' \.\.\.', log)) == 1,
                 'Critical posting form did not run exactly once')
         result[key] = name
-    count = (164 if mode == 'community' else 143) if operational_extensions else (103 if mode == 'community' else 97)
+    count = (173 if mode == 'community' else 147) if quality_extension else (164 if mode == 'community' else 143) if operational_extensions else (103 if mode == 'community' else 97)
     require(len(result) == count, 'Critical MF method inventory changed')
     return len(result)
 
 
-def verify_original_pdf(root, receipt):
+def original_pdf_inventory(directory, *, repeated=False):
+    """Exact inert capture inventory. Never execute captured HTML or code."""
+    directory = Path(directory)
+    proof = read(directory, 'proof.json')
+    files = {'proof.json': safe_path(directory, 'proof.json')}
+
+    def member(name, *, entry=None, suffix=None):
+        require(isinstance(name, str) and '\\' not in name and ':' not in name, 'Unsafe original PDF member')
+        path = safe_path(directory, name)
+        require(path.is_file() and (suffix is None or path.suffix == suffix), 'Original PDF member type/missing file')
+        body = path.read_bytes()
+        if entry is not None:
+            require(type(entry['bytes']) is int and entry['bytes'] == len(body)
+                and entry['sha256'] == sha(body), 'Original PDF pipeline member hash/bytes differ')
+        if name in files:
+            require(files[name] == path, 'Conflicting original PDF member')
+        files[name] = path
+        return body
+
+    if not repeated:
+        require(isinstance(proof['file'], str) and Path(proof['file']).name == proof['file'], 'Original PDF filename scope differs')
+        member(proof['file'], entry=proof, suffix='.pdf')
+    else:
+        repetitions = proof.get('repetitions')
+        require(isinstance(repetitions, list) and len(repetitions) == 3 and proof.get('header_layout_accepted') is False
+            and all(isinstance(proof.get(name), str) and proof[name] for name in ('company_name', 'country_name')),
+            'Three real original-report repetitions and outstanding header layout required')
+        require(sha(member('preview.html', suffix='.html')) == proof['financial_verified_html_sha256'], 'Original PDF preview hash differs')
+        require(all(proof[key] == repetitions[0][key] for key in ('file', 'sha256', 'bytes', 'pages')),
+            'First original PDF and compatibility receipt differ')
+        names = set()
+        for index, repetition in enumerate(repetitions, 1):
+            filename = repetition['file']
+            require(isinstance(filename, str) and Path(filename).name == filename and filename not in names,
+                'Repeated original PDF filenames must be distinct')
+            names.add(filename)
+            body = member(filename, entry=repetition, suffix='.pdf')
+            require(body.startswith(b'%PDF-') and type(repetition['pages']) is int and repetition['pages'] > 0
+                and all(type(repetition[key]) is int and repetition[key] == 1 for key in ('prepared_headers', 'wkhtmltopdf_runs', 'argument_calls'))
+                and all(repetition[key] is True for key in ('company_present_in_prepared_headers', 'country_present_in_prepared_headers', 'normal_run_actor')),
+                'Original PDF repetition/actor/pipeline count differs')
+            prefix = 'repetition-%s/' % index
+            require(repetition['pipeline'] == prefix + 'pipeline.json', 'Original PDF repetition pipeline scope differs')
+            raw = member(repetition['pipeline'], entry={'bytes': repetition['pipeline_bytes'], 'sha256': repetition['pipeline_sha256']}, suffix='.json')
+            pipeline = json.loads(raw)
+            require(set(pipeline) == {'prepare_calls', 'run_calls', 'argument_calls'}
+                and all(isinstance(pipeline[key], list) and len(pipeline[key]) == 1 for key in pipeline), 'Actual original PDF pipeline calls differ')
+            prepared, run, arguments = (pipeline[key][0] for key in ('prepare_calls', 'run_calls', 'argument_calls'))
+            require(set(prepared) == {'environment', 'report_model', 'html', 'bodies', 'header', 'footer', 'document_ids',
+                'specific_paperformat_args', 'company_name_present', 'country_name_present', 'embedded_images'}
+                and set(run) == {'environment', 'bodies', 'header', 'footer', 'landscape', 'specific_paperformat_args', 'set_viewport_size'},
+                'Unexpected original PDF prepare/conversion capture scope')
+            require(prepared['company_name_present'] is True and prepared['country_name_present'] is True,
+                'Actual prepared company/country evidence differs from repetition receipt')
+            for call in (prepared, run, arguments):
+                environment = call['environment']
+                require(set(environment) == {'uid', 'sudo', 'allowed_company_ids'}
+                    and type(environment['uid']) is int and environment['uid'] > 0
+                    and type(environment['sudo']) is bool and isinstance(environment['allowed_company_ids'], list)
+                    and all(type(value) is int and value > 0 for value in environment['allowed_company_ids']),
+                    'Unexpected original PDF environment/session capture')
+            for call in (run, arguments):
+                require(type(call['environment']['uid']) is int and call['environment']['uid'] == proof['actor_id']
+                    and call['environment']['sudo'] is False, 'Original PDF converter changed the normal actor')
+            require(arguments.get('session_arguments_captured') is False and isinstance(arguments['arguments'], list)
+                and all(isinstance(value, str) and value.split('=', 1)[0].lower() not in
+                    ('--cookie', '--cookie-jar', '--username', '--password') for value in arguments['arguments']),
+                'Session/cookie/credential converter arguments refused')
+            allowed = {'environment', 'paperformat', 'landscape', 'specific_paperformat_args',
+                'set_viewport_size', 'arguments', 'session_arguments_captured'}
+            require(set(arguments) == allowed, 'Unexpected original PDF argument capture scope')
+            for call in (prepared, run):
+                require(isinstance(call['bodies'], list) and call['bodies'], 'Original PDF body capture is absent')
+                for entry in [call['header'], call['footer'], *call['bodies']]:
+                    require(isinstance(entry['file'], str) and Path(entry['file']).name == entry['file'], 'Original PDF HTML member escapes its repetition')
+                    member(prefix + entry['file'], entry=entry, suffix='.html')
+            require(isinstance(prepared['html']['file'], str) and Path(prepared['html']['file']).name == prepared['html']['file'], 'Original PDF prepare HTML scope differs')
+            member(prefix + prepared['html']['file'], entry=prepared['html'], suffix='.html')
+            require(all(prepared[key]['sha256'] == run[key]['sha256'] and prepared[key]['bytes'] == run[key]['bytes']
+                for key in ('header', 'footer')), 'Prepared and converted original PDF headers/footers differ')
+    actual = set()
+    for path in directory.rglob('*'):
+        require(not path.is_symlink(), 'Original PDF capture symlink refused')
+        if path.is_file():
+            actual.add(path.relative_to(directory).as_posix())
+    require(actual == set(files), 'Original PDF capture contains missing/surplus files')
+    return files
+
+
+def review_original_headers(directory, source):
+    """Run trusted review outside the capsule; technical failure stays visible."""
+    try:
+        import verify_original_report_headers as reviewer
+    except ImportError:
+        return {'review_completed': False, 'technical_headers_passed': False, 'productive_layout_accepted': False,
+            'legal_validity_certified': False, 'limitation': 'offline_reviewer_dependency_unavailable'}
+    base.tool_hash(sha(Path(reviewer.__file__).read_bytes()), 'verify_original_report_headers.py', source)
+    with tempfile.TemporaryDirectory(prefix='original-report-header-review-') as folder:
+        output = Path(folder).resolve()
+        require(not output.is_relative_to(Path(directory).resolve()), 'Header replay output must stay outside the evidence capsule')
+        try:
+            result = reviewer.verify(directory, output)
+        except reviewer.HeaderReviewError:
+            return {'review_completed': False, 'technical_headers_passed': False, 'productive_layout_accepted': False,
+                'legal_validity_certified': False, 'limitation': 'technical_header_contract_failed'}
+        require(type(result['technical_headers_passed']) is bool and result['productive_layout_accepted'] is False
+            and result['legal_validity_certified'] is False and len(result['repetitions']) == 3,
+            'Header reviewer claimed unsupported acceptance')
+        return dict(result, review_completed=True, temporary_output_outside_artifact=True,
+            limitation=None if result['technical_headers_passed'] else 'technical_headers_not_preserved_on_all_pages')
+
+
+def verify_original_pdf(root, receipt, *, quality_extension=False, source=None):
     """Bind actual third PDF bytes; preserve outstanding text/visual review."""
     name = 'community/original-report-pdf-evidence/proof.json'
     proof = read(root, name)
@@ -209,14 +334,25 @@ def verify_original_pdf(root, receipt):
         and isinstance(proof['financial_verified_html_sha256'], str)
         and re.fullmatch('[0-9a-f]{64}', proof['financial_verified_html_sha256']),
         'Original report PDF runtime assets/verified HTML evidence differs')
-    return {'actual_pdf_count': 1, 'bytes': len(body), 'pages': proof['pages'], 'sha256': sha(body),
+    result = {'actual_pdf_count': 1, 'bytes': len(body), 'pages': proof['pages'], 'sha256': sha(body),
         'original_action_numeric_adoption': False, 'text_verification_required': True, 'visual_review_required': True}
+    if quality_extension:
+        directory = safe_path(root, 'community/original-report-pdf-evidence')
+        files = original_pdf_inventory(directory, repeated=True)
+        result.update(actual_pdf_count=3, logical_report_count=1, repetitions=3,
+            capture_files={name: {'sha256': sha(path.read_bytes()), 'bytes': path.stat().st_size} for name, path in files.items()},
+            header_review=review_original_headers(directory, source), productive_layout_accepted=False,
+            legal_validity_certified=False)
+    return result
 
 
-def verify_receipt(root, source, packet, mode, *, operational_extensions=False):
+def verify_receipt(root, source, packet, mode, *, operational_extensions=False, quality_extension=False):
     receipt = read(root, mode + '/passed.json')
-    expected = expected_tests(operational_extensions)[mode]
-    require(receipt.get('operational_extensions', False) is operational_extensions, 'MF operational extension receipt/profile differs')
+    expected = expected_tests(operational_extensions, quality_extension)[mode]
+    require(receipt.get('operational_extensions', False) is operational_extensions
+        and receipt.get('quality_extension', False) is quality_extension, 'MF operational extension receipt/profile differs')
+    if quality_extension:
+        require(receipt['quality_vendor_revision'] == quality_vendor.PIN, 'Exact quality provider revision required')
     require(receipt.get('focused_development_pass') is False, 'Focused development execution is not acceptance')
     require(receipt['mode'] == mode and receipt['profile'] == 'simpledigital' and receipt['accelerated'] is True
             and receipt['custody_grouping'] is True and receipt['multifront'] is True,
@@ -254,11 +390,11 @@ def verify_receipt(root, source, packet, mode, *, operational_extensions=False):
     log = safe_path(root, mode + '/tests.log').read_text(errors='replace')
     require(not re.search(r' (ERROR|CRITICAL) ', log), 'MF functional log contains an error')
     base.test_result([line for line in log.splitlines() if 'tests.result' in line], expected)
-    methods = critical_methods(source, log, mode, operational_extensions=operational_extensions)
+    methods = critical_methods(source, log, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
     installed_proof = read(root, mode + '/module-installation.json')
     base.tool_hash(installed_proof['tool_sha256'], 'audit_multifront_installation.py', source)
-    require(tuple(installation.owned_modules(operational_extensions)) == own_modules(operational_extensions), 'Installation postflight packet scope differs')
-    installation_summary = installation.verify(installed_proof, mode, source, receipt, operational_extensions=operational_extensions)
+    require(tuple(installation.owned_modules(operational_extensions, quality_extension)) == own_modules(operational_extensions, quality_extension), 'Installation postflight packet scope differs')
+    installation_summary = installation.verify(installed_proof, mode, source, receipt, operational_extensions=operational_extensions, quality_extension=quality_extension)
     finance = read(root, mode + '/finance-frontier.json')
     alias_audit = expected_alias_contract(finance['aliases'])
     finance_modules = ('step_account_balance_analytic', 'step_bank_export_core', 'step_accounting_multicurrency_core')
@@ -291,7 +427,7 @@ def verify_receipt(root, source, packet, mode, *, operational_extensions=False):
                'module_installation': installation_summary, 'banking_alias_contract': alias_audit, **receipt['counts']}
     if operational_extensions:
         if mode == 'community':
-            summary['original_report_pdf'] = verify_original_pdf(root, receipt)
+            summary['original_report_pdf'] = verify_original_pdf(root, receipt, quality_extension=quality_extension, source=source)
         else:
             require(type(receipt['original_report_pdf_reports']) is int and receipt['original_report_pdf_reports'] == 0
                 and receipt['original_report_pdf_receipt_sha256'] is None
@@ -300,11 +436,11 @@ def verify_receipt(root, source, packet, mode, *, operational_extensions=False):
     return receipt, summary
 
 
-def verify_preservation(root, source, native, repo, *, operational_extensions=False):
+def verify_preservation(root, source, native, repo, *, operational_extensions=False, quality_extension=False):
     admission = read(root, 'cerro-reference/version-admission.json')
     require(admission, 'MF native upgrade version admission is missing')
     for module, row in admission.items():
-        require(module in own_modules(operational_extensions) and row['downgrade'] is False
+        require(module in own_modules(operational_extensions, quality_extension) and row['downgrade'] is False
                 and row['candidate'] == ast.literal_eval(source[module + '/__manifest__.py'].decode('utf-8-sig'))['version'],
                 'MF native candidate version differs from Git')
         require(all(isinstance(row[key], str) and re.fullmatch(r'[0-9]+(?:\.[0-9]+)*', row[key]) for key in ('original', 'candidate'))
@@ -398,6 +534,7 @@ def verify_vendor(root):
         if path.is_file():
             files[path.relative_to(directory).as_posix()] = path.read_bytes()
     result = vendor.verify(read(root, 'oca-vendor-git-proof.json'), files)
+    require(sum(result['module_files'].values()) == len(files) == 266, 'Exact 266-file operational payroll vendor tree required')
     require(read(root, 'community/vendor-files.json') == {name: sha(body) for name, body in files.items()},
         'Executed operational vendor source inventory differs from pinned Git')
     original = previous.engine_snapshot(root, 'engine-original')
@@ -406,13 +543,37 @@ def verify_vendor(root):
     return result
 
 
-def verify(evidence, *, repo=None, operational_extensions=False):
+def verify_quality_vendor(root):
+    """Keep the AGPL Quality tree independent from the LGPL payroll vendor."""
+    directory = safe_path(root, 'quality-vendor')
+    require(directory.is_dir(), 'Quality vendor sources missing')
+    manifest = ast.literal_eval(safe_path(root, 'quality-vendor/' + quality_vendor.MODULE + '/__manifest__.py').read_text(encoding='utf-8-sig'))
+    require(manifest['license'] == quality_vendor.LICENSE and manifest['version'] == quality_vendor.VERSION
+        and manifest['depends'] == quality_vendor.DEPENDENCIES, 'Nonfree/unpinned Quality provider refused before runtime bodies')
+    files = {}
+    for path in directory.rglob('*'):
+        require(not path.is_symlink(), 'Quality vendor symlink refused')
+        if path.is_file():
+            files[path.relative_to(directory).as_posix()] = path.read_bytes()
+    proof = read(root, 'quality-vendor-git-proof.json')
+    result = quality_vendor.verify(proof, files)
+    require(result['file_count'] == len(files) == 114 and result['oca_pin'] == installation.QUALITY_PIN
+        and result['vendor_sources_unmodified'] is True and result['all_blobs_bound_to_pinned_commit'] is True,
+        'Exact unmodified 114-file Quality Git tree required')
+    hashes = {name: sha(body) for name, body in files.items()}
+    for mode in EXPECTED_TESTS:
+        require(read(root, mode + '/quality-vendor-files.json') == hashes
+            and read(root, mode + '/quality-vendor-proof.json') == proof, 'Executed Quality provider/proof differs from pinned Git')
+    return result
+
+
+def verify(evidence, *, repo=None, operational_extensions=False, quality_extension=False):
     root = Path(evidence).resolve()
     repo = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
-    source = git_sources(repo, operational_extensions=operational_extensions)
-    verify_file_manifest(root, operational_extensions=operational_extensions)
-    verify_executed_tools(root, source, operational_extensions=operational_extensions)
-    packet = verify_packets(root, source, operational_extensions=operational_extensions)
+    source = git_sources(repo, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    verify_file_manifest(root, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    verify_executed_tools(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    packet = verify_packets(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     # This provider is private AGPL source, not a repository addon. Its entire
     # 52-file replay was validated above before its manifest joins the trusted
     # postflight source map.
@@ -422,11 +583,12 @@ def verify(evidence, *, repo=None, operational_extensions=False):
     require(engine['source_files'] == engine['candidate_files'] == 144, 'MF NUMERIC engine file inventory differs')
     base.verify_hr_derivation(root, source)
     vendor_summary = verify_vendor(root) if operational_extensions else None
-    community, community_summary = verify_receipt(root, source, packet, 'community', operational_extensions=operational_extensions)
-    native, native_summary = verify_receipt(root, source, packet, 'cerro-reference', operational_extensions=operational_extensions)
-    preservation = verify_preservation(root, source, native, repo, operational_extensions=operational_extensions)
-    result = {'schema': 1, 'profile': 'multifront-operational-extensions' if operational_extensions else 'multifront-normal-provider', 'exact_packet_matches_git': True,
-            'package_files': len(packet), 'owned_modules': len(own_modules(operational_extensions)), 'normal_provider_files': 52,
+    quality_summary = verify_quality_vendor(root) if quality_extension else None
+    community, community_summary = verify_receipt(root, source, packet, 'community', operational_extensions=operational_extensions, quality_extension=quality_extension)
+    native, native_summary = verify_receipt(root, source, packet, 'cerro-reference', operational_extensions=operational_extensions, quality_extension=quality_extension)
+    preservation = verify_preservation(root, source, native, repo, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    result = {'schema': 1, 'profile': 'multifront-quality-extension' if quality_extension else 'multifront-operational-extensions' if operational_extensions else 'multifront-normal-provider', 'exact_packet_matches_git': True,
+            'package_files': len(packet), 'owned_modules': len(own_modules(operational_extensions, quality_extension)), 'normal_provider_files': 52,
             'oca_numeric_engine': engine, 'community': community_summary, 'native_reference': native_summary,
             'preservation': preservation, 'inventory': verify_inventory(root, source),
             'cold_bootstrap_claimed': False, 'original_masters_imported': False, 'operational_package': False,
@@ -434,6 +596,9 @@ def verify(evidence, *, repo=None, operational_extensions=False):
             'deadline_resolved': False, 'artifact_code_executed': False, 'verifier_sha256': sha(Path(__file__).read_bytes())}
     if operational_extensions:
         result.update(operational_extensions=True, oca_unmodified_vendor=vendor_summary)
+    if quality_extension:
+        result.update(quality_extension=True, oca_unmodified_quality_vendor=quality_summary,
+            quality_native_identity_converted=False, productive_layout_accepted=False, legal_validity_certified=False)
     return result
 
 
@@ -442,11 +607,12 @@ def main():
     parser.add_argument('evidence', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--operational-extensions', action='store_true')
+    parser.add_argument('--quality-extension', action='store_true')
     args = parser.parse_args()
-    result = verify(args.evidence, operational_extensions=args.operational_extensions)
+    result = verify(args.evidence, operational_extensions=args.operational_extensions, quality_extension=args.quality_extension)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
-    counts = expected_tests(args.operational_extensions)
+    counts = expected_tests(args.operational_extensions, args.quality_extension)
     print('MULTIFRONT_EVIDENCE_VERIFIED: Community %s / native %s; integral conversion remains pending' % (counts['community'], counts['cerro-reference']))
 
 

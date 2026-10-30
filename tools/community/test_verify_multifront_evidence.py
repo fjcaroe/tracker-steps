@@ -1,5 +1,7 @@
 """Offline policy negatives; all evidence in these tests is synthetic."""
 import ast
+import base64
+import importlib.util
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -16,19 +18,208 @@ def write(root, name, value):
     path.write_text(json.dumps(value), encoding='utf-8')
 
 
-def packet_fixture(operational_extensions=False):
+def packet_fixture(operational_extensions=False, quality_extension=False):
     provider = {'__manifest__.py': repr({'license': 'AGPL-3'}).encode()}
     provider.update({'synthetic_%02d.txt' % index: str(index).encode() for index in range(51)})
     source = {module + '/__manifest__.py': repr({'license': 'LGPL-3', 'version': '18.0.1.0.0'}).encode()
-              for module in verifier.own_modules(operational_extensions)}
+              for module in verifier.own_modules(operational_extensions, quality_extension)}
     source['tools/community/simpledigital_runtime_source.json'] = json.dumps(
         {'files': {name: verifier.sha(body) for name, body in provider.items()}}).encode()
-    packet = {name: verifier.sha(body) for name, body in source.items() if name.split('/')[0] in verifier.own_modules(operational_extensions)}
+    packet = {name: verifier.sha(body) for name, body in source.items() if name.split('/')[0] in verifier.own_modules(operational_extensions, quality_extension)}
     packet.update({verifier.builder.MODULE + '/' + name: verifier.sha(body) for name, body in provider.items()})
     return source, provider, packet
 
 
+def quality_fixture(count=114):
+    """Synthetic complete Git tree, never an OCA or product acceptance claim."""
+    vendor = verifier.quality_vendor
+    files = {vendor.MODULE + '/__manifest__.py': repr({'version': vendor.VERSION, 'license': vendor.LICENSE,
+        'depends': vendor.DEPENDENCIES}).encode()}
+    files.update({vendor.MODULE + '/fixture_%03d.txt' % index: b'synthetic inert fixture\n' for index in range(count - 1)})
+    module = b''.join(b'100644 ' + name.split('/', 1)[1].encode() + b'\0' + bytes.fromhex(vendor.git_object_oid('blob', body))
+        for name, body in sorted(files.items()))
+    module_id = vendor.git_object_oid('tree', module)
+    root = b'40000 ' + vendor.MODULE.encode() + b'\0' + bytes.fromhex(module_id)
+    commit = ('tree ' + vendor.git_object_oid('tree', root) + '\n\nSynthetic vendor custody fixture\n').encode()
+    pin = vendor.git_object_oid('commit', commit)
+    hashes, seal = vendor.fingerprint(files)
+    proof = {'schema': 1, 'repository': vendor.REPOSITORY, 'oca_pin': pin, 'module': vendor.MODULE,
+        'version': vendor.VERSION, 'license': vendor.LICENSE, 'dependencies': vendor.DEPENDENCIES,
+        'commit_object_b64': base64.b64encode(commit).decode(), 'root_tree_object_b64': base64.b64encode(root).decode(),
+        'trees_by_oid_b64': {module_id: base64.b64encode(module).decode()}, 'source_files_sha256': hashes,
+        'source_files_fingerprint': seal, 'file_count': count, 'vendor_sources_unmodified': True,
+        'native_identity_converted': False, 'artifact_code_executed': False}
+    return pin, proof, files
+
+
+def repeated_pdf_fixture(root):
+    """Byte-custody fixture only. Fake PDF bytes never certify rendering."""
+    directory = root / 'community/original-report-pdf-evidence'
+    directory.mkdir(parents=True)
+    html = b'<html><body>Private company Chile</body></html>'
+    (directory / 'preview.html').write_bytes(html)
+    repetitions = []
+    environment = {'uid': 7, 'sudo': False, 'allowed_company_ids': [9]}
+    for index in range(1, 4):
+        folder = directory / ('repetition-%s' % index); folder.mkdir()
+        def entry(name):
+            (folder / name).write_bytes(html)
+            return {'file': name, 'sha256': verifier.sha(html), 'bytes': len(html)}
+        prepared = {'environment': environment, 'report_model': 'hr.payslip', 'html': entry('prepare.html'),
+            'bodies': [entry('prepare-body.html')], 'header': entry('prepare-header.html'), 'footer': entry('prepare-footer.html'),
+            'document_ids': [41], 'specific_paperformat_args': {}, 'company_name_present': True,
+            'country_name_present': True, 'embedded_images': []}
+        run = {'environment': environment, 'bodies': [entry('run-body.html')], 'header': entry('run-header.html'),
+            'footer': entry('run-footer.html'), 'landscape': False, 'specific_paperformat_args': {}, 'set_viewport_size': False}
+        arguments = {'environment': environment, 'paperformat': [], 'landscape': False,
+            'specific_paperformat_args': {}, 'set_viewport_size': False, 'arguments': ['--quiet'], 'session_arguments_captured': False}
+        pipeline = {'prepare_calls': [prepared], 'run_calls': [run], 'argument_calls': [arguments]}
+        write(folder, 'pipeline.json', pipeline)
+        raw = (folder / 'pipeline.json').read_bytes()
+        body = b'%PDF- synthetic byte fixture ' + str(index).encode()
+        filename = 'fixture-%s.pdf' % index; (directory / filename).write_bytes(body)
+        repetitions.append({'file': filename, 'sha256': verifier.sha(body), 'bytes': len(body), 'pages': 1,
+            'pipeline': 'repetition-%s/pipeline.json' % index, 'pipeline_sha256': verifier.sha(raw), 'pipeline_bytes': len(raw),
+            'prepared_headers': 1, 'wkhtmltopdf_runs': 1, 'argument_calls': 1, 'company_present_in_prepared_headers': True,
+            'country_present_in_prepared_headers': True, 'normal_run_actor': True})
+    proof = {key: repetitions[0][key] for key in ('file', 'sha256', 'bytes', 'pages')}
+    proof.update(actor_id=7, normal_actor=True, stored_history_unchanged=True, original_action_unchanged=True,
+        existing_structure_fk_unchanged=True, original_action_numeric_adoption=False, missing_assets=[],
+        runtime_asset_sha256={'/web/assets/fixture.css': 'a' * 64}, financial_verified_html_sha256=verifier.sha(html),
+        offline_pdf_text_verification_required=True, visual_pdf_review_required=True, repetitions=repetitions,
+        company_name='Private company', country_name='Chile', header_layout_accepted=False)
+    write(directory, 'proof.json', proof)
+    return directory, proof
+
+
 class MultifrontEvidenceCase(unittest.TestCase):
+    def test_quality_profile_is_exact_thirtythree_and_never_an_implicit_operational_extension(self):
+        source, provider, packet = packet_fixture(True, True)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for prefix in ('original-provider', 'normal-provider'):
+                path = root / prefix / '__manifest__.py'; path.parent.mkdir(); path.write_bytes(provider['__manifest__.py'])
+            for mode in verifier.EXPECTED_TESTS: write(root, mode + '/source-files.json', packet)
+            with patch.object(verifier.previous.base, 'addon_snapshot', return_value=provider), \
+                    patch.object(verifier.previous, 'replay_normal_provider', return_value=provider):
+                self.assertEqual(verifier.verify_packets(root, source, operational_extensions=True, quality_extension=True), packet)
+                with self.assertRaises(verifier.base.EvidenceError): verifier.verify_packets(root, source, operational_extensions=True)
+                for name in ('step_quality_contracts', 'step_quality_oca', 'step_qa_native_reference'):
+                    altered = dict(packet); altered.pop(name + '/__manifest__.py')
+                    for mode in verifier.EXPECTED_TESTS: write(root, mode + '/source-files.json', altered)
+                    with self.assertRaises(verifier.base.EvidenceError):
+                        verifier.verify_packets(root, source, operational_extensions=True, quality_extension=True)
+        for operational, quality in ((False, True), (1, True), (True, 1)):
+            with self.assertRaises(verifier.base.EvidenceError): verifier.expected_tests(operational, quality)
+        self.assertEqual(verifier.expected_tests(True, True), {'community': 646, 'cerro-reference': 441})
+
+    def test_quality_173_147_critical_methods_require_every_mode_specific_test_once(self):
+        root = Path(__file__).resolve().parents[2]
+        source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.own_modules(True, True)
+            for path in (root / module).rglob('*.py')}
+        keys = {cls.name + '.' + method.name for name, body in source.items() if '/tests/test_' in name
+            for cls in ast.parse(body.decode('utf-8-sig')).body if isinstance(cls, ast.ClassDef)
+            for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_')}
+        log = '\n'.join('Starting ' + key + ' ...' for key in sorted(keys))
+        for mode, expected, selected in (('community', 173, 'QualityOcaOperationCase.'), ('cerro-reference', 147, 'NativeQualityConsumerCase.')):
+            self.assertEqual(verifier.critical_methods(source, log, mode, operational_extensions=True, quality_extension=True), expected)
+            key = next(key for key in keys if key.startswith(selected))
+            for changed in (log.replace('Starting ' + key + ' ...', ''), log + '\nStarting ' + key + ' ...'):
+                with self.subTest(mode=mode), self.assertRaises(verifier.base.EvidenceError):
+                    verifier.critical_methods(source, changed, mode, operational_extensions=True, quality_extension=True)
+
+    def test_quality_vendor_binds_all_114_git_blobs_and_both_executed_inventories(self):
+        for change in (None, 'partial_valid_tree', 'blob', 'extra', 'native_inventory', 'native_proof', 'license'):
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                pin, proof, files = quality_fixture(113 if change == 'partial_valid_tree' else 114)
+                for name, body in files.items():
+                    path = root / 'quality-vendor' / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(body)
+                write(root, 'quality-vendor-git-proof.json', proof)
+                for mode in verifier.EXPECTED_TESTS:
+                    write(root, mode + '/quality-vendor-proof.json', proof)
+                    write(root, mode + '/quality-vendor-files.json', {name: verifier.sha(body) for name, body in files.items()})
+                if change == 'blob': (root / 'quality-vendor' / next(name for name in files if name.endswith('.txt'))).write_bytes(b'tampered')
+                elif change == 'extra': (root / 'quality-vendor/quality_control_oca/unreviewed.py').write_text('raise RuntimeError("never execute")')
+                elif change == 'native_inventory': write(root, 'cerro-reference/quality-vendor-files.json', {})
+                elif change == 'native_proof': write(root, 'cerro-reference/quality-vendor-proof.json', dict(proof, artifact_code_executed=True))
+                elif change == 'license': (root / 'quality-vendor/quality_control_oca/__manifest__.py').write_text(repr({'license': 'OEEL-1'}))
+                with patch.object(verifier.quality_vendor, 'PIN', pin), patch.object(verifier.installation, 'QUALITY_PIN', pin):
+                    if change is None:
+                        result = verifier.verify_quality_vendor(root)
+                        self.assertEqual(result['file_count'], 114)
+                        self.assertFalse(result['native_identity_converted'])
+                    else:
+                        with self.subTest(change=change), self.assertRaises((ValueError, KeyError)):
+                            verifier.verify_quality_vendor(root)
+
+    def test_three_pdf_capture_seals_actual_pipeline_inputs_without_accepting_header_claims(self):
+        for change in (None, 'missing_repeat', 'duplicate_pdf', 'pipeline_bytes', 'preview', 'tampered_header',
+                'cookie_arg', 'cookie_key', 'sudo', 'path', 'extra_code', 'header_claim'):
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder); directory, proof = repeated_pdf_fixture(root)
+                pipeline_path = directory / proof['repetitions'][0]['pipeline']
+                pipeline = json.loads(pipeline_path.read_text())
+                if change == 'missing_repeat': proof['repetitions'].pop()
+                elif change == 'duplicate_pdf': proof['repetitions'][1]['file'] = proof['repetitions'][0]['file']
+                elif change == 'pipeline_bytes': proof['repetitions'][0]['pipeline_bytes'] += 1
+                elif change == 'preview': (directory / 'preview.html').write_bytes(b'changed')
+                elif change == 'tampered_header': (directory / 'repetition-1/run-header.html').write_bytes(b'changed')
+                elif change == 'cookie_arg': pipeline['argument_calls'][0]['arguments'] += ['--cookie', 'private-session', 'never-export']
+                elif change == 'cookie_key': pipeline['run_calls'][0]['cookie'] = 'never-export'
+                elif change == 'sudo': pipeline['run_calls'][0]['environment']['sudo'] = True
+                elif change == 'path': proof['repetitions'][0]['pipeline'] = '../outside/pipeline.json'
+                elif change == 'extra_code': (directory / 'artifact.py').write_text('raise RuntimeError("must stay inert")')
+                elif change == 'header_claim': proof['header_layout_accepted'] = True
+                if change in ('cookie_arg', 'cookie_key', 'sudo'):
+                    pipeline_path.write_text(json.dumps(pipeline))
+                    proof['repetitions'][0].update(pipeline_sha256=verifier.sha(pipeline_path.read_bytes()), pipeline_bytes=pipeline_path.stat().st_size)
+                write(directory, 'proof.json', proof)
+                receipt = {'original_report_pdf_reports': 1,
+                    'original_report_pdf_receipt_sha256': verifier.sha((directory / 'proof.json').read_bytes())}
+                review = {'review_completed': True, 'technical_headers_passed': False, 'productive_layout_accepted': False,
+                    'legal_validity_certified': False, 'limitation': 'technical_headers_not_preserved_on_all_pages'}
+                with patch.object(verifier, 'review_original_headers', return_value=review) as reviewer:
+                    if change is None:
+                        result = verifier.verify_original_pdf(root, receipt, quality_extension=True, source={})
+                        self.assertEqual(result['actual_pdf_count'], 3)
+                        self.assertEqual(len(result['capture_files']), 29)
+                        self.assertFalse(result['header_review']['technical_headers_passed'])
+                        self.assertFalse(result['legal_validity_certified'])
+                        self.assertEqual(len(verifier.original_pdf_inventory(directory, repeated=True)), 29)
+                        reviewer.assert_called_once()
+                    else:
+                        with self.subTest(change=change), self.assertRaises(verifier.base.EvidenceError):
+                            verifier.verify_original_pdf(root, receipt, quality_extension=True, source={})
+                        reviewer.assert_not_called()
+
+    @unittest.skipUnless(importlib.util.find_spec('pymupdf') and importlib.util.find_spec('lxml'), 'Optional offline PDF review dependencies')
+    def test_real_offline_header_failure_does_not_mutate_capture_or_become_layout_acceptance(self):
+        import pymupdf
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); directory, proof = repeated_pdf_fixture(root)
+            # A real PDF engine creates this explicit unit fixture. It is not
+            # an Odoo result, and its absent header must remain a limitation.
+            with pymupdf.open() as document:
+                page = document.new_page(); page.insert_text((72, 72), 'Synthetic unit fixture; no company header or logo')
+                pdf = document.tobytes()
+            for repetition in proof['repetitions']:
+                (directory / repetition['file']).write_bytes(pdf)
+                repetition.update(sha256=verifier.sha(pdf), bytes=len(pdf))
+            proof.update({key: proof['repetitions'][0][key] for key in ('file', 'sha256', 'bytes', 'pages')})
+            write(directory, 'proof.json', proof)
+            before = {path.relative_to(directory).as_posix(): path.read_bytes() for path in directory.rglob('*') if path.is_file()}
+            receipt = {'original_report_pdf_reports': 1, 'original_report_pdf_receipt_sha256': verifier.sha((directory / 'proof.json').read_bytes())}
+            helper = Path(verifier.__file__).with_name('verify_original_report_headers.py')
+            result = verifier.verify_original_pdf(root, receipt, quality_extension=True,
+                source={'tools/community/verify_original_report_headers.py': helper.read_bytes()})
+            self.assertTrue(result['header_review']['review_completed'])
+            self.assertFalse(result['header_review']['technical_headers_passed'])
+            self.assertFalse(result['productive_layout_accepted'])
+            self.assertFalse(result['legal_validity_certified'])
+            self.assertTrue(result['header_review']['temporary_output_outside_artifact'])
+            self.assertEqual(before, {path.relative_to(directory).as_posix(): path.read_bytes() for path in directory.rglob('*') if path.is_file()})
+
     def test_operational_packet_is_exact_thirty_with_normal_fiftytwo_and_not_quality(self):
         source, provider, packet = packet_fixture(True)
         with tempfile.TemporaryDirectory() as folder:
