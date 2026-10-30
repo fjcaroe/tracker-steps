@@ -17,7 +17,8 @@ import sys
 
 
 TABLE = 'stock_package_type'
-NATIVE_ROOT_PREFIXES = ('community-original-bootstrap-', 'community-original-contracts-')
+NATIVE_ROOT_PREFIXES = ('community-original-bootstrap-', 'community-original-contracts-',
+                        'community-multifront-')
 COLUMNS = (
     ('id', 'integer', True), ('sequence', 'integer', False),
     ('company_id', 'integer', False), ('create_uid', 'integer', False),
