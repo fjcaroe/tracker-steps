@@ -46,7 +46,6 @@ class ReceiptReportCase(TransactionCase):
         tree=html.fromstring(self.render())
         self.assertFalse(tree.xpath("//table[contains(@class,'step_receipt_')]"))
         self.assertTrue(tree.xpath("//table[@name='stock_move_table']"))
-        self.picking.step_fruit_reception_kind='process'
         warehouse=self.picking.picking_type_id.warehouse_id
         self.picking.picking_type_id=warehouse.out_type_id
         self.assertFalse(self.picking._step_is_fruit_receipt())

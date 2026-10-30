@@ -3,6 +3,8 @@ from odoo import Command
 
 def receipt_fixture(env):
     company = env.company
+    # Fixture only: the whole test/clone transaction is rolled back.
+    company.step_fruit_inventory_enabled = True
     warehouse = env['stock.warehouse'].search([('company_id','=',company.id)], limit=1)
     kg = env.ref('uom.product_uom_kgm')
     producer = env['res.partner'].create({'name':'QA recibo productor', 'is_productor':True})
