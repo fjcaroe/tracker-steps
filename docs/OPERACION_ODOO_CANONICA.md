@@ -81,7 +81,8 @@ selección explícita de empresas y sucursales para Fundos de productores,
 categoría, clase, calidad y color de fruta. Reutilizar los maestros y conservar
 IDs, datos, empresa de origen y relaciones. No compartir documentos contables
 ni inventario, ni asignar automáticamente otras empresas. Incorporar Fundos
-a Packing / Maestros. Copias frescas, mismo paquete, respaldo, bloqueo y
+a Packing / Maestros. La lectura de los operadores no debe requerir acceso
+a fichas de compañías ajenas. Copias frescas, mismo paquete, respaldo, bloqueo y
 paridad del módulo afectado; no refrescar capacitación ni retirar aislamiento.
 
 

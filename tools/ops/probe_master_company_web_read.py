@@ -1,4 +1,9 @@
-"""Private-clone-only native web_read of a shared master from one active company."""
+"""Private-clone diagnostic of the low-level company-label access boundary.
+
+This intentionally requests labels outside the operator's access. The delivered
+views omit that selector for this profile; its permitted form/web_read flow is
+covered by test_operator_view_does_not_read_other_company_names.
+"""
 from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests.common import new_test_user
