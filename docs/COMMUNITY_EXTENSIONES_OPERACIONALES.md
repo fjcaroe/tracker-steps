@@ -51,13 +51,76 @@ incluido ventajas, ligados al commit `4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e`.
 
 ## Aceptación
 
-La pareja D está pendiente; esta sección no constituye aceptación hasta
-registrar ambos resultados y la custodia final. A fue diagnóstico de 95 casos;
+La pareja D pasó y su cápsula se reprodujo offline usando el verificador del
+checkout Git confiable. El paquete y helpers ejecutados coinciden con Git;
+ningún Python de los artefactos se ejecuta. A fue diagnóstico de 95 casos;
 B ejecutó 637 y detectó una regresión de precedencia de la guarda de compañía.
 C pasó 637 CE y halló un error de fixture en los 437 nativos: la creación de
 valores del catálogo está restringida a Settings. Se corrigió con configurador
 normal separado y prueba de denegación del rol HR, sin ampliar ACL. Ningún
 resultado parcial A/B/C autoriza integrar o desplegar.
+
+| Contexto D | Resultado | Alcance |
+| --- | --- | --- |
+| Community oficial | 637 casos, cero fallos/errores; 117 instalados, cero EE | Motor OCA y proveedor AGPL reales; 164 métodos críticos comprobados individualmente. |
+| Copia fresca Cerro | 437 casos, cero fallos/errores; 395 instalados, 140 EE | Referencia nativa; 143 métodos críticos. No es conversión integral. |
+
+Son 61 casos CE y 46 nativos adicionales respecto H. No sumar como pruebas únicas
+las suites que comparten contratos. Se ejecutaron además 35 verificaciones de
+herramientas y 13 DTE/10 EnvioDTE puros; las comprobaciones de producto también
+están dentro de las suites Odoo.
+
+La postvalidación readonly verifica 28 versiones exactas CE y 25 nativas, con
+24 módulos propios requeridos por modo. Los 266 archivos originales LGPL de
+`payroll` (144), `payroll_account` (97) y ventajas (25) quedan ligados a sus
+blobs/árboles del commit OCA. La derivación NUMERIC sigue separada y conserva
+144 archivos, una única transformación y su prueba Git de 14 árboles.
+
+Se preservan **921 tablas/proyecciones + 140 contadores = 1.061 contratos**,
+59.079 XML IDs originales/noupdate, modelos, ACL, relaciones e históricos.
+1.060 snapshots son literales. Sólo `stock_package_type.base_weight`, ID1,
+cambia representación `15.00`→`15`: el testigo SELECT readonly reconstruye sus
+cinco filas/19 columnas desde el respaldo propio D y demuestra igualdad tipada,
+sin Float ni redondeo; no se declara la tabla idéntica en bytes. Los cinco
+destinos de menú, siete timestamps de aliases propios y tres ayudas HR mantienen
+la política exacta aceptada en H; no se añaden excepciones ni se reinician
+contadores. El catálogo nativo conserva sus catorce tablas tras el rollback.
+
+Hay dos PDF almacenados de la regresión y un tercer PDF por la ruta de acción
+original: UID normal, fila de acción y FK intactas, cero/negativo/NULL/NET
+almacenados y ninguna reconstrucción de nómina. Se revisaron visualmente las
+dos páginas del tercero y su texto. **Pendiente visual real:** C incluye
+nombre/país corporativos en página1 y D los omite; los logos y los 215 assets
+coinciden y el PNG de página2 es idéntico. No se atribuye la causa sólo al
+fixture ni se acepta el layout para producción. Hace falta capturar HTML,
+cabecera/pie/formato/argumentos finales de wkhtmltopdf y repetir el caso.
+Los importes y el bloque legal/firma están completos; eso no certifica nómina.
+
+Fuentes y evidencia privada:
+
+- Snapshot Git candidato `a35f3c202997e5d849f14781714c2e82f489a2d3`
+  (código de producto `56f78187`), tar SHA256
+  `1050f2cde6a633158610823f47e2c364defc9cf9223537a8af4bf57b803f9723`.
+- Paquete común 483 archivos, fingerprint
+  `3dda89284b144c4f3725a682ccfd957383191fe8b25a4c60e8fe0ff3f68ac12b`.
+- Servidor `/opt/steps-validation/community-multifront-parallel-20261030D`;
+  evidencia `/opt/steps-validation/community-parallel-20261030`.
+- Cápsula `accepted-evidence-D.tar.gz`: 743 miembros, 8.249.988 bytes, SHA256
+  `c8b789955975fadb56f2b185c83264fda6a1ee7e7c1c5a3fc267cba8dd84f8eb`.
+  No exporta dump, filestore, credenciales ni cuerpos OEEL.
+- Testigo propio D SHA256
+  `5ceab150a7a8046a81c850f2b5b65643b17ead11f4e7273ec9d63c481a9f400e`.
+- Recibo de cabecera `community/original-report-pdf-header-review.json`, SHA256
+  `98b8c805df2b893040ec06627056c7617c22f9cb5f9d8750166863733888e3dc`.
+- Copia/replay local en
+  `~/.codex/local-artifacts/community-parallel-20261030/acceptance-D` y
+  `summary-D.json`; ambos proceden del paquete exacto.
+
+El inventario posterior D es idéntico al inicial, SHA256
+`2cd3cfb9a85b88c5ddd65657228df3468d87dec65a50e54a89da808da64ca9ba`.
+No se publicaron cambios en producción ni QA-Cerro. Los backups/restauraciones
+y upgrades se serializaron con `/run/lock/steps-environments.lock`; reservas de
+disco, ausencia de downgrade y de cambios activos se comprobaron por entorno.
 
 Las correcciones conservan las guardas: cuenta efectiva configurada antes de
 crear el pago privado; cantidades Python mediante `result_qty`; transporte PDF
@@ -111,6 +174,9 @@ Prioriza coadopción real de la configuración original Simple Digital–OCA:
 FK/M2M/JSON, metadata y permisos; usa el renderer original Community ya real,
 sin reservar/renumerar una colisión ni inventar maestros. Cierra todas las
 referencias antes de escribir y aborta ante concurrencia o alcance sin clasificar.
+Conserva el límite de cabecera corporativa del PDF: captura fragmentos/argumentos
+finales, repite impresión y verifica empresa/país por página antes de dar layout
+productivo por aceptado; no basta comprobar assets ni importes.
 Si se bloquea, conserva el bloqueo y prueba el candidato Calidad 52c1c2f7 en
 pareja privada exacta antes de integrarlo. Mantén visibles la certificación SyS,
 DTE/SII completo, consumidores restantes y conversión integral cero EE.

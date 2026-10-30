@@ -1,16 +1,18 @@
 # Plan de independencia de Enterprise para Cerro El Plomo
 
-Estado vigente y siguiente prompt: [COMMUNITY_MULTIFRENTE.md](COMMUNITY_MULTIFRENTE.md).
-H valida 27 addons propios: Tesorería/5 accesos, T138–OCA real y TED/FRMT.
-576 casos Community/391 referencia nativa, cero fallos/errores; 72 pruebas puras
-más 19 verificaciones de custodia final (se solapan, no sumarlas).
-Conserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs/noupdate;
-1.060 snapshots literales y un testigo numérico de cinco filas. Se admiten cinco acciones
-de menú, siete timestamps propios y las ayudas HR anteriores, documentados.
-C/C2 frío y su API1.14 siguen conservados. Faltan coadopción de 120 maestros/71
-reglas, beneficios, metadata/ACL y certificación SyS, DTE completo y conversión
-integral con cero EE. Hay 54 apps instaladas con caminos EE; producción conserva
-140 EE. El 31 sigue en riesgo alto. Ver COMMUNITY_PROXIMO_BOOTSTRAP.md.
+Estado vigente y siguiente prompt: [COMMUNITY_EXTENSIONES_OPERACIONALES.md](COMMUNITY_EXTENSIONES_OPERACIONALES.md).
+D valida 30 addons propios: ventajas OCA, pagos contables, ruta original de
+reporte y firmas DTE/EnvioDTE offline, junto a la regresión H conservada.
+637 casos Community/437 referencia nativa, cero fallos/errores; 117/395 módulos
+instalados y 0/140 EE respectivamente. Conserva 921 tablas/proyecciones,
+140 contadores y 59.079 XML IDs/noupdate; 1.060 snapshots literales y testigo
+numérico propio D de cinco filas, sin Float ni redondeo. Misma política H de
+cinco acciones de menú, siete timestamps propios y tres ayudas HR.
+Faltan coadopción original de 120 maestros/71 reglas, beneficios/metadata/ACL,
+certificación SyS, DTE completo y conversión integral cero EE. La cabecera
+corporativa del PDF sigue como límite visual explícito; Calidad 52c1c2f7 está
+publicada, sin pareja ni integración. Hay 54 apps instaladas con caminos EE;
+producción conserva 140 EE. El 31 sigue en riesgo alto. Ver el detalle y prompt.
 El contenido inferior conserva su alcance histórico.
 
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,
