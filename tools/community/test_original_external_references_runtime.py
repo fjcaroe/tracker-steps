@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 import original_external_references_runtime as runtime
-from original_external_references_readonly_bootstrap import enforce_readonly_pools
+from original_external_references_readonly_bootstrap import enforce_readonly_pools, read_sequence_values, CACHE_KEYS, SEQUENCE_SELECT
 from types import SimpleNamespace
 
 
@@ -40,6 +40,27 @@ class ExternalRegistryRuntimeCase(unittest.TestCase):
         module._Pool = object()
         with self.assertRaises(ValueError):
             enforce_readonly_pools(module)
+
+    def test_sequence_reader_requires_actual_readonly_local_primary_and_existing_values(self):
+        class Cursor:
+            readonly = True
+            def __init__(self, rows):
+                self.rows, self.queries = iter(rows), []
+            def execute(self, query): self.queries.append(query)
+            def fetchone(self): return next(self.rows)
+        cursor = Cursor([('on',), (False,), (1, 2, 3, 4, 5, 6)])
+        self.assertEqual(read_sequence_values(cursor, CACHE_KEYS), (1, dict(zip(CACHE_KEYS, (2, 3, 4, 5, 6)))))
+        self.assertEqual(cursor.queries, ['SHOW transaction_read_only', 'SELECT pg_is_in_recovery()', SEQUENCE_SELECT])
+        for rows in ([('off',)], [('on',), (True,)], [('on',), (False,), None], [('on',), (False,), (1,)]):
+            with self.assertRaises(ValueError):
+                read_sequence_values(Cursor(rows), CACHE_KEYS)
+        for value in (False, None):
+            cursor = Cursor([]); cursor.readonly = value
+            with self.assertRaises(ValueError):
+                read_sequence_values(cursor, CACHE_KEYS)
+            self.assertFalse(cursor.queries)
+        with self.assertRaises(ValueError):
+            read_sequence_values(Cursor([]), tuple(reversed(CACHE_KEYS)))
 
 
 if __name__ == '__main__':
