@@ -44,7 +44,7 @@ try:
                     original.copy({'tag_number':'QA-141-LONG-%03d'%i,'sequence':i+10})
             pdf,_=scoped['ir.actions.report']._render_qweb_pdf('stock.action_report_delivery',receipt.ids)
             assert pdf.startswith(b'%PDF') and len(pdf)>5000
-            output=Path(OUTPUT)/('receipt-'+label+'.pdf');output.write_bytes(pdf);outputs.append(output.name)
+            output=Path(OUTPUT)/'data'/('receipt-'+label+'.pdf');output.write_bytes(pdf);outputs.append(output.name)
         replay=Path(PROBE_TOOLS).parents[1]/'reception-replay.json'
         if 'QA-CERRO' in env.cr.dbname and replay.exists():
             plan=json.loads(replay.read_text())
@@ -56,7 +56,7 @@ try:
                 assert abs(totals[key]-value)<0.000001,key
             pdf,_=scoped['ir.actions.report']._render_qweb_pdf('stock.action_report_delivery',real.ids)
             assert pdf.startswith(b'%PDF')
-            output=Path(OUTPUT)/'receipt-reported.pdf';output.write_bytes(pdf);outputs.append(output.name)
+            output=Path(OUTPUT)/'data'/'receipt-reported.pdf';output.write_bytes(pdf);outputs.append(output.name)
             assert real.fruit_tag_line_ids.read(['quantity','gross_kg','tare_kg','kilos','write_date'])==before
             print('T141_REPORTED_RECEIPT_PDF_OK weights_unchanged=True')
         print('T141_NATIVE_PDF_OK '+json.dumps(outputs))
