@@ -77,6 +77,8 @@ def collect(root, output, original_provider, oca, inventory_root, *,
                 files[mode + '/payslip-pdf-evidence/' + path.name] = path
         if operational_extensions and mode == 'community':
             original_pdf = root / mode / 'data/original-report-pdf-evidence'
+            # Quality includes only hash-bound pipeline inputs and the exact
+            # SHA-addressed runtime asset cache; never walk/export extra data.
             capture = verifier.original_pdf_inventory(original_pdf, repeated=quality_extension)
             for name, path in capture.items():
                 files[mode + '/original-report-pdf-evidence/' + name] = path
