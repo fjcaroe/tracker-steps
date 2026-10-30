@@ -27,8 +27,7 @@ class OriginalPayrollReportRoute(models.Model):
         return renderer
 
     def _step_original_report_target(self, report_ref):
-        renderer = self._step_original_report_ce_renderer()
-        if renderer is None:
+        if RENDERER not in self.env.registry:
             return None
         normal = self.sudo(False)
         # This is the official configuration lookup with sudo, never the salary
@@ -37,6 +36,7 @@ class OriginalPayrollReportRoute(models.Model):
         report = normal.browse(configured.ids).sudo()
         if len(report) != 1 or report.report_name != ORIGINAL_NAME:
             return None
+        renderer = normal._step_original_report_ce_renderer()
         return normal, report, renderer
 
     def _step_original_report_values(self, target, docids, data=None):

@@ -45,6 +45,12 @@ class OriginalPayrollReportRouteCase(TransactionCase):
         self.assertEqual(action_snapshot(self.action), identity)
         self.assertEqual(f.structure.report_id, self.action)
         self.assertEqual(f.stored_snapshot(slip), before)
+        # Other report actions keep their existing route even if this optional
+        # compatibility route cannot admit its own backend provenance.
+        reports = f.scope['ir.actions.report']
+        with patch.object(type(reports), '_step_original_report_ce_renderer',
+                          side_effect=AssertionError('An unrelated report cannot enter the original route')):
+            self.assertIsNone(reports._step_original_report_target('payroll.action_report_payslip'))
 
     def test_zero_negative_null_and_basic_visibility_keep_original_stored_values(self):
         f = self.fixture
