@@ -42,6 +42,7 @@ EXTENSION_TESTS = {'community': 637, 'cerro-reference': 437}
 EXTENSION_OCA_VERSIONS = dict(OCA_VERSIONS, payroll_contract_advantages='18.0.1.0.0')
 QUALITY_MODULES = ('step_quality_contracts', 'step_quality_oca', 'step_qa_native_reference')
 QUALITY_TESTS = {'community': 646, 'cerro-reference': 441}
+CRITICAL_TESTS = {'community': 653, 'cerro-reference': 446}
 QUALITY_PROVIDER = 'quality_control_oca'
 QUALITY_PIN = '2d6084f553490408f7a341f05ba6ddd6e641a879'
 QUALITY_VERSION = '18.0.1.4.0'
@@ -94,9 +95,11 @@ def mode_excluded(mode, operational_extensions=False, quality_extension=False):
     return value
 
 
-def receipt_profile(passed, mode, operational_extensions=False, quality_extension=False):
+def receipt_profile(passed, mode, operational_extensions=False, quality_extension=False, critical_extension=False):
     owned_modules(operational_extensions, quality_extension)
-    expected = QUALITY_TESTS if quality_extension else EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    require(type(critical_extension) is bool and (not critical_extension or quality_extension), 'Critical requires the exact Quality extension')
+    expected = CRITICAL_TESTS if critical_extension else QUALITY_TESTS if quality_extension else EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    require(passed.get('critical_extension', False) is critical_extension, 'Exact critical profile flag required')
     require(passed.get('quality_extension', False) is quality_extension
         and passed.get('operational_extensions', False) is operational_extensions
         and passed['mode'] == mode and passed['multifront'] is True
@@ -148,9 +151,10 @@ def plan(source, mode, *, operational_extensions=False, quality_extension=False)
     return result
 
 
-def verify(proof, mode, source, passed, *, operational_extensions=False, quality_extension=False):
+def verify(proof, mode, source, passed, *, operational_extensions=False, quality_extension=False, critical_extension=False):
     expected = plan(source, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
-    receipt_profile(passed, mode, operational_extensions, quality_extension)
+    receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension)
+    require(proof.get('critical_extension', False) is critical_extension, 'Exact critical postflight flag required')
     require(proof.get('quality_extension', False) is quality_extension
         and proof.get('operational_extensions', False) is operational_extensions and passed['writes_to_source'] is False,
             'Full accepted MF receipt required for installation postflight')
@@ -203,11 +207,11 @@ def verify(proof, mode, source, passed, *, operational_extensions=False, quality
     return observed
 
 
-def audit(sql, mode, source, passed, *, operational_extensions=False, quality_extension=False):
+def audit(sql, mode, source, passed, *, operational_extensions=False, quality_extension=False, critical_extension=False):
     # The callback executes exactly this readonly metadata transaction; there
     # are no dynamic business table names or user values in the query.
     expected = plan(source, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
-    receipt_profile(passed, mode, operational_extensions, quality_extension)
+    receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension)
     prefix = 'COMMUNITY_PAYROLL_API_' if mode == 'community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_'
     require(re.fullmatch(prefix + r'[A-Za-z0-9_]+', passed['database']), 'Private MF database required')
     metadata = json.loads(sql(passed['database'], QUERY))
@@ -226,7 +230,9 @@ def audit(sql, mode, source, passed, *, operational_extensions=False, quality_ex
         proof['operational_extensions'] = True
     if quality_extension:
         proof['quality_extension'] = True
-    verify(proof, mode, source, passed, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    if critical_extension:
+        proof['critical_extension'] = True
+    verify(proof, mode, source, passed, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
     return proof
 
 
@@ -243,10 +249,11 @@ def main():
     parser.add_argument('mode', choices=EXCLUDED)
     parser.add_argument('--operational-extensions', action='store_true')
     parser.add_argument('--quality-extension', action='store_true')
+    parser.add_argument('--critical-extension', action='store_true')
     for name in ('source', 'passed', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     args = parser.parse_args()
-    proof = audit(readonly_sql, args.mode, args.source, json.loads(args.passed.read_text()), operational_extensions=args.operational_extensions, quality_extension=args.quality_extension)
+    proof = audit(readonly_sql, args.mode, args.source, json.loads(args.passed.read_text()), operational_extensions=args.operational_extensions, quality_extension=args.quality_extension, critical_extension=args.critical_extension)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w', encoding='utf-8') as stream:
         json.dump(proof, stream, indent=2)
     print('MULTIFRONT_INSTALLATION_VERIFIED', proof['observed']['required_module_versions_verified'], 'exact module versions; readonly')

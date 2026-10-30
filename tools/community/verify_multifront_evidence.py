@@ -49,10 +49,11 @@ def own_modules(operational_extensions=False, quality_extension=False):
     return OWN_MODULES + (installation.EXTENSION_MODULES if operational_extensions else ()) + (installation.QUALITY_MODULES if quality_extension else ())
 
 
-def expected_tests(operational_extensions=False, quality_extension=False):
+def expected_tests(operational_extensions=False, quality_extension=False, critical_extension=False):
     require(type(operational_extensions) is bool, 'Explicit operational extensions profile required')
     own_modules(operational_extensions, quality_extension)
-    return installation.QUALITY_TESTS if quality_extension else installation.EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    require(type(critical_extension) is bool and (not critical_extension or quality_extension), 'Critical requires Quality profile')
+    return installation.CRITICAL_TESTS if critical_extension else installation.QUALITY_TESTS if quality_extension else installation.EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
 
 
 def expected_alias_contract(aliases):
@@ -128,8 +129,9 @@ def verify_executed_tools(root, source, *, operational_extensions=False, quality
         base.tool_hash(sha(safe_path(root, 'original-report-header-reviewer.py').read_bytes()), 'verify_original_report_headers.py', source)
 
 
-def verify_file_manifest(root, *, operational_extensions=False, quality_extension=False):
+def verify_file_manifest(root, *, operational_extensions=False, quality_extension=False, critical_extension=False):
     receipt = read(root, 'evidence-files.json')
+    require(receipt.get('critical_extension', False) is critical_extension, 'Exact critical evidence manifest flag required')
     require(receipt['schema'] == 1 and receipt['database_accessed'] is False
             and receipt['database_writes'] is False and receipt['dump_exported'] is False
             and receipt['enterprise_source_bodies_exported'] is False
@@ -145,7 +147,7 @@ def verify_file_manifest(root, *, operational_extensions=False, quality_extensio
         require(sha(safe_path(root, name).read_bytes()) == digest, 'MF capsule member hash differs: ' + name)
 
 
-def critical_methods(source, log, mode, *, operational_extensions=False, quality_extension=False):
+def critical_methods(source, log, mode, *, operational_extensions=False, quality_extension=False, critical_extension=False):
     modules = NEW_MODULES if mode == 'community' else NEW_MODULES[:-1]
     selected = [(name, None) for name in source if '/tests/test_' in name and name.endswith('.py')
                 and name.split('/')[0] in modules]
@@ -170,6 +172,9 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
     if quality_extension:
         selected += [('step_quality_oca/tests/test_inspection.py', 'QualityOcaOperationCase')] if mode == 'community' else [
             ('step_qa_native_reference/tests/test_native_quality.py', 'NativeQualityConsumerCase')]
+    if critical_extension and mode == 'community':
+        selected += [('step_payroll_oca_api/tests/test_original_nullable.py', 'OriginalNullableCase'),
+                     ('step_payroll_oca_api/tests/test_original_rule_projection.py', 'OriginalRuleProjectionCase')]
     result = {}
     for name, only_class in selected:
         require(name in source, 'Critical MF test source missing: ' + name)
@@ -192,6 +197,8 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
                 'Critical posting form did not run exactly once')
         result[key] = name
     count = (173 if mode == 'community' else 147) if quality_extension else (164 if mode == 'community' else 143) if operational_extensions else (103 if mode == 'community' else 97)
+    if critical_extension:
+        count += 5 + (16 if mode == 'community' else 0)  # PKIX and actual original admission/projection.
     require(len(result) == count, 'Critical MF method inventory changed')
     return len(result)
 
@@ -382,9 +389,10 @@ def verify_original_pdf(root, receipt, *, quality_extension=False, source=None):
     return result
 
 
-def verify_receipt(root, source, packet, mode, *, operational_extensions=False, quality_extension=False):
+def verify_receipt(root, source, packet, mode, *, operational_extensions=False, quality_extension=False, critical_extension=False):
     receipt = read(root, mode + '/passed.json')
-    expected = expected_tests(operational_extensions, quality_extension)[mode]
+    expected = expected_tests(operational_extensions, quality_extension, critical_extension)[mode]
+    require(receipt.get('critical_extension', False) is critical_extension, 'Exact critical receipt/profile flag required')
     require(receipt.get('operational_extensions', False) is operational_extensions
         and receipt.get('quality_extension', False) is quality_extension, 'MF operational extension receipt/profile differs')
     if quality_extension:
@@ -426,11 +434,11 @@ def verify_receipt(root, source, packet, mode, *, operational_extensions=False, 
     log = safe_path(root, mode + '/tests.log').read_text(errors='replace')
     require(not re.search(r' (ERROR|CRITICAL) ', log), 'MF functional log contains an error')
     base.test_result([line for line in log.splitlines() if 'tests.result' in line], expected)
-    methods = critical_methods(source, log, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    methods = critical_methods(source, log, mode, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
     installed_proof = read(root, mode + '/module-installation.json')
     base.tool_hash(installed_proof['tool_sha256'], 'audit_multifront_installation.py', source)
     require(tuple(installation.owned_modules(operational_extensions, quality_extension)) == own_modules(operational_extensions, quality_extension), 'Installation postflight packet scope differs')
-    installation_summary = installation.verify(installed_proof, mode, source, receipt, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    installation_summary = installation.verify(installed_proof, mode, source, receipt, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
     finance = read(root, mode + '/finance-frontier.json')
     alias_audit = expected_alias_contract(finance['aliases'])
     finance_modules = ('step_account_balance_analytic', 'step_bank_export_core', 'step_accounting_multicurrency_core')
@@ -603,11 +611,11 @@ def verify_quality_vendor(root):
     return result
 
 
-def verify(evidence, *, repo=None, operational_extensions=False, quality_extension=False):
+def verify(evidence, *, repo=None, operational_extensions=False, quality_extension=False, critical_extension=False):
     root = Path(evidence).resolve()
     repo = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
     source = git_sources(repo, operational_extensions=operational_extensions, quality_extension=quality_extension)
-    verify_file_manifest(root, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    verify_file_manifest(root, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
     verify_executed_tools(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     packet = verify_packets(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     # This provider is private AGPL source, not a repository addon. Its entire
@@ -620,8 +628,8 @@ def verify(evidence, *, repo=None, operational_extensions=False, quality_extensi
     base.verify_hr_derivation(root, source)
     vendor_summary = verify_vendor(root) if operational_extensions else None
     quality_summary = verify_quality_vendor(root) if quality_extension else None
-    community, community_summary = verify_receipt(root, source, packet, 'community', operational_extensions=operational_extensions, quality_extension=quality_extension)
-    native, native_summary = verify_receipt(root, source, packet, 'cerro-reference', operational_extensions=operational_extensions, quality_extension=quality_extension)
+    community, community_summary = verify_receipt(root, source, packet, 'community', operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
+    native, native_summary = verify_receipt(root, source, packet, 'cerro-reference', operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
     preservation = verify_preservation(root, source, native, repo, operational_extensions=operational_extensions, quality_extension=quality_extension)
     result = {'schema': 1, 'profile': 'multifront-quality-extension' if quality_extension else 'multifront-operational-extensions' if operational_extensions else 'multifront-normal-provider', 'exact_packet_matches_git': True,
             'package_files': len(packet), 'owned_modules': len(own_modules(operational_extensions, quality_extension)), 'normal_provider_files': 52,
@@ -632,6 +640,8 @@ def verify(evidence, *, repo=None, operational_extensions=False, quality_extensi
             'deadline_resolved': False, 'artifact_code_executed': False, 'verifier_sha256': sha(Path(__file__).read_bytes())}
     if operational_extensions:
         result.update(operational_extensions=True, oca_unmodified_vendor=vendor_summary)
+    if critical_extension:
+        result.update(critical_extension=True, profile='multifront-critical-extension')
     if quality_extension:
         result.update(quality_extension=True, oca_unmodified_quality_vendor=quality_summary,
             quality_native_identity_converted=False, productive_layout_accepted=False, legal_validity_certified=False)
@@ -644,11 +654,12 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--operational-extensions', action='store_true')
     parser.add_argument('--quality-extension', action='store_true')
+    parser.add_argument('--critical-extension', action='store_true')
     args = parser.parse_args()
-    result = verify(args.evidence, operational_extensions=args.operational_extensions, quality_extension=args.quality_extension)
+    result = verify(args.evidence, operational_extensions=args.operational_extensions, quality_extension=args.quality_extension, critical_extension=args.critical_extension)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w', encoding='utf-8') as stream:
         json.dump(result, stream, indent=2)
-    counts = expected_tests(args.operational_extensions, args.quality_extension)
+    counts = expected_tests(args.operational_extensions, args.quality_extension, args.critical_extension)
     print('MULTIFRONT_EVIDENCE_VERIFIED: Community %s / native %s; integral conversion remains pending' % (counts['community'], counts['cerro-reference']))
 
 

@@ -52,6 +52,22 @@ def fixture(mode, operational_extensions=False, quality_extension=False):
 
 
 class MultifrontInstallationCase(unittest.TestCase):
+    def test_critical_receipt_requires_its_explicit_generation_and_exact_count(self):
+        for mode in ('community', 'cerro-reference'):
+            source, passed, metadata = fixture(mode, True, True)
+            passed = dict(passed, critical_extension=True, expected_test_count=audit.CRITICAL_TESTS[mode])
+            proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
+                operational_extensions=True, quality_extension=True, critical_extension=True)
+            audit.verify(proof, mode, source, passed, operational_extensions=True,
+                quality_extension=True, critical_extension=True)
+            for altered in (dict(passed, critical_extension=False),
+                            dict(passed, expected_test_count=audit.QUALITY_TESTS[mode])):
+                with self.assertRaises(ValueError):
+                    audit.verify(proof, mode, source, altered, operational_extensions=True,
+                        quality_extension=True, critical_extension=True)
+            with self.assertRaises(ValueError):
+                audit.verify(proof, mode, source, passed, operational_extensions=True, quality_extension=True)
+
     def test_quality_profile_requires_exact_thirtythree_and_distinct_oca_native_providers(self):
         for mode, total in (('community', 31), ('cerro-reference', 27)):
             source, passed, metadata = fixture(mode, True, True)

@@ -25,9 +25,9 @@ PIN='4c71cd42e46a09a7512d92f5c63c0a9f7c26ad3e'
 def run(*args,**kw):return subprocess.run(args,check=True,**kw)
 
 
-def concrete_test_count(source, module):
+def concrete_test_count(source, module, only_class=None):
     return sum(1 for path in (source/module/'tests').glob('test_*.py')
-        for cls in ast.parse(path.read_text(encoding='utf-8-sig')).body if isinstance(cls,ast.ClassDef)
+        for cls in ast.parse(path.read_text(encoding='utf-8-sig')).body if isinstance(cls,ast.ClassDef) and (only_class is None or cls.name == only_class)
         for method in cls.body if isinstance(method,ast.FunctionDef) and method.name.startswith('test_'))
 
 
@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--quality-extension',action='store_true',help='Real pinned OCA Quality and original native consumer reference')
     parser.add_argument('--focused-quality',action='store_true',help='Development only: Quality contracts and the repeated original PDF')
     parser.add_argument('--quality-oca',type=Path)
+    parser.add_argument('--critical-extension',action='store_true',help='Explicit R generation: actual PKIX/CRL, HR admission and invoice application')
     parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
     parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
@@ -62,6 +63,7 @@ def main():
     assert not args.focused_multifront or (args.multifront and args.mode=='community')
     assert not args.operational_extensions or args.multifront
     assert not args.focused_extensions or (args.operational_extensions and not args.focused_multifront)
+    assert not args.critical_extension or args.quality_extension
     assert not args.quality_extension or (args.operational_extensions and args.quality_oca)
     assert not args.focused_quality or (args.quality_extension and not args.focused_extensions and not args.focused_multifront)
     assert not args.multifront or (args.accelerated and args.custody_grouping and simpledigital)
@@ -343,6 +345,8 @@ def main():
             tags=('/'+extension_modules[0 if pure else 1]+',/step_batch_payment_grouping,'
                 +('/step_batch_payment_core,/step_l10n_cl_caf_storage:TestDTESignatureCustodyStorage' if pure else '/step_l10n_cl_caf_native_reference:TestDTESignatureNativeCAFCustody')
                 +',/step_l10n_cl_edi_core:TestDTESignatureCore,/step_l10n_cl_edi_core:TestEnvioDTECore,'+report_tags)
+            if pure and args.critical_extension:
+                tags+=',/step_payroll_oca_api:OriginalNullableCase,/step_payroll_oca_api:OriginalRuleProjectionCase'
         if args.focused_quality:
             tags='/'+quality_modules[1 if pure else 2]+(',/step_payroll_original_report:OriginalPayrollReportPdfCase' if pure else '')
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
@@ -380,7 +384,9 @@ def main():
         if args.quality_extension:expected+=concrete_test_count(source,quality_modules[1 if pure else 2])
         if args.focused_multifront:expected=128
         if args.focused_extensions:
-            expected=concrete_test_count(source,extension_modules[0 if pure else 1])+concrete_test_count(source,'step_batch_payment_grouping')+(concrete_test_count(source,'step_batch_payment_core') if pure else 0)+5+14+11+(8 if pure else 1)
+            expected=concrete_test_count(source,extension_modules[0 if pure else 1])+concrete_test_count(source,'step_batch_payment_grouping')+(concrete_test_count(source,'step_batch_payment_core') if pure else 0)+5+concrete_test_count(source,'step_l10n_cl_edi_core','TestDTESignatureCore')+concrete_test_count(source,'step_l10n_cl_edi_core','TestEnvioDTECore')+(8 if pure else 1)
+        if args.focused_extensions and pure and args.critical_extension:
+            expected+=sum(concrete_test_count(source,'step_payroll_oca_api',name) for name in ('OriginalNullableCase','OriginalRuleProjectionCase'))
         if args.focused_quality:expected=concrete_test_count(source,quality_modules[1 if pure else 2])+(1 if pure else 0)
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
@@ -458,6 +464,7 @@ def main():
             'multifront':args.multifront,'focused_development_pass':bool(args.focused_multifront or args.focused_extensions or args.focused_quality),
             'operational_extensions':args.operational_extensions,
             'quality_extension':args.quality_extension,
+            'critical_extension':args.critical_extension,
             'quality_vendor_revision':quality_proof['oca_pin'] if args.quality_extension else None,
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
