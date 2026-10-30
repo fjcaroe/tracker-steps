@@ -54,6 +54,26 @@ def native_root_allowed(root):
         and path.name.startswith(NATIVE_ROOT_PREFIXES))
 
 
+def validate_native_acceptance(root, accepted, *, expected_multifront_installed=None):
+    require(native_root_allowed(root), 'Private accepted source root required')
+    require(accepted.get('mode') == 'cerro-reference' and accepted.get('writes_to_source') is False,
+            'Accepted native reference required')
+    if PurePosixPath(str(root)).name.startswith('community-multifront-'):
+        require(accepted.get('multifront') is True and accepted.get('focused') is False
+                and accepted.get('expected_test_count') == 391, 'Full multifront native391 witness required')
+        # The coordinator pins the independently measured installed graph.
+        # Do not guess393, accept a range or learn the pin from this same file.
+        require(type(expected_multifront_installed) is int and expected_multifront_installed > 140,
+                'Exact measured multifront installed count must be supplied')
+        require(accepted.get('counts') == {'installed': expected_multifront_installed, 'enterprise': 140},
+                'Measured multifront module graph differs')
+    else:
+        require(expected_multifront_installed is None and accepted.get('multifront', False) is False
+                and accepted.get('focused', False) is False and accepted.get('expected_test_count') == 294
+                and accepted.get('counts') == {'installed': 391, 'enterprise': 140},
+                'Original native294/installed391 witness required')
+
+
 def sha(path):
     result = hashlib.sha256()
     with Path(path).open('rb') as stream:
@@ -181,6 +201,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native-root', type=Path, required=True)
     parser.add_argument('--output-directory', type=Path, required=True)
+    parser.add_argument('--expected-multifront-installed', type=int,
+        help='Exact independently measured installed graph, mandatory only for multifront roots')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Local peer inspection requires root')
     root, output = args.native_root.resolve(), args.output_directory.resolve()
@@ -190,7 +212,7 @@ def main():
     accepted = json.loads((native / 'passed.json').read_text())
     database = accepted['database']
     require(re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_[A-Za-z0-9_]+', database), 'Private reference database required')
-    require(accepted['mode'] == 'cerro-reference' and accepted['expected_test_count'] == 294 and accepted['writes_to_source'] is False, 'Accepted native reference required')
+    validate_native_acceptance(root, accepted, expected_multifront_installed=args.expected_multifront_installed)
     dump = native / 'source.dump'
     require(dump.is_file() and not dump.is_symlink(), 'Original private dump required')
     original_stat = dump.stat()
@@ -224,6 +246,8 @@ def main():
     proof = {'schema': 1, 'table': TABLE, 'read_only': True, 'database_writes': False,
         'orm_loaded': False, 'dump_ddl_or_copy_executed': False, 'float_or_rounding_used': False,
         'database': database, 'source_dump_sha256': dump_sha, 'tool_sha256': sha(__file__),
+        'native_acceptance_sha256': sha(native / 'passed.json'),
+        'expected_multifront_installed': args.expected_multifront_installed,
         'source_dump_path': str(dump), 'source_dump_bytes': original_stat.st_size,
         'schema_columns': {name: kind for name, kind, _ in columns},
         'current_schema_columns': {name: kind for name, kind, _ in metadata['columns']},

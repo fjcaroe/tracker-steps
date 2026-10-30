@@ -26,6 +26,31 @@ class DumpReconstructionCase(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertFalse(audit.native_root_allowed(PurePosixPath(value)))
 
+    def test_original_and_full_multifront_acceptance_are_disjoint_and_exact(self):
+        original_root = PurePosixPath('/opt/steps-validation/community-original-contracts-20261030C')
+        multifront_root = PurePosixPath('/opt/steps-validation/community-multifront-20261030A')
+        original = {'mode': 'cerro-reference', 'writes_to_source': False,
+            'expected_test_count': 294, 'counts': {'installed': 391, 'enterprise': 140}}
+        #393 is a synthetic test pin, not an observation of a real environment.
+        multifront = dict(original, expected_test_count=391, multifront=True, focused=False,
+                          counts={'installed': 393, 'enterprise': 140})
+        audit.validate_native_acceptance(original_root, original)
+        audit.validate_native_acceptance(multifront_root, multifront, expected_multifront_installed=393)
+        for root, value, pin in ((multifront_root, original, 391), (original_root, multifront, None),
+                                (multifront_root, multifront, None), (multifront_root, multifront, 394),
+                                (multifront_root, multifront, True), (original_root, original, 391)):
+            with self.subTest(root=str(root), pin=pin), self.assertRaises(ValueError):
+                audit.validate_native_acceptance(root, value, expected_multifront_installed=pin)
+        for patch in ({'mode': 'community'}, {'multifront': False}, {'focused': True},
+                      {'focused': None}, {'expected_test_count': 294}, {'expected_test_count': 392},
+                      {'writes_to_source': True}, {'counts': {'installed': 393, 'enterprise': 139}}):
+            with self.subTest(patch=patch), self.assertRaises(ValueError):
+                audit.validate_native_acceptance(multifront_root, dict(multifront, **patch), expected_multifront_installed=393)
+        for patch in ({'expected_test_count': 391}, {'counts': {'installed': 392, 'enterprise': 140}},
+                      {'multifront': True}, {'focused': True}):
+            with self.subTest(patch=patch), self.assertRaises(ValueError):
+                audit.validate_native_acceptance(original_root, dict(original, **patch))
+
     def schema(self):
         columns = ',\n'.join('    ' + name + ' ' + kind + (' NOT NULL' if required else '')
             for name, kind, required in audit.COLUMNS)
