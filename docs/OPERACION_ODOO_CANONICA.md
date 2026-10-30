@@ -316,3 +316,15 @@ proof.json y resize.py, verificables con tools/community/summarize_payroll_api.p
 No repetir la operación ni interpretar esta autorización de infraestructura como
 permiso para desplegar cambios de negocio en producción o refrescar QA-Cerro.
 Ver COMMUNITY_SYS_REFERENCE.md para paquete F y alcance pendiente.
+
+## Tickets 141 y 144 — 30-10-2026
+
+La respuesta humana 9868 reabre T141 para imprimir el folio nativo en el título
+“RECIBO DE RECEPCIÓN N° …”. Mismos destinos y controles de reception-report.
+
+T144 (mensaje 9881, adjunto 3449) autoriza packing-company en Desarrollo, Cerro
+y QA-Cerro: conservar la compañía nativa de las tarjas E/N según su OT, incluso
+sin existencias. Completar únicamente compañías vacías de tarjas vinculadas;
+rechazar contradicciones con stock u origen. Preservar ubicación, cantidades,
+estados, IDs y entrenamiento. Mismo paquete, copias frescas, respaldo, bloqueo,
+paridad y aislamiento. No crear existencias ni validar OT reales.
