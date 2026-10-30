@@ -307,6 +307,7 @@ def main():
     parser.add_argument('--wait-for-lease', action='store_true', help='Queue this authorized ticket operation before reading its source baseline')
     parser.add_argument('--normalize-user-id', type=int)
     parser.add_argument('--expected-user-login')
+    parser.add_argument('--pdf-review', type=Path, help='T141 native PDF visual review for this exact destination proof')
     parser.add_argument('--approval-dir', type=Path)
     parser.add_argument('--development-proof', type=Path)
     args = parser.parse_args()
@@ -702,6 +703,15 @@ def main():
     assert passed['commit'] == proof['commit'] and passed['release_sha256'] == release_sha
     release_root = Path('/opt/steps-managed/releases') / args.environment / proof['commit']
     if args.action == 'deploy':
+        if args.kind == 'reception-report':
+            assert args.pdf_review and args.pdf_review.is_file(), 'Inspect every native PDF page before publication'
+            review = json.loads(args.pdf_review.read_text(encoding='utf-8-sig'))
+            assert review['reviewed'] is True
+            expected_pdfs = {'receipt-short.pdf','receipt-long.pdf'} | ({'receipt-reported.pdf'} if args.environment == 'qa-cerro' else set())
+            assert expected_pdfs == set(review['files'])
+            for filename, item in review['files'].items():
+                assert item['sha256'] == digest(stage/'data'/filename), 'Visual review belongs to another PDF/package'
+                assert item['pages']
         if args.environment != registry['policy']['qa']:
             if args.kind == 'sag-traceability':
                 # Every byte already reviewed in the two original Development
