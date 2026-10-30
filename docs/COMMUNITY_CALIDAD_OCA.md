@@ -92,6 +92,13 @@ OCA en la referencia nativa ni convierte su almacÃ©n.
 
 ## Pruebas funcionales preparadas
 
+La revisión de ACL originales H confirma que el responsable nativo de Calidad
+puede crear equipos y controles y leer tipos de prueba; el usuario de Calidad
+sólo lee los catálogos. El proveedor OCA concede CRUD de inspecciones/líneas
+al usuario y reserva configuración de tests/preguntas/respuestas al manager.
+Los fixtures usan esos roles reales separados; no conceden Settings ni
+cambian ACL originales.
+
 Nueve casos OCA usan productos, tests, wizard, preguntas, medidas y acciones
 reales: resultado positivo, negativo/aprobaciÃ³n por rol, 1.000 g frente a kg,
 lote incompleto/NULL, hijos o respuestas ocultos, permisos de campo/compaÃ±Ã­a con

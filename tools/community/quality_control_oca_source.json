@@ -15,7 +15,17 @@
     "views/qc_inspection_view.xml": "1b6bb007b76a3d30b5b647fe1be5d7a5643ddc96745882c14c33023b0179c8c4",
     "wizard/qc_test_wizard.py": "ca42cd39cccda5814150051e7c715ca946169506513e7a36abc254818461270b"
   },
-  "full_vendor_snapshot_exported": false,
+  "full_vendor_snapshot_exported": true,
   "native_quality_check_identity_equivalent": false,
-  "existing_consumer_dependencies_changed": false
+  "existing_consumer_dependencies_changed": false,
+  "full_vendor_materialization": {
+    "file_count": 114,
+    "source_files_fingerprint": "dc412934cd1abafc4474813a08a77faebe791ab0ee83001587e46cda25bbc0a9",
+    "contract": "tools/community/quality_vendor_contract.py",
+    "git_commit_tree_blobs_verified": true,
+    "vendor_sources_unmodified": true,
+    "runtime_files_mode": "0644",
+    "runtime_directories_mode": "0755",
+    "private_proof_mode": "0600"
+  }
 }
