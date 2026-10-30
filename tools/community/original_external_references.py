@@ -24,6 +24,19 @@ TEXT_TYPES = ('text', 'character varying')
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 TYPE_ALIASES = ('structure_type_employee', 'structure_type_worker',
     'structure_type_employee_cp200_pfi', 'structure_type_employee_cp200')
+# Reviewed SELECT-only launcher 0c064cc7. Advancing this policy requires a
+# separate review; an arbitrary JSON claim is not a registry-runtime proof.
+RUNTIME_SOURCE_SHA256 = {
+    'original_external_references_runtime.py': (
+        '8c8b963a0de148468a50ce02c6f3806b5ece737d7be5a9ef7f8d755e6be50eac',  # 0c064cc7 Community
+        '4162684ed5f1932f8765285e829a8a8be8b68fc09c755c40db4fc1026c479c2e',  # 2ae00751 official CLI
+    ),
+    'original_external_references_readonly_bootstrap.py': ('60a7863ad1313648a68ebb938cd524216af1eb9d8bf8698b9a4ead0e215b68b2',),
+}
+SEQUENCE_METHOD_SHA256 = '6c41a6d4a995835a69a550420fbefb0987845008d8033035c96fea0670e5e000'
+SEQUENCE_SELECT_SHA256 = '641394a53615d5d518b5e6f7c8ba4f867036d3ba66b848be7ce5789c001dc52b'
+REGISTRY_SOURCE_SHA256 = {'community': '20a64452e404254f6cc067f1e06753ac9f8723239d465ace96f797719beb1ffb',
+    'cerro-reference': '9db45ba41656e998b4720003b20a53f3eb115459815755e65096c97dae86631f'}
 SERIALIZED_CONFIG = {
     'ir_act_window': ('domain', 'context'), 'ir_filters': ('domain', 'context', 'sort'),
     'ir_ui_view': ('arch_db',), 'ir_act_server': ('code',),
@@ -118,6 +131,72 @@ def registry_models(proof):
     for row in rows:
         require(isinstance(row['fields'], list) and len({field['name'] for field in row['fields']}) == len(row['fields']),
             'duplicate-registry-field-binding')
+    return result
+
+
+def runtime_contract(receipt, registry, accepted, before, after):
+    """Admission of the reviewed connection policy; no callable execution."""
+    require(receipt['schema'] == 1 and receipt['database'] == registry['database'] == accepted['database']
+        and receipt['mode'] == accepted['mode'], 'runtime-database-or-mode-differs')
+    for flag in ('all_tables_and_sequences_exact', 'all_infrastructure_sequences_also_exact',
+            'external_network_disabled', 'postgres_unix_socket', 'odoo_pool_readonly_before_connect',
+            'read_only_before_registry_startup'):
+        require(receipt[flag] is True, 'readonly-runtime-guard-not-proven:' + flag)
+    require(receipt['adoption_authorized'] is False and receipt['upgraded'] is False, 'runtime-mutation-or-adoption-claim')
+    require(before == after and isinstance(before, dict) and len(before) == receipt['public_snapshots_count'] > 0,
+        'runtime-public-tables-or-sequences-changed')
+    reader = receipt['readonly_sequence_reader']
+    require(reader == registry['readonly_sequence_reader'], 'runtime-sequence-reader-proof-differs')
+    require(reader['original_get_sequences_sha256'] == SEQUENCE_METHOD_SHA256
+        and reader['select_only_sql_sha256'] == SEQUENCE_SELECT_SHA256
+        and reader['original_registry_source_sha256'] == REGISTRY_SOURCE_SHA256[accepted['mode']]
+        and reader['cache_keys'] == ['default', 'assets', 'templates', 'routing', 'groups'],
+        'unreviewed-sequence-reader-policy')
+    for flag in ('cursor_readonly_unchanged', 'setup_signaling_unchanged', 'signal_changes_unchanged', 'nextval_unchanged'):
+        require(reader[flag] is True, 'sequence-write-guard-was-altered')
+    require(reader['installed_sources_modified'] is False, 'installed-runtime-source-was-modified')
+    require(reader['calls'] and registry['readonly_cursor_proof'], 'actual-readonly-cursor-witness-required')
+    for row in reader['calls'] + registry['readonly_cursor_proof']:
+        require(row['database'] == registry['database'] and row['odoo_cursor_readonly'] is True
+            and row['transaction_read_only'] == 'on', 'runtime-cursor-was-not-readonly')
+    require(all(row['pg_is_in_recovery'] is False for row in reader['calls']), 'runtime-primary-local-sequence-source-not-proven')
+    required = {'base_registry_signaling'} | {'base_cache_signaling_' + key for key in reader['cache_keys']}
+    require(required <= set(before), 'runtime-signaling-counters-not-captured')
+    return {'all_tables_and_sequences_exact': True, 'public_snapshots_count': len(before),
+        'readonly_from_before_first_odoo_connection': True, 'sequence_reader_policy_reviewed': True,
+        'database_writes': False, 'upgraded': False, 'adoption_authorized': False}
+
+
+def verify_runtime_proof(path, registry_path, registry, acceptance_path, accepted):
+    """Bind the runtime receipt, exact helper bytes and all snapshot files."""
+    receipt = json.loads(path.read_text())
+    require(path.name == 'passed.json' and path.parent == registry_path.parent and registry_path.name == 'registry.json',
+        'runtime-receipt-and-registry-location-differs')
+    before_path, after_path = (path.parent / name for name in ('business-before.json', 'business-after.json'))
+    require(receipt['registry_json_sha256'] == sha(registry_path)
+        and receipt['acceptance_sha256'] == sha(acceptance_path)
+        and receipt['payload_sha256'] == registry['tool_sha256']
+        and receipt['source_packet_sha256'] == receipt['source_files_json_sha256'] == accepted['source_files_sha256'],
+        'runtime-provenance-differs')
+    require(receipt['business_before_sha256'] == sha(before_path)
+        and receipt['business_after_sha256'] == sha(after_path)
+        and before_path.read_bytes() == after_path.read_bytes(), 'runtime-snapshot-file-changed')
+    source = path.parent.parent / 'source'
+    observed = {name: sha(source / name) for name in RUNTIME_SOURCE_SHA256}
+    for name, expected in RUNTIME_SOURCE_SHA256.items():
+        require(observed[name] in expected, 'runtime-helper-differs-from-reviewed-policy')
+    require(receipt['runner_sha256'] == observed['original_external_references_runtime.py']
+        and receipt['readonly_bootstrap_sha256'] == observed['original_external_references_readonly_bootstrap.py'],
+        'runtime-helper-receipt-differs')
+    official_cli = receipt['runner_sha256'] == RUNTIME_SOURCE_SHA256['original_external_references_runtime.py'][1]
+    require(accepted['mode'] != 'cerro-reference' or official_cli, 'native-runtime-must-not-use-upgrade-finalizer')
+    if official_cli:
+        require(receipt['entry_kind'] == 'official_cli_no_upgrade' and receipt['upgrade_preservation_finalizer_executed'] is False
+            and re.fullmatch('[0-9a-f]{64}', receipt['entry_sha256']), 'official-no-upgrade-entry-not-proven')
+    result = runtime_contract(receipt, registry, accepted,
+        json.loads(before_path.read_text()), json.loads(after_path.read_text()))
+    result.update(receipt_sha256=sha(path), registry_json_sha256=sha(registry_path),
+        before_sha256=sha(before_path), after_sha256=sha(after_path), executed_source_hashes=observed)
     return result
 
 
@@ -222,12 +301,15 @@ def compile_paths(catalog, registry, scope):
     columns = {(row['table_name'], row['name']): row for row in catalog['columns']}
     fields = {(row['model'], row['name']): row for row in catalog['fields']}
     queries, paths, blockers, seen = {}, [], [], set()
+    def scoped_owner(model):
+        return model in gate.TABLES.values() or model.startswith('ir.actions.') and model in scope
     for model, selected in scope.items():
         binding = models.get(model)
         require(binding and not binding['abstract'] and binding['table'] == selected['table'], 'scope-model-table-binding-not-proven')
         require(selected['table'] in tables and tables[selected['table']]['kind'] in ('r', 'p'), 'scope-target-is-not-a-physical-table')
     for row in catalog['fields']:
-        if not row['store'] or not (row['relation'] in scope or row['ttype'] in ('reference', 'many2one_reference', 'json', 'properties', 'properties_definition')):
+        if not row['store'] or not (row['relation'] in scope or scoped_owner(row['model'])
+                or row['ttype'] in ('reference', 'many2one_reference', 'json', 'properties', 'properties_definition')):
             continue
         binding = models.get(row['model'])
         loaded = next((field for field in binding['fields'] if field['name'] == row['name']), None) if binding else None
@@ -250,11 +332,10 @@ def compile_paths(catalog, registry, scope):
         paths.append(dict(kind=kind, table=table, field=field, target_model=target_model,
             target_table=target_table, owner_key=owner, observation=name, **extra))
 
-    # Every outgoing physical FK from the 120 original owners and report462 is
+    # Every outgoing physical FK from the 120 original owners and action462 is
     # captured, including endpoints not enumerated in the older capsule (e.g.
     # report model/paperformat). Scope does not expand adoption to those masters.
-    owners = {row['table']: model for model, row in scope.items()
-        if model in gate.TABLES.values() or model == 'ir.actions.report'}
+    owners = {row['table']: model for model, row in scope.items() if scoped_owner(model)}
     for fk in catalog['foreign_keys']:
         if fk['source_table'] not in owners:
             continue
@@ -298,7 +379,7 @@ def compile_paths(catalog, registry, scope):
             continue
         for field in binding['fields']:
             name, kind, target = field['name'], field['type'], field['comodel']
-            original_owner = model_name in gate.TABLES.values() or model_name == 'ir.actions.report'
+            original_owner = scoped_owner(model_name)
             if original_owner and field['store'] and kind in ('many2one', 'one2many', 'many2many') and target not in models:
                 blockers.append({'code': 'outbound-original-comodel-not-in-loaded-registry', 'model': model_name, 'field': name})
                 continue
@@ -582,7 +663,7 @@ def assess(catalog, first, second, registry, scope, aliases):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('capsule', 'registry-proof', 'acceptance', 'output'):
+    for name in ('capsule', 'registry-proof', 'runtime-proof', 'acceptance', 'output'):
         parser.add_argument('--' + name, required=True, type=Path)
     parser.add_argument('--expected-capsule-sha256', required=True)
     parser.add_argument('--backup-sha256', required=True)
@@ -629,6 +710,7 @@ def main():
         'accepted-full-private-reference-required')
     require(registry['acceptance_sha256'] == sha(args.acceptance)
         and registry['source_packet_sha256'] == accepted['source_files_sha256'], 'registry-acceptance-provenance-differs')
+    runtime = verify_runtime_proof(args.runtime_proof, args.registry_proof, registry, args.acceptance, accepted)
     packet_path = args.acceptance.parent / 'source-files.json'
     require(sha(packet_path) == accepted['source_files_sha256'], 'accepted-source-packet-file-differs')
     require(installation['database'] == database and installation['read_only'] is True
@@ -685,6 +767,7 @@ def main():
         sql_queries=dict(complete_discovery, **queries, **endpoints), observations=first,
         path_query_sha256=report['query_sha256'], registry_payload_sha256=registry['tool_sha256'])
     report['dump_metadata_tool_sha256'] = sha(Path(__file__).with_name('original_external_references_dump.py'))
+    report['registry_runtime_proof'] = runtime
     report['copy_decoder_tool_sha256'] = sha(Path(__file__).with_name('audit_stock_package_representation.py'))
     report['capsule_gate_tool_sha256'] = sha(gate.__file__)
     report['query_sha256'] = digest(report['sql_queries'])

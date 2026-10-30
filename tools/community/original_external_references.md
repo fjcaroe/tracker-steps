@@ -16,7 +16,8 @@ un discriminador almacenado. Véase el contrato libre de
 [Many2oneReference oficial](https://github.com/odoo/odoo/blob/18.0/odoo/fields.py).
 
 El CLI `original_external_references.py` exige cápsula C exacta `14b18ced…`,
-prueba de registry, aceptación completa H/D, postflight de módulos y backup
+prueba de registry, `--runtime-proof` del launcher readonly revisado,
+aceptación completa H/D, postflight de módulos y backup
 privado `source.dump`. Primero hashea los bytes reales del respaldo y detecta
 cambio de archivo. `pg_restore --data-only --schema=public
 --table=ir_model_data --file=-` extrae únicamente metadata COPY. Su texto es
@@ -58,6 +59,18 @@ El informe incluye consultas SELECT y observaciones completas para recompilar
 y revalidar desde código Git confiable dentro del futuro lock/transacción del
 escritor. Contiene hashes del backup, aceptación, packet, registry y herramientas.
 No ejecutar Python/SQL de artefactos como si fuera código confiable.
+
+El recibo runtime es obligatorio: liga los bytes exactos de las herramientas
+aprobadas, aceptación/packet, registry, todos los snapshots públicos y cada
+cursor real de Odoo. `PGOPTIONS` aislado no basta: Odoo fija la política de su
+pool al conectar. El launcher inspeccionado la obliga readonly **antes** de
+cualquier conexión, conserva `cr.readonly=True` y comprueba `SHOW` real. La
+lectura de señalización sustituye únicamente el método LGPL fijado por hash
+por su SELECT real contra el primario local, con las cinco claves de cache
+originales. No altera setup/signals/nextval ni fuentes instaladas; cualquier
+escritura aborta. Para la inspección nativa se exige el CLI oficial sin el
+finalizer del runner de upgrades. Los intentos abortados no son capturas
+aceptadas aunque sus tablas y secuencias permanezcan intactas.
 
 `reference_closure_ready` se limita a los bindings capturados. El informe nunca
 autoriza importar o reservar IDs y no acredita seguridad, actor normal ni
