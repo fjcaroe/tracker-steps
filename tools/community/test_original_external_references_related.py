@@ -35,6 +35,8 @@ class RelatedDiscriminatorCase(unittest.TestCase):
             'registry_proof_sha256', 'source_packet_sha256', 'installation_postflight_sha256')}
         baseline.update(read_only=True, database_writes=False, import_authorized=False, id_reservation_authorized=False,
             two_snapshots_exact=True, scope={}, target_identities={}, alias_identity_plan=[], original_master_value_hashes={},
+            endpoint_identities=[{'table': 'actual_target', 'model': 'target.model', 'ids': [1],
+                'rows': [{'id': 1, 'row_sha256': 'a' * 64}], 'aliases': [{'res_id': 1, 'id': 9}]}],
             original_xmlids_backup_proof={}, registry_runtime_proof={}, paths=[{'kind': 'existing-path', 'table': 'original',
                 'field': 'type_id', 'observation': 'edge:0', 'rows': [{'owner_pk': {'id': 19}, 'target_id': 1}]}],
             observations={key: [] for key in ('transaction', 'database', 'modules', 'pending', 'tables', 'columns', 'keys',
@@ -52,7 +54,7 @@ class RelatedDiscriminatorCase(unittest.TestCase):
         receipt = related.compare(baseline, current)
         self.assertEqual((receipt['blockers_before'], receipt['blockers_after']), (4, 1))
         self.assertFalse(receipt['adoption_authorized'])
-        for change in ('identity', 'catalog', 'old_path', 'unrelated_guard', 'mismatch', 'missing_lineage', 'write'):
+        for change in ('identity', 'catalog', 'old_path', 'unrelated_guard', 'mismatch', 'missing_lineage', 'endpoint', 'endpoint_alias', 'write'):
             altered = deepcopy(current)
             if change == 'identity': altered['source_packet_sha256'] = 'different'
             elif change == 'catalog': altered['observations']['keys'] = [{'table_name': 'changed'}]
@@ -60,6 +62,8 @@ class RelatedDiscriminatorCase(unittest.TestCase):
             elif change == 'unrelated_guard': altered['blockers'] = []
             elif change == 'mismatch': altered['paths'][1]['rows'] = [{'owner_pk': {'id': 1}}]
             elif change == 'missing_lineage': altered['paths'].pop(2)
+            elif change == 'endpoint': altered['endpoint_identities'][0]['rows'][0]['row_sha256'] = 'b' * 64
+            elif change == 'endpoint_alias': altered['endpoint_identities'][0]['aliases'][0]['id'] = 10
             elif change == 'write': altered['database_writes'] = True
             with self.subTest(change=change), self.assertRaises(ValueError):
                 related.compare(baseline, altered)

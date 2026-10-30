@@ -94,6 +94,14 @@ def compare(baseline, current):
         return result
     old_paths, new_paths = paths(baseline), paths(current)
     require(all(new_paths[key] >= count for key, count in old_paths.items()), 'related-contrast-lost-or-changed-original-path')
+    for endpoint in baseline['endpoint_identities']:
+        matching = [row for row in current['endpoint_identities']
+            if (row['table'], row['model']) == (endpoint['table'], endpoint['model'])]
+        require(len(matching) == 1 and set(endpoint['ids']) <= set(matching[0]['ids']), 'related-contrast-endpoint-binding-lost')
+        current_endpoint = matching[0]
+        require([row for row in current_endpoint['rows'] if row['id'] in endpoint['ids']] == endpoint['rows']
+            and [row for row in current_endpoint['aliases'] if row['res_id'] in endpoint['ids']] == endpoint['aliases'],
+            'related-contrast-endpoint-record-or-alias-changed')
 
     def blocker(row):
         value = dict(row); value.pop('related_binding_reason', None)
@@ -119,5 +127,6 @@ def compare(baseline, current):
     return {'schema': 1, 'closed_guards': [{'model': model, 'field': 'res_id'} for model in EXPECTED],
         'blockers_before': len(baseline['blockers']), 'blockers_after': len(current['blockers']),
         'only_three_proven_related_guards_closed': True, 'all_original_paths_and_observations_preserved': True,
+        'all_preexisting_endpoint_records_and_aliases_exact': True,
         'catalog_and_original_master_hashes_unchanged': True, 'runtime_lineage': lineage,
         'database_writes': False, 'computes_executed': False, 'adoption_authorized': False, 'id_reservation_authorized': False}
