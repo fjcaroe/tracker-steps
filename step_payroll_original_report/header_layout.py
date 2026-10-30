@@ -55,3 +55,35 @@ def unclip_corporate_wrapper(value):
     if tree.text_content() != before:
         raise ValueError('Corporate wrapper text changed during layout normalization')
     return html.tostring(tree, encoding='unicode', doctype='<!DOCTYPE html>')
+
+
+def table_corporate_header(value):
+    raw = value if isinstance(value, bytes) else value.encode('utf-8')
+    tree = html.fromstring(raw, parser=html.HTMLParser(encoding='utf-8'))
+    wrappers = tree.xpath('//*[@id="minimal_layout_report_headers"]')
+    if len(wrappers) != 1:
+        raise ValueError('One official corporate wrapper is required')
+    headers = wrappers[0].xpath('./div[contains(concat(" ",normalize-space(@class)," ")," header ")]')
+    if len(headers) != 1:
+        raise ValueError('One corporate header is required')
+    header = headers[0]
+    if len(header.xpath('.//*[@name="company_address"]')) != 1 or len(header.xpath('.//img[@alt="Logo"]')) != 1:
+        raise ValueError('One original company address and logo are required')
+    before = tree.text_content()
+    table = html.Element('table', {'class': 'step_original_report_header_table', 'role': 'presentation',
+                                  'style': 'width:100%;border-collapse:collapse;border:0;table-layout:fixed;'})
+    tbody = html.SubElement(table, 'tbody')
+    for child in list(header):
+        header.remove(child)
+        row = html.SubElement(tbody, 'tr')
+        cell = html.SubElement(row, 'td', {'style': 'padding:0;border:0;vertical-align:top;'})
+        cell.append(child)
+    for node in table.iterdescendants():
+        classes = (node.get('class') or '').split()
+        if any(token in classes for token in ('row', 'd-flex', 'col-6')):
+            node.set('class', ' '.join(token for token in classes if token not in ('row', 'd-flex', 'col-6')))
+            node.set('style', (node.get('style') or '') + ';display:block!important;float:none!important;width:100%!important;')
+    header.append(table)
+    if tree.text_content() != before:
+        raise ValueError('Corporate text changed during table layout normalization')
+    return html.tostring(tree, encoding='unicode', doctype='<!DOCTYPE html>')
