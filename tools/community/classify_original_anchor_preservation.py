@@ -5,6 +5,7 @@ metadata and expiration values are compared explicitly; no financial values,
 message bodies or attachment content leave PostgreSQL in this report.
 """
 import argparse
+import ast
 from collections import Counter
 import hashlib
 import json
@@ -13,7 +14,6 @@ from pathlib import Path
 
 from original_anchor_readonly_sql import ReadOnlyReviewSQL
 import payroll_configuration_adoption_preflight as gate
-import validate_agriculture_core as preservation
 
 
 HISTORY = ('mail_message', 'mail_tracking_value', 'mail_followers', 'mail_activity', 'ir_attachment')
@@ -76,10 +76,21 @@ def menu_snapshot(sql, database):
         "'data',coalesce(json_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::json)) FROM ir_ui_menu_group_rel t"))
 
 
+def generated_asset_predicate():
+    # Parse only the existing trusted literal; do not import a Linux runner or
+    # execute artifact code merely to classify inert row metadata.
+    path = Path(__file__).with_name('validate_agriculture_core.py')
+    nodes = [node for node in ast.parse(path.read_text(encoding='utf-8-sig')).body
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == 'GENERATED_ASSET_CACHE' for target in node.targets)]
+    require(len(nodes) == 1 and isinstance(nodes[0].value, ast.Constant) and isinstance(nodes[0].value.value, str),
+        'trusted-literal-asset-predicate-required')
+    return nodes[0].value.value
+
+
 def history_rows(sql, database, table):
     require(table in HISTORY, 'fixed-history-table-required')
     if table == 'ir_attachment':
-        asset = 'coalesce(' + preservation.GENERATED_ASSET_CACHE + ',false)'
+        asset = 'coalesce(' + generated_asset_predicate() + ',false)'
         icon = "coalesce(t.res_model='ir.ui.menu' AND t.res_field='web_icon_data',false)"
         metadata = "jsonb_build_object('res_model',t.res_model,'res_field',t.res_field,'type',t.type,'mimetype',t.mimetype)"
     else:
@@ -146,7 +157,8 @@ def classify(stage, review_path):
     actual_added = {(row['table_name'], row['name']) for row in catalog['target']} - {(row['table_name'], row['name']) for row in catalog['source']}
     require(actual_added == added, 'new-constraint-catalog-differs-from-review')
     return {'schema':1,'database':target,'source_database':source,'review_sha256':sha(body),
-        'tool_sha256':sha(Path(__file__).read_bytes()),'read_only':True,'database_writes':False,'orm_loaded':False,
+        'tool_sha256':sha(Path(__file__).read_bytes()),
+        'asset_predicate_sha256':sha(generated_asset_predicate().encode()),'read_only':True,'database_writes':False,'orm_loaded':False,
         'menus':menus,'history':history,'expiration':{'before':expiration_before,'after':expiration_after,
             'exact':expiration_before == expiration_after,'changed_keys':sorted(k for k in expiration_before.keys() | expiration_after.keys()
                 if expiration_before.get(k) != expiration_after.get(k)), 'differences_accepted':False},
