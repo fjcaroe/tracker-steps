@@ -55,7 +55,15 @@ def is_exact_query(code):
 
 @lru_cache(maxsize=4)
 def git_origin(root):
-    args = ['git', '-c', 'safe.directory=' + root, '-C', root]
+    path = Path(root)
+    need(path.is_absolute() and (path / '.git').is_dir() and not (path / '.git').is_symlink(),
+        'explicit-official-runtime-git-directory-required')
+    # Match the already validated loader boundary: Git2.25's ownership
+    # backport ignores -c safe.directory during -C discovery as OSodoo. An
+    # explicit admitted git-dir/work-tree avoids discovery and global config
+    # changes. Optional index refresh locks remain disabled.
+    args = ['git', '--no-optional-locks', '-c', 'safe.directory=' + root,
+        '--git-dir=' + str(path / '.git'), '--work-tree=' + root]
     try:
         actual = subprocess.check_output(args + ['rev-parse', 'HEAD'], stderr=subprocess.DEVNULL).decode().strip()
     except (OSError, subprocess.CalledProcessError):
