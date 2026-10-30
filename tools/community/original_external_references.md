@@ -31,7 +31,8 @@ Los tres del adaptador no se convierten en PK originales que reservar.
 El catálogo PostgreSQL demuestra PK/unique no nullable y FK reales. El plan
 enumera relaciones físicas con claves completas del dueño y extremos
 modelo/tabla/columna/ID; una M2M conserva sus dos columnas y sus FK, no sólo
-un count. Comprueba la familia completa PG de acciones y sus modelos de
+un count. Cada dueño incluye su `tableoid` físico; la PK del padre PostgreSQL
+no demuestra unicidad entre sus tablas heredadas. Comprueba la familia completa PG de acciones y sus modelos de
 registry, incluidos los consumidores del ocupante actual de462. Captura
 ocupantes PK y aliases nominales, sin seleccionar un ID de reubicación.
 
@@ -59,6 +60,9 @@ El informe incluye consultas SELECT y observaciones completas para recompilar
 y revalidar desde código Git confiable dentro del futuro lock/transacción del
 escritor. Contiene hashes del backup, aceptación, packet, registry y herramientas.
 No ejecutar Python/SQL de artefactos como si fuera código confiable.
+El resumen separa observaciones con binding y candidatos opacos. Las rutas
+pueden solaparse (por ejemplo FK y Field del mismo vínculo); sus filas no son
+un conteo de maestros ni una afirmación de adopción.
 
 El recibo runtime es obligatorio: liga los bytes exactos de las herramientas
 aprobadas, aceptación/packet, registry, todos los snapshots públicos y cada

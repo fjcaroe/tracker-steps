@@ -78,6 +78,9 @@ class OriginalExternalReferencesCase(unittest.TestCase):
         self.assertIn("'ir.actions.report,462'", sql)
         self.assertIn('jsonb_each', sql)
         self.assertIn('company_id', sql)
+        self.assertIn("'_physical_table',t.tableoid::regclass::text", sql)
+        self.assertTrue(all(path['owner_key']['physical_table_system_column'] == 'tableoid'
+            for path in paths if path['owner_key']))
         for query in queries.values():
             self.assertTrue(query.startswith('SELECT '))
             for verb in ('UPDATE ', 'INSERT ', 'DELETE ', 'ALTER ', 'CREATE ', 'DROP ', 'setval('):
