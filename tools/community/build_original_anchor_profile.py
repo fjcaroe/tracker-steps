@@ -65,6 +65,12 @@ def build(root, runtime, oca, provider):
         folder = engine / module
         files = cold.snapshot(folder)
         updated, plan = ui_profile(files['__manifest__.py'], files)
+        if module == 'payroll':
+            spec=ast.literal_eval(updated.decode('utf-8-sig'))
+            assert 'step_payroll_contracts' not in spec['depends']
+            spec['depends'].append('step_payroll_contracts')
+            updated=(repr(spec)+'\n').encode()
+            plan['adapter_loaded_before_first_payroll_view']='step_payroll_contracts'
         (folder / '__manifest__.py').write_bytes(updated)
         changes[module] = dict(plan, original_manifest_sha256=sha(files['__manifest__.py']),
             profile_manifest_sha256=sha(updated), original_files=cold.hashes(files),
