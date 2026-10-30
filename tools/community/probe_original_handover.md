@@ -86,3 +86,13 @@ Un recibo `passed=True` certifica este subcontrato funcional. Mantiene
 explícitamente pendientes la admisión semántica de metadata/serializados,
 flujos legados, importes, nómina chilena, PDF, conversión integral y vencimiento.
 No es una autorización de adopción o renumeración ni una aceptación global.
+
+La herencia de formularios conserva una excepción SQL limitada: únicamente el
+SELECT recursivo de `ir_ui_view` observado en el intento B, hash
+`4c0933676ecffd506072359a1b096fe7cf4e2e5ba0117f7d13fad1385ceedcab`.
+Se comprueban los dos callers reales base/website, el pin oficial Community
+`4b4efe68291d6def5bb7d2e1f2b829e0cda577d4`, los bytes de ambos archivos LGPL
+y los hashes de sus métodos/getters mediante AST. No se inspeccionan ni cambian
+parámetros; el código SQL debe coincidir byte por byte, incluidos los predicados
+de website/active. Cualquier otro `WITH`, variación de contexto, lectura de
+historia, función añadida o escritura por flush permanece denegada.
