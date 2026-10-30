@@ -54,16 +54,18 @@ def native_root_allowed(root):
         and path.name.startswith(NATIVE_ROOT_PREFIXES))
 
 
-def validate_native_acceptance(root, accepted, *, expected_multifront_installed=None, operational_extensions=False):
+def validate_native_acceptance(root, accepted, *, expected_multifront_installed=None, operational_extensions=False, quality_extension=False):
     require(native_root_allowed(root), 'Private accepted source root required')
     require(accepted.get('mode') == 'cerro-reference' and accepted.get('writes_to_source') is False,
             'Accepted native reference required')
     if PurePosixPath(str(root)).name.startswith('community-multifront-'):
-        expected_tests = 437 if operational_extensions else 391
+        require(not quality_extension or operational_extensions, 'Quality requires the operational extension profile')
+        expected_tests = 441 if quality_extension else 437 if operational_extensions else 391
         require(accepted.get('multifront') is True and accepted.get('focused_development_pass') is False
                 and accepted.get('expected_test_count') == expected_tests
                 and bool(accepted.get('operational_extensions', False)) == operational_extensions,
                 'Full exact multifront native acceptance profile required')
+        require(bool(accepted.get('quality_extension',False)) == quality_extension, 'Exact Quality acceptance flag required')
         # The coordinator pins the independently measured installed graph.
         # Do not guess393, accept a range or learn the pin from this same file.
         require(type(expected_multifront_installed) is int and expected_multifront_installed > 140,
@@ -71,7 +73,7 @@ def validate_native_acceptance(root, accepted, *, expected_multifront_installed=
         require(accepted.get('counts') == {'installed': expected_multifront_installed, 'enterprise': 140},
                 'Measured multifront module graph differs')
     else:
-        require(not operational_extensions and expected_multifront_installed is None and accepted.get('multifront', False) is False
+        require(not quality_extension and not operational_extensions and expected_multifront_installed is None and accepted.get('multifront', False) is False
                 and accepted.get('focused_development_pass', False) is False and accepted.get('expected_test_count') == 294
                 and accepted.get('counts') == {'installed': 391, 'enterprise': 140},
                 'Original native294/installed391 witness required')
@@ -207,6 +209,7 @@ def main():
     parser.add_argument('--expected-multifront-installed', type=int,
         help='Exact independently measured installed graph, mandatory only for multifront roots')
     parser.add_argument('--operational-extensions', action='store_true', help='Require the exact full native437 operational package')
+    parser.add_argument('--quality-extension',action='store_true',help='Require the exact full native441 Quality package')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Local peer inspection requires root')
     root, output = args.native_root.resolve(), args.output_directory.resolve()
@@ -217,7 +220,7 @@ def main():
     database = accepted['database']
     require(re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_[A-Za-z0-9_]+', database), 'Private reference database required')
     validate_native_acceptance(root, accepted, expected_multifront_installed=args.expected_multifront_installed,
-        operational_extensions=args.operational_extensions)
+        operational_extensions=args.operational_extensions,quality_extension=args.quality_extension)
     dump = native / 'source.dump'
     require(dump.is_file() and not dump.is_symlink(), 'Original private dump required')
     original_stat = dump.stat()
@@ -254,6 +257,7 @@ def main():
         'native_acceptance_sha256': sha(native / 'passed.json'),
         'expected_multifront_installed': args.expected_multifront_installed,
         'operational_extensions': args.operational_extensions,
+        'quality_extension':args.quality_extension,
         'source_dump_path': str(dump), 'source_dump_bytes': original_stat.st_size,
         'schema_columns': {name: kind for name, kind, _ in columns},
         'current_schema_columns': {name: kind for name, kind, _ in metadata['columns']},

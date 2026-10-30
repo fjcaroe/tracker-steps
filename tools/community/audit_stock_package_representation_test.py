@@ -71,6 +71,18 @@ class DumpReconstructionCase(unittest.TestCase):
                 audit.validate_native_acceptance(root, dict(accepted, **changes),
                     expected_multifront_installed=395, operational_extensions=True)
 
+    def test_quality441_is_an_explicit_distinct_full_profile(self):
+        root=PurePosixPath('/opt/steps-validation/community-multifront-parallel-QUALITY')
+        accepted={'mode':'cerro-reference','writes_to_source':False,'multifront':True,
+            'focused_development_pass':False,'operational_extensions':True,'quality_extension':True,
+            'expected_test_count':441,'counts':{'installed':397,'enterprise':140}}
+        audit.validate_native_acceptance(root,accepted,expected_multifront_installed=397,operational_extensions=True,quality_extension=True)
+        for change in ({'expected_test_count':437},{'quality_extension':False},{'focused_development_pass':True}):
+            with self.assertRaises(ValueError):
+                audit.validate_native_acceptance(root,dict(accepted,**change),expected_multifront_installed=397,operational_extensions=True,quality_extension=True)
+        with self.assertRaises(ValueError):
+            audit.validate_native_acceptance(root,accepted,expected_multifront_installed=397,operational_extensions=True)
+
     def data(self):
         rows = []
         for ident in range(1, 6):

@@ -20,12 +20,14 @@ def encode(value):
     return json.dumps(value, indent=2, sort_keys=True).encode('utf-8')
 
 
-def seal(evidence, output):
+def seal(evidence, output, *, quality_extension=False):
     evidence, output = Path(evidence).resolve(), Path(output).resolve()
     repo = Path(__file__).resolve().parents[2]
     assert not output.is_relative_to(repo) and not output.exists()
     assert not subprocess.check_output(['git', 'status', '--porcelain'], cwd=repo).strip(), 'Commit the trusted verifier first'
-    summary = verify(evidence, repo=repo, operational_extensions=True)
+    options={'operational_extensions':True}
+    if quality_extension:options['quality_extension']=True
+    summary = verify(evidence, repo=repo, **options)
     files = {}
     for path in evidence.rglob('*'):
         assert not path.is_symlink(), 'Symlink evidence refused'
@@ -58,5 +60,6 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('evidence',type=Path)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--quality-extension',action='store_true')
     args=parser.parse_args()
-    print(json.dumps(seal(args.evidence,args.output),sort_keys=True))
+    print(json.dumps(seal(args.evidence,args.output,quality_extension=args.quality_extension),sort_keys=True))
