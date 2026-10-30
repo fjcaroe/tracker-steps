@@ -65,12 +65,23 @@ def option_values(arguments, names):
         for name in names:
             if argument.startswith(name + '='):
                 values.append(argument[len(name) + 1:])
+            elif len(name) == 2 and argument.startswith(name) and argument != name:
+                # optparse also accepts -dDATABASE / -iMODULE. Do not let an
+                # attached later value bypass the single-scope comparison.
+                values.append(argument[len(name):])
     return values
 
 
 def validate_odoo_arguments(arguments, database):
     gate.require(arguments and arguments[0].startswith('-') and '--' not in arguments,
                  'only-real-server-install-arguments-admitted')
+    critical = ('--database', '--db-filter', '--workers', '--max-cron-threads',
+                '--without-demo', '--stop-after-init', '--no-http', '--init',
+                '--test-enable', '--save', '--db_password', '--db-password')
+    for argument in arguments:
+        name = argument.split('=', 1)[0]
+        gate.require(not (name.startswith('--') and any(option.startswith(name)
+            and option != name for option in critical)), 'abbreviated-private-scope-options-forbidden')
     expected = [(('-d', '--database'), database), (('--db-filter',), '^' + database + '$'),
                 (('--workers',), '0'), (('--max-cron-threads',), '0'), (('--without-demo',), 'all')]
     for names, value in expected:
@@ -80,7 +91,7 @@ def validate_odoo_arguments(arguments, database):
     gate.require(len(option_values(arguments, ('-i', '--init'))) == 1,
                  'explicit-real-module-install-required')
     gate.require('--test-enable' not in arguments and '--save' not in arguments
-        and not any(argument.startswith(('--db_password', '--db-password')) for argument in arguments),
+        and not any(argument.startswith(('--db_password', '--db-password', '-w')) for argument in arguments),
         'tests-config-writes-or-password-arguments-forbidden')
 
 
