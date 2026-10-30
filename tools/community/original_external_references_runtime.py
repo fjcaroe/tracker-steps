@@ -80,7 +80,8 @@ def main():
     user = 'odoo' if pure else 'cerro_odoo18'
     identity = pwd.getpwnam(user)
     helper = Path(__file__).with_name('original_external_references_registry.py')
-    require(helper.is_file(), 'Versioned metadata-only payload required')
+    bootstrap = Path(__file__).with_name('original_external_references_readonly_bootstrap.py')
+    require(helper.is_file() and bootstrap.is_file(), 'Versioned metadata payload and pool policy required')
     output.mkdir(mode=0o700)
     os.chown(output, identity.pw_uid, identity.pw_gid)
     previous_umask = os.umask(0o077)
@@ -93,6 +94,10 @@ def main():
     with os.fdopen(os.open(local_helper, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         stream.write(helper.read_bytes())
     os.chown(local_helper, identity.pw_uid, identity.pw_gid)
+    local_bootstrap = output / bootstrap.name
+    with os.fdopen(os.open(local_bootstrap, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
+        stream.write(bootstrap.read_bytes())
+    os.chown(local_bootstrap, identity.pw_uid, identity.pw_gid)
 
     def baseline():
         os.seteuid(pwd.getpwnam('postgres').pw_uid)
@@ -118,6 +123,7 @@ def main():
 
     expression = ('import runpy,json,os; env.cr.rollback(); env.cr.execute("SHOW transaction_read_only"); '
         'assert env.cr.fetchone()==("on",), "Registry must start read-only"; '
+        'assert env.cr.readonly is True, "Real Odoo cursor must be read-only"; '
         'report=runpy.run_path(' + repr(str(local_helper)) + ')["inspect_registry"](env, '
         'source_packet_sha256=' + repr(accepted['source_files_sha256']) + ', '
         'acceptance_sha256=' + repr(sha(accepted_path)) + '); '
@@ -127,7 +133,8 @@ def main():
     if pure:
         paths = str(stage / 'consumer-addons') + ',' + paths
     entry = runtime / 'odoo-bin' if pure else source / 'tools/ops/run_agriculture_upgrade.py'
-    command = ['sudo', '-u', user, '/usr/bin/python3.10', str(entry), 'shell', '-c', config_path,
+    odoo_runtime = runtime if pure else Path('/opt/odoo18')
+    command = ['sudo', '-u', user, '/usr/bin/python3.10', str(local_bootstrap), str(odoo_runtime), str(entry), 'shell', '-c', config_path,
         '-d', database, '--db-filter=^' + database + '$', '--addons-path=' + paths,
         '--db_host=/var/run/postgresql', '--data-dir=' + str(stage / 'data'), '--load=base,web',
         '--workers=0', '--max-cron-threads=0', '--no-http', '--http-interface=127.0.0.1',
@@ -161,6 +168,7 @@ def main():
                 'source_packet_sha256': accepted['source_files_sha256'],
                 'acceptance_sha256': sha(accepted_path), 'source_files_json_sha256': sha(files_path),
                 'runner_sha256': sha(__file__), 'payload_sha256': sha(helper),
+                'readonly_bootstrap_sha256': sha(bootstrap), 'odoo_pool_readonly_before_connect': True,
                 'registry_json_sha256': sha(output / 'registry.json'), 'adoption_authorized': False})
     except Exception as error:
         dump('failed', {'schema': 1, 'database': database, 'error': str(error), 'read_only_required_from_startup': True,
