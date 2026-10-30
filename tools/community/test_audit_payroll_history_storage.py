@@ -92,7 +92,7 @@ class StorageAuditCase(unittest.TestCase):
         registry = Registry()
         for model, table, name, kind, required, translate in audit.SPECS:
             field = SimpleNamespace(model_name=model, name=name, type='many2one' if kind == 'int4' else 'char',
-                required=required, translate=translate, store=True, column_type=(kind, kind),
+                required=required, translate=translate, store=True, column_type=(kind, 'VARCHAR' if kind == 'varchar' else kind),
                 related=None, compute=None, groups=None, comodel_name='resource.calendar' if kind == 'int4' else None,
                 ondelete='set null' if kind == 'int4' else None)
             registry[model] = SimpleNamespace(_table=table, _auto=True, _transient=False, _fields={name: field})
