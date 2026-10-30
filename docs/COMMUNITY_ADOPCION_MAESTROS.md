@@ -4,6 +4,10 @@ Continúa desde `a983b501`. Se acepta el paquete normal S7 congelado en
 `9a42297f`: **671 casos Community y 462 nativos, cero fallos y errores**.
 La adopción completa de los 120 maestros/71 reglas conserva puertas pendientes;
 esta aceptación no convierte integralmente Cerro ni resuelve el 31 de octubre.
+La revisión física posterior S7 encontró además una cuarta FK alterada por el
+adaptador de grupos. Foundation 1.16.0 está preservada en la rama experimental
+con su corrección por API oficial; la pareja T nueva debe pasar antes de admitir
+esa revisión de esquema. No se ha publicado el paquete en producción.
 
 ## Código y aceptación normal
 
@@ -87,6 +91,33 @@ la protección de historias; no confiar en `unlink` de hijos ante cascada SQL.
 Hay otras 32 restricciones nuevas que requieren revisión. **No hay aceptación
 de conversión por esta revisión**, ni por cero EE en una cohorte aislada.
 
+La revisión S7 independiente confirmó 944/945 entradas literales, 59.079 aliases
+y **146 contadores** exactos. Sus 552 vínculos de menús originales permanecen:
+hay siete vínculos adicionales sólo en menús nuevos. Se conservaron todos los
+1.431 mensajes, 747 seguimientos, 620 seguidores, una actividad y 1.166 adjuntos
+originales; sólo se añadió un candidato a icono técnico de menú. Los dos
+parámetros de vencimiento comparados también son exactos. Estas observaciones
+clasifican la diferencia sin otorgar aceptación productiva ni legal.
+
+S7 añade una cuarta FK alterada: `rule_group_rel.group_id` RESTRICT→CASCADE al
+reinicializar únicamente `res.groups`. La corrección mínima delega el updater
+original del campo propietario `ir.rule.groups` después del inverso; no escribe
+DDL manual ni cambia grupos, membresías o reglas. La prueba real de borrado debe
+rechazar por la FK original, bajo actor Settings normal, y conservar su vínculo.
+T exige además catálogo readonly antes del upgrade nativo, inmediatamente después
+y tras las pruebas, con semántica y metadatos originales idénticos. Conserva
+inmutables los contratos R3 y S. Candidato congelado T1: `ab9e7685`.
+
+Las otras 32 FK nuevas están todas sobre columnas nuevas (26 SET NULL y seis
+RESTRICT, once tablas). Dos `register_id` apuntan al maestro OCA nuevo, sin
+materialización histórica acreditada. No sustituyen una FK anterior ni cierran
+la adopción por existir. Las 36 diferencias de columnas y las tres políticas
+de borrado de Nómina siguen pendientes; no hay exención para históricos vacíos.
+
+Revisión S7: `12f26677c10e6602e7f0c3e0ab4e9e2a27813d0ee697a2c274b22f79d0a432d8`.
+Clasificación readonly: `0e16916aa1c86a271998a69a8327e22cfa99096b00504f01dccff1091da14a77`.
+Copias privadas verificadas localmente, sin ejecutar código de los artefactos.
+
 ## Referencia real SyS
 
 Una única transacción RR/READ ONLY, sin ORM ni recálculo, capturó 622 cerradas
@@ -136,6 +167,9 @@ origin/codex/community-original-adoption-20261030; no confundas sus ensayos
 con la pareja normal aceptada ni integres código experimental sin pruebas.
 
 Prioriza cerrar la adopción original de 120 maestros/71 reglas sobre OCA:
+recupera primero el resultado de la pareja T1 congelada en ab9e7685 y su
+postflight físico de seguridad. No declares aceptada la corrección 1.16.0 sólo
+por las pruebas puras ni reutilices los recibos de S para T.
 reutiliza el Sourceproof nativo S7B y conserva su partición 118/2 bajo UID7.
 Diagnostica el rechazo de SQL en el formulario del intento S7 source-parity-A,
 sin relajar el guard por suposición; prueba formularios/menús y materialización
