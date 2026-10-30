@@ -399,7 +399,7 @@ def main():
             assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',report_log),'Configuration inspector failed'
         if args.accelerated:
             checker=source/'tools/community/finance_frontier_contract.py'
-            expression="import runpy,json; proof=runpy.run_path("+repr(str(checker))+")[\"verify\"](env,"+repr('community' if pure else 'cerro-copy')+",draft_grouping="+repr(args.custody_grouping)+",grouping_posting="+repr(args.operational_extensions)+");open("+repr(str(stage/'finance-frontier.json'))+",'w').write(json.dumps(proof,indent=2))"
+            expression="import runpy,json; proof=runpy.run_path("+repr(str(checker))+")[\"verify\"](env,"+repr('community' if pure else 'cerro-copy')+",draft_grouping="+repr(args.custody_grouping)+",grouping_posting="+repr(args.operational_extensions)+",invoice_application="+repr(args.critical_extension)+");open("+repr(str(stage/'finance-frontier.json'))+",'w').write(json.dumps(proof,indent=2))"
             with (stage/'finance-bootstrap.log').open('w') as stream:
                 status=subprocess.run(offline_odoo(base+['shell']+opts+['--no-http','--logfile='+str(stage/'finance.log')]),input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
             report_log=(stage/'finance.log').read_text(errors='replace')

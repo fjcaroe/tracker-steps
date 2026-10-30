@@ -459,6 +459,8 @@ def verify_receipt(root, source, packet, mode, *, operational_extensions=False, 
             'MF actual finance registry evidence differs')
     require(finance.get('draft_manual_payment_posting', False) is operational_extensions,
             'Actual finance registry posting profile differs')
+    require(finance.get('draft_linked_invoice_application', False) is critical_extension,
+            'Critical linked-invoice accounting profile differs')
     configuration = read(root, mode + '/configuration.json')
     require(configuration['database'] == receipt['database'] and configuration['normal_actor'] is True
             and configuration['read_only_configuration'] is True and configuration['fixtures_rolled_back'] is True

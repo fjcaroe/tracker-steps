@@ -73,7 +73,8 @@ def verify_metadata(before, after):
             'view_architecture_and_permissions_exact': True}
 
 
-def verify(env, mode, draft_grouping=False, grouping_posting=False):
+def verify(env, mode, draft_grouping=False, grouping_posting=False, invoice_application=False):
+    assert type(invoice_application) is bool and (not invoice_application or draft_grouping and grouping_posting)
     assert mode in ('community', 'cerro-copy')
     versions = {'step_account_balance_analytic': '18.0.1.1.0',
                 'step_bank_export_core': '18.0.1.2.2',
@@ -178,7 +179,7 @@ def verify(env, mode, draft_grouping=False, grouping_posting=False):
         assert not installed.filtered(lambda module: module.license == 'OEEL-1')
         if draft_grouping:
             for name in ('step_batch_payment_grouping','step_batch_payment_core'):
-                assert installed.filtered(lambda module:module.name==name).latest_version==('18.0.1.1.0' if grouping_posting else '18.0.1.0.0')
+                assert installed.filtered(lambda module:module.name==name).latest_version==('18.0.1.2.0' if invoice_application else '18.0.1.1.0' if grouping_posting else '18.0.1.0.0')
             provider=env['account.batch.payment']
             assert provider._table=='account_batch_payment' and provider._original_module=='step_batch_payment_core'
             assert provider.create.__module__=='odoo.addons.step_batch_payment_core.models.batch_payment'
@@ -195,6 +196,7 @@ def verify(env, mode, draft_grouping=False, grouping_posting=False):
     result = {'mode': mode, 'versions': versions, 'aliases': aliases,
               'draft_grouping_provider': bool(draft_grouping),
               'draft_manual_payment_posting': bool(grouping_posting),
+              'draft_linked_invoice_application': invoice_application,
               'multicurrency_legacy_aliases': currency_aliases,
               'payment_formats_use_original_model': env['account.payment']._table == 'account_payment',
               'batch_conversion_certified': False, 'writes_to_source': False}
