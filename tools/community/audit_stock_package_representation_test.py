@@ -32,7 +32,7 @@ class DumpReconstructionCase(unittest.TestCase):
         original = {'mode': 'cerro-reference', 'writes_to_source': False,
             'expected_test_count': 294, 'counts': {'installed': 391, 'enterprise': 140}}
         #393 is a synthetic test pin, not an observation of a real environment.
-        multifront = dict(original, expected_test_count=391, multifront=True, focused=False,
+        multifront = dict(original, expected_test_count=391, multifront=True, focused_development_pass=False,
                           counts={'installed': 393, 'enterprise': 140})
         audit.validate_native_acceptance(original_root, original)
         audit.validate_native_acceptance(multifront_root, multifront, expected_multifront_installed=393)
