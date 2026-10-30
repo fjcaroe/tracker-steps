@@ -18,6 +18,7 @@ import traceback
 import payroll_configuration_adoption_preflight as gate
 import original_handover_visibility_contract as visibility
 import original_handover_view_query as core_view
+import original_handover_savepoint as core_savepoint
 
 
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
@@ -231,7 +232,8 @@ def observe_cursor(cr, rejected=None):
     cls, execute = type(cr), type(cr).execute
     observation = {'projection': False, 'statements': 0, 'inserts': 0,
         'historical_tables_read': False, 'counter_operations': False,
-        'pinned_core_view_queries': {'count': 0, 'contract': None}}
+        'pinned_core_view_queries': {'count': 0, 'contract': None},
+        'pinned_core_savepoints': {'controls': {}, 'contract': None}}
 
     def observed(cursor, query, *args, **kwargs):
         require(cursor is cr, 'additional-cursor-not-admitted')
@@ -240,7 +242,18 @@ def observe_cursor(cr, rejected=None):
             code = query.as_string(cursor._cnx)
         require(isinstance(code, str), 'unreviewed-sql-object')
         try:
-            if core_view.is_exact_query(code):
+            savepoint = core_savepoint.control(code)
+            if savepoint:
+                require(observation['projection'], 'uuid-savepoint-outside-original-projection')
+                operation, name = savepoint
+                proof = core_savepoint.current_origin(operation, name, cursor)
+                previous = observation['pinned_core_savepoints']['contract']
+                require(previous is None or previous == proof, 'core-savepoint-origin-changed-during-probe')
+                observation['pinned_core_savepoints']['contract'] = proof
+                controls = observation['pinned_core_savepoints']['controls']
+                controls[operation] = controls.get(operation, 0) + 1
+                command = operation.split()[0].lower()
+            elif core_view.is_exact_query(code):
                 # Only the byte-identical metadata SELECT observed in B,
                 # reached through both actual pinned LGPL builder frames.
                 # No caller/context flag can select this admission path.
@@ -252,7 +265,7 @@ def observe_cursor(cr, rejected=None):
                 command = 'select'
             else:
                 command = admit_sql(code, projection=observation['projection'])
-        except (ProbeBlocked, core_view.ViewQueryBlocked) as error:
+        except (ProbeBlocked, core_view.ViewQueryBlocked, core_savepoint.SavepointBlocked) as error:
             if rejected is not None:
                 rejected(code, error, observation['projection'])
             raise
@@ -737,7 +750,7 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         return result
     except Exception as error:
         code = str(error) if isinstance(error, (ProbeBlocked, visibility.VisibilityBlocked,
-            core_view.ViewQueryBlocked)) else 'actual-api-or-guard-rejected:' + type(error).__name__
+            core_view.ViewQueryBlocked, core_savepoint.SavepointBlocked)) else 'actual-api-or-guard-rejected:' + type(error).__name__
         try:
             private = private_access_error(output, error)
             if private:
