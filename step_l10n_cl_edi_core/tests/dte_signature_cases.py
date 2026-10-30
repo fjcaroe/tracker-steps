@@ -247,3 +247,37 @@ class DTESignatureCaseMixin:
         with self.assertRaises(dte.DTEError):
             dte.sign_dte(unsigned.replace(b'<MntTotal>1234.1200', b'<MntTotal>1234.1201'),
                 original, self.pin, context, self.document_key, caf_authorities={3: self.anchor})
+
+    def test_explicit_new_unsigned_envelope_namespace_preparation(self):
+        original, unsigned, context = self.fixture()
+        prepared = dte.prepare_unsigned_dte_for_envelope(unsigned)
+        before = re.search(br'<Documento .*?</Documento>', unsigned, re.S).group()
+        self.assertEqual(before, re.search(br'<Documento .*?</Documento>', prepared, re.S).group())
+        self.assertIn(('xmlns:xsi="' + dte.XSI + '"').encode(), prepared)
+        selected = replace(context, namespace_profile='sii-envelope')
+        signed = dte.sign_dte(prepared, original, self.pin, selected,
+            self.document_key, caf_authorities={3: self.anchor})
+        self.assertTrue(dte.verify_signed_dte(signed, original, self.pin, selected)
+            .metadata()['transport_namespace_context_prepared'])
+        standalone = dte.sign_dte(unsigned, original, self.pin, context,
+            self.document_key, caf_authorities={3: self.anchor})
+        self.assertFalse(self.verify(standalone, original, context)
+            .metadata()['transport_namespace_context_prepared'])
+
+    def test_envelope_preparation_never_rewrites_signed_or_mismatched_profiles(self):
+        original, unsigned, signed, context = self.signed_fixture()
+        with self.assertRaises(dte.DTEError):
+            dte.prepare_unsigned_dte_for_envelope(signed)
+        selected = replace(context, namespace_profile='sii-envelope')
+        with self.assertRaises(dte.DTEError):
+            self.verify(signed, original, selected)
+        prepared = dte.prepare_unsigned_dte_for_envelope(unsigned)
+        for raw, chosen in ((unsigned, selected), (prepared, context)):
+            with self.assertRaises(dte.DTEError):
+                dte.sign_dte(raw, original, self.pin, chosen,
+                    self.document_key, caf_authorities={3: self.anchor})
+        # Merely adding the official parent namespace to an existing signature
+        # cannot turn it into the prepared profile: its inclusive C14N changes.
+        forged = signed.replace(b'<DTE ', ('<DTE xmlns:xsi="' + dte.XSI + '" ').encode(), 1)
+        with self.assertRaisesRegex(dte.DTEError, 'digest-mismatch|signature-invalid'):
+            self.verify(forged, original, selected)
