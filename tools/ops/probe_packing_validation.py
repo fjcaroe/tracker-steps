@@ -5,10 +5,20 @@ from odoo.exceptions import UserError
 
 
 def verify_reported_quadrature(root, scoped, tools):
+    if not root.cr.dbname.startswith('MANAGEMENT_QA_'):
+        return
     plan_path=Path(tools).parents[1]/'packing-replay.json'
     if not plan_path.exists():
         return
     plan=json.loads(plan_path.read_text())
+    if plan.get('enable_inventory'):
+        products=scoped['product.product'].search([('default_code','=',plan['product_code'])])
+        if products:
+            from enable_product_inventory import enable_inventory
+            enable_inventory(root,scoped,plan['product_code'])
+            print('T137_INVENTORY_DEFINITION_TESTED no_stock_created=True')
+    if not root.cr.dbname.startswith('MANAGEMENT_QA_QA-CERRO_'):
+        return
     record=scoped['step.packing.production'].browse(plan['production_id']).exists()
     if not record or record.company_id != scoped.company:
         return
@@ -16,8 +26,6 @@ def verify_reported_quadrature(root, scoped, tools):
     assert len(record.step_packing_output_tag_ids)==plan['output_count']
     assert all(tag.step_tag_state=='validated' and tag.step_packing_production_id==record
                for tag in record.step_packing_output_tag_ids)
-    if not root.cr.dbname.startswith('MANAGEMENT_QA_QA-CERRO_'):
-        return
     record._check_packing_tags()
     products=(record.step_packing_input_tag_ids|record.step_packing_output_tag_ids).step_tag_line_ids.product_id
     unsupported=products.filtered(lambda product:not product.is_storable)

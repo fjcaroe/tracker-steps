@@ -8,12 +8,13 @@ import subprocess
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('output',type=Path);parser.add_argument('--suffix',default='2')
+    parser=argparse.ArgumentParser();parser.add_argument('output',type=Path);parser.add_argument('--suffix',default='3');parser.add_argument('--development-suffix',default='2')
     args=parser.parse_args();args.output.mkdir(mode=0o700,parents=True,exist_ok=True)
-    assert re.fullmatch('[a-z0-9]{1,8}',args.suffix)
+    assert all(re.fullmatch('[a-z0-9]{1,8}',s) for s in (args.suffix,args.development_suffix))
     identities=set();count=0;pending=None
     for target,code in [('development','d'),('cerro','c'),('qa-cerro','q')]:
-        stage=Path('/opt/steps-validation')/('management_'+target+'_t137'+code+args.suffix)
+        suffix=args.development_suffix if target=='development' else args.suffix
+        stage=Path('/opt/steps-validation')/('management_'+target+'_t137'+code+suffix)
         proof=stage/'qa_passed.json';qa=json.loads(proof.read_text())
         test=Path(qa['log']);text=test.read_text()
         matches=re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database',text)
@@ -23,7 +24,9 @@ def main():
         if target=='qa-cerro':
             assert 'T137_REPORTED_QUADRATURE_OK' in native
             pending='pending_product_inventory=True' in native
-        live=Path('/tmp/t137-deploy-'+code+args.suffix+'.log');served=live.read_text()
+        if target in ('cerro','qa-cerro'):
+            assert 'T137_INVENTORY_DEFINITION_TESTED no_stock_created=True' in native
+        live=Path('/tmp/t137-deploy-'+code+suffix+'.log');served=live.read_text()
         assert 'MANAGEMENT_VERIFY_OK' in served
         backups=re.findall(r'MANAGEMENT_DEPLOY_OK backup=(\S+)',served);assert len(backups)==1
         deployment=Path(backups[0])/'deployment.json';d=json.loads(deployment.read_text())
