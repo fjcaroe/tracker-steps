@@ -263,3 +263,10 @@ class AccountBatchPayment(models.Model):
     def validate_batch_button(self):
         self.check_access('write')
         raise UserError(_('La validación, envío y conciliación del lote siguen pendientes de certificar en Community.'))
+
+    def action_post_draft_payments(self):
+        self.sudo(False).check_access('write')
+        self.env['step.batch.payment.grouping'].post_groups_draft_payments(self.ids)
+        return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
+            'type': 'success', 'message': _('Pagos publicados en contabilidad. El lote sigue en borrador, sin envío ni conciliación.'),
+            'sticky': False, 'next': {'type': 'ir.actions.client', 'tag': 'reload'}}}

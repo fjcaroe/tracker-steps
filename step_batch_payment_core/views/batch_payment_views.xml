@@ -16,9 +16,12 @@
         <field name="arch" type="xml">
             <form string="Grupo de pagos existentes">
                 <header><button name="action_check_group" type="object" string="Comprobar grupo"/>
+                    <button name="action_post_draft_payments" type="object" string="Publicar pagos en contabilidad"
+                        groups="account.group_account_invoice" invisible="not id"
+                        confirm="Se publicarán sólo pagos nuevos en borrador. El lote no se valida, envía ni concilia."/>
                     <field name="state" widget="statusbar"/></header>
                 <sheet>
-                    <div class="alert alert-warning" role="alert">Gestión de borradores. La validación, envío y conciliación de lotes siguen pendientes. Este formulario no emite pagos.</div>
+                    <div class="alert alert-warning" role="alert">Puede publicar pagos nuevos en contabilidad. El grupo sigue en borrador: la validación bancaria, envío y conciliación de lotes siguen pendientes. Este formulario no envía pagos.</div>
                     <group><group><field name="name"/><field name="date"/>
                         <field name="journal_id" readonly="id" domain="[('type','=','bank')]"/>
                         <field name="batch_type" readonly="id"/>
@@ -43,7 +46,7 @@
         <field name="name">Grupos de pagos en borrador</field>
         <field name="res_model">account.batch.payment</field>
         <field name="view_mode">list,form</field>
-        <field name="help" type="html"><p>Seleccione pagos existentes. El grupo no publica ni envía pagos y no sustituye todavía la conciliación bancaria.</p></field>
+        <field name="help" type="html"><p>Seleccione pagos existentes. Puede publicar sus borradores en contabilidad; el grupo no se valida ni envía y no sustituye todavía la conciliación bancaria.</p></field>
     </record>
     <menuitem id="menu_batch_payment_groups" name="Grupos de pagos en borrador" parent="account.menu_finance_payables"
         action="action_batch_payment_groups" groups="account.group_account_invoice" sequence="60"/>
