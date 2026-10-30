@@ -1,14 +1,15 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
-Estado vigente y siguiente prompt: [COMMUNITY_ARRANQUE_ORIGINAL.md](COMMUNITY_ARRANQUE_ORIGINAL.md).
-F pasa 12 casos fríos Community (94 módulos/0 Enterprise/0 demo) y 294 nativos
-(391/140), sin fallos/errores. Prepara adopción original; aún no opera nómina.
+Estado vigente y siguiente prompt: [COMMUNITY_CONTRATOS_ORIGINALES.md](COMMUNITY_CONTRATOS_ORIGINALES.md).
+C acepta API1.14: NUMERIC ilimitado desde el primer init y proyección explícita
+FK→M2M con ACL normales, sin escribir maestros ni correlativos. Corrige create_multi.
+25 casos fríos/294 nativos/473 normales, cero fallos/errores, 58 pruebas puras.
 Preserva valores de 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs;
-1.060 snapshots exactos y una representación de ceros decimales finales auditada celda a celda.
-Los 22 addons propios y los 460 casos del perfil normal Inputs C se conservan.
-Colisiones 24→4, conflictos XML IDs 60→0; faltan 120 maestros/71 reglas,
-siete brechas/cinco columnas, ACL y precisión NUMERIC frente a Float8.
-54 apps instaladas conservan caminos EE; conversión integral pendiente y 31 en riesgo alto.
+1.060 snapshots exactos y un testigo representacional completo de cinco filas.
+21 addons propios y el proveedor frío de F sin cambios; sólo API cambia.
+Faltan identidad/120 maestros/71 reglas, siete brechas/cinco columnas, ACL,
+almacenamiento histórico restante, certificación e integral cero EE. T138 conservado.
+54 apps instaladas mantienen caminos EE; el 31 sigue en riesgo alto.
 El contenido inferior conserva su alcance histórico.
 
 ## Contrato del bloque

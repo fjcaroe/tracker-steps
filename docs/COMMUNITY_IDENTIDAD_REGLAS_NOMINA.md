@@ -1,6 +1,6 @@
 # Nombres originales y propiedad de reglas de nómina — 29-10-2026
 
-Continuación vigente: [COMMUNITY_ARRANQUE_ORIGINAL.md](COMMUNITY_ARRANQUE_ORIGINAL.md).
+Continuación vigente: [COMMUNITY_CONTRATOS_ORIGINALES.md](COMMUNITY_CONTRATOS_ORIGINALES.md).
 
 Aceptación Schema B y upgrade de nombres completada; resumen privado reproducible verificado.
 Base canónica `78e5cde8`; paquete congelado en `e08ee7f4`.

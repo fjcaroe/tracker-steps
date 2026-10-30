@@ -1,5 +1,8 @@
 # Arranque privado sin semillas y almacenamiento de entradas — 29-10-2026
 
+Continuación aceptada: [contratos originales C](COMMUNITY_CONTRATOS_ORIGINALES.md).
+Este documento conserva el alcance de F y sus pruebas de referencia.
+
 Bloque F aceptado desde la canónica `da1a1900`, incorporando los avances concurrentes
 sin cambiar los 22 addons propios de [Inputs C / upgrade D](COMMUNITY_ENTRADAS_GUARDADAS.md).
 Entrada Git congelada `56c76a9d234701ed2a1445bc0338b41dcecad53e`.
