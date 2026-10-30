@@ -173,6 +173,50 @@ class HandoverProbeCase(unittest.TestCase):
             self.assertNotIn('must-not-overwrite', path.read_text())
             self.assertIsNone(probe.private_access_error(output, ValueError('ordinary-error')))
 
+    def test_rejected_sql_is_still_denied_and_only_code_locations_are_captured(self):
+        class Cursor:
+            def __init__(self): self.executed = []
+            def execute(self, query, *args, **kwargs):
+                self.executed.append(query)
+        cursor = Cursor()
+        query = 'WITH RECURSIVE metadata AS (SELECT id FROM ir_ui_view) SELECT id FROM metadata'
+        private_parameter = 'synthetic-private-parameter-not-for-capture'
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder, 'proof.json')
+            captured = {}
+            def rejected(code, error, projection):
+                captured.update(probe.private_sql_rejection(output, code, error, projection))
+            with self.assertRaisesRegex(probe.ProbeBlocked, 'non-projection-database-write-forbidden'):
+                with probe.observe_cursor(cursor, rejected):
+                    cursor.execute(query, [private_parameter])
+            self.assertEqual(cursor.executed, [])
+            self.assertEqual(captured['first_keyword'], 'WITH')
+            self.assertFalse(captured['statement_executed'])
+            self.assertNotIn(query, json.dumps(captured))
+            private = Path(captured['path'])
+            raw = private.read_bytes()
+            self.assertEqual(captured['sha256'], probe.sha(raw))
+            body = json.loads(raw)
+            self.assertEqual(body['statement'], query)
+            self.assertFalse(body['sql_parameters_captured'])
+            self.assertFalse(body['source_lines_or_locals_captured'])
+            self.assertNotIn(private_parameter, raw.decode())
+            self.assertTrue(body['stack_frames'])
+            self.assertTrue(all(set(frame) == {'file', 'line', 'function'} for frame in body['stack_frames']))
+            with self.assertRaises(FileExistsError):
+                probe.private_sql_rejection(output, query, probe.ProbeBlocked('still-denied'), False)
+
+    def test_sql_capture_failure_cannot_cause_real_execution(self):
+        class Cursor:
+            def execute(self, *args): raise AssertionError('rejected query executed')
+        def rejected(*args): raise OSError('private-capture-unavailable')
+        # The run-level callback catches this and records a technical flag;
+        # even an unexpected callback failure cannot reach the real cursor.
+        cursor = Cursor()
+        with self.assertRaises(OSError):
+            with probe.observe_cursor(cursor, rejected):
+                cursor.execute('WITH metadata AS (SELECT 1) SELECT * FROM metadata')
+
 
 if __name__ == '__main__':
     unittest.main()
