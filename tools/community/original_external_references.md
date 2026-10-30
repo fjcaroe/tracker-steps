@@ -105,3 +105,31 @@ test_original_external_references_registry test_original_external_references_dum
 test_original_external_references_related`
 desde tools/community. Las pruebas SQL sintéticas adicionales se ejecutan sólo
 con SELECT/READ ONLY en copias aceptadas y no constituyen adopción de maestros.
+
+## Defaults tipados y conservación anclada
+
+`original_external_references_defaults.py` enlaza `ir.default.field_id` por
+FK real a `ir.model.fields`, y contrasta la definición relacional con el
+registry sellado. Sólo extrae JSON con forma de referencias: otros valores y
+condiciones permanecen como hashes. Un entero se liga al comodel declarado,
+nunca al registro de otro modelo con el mismo número. LINK/SET literales se
+leen sin ejecutarlos; comandos create/update/delete/clear, formatos ambiguos y
+metadatos discrepantes permanecen sin clasificar. Captura extremos, aliases y
+hashes por cada ID, incluyendo campo/usuario/compañía, con NULL conservado y dos
+snapshots READ ONLY. No reduce la guardia global de serializados cuando queda
+un subconjunto escalar o custom sin probar. Contrato público:
+[ir.default del pin Community](https://github.com/odoo/odoo/blob/4b4efe68291d6def5bb7d2e1f2b829e0cda577d4/odoo/addons/base/models/ir_default.py).
+
+`original_external_references_anchored.preserve` es una política **separada**
+para un ensayo anclado de 120 maestros/71 reglas y reporte462. Recibe informes
+readonly antes/después, snapshots completos de negocio originales, identidades
+y un testigo de restore/backup y exclusión durante todo el ensayo. Root debe
+verificar independientemente esos recibos sellados; la función no adquiere un
+lock ni autoriza un escritor. Rechaza cambiar PK/aliases/endpoints, bytes de los
+serializados originales o cualquier snapshot original. No admite normalizar
+diferencias en silencio. Nuevos registros/aliases pueden añadirse conservando
+íntegros los originales. Su resultado separa el riesgo de reubicación evitado
+por conservación de la compatibilidad del backend/ACL todavía no demostrada.
+Las guardas globales y `writer_authorized=False` permanecen intactos; no se
+presenta como conversión integral, validación de otros productos o permiso de
+adopción.
