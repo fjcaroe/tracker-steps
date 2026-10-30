@@ -1,0 +1,8 @@
+<odoo>
+    <!-- Contract values are never a globally readable benefit catalogue. -->
+    <record id="contract_advantage_company_scope" model="ir.rule">
+        <field name="name">Contract advantages: original allowed company</field>
+        <field name="model_id" ref="payroll_contract_advantages.model_hr_contract_advantage"/>
+        <field name="domain_force">[('contract_id.company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>
