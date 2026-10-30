@@ -42,6 +42,13 @@ class HoldingCase(TransactionCase):
         self.assertEqual(order.picking_ids.company_id,self.branch)
         self.assertEqual(order.picking_ids.location_dest_id,self.wh.lot_stock_id)
         self.assertEqual(order.order_line.company_id,self.branch)
+        receipt=order.picking_ids.with_context(allowed_company_ids=self.branch.ids)
+        receipt.move_ids.quantity=2
+        receipt.button_validate()
+        self.assertEqual(receipt.state,'done')
+        quants=self.scope['stock.quant'].search([('product_id','=',self.product.id),('location_id','=',self.wh.lot_stock_id.id)])
+        self.assertEqual(sum(quants.mapped('quantity')),2)
+        self.assertEqual(quants.company_id,self.branch)
 
     def test_unrelated_company_rejected(self):
         with self.cr.savepoint(),self.assertRaises(ValidationError):
