@@ -147,7 +147,7 @@ class Package(models.Model):
 
 
 class Production(models.Model):
-    _inherit = 'mrp.production'
+    _inherit = 'step.packing.production'
 
     @api.constrains('company_id', 'fruit_fundo_id')
     def _check_agricultural_masters(self):
