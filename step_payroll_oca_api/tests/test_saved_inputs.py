@@ -9,7 +9,7 @@ from psycopg2.errors import FeatureNotSupported
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
 from odoo.tests import TransactionCase, tagged
-from odoo.tools import json_default
+from odoo.tools import json_default, mute_logger
 
 
 @tagged("post_install", "-at_install")
@@ -117,7 +117,9 @@ class SavedInputValuesCase(TransactionCase):
             try:
                 # PostgreSQL 12 NUMERIC cannot store Infinity. Later versions
                 # may accept it; then the actual admission must reject it.
-                with self.env.cr.savepoint(flush=False):
+                # This single deliberate storage rejection is asserted below;
+                # keep the runner's global ERROR guard strict for real failures.
+                with self.env.cr.savepoint(flush=False), mute_logger("odoo.sql_db"):
                     self.env.cr.execute("UPDATE hr_payslip_input SET amount=%s WHERE id=%s", (value, row.id))
             except FeatureNotSupported as error:
                 self.assertEqual(error.pgcode, "0A000")
