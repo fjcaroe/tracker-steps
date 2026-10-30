@@ -49,5 +49,5 @@ print('ORIGINAL_ANCHOR_STAGED',root)
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',required=True);parser.add_argument('--receipt',type=Path,required=True)
-    parser.add_argument('--original-storage',action='store_true');parser.add_argument('--schema-plan',type=Path)
+    parser.add_argument('--original-storage',action='store_true');parser.add_argument('--schema-plan')
     args=parser.parse_args();stage(args.root,args.receipt,original_storage=args.original_storage,schema_plan=args.schema_plan)
