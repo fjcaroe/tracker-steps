@@ -74,6 +74,26 @@ class CoreViewQueryCase(unittest.TestCase):
             # file differs from the exact approved LGPL source.
             with self.assertRaises(view.ViewQueryBlocked): view.bind_origin(frames)
 
+    def test_git_origin_uses_explicit_readonly_repository_under_old_git(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            (root / '.git').mkdir()
+            view.git_origin.cache_clear()
+            with patch.object(view.subprocess, 'check_output', return_value=(view.PIN + '\n').encode()) as run:
+                self.assertEqual(view.git_origin(str(root)), view.PIN)
+            args = run.call_args.args[0]
+            self.assertIn('--no-optional-locks', args)
+            self.assertIn('--git-dir=' + str(root / '.git'), args)
+            self.assertIn('--work-tree=' + str(root), args)
+            self.assertIn('safe.directory=' + str(root), args)
+            self.assertNotIn('-C', args)
+            self.assertNotIn('--global', args)
+            self.assertEqual(args[-2:], ['rev-parse', 'HEAD'])
+            view.git_origin.cache_clear()
+            with patch.object(view.subprocess, 'check_output', return_value=b'wrong-pin\n'):
+                with self.assertRaises(view.ViewQueryBlocked): view.git_origin(str(root))
+        view.git_origin.cache_clear()
+
 
 if __name__ == '__main__':
     unittest.main()
