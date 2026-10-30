@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import traceback
 
 import payroll_configuration_adoption_preflight as gate
 
@@ -367,12 +368,14 @@ def existing_manager(env, identity, source_rows, actor_uid):
         'users_created': False, 'permissions_granted': False, 'company_memberships_changed': False}
 
 
-def forms_and_menus(scope):
+def forms_and_menus(scope, checkpoint=None):
     from lxml import etree
     from odoo.tools import json_default
 
     forms = {}
     for model, alias in FORMS:
+        if checkpoint:
+            checkpoint('explicit-community-form', model)
         view = scope.ref(alias, raise_if_not_found=False)
         require(view and view._name == 'ir.ui.view' and view.model == model and view.type == 'form'
             and not view.inherit_id, 'explicit-community-primary-form-required:' + model)
@@ -387,6 +390,8 @@ def forms_and_menus(scope):
     require(root and root.id in visible, 'oca-payroll-root-not-visible-to-existing-actor')
     menus = []
     for menu_alias, action_alias, model in MENUS:
+        if checkpoint:
+            checkpoint('community-menu-action', model)
         menu = scope.ref(menu_alias, raise_if_not_found=False)
         require(menu and menu.id in visible, 'community-configuration-menu-not-visible:' + model)
         action = scope['ir.actions.actions']._for_xml_id(action_alias)
@@ -463,6 +468,18 @@ def write_receipt(path, value):
         stream.write('\n')
 
 
+def private_access_error(output, error):
+    """Keep the real denied API traceback private; never return its message."""
+    if type(error).__name__ != 'AccessError' or type(error).__module__ != 'odoo.exceptions':
+        return None
+    path = Path(output).with_name(Path(output).name + '.access-error.txt')
+    raw = ''.join(traceback.format_exception(type(error), error, error.__traceback__)).encode()
+    with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
+        stream.write(raw)
+    return {'path': str(path), 'sha256': sha(raw), 'bytes': len(raw),
+        'private_potentially_sensitive_context': True, 'exception_message_published': False}
+
+
 def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256, output_path, actor_uid=None):
     """No commit: the caller owns the clone, lease, outer transaction and seal.
 
@@ -480,7 +497,12 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         'passed': False, 'coordinator_owns_commit': True, 'historical_payroll_read': False,
         'salary_rules_evaluated': False, 'financial_certified': False, 'pdf_certified': False,
         'operational_package': False, 'integral_conversion': False, 'deadline_resolved': False}
+
+    def checkpoint(phase, model=None):
+        result['checkpoint'] = {'phase': phase, 'model': model}
+
     try:
+        checkpoint('sealed-source-admission')
         capsule = sealed_json(capsule_path, capsule_sha256)
         identity = sealed_json(identity_before_path, identity_sha256)
         rows = gate.capsule_rows(capsule)
@@ -491,25 +513,33 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         aliases = originals + [report_alias]
         with env.cr.savepoint(flush=False):
             with observe_cursor(env.cr) as observation:
+                checkpoint('original-sql-guards')
                 from run_original_anchor_loader import check_database_guards
                 result['database_guards'] = check_database_guards(env.cr)
+                checkpoint('actual-engine-and-model-identity')
                 result['engine'] = engine_contract(env, identity)
                 require(report_row.get('binding_model_id') == result['engine']['original_model_id'],
                     'original-report-payslip-model-binding-drift')
+                checkpoint('original-physical-master-and-alias-columns')
                 before = masters_contract(env.cr, capsule, rows)
                 alias_before = actual_aliases(env.cr, aliases)
                 report_before = project_rows(env.cr, 'ir_act_report_xml', source_report['columns'], [report_row['id']])
                 require(report_before == source_report['rows_json'], 'full-original-report-row-drift')
                 audit_before, counter_before = master_audit(env.cr), counters(env.cr)
+                checkpoint('existing-native-manager')
                 scope, actor = existing_manager(env, identity, rows, actor_uid)
                 result['actor'] = actor
                 for table, model in gate.TABLES.items():
+                    checkpoint('original-master-normal-read', model)
                     records = scope[model].browse(sorted(row['id'] for row in rows[table]))
                     records.check_access('read')
                     require(set(records.exists().ids) == set(records.ids), 'original-master-not-visible:' + model)
-                result['forms'], result['menus'] = forms_and_menus(scope)
+                result['forms'], result['menus'] = forms_and_menus(scope, checkpoint)
+                checkpoint('legacy-menu-boundaries')
                 result['legacy_menu_boundaries'] = legacy_menu_boundaries(scope, identity)
+                checkpoint('original-stored-report-route', 'ir.actions.report')
                 result['report_route'] = report_route(scope, report_row)
+                checkpoint('original-rule-projection-preconditions', 'hr.payroll.structure')
                 structures = scope['hr.payroll.structure'].browse(sorted(row['id'] for row in rows['hr_payroll_structure']))
                 require(callable(getattr(structures, '_step_materialize_original_rule_projection', None)),
                     'real-original-projection-api-missing')
@@ -520,6 +550,7 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                 require(set(map(tuple, projection_before)) <= set(expected), 'unexpected-preexisting-rule-membership')
                 observations = []
                 for index in range(2):
+                    checkpoint('original-rule-projection-' + str(index + 1), 'hr.payroll.structure')
                     observation['projection'] = True
                     try:
                         proof = structures._step_materialize_original_rule_projection([list(pair) for pair in expected])
@@ -535,6 +566,7 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                         == [list(pair) for pair in expected], 'actual71-memberships-not-exact')
                     require(master_audit(env.cr) == audit_before, 'master-or-audit-fields-written-by-projection')
                     observations.append(proof)
+                checkpoint('post-projection-preservation')
                 require(masters_contract(env.cr, capsule, rows) == before, 'original-master-projection-changed')
                 require(actual_aliases(env.cr, aliases) == alias_before, 'original-aliases-changed')
                 report_after = project_rows(env.cr, 'ir_act_report_xml', source_report['columns'], [report_row['id']])
@@ -556,10 +588,17 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                     remaining_adoption_blockers=['original-field-metadata-requires-separate-admission',
                         'opaque-reference-semantics-not-certified', 'legacy-menu-flows-not-exercised',
                         'salary-financial-certification-pending', 'integral-enterprise-conversion-pending'])
+                checkpoint('complete')
         write_receipt(output, result)
         return result
     except Exception as error:
         code = str(error) if isinstance(error, ProbeBlocked) else 'actual-api-or-guard-rejected:' + type(error).__name__
+        try:
+            private = private_access_error(output, error)
+            if private:
+                result['private_access_error'] = private
+        except OSError:
+            result['private_access_error_capture_failed'] = True
         result.update(passed=False, blocked=code, projection_transaction_rolled_back=True)
         write_receipt(output, result)
         raise ProbeBlocked(code) from None

@@ -155,6 +155,24 @@ class HandoverProbeCase(unittest.TestCase):
         with self.assertRaisesRegex(probe.ProbeBlocked, 'private-original-handover'):
             probe.run(Env(), None, probe.CAPSULE_SHA256, None, None, None)
 
+    def test_real_access_error_message_goes_only_to_new_private_sidecar(self):
+        AccessError = type('AccessError', (Exception,), {'__module__': 'odoo.exceptions'})
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder, 'proof.json')
+            try:
+                raise AccessError('synthetic-private-denied-record')
+            except AccessError as error:
+                receipt = probe.private_access_error(output, error)
+            self.assertNotIn('synthetic-private-denied-record', json.dumps(receipt))
+            self.assertFalse(receipt['exception_message_published'])
+            path = Path(receipt['path'])
+            self.assertIn('synthetic-private-denied-record', path.read_text())
+            self.assertEqual(receipt['sha256'], probe.sha(path.read_bytes()))
+            with self.assertRaises(FileExistsError):
+                probe.private_access_error(output, AccessError('must-not-overwrite'))
+            self.assertNotIn('must-not-overwrite', path.read_text())
+            self.assertIsNone(probe.private_access_error(output, ValueError('ordinary-error')))
+
 
 if __name__ == '__main__':
     unittest.main()
