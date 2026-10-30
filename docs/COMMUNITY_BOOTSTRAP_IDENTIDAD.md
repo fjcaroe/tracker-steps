@@ -135,3 +135,33 @@ nativa con motor OCA no constituye por sí sola una conversión aceptada.
 No hay cambio de producción, QA, vencimientos ni liquidaciones. El anclaje de
 cohorte, su cálculo aprobado y sus pruebas funcionales todavía deben ejecutarse
 con el paquete exacto por el coordinador.
+
+## Entry de instalación anclada, sólo en el proceso privado
+
+`run_original_anchor_loader.py` permite ejecutar el CLI LGPL auténtico sin
+reescribir el runtime ni instalar una modificación del framework. Sus argumentos
+propios son `--runtime`, `--database`, `--capsule`, `--capsule-sha256`,
+`--identity-before`, `--identity-before-sha256`, `--receipt`, seguidos de `--` y
+los argumentos originales de Odoo. Sólo admite una base con prefijo
+`MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_`, una instalación explícita,
+sin demo, workers, cron o HTTP, y `--stop-after-init`. No admite tests, guardado
+de config ni contraseñas por argumentos. El coordinador sigue aportando lease,
+respaldo, aislamiento y staging; el wrapper no crea esas garantías.
+
+Verifica el checkout limpio/pin oficial, igualdad de la fuente con `git show`
+del pin, archivo SHA anterior y cuerpo AST de `_process_end` SHA256
+`9d969cfef189aec4a206b2a16f447a0900947d73855198bb88008a42e6ef7366`, firma y
+decorador reales. El único wrapper en memoria llama la retención anterior
+después de comprobar 23 triggers activos con eventos/funciones esperados y
+`session_replication_role=origin`, modelo OCA real y binding 600/reporte462.
+Los hashes de funciones de guardas son evidencia de presencia; su prueba
+negativa PostgreSQL y el sello del SQL siguen a cargo del coordinador.
+
+Acto seguido delega siempre el método original con la lista original completa:
+no poda namespaces, no sustituye `_process_end`, no habilita `import_partial` ni
+inventa éxito. Conserva su retorno y propaga errores. Sólo escribe un recibo
+0600 si el CLI termina con código cero y se observó delegación real y limpieza
+del set; contiene hash de fuentes/helpers/wrapper, dos aliases exactos por
+llamada y bindings600/462. No guarda argv ni secretos. La validación posterior
+debe usar el CLI oficial normal: un arranque mediado no acredita por sí solo
+continuidad sin este bootstrap ni conversión integral.
