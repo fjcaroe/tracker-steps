@@ -1,6 +1,7 @@
 """Silently record reviewed T141–T144 delivery after complete functional evidence."""
 import argparse
 import html
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -27,6 +28,15 @@ def main():
         assert 'MANAGEMENT_VERIFY_OK' in (root/(target+'-live.log')).read_text(encoding='utf-8-sig')
     pair=json.loads((root/'pair.json').read_text());assert all(pair['cerro'][module][key]==pair['qa-cerro'][module][key] for key in ('version','sha256'))
     assert all(marker in (root/'isolation.log').read_text() for marker in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
+    if tid==141:
+        assert pair['cerro'][module]['version']=='18.0.1.0.2'
+        for target in environments:
+            review=json.loads((root/(target+'-visual-review.json')).read_text(encoding='utf-8-sig'))
+            assert review['reviewed'] is True
+            for name,item in review['files'].items():
+                assert hashlib.sha256((root/(target+'-'+name)).read_bytes()).hexdigest()==item['sha256']
+            assert 'T141_NATIVE_PDF_OK' in (root/(target+'-flow.log')).read_text(encoding='utf-8-sig')
+        assert 'T141_REPORTED_RECEIPT_PDF_OK weights_unchanged=True' in (root/'qa-cerro-flow.log').read_text(encoding='utf-8-sig')
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'));url='https://soporte.stepsapp.cl'
     uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(c['db'],c['username'],c['api_key'],{});assert uid
     rpc=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/object');context={'tracking_disable':True,'mail_notrack':True,'mail_create_nosubscribe':True,'mail_notify_force_send':False,'mail_auto_subscribe_no_notify':True}

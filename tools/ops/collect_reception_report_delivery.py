@@ -13,6 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--suffix', required=True)
+    parser.add_argument('--reviewed-message', type=int, default=9863)
     args = parser.parse_args()
     assert re.fullmatch('[1-9][0-9]*', args.suffix)
     args.output.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -63,7 +64,7 @@ def main():
         assert 'CERRO_RELEASE_PAIR_OK' in result.stdout
         (args.output/'pair.log').write_text(result.stdout)
     commit,sha=identities.pop()
-    (args.output/'delivery.json').write_text(json.dumps({'commit':commit,'sha256':sha,'tests':count,'reviewed_messages':{'141':9863}}))
+    (args.output/'delivery.json').write_text(json.dumps({'commit':commit,'sha256':sha,'tests':count,'reviewed_messages':{'141':args.reviewed_message}}))
     print('T141_DELIVERY_COLLECTED tests='+str(count))
 
 
