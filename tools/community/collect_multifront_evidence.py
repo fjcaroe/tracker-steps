@@ -16,15 +16,19 @@ from build_original_bootstrap import snapshot, hashes
 from build_numeric_input_engine import source_files, plan, verify as verify_engine
 from collect_original_contracts import git_proof
 import verify_multifront_evidence as verifier
+import audit_multifront_installation as installation
 
 
 def collect(root, output, original_provider, oca, inventory_root, *,
-            expected_community_installed, expected_native_installed, representation=None):
+            expected_community_installed, expected_native_installed, postflight_tool, representation=None):
     root, output = Path(root).resolve(), Path(output)
     source = root / 'addons'
     assert root.is_relative_to(Path('/opt/steps-validation')) and root.name.startswith('community-multifront-')
     assert not output.exists() and all(type(value) is int and value > minimum for value, minimum in
         ((expected_community_installed, 0), (expected_native_installed, 140)))
+    postflight_tool = Path(postflight_tool).resolve()
+    assert postflight_tool.is_file() and not postflight_tool.is_symlink()
+    postflight_sha256 = hashlib.sha256(postflight_tool.read_bytes()).hexdigest()
     graph = {'source': 'independently_measured_by_coordinator',
              'community': {'installed': expected_community_installed, 'enterprise': 0},
              'cerro-reference': {'installed': expected_native_installed, 'enterprise': 140}}
@@ -36,6 +40,9 @@ def collect(root, output, original_provider, oca, inventory_root, *,
         assert receipt['mode'] == mode and receipt['multifront'] is True and receipt['expected_test_count'] == expected
         assert receipt.get('focused_development_pass') is False
         assert receipt['counts'] == graph[mode] and receipt['writes_to_source'] is False
+        proof = json.loads((root / mode / 'module-installation.json').read_text())
+        assert proof['tool_sha256'] == postflight_sha256
+        installation.verify(proof, mode, source, receipt)
     # License gate before reading any original provider bodies.
     original_provider = Path(original_provider).resolve()
     assert ast.literal_eval((original_provider / '__manifest__.py').read_text(encoding='utf-8-sig'))['license'] == 'AGPL-3'
@@ -95,6 +102,7 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     blobs['graph-admission.json'] = json.dumps(graph, indent=2).encode()
     blobs['engine-git-proof.json'] = json.dumps(git_proof(Path(oca)), indent=2).encode()
     files['collector.py'] = Path(__file__)
+    files['postflight-tools/audit_multifront_installation.py'] = postflight_tool
     assert not set(files) & set(blobs)
     assert all(path.is_file() and not path.is_symlink() for path in files.values())
     bodies = dict(blobs, **{name: path.read_bytes() for name, path in files.items()})
@@ -112,7 +120,7 @@ def collect(root, output, original_provider, oca, inventory_root, *,
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('root', 'output', 'original-provider', 'oca', 'inventory-root'):
+    for name in ('root', 'output', 'original-provider', 'oca', 'inventory-root', 'postflight-tool'):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--representation', type=Path)
     parser.add_argument('--expected-community-installed', type=int, required=True)
@@ -121,7 +129,7 @@ def main():
     assert os.geteuid() == 0
     count = collect(args.root, args.output, args.original_provider, args.oca, args.inventory_root,
         expected_community_installed=args.expected_community_installed, expected_native_installed=args.expected_native_installed,
-        representation=args.representation)
+        postflight_tool=args.postflight_tool, representation=args.representation)
     print('PRIVATE_MULTIFRONT_EXPORTED', count, 'files; no dump or Enterprise bodies')
 
 

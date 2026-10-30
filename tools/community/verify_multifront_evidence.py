@@ -19,6 +19,7 @@ import build_numeric_input_engine as numeric
 import hr_consumer_metadata as hr_metadata
 import payroll_representation_contract as representation
 import treasury_launcher_contract as treasury
+import audit_multifront_installation as installation
 import verify_original_bootstrap_evidence as base
 import verify_original_contracts_evidence as previous
 
@@ -34,7 +35,7 @@ EXECUTED_TOOLS = ('validate_payroll_api.py', 'offline_process.py', 'validate_agr
     'simpledigital_runtime_source.json', 'inspect_payroll_configuration.py')
 TOOLS = tuple(dict.fromkeys(previous.TOOLS + EXECUTED_TOOLS + (
     'verify_original_contracts_evidence.py', 'verify_original_bootstrap_evidence.py',
-    'verify_multifront_evidence.py', 'collect_multifront_evidence.py')))
+    'verify_multifront_evidence.py', 'collect_multifront_evidence.py', 'audit_multifront_installation.py')))
 EXPECTED_TESTS = {'community': 576, 'cerro-reference': 391}
 
 
@@ -78,6 +79,8 @@ def verify_executed_tools(root, source):
         require(body.replace(b'\r\n', b'\n') == source['tools/community/' + name].replace(b'\r\n', b'\n'),
                 'Executed MF helper differs from Git: ' + name)
     base.tool_hash(sha(safe_path(root, 'collector.py').read_bytes()), 'collect_multifront_evidence.py', source)
+    base.tool_hash(sha(safe_path(root, 'postflight-tools/audit_multifront_installation.py').read_bytes()),
+                   'audit_multifront_installation.py', source)
 
 
 def verify_file_manifest(root):
@@ -161,6 +164,10 @@ def verify_receipt(root, source, packet, mode):
     require(not re.search(r' (ERROR|CRITICAL) ', log), 'MF functional log contains an error')
     base.test_result([line for line in log.splitlines() if 'tests.result' in line], expected)
     methods = critical_methods(source, log, mode)
+    installed_proof = read(root, mode + '/module-installation.json')
+    base.tool_hash(installed_proof['tool_sha256'], 'audit_multifront_installation.py', source)
+    require(tuple(installation.OWN_MODULES) == OWN_MODULES, 'Installation postflight packet scope differs')
+    installation_summary = installation.verify(installed_proof, mode, source, receipt)
     finance = read(root, mode + '/finance-frontier.json')
     finance_modules = ('step_account_balance_analytic', 'step_bank_export_core', 'step_accounting_multicurrency_core')
     if mode != 'community':
@@ -186,7 +193,8 @@ def verify_receipt(root, source, packet, mode):
                     and proof['pages'] > 0 and Path(proof['file']).name == proof['file'], 'MF PDF actor/history/assets differ')
             body = safe_path(root, mode + '/payslip-pdf-evidence/' + proof['file']).read_bytes()
             require(body.startswith(b'%PDF-') and sha(body) == proof['sha256'], 'MF actual PDF bytes differ')
-    return receipt, {'tests': expected, 'critical_multifront_methods': methods, **receipt['counts']}
+    return receipt, {'tests': expected, 'critical_multifront_methods': methods,
+                     'module_installation': installation_summary, **receipt['counts']}
 
 
 def verify_preservation(root, source, native, repo):
@@ -282,6 +290,11 @@ def verify(evidence, *, repo=None):
     verify_file_manifest(root)
     verify_executed_tools(root, source)
     packet = verify_packets(root, source)
+    # This provider is private AGPL source, not a repository addon. Its entire
+    # 52-file replay was validated above before its manifest joins the trusted
+    # postflight source map.
+    source.update({builder.MODULE + '/' + name: body
+                   for name, body in base.addon_snapshot(root, 'normal-provider').items()})
     engine = previous.verify_engine(root, source)
     require(engine['source_files'] == engine['candidate_files'] == 144, 'MF NUMERIC engine file inventory differs')
     base.verify_hr_derivation(root, source)
