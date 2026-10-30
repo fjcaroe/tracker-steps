@@ -90,7 +90,7 @@ class TestMasters(TransactionCase):
         with self.assertRaises(ValidationError), self.cr.savepoint():
             self.category.write({'company_ids': [Command.set(self.a.ids)]})
         foreign = self.make('step.management.fruit.category', code='QA-FOREIGN-CAT', company_id=self.c.id)
-        with self.assertRaises((ValidationError, UserError)), self.cr.savepoint():
+        with self.assertRaises(UserError), self.cr.savepoint():
             pick.write({'fruit_category_id': foreign.id})
 
     def test_native_fundo_form_and_menu(self):
