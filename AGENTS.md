@@ -8,6 +8,13 @@ Producciones: SyS, Steps / karo_consultorias y Cerro El Plomo. El resto queda
 fuera del circuito de publicación, conservando datos. Leer la política vigente
 en `docs/OPERACION_ODOO_CANONICA.md` antes de instalar o promover un módulo.
 
+Incluir QA-Cerro en las entregas aplicables a Cerro producción y verificar
+versión y código efectivo de los módulos afectados en ambos antes de cerrar.
+Conservar los datos de capacitación; no copiar bases ni promover cambios desde
+la copia del cliente. Desarrollo sigue siendo el QA general y los prototipos
+SAG/Community conservan su alcance autorizado. Ver la regla del 30-10-2026 en
+la política canónica y `tools/ops/verify_cerro_release_pair.py`.
+
 Para Odoo, leer `docs/OPERACION_ODOO_CANONICA.md` y resolver el destino con
 `tools/ops/environments.json`. No desplegar migraciones o cerrar tickets con
 solo sintaxis/HTTP; exigir pruebas funcionales del mismo paquete en una copia
