@@ -117,3 +117,12 @@ y los hashes de sus métodos/getters mediante AST. No se inspeccionan ni cambian
 parámetros; el código SQL debe coincidir byte por byte, incluidos los predicados
 de website/active. Cualquier otro `WITH`, variación de contexto, lectura de
 historia, función añadida o escritura por flush permanece denegada.
+
+Dentro de la llamada de proyección se admiten también los controles de
+savepoint UUID1 generados por la clase real `odoo.sql_db.Savepoint`: creación,
+rollback al mismo savepoint y release. Se exige la forma canónica exacta,
+fase de proyección activa, objeto/clase/método core reales, mismo cursor y
+nombre generado, estado abierto y bytes/AST/pin del archivo LGPL oficial.
+No se amplía el lexer general de identificadores ni se admite `COMMIT`,
+`ROLLBACK` de la transacción o SQL concatenado. Los nombres y parámetros no
+se copian al recibo; sólo se cuentan los controles delegados y su contrato.
