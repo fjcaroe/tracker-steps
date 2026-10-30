@@ -82,6 +82,20 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         self.assertFalse(batch.export_file)
         self.assertEqual(self.payments.read(list(before[0].keys() - {'id'})), before)
 
+    def test_form_offers_real_ledger_posting_without_batch_validation(self):
+        accountant = new_test_user(self.env, login='batch_core_posting_accountant',
+            groups='account.group_account_user', company_id=self.env.company.id,
+            company_ids=[Command.set(self.env.company.ids)])
+        batch = self.group().with_user(accountant)
+        arch = batch.get_view(view_id=self.env.ref('step_batch_payment_core.view_batch_payment_form').id)['arch']
+        self.assertIn('action_post_draft_payments', arch)
+        self.assertEqual(batch.action_post_draft_payments()['tag'], 'display_notification')
+        self.assertEqual(batch.state, 'draft')
+        self.assertEqual(self.payments.mapped('state'), ['in_process', 'in_process'])
+        self.assertTrue(all(move.state == 'posted' for move in self.payments.move_id))
+        with self.assertRaises(UserError):
+            batch.validate_batch_button()
+
     def test_posted_payments_keep_entries_and_real_outstanding_amounts(self):
         self.payments.action_post()
         self.assertTrue(self.payments.move_id)
