@@ -20,7 +20,7 @@ def physical_schema(database, tables):
     names=','.join(gate.literal(name) for name in tables)
     query=("SELECT jsonb_build_object('columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,column_name) "
         "FROM (SELECT c.relname table_name,a.attname column_name,format_type(a.atttypid,a.atttypmod) sql_type,"
-        "a.attnotnull not_null,md5(pg_get_expr(d.adbin,d.adrelid)) default_sha256_input_md5 FROM pg_attribute a "
+        "a.attnotnull not_null,md5(pg_get_expr(d.adbin,d.adrelid)) default_md5 FROM pg_attribute a "
         "JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
         "LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='public' "
         "AND a.attnum>0 AND NOT a.attisdropped AND c.relname IN ("+names+")) x),"
