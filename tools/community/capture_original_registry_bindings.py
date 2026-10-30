@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 from offline_process import offline_odoo
-import validate_agriculture_core as preservation
+from validate_community_reports import sql
 
 
 def sha(path):
@@ -53,12 +53,14 @@ def main():
         '--addons-path='+','.join(paths),'--data-dir='+str(stage/'data'),'--load=base,web',
         '--workers=0','--max-cron-threads=0','--no-http','--logfile='+str(out/'registry.log')]
     out.mkdir(mode=0o700);os.chown(out,identity.pw_uid,identity.pw_gid)
-    preservation.MODULES=preservation.BASE_MODULES+preservation.PRODUCER_MODULES+preservation.OPERATIONS_MODULES+preservation.LABOR_MODULES+preservation.HARVEST_MODULES+preservation.HR_MODULES
     def snapshot():
-        business=preservation.snapshot(db)
-        return {'business_contracts':len(business),'business_sha256':hashlib.sha256(json.dumps(business,sort_keys=True).encode()).hexdigest(),
-            'identity_sha256':hashlib.sha256(json.dumps(preservation.identity_contract(db),sort_keys=True).encode()).hexdigest(),
-            'history_sha256':hashlib.sha256(json.dumps(preservation.history_contract(db),sort_keys=True).encode()).hexdigest()}
+        # Enumerate actual physical tables instead of assuming native-only
+        # fleet/agricultural models exist in an official CE registry.
+        tables=sql(db,"SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','S') ORDER BY c.relname").splitlines()
+        assert all(re.fullmatch('[a-z_][a-z0-9_]*',name) for name in tables)
+        queries=["SELECT '"+name+"' name,count(*) rows,md5(coalesce(string_agg(to_jsonb(t)::text,E'\\n' ORDER BY to_jsonb(t)::text),'')) hash FROM public.\""+name+'" t' for name in tables]
+        business=json.loads(sql(db,"SET jit=off; SELECT json_object_agg(name,json_build_object('rows',rows,'hash',hash)) FROM ("+' UNION ALL '.join(queries)+') x'))
+        return {'physical_tables_and_sequences':len(business),'all_raw_rows_sha256':hashlib.sha256(json.dumps(business,sort_keys=True).encode()).hexdigest()}
     expression="import runpy,json,os; env.cr.execute('SHOW transaction_read_only'); assert env.cr.fetchone()==('on',); p=runpy.run_path("+repr(str(payload))+"); result=p['inspect_registry'](env,source_packet_sha256="+repr(sha(stage/'source-files.json'))+",acceptance_sha256="+repr(sha(stage/'passed.json'))+"); f=os.open("+repr(str(out/'registry.json'))+",os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600); os.write(f,json.dumps(result,sort_keys=True).encode()); os.close(f); env.cr.rollback()"
     with open('/run/lock/steps-environments.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
