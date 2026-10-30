@@ -52,16 +52,14 @@ def admitted(facts):
     stack.enter_context(patch.object(derive.storage, "ANCHOR_PROPERTY_LINE_SHA256",
         derive.contract.sha(modules["payroll"]["models/hr_payslip_line.py"])))
     stack.enter_context(patch.object(derive.deletion, "SOURCE_SHA256", derive.contract.sha(BODY)))
-    # Explicit approved final guard; only the peer-owned gate constant changes
-    # during integration. A changed source body still fails this fixed digest.
-    stack.enter_context(patch.object(derive.contract, "GUARD_SHA256",
-        "dd382a001776079555b358959e420decd28f47508cf0b75bd40eb2007ba81542"))
     return stack
 
 
 class AnchorHistoryCompositionCase(unittest.TestCase):
     def test_all_five_stages_replay_144_files_and_only_final_relation_file_changes(self):
         facts = fixture(); original = dict(facts[0])
+        self.assertEqual(derive.contract.GUARD_SHA256,
+            derive.contract.sha(derive.contract.lf(facts[-1][derive.contract.GUARD_FILE])))
         with admitted(facts):
             before, final, accounting, report = derive.plan_anchor_history_deletion(*facts)
         self.assertEqual(original, facts[0])
