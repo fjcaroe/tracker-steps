@@ -4,6 +4,59 @@ Auditoría de solo lectura desde `78e5cde8`, 29-10-2026. No se instala un
 proveedor, cambia una dependencia ni se declara cerrada la brecha de
 `hr.payroll.structure.type.salary_benefits_ids`.
 
+## Cohorte anclada de configuración, 30-10-2026
+
+El siguiente bloque prepara una adopción **de datos de configuración**, con
+backend OCA real, sobre una copia anclada que conserva los 120 maestros, los
+IDs de metadata y las catorce tablas originales. No implementa el configurador
+de beneficios ni sustituye esos modelos por ventajas OCA. Su ejecución por el
+escritor y la aceptación de la copia permanecen pendientes.
+
+La única relación declarada en metadata desde los cinco modelos de la cohorte hacia esta familia es
+el One2many `type.salary_benefits_ids`, por el inverso
+`benefit.structure_type_id`; no existe una columna SQL de ese One2many en el
+tipo. Sus miembros originales son cero. Eso no vuelve vacía la familia:
+conserva 58 filas, incluidas seis de `hr.contract.salary.resume`. Cinco resúmenes
+tienen FK entrante a tipos de la cohorte, distribuidos 3+2; uno es global.
+Las 23 filas de información personal tienen ese extremo NULL. Los enlaces
+entrantes y esos catálogos se deben conservar, aunque no se ejecuten sus APIs.
+
+El contrato de producto `step_payroll_contracts.original_benefit_cohort`:
+
+- Lee una fuente real mediante `admit_source_benefit_cohort`, con base explícita,
+  transacción READ ONLY y snapshot estable. Verifica metadata/inversa/FK
+  originales, IDs explícitos de tipos, las catorce tablas completas y sus hashes,
+  y las tres fronteras FK hacia la cohorte. Un beneficio relacionado no vacío
+  bloquea esta vía; no se infiere que sea una ventaja OCA.
+- `admit_target_benefit_cohort` exige el modo `anchored-preserved`, motor OCA
+  instalado y clases reales del registro, cero EE y comparación exacta de las
+  catorce tablas, sus filas/hashes, metadata de la relación y hashes de IDs
+  entrantes. No admite un diccionario serializado como prueba de fuente.
+- Consulta sólo metadata de clases/campos del registro destino. Reconoce
+  explícitamente que no están implementados `salary_benefits_ids` ni los modelos
+  `hr.contract.salary.*`; no crea stubs, tablas, alias, permisos ni campos de
+  procedencia. El registro y las tablas preservadas son ámbitos distintos.
+- Devuelve `configuration_data_cohort_admissible=True` sólo para esa frontera
+  demostrada. Mantiene `native_benefit_scope_compatible`,
+  `native_benefit_engine_implemented`, `salary_benefits_ids_implemented`,
+  `functional_payroll_certified` e `integral_conversion` en False. No escribe
+  datos ni autoriza otras aplicaciones, ofertas o cálculos de beneficios.
+
+El escritor debe consumir el plan real de fuente y esta admisión antes y
+después del relevo del backend, contrastar de nuevo la fuente y conservar sus
+respaldos. Este contrato no cierra los otros extremos de identidad, aliases,
+reporte 462, permisos ni las referencias auditadas por el coordinador.
+
+Pruebas funcionales preparadas: tres nativas nuevas observan la fuente real
+readonly con 58 filas y cinco FK de resúmenes, crean un beneficio privado real
+para bloquear la vía no vacía y conservan un beneficio fuera de la selección
+sin confundir pertenencia vacía con familia vacía. Dos casos OCA nuevos verifican
+el registro real, rechazo de una fuente nativa inexistente y de recibos
+fabricados. Son candidatos pendientes de ejecución por el coordinador; no se
+cuentan como importación completada de los 120 maestros o certificación fiscal.
+
+El contrato histórico y la brecha operacional completa se conservan debajo.
+
 ## Contrato observado
 
 En Cerro y SyS el campo original es un **One2many**, almacenado y editable,
