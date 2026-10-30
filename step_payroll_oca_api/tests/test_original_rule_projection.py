@@ -49,7 +49,8 @@ class OriginalRuleProjectionCase(TransactionCase):
         self.env.flush_all()
         rules = self.rules | (extra_rules if extra_rules is not None else self.scope['hr.salary.rule'])
         result = {}
-        for name, table, ids in (('structures', 'hr_payroll_structure', self.structures.ids), ('rules', 'hr_salary_rule', rules.ids)):
+        for name, table, ids in (('structures', 'hr_payroll_structure', self.structures.ids), ('rules', 'hr_salary_rule', rules.ids),
+                ('categories', 'hr_salary_rule_category', self.category.ids), ('types', 'hr_payroll_structure_type', self.kind.ids)):
             self.env.cr.execute('SELECT to_jsonb(t) FROM ' + table + ' t WHERE id=ANY(%s) ORDER BY id', (ids,))
             result[name] = self.env.cr.fetchall()
         self.env.cr.execute('''SELECT struct_id,rule_id FROM hr_structure_salary_rule_rel
@@ -175,6 +176,32 @@ class OriginalRuleProjectionCase(TransactionCase):
         self.assertEqual(self._stored(), before)
         self.assertFalse(self.structures.with_context(active_test=False).rule_ids)
 
+    def test_real_projection_consumer_rechecks_required_endpoint_acl_and_rolls_back(self):
+        self._gap()
+        before = self._stored()
+        self.company.with_env(self.scope).sudo().read(['country_id'])
+        # The actual materializer inserts the explicit pairs before invoking
+        # required admission. A late field/endpoint denial must roll that
+        # insertion back without granting configuration access or changing PKs.
+        for record, name in ((self.structures, 'type_id'), (self.kind, 'name'),
+                (self.category, 'code'), (self.company.with_env(self.scope), 'country_id')):
+            with self.subTest(model=record._name, field=name), patch.object(record._fields[name], 'groups', 'base.group_system'):
+                with TestCase.assertRaises(self, AccessError):
+                    self.structures.sudo()._step_materialize_original_rule_projection(self.expected)
+            self.assertEqual(self._stored(), before)
+            self.assertFalse(self.structures.with_context(active_test=False).rule_ids)
+        hidden = self._hide('hr.payroll.structure.type', [('id', '!=', self.kind.id)])
+        with TestCase.assertRaises(self, AccessError):
+            self.structures.sudo()._step_materialize_original_rule_projection(self.expected)
+        hidden.unlink()
+        self.assertEqual(self._stored(), before)
+        self.assertEqual(self.structures._step_materialize_original_rule_projection(self.expected)['created_memberships'], 2)
+        after = self._stored()
+        self.assertEqual({key: value for key, value in before.items() if key != 'pairs'},
+            {key: value for key, value in after.items() if key != 'pairs'})
+        self.assertEqual(self.structures._step_materialize_original_rule_projection(self.expected)['created_memberships'], 0)
+        self.assertEqual(self._stored(), after)
+
     def test_projection_does_not_read_or_recalculate_real_closed_payroll_or_ledger(self):
         journal = self.scope['account.journal'].create({'name': 'Private projection journal', 'code': 'PRJ', 'type': 'general', 'company_id': self.company.id})
         debit, credit = self.scope['account.account'].create([
@@ -207,6 +234,12 @@ class OriginalRuleProjectionCase(TransactionCase):
             return result
         self._gap()
         before, masters = history(), self._stored()
+        self.company.with_env(self.scope).sudo().read(['country_id'])
+        with patch.object(self.company._fields['country_id'], 'groups', 'base.group_system'):
+            with TestCase.assertRaises(self, AccessError):
+                self.structures.sudo()._step_materialize_original_rule_projection(self.expected)
+        self.assertEqual(history(), before)
+        self.assertEqual(self._stored(), masters)
         result = self.structures._step_materialize_original_rule_projection(self.expected)
         self.assertEqual(history(), before)
         self.assertEqual(self._stored()['structures'], masters['structures'])

@@ -1,4 +1,7 @@
 """Real OCA optional configuration and explicit original-adoption admission."""
+from unittest import TestCase
+from unittest.mock import patch
+
 from psycopg2 import IntegrityError
 
 from odoo import api, Command, fields
@@ -110,6 +113,46 @@ class OriginalNullableCase(TransactionCase):
         before = self._snapshot()
         with self.assertRaisesRegex(UserError, "original code"):
             self.structure._step_check_original_required_contract()
+        self.assertEqual(self._snapshot(), before)
+
+    def test_original_admission_normalizes_warm_sudo_and_authorizes_endpoint_fields(self):
+        self.kind.country_id = self.company.country_id
+        before = self._snapshot()
+        self.structure.sudo().read(["type_id", "company_id", "country_id", "rule_ids"])
+        self.rule.sudo().read(["parent_rule_id", "struct_id", "code", "category_id", "company_id"])
+        self.category.sudo().read(["code", "parent_id", "company_id"])
+        self.kind.sudo().read(["name", "country_id"])
+        fields = ((self.structure, "type_id"), (self.kind, "name"), (self.kind, "country_id"),
+            (self.rule, "category_id"), (self.rule, "parent_rule_id"),
+            (self.category, "code"), (self.category, "parent_id"), (self.category, "company_id"),
+            (self.company.with_env(self.scope), "country_id"))
+        for record, name in fields:
+            with self.subTest(model=record._name, field=name), patch.object(record._fields[name], "groups", "base.group_system"):
+                with TestCase.assertRaises(self, AccessError):
+                    self.structure.sudo()._step_check_original_required_contract()
+            self.assertEqual(self._snapshot(), before)
+        parent = self.scope["hr.salary.rule.category"].create({"name": "Private required parent category",
+            "code": "PRIVATE_REQUIRED_PARENT", "company_id": self.company.id})
+        self.category.parent_id = parent
+        parent_rule = self.scope["hr.salary.rule"].create({"name": "Private required rule parent endpoint",
+            "code": "PRIVATE_REQUIRED_PARENT_ENDPOINT", "company_id": self.company.id,
+            "struct_id": False, "category_id": self.category.id,
+            "condition_select": "none", "amount_select": "fix", "amount_fix": 1})
+        self.rule.parent_rule_id = parent_rule
+        before = self._snapshot()
+        for record in (self.rule, parent_rule, self.kind, parent, self.company.country_id, self.company.with_env(self.scope)):
+            record.sudo().read(["id"])
+            restriction = self.env["ir.rule"].create({"name": "Private hidden original admission endpoint",
+                "model_id": self.env["ir.model"]._get_id(record._name),
+                "domain_force": "[('id','!=',%d)]" % record.id})
+            with TestCase.assertRaises(self, AccessError):
+                self.structure.sudo()._step_check_original_required_contract()
+            if record == self.rule:
+                with TestCase.assertRaises(self, AccessError):
+                    self.structure.sudo()._step_original_configured_rules(self.structure.sudo())
+            restriction.unlink()
+            self.assertEqual(self._snapshot(), before)
+        self.assertTrue(self.structure.sudo()._step_check_original_required_contract())
         self.assertEqual(self._snapshot(), before)
 
     def test_each_optional_oca_value_blocks_original_adoption_without_backfill(self):
