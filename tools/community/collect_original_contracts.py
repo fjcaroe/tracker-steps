@@ -80,7 +80,7 @@ def main():
             if path.is_file() and path.suffix in ('.json','.log'):files[mode+'/'+path.name] = path
     for name in ('original-bootstrap-derivation.json','oca-input-numeric-derivation.json'):files[name] = root/name
     blobs['dependency-definitions.json'] = json.dumps({'definitions':definitions,'dependencies':modules,
-        'definitions_sha256':digest(definitions),'server_metadata_only':True,'bodies_replayed_offline':False},indent=2).encode()
+        'definitions_sha256':digest(definitions),'dependency_hashes_match_derivation':True,'server_metadata_only':True,'bodies_replayed_offline':False},indent=2).encode()
     blobs['engine-git-proof.json'] = json.dumps(git_proof(args.oca),indent=2).encode()
     for folder, mapping in (('original-provider',original),('normal-provider',normal),('provider',provider),
                             ('engine-original/payroll',original_engine),('engine-candidate/payroll',candidate_engine)):
