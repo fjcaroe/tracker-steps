@@ -6,6 +6,32 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged("post_install", "-at_install")
 class TestContractDays(TransactionCase):
+    def test_unpaid_master_identifies_reported_absence_code(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        absent=self.env['hr.work.entry.type'].create({'name':'QA unpaid absence','code':'LEAVECL130','is_leave':True})
+        leave=self.env['hr.leave.type'].create({'name':'QA unpaid master','unpaid':True,'work_entry_type_id':absent.id,'requires_allocation':'no'})
+        slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':'Nómina Chile'}),
+            'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':'monthly'}),
+            'date_from':date(2026,10,1),'date_to':date(2026,10,31)})
+        for count in (1,2):
+            source=[{'work_entry_type_id':absent.id,'number_of_days':count},
+                    {'work_entry_type_id':work.id,'number_of_days':31-count,'amount':600000/31*(31-count)}]
+            lines=slip._step_monthly_absence_days(source)
+            self.assertEqual(lines[1]['number_of_days'],30-count)
+            self.assertEqual(lines[1]['amount'],600000/30*(30-count))
+            self.assertEqual(leave.work_entry_type_id,absent)
+
+    def test_medical_alias_without_unpaid_master_is_not_absence(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        medical=self.env['hr.work.entry.type'].create({'name':'QA clinical alias','code':'LEAVECL130','is_leave':True})
+        slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':'Nómina Chile'}),
+            'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':'monthly'}),
+            'date_from':date(2026,10,1),'date_to':date(2026,10,31)})
+        source=[{'work_entry_type_id':medical.id,'number_of_days':1},
+                {'work_entry_type_id':work.id,'number_of_days':30,'amount':580645}]
+        before=[dict(line) for line in source]
+        self.assertEqual(slip._step_monthly_absence_days(source),before)
+
     def test_full_month_absences_use_fixed_thirty_day_salary(self):
         work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
         absence=self.env['hr.work.entry.type'].search([('code','=','FALT')],limit=1)

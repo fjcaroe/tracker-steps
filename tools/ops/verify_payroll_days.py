@@ -40,9 +40,11 @@ try:
             assert slip and slip.company_id==company and slip.state in ('draft','verify') and not slip.move_id
             assert str(slip.date_from)=='2026-10-01' and str(slip.date_to)=='2026-10-31'
             original_inputs=slip.input_line_ids.read(['input_type_id','amount','name'])
+            source_absence=slip.worked_days_line_ids.filtered(lambda l:l.work_entry_type_id.code in ('FALT','LEAVECL130'))
+            original_absence=source_absence.read(['work_entry_type_id','number_of_days','number_of_hours','amount'])
             slip.compute_sheet();env.flush_all()
             attendance=slip.worked_days_line_ids.filtered(lambda l:l.work_entry_type_id.code=='WORK100')
-            absence=slip.worked_days_line_ids.filtered(lambda l:l.work_entry_type_id.code=='FALT')
+            absence=slip.worked_days_line_ids.filtered(lambda l:l.work_entry_type_id.code in ('FALT','LEAVECL130'))
             assert len(attendance)==1 and sum(absence.mapped('number_of_days'))==case['absent_days']
             assert attendance.number_of_days==30-case['absent_days']
             assert attendance.number_of_hours==8*attendance.number_of_days
@@ -51,6 +53,7 @@ try:
             base=slip.line_ids.filtered(lambda l:l.code=='BASIC')
             assert len(base)==1 and base.total==slip.company_id.currency_id.round(expected)
             assert slip.input_line_ids.read(['input_type_id','amount','name'])==original_inputs
+            assert source_absence.read(['work_entry_type_id','number_of_days','number_of_hours','amount'])==original_absence
         for table,value in unchanged.items():
             assert snapshot("SELECT md5(coalesce(string_agg(to_jsonb(t)::text,'' ORDER BY id),'')) FROM "+table+' t')==value,table
         assert snapshot("SELECT md5(coalesce(string_agg(to_jsonb(p)::text,'' ORDER BY p.id),'')) FROM hr_payslip p WHERE p.state IN ('done','paid')")==paid

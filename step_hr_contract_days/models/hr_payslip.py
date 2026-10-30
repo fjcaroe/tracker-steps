@@ -10,6 +10,31 @@ HOURS_PER_DAY = 8.0
 class HrPayslip(models.Model):
     _inherit = "hr.payslip"
 
+    def compute_sheet(self):
+        # Native Compute Sheet does not regenerate stored worked-day lines.
+        # Refresh only the affected attendance, retaining source absences,
+        # inputs and all paid/done slips. Existing lateness is applied once.
+        for slip in self.filtered(lambda row:row.state in ('draft','verify')):
+            values=[{'sequence':line.sequence,'work_entry_type_id':line.work_entry_type_id.id,
+                     'number_of_days':line.number_of_days,'number_of_hours':line.number_of_hours,
+                     'amount':line.amount} for line in slip.worked_days_line_ids]
+            before=[dict(line) for line in values]
+            corrected=slip._step_monthly_absence_days(values)
+            if corrected==before:
+                continue
+            corrected=slip._step_deduct_late_hours(corrected)
+            for line in corrected:
+                entry=slip.env['hr.work.entry.type'].browse(line['work_entry_type_id'])
+                if entry.code!='WORK100':
+                    continue
+                stored=slip.worked_days_line_ids.filtered(lambda row:row.work_entry_type_id==entry)
+                assert len(stored)<=1
+                if stored:
+                    stored.write({key:line[key] for key in ('number_of_days','number_of_hours','amount')})
+                else:
+                    slip.env['hr.payslip.worked_days'].create(dict(line,payslip_id=slip.id))
+        return super().compute_sheet()
+
     def _get_worked_day_lines_values(self, domain=None):
         lines = super()._get_worked_day_lines_values(domain=domain)
         lines = self._step_contract_days_lines(lines)
@@ -36,9 +61,17 @@ class HrPayslip(models.Model):
         for line in lines:
             by_code.setdefault(types.browse(line['work_entry_type_id']).code,[]).append(line)
         days=lambda code:sum(line.get('number_of_days',0.0) for line in by_code.get(code,[]))
-        if days('FALT')<=0 or days('LIC')>0 or days('LEAVECL130')>0:
+        # LEAVECL130 in the reported catalog is linked to the native unpaid
+        # time-off master, not medical leave. Retain that relation and its IDs.
+        unpaid=self.env['hr.leave.type'].search([
+            ('unpaid','=',True),('work_entry_type_id.code','=','LEAVECL130')]).mapped('work_entry_type_id').ids
+        additional=sum(line.get('number_of_days',0.0) for line in by_code.get('LEAVECL130',[])
+                       if line['work_entry_type_id'] in unpaid)
+        medical130=days('LEAVECL130')-additional
+        absent=days('FALT')+additional
+        if absent<=0 or days('LIC')>0 or days('ACCTR')>0 or medical130>0:
             return lines
-        attendance=max(30.0-days('FALT')-days('LEAVECL120'),0.0)
+        attendance=max(30.0-absent-days('LEAVECL120'),0.0)
         work=(by_code.get('WORK100') or [None])[0]
         if work is None and attendance:
             entry=types.search([('code','=','WORK100')],limit=1)
