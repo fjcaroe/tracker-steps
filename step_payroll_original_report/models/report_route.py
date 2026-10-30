@@ -54,8 +54,12 @@ class OriginalPayrollReportRoute(models.Model):
                 or any(key in context for key in ('docs', 'doc_ids', 'doc_model', 'step_report_net'))):
             raise AccessError(_('The original report context contains unsupported actor or financial overrides.'))
         if data is not None:
-            if not isinstance(data, dict) or set(data) - {'context', 'report_type'}:
+            if not isinstance(data, dict) or set(data) - {'context', 'report_type', 'debug'}:
                 raise UserError(_('The original report does not accept financial or document payloads.'))
+            # Official PDF preparation sets debug=False before calling HTML.
+            # Admit that inert literal, never arbitrary caller/template data.
+            if 'debug' in data and data['debug'] is not False:
+                raise UserError(_('Unsupported original report debug payload.'))
             if 'report_type' in data and data['report_type'] not in ('html', 'pdf'):
                 raise UserError(_('Unsupported original report output type.'))
             transport = data.get('context', {})
