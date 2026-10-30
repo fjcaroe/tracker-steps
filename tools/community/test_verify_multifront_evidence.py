@@ -123,7 +123,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
             with self.assertRaises(verifier.base.EvidenceError): verifier.expected_tests(operational, quality)
         self.assertEqual(verifier.expected_tests(True, True), {'community': 646, 'cerro-reference': 441})
 
-    def test_critical_206_163_methods_require_every_mode_specific_test_once(self):
+    def test_s_212_168_methods_require_every_mode_specific_test_once(self):
         root = Path(__file__).resolve().parents[2]
         source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.own_modules(True, True)
             for path in (root / module).rglob('*.py')}
@@ -131,12 +131,30 @@ class MultifrontEvidenceCase(unittest.TestCase):
             for cls in ast.parse(body.decode('utf-8-sig')).body if isinstance(cls, ast.ClassDef)
             for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_')}
         log = '\n'.join('Starting ' + key + ' ...' for key in sorted(keys))
-        for mode, expected, selected in (('community', 206, 'QualityOcaOperationCase.'), ('cerro-reference', 163, 'NativeQualityConsumerCase.')):
-            self.assertEqual(verifier.critical_methods(source, log, mode, operational_extensions=True, quality_extension=True, critical_extension=True), expected)
+        for mode, expected, selected in (('community', 212, 'QualityOcaOperationCase.'), ('cerro-reference', 168, 'NativeQualityConsumerCase.')):
+            self.assertEqual(verifier.critical_methods(source, log, mode, operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='S'), expected)
             key = next(key for key in keys if key.startswith(selected))
             for changed in (log.replace('Starting ' + key + ' ...', ''), log + '\nStarting ' + key + ' ...'):
                 with self.subTest(mode=mode), self.assertRaises(verifier.base.EvidenceError):
-                    verifier.critical_methods(source, changed, mode, operational_extensions=True, quality_extension=True, critical_extension=True)
+                    verifier.critical_methods(source, changed, mode, operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='S')
+
+    def test_s_and_r3_manifest_generations_are_explicit_and_disjoint(self):
+        self.assertEqual(verifier.expected_tests(True, True, True), {'community': 665, 'cerro-reference': 457})
+        self.assertEqual(verifier.expected_tests(True, True, True, 'S'), {'community': 671, 'cerro-reference': 462})
+        with self.assertRaises(ValueError): verifier.expected_tests(True, True, False, 'S')
+        for generation in ('R3', 'S'):
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                manifest = {'schema': 1, 'files': {}, 'database_accessed': False, 'database_writes': False,
+                    'dump_exported': False, 'enterprise_source_bodies_exported': False,
+                    'operational_extensions': True, 'quality_extension': True, 'critical_extension': True}
+                if generation == 'S': manifest['critical_generation'] = 'S'
+                write(root, 'evidence-files.json', manifest)
+                verifier.verify_file_manifest(root, operational_extensions=True, quality_extension=True,
+                    critical_extension=True, critical_generation=generation)
+                with self.assertRaises(ValueError):
+                    verifier.verify_file_manifest(root, operational_extensions=True, quality_extension=True,
+                        critical_extension=True, critical_generation='S' if generation == 'R3' else 'R3')
 
     def test_quality_vendor_binds_all_114_git_blobs_and_both_executed_inventories(self):
         for change in (None, 'partial_valid_tree', 'blob', 'extra', 'native_inventory', 'native_proof', 'license'):

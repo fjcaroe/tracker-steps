@@ -54,15 +54,16 @@ def native_root_allowed(root):
         and path.name.startswith(NATIVE_ROOT_PREFIXES))
 
 
-def validate_native_acceptance(root, accepted, *, expected_multifront_installed=None, operational_extensions=False, quality_extension=False, critical_extension=False):
+def validate_native_acceptance(root, accepted, *, expected_multifront_installed=None, operational_extensions=False, quality_extension=False, critical_extension=False, critical_generation='R3'):
     require(native_root_allowed(root), 'Private accepted source root required')
     require(accepted.get('mode') == 'cerro-reference' and accepted.get('writes_to_source') is False,
             'Accepted native reference required')
     if PurePosixPath(str(root)).name.startswith('community-multifront-'):
         require(not quality_extension or operational_extensions, 'Quality requires the operational extension profile')
         require(type(critical_extension) is bool and (not critical_extension or quality_extension), 'Critical requires Quality acceptance')
-        from audit_multifront_installation import CRITICAL_TESTS
-        expected_tests = CRITICAL_TESTS['cerro-reference'] if critical_extension else 441 if quality_extension else 437 if operational_extensions else 391
+        from audit_multifront_installation import critical_tests, check_generation
+        check_generation(accepted, critical_extension, critical_generation)
+        expected_tests = critical_tests(critical_extension, critical_generation)['cerro-reference'] if critical_extension else 441 if quality_extension else 437 if operational_extensions else 391
         require(accepted.get('critical_extension', False) is critical_extension, 'Exact critical acceptance flag required')
         require(accepted.get('multifront') is True and accepted.get('focused_development_pass') is False
                 and accepted.get('expected_test_count') == expected_tests
@@ -76,7 +77,7 @@ def validate_native_acceptance(root, accepted, *, expected_multifront_installed=
         require(accepted.get('counts') == {'installed': expected_multifront_installed, 'enterprise': 140},
                 'Measured multifront module graph differs')
     else:
-        require(not critical_extension and not quality_extension and not operational_extensions and expected_multifront_installed is None and accepted.get('multifront', False) is False
+        require(critical_generation == 'R3' and not critical_extension and not quality_extension and not operational_extensions and expected_multifront_installed is None and accepted.get('multifront', False) is False
                 and accepted.get('focused_development_pass', False) is False and accepted.get('expected_test_count') == 294
                 and accepted.get('counts') == {'installed': 391, 'enterprise': 140},
                 'Original native294/installed391 witness required')
@@ -214,6 +215,7 @@ def main():
     parser.add_argument('--operational-extensions', action='store_true', help='Require the exact full native437 operational package')
     parser.add_argument('--quality-extension',action='store_true',help='Require the exact full native441 Quality package')
     parser.add_argument('--critical-extension',action='store_true')
+    parser.add_argument('--critical-generation',choices=('R3','S'),default='R3')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Local peer inspection requires root')
     root, output = args.native_root.resolve(), args.output_directory.resolve()
@@ -224,7 +226,7 @@ def main():
     database = accepted['database']
     require(re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_[A-Za-z0-9_]+', database), 'Private reference database required')
     validate_native_acceptance(root, accepted, expected_multifront_installed=args.expected_multifront_installed,
-        operational_extensions=args.operational_extensions,quality_extension=args.quality_extension,critical_extension=args.critical_extension)
+        operational_extensions=args.operational_extensions,quality_extension=args.quality_extension,critical_extension=args.critical_extension,critical_generation=args.critical_generation)
     dump = native / 'source.dump'
     require(dump.is_file() and not dump.is_symlink(), 'Original private dump required')
     original_stat = dump.stat()
@@ -275,6 +277,8 @@ def main():
         'metadata': metadata, 'before_rows_json': before['rows_json'], 'after_rows_json': after['rows_json'],
         'before_raw_md5': before['raw_md5'], 'after_raw_md5': after['raw_md5'],
         'before_normalized_md5': before['normalized_md5'], 'after_normalized_md5': after['normalized_md5']}
+    if args.critical_generation == 'S':
+        proof['critical_generation'] = 'S'
     from payroll_representation_contract import verify
     proof['comparison'] = verify(*snapshots, proof)
     output.mkdir(mode=0o700)

@@ -27,6 +27,22 @@ class DumpReconstructionCase(unittest.TestCase):
             audit.validate_native_acceptance(root, accepted, expected_multifront_installed=397,
                 operational_extensions=True, quality_extension=True)
 
+    def test_s_typed_witness_requires_its_explicit_native462_receipt(self):
+        root = PurePosixPath('/opt/steps-validation/community-multifront-parallel-20261030S2')
+        accepted = {'mode': 'cerro-reference', 'writes_to_source': False, 'multifront': True,
+            'focused_development_pass': False, 'operational_extensions': True, 'quality_extension': True,
+            'critical_extension': True, 'critical_generation': 'S', 'expected_test_count': 462,
+            'counts': {'installed': 397, 'enterprise': 140}}
+        audit.validate_native_acceptance(root, accepted, expected_multifront_installed=397,
+            operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='S')
+        for change in ({'critical_generation': 'R3'}, {'expected_test_count': 457}):
+            with self.assertRaises(ValueError):
+                audit.validate_native_acceptance(root, dict(accepted, **change), expected_multifront_installed=397,
+                    operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='S')
+        with self.assertRaises(ValueError):
+            audit.validate_native_acceptance(root, accepted, expected_multifront_installed=397,
+                operational_extensions=True, quality_extension=True, critical_extension=True)
+
     def test_original_bootstrap_or_contracts_private_roots_remain_admitted(self):
         for name in ('community-original-bootstrap-20261029F', 'community-original-contracts-20261030B'):
             self.assertTrue(audit.native_root_allowed(PurePosixPath('/opt/steps-validation') / name))
