@@ -176,16 +176,22 @@ class TreasuryLauncherContractCase(unittest.TestCase):
         self.assertEqual(values, untouched)
 
     def test_timestamp_admission_never_allows_uid_value_alias_flag_extra_or_ee_changes(self):
-        for edit in ('write_uid', 'tag', 'params', 'alias', 'flag', 'extra_action', 'ee_timestamp', 'ee_shared_owner'):
+        for edit in ('write_uid', 'write_uid_type', 'tag', 'params', 'params_numeric_type', 'alias', 'flag',
+                     'flag_type', 'extra_action', 'ee_timestamp', 'ee_shared_owner'):
             values = fixture()
             target = next(row for row in values[3]['global_client_actions'] if row['id'] == 700)
             target['write_date'] = '2026-10-30T03:00:00'
             alias = next(row for row in values[1]['original_xmlids'] if row.get('res_id') == 700)
             if edit == 'write_uid': target['write_uid'] = 2
+            elif edit == 'write_uid_type': target['write_uid'] = True
             elif edit == 'tag': target['tag'] = 'different_dashboard'
             elif edit == 'params': target['params'] = {'new': 'functional value'}
+            elif edit == 'params_numeric_type':
+                next(row for row in values[2]['global_client_actions'] if row['id'] == 700)['params'] = {'id': 1}
+                target['params'] = {'id': 1.0}
             elif edit == 'alias': alias['res_id'] = 701
             elif edit == 'flag': alias['noupdate'] = not alias['noupdate']
+            elif edit == 'flag_type': alias['noupdate'] = 0
             elif edit == 'extra_action': values[3]['global_client_actions'].append(dict(target, id=99999))
             elif edit == 'ee_timestamp': values[3]['global_client_actions'][0]['write_date'] = '2026-10-30T03:00:00'
             else:
