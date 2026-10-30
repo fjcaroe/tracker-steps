@@ -76,6 +76,15 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T139/T140 autorizan `agriculture-multicompany` en Desarrollo, Cerro y QA-Cerro:
+selección explícita de empresas y sucursales para Fundos de productores,
+categoría, clase, calidad y color de fruta. Reutilizar los maestros y conservar
+IDs, datos, empresa de origen y relaciones. No compartir documentos contables
+ni inventario, ni asignar automáticamente otras empresas. Incorporar Fundos
+a Packing / Maestros. Copias frescas, mismo paquete, respaldo, bloqueo y
+paridad del módulo afectado; no refrescar capacitación ni retirar aislamiento.
+
+
 ### Paridad de las entregas de Cerro y QA-Cerro — 30-10-2026
 
 El usuario indicó mantener QA-Cerro incluido en los cambios aplicables que se

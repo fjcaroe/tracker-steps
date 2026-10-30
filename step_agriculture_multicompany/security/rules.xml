@@ -1,0 +1,7 @@
+<odoo>
+<record id="step_producers.rule_step_producer_fundo_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
+<record id="step_management_costs.rule_fruit_category_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
+<record id="step_management_costs.rule_fruit_class_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
+<record id="step_export_client_revision.color_company" model="ir.rule"><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
+<record id="quality_company" model="ir.rule"><field name="name">Calidades de fruta por empresas seleccionadas</field><field name="model_id" ref="step_inventory_fruit_tag.model_step_management_fruit_quality"/><field name="domain_force">[("company_ids", "in", company_ids)]</field></record>
+</odoo>
