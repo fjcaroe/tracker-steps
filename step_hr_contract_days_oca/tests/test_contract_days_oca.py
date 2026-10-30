@@ -58,10 +58,32 @@ class TestContractDaysOca(ContractDaysFixture, TransactionCase):
             # A medical alias must have its own explicit global type without
             # a source unpaid master; do not reuse the real unpaid CL alias.
             kind = self._type(code, global_type=code == 'LEAVECL130')
-            self._leave(slip, kind, date(2026, 10, 1), date(2026, 10, 2), unpaid=False)
+            self.env.cr.execute('SELECT hr_payroll_structure_id,hr_work_entry_type_id '
+                'FROM hr_payroll_structure_hr_work_entry_type_rel WHERE hr_work_entry_type_id=%s '
+                'ORDER BY hr_payroll_structure_id', (kind.id,))
+            original_pairs = self.env.cr.fetchall()
+            self._leave(slip, kind, date(2026, 10, 1), date(2026, 10, 2), unpaid=False,
+                payroll_unpaid=code != 'LIC')
             values, work = self._values(slip)
             self.assertEqual(work['number_of_days'], 29)
             self.assertAlmostEqual(work['amount'], 600000 / 31 * 29)
+            if code == 'LIC':
+                # The real vendor's LIC belongs to an unadopted salary
+                # policy in another company. Read its real days, preserve
+                # every pair and prove the actor cannot silently adopt it.
+                # A cold profile legitimately deferred this vendor relation;
+                # it also stays untouched. A normal profile must reject the
+                # hidden company's existing policy, rather than grant access.
+                if original_pairs:
+                    with TestCase.assertRaises(self, AccessError):
+                        kind.write({'unpaid_structure_ids': [Command.link(slip.struct_id.id)]})
+                self.env.cr.execute('SELECT hr_payroll_structure_id,hr_work_entry_type_id '
+                    'FROM hr_payroll_structure_hr_work_entry_type_rel WHERE hr_work_entry_type_id=%s '
+                    'ORDER BY hr_payroll_structure_id', (kind.id,))
+                self.assertEqual(self.env.cr.fetchall(), original_pairs)
+                self.assertFalse(slip.worked_days_line_ids)
+                continue
+            self.assertFalse(original_pairs)
             rows = self._store(slip, values)
             attendance = rows.filtered(lambda row: row.work_entry_type_id == self.work)
             self.assertEqual(attendance.amount, self.company.currency_id.round(work['amount']))

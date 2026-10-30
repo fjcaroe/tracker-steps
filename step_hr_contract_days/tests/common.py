@@ -115,10 +115,10 @@ class ContractDaysFixture:
             values['country_id'] = country
         return self.scope['hr.work.entry.type'].create(values)
 
-    def _leave(self, slip, kind, first, last, unpaid=False):
+    def _leave(self, slip, kind, first, last, unpaid=False, payroll_unpaid=True):
         # Explicit private payroll policy, distinct from the leave master's
         # own unpaid marker. Neither relationship is inferred by the product.
-        if 'unpaid_structure_ids' in kind._fields:
+        if payroll_unpaid and 'unpaid_structure_ids' in kind._fields:
             kind.unpaid_structure_ids = [Command.link(slip.struct_id.id)]
         values = {'name': 'Private T138 real leave type', 'unpaid': unpaid,
             'work_entry_type_id': kind.id, 'requires_allocation': 'no', 'leave_validation_type': 'no_validation'}
