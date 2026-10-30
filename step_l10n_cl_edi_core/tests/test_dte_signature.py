@@ -39,6 +39,12 @@ class TestDTESignatureCore(DTESignatureCaseMixin, TransactionCase):
     def test_document_liquidation_and_export_exact_amount_profiles(self):
         DTESignatureCaseMixin.test_document_liquidation_and_export_exact_amount_profiles(self)
 
+    def test_explicit_new_unsigned_envelope_namespace_preparation(self):
+        DTESignatureCaseMixin.test_explicit_new_unsigned_envelope_namespace_preparation(self)
+
+    def test_envelope_preparation_never_rewrites_signed_or_mismatched_profiles(self):
+        DTESignatureCaseMixin.test_envelope_preparation_never_rewrites_signed_or_mismatched_profiles(self)
+
     def test_dte_signature_adds_no_parallel_model_or_counter(self):
         data = self.env['ir.model.data'].search([('module', '=', 'step_l10n_cl_edi_core')])
         self.assertFalse(data.filtered(lambda row: row.model in

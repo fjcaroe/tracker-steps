@@ -13,7 +13,8 @@ RSA-SHA1, referencia local a `#ID`, RSAKeyValue y certificado X509. Este perfil
 fiscal concreto no negocia algoritmos, XPath, XSLT ni recursos externos.
 
 `dte_signature.CertificatePin(certificate_der, fingerprint_sha256)` exige el
-DER exacto y su huella SHA256. `DTEContext(document_id, ted_context, signed_at)`
+DER exacto y su huella SHA256.
+`DTEContext(document_id, ted_context, signed_at, namespace_profile='standalone')`
 exige identidad esperada y fecha de firma con zona horaria explícita y segundos
 enteros. La hora local corresponde exactamente a TmstFirma; el instante UTC
 comprueba la vigencia del certificado. Se rechazan CA como firmante, KeyUsage
@@ -47,6 +48,13 @@ referencia externa/vacía/XPointer y transformaciones ajenas al perfil. No es
 un normalizador de XML legado: la descarga existente sigue sin analizar ni
 reescribir archivos históricos.
 
+El perfil adicional explícito `sii-envelope` admite únicamente el namespace
+xsi oficial que heredará un sobre EnvioDTE. Se prepara antes de firmar un
+documento nuevo mediante `prepare_unsigned_dte_for_envelope`, que rechaza
+cualquier firma existente y no modifica Documento/TED/CAF. El default
+standalone permanece intacto. El sobre comprueba las firmas dentro del árbol
+final y rechaza documentos recibidos incompatibles; véase [ENVELOPE.md](ENVELOPE.md).
+
 El resultado conserva el documento original y entrega evidencia separada:
 firma, esquema, pin y vigencia comprobados. Una huella elegida por el caller
 no prueba confianza SII. `caf_authority_verified` sólo refleja la verificación
@@ -66,8 +74,9 @@ Los cuatro métodos originales del proveedor nativo permanecen intactos.
 
 Prueba pura reproducible:
 `python tools/community/dte_signature_unit_tests.py`.
-Son 11 casos criptográficos compartidos con TestDTESignatureCore, más una
-prueba Odoo de ausencia de modelos/contadores nuevos: **12** seleccionables.
+Son 13 casos criptográficos compartidos con TestDTESignatureCore, incluidos
+los once originales y dos de preparación del namespace, más una prueba Odoo
+de ausencia de modelos/contadores nuevos: **14** seleccionables.
 TestDTESignatureCustodyStorage y TestDTESignatureNativeCAFCustody agregan
 **5** casos cada uno con actores, adjuntos y secuencia reales. La aceptación
 Community/copia fresca del paquete combinado queda a cargo del runner
@@ -75,6 +84,6 @@ central; pasar los casos puros no declara esa aceptación.
 
 Permanecen bloqueados: adopción de fuente/ancla/certificado reales, autoridad
 SII y revocación, habilitación y asignación concurrente de folios, vínculo
-persistente con DTE originales e identidad de negocio, sobre EnvioDTE,
+persistente con DTE originales e identidad de negocio,
 transporte/reintentos/respuestas SII y aceptación integral. Nada de este
 bloque habilita el retiro Enterprise de producción ni resuelve el vencimiento.

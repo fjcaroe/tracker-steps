@@ -28,6 +28,7 @@ DS = 'http://www.w3.org/2000/09/xmldsig#'
 C14N = 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315'
 RSA_SHA1 = DS + 'rsa-sha1'
 SHA1 = DS + 'sha1'
+XSI = 'http://www.w3.org/2001/XMLSchema-instance'
 DOCUMENT_TAGS = {'Documento': ted.ORDINARY_TYPES, 'Liquidacion': {43}, 'Exportaciones': ted.EXPORT_TYPES}
 
 
@@ -51,6 +52,7 @@ class DTEContext:
     document_id: str
     ted_context: ted.TEDContext = field(repr=False)
     signed_at: datetime
+    namespace_profile: str = 'standalone'
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,7 @@ class DTEVerification:
     caf_authority_verified: bool
     ted_verification: ted.TEDVerification = field(repr=False)
     signed_at: datetime
+    namespace_profile: str = 'standalone'
 
     def original_bytes(self):
         return self._original
@@ -70,6 +73,8 @@ class DTEVerification:
             document_id=self.document_id, certificate_sha256=self.certificate_sha256,
             dte_xml_signature_verified=True, sii_schema_verified=True,
             certificate_pin_matched=True, certificate_time_checked=True,
+            namespace_profile=self.namespace_profile,
+            transport_namespace_context_prepared=self.namespace_profile == 'sii-envelope',
             caf_authority_verified=self.caf_authority_verified, signed_at=self.signed_at.isoformat(),
             certificate_chain_verified=False, certificate_revocation_checked=False,
             signer_fiscal_authorization_verified=False, tax_calculation_certified=False,
@@ -82,9 +87,10 @@ def _context(context):
     _require(type(context.document_id) is str and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.-]{0,79}', context.document_id), 'dte-document-id')
     _require(type(context.signed_at) is datetime and context.signed_at.utcoffset() is not None
         and context.signed_at.microsecond == 0, 'dte-explicit-signature-instant-required')
+    _require(context.namespace_profile in ('standalone', 'sii-envelope'), 'dte-namespace-profile')
 
 
-def _parse(raw, *, signed):
+def _parse(raw, *, signed, namespace_profile='standalone'):
     _require(type(raw) is bytes and 0 < len(raw) <= MAX_XML_BYTES, 'dte-size-or-type')
     _require(b'<!' not in raw and b'\x00' not in raw, 'dte-declaration-forbidden')
     try:
@@ -93,8 +99,12 @@ def _parse(raw, *, signed):
     except (ValueError, etree.XMLSyntaxError):
         raise DTEError('dte-xml-invalid') from None
     _require(root.getprevious() is None and root.getnext() is None, 'dte-extra-nodes')
+    namespaces = {None: SII_NAMESPACE}
+    _require(namespace_profile in ('standalone', 'sii-envelope'), 'dte-namespace-profile')
+    if namespace_profile == 'sii-envelope':
+        namespaces['xsi'] = XSI
     _require(root.tag == '{%s}DTE' % SII_NAMESPACE and root.prefix is None
-        and root.nsmap == {None: SII_NAMESPACE} and dict(root.attrib) == {'version': '1.0'}, 'dte-root-profile')
+        and root.nsmap == namespaces and dict(root.attrib) == {'version': '1.0'}, 'dte-root-profile')
     encoding = root.getroottree().docinfo.encoding.upper().replace('_', '-')
     _require(encoding in ('UTF-8', 'ISO-8859-1', 'ISO8859-1', 'ASCII'), 'dte-encoding')
     _require(len(root) == (2 if signed else 1), 'dte-single-document-and-signature-required')
@@ -106,7 +116,7 @@ def _parse(raw, *, signed):
         _require(root[1].tag == '{%s}Signature' % DS, 'dte-signature-position')
     for node in root.iter():
         _require(isinstance(node.tag, str) and etree.QName(node).namespace in (SII_NAMESPACE, DS), 'dte-namespace')
-        _require(set(node.nsmap.values()) <= {SII_NAMESPACE, DS}, 'dte-extra-namespace')
+        _require(set(node.nsmap.values()) <= set(namespaces.values()) | {DS}, 'dte-extra-namespace')
         if etree.QName(node).namespace == SII_NAMESPACE:
             _require(node.prefix is None, 'dte-prefixed-data-unsupported')
         for key in node.attrib:
@@ -245,7 +255,8 @@ def _verify_xml_signature(root, document, key, pin):
 
 
 def verify_signed_dte(raw, original_caf, certificate_pin, context, *, caf_authorities=None):
-    root, document, encoding = _parse(raw, signed=True)
+    _context(context)
+    root, document, encoding = _parse(raw, signed=True, namespace_profile=context.namespace_profile)
     try:
         validate_dte_schema(root)
     except SchemaError as error:
@@ -254,7 +265,7 @@ def verify_signed_dte(raw, original_caf, certificate_pin, context, *, caf_author
     key = _certificate(certificate_pin, context)
     _verify_xml_signature(root, document, key, certificate_pin)
     return DTEVerification(raw, context.document_id, certificate_pin.fingerprint_sha256,
-        checked.caf_authority_verified, checked, context.signed_at)
+        checked.caf_authority_verified, checked, context.signed_at, context.namespace_profile)
 
 
 def _encode(value):
@@ -265,6 +276,22 @@ def _integer_bytes(number):
     return number.to_bytes((number.bit_length() + 7) // 8, 'big')
 
 
+def prepare_unsigned_dte_for_envelope(unsigned):
+    """Explicitly prepare NEW unsigned XML for inherited SII envelope xsi.
+
+    No accepted signature is ever rewritten. Only a root namespace declaration
+    is inserted; bytes of Documento, TED and CAF remain untouched. Inclusive
+    C14N must bind this namespace BEFORE the document signature is created.
+    """
+    _parse(unsigned, signed=False)
+    match = re.search(br'<DTE(?=\s)', unsigned)
+    _require(match is not None, 'dte-lexical-root-ambiguity')
+    offset = match.end()
+    prepared = unsigned[:offset] + (' xmlns:xsi="' + XSI + '"').encode('ascii') + unsigned[offset:]
+    _parse(prepared, signed=False, namespace_profile='sii-envelope')
+    return prepared
+
+
 def sign_dte(unsigned, original_caf, certificate_pin, context, private_key, *, caf_authorities):
     """Build a new Signature after schema/context/key checks; no implicit key I/O.
 
@@ -272,7 +299,8 @@ def sign_dte(unsigned, original_caf, certificate_pin, context, private_key, *, c
     document, including its lexical TED/CAF. This is not an emission operation.
     """
     _require(caf_authorities is not None, 'dte-caf-authority-map-required-for-construction')
-    root, document, encoding = _parse(unsigned, signed=False)
+    _context(context)
+    root, document, encoding = _parse(unsigned, signed=False, namespace_profile=context.namespace_profile)
     _bound_ted(unsigned, document, encoding, original_caf, context, caf_authorities)
     key = _certificate(certificate_pin, context)
     _require(isinstance(private_key, rsa.RSAPrivateKey)

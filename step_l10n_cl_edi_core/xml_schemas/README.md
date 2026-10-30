@@ -18,5 +18,6 @@ resolver admits only these exact in-memory files; no network, filesystem URL,
 parent traversal or fallback resolver is allowed. The directory's Git
 attributes disable line-ending conversion and text diff for the immutable
 reference binaries, including their original CRLF and trailing whitespace.
-EnvioDTE is retained for provenance completeness; this API validates a single
-DTE and does not construct or certify an EnvioDTE envelope.
+`dte_schema.py` validates individual DTE and `envelope.py` also compiles the
+pinned EnvioDTE schema using only these same in-memory files. Neither a valid
+schema nor a valid signature certifies SII acceptance or authorization.
