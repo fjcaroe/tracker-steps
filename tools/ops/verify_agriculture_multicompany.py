@@ -11,6 +11,13 @@ try:
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
+    for rule_ref in ('step_producers.rule_step_producer_fundo_company',
+                     'step_management_costs.rule_fruit_category_company',
+                     'step_management_costs.rule_fruit_class_company',
+                     'step_export_client_revision.color_company',
+                     'step_agriculture_multicompany.quality_company'):
+        rule = env.ref(rule_ref)
+        assert rule.active and rule.domain_force.replace('"', "'").replace(' ', '') == "[('company_ids','in',company_ids)]", rule_ref
     scoped = scoped_business_environment(env)
     previous = config['test_enable']; config['test_enable'] = True
     try:
