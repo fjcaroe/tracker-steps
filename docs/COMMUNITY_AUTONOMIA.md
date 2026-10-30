@@ -17,10 +17,10 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_CONTRATOS_ORIGINALES.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_MULTIFRENTE.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261029.md distingue 100 apps propias instaladas,
+   COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 100 apps propias instaladas,
    54 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.

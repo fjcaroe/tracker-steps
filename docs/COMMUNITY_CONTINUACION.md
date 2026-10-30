@@ -1,15 +1,16 @@
 # Continuidad de migración Community — Cerro El Plomo
 
-Estado vigente y siguiente prompt: [COMMUNITY_CONTRATOS_ORIGINALES.md](COMMUNITY_CONTRATOS_ORIGINALES.md).
-C acepta API1.14: NUMERIC ilimitado desde el primer init y proyección explícita
-FK→M2M con ACL normales, sin escribir maestros ni correlativos. Corrige create_multi.
-25 casos fríos/294 nativos/473 normales, cero fallos/errores, 58 pruebas puras.
-Preserva valores de 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs;
-1.060 snapshots exactos y un testigo representacional completo de cinco filas.
-21 addons propios y el proveedor frío de F sin cambios; sólo API cambia.
-Faltan identidad/120 maestros/71 reglas, siete brechas/cinco columnas, ACL,
-almacenamiento histórico restante, certificación e integral cero EE. T138 conservado.
-54 apps instaladas mantienen caminos EE; el 31 sigue en riesgo alto.
+Estado vigente y siguiente prompt: [COMMUNITY_MULTIFRENTE.md](COMMUNITY_MULTIFRENTE.md).
+H valida 27 addons propios: Tesorería/5 accesos, T138–OCA real y TED/FRMT.
+576 casos Community/391 referencia nativa, cero fallos/errores; 72 pruebas puras
+más 19 verificaciones de custodia final (se solapan, no sumarlas).
+Conserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs/noupdate;
+1.060 snapshots literales y un testigo numérico de cinco filas. Se admiten cinco acciones
+de menú, siete timestamps propios y las ayudas HR anteriores, documentados.
+C/C2 frío y su API1.14 siguen conservados. Faltan coadopción de 120 maestros/71
+reglas, beneficios, metadata/ACL y certificación SyS, DTE completo y conversión
+integral con cero EE. Hay 54 apps instaladas con caminos EE; producción conserva
+140 EE. El 31 sigue en riesgo alto. Ver COMMUNITY_PROXIMO_BOOTSTRAP.md.
 El contenido inferior conserva su alcance histórico.
 
 ## Pedido y límites
