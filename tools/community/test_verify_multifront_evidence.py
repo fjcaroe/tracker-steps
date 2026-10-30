@@ -58,6 +58,15 @@ def repeated_pdf_fixture(root):
     directory.mkdir(parents=True)
     html = b'<html><body>Private company Chile</body></html>'
     (directory / 'preview.html').write_bytes(html)
+    assets = {}
+    (directory / 'assets').mkdir()
+    for url, body, mime in (('/web/assets/fixture.css', b'body{}', 'text/css; charset=utf-8'),
+            ('/web/assets/duplicate.css', b'body{}', 'text/css; charset=utf-8'),
+            ('/web/static/fixture.woff2', b'synthetic inert font custody bytes', 'font/woff2')):
+        name = 'assets/' + verifier.sha(body) + '.bin'
+        (directory / name).write_bytes(body)
+        assets[url] = {'file': name, 'sha256': verifier.sha(body), 'bytes': len(body), 'content_type': mime}
+    write(directory, 'assets.json', assets)
     repetitions = []
     environment = {'uid': 7, 'sudo': False, 'allowed_company_ids': [9]}
     for index in range(1, 4):
@@ -85,9 +94,10 @@ def repeated_pdf_fixture(root):
     proof = {key: repetitions[0][key] for key in ('file', 'sha256', 'bytes', 'pages')}
     proof.update(actor_id=7, normal_actor=True, stored_history_unchanged=True, original_action_unchanged=True,
         existing_structure_fk_unchanged=True, original_action_numeric_adoption=False, missing_assets=[],
-        runtime_asset_sha256={'/web/assets/fixture.css': 'a' * 64}, financial_verified_html_sha256=verifier.sha(html),
+        runtime_asset_sha256={url: entry['sha256'] for url, entry in assets.items()}, financial_verified_html_sha256=verifier.sha(html),
         offline_pdf_text_verification_required=True, visual_pdf_review_required=True, repetitions=repetitions,
-        company_name='Private company', country_name='Chile', header_layout_accepted=False)
+        company_name='Private company', country_name='Chile', header_layout_accepted=False,
+        asset_capture={'file': 'assets.json', 'sha256': verifier.sha((directory / 'assets.json').read_bytes()), 'bytes': (directory / 'assets.json').stat().st_size})
     write(directory, 'proof.json', proof)
     return directory, proof
 
@@ -183,15 +193,53 @@ class MultifrontEvidenceCase(unittest.TestCase):
                     if change is None:
                         result = verifier.verify_original_pdf(root, receipt, quality_extension=True, source={})
                         self.assertEqual(result['actual_pdf_count'], 3)
-                        self.assertEqual(len(result['capture_files']), 29)
+                        self.assertEqual(len(result['capture_files']), 32)
+                        self.assertEqual(result['asset_capture']['urls'], 3)
+                        self.assertEqual(result['asset_capture']['deduplicated_files'], 2)
+                        self.assertFalse(result['asset_capture']['causal_rerender_executed'])
                         self.assertFalse(result['header_review']['technical_headers_passed'])
                         self.assertFalse(result['legal_validity_certified'])
-                        self.assertEqual(len(verifier.original_pdf_inventory(directory, repeated=True)), 29)
+                        self.assertEqual(len(verifier.original_pdf_inventory(directory, repeated=True)), 32)
                         reviewer.assert_called_once()
                     else:
                         with self.subTest(change=change), self.assertRaises(verifier.base.EvidenceError):
                             verifier.verify_original_pdf(root, receipt, quality_extension=True, source={})
                         reviewer.assert_not_called()
+
+    def test_quality_asset_cache_requires_hash_bound_map_exact_dedup_and_no_source_or_session_material(self):
+        for change in ('missing_receipt', 'map_hash', 'changed_bytes', 'missing_bytes', 'boolean_length', 'extra_binary',
+                'extra_cookie_file', 'source_url', 'encoded_source_url', 'cookie_key', 'python_mime', 'header_injection',
+                'duplicate_url', 'runtime_set', 'wrong_cache_path'):
+            with tempfile.TemporaryDirectory() as folder:
+                directory, proof = repeated_pdf_fixture(Path(folder))
+                asset_path = directory / 'assets.json'; assets = json.loads(asset_path.read_text())
+                url = next(iter(assets)); entry = assets[url]
+                if change == 'missing_receipt': proof.pop('asset_capture')
+                elif change == 'map_hash': proof['asset_capture']['sha256'] = '0' * 64
+                elif change == 'changed_bytes': (directory / entry['file']).write_bytes(b'tampered')
+                elif change == 'missing_bytes': (directory / entry['file']).unlink()
+                elif change == 'boolean_length': entry['bytes'] = True
+                elif change == 'extra_binary': (directory / 'assets' / ('0' * 64 + '.bin')).write_bytes(b'not in runtime cache')
+                elif change == 'extra_cookie_file': (directory / 'assets/cookies.json').write_text('{}')
+                elif change in ('source_url', 'encoded_source_url'):
+                    renamed = '/web/static/source.py' if change == 'source_url' else '/web/static/source%2epy'
+                    assets[renamed] = assets.pop(url)
+                    proof['runtime_asset_sha256'][renamed] = proof['runtime_asset_sha256'].pop(url)
+                elif change == 'cookie_key': entry['cookie'] = 'synthetic-session-material-must-be-refused'
+                elif change == 'python_mime': entry['content_type'] = 'text/x-python'
+                elif change == 'header_injection': entry['content_type'] = 'text/css;\r\ncharset=utf-8'
+                elif change == 'runtime_set': proof['runtime_asset_sha256']['/not-captured'] = '0' * 64
+                elif change == 'wrong_cache_path': entry['file'] = 'assets/source.py'
+                if change not in ('missing_receipt', 'map_hash'):
+                    raw = json.dumps(assets).encode()
+                    if change == 'duplicate_url':
+                        raw = ('{' + ','.join(json.dumps(key) + ':' + json.dumps(value) for key, value in assets.items())
+                            + ',' + json.dumps(url) + ':' + json.dumps(entry) + '}').encode()
+                    asset_path.write_bytes(raw)
+                    proof['asset_capture'].update(sha256=verifier.sha(raw), bytes=len(raw))
+                write(directory, 'proof.json', proof)
+                with self.subTest(change=change), self.assertRaises(verifier.base.EvidenceError):
+                    verifier.original_pdf_inventory(directory, repeated=True)
 
     @unittest.skipUnless(importlib.util.find_spec('pymupdf') and importlib.util.find_spec('lxml'), 'Optional offline PDF review dependencies')
     def test_real_offline_header_failure_does_not_mutate_capture_or_become_layout_acceptance(self):

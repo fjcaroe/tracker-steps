@@ -14,6 +14,7 @@ import re
 import subprocess
 import tarfile
 import tempfile
+from urllib.parse import unquote
 
 import build_original_bootstrap as builder
 import build_numeric_input_engine as numeric
@@ -223,6 +224,35 @@ def original_pdf_inventory(directory, *, repeated=False):
             and all(isinstance(proof.get(name), str) and proof[name] for name in ('company_name', 'country_name')),
             'Three real original-report repetitions and outstanding header layout required')
         require(sha(member('preview.html', suffix='.html')) == proof['financial_verified_html_sha256'], 'Original PDF preview hash differs')
+        capture = proof.get('asset_capture')
+        require(isinstance(capture, dict) and set(capture) == {'file', 'sha256', 'bytes'}
+            and capture['file'] == 'assets.json', 'Exact original PDF asset-capture receipt required')
+        def unique_object(pairs):
+            result = {}
+            for key, value in pairs:
+                require(key not in result, 'Duplicate original PDF asset metadata key')
+                result[key] = value
+            return result
+        assets = json.loads(member('assets.json', entry=capture, suffix='.json'), object_pairs_hook=unique_object)
+        require(isinstance(assets, dict) and assets and set(assets) == set(proof['runtime_asset_sha256']),
+            'Original PDF captured asset URL set differs from runtime')
+        for url, entry in assets.items():
+            decoded = unquote(url) if isinstance(url, str) else ''
+            require(isinstance(url, str) and url.startswith('/') and not decoded.startswith('//')
+                and not any(value in url or value in decoded for value in ('\\', '?', '#', ':', '\x00', '\r', '\n'))
+                and not any(value.isspace() for value in decoded) and '..' not in decoded.split('/')
+                and not decoded.lower().endswith(('.py', '.pyc', '.pyo')),
+                'Unsafe/non-runtime/source URL in original PDF asset capture')
+            require(isinstance(entry, dict) and set(entry) == {'file', 'sha256', 'bytes', 'content_type'}
+                and isinstance(entry['sha256'], str) and re.fullmatch('[0-9a-f]{64}', entry['sha256'])
+                and entry['sha256'] == proof['runtime_asset_sha256'][url]
+                and entry['file'] == 'assets/' + entry['sha256'] + '.bin',
+                'Original PDF asset digest/path/deduplication differs')
+            mime = entry['content_type']
+            require(isinstance(mime, str) and re.fullmatch(r'[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[ ]*charset=[A-Za-z0-9._-]+)?', mime)
+                and mime.split(';', 1)[0].lower() not in ('text/x-python', 'application/x-python', 'text/x-python-script'),
+                'Original PDF asset content type/credential scope differs')
+            member(entry['file'], entry=entry, suffix='.bin')
         require(all(proof[key] == repetitions[0][key] for key in ('file', 'sha256', 'bytes', 'pages')),
             'First original PDF and compatibility receipt differ')
         names = set()
@@ -343,6 +373,12 @@ def verify_original_pdf(root, receipt, *, quality_extension=False, source=None):
             capture_files={name: {'sha256': sha(path.read_bytes()), 'bytes': path.stat().st_size} for name, path in files.items()},
             header_review=review_original_headers(directory, source), productive_layout_accepted=False,
             legal_validity_certified=False)
+        assets = read(directory, 'assets.json')
+        result['asset_capture'] = {'receipt_sha256': proof['asset_capture']['sha256'], 'urls': len(assets),
+            'deduplicated_files': len({entry['file'] for entry in assets.values()}),
+            'all_runtime_urls_and_bytes_exact': True, 'python_source_files_in_asset_cache': False,
+            'session_headers_or_cookies_captured': False,
+            'causal_rerender_executed': False}
     return result
 
 
