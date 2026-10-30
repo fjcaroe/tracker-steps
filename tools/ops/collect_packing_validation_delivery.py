@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from manage_management import query
 
 
 def main():
@@ -38,6 +39,14 @@ def main():
     isolation=subprocess.run(['/usr/bin/python3.10',str(Path(__file__).with_name('provision_cerro_qa.py')),'verify'],capture_output=True,text=True)
     assert isolation.returncode==0 and all(marker in isolation.stdout for marker in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
     (args.output/'isolation.log').write_text(isolation.stdout+isolation.stderr)
+    plan=json.loads((Path(__file__).resolve().parents[2]/'packing-replay.json').read_text())
+    code=plan['product_code'];assert re.fullmatch('[A-Za-z0-9_-]+',code)
+    active={}
+    for database in ('CERRO_EL_PLOMO','QA-CERROELPLOMO'):
+        flags=query(database,"SELECT t.is_storable FROM product_product p JOIN product_template t ON t.id=p.product_tmpl_id WHERE p.default_code='%s'"%code)
+        assert flags=='t','Active inventory definition must match the human decision'
+        active[database]=True
+    (args.output/'active-inventory.json').write_text(json.dumps(active))
     commit,sha=identities.pop()
     (args.output/'delivery.json').write_text(json.dumps({'commit':commit,'sha256':sha,'tests':count,'pending_product_inventory':pending,'reviewed_message_id':9837}))
     print('T137_DELIVERY_COLLECTED tests=%s pending_product_inventory=%s'%(count,pending))
