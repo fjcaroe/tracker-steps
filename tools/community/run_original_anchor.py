@@ -204,7 +204,30 @@ def main():
             if not path.is_symlink():os.chown(path,owner.pw_uid,owner.pw_gid)
         opts=['-c','/etc/dev_odoo18.conf','-d',database,'--db-filter=^'+database+'$', '--db_host=/var/run/postgresql',
             '--addons-path='+','.join(map(str,roots[:3])),'--data-dir='+str(data),'--load=base,web','--workers=0',
-            '--max-cron-threads=0','--without-demo=all','--no-http','--stop-after-init','-i',','.join(OWN)]
+            '--max-cron-threads=0','--without-demo=all','--no-http','--stop-after-init']
+        normal=['sudo','-u','odoo','/usr/bin/python3.10',str(RUNTIME/'odoo-bin'),'shell']
+        # Use the standard UI installer state transition, rather than CLI -i.
+        # Graph.init propagates to already installed consumers and would force
+        # reload of their noupdate business masters. New modules in 'to install'
+        # still receive the official init mode; existing consumers update.
+        prepare=('import json; names='+repr(list(OWN))+'; '
+            'env["ir.module.module"].update_list(); '
+            'new=env["ir.module.module"].search([("name","in",names)]); '
+            'assert len(new)==len(names) and all(m.state=="uninstalled" for m in new); '
+            'new.button_install(); '
+            'assert all(m.state=="to install" for m in new); '
+            'provider=env["ir.module.module"].search([("name","=","l10n_cl_simpledigital_payroll")]); '
+            'assert len(provider)==1 and provider.state=="installed"; '
+            'receipt={"official_button_install":True,"cli_init_used":False,"new_roots":names,'
+            '"native_provider_reinstalled":False,"original_provider_state":provider.state}; '
+            'env.cr.commit(); open('+repr(str(stage/'official-install-plan.json'))
+            +',"x").write(json.dumps(receipt,indent=2))')
+        with (stage/'prepare-bootstrap.log').open('x') as log:
+            prepared=subprocess.run(offline_odoo(normal+opts+['--logfile='+str(stage/'prepare.log')]),
+                input=prepare,text=True,stdout=log,stderr=subprocess.STDOUT)
+        assert prepared.returncode==0 and (stage/'official-install-plan.json').is_file(), 'Official module state preparation failed'
+        (stage/'official-install-plan.json').chmod(0o600)
+        opts+=['-u',','.join(OWN)]
         command=['sudo','-u','odoo','/usr/bin/python3.10',str(source/'tools/community/run_original_anchor_loader.py'),
             '--runtime',str(RUNTIME),'--database',database,'--capsule',str(stage/'capsule.json'),'--capsule-sha256',CAPSULE_SHA,
             '--identity-before',str(stage/'identity-before.json'),'--identity-before-sha256',sha(stage/'identity-before.json'),
@@ -220,7 +243,6 @@ def main():
             + ',capsule_sha256=' + repr(CAPSULE_SHA) + ',identity_sha256=' + repr(sha(stage/'identity-before.json'))
             + '); env.cr.commit(); open(' + repr(str(stage/'cohort-admission.json'))
             + ',"x").write(json.dumps(result,indent=2)); print("ORIGINAL_COHORT_PROBE_OK")')
-        normal=['sudo','-u','odoo','/usr/bin/python3.10',str(RUNTIME/'odoo-bin'),'shell']
         normal_opts=opts[:-2]  # ordinary CLI, no init/upgrade and no retention wrapper
         with (stage/'cohort-bootstrap.log').open('x') as log:
             status=subprocess.run(offline_odoo(normal+normal_opts+['--logfile='+str(stage/'cohort.log')]),
