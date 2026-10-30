@@ -14,12 +14,15 @@ def main():
     parser.add_argument('output', type=Path)
     parser.add_argument('--suffix', required=True)
     parser.add_argument('--reviewed-message', type=int, default=9863)
+    parser.add_argument('--cerro-suffix', help='Fresh Cerro retry after a read-only profile probe failure')
     args = parser.parse_args()
     assert re.fullmatch('[1-9][0-9]*', args.suffix)
     args.output.mkdir(mode=0o700, parents=True, exist_ok=True)
     identities = set(); count = 0
     for target, code in [('development','d'),('cerro','c'),('qa-cerro','q')]:
-        stage = Path('/opt/steps-validation') / ('management_' + target + '_t141' + code + args.suffix)
+        suffix = args.cerro_suffix if target=='cerro' and args.cerro_suffix else args.suffix
+        assert re.fullmatch('[1-9][0-9]*', suffix)
+        stage = Path('/opt/steps-validation') / ('management_' + target + '_t141' + code + suffix)
         qa = json.loads((stage / 'qa_passed.json').read_text())
         test = Path(qa['log']); matches = re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database', test.read_text())
         assert matches and int(matches[-1]) >= 9
