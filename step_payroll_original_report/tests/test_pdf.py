@@ -74,8 +74,11 @@ class OriginalPayrollReportPdfCase(HttpCase):
                     filename = 'original-report-stored-%s%s.pdf' % (
                         slip.id, '' if repetition == 1 else '-repeat-%s' % repetition)
                     file = write_private(output / filename, response.content)
+                    pipeline_bytes=(directory/'pipeline.json').read_bytes()
                     repetitions.append({
                         **file, 'pages': pages, 'pipeline': 'repetition-%s/pipeline.json' % repetition,
+                        'pipeline_sha256':hashlib.sha256(pipeline_bytes).hexdigest(),
+                        'pipeline_bytes':len(pipeline_bytes),
                         'prepared_headers': len(capture['prepare_calls']),
                         'wkhtmltopdf_runs': len(capture['run_calls']),
                         'argument_calls': len(capture['argument_calls']),
