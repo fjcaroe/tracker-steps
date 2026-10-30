@@ -17,11 +17,14 @@ from odoo.addons.step_payroll_contracts.original_payroll_roles import (
 from probe_original_handover import run as probe, sealed_json
 
 
-def run(env, stage, *, database, reference, capsule_sha256, identity_sha256):
+def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
+        source_visibility_path=None, source_visibility_sha256=None, output_stage=None):
     stage = Path(stage)
+    output_stage=Path(output_stage) if output_stage is not None else stage
+    assert output_stage.is_relative_to(stage) and output_stage.is_dir()
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', database)
     assert reference == database.replace('_HANDOVER_', '_REFERENCE_') and env.cr.dbname == database
-    assert not (stage / 'cohort-admission.json').exists()
+    assert not (output_stage / 'cohort-admission.json').exists()
     capsule = sealed_json(stage / 'capsule.json', capsule_sha256)
     sealed_json(stage / 'identity-before.json', identity_sha256)
     type_ids = [json.loads(row)['id'] for row in capsule['tables']['hr_payroll_structure_type']['rows_json']]
@@ -49,7 +52,8 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256):
         new_acls.append({'id': acl.id, 'model': name, 'existing_manager_group_id': manager_id})
     empty_models = admit_empty_oca_models_readonly_manager(env, manager_group_id=manager_id)
     actual = probe(env, str(stage / 'capsule.json'), capsule_sha256,
-        str(stage / 'identity-before.json'), identity_sha256, str(stage / 'cohort-probe.json'))
+        str(stage / 'identity-before.json'), identity_sha256, str(output_stage / 'cohort-probe.json'),
+        source_visibility_path=source_visibility_path, source_visibility_sha256=source_visibility_sha256)
     # Creation of new-only read ACLs and projection must not change one byte of
     # any original role, member/implied edge or common-model access policy.
     assert verify_original_payroll_role_bindings(env.cr, roles,
