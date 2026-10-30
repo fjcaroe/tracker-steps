@@ -125,7 +125,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
         self.assertEqual(verifier.executed_tools('R3'), verifier.EXECUTED_TOOLS)
         self.assertEqual(verifier.executed_tools('S'), verifier.executed_tools('T'))
         self.assertEqual(set(verifier.executed_tools('U')) - set(verifier.EXECUTED_TOOLS), set(verifier.U_HELPERS))
-        self.assertEqual(len(verifier.U_HELPERS), 5)
+        self.assertEqual(len(verifier.U_HELPERS), 6)
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder); source = {}
             for name in verifier.executed_tools('U'):
@@ -180,6 +180,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
 
     def test_u_first_load_gate_and_four_real_catalog_contracts_bind_chronology_without_waivers(self):
         import audit_payroll_history_storage as audit
+        import original_external_references_readonly_bootstrap as readonly_bootstrap
         import preflight_original_history_storage as before_gate
         from test_audit_payroll_history_storage import fixture as catalog_fixture
         from test_preflight_original_history_storage import snapshot, database, Callback
@@ -201,6 +202,17 @@ class MultifrontEvidenceCase(unittest.TestCase):
                         'ondelete': 'set null' if kind == 'int4' else None,
                         'comodel_name': 'resource.calendar' if kind == 'int4' else None}
                     for model, table, name, kind, required, translate in audit.SPECS]}
+            runtime.update(process_readonly_before_first_connection=True,
+                readonly_bootstrap_sha256=verifier.sha(Path(readonly_bootstrap.__file__).read_bytes()),
+                cursor_observations=[{'database': db, 'transaction_read_only': 'on', 'odoo_cursor_readonly': True},
+                    {'database': 'postgres', 'transaction_read_only': 'on', 'odoo_cursor_readonly': True}],
+                signaling_sequence_reader={'original_registry_source_sha256': sorted(readonly_bootstrap.REGISTRY_SOURCE_SHA256)[0],
+                    'original_get_sequences_sha256': readonly_bootstrap.SEQUENCE_METHOD_SHA256,
+                    'select_only_sql_sha256': verifier.sha(readonly_bootstrap.SEQUENCE_SELECT.encode()),
+                    'cache_keys': list(readonly_bootstrap.CACHE_KEYS),
+                    'calls': [{'database': db, 'transaction_read_only': 'on', 'odoo_cursor_readonly': True, 'pg_is_in_recovery': False}],
+                    'cursor_readonly_unchanged': True, 'setup_signaling_unchanged': True,
+                    'signal_changes_unchanged': True, 'nextval_unchanged': True, 'installed_sources_modified': False})
             after = {'schema': 1, 'database': db, 'profile': 'normal-community' if mode == 'community' else 'native-reference',
                 'tool_sha256': verifier.sha(Path(audit.__file__).read_bytes()), 'read_only': True, 'database_writes': False,
                 'historical_rows_assessed': False, 'metadata_before': catalog, 'metadata_after': deepcopy(catalog),
@@ -215,9 +227,13 @@ class MultifrontEvidenceCase(unittest.TestCase):
                 receipt['before_initialization_chronology'] = {'database': db,
                     'preflight_sha256': receipt['before_initialization_storage_sha256'], 'preflight_completed_before_initializer': True,
                     'shared_environment_lease': True, 'initializer_source': 'candidate-first-init'}
-                source = {'tools/community/audit_payroll_history_storage.py': Path(audit.__file__).read_bytes()}
+                source = {'tools/community/audit_payroll_history_storage.py': Path(audit.__file__).read_bytes(),
+                    'tools/community/original_external_references_readonly_bootstrap.py': Path(readonly_bootstrap.__file__).read_bytes()}
                 for change in (None, 'chronology', 'lease', 'preflight_sha', 'report_scope', 'jsonb_line',
-                        'runtime_sudo_read', 'runtime_type', 'catalog_drift', 'waiver', 'provider', 'tool'):
+                        'runtime_sudo_read', 'runtime_type', 'catalog_drift', 'waiver', 'provider', 'tool',
+                        'process_not_ro', 'bootstrap', 'empty_cursors', 'cursor_rw', 'foreign_cursor', 'odoo_not_ro',
+                        'signal_registry', 'signal_hash', 'signal_keys', 'signal_no_calls', 'signal_rw', 'signal_primary',
+                        'signal_foreign', 'signal_nextval', 'signal_sources'):
                     actual, captured = deepcopy(receipt), deepcopy(after)
                     if change == 'chronology': actual['before_initialization_chronology']['preflight_completed_before_initializer'] = False
                     if change == 'lease': actual['before_initialization_chronology']['shared_environment_lease'] = False
@@ -231,6 +247,22 @@ class MultifrontEvidenceCase(unittest.TestCase):
                     if change == 'waiver': captured['assessment']['other_columns_waived'] = ['name']
                     if change == 'provider': captured['metadata_before']['providers'][0]['name'] = 'other_engine'
                     if change == 'tool': captured['tool_sha256'] = '0' * 64
+                    if change == 'process_not_ro': captured['runtime']['process_readonly_before_first_connection'] = False
+                    if change == 'bootstrap': captured['runtime']['readonly_bootstrap_sha256'] = '0' * 64
+                    if change == 'empty_cursors': captured['runtime']['cursor_observations'] = []
+                    if change == 'cursor_rw': captured['runtime']['cursor_observations'][0]['transaction_read_only'] = 'off'
+                    if change == 'foreign_cursor': captured['runtime']['cursor_observations'][0]['database'] = 'CERRO_EL_PLOMO'
+                    if change == 'odoo_not_ro': captured['runtime']['cursor_observations'][0]['odoo_cursor_readonly'] = False
+                    signaling = captured['runtime']['signaling_sequence_reader']
+                    if change == 'signal_registry': signaling['original_registry_source_sha256'] = '0' * 64
+                    if change == 'signal_hash': signaling['select_only_sql_sha256'] = '0' * 64
+                    if change == 'signal_keys': signaling['cache_keys'] = []
+                    if change == 'signal_no_calls': signaling['calls'] = []
+                    if change == 'signal_rw': signaling['calls'][0]['transaction_read_only'] = 'off'
+                    if change == 'signal_primary': signaling['calls'][0]['pg_is_in_recovery'] = True
+                    if change == 'signal_foreign': signaling['calls'][0]['database'] = 'postgres'
+                    if change == 'signal_nextval': signaling['nextval_unchanged'] = False
+                    if change == 'signal_sources': signaling['installed_sources_modified'] = True
                     write(root, mode + '/after-tests-history-storage.json', captured)
                     actual['history_storage_after_sha256'] = verifier.sha((root / mode / 'after-tests-history-storage.json').read_bytes())
                     if change is None:
@@ -238,6 +270,8 @@ class MultifrontEvidenceCase(unittest.TestCase):
                         self.assertTrue(result['chronology_bound_by_root_receipt'])
                         self.assertEqual(result['after_tests_four_contracts']['catalog_contracts_closed'], 4)
                         self.assertFalse(result['historical_rows_assessed'])
+                        self.assertTrue(result['whole_witness_process_readonly'])
+                        self.assertEqual(result['readonly_cursor_observations'], 2)
                     else:
                         with self.subTest(mode=mode, change=change), self.assertRaises(ValueError):
                             verifier.verify_u_storage_boundary(root, source, actual, mode)
