@@ -24,6 +24,15 @@ LEGACY_ACTIONS = ('action_account_report_bank_reconciliation',
                   'action_account_report_ar', 'action_account_report_ap')
 GROUPS = ('group_account_readonly', 'group_account_manager')
 AUDIT_COLUMNS = {'write_uid', 'write_date'}
+CLIENT_TIMESTAMP_XMLIDS = (
+    ('step_account_treasury', 'action_treasury_dashboard'),
+    ('step_qa', 'action_step_qa_dashboard'),
+    ('step_bpa_irrigation', 'action_step_bpa_dashboard'),
+    ('step_export', 'action_step_export_dashboard'),
+    ('step_packing_operations', 'action_packing_dashboard'),
+    ('step_export_control', 'documents_action'),
+    ('step_export_control', 'vessels_action'),
+)
 
 
 def require(condition, message):
@@ -143,6 +152,52 @@ def _identity_menu(row):
     return {key: value for key, value in row.items() if key not in AUDIT_COLUMNS}
 
 
+def _client_action_timestamps(original_identity, current_identity, before, after):
+    """Seven loader timestamps only; never exempt values, UID or EE actions.
+
+    IDs are discovered from the original, immutable XMLID witness. No database
+    numeric action IDs are an admission criterion. The complete original rows,
+    including flags and alias targets, must remain bound to current identity.
+    """
+    original_actions = _by_id(before, 'original global client actions')
+    current_actions = _by_id(after, 'current global client actions')
+    require(original_actions.keys() == current_actions.keys(), 'Global client action ID inventory changed')
+    current_aliases = _by_id(current_identity['original_xmlids'], 'current original XMLIDs')
+    allowed = {}
+    report_ids = {row['res_id'] for row in original_identity['original_xmlids']
+                  if row.get('module') == 'account_reports' and row.get('model') == 'ir.actions.client'}
+    for module, name in CLIENT_TIMESTAMP_XMLIDS:
+        aliases = [row for row in original_identity['original_xmlids']
+                   if (row.get('module'), row.get('name')) == (module, name)]
+        require(len(aliases) == 1, 'Original timestamp action XMLID missing or duplicated: ' + module + '.' + name)
+        alias = aliases[0]
+        require(alias.get('model') == 'ir.actions.client' and type(alias.get('res_id')) is int
+                and alias['res_id'] in original_actions and alias['res_id'] not in allowed
+                and (type(alias.get('noupdate')) is bool or alias.get('noupdate') is None)
+                and current_aliases.get(alias['id']) == alias,
+                'Original timestamp action alias model/ID/binding/flag changed')
+        require(alias['res_id'] not in report_ids, 'Enterprise report client actions must remain raw exact')
+        allowed[alias['res_id']] = alias
+    changes = []
+    for ident, row in original_actions.items():
+        current = current_actions[ident]
+        if current == row:
+            continue
+        alias = allowed.get(ident)
+        require(alias is not None and 'write_date' in row and 'write_date' in current
+                and isinstance(current['write_date'], str) and current['write_date']
+                and dict(current, write_date=row['write_date']) == row,
+                'Unapproved global client action value/UID/timestamp changed')
+        changes.append({'xmlid': alias['module'] + '.' + alias['name'], 'action_id': ident,
+                        'original_xmlid_id': alias['id'], 'original_noupdate': alias['noupdate'],
+                        'before_write_date': row['write_date'], 'after_write_date': current['write_date'],
+                        'all_other_raw_columns_exact': True})
+    return {'original_global_client_actions_exact': not changes,
+            'original_global_client_actions_functional_exact': True,
+            'approved_client_action_write_date_changes': sorted(changes, key=lambda row: row['xmlid']),
+            'global_client_action_count_preserved': len(original_actions)}
+
+
 def verify(original_identity, current_identity, before, after, source_root=None):
     """Return ``(audit, normalized_current)``; never modify any supplied object.
 
@@ -164,7 +219,8 @@ def verify(original_identity, current_identity, before, after, source_root=None)
                 require(projected is not None and {'id', 'module', 'name', 'model', 'res_id', 'noupdate'} <= set(projected)
                         and all(row.get(prop) == value for prop, value in projected.items()),
                         'Launcher alias snapshot is not bound to ' + label + ' identity')
-    _existing_exact(before['global_client_actions'], after['global_client_actions'], 'global client actions')
+    client_action_audit = _client_action_timestamps(original_identity, current_identity,
+        before['global_client_actions'], after['global_client_actions'])
     _existing_exact(before['legacy_action_aliases'], after['legacy_action_aliases'], 'legacy global action aliases')
     _existing_exact(before['account_group_aliases'], after['account_group_aliases'], 'accounting roles')
     require(before['menu_groups'] == after['menu_groups'], 'Original launcher group relations changed')
@@ -238,5 +294,5 @@ def verify(original_identity, current_identity, before, after, source_root=None)
                     if row.get('menu_id') in original_menus), 'Original menu role relations changed')
     return ({'schema': 1, 'approved_menu_actions': admitted,
              'original_xmlids_exact': True, 'all_original_menus_other_fields_exact': True,
-             'original_global_client_actions_exact': True, 'normalized_properties': ['ir_ui_menu.action'],
+             **client_action_audit, 'normalized_properties': ['ir_ui_menu.action'],
              'read_only': True, 'database_writes': False, 'source': source}, normalized)
