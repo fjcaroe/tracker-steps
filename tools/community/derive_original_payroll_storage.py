@@ -12,8 +12,6 @@ import os
 from pathlib import Path
 
 import build_numeric_input_engine as numeric
-import derive_original_anchor_company as company
-import derive_original_anchor_properties as properties
 import payroll_configuration_adoption_preflight as gate
 
 
@@ -157,6 +155,8 @@ def _apply(oca, engine, schema_plan, *, capsule=None):
     original = numeric.source_files(oca)
     before = numeric.plan(original)
     if capsule is not None:
+        import derive_original_anchor_company as company
+        import derive_original_anchor_properties as properties
         raw_capsule = Path(capsule).read_bytes()
         gate.require(sha(raw_capsule) == company.CAPSULE_SHA256, 'sealed-original120-storage-capsule-required')
         data = json.loads(raw_capsule)

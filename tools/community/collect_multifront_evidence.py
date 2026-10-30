@@ -52,6 +52,10 @@ def collect(root, output, original_provider, oca, inventory_root, *,
         proof = json.loads((root / mode / 'module-installation.json').read_text())
         assert proof['tool_sha256'] == postflight_sha256
         installation.verify(proof, mode, source, receipt, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
+        if critical_generation == 'U':
+            helpers = {'tools/community/' + name: (source / 'tools/community' / name).read_bytes()
+                for name in verifier.executed_tools('U')}
+            verifier.verify_u_storage_boundary(root, helpers, receipt, mode)
     # License gate before reading any original provider bodies.
     original_provider = Path(original_provider).resolve()
     assert ast.literal_eval((original_provider / '__manifest__.py').read_text(encoding='utf-8-sig'))['license'] == 'AGPL-3'
@@ -64,8 +68,27 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     normal = snapshot(source / 'l10n_cl_simpledigital_payroll')
     assert len(original) == len(normal) == 52 and hashes(original) == pin['files']
     assert normal == verifier.previous.replay_normal_provider(original)
-    verify_engine(Path(oca), root / 'engine-addons')
-    original_engine = source_files(Path(oca)); candidate_engine = plan(original_engine)
+    original_engine = source_files(Path(oca))
+    if critical_generation == 'U':
+        import original_history_engine_contract as history_engine
+        candidate_engine = snapshot(root / 'engine-addons/payroll')
+        report = json.loads((root / history_engine.REPORT).read_bytes())
+        guard = {name: (source / name).read_bytes() for name in history_engine.GUARD_PATHS}
+        history_engine.verify_snapshots(original_engine, candidate_engine, report,
+            (root / 'schema-plan.json').read_bytes(), guard)
+        # The retained NUMERIC report describes the first intermediate, not
+        # this final engine. Rebuild that receipt independently before export.
+        import build_numeric_input_engine as numeric
+        actual_numeric = json.loads((root / numeric.REPORT).read_bytes())
+        expected_numeric = numeric.report_for(original_engine, numeric.plan(original_engine))
+        verifier.base.tool_hash(actual_numeric['builder_sha256'], 'build_numeric_input_engine.py',
+            {'tools/community/build_numeric_input_engine.py': (source / 'tools/community/build_numeric_input_engine.py').read_bytes()})
+        expected_numeric['builder_sha256'] = actual_numeric['builder_sha256']
+        expected_numeric.pop('seal_sha256'); expected_numeric['seal_sha256'] = numeric.seal(expected_numeric)
+        assert actual_numeric == expected_numeric, 'U NUMERIC report must bind the intermediate only'
+    else:
+        verify_engine(Path(oca), root / 'engine-addons')
+        candidate_engine = plan(original_engine)
     assert len(original_engine) == len(candidate_engine) == 144
     files, blobs = {}, {}
     for mode in tests:
@@ -85,11 +108,14 @@ def collect(root, output, original_provider, oca, inventory_root, *,
             for name, path in capture.items():
                 files[mode + '/original-report-pdf-evidence/' + name] = path
     files['oca-input-numeric-derivation.json'] = root / 'oca-input-numeric-derivation.json'
+    if critical_generation == 'U':
+        files['schema-plan.json'] = root / 'schema-plan.json'
+        files[history_engine.REPORT] = root / history_engine.REPORT
     for folder, mapping in (('original-provider', original), ('normal-provider', normal),
                             ('engine-original/payroll', original_engine), ('engine-candidate/payroll', candidate_engine)):
         for name, body in mapping.items():
             blobs[folder + '/' + name] = body
-    for name in verifier.EXECUTED_TOOLS:
+    for name in verifier.executed_tools(critical_generation):
         files['executed-tools/' + name] = source / 'tools/community' / name
     inventory_root = Path(inventory_root).resolve()
     files['inventory/products-inventory.json'] = inventory_root / 'products-inventory.json'
@@ -154,6 +180,9 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     if critical_generation in ('S', 'T'):
         assert len(packets[0]) == 513
         manifest['critical_generation'] = critical_generation
+    if critical_generation == 'U':
+        assert len(packets[0]) == verifier.U_PACKET_FILES
+        manifest['critical_generation'] = 'U'
     bodies['evidence-files.json'] = json.dumps(manifest, indent=2).encode()
     with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:

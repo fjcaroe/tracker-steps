@@ -128,6 +128,10 @@ class PayslipRun(models.Model):
                 raise UserError(_("Original batch membership changed before deletion."))
             for children in descendants:
                 children.unlink()
+            for relation in ("line_ids", "input_line_ids", "worked_days_line_ids"):
+                remaining, unused = _children(slips, relation)
+                if remaining:
+                    raise UserError(_("A payroll provider left draft descendants; deletion was rolled back before any cascade."))
             slips.unlink()
             remaining, unused = _children(normal, "slip_ids")
             if remaining:
