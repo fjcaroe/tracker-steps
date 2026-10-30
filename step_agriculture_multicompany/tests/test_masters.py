@@ -12,7 +12,7 @@ class TestMasters(TransactionCase):
         cls.b = cls.env['res.company'].create({'name': 'QA shared branch', 'parent_id': cls.a.id})
         cls.c = cls.env['res.company'].create({'name': 'QA unrelated company'})
         cls.user = new_test_user(cls.env, login='qa-shared-master',
-            groups='base.group_user,base.group_multi_company,stock.group_stock_manager,step_management_costs.group_management_manager,sales_team.group_sale_manager',
+            groups='base.group_user,base.group_erp_manager,base.group_multi_company,stock.group_stock_manager,step_management_costs.group_management_manager,sales_team.group_sale_manager',
             company_id=cls.a.id, company_ids=[Command.set((cls.a | cls.b).ids)])
         cls.models = ('step.fundo', 'step.management.fruit.category', 'step.management.fruit.quality', 'step.fruit.color')
         cls.category = cls.env['step.management.fruit.category'].create({'name': 'QA shared category', 'code': 'QA-MC-C',
@@ -130,3 +130,20 @@ class TestMasters(TransactionCase):
         line.quality_id = foreign
         with self.assertRaises(ValidationError):
             line._check_quality_company()
+
+    def test_native_web_read_scope_editor(self):
+        record = self.make('step.fruit.color', company_ids=[Command.set((self.a | self.b).ids)])
+        scoped = record.with_user(self.user).with_context(allowed_company_ids=self.b.ids)
+        result = scoped.web_read({'name': {}, 'company_ids': {'fields': {'display_name': {}}}})
+        self.assertEqual({c['id'] for c in result[0]['company_ids']}, set((self.a|self.b).ids))
+
+    def test_operator_view_does_not_read_other_company_names(self):
+        from lxml import etree
+        user = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)), login='qa-shared-operator',
+            groups='base.group_user,stock.group_stock_manager', company_id=self.b.id, company_ids=[Command.set(self.b.ids)])
+        record = self.make('step.fundo', company_ids=[Command.set((self.a|self.b).ids)])
+        scoped = record.with_user(user).with_context(allowed_company_ids=self.b.ids)
+        arch = etree.fromstring(scoped.get_view(view_id=self.env.ref('step_hr.view_step_fundo_form').id, view_type='form')['arch'])
+        self.assertFalse(arch.xpath("//field[@name='company_ids']"))
+        result = scoped.web_read({'name': {}})
+        self.assertEqual(result[0]['id'], record.id)

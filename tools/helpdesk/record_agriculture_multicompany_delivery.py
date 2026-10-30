@@ -22,10 +22,10 @@ def main():
         assert any(p.get('existing_profile',1)!=1 and p.get('native_menu_and_form') and p.get('writes') is False for p in payloads)
     assert all(m in (root/'isolation.log').read_text() for m in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
     pair=json.loads((root/'pair.json').read_text())
-    assert pair['cerro']['step_agriculture_multicompany']['version']==pair['qa-cerro']['step_agriculture_multicompany']['version']=='18.0.1.0.0'
+    assert pair['cerro']['step_agriculture_multicompany']['version']==pair['qa-cerro']['step_agriculture_multicompany']['version']=='18.0.1.0.1'
     assert pair['cerro']['step_agriculture_multicompany']['sha256']==pair['qa-cerro']['step_agriculture_multicompany']['sha256']
     body=('T139/T140: los maestros de Fundos de productores, categoría, clase, calidad y color de fruta permiten '
-          'seleccionar varias empresas y sucursales. Fundos está disponible también en Packing / Maestros. '
+          'seleccionar varias empresas y sucursales desde un perfil administrador de accesos. Fundos está disponible también en Packing / Maestros. '
           'Los registros, IDs, relaciones y empresa original se conservaron. Cada registro mantiene su empresa '
           'original y permite agregar otras explícitamente; no se comparten automáticamente con todas las empresas. '
           'Se verificaron permisos, formularios, consistencia en operaciones y controles de asignación, códigos '
