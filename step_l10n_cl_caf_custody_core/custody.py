@@ -123,7 +123,7 @@ class CAFCustodyMixin:
                 or self.issued_date != parsed.authorization_date):
             raise UserError(_('Los datos del registro CAF no coinciden con su archivo original; la validación no los modifica.'))
 
-    def _step_custody_check_signed_dte(self, file_data, certificate_pin, context):
+    def _step_custody_check_signed_dte(self, file_data, certificate_pin, dte_context):
         """Server-only verification against this CAF, never a signing RPC.
 
         The explicit certificate pin authenticates only its bytes/key. No
@@ -133,7 +133,7 @@ class CAFCustodyMixin:
         self.ensure_one()
         original = self._step_custody_original_bytes()  # roles/company first
         try:
-            result = verify_signed_dte(decode_original(file_data), original, certificate_pin, context)
+            result = verify_signed_dte(decode_original(file_data), original, certificate_pin, dte_context)
         except (UserError, DTEError):
             raise UserError(_('El DTE no coincide con el CAF y contexto indicados o su firma, certificado y esquema no son válidos.')) from None
         self._step_custody_assert_caf_metadata(result.ted_verification.ted._caf)
