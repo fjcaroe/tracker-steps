@@ -179,6 +179,10 @@ class BatchPaymentInvoiceApplication(models.AbstractModel):
                 raise UserError(_('El documento debe estar totalmente abierto y su saldo debe coincidir exactamente con el pago.'))
             service._usable_application_account(payment.outstanding_account_id)
             service._usable_application_account(payment.destination_account_id, expected[1])
+            if (payment.outstanding_account_id.account_type not in ('asset_current', 'liability_current')
+                    or not payment.outstanding_account_id.reconcile
+                    or payment.outstanding_account_id == payment.destination_account_id):
+                raise UserError(_('La cuenta pendiente debe ser corriente, conciliable y distinta de la contraparte.'))
             candidates = lines.filtered(lambda line: line.move_id == invoice
                 and line.account_id.account_type in ('asset_receivable', 'liability_payable'))
             if len(candidates) != 1:
