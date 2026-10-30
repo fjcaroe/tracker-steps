@@ -129,6 +129,8 @@ def main():
         'acceptance_sha256=' + repr(sha(accepted_path)) + '); '
         'import odoo.sql_db; report["readonly_cursor_proof"]=list(odoo.sql_db._steps_readonly_cursor_proof); '
         'assert report["readonly_cursor_proof"] and all(row["transaction_read_only"]=="on" and row["odoo_cursor_readonly"] is True for row in report["readonly_cursor_proof"]); '
+        'import odoo.modules.registry; report["readonly_sequence_reader"]=odoo.modules.registry._steps_readonly_sequence_reader_proof; '
+        'assert report["readonly_sequence_reader"]["calls"] and all(row["transaction_read_only"]=="on" and row["odoo_cursor_readonly"] is True and row["pg_is_in_recovery"] is False for row in report["readonly_sequence_reader"]["calls"]); '
         'fd=os.open(' + repr(str(output / 'registry.json')) + ',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600); '
         'stream=os.fdopen(fd,"w"); json.dump(report,stream,indent=2,sort_keys=True); stream.close(); env.cr.rollback()')
     paths = str(stage / 'addons') + ',' + (str(runtime / 'addons') if pure else config['options']['addons_path'])
@@ -165,12 +167,16 @@ def main():
             dump('passed', {'schema': 1, 'database': database, 'mode': args.mode,
                 'exact_tables_and_business_counters_preserved': len(protected(before)),
                 'all_infrastructure_sequences_also_exact': before == after,
+                'all_tables_and_sequences_exact': before == after, 'public_snapshots_count': len(before),
+                'business_before_sha256': sha(output / 'business-before.json'),
+                'business_after_sha256': sha(output / 'business-after.json'),
                 'read_only_before_registry_startup': True, 'upgraded': False,
                 'external_network_disabled': True, 'postgres_unix_socket': True,
                 'source_packet_sha256': accepted['source_files_sha256'],
                 'acceptance_sha256': sha(accepted_path), 'source_files_json_sha256': sha(files_path),
                 'runner_sha256': sha(__file__), 'payload_sha256': sha(helper),
                 'readonly_bootstrap_sha256': sha(bootstrap), 'odoo_pool_readonly_before_connect': True,
+                'readonly_sequence_reader': report['readonly_sequence_reader'],
                 'registry_json_sha256': sha(output / 'registry.json'), 'adoption_authorized': False})
     except Exception as error:
         dump('failed', {'schema': 1, 'database': database, 'error': str(error), 'read_only_required_from_startup': True,
