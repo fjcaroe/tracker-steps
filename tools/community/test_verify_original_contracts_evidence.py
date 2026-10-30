@@ -171,6 +171,68 @@ class OriginalContractsEvidenceCase(unittest.TestCase):
             with self.assertRaisesRegex(verifier.base.EvidenceError, 'delta seal/content'):
                 verifier.verify_inventory(root, source)
 
+    def test_optional_normal_regression_is_473_in_its_own_context_and_same_numeric_packet(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            self.assertIsNone(verifier.verify_normal_regression(root, {}, {}))
+            normal = root / 'normal-community'
+            normal.mkdir()
+            provider = root / 'normal-provider'
+            provider.mkdir()
+            for index in range(52):
+                (provider / ('file-%s.py' % index)).write_bytes(b'# normal provider fixture\n')
+            primary = {name + '/__manifest__.py': verifier.sha(b'owned') for name in verifier.base.OWN_MODULES}
+            primary.update({'step_payroll_oca_api/file-%s.py' % index: verifier.sha(b'owned') for index in range(290)})
+            expected = dict(primary, **{'l10n_cl_simpledigital_payroll/' + path.name: verifier.sha(path.read_bytes())
+                for path in provider.iterdir()})
+            (normal / 'source-files.json').write_text(json.dumps(expected))
+            (root / numeric.REPORT).write_text('{"synthetic_engine_report": true}')
+            (normal / numeric.REPORT).write_bytes((root / numeric.REPORT).read_bytes())
+            source, lines = {}, []
+            for filename, classname, count in verifier.TEST_CLASSES:
+                methods = ['test_fixture_%s' % index for index in range(count)]
+                source[filename] = ('class ' + classname + ':\n' + ''.join('    def %s(self): pass\n' % name for name in methods)).encode()
+                lines.extend('Starting %s.%s ...' % (classname, name) for name in methods)
+            lines.append('odoo.tests.result: 0 failed, 0 error(s) of 473 tests')
+            (normal / 'tests.log').write_text('\n'.join(lines))
+            tools = ('validate_payroll_api.py', 'offline_process.py', 'validate_agriculture_core.py',
+                'accelerated_acceptance.py', 'hr_consumers_candidate.py', 'finance_frontier_contract.py', 'hr_consumer_metadata.py')
+            source.update({'tools/community/' + name: b'# trusted synthetic tool\n' for name in tools})
+            digest = verifier.sha(b'# trusted synthetic tool\n')
+            receipt = {'mode': 'community', 'profile': 'simpledigital', 'accelerated': True, 'custody_grouping': True,
+                'counts': {'installed': 96, 'enterprise': 0}, 'package_files': 364, 'expected_test_count': 473,
+                'source_files_sha256': verifier.sha((normal / 'source-files.json').read_bytes()),
+                'numeric_input_engine': True, 'payroll_model_registered': True, 'oca_revision': numeric.PIN,
+                'official_community_revision': verifier.builder.PIN_COMMUNITY, 'external_network_disabled': True,
+                'loopback_http_only': True, 'postgres_unix_socket': True, 'writes_to_source': False,
+                'historical_conversion': False, 'simpledigital_certified': False, 'validator_sha256': digest,
+                'offline_runner_sha256': digest, 'identity_snapshot_tool_sha256': digest,
+                'accelerated_tools_sha256': {name: digest for name in tools[3:]},
+                'numeric_engine_derivation_sha256': verifier.sha((root / numeric.REPORT).read_bytes()),
+                'test_results': ['0 failed, 0 error(s) of 473 tests']}
+            def save(value):
+                (normal / 'passed.json').write_text(json.dumps(value))
+            save(receipt)
+            result = verifier.verify_normal_regression(root, source, primary)
+            self.assertTrue(result['distinct_context'])
+            self.assertEqual((result['tests'], result['prior_normal_tests_repeated'], result['new_contract_cases']), (473, 460, 13))
+            for key, value in (('expected_test_count', 460), ('numeric_input_engine', False),
+                    ('numeric_engine_derivation_sha256', '0' * 64), ('external_network_disabled', False),
+                    ('historical_conversion', True)):
+                changed = dict(receipt, **{key: value})
+                save(changed)
+                with self.subTest(key=key), self.assertRaises(verifier.base.EvidenceError):
+                    verifier.verify_normal_regression(root, source, primary)
+            save(receipt)
+            (normal / 'tests.log').write_text('\n'.join(lines) + '\n ERROR expected synthetic error\n')
+            with self.assertRaisesRegex(verifier.base.EvidenceError, 'functional log contains an error'):
+                verifier.verify_normal_regression(root, source, primary)
+            (normal / 'tests.log').write_text('\n'.join(lines))
+            expected['l10n_cl_simpledigital_payroll/file-0.py'] = '0' * 64
+            (normal / 'source-files.json').write_text(json.dumps(expected))
+            with self.assertRaisesRegex(verifier.base.EvidenceError, 'exact primary owned packet'):
+                verifier.verify_normal_regression(root, source, primary)
+
 
 if __name__ == '__main__':
     unittest.main()

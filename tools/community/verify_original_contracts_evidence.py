@@ -369,6 +369,59 @@ def verify_inventory(root, source):
         'all_products_converted': False}
 
 
+def verify_normal_regression(root, source, primary_packet):
+    """Admit the optional broad normal-provider run as a separate context."""
+    directory = safe_path(root, 'normal-community')
+    if not directory.exists():
+        return None
+    require(directory.is_dir() and not directory.is_symlink(), 'normal regression is not an evidence directory')
+    receipt = read(root, 'normal-community/passed.json')
+    packet = read(root, 'normal-community/source-files.json')
+    own = {name: value for name, value in primary_packet.items() if name.split('/')[0] in base.OWN_MODULES}
+    provider = base.addon_snapshot(root, 'normal-provider')
+    expected = dict(own, **{builder.MODULE + '/' + name: sha(body) for name, body in provider.items()})
+    require(packet == expected and len(packet) == 364 and len(provider) == 52,
+        'normal regression is not the exact primary owned packet plus the normal provider')
+    require(receipt['mode'] == 'community' and receipt['profile'] == 'simpledigital'
+        and receipt['accelerated'] is True and receipt['custody_grouping'] is True
+        and receipt['counts'] == {'installed': 96, 'enterprise': 0}
+        and receipt['package_files'] == 364 and receipt['expected_test_count'] == 473,
+        'normal regression profile, module graph or test count differs')
+    require(receipt['source_files_sha256'] == sha(safe_path(root, 'normal-community/source-files.json').read_bytes()),
+        'normal regression receipt references another source packet')
+    require(receipt['numeric_input_engine'] is True and receipt['payroll_model_registered'] is True
+        and receipt['oca_revision'] == numeric.PIN and receipt['official_community_revision'] == builder.PIN_COMMUNITY,
+        'normal regression did not use the actual pinned NUMERIC OCA engine')
+    require(receipt['external_network_disabled'] is True and receipt['loopback_http_only'] is True
+        and receipt['postgres_unix_socket'] is True, 'normal regression external isolation is incomplete')
+    base.no_flags(receipt, ('writes_to_source', 'historical_conversion', 'simpledigital_certified'))
+    for flag in ('financial_certified', 'operational_package', 'original_masters_imported', 'deadline_resolved'):
+        require(flag not in receipt or receipt[flag] is False, 'normal regression claims unsupported adoption/certification')
+    for key, name in (('validator_sha256', 'validate_payroll_api.py'),
+            ('offline_runner_sha256', 'offline_process.py'),
+            ('identity_snapshot_tool_sha256', 'validate_agriculture_core.py')):
+        base.tool_hash(receipt[key], name, source)
+    require(set(receipt['accelerated_tools_sha256']) == {'accelerated_acceptance.py', 'hr_consumers_candidate.py',
+        'finance_frontier_contract.py', 'hr_consumer_metadata.py'}, 'normal regression helper inventory differs')
+    for name, digest in receipt['accelerated_tools_sha256'].items():
+        base.tool_hash(digest, name, source)
+    primary_engine = safe_path(root, numeric.REPORT).read_bytes()
+    require(safe_path(root, 'normal-community/' + numeric.REPORT).read_bytes() == primary_engine
+        and receipt['numeric_engine_derivation_sha256'] == sha(primary_engine),
+        'normal regression did not use the same sealed engine overlay as the cold run')
+    base.test_result(receipt['test_results'], 473)
+    log = safe_path(root, 'normal-community/tests.log').read_text(errors='replace')
+    require(not re.search(r' (ERROR|CRITICAL) ', log), 'normal regression functional log contains an error')
+    base.test_result([line for line in log.splitlines() if 'tests.result' in line], 473)
+    critical = verify_test_methods(source, log)
+    return {'tests': 473, 'installed': 96, 'enterprise': 0, 'package_files': 364,
+        'distinct_context': True, 'normal_provider_files': 52, 'same_22_owned_addons_as_primary': True,
+        'same_numeric_engine_overlay_as_primary': True, 'critical_subset_cases': sum(critical.values()),
+        'prior_normal_tests_repeated': 460, 'new_contract_cases': 13,
+        'not_additive_unique_cases_with_cold': True, 'original_configuration_adopted': False,
+        'historical_conversion': False, 'financial_certified': False}
+
+
 def verify(evidence, *, repo=None):
     root = Path(evidence).resolve()
     repo = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
@@ -394,6 +447,7 @@ def verify(evidence, *, repo=None):
     inputs = base.verify_input_storage(root, source) if safe_path(root, 'input-storage').exists() else {
         'previous_catalog_not_replayed': True, 'conversion_authorized': False}
     inventory = verify_inventory(root, source)
+    normal = verify_normal_regression(root, source, packet)
     return {'schema': 1, 'exact_packet_matches_git': True, 'package_files': 361,
         'owned_modules': 22, 'owned_modules_unchanged_from_bootstrap_F': 21,
         'provider_files': {'original': 52, 'normal': 52, 'cold': 49}, 'oca_numeric_engine': engine,
@@ -401,7 +455,9 @@ def verify(evidence, *, repo=None):
             'salary_rows': 0, 'original_masters_imported': False},
         'native_reference': {'tests': 294, 'installed': 391, 'enterprise': 140, **preservation},
         'prior_bootstrap_F': {'tests': 12, 'distinct_execution': True},
-        'prior_normal_inputs_C': {'tests': 460, 'not_counted_as_new': True, 'not_replayed_in_this_block': True},
+        'prior_normal_inputs_C': {'tests': 460, 'not_counted_as_new': True,
+            'current_normal_regression_repeats_this_suite': normal is not None},
+        'normal_regression': normal,
         'rule_projection': {'functional_cases': 7, 'explicit_source_pairs_only': True,
             'original_71_rule_identity_adopted': False, 'metadata_M2M_to_O2M_converted': False},
         'configuration': gates, 'prior_input_storage_catalog': inputs, 'inventory': inventory,
