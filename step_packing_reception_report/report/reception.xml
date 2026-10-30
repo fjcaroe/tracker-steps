@@ -79,7 +79,7 @@
   </template>
   <template id="delivery_receipt" inherit_id="stock.report_delivery_document" priority="90">
     <xpath expr="//div[@class='page']/h2" position="replace">
-      <h2><t t-if="o._step_is_fruit_receipt()">RECIBO DE RECEPCIÓN</t><span t-else="" t-field="o.name"/></h2>
+      <h2><t t-if="o._step_is_fruit_receipt()">RECIBO DE RECEPCIÓN N° </t><span t-field="o.name"/></h2>
     </xpath>
     <xpath expr="//div[@id='informations']" position="after">
       <table t-if="o._step_is_fruit_receipt()" class="table table-sm table-borderless step_receipt_metadata" style="font-size:12px;margin-bottom:18px;">

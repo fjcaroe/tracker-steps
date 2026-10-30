@@ -28,6 +28,8 @@ class ReceiptReportCase(TransactionCase):
     def test_receipt_header_and_details_in_native_action(self):
         tree=html.fromstring(self.render())
         self.assertIn('RECIBO DE RECEPCIÓN',tree.text_content())
+        heading = tree.xpath("//div[contains(@class,'page')]/h2")[0].text_content()
+        self.assertEqual(' '.join(heading.split()), 'RECIBO DE RECEPCIÓN N° ' + self.picking.name)
         self.assertIn('QA-GUIA-141',tree.text_content())
         self.assertIn('QA recibo clase',tree.text_content())
         self.assertEqual(len(tree.xpath("//table[contains(@class,'step_receipt_pallets')]/tbody/tr")),3)

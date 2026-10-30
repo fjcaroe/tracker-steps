@@ -32,6 +32,8 @@ try:
     Form(record,view=form)
     content=scoped['ir.actions.report']._render_qweb_html('stock.action_report_delivery',record.ids)[0]
     assert 'RECIBO DE RECEPCIÓN' in content.decode()
+    heading=html.fromstring(content).xpath("//div[contains(@class,'page')]/h2")[0].text_content()
+    assert ' '.join(heading.split()) == 'RECIBO DE RECEPCIÓN N° '+record.name
     assert html.fromstring(content).xpath("//table[contains(@class,'step_receipt_pallets')]")
     outputs=[]
     if env.cr.dbname.startswith('MANAGEMENT_QA_'):
