@@ -1,0 +1,67 @@
+<odoo>
+    <!-- Own Community views on the existing real model. No native view,
+         master, model, ACL or legacy XML ID is replaced. -->
+    <record id="original_input_type_form" model="ir.ui.view">
+        <field name="name">hr.payslip.input.type.community.form</field>
+        <field name="model">hr.payslip.input.type</field>
+        <field name="arch" type="xml">
+            <form string="Tipo de entrada de nómina">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="code"/>
+                        <field name="active"/>
+                        <field name="country_id" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <field name="struct_ids" widget="many2many_tags"
+                               options="{'no_create': True, 'no_create_edit': True}"/>
+                    </group>
+                    <group string="Opciones originales conservadas">
+                        <field name="is_quantity" readonly="1"/>
+                        <field name="default_no_end_date" readonly="1"/>
+                        <field name="available_in_attachments" readonly="1"/>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        Estas opciones originales se muestran para conservar y revisar la configuración.
+                        Su comportamiento de cantidades, adjuntos y fecha final no está habilitado por
+                        este formulario. Los importes se registran explícitamente en el borrador de nómina.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="original_input_type_list" model="ir.ui.view">
+        <field name="name">hr.payslip.input.type.community.list</field>
+        <field name="model">hr.payslip.input.type</field>
+        <field name="arch" type="xml">
+            <list string="Tipos de entrada de nómina">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="active" optional="show"/>
+                <field name="country_id"/>
+                <field name="is_quantity" readonly="1" optional="hide"/>
+                <field name="default_no_end_date" readonly="1" optional="hide"/>
+                <field name="available_in_attachments" readonly="1" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="original_input_type_action" model="ir.actions.act_window">
+        <field name="name">Tipos de entrada de nómina</field>
+        <field name="res_model">hr.payslip.input.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="original_input_type_action_list" model="ir.actions.act_window.view">
+        <field name="sequence">1</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="original_input_type_list"/>
+        <field name="act_window_id" ref="original_input_type_action"/>
+    </record>
+    <record id="original_input_type_action_form" model="ir.actions.act_window.view">
+        <field name="sequence">2</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="original_input_type_form"/>
+        <field name="act_window_id" ref="original_input_type_action"/>
+    </record>
+    <menuitem id="original_input_type_menu" name="Tipos de entrada de nómina"
+              parent="payroll.payroll_menu_configuration" sequence="25"
+              action="original_input_type_action" groups="payroll.group_payroll_manager"/>
+</odoo>
