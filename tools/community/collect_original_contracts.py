@@ -49,6 +49,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('root','output','preflight','inventory-root','original-provider','normal-provider','runtime','oca','baseline-archive'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--representation', type=Path)
     args = parser.parse_args()
     assert os.geteuid() == 0
     root, source = args.root.resolve(), args.root.resolve() / 'addons'
@@ -111,6 +112,11 @@ def main():
                  'audit_simpledigital_seed_graph.py','validate_original_bootstrap.py','probe_original_bootstrap.py',
                  'validate_payroll_api.py','offline_process.py','hr_consumer_metadata.py','build_numeric_input_engine.py'):
         files['executed-tools/'+name] = source/'tools/community'/name
+    if args.representation:
+        proof = json.loads(args.representation.read_text())
+        assert proof['database'] == native['database'] and proof['read_only'] and not proof['database_writes']
+        files['cerro-reference/business-representation-proof.json'] = args.representation
+        files['cerro-reference/representation-auditor.py'] = args.representation.parent/'auditor.py'
     files['collector.py'] = Path(__file__)
     assert not set(files) & set(blobs)
     assert all(path.is_file() and not path.is_symlink() for path in files.values())
