@@ -25,7 +25,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_PAGOS_CERTIFICADOS.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_ADOPCION_MAESTROS.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
    COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 100 apps propias instaladas,
@@ -59,16 +59,18 @@ cohortes SyS, fuentes privadas y permisos que sigan sin resolver.
 
 ## Último bloque técnico aceptado
 
-[Pagos, certificados y admisión R3](COMMUNITY_PAGOS_CERTIFICADOS.md): 665 casos CE /
-457 nativos, 33 addons propios/508 archivos, 120/397 instalados y 0/140 EE.
+[Maestros originales y permisos S7](COMMUNITY_ADOPCION_MAESTROS.md): 671 casos CE /
+462 nativos, 33 addons propios/513 archivos, 120/397 instalados y 0/140 EE.
 Preserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs; evidencia
-privada verificada offline contra Git. Aplica pagos nuevos a facturas vinculadas
-sin conciliación bancaria, cierra admisión HR con UID normal y añade PKIX/CRL
-DTE offline; ninguna operación habilita emisión fiscal. Clausura readonly de
-tres discriminadores: guardas 116→113 CE y 27→24 nativas, sin importar maestros.
-Continúan 54 apps con caminos EE, coadopción original/certificación SyS,
-DTE completo, Calidad nativa y conversión integral pendientes. El 31 sigue en
-riesgo alto; mantener límites y programación activa. Q4/D/H se conservan.
+privada reproducida offline y sellada. Cierra los aliases de los dos roles
+en las APIs reales y la interfaz de tipos de entrada, sin nuevos grupos ni
+maestros. El ensayo separado conserva 600/462 y reproduce la partición original
+118 permitidos/dos denegados sobre los 120 maestros; la adopción completa de
+71 reglas y el almacenamiento histórico permanecen en revisión. SyS aporta
+una cohorte readonly real reproducida offline, sin certificar las fórmulas de
+Cerro. R3/Q4/D/H se conservan. Continúan 54 apps con caminos EE, certificación
+Nómina, DTE completo, Calidad nativa y conversión integral restaurable pendientes.
+El 31 sigue en riesgo alto; mantener límites y programación activa.
 
 ## Orden de trabajo y puertas de aceptación
 
