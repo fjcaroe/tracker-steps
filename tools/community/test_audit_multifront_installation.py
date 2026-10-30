@@ -7,7 +7,7 @@ import unittest
 import audit_multifront_installation as audit
 
 
-def fixture_source(operational_extensions=False, quality_extension=False):
+def fixture_source(operational_extensions=False, quality_extension=False, critical_generation=None):
     root = Path(__file__).resolve().parents[2]
     source = {module + '/__manifest__.py': (root / module / '__manifest__.py').read_bytes()
               for module in audit.OWN_MODULES}
@@ -23,11 +23,17 @@ def fixture_source(operational_extensions=False, quality_extension=False):
     if quality_extension:
         source.update({name + '/__manifest__.py': (root / name / '__manifest__.py').read_bytes()
             for name in audit.QUALITY_MODULES})
+    if critical_generation in audit.GENERATION_VERSIONS:
+        for module, version in audit.GENERATION_VERSIONS[critical_generation].items():
+            name = module + '/__manifest__.py'
+            manifest = __import__('ast').literal_eval(source[name].decode())
+            manifest['version'] = version
+            source[name] = repr(manifest).encode()
     return source
 
 
-def fixture(mode, operational_extensions=False, quality_extension=False):
-    root = fixture_source(operational_extensions, quality_extension)
+def fixture(mode, operational_extensions=False, quality_extension=False, critical_generation=None):
+    root = fixture_source(operational_extensions, quality_extension, critical_generation)
     plan = audit.plan(root, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
     rows = [{'name': name, 'latest_version': spec['version'], 'license': spec['license'], 'state': 'installed'}
             for name, spec in plan['required'].items()]
@@ -72,7 +78,7 @@ class MultifrontInstallationCase(unittest.TestCase):
         self.assertEqual(audit.critical_tests(True), {'community': 665, 'cerro-reference': 457})
         self.assertEqual(audit.critical_tests(True, 'S'), {'community': 671, 'cerro-reference': 462})
         for mode in ('community', 'cerro-reference'):
-            source, passed, metadata = fixture(mode, True, True)
+            source, passed, metadata = fixture(mode, True, True, 'S')
             passed.update(critical_extension=True, critical_generation='S', package_files=513,
                 expected_test_count=audit.critical_tests(True, 'S')[mode])
             proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
@@ -96,6 +102,25 @@ class MultifrontInstallationCase(unittest.TestCase):
                         quality_extension=True, critical_extension=True, critical_generation='S')
         for flag, generation in ((False, 'S'), (True, 'R4'), (1, 'S')):
             with self.assertRaises(ValueError): audit.critical_tests(flag, generation)
+
+    def test_t_generation_requires_corrected_group_source_and_keeps_s_immutable(self):
+        self.assertEqual(audit.critical_tests(True, 'S'), audit.critical_tests(True, 'T'))
+        self.assertNotEqual(audit.S_VERSIONS, audit.T_VERSIONS)
+        for mode in ('community', 'cerro-reference'):
+            source, passed, metadata = fixture(mode, True, True, 'T')
+            passed.update(critical_extension=True, critical_generation='T', package_files=513,
+                expected_test_count=audit.critical_tests(True, 'T')[mode])
+            proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
+                operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='T')
+            self.assertEqual(proof['critical_generation'], 'T')
+            for altered in (dict(passed, critical_generation='S'), dict(passed, package_files=512)):
+                with self.assertRaises(ValueError):
+                    audit.verify(proof, mode, source, altered, operational_extensions=True,
+                        quality_extension=True, critical_extension=True, critical_generation='T')
+            old_source = fixture_source(True, True, 'S')
+            with self.assertRaises(ValueError):
+                audit.verify(proof, mode, old_source, passed, operational_extensions=True,
+                    quality_extension=True, critical_extension=True, critical_generation='T')
 
     def test_quality_profile_requires_exact_thirtythree_and_distinct_oca_native_providers(self):
         for mode, total in (('community', 31), ('cerro-reference', 27)):

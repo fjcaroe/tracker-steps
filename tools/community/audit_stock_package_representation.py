@@ -215,7 +215,7 @@ def main():
     parser.add_argument('--operational-extensions', action='store_true', help='Require the exact full native437 operational package')
     parser.add_argument('--quality-extension',action='store_true',help='Require the exact full native441 Quality package')
     parser.add_argument('--critical-extension',action='store_true')
-    parser.add_argument('--critical-generation',choices=('R3','S'),default='R3')
+    parser.add_argument('--critical-generation',choices=('R3','S','T'),default='R3')
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Local peer inspection requires root')
     root, output = args.native_root.resolve(), args.output_directory.resolve()
@@ -277,8 +277,8 @@ def main():
         'metadata': metadata, 'before_rows_json': before['rows_json'], 'after_rows_json': after['rows_json'],
         'before_raw_md5': before['raw_md5'], 'after_raw_md5': after['raw_md5'],
         'before_normalized_md5': before['normalized_md5'], 'after_normalized_md5': after['normalized_md5']}
-    if args.critical_generation == 'S':
-        proof['critical_generation'] = 'S'
+    if args.critical_generation in ('S', 'T'):
+        proof['critical_generation'] = args.critical_generation
     from payroll_representation_contract import verify
     proof['comparison'] = verify(*snapshots, proof)
     output.mkdir(mode=0o700)

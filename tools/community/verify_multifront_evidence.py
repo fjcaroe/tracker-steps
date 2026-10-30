@@ -181,7 +181,7 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
     if critical_extension and mode == 'community':
         selected += [('step_payroll_oca_api/tests/test_original_nullable.py', 'OriginalNullableCase'),
                      ('step_payroll_oca_api/tests/test_original_rule_projection.py', 'OriginalRuleProjectionCase')]
-    if critical_generation == 'S' and mode == 'community':
+    if critical_generation in ('S', 'T') and mode == 'community':
         selected += [('step_payroll_oca_api/tests/test_original_input_type_ui.py', 'OriginalInputTypeUICase')]
     result = {}
     for name, only_class in selected:
@@ -210,7 +210,7 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
     count = (173 if mode == 'community' else 147) if quality_extension else (164 if mode == 'community' else 143) if operational_extensions else (103 if mode == 'community' else 97)
     if critical_extension:
         count += 5 + (28 if mode == 'community' else 11)  # PKIX, HR admission/projection and invoice application.
-    if critical_generation == 'S':
+    if critical_generation in ('S', 'T'):
         count += 6 if mode == 'community' else 5
     require(len(result) == count, 'Critical MF method inventory changed')
     return len(result)
@@ -635,7 +635,7 @@ def verify(evidence, *, repo=None, operational_extensions=False, quality_extensi
     verify_file_manifest(root, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
     verify_executed_tools(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     packet = verify_packets(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
-    if critical_generation == 'S':
+    if critical_generation in ('S', 'T'):
         require(len(packet) == 513, 'S exact packet file count differs')
     # This provider is private AGPL source, not a repository addon. Its entire
     # 52-file replay was validated above before its manifest joins the trusted
@@ -663,6 +663,8 @@ def verify(evidence, *, repo=None, operational_extensions=False, quality_extensi
         result.update(critical_extension=True, profile='multifront-critical-extension')
     if critical_generation == 'S':
         result.update(critical_generation='S', profile='multifront-critical-S-original-interface')
+    if critical_generation == 'T':
+        result.update(critical_generation='T', profile='multifront-critical-T-original-group-schema')
     if quality_extension:
         result.update(quality_extension=True, oca_unmodified_quality_vendor=quality_summary,
             quality_native_identity_converted=False, productive_layout_accepted=False, legal_validity_certified=False)

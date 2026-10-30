@@ -151,9 +151,9 @@ def collect(root, output, original_provider, oca, inventory_root, *,
         manifest['quality_extension'] = True
     if critical_extension:
         manifest['critical_extension'] = True
-    if critical_generation == 'S':
+    if critical_generation in ('S', 'T'):
         assert len(packets[0]) == 513
-        manifest['critical_generation'] = 'S'
+        manifest['critical_generation'] = critical_generation
     bodies['evidence-files.json'] = json.dumps(manifest, indent=2).encode()
     with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:

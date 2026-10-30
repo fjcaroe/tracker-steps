@@ -64,6 +64,6 @@ if __name__ == '__main__':
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--quality-extension',action='store_true')
     parser.add_argument('--critical-extension',action='store_true')
-    parser.add_argument('--critical-generation',choices=('R3','S'),default='R3')
+    parser.add_argument('--critical-generation',choices=('R3','S','T'),default='R3')
     args=parser.parse_args()
     print(json.dumps(seal(args.evidence,args.output,quality_extension=args.quality_extension,critical_extension=args.critical_extension,critical_generation=args.critical_generation),sort_keys=True))

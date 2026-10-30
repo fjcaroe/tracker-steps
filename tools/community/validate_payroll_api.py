@@ -47,7 +47,7 @@ def main():
     parser.add_argument('--focused-quality',action='store_true',help='Development only: Quality contracts and the repeated original PDF')
     parser.add_argument('--quality-oca',type=Path)
     parser.add_argument('--critical-extension',action='store_true',help='Explicit R generation: actual PKIX/CRL, HR admission and invoice application')
-    parser.add_argument('--critical-generation',choices=('R3','S'),default='R3')
+    parser.add_argument('--critical-generation',choices=('R3','S','T'),default='R3')
     parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
     parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
@@ -108,9 +108,10 @@ def main():
     fp={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for m in MODULES
         for p in sorted((source/m).rglob('*')) if p.is_file() and '__pycache__' not in p.parts}
     assert all((source/m/'__manifest__.py').exists() for m in MODULES)
-    if args.critical_generation == 'S':
+    if args.critical_generation in ('S', 'T'):
         assert len(fp) == 513, 'S exact source file count differs before database creation'
-        for name, version in (('step_payroll_contracts','18.0.1.15.0'),('step_payroll_oca_api','18.0.1.16.0')):
+        from audit_multifront_installation import GENERATION_VERSIONS
+        for name, version in GENERATION_VERSIONS[args.critical_generation].items():
             assert ast.literal_eval((source/name/'__manifest__.py').read_text(encoding='utf-8-sig'))['version'] == version
     api_test_count=concrete_test_count(source,'step_payroll_oca_api')
     reference_test_count=concrete_test_count(source,'step_payroll_enterprise_reference')
@@ -458,7 +459,7 @@ def main():
             assert engine_models==0 and sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name IN ('payroll','hr_payroll') AND state='installed'")=='0'
         if previred or standalone:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred' AND state='installed'")=='18.0.3.8.8'
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
-        if args.critical_generation == 'S':
+        if args.critical_generation in ('S', 'T'):
             assert expected == (671 if pure else 462) and len(fp) == 513, 'S exact source/method count differs'
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'accelerated':args.accelerated,'custody_grouping':args.custody_grouping,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
@@ -474,7 +475,7 @@ def main():
             'operational_extensions':args.operational_extensions,
             'quality_extension':args.quality_extension,
             'critical_extension':args.critical_extension,
-            **({'critical_generation':'S'} if args.critical_generation == 'S' else {}),
+            **({'critical_generation':args.critical_generation} if args.critical_generation in ('S','T') else {}),
             'quality_vendor_revision':quality_proof['oca_pin'] if args.quality_extension else None,
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
