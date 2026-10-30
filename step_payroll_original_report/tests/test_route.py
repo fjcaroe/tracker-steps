@@ -27,17 +27,27 @@ class OriginalPayrollReportRouteCase(TransactionCase):
     def test_existing_action_and_structure_fk_stay_exact_while_stored_html_is_real(self):
         f = self.fixture
         slip = f.closed_slip()
+        # A second real saved document exercises batch preparation without
+        # creating another paid history, rule evaluation or worked-day master.
+        second = f.scope['hr.payslip'].create({
+            'name': 'Second saved document', 'number': 'PRIVATE/BATCH/2',
+            'employee_id': f.employee.id, 'company_id': f.company.id,
+            'contract_id': f.contract.id, 'struct_id': f.structure.id,
+            'date_from': slip.date_from, 'date_to': slip.date_to,
+        })
         self.assertEqual(f.structure.report_id, self.action)
         identity = action_snapshot(self.action)
         f.structure.active = False
         f.contract.wage = 9000000
         self.env.flush_all()
         before = f.stored_snapshot(slip)
+        second_before = f.stored_snapshot(second)
         with ExitStack() as stack:
             for method in ('compute_sheet', 'get_lines_dict', '_get_paid_amount', '_get_contract_wage', '_compute_provider_totals'):
                 stack.enter_context(patch.object(type(slip), method, side_effect=AssertionError('Cannot recompute history')))
             stack.enter_context(patch.object(type(slip.line_ids), '_compute_total', side_effect=AssertionError('Cannot compute totals')))
             html = self.render(slip)
+            batch_html = self.render(slip | second)
         # The real monetary widget inserts U+FEFF between a negative sign and
         # its digits to keep them together; do not treat it as a changed amount.
         text = etree.fromstring(html).text_content().replace('\ufeff', '')
@@ -54,6 +64,14 @@ class OriginalPayrollReportRouteCase(TransactionCase):
         self.assertIn(MARKER, company[0].get('class').split())
         self.assertTrue(all(node.get('style', '').endswith(TYPOGRAPHY)
                             for node in [company[0], *company[0].iterdescendants()]))
+        batch_prepared = self.action._prepare_html(batch_html, report_model='hr.payslip')
+        self.assertEqual(batch_prepared[1], (slip | second).ids)
+        companies = etree.fromstring(batch_prepared[2]).xpath('//*[@name="company_address"]')
+        self.assertEqual(len(companies), 2)
+        self.assertTrue(all(MARKER in company.get('class').split() for company in companies))
+        self.assertEqual(f.stored_snapshot(second), second_before)
+        self.assertEqual(f.stored_snapshot(slip), before)
+        self.assertEqual(action_snapshot(self.action), identity)
         # Other report actions keep their existing route even if this optional
         # compatibility route cannot admit its own backend provenance.
         reports = f.scope['ir.actions.report']
