@@ -9,6 +9,7 @@ from odoo.tests import TransactionCase, tagged
 
 from .common import action_snapshot, prepare_ce_fixture
 from ..models.report_route import ORIGINAL_NAME, RENDERER
+from ..header_layout import MARKER, TYPOGRAPHY
 
 
 @tagged('post_install', '-at_install', 'original_report_ce')
@@ -47,6 +48,12 @@ class OriginalPayrollReportRouteCase(TransactionCase):
         self.assertEqual(action_snapshot(self.action), identity)
         self.assertEqual(f.structure.report_id, self.action)
         self.assertEqual(f.stored_snapshot(slip), before)
+        prepared = self.action._prepare_html(html, report_model='hr.payslip')
+        company = etree.fromstring(prepared[2]).xpath('//*[@name="company_address"]')
+        self.assertEqual(len(company), 1)
+        self.assertIn(MARKER, company[0].get('class').split())
+        self.assertTrue(all(node.get('style', '').endswith(TYPOGRAPHY)
+                            for node in [company[0], *company[0].iterdescendants()]))
         # Other report actions keep their existing route even if this optional
         # compatibility route cannot admit its own backend provenance.
         reports = f.scope['ir.actions.report']
@@ -170,3 +177,10 @@ class NativeOriginalPayrollReportRouteCase(TransactionCase):
         if renderer is not None:
             self.assertNotEqual(renderer._original_module, 'step_payroll_original_report')
         self.assertNotIn(RENDERER, self.env.registry)
+        metadata_only = b'<html><main><div class="header">Native unchanged</div><div class="article">No payroll rows</div></main></html>'
+        with patch('odoo.addons.step_payroll_original_report.models.report_route.stabilize_corporate_typography',
+                   side_effect=AssertionError('Native report must retain its own header')):
+            header = action._prepare_html(metadata_only, report_model='hr.payslip')[2]
+        self.assertIn('Native unchanged', header)
+        self.assertNotIn(MARKER, header)
+        self.assertEqual(action_snapshot(action), before)

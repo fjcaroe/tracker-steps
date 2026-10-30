@@ -6,6 +6,7 @@ The native runtime, without the real CE backend, follows its unchanged pipeline.
 from odoo import _, models
 from odoo.exceptions import AccessError, UserError
 from odoo.tools import is_html_empty
+from ..header_layout import stabilize_corporate_typography
 
 
 ORIGINAL_NAME = 'hr_payroll.report_payslip_lang'
@@ -96,3 +97,17 @@ class OriginalPayrollReportRoute(models.Model):
         self._step_original_report_values(target, res_ids, data)
         return super(OriginalPayrollReportRoute, target[0])._pre_render_qweb_pdf(
             target[1].id, res_ids=res_ids, data=data)
+
+    def _prepare_html(self, html, report_model=False):
+        values = super()._prepare_html(html, report_model=report_model)
+        # Official preparation runs on the sudo configuration action, after
+        # the route authorized all documents/children with the actual UID.
+        if (len(self) != 1 or report_model != 'hr.payslip'
+                or self._step_original_report_target(self.id) is None):
+            return values
+        bodies, ids, header, footer, paper = values
+        try:
+            header = stabilize_corporate_typography(header)
+        except ValueError as error:
+            raise UserError(_('The payroll report company header is ambiguous or unsupported.')) from error
+        return bodies, ids, header, footer, paper
