@@ -228,7 +228,7 @@ def main():
         'before_raw_md5': before['raw_md5'], 'after_raw_md5': after['raw_md5'],
         'before_normalized_md5': before['normalized_md5'], 'after_normalized_md5': after['normalized_md5']}
     from payroll_representation_contract import verify
-    proof['strict_representation_audit'] = verify(*snapshots, proof)
+    proof['comparison'] = verify(*snapshots, proof)
     output.mkdir(mode=0o700)
     for name, raw in (('business-representation-proof.json', json.dumps(proof, indent=2).encode()),
                       ('auditor.py', Path(__file__).read_bytes())):
