@@ -16,6 +16,21 @@ from validate_community_reports import sql
 import payroll_configuration_adoption_preflight as gate
 
 
+def physical_schema(database, tables):
+    names=','.join(gate.literal(name) for name in tables)
+    query=("SELECT jsonb_build_object('columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,column_name) "
+        "FROM (SELECT c.relname table_name,a.attname column_name,format_type(a.atttypid,a.atttypmod) sql_type,"
+        "a.attnotnull not_null,md5(pg_get_expr(d.adbin,d.adrelid)) default_sha256_input_md5 FROM pg_attribute a "
+        "JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
+        "LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='public' "
+        "AND a.attnum>0 AND NOT a.attisdropped AND c.relname IN ("+names+")) x),"
+        "'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,name) FROM (SELECT c.relname table_name,"
+        "k.conname name,k.contype kind,k.convalidated valid,md5(pg_get_constraintdef(k.oid)) definition_md5 "
+        "FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
+        "WHERE n.nspname='public' AND c.relname IN ("+names+")) x))")
+    return json.loads(sql(database,query))
+
+
 def compare(stage, database):
     stage = Path(stage).resolve()
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', database)
@@ -53,6 +68,13 @@ def compare(stage, database):
         counters[table]=json.loads(sql(database,"SELECT json_build_object('rows',1,'hash',to_jsonb(t)::text) FROM "
             +gate.identifier(table)+' t'))
     original_aliases={row['id'] for row in source['original_xmlids']}
+    source_schema=physical_schema(reference,columns)
+    target_schema=physical_schema(database,columns)
+    schema_differences={}
+    for section,key in (('columns','column_name'),('constraints','name')):
+        current={(row['table_name'],row[key]):row for row in target_schema[section]}
+        schema_differences[section]=[{'before':row,'after':current.get((row['table_name'],row[key]))}
+            for row in source_schema[section] if current.get((row['table_name'],row[key]))!=row]
     result={'schema':1,'database':database,'read_only':True,'production_changed':False,
         'original_business_entries':len(before),'literal_business_entries_exact':len(before)-len(changed),
         'business_differences_requiring_review':changed,'original_identity_losses_or_retargets':missing,
@@ -64,6 +86,7 @@ def compare(stage, database):
         'deadline_resolved':False,'acceptance_authorized_by_this_review':False,
         'bank_baseline_from_untouched_same_restore_control':True,
         'history_and_expiration_exact':preservation.history_contract(reference)==preservation.history_contract(database),
+        'original_physical_schema_differences_requiring_review':schema_differences,
         'source_dump_sha256':plan['source_dump_sha256']}
     return result
 
