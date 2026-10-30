@@ -218,7 +218,7 @@ def main():
         'source_dump_path': str(dump), 'source_dump_bytes': original_stat.st_size,
         'schema_columns': {name: kind for name, kind, _ in columns},
         'current_schema_columns': {name: kind for name, kind, _ in metadata['columns']},
-        'schema_definition': columns, 'current_schema_definition': metadata['columns'],
+        'schema_definition': [list(row) for row in columns], 'current_schema_definition': metadata['columns'],
         'schema_extract_sha256': hashlib.sha256(schema.encode()).hexdigest(),
         'copy_extract_sha256': hashlib.sha256(data.encode()).hexdigest(),
         'snapshot_normalizer_tool_sha256': sha(source_tool),
