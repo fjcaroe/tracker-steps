@@ -74,15 +74,21 @@ def build(root, runtime, oca, provider):
     overlay = root / 'runtime-addons'; overlay.mkdir(mode=0o755)
     for name in OWN:
         target = source / name
-        if name == 'step_simpledigital_oca_security':
+        if name in ('step_simpledigital_oca_security', 'step_payroll_oca_api'):
             target = root / 'owned-profile' / name
             shutil.copytree(source / name, target)
             path = target / '__manifest__.py'; original = path.read_bytes()
             spec = ast.literal_eval(original.decode('utf-8-sig'))
-            assert spec['data'] == ['security.xml']
-            spec['data'] = []
+            if name == 'step_simpledigital_oca_security':
+                assert spec['data'] == ['security.xml']
+                omitted = list(spec['data']); spec['data'] = []
+            else:
+                omitted=[item for item in spec['data'] if item.startswith('security/')]
+                assert omitted == ['security/ir.model.access.csv','security/configuration_scope.xml']
+                updated,_ = ui_profile(original,cold.snapshot(target))
+                spec = ast.literal_eval(updated.decode('utf-8-sig'))
             path.write_text(repr(spec) + '\n')
-            changes[name] = {'omitted_original_policy_file': 'security.xml',
+            changes[name] = {'omitted_additive_policy_files': omitted,
                 'original_manifest_sha256': sha(original), 'profile_manifest_sha256': sha(path.read_bytes())}
         (overlay / name).symlink_to(target)
     (overlay / cold.MODULE).symlink_to(root / 'profile-addons' / cold.MODULE)
