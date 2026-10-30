@@ -230,6 +230,64 @@ class OriginalExternalReferencesCase(unittest.TestCase):
         _, _, blockers = audit.compile_paths(catalog, registry, scope)
         self.assertIn('outbound-original-comodel-not-in-loaded-registry', {row['code'] for row in blockers})
 
+    def test_occupied_action462_outgoing_fk_is_bound_without_authorizing_relocation(self):
+        catalog, registry, scope, _ = fixture()
+        action = 'ir.actions.act_window'
+        scope[action] = {'table': 'actual_windows', 'ids': [462], 'original_expected': False}
+        for model, table, fields in ((action, 'actual_windows', [field('view_id', 'many2one', 'ir.ui.view')]),
+                ('ir.ui.view', 'actual_views', [])):
+            registry['models'].append(dict(model=model, table=table, fields=fields,
+                abstract=False, auto=True, transient=False, inherits={}))
+            catalog['tables'].append(dict(name=table, schema='public', kind='r'))
+            catalog['columns'].append(dict(table_name=table, name='id', sql_type='integer', not_null=True))
+            catalog['keys'].append(dict(table_name=table, name=table + '_pkey', columns=['id'], primary_key=True))
+        catalog['columns'].append(dict(table_name='actual_windows', name='view_id', sql_type='integer', not_null=False))
+        catalog['fields'].append(dict(id=200, model=action, name='view_id', ttype='many2one', relation='ir.ui.view', store=True, company_dependent=False))
+        catalog['foreign_keys'].append(dict(name='occupied_action_view_fk', source_schema='public', source_table='actual_windows',
+            source_columns=['view_id'], target_schema='public', target_table='actual_views', target_columns=['id'], validated=True, ondelete='n'))
+        queries, paths, blockers = audit.compile_paths(catalog, registry, scope)
+        self.assertFalse(blockers)
+        path = next(path for path in paths if path['kind'] == 'outbound-original-fk' and path['table'] == 'actual_windows')
+        self.assertEqual((path['target_model'], path['target_table']), ('ir.ui.view', 'actual_views'))
+        self.assertIn('t.id IN (462)', queries[path['observation']])
+
+    def test_runtime_policy_requires_real_readonly_cursors_and_exact_infrastructure(self):
+        database = 'COMMUNITY_PAYROLL_API_SYNTHETIC'
+        calls = [{'database': database, 'odoo_cursor_readonly': True, 'transaction_read_only': 'on', 'pg_is_in_recovery': False}]
+        reader = {'original_get_sequences_sha256': audit.SEQUENCE_METHOD_SHA256,
+            'select_only_sql_sha256': audit.SEQUENCE_SELECT_SHA256,
+            'original_registry_source_sha256': audit.REGISTRY_SOURCE_SHA256['community'],
+            'cache_keys': ['default', 'assets', 'templates', 'routing', 'groups'], 'calls': calls,
+            'installed_sources_modified': False, 'cursor_readonly_unchanged': True,
+            'setup_signaling_unchanged': True, 'signal_changes_unchanged': True, 'nextval_unchanged': True}
+        before = {name: {'sequence': 7} for name in ['base_registry_signaling']
+            + ['base_cache_signaling_' + key for key in reader['cache_keys']]}
+        before['actual_original_master'] = {'rows': 120, 'md5': '0' * 32}
+        registry = {'database': database, 'readonly_sequence_reader': reader, 'readonly_cursor_proof': calls}
+        accepted = {'database': database, 'mode': 'community'}
+        receipt = dict(schema=1, database=database, mode='community', readonly_sequence_reader=reader,
+            public_snapshots_count=len(before), upgraded=False, adoption_authorized=False)
+        receipt.update({name: True for name in ('all_tables_and_sequences_exact', 'all_infrastructure_sequences_also_exact',
+            'external_network_disabled', 'postgres_unix_socket', 'odoo_pool_readonly_before_connect', 'read_only_before_registry_startup')})
+        result = audit.runtime_contract(receipt, registry, accepted, before, deepcopy(before))
+        self.assertFalse(result['adoption_authorized'])
+        for change in ('counter', 'rw', 'replica', 'writer', 'policy', 'before-connect', 'wrong-db', 'upgrade'):
+            with self.subTest(change=change):
+                r, metadata, after = deepcopy(receipt), deepcopy(registry), deepcopy(before)
+                if change == 'counter': after['base_registry_signaling'] = {'sequence': 8}
+                elif change == 'rw': r['readonly_sequence_reader']['calls'][0]['transaction_read_only'] = 'off'
+                elif change == 'replica': r['readonly_sequence_reader']['calls'][0]['pg_is_in_recovery'] = True
+                elif change == 'writer': r['readonly_sequence_reader']['nextval_unchanged'] = False
+                elif change == 'policy': r['readonly_sequence_reader']['select_only_sql_sha256'] = 'a' * 64
+                elif change == 'before-connect': r['odoo_pool_readonly_before_connect'] = False
+                elif change == 'wrong-db': r['database'] = 'CERROELPLOMO'
+                elif change == 'upgrade': r['upgraded'] = True
+                # A matching copied metadata claim does not make an unsafe
+                # cursor, changed counter, policy or startup acceptable.
+                metadata['readonly_sequence_reader'] = deepcopy(r['readonly_sequence_reader'])
+                with self.assertRaises(ValueError):
+                    audit.runtime_contract(r, metadata, accepted, before, after)
+
     def test_connection_guard_is_local_readonly_and_rejects_mutation_before_process(self):
         with patch.object(audit.subprocess, 'run') as run:
             for database, sql in (('CERROELPLOMO', 'SELECT 1'),
