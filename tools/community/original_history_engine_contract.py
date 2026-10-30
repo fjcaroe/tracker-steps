@@ -17,7 +17,7 @@ import derive_original_history_deletion as deletion
 
 REPORT = 'oca-original-history-engine-derivation.json'
 GUARD_FILE = 'step_payroll_oca_api/models/original_history_deletion.py'
-GUARD_SHA256 = '12f6c93dea1c0312d8cd31f914ae36403e5d196f81718fd85a99d1534080fb9a'
+GUARD_SHA256 = 'dd382a001776079555b358959e420decd28f47508cf0b75bd40eb2007ba81542'
 GUARD_PATHS = (GUARD_FILE, 'step_payroll_oca_api/__manifest__.py',
     'step_payroll_oca_api/__init__.py', 'step_payroll_oca_api/models/__init__.py')
 TOOLS = ('build_numeric_input_engine.py', 'derive_original_payroll_storage.py',
