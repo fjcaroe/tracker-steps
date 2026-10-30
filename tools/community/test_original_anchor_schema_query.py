@@ -30,6 +30,7 @@ class PhysicalSchemaQueryCase(unittest.TestCase):
         self.assertEqual(result, expected)
         self.assertEqual(len(calls), 1)
         self.assertIn('k.conname AS "name"', calls[0][1])
+        self.assertIn('k.convalidated AS "valid"', calls[0][1])
         self.assertIn('ORDER BY table_name,"name"', calls[0][1])
         self.assertNotIn('k.conname name,', calls[0][1])
 

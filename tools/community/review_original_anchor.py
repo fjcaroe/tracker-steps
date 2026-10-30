@@ -42,13 +42,13 @@ def readonly_bindings(executor):
 def physical_schema(database, tables):
     names=','.join(gate.literal(name) for name in tables)
     query=("SELECT jsonb_build_object('columns',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,column_name) "
-        "FROM (SELECT c.relname table_name,a.attname column_name,format_type(a.atttypid,a.atttypmod) sql_type,"
-        "a.attnotnull not_null,md5(pg_get_expr(d.adbin,d.adrelid)) default_md5 FROM pg_attribute a "
+        "FROM (SELECT c.relname AS table_name,a.attname AS column_name,format_type(a.atttypid,a.atttypmod) AS sql_type,"
+        "a.attnotnull AS not_null,md5(pg_get_expr(d.adbin,d.adrelid)) AS default_md5 FROM pg_attribute a "
         "JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
         "LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='public' "
         "AND a.attnum>0 AND NOT a.attisdropped AND c.relname IN ("+names+")) x),"
-        "'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,\"name\") FROM (SELECT c.relname table_name,"
-        "k.conname AS \"name\",k.contype kind,k.convalidated valid,md5(pg_get_constraintdef(k.oid)) definition_md5 "
+        "'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,\"name\") FROM (SELECT c.relname AS table_name,"
+        "k.conname AS \"name\",k.contype AS kind,k.convalidated AS \"valid\",md5(pg_get_constraintdef(k.oid)) AS definition_md5 "
         "FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
         "WHERE n.nspname='public' AND c.relname IN ("+names+")) x))")
     return json.loads(sql(database,query))
