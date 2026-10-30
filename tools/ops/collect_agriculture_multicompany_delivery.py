@@ -1,14 +1,11 @@
 """Collect exact-package T139/T140 proofs and verify customer-QA isolation."""
 import argparse
-import contextlib
 import fcntl
-import io
 import json
 from pathlib import Path
 import re
 import shutil
 import subprocess
-from provision_cerro_qa import verify
 
 
 def main():
@@ -41,10 +38,9 @@ def main():
     with open('/run/lock/steps-environments.lock','a') as lock:
         print('T139_WAITING_FINAL_ISOLATION_LEASE',flush=True)
         fcntl.flock(lock,fcntl.LOCK_EX)
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            verify()
-        text=output.getvalue()
+        capture = subprocess.run(['/usr/bin/python3.10', '-c', 'from provision_cerro_qa import verify; verify()'],
+            cwd=Path(__file__).resolve().parent, capture_output=True, text=True, check=True)
+        text = capture.stdout + capture.stderr
         assert all(m in text for m in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
         (args.output/'isolation.log').write_text(text)
         result = subprocess.run(['/usr/bin/python3.10',str(Path(__file__).with_name('verify_cerro_release_pair.py')),
