@@ -152,6 +152,13 @@ def _identity_menu(row):
     return {key: value for key, value in row.items() if key not in AUDIT_COLUMNS}
 
 
+def _same_json_values(left, right):
+    # Unlike Python equality, preserve JSON number/boolean types (1 != true,
+    # False != 0, 1 != 1.0). PostgreSQL metadata rows are already canonical JSON.
+    return json.dumps(left, sort_keys=True, ensure_ascii=False, separators=(',', ':')) == json.dumps(
+        right, sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+
+
 def _client_action_timestamps(original_identity, current_identity, before, after):
     """Seven loader timestamps only; never exempt values, UID or EE actions.
 
@@ -174,19 +181,19 @@ def _client_action_timestamps(original_identity, current_identity, before, after
         require(alias.get('model') == 'ir.actions.client' and type(alias.get('res_id')) is int
                 and alias['res_id'] in original_actions and alias['res_id'] not in allowed
                 and (type(alias.get('noupdate')) is bool or alias.get('noupdate') is None)
-                and current_aliases.get(alias['id']) == alias,
+                and _same_json_values(current_aliases.get(alias['id']), alias),
                 'Original timestamp action alias model/ID/binding/flag changed')
         require(alias['res_id'] not in report_ids, 'Enterprise report client actions must remain raw exact')
         allowed[alias['res_id']] = alias
     changes = []
     for ident, row in original_actions.items():
         current = current_actions[ident]
-        if current == row:
+        if _same_json_values(current, row):
             continue
         alias = allowed.get(ident)
         require(alias is not None and 'write_date' in row and 'write_date' in current
                 and isinstance(current['write_date'], str) and current['write_date']
-                and dict(current, write_date=row['write_date']) == row,
+                and _same_json_values(dict(current, write_date=row['write_date']), row),
                 'Unapproved global client action value/UID/timestamp changed')
         changes.append({'xmlid': alias['module'] + '.' + alias['name'], 'action_id': ident,
                         'original_xmlid_id': alias['id'], 'original_noupdate': alias['noupdate'],
