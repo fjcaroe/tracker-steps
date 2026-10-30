@@ -141,9 +141,10 @@ class TestMasters(TransactionCase):
         from lxml import etree
         user = new_test_user(self.env(context=dict(self.env.context, no_reset_password=True)), login='qa-shared-operator',
             groups='base.group_user,stock.group_stock_manager', company_id=self.b.id, company_ids=[Command.set(self.b.ids)])
-        record = self.make('step.fundo', company_ids=[Command.set((self.a|self.b).ids)])
-        scoped = record.with_user(user).with_context(allowed_company_ids=self.b.ids)
-        arch = etree.fromstring(scoped.get_view(view_id=self.env.ref('step_hr.view_step_fundo_form').id, view_type='form')['arch'])
-        self.assertFalse(arch.xpath("//field[@name='company_ids']"))
-        result = scoped.web_read({'name': {}})
-        self.assertEqual(result[0]['id'], record.id)
+        for model in self.models:
+            record = self.make(model, company_ids=[Command.set((self.a|self.b).ids)])
+            scoped = record.with_user(user).with_context(allowed_company_ids=self.b.ids)
+            arch = etree.fromstring(scoped.get_view(view_type='form')['arch'])
+            self.assertFalse(arch.xpath("//field[@name='company_ids']"))
+            result = scoped.web_read({'name': {}, 'company_id': {'fields': {'display_name': {}}}})
+            self.assertEqual(result[0]['id'], record.id)
