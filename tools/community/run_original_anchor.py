@@ -152,6 +152,12 @@ def main():
         with (stage/'source.dump').open('rb') as inp,(stage/'restore.log').open('w') as log:
             subprocess.run(['sudo','-u','postgres','pg_restore','--exit-on-error','--no-owner','--no-acl','--no-comments',
                 '--no-tablespaces','--role='+dbuser,'-d',database],stdin=inp,stderr=log,check=True)
+        if (root/'oca-original-anchor-history-deletion.json').exists():
+            from preflight_original_history_storage import capture as capture_history_storage
+            from audit_multifront_installation import readonly_sql as history_readonly_sql
+            # The actual fresh restore is observed BEFORE the first Odoo
+            # process, required fields, defaults or source module state changes.
+            write(stage/'before-initialization-storage.json',capture_history_storage(history_readonly_sql,database,'anchored'))
         sql(database,'UPDATE ir_cron SET active=false; UPDATE ir_mail_server SET active=false;')
         # An untouched native metadata control from exactly the same dump. Raw
         # readonly helper plans are constructed from this real database later.

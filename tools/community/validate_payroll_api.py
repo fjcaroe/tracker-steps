@@ -45,15 +45,20 @@ def main():
     parser.add_argument('--focused-extensions',action='store_true',help='Development only: run the new operational extension tests')
     parser.add_argument('--quality-extension',action='store_true',help='Real pinned OCA Quality and original native consumer reference')
     parser.add_argument('--focused-quality',action='store_true',help='Development only: Quality contracts and the repeated original PDF')
+    parser.add_argument('--focused-history-storage',action='store_true',help='Development only: U storage and atomic deletion contracts')
     parser.add_argument('--quality-oca',type=Path)
     parser.add_argument('--critical-extension',action='store_true',help='Explicit R generation: actual PKIX/CRL, HR admission and invoice application')
-    parser.add_argument('--critical-generation',choices=('R3','S','T'),default='R3')
+    parser.add_argument('--critical-generation',choices=('R3','S','T','U'),default='R3')
+    parser.add_argument('--storage-schema-plan',type=Path)
     parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
     parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
     parser.add_argument('--runtime',type=Path,required=True)
     parser.add_argument('--oca',type=Path,required=True)
     args=parser.parse_args()
+    assert (args.storage_schema_plan is not None) == (args.critical_generation == 'U')
+    assert args.critical_generation != 'U' or args.mode != 'community' or args.numeric_input_engine
+    assert not args.focused_history_storage or (args.critical_generation == 'U' and not any((args.focused_multifront,args.focused_extensions,args.focused_quality)))
     full_book=args.profile in ('book-install','book-history')
     binary_book=args.profile=='book-install'
     own_book=args.profile in ('book-consumers','book-install','book-history')
@@ -108,11 +113,20 @@ def main():
     fp={str(p.relative_to(source)):hashlib.sha256(p.read_bytes()).hexdigest() for m in MODULES
         for p in sorted((source/m).rglob('*')) if p.is_file() and '__pycache__' not in p.parts}
     assert all((source/m/'__manifest__.py').exists() for m in MODULES)
-    if args.critical_generation in ('S', 'T'):
-        assert len(fp) == 513, 'S exact source file count differs before database creation'
-        from audit_multifront_installation import GENERATION_VERSIONS
+    if args.critical_generation in ('S', 'T', 'U'):
+        from audit_multifront_installation import GENERATION_VERSIONS,GENERATION_FILES
+        assert len(fp) == GENERATION_FILES[args.critical_generation], 'Exact source file count differs before database creation'
         for name, version in GENERATION_VERSIONS[args.critical_generation].items():
             assert ast.literal_eval((source/name/'__manifest__.py').read_text(encoding='utf-8-sig'))['version'] == version
+    if args.critical_generation == 'U':
+        from derive_original_payroll_storage import SCHEMA_PLAN_SHA256
+        assert args.storage_schema_plan.resolve().is_relative_to(Path('/opt/steps-validation'))
+        schema_body=args.storage_schema_plan.read_bytes()
+        assert hashlib.sha256(schema_body).hexdigest()==SCHEMA_PLAN_SHA256
+        schema_target=root/'schema-plan.json'
+        if schema_target.exists():assert schema_target.read_bytes()==schema_body
+        else:
+            with os.fdopen(os.open(schema_target,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as stream:stream.write(schema_body)
     api_test_count=concrete_test_count(source,'step_payroll_oca_api')
     reference_test_count=concrete_test_count(source,'step_payroll_enterprise_reference')
     base_test_count=concrete_test_count(source,'step_simpledigital_oca_base') if simpledigital else 0
@@ -190,6 +204,9 @@ def main():
                 numeric_root = root / 'engine-addons'
                 if numeric_root.exists():verify_numeric(args.oca, numeric_root)
                 else:build_numeric(args.oca, numeric_root)
+                if args.critical_generation == 'U':
+                    from original_history_engine_contract import apply as apply_original_history
+                    apply_original_history(args.oca,numeric_root,root/'schema-plan.json',source)
                 engine_root = numeric_root
             for m in ('payroll','payroll_account'):
                 (overlay/m).symlink_to((engine_root if m == 'payroll' else args.oca)/m)
@@ -237,9 +254,16 @@ def main():
             dump_json('storage-preflight',capacity)
             create+=['--tablespace='+expected]
         run(*create,args.database)
+        storage_before=None
+        if args.critical_generation == 'U':
+            from preflight_original_history_storage import capture as storage_preflight
+            from audit_multifront_installation import readonly_sql as storage_readonly_sql
+            if pure:
+                storage_before=storage_preflight(storage_readonly_sql,args.database,'cold-community')
+                dump_json('before-initialization-storage',storage_before)
         baseline=original=history=contract=None
         security_fk_before=security_fk_upgrade=security_fk_after=None
-        if args.critical_generation == 'T':
+        if args.critical_generation in ('T', 'U'):
             from audit_multifront_installation import capture_security_group_fk, verify_security_group_fk, readonly_sql as security_readonly_sql
         if not pure:
             assert config['options']['db_name']=='CERRO_EL_PLOMO'
@@ -250,7 +274,10 @@ def main():
             store=data/'filestore'/args.database;store.mkdir(parents=True)
             run('rsync','-a',str(Path(config['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/')
             contract=runtime_contract(conf);dump_json('source-contract',contract)
-            if args.critical_generation == 'T':
+            if args.critical_generation == 'U':
+                storage_before=storage_preflight(storage_readonly_sql,args.database,'native')
+                dump_json('before-initialization-storage',storage_before)
+            if args.critical_generation in ('T', 'U'):
                 security_fk_before=capture_security_group_fk(security_readonly_sql,args.database,'before-native-upgrade')
                 dump_json('security-group-fk-before-native-upgrade',security_fk_before)
             baseline=snapshot();original=preservation.identity_contract(args.database);history=preservation.history_contract(args.database)
@@ -288,15 +315,15 @@ def main():
             os.chown(private_input,identity.pw_uid,identity.pw_gid);os.chmod(private_input,0o600)
             execution_env.update(STEPS_PAYROLL_BASIC_REFERENCE_JSON=str(private_input),
                                  STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT=str(stage/'monthly-basis.json'))
-        def execute(name,flags):
-            command=base+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init']
+        def execute(name,flags,input_code=None):
+            command=base+(['shell'] if input_code is not None else [])+opts+flags+['--logfile='+str(stage/(name+'.log')),'--stop-after-init']
             if (root/'basis-input.json').exists():
                 # sudo resets arbitrary environment variables. Pass only these
                 # private file paths explicitly, never payroll contents/secrets.
                 command=base[:3]+['env',*['%s=%s'%(key,execution_env[key]) for key in
                     ('STEPS_PAYROLL_BASIC_REFERENCE_JSON','STEPS_PAYROLL_BASIC_REFERENCE_OUTPUT')]]+command[3:]
             with (stage/(name+'-bootstrap.log')).open('w') as stream:
-                status=subprocess.run(offline_odoo(command),stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
+                status=subprocess.run(offline_odoo(command),input=input_code,text=input_code is not None,stdout=stream,stderr=subprocess.STDOUT,env=execution_env)
             text=(stage/(name+'.log')).read_text(errors='replace')
             if args.tablespace:
                 current=os.statvfs(sql('postgres','SHOW data_directory'))
@@ -319,7 +346,7 @@ def main():
                     admission[name]={'original':deployed[name],'candidate':candidate,'downgrade':False}
                 dump_json('version-admission',admission)
             execute('upgrade',['-i',','.join(name for name in modules.split(',') if name not in existing)]+(['-u',','.join(existing)] if existing else []))
-            if args.critical_generation == 'T':
+            if args.critical_generation in ('T', 'U'):
                 security_fk_upgrade=capture_security_group_fk(security_readonly_sql,args.database,'after-native-upgrade')
                 dump_json('security-group-fk-after-native-upgrade',security_fk_upgrade)
                 assert verify_security_group_fk(security_fk_before,args.database,'before-native-upgrade') == verify_security_group_fk(security_fk_upgrade,args.database,'after-native-upgrade'), 'Native security FK semantics changed before functional tests'
@@ -367,11 +394,13 @@ def main():
                 tags+=',/step_payroll_oca_api:OriginalNullableCase,/step_payroll_oca_api:OriginalRuleProjectionCase'
         if args.focused_quality:
             tags='/'+quality_modules[1 if pure else 2]+(',/step_payroll_original_report:OriginalPayrollReportPdfCase' if pure else '')
+        if args.focused_history_storage:
+            tags=('/step_payroll_oca_api:OriginalHistoryStorageCase,/step_payroll_oca_api:OriginalHistoryDeletionCase' if pure else '/step_payroll_enterprise_reference:NativeHistoryStorageCase')
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         stored_pdf_count=0
         original_pdf_count=0
         original_pdf_receipt=None
-        if pure and args.operational_extensions:
+        if pure and args.operational_extensions and not args.focused_history_storage:
             original_pdf_receipt=data/'original-report-pdf-evidence/proof.json'
             original_proof=json.loads(original_pdf_receipt.read_text())
             assert all(original_proof[name] is True for name in ('normal_actor','stored_history_unchanged',
@@ -382,7 +411,7 @@ def main():
             pdf=original_pdf_receipt.parent/original_proof['file']
             assert pdf.stat().st_size==original_proof['bytes'] and hashlib.sha256(pdf.read_bytes()).hexdigest()==original_proof['sha256']
             original_pdf_count=1
-        if pure and simpledigital and not (args.focused_multifront or args.focused_extensions or args.focused_quality) and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
+        if pure and simpledigital and not (args.focused_multifront or args.focused_extensions or args.focused_quality or args.focused_history_storage) and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
             pdf_directory=data/'payslip-pdf-evidence'
             proofs=[row for path in pdf_directory.glob('proof-*.json') for row in json.loads(path.read_text())]
             assert len(proofs)==2,'Both actual stored-line payslip PDF fixtures must run'
@@ -406,6 +435,7 @@ def main():
         if args.focused_extensions and pure and args.critical_extension:
             expected+=sum(concrete_test_count(source,'step_payroll_oca_api',name) for name in ('OriginalNullableCase','OriginalRuleProjectionCase'))
         if args.focused_quality:expected=concrete_test_count(source,quality_modules[1 if pure else 2])+(1 if pure else 0)
+        if args.focused_history_storage:expected=13 if pure else 5
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -469,10 +499,11 @@ def main():
             assert engine_models==0 and sql(args.database,"SELECT count(*) FROM ir_module_module WHERE name IN ('payroll','hr_payroll') AND state='installed'")=='0'
         if previred or standalone:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred' AND state='installed'")=='18.0.3.8.8'
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
-        if args.critical_generation in ('S', 'T'):
-            assert expected == (671 if pure else 462) and len(fp) == 513, 'S exact source/method count differs'
+        if args.critical_generation in ('S', 'T', 'U') and not args.focused_history_storage:
+            from audit_multifront_installation import critical_tests,GENERATION_FILES
+            assert expected == critical_tests(True,args.critical_generation)[args.mode] and len(fp) == GENERATION_FILES[args.critical_generation], 'Exact source/method count differs'
         security_boundary=None
-        if args.critical_generation == 'T':
+        if args.critical_generation in ('T', 'U'):
             security_fk_after=capture_security_group_fk(security_readonly_sql,args.database,'after-tests')
             dump_json('security-group-fk-after-tests',security_fk_after)
             if security_fk_before:
@@ -482,6 +513,34 @@ def main():
                 'before_native_upgrade_sha256':hashlib.sha256((stage/'security-group-fk-before-native-upgrade.json').read_bytes()).hexdigest() if security_fk_before else None,
                 'after_native_upgrade_sha256':hashlib.sha256((stage/'security-group-fk-after-native-upgrade.json').read_bytes()).hexdigest() if security_fk_upgrade else None,
                 'after_tests_sha256':hashlib.sha256((stage/'security-group-fk-after-tests.json').read_bytes()).hexdigest()}
+        storage_fields={}
+        if args.critical_generation == 'U':
+            from audit_payroll_history_storage import snapshot as storage_snapshot,assess as assess_storage
+            before_storage=storage_snapshot(args.database)
+            runtime_path=stage/'history-storage-runtime.json'
+            expression=('import sys,json,os\nfrom odoo import api,sql_db\n'
+                +'sys.path.insert(0,'+repr(str(source/'tools/community'))+')\n'
+                +'from audit_payroll_history_storage import inspect_registry\n'
+                +'with sql_db.db_connect(env.cr.dbname,readonly=True).cursor() as read:\n'
+                +' value=inspect_registry(api.Environment(read,env.uid,{}))\n'
+                +' with os.fdopen(os.open('+repr(str(runtime_path))+',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),"w") as target:json.dump(value,target,indent=2)\n')
+            execute('history-storage-metadata',[],input_code=expression)
+            runtime_storage=json.loads(runtime_path.read_text())
+            after_storage=storage_snapshot(args.database)
+            assert before_storage==after_storage,'History storage metadata changed during passive registry witness'
+            assessment=assess_storage(before_storage,runtime_storage)
+            assert assessment['all_four_catalog_contracts_match'] is True and assessment['runtime_metadata_match'] is True
+            storage_proof={'schema':1,'database':args.database,'profile':'normal-community' if pure else 'native-reference',
+                'metadata_before':before_storage,'metadata_after':after_storage,'runtime':runtime_storage,'assessment':assessment,
+                'tool_sha256':hashlib.sha256((source/'tools/community/audit_payroll_history_storage.py').read_bytes()).hexdigest(),
+                'read_only':True,'database_writes':False,'historical_rows_assessed':False}
+            dump_json('after-tests-history-storage',storage_proof)
+            before_sha=hashlib.sha256((stage/'before-initialization-storage.json').read_bytes()).hexdigest()
+            storage_fields={'before_initialization_storage_sha256':before_sha,
+                'history_storage_after_sha256':hashlib.sha256((stage/'after-tests-history-storage.json').read_bytes()).hexdigest(),
+                'history_engine_derivation_sha256':hashlib.sha256((root/'oca-original-history-engine-derivation.json').read_bytes()).hexdigest() if pure else None,
+                'before_initialization_chronology':{'database':args.database,'preflight_sha256':before_sha,
+                    'preflight_completed_before_initializer':True,'shared_environment_lease':True,'initializer_source':'candidate-first-init'}}
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'accelerated':args.accelerated,'custody_grouping':args.custody_grouping,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'counts':counts,'pdf_binary_reports':2 if binary_book else 0,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
@@ -492,12 +551,13 @@ def main():
             'dte_test_count':dte_test_count,'external_network_disabled':True,'loopback_http_only':True,
             'hr_test_count':HR_TEST_COUNT if args.accelerated else 0,
             'postgres_unix_socket':True,'offline_runner_sha256':hashlib.sha256((source/'tools/community/offline_process.py').read_bytes()).hexdigest(),
-            'multifront':args.multifront,'focused_development_pass':bool(args.focused_multifront or args.focused_extensions or args.focused_quality),
+            'multifront':args.multifront,'focused_development_pass':bool(args.focused_multifront or args.focused_extensions or args.focused_quality or args.focused_history_storage),
             'operational_extensions':args.operational_extensions,
             'quality_extension':args.quality_extension,
             'critical_extension':args.critical_extension,
-            **({'critical_generation':args.critical_generation} if args.critical_generation in ('S','T') else {}),
-            **({'security_group_fk_boundary':security_boundary} if args.critical_generation == 'T' else {}),
+            **({'critical_generation':args.critical_generation} if args.critical_generation in ('S','T','U') else {}),
+            **({'security_group_fk_boundary':security_boundary} if args.critical_generation in ('T','U') else {}),
+            **storage_fields,
             'quality_vendor_revision':quality_proof['oca_pin'] if args.quality_extension else None,
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
