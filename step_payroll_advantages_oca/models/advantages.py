@@ -215,8 +215,12 @@ class Payslip(models.Model):
 
     def action_payslip_done(self):
         normal = self.sudo(False)
-        normal._step_check_contract_advantages()
         with normal.env.cr.savepoint():
+            # Preserve the shared posting contract: a wrong or mixed company
+            # context is rejected before selecting any advantage contract.
+            # This admission is read-only and remains in the real super chain.
+            normal._step_check_original_configuration(operation="account")
+            normal._step_check_contract_advantages()
             return super(Payslip, normal).action_payslip_done()
 
 
