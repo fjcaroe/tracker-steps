@@ -1,5 +1,6 @@
 """Actual OCA draft deletion; never a native history or payroll calculation."""
 from unittest.mock import patch
+from unittest import TestCase
 from psycopg2 import IntegrityError
 
 from odoo import api, Command, fields
@@ -45,8 +46,8 @@ class OriginalHistoryDeletionCase(TransactionCase):
         cls.contract = cls.scope["hr.contract"].create(values)
         cls.entry_type = cls.env["hr.work.entry.type"].create({"name": "Private deletion worked type", "code": "PRIVATE_DELETE_DAY"})
 
-    def _batch(self, children=True):
-        run = self.scope["hr.payslip.run"].create({"name": "Private original deletion batch", "company_id": self.company.id})
+    def _batch(self, children=True, run=None):
+        run = run or self.scope["hr.payslip.run"].create({"name": "Private original deletion batch", "company_id": self.company.id})
         slip = self.scope["hr.payslip"].create({"name": "Private original deletion slip", "number": "PRIVATE/DELETE/" + str(run.id),
             "employee_id": self.employee.id, "company_id": self.company.id, "contract_id": self.contract.id,
             "struct_id": self.structure.id, "journal_id": self.journal.id, "payslip_run_id": run.id,
@@ -131,7 +132,7 @@ class OriginalHistoryDeletionCase(TransactionCase):
             run.unlink()
         self.assertEqual(self._snapshot(run), before)
         self.assertTrue(move.exists())
-        with mute_logger("odoo.sql_db"), self.assertRaises((ValidationError, UserError, IntegrityError)):
+        with mute_logger("odoo.sql_db"), TestCase.assertRaises(self, (ValidationError, UserError, IntegrityError)):
             with self.env.cr.savepoint():
                 slip.company_id = False
         self.assertEqual(slip.company_id, self.company)
@@ -181,7 +182,7 @@ class OriginalHistoryDeletionCase(TransactionCase):
 
     def test_one_hidden_payslip_prevents_partial_deletion_of_the_visible_sibling(self):
         run, slip = self._batch()
-        second = slip.copy({"number": "PRIVATE/DELETE/SECOND", "payslip_run_id": run.id})
+        second = self._batch(run=run)[1]
         self.assertEqual(set(run.sudo().slip_ids.ids), {slip.id, second.id})
         self._hide("hr.payslip", second.id)
         before = self._snapshot(run)
