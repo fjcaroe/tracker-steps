@@ -1,7 +1,10 @@
 """Safety boundary for the private original-policy runtime derivation."""
+import ast
+from pathlib import Path
 import unittest
 
 from build_original_anchor_profile import ui_profile
+import derive_original_payroll_storage as derive
 
 
 class OriginalPolicyProfileCase(unittest.TestCase):
@@ -34,6 +37,17 @@ class OriginalPolicyProfileCase(unittest.TestCase):
     def test_requires_actual_community_ui(self):
         with self.assertRaises(AssertionError):
             self.profile({'data/masters.xml': b'<odoo/>'})
+
+    def test_builder_storage_is_opt_in_after_properties_before_ui_with_no_database_api(self):
+        source = (Path(derive.__file__).parent / 'build_original_anchor_profile.py').read_text(encoding='utf-8-sig')
+        self.assertIn('original_storage=False, schema_plan=None', source)
+        self.assertLess(source.index('property_derivation = apply_original_property_derivation'),
+            source.index('storage_derivation = apply_anchor_storage_derivation'))
+        self.assertLess(source.index('storage_derivation = apply_anchor_storage_derivation'), source.index('changes = {}'))
+        tree = ast.parse(Path(derive.__file__).read_text(encoding='utf-8-sig'))
+        methods = {node.func.attr for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)}
+        self.assertFalse(methods & {'connect', 'db_connect', 'execute', 'sudo', 'compute_sheet', 'commit'})
+        self.assertIn('O_EXCL', Path(derive.__file__).read_text())
 
 
 if __name__ == '__main__':

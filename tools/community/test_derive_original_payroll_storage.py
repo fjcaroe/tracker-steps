@@ -1,7 +1,6 @@
 """Pure declaration/provenance tests; no schema mutation or Odoo execution."""
 import ast
 from copy import deepcopy
-from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -136,18 +135,6 @@ class OriginalFirstInitStorageCase(unittest.TestCase):
         with self.assertRaises(ValueError): derive_fixture(candidate)
         files = provider(); files['models/hr_payslip_line.py'] += b'\n    name = fields.Char(translate=True)\n'
         with self.assertRaisesRegex(ValueError, 'line-name-override-already-present'): derive_fixture(files)
-
-    def test_builder_storage_is_opt_in_after_properties_before_ui_with_no_database_api(self):
-        source = (Path(derive.__file__).parent / 'build_original_anchor_profile.py').read_text(encoding='utf-8-sig')
-        self.assertIn('original_storage=False, schema_plan=None', source)
-        self.assertLess(source.index('property_derivation = apply_original_property_derivation'),
-            source.index('storage_derivation = apply_anchor_storage_derivation'))
-        self.assertLess(source.index('storage_derivation = apply_anchor_storage_derivation'), source.index('changes = {}'))
-        tree = ast.parse(Path(derive.__file__).read_text(encoding='utf-8-sig'))
-        methods = {node.func.attr for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)}
-        self.assertFalse(methods & {'connect', 'db_connect', 'execute', 'sudo', 'compute_sheet', 'commit'})
-        self.assertIn('O_EXCL', Path(derive.__file__).read_text())
-
 
 if __name__ == '__main__':
     unittest.main()
