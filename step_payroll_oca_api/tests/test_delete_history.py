@@ -225,3 +225,9 @@ class OriginalHistoryDeletionCase(TransactionCase):
             run.unlink()
         self.assertEqual(called, [True])
         self.assertEqual(self._snapshot(run), before)
+        # A provider claiming partial/no-op success must not turn the parent
+        # FK into an implicit substitute for its actual child unlink chain.
+        inputs = slip.input_line_ids
+        with patch.object(type(inputs), "unlink", return_value=True), self.assertRaisesRegex(UserError, "before any cascade"):
+            run.unlink()
+        self.assertEqual(self._snapshot(run), before)
