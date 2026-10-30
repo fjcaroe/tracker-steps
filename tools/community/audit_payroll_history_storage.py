@@ -127,7 +127,7 @@ def assess(catalog, runtime=None):
         runtime_ok = all(actual[(model, name)]['required'] is required
             and actual[(model, name)]['translate'] is translate and actual[(model, name)]['store'] is True
             and actual[(model, name)]['type'] == ('many2one' if name == 'resource_calendar_id' else 'char')
-            and actual[(model, name)]['column_type'] == [kind, kind]
+            and actual[(model, name)]['column_type'] == [kind, 'VARCHAR' if kind == 'varchar' else kind]
             and actual[(model, name)]['table'] == table for model, table, name, kind, required, translate in SPECS)
         calendar = actual[('hr.contract', 'resource_calendar_id')]
         runtime_ok = runtime_ok and calendar['ondelete'] == 'set null' and calendar['comodel_name'] == 'resource.calendar'

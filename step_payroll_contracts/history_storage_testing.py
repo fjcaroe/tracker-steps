@@ -66,7 +66,7 @@ class HistoryStorageCases:
         slip, line = self._line()
         field = line._fields['name']
         self.assertFalse(field.translate)
-        self.assertEqual(field.column_type, ('varchar', 'varchar'))
+        self.assertEqual(field.column_type, ('varchar', 'VARCHAR'))
         before = self._raw(line)
         self.assertEqual(before['name'], 'Private stored name: acción  doble')
         for language in ('en_US', 'es_CL'):
