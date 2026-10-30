@@ -135,7 +135,7 @@ def main():
     prod=configparser.ConfigParser(interpolation=None);assert prod.read('/etc/odoo18-cerroelplomo.conf')
     assert prod['options']['db_name']=='CERRO_EL_PLOMO'
     roots=[root/'runtime-addons',root/'engine-addons',RUNTIME/'addons',RUNTIME/'odoo/addons']
-    required=safe_closure(roots,('step_payroll_original_report',))
+    required=safe_closure(roots,OWN)
     owner=pwd.getpwnam('odoo');data=stage/'data';data.mkdir()
     with open('/run/lock/steps-environments.lock','a') as lease:
         print('ORIGINAL_ANCHOR_WAITING_FOR_SHARED_LEASE',flush=True);fcntl.flock(lease,fcntl.LOCK_EX)
@@ -204,7 +204,7 @@ def main():
             if not path.is_symlink():os.chown(path,owner.pw_uid,owner.pw_gid)
         opts=['-c','/etc/dev_odoo18.conf','-d',database,'--db-filter=^'+database+'$', '--db_host=/var/run/postgresql',
             '--addons-path='+','.join(map(str,roots[:3])),'--data-dir='+str(data),'--load=base,web','--workers=0',
-            '--max-cron-threads=0','--without-demo=all','--no-http','--stop-after-init','-i','step_payroll_original_report']
+            '--max-cron-threads=0','--without-demo=all','--no-http','--stop-after-init','-i',','.join(OWN)]
         command=['sudo','-u','odoo','/usr/bin/python3.10',str(source/'tools/community/run_original_anchor_loader.py'),
             '--runtime',str(RUNTIME),'--database',database,'--capsule',str(stage/'capsule.json'),'--capsule-sha256',CAPSULE_SHA,
             '--identity-before',str(stage/'identity-before.json'),'--identity-before-sha256',sha(stage/'identity-before.json'),
