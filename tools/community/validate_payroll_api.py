@@ -238,6 +238,9 @@ def main():
             create+=['--tablespace='+expected]
         run(*create,args.database)
         baseline=original=history=contract=None
+        security_fk_before=security_fk_upgrade=security_fk_after=None
+        if args.critical_generation == 'T':
+            from audit_multifront_installation import capture_security_group_fk, verify_security_group_fk, readonly_sql as security_readonly_sql
         if not pure:
             assert config['options']['db_name']=='CERRO_EL_PLOMO'
             with (stage/'source.dump').open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc','CERRO_EL_PLOMO',stdout=out)
@@ -247,6 +250,9 @@ def main():
             store=data/'filestore'/args.database;store.mkdir(parents=True)
             run('rsync','-a',str(Path(config['options']['data_dir'])/'filestore/CERRO_EL_PLOMO')+'/',str(store)+'/')
             contract=runtime_contract(conf);dump_json('source-contract',contract)
+            if args.critical_generation == 'T':
+                security_fk_before=capture_security_group_fk(security_readonly_sql,args.database,'before-native-upgrade')
+                dump_json('security-group-fk-before-native-upgrade',security_fk_before)
             baseline=snapshot();original=preservation.identity_contract(args.database);history=preservation.history_contract(args.database)
             if args.accelerated:dump_json('bank-metadata-before',metadata_snapshot(sql,args.database))
             if args.multifront:dump_json('treasury-before',treasury_snapshot(sql,args.database))
@@ -313,6 +319,10 @@ def main():
                     admission[name]={'original':deployed[name],'candidate':candidate,'downgrade':False}
                 dump_json('version-admission',admission)
             execute('upgrade',['-i',','.join(name for name in modules.split(',') if name not in existing)]+(['-u',','.join(existing)] if existing else []))
+            if args.critical_generation == 'T':
+                security_fk_upgrade=capture_security_group_fk(security_readonly_sql,args.database,'after-native-upgrade')
+                dump_json('security-group-fk-after-native-upgrade',security_fk_upgrade)
+                assert verify_security_group_fk(security_fk_before,args.database,'before-native-upgrade') == verify_security_group_fk(security_fk_upgrade,args.database,'after-native-upgrade'), 'Native security FK semantics changed before functional tests'
             upgraded=snapshot();dump_json('business-after-upgrade',upgraded)
             assert same_values(baseline,upgraded),'Upgrade changed original data/counters'
         tags=(('/payroll,/payroll_account,/step_payroll_oca_api' if pure else '/step_payroll_enterprise_reference')+(',/step_simpledigital_oca_security:SimpleDigitalBoundary'+(',/step_simpledigital_oca_base' if pure else '') if simpledigital else ''))
@@ -461,6 +471,17 @@ def main():
         if bridge:assert sql(args.database,"SELECT latest_version FROM ir_module_module WHERE name='step_hr_previred_simpledigital' AND state='installed'")=='18.0.2.4.2'
         if args.critical_generation in ('S', 'T'):
             assert expected == (671 if pure else 462) and len(fp) == 513, 'S exact source/method count differs'
+        security_boundary=None
+        if args.critical_generation == 'T':
+            security_fk_after=capture_security_group_fk(security_readonly_sql,args.database,'after-tests')
+            dump_json('security-group-fk-after-tests',security_fk_after)
+            if security_fk_before:
+                assert verify_security_group_fk(security_fk_before,args.database,'before-native-upgrade') == verify_security_group_fk(security_fk_after,args.database,'after-tests'), 'Native security FK semantics changed during functional tests'
+            security_boundary={'before_native_upgrade':security_fk_before,'after_native_upgrade':security_fk_upgrade,'after_tests':security_fk_after,
+                'recorded_under_shared_environment_lease':True,'manual_security_ddl_performed_by_validator':False,
+                'before_native_upgrade_sha256':hashlib.sha256((stage/'security-group-fk-before-native-upgrade.json').read_bytes()).hexdigest() if security_fk_before else None,
+                'after_native_upgrade_sha256':hashlib.sha256((stage/'security-group-fk-after-native-upgrade.json').read_bytes()).hexdigest() if security_fk_upgrade else None,
+                'after_tests_sha256':hashlib.sha256((stage/'security-group-fk-after-tests.json').read_bytes()).hexdigest()}
         dump_json('passed',{'mode':args.mode,'profile':args.profile,'accelerated':args.accelerated,'custody_grouping':args.custody_grouping,'database':args.database,'writes_to_source':False,'package_files':len(fp),
             'source_files_sha256':hashlib.sha256((stage/'source-files.json').read_bytes()).hexdigest(),
             'counts':counts,'pdf_binary_reports':2 if binary_book else 0,'own_book_installed':book_installed,'own_book_library_only':bool(own_book and pure and not full_book),'payroll_model_registered':bool(engine_models),'oca_revision':PIN,'official_community_revision':OFFICIAL_PIN if pure else None,'historical_conversion':False,'simpledigital_certified':False,
@@ -476,6 +497,7 @@ def main():
             'quality_extension':args.quality_extension,
             'critical_extension':args.critical_extension,
             **({'critical_generation':args.critical_generation} if args.critical_generation in ('S','T') else {}),
+            **({'security_group_fk_boundary':security_boundary} if args.critical_generation == 'T' else {}),
             'quality_vendor_revision':quality_proof['oca_pin'] if args.quality_extension else None,
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,

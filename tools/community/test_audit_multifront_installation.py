@@ -57,6 +57,34 @@ def fixture(mode, operational_extensions=False, quality_extension=False, critica
     return root, passed, metadata
 
 
+def security_metadata(database, oid=7001):
+    return {'database':database,'transaction_read_only':'on','default_transaction_read_only':'on',
+        'table':{'schema':'public','name':'rule_group_rel','kind':'r'},
+        'column':{'name':'group_id','sql_type':'integer','not_null':True},
+        'models':[{'id':1,'model':'ir.rule'},{'id':2,'model':'res.groups'}],
+        'fields':[{'id':3,'model':'ir.rule','name':'groups','ttype':'many2many','relation':'res.groups','store':True},
+            {'id':4,'model':'res.groups','name':'rule_groups','ttype':'many2many','relation':'ir.rule','store':True}],
+        'foreign_keys':[{'oid':oid,'name':audit.SECURITY_GROUP_FK_NAME,'source_columns':['group_id'],
+            'target_schema':'public','target_table':'res_groups','target_columns':['id'],
+            'on_delete':'r','on_update':'a','match':'s','validated':True,'deferrable':False,'deferred':False,
+            'definition':'FOREIGN KEY (group_id) REFERENCES res_groups(id) ON DELETE RESTRICT'}]}
+
+
+def security_capture(database, phase, oid=7001):
+    return audit.capture_security_group_fk(lambda db,query:json.dumps(security_metadata(db,oid)),database,phase)
+
+
+def security_boundary(database, mode):
+    before=security_capture(database,'before-native-upgrade') if mode!='community' else None
+    upgrade=security_capture(database,'after-native-upgrade',7002) if mode!='community' else None
+    after=security_capture(database,'after-tests',7002)
+    digest=lambda item:audit.sha(json.dumps(item,indent=2).encode()) if item else None
+    return {'recorded_under_shared_environment_lease':True,'manual_security_ddl_performed_by_validator':False,
+        'before_native_upgrade':before,'after_native_upgrade':upgrade,'after_tests':after,
+        'before_native_upgrade_sha256':digest(before),'after_native_upgrade_sha256':digest(upgrade),
+        'after_tests_sha256':digest(after)}
+
+
 class MultifrontInstallationCase(unittest.TestCase):
     def test_critical_receipt_requires_its_explicit_generation_and_exact_count(self):
         for mode in ('community', 'cerro-reference'):
@@ -109,10 +137,12 @@ class MultifrontInstallationCase(unittest.TestCase):
         for mode in ('community', 'cerro-reference'):
             source, passed, metadata = fixture(mode, True, True, 'T')
             passed.update(critical_extension=True, critical_generation='T', package_files=513,
-                expected_test_count=audit.critical_tests(True, 'T')[mode])
-            proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
+                expected_test_count=audit.critical_tests(True, 'T')[mode],
+                security_group_fk_boundary=security_boundary(passed['database'],mode))
+            proof = audit.audit(lambda db, query: json.dumps(security_metadata(db,7002) if query==audit.SECURITY_GROUP_FK_QUERY else metadata), mode, source, passed,
                 operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='T')
             self.assertEqual(proof['critical_generation'], 'T')
+            self.assertTrue(proof['observed']['security_group_fk']['semantics_and_model_field_identities_preserved'])
             for altered in (dict(passed, critical_generation='S'), dict(passed, package_files=512)):
                 with self.assertRaises(ValueError):
                     audit.verify(proof, mode, source, altered, operational_extensions=True,
@@ -121,6 +151,57 @@ class MultifrontInstallationCase(unittest.TestCase):
             with self.assertRaises(ValueError):
                 audit.verify(proof, mode, old_source, passed, operational_extensions=True,
                     quality_extension=True, critical_extension=True, critical_generation='T')
+
+    def test_t_security_fk_rejects_cascade_missing_validation_wrong_namespace_and_model_fields(self):
+        database='MANAGEMENT_QA_CERRO_PAYROLL_API_SYNTHETIC'
+        original=security_capture(database,'postflight')
+        for change in ('cascade','noaction','unvalidated','deferred','deferrable','composite','target','column','name',
+                'definition','field','model','nullable','duplicate','rw','cross_database','query'):
+            altered=deepcopy(original);meta=altered['metadata'];fk=meta['foreign_keys'][0]
+            if change=='cascade':fk['on_delete']='c'
+            if change=='noaction':fk['on_delete']='a'
+            if change=='unvalidated':fk['validated']=False
+            if change=='deferred':fk['deferred']=True
+            if change=='deferrable':fk['deferrable']=True
+            if change=='composite':fk['source_columns']=['group_id','rule_group_id']
+            if change=='target':fk['target_table']='res_users'
+            if change=='column':fk['target_columns']=['other_id']
+            if change=='name':fk['name']='another_name'
+            if change=='definition':fk['definition']='FOREIGN KEY (group_id) REFERENCES res_groups(id) ON DELETE CASCADE'
+            if change=='field':meta['fields'][0]['relation']='res.users'
+            if change=='model':meta['models'][0]['model']='another.model'
+            if change=='nullable':meta['column']['not_null']=False
+            if change=='duplicate':meta['foreign_keys'].append(dict(fk,oid=8000))
+            if change=='rw':meta['transaction_read_only']='off'
+            if change=='cross_database':meta['database']='production'
+            if change=='query':altered['query_sha256']='0'*64
+            with self.subTest(change=change),self.assertRaises(ValueError):audit.verify_security_group_fk(altered,database,'postflight')
+
+    def test_t_security_boundary_requires_preupgrade_capture_lease_and_no_manual_ddl_without_oid_identity_gate(self):
+        database='MANAGEMENT_QA_CERRO_PAYROLL_API_SYNTHETIC'
+        boundary=security_boundary(database,'cerro-reference')
+        current=security_capture(database,'postflight',7002)
+        result=audit.verify_security_group_fk_boundary(boundary,'cerro-reference',database,current)
+        self.assertFalse(result['constraint_oid_unchanged'])
+        self.assertFalse(result['constraint_oid_is_business_identity_gate'])
+        self.assertTrue(result['native_before_upgrade_baseline'])
+        for change in ('before','lease','manual_ddl','before_seal','after_seal','field_identity','drift'):
+            altered=deepcopy(boundary);post=deepcopy(current)
+            if change=='before':altered['before_native_upgrade']=None
+            if change=='lease':altered['recorded_under_shared_environment_lease']=False
+            if change=='manual_ddl':altered['manual_security_ddl_performed_by_validator']=True
+            if change=='before_seal':altered['before_native_upgrade_sha256']='0'*64
+            if change=='after_seal':altered['after_tests_sha256']='0'*64
+            if change=='field_identity':post['metadata']['fields'][0]['id']=99
+            if change=='drift':post['metadata']['foreign_keys'][0]['on_delete']='c'
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                audit.verify_security_group_fk_boundary(altered,'cerro-reference',database,post)
+        cold_database='COMMUNITY_PAYROLL_API_SYNTHETIC'
+        cold=security_boundary(cold_database,'community')
+        observed=audit.verify_security_group_fk_boundary(cold,'community',cold_database,security_capture(cold_database,'postflight',7002))
+        self.assertIsNone(observed['baseline_constraint_oid']);self.assertFalse(observed['native_before_upgrade_baseline'])
+        cold['before_native_upgrade']=security_capture(cold_database,'before-native-upgrade')
+        with self.assertRaises(ValueError):audit.verify_security_group_fk_boundary(cold,'community',cold_database,security_capture(cold_database,'postflight',7002))
 
     def test_quality_profile_requires_exact_thirtythree_and_distinct_oca_native_providers(self):
         for mode, total in (('community', 31), ('cerro-reference', 27)):
