@@ -177,6 +177,25 @@ class MultifrontInstallationCase(unittest.TestCase):
             if change=='query':altered['query_sha256']='0'*64
             with self.subTest(change=change),self.assertRaises(ValueError):audit.verify_security_group_fk(altered,database,'postflight')
 
+    def test_postgresql_oid_json_encoding_requires_explicit_bigint_without_weakening_semantics(self):
+        # Actual PostgreSQL constant SELECT, observed on the local primary in
+        # READ ONLY mode: json_build_object serializes oid as a JSON string,
+        # while oid::bigint is a JSON number. No target row was read or changed.
+        observed=json.loads('{"transaction_read_only":"on","oid_untyped":"123","oid_bigint":123}')
+        self.assertIs(type(observed['oid_untyped']),str)
+        self.assertIs(type(observed['oid_bigint']),int)
+        self.assertIn("json_build_object('oid',k.oid::bigint,'name',k.conname",audit.SECURITY_GROUP_FK_QUERY)
+        self.assertNotIn("json_build_object('oid',k.oid,'name',k.conname",audit.SECURITY_GROUP_FK_QUERY)
+        database='COMMUNITY_PAYROLL_API_SYNTHETIC'
+        capture=security_capture(database,'postflight',observed['oid_bigint'])
+        self.assertEqual(capture['metadata']['foreign_keys'][0]['oid'],123)
+        for oid in (observed['oid_untyped'],True,0,None):
+            altered=deepcopy(capture);altered['metadata']['foreign_keys'][0]['oid']=oid
+            with self.subTest(oid=oid),self.assertRaises(ValueError):
+                audit.verify_security_group_fk(altered,database,'postflight')
+        altered=deepcopy(capture);altered['metadata']['foreign_keys'][0]['on_delete']='c'
+        with self.assertRaises(ValueError):audit.verify_security_group_fk(altered,database,'postflight')
+
     def test_t_security_boundary_requires_preupgrade_capture_lease_and_no_manual_ddl_without_oid_identity_gate(self):
         database='MANAGEMENT_QA_CERRO_PAYROLL_API_SYNTHETIC'
         boundary=security_boundary(database,'cerro-reference')
