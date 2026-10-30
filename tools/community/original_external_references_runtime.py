@@ -127,6 +127,8 @@ def main():
         'report=runpy.run_path(' + repr(str(local_helper)) + ')["inspect_registry"](env, '
         'source_packet_sha256=' + repr(accepted['source_files_sha256']) + ', '
         'acceptance_sha256=' + repr(sha(accepted_path)) + '); '
+        'import odoo.sql_db; report["readonly_cursor_proof"]=list(odoo.sql_db._steps_readonly_cursor_proof); '
+        'assert report["readonly_cursor_proof"] and all(row["transaction_read_only"]=="on" and row["odoo_cursor_readonly"] is True for row in report["readonly_cursor_proof"]); '
         'fd=os.open(' + repr(str(output / 'registry.json')) + ',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600); '
         'stream=os.fdopen(fd,"w"); json.dump(report,stream,indent=2,sort_keys=True); stream.close(); env.cr.rollback()')
     paths = str(stage / 'addons') + ',' + (str(runtime / 'addons') if pure else config['options']['addons_path'])
@@ -134,7 +136,7 @@ def main():
         paths = str(stage / 'consumer-addons') + ',' + paths
     entry = runtime / 'odoo-bin' if pure else source / 'tools/ops/run_agriculture_upgrade.py'
     odoo_runtime = runtime if pure else Path('/opt/odoo18')
-    command = ['sudo', '-u', user, '/usr/bin/python3.10', str(local_bootstrap), str(odoo_runtime), str(entry), 'shell', '-c', config_path,
+    command = ['sudo', '-u', user, '/usr/bin/python3.10', str(local_bootstrap), str(odoo_runtime), str(entry), database, 'shell', '-c', config_path,
         '-d', database, '--db-filter=^' + database + '$', '--addons-path=' + paths,
         '--db_host=/var/run/postgresql', '--data-dir=' + str(stage / 'data'), '--load=base,web',
         '--workers=0', '--max-cron-threads=0', '--no-http', '--http-interface=127.0.0.1',
@@ -151,7 +153,7 @@ def main():
             finally:
                 after = baseline()
                 dump('business-after', after)
-                require(protected(before) == protected(after), 'Registry changed original table values or business counters')
+                require(before == after, 'Registry changed an original table or sequence, including infrastructure')
             require(status.returncode == 0 and (output / 'registry.json').is_file(),
                 'Read-only startup failed; inspect private logs, never retry in read-write')
             log = (output / 'registry.log').read_text(errors='replace')
