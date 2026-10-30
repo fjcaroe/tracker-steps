@@ -9,7 +9,7 @@ try:
         module=env['ir.module.module'].search([('name','=',name)])
         assert module.state=='installed' and module.latest_version==version
         assert Path(importlib.import_module('odoo.addons.'+name).__file__).resolve().parent==Path(ROOT)/name
-    company=env['res.company'].search([('vat','=','76943293-0')]) if 'CERRO' in env.cr.dbname else env.ref('base.main_company')
+    company=env['res.company'].search([('vat','=','76943293-0'),('parent_id','=',False)]) if 'CERRO' in env.cr.dbname else env.ref('base.main_company')
     assert len(company)==1
     users=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1)])
     users=users.filtered(lambda u: company in u.company_ids and u.has_group('hr_payroll.group_hr_payroll_manager'))

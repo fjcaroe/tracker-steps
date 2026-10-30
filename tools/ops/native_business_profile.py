@@ -7,7 +7,7 @@ The Cerro fiscal identity is the same one used by the existing sales publisher.
 
 def scoped_business_environment(env):
     cerro = env.cr.dbname in ('CERRO_EL_PLOMO', 'QA-CERROELPLOMO') or env.cr.dbname.startswith(('MANAGEMENT_QA_CERRO_', 'MANAGEMENT_QA_QA-CERRO_'))
-    company = env['res.company'].search([('vat', '=', '76943293-0')]) if cerro else env.ref('base.main_company')
+    company = env['res.company'].search([('vat', '=', '76943293-0'), ('parent_id', '=', False)]) if cerro else env.ref('base.main_company')
     assert len(company) == 1, 'Canonical business company must be unambiguous'
     candidates = env['res.users'].search([
         ('active', '=', True), ('share', '=', False), ('id', '!=', 1),
