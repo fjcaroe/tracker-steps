@@ -119,8 +119,8 @@ class HistoryStorageCases:
         case = self.case
         calendar = case.scope['resource.calendar'].create({'name': 'Private removable history calendar',
             'company_id': case.company.id, 'attendance_ids': [Command.clear()]})
-        contract = case.contract.copy({'name': 'Private nullable calendar contract',
-            'state': 'draft', 'resource_calendar_id': calendar.id})
+        contract = case.contract.with_env(self.env).copy({'name': 'Private nullable calendar contract',
+            'state': 'draft', 'resource_calendar_id': calendar.id}).with_env(case.scope)
         self.assertFalse(contract.env.su)
         field = contract._fields['resource_calendar_id']
         self.assertFalse(field.required)
