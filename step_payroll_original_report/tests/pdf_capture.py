@@ -75,6 +75,8 @@ def capture_pdf_pipeline(reports, output, company_name, country_name):
         fields = ['id', 'format', 'page_height', 'page_width', 'orientation', 'margin_top',
                   'margin_bottom', 'margin_left', 'margin_right', 'header_line',
                   'header_spacing', 'dpi', 'disable_shrinking']
+        if 'css_margins' in paperformat_id._fields:
+            fields.append('css_margins')
         result['argument_calls'].append({
             'environment': environment(records),
             'paperformat': paperformat_id.read(fields) if paperformat_id else [],
