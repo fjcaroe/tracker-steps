@@ -36,6 +36,19 @@ def fixture():
 
 
 class TypedDefaultCase(unittest.TestCase):
+    def test_partition_never_normalizes_planned_deltas_or_authorizes_unresolved_security(self):
+        reference = {'blockers': [{'code': 'original-xmlid-pk-or-owner-not-adopted', 'original_pk': 17},
+            {'code': 'original-report462-occupied-by-another-action-family-or-missing'},
+            {'code': 'serialized-configuration', 'table': 'ir_ui_view', 'field': 'arch_db'}]}
+        before = deepcopy(reference)
+        result = defaults.guard_partition(reference)
+        self.assertEqual(len(result['identity_target_deltas_requiring_explicit_plan']), 2)
+        self.assertEqual(len(result['unresolved_binding_or_semantic_guards']), 1)
+        self.assertFalse(result['inherited_guards_removed'])
+        self.assertFalse(result['deltas_authorized_by_classifier'])
+        self.assertFalse(result['writer_authorized'])
+        self.assertEqual(reference, before)
+
     def test_numbers_bind_to_field_comodel_not_coincident_report_ids(self):
         reference, registry, row = fixture()
         result = defaults.classify([row], reference, registry)[0]

@@ -160,6 +160,15 @@ def endpoint_plan(rows, classified, registry):
     return refs.endpoint_queries(paths, observations, registry)
 
 
+def guard_partition(reference):
+    """Categorization is not a plan approval or removal of admission guards."""
+    identity_codes = {'original-xmlid-pk-or-owner-not-adopted', 'referenced-target-record-missing',
+        'original-report462-occupied-by-another-action-family-or-missing'}
+    return {'identity_target_deltas_requiring_explicit_plan': [row for row in reference['blockers'] if row['code'] in identity_codes],
+        'unresolved_binding_or_semantic_guards': [row for row in reference['blockers'] if row['code'] not in identity_codes],
+        'inherited_guards_removed': False, 'deltas_authorized_by_classifier': False, 'writer_authorized': False}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('reference-report', 'registry-proof', 'output'):
@@ -187,6 +196,7 @@ def main():
     report = {'schema': 1, 'database': reference['database'], 'read_only': True, 'database_writes': False,
         'orm_loaded': False, 'conditions_or_code_evaluated': False, 'writer_authorized': False,
         'inherited_guard_count': len(reference['blockers']), 'inherited_guards_unchanged': True,
+        'inherited_guard_partition': guard_partition(reference),
         'source_contract': SOURCE, 'source_reference_sha256': refs.sha(args.reference_report),
         'registry_sha256': refs.sha(args.registry_proof), 'tool_sha256': refs.sha(__file__),
         'physical_contract': binding, 'queries': dict(statements, **endpoints), 'two_snapshots_exact': True,
