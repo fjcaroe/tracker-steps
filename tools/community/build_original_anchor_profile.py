@@ -16,6 +16,7 @@ import build_numeric_input_engine as numeric
 import build_original_bootstrap as cold
 from derive_original_anchor_company import apply_original_company_derivation
 from derive_original_anchor_properties import apply_original_property_derivation
+from derive_original_payroll_storage import apply_anchor_storage_derivation
 
 
 OWN = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
@@ -48,7 +49,8 @@ def ui_profile(manifest, files):
     return (repr(spec) + '\n').encode(), {'kept_ui': selected, 'omitted_seed_and_policy': omitted}
 
 
-def build(root, runtime, oca, provider):
+def build(root, runtime, oca, provider, *, original_storage=False, schema_plan=None):
+    assert type(original_storage) is bool and ((schema_plan is not None) is original_storage)
     root, runtime, oca, provider = map(Path, (root, runtime, oca, provider))
     source = root / 'source'
     assert all((source / name / '__manifest__.py').is_file() for name in OWN)
@@ -60,6 +62,9 @@ def build(root, runtime, oca, provider):
         ignore=shutil.ignore_patterns('__pycache__'))
     property_derivation = apply_original_property_derivation(oca, engine,
         Path('/opt/steps-validation/community-original-config-20261029/configuration-capsule-C.json'))
+    if original_storage:
+        storage_derivation = apply_anchor_storage_derivation(oca, engine, schema_plan,
+            Path('/opt/steps-validation/community-original-config-20261029/configuration-capsule-C.json'))
     changes = {}
     for module in ('payroll', 'payroll_account'):
         folder = engine / module
@@ -106,6 +111,8 @@ def build(root, runtime, oca, provider):
         'original_security_policy_required': True, 'new_groups_or_memberships_created': False,
         'default_upstream_security_installed': False, 'all_products_operational': False,
         'deadline_resolved': False}
+    if original_storage:
+        proof['original_storage_derivation'] = storage_derivation
     cold._write_receipt(root / 'anchor-profile.json', proof)
     for folder in (engine, root / 'owned-profile'):
         for path in (folder, *folder.rglob('*')):
@@ -116,6 +123,9 @@ def build(root, runtime, oca, provider):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('root', 'runtime', 'oca', 'provider'):parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--original-storage', action='store_true')
+    parser.add_argument('--schema-plan', type=Path)
     args = parser.parse_args()
-    build(args.root, args.runtime, args.oca, args.provider)
+    build(args.root, args.runtime, args.oca, args.provider,
+        original_storage=args.original_storage, schema_plan=args.schema_plan)
     print('PRIVATE_ORIGINAL_ANCHOR_PROFILE_BUILT')
