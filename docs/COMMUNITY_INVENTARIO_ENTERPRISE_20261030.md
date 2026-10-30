@@ -287,16 +287,16 @@ Los módulos operativos requieren aceptación Community; separar herramientas de
 | `step_simpledigital_oca_security` | 10 | 0 |
 | `step_treasury_community_reports` | 0 | 0 |
 
-## Perfil técnico Q4 y fuentes externas
+## Perfil técnico R3 y fuentes externas
 
 La matriz usa manifiestos productivos de proveedores externos al repo. Por eso
 rutas de adaptadores opcionales pueden alcanzar el Simple Digital nativo; no
-representan el overlay Community normal probado. La pareja Q4 de
-[COMMUNITY_CLAUSURA_CALIDAD.md](COMMUNITY_CLAUSURA_CALIDAD.md) verifica aparte
+representan el overlay Community normal probado. La pareja R3 de
+[COMMUNITY_PAGOS_CERTIFICADOS.md](COMMUNITY_PAGOS_CERTIFICADOS.md) verifica aparte
 el proveedor AGPL normal de 52 archivos, los tres vendors OCA LGPL y Calidad
 AGPL de 114 archivos, con 120 instalados/cero EE. Las fuentes no inventariadas
 en adaptadores OCA se refieren al inventario instalado productivo; su procedencia
-libre y blobs reales quedan probados por separado en la cápsula Q4.
+libre y blobs reales quedan probados por separado en la cápsula R3.
 `step_payroll_benefits_native_reference` y `step_qa_native_reference` son
 referencias de clones nativos, no apps Community ni candidatos de retiro.
 Los tres addons de Calidad se incluyen ahora en los 133 módulos propios/37

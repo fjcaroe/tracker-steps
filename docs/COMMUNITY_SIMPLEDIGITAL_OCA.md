@@ -1,17 +1,17 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
-Estado vigente y siguiente prompt: [COMMUNITY_CLAUSURA_CALIDAD.md](COMMUNITY_CLAUSURA_CALIDAD.md).
-Q4 valida 33 addons propios: Calidad OCA real y consumidores nativos separados,
-cabecera corporativa repetida y regresión D/H conservada. Pasaron 646 casos
-Community/441 referencia nativa, cero fallos/errores; 120/397 instalados y
-0/140 EE. Conserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs;
-1.060 snapshots literales y testigo numérico propio Q4, sin Float ni redondeo.
-La auditoría física readonly de referencias originales conserva 120 maestros/
-71 reglas nativos; no los importa ni reserva la acción 462 ocupada. Continúan
-54 apps instaladas con caminos EE, coadopción/certificación SyS, DTE completo,
-Calidad nativa, demás productos y conversión integral cero EE pendientes.
-El defecto técnico de cabecera pasó seis páginas; aceptación productiva/legal
-sigue abierta. Producción conserva 140 EE. El 31 sigue en riesgo alto.
+Estado vigente y siguiente prompt: [COMMUNITY_PAGOS_CERTIFICADOS.md](COMMUNITY_PAGOS_CERTIFICADOS.md).
+R3 valida 33 addons propios/508 archivos: aplicación contable de pagos nuevos,
+admisión HR normal y cadena/CRL DTE offline, con Q4/D/H conservados. Pasaron
+665 casos Community/457 referencia nativa, cero fallos/errores; 120/397
+instalados y 0/140 EE. Se preservan 921 tablas/proyecciones, 140 contadores y
+59.079 XML IDs, con 1.060 snapshots literales y testigo numérico tipado R3.
+La clausura readonly de Calendar/Activity/Rating reduce guardas 116→113 CE y
+27→24 nativas; no importa los 120 maestros/71 reglas ni reserva 462 ocupado.
+Continúan 54 apps instaladas con caminos EE, coadopción/certificación SyS,
+DTE completo, Calidad nativa y conversión integral cero EE pendientes.
+La impresión técnica pasó seis páginas; aceptación productiva/legal abierta.
+Producción conserva 140 EE. El 31 sigue en riesgo alto. Ver detalle y prompt.
 El contenido inferior conserva su alcance histórico.
 
 ## Contrato del bloque

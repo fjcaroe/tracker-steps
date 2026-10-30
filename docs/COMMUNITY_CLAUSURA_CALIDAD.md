@@ -1,5 +1,10 @@
 # Calidad real, cabecera y referencias originales — 30-10-2026
 
+Estado posterior: [Pagos y certificados R3](COMMUNITY_PAGOS_CERTIFICADOS.md),
+665/457 casos, conserva Q4 y añade aplicación contable, admisión HR y PKIX/CRL.
+Esta hoja mantiene su aceptación y evidencia originales; no es conversión integral.
+
+
 Base canónica `f28f1d2c`, posterior a
 [extensiones operacionales D](COMMUNITY_EXTENSIONES_OPERACIONALES.md). Rama propia
 `codex/community-original-closure-20261030`; paquete Q4 congelado en `e6e856ab`.

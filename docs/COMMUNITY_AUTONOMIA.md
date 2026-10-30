@@ -25,7 +25,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_CLAUSURA_CALIDAD.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_PAGOS_CERTIFICADOS.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
    COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 100 apps propias instaladas,
@@ -59,15 +59,16 @@ cohortes SyS, fuentes privadas y permisos que sigan sin resolver.
 
 ## Último bloque técnico aceptado
 
-[Clausura Calidad Q4](COMMUNITY_CLAUSURA_CALIDAD.md): 646 casos CE /
-441 nativos, 33 addons propios, 120/397 instalados y 0/140 EE. Preservación de
-921 tablas/proyecciones, 140 contadores y 59.079 XML IDs; evidencia privada
-verificada offline contra Git. Calidad funciona sobre OCA; la identidad nativa
-sigue pendiente. La cabecera corporativa técnica pasó seis páginas repetidas,
-sin aceptación productiva/legal. La auditoría física readonly no importa los
-120 maestros/71 reglas ni reserva IDs ocupados. Continúan 54 apps con caminos
-EE, coadopción original/certificación SyS, DTE completo y conversión integral.
-El 31 sigue en riesgo alto; mantener límites y programación activa.
+[Pagos, certificados y admisión R3](COMMUNITY_PAGOS_CERTIFICADOS.md): 665 casos CE /
+457 nativos, 33 addons propios/508 archivos, 120/397 instalados y 0/140 EE.
+Preserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs; evidencia
+privada verificada offline contra Git. Aplica pagos nuevos a facturas vinculadas
+sin conciliación bancaria, cierra admisión HR con UID normal y añade PKIX/CRL
+DTE offline; ninguna operación habilita emisión fiscal. Clausura readonly de
+tres discriminadores: guardas 116→113 CE y 27→24 nativas, sin importar maestros.
+Continúan 54 apps con caminos EE, coadopción original/certificación SyS,
+DTE completo, Calidad nativa y conversión integral pendientes. El 31 sigue en
+riesgo alto; mantener límites y programación activa. Q4/D/H se conservan.
 
 ## Orden de trabajo y puertas de aceptación
 
