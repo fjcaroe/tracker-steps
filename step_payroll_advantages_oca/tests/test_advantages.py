@@ -207,6 +207,22 @@ class ContractAdvantageCase(StoredReportFixture, TransactionCase):
         self.assertEqual(foreign.with_env(foreign_scope).amount, before)
         with TestCase.assertRaisesRegex(self, UserError, 'still uses this contract'):
             contract.with_env(foreign_scope).unlink()
+        # Shared account admission must run before advantage selection, even
+        # when a selected draft in the mixed batch has no actual contract.
+        self.actor.write({'company_ids': [Command.link(foreign_company.id)]})
+        own = self._slip().with_context(allowed_company_ids=[self.company.id, foreign_company.id])
+        other = own.env['hr.payslip'].with_company(foreign_company).create({
+            'name': 'Private other advantage company draft', 'number': 'PRIVATE/ADV/OTHER',
+            'employee_id': employee.id, 'company_id': foreign_company.id,
+            'contract_id': False, 'struct_id': False,
+            'date_from': own.date_from, 'date_to': own.date_to})
+        batch = own | other.with_env(own.env)
+        unchanged = self._snapshot(batch)
+        with TestCase.assertRaisesRegex(self, UserError, 'original company context'):
+            own.with_company(foreign_company).action_payslip_done()
+        with TestCase.assertRaisesRegex(self, UserError, 'original company context'):
+            batch.action_payslip_done()
+        self.assertEqual(self._snapshot(batch), unchanged)
 
     def test_nonfinite_or_reversed_limits_and_changed_template_fail_atomically(self):
         names = ['contract_id', 'advantage_template_id', 'amount']
