@@ -40,7 +40,9 @@ de sus límites reales. Crear o cambiar valor/plantilla comprueba referencias y
 límites dentro de una transacción; cambiar límites después del cálculo se
 vuelve a comprobar antes del asiento. Las cantidades y tasas se aplican por
 la **regla salarial OCA real**, no mediante un campo de cantidad inventado
-en ventajas. No se añade un redondeo ajeno al cálculo ya vigente del motor.
+en ventajas. En reglas Python se usan `result_qty` y `result_rate`, tal como
+requiere el proveedor; el campo `quantity` no sustituye ese resultado de la
+regla de código. No se añade un redondeo ajeno al cálculo vigente del motor.
 
 Los métodos de lectura, copia y mutación de los valores y plantillas conservan
 el UID normal aun con sudo entrante. Los valores de otra compañía no se
