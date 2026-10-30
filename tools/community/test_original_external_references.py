@@ -197,12 +197,23 @@ class OriginalExternalReferencesCase(unittest.TestCase):
             rows[path['observation']] = [{'owner_pk': {'original_id': 1, 'external_id': 77} if path['kind'] == 'registry-many2many' else {'id': 1},
                 'target_model': 'external.master', 'target_id': 77,
                 'company_id': 9 if path['kind'] == 'registry-company-json' else None}]
+        json_path = next(path for path in selected if path['kind'] == 'registry-company-json')
+        rows[json_path['observation']].append({'owner_pk': {'id': 1}, 'target_model': 'external.master',
+            'target_id': None, 'company_id': 10})
+        self.assertIn("j.value='null'::jsonb", queries[json_path['observation']])
+        self.assertIn('BETWEEN 1 AND 2147483647', queries[json_path['observation']])
         _, endpoints = audit.endpoint_queries(paths, rows, registry)
         external = next(row for row in endpoints if row['model'] == 'external.master')
         company = next(row for row in endpoints if row['model'] == 'res.company')
         self.assertEqual((external['table'], external['ids']), ('actual_external_storage', [77]))
-        self.assertEqual((company['table'], company['ids']), ('actual_company_storage', [9]))
+        self.assertEqual((company['table'], company['ids']), ('actual_company_storage', [9, 10]))
         self.assertNotIn('external.master', scope)
+        expanded = deepcopy(scope)
+        expanded['external.master'] = {'table': 'actual_external_storage', 'ids': [3]}
+        expanded_queries, expanded_paths, expanded_blockers = audit.compile_paths(catalog, registry, expanded)
+        self.assertFalse(expanded_blockers)
+        rel_path = next(path for path in expanded_paths if path['kind'] == 'registry-many2many' and path['table'] == 'original_external_rel')
+        self.assertIn('"external_id" IN (3) OR t."original_id" IN (1,2,3,4)', expanded_queries[rel_path['observation']])
         unknown = deepcopy(rows)
         dynamic = next(path for path in selected if path.get('target_model_from_row'))
         unknown[dynamic['observation']][0]['target_model'] = 'unloaded.master'

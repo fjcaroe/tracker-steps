@@ -329,9 +329,12 @@ def compile_paths(catalog, registry, scope):
                 if rel not in tables or not actual(left, owner_target) or not actual(right, target_table):
                     blockers.append({'code': 'many2many-actual-table-column-fks-not-proven', 'model': model_name, 'field': name})
                     continue
-                add('registry-many2many', rel, right, target, 't.' + ident(right),
-                    ('t.' + ident(right) + ' IN ' + ids(scope[target]['ids'])) if incoming else
-                        ('t.' + ident(left) + ' IN ' + ids(scope[model_name]['ids'])),
+                predicates = []
+                if incoming:
+                    predicates.append('t.' + ident(right) + ' IN ' + ids(scope[target]['ids']))
+                if original_owner:
+                    predicates.append('t.' + ident(left) + ' IN ' + ids(scope[model_name]['ids']))
+                add('registry-many2many', rel, right, target, 't.' + ident(right), '(' + ' OR '.join(predicates) + ')',
                     target_table=target_table, owner_model=model_name,
                     owner_field=name, owner_relation_column=left, constraint_enforced=True)
                 continue
@@ -365,10 +368,18 @@ def compile_paths(catalog, registry, scope):
                 integer = "CASE WHEN jsonb_typeof(j.value)='number' AND (j.value#>>'{}') ~ '^[1-9][0-9]{0,9}$' THEN (j.value#>>'{}')::bigint END"
                 company = "CASE WHEN j.key ~ '^[1-9][0-9]{0,9}$' THEN j.key::bigint END"
                 source = "jsonb_each(CASE WHEN jsonb_typeof(" + value + ")='object' THEN " + value + " ELSE '{}'::jsonb END) j"
-                predicate = integer + ' IN ' + ids(scope[target]['ids']) if incoming else integer + ' IS NOT NULL'
+                predicates = []
+                if incoming:
+                    predicates.append(integer + ' IN ' + ids(scope[target]['ids']))
+                if original_owner:
+                    # A JSON-null value still has an explicit company key. It
+                    # is not a target record, but its company must be bound.
+                    predicates.append('(t.id IN ' + ids(scope[model_name]['ids']) + ' AND (' + integer
+                        + " IS NOT NULL OR j.value='null'::jsonb))")
+                predicate = '(' + ' OR '.join(predicates) + ') AND ' + company + ' BETWEEN 1 AND 2147483647 AND (' + integer + ' IS NULL OR ' + integer + '<=2147483647)'
                 queries[key] = ('SELECT ' + _owner_sql(owner) + ' AS owner_pk,' + literal(target) + ' AS target_model,'
                     + integer + ' AS target_id,' + company + ' AS company_id FROM public.' + ident(table)
-                    + ' t CROSS JOIN LATERAL ' + source + ' WHERE ' + predicate + owner_filter
+                    + ' t CROSS JOIN LATERAL ' + source + ' WHERE ' + predicate
                     + ' ORDER BY owner_pk,company_id,target_id')
                 paths.append({'kind': 'registry-company-json', 'table': table, 'field': name, 'target_model': target,
                     'target_table': models[target]['table'], 'owner_key': owner, 'observation': key, 'owner_model': model_name})
@@ -443,7 +454,12 @@ def compile_paths(catalog, registry, scope):
                     continue
                 enforced = any(fk['source_table'] == table and fk['source_columns'] == [name]
                     and fk['target_table'] == models[target]['table'] and fk['validated'] for fk in catalog['foreign_keys'])
-                predicate = value + ' IN ' + ids(scope[target]['ids']) if incoming else value + ' IS NOT NULL' + owner_filter
+                predicates = []
+                if incoming:
+                    predicates.append(value + ' IN ' + ids(scope[target]['ids']))
+                if original_owner:
+                    predicates.append('(' + value + ' IS NOT NULL AND t.id IN ' + ids(scope[model_name]['ids']) + ')')
+                predicate = '(' + ' OR '.join(predicates) + ')'
                 add('registry-many2one', table, name, target, value, predicate,
                     target_table=models[target]['table'],
                     owner_model=model_name, constraint_enforced=enforced)
