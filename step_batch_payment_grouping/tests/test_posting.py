@@ -172,12 +172,20 @@ class BatchDraftPaymentPostingCase(AccountTestInvoicingCommon):
                 batch.unlink()
 
     def test_cash_outstanding_configuration_is_rejected_before_relation_changes(self):
-        batch = self._group()
-        self.payments.payment_method_line_id.payment_account_id = self.journal.default_account_id
-        before = self._snapshot()
+        method = self.journal.outbound_payment_method_line_ids.filtered(
+            lambda line: line.payment_method_id.code == 'manual')[:1]
+        method.payment_account_id = self.journal.default_account_id
+        # Official outstanding_account_id is stored and depends only on the
+        # method-line FK. Changing that line's configuration does not rewrite
+        # existing payments; configure first, then exercise real new drafts.
+        payments = self._payment(100) | self._payment(250)
+        self.assertEqual(payments.outstanding_account_id, self.journal.default_account_id)
+        self.assertEqual(payments.outstanding_account_id.account_type, 'asset_cash')
+        batch = self._group(payments)
+        before = self._snapshot(payments)
         with self.assertRaisesRegex(UserError, 'distinta de efectivo'):
             self.service.post_group_draft_payments(batch.id)
-        self.assertEqual(self._snapshot(), before)
+        self.assertEqual(self._snapshot(payments), before)
 
     def test_real_provider_failure_rolls_back_moves_states_and_membership(self):
         batch = self._group()
