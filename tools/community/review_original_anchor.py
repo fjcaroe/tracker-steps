@@ -47,8 +47,8 @@ def physical_schema(database, tables):
         "JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
         "LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='public' "
         "AND a.attnum>0 AND NOT a.attisdropped AND c.relname IN ("+names+")) x),"
-        "'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,name) FROM (SELECT c.relname table_name,"
-        "k.conname name,k.contype kind,k.convalidated valid,md5(pg_get_constraintdef(k.oid)) definition_md5 "
+        "'constraints',(SELECT jsonb_agg(to_jsonb(x) ORDER BY table_name,\"name\") FROM (SELECT c.relname table_name,"
+        "k.conname AS \"name\",k.contype kind,k.convalidated valid,md5(pg_get_constraintdef(k.oid)) definition_md5 "
         "FROM pg_constraint k JOIN pg_class c ON c.oid=k.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
         "WHERE n.nspname='public' AND c.relname IN ("+names+")) x))")
     return json.loads(sql(database,query))
