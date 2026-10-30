@@ -6,6 +6,7 @@ from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 from odoo.tools import mute_logger
+from odoo.addons.step_payroll_oca_api.models.original_history_deletion import _admit_original_company_storage
 
 
 @tagged("post_install", "-at_install")
@@ -134,6 +135,20 @@ class OriginalHistoryDeletionCase(TransactionCase):
             with self.env.cr.savepoint():
                 slip.company_id = False
         self.assertEqual(slip.company_id, self.company)
+        # Primitive PostgreSQL storage witness, not a replacement payslip
+        # model. Existing NULL must be rejected before any default initializer.
+        self.env.cr.execute("CREATE TEMP TABLE step_private_original_company_policy (id integer,company_id integer)")
+        self.env.cr.execute("INSERT INTO step_private_original_company_policy VALUES (1,NULL)")
+        with self.assertRaisesRegex(UserError, "no owner"):
+            _admit_original_company_storage(self.env.cr, "step_private_original_company_policy")
+        self.env.cr.execute("SELECT id,company_id FROM step_private_original_company_policy")
+        self.assertEqual(self.env.cr.fetchall(), [(1, None)])
+        self.env.cr.execute("DELETE FROM step_private_original_company_policy")
+        _admit_original_company_storage(self.env.cr, "step_private_original_company_policy")
+        self.env.cr.execute("INSERT INTO step_private_original_company_policy VALUES (2,%s)", (self.company.id,))
+        _admit_original_company_storage(self.env.cr, "step_private_original_company_policy")
+        self.env.cr.execute("SELECT id,company_id FROM step_private_original_company_policy")
+        self.assertEqual(self.env.cr.fetchall(), [(2, self.company.id)])
 
     def test_mixed_companies_reject_the_entire_normal_or_sudo_request(self):
         run, slip = self._batch()

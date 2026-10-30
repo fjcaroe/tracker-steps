@@ -11,6 +11,22 @@ from odoo.exceptions import UserError
 from odoo.addons.step_payroll_contracts.history import assert_mutable
 
 
+def _admit_original_company_storage(cr, table):
+    """Block Odoo's required-field default initializer on existing NULLs."""
+    cr.execute("SELECT to_regclass(%s) IS NOT NULL", (table,))
+    if not cr.fetchone()[0]:
+        return
+    cr.execute("SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass(%s) "
+        "AND attname='company_id' AND attnum>0 AND NOT attisdropped", (table,))
+    exists = bool(cr.fetchone())
+    statement = sql.SQL("SELECT 1 FROM {}").format(sql.Identifier(table))
+    if exists:
+        statement += sql.SQL(" WHERE company_id IS NULL")
+    cr.execute(statement + sql.SQL(" LIMIT 1"))
+    if cr.fetchone():
+        raise UserError(_("Adopt the original payslip company before enabling required storage; no owner will be inferred."))
+
+
 def _access(records, names):
     records.check_access("read")
     records.check_access("unlink")
@@ -65,6 +81,10 @@ class Payslip(models.Model):
 
     company_id = fields.Many2one(required=True, ondelete="restrict")
     payslip_run_id = fields.Many2one(ondelete="cascade")
+
+    def _auto_init(self):
+        _admit_original_company_storage(self.env.cr, self._table)
+        return super()._auto_init()
 
 
 class PayslipRun(models.Model):
