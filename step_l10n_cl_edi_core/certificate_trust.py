@@ -100,7 +100,7 @@ def verify_signer_trust(certificate_der, fingerprint_sha256, signed_at, policy):
         and len(policy.complete_crls_der) == len(policy.intermediates_der) + 1, 'complete-path-and-crls')
     for raw, pin in ((certificate_der, fingerprint_sha256),
                      (policy.root.certificate_der, policy.root.fingerprint_sha256)):
-        require(type(raw) is bytes and type(pin) is str and re.fullmatch('[0-9a-f]{64}', pin)
+        require(type(raw) is bytes and 0 < len(raw) <= 65536 and type(pin) is str and re.fullmatch('[0-9a-f]{64}', pin)
             and hmac.compare_digest(_sha(raw), pin), 'pin-mismatch')
     raw_chain = (certificate_der, *policy.intermediates_der, policy.root.certificate_der)
     require(all(type(raw) is bytes and 0 < len(raw) <= 65536 for raw in raw_chain), 'certificate-size-or-type')

@@ -132,7 +132,7 @@ class DTESignatureCaseMixin:
 
     def test_pkix_crl_time_scope_signature_and_complete_path_are_required(self):
         original, unsigned, context = self.fixture()
-        for options in ({'age': 86401}, {'crl_extra': (x509.DeltaCRLIndicator(1), True)},
+        for options in ({'age': 86401}, {'age': -1}, {'future': -1}, {'future': 0}, {'crl_extra': (x509.DeltaCRLIndicator(1), True)},
                         {'root_crl_extra': (x509.FreshestCRL([]), False)}):
             with self.subTest(options=options):
                 pin, policy = chain_fixture(self.document_key, **options)
@@ -153,6 +153,7 @@ class DTESignatureCaseMixin:
         original, unsigned, context = self.fixture()
         pin, policy = chain_fixture(self.document_key)
         variants = (False, {}, replace(policy, root=replace(policy.root, fingerprint_sha256='0' * 64)),
+            replace(policy, root=replace(policy.root, certificate_der=b'x' * 65537)),
             replace(policy, intermediates_der=(None,)), replace(policy, max_crl_age_seconds=True),
             replace(policy, intermediates_der=(policy.root.certificate_der,)),
             replace(policy, complete_crls_der=(policy.complete_crls_der[0] + b'trailing', policy.complete_crls_der[1])))

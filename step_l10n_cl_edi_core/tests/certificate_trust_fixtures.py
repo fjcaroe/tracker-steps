@@ -45,7 +45,7 @@ def crl(key, name, *, revoked=(), age=3600, future=3600, extra=None, wrong_key=N
 
 
 def chain_fixture(leaf_key, *, root_path_length=1, leaf_extra=None, revoked_leaf=False,
-                  revoked_intermediate=False, crl_extra=None, root_crl_extra=None, age=3600):
+                  revoked_intermediate=False, crl_extra=None, root_crl_extra=None, age=3600, future=3600):
     root_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     middle_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     def name(text):
@@ -58,7 +58,7 @@ def chain_fixture(leaf_key, *, root_path_length=1, leaf_extra=None, revoked_leaf
     pin = CertificatePin(der(leaf), hashlib.sha256(der(leaf)).hexdigest())
     policy = CertificateTrustPolicy(RootAnchor(der(root), hashlib.sha256(der(root)).hexdigest()),
         (der(middle),), (crl(middle_key, middle_name, revoked=(3,) if revoked_leaf else (),
-            extra=crl_extra, age=age), crl(root_key, root_name,
+            extra=crl_extra, age=age, future=future), crl(root_key, root_name,
             revoked=(2,) if revoked_intermediate else (), extra=root_crl_extra)), 86400)
     return pin, policy
 
