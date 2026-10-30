@@ -28,7 +28,7 @@ sha = base.sha
 read = base.read
 safe_path = base.safe_path
 TOOLS = tuple(dict.fromkeys(base.TOOLS + ('build_numeric_input_engine.py',
-    'audit_stock_package_representation.py', 'audit_product_frontier.py',)))
+    'audit_stock_package_representation.py', 'audit_product_frontier.py', 'collect_original_contracts.py',)))
 TEST_CLASSES = (
     ('step_payroll_oca_api/tests/test_saved_inputs.py', 'SavedInputValuesCase', 6),
     ('step_simpledigital_oca_base/tests/test_existing_batch.py', 'ExistingDraftBatchCase', 6),
@@ -358,6 +358,13 @@ def verify_inventory(root, source):
     base.no_flags(delta, ('orm_loaded', 'database_writes'))
     require(delta['current_inventory_sha256'] == sha(safe_path(root, 'inventory/products-inventory.json').read_bytes()),
         'inventory delta references another inventory')
+    original_bytes = safe_path(root, 'inventory/original-delta.json').read_bytes()
+    original = read(root, 'inventory/original-delta.json')
+    require(original['read_only'] is True and original['source_bodies_exported'] is False,
+        'original inventory delta scope differs')
+    require(delta == dict(original, current_inventory_sha256=original['current_sha256'], orm_loaded=False,
+        database_writes=False, original_delta_sha256=sha(original_bytes)),
+        'inventory alias or original delta seal/content differs')
     return {'products': counts, 'source': 'fresh_readonly_installed_module_metadata',
         'all_products_converted': False}
 
@@ -366,6 +373,7 @@ def verify(evidence, *, repo=None):
     root = Path(evidence).resolve()
     repo = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
     source = git_sources(repo)
+    base.tool_hash(sha(safe_path(root, 'collector.py').read_bytes()), 'collect_original_contracts.py', source)
     verify_executed_tools(root, source)
     packet, _ = verify_packets(root, source)
     verify_baseline(root)

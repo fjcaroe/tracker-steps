@@ -139,6 +139,38 @@ class OriginalContractsEvidenceCase(unittest.TestCase):
             with self.assertRaises(verifier.base.EvidenceError):
                 verifier.base.test_result(['0 failed, 0 error(s) of %s tests' % count], 25)
 
+    def test_inventory_alias_is_bound_to_the_exact_original_readonly_delta(self):
+        auditor = b'# synthetic trusted inventory auditor\n'
+        report = {'read_only': True, 'orm_loaded': False, 'business_data_exported': False,
+            'source_bodies_exported': False, 'enterprise_sources_copied': False,
+            'tool_sha256': verifier.sha(auditor), 'products': {}}
+        for name in ('cerro', 'steps', 'sys'):
+            report['products'][name] = {'modules': [{'name': 'step_synthetic', 'license': 'AGPL-3'},
+                {'name': 'synthetic_enterprise', 'license': 'OEEL-1'}], 'installed': 2, 'enterprise': 1, 'own': 1}
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            inventory = root / 'inventory'
+            inventory.mkdir()
+            (inventory / 'auditor.py').write_bytes(auditor)
+            (inventory / 'products-inventory.json').write_text(json.dumps(report))
+            original = {'read_only': True, 'source_bodies_exported': False,
+                'current_sha256': verifier.sha((inventory / 'products-inventory.json').read_bytes()),
+                'previous_sha256': '0' * 64, 'changed_modules': {}}
+            (inventory / 'original-delta.json').write_text(json.dumps(original))
+            delta = dict(original, current_inventory_sha256=original['current_sha256'], orm_loaded=False,
+                database_writes=False, original_delta_sha256=verifier.sha((inventory / 'original-delta.json').read_bytes()))
+            (inventory / 'inventory-delta.json').write_text(json.dumps(delta))
+            source = {'tools/community/audit_product_frontier.py': auditor}
+            verifier.verify_inventory(root, source)
+            original['changed_modules'] = {'synthetic': ['unreported']}
+            (inventory / 'original-delta.json').write_text(json.dumps(original))
+            with self.assertRaisesRegex(verifier.base.EvidenceError, 'delta seal/content'):
+                verifier.verify_inventory(root, source)
+            delta['original_delta_sha256'] = verifier.sha((inventory / 'original-delta.json').read_bytes())
+            (inventory / 'inventory-delta.json').write_text(json.dumps(delta))
+            with self.assertRaisesRegex(verifier.base.EvidenceError, 'delta seal/content'):
+                verifier.verify_inventory(root, source)
+
 
 if __name__ == '__main__':
     unittest.main()
