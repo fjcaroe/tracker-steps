@@ -57,6 +57,38 @@ cuentan como importación completada de los 120 maestros o certificación fiscal
 
 El contrato histórico y la brecha operacional completa se conservan debajo.
 
+### Roles del backend: dos aliases nuevos, ninguna concesión implícita
+
+`step_payroll_contracts.original_payroll_roles` prepara exclusivamente
+`payroll.group_payroll_user` y `payroll.group_payroll_manager` hacia los dos
+`res.groups` nativos ya existentes. No modifica los aliases originales, grupos,
+miembros, implicaciones, ACL ni reglas. El escritor crea sólo esos dos aliases
+nuevos; una colisión no autoriza actualizarla. La verificación posterior exige
+hashes literales de grupos, membresías e implicaciones, y de las ACL/reglas y
+grupos de campo de los modelos comunes originales. No se infiere equivalencia
+de dominios ni paridad funcional de roles sólo por coincidir nombres.
+
+El XML LGPL de OCA declara dos grupos, miembros root/admin en manager y un
+tercer registro que añade manager a `base.default_user`. Sus reglas de grupo
+también pueden ampliar visibilidad por OR con reglas nativas. El perfil
+anclado del coordinador debe omitir **los dos archivos completos**
+`security/hr_payroll_security.xml` y `security/ir.model.access.csv`, preservando
+la política original, en vez de cargar sus concesiones sobre los grupos ligados.
+La derivación del proveedor y su prueba de procedencia pertenecen al coordinador.
+
+Los modelos reales LGPL `hr.contribution.register` y `hr.rule.input`, ausentes
+en la referencia nativa auditada, tienen admisión separada: tablas reales vacías
+y sólo lectura al manager original, sin CRUD. Los transientes upstream
+`hr.payslip.change.state` y `payslip.lines.contribution.register`, también
+ausentes, deben estar vacíos y sin ACL nueva; no se habilitan como flujos.
+El contrato inspecciona clases/tablas reales del registro y bloquea filas o
+permisos no admitidos. No crea modelos sustitutos ni declara esos perfiles
+como conversión de APIs nativas.
+
+Se añaden dos casos nativos de aliases/colisión/política y uno OCA que rechaza
+configuración upstream real no vacía. El total de estas clases queda en trece
+casos OCA y ocho nativos; ejecución funcional pendiente del paquete coordinado.
+
 ## Contrato observado
 
 En Cerro y SyS el campo original es un **One2many**, almacenado y editable,
