@@ -59,7 +59,7 @@ def validate_native_acceptance(root, accepted, *, expected_multifront_installed=
     require(accepted.get('mode') == 'cerro-reference' and accepted.get('writes_to_source') is False,
             'Accepted native reference required')
     if PurePosixPath(str(root)).name.startswith('community-multifront-'):
-        require(accepted.get('multifront') is True and accepted.get('focused') is False
+        require(accepted.get('multifront') is True and accepted.get('focused_development_pass') is False
                 and accepted.get('expected_test_count') == 391, 'Full multifront native391 witness required')
         # The coordinator pins the independently measured installed graph.
         # Do not guess393, accept a range or learn the pin from this same file.
@@ -69,7 +69,7 @@ def validate_native_acceptance(root, accepted, *, expected_multifront_installed=
                 'Measured multifront module graph differs')
     else:
         require(expected_multifront_installed is None and accepted.get('multifront', False) is False
-                and accepted.get('focused', False) is False and accepted.get('expected_test_count') == 294
+                and accepted.get('focused_development_pass', False) is False and accepted.get('expected_test_count') == 294
                 and accepted.get('counts') == {'installed': 391, 'enterprise': 140},
                 'Original native294/installed391 witness required')
 

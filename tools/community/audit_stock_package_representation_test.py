@@ -41,13 +41,13 @@ class DumpReconstructionCase(unittest.TestCase):
                                 (multifront_root, multifront, True), (original_root, original, 391)):
             with self.subTest(root=str(root), pin=pin), self.assertRaises(ValueError):
                 audit.validate_native_acceptance(root, value, expected_multifront_installed=pin)
-        for patch in ({'mode': 'community'}, {'multifront': False}, {'focused': True},
-                      {'focused': None}, {'expected_test_count': 294}, {'expected_test_count': 392},
+        for patch in ({'mode': 'community'}, {'multifront': False}, {'focused_development_pass': True},
+                      {'focused_development_pass': None}, {'expected_test_count': 294}, {'expected_test_count': 392},
                       {'writes_to_source': True}, {'counts': {'installed': 393, 'enterprise': 139}}):
             with self.subTest(patch=patch), self.assertRaises(ValueError):
                 audit.validate_native_acceptance(multifront_root, dict(multifront, **patch), expected_multifront_installed=393)
         for patch in ({'expected_test_count': 391}, {'counts': {'installed': 392, 'enterprise': 140}},
-                      {'multifront': True}, {'focused': True}):
+                      {'multifront': True}, {'focused_development_pass': True}):
             with self.subTest(patch=patch), self.assertRaises(ValueError):
                 audit.validate_native_acceptance(original_root, dict(original, **patch))
 
