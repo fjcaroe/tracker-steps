@@ -67,6 +67,114 @@ SELECT json_build_object(
 ROLLBACK;"""
 
 
+SECURITY_GROUP_FK_QUERY = """BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY;
+SELECT json_build_object('database',current_database(),
+ 'transaction_read_only',current_setting('transaction_read_only'),
+ 'default_transaction_read_only',current_setting('default_transaction_read_only'),
+ 'table',(SELECT json_build_object('schema',n.nspname,'name',c.relname,'kind',c.relkind)
+   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.oid=to_regclass('public.rule_group_rel')),
+ 'column',(SELECT json_build_object('name',a.attname,'sql_type',format_type(a.atttypid,a.atttypmod),'not_null',a.attnotnull)
+   FROM pg_attribute a WHERE a.attrelid=to_regclass('public.rule_group_rel') AND a.attname='group_id' AND NOT a.attisdropped),
+ 'models',(SELECT coalesce(json_agg(json_build_object('id',id,'model',model) ORDER BY model),'[]'::json)
+   FROM ir_model WHERE model IN ('ir.rule','res.groups')),
+ 'fields',(SELECT coalesce(json_agg(json_build_object('id',f.id,'model',f.model,'name',f.name,
+     'ttype',f.ttype,'relation',f.relation,'store',f.store) ORDER BY f.model,f.name),'[]'::json)
+   FROM ir_model_fields f WHERE (f.model='ir.rule' AND f.name='groups') OR (f.model='res.groups' AND f.name='rule_groups')),
+ 'foreign_keys',(SELECT coalesce(json_agg(json_build_object('oid',k.oid,'name',k.conname,
+   'source_columns',(SELECT array_agg(a.attname ORDER BY x.ord) FROM unnest(k.conkey) WITH ORDINALITY x(attnum,ord)
+     JOIN pg_attribute a ON a.attrelid=k.conrelid AND a.attnum=x.attnum),
+   'target_schema',rn.nspname,'target_table',rc.relname,
+   'target_columns',(SELECT array_agg(a.attname ORDER BY x.ord) FROM unnest(k.confkey) WITH ORDINALITY x(attnum,ord)
+     JOIN pg_attribute a ON a.attrelid=k.confrelid AND a.attnum=x.attnum),
+   'on_delete',k.confdeltype,'on_update',k.confupdtype,'match',k.confmatchtype,
+   'validated',k.convalidated,'deferrable',k.condeferrable,'deferred',k.condeferred,
+   'definition',pg_get_constraintdef(k.oid)) ORDER BY k.oid),'[]'::json)
+   FROM pg_constraint k JOIN pg_class rc ON rc.oid=k.confrelid JOIN pg_namespace rn ON rn.oid=rc.relnamespace
+   WHERE k.conrelid=to_regclass('public.rule_group_rel') AND k.contype='f'
+     AND EXISTS(SELECT 1 FROM unnest(k.conkey) key(attnum) JOIN pg_attribute a
+       ON a.attrelid=k.conrelid AND a.attnum=key.attnum WHERE a.attname='group_id')));
+ROLLBACK;"""
+SECURITY_GROUP_FK_NAME = 'rule_group_rel_group_id_fkey'
+
+
+def verify_security_group_fk(capture, database, phase):
+    require(isinstance(capture, dict), 'Actual security FK capture required')
+    require(capture.get('schema') == 1 and capture.get('database') == database and capture.get('phase') == phase
+        and capture.get('query_sha256') == sha(SECURITY_GROUP_FK_QUERY.encode())
+        and capture.get('read_only') is True and capture.get('database_writes') is False
+        and capture.get('orm_loaded') is False and capture.get('manual_ddl_performed_by_helper') is False,
+        'Exact readonly security FK capture required')
+    meta = capture['metadata']
+    require(meta['database'] == database and meta['transaction_read_only'] == meta['default_transaction_read_only'] == 'on',
+        'Security FK readonly transaction not proven')
+    require(meta['table'] == {'schema':'public','name':'rule_group_rel','kind':'r'}
+        and meta['column'] == {'name':'group_id','sql_type':'integer','not_null':True},
+        'Security relation physical column differs')
+    require(len(meta['models']) == 2 and {row['model'] for row in meta['models']} == {'ir.rule','res.groups'}
+        and len({row['id'] for row in meta['models']}) == 2
+        and all(type(row['id']) is int and row['id'] > 0 for row in meta['models']), 'Security model identities differ')
+    expected_fields = {('ir.rule','groups','many2many','res.groups',True), ('res.groups','rule_groups','many2many','ir.rule',True)}
+    require(len(meta['fields']) == 2 and {(row['model'],row['name'],row['ttype'],row['relation'],row['store']) for row in meta['fields']} == expected_fields
+        and len({row['id'] for row in meta['fields']}) == 2 and all(type(row['id']) is int and row['id'] > 0 for row in meta['fields']),
+        'Security inverse field identities/types differ')
+    require(len(meta['foreign_keys']) == 1, 'One physical security group FK required')
+    fk = meta['foreign_keys'][0]
+    require(type(fk['oid']) is int and fk['oid'] > 0 and fk['name'] == SECURITY_GROUP_FK_NAME
+        and fk['source_columns'] == ['group_id'] and fk['target_schema'] == 'public'
+        and fk['target_table'] == 'res_groups' and fk['target_columns'] == ['id']
+        and fk['on_delete'] == 'r' and fk['on_update'] == 'a' and fk['match'] == 's'
+        and fk['validated'] is True and fk['deferrable'] is False and fk['deferred'] is False
+        and fk['definition'] == 'FOREIGN KEY (group_id) REFERENCES res_groups(id) ON DELETE RESTRICT',
+        'Original validated RESTRICT security group FK required')
+    return {key:value for key,value in meta.items() if key not in ('database','transaction_read_only','default_transaction_read_only')} | {
+        'foreign_keys':[{key:value for key,value in fk.items() if key != 'oid'}]}
+
+
+def capture_security_group_fk(sql, database, phase):
+    require(re.fullmatch(r'(?:COMMUNITY_PAYROLL_API_|MANAGEMENT_QA_CERRO_PAYROLL_API_)[A-Za-z0-9_]+', database),
+        'Private security FK capture database required')
+    proof = {'schema':1,'database':database,'phase':phase,'query_sha256':sha(SECURITY_GROUP_FK_QUERY.encode()),
+        'read_only':True,'database_writes':False,'orm_loaded':False,'manual_ddl_performed_by_helper':False,
+        'metadata':json.loads(sql(database, SECURITY_GROUP_FK_QUERY))}
+    verify_security_group_fk(proof,database,phase)
+    return proof
+
+
+def verify_security_group_fk_boundary(boundary, mode, database, current):
+    require(isinstance(boundary, dict) and {'recorded_under_shared_environment_lease','manual_security_ddl_performed_by_validator',
+        'after_tests','after_tests_sha256','before_native_upgrade','after_native_upgrade',
+        'before_native_upgrade_sha256','after_native_upgrade_sha256'} <= boundary.keys(), 'Complete security FK boundary required')
+    require(boundary['recorded_under_shared_environment_lease'] is True
+        and boundary['manual_security_ddl_performed_by_validator'] is False,
+        'Security FK boundary requires the actual shared upgrade lease and no manual DDL')
+    after = boundary['after_tests']
+    after_semantics = verify_security_group_fk(after,database,'after-tests')
+    require(boundary['after_tests_sha256'] == sha(json.dumps(after,indent=2).encode()), 'Security FK after-tests seal differs')
+    current_semantics = verify_security_group_fk(current,database,'postflight')
+    require(current_semantics == after_semantics, 'Security FK drifted after tested registry')
+    before = boundary['before_native_upgrade']
+    upgrade = boundary['after_native_upgrade']
+    if mode == 'community':
+        require(before is None and upgrade is None and boundary['before_native_upgrade_sha256'] is None
+            and boundary['after_native_upgrade_sha256'] is None, 'Cold Community cannot claim a native FK baseline')
+        baseline_oid = None
+    else:
+        before_semantics = verify_security_group_fk(before,database,'before-native-upgrade')
+        upgrade_semantics = verify_security_group_fk(upgrade,database,'after-native-upgrade')
+        require(before_semantics == upgrade_semantics == after_semantics,
+            'Original native security FK semantics or identities changed during upgrade')
+        require(boundary['before_native_upgrade_sha256'] == sha(json.dumps(before,indent=2).encode())
+            and boundary['after_native_upgrade_sha256'] == sha(json.dumps(upgrade,indent=2).encode()), 'Security FK native baseline seal differs')
+        baseline_oid = before['metadata']['foreign_keys'][0]['oid']
+    return {'on_delete':'RESTRICT','validated':True,'deferrable':False,'deferred':False,
+        'source_columns':['group_id'],'target_table':'public.res_groups','target_columns':['id'],
+        'constraint_name':SECURITY_GROUP_FK_NAME,'native_before_upgrade_baseline':mode != 'community',
+        'baseline_constraint_oid':baseline_oid,'postflight_constraint_oid':current['metadata']['foreign_keys'][0]['oid'],
+        'constraint_oid_unchanged':None if baseline_oid is None else baseline_oid == current['metadata']['foreign_keys'][0]['oid'],
+        'constraint_oid_is_business_identity_gate':False,'semantics_and_model_field_identities_preserved':True,
+        'manual_security_ddl_performed_by_validator':False}
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -229,6 +337,8 @@ def verify(proof, mode, source, passed, *, operational_extensions=False, quality
                 'community_engine_installed': mode == 'community', 'native_engine_retained': mode != 'community',
                 'native_reference_only': mode != 'community', 'registry_class_introspection': False,
                 'historical_conversion': False, 'production_changed': False}
+    if critical_generation == 'T':
+        observed['security_group_fk'] = verify_security_group_fk_boundary(passed['security_group_fk_boundary'], mode, passed['database'], proof['security_group_fk_after'])
     require(proof['observed'] == observed, 'MF installation observed flags differ')
     return observed
 
@@ -260,6 +370,9 @@ def audit(sql, mode, source, passed, *, operational_extensions=False, quality_ex
         proof['critical_extension'] = True
     if critical_generation in GENERATION_VERSIONS:
         proof['critical_generation'] = critical_generation
+    if critical_generation == 'T':
+        proof['security_group_fk_after'] = capture_security_group_fk(sql, passed['database'], 'postflight')
+        proof['observed']['security_group_fk'] = verify_security_group_fk_boundary(passed['security_group_fk_boundary'], mode, passed['database'], proof['security_group_fk_after'])
     verify(proof, mode, source, passed, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
     return proof
 
