@@ -1,8 +1,10 @@
-"""Transfer only the five Enterprise launchers; never replace their records."""
+"""Retain the five original launchers without changing their API identity."""
 from odoo.exceptions import UserError
 
 CORE = 'step_account_treasury'
 BRIDGE = 'step_account_treasury_reports'
+COMMUNITY = 'step_treasury_community_reports'
+NAMESPACES = (CORE, BRIDGE, COMMUNITY)
 MENUS = (
     'menu_treasury_bank_reconciliation', 'menu_treasury_partner_ledger',
     'menu_treasury_cash_flow_statement', 'menu_treasury_aged_receivable',
@@ -19,7 +21,7 @@ def preserve_menus(env, require_bridge=False):
         raise UserError('Actualice Tesorería instalando también step_account_treasury_reports '
                         'para conservar los cinco accesos de informes existentes.')
     for name in MENUS:
-        entries = data.search([('module', 'in', (CORE, BRIDGE)), ('name', '=', name)])
+        entries = data.search([('module', 'in', NAMESPACES), ('name', '=', name)])
         if not entries:
             continue
         targets = {(entry.model, entry.res_id) for entry in entries}
@@ -31,6 +33,10 @@ def preserve_menus(env, require_bridge=False):
             if not entries.filtered(lambda entry: entry.module == namespace):
                 data.create({'module': namespace, 'name': name, 'model': 'ir.ui.menu',
                              'res_id': entries[0].res_id, 'noupdate': True})
-        # Keep old API aliases and all operator customizations, including groups,
-        # parent, sequence, active flag and action. XML is only for new installs.
-        entries.write({'noupdate': True})
+        # False and True are both original API values. The native loader marker
+        # protects False aliases from cleanup without rewriting any original row.
+        entries = data.search([('module', 'in', NAMESPACES), ('name', '=', name)])
+        for entry in entries:
+            loaded = data._load_xmlid(entry.module + '.' + name)
+            if not loaded or (loaded._name, loaded.id) != ('ir.ui.menu', entry.res_id):
+                raise UserError('El menú cargado de Tesorería no coincide: ' + name)

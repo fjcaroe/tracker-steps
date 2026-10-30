@@ -5,7 +5,7 @@
     "description": """Tesorería sobre la contabilidad de Odoo: maestro de conceptos
 de flujo, flujos de caja con horizonte de cinco semanas, siete hojas de detalle y
 resumen acumulado, todo derivado de un único dataset canónico y auditable.""",
-    "version": "18.0.1.3.1",
+    "version": "18.0.1.3.2",
     "category": "Accounting/Accounting",
     "author": "Steps Consulting",
     "website": "https://stepsapp.cl",

@@ -32,8 +32,25 @@ class TreasuryReport(models.TransientModel):
     export_file = fields.Binary(readonly=True, attachment=False)
     export_name = fields.Char(readonly=True)
 
+    def check_access(self, operation):
+        # PDF/binary dispatch can arrive in a sudo environment. Its UID remains
+        # the actor; no payload/context UID is trusted to choose another user.
+        return super(TreasuryReport, self.sudo(False)).check_access(operation)
+
+    def read(self, fields=None, load='_classic_read'):
+        normal = self.sudo(False)
+        normal.check_access('read')
+        return super(TreasuryReport, normal).read(fields=fields, load=load)
+
+    def _read_format(self, fnames, load='_classic_read'):
+        normal = self.sudo(False)
+        normal.check_access('read')
+        return super(TreasuryReport, normal)._read_format(fnames, load=load)
+
     def _scope(self):
+        self = self.sudo(False)
         self.ensure_one()
+        self.check_access('read')
         if not (self.env.user.has_group('account.group_account_readonly') or
                 self.env.user.has_group('account.group_account_manager')):
             raise AccessError(_('Se requiere acceso contable de consulta.'))
@@ -92,6 +109,7 @@ class TreasuryReport(models.TransientModel):
                 'currency': line.currency_id.name or '', 'amount_currency': line.amount_currency}
 
     def report_data(self):
+        self = self.sudo(False)
         domain = self._scope()
         currency = self.company_id.currency_id
         result = {'kind': self.kind, 'title': dict(KINDS)[self.kind], 'currency': currency.name,
@@ -207,6 +225,8 @@ class TreasuryReport(models.TransientModel):
         return Markup('<table class="table table-sm table-striped"><thead><tr>%s%s</tr></thead><tbody>%s</tbody></table>') % (heading, Markup('<th>Documento</th>') if linked else '', Markup('').join(body))
 
     def action_calculate(self):
+        self = self.sudo(False)
+        self.check_access('write')
         data = self.report_data()
         columns = [('date', 'Fecha'), ('document', 'Asiento'), ('partner', 'Socio'), ('account', 'Cuenta'),
                    ('debit', 'Debe'), ('credit', 'Haber'), ('balance', 'Saldo / movimiento'),
@@ -239,6 +259,8 @@ class TreasuryReport(models.TransientModel):
 
     def action_export(self):
         """Same canonical dataset, including summary and bank evidence sections."""
+        self = self.sudo(False)
+        self.check_access('write')
         data = self.report_data()
         stream = io.StringIO(newline='')
         writer = csv.writer(stream)
@@ -263,5 +285,21 @@ class TreasuryReport(models.TransientModel):
         return {'type': 'ir.actions.act_url', 'url': '/web/content/%s/%s/export_file/%s?download=true' % (self._name, self.id, self.export_name), 'target': 'self'}
 
     def action_print(self):
+        self = self.sudo(False)
         self.action_calculate()
         return self.env.ref('step_treasury_community_reports.report_print').report_action(self, config=False)
+
+
+class TreasuryReportDocument(models.AbstractModel):
+    _name = 'report.step_treasury_community_reports.print_document'
+    _description = 'Tesorería: impresión autorizada del informe Community'
+
+    @api.model
+    def _get_report_values(self, docids, data=None):
+        docs = self.sudo(False).env['step.treasury.report'].browse(docids)
+        docs.check_access('read')
+        for doc in docs:
+            # A direct report URL must use today's authorized dataset, rather
+            # than HTML cached under an earlier set of record rules or menus.
+            doc.action_calculate()
+        return {'doc_ids': docs.ids, 'doc_model': docs._name, 'docs': docs}
