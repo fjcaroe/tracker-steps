@@ -2,9 +2,56 @@
 from datetime import datetime, time, timedelta
 
 import pytz
+from psycopg2 import IntegrityError
 
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
+from odoo.tools import mute_logger
+
+
+def assert_original_rule_group_constraint(case):
+    """Exercise the real owner-side RESTRICT through ordinary ORM unlink.
+
+    Only an inactive rule and an unused private group are provisioned by the
+    fixture author. An existing normal Settings actor performs the unlink;
+    no original role, membership, implied edge or rule is changed.
+    """
+    env = case.env
+    field = env['ir.rule']._fields['groups']
+    case.assertEqual((field.relation, field.column1, field.column2, field.ondelete),
+        ('rule_group_rel', 'rule_group_id', 'group_id', 'restrict'))
+    env.cr.execute("""SELECT c.conname,c.confdeltype,c.convalidated,c.condeferrable,c.condeferred
+        FROM pg_constraint c
+        JOIN pg_attribute a ON a.attrelid=c.conrelid AND c.conkey=ARRAY[a.attnum]::smallint[]
+        JOIN pg_attribute b ON b.attrelid=c.confrelid AND c.confkey=ARRAY[b.attnum]::smallint[]
+        WHERE c.contype='f' AND c.conrelid='rule_group_rel'::regclass
+        AND c.confrelid='res_groups'::regclass AND a.attname='group_id' AND b.attname='id'""")
+    constraints = env.cr.fetchall()
+    case.assertEqual(constraints, [('rule_group_rel_group_id_fkey', 'r', True, False, False)])
+    group = env['res.groups'].create({'name': 'Private original rule FK witness'})
+    rule = env['ir.rule'].create({'name': 'Private inactive original rule FK witness',
+        'model_id': env.ref('base.model_res_partner').id, 'active': False,
+        'domain_force': '[(1, "=", 1)]', 'groups': [Command.set(group.ids)]})
+    env.flush_all()
+    case.assertFalse(group.users)
+    case.assertFalse(group.implied_ids)
+    normal = group.with_user(env.ref('base.user_admin')).sudo(False)
+    case.assertFalse(normal.env.su)
+    normal.check_access('unlink')
+    with mute_logger('odoo.sql_db'), case.assertRaises(IntegrityError) as failure:
+        with env.cr.savepoint():
+            normal.unlink()
+    case.assertEqual(failure.exception.pgcode, '23503')
+    case.assertEqual(failure.exception.diag.constraint_name, constraints[0][0])
+    case.assertTrue(group.exists())
+    case.assertEqual(rule.groups, group)
+    case.assertFalse(group.users)
+    case.assertFalse(group.implied_ids)
+    # Removing only the private relation releases the actual group. The normal
+    # ORM and PostgreSQL enforce the policy; no DELETE/ALTER bypass is used.
+    rule.unlink()
+    normal.unlink()
+    case.assertFalse(group.exists())
 
 
 class PayrollContractMixin:
