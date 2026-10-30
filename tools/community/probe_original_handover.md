@@ -126,3 +126,23 @@ nombre generado, estado abierto y bytes/AST/pin del archivo LGPL oficial.
 No se amplía el lexer general de identificadores ni se admite `COMMIT`,
 `ROLLBACK` de la transacción o SQL concatenado. Los nombres y parámetros no
 se copian al recibo; sólo se cuentan los controles delegados y su contrato.
+
+El alcance `full` puede recibir explícitamente `source_menu_path` y
+`source_menu_sha256`, junto al testigo obligatorio de visibilidad de maestros.
+El resumer expone `--source-menu-visibility` y `--source-menu-sha256`; copia
+ambos testigos por separado a archivos nuevos `0600`. Sin ese argumento sigue
+vigente la comprobación estricta anterior de cuatro menús visibles.
+
+`original_handover_menu_contract.py` admite únicamente el observador nativo
+aprobado, el mismo control restaurado, actor/compañías, cápsula, identidad y
+políticas preservadas. Compara por concepto la visibilidad real sin debug,
+lectura normal del ID del menú y permiso de lectura del modelo de la acción.
+Una ocultación procede de la observación sellada, nunca de excepciones por
+país, grupo técnico o ID. Los aliases y relaciones originales permanecen
+literales; las políticas de menús/acciones/permisos del destino también deben
+permanecer exactas antes y después del probe.
+
+Los flags `source_menu_witness_validated`, `source_menu_visibility_parity` y
+`core_ui_admitted` sólo se afirman tras sus comprobaciones reales. El último
+incluye los cinco formularios y la ruta del renderer; no certifica ejecución de
+acciones legadas, cálculos, PDF, importes, metadata semántica o conversión total.

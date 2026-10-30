@@ -19,6 +19,7 @@ import payroll_configuration_adoption_preflight as gate
 import original_handover_visibility_contract as visibility
 import original_handover_view_query as core_view
 import original_handover_savepoint as core_savepoint
+import original_handover_menu_contract as menu_contract
 
 
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
@@ -67,6 +68,15 @@ def admission_receipt_name(admission_scope):
     require(type(admission_scope) is str and admission_scope in ADMISSION_SCOPES,
         'unknown-original-handover-admission-scope')
     return 'cohort-projection-admission.json' if admission_scope == 'projection-only' else 'cohort-admission.json'
+
+
+def menu_witness_arguments(admission_scope, source_visibility_path, source_visibility_sha256,
+        source_menu_path, source_menu_sha256):
+    if source_menu_path is not None or source_menu_sha256 is not None:
+        require(admission_scope == 'full', 'native-menu-witness-is-only-for-explicit-full-scope')
+        require(source_menu_path is not None and re.fullmatch('[a-f0-9]{64}', source_menu_sha256 or '')
+            and source_visibility_path is not None and re.fullmatch('[a-f0-9]{64}', source_visibility_sha256 or ''),
+            'native-menu-witness-needs-both-seals-and-actual-source-masters')
 
 
 def sha(value):
@@ -425,7 +435,7 @@ def existing_manager(env, identity, source_rows, actor_uid, source_actor=None):
         'users_created': False, 'permissions_granted': False, 'company_memberships_changed': False}
 
 
-def forms_and_menus(scope, checkpoint=None):
+def forms_and_menus(scope, checkpoint=None, source_menu=None):
     from lxml import etree
     from odoo.tools import json_default
 
@@ -445,6 +455,11 @@ def forms_and_menus(scope, checkpoint=None):
     visible = scope['ir.ui.menu']._visible_menu_ids(debug=False)
     root = scope.ref('payroll.payroll_menu_root', raise_if_not_found=False)
     require(root and root.id in visible, 'oca-payroll-root-not-visible-to-existing-actor')
+    if source_menu is not None:
+        if checkpoint:
+            checkpoint('source-target-core-menu-parity')
+        from odoo.exceptions import AccessError
+        return forms, menu_contract.observe_target(scope, source_menu, access_error=AccessError)
     menus = []
     for menu_alias, action_alias, model in MENUS:
         if checkpoint:
@@ -565,13 +580,16 @@ def private_sql_rejection(output, statement, error, projection):
 
 
 def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256, output_path, actor_uid=None,
-        *, source_visibility_path=None, source_visibility_sha256=None, admission_scope='full'):
+        *, source_visibility_path=None, source_visibility_sha256=None, admission_scope='full',
+        source_menu_path=None, source_menu_sha256=None):
     """No commit: the caller owns the clone, lease, outer transaction and seal.
 
     On any rejection, the private receipt has ``passed=False`` and the real
     savepoint is rolled back. Exceptions contain technical codes only.
     """
     admission_scope_contract(admission_scope, source_visibility_path, source_visibility_sha256)
+    menu_witness_arguments(admission_scope, source_visibility_path, source_visibility_sha256,
+        source_menu_path, source_menu_sha256)
     require(re.fullmatch(DATABASE, env.cr.dbname or ''), 'private-original-handover-database-required')
     require(capsule_sha256 == CAPSULE_SHA256, 'unreviewed-original-capsule')
     output = Path(output_path)
@@ -584,7 +602,8 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         'salary_rules_evaluated': False, 'financial_certified': False, 'pdf_certified': False,
         'operational_package': False, 'integral_conversion': False, 'deadline_resolved': False,
         'admission_scope': admission_scope, 'ui_scope_exercised': False, 'ui_admission': False,
-        'data_projection_scope_passed': False}
+        'data_projection_scope_passed': False, 'source_menu_witness_validated': False,
+        'source_menu_visibility_parity': False, 'core_ui_admitted': False}
 
     def checkpoint(phase, model=None):
         result['checkpoint'] = {'phase': phase, 'model': model}
@@ -623,7 +642,24 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
             actor_uid = source_visibility['actor']['uid']
             result['source_visibility_sha256'] = source_visibility_sha256
             result['source_visibility_database'] = source_visibility['database']
+        source_menu = None
+        if source_menu_path is not None:
+            checkpoint('sealed-actual-native-menu-witness')
+            source_menu = sealed_json(source_menu_path, source_menu_sha256)
+            menu_observer = menu_contract.validate_source(source_menu, source_visibility, identity,
+                source_sha256=source_visibility_sha256, identity_sha256=identity_sha256)
+            result['source_menu_witness_sha256'] = source_menu_sha256
+            result['source_menu_witness_validated'] = True
         with env.cr.savepoint(flush=False):
+            if source_menu is not None:
+                # Pinned Source observer metadata SELECTs, outside SQL lexer
+                # for its E'\\n' hash literals, still inside the same savepoint.
+                menu_before = menu_observer.menu_policy_snapshot(env.cr)
+                original_bindings = menu_observer.original_bindings(identity)
+                original_routes = menu_observer.read_native_routes(env.cr, identity, original_bindings)
+                require(all(all(source_menu['menus'][key][name] == value for name, value in route.items())
+                    for key, route in original_routes.items()), 'original-native-menu-metadata-drifted-in-target')
+                result['original_native_menu_bindings_preserved'] = True
             if source_visibility is not None:
                 checkpoint('original-source-policy-before')
                 # These pinned functions contain SELECT-only metadata/counter
@@ -673,7 +709,8 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                         'country_or_id_exceptions_added': False, 'permissions_granted': False}
                 if admission_scope == 'full':
                     result['ui_scope_exercised'] = True
-                    result['forms'], result['menus'] = forms_and_menus(scope, checkpoint)
+                    result['forms'], result['menus'] = forms_and_menus(scope, checkpoint, source_menu)
+                    result['source_menu_visibility_parity'] = source_menu is not None
                     checkpoint('legacy-menu-boundaries')
                     result['legacy_menu_boundaries'] = legacy_menu_boundaries(scope, identity)
                     checkpoint('original-stored-report-route', 'ir.actions.report')
@@ -739,7 +776,13 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                 require(visibility.check_policy_and_counters(source_visibility, policy_after, native_counters_after)
                     == result['source_security_policy'], 'source-security-parity-changed')
                 result['source_security_policy_exact_after'] = True
+            if source_menu is not None:
+                checkpoint('post-projection-core-menu-policy')
+                require(menu_observer.menu_policy_snapshot(env.cr) == menu_before,
+                    'target-menu-action-or-security-policy-changed-during-probe')
+                result['target_menu_policy_exact_after'] = True
             result['data_projection_scope_passed'] = True
+            result['core_ui_admitted'] = result['source_menu_visibility_parity'] and result['ui_admission']
             if admission_scope == 'projection-only':
                 result['remaining_adoption_blockers'].extend([
                     'forms-menus-and-renderer-not-admitted-in-projection-scope',
@@ -750,7 +793,8 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         return result
     except Exception as error:
         code = str(error) if isinstance(error, (ProbeBlocked, visibility.VisibilityBlocked,
-            core_view.ViewQueryBlocked, core_savepoint.SavepointBlocked)) else 'actual-api-or-guard-rejected:' + type(error).__name__
+            core_view.ViewQueryBlocked, core_savepoint.SavepointBlocked,
+            menu_contract.MenuWitnessBlocked)) else 'actual-api-or-guard-rejected:' + type(error).__name__
         try:
             private = private_access_error(output, error)
             if private:

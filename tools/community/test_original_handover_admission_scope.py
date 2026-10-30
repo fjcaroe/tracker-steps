@@ -58,7 +58,8 @@ class AdmissionScopeCase(unittest.TestCase):
                 if Path(path) == source: raise probe.ProbeBlocked('source-seal-rejected')
                 return {}
             namespace.update(Path=Path, re=__import__('re'), sealed_json=sealed,
-                admission_receipt_name=probe.admission_receipt_name)
+                admission_receipt_name=probe.admission_receipt_name,
+                menu_witness_arguments=probe.menu_witness_arguments)
             with self.assertRaisesRegex(probe.ProbeBlocked, 'source-seal-rejected'):
                 namespace['run'](SimpleNamespace(cr=SimpleNamespace(dbname=database)), folder,
                     database=database, reference=database.replace('_HANDOVER_', '_REFERENCE_'),
