@@ -76,6 +76,15 @@ sin modificar claves ni dar acceso a producción.
 
 ## Contrato funcional
 
+T137 amplía `packing-stock` en Desarrollo, Cerro y QA-Cerro para admitir las
+tarjas E/N ya validadas de la misma OT que aún no tienen existencias ni
+movimientos. La validación de la tarja no genera inventario. Conservar las
+validaciones de origen, empresa, productor, variedad, balance, reservas y
+materiales; impedir reutilizar tarjas con stock o historial de movimiento.
+Prueba en copias frescas, mismo paquete, respaldo y bloqueo. No validar ni cerrar
+la OT real del cliente durante el despliegue ni cambiar la definición de sus
+productos sin resolver el dato pendiente. QA mantiene ejercicios y aislamiento.
+
 T132/T133/T134 amplían `reception-revision` en Desarrollo, Cerro y QA-Cerro:
 envases físicos independientes del peso, detalle de tarjas, selector de Packing,
 informes que consultan stock/recepciones nativos y encabezado de proceso.
