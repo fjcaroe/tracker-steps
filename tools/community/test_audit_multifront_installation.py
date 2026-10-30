@@ -152,6 +152,25 @@ class MultifrontInstallationCase(unittest.TestCase):
                 audit.verify(proof, mode, old_source, passed, operational_extensions=True,
                     quality_extension=True, critical_extension=True, critical_generation='T')
 
+    def test_u_requires_its_storage_package_and_cannot_reuse_t_versions_or_counts(self):
+        self.assertEqual(audit.critical_tests(True,'U'), {'community':684,'cerro-reference':467})
+        self.assertEqual(audit.GENERATION_FILES['U'],519)
+        for mode in ('community','cerro-reference'):
+            source,passed,metadata=fixture(mode,True,True,'U')
+            passed.update(critical_extension=True,critical_generation='U',package_files=519,
+                expected_test_count=audit.critical_tests(True,'U')[mode],
+                security_group_fk_boundary=security_boundary(passed['database'],mode))
+            proof=audit.audit(lambda db,query:json.dumps(security_metadata(db,7002) if query==audit.SECURITY_GROUP_FK_QUERY else metadata),mode,source,passed,
+                operational_extensions=True,quality_extension=True,critical_extension=True,critical_generation='U')
+            for changes in ({'package_files':513},{'critical_generation':'T'},
+                    {'expected_test_count':audit.critical_tests(True,'T')[mode]}):
+                with self.subTest(mode=mode,changes=changes),self.assertRaises(ValueError):
+                    audit.verify(proof,mode,source,dict(passed,**changes),operational_extensions=True,
+                        quality_extension=True,critical_extension=True,critical_generation='U')
+            with self.assertRaises(ValueError):
+                audit.verify(proof,mode,fixture_source(True,True,'T'),passed,operational_extensions=True,
+                    quality_extension=True,critical_extension=True,critical_generation='U')
+
     def test_t_security_fk_rejects_cascade_missing_validation_wrong_namespace_and_model_fields(self):
         database='MANAGEMENT_QA_CERRO_PAYROLL_API_SYNTHETIC'
         original=security_capture(database,'postflight')

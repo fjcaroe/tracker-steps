@@ -103,6 +103,179 @@ def repeated_pdf_fixture(root):
 
 
 class MultifrontEvidenceCase(unittest.TestCase):
+    def test_u_225_173_methods_and_extra_helpers_are_explicit_without_changing_prior_generations(self):
+        root = Path(__file__).resolve().parents[2]
+        source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.own_modules(True, True)
+            for path in (root / module).rglob('*.py')}
+        keys = {cls.name + '.' + method.name for name, body in source.items() if '/tests/test_' in name
+            for cls in ast.parse(body.decode('utf-8-sig')).body if isinstance(cls, ast.ClassDef)
+            for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_')}
+        log = '\n'.join('Starting ' + key + ' ...' for key in sorted(keys))
+        with patch.dict(verifier.installation.CRITICAL_GENERATIONS, U={'community': 684, 'cerro-reference': 467}):
+            self.assertEqual(verifier.expected_tests(True, True, True, 'U'), {'community': 684, 'cerro-reference': 467})
+            self.assertEqual(verifier.expected_tests(True, True, True, 'T'), {'community': 671, 'cerro-reference': 462})
+            for mode, count, selected in (('community', 225, 'OriginalHistoryDeletionCase.'),
+                    ('cerro-reference', 173, 'NativeHistoryStorageCase.')):
+                self.assertEqual(verifier.critical_methods(source, log, mode, operational_extensions=True,
+                    quality_extension=True, critical_extension=True, critical_generation='U'), count)
+                key = next(key for key in keys if key.startswith(selected))
+                with self.assertRaises(ValueError):
+                    verifier.critical_methods(source, log.replace('Starting ' + key + ' ...', ''), mode,
+                        operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='U')
+        self.assertEqual(verifier.executed_tools('R3'), verifier.EXECUTED_TOOLS)
+        self.assertEqual(verifier.executed_tools('S'), verifier.executed_tools('T'))
+        self.assertEqual(set(verifier.executed_tools('U')) - set(verifier.EXECUTED_TOOLS), set(verifier.U_HELPERS))
+        self.assertEqual(len(verifier.U_HELPERS), 6)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder); source = {}
+            for name in verifier.executed_tools('U'):
+                raw = b'raise RuntimeError("artifact never imported")\n'
+                path = root / 'executed-tools' / name; path.parent.mkdir(exist_ok=True); path.write_bytes(raw)
+                source['tools/community/' + name] = raw
+            (root / 'collector.py').write_bytes(b'collector')
+            (root / 'postflight-tools').mkdir(); (root / 'postflight-tools/audit_multifront_installation.py').write_bytes(b'auditor')
+            with patch.object(verifier.base, 'tool_hash'):
+                verifier.verify_executed_tools(root, source, critical_generation='U')
+                with self.assertRaises(ValueError): verifier.verify_executed_tools(root, source)
+                (root / 'executed-tools' / verifier.U_HELPERS[0]).write_bytes(b'tampered')
+                with self.assertRaises(ValueError): verifier.verify_executed_tools(root, source, critical_generation='U')
+
+    def test_u_final_engine_replays_real_trusted_composition_and_keeps_numeric_intermediate_separate(self):
+        import original_history_engine_contract as engine
+        from test_original_history_engine_contract import fixture, pinned_fixture
+        original, schema, guard = fixture()
+        # The fixture uses actual checked-in own guard bytes; the coordinator's
+        # independently reviewed final pin is still supplied by the engine tool.
+        with pinned_fixture(original, schema), patch.object(engine, 'GUARD_SHA256',
+                verifier.sha(guard[engine.GUARD_FILE].replace(b'\r\n', b'\n'))):
+            candidate, report = engine.compose(original, schema, guard)
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                for prefix, files in (('engine-original/payroll', original), ('engine-candidate/payroll', candidate)):
+                    for name, raw in files.items():
+                        path = root / prefix / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
+                (root / 'schema-plan.json').write_bytes(schema)
+                write(root, engine.REPORT, report)
+                write(root, verifier.numeric.REPORT, verifier.numeric.report_for(original, verifier.numeric.plan(original)))
+                write(root, 'engine-git-proof.json', {'synthetic': 'separate Git proof delegation only'})
+                source = dict(guard)
+                source.update({'tools/community/' + name: (Path(engine.__file__).parent / name).read_bytes()
+                    for name in engine.TOOLS})
+                with patch.object(verifier.previous, 'verify_engine_git', return_value={'bound': True}) as git:
+                    result = verifier.verify_u_engine(root, source)
+                    git.assert_called_once_with({'synthetic': 'separate Git proof delegation only'}, original)
+                    self.assertTrue(result['numeric_intermediate']['intermediate_only'])
+                    self.assertFalse(result['numeric_intermediate']['executed_final_engine_is_numeric_only'])
+                    self.assertTrue(result['final_engine']['all_stage_hashes_recomputed'])
+                    self.assertEqual(result['final_engine']['files'], 144)
+                    path = root / 'engine-candidate/payroll' / engine.deletion.FILE
+                    path.write_bytes(verifier.numeric.plan(original)[engine.deletion.FILE])
+                    with self.assertRaises(ValueError): verifier.verify_u_engine(root, source)
+                    path.write_bytes(candidate[engine.deletion.FILE])
+                    altered = verifier.numeric.report_for(original, verifier.numeric.plan(original))
+                    altered['candidate_files'] = verifier.numeric.hashes(candidate)
+                    altered.pop('seal_sha256'); altered['seal_sha256'] = verifier.numeric.seal(altered)
+                    write(root, verifier.numeric.REPORT, altered)
+                    with self.assertRaises(ValueError): verifier.verify_u_engine(root, source)
+
+    def test_u_first_load_gate_and_four_real_catalog_contracts_bind_chronology_without_waivers(self):
+        import audit_payroll_history_storage as audit
+        import original_external_references_readonly_bootstrap as readonly_bootstrap
+        import preflight_original_history_storage as before_gate
+        from test_audit_payroll_history_storage import fixture as catalog_fixture
+        from test_preflight_original_history_storage import snapshot, database, Callback
+        import original_history_engine_contract as engine
+        for mode in ('community', 'cerro-reference'):
+            pre_mode = 'cold-community' if mode == 'community' else 'native'
+            db = database(pre_mode)
+            before = before_gate.capture(Callback(snapshot(pre_mode, absent=mode == 'community')), db, pre_mode)
+            catalog = catalog_fixture()
+            catalog['transaction'] = [{'database': db, 'read_only': 'on', 'default_read_only': 'on', 'isolation': 'repeatable read'}]
+            catalog['providers'] = [{'name': 'payroll' if mode == 'community' else 'hr_payroll',
+                'license': 'LGPL-3' if mode == 'community' else 'OEEL-1', 'latest_version': '18.0.1.4.0'}]
+            if mode == 'community':
+                catalog['providers'].append({'name': 'step_payroll_oca_api', 'license': 'LGPL-3', 'latest_version': '18.0.1.17.0'})
+            runtime = {'schema': 1, 'database': db, 'read_only': True, 'registry_loaded_by_caller': True,
+                'records_read': False, 'computes_evaluated': False, 'database_writes': False, 'fields': [
+                    {'model': model, 'table': table, 'name': name, 'type': 'many2one' if kind == 'int4' else 'char',
+                        'required': required, 'translate': translate, 'store': True, 'column_type': [kind, 'VARCHAR' if kind == 'varchar' else kind],
+                        'ondelete': 'set null' if kind == 'int4' else None,
+                        'comodel_name': 'resource.calendar' if kind == 'int4' else None}
+                    for model, table, name, kind, required, translate in audit.SPECS]}
+            runtime.update(process_readonly_before_first_connection=True,
+                readonly_bootstrap_sha256=verifier.sha(Path(readonly_bootstrap.__file__).read_bytes()),
+                cursor_observations=[{'database': db, 'transaction_read_only': 'on', 'odoo_cursor_readonly': True},
+                    {'database': 'postgres', 'transaction_read_only': 'on', 'odoo_cursor_readonly': True}],
+                signaling_sequence_reader={'original_registry_source_sha256': sorted(readonly_bootstrap.REGISTRY_SOURCE_SHA256)[0],
+                    'original_get_sequences_sha256': readonly_bootstrap.SEQUENCE_METHOD_SHA256,
+                    'select_only_sql_sha256': verifier.sha(readonly_bootstrap.SEQUENCE_SELECT.encode()),
+                    'cache_keys': list(readonly_bootstrap.CACHE_KEYS),
+                    'calls': [{'database': db, 'transaction_read_only': 'on', 'odoo_cursor_readonly': True, 'pg_is_in_recovery': False}],
+                    'cursor_readonly_unchanged': True, 'setup_signaling_unchanged': True,
+                    'signal_changes_unchanged': True, 'nextval_unchanged': True, 'installed_sources_modified': False})
+            after = {'schema': 1, 'database': db, 'profile': 'normal-community' if mode == 'community' else 'native-reference',
+                'tool_sha256': verifier.sha(Path(audit.__file__).read_bytes()), 'read_only': True, 'database_writes': False,
+                'historical_rows_assessed': False, 'metadata_before': catalog, 'metadata_after': deepcopy(catalog),
+                'runtime': runtime, 'assessment': audit.assess(catalog, runtime)}
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                write(root, mode + '/before-initialization-storage.json', before)
+                write(root, engine.REPORT, {'synthetic': 'receipt hash only, engine tested separately'})
+                receipt = {'database': db, 'counts': {'installed': len(catalog['providers']), 'enterprise': 0 if mode == 'community' else 1},
+                    'before_initialization_storage_sha256': verifier.sha((root / mode / 'before-initialization-storage.json').read_bytes()),
+                    'history_engine_derivation_sha256': verifier.sha((root / engine.REPORT).read_bytes()) if mode == 'community' else None}
+                receipt['before_initialization_chronology'] = {'database': db,
+                    'preflight_sha256': receipt['before_initialization_storage_sha256'], 'preflight_completed_before_initializer': True,
+                    'shared_environment_lease': True, 'initializer_source': 'candidate-first-init'}
+                source = {'tools/community/audit_payroll_history_storage.py': Path(audit.__file__).read_bytes(),
+                    'tools/community/original_external_references_readonly_bootstrap.py': Path(readonly_bootstrap.__file__).read_bytes()}
+                for change in (None, 'chronology', 'lease', 'preflight_sha', 'report_scope', 'jsonb_line',
+                        'runtime_sudo_read', 'runtime_type', 'catalog_drift', 'waiver', 'provider', 'tool',
+                        'process_not_ro', 'bootstrap', 'empty_cursors', 'cursor_rw', 'foreign_cursor', 'odoo_not_ro',
+                        'signal_registry', 'signal_hash', 'signal_keys', 'signal_no_calls', 'signal_rw', 'signal_primary',
+                        'signal_foreign', 'signal_nextval', 'signal_sources'):
+                    actual, captured = deepcopy(receipt), deepcopy(after)
+                    if change == 'chronology': actual['before_initialization_chronology']['preflight_completed_before_initializer'] = False
+                    if change == 'lease': actual['before_initialization_chronology']['shared_environment_lease'] = False
+                    if change == 'preflight_sha': actual['before_initialization_storage_sha256'] = '0' * 64
+                    if change == 'report_scope': actual['history_engine_derivation_sha256'] = None if mode == 'community' else '0' * 64
+                    if change == 'jsonb_line':
+                        for data in (captured['metadata_before'], captured['metadata_after']): data['columns'][0]['typname'] = 'jsonb'
+                    if change == 'runtime_sudo_read': captured['runtime']['records_read'] = True
+                    if change == 'runtime_type': captured['runtime']['fields'][0]['column_type'] = ['jsonb', 'jsonb']
+                    if change == 'catalog_drift': captured['metadata_after']['fields'][0]['id'] += 99
+                    if change == 'waiver': captured['assessment']['other_columns_waived'] = ['name']
+                    if change == 'provider': captured['metadata_before']['providers'][0]['name'] = 'other_engine'
+                    if change == 'tool': captured['tool_sha256'] = '0' * 64
+                    if change == 'process_not_ro': captured['runtime']['process_readonly_before_first_connection'] = False
+                    if change == 'bootstrap': captured['runtime']['readonly_bootstrap_sha256'] = '0' * 64
+                    if change == 'empty_cursors': captured['runtime']['cursor_observations'] = []
+                    if change == 'cursor_rw': captured['runtime']['cursor_observations'][0]['transaction_read_only'] = 'off'
+                    if change == 'foreign_cursor': captured['runtime']['cursor_observations'][0]['database'] = 'CERRO_EL_PLOMO'
+                    if change == 'odoo_not_ro': captured['runtime']['cursor_observations'][0]['odoo_cursor_readonly'] = False
+                    signaling = captured['runtime']['signaling_sequence_reader']
+                    if change == 'signal_registry': signaling['original_registry_source_sha256'] = '0' * 64
+                    if change == 'signal_hash': signaling['select_only_sql_sha256'] = '0' * 64
+                    if change == 'signal_keys': signaling['cache_keys'] = []
+                    if change == 'signal_no_calls': signaling['calls'] = []
+                    if change == 'signal_rw': signaling['calls'][0]['transaction_read_only'] = 'off'
+                    if change == 'signal_primary': signaling['calls'][0]['pg_is_in_recovery'] = True
+                    if change == 'signal_foreign': signaling['calls'][0]['database'] = 'postgres'
+                    if change == 'signal_nextval': signaling['nextval_unchanged'] = False
+                    if change == 'signal_sources': signaling['installed_sources_modified'] = True
+                    write(root, mode + '/after-tests-history-storage.json', captured)
+                    actual['history_storage_after_sha256'] = verifier.sha((root / mode / 'after-tests-history-storage.json').read_bytes())
+                    if change is None:
+                        result = verifier.verify_u_storage_boundary(root, source, actual, mode)
+                        self.assertTrue(result['chronology_bound_by_root_receipt'])
+                        self.assertEqual(result['after_tests_four_contracts']['catalog_contracts_closed'], 4)
+                        self.assertFalse(result['historical_rows_assessed'])
+                        self.assertTrue(result['whole_witness_process_readonly'])
+                        self.assertEqual(result['readonly_cursor_observations'], 2)
+                    else:
+                        with self.subTest(mode=mode, change=change), self.assertRaises(ValueError):
+                            verifier.verify_u_storage_boundary(root, source, actual, mode)
+
     def test_quality_profile_is_exact_thirtythree_and_never_an_implicit_operational_extension(self):
         source, provider, packet = packet_fixture(True, True)
         with tempfile.TemporaryDirectory() as folder:
