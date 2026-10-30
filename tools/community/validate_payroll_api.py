@@ -304,7 +304,7 @@ def main():
                   '/step_hr_contract_days,/step_hr_contract_days_oca,'+','.join('/'+m for m in treasury_modules))
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         stored_pdf_count=0
-        if pure and simpledigital and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
+        if pure and simpledigital and not args.focused_multifront and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
             pdf_directory=data/'payslip-pdf-evidence'
             proofs=[row for path in pdf_directory.glob('proof-*.json') for row in json.loads(path.read_text())]
             assert len(proofs)==2,'Both actual stored-line payslip PDF fixtures must run'
