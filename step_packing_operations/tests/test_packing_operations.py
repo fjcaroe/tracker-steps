@@ -15,6 +15,13 @@ class TestPackingOperations(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # Core-operation fixtures use this warehouse as both stock sources.
+        # Do not inherit the destination's configured T121 transfer extension;
+        # its separate suite and native operator probe test that integration.
+        if 'step_packing_warehouse_id' in cls.company._fields:
+            cls.company.write({'step_packing_warehouse_id':False,
+                               'step_packing_fruit_location_id':False,
+                               'step_packing_material_location_id':False})
         cls.warehouse = cls.env["stock.warehouse"].search([("company_id", "=", cls.company.id)], limit=1)
         cls.location = cls.warehouse.lot_stock_id
         cls.producer = cls.env["res.partner"].create({"name": "Productor Packing T41"})
