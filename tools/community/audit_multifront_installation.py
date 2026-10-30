@@ -80,7 +80,7 @@ SELECT json_build_object('database',current_database(),
  'fields',(SELECT coalesce(json_agg(json_build_object('id',f.id,'model',f.model,'name',f.name,
      'ttype',f.ttype,'relation',f.relation,'store',f.store) ORDER BY f.model,f.name),'[]'::json)
    FROM ir_model_fields f WHERE (f.model='ir.rule' AND f.name='groups') OR (f.model='res.groups' AND f.name='rule_groups')),
- 'foreign_keys',(SELECT coalesce(json_agg(json_build_object('oid',k.oid,'name',k.conname,
+ 'foreign_keys',(SELECT coalesce(json_agg(json_build_object('oid',k.oid::bigint,'name',k.conname,
    'source_columns',(SELECT array_agg(a.attname ORDER BY x.ord) FROM unnest(k.conkey) WITH ORDINALITY x(attnum,ord)
      JOIN pg_attribute a ON a.attrelid=k.conrelid AND a.attnum=x.attnum),
    'target_schema',rn.nspname,'target_table',rc.relname,
