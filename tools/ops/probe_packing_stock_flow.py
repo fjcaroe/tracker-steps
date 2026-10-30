@@ -24,6 +24,8 @@ def verify_flow(root, scoped):
     setup['stock.quant']._update_available_quantity(material,company.step_packing_material_location_id,16)
     fixture = setup['step.packing.production'].create({'step_packing_input_tag_ids':[(6,0,incoming.ids)],
                                                       'step_packing_output_tag_ids':[(6,0,output.ids)]})
+    output.step_packing_production_id = fixture
+    output.action_step_validate_tag()
     require_contract = company.step_packing_require_contract
     setup['res.company'].browse(company.id).step_packing_require_contract = False
     ot = fixture.with_env(scoped)
@@ -36,6 +38,9 @@ def verify_flow(root, scoped):
     assert ot.input_picking_id.location_id == company.step_packing_fruit_location_id
     assert ot.output_picking_id.location_dest_id == company.step_packing_fruit_location_id
     assert not ot.input_picking_id.move_ids.stock_valuation_layer_ids
+    assert output.step_tag_state == 'validated'
+    assert sum(output.quant_ids.mapped('quantity')) == 16
+    print('T137_PREVALIDATED_OUTPUT_NATIVE_CLOSE_OK no_duplicate_stock=True')
     original = scoped['step.packing.production'].search([('name','=','OT/2026/00040')])
     if original and original.state == 'validated' and original.material_review_state == 'approved':
         unsupported = original.step_packing_output_tag_ids.step_tag_line_ids.product_id.filtered(lambda p: not p.is_storable)

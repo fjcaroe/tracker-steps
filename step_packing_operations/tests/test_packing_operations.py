@@ -15,6 +15,13 @@ class TestPackingOperations(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # Core-operation fixtures use this warehouse as both stock sources.
+        # Do not inherit the destination's configured T121 transfer extension;
+        # its separate suite and native operator probe test that integration.
+        if 'step_packing_warehouse_id' in cls.company._fields:
+            cls.company.write({'step_packing_warehouse_id':False,
+                               'step_packing_fruit_location_id':False,
+                               'step_packing_material_location_id':False})
         cls.warehouse = cls.env["stock.warehouse"].search([("company_id", "=", cls.company.id)], limit=1)
         cls.location = cls.warehouse.lot_stock_id
         cls.producer = cls.env["res.partner"].create({"name": "Productor Packing T41"})
@@ -239,6 +246,51 @@ class TestPackingOperations(TransactionCase):
         with self.assertRaises(UserError):
             # La revisión de materiales es obligatoria antes de mover stock.
             production.action_step_packing_close()
+
+    def test_prevalidated_own_output_passes_quadrature_without_stock(self):
+        order = self._order(); order.action_validate()
+        incoming = self._tag('QA input prevalidated', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag('QA output prevalidated', 'E', self.finished, 80, 16, 'export')
+        production = self._production(order, incoming, output)
+        output.step_packing_production_id = production
+        output.action_step_validate_tag()
+        production._check_packing_tags()
+        self.assertEqual(output.step_tag_state, 'validated')
+        self.assertFalse(output.quant_ids)
+
+    def test_prevalidated_output_requires_same_origin_ot(self):
+        order = self._order(); order.action_validate()
+        incoming = self._tag('QA input foreign', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag('QA output foreign', 'E', self.finished, 80, 16, 'export')
+        production = self._production(order, incoming, output)
+        output.action_step_validate_tag()
+        with self.assertRaisesRegex(ValidationError, 'misma OT'):
+            production._check_packing_tags()
+
+    def test_output_with_stock_cannot_be_produced_again(self):
+        order = self._order(); order.action_validate()
+        incoming = self._tag('QA input existing stock', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag('QA output existing stock', 'E', self.finished, 80, 16, 'export')
+        production = self._production(order, incoming, output)
+        self._stock(self.finished, 16, output)
+        with self.assertRaisesRegex(ValidationError, 'duplicar stock'):
+            production._check_packing_tags()
+
+    def test_empty_output_with_movement_history_cannot_be_reused(self):
+        order = self._order(); order.action_validate()
+        incoming = self._tag('QA input moved', 'C', self.raw, 100, 100)
+        incoming.action_step_validate_tag()
+        output = self._tag('QA output moved', 'E', self.finished, 80, 16, 'export')
+        production = self._production(order, incoming, output)
+        self.env['stock.move.line'].create({'product_id':self.finished.id,
+            'product_uom_id':self.finished.uom_id.id,'quantity':0,
+            'location_id':self.location.id,'location_dest_id':self.location.id,
+            'result_package_id':output.id,'company_id':self.company.id})
+        with self.assertRaisesRegex(ValidationError, 'duplicar stock'):
+            production._check_packing_tags()
 
     def test_overproduction_and_forbidden_producer(self):
         order = self._order(forbidden=True)

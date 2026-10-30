@@ -109,8 +109,18 @@ class PackingProduction(models.Model):
                 raise ValidationError(_("Una tarja no puede ser entrada y salida de la misma OT."))
             if any(tag.step_tag_kind != "C" or tag.step_tag_state != "validated" for tag in inputs):
                 raise ValidationError(_("Las tarjas de entrada deben ser C validadas."))
-            if any(tag.step_tag_kind not in ("E", "N") or tag.step_tag_state != "created" for tag in outputs):
-                raise ValidationError(_("Las tarjas de salida deben ser E/N creadas."))
+            if any(tag.step_tag_kind not in ("E", "N") for tag in outputs):
+                raise ValidationError(_("Las tarjas de salida deben ser de tipo E o N."))
+            if any(tag.step_tag_state not in ("created", "validated") or
+                   tag.step_tag_state == "validated" and tag.step_packing_production_id != production
+                   for tag in outputs):
+                raise ValidationError(_("Use tarjas creadas o tarjas ya validadas de esta misma OT."))
+            # Validating the tag locks its definition; it does not receive stock.
+            # Never produce a second time into an existing/previously moved tag.
+            if any(q.quantity or q.reserved_quantity for q in outputs.sudo().quant_ids) or self.env['stock.move.line'].sudo().search_count([
+                    ('state', '!=', 'cancel'), '|', ('package_id', 'in', outputs.ids),
+                    ('result_package_id', 'in', outputs.ids)], limit=1):
+                raise ValidationError(_("Una tarja de salida ya tiene existencias, reservas o movimientos. Use una tarja nueva para evitar duplicar stock."))
             if any(not tag.step_tag_line_ids or not tag.step_packing_result for tag in outputs):
                 raise ValidationError(_("Cada tarja de salida requiere detalle y clasificación de resultado."))
             if any((tag.step_tag_kind == "E") != (tag.step_packing_result == "export") for tag in outputs):
@@ -291,7 +301,8 @@ class PackingProduction(models.Model):
                 stocked = set(tag.quant_ids.filtered(lambda q: q.quantity > 0).mapped("product_id").ids)
                 if not products.issubset(stocked):
                     raise ValidationError(_("La tarja resultante no contiene en stock todos los productos declarados."))
-                tag.action_step_validate_tag()
+                if tag.step_tag_state == 'created':
+                    tag.action_step_validate_tag()
             production.step_packing_input_tag_ids.write({"step_tag_state": "processed"})
             production.write({
                 "state": "closed",

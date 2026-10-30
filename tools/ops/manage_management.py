@@ -312,7 +312,7 @@ def main():
     args = parser.parse_args()
     settings_lease = None
     if args.wait_for_lease:
-        assert args.action in ('qa', 'compatibility', 'deploy') and args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'payroll-review', 'reception-revision')
+        assert args.action in ('qa', 'compatibility', 'deploy') and args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'payroll-review', 'reception-revision', 'packing-stock')
         assert os.geteuid() == 0
         settings_lease = open('/run/lock/steps-environments.lock', 'a')
         print('MANAGEMENT_WAITING_FOR_SHARED_LEASE', flush=True)

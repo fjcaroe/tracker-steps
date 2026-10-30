@@ -42,6 +42,8 @@ try:
         from probe_packing_stock_flow import verify_flow
         verify_flow(env, scoped)
         flow = True
+        from probe_packing_validation import verify_reported_quadrature
+        verify_reported_quadrature(env, scoped, PROBE_TOOLS)
     print('MANAGEMENT_REGISTRY_OK ' + json.dumps({'ticket':121, 'versions':EXPECTED,
         'existing_profile':scoped.uid, 'company_id':company.id, 'native_menu_and_form':True,
         'packing_warehouse':warehouse.id, 'material_location':company.step_packing_material_location_id.id,
