@@ -1,6 +1,6 @@
 """Ordinary actor fixtures for native payroll storage, without computation."""
 from odoo import Command
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, UserError
 from psycopg2 import sql
 
 from .testing import PayrollContractMixin
@@ -45,6 +45,24 @@ class HistoryStorageCases:
         return slip, line
 
     def case_line_literal_does_not_inherit_master_translation_or_change_on_read(self):
+        if self.oca:
+            from odoo.addons.step_payroll_oca_api.models.original_history_storage import _admit_literal_line_storage
+            # Isolated PostgreSQL fixtures exercise the pre-init refusal;
+            # no payroll table, historical literal or master is rewritten.
+            self.env.cr.execute('CREATE TEMP TABLE private_history_literal_jsonb (name jsonb) ON COMMIT DROP')
+            self.env.cr.execute('CREATE TEMP TABLE private_history_literal_varchar (name varchar) ON COMMIT DROP')
+            with self.assertRaises(UserError):
+                _admit_literal_line_storage(self.env.cr, 'private_history_literal_jsonb')
+            self.env.cr.execute('INSERT INTO private_history_literal_varchar VALUES (NULL)')
+            with self.assertRaises(UserError):
+                _admit_literal_line_storage(self.env.cr, 'private_history_literal_varchar')
+            self.env.cr.execute('SELECT name FROM private_history_literal_varchar')
+            self.assertEqual(self.env.cr.fetchall(), [(None,)])
+            self.env.cr.execute('DELETE FROM private_history_literal_varchar')
+            self.env.cr.execute('INSERT INTO private_history_literal_varchar VALUES (%s)', ('Private literal á  doble',))
+            _admit_literal_line_storage(self.env.cr, 'private_history_literal_varchar')
+            self.env.cr.execute('SELECT name FROM private_history_literal_varchar')
+            self.assertEqual(self.env.cr.fetchall(), [('Private literal á  doble',)])
         slip, line = self._line()
         field = line._fields['name']
         self.assertFalse(field.translate)

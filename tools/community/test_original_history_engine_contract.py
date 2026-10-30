@@ -76,12 +76,16 @@ class CompositionCase(unittest.TestCase):
 
     def test_guard_package_required_before_any_cascade_derivation(self):
         original, raw, guard = fixture()
-        for kind in ('missing', 'not-imported', 'old-version', 'changed-guard', 'only-marker'):
+        for kind in ('missing', 'not-imported', 'old-version', 'changed-guard', 'no-op-provider-check-removed', 'only-marker'):
             changed = dict(guard)
             if kind == 'missing': changed.pop(contract.GUARD_FILE)
             elif kind == 'not-imported': changed['step_payroll_oca_api/models/__init__.py'] = b'# no guard\n'
             elif kind == 'old-version': changed['step_payroll_oca_api/__manifest__.py'] = b"{'version':'18.0.1.16.0','license':'LGPL-3'}"
             elif kind == 'changed-guard': changed[contract.GUARD_FILE] = changed[contract.GUARD_FILE].replace(b'sudo(False)', b'sudo(True)')
+            elif kind == 'no-op-provider-check-removed':
+                changed[contract.GUARD_FILE] = changed[contract.GUARD_FILE].replace(
+                    b'if remaining:', b'if False:', 1)
+                self.assertNotEqual(contract.sha(changed[contract.GUARD_FILE]), contract.sha(guard[contract.GUARD_FILE]))
             else: changed[contract.GUARD_FILE] = b'guard_present=True\n'
             with pinned_fixture(original, raw), patch.object(contract.deletion, 'plan_history_deletion') as invoked:
                 with self.subTest(kind=kind), self.assertRaises(ValueError): contract.compose(original, raw, changed)
