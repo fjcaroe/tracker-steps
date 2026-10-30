@@ -15,6 +15,7 @@ from lxml import etree
 
 from .. import caf, ted, dte_schema, dte_signature as dte
 from .ted_cases import synthetic_caf, synthetic_ted
+from .certificate_trust_fixtures import chain_fixture, UNKNOWN_CRITICAL
 
 
 def synthetic_certificate(key, *, usage=True, ca=False, begin=None, end=None):
@@ -91,6 +92,74 @@ class DTESignatureCaseMixin:
 
     def verify(self, signed, original, context, **options):
         return dte.verify_signed_dte(signed, original, options.pop('pin', self.pin), context, **options)
+
+    def test_explicit_pkix_and_complete_crls_bind_actual_dte_without_emission(self):
+        pin, policy = chain_fixture(self.document_key)
+        original, unsigned, context = self.fixture()
+        signed = dte.sign_dte(unsigned, original, pin, context, self.document_key,
+            caf_authorities={3: self.anchor}, certificate_trust=policy)
+        checked = self.verify(signed, original, context, pin=pin, certificate_trust=policy)
+        self.assertEqual(checked.original_bytes(), signed)
+        meta = checked.metadata()
+        self.assertTrue(meta['certificate_chain_verified'])
+        self.assertTrue(meta['certificate_revocation_checked'])
+        self.assertEqual(len(meta['certificate_chain_sha256']), 3)
+        self.assertEqual(len(meta['certificate_crls_sha256']), 2)
+        for name in ('online_latest_crl_checked', 'operating_system_trust_used',
+                     'signer_fiscal_authorization_verified', 'fiscal_emission_enabled'):
+            self.assertFalse(meta[name])
+        # Pin-only verification cannot inherit a prior trust receipt.
+        self.assertFalse(self.verify(signed, original, context, pin=pin).metadata()['certificate_chain_verified'])
+
+    def test_pkix_revoked_leaf_and_intermediate_reject_before_signing(self):
+        original, unsigned, context = self.fixture()
+        for options in ({'revoked_leaf': True}, {'revoked_intermediate': True}):
+            with self.subTest(options=options):
+                pin, policy = chain_fixture(self.document_key, **options)
+                with self.assertRaisesRegex(dte.DTEError, '^dte-certificate-trust-'):
+                    dte.sign_dte(unsigned, original, pin, context, self.document_key,
+                        caf_authorities={3: self.anchor}, certificate_trust=policy)
+        self.assertNotIn(b'<Signature', unsigned)
+
+    def test_pkix_real_path_constraints_and_unknown_critical_extensions(self):
+        original, unsigned, context = self.fixture()
+        for options in ({'root_path_length': 0}, {'leaf_extra': UNKNOWN_CRITICAL}):
+            with self.subTest(options=options):
+                pin, policy = chain_fixture(self.document_key, **options)
+                with self.assertRaisesRegex(dte.DTEError, '^dte-certificate-trust-'):
+                    dte.sign_dte(unsigned, original, pin, context, self.document_key,
+                        caf_authorities={3: self.anchor}, certificate_trust=policy)
+
+    def test_pkix_crl_time_scope_signature_and_complete_path_are_required(self):
+        original, unsigned, context = self.fixture()
+        for options in ({'age': 86401}, {'crl_extra': (x509.DeltaCRLIndicator(1), True)},
+                        {'root_crl_extra': (x509.FreshestCRL([]), False)}):
+            with self.subTest(options=options):
+                pin, policy = chain_fixture(self.document_key, **options)
+                with self.assertRaisesRegex(dte.DTEError, '^dte-certificate-trust-'):
+                    dte.sign_dte(unsigned, original, pin, context, self.document_key,
+                        caf_authorities={3: self.anchor}, certificate_trust=policy)
+        pin, policy = chain_fixture(self.document_key)
+        bad_crl = policy.complete_crls_der[0][:-1] + bytes([policy.complete_crls_der[0][-1] ^ 1])
+        variants = (replace(policy, complete_crls_der=()), replace(policy, intermediates_der=()),
+            replace(policy, complete_crls_der=(bad_crl, policy.complete_crls_der[1])),
+            replace(policy, complete_crls_der=tuple(reversed(policy.complete_crls_der))))
+        for variant in variants:
+            with self.assertRaisesRegex(dte.DTEError, '^dte-certificate-trust-'):
+                dte.sign_dte(unsigned, original, pin, context, self.document_key,
+                    caf_authorities={3: self.anchor}, certificate_trust=variant)
+
+    def test_pkix_pins_order_types_and_explicit_policy_fail_closed(self):
+        original, unsigned, context = self.fixture()
+        pin, policy = chain_fixture(self.document_key)
+        variants = (False, {}, replace(policy, root=replace(policy.root, fingerprint_sha256='0' * 64)),
+            replace(policy, intermediates_der=(None,)), replace(policy, max_crl_age_seconds=True),
+            replace(policy, intermediates_der=(policy.root.certificate_der,)),
+            replace(policy, complete_crls_der=(policy.complete_crls_der[0] + b'trailing', policy.complete_crls_der[1])))
+        for variant in variants:
+            with self.assertRaisesRegex(dte.DTEError, '^dte-certificate-trust-'):
+                dte.sign_dte(unsigned, original, pin, context, self.document_key,
+                    caf_authorities={3: self.anchor}, certificate_trust=variant)
 
     def test_real_signature_schema_context_and_authority_are_separate(self):
         original, unsigned, signed, context = self.signed_fixture()

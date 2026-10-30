@@ -64,12 +64,13 @@ class DTEVerification:
     ted_verification: ted.TEDVerification = field(repr=False)
     signed_at: datetime
     namespace_profile: str = 'standalone'
+    _certificate_trust: object = field(default=None, repr=False)
 
     def original_bytes(self):
         return self._original
 
     def metadata(self):
-        return dict(self.ted_verification.metadata(), dte_sha256=hashlib.sha256(self._original).hexdigest(),
+        result = dict(self.ted_verification.metadata(), dte_sha256=hashlib.sha256(self._original).hexdigest(),
             document_id=self.document_id, certificate_sha256=self.certificate_sha256,
             dte_xml_signature_verified=True, sii_schema_verified=True,
             certificate_pin_matched=True, certificate_time_checked=True,
@@ -80,6 +81,9 @@ class DTEVerification:
             signer_fiscal_authorization_verified=False, tax_calculation_certified=False,
             business_record_identity_adopted=False, fiscal_emission_enabled=False,
             sii_acceptance_certified=False, folio_operations_enabled=False)
+        if self._certificate_trust is not None:
+            result.update(self._certificate_trust.metadata())
+        return result
 
 
 def _context(context):
@@ -254,7 +258,7 @@ def _verify_xml_signature(root, document, key, pin):
         raise DTEError('dte-signature-invalid') from None
 
 
-def verify_signed_dte(raw, original_caf, certificate_pin, context, *, caf_authorities=None):
+def verify_signed_dte(raw, original_caf, certificate_pin, context, *, caf_authorities=None, certificate_trust=None):
     _context(context)
     root, document, encoding = _parse(raw, signed=True, namespace_profile=context.namespace_profile)
     try:
@@ -264,8 +268,19 @@ def verify_signed_dte(raw, original_caf, certificate_pin, context, *, caf_author
     checked = _bound_ted(raw, document, encoding, original_caf, context, caf_authorities)
     key = _certificate(certificate_pin, context)
     _verify_xml_signature(root, document, key, certificate_pin)
+    trust = _verify_certificate_trust(certificate_pin, context, certificate_trust)
     return DTEVerification(raw, context.document_id, certificate_pin.fingerprint_sha256,
-        checked.caf_authority_verified, checked, context.signed_at, context.namespace_profile)
+        checked.caf_authority_verified, checked, context.signed_at, context.namespace_profile, trust)
+
+
+def _verify_certificate_trust(pin, context, policy):
+    if policy is None:
+        return None
+    from .certificate_trust import verify_signer_trust, CertificateTrustError
+    try:
+        return verify_signer_trust(pin.certificate_der, pin.fingerprint_sha256, context.signed_at, policy)
+    except CertificateTrustError as error:
+        raise DTEError('dte-' + str(error)) from None
 
 
 def _encode(value):
@@ -292,7 +307,7 @@ def prepare_unsigned_dte_for_envelope(unsigned):
     return prepared
 
 
-def sign_dte(unsigned, original_caf, certificate_pin, context, private_key, *, caf_authorities):
+def sign_dte(unsigned, original_caf, certificate_pin, context, private_key, *, caf_authorities, certificate_trust=None):
     """Build a new Signature after schema/context/key checks; no implicit key I/O.
 
     Refuse an existing signature. Retain every byte of the supplied unsigned
@@ -303,6 +318,7 @@ def sign_dte(unsigned, original_caf, certificate_pin, context, private_key, *, c
     root, document, encoding = _parse(unsigned, signed=False, namespace_profile=context.namespace_profile)
     _bound_ted(unsigned, document, encoding, original_caf, context, caf_authorities)
     key = _certificate(certificate_pin, context)
+    _verify_certificate_trust(certificate_pin, context, certificate_trust)
     _require(isinstance(private_key, rsa.RSAPrivateKey)
         and private_key.public_key().public_numbers() == key.public_numbers(), 'dte-private-key-does-not-match-certificate')
     signature = etree.Element('{%s}Signature' % DS, nsmap={None: DS})
@@ -342,5 +358,6 @@ def sign_dte(unsigned, original_caf, certificate_pin, context, private_key, *, c
         xml_declaration=False, with_tail=False) + b'\n' + unsigned[index:]
     # Reparse independently in the exact output context: namespace/encoding
     # serialization can otherwise invalidate SignedInfo without being obvious.
-    verify_signed_dte(signed, original_caf, certificate_pin, context, caf_authorities=caf_authorities)
+    verify_signed_dte(signed, original_caf, certificate_pin, context, caf_authorities=caf_authorities,
+        certificate_trust=certificate_trust)
     return signed

@@ -17,7 +17,7 @@ def main():
     module = types.ModuleType(package)
     module.__path__ = [str(path)]
     sys.modules[package] = module
-    for name in ('ted_cases', 'dte_signature_cases'):
+    for name in ('ted_cases', 'certificate_trust_fixtures', 'dte_signature_cases'):
         spec = importlib.util.spec_from_file_location(package + '.' + name, path / (name + '.py'))
         module = importlib.util.module_from_spec(spec)
         sys.modules[spec.name] = module

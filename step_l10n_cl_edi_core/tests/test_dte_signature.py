@@ -5,6 +5,21 @@ from .dte_signature_cases import DTESignatureCaseMixin
 
 @tagged('post_install', '-at_install')
 class TestDTESignatureCore(DTESignatureCaseMixin, TransactionCase):
+    def test_explicit_pkix_and_complete_crls_bind_actual_dte_without_emission(self):
+        DTESignatureCaseMixin.test_explicit_pkix_and_complete_crls_bind_actual_dte_without_emission(self)
+
+    def test_pkix_revoked_leaf_and_intermediate_reject_before_signing(self):
+        DTESignatureCaseMixin.test_pkix_revoked_leaf_and_intermediate_reject_before_signing(self)
+
+    def test_pkix_real_path_constraints_and_unknown_critical_extensions(self):
+        DTESignatureCaseMixin.test_pkix_real_path_constraints_and_unknown_critical_extensions(self)
+
+    def test_pkix_crl_time_scope_signature_and_complete_path_are_required(self):
+        DTESignatureCaseMixin.test_pkix_crl_time_scope_signature_and_complete_path_are_required(self)
+
+    def test_pkix_pins_order_types_and_explicit_policy_fail_closed(self):
+        DTESignatureCaseMixin.test_pkix_pins_order_types_and_explicit_policy_fail_closed(self)
+
     # Odoo discovers concrete __dict__ methods, not inherited mixin methods.
     def test_real_signature_schema_context_and_authority_are_separate(self):
         DTESignatureCaseMixin.test_real_signature_schema_context_and_authority_are_separate(self)
