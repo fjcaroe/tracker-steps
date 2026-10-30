@@ -39,6 +39,27 @@ TOOLS = tuple(dict.fromkeys(previous.TOOLS + EXECUTED_TOOLS + (
 EXPECTED_TESTS = {'community': 576, 'cerro-reference': 391}
 
 
+def expected_alias_contract(aliases):
+    """MF includes the real manual bank setup provider in both registries.
+
+    Resolve the expected API from the trusted finance checker, not a prior
+    Community module-graph length. Runtime lookup/field-type checks remain in
+    that checker; this seals every emitted alias and its shared-model identity.
+    """
+    from finance_frontier_contract import LEGACY_XMLIDS
+    expected = {module + '.' + name for module, names in LEGACY_XMLIDS.items() for name in names}
+    require(isinstance(aliases, dict) and set(aliases) == expected, 'MF finance alias set differs from the complete legacy contract')
+    require(all(type(value) is int and value > 0 for value in aliases.values()), 'MF finance alias reference is not a positive record ID')
+    model_names = [module + '.model_res_partner_bank' for module in LEGACY_XMLIDS]
+    require(len({aliases[name] for name in model_names}) == 1, 'MF shared banking model aliases target different references')
+    for prefix in ('field_', 'selection__', 'view_'):
+        names = [module + '.' + name for module, values in LEGACY_XMLIDS.items() for name in values if name.startswith(prefix)]
+        require(len({aliases[name] for name in names}) == len(names), 'MF distinct banking metadata aliases share a wrong reference')
+    return {'exact_legacy_aliases': len(expected),
+            'manual_setup_related_field_aliases': sum('.field_account_setup_bank_manual_config__' in name for name in expected),
+            'shared_bank_model_reference_exact': True}
+
+
 def git_sources(repo):
     paths = list(OWN_MODULES) + ['tools/community/' + name for name in TOOLS]
     body = subprocess.check_output(['git', '-C', str(repo), '-c', 'core.autocrlf=true',
@@ -169,12 +190,13 @@ def verify_receipt(root, source, packet, mode):
     require(tuple(installation.OWN_MODULES) == OWN_MODULES, 'Installation postflight packet scope differs')
     installation_summary = installation.verify(installed_proof, mode, source, receipt)
     finance = read(root, mode + '/finance-frontier.json')
+    alias_audit = expected_alias_contract(finance['aliases'])
     finance_modules = ('step_account_balance_analytic', 'step_bank_export_core', 'step_accounting_multicurrency_core')
     if mode != 'community':
         finance_modules += ('step_account_treasury_batch', 'step_bank_security', 'step_accounting_multicurrency')
     versions = {module: ast.literal_eval(source[module + '/__manifest__.py'].decode('utf-8-sig'))['version'] for module in finance_modules}
     require(finance['mode'] == ('community' if mode == 'community' else 'cerro-copy')
-            and finance['versions'] == versions and len(finance['aliases']) == (13 if mode == 'community' else 15)
+            and finance['versions'] == versions
             and len(finance['multicurrency_legacy_aliases']) == 37
             and finance['draft_grouping_provider'] is True and finance['payment_formats_use_original_model'] is True
             and finance['batch_conversion_certified'] is False and finance['writes_to_source'] is False,
@@ -194,7 +216,7 @@ def verify_receipt(root, source, packet, mode):
             body = safe_path(root, mode + '/payslip-pdf-evidence/' + proof['file']).read_bytes()
             require(body.startswith(b'%PDF-') and sha(body) == proof['sha256'], 'MF actual PDF bytes differ')
     return receipt, {'tests': expected, 'critical_multifront_methods': methods,
-                     'module_installation': installation_summary, **receipt['counts']}
+                     'module_installation': installation_summary, 'banking_alias_contract': alias_audit, **receipt['counts']}
 
 
 def verify_preservation(root, source, native, repo):
