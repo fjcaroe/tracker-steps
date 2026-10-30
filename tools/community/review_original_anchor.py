@@ -5,15 +5,38 @@ technical additions or numeric representation changes require their own proof.
 No production database connection or update operation is provided.
 """
 import argparse
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
 import re
 
-from run_original_anchor import column_snapshot, original_columns
+import run_original_anchor as anchor
 import validate_agriculture_core as preservation
-from validate_community_reports import sql
+import validate_community_reports as reports
 import payroll_configuration_adoption_preflight as gate
+from original_anchor_readonly_sql import ReadOnlyReviewSQL
+
+
+column_snapshot, original_columns = anchor.column_snapshot, anchor.original_columns
+sql = reports.sql
+
+
+@contextmanager
+def readonly_bindings(executor):
+    """Bind only this isolated review process; always restore real helpers."""
+    global sql
+    old = [(module, module.sql) for module in (anchor, preservation, reports)]
+    original = sql
+    try:
+        sql = executor
+        for module, previous in old:
+            module.sql = executor
+        yield
+    finally:
+        sql = original
+        for module, previous in old:
+            module.sql = previous
 
 
 def physical_schema(database, tables):
@@ -31,7 +54,7 @@ def physical_schema(database, tables):
     return json.loads(sql(database,query))
 
 
-def compare(stage, database):
+def _compare(stage, database):
     stage = Path(stage).resolve()
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+', database)
     plan = json.loads((stage/'handover-plan.json').read_text())
@@ -99,6 +122,16 @@ def compare(stage, database):
         'original_physical_schema_differences_requiring_review':schema_differences,
         'added_constraints_requiring_review':added_constraints,
         'source_dump_sha256':plan['source_dump_sha256']}
+    return result
+
+
+def compare(stage, database):
+    stage = Path(stage).resolve()
+    plan = json.loads((stage/'handover-plan.json').read_text())
+    executor = ReadOnlyReviewSQL(database, plan['reference_database'])
+    with readonly_bindings(executor):
+        result = _compare(stage, database)
+    result['postgresql_readonly_execution'] = executor.proof()
     return result
 
 
