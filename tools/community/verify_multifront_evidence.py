@@ -41,6 +41,10 @@ TOOLS = tuple(dict.fromkeys(previous.TOOLS + EXECUTED_TOOLS + (
     'verify_original_contracts_evidence.py', 'verify_original_bootstrap_evidence.py',
     'verify_multifront_evidence.py', 'collect_multifront_evidence.py', 'audit_multifront_installation.py')))
 EXPECTED_TESTS = {'community': 576, 'cerro-reference': 391}
+U_HELPERS = ('derive_original_payroll_storage.py', 'derive_original_history_deletion.py',
+    'original_history_engine_contract.py', 'preflight_original_history_storage.py', 'audit_payroll_history_storage.py',
+    'original_external_references_readonly_bootstrap.py')
+U_PACKET_FILES = 519
 
 
 def own_modules(operational_extensions=False, quality_extension=False):
@@ -78,10 +82,11 @@ def expected_alias_contract(aliases):
             'shared_bank_model_reference_exact': True}
 
 
-def git_sources(repo, *, operational_extensions=False, quality_extension=False):
+def git_sources(repo, *, operational_extensions=False, quality_extension=False, critical_generation='R3'):
     paths = list(own_modules(operational_extensions, quality_extension)) + ['tools/community/' + name
         for name in TOOLS + (('oca_vendor_contract.py',) if operational_extensions else ())
-        + (('quality_vendor_contract.py', 'verify_original_report_headers.py') if quality_extension else ())]
+        + (('quality_vendor_contract.py', 'verify_original_report_headers.py') if quality_extension else ())
+        + (U_HELPERS if critical_generation == 'U' else ())]
     body = subprocess.check_output(['git', '-C', str(repo), '-c', 'core.autocrlf=true',
         '-c', 'core.eol=crlf', 'archive', '--format=tar', 'HEAD', *paths])
     with tarfile.open(fileobj=io.BytesIO(body)) as archive:
@@ -112,11 +117,17 @@ def verify_packets(root, source, *, operational_extensions=False, quality_extens
     return packets[0]
 
 
-def verify_executed_tools(root, source, *, operational_extensions=False, quality_extension=False):
+def executed_tools(critical_generation='R3'):
+    require(critical_generation in ('R3', 'S', 'T', 'U'), 'Explicit supported executed-helper generation required')
+    return EXECUTED_TOOLS + (U_HELPERS if critical_generation == 'U' else ())
+
+
+def verify_executed_tools(root, source, *, operational_extensions=False, quality_extension=False, critical_generation='R3'):
     directory = safe_path(root, 'executed-tools')
-    require(directory.is_dir() and {path.name for path in directory.iterdir()} == set(EXECUTED_TOOLS),
+    expected = executed_tools(critical_generation)
+    require(directory.is_dir() and {path.name for path in directory.iterdir()} == set(expected),
             'MF executed helper inventory differs')
-    for name in EXECUTED_TOOLS:
+    for name in expected:
         body = safe_path(root, 'executed-tools/' + name).read_bytes()
         require(body.replace(b'\r\n', b'\n') == source['tools/community/' + name].replace(b'\r\n', b'\n'),
                 'Executed MF helper differs from Git: ' + name)
@@ -181,8 +192,12 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
     if critical_extension and mode == 'community':
         selected += [('step_payroll_oca_api/tests/test_original_nullable.py', 'OriginalNullableCase'),
                      ('step_payroll_oca_api/tests/test_original_rule_projection.py', 'OriginalRuleProjectionCase')]
-    if critical_generation in ('S', 'T') and mode == 'community':
+    if critical_generation in ('S', 'T', 'U') and mode == 'community':
         selected += [('step_payroll_oca_api/tests/test_original_input_type_ui.py', 'OriginalInputTypeUICase')]
+    if critical_generation == 'U':
+        selected += [('step_payroll_oca_api/tests/test_original_history_storage.py', 'OriginalHistoryStorageCase'),
+            ('step_payroll_oca_api/tests/test_delete_history.py', 'OriginalHistoryDeletionCase')] if mode == 'community' else [
+            ('step_payroll_enterprise_reference/tests/test_native_history_storage.py', 'NativeHistoryStorageCase')]
     result = {}
     for name, only_class in selected:
         require(name in source, 'Critical MF test source missing: ' + name)
@@ -210,8 +225,10 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
     count = (173 if mode == 'community' else 147) if quality_extension else (164 if mode == 'community' else 143) if operational_extensions else (103 if mode == 'community' else 97)
     if critical_extension:
         count += 5 + (28 if mode == 'community' else 11)  # PKIX, HR admission/projection and invoice application.
-    if critical_generation in ('S', 'T'):
+    if critical_generation in ('S', 'T', 'U'):
         count += 6 if mode == 'community' else 5
+    if critical_generation == 'U':
+        count += 13 if mode == 'community' else 5
     require(len(result) == count, 'Critical MF method inventory changed')
     return len(result)
 
@@ -402,6 +419,118 @@ def verify_original_pdf(root, receipt, *, quality_extension=False, source=None):
     return result
 
 
+def verify_u_engine(root, source):
+    """Replay both the NUMERIC intermediate and the distinct final U engine."""
+    import original_history_engine_contract as history_engine
+
+    original, candidate = (previous.engine_snapshot(root, folder) for folder in ('engine-original', 'engine-candidate'))
+    git_proof = previous.verify_engine_git(read(root, 'engine-git-proof.json'), original)
+    numeric_receipt = read(root, numeric.REPORT)
+    base.tool_hash(numeric_receipt['builder_sha256'], 'build_numeric_input_engine.py', source)
+    intermediate = numeric.plan(original)
+    rebuilt = numeric.report_for(original, intermediate)
+    rebuilt['builder_sha256'] = numeric_receipt['builder_sha256']
+    rebuilt.pop('seal_sha256'); rebuilt['seal_sha256'] = numeric.seal(rebuilt)
+    require(numeric_receipt == rebuilt, 'U NUMERIC intermediate derivation differs from trusted replay')
+    schema_raw = safe_path(root, 'schema-plan.json').read_bytes()
+    report = read(root, history_engine.REPORT)
+    guard = {name: source[name] for name in history_engine.GUARD_PATHS}
+    for name, digest in report['builder_sources_lf_sha256'].items():
+        base.tool_hash(digest, name, source)
+    result = history_engine.verify_snapshots(original, candidate, report, schema_raw, guard)
+    require(result['files'] == len(original) == len(candidate) == 144
+        and result['all_stage_hashes_recomputed'] is True
+        and result['actual_api_guard_bound_to_source'] is True
+        and result['artifact_python_executed'] is False,
+        'U requires exact pinned 144-file final storage/deletion composition')
+    return {'numeric_intermediate': {'source_files': 144, 'candidate_files': len(intermediate),
+        'oca_pin': numeric.PIN, 'changed_files': [numeric.FILE], 'intermediate_only': True,
+        'executed_final_engine_is_numeric_only': False, 'pinned_git_object_proof': git_proof,
+        'existing_float8_converted': False, 'historical_conversion': False}, 'final_engine': result}
+
+
+def verify_u_storage_boundary(root, source, receipt, mode):
+    """Replay the before-init gate and passive four-field after-test contract."""
+    import preflight_original_history_storage as before_gate
+    import audit_payroll_history_storage as storage_audit
+    import original_history_engine_contract as history_engine
+    import original_external_references_readonly_bootstrap as readonly_bootstrap
+
+    before_name = mode + '/before-initialization-storage.json'
+    after_name = mode + '/after-tests-history-storage.json'
+    before_hash = sha(safe_path(root, before_name).read_bytes())
+    after_hash = sha(safe_path(root, after_name).read_bytes())
+    require(receipt['before_initialization_storage_sha256'] == before_hash
+        and receipt['history_storage_after_sha256'] == after_hash,
+        'U receipt does not bind the actual before-init and after-test storage witnesses')
+    chronology = receipt['before_initialization_chronology']
+    require(chronology == {'database': receipt['database'], 'preflight_sha256': before_hash,
+        'preflight_completed_before_initializer': True, 'shared_environment_lease': True,
+        'initializer_source': 'candidate-first-init'},
+        'U root must prove preflight order before the first candidate initializer under lease')
+    before = read(root, before_name)
+    preflight = before_gate.verify(before, receipt['database'], 'cold-community' if mode == 'community' else 'native')
+    after = read(root, after_name)
+    require(after.get('schema') == 1 and after.get('profile') == ('normal-community' if mode == 'community' else 'native-reference')
+        and after.get('database') == receipt['database'] and after.get('read_only') is True
+        and after.get('database_writes') is False and after.get('historical_rows_assessed') is False
+        and after['metadata_before'] == after['metadata_after'], 'U stable passive after-test catalog contract required')
+    base.tool_hash(after['tool_sha256'], 'audit_payroll_history_storage.py', source)
+    catalog, runtime = after['metadata_before'], after['runtime']
+    require(set(catalog) == set(storage_audit.queries()) and catalog['transaction'] == [{
+        'database': receipt['database'], 'read_only': 'on', 'default_read_only': 'on', 'isolation': 'repeatable read'}],
+        'U actual catalog read-only transaction differs')
+    providers = {row['name']: row for row in catalog['providers']}
+    require(len(providers) == len(catalog['providers']) == receipt['counts']['installed']
+        and sum(row['license'] == 'OEEL-1' for row in providers.values()) == receipt['counts']['enterprise'],
+        'U storage catalog provider graph differs from the accepted registry')
+    require(('payroll' in providers and 'hr_payroll' not in providers and 'step_payroll_oca_api' in providers)
+        if mode == 'community' else ('hr_payroll' in providers and 'payroll' not in providers),
+        'U storage catalog uses the wrong actual engine')
+    require(runtime.get('schema') == 1 and runtime.get('database') == receipt['database']
+        and runtime.get('registry_loaded_by_caller') is True and runtime.get('read_only') is True
+        and runtime.get('records_read') is False and runtime.get('computes_evaluated') is False
+        and runtime.get('database_writes') is False, 'U passive real readonly registry metadata required')
+    require(runtime.get('process_readonly_before_first_connection') is True,
+        'U complete witness process must be readonly before its first connection')
+    base.tool_hash(runtime['readonly_bootstrap_sha256'], 'original_external_references_readonly_bootstrap.py', source)
+    cursors = runtime.get('cursor_observations')
+    require(isinstance(cursors, list) and cursors and all(isinstance(row, dict)
+        and set(row) == {'database', 'transaction_read_only', 'odoo_cursor_readonly'}
+        and row['database'] in (receipt['database'], 'postgres')
+        and row['transaction_read_only'] == 'on' and row['odoo_cursor_readonly'] is True for row in cursors),
+        'U every actual startup and observer connection must remain readonly in the explicit database boundary')
+    sequence = runtime.get('signaling_sequence_reader', {})
+    require(isinstance(sequence, dict) and sequence.get('original_registry_source_sha256') in readonly_bootstrap.REGISTRY_SOURCE_SHA256
+        and sequence.get('original_get_sequences_sha256') == readonly_bootstrap.SEQUENCE_METHOD_SHA256
+        and sequence.get('select_only_sql_sha256') == sha(readonly_bootstrap.SEQUENCE_SELECT.encode())
+        and sequence.get('cache_keys') == list(readonly_bootstrap.CACHE_KEYS),
+        'U exact approved SELECT-only signaling reader and original source required')
+    calls = sequence.get('calls')
+    require(isinstance(calls, list) and calls and all(isinstance(row, dict)
+        and set(row) == {'database', 'transaction_read_only', 'odoo_cursor_readonly', 'pg_is_in_recovery'}
+        and row['database'] == receipt['database'] and row['transaction_read_only'] == 'on'
+        and row['odoo_cursor_readonly'] is True and row['pg_is_in_recovery'] is False for row in calls)
+        and all(sequence.get(key) is True for key in ('cursor_readonly_unchanged', 'setup_signaling_unchanged',
+            'signal_changes_unchanged', 'nextval_unchanged')) and sequence.get('installed_sources_modified') is False,
+        'U actual signaling must read the local primary without any write or source override expansion')
+    assessment = storage_audit.assess(catalog, runtime)
+    require(after['assessment'] == assessment and assessment['catalog_contracts_closed'] == 4
+        and assessment['all_four_catalog_contracts_match'] is True and assessment['calendar_fk_set_null'] is True
+        and assessment['runtime_metadata_match'] is True and assessment['other_columns_waived'] == []
+        and assessment['historical_rows_assessed'] is False and assessment['adoption_authorized'] is False
+        and assessment['financial_certified'] is False and assessment['integral_conversion'] is False,
+        'U exact four-field catalog/runtime first-load contract is not closed')
+    engine_hash = receipt['history_engine_derivation_sha256']
+    require(engine_hash == (sha(safe_path(root, history_engine.REPORT).read_bytes()) if mode == 'community' else None),
+        'U actual final-engine composition receipt scope differs')
+    return {'before_candidate_initialization': preflight, 'chronology_bound_by_root_receipt': True,
+        'after_tests_four_contracts': assessment, 'original_masters_adopted': False,
+        'whole_witness_process_readonly': True, 'readonly_cursor_observations': len(cursors),
+        'signaling_select_only_proven': True,
+        'historical_rows_assessed': False, 'other_columns_waived': [], 'integral_conversion': False}
+
+
 def verify_receipt(root, source, packet, mode, *, operational_extensions=False, quality_extension=False, critical_extension=False, critical_generation='R3'):
     receipt = read(root, mode + '/passed.json')
     expected = expected_tests(operational_extensions, quality_extension, critical_extension, critical_generation)[mode]
@@ -485,6 +614,8 @@ def verify_receipt(root, source, packet, mode, *, operational_extensions=False, 
             require(body.startswith(b'%PDF-') and sha(body) == proof['sha256'], 'MF actual PDF bytes differ')
     summary = {'tests': expected, 'critical_multifront_methods': methods,
                'module_installation': installation_summary, 'banking_alias_contract': alias_audit, **receipt['counts']}
+    if critical_generation == 'U':
+        summary['first_initialization_storage'] = verify_u_storage_boundary(root, source, receipt, mode)
     if operational_extensions:
         if mode == 'community':
             summary['original_report_pdf'] = verify_original_pdf(root, receipt, quality_extension=quality_extension, source=source)
@@ -631,18 +762,23 @@ def verify_quality_vendor(root):
 def verify(evidence, *, repo=None, operational_extensions=False, quality_extension=False, critical_extension=False, critical_generation='R3'):
     root = Path(evidence).resolve()
     repo = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
-    source = git_sources(repo, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    source = git_sources(repo, operational_extensions=operational_extensions, quality_extension=quality_extension,
+        critical_generation=critical_generation)
     verify_file_manifest(root, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
-    verify_executed_tools(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
+    verify_executed_tools(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension,
+        critical_generation=critical_generation)
     packet = verify_packets(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     if critical_generation in ('S', 'T'):
         require(len(packet) == 513, 'S exact packet file count differs')
+    if critical_generation == 'U':
+        require(len(packet) == U_PACKET_FILES, 'U exact original-storage packet file count differs')
     # This provider is private AGPL source, not a repository addon. Its entire
     # 52-file replay was validated above before its manifest joins the trusted
     # postflight source map.
     source.update({builder.MODULE + '/' + name: body
                    for name, body in base.addon_snapshot(root, 'normal-provider').items()})
-    engine = previous.verify_engine(root, source)
+    u_engine = verify_u_engine(root, source) if critical_generation == 'U' else None
+    engine = u_engine['numeric_intermediate'] if u_engine else previous.verify_engine(root, source)
     require(engine['source_files'] == engine['candidate_files'] == 144, 'MF NUMERIC engine file inventory differs')
     base.verify_hr_derivation(root, source)
     vendor_summary = verify_vendor(root) if operational_extensions else None
@@ -665,6 +801,10 @@ def verify(evidence, *, repo=None, operational_extensions=False, quality_extensi
         result.update(critical_generation='S', profile='multifront-critical-S-original-interface')
     if critical_generation == 'T':
         result.update(critical_generation='T', profile='multifront-critical-T-original-group-schema')
+    if critical_generation == 'U':
+        result.update(critical_generation='U', profile='multifront-critical-U-original-first-init-storage',
+            oca_original_history_engine=u_engine['final_engine'],
+            numeric_receipt_is_intermediate_only=True, other_columns_waived=[])
     if quality_extension:
         result.update(quality_extension=True, oca_unmodified_quality_vendor=quality_summary,
             quality_native_identity_converted=False, productive_layout_accepted=False, legal_validity_certified=False)
