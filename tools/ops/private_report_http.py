@@ -25,6 +25,7 @@ def report_assets_http(base, options, database, source, opts, stage, query):
     # holds the shared environment lease; remove the narrow exception even on
     # failure, without permitting another host or database.
     rule = None
+    rule_added = False
     process = None
     try:
         if database.startswith('MANAGEMENT_QA_QA-CERRO_'):
@@ -35,6 +36,7 @@ def report_assets_http(base, options, database, source, opts, stage, query):
                     'STEPS_PRIVATE_REPORT_'+database,'-j','ACCEPT']
             assert subprocess.run(['/usr/sbin/iptables','-w','-C',*rule],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode != 0
             subprocess.run(['/usr/sbin/iptables','-w','-I','OUTPUT','1',*rule[1:]],check=True)
+            rule_added = True
         process = subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         for attempt in range(60):
             assert process.poll() is None, 'Private report asset server stopped'
@@ -45,12 +47,18 @@ def report_assets_http(base, options, database, source, opts, stage, query):
         else: raise AssertionError('Private report asset server did not start')
         yield
     finally:
-        if process is not None and process.poll() is None:
-            os.killpg(process.pid, signal.SIGTERM)
-            try: process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL); process.wait(timeout=10)
-        if rule is not None:
-            subprocess.run(['/usr/sbin/iptables','-w','-D',*rule],check=True)
-            assert subprocess.run(['/usr/sbin/iptables','-w','-C',*rule],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode != 0
-            print('CUSTOMER_QA_REPORT_LOOPBACK_REMOVED '+database,flush=True)
+        try:
+            if process is not None and process.poll() is None:
+                try:
+                    os.killpg(process.pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL); process.wait(timeout=10)
+        finally:
+            if rule_added:
+                subprocess.run(['/usr/sbin/iptables','-w','-D',*rule],check=True)
+                assert subprocess.run(['/usr/sbin/iptables','-w','-C',*rule],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode != 0
+                print('CUSTOMER_QA_REPORT_LOOPBACK_REMOVED '+database,flush=True)
