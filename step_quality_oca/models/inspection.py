@@ -146,7 +146,13 @@ class Inspection(models.Model):
                 elif line.question_type == 'quantitative':
                     if not line.uom_id or not line.test_uom_id or line.uom_id.category_id != line.test_uom_id.category_id:
                         raise UserError(_('Quality measurements require compatible original units of measure.'))
-                    if any(value is None or not isfinite(value) for value in stored[line.id]):
+                    measurement, lower, upper = stored[line.id]
+                    # The real set-test wizard creates an unmeasured draft.
+                    # Preparing it must retain SQL NULL, not manufacture zero;
+                    # only confirming/approving requires an actual measurement.
+                    if (any(value is None or not isfinite(value) for value in (lower, upper))
+                            or measurement is not None and not isfinite(measurement)
+                            or answers_required and measurement is None):
                         raise UserError(_('Quality measurements and limits must be stored and finite; NULL is not zero.'))
                     if line.min_value > line.max_value:
                         raise UserError(_('The original quality limits are reversed.'))
