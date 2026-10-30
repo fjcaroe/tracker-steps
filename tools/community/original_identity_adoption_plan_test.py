@@ -118,6 +118,18 @@ class IdentityPlanCase(unittest.TestCase):
         self.assertIn('unreviewed-schema-or-composite-reference', [row['blocker'] for row in missing])
         self.assertIn('stored-field-has-no-proven-physical-model-table-binding', [row['blocker'] for row in missing])
 
+    def test_declared_many2one_without_fk_is_counted_but_remains_unproven(self):
+        data = self.metadata()
+        data['inbound_foreign_keys'] = []
+        data['identity_relation_fields'] = [{'model': 'hr.contract', 'name': 'structure_type_id',
+            'store': True, 'ttype': 'many2one', 'relation': audit.TYPE_MODEL, 'company_dependent': False}]
+        queries, paths, missing = audit.reference_queries(data)
+        self.assertEqual(len(paths), 1)
+        self.assertEqual(paths[0]['path_kind'], 'declared-many2one-without-foreign-key-candidate')
+        self.assertFalse(paths[0]['table_mapping_certified'])
+        self.assertIn('IN (1,2,3,4)', queries['path:declared:0'])
+        self.assertEqual(missing[0]['blocker'], 'stored-relation-without-reviewed-physical-foreign-key')
+
     def test_capsule_values_are_only_hex_sql_literals_never_formula_evaluation(self):
         raw = [json.dumps({'id': ident, 'name': "'); DELETE FROM private; --"}) for ident in audit.TYPE_IDS]
         capsule = {'tables': {'hr_payroll_structure_type': {'rows_json': raw}}}
