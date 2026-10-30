@@ -49,7 +49,7 @@ try:
             assert attendance.number_of_days==30-case['absent_days']
             assert attendance.number_of_hours==8*attendance.number_of_days
             expected=slip.contract_id.wage/30*attendance.number_of_days
-            assert abs(attendance.amount-expected)<0.01
+            assert attendance.amount==slip.company_id.currency_id.round(expected)
             base=slip.line_ids.filtered(lambda l:l.code=='BASIC')
             assert len(base)==1 and base.total==slip.company_id.currency_id.round(expected)
             assert slip.input_line_ids.read(['input_type_id','amount','name'])==original_inputs
