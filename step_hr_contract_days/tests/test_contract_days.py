@@ -6,6 +6,79 @@ from odoo.tests import TransactionCase, tagged
 
 @tagged("post_install", "-at_install")
 class TestContractDays(TransactionCase):
+    def test_unpaid_master_identifies_reported_absence_code(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        absent=self.env['hr.work.entry.type'].create({'name':'QA unpaid absence','code':'LEAVECL130','is_leave':True})
+        leave=self.env['hr.leave.type'].create({'name':'QA unpaid master','unpaid':True,'work_entry_type_id':absent.id,'requires_allocation':'no'})
+        slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':'Nómina Chile'}),
+            'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':'monthly'}),
+            'date_from':date(2026,10,1),'date_to':date(2026,10,31)})
+        for count in (1,2):
+            source=[{'work_entry_type_id':absent.id,'number_of_days':count},
+                    {'work_entry_type_id':work.id,'number_of_days':31-count,'amount':600000/31*(31-count)}]
+            lines=slip._step_monthly_absence_days(source)
+            self.assertEqual(lines[1]['number_of_days'],30-count)
+            self.assertEqual(lines[1]['amount'],600000/30*(30-count))
+            self.assertEqual(leave.work_entry_type_id,absent)
+
+    def test_medical_alias_without_unpaid_master_is_not_absence(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        medical=self.env['hr.work.entry.type'].create({'name':'QA clinical alias','code':'LEAVECL130','is_leave':True})
+        slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':'Nómina Chile'}),
+            'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':'monthly'}),
+            'date_from':date(2026,10,1),'date_to':date(2026,10,31)})
+        source=[{'work_entry_type_id':medical.id,'number_of_days':1},
+                {'work_entry_type_id':work.id,'number_of_days':30,'amount':580645}]
+        before=[dict(line) for line in source]
+        self.assertEqual(slip._step_monthly_absence_days(source),before)
+
+    def test_full_month_absences_use_fixed_thirty_day_salary(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        absence=self.env['hr.work.entry.type'].search([('code','=','FALT')],limit=1)
+        if not absence:absence=self.env['hr.work.entry.type'].create({'name':'QA absence','code':'FALT','is_leave':True})
+        structure=self.env['hr.payroll.structure'].new({'name':'Nómina Chile'})
+        for year,month,last in [(2026,2,28),(2028,2,29),(2026,9,30),(2026,10,31)]:
+            for absent in (0.5,1,2,30):
+                for present in (True,False):
+                    slip=self.env['hr.payslip'].new({'struct_id':structure,
+                        'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':'monthly'}),
+                        'date_from':date(year,month,1),'date_to':date(year,month,last)})
+                    source=[{'work_entry_type_id':absence.id,'number_of_days':absent,'number_of_hours':absent*8,'amount':0}]
+                    if present:source.append({'work_entry_type_id':work.id,'number_of_days':max(last-absent,0),'amount':600000})
+                    unchanged=dict(source[0]);lines=slip._step_monthly_absence_days(source)
+                    attendance=[l for l in lines if l['work_entry_type_id']==work.id]
+                    expected=max(30-absent,0)
+                    self.assertEqual(sum(l['number_of_days'] for l in attendance),expected)
+                    self.assertEqual(sum(l['amount'] for l in attendance),600000/30*expected)
+                    self.assertEqual(lines[0],unchanged)
+
+    def test_absence_correction_leaves_medical_and_partial_periods_to_provider(self):
+        entries=self.env['hr.work.entry.type']
+        def entry(code):return entries.search([('code','=',code)],limit=1) or entries.create({'name':'QA '+code,'code':code,'is_leave':True})
+        work=entry('WORK100');absence=entry('FALT');medical=entry('LIC')
+        for start,end,contract_start,contract_end,license_days in [
+                (1,31,1,False,1),(2,31,1,False,0),(1,30,1,False,0),
+                (1,31,2,False,0),(1,31,1,15,0)]:
+            slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':'Nómina Chile'}),
+                'contract_id':self.env['hr.contract'].new({'date_start':date(2026,10,contract_start),
+                    'date_end':date(2026,10,contract_end) if contract_end else False,'wage':600000,'wage_type':'monthly'}),
+                'date_from':date(2026,10,start),'date_to':date(2026,10,end)})
+            source=[{'work_entry_type_id':work.id,'number_of_days':29,'amount':561290},
+                    {'work_entry_type_id':absence.id,'number_of_days':1}]
+            if license_days:source.append({'work_entry_type_id':medical.id,'number_of_days':license_days})
+            before=[dict(l) for l in source]
+            self.assertEqual(slip._step_monthly_absence_days(source),before)
+
+    def test_hourly_or_other_structure_is_not_repriced(self):
+        work=self.env['hr.work.entry.type'].search([('code','=','WORK100')],limit=1)
+        for wage_type,structure in [('hourly','Nómina Chile'),('monthly','QA Other')]:
+            slip=self.env['hr.payslip'].new({'struct_id':self.env['hr.payroll.structure'].new({'name':structure}),
+                'contract_id':self.env['hr.contract'].new({'date_start':date(2020,1,1),'wage':600000,'wage_type':wage_type}),
+                'date_from':date(2026,10,1),'date_to':date(2026,10,31)})
+            source=[{'work_entry_type_id':work.id,'number_of_days':30,'amount':600000}]
+            before=[dict(l) for l in source]
+            self.assertEqual(slip._step_monthly_absence_days(source),before)
+
     def test_contract_boundaries_and_absences(self):
         work = self.env["hr.work.entry.type"].search([("code", "=", "WORK100")], limit=1)
         self.assertTrue(work)
