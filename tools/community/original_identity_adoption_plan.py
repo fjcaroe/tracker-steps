@@ -110,13 +110,21 @@ def reference_queries(metadata):
         else:
             if field['ttype'] == 'many2many':
                 unresolved.append(dict(entry, blocker='many2many-runtime-table-column-binding-required'))
+                continue
             elif not any(fk['source_table'] == table and fk['source_columns'] == [name] for fk in metadata['inbound_foreign_keys']):
                 unresolved.append(dict(entry, blocker='stored-relation-without-reviewed-physical-foreign-key'))
-            continue
-        key = 'path:polymorphic:' + str(index)
+                if field['ttype'] == 'many2one' and not field.get('company_dependent') and columns[table, name] in ('integer', 'bigint'):
+                    predicate = identifier(name) + (' IN (1,2,3,4)' if field['relation'] == TYPE_MODEL else ' = 462')
+                    entry['path_kind'] = 'declared-many2one-without-foreign-key-candidate'
+                else:
+                    continue
+            else:
+                continue
+        key = ('path:declared:' if field['ttype'] == 'many2one' else 'path:polymorphic:') + str(index)
         identity = 'jsonb_build_array(t.' + identifier(name) + (',t.id)' if (table, 'id') in columns else ')')
         statements[key] = 'SELECT count(*) AS rows,md5(coalesce(string_agg((' + identity + ')::text,E\'\\n\' ORDER BY (' + identity + ')::text),\'\')) AS reference_ids_md5 FROM public.' + identifier(table) + ' t WHERE ' + predicate
-        paths.append(dict(entry, path_kind='polymorphic-candidate', observation=key))
+        paths.append(dict(entry, path_kind=entry.get('path_kind', 'polymorphic-candidate'), observation=key,
+            owner_record_ids_bound=(table, 'id') in columns))
     return statements, paths, unresolved
 
 
@@ -222,6 +230,7 @@ def main():
     report['original_security_plan'] = security.preservation_plan(observations['source']['before'], observations['target']['before'])
     report['blockers'] = sorted(set(report['blockers']) | set(report['original_security_plan']['blockers']))
     report.update(capsule_sha256=args.expected_capsule_sha256, tool_sha256=sha(__file__), gate_tool_sha256=sha(gate.__file__),
+        security_tool_sha256=sha(security.__file__),
         observations=observations, source_database=capsule['database'], target_database=args.target_database)
     output.mkdir(mode=0o700)
     for name, raw in (('identity-adoption-plan.json', json.dumps(report, indent=2).encode()), ('auditor.py', Path(__file__).read_bytes())):
