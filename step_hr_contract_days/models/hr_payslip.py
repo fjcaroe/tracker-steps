@@ -33,14 +33,14 @@ class HrPayslip(models.Model):
                         or 'paid' in original._fields and original.paid
                         or 'step_history_locked' in original._fields and original.step_history_locked):
                     raise UserError(_('Closed payroll history cannot be recalculated.'))
-            if write and type(slip.id) is not int:
-                raise UserError(_('Save the real draft payslip before calculating contract days.'))
         # Inspect every selected state before even flushing source identities.
         for slip in normal:
             slip.struct_id.check_access('read')
             slip.struct_id.check_field_access_rights('read', ['name'])
             if slip.struct_id.name != 'Nómina Chile':
                 continue
+            if write and type(slip.id) is not int:
+                raise UserError(_('Save the real draft payslip before calculating contract days.'))
             contract = slip.contract_id
             contract.check_access('read')
             contract.check_field_access_rights('read', ['date_start', 'date_end', 'wage', 'wage_type',
