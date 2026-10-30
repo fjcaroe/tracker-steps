@@ -1,3 +1,52 @@
+## Pausa solicitada por el usuario — 30-10-2026
+
+La migración y la automatización `migraci-n-odoo-community` están **PAUSADAS**
+por petición del usuario; continuará el jueves. No reactivar ni iniciar nuevas
+pruebas hasta que el usuario retome el trabajo. El vencimiento del 31 no está
+resuelto y no se modificó. Producción y QA-Cerro no se tocaron.
+
+La última pareja aceptada sigue siendo **T2: 671 CE / 462 nativos** en la
+canónica `c33e4b20`. El candidato **U3** pasó **684 pruebas CE**, cero fallos y
+errores, y su testigo completo readonly cerró cuatro contratos de almacenamiento.
+La referencia nativa se interrumpió por esta pausa; **467 es su objetivo, no un
+resultado aprobado**. No hay pareja U aceptada ni evidencia sellada. No integrar
+el candidato a la canónica ni reutilizar la copia interrumpida como aceptación.
+
+Punto recuperable:
+
+- `origin/codex/community-adoption-validated-20261030`, código `4312b0f7`:
+  29 archivos seleccionados, API 1.17.0, 33 propios/467 archivos + 52 AGPL.
+  Pasaron 62 pruebas puras; el código sigue pendiente de aceptación funcional doble.
+- `origin/codex/community-storage-20261030`, `9ac5284e`: implementación completa,
+  herramientas ancladas y ensayos conservados. Candidato normal en
+  `/opt/steps-validation/community-multifront-parallel-20261030U3` y recibos locales
+  en `~/.codex/local-artifacts/community-storage-20261030U`.
+- Ensayo anclado U2: instalación real terminada, 59.113 XML IDs sin pérdidas ni
+  retargets, 950 contratos/949 literales, 146 contadores exactos, cero diferencias
+  de constraints originales. Quedan 32 columnas con obligatoriedad distinta y
+  32 FK nuevas. La revisión agregada de históricos no es exacta y su clasificación
+  quedó cancelada: no afirmar preservación integral. Review SHA256
+  `047ed159127fc6c05f9bdef35c397652665e0dcf63297d537d1209b547fb6efe`.
+- El observador nativo U2 rechazó correctamente su constante antigua 381 ante
+  el origen actual 382. El agente preservó `2802bcde` en
+  `origin/codex/community-storage-custody-U-20261030`: perfil opt-in ligado al
+  inventario 9358 y a la lista completa de módulos, con 14 pruebas puras y replay
+  offline real. No está integrado ni probado funcionalmente; recuperar y revisar.
+
+Al retomar: fetch y revisar concurrencia; recuperar los commits indicados;
+repetir la pareja exacta completa en una raíz y bases privadas nuevas, con el
+bloqueo compartido. Completar postflight, preservación, custodia y sello antes de
+integrar U. Retomar clasificación anclada y el Sourceproof explícito de 382 antes
+de repetir la proyección original. Conservar F/G de S7 como evidencia separada.
+La duplicación de liquidaciones/líneas y reembolsos sigue sin certificar: U0
+reveló que el camino copy puede omitir el código requerido; no corregirlo tomando
+valores actuales del maestro sobre históricos. Siguen pendientes certificación
+de las 71 reglas, Previred/libro, DTE/CAF/SII y conversión integral restaurable
+cero Enterprise. El inventario permanece en 55 apps con caminos EE y producción
+conserva 140 EE. Respetar todas las restricciones anteriores.
+
+---
+
 # Maestros originales, permisos y referencia SyS — 30-10-2026
 
 La pareja normal vigente es **T2**, congelada en `10278323`: **671 casos
