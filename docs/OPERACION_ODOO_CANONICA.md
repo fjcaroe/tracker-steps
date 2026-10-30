@@ -328,3 +328,11 @@ sin existencias. Completar únicamente compañías vacías de tarjas vinculadas;
 rechazar contradicciones con stock u origen. Preservar ubicación, cantidades,
 estados, IDs y entrenamiento. Mismo paquete, copias frescas, respaldo, bloqueo,
 paridad y aislamiento. No crear existencias ni validar OT reales.
+
+T143 (mensaje 9877 y adjunto 3448) autoriza payroll-attendance en Desarrollo,
+SyS, Cerro y QA-Cerro. Implementa la alternativa b solicitada: eliminación
+manual de asistencia validada si todas sus liquidaciones están en borrador,
+sin pago, bloqueo histórico ni asiento publicado. Conservar licencias y otras
+ausencias, reglas de acceso y liquidaciones confirmadas. No eliminar registros
+reales ni cambiar contratos durante el despliegue. Probar corrección y cambio
+de fecha en copia, mismo paquete y controles de publicación.
