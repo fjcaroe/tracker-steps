@@ -29,17 +29,34 @@ class TestTreasuryCommon(AccountTestInvoicingCommon):
         for code, prefix in (('step.cashflow', 'FC%(year)s'),
                              ('step.vendor.proforma', 'PRF%(year)s'),
                              ('sale.order', 'SO-PRIVATE-'),
-                             ('purchase.order', 'PO-PRIVATE-')):
+                             ('purchase.order', 'PO-PRIVATE-'),
+                             ('picking.batch', 'PB-PRIVATE-')):
             sequence = cls.env['ir.sequence'].create({
                 'name': 'Private Treasury fixture ' + code, 'code': code,
                 'company_id': cls.company.id, 'prefix': prefix, 'padding': 4,
-                'implementation': 'standard',
+                'implementation': 'no_gap' if code == 'picking.batch' else 'standard',
             })
             selected = cls.env['ir.sequence'].with_company(cls.company).search([
                 ('code', '=', code), ('company_id', 'in', [cls.company.id, False]),
             ], order='company_id', limit=1)
             if selected != sequence:
                 raise AssertionError('Treasury fixture must use its own counter: ' + code)
+            if code == 'picking.batch':
+                # Native stock extensions create actual picking batches when
+                # these sale fixtures are confirmed. Exercise the unmodified
+                # sequence API in that company before any confirmation, with
+                # a transactional private counter and no global reset/setval.
+                global_sequences = cls.env['ir.sequence'].search([
+                    ('code', '=', code), ('company_id', '=', False)])
+                original_numbers = global_sequences.read(['number_next_actual'])
+                private_number = sequence.number_next_actual
+                result = cls.env['ir.sequence'].with_company(cls.company).next_by_code(code)
+                sequence.invalidate_recordset(['number_next', 'number_next_actual'])
+                global_sequences.invalidate_recordset(['number_next_actual'])
+                if not result.startswith(prefix) or sequence.number_next_actual != private_number + 1:
+                    raise AssertionError('Real picking batch sequence API did not select the private fixture counter')
+                if global_sequences.read(['number_next_actual']) != original_numbers:
+                    raise AssertionError('Private picking batch setup consumed a global counter')
         # El usuario de las pruebas necesita el perfil completo de Tesorería.
         cls.env.user.groups_id = [Command.link(
             cls.env.ref("step_account_treasury.group_treasury_manager").id)]
