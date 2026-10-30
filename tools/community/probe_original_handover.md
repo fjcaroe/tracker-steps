@@ -12,6 +12,27 @@ proof = run(env, capsule_path, capsule_sha256, identity_before_path,
             identity_sha256, output_path, actor_uid=None)
 ```
 
+El default `admission_scope='full'` sigue exigiendo UI. El alcance explícito
+`admission_scope='projection-only'` no ejecuta formularios, menús ni renderer,
+y requiere el Source nativo real sellado antes de cualquier preparación de ACL.
+Conserva todos los contratos de maestros, aliases, reporte completo, MRO,
+seguridad y correlativos; usa la misma API normal para materializar/verificar
+los 71 pares dos veces. No contiene excepciones por país, registro o menú.
+
+El resumer ofrece `--admission-scope projection-only` y publica un sello
+**distinto**, `cohort-projection-admission.json`, privado `0600`. Declara
+`ui_scope_exercised=False`, `ui_admission=False`,
+`data_projection_scope_passed=True` sólo después de todos los testigos, y
+`transaction_committed=True` sólo después del commit real del coordinador.
+Persisten los bloqueos de UI, columnas/FK, metadata/serializados, cálculos e
+integralidad. Un `passed=True` siempre se interpreta dentro del alcance
+registrado; no certifica la aplicación completa.
+
+Un intento posterior puede reutilizar los dos ACL técnicos ya preparados sólo
+si cada modelo OCA sigue realmente vacío, cada ACL es único y conserva
+exactamente lectura para el mismo gerente, sin write/create/unlink. No se
+reescribe un ACL incompatible ni se concede un grupo para reintentar UI.
+
 Para contrastar visibilidad contra el control nativo real, el coordinador puede
 añadir `source_visibility_path=...` y `source_visibility_sha256=...`. Se exigen
 ambos, archivo privado `0600`, la misma cápsula y el control `REFERENCE` de la

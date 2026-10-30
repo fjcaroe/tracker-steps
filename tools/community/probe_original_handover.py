@@ -23,6 +23,7 @@ import original_handover_view_query as core_view
 CAPSULE_SHA256 = '14b18ced97032ec27c306ed4c71c46f0c3d56e324d0eace4f0c8f2c86544e140'
 DATABASE = r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+'
 PRIVATE_ROOT = Path('/opt/steps-validation')
+ADMISSION_SCOPES = ('full', 'projection-only')
 HISTORY_TABLES = {
     'hr_payslip', 'hr_payslip_line', 'hr_payslip_input',
     'hr_payslip_worked_days', 'hr_payslip_run', 'account_move',
@@ -50,6 +51,21 @@ class ProbeBlocked(ValueError):
 def require(value, code):
     if not value:
         raise ProbeBlocked(code)
+
+
+def admission_scope_contract(admission_scope, source_visibility_path=None, source_visibility_sha256=None):
+    require(type(admission_scope) is str and admission_scope in ADMISSION_SCOPES,
+        'unknown-original-handover-admission-scope')
+    require(admission_scope != 'projection-only' or source_visibility_path is not None
+        and re.fullmatch(r'[a-f0-9]{64}', source_visibility_sha256 or ''),
+        'projection-only-requires-sealed-actual-native-source-visibility')
+    return admission_scope
+
+
+def admission_receipt_name(admission_scope):
+    require(type(admission_scope) is str and admission_scope in ADMISSION_SCOPES,
+        'unknown-original-handover-admission-scope')
+    return 'cohort-projection-admission.json' if admission_scope == 'projection-only' else 'cohort-admission.json'
 
 
 def sha(value):
@@ -536,12 +552,13 @@ def private_sql_rejection(output, statement, error, projection):
 
 
 def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256, output_path, actor_uid=None,
-        *, source_visibility_path=None, source_visibility_sha256=None):
+        *, source_visibility_path=None, source_visibility_sha256=None, admission_scope='full'):
     """No commit: the caller owns the clone, lease, outer transaction and seal.
 
     On any rejection, the private receipt has ``passed=False`` and the real
     savepoint is rolled back. Exceptions contain technical codes only.
     """
+    admission_scope_contract(admission_scope, source_visibility_path, source_visibility_sha256)
     require(re.fullmatch(DATABASE, env.cr.dbname or ''), 'private-original-handover-database-required')
     require(capsule_sha256 == CAPSULE_SHA256, 'unreviewed-original-capsule')
     output = Path(output_path)
@@ -552,7 +569,9 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
         'capsule_sha256': capsule_sha256, 'identity_before_sha256': identity_sha256,
         'passed': False, 'coordinator_owns_commit': True, 'historical_payroll_read': False,
         'salary_rules_evaluated': False, 'financial_certified': False, 'pdf_certified': False,
-        'operational_package': False, 'integral_conversion': False, 'deadline_resolved': False}
+        'operational_package': False, 'integral_conversion': False, 'deadline_resolved': False,
+        'admission_scope': admission_scope, 'ui_scope_exercised': False, 'ui_admission': False,
+        'data_projection_scope_passed': False}
 
     def checkpoint(phase, model=None):
         result['checkpoint'] = {'phase': phase, 'model': model}
@@ -639,11 +658,16 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                         'source_denied_ids': source_visibility['denied_master_ids'],
                         'source_denials_reproduced_as_actual_access_errors': True,
                         'country_or_id_exceptions_added': False, 'permissions_granted': False}
-                result['forms'], result['menus'] = forms_and_menus(scope, checkpoint)
-                checkpoint('legacy-menu-boundaries')
-                result['legacy_menu_boundaries'] = legacy_menu_boundaries(scope, identity)
-                checkpoint('original-stored-report-route', 'ir.actions.report')
-                result['report_route'] = report_route(scope, report_row)
+                if admission_scope == 'full':
+                    result['ui_scope_exercised'] = True
+                    result['forms'], result['menus'] = forms_and_menus(scope, checkpoint)
+                    checkpoint('legacy-menu-boundaries')
+                    result['legacy_menu_boundaries'] = legacy_menu_boundaries(scope, identity)
+                    checkpoint('original-stored-report-route', 'ir.actions.report')
+                    result['report_route'] = report_route(scope, report_row)
+                    result['ui_admission'] = True
+                else:
+                    result['ui_not_exercised_reason'] = 'explicit-data-projection-scope-only'
                 checkpoint('original-rule-projection-preconditions', 'hr.payroll.structure')
                 structures = scope['hr.payroll.structure'].browse(sorted(row['id'] for row in rows['hr_payroll_structure']))
                 require(callable(getattr(structures, '_step_materialize_original_rule_projection', None)),
@@ -702,6 +726,12 @@ def run(env, capsule_path, capsule_sha256, identity_before_path, identity_sha256
                 require(visibility.check_policy_and_counters(source_visibility, policy_after, native_counters_after)
                     == result['source_security_policy'], 'source-security-parity-changed')
                 result['source_security_policy_exact_after'] = True
+            result['data_projection_scope_passed'] = True
+            if admission_scope == 'projection-only':
+                result['remaining_adoption_blockers'].extend([
+                    'forms-menus-and-renderer-not-admitted-in-projection-scope',
+                    'original-physical-column-contracts-require-separate-admission',
+                    'original-foreign-key-semantics-require-separate-admission'])
             checkpoint('complete')
         write_receipt(output, result)
         return result
