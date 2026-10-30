@@ -92,6 +92,10 @@ La ampliación actual de T138 incluye expresamente QA-Cerro con `payroll-days`,
 mismo paquete y versión 18.0.1.2.0 que ya se verificó en Cerro. Se conserva
 deploy_enabled=false para promociones genéricas; los gestores incorporan cada
 tipo de paquete conforme a su alcance, sin habilitar instalaciones arbitrarias.
+Comprobar los módulos de la entrega con
+`python tools/ops/verify_cerro_release_pair.py --module nombre_del_modulo` en
+el servidor; compara estado instalado, versión y hash del código efectivo.
+No anunciar paridad de todos los addons por haber comprobado solo un módulo.
 
 T138 autoriza `payroll-days` en Desarrollo, SyS, Demo-SYS, Cerro y QA-Cerro:
 inasistencias injustificadas de contratos mensuales que cubren el mes completo,
