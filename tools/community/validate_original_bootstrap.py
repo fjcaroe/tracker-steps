@@ -141,7 +141,8 @@ def main():
             execute(label, expression=expression)
             return json.loads((stage / (label + '.json')).read_text())
         before = inspect('registry-before')
-        text = execute('tests', ('-u', ','.join(install), '--test-enable', '--test-tags=' + TAGS, '--stop-after-init'))
+        updates = ('step_payroll_oca_api', 'step_simpledigital_oca_base') + install
+        text = execute('tests', ('-u', ','.join(updates), '--test-enable', '--test-tags=' + TAGS, '--stop-after-init'))
         assert re.search(r'0 failed, 0 error\(s\) of 12 tests', text), 'All twelve real saved-input/batch cases must execute'
         after = inspect('registry-after')
         assert before == after, 'Cold registry/form/default/ACL contract changed after tests'
