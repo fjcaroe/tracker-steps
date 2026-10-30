@@ -24,7 +24,7 @@ def main():
     args = parser.parse_args()
     if args.kind == 'invoice-payments':
         assert args.environment in ('development', 'cerro', 'qa-cerro'), 'T123 is authorized only for Development, Cerro and customer QA'
-    assert args.environment != 'qa-cerro' or args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicit T117/T118/T119/T120/T121/T114/T122 packages are authorized for customer QA'
+    assert args.environment != 'qa-cerro' or args.kind in ('payroll-days', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicit T117/T118/T119/T120/T121/T114/T122 packages are authorized for customer QA'
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
     commit = subprocess.check_output(['git', 'rev-parse', args.commit + '^{commit}'], cwd=root, text=True).strip()
@@ -147,7 +147,7 @@ def main():
     if args.kind == 'packing':
         modules = ('step_packing_operations',)
     if args.kind == 'payroll-days':
-        assert args.environment in ('development','sys','demo-sys','cerro')
+        assert args.environment in ('development','sys','demo-sys','cerro','qa-cerro')
         modules=('step_hr_contract_days',)
     if args.kind == 'payroll-review':
         assert args.environment in ('development','sys')

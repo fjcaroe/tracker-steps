@@ -395,7 +395,7 @@ def main():
             BUSINESS = tuple(sorted(set(BUSINESS) | {'res_country', 'res_city'}))
     if args.kind in ('payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja'):
         TICKET_REVISION = args.kind
-        assert args.environment in (('development','sys','demo-sys','cerro') if args.kind == 'payroll-days' else ('development', 'sys', 'cerro') if args.kind == 'payroll-rounding' else ('development', 'sys') if args.kind in ('payroll-review', 'payroll-fixes', 'previred-fix') else ('development',)), 'Ticket destination outside approved scope'
+        assert args.environment in (('development','sys','demo-sys','cerro','qa-cerro') if args.kind == 'payroll-days' else ('development', 'sys', 'cerro') if args.kind == 'payroll-rounding' else ('development', 'sys') if args.kind in ('payroll-review', 'payroll-fixes', 'previred-fix') else ('development',)), 'Ticket destination outside approved scope'
         SETTINGS = True
         MODULES = ('step_hr_previred', 'step_hr_previred_simpledigital', 'step_hr_contract_lifecycle_simpledigital') if args.kind == 'payroll-fixes' else ('step_inventory_packing', 'step_packing_operations')
         if args.kind == 'payroll-days':
@@ -413,9 +413,9 @@ def main():
     assert os.geteuid() == 0 and re.fullmatch('[a-z0-9_]{1,24}', args.run_id)
     registry = json.loads((HERE / 'environments.json').read_text())
     assert args.action != 'qa' or args.environment == registry['policy']['qa'], 'Only Desarrollo is QA'
-    assert args.environment != 'qa-cerro' or args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicitly authorized T117/T118/T119/T120/T121/T114/T122 customer-QA packages'
+    assert args.environment != 'qa-cerro' or args.kind in ('payroll-days', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicitly authorized T117/T118/T119/T120/T121/T114/T122 customer-QA packages'
     assert not (args.environment == 'qa-cerro' and args.action == 'certify'), 'Customer QA requires a fresh compatibility run; clone access is removed after each run'
-    assert args.action != 'compatibility' or args.environment in registry['policy']['production'] or (args.environment == 'demo-sys' and args.kind == 'payroll-days') or (args.environment == 'qa-cerro' and args.kind in ('product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'))
+    assert args.action != 'compatibility' or args.environment in registry['policy']['production'] or (args.environment == 'demo-sys' and args.kind == 'payroll-days') or (args.environment == 'qa-cerro' and args.kind in ('payroll-days', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'))
     if args.environment == 'demo-sys':
         from demo_sys_scope import check_release
         print('DEMO_SYS_SCOPE_OK '+json.dumps(check_release(args.release,registry)),flush=True)
