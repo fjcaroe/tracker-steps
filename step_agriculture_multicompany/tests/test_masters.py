@@ -100,7 +100,7 @@ class TestMasters(TransactionCase):
             form.company_ids.add(self.b)
         self.assertEqual(set(form.record.company_ids.ids), set((self.a | self.b).ids))
         menu = self.env.ref('step_agriculture_multicompany.packing_fundos')
-        self.assertEqual(menu.action.res_model, 'step.fundo')
+        self.assertEqual(menu.action, self.env.ref('step_producers.action_step_producers_fundo'))
         self.assertEqual(menu.parent_id, self.env.ref('step_packing_operations.menu_packing_operations_masters'))
 
     def test_origin_is_preserved(self):

@@ -19,7 +19,7 @@ try:
         config['test_enable'] = previous
     checked = []
     targets = (
-        ('step.fundo', 'step_hr.action_step_fundo', 'step_hr.view_step_fundo_form', 'form'),
+        ('step.fundo', 'step_producers.action_step_producers_fundo', 'step_hr.view_step_fundo_form', 'form'),
         ('step.management.fruit.category', 'step_management_costs.action_fruit_category', 'step_fruit_category_unification.category_form', 'form'),
         ('step.management.fruit.class', 'step_management_costs.action_fruit_class', 'step_fruit_category_unification.class_form', 'form'),
         ('step.management.fruit.quality', 'step_inventory_fruit_tag.action_fruit_quality', 'step_inventory_fruit_tag.view_fruit_quality_list', 'list'),
