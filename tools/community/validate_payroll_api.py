@@ -523,8 +523,18 @@ def main():
                 +'from audit_payroll_history_storage import inspect_registry\n'
                 +'with sql_db.db_connect(env.cr.dbname,readonly=True).cursor() as read:\n'
                 +' value=inspect_registry(api.Environment(read,env.uid,{}))\n'
+                +' value.update(process_readonly_before_first_connection=True,readonly_bootstrap_sha256='+repr(hashlib.sha256((source/'tools/community/original_external_references_readonly_bootstrap.py').read_bytes()).hexdigest())+',cursor_observations=sql_db._steps_readonly_cursor_proof,signaling_sequence_reader=__import__("odoo.modules.registry",fromlist=["Registry"]).Registry._steps_readonly_sequence_reader_proof)\n'
                 +' with os.fdopen(os.open('+repr(str(runtime_path))+',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),"w") as target:json.dump(value,target,indent=2)\n')
-            execute('history-storage-metadata',[],input_code=expression)
+            # Every connection starts readonly, including registry bootstrap.
+            # Never run the native upgrade finalizer after preservation proofs.
+            command=['sudo','-u',user,'/usr/bin/python3.10',
+                str(source/'tools/community/original_external_references_readonly_bootstrap.py'),
+                str(args.runtime),str(args.runtime/'odoo-bin'),args.database,'shell',*opts,
+                '--no-http','--logfile='+str(stage/'history-storage-metadata.log')]
+            with (stage/'history-storage-metadata-bootstrap.log').open('x') as stream:
+                status=subprocess.run(offline_odoo(command),input=expression,text=True,stdout=stream,stderr=subprocess.STDOUT)
+            metadata_log=(stage/'history-storage-metadata.log').read_text(errors='replace')
+            assert status.returncode==0 and not re.search(r' (ERROR|CRITICAL) ',metadata_log),'Readonly history registry witness failed'
             runtime_storage=json.loads(runtime_path.read_text())
             after_storage=storage_snapshot(args.database)
             assert before_storage==after_storage,'History storage metadata changed during passive registry witness'
