@@ -39,6 +39,8 @@ def main():
     parser.add_argument('--root',type=Path,required=True)
     parser.add_argument('--database',required=True)
     parser.add_argument('--tablespace')
+    parser.add_argument('--multifront',action='store_true',help='Treasury launchers, approved contract days and real TED validation')
+    parser.add_argument('--focused-multifront',action='store_true',help='Community development pass for the changed functional contracts')
     parser.add_argument('--numeric-input-engine', action='store_true', help='Pinned LGPL real-engine overlay: NUMERIC amount from first init')
     parser.add_argument('--accelerated',action='store_true',help='Install the exact HR, banking and CAF package together')
     parser.add_argument('--custody-grouping',action='store_true',help='Include real CAF custody and draft payment grouping providers')
@@ -52,6 +54,8 @@ def main():
     previred=args.profile in ('previred','previred-simpledigital','book-consumers','book-install','book-history')
     bridge=args.profile in ('previred-simpledigital','book-consumers','book-install','book-history')
     standalone=args.profile=='previred-standalone'
+    assert not args.focused_multifront or (args.multifront and args.mode=='community')
+    assert not args.multifront or (args.accelerated and args.custody_grouping and simpledigital)
     assert not args.numeric_input_engine or (args.mode == 'community' and not standalone)
     assert not args.custody_grouping or args.accelerated
     custody_modules=('step_l10n_cl_caf_custody_core','step_l10n_cl_caf_storage','step_l10n_cl_caf_native_reference')
@@ -75,6 +79,10 @@ def main():
                          'step_accounting_multicurrency')
         MODULES+=HR_MODULES+finance_modules+('step_l10n_cl_edi_core',)
         if args.custody_grouping:MODULES+=custody_modules+grouping_modules
+    treasury_modules=('step_account_treasury','step_treasury_community_reports','step_account_treasury_reports')
+    if args.multifront:
+        MODULES+=treasury_modules+('step_hr_contract_days','step_hr_contract_days_oca')
+        from treasury_launcher_contract import snapshot as treasury_snapshot,verify as verify_treasury
     assert os.geteuid()==0 and str(args.root.resolve()).startswith('/opt/steps-validation/')
     assert re.fullmatch(('COMMUNITY_PAYROLL_API_' if args.mode=='community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_')+'[A-Za-z0-9_]+',args.database)
     root=args.root.resolve();source=root/'addons';stage=root/args.mode
@@ -110,6 +118,8 @@ def main():
             if args.custody_grouping:
                 for m in ('step_l10n_cl_caf_custody_core','step_l10n_cl_caf_native_reference','step_batch_payment_grouping'):
                     (overlay/m).symlink_to(source/m)
+    if args.multifront and not pure:
+        for m in treasury_modules+('step_hr_contract_days',):(overlay/m).symlink_to(source/m)
     if own_book and args.mode!='community':(overlay/'step_hr_remuneration_book').symlink_to(source/'step_hr_remuneration_book')
     sys.path.insert(0,str(source/'tools/community'))
     import validate_agriculture_core as preservation
@@ -197,6 +207,7 @@ def main():
             contract=runtime_contract(conf);dump_json('source-contract',contract)
             baseline=snapshot();original=preservation.identity_contract(args.database);history=preservation.history_contract(args.database)
             if args.accelerated:dump_json('bank-metadata-before',metadata_snapshot(sql,args.database))
+            if args.multifront:dump_json('treasury-before',treasury_snapshot(sql,args.database))
             for name,value in [('business-before',baseline),('identity-before',original),('history-before',history)]:dump_json(name,value)
         for p in [stage,*stage.rglob('*')]:
             if not p.is_symlink():os.chown(p,identity.pw_uid,identity.pw_gid)
@@ -266,6 +277,14 @@ def main():
             methods=('manager_guard_uses_real_role','foreign_and_hidden_salary_are_denied','real_vendor_empty_is_an_error',
                 'closed_zero_total_is_authoritative','missing_total_is_rejected','employer_zero_does_not_reconstruct_deduction','paid_state_keeps_original_totals')
             tags+=','+','.join('/step_hr_previred_simpledigital:CommunityBridgeContracts.test_community_'+name for name in methods)
+        if args.multifront:
+            tags+=','+','.join('/'+m for m in treasury_modules)+',/step_hr_contract_days'
+            if pure:tags+=',/step_hr_contract_days_oca'
+        if args.focused_multifront:
+            tags=('/step_payroll_oca_api:SavedInputValuesCase,/step_payroll_oca_api:OriginalInputStorageCase,'
+                  '/step_payroll_oca_api:OriginalRuleProjectionCase,/step_simpledigital_oca_base:ExistingDraftBatchCase,'
+                  '/step_l10n_cl_edi_core:TestTEDCore,/step_l10n_cl_caf_storage:TestTEDCustodyStorage,'
+                  '/step_hr_contract_days,/step_hr_contract_days_oca,'+','.join('/'+m for m in treasury_modules))
         if standalone:tags='/step_hr_previred:TestCoreIsolation'
         if args.accelerated:
             tags+=','+HR_TEST_TAGS+',/step_bank_export_core,/step_account_balance_analytic,/step_l10n_cl_edi_core,/step_accounting_multicurrency_core'
@@ -296,7 +315,11 @@ def main():
             dump_json('stored-payslip-pdf',{'actual_pdf_count':stored_pdf_count,'proofs':proofs,'financial_certified':False})
         expected=7 if standalone else ((38+api_test_count) if pure else reference_test_count)+((48+base_test_count if pure else 48) if simpledigital else 0)+(7 if previred else 0)+(26 if bridge else 0)+((4 if full_book or not pure else 3) if own_book else 0)+(6 if full_book else 0)+(7 if binary_book else 0)
         if args.accelerated:expected+=HR_TEST_COUNT+33+dte_test_count+11+(0 if pure else 39)
-        if args.custody_grouping:expected+=54 if pure else 29
+        if args.custody_grouping:
+            expected+=concrete_test_count(source,'step_l10n_cl_caf_storage' if pure else 'step_l10n_cl_caf_native_reference')+concrete_test_count(source,'step_batch_payment_grouping')+(concrete_test_count(source,'step_batch_payment_core') if pure else 0)
+        if args.multifront:
+            expected+=sum(concrete_test_count(source,m) for m in treasury_modules)+concrete_test_count(source,'step_hr_contract_days')+(concrete_test_count(source,'step_hr_contract_days_oca') if pure else 0)
+        if args.focused_multifront:expected=128
         assert re.search(r'0 failed, 0 error\(s\) of '+str(expected)+r' tests',text), 'Expected all upstream and shared API contracts to run'
         if simpledigital:
             probe=source/'tools/community/inspect_payroll_configuration.py'
@@ -324,13 +347,18 @@ def main():
             after=snapshot();current=preservation.identity_contract(args.database)
             dump_json('business-after',after);dump_json('identity-after',current);dump_json('history-after',preservation.history_contract(args.database))
             assert same_values(baseline,after),'Original business data/counters changed after reference tests'
-            if args.accelerated:dump_json('hr-metadata-proof',verify_hr_metadata(original,current))
+            identity_for_check=current
+            if args.multifront:
+                treasury_after=treasury_snapshot(sql,args.database);dump_json('treasury-after',treasury_after)
+                treasury_proof,identity_for_check=verify_treasury(original,current,json.loads((stage/'treasury-before.json').read_text()),treasury_after,source)
+                dump_json('treasury-metadata-proof',treasury_proof)
+            if args.accelerated:dump_json('hr-metadata-proof',verify_hr_metadata(original,identity_for_check))
             for name,rows in original.items():
                 if args.accelerated and name=='ir_model_fields':continue  # all rows verified above, with three exact message edits
                 if rows and 'id' in rows[0]:
-                    now={r['id']:r for r in current[name]}
+                    now={r['id']:r for r in identity_for_check[name]}
                     assert all(now.get(r['id'])==r for r in rows),(name,'Original metadata changed')
-                else:assert all(row in current[name] for row in rows),name
+                else:assert all(row in identity_for_check[name] for row in rows),name
             assert preservation.history_contract(args.database)==history
             if args.accelerated:
                 bank_after=metadata_snapshot(sql,args.database);dump_json('bank-metadata-after',bank_after)
@@ -365,6 +393,7 @@ def main():
             'dte_test_count':dte_test_count,'external_network_disabled':True,'loopback_http_only':True,
             'hr_test_count':HR_TEST_COUNT if args.accelerated else 0,
             'postgres_unix_socket':True,'offline_runner_sha256':hashlib.sha256((source/'tools/community/offline_process.py').read_bytes()).hexdigest(),
+            'multifront':args.multifront,'focused_development_pass':args.focused_multifront,
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
             'stored_payslip_pdf_reports':stored_pdf_count,
