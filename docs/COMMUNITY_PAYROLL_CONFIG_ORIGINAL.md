@@ -1,13 +1,14 @@
 # Configuración original de nómina: captura y puertas de adopción
 
-Estado vigente y siguiente prompt: [COMMUNITY_ENTRADAS_GUARDADAS.md](COMMUNITY_ENTRADAS_GUARDADAS.md).
-Inputs C pasa 460/294 casos, cero fallos/errores: API1.13, Base1.6 y Security1.7;
-cálculo real OCA de borradores con entradas/días guardados y permisos normales.
-Upgrade D desde Schema B: 674 filas comparadas, 672 literales y dos timestamps XML auditados;
-921 tablas/proyecciones, 140 contadores y 59.079 XML IDs preservados en la referencia nativa.
-Se mantienen 27 contratos de configuración cerrados, siete brechas y cinco físicas;
-faltan identidad/ACL/120 maestros/71 reglas, certificación y conversión integral.
-54 apps propias instaladas conservan caminos EE; el 31 sigue en riesgo alto.
+Estado vigente y siguiente prompt: [COMMUNITY_ARRANQUE_ORIGINAL.md](COMMUNITY_ARRANQUE_ORIGINAL.md).
+F pasa 12 casos fríos Community (94 módulos/0 Enterprise/0 demo) y 294 nativos
+(391/140), sin fallos/errores. Prepara adopción original; aún no opera nómina.
+Preserva valores de 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs;
+1.060 snapshots exactos y una representación de ceros decimales finales auditada celda a celda.
+Los 22 addons propios y los 460 casos del perfil normal Inputs C se conservan.
+Colisiones 24→4, conflictos XML IDs 60→0; faltan 120 maestros/71 reglas,
+siete brechas/cinco columnas, ACL y precisión NUMERIC frente a Float8.
+54 apps instaladas conservan caminos EE; conversión integral pendiente y 31 en riesgo alto.
 El contenido inferior conserva su alcance histórico.
 
 Auditoría del 29-10-2026, desde la canónica `6e3c8298`. Complementa

@@ -1,5 +1,8 @@
 # Entradas guardadas y cálculo real de lotes — 29-10-2026
 
+Continuación aceptada: [arranque frío F y custodia](COMMUNITY_ARRANQUE_ORIGINAL.md).
+Los 460 casos normales de este bloque se conservan con su alcance propio.
+
 Paquete de implementación congelado en `5343efe1`, desde la canónica `f589ba62`.
 Aceptados Inputs C y upgrade D; resumen privado reproducible verificado.
 Se cierra esta ruta de borradores guardados, con la certificación chilena pendiente.
