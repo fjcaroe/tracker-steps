@@ -229,6 +229,7 @@ def main():
             if not pure:modules+=',step_account_treasury_batch,step_bank_security,step_accounting_multicurrency'
         if args.custody_grouping:
             modules+=',step_batch_payment_grouping,'+('step_batch_payment_core,step_l10n_cl_caf_storage' if pure else 'step_l10n_cl_caf_native_reference')
+        if args.multifront:modules+=','+','.join(treasury_modules)+','+('step_hr_contract_days_oca' if pure else 'step_hr_contract_days')
         execution_env=dict(os.environ)
         if (root/'basis-input.json').exists():
             assert simpledigital
@@ -280,11 +281,6 @@ def main():
         if args.multifront:
             tags+=','+','.join('/'+m for m in treasury_modules)+',/step_hr_contract_days'
             if pure:tags+=',/step_hr_contract_days_oca'
-        if args.focused_multifront:
-            tags=('/step_payroll_oca_api:SavedInputValuesCase,/step_payroll_oca_api:OriginalInputStorageCase,'
-                  '/step_payroll_oca_api:OriginalRuleProjectionCase,/step_simpledigital_oca_base:ExistingDraftBatchCase,'
-                  '/step_l10n_cl_edi_core:TestTEDCore,/step_l10n_cl_caf_storage:TestTEDCustodyStorage,'
-                  '/step_hr_contract_days,/step_hr_contract_days_oca,'+','.join('/'+m for m in treasury_modules))
         if standalone:tags='/step_hr_previred:TestCoreIsolation'
         if args.accelerated:
             tags+=','+HR_TEST_TAGS+',/step_bank_export_core,/step_account_balance_analytic,/step_l10n_cl_edi_core,/step_accounting_multicurrency_core'
@@ -301,6 +297,11 @@ def main():
         if binary_book:
             methods=['signed_xlsx_response_and_audit','tampered_links_rejected','foreign_owner_rejected','hidden_line_denied_without_report','official_csv_policy_over_http','dashboard_rpc_uses_real_engine_actions','actual_pdf_binary_and_employee_sheets']
             tags+=','+','.join('/step_simpledigital_oca_security:FullBookHttp.test_'+name for name in methods)
+        if args.focused_multifront:
+            tags=('/step_payroll_oca_api:SavedInputValuesCase,/step_payroll_oca_api:OriginalInputStorageCase,'
+                  '/step_payroll_oca_api:OriginalRuleProjectionCase,/step_simpledigital_oca_base:ExistingDraftBatchCase,'
+                  '/step_l10n_cl_edi_core:TestTEDCore,/step_l10n_cl_caf_storage:TestTEDCustodyStorage,'
+                  '/step_hr_contract_days,/step_hr_contract_days_oca,'+','.join('/'+m for m in treasury_modules))
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         stored_pdf_count=0
         if pure and simpledigital and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
