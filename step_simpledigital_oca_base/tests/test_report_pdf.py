@@ -20,7 +20,7 @@ from .report_fixture import StoredReportFixture
 
 @tagged('post_install', '-at_install', 'stored_payslip_pdf')
 class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
-    def asset_sidecar(self, documents):
+    def asset_sidecar(self, documents, capture_asset=None):
         """Avoid nested test-cursor requests while wkhtmltopdf loads CSS/fonts."""
         origin = self.base_url()
         todo = []
@@ -63,6 +63,11 @@ class StoredPayslipPdfCase(StoredReportFixture, HttpCase):
                         else:
                             todo.append((urljoin(parsed.path, value), False))
         self.assertTrue(cache)
+        if capture_asset is not None:
+            # Optional private diagnostics only. Baseline reports retain their
+            # unchanged path, requests, original resource bytes and responses.
+            for path, (content, mime) in cache.items():
+                capture_asset(path, content, mime)
 
         class Handler(BaseHTTPRequestHandler):
             def do_GET(handler):

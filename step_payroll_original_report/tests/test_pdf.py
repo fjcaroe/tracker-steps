@@ -42,16 +42,28 @@ class OriginalPayrollReportPdfCase(HttpCase):
         for literal in ('Stored ZERO', 'Stored NEGATIVE', 'Stored NULL_VALUE', 'PRIVATE/PDF/1'):
             self.assertIn(literal, html.text)
         bodies, ids, header, footer, paper = self.action._prepare_html(html.content, report_model='hr.payslip')
+        output = Path(tools.config['data_dir']) / 'original-report-pdf-evidence'
+        if not str(output.resolve()).startswith('/opt/steps-validation/'):
+            self.fail('Original report evidence must remain in a private validation data directory')
+        captured_assets = {}
+        def capture_asset(path, content, mime):
+            digest = hashlib.sha256(content).hexdigest()
+            filename = 'assets/%s.bin' % digest
+            target = output / filename
+            if not target.exists():
+                write_private(target, content)
+            elif target.read_bytes() != content:
+                self.fail('A captured runtime asset hash has conflicting bytes')
+            captured_assets[path] = {'file': filename, 'sha256': digest,
+                                     'bytes': len(content), 'content_type': mime}
         # This existing accepted sidecar only serves actual fetched runtime
         # assets; it fabricates no CSS, images, salary values or PDF bytes.
         from odoo.addons.step_simpledigital_oca_base.tests.test_report_pdf import StoredPayslipPdfCase
         server, thread, missing, asset_hashes, optional_missing = StoredPayslipPdfCase.asset_sidecar(
-            self, [html.content, *bodies, header, footer])
+            self, [html.content, *bodies, header, footer], capture_asset=capture_asset)
         before, identity = f.stored_snapshot(slip), action_snapshot(self.action)
-        output = Path(tools.config['data_dir']) / 'original-report-pdf-evidence'
-        if not str(output.resolve()).startswith('/opt/steps-validation/'):
-            self.fail('Original report evidence must remain in a private validation data directory')
         write_private(output / 'preview.html', html.content)
+        asset_receipt = write_private(output / 'assets.json', json.dumps(captured_assets, indent=2, sort_keys=True))
         repetitions = []
         self.env['ir.config_parameter'].sudo().set_param('report.url', 'http://127.0.0.1:%s' % server.server_port)
         try:
@@ -110,6 +122,7 @@ class OriginalPayrollReportPdfCase(HttpCase):
             'repetitions': repetitions,
             'company_name': f.company.name, 'country_name': f.company.country_id.name,
             'header_layout_accepted': False,
+            'asset_capture': asset_receipt,
         }
         write_private(output / 'proof.json', json.dumps(proof, indent=2, sort_keys=True))
         for repetition in repetitions:
