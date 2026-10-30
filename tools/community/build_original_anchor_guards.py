@@ -101,9 +101,20 @@ def render_sql(database, specs):
                 + ' WHERE ' + gate.identifier(column) + '=ANY(' + ids + ')) <> ' + str(len(spec['ids']))
                 + " THEN RAISE EXCEPTION 'Original anchor guard: missing original rows in " + table
                 + "'; END IF; END $anchor$;")
+        relation_insert_guard = ''
+        if column != 'id':
+            relation_insert_guard = (
+                " IF TG_OP='INSERT' THEN\n"
+                '  IF NEW.' + gate.identifier(column) + '=ANY(' + ids + ') THEN\n'
+                "   RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='Original anchor guard: new original role " + table + "';\n  END IF;\n RETURN NEW;\n END IF;\n"
+                " IF TG_OP='UPDATE' AND OLD." + gate.identifier(column) + ' IS DISTINCT FROM NEW.'
+                + gate.identifier(column) + ' AND NEW.' + gate.identifier(column) + '=ANY(' + ids + ') THEN\n'
+                "  RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='Original anchor guard: retarget original role " + table + "';\n END IF;\n")
         statements.append('CREATE FUNCTION ' + function + '() RETURNS trigger LANGUAGE plpgsql AS $anchor$\n'
             "BEGIN\n IF TG_OP='TRUNCATE' THEN\n"
             "  RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='Original anchor guard: truncate " + table + "';\n END IF;\n"
+            + relation_insert_guard
+            +
             ' IF OLD.' + gate.identifier(column) + '=ANY(' + ids + ') THEN\n'
             "  IF TG_OP='DELETE' THEN\n"
             "   RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='Original anchor guard: delete " + table + "';\n  END IF;\n"
@@ -115,6 +126,9 @@ def render_sql(database, specs):
             + qualified + ' FOR EACH ROW EXECUTE FUNCTION ' + function + '();')
         statements.append('CREATE TRIGGER step_anchor_preserve_original_truncate BEFORE TRUNCATE ON '
             + qualified + ' FOR EACH STATEMENT EXECUTE FUNCTION ' + function + '();')
+        if column != 'id':
+            statements.append('CREATE TRIGGER step_anchor_preserve_original_insert BEFORE INSERT ON '
+                + qualified + ' FOR EACH ROW EXECUTE FUNCTION ' + function + '();')
     statements.append('COMMIT;')
     return '\n\n'.join(statements) + '\n'
 

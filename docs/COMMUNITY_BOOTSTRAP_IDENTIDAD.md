@@ -97,7 +97,8 @@ y que falten filas originales. Crea funciones/triggers con nombres nuevos (sin
 - Los 120 maestros: todos sus valores en columnas originales, incluidos NULL y
   auditoría. Una columna OCA nueva nullable no da permiso para tocar las previas.
 - Todas las columnas originales de la acción 462 (desde el catálogo sellado de
-  la fuente) y sus pares de grupos: no renumera ni cambia renderer/attachment.
+  la fuente) y sus pares de grupos: no renumera ni cambia renderer/attachment;
+  rechaza también INSERT de otro grupo o retarget de otra relación hacia 462.
 
 La guarda **aborta**, no omite un unlink ni devuelve éxito falso. Un fallo debe
 conservarse y resolverse con propiedad/retención explícita admitida. Retener un

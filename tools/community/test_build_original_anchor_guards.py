@@ -62,6 +62,11 @@ class AnchorGuardsCase(unittest.TestCase):
         self.assertEqual(role['key'], 'uid')
         self.assertEqual(role['columns'], ['uid', 'gid'])
         self.assertEqual(role['ids'], [462])
+        sql = guard.render_sql('MANAGEMENT_QA_CERRO_PAYROLL_API_TEST', specs)
+        self.assertIn('BEFORE INSERT ON public."res_groups_report_rel"', sql)
+        self.assertIn('retarget original role res_groups_report_rel', sql)
+        self.assertIn('new original role res_groups_report_rel', sql)
+        self.assertEqual(sql.count('BEFORE INSERT ON'), 1)
 
     def test_production_names_and_unreviewed_identifiers_are_rejected(self):
         for database in ('CERROELPLOMO', 'SYS', 'LAB_TAREAS', 'MANAGEMENT_QA_CERRO_PAYROLL_API_X;DROP'):
