@@ -50,6 +50,11 @@ try:
             record.check_access_rule('write')
             if kind == 'form':
                 Form(record, view=view_ref)
+            else:
+                form_ref = 'step_agriculture_multicompany.' + ('quality_form' if model_name.endswith('.quality') else 'color_form')
+                form_arch = etree.fromstring(model.get_view(view_id=scoped.ref(form_ref).id, view_type='form')['arch'])
+                assert form_arch.xpath("//field[@name='company_ids']")
+                Form(record, view=form_ref)
         checked.append({'model': model_name, 'preserved_records': len(records), 'selected_company_field': True})
     menu = scoped.ref('step_agriculture_multicompany.packing_fundos')
     assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
