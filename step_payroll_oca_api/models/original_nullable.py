@@ -33,19 +33,29 @@ class Structure(models.Model):
 
     def _step_original_configured_rules(self, structures):
         """Include archived members/children and detect record-rule omissions."""
-        rules = self.env["hr.salary.rule"].with_context(active_test=False)
+        normal = self.sudo(False).with_context(active_test=False)
+        structures = structures.with_env(normal.env)
+        structures.check_access("read")
+        structures.check_field_access_rights("read", ["rule_ids"])
+        if any(type(ident) is not int for ident in structures.ids):
+            raise UserError(_("Save original payroll structures before adoption admission."))
+        rules = normal.env["hr.salary.rule"]
+        rule_fields = ["parent_rule_id", "struct_id", "code", "category_id", "company_id"]
+        rules.check_access("read")
+        rules.check_field_access_rights("read", rule_fields)
         rules.flush_model(["parent_rule_id", "struct_id", "code", "category_id"])
         structures.flush_recordset(["rule_ids"])
-        self.env.cr.execute("SELECT rule_id FROM hr_structure_salary_rule_rel WHERE struct_id=ANY(%s)", (structures.ids,))
-        frontier = {row[0] for row in self.env.cr.fetchall()}
+        normal.env.cr.execute("SELECT rule_id FROM hr_structure_salary_rule_rel WHERE struct_id=ANY(%s)", (structures.ids,))
+        frontier = {row[0] for row in normal.env.cr.fetchall()}
         parents = {}
         while frontier:
             records = rules.browse(sorted(frontier))
             records.check_access("read")
-            records.check_field_access_rights("read", ["parent_rule_id", "struct_id", "code", "category_id", "company_id"])
+            records.check_field_access_rights("read", rule_fields)
+            records.parent_rule_id.check_access("read")
             parents.update({rule.id: rule.parent_rule_id.id or False for rule in records})
-            self.env.cr.execute("SELECT id FROM hr_salary_rule WHERE parent_rule_id=ANY(%s)", (sorted(frontier),))
-            frontier = {row[0] for row in self.env.cr.fetchall()} - parents.keys()
+            normal.env.cr.execute("SELECT id FROM hr_salary_rule WHERE parent_rule_id=ANY(%s)", (sorted(frontier),))
+            frontier = {row[0] for row in normal.env.cr.fetchall()} - parents.keys()
         for ident in parents:
             seen = set()
             current = ident
@@ -59,9 +69,10 @@ class Structure(models.Model):
         if set(selected.ids) != set(parents):
             raise UserError(_("Original payroll adoption rule membership is incomplete."))
         # A native O2M rule cannot be silently omitted from its projected M2M.
-        self.env.cr.execute("SELECT id FROM hr_salary_rule WHERE struct_id=ANY(%s)", (structures.ids,))
-        primary = rules.browse([row[0] for row in self.env.cr.fetchall()])
+        normal.env.cr.execute("SELECT id FROM hr_salary_rule WHERE struct_id=ANY(%s)", (structures.ids,))
+        primary = rules.browse([row[0] for row in normal.env.cr.fetchall()])
         primary.check_access("read")
+        primary.check_field_access_rights("read", rule_fields)
         if primary - selected:
             raise UserError(_("Original payroll primary rules are missing their structure membership."))
         return selected
@@ -73,29 +84,44 @@ class Structure(models.Model):
         original formulas, fiscal certification or an integral conversion.
         No marker, context bypass, master creation or historical calculation.
         """
-        self.check_access("read")
-        self.check_field_access_rights("read", ["type_id", "company_id", "country_id"])
-        if not self:
+        normal = self.sudo(False).with_context(active_test=False)
+        normal.check_access("read")
+        structure_fields = ["type_id", "company_id", "country_id", "parent_id", "rule_ids"]
+        normal.check_field_access_rights("read", structure_fields)
+        if not normal:
             raise UserError(_("Select original payroll structures before adoption admission."))
-        for root in self:
-            root._step_check_payroll_scope(self.env.company)
+        if any(type(ident) is not int for ident in normal.ids):
+            raise UserError(_("Save original payroll structures before adoption admission."))
+        company = normal.env.company
+        company.check_access("read")
+        company.check_field_access_rights("read", ["country_id"])
+        company.country_id.check_access("read")
+        for root in normal:
+            (root.company_id | company).check_access("read")
+            root.country_id.check_access("read")
+            root._step_check_payroll_scope(company)
             structures = root._step_effective_rule_scope()["structures"]
-            structures.check_field_access_rights("read", ["type_id", "company_id", "country_id"])
+            structures.check_access("read")
+            structures.check_field_access_rights("read", structure_fields)
             for structure in structures:
+                structure.company_id.check_access("read")
+                structure.country_id.check_access("read")
                 kind = structure.type_id
                 kind.check_access("read")
                 kind.check_field_access_rights("read", ["name", "country_id"])
                 if not kind or not kind.name:
                     raise UserError(_("Original payroll adoption requires a structure type with its original name."))
                 kind.country_id.check_access("read")
-                country = structure.country_id or self.env.company.country_id
+                country = structure.country_id or company.country_id
                 if kind.country_id and kind.country_id != country:
                     raise UserError(_("Original payroll type is outside the adoption country scope."))
             rules = root._step_original_configured_rules(structures)
             for rule in rules:
-                if rule.company_id and rule.company_id != self.env.company:
+                rule.company_id.check_access("read")
+                if rule.company_id and rule.company_id != company:
                     raise UserError(_("Original payroll rule is outside the adoption company scope."))
                 rule.struct_id.check_access("read")
+                rule.struct_id.check_field_access_rights("read", structure_fields)
                 rule.category_id.check_access("read")
                 if not rule.code or not rule.struct_id or not rule.category_id:
                     raise UserError(_("Original payroll adoption requires each rule's original code, category and primary structure."))
@@ -111,7 +137,8 @@ class Structure(models.Model):
                     seen.add(category.id)
                     if not category.code:
                         raise UserError(_("Original payroll adoption requires each category's original code."))
-                    if category.company_id and category.company_id != self.env.company:
+                    category.company_id.check_access("read")
+                    if category.company_id and category.company_id != company:
                         raise UserError(_("Original payroll category is outside the adoption company scope."))
                     category = category.parent_id
         return True
