@@ -336,3 +336,11 @@ sin pago, bloqueo histórico ni asiento publicado. Conservar licencias y otras
 ausencias, reglas de acceso y liquidaciones confirmadas. No eliminar registros
 reales ni cambiar contratos durante el despliegue. Probar corrección y cambio
 de fecha en copia, mismo paquete y controles de publicación.
+
+T142 (mensaje 9873, adjunto 3447) autoriza holding-purchase en Desarrollo, Cerro
+y QA-Cerro: Entregar a incorpora operaciones de las sucursales de la misma
+raíz legal incluidas en las compañías activas del comprador. Seleccionar antes
+de agregar productos; pedido, líneas y recepción pertenecen nativamente a la
+sucursal. Mostrar su dirección de entrega. No compartir documentos ni ampliar
+permisos. Prueba de compra/recepción en copia, sin compras o movimientos reales
+al publicar. Mismo paquete, respaldo, bloqueo y paridad Cerro/QA-Cerro.
