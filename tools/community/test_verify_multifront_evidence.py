@@ -198,7 +198,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
             runtime = {'schema': 1, 'database': db, 'read_only': True, 'registry_loaded_by_caller': True,
                 'records_read': False, 'computes_evaluated': False, 'database_writes': False, 'fields': [
                     {'model': model, 'table': table, 'name': name, 'type': 'many2one' if kind == 'int4' else 'char',
-                        'required': required, 'translate': translate, 'store': True, 'column_type': [kind, kind],
+                        'required': required, 'translate': translate, 'store': True, 'column_type': [kind, 'VARCHAR' if kind == 'varchar' else kind],
                         'ondelete': 'set null' if kind == 'int4' else None,
                         'comodel_name': 'resource.calendar' if kind == 'int4' else None}
                     for model, table, name, kind, required, translate in audit.SPECS]}
