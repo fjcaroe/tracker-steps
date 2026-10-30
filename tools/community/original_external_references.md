@@ -52,7 +52,25 @@ contextos, defaults, código de acciones, parámetros) permanecen como candidato
 **sin binding semántico**. Se conservan clave del dueño y hash opaco; no se
 ejecutan ni se interpreta un número como prueba de pertenencia. Las filas
 no vacías, modelos ausentes, vistas calculadas, discriminadores no almacenados
-o computados, FK incompletas/ambiguas y aliases no adoptados mantienen el bloqueo.
+o computados sin el contrato físico siguiente, FK incompletas/ambiguas y aliases
+no adoptados mantienen el bloqueo.
+
+`original_external_references_related` admite sólo un Char almacenado con
+`related=[<Many2one almacenada a ir.model>, 'model']`. Usa tablas reales del
+registry, metadata SQL coincidente, FK validada y clave única no nullable del
+namespace. Lee el destino `ONLY` de esa FK, sin confundir unicidad del padre
+PostgreSQL con sus posibles hijos. Para cada referencia activa exige una
+observación sin orfandad ni diferencia entre el discriminador almacenado y el
+nombre físico relacionado, y conserva la FK/ID de namespace de cada dueño.
+No llama computes ni interpreta dominios o cuerpos. Un related de más pasos,
+un compute arbitrario o un discriminador ausente sigue bloqueado.
+
+El contraste opcional `--baseline-report ... --baseline-sha256 ...` exige un
+informe privado sellado anterior. Revalida que sólo cierren las tres guardas
+de Calendar, Activity y Rating, con testigos de datos vacíos de discrepancias;
+conserva todos los bindings y observaciones anteriores, catálogos, fuentes,
+identidades y hashes originales. Cualquier otra diferencia aborta. Es una
+clausura de referencias físicas, no una adopción ni una reparación de datos.
 
 Se repiten snapshots READ ONLY por socket Unix, sin credenciales heredadas.
 Cambiar un catálogo, alias, módulo, referencia o endpoint entre fases aborta.
@@ -83,6 +101,7 @@ coordinador sólo después de cerrar las puertas reales. Ni este informe ni una
 coadopción parcial resuelven el vencimiento o habilitan producción.
 
 Pruebas sin base: `python -m unittest test_original_external_references
-test_original_external_references_registry test_original_external_references_dump`
+test_original_external_references_registry test_original_external_references_dump
+test_original_external_references_related`
 desde tools/community. Las pruebas SQL sintéticas adicionales se ejecutan sólo
 con SELECT/READ ONLY en copias aceptadas y no constituyen adopción de maestros.

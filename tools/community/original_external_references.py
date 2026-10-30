@@ -16,6 +16,7 @@ import subprocess
 
 import payroll_configuration_adoption_preflight as gate
 from original_external_references_dump import prove_original_identity
+import original_external_references_related as related_discriminator
 
 
 IDENT = re.compile(r'[a-z_][a-z0-9_]*\Z')
@@ -504,18 +505,42 @@ def compile_paths(catalog, registry, scope):
             elif kind == 'many2one_reference':
                 discriminator = field['model_field']
                 proof = field.get('discriminator_field')
-                if (not proof or proof['name'] != discriminator or proof['type'] != 'char' or proof['store'] is not True
-                        or proof['compute'] or proof['related'] or proof['company_dependent']
-                        or column['sql_type'] not in INTEGER_TYPES or (table, discriminator) not in columns
-                        or columns[table, discriminator]['sql_type'] not in TEXT_TYPES):
-                    blockers.append({'code': 'polymorphic-discriminator-binding-not-proven', 'model': model_name, 'field': name})
+                physical = (proof and proof['name'] == discriminator and proof['type'] == 'char' and proof['store'] is True
+                    and not proof['company_dependent'] and column['sql_type'] in INTEGER_TYPES
+                    and (table, discriminator) in columns and columns[table, discriminator]['sql_type'] in TEXT_TYPES)
+                direct = physical and not proof['compute'] and not proof['related']
+                related = related_discriminator.resolve(catalog, models, model_name, field) if physical and not direct else None
+                if not direct and not (related and related['proven']):
+                    blockers.append({'code': 'polymorphic-discriminator-binding-not-proven', 'model': model_name, 'field': name,
+                        'related_binding_reason': related['reason'] if related else 'stored-physical-discriminator-not-proven'})
                     continue
+                extra = {}
+                if related:
+                    link, leaf = related['link_field'], related['namespace_field']
+                    invalid = 'invalid-related-discriminator:' + table + '.' + name
+                    related_value, stored_value = 'r.' + ident(leaf), 't.' + ident(discriminator)
+                    queries[invalid] = ('SELECT ' + _owner_sql(_owner(table, catalog)) + ' AS owner_pk,r.id AS namespace_record_id,'
+                        + "encode(sha256(convert_to(" + stored_value + "::text,'UTF8')),'hex') AS stored_discriminator_sha256,"
+                        + "encode(sha256(convert_to(" + related_value + "::text,'UTF8')),'hex') AS related_discriminator_sha256"
+                        + ' FROM public.' + ident(table) + ' t LEFT JOIN ONLY public.' + ident(related['namespace_table'])
+                        + ' r ON r.id=t.' + ident(link) + ' WHERE ' + value + ' IS NOT NULL AND ' + value
+                        + '<>0 AND (r.id IS NULL OR ' + stored_value + ' IS DISTINCT FROM ' + related_value
+                        + ' OR ' + related_value + ' NOT IN (' + ','.join(literal(model) for model in sorted(models))
+                        + ')) ORDER BY owner_pk')
+                    paths.append({'kind': 'stored-related-discriminator-mismatch', 'table': table, 'field': name,
+                        'owner_key': _owner(table, catalog), 'observation': invalid, 'semantic_binding_proven': False,
+                        'discriminator_binding': related})
+                    add('registry-related-discriminator-link', table, link, 'ir.model', 't.' + ident(link),
+                        value + ' IS NOT NULL AND ' + value + '<>0 AND t.' + ident(link) + ' IS NOT NULL',
+                        target_table=related['namespace_table'], owner_model=model_name, constraint_enforced=True,
+                        discriminator_binding=related, runtime_equality_observation=invalid)
+                    extra = {'discriminator_binding': related, 'runtime_equality_observation': invalid}
                 for target, selected in scope.items():
                     if not selected.get('incoming_scope', True):
                         continue
                     add('registry-many2one-reference', table, name, target, value,
                         't.' + ident(discriminator) + '=' + literal(target) + ' AND ' + value + ' IN ' + ids(selected['ids']),
-                        owner_model=model_name, discriminator_column=discriminator)
+                        owner_model=model_name, discriminator_column=discriminator, **extra)
                 key = 'invalid-polymorphic:' + table + '.' + name
                 known_model = 't.' + ident(discriminator) + ' IN (' + ','.join(literal(model) for model in sorted(models)) + ')'
                 if original_owner:
@@ -701,6 +726,8 @@ def main():
     parser.add_argument('--expected-capsule-sha256', required=True)
     parser.add_argument('--backup-sha256', required=True)
     parser.add_argument('--backup-file', required=True, type=Path)
+    parser.add_argument('--baseline-report', type=Path)
+    parser.add_argument('--baseline-sha256')
     args = parser.parse_args()
     require(args.expected_capsule_sha256 == CAPSULE_SHA256 and stat.S_IMODE(args.capsule.stat().st_mode) == 0o600
         and sha(args.capsule) == CAPSULE_SHA256,
@@ -803,6 +830,18 @@ def main():
     report['registry_runtime_proof'] = runtime
     report['copy_decoder_tool_sha256'] = sha(Path(__file__).with_name('audit_stock_package_representation.py'))
     report['capsule_gate_tool_sha256'] = sha(gate.__file__)
+    report['related_discriminator_tool_sha256'] = sha(related_discriminator.__file__)
+    require(bool(args.baseline_report) == bool(args.baseline_sha256), 'baseline-report-and-digest-required-together')
+    if args.baseline_report:
+        baseline = args.baseline_report.resolve()
+        require(baseline.is_relative_to(Path('/opt/steps-validation')) and baseline.is_file()
+            and not args.baseline_report.is_symlink() and stat.S_IMODE(baseline.stat().st_mode) == 0o600
+            and re.fullmatch('[0-9a-f]{64}', args.baseline_sha256) and sha(baseline) == args.baseline_sha256,
+            'sealed-private-baseline-required')
+        comparison = related_discriminator.compare(json.loads(baseline.read_text()), report)
+        require(sha(baseline) == args.baseline_sha256, 'baseline-changed-during-related-contrast')
+        report['related_discriminator_closure'] = dict(comparison, baseline_sha256=args.baseline_sha256,
+            baseline_report=str(baseline))
     report['query_sha256'] = digest(report['sql_queries'])
     report['summary'] = summarize(report)
     current_stat = backup.stat()
