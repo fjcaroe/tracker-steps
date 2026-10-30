@@ -85,6 +85,12 @@ Fuentes/ejecución privada:
   Incluye capturas/recursos reales y manifiesto exhaustivo; no exporta dump,
   filestore, credenciales ni cuerpos OEEL. El verificador confiable Git pasó
   offline, sin ejecutar Python del artefacto ni acceder a bases.
+- Sello `accepted-evidence-Q4-sealed.tar.gz`: 1.108 miembros, 11.531.043 bytes,
+  SHA256 `3438862fee5b8250ba20345b2e3dd1eb9e520dba072f134744bde294123cc554`.
+  Resumen canónico SHA256
+  `96815469afe9274f208a740f59a10bbec93c3fc3e03989c01b2b4d7d9c6f0863`;
+  recibo adyacente y permisos privados 0600. Replay independiente del sello
+  compara todos sus miembros y el resumen byte por byte con el verificador Git.
 - Testigo de representación Q4 SHA256
   `130901c50859881ca4fa6a4ea57709ea3be3d4c9e27c82a354ede33a15ebb2ad`.
 - Revisión visual final SHA256
