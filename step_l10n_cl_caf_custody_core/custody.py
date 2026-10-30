@@ -5,6 +5,7 @@ import binascii
 from odoo import _
 from odoo.exceptions import AccessError, UserError
 from odoo.addons.step_l10n_cl_edi_core.caf import CAFError, normalize_rut, parse_caf
+from odoo.addons.step_l10n_cl_edi_core.ted import check_ted_against_caf
 
 
 MODEL = 'l10n_cl.dte.caf'
@@ -92,6 +93,31 @@ class CAFCustodyMixin:
     def step_custody_reserve_folio(self, *args, **kwargs):
         self._step_custody_scope()
         raise UserError(_('La custodia no habilita reservas de folios ni emisión SII.'))
+
+    def step_custody_check_ted(self, file_data):
+        """Comprueba el timbre frente al CAF guardado; no habilita emisión."""
+        self.ensure_one()
+        original = self._step_custody_original_bytes()
+        try:
+            raw = decode_original(file_data)
+        except UserError:
+            raise UserError(_('El archivo del timbre no está disponible o no tiene un formato válido.')) from None
+        try:
+            result = check_ted_against_caf(raw, original)
+        except CAFError:
+            raise UserError(_('El timbre no coincide con el CAF guardado o su firma y datos no cumplen el formato admitido.')) from None
+        parsed = result.ted._caf
+        document = self.l10n_latam_document_type_id
+        document.check_access('read')
+        if (not document or document.country_id.code != 'CL'
+                or company_rut(self.company_id) != parsed.issuer_rut
+                or document.code != str(parsed.document_type)
+                or self.start_nb != parsed.folio_from or self.final_nb != parsed.folio_to
+                or self.issued_date != parsed.authorization_date):
+            raise UserError(_('Los datos del registro CAF no coinciden con su archivo original; la validación no los modifica.'))
+        # Deliberately no caller-supplied authority map, status transition,
+        # persistent verification flag, audit write, attachment or folio use.
+        return result.metadata()
 
     def step_custody_upload(self, *args, **kwargs):
         # The native reference adds only custody reads; its original upload and
