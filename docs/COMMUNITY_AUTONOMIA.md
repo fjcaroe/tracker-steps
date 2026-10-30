@@ -64,8 +64,9 @@ cohortes SyS, fuentes privadas y permisos que sigan sin resolver.
 Preserva 925 tablas/proyecciones, 147 contadores y 59.113 XML IDs. T2 revalida
 la FK RESTRICT por API oficial y catálogo físico; conserva R3/S separados.
 F materializó 71 relaciones, luego cero, mediante API OCA real bajo UID7,
-con 120 maestros/600/462 y partición original118/2 conservados. No certifica
-importes, metadatos ni interfaz completa. La referencia SyS real y su replay
+con 120 maestros/600/462 y partición original118/2 conservados. G validó cinco
+formularios y cuatro menús con paridad nativa, sin ampliar permisos. No certifica
+importes, metadatos ni todos los flujos legados. La referencia SyS real y su replay
 continúan como evidencia, sin sustituir las reglas de Cerro. Inventario actual:
 101 propias instaladas, 134 en repo/37 fuera de Cerro y 55 con caminos EE,
 incluida la nueva app de T139/T140. Quedan Nómina certificada, DTE completo,
