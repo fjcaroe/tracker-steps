@@ -1,5 +1,6 @@
 """Connect existing launchers without deleting menus or shared native actions."""
 from odoo.exceptions import UserError
+from odoo.addons.step_account_treasury.report_ownership import preserve_menus
 
 MODULE = 'step_treasury_community_reports'
 LAUNCHERS = (
@@ -12,6 +13,13 @@ LAUNCHERS = (
 
 
 def post_init_reports(env):
+    # A conflict in the fifth menu must not leave four launchers converted when
+    # a Python caller handles the error inside its existing transaction.
+    with env.cr.savepoint():
+        _adopt_launchers(env)
+
+
+def _adopt_launchers(env):
     data = env['ir.model.data']
     for name, kind, label, parent, sequence in LAUNCHERS:
         entries = data.search([('module', 'in', ('step_account_treasury', 'step_account_treasury_reports', MODULE)), ('name', '=', name)])
@@ -37,4 +45,4 @@ def post_init_reports(env):
         for namespace in ('step_account_treasury', MODULE):
             if not entries.filtered(lambda entry: entry.module == namespace):
                 data.create({'module': namespace, 'name': name, 'model': 'ir.ui.menu', 'res_id': menu.id, 'noupdate': True})
-        entries.write({'noupdate': True})
+    preserve_menus(env)

@@ -1,0 +1,6 @@
+from odoo import SUPERUSER_ID, api
+from odoo.addons.step_treasury_community_reports.hooks import post_init_reports
+
+
+def migrate(cr, version):
+    post_init_reports(api.Environment(cr, SUPERUSER_ID, {}))

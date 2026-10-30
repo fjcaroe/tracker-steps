@@ -6,3 +6,4 @@ from . import cashflow_collect
 from . import cashflow_summary
 from . import sale_order
 from . import purchase_order
+from . import ir_model_data
