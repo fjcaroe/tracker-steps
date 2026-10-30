@@ -278,6 +278,7 @@ def _owner(table, catalog):
         return None
     key = keys[0]
     return {'constraint': key['name'], 'columns': key['columns'], 'primary_key': key['primary_key'],
+        'physical_table_system_column': 'tableoid',
         'component_foreign_keys': [row for row in catalog['foreign_keys'] if row['source_table'] == table
             and set(row['source_columns']) <= set(key['columns'])]}
 
@@ -285,7 +286,10 @@ def _owner(table, catalog):
 def _owner_sql(owner):
     if owner is None:
         return "'null'::jsonb"
-    return 'jsonb_build_object(' + ','.join(literal(name) + ',t.' + ident(name) for name in owner['columns']) + ')'
+    # PostgreSQL inheritance does not make a parent's PK globally unique over
+    # child tables. Preserve the row's real tableoid as part of every owner.
+    return "jsonb_build_object('_physical_table',t.tableoid::regclass::text," + ','.join(
+        literal(name) + ',t.' + ident(name) for name in owner['columns']) + ')'
 
 
 def _rows(table, owner, target_model, target_sql, predicate, *, company_sql='NULL::integer'):
@@ -661,6 +665,35 @@ def assess(catalog, first, second, registry, scope, aliases):
         'recheck_required_under_writer_lock': True, 'observation_sha256': digest(first)}
 
 
+def summarize(report):
+    """Sanitized counts: path observations may overlap; they are not masters."""
+    bound = [path for path in report['paths'] if path.get('target_model') or path.get('target_model_from_row')]
+    unbound = [path for path in report['paths'] if not (path.get('target_model') or path.get('target_model_from_row'))]
+    counts = {}
+    for row in report['blockers']:
+        counts[row['code']] = counts.get(row['code'], 0) + 1
+    canonical = [row for row in report['alias_identity_plan'] if row['original']['module'] == 'hr_contract'
+        and row['original']['name'] in TYPE_ALIASES]
+    semantic_keys = ('module', 'name', 'model', 'res_id', 'noupdate')
+    return {'database': report['database'], 'read_only': True, 'database_writes': False,
+        'physical_path_contracts': report['physical_reference_paths'],
+        'bound_path_observation_rows': sum(len(path['rows']) for path in bound),
+        'unclassified_candidate_rows': sum(len(path['rows']) for path in unbound),
+        'observation_counts_may_include_overlapping_paths': True,
+        'selects_per_complete_snapshot': len(report['sql_queries']), 'two_complete_snapshots_exact': report['two_snapshots_exact'],
+        'endpoint_contracts': len(report['endpoint_identities']), 'blockers': len(report['blockers']),
+        'blockers_by_code': dict(sorted(counts.items())),
+        'canonical_type_aliases_nominal_model_id_noupdate_exact': sum(bool(row['nominal_alias'])
+            and all(row['nominal_alias'][key] == row['original'][key] for key in semantic_keys) for row in canonical),
+        'configuration_and_report_aliases_including_pk_exact': sum(row['identity_exact'] for row in report['alias_identity_plan']),
+        'source_original_master_table_hashes_exact': sum(row['equal'] for row in report['original_master_value_hashes'].values()),
+        'original_xmlids_proven_against_backup': report['original_xmlids_backup_proof']['original_xmlids'],
+        'all_six_original_xmlid_fields_exact_to_backup': report['original_xmlids_backup_proof']['all_six_identity_fields_exact_to_backup'],
+        'runtime_public_tables_and_sequences_exact': report['registry_runtime_proof']['public_snapshots_count'],
+        'reference_closure_ready': report['reference_closure_ready'], 'import_authorized': False,
+        'id_reservation_authorized': False, 'selected_relocation_id': None}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('capsule', 'registry-proof', 'runtime-proof', 'acceptance', 'output'):
@@ -771,6 +804,7 @@ def main():
     report['copy_decoder_tool_sha256'] = sha(Path(__file__).with_name('audit_stock_package_representation.py'))
     report['capsule_gate_tool_sha256'] = sha(gate.__file__)
     report['query_sha256'] = digest(report['sql_queries'])
+    report['summary'] = summarize(report)
     current_stat = backup.stat()
     require((before_stat.st_dev, before_stat.st_ino, before_stat.st_size, before_stat.st_mtime_ns)
         == (current_stat.st_dev, current_stat.st_ino, current_stat.st_size, current_stat.st_mtime_ns), 'backup-changed-during-reference-audit')
