@@ -56,6 +56,21 @@ class DumpReconstructionCase(unittest.TestCase):
             for name, kind, required in audit.COLUMNS)
         return 'CREATE TABLE public.stock_package_type (\n' + columns + '\n);\n'
 
+    def test_operational437_requires_explicit_profile_and_measured_graph(self):
+        root = PurePosixPath('/opt/steps-validation/community-multifront-parallel-20261030B')
+        accepted = {'mode': 'cerro-reference', 'writes_to_source': False, 'multifront': True,
+            'focused_development_pass': False, 'operational_extensions': True,
+            'expected_test_count': 437, 'counts': {'installed': 395, 'enterprise': 140}}
+        #395 is synthetic admission metadata, never an actual graph claim.
+        audit.validate_native_acceptance(root, accepted, expected_multifront_installed=395, operational_extensions=True)
+        with self.assertRaises(ValueError):
+            audit.validate_native_acceptance(root, accepted, expected_multifront_installed=395)
+        for changes in ({'expected_test_count': 391}, {'expected_test_count': 436},
+                        {'operational_extensions': False}, {'focused_development_pass': True}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                audit.validate_native_acceptance(root, dict(accepted, **changes),
+                    expected_multifront_installed=395, operational_extensions=True)
+
     def data(self):
         rows = []
         for ident in range(1, 6):

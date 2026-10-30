@@ -16,19 +16,75 @@ def write(root, name, value):
     path.write_text(json.dumps(value), encoding='utf-8')
 
 
-def packet_fixture():
+def packet_fixture(operational_extensions=False):
     provider = {'__manifest__.py': repr({'license': 'AGPL-3'}).encode()}
     provider.update({'synthetic_%02d.txt' % index: str(index).encode() for index in range(51)})
     source = {module + '/__manifest__.py': repr({'license': 'LGPL-3', 'version': '18.0.1.0.0'}).encode()
-              for module in verifier.OWN_MODULES}
+              for module in verifier.own_modules(operational_extensions)}
     source['tools/community/simpledigital_runtime_source.json'] = json.dumps(
         {'files': {name: verifier.sha(body) for name, body in provider.items()}}).encode()
-    packet = {name: verifier.sha(body) for name, body in source.items() if name.split('/')[0] in verifier.OWN_MODULES}
+    packet = {name: verifier.sha(body) for name, body in source.items() if name.split('/')[0] in verifier.own_modules(operational_extensions)}
     packet.update({verifier.builder.MODULE + '/' + name: verifier.sha(body) for name, body in provider.items()})
     return source, provider, packet
 
 
 class MultifrontEvidenceCase(unittest.TestCase):
+    def test_operational_packet_is_exact_thirty_with_normal_fiftytwo_and_not_quality(self):
+        source, provider, packet = packet_fixture(True)
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for prefix in ('original-provider', 'normal-provider'):
+                path = root / prefix / '__manifest__.py'
+                path.parent.mkdir(); path.write_bytes(provider['__manifest__.py'])
+            for mode in verifier.EXPECTED_TESTS:
+                write(root, mode + '/source-files.json', packet)
+            with patch.object(verifier.previous.base, 'addon_snapshot', return_value=provider), \
+                    patch.object(verifier.previous, 'replay_normal_provider', return_value=provider):
+                self.assertEqual(verifier.verify_packets(root, source, operational_extensions=True), packet)
+                with self.assertRaises(verifier.base.EvidenceError):
+                    verifier.verify_packets(root, source)
+                for edit in ('missing_reference', 'quality', 'vendor_in_own_packet', 'hash'):
+                    changed = dict(packet)
+                    if edit == 'missing_reference': changed.pop('step_payroll_benefits_native_reference/__manifest__.py')
+                    elif edit == 'quality': changed['step_quality/__manifest__.py'] = '0' * 64
+                    elif edit == 'vendor_in_own_packet': changed['payroll_contract_advantages/__manifest__.py'] = '0' * 64
+                    else: changed['step_payroll_original_report/__manifest__.py'] = '0' * 64
+                    for mode in verifier.EXPECTED_TESTS:
+                        write(root, mode + '/source-files.json', changed)
+                    with self.subTest(edit=edit), self.assertRaises(verifier.base.EvidenceError):
+                        verifier.verify_packets(root, source, operational_extensions=True)
+
+    def test_actual_third_pdf_bytes_and_remaining_review_cannot_be_fabricated_as_complete(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            name = 'community/original-report-pdf-evidence/proof.json'
+            body = b'%PDF- synthetic byte-custody fixture only, not a rendered product PDF'
+            path = root / 'community/original-report-pdf-evidence/synthetic.pdf'
+            path.parent.mkdir(parents=True); path.write_bytes(body)
+            proof = {'file': 'synthetic.pdf', 'sha256': verifier.sha(body), 'bytes': len(body), 'pages': 1,
+                'actor_id': 1, 'normal_actor': True, 'stored_history_unchanged': True, 'original_action_unchanged': True,
+                'existing_structure_fk_unchanged': True, 'missing_assets': [], 'original_action_numeric_adoption': False,
+                'runtime_asset_sha256': {'/web/assets/synthetic.css': '0' * 64}, 'financial_verified_html_sha256': '1' * 64,
+                'offline_pdf_text_verification_required': True, 'visual_pdf_review_required': True}
+            for edit in (None, 'bytes', 'sha', 'history', 'adoption', 'asset', 'review', 'receipt', 'actor'):
+                changed = deepcopy(proof)
+                if edit == 'bytes': changed['bytes'] += 1
+                elif edit == 'sha': changed['sha256'] = '0' * 64
+                elif edit == 'history': changed['stored_history_unchanged'] = False
+                elif edit == 'adoption': changed['original_action_numeric_adoption'] = True
+                elif edit == 'asset': changed['runtime_asset_sha256'] = {}
+                elif edit == 'review': changed['visual_reviewed'] = True
+                elif edit == 'actor': changed['actor_id'] = True
+                write(root, name, changed)
+                receipt = {'original_report_pdf_reports': 1,
+                    'original_report_pdf_receipt_sha256': verifier.sha((root / name).read_bytes())}
+                if edit == 'receipt': receipt['original_report_pdf_receipt_sha256'] = '0' * 64
+                if edit is None:
+                    self.assertTrue(verifier.verify_original_pdf(root, receipt)['visual_review_required'])
+                else:
+                    with self.subTest(edit=edit), self.assertRaises(verifier.base.EvidenceError):
+                        verifier.verify_original_pdf(root, receipt)
+
     def test_complete_manual_setup_alias_set_rejects_missing_related_or_wrong_references(self):
         from finance_frontier_contract import LEGACY_XMLIDS
         aliases = {module + '.' + name: 100 + index for index, (module, name) in enumerate(

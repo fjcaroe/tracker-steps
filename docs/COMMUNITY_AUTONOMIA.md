@@ -25,7 +25,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 1. Leer AGENTS.md, ~/.odoo/environments.json, OPERACION_ODOO_CANONICA.md,
    WORKFLOW_GIT_COMPARTIDO.md, PLAN_COMMUNITY_CERRO.md, COMMUNITY_CONTINUACION.md,
-   el último documento de aceptación (actualmente COMMUNITY_MULTIFRENTE.md) y esta hoja. Hacer fetch de la canónica
+   el último documento de aceptación (actualmente COMMUNITY_EXTENSIONES_OPERACIONALES.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
    COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 100 apps propias instaladas,
@@ -38,7 +38,7 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
 
 ## Paralelismo ampliado — 30-10-2026
 
-Base aceptada `ce24087d`, pareja H y custodia de COMMUNITY_MULTIFRENTE.md.
+Base de lanzamiento `ce24087d`, pareja H y custodia de COMMUNITY_MULTIFRENTE.md.
 El 30-10-2026 se activaron tres agentes sobre ramas propias desde esa canónica:
 
 | Frente | Responsable / siguiente resultado concreto |
@@ -56,6 +56,17 @@ primeros frentes tienen archivos de producto separados. El quinto frente se
 asigna al primer agente que libere su plaza, sin detener los otros ni inventar
 resultados para reducir el inventario. Conservar los límites de autoridad fiscal,
 cohortes SyS, fuentes privadas y permisos que sigan sin resolver.
+
+## Último bloque técnico aceptado
+
+[Extensiones operacionales D](COMMUNITY_EXTENSIONES_OPERACIONALES.md): 637 casos CE /
+437 nativos, 30 addons propios, 117/395 instalados y 0/140 EE. Preservación de
+921 tablas/proyecciones, 140 contadores y 59.079 XML IDs originales; custodia
+Git y evidencia privada verificadas. Continúan 54 apps con caminos EE, coadopción
+original/certificación SyS, DTE completo y conversión integral. La cabecera
+corporativa del PDF no está aceptada para producción. Calidad `52c1c2f7` quedó
+publicada como siguiente candidato sin integrar ni afirmar aceptación DB.
+El 31 sigue en riesgo alto; mantener todos los límites y la programación activa.
 
 ## Orden de trabajo y puertas de aceptación
 

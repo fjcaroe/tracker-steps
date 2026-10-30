@@ -6,6 +6,7 @@ from odoo import _
 from odoo.exceptions import AccessError, UserError
 from odoo.addons.step_l10n_cl_edi_core.caf import CAFError, normalize_rut, parse_caf
 from odoo.addons.step_l10n_cl_edi_core.ted import check_ted_against_caf
+from odoo.addons.step_l10n_cl_edi_core.dte_signature import DTEError, verify_signed_dte
 
 
 MODEL = 'l10n_cl.dte.caf'
@@ -106,7 +107,13 @@ class CAFCustodyMixin:
             result = check_ted_against_caf(raw, original)
         except CAFError:
             raise UserError(_('El timbre no coincide con el CAF guardado o su firma y datos no cumplen el formato admitido.')) from None
-        parsed = result.ted._caf
+        self._step_custody_assert_caf_metadata(result.ted._caf)
+        # Deliberately no caller-supplied authority map, status transition,
+        # persistent verification flag, audit write, attachment or folio use.
+        return result.metadata()
+
+    def _step_custody_assert_caf_metadata(self, parsed):
+        self.ensure_one()
         document = self.l10n_latam_document_type_id
         document.check_access('read')
         if (not document or document.country_id.code != 'CL'
@@ -115,8 +122,21 @@ class CAFCustodyMixin:
                 or self.start_nb != parsed.folio_from or self.final_nb != parsed.folio_to
                 or self.issued_date != parsed.authorization_date):
             raise UserError(_('Los datos del registro CAF no coinciden con su archivo original; la validación no los modifica.'))
-        # Deliberately no caller-supplied authority map, status transition,
-        # persistent verification flag, audit write, attachment or folio use.
+
+    def _step_custody_check_signed_dte(self, file_data, certificate_pin, dte_context):
+        """Server-only verification against this CAF, never a signing RPC.
+
+        The explicit certificate pin authenticates only its bytes/key. No
+        arbitrary authority map can be supplied here, so CAF authority, signer
+        fiscal authorization and folio operations always remain unverified.
+        """
+        self.ensure_one()
+        original = self._step_custody_original_bytes()  # roles/company first
+        try:
+            result = verify_signed_dte(decode_original(file_data), original, certificate_pin, dte_context)
+        except (UserError, DTEError):
+            raise UserError(_('El DTE no coincide con el CAF y contexto indicados o su firma, certificado y esquema no son válidos.')) from None
+        self._step_custody_assert_caf_metadata(result.ted_verification.ted._caf)
         return result.metadata()
 
     def step_custody_upload(self, *args, **kwargs):
