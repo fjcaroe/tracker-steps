@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 
 import build_numeric_input_engine as numeric
 import build_original_bootstrap as cold
+from derive_original_anchor_company import apply_original_company_derivation
 
 
 OWN = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
@@ -52,6 +53,8 @@ def build(root, runtime, oca, provider):
     assert all((source / name / '__manifest__.py').is_file() for name in OWN)
     engine = root / 'engine-addons'
     numeric.build(oca, engine)
+    company_derivation = apply_original_company_derivation(oca, engine,
+        Path('/opt/steps-validation/community-original-config-20261029/configuration-capsule-C.json'))
     shutil.copytree(oca / 'payroll_account', engine / 'payroll_account',
         ignore=shutil.ignore_patterns('__pycache__'))
     changes = {}
@@ -82,7 +85,8 @@ def build(root, runtime, oca, provider):
     (overlay / cold.MODULE).symlink_to(root / 'profile-addons' / cold.MODULE)
     proof = {'schema': 1, 'profile': 'original-anchor-policy-preserving',
         'community_pin': cold.PIN_COMMUNITY, 'oca_pin': cold.PIN_OCA,
-        'changes': changes, 'own_modules': OWN, 'database_accessed': False,
+        'changes': changes, 'original_global_company_derivation': company_derivation,
+        'own_modules': OWN, 'database_accessed': False,
         'original_security_policy_required': True, 'new_groups_or_memberships_created': False,
         'default_upstream_security_installed': False, 'all_products_operational': False,
         'deadline_resolved': False}
