@@ -42,7 +42,8 @@ TOOLS = tuple(dict.fromkeys(previous.TOOLS + EXECUTED_TOOLS + (
     'verify_multifront_evidence.py', 'collect_multifront_evidence.py', 'audit_multifront_installation.py')))
 EXPECTED_TESTS = {'community': 576, 'cerro-reference': 391}
 U_HELPERS = ('derive_original_payroll_storage.py', 'derive_original_history_deletion.py',
-    'original_history_engine_contract.py', 'preflight_original_history_storage.py', 'audit_payroll_history_storage.py')
+    'original_history_engine_contract.py', 'preflight_original_history_storage.py', 'audit_payroll_history_storage.py',
+    'original_external_references_readonly_bootstrap.py')
 U_PACKET_FILES = 519
 
 
@@ -453,6 +454,7 @@ def verify_u_storage_boundary(root, source, receipt, mode):
     import preflight_original_history_storage as before_gate
     import audit_payroll_history_storage as storage_audit
     import original_history_engine_contract as history_engine
+    import original_external_references_readonly_bootstrap as readonly_bootstrap
 
     before_name = mode + '/before-initialization-storage.json'
     after_name = mode + '/after-tests-history-storage.json'
@@ -489,6 +491,29 @@ def verify_u_storage_boundary(root, source, receipt, mode):
         and runtime.get('registry_loaded_by_caller') is True and runtime.get('read_only') is True
         and runtime.get('records_read') is False and runtime.get('computes_evaluated') is False
         and runtime.get('database_writes') is False, 'U passive real readonly registry metadata required')
+    require(runtime.get('process_readonly_before_first_connection') is True,
+        'U complete witness process must be readonly before its first connection')
+    base.tool_hash(runtime['readonly_bootstrap_sha256'], 'original_external_references_readonly_bootstrap.py', source)
+    cursors = runtime.get('cursor_observations')
+    require(isinstance(cursors, list) and cursors and all(isinstance(row, dict)
+        and set(row) == {'database', 'transaction_read_only', 'odoo_cursor_readonly'}
+        and row['database'] in (receipt['database'], 'postgres')
+        and row['transaction_read_only'] == 'on' and row['odoo_cursor_readonly'] is True for row in cursors),
+        'U every actual startup and observer connection must remain readonly in the explicit database boundary')
+    sequence = runtime.get('signaling_sequence_reader', {})
+    require(isinstance(sequence, dict) and sequence.get('original_registry_source_sha256') in readonly_bootstrap.REGISTRY_SOURCE_SHA256
+        and sequence.get('original_get_sequences_sha256') == readonly_bootstrap.SEQUENCE_METHOD_SHA256
+        and sequence.get('select_only_sql_sha256') == sha(readonly_bootstrap.SEQUENCE_SELECT.encode())
+        and sequence.get('cache_keys') == list(readonly_bootstrap.CACHE_KEYS),
+        'U exact approved SELECT-only signaling reader and original source required')
+    calls = sequence.get('calls')
+    require(isinstance(calls, list) and calls and all(isinstance(row, dict)
+        and set(row) == {'database', 'transaction_read_only', 'odoo_cursor_readonly', 'pg_is_in_recovery'}
+        and row['database'] == receipt['database'] and row['transaction_read_only'] == 'on'
+        and row['odoo_cursor_readonly'] is True and row['pg_is_in_recovery'] is False for row in calls)
+        and all(sequence.get(key) is True for key in ('cursor_readonly_unchanged', 'setup_signaling_unchanged',
+            'signal_changes_unchanged', 'nextval_unchanged')) and sequence.get('installed_sources_modified') is False,
+        'U actual signaling must read the local primary without any write or source override expansion')
     assessment = storage_audit.assess(catalog, runtime)
     require(after['assessment'] == assessment and assessment['catalog_contracts_closed'] == 4
         and assessment['all_four_catalog_contracts_match'] is True and assessment['calendar_fk_set_null'] is True
@@ -501,6 +526,8 @@ def verify_u_storage_boundary(root, source, receipt, mode):
         'U actual final-engine composition receipt scope differs')
     return {'before_candidate_initialization': preflight, 'chronology_bound_by_root_receipt': True,
         'after_tests_four_contracts': assessment, 'original_masters_adopted': False,
+        'whole_witness_process_readonly': True, 'readonly_cursor_observations': len(cursors),
+        'signaling_select_only_proven': True,
         'historical_rows_assessed': False, 'other_columns_waived': [], 'integral_conversion': False}
 
 
