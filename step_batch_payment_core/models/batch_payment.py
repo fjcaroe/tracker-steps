@@ -270,3 +270,10 @@ class AccountBatchPayment(models.Model):
         return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
             'type': 'success', 'message': _('Pagos publicados en contabilidad. El lote sigue en borrador, sin envío ni conciliación.'),
             'sticky': False, 'next': {'type': 'ir.actions.client', 'tag': 'reload'}}}
+
+    def action_post_apply_linked_invoices(self):
+        self.sudo(False).check_access('write')
+        self.env['step.batch.payment.grouping'].post_groups_against_linked_invoices(self.ids)
+        return {'type': 'ir.actions.client', 'tag': 'display_notification', 'params': {
+            'type': 'success', 'message': _('Documentos aplicados por su contraparte contable. La cuenta pendiente sigue sin conciliación bancaria.'),
+            'sticky': False, 'next': {'type': 'ir.actions.client', 'tag': 'reload'}}}

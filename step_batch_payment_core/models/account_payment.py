@@ -32,7 +32,7 @@ class AccountPayment(models.Model):
                 service._validate_payments(existing | payments, batch)
         elif self.batch_payment_id and set(values) & {
                 'amount', 'currency_id', 'company_id', 'journal_id', 'payment_type',
-                'payment_method_line_id', 'payment_method_id', 'move_id', 'state', 'is_sent', 'is_matched'}:
+                'payment_method_line_id', 'payment_method_id', 'move_id', 'state', 'is_sent', 'is_matched', 'invoice_ids'}:
             raise UserError(_('Separe primero el pago del grupo para modificar su información contable o estado.'))
         return super().write(values)
 

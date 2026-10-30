@@ -96,6 +96,46 @@ class BatchCoreCase(AccountTestInvoicingCommon):
         with self.assertRaises(UserError):
             batch.validate_batch_button()
 
+    def test_normal_form_applies_only_saved_complete_document_links(self):
+        accountant = new_test_user(self.env, login='batch_core_application_accountant',
+            groups='account.group_account_user', company_id=self.env.company.id,
+            company_ids=[Command.set(self.env.company.ids)])
+        invoices = self.env['account.move'].with_user(accountant)
+        for payment in self.payments.with_user(accountant):
+            invoice = invoices.create({'move_type': 'in_invoice', 'partner_id': self.partner_a.id,
+                'invoice_date': fields.Date.today(), 'date': fields.Date.today(),
+                'invoice_line_ids': [Command.create({'name': 'Private core linked document',
+                    'quantity': 1, 'price_unit': payment.amount,
+                    'account_id': self.company_data['default_account_expense'].id,
+                    'tax_ids': [Command.clear()]})]})
+            invoice.action_post()
+            with Form(payment) as form:
+                form.invoice_ids.add(invoice)
+            invoices |= invoice
+        batch = self.group().with_user(accountant)
+        arch = batch.get_view(view_id=self.env.ref('step_batch_payment_core.view_batch_payment_form').id)['arch']
+        self.assertEqual(len(etree.fromstring(arch).xpath("//button[@name='action_post_apply_linked_invoices']")), 1)
+        payment_view = self.payments.with_user(accountant).get_view(view_type='form')['arch']
+        selection = etree.fromstring(payment_view).xpath("//field[@name='invoice_ids']")
+        self.assertTrue(selection)
+        self.assertIn('batch_payment_id', selection[-1].get('readonly'))
+        with self.assertRaises(UserError):
+            self.payments[:1].with_user(accountant).write({'invoice_ids': [Command.clear()]})
+        before = self.payments.sudo().read(['id', 'amount', 'state', 'move_id', 'invoice_ids'])
+        hidden = self.env['ir.rule'].create({'name': 'Private core hidden linked document',
+            'model_id': self.env['ir.model']._get_id('account.move'),
+            'domain_force': "[('id','!=',%s)]" % invoices[-1].id})
+        with self.assertRaises(AccessError):
+            batch.sudo().action_post_apply_linked_invoices()
+        self.assertEqual(self.payments.sudo().read(list(before[0])), before)
+        hidden.unlink()
+        self.assertEqual(batch.action_post_apply_linked_invoices()['tag'], 'display_notification')
+        self.assertEqual(invoices.mapped('amount_residual'), [0, 0])
+        self.assertEqual(self.payments.batch_payment_id, batch)
+        self.assertTrue(all(payment.is_reconciled and not payment.is_matched and not payment.is_sent
+                            for payment in self.payments))
+        self.assertEqual(batch.state, 'draft')
+
     def test_posted_payments_keep_entries_and_real_outstanding_amounts(self):
         self.payments.action_post()
         self.assertTrue(self.payments.move_id)
