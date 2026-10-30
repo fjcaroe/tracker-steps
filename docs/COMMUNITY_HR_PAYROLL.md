@@ -1,18 +1,18 @@
 # HR operacional y candidato de Nómina Community
 
 Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
-S7 valida el adaptador real de grupos y la interfaz de tipos de entrada:
+T2 valida Foundation 1.16.0 y la FK de seguridad original por API oficial:
 33 addons propios/513 archivos, 671 casos Community y 462 nativos sin fallos
-ni errores; 120/397 instalados y 0/140 EE. Conserva 921 tablas/proyecciones,
-140 contadores y 59.079 XML IDs con un nuevo testigo numérico tipado S7.
-El ensayo separado de maestros mantiene modelo 600/reporte 462 sobre OCA;
-la visibilidad del usuario original coincide en ambos motores (118 permitidos,
-dos denegados), pero la adopción completa de las 71 reglas sigue en revisión.
-La referencia SyS real fue capturada readonly y reproducida offline; no
-certifica por sí sola las fórmulas de Cerro. R3 y sus límites se conservan.
-Continúan 54 apps con caminos EE, certificación de Nómina, DTE completo,
-Calidad nativa y conversión integral restaurable pendientes. Producción
-conserva 140 EE. El 31 sigue en riesgo alto; no está resuelto.
+ni errores; 120/398 instalados y 0/140 EE. Preserva 925 tablas/proyecciones,
+147 contadores y 59.113 XML IDs del respaldo posterior a T139/T140, con testigo
+numérico tipado T2 y postflight físico antes/después del upgrade y las pruebas.
+F materializó realmente 71 relaciones de reglas sobre OCA y cero al repetir,
+bajo UID7: 120 maestros, modelo 600/reporte 462 y permisos conservados (118/2).
+F admite sólo relaciones; metadatos, interfaz completa, históricos y fórmulas
+continúan pendientes. La referencia SyS readonly y R3/S se conservan.
+Inventario actual: 101 apps propias en Cerro, 134 en repo/37 fuera de Cerro
+y 55 con caminos EE. Quedan certificación de Nómina, DTE, Calidad y conversión
+integral restaurable. Producción conserva 140 EE. El 31 sigue en riesgo alto.
 El contenido inferior conserva su alcance histórico.
 
 ## Alcance y contratos

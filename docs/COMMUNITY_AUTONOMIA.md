@@ -28,8 +28,8 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
    el último documento de aceptación (actualmente COMMUNITY_ADOPCION_MAESTROS.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 100 apps propias instaladas,
-   54 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
+   COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 101 apps propias instaladas,
+   55 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.
 3. Elegir un bloque concreto que desbloquee la siguiente puerta. Registrar una
@@ -59,18 +59,18 @@ cohortes SyS, fuentes privadas y permisos que sigan sin resolver.
 
 ## Último bloque técnico aceptado
 
-[Maestros originales y permisos S7](COMMUNITY_ADOPCION_MAESTROS.md): 671 casos CE /
-462 nativos, 33 addons propios/513 archivos, 120/397 instalados y 0/140 EE.
-Preserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs; evidencia
-privada reproducida offline y sellada. Cierra los aliases de los dos roles
-en las APIs reales y la interfaz de tipos de entrada, sin nuevos grupos ni
-maestros. El ensayo separado conserva 600/462 y reproduce la partición original
-118 permitidos/dos denegados sobre los 120 maestros; la adopción completa de
-71 reglas y el almacenamiento histórico permanecen en revisión. SyS aporta
-una cohorte readonly real reproducida offline, sin certificar las fórmulas de
-Cerro. R3/Q4/D/H se conservan. Continúan 54 apps con caminos EE, certificación
-Nómina, DTE completo, Calidad nativa y conversión integral restaurable pendientes.
-El 31 sigue en riesgo alto; mantener límites y programación activa.
+[Maestros originales, proyección F y seguridad T2](COMMUNITY_ADOPCION_MAESTROS.md):
+671 casos CE/462 nativos, 33 propios/513 archivos, 120/398 instalados y 0/140 EE.
+Preserva 925 tablas/proyecciones, 147 contadores y 59.113 XML IDs. T2 revalida
+la FK RESTRICT por API oficial y catálogo físico; conserva R3/S separados.
+F materializó 71 relaciones, luego cero, mediante API OCA real bajo UID7,
+con 120 maestros/600/462 y partición original118/2 conservados. No certifica
+importes, metadatos ni interfaz completa. La referencia SyS real y su replay
+continúan como evidencia, sin sustituir las reglas de Cerro. Inventario actual:
+101 propias instaladas, 134 en repo/37 fuera de Cerro y 55 con caminos EE,
+incluida la nueva app de T139/T140. Quedan Nómina certificada, DTE completo,
+Calidad y copia integral restaurable cero EE. El 31 sigue en riesgo alto;
+mantener límites y programación activa. El corte de producción queda fuera.
 
 ## Orden de trabajo y puertas de aceptación
 
