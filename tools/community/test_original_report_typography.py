@@ -46,6 +46,16 @@ class CorporateTypographyCase(unittest.TestCase):
     def test_repeated_preparation_is_idempotent(self):
         first = module.stabilize_corporate_typography(fixture())
         self.assertEqual(module.stabilize_corporate_typography(first), first)
+        tree = html.fromstring(fixture())
+        wrapper = tree.xpath('//*[@id="minimal_layout_report_headers"]')[0]
+        import copy
+        wrapper.append(copy.deepcopy(wrapper[0]))
+        batch = html.tostring(tree, encoding='unicode')
+        prepared = html.fromstring(module.stabilize_corporate_typography(batch))
+        addresses = prepared.xpath('//*[@name="company_address"]')
+        self.assertEqual(len(addresses), 2)
+        self.assertEqual(prepared.text_content(), tree.text_content())
+        self.assertTrue(all(module.MARKER in node.get('class').split() for node in addresses))
 
     def test_missing_or_ambiguous_structures_are_rejected(self):
         invalid = [fixture().replace('minimal_layout_report_headers', 'other'),
@@ -55,6 +65,14 @@ class CorporateTypographyCase(unittest.TestCase):
         for value in invalid:
             with self.assertRaises(ValueError):
                 module.stabilize_corporate_typography(value)
+        tree = html.fromstring(fixture())
+        wrapper = tree.xpath('//*[@id="minimal_layout_report_headers"]')[0]
+        import copy
+        bad = copy.deepcopy(wrapper[0])
+        bad.xpath('.//*[@name="company_address_list"]')[0].set('name', 'unsupported')
+        wrapper.append(bad)
+        with self.assertRaises(ValueError):
+            module.stabilize_corporate_typography(html.tostring(tree, encoding='unicode'))
 
 
 if __name__ == '__main__':
