@@ -2,6 +2,10 @@ from datetime import date
 from unittest.mock import patch
 
 from odoo.tests import TransactionCase, tagged
+from odoo.exceptions import AccessError, UserError
+from unittest import TestCase
+
+from .common import ContractDaysFixture
 
 
 @tagged("post_install", "-at_install")
@@ -171,3 +175,45 @@ class TestContractDays(TransactionCase):
                     self.assertAlmostEqual(late_lines[0]["number_of_hours"], hours)
                     self.assertEqual(late_lines[0]["amount"], 0.0)
         self.assertEqual(round(wage / 30 * 29.65), 547095)
+
+
+@tagged('post_install', '-at_install')
+class TestContractDaysHistory(ContractDaysFixture, TransactionCase):
+    def test_real_closed_engine_and_posted_ledger_reject_before_first_batch_mutation(self):
+        closed, opened = self._slip(), self._slip()
+        closed.compute_sheet()
+        closed.action_payslip_done()
+        self.assertEqual(closed.state, 'done')
+        self.assertTrue(closed.move_id)
+        self.assertFalse(closed.env.su)
+        before = self._snapshot(opened | closed)
+        with TestCase.assertRaisesRegex(self, UserError, 'recalculated|changed|Validated|paid|Closed'):
+            (opened | closed).sudo().compute_sheet()
+        self.assertEqual(self._snapshot(opened | closed), before)
+        frozen = self._snapshot(closed)
+        with TestCase.assertRaises(self, UserError):
+            closed._get_worked_day_lines_values()
+        self.assertEqual(self._snapshot(closed), frozen)
+        first, second = self._slip(), self._slip(wage=600001)
+        self.rule.amount_python_compute = 'result = 1.0 / (contract.wage - 600001)'
+        before = self._snapshot(first | second)
+        with TestCase.assertRaises(self, UserError):
+            (first | second).compute_sheet()
+        self.assertEqual(first.state, 'draft')
+        self.assertEqual(second.state, 'draft')
+        self.assertEqual(self._snapshot(first | second), before)
+
+    def test_paid_and_imported_lock_flags_on_private_drafts_never_reach_native_refresh(self):
+        # Controlled fixture SQL models imported status on new private rows;
+        # it is not a public bypass, a production payment or a computed result.
+        for field in ('paid', 'step_history_locked'):
+            if field not in self.scope['hr.payslip']._fields:
+                continue
+            slip, other = self._slip(), self._slip()
+            self.env.flush_all()
+            self.env.cr.execute('UPDATE hr_payslip SET ' + field + '=true WHERE id=%s', (slip.id,))
+            slip.invalidate_recordset([field])
+            before = self._snapshot(other | slip)
+            with TestCase.assertRaises(self, UserError):
+                (other | slip).sudo().compute_sheet()
+            self.assertEqual(self._snapshot(other | slip), before)

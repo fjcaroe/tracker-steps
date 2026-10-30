@@ -1,7 +1,8 @@
 from calendar import monthrange
 from datetime import datetime, time
 
-from odoo import fields, models
+from odoo import fields, models, _
+from odoo.exceptions import UserError
 
 LATE_CODE = "LEAVECL131"
 HOURS_PER_DAY = 8.0
@@ -10,7 +11,123 @@ HOURS_PER_DAY = 8.0
 class HrPayslip(models.Model):
     _inherit = "hr.payslip"
 
+    def _step_contract_days_access(self, write=False, sources=False):
+        """Authorize complete original rows before any provider calculation.
+
+        SQL collects physical identities only. It never supplies payroll values
+        or grants access to a row hidden by the caller's normal record rules.
+        No dependency on an Enterprise-only payroll helper is introduced.
+        """
+        normal = self.sudo(False)
+        normal.check_access('write' if write else 'read')
+        names = ['state', 'struct_id', 'contract_id', 'employee_id', 'company_id',
+                 'date_from', 'date_to', 'worked_days_line_ids']
+        names += [name for name in ('paid', 'step_history_locked') if name in normal._fields]
+        normal.check_field_access_rights('read', names)
+        for slip in normal:
+            original = slip if type(slip.id) is int else slip._origin
+            if original and type(original.id) is int:
+                original.check_access('read')
+                original.check_field_access_rights('read', names)
+                if (original.state not in ('draft', 'verify')
+                        or 'paid' in original._fields and original.paid
+                        or 'step_history_locked' in original._fields and original.step_history_locked):
+                    raise UserError(_('Closed payroll history cannot be recalculated.'))
+            if write and type(slip.id) is not int:
+                raise UserError(_('Save the real draft payslip before calculating contract days.'))
+        # Inspect every selected state before even flushing source identities.
+        for slip in normal:
+            slip.struct_id.check_access('read')
+            slip.struct_id.check_field_access_rights('read', ['name'])
+            if slip.struct_id.name != 'Nómina Chile':
+                continue
+            contract = slip.contract_id
+            contract.check_access('read')
+            contract.check_field_access_rights('read', ['date_start', 'date_end', 'wage', 'wage_type',
+                'employee_id', 'company_id', 'resource_calendar_id'])
+            slip.employee_id.check_access('read')
+            if type(slip.id) is int:
+                days = normal.env['hr.payslip.worked_days']
+                days.check_access('read')
+                days.check_field_access_rights('read', ['payslip_id', 'sequence', 'work_entry_type_id',
+                    'number_of_days', 'number_of_hours', 'amount'])
+                if write:
+                    days.check_access('write')
+                    days.check_field_access_rights('write', ['number_of_days', 'number_of_hours', 'amount'])
+                days.flush_model(['payslip_id', 'work_entry_type_id'])
+                normal.env.cr.execute('SELECT id,work_entry_type_id FROM hr_payslip_worked_days WHERE payslip_id=%s', (slip.id,))
+                rows = normal.env.cr.fetchall()
+                complete = days.browse([row[0] for row in rows])
+                complete.check_access('write' if write else 'read')
+                types = normal.env['hr.work.entry.type'].browse([row[1] for row in rows if row[1]])
+                types.check_access('read')
+                types.check_field_access_rights('read', ['code', 'sequence', 'is_leave', 'active'])
+            if sources and type(slip.employee_id.id) is int and slip.date_from and slip.date_to:
+                slip._step_contract_days_source_access()
+        return normal
+
+    def _step_contract_days_source_access(self):
+        self.ensure_one()
+        normal = self.sudo(False)
+        entries, leaves, leave_types, types = (normal.env[name] for name in
+            ('hr.work.entry', 'hr.leave', 'hr.leave.type', 'hr.work.entry.type'))
+        for records, names in ((entries, ['employee_id', 'contract_id', 'company_id', 'work_entry_type_id',
+                    'date_start', 'date_stop', 'state', 'duration']),
+                (leaves, ['employee_id', 'holiday_status_id', 'state', 'date_from', 'date_to']),
+                (leave_types, ['unpaid', 'work_entry_type_id']),
+                (types, ['code', 'is_leave', 'active', 'sequence'])):
+            records.check_access('read')
+            records.check_field_access_rights('read', names)
+        start = datetime.combine(fields.Date.to_date(normal.date_from), time.min)
+        stop = datetime.combine(fields.Date.to_date(normal.date_to), time.max)
+        entry_start, entry_stop = start, stop
+        if hasattr(normal.contract_id, '_payroll_period_bounds') and normal.contract_id.resource_calendar_id:
+            left, right = normal.contract_id._payroll_period_bounds(normal.date_from, normal.date_to)
+            entry_start, entry_stop = min(start, left), max(stop, right)
+        entries.flush_model(['employee_id', 'work_entry_type_id', 'date_start', 'date_stop', 'state'])
+        normal.env.cr.execute("SELECT e.id,e.work_entry_type_id FROM hr_work_entry e "
+            "LEFT JOIN hr_work_entry_type t ON t.id=e.work_entry_type_id WHERE e.employee_id=%s "
+            "AND (e.contract_id=%s OR t.code=%s) AND e.state!='cancelled' AND e.date_start<=%s AND e.date_stop>=%s",
+            (normal.employee_id.id, normal.contract_id.id, LATE_CODE, entry_stop, entry_start))
+        work_rows = normal.env.cr.fetchall()
+        entries.browse([row[0] for row in work_rows]).check_access('read')
+        type_ids = {row[1] for row in work_rows if row[1]}
+        if type(normal.id) is int:
+            normal.env['hr.payslip.worked_days'].flush_model(['payslip_id', 'work_entry_type_id'])
+            normal.env.cr.execute('SELECT work_entry_type_id FROM hr_payslip_worked_days WHERE payslip_id=%s', (normal.id,))
+            type_ids.update(row[0] for row in normal.env.cr.fetchall() if row[0])
+        types.browse(sorted(type_ids)).check_access('read')
+        leaves.flush_model(['employee_id', 'holiday_status_id', 'state', 'date_from', 'date_to'])
+        normal.env.cr.execute("SELECT id,holiday_status_id FROM hr_leave WHERE employee_id=%s AND state='validate' "
+            'AND date_from<=%s AND date_to>=%s', (normal.employee_id.id, stop, start))
+        leave_rows = normal.env.cr.fetchall()
+        leaves.browse([row[0] for row in leave_rows]).check_access('read')
+        masters = leave_types.browse([row[1] for row in leave_rows if row[1]])
+        masters.check_access('read')
+        masters.work_entry_type_id.check_access('read')
+        leave_types.flush_model(['unpaid', 'work_entry_type_id'] + (['active'] if 'active' in leave_types._fields else []))
+        types.flush_model(['code'])
+        active = " AND l.active" if 'active' in leave_types._fields and normal.env.context.get('active_test', True) else ''
+        normal.env.cr.execute('SELECT l.id FROM hr_leave_type l JOIN hr_work_entry_type t ON t.id=l.work_entry_type_id '
+            "WHERE l.unpaid AND t.code='LEAVECL130' AND t.id=ANY(%s)" + active, (sorted(type_ids),))
+        leave_types.browse([row[0] for row in normal.env.cr.fetchall()]).check_access('read')
+
     def compute_sheet(self):
+        try:
+            # Do not flush unrelated salary computations before admission.
+            with self.env.cr.savepoint(flush=False):
+                normal = self._step_contract_days_access(write=True, sources=True)
+                result = normal._step_compute_contract_days_sheet()
+                normal.env.flush_all()
+                return result
+        except Exception:
+            # A nonflushing savepoint rolls SQL back but does not clear ORM
+            # caches. Match the official flushing-savepoint failure contract
+            # so a caller catching an error cannot later flush stale days.
+            self.env.cr.clear()
+            raise
+
+    def _step_compute_contract_days_sheet(self):
         # Native Compute Sheet does not regenerate stored worked-day lines.
         # Refresh only the affected attendance, retaining source absences,
         # inputs and all paid/done slips. Existing lateness is applied once.
@@ -36,10 +153,11 @@ class HrPayslip(models.Model):
         return super().compute_sheet()
 
     def _get_worked_day_lines_values(self, domain=None):
-        lines = super()._get_worked_day_lines_values(domain=domain)
-        lines = self._step_contract_days_lines(lines)
-        lines = self._step_monthly_absence_days(lines)
-        return self._step_deduct_late_hours(lines)
+        normal = self._step_contract_days_access(sources=True)
+        lines = super(HrPayslip, normal)._get_worked_day_lines_values(domain=domain)
+        lines = normal._step_contract_days_lines(lines)
+        lines = normal._step_monthly_absence_days(lines)
+        return normal._step_deduct_late_hours(lines)
 
     def _step_monthly_absence_days(self, lines):
         """Full-month fixed wages: unjustified absence is deducted from 30.
