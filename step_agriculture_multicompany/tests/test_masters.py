@@ -123,7 +123,7 @@ class TestMasters(TransactionCase):
 
     def test_native_shipment_quality_consistency(self):
         quality = self.make('step.management.fruit.quality', company_ids=[Command.set((self.a | self.b).ids)])
-        shipment = self.env['step.export.shipment'].new({'company_id': self.b.id})
+        shipment = self.env['step.export.export'].new({'company_id': self.b.id})
         line = self.env['step.export.shipment.line'].new({'shipment_id': shipment, 'quality_id': quality.id})
         line._check_quality_company()
         foreign = self.make('step.management.fruit.quality', company_id=self.c.id)
