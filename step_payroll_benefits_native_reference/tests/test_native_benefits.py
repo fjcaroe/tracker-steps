@@ -1,5 +1,6 @@
 """Real native catalogue/value/form/ACL reference; no OCA aliases or paid runs."""
 from unittest import TestCase
+from unittest.mock import patch
 
 from lxml import etree
 from psycopg2 import sql
@@ -186,6 +187,41 @@ class NativeBenefitReferenceCase(TransactionCase):
         self.assertEqual(self.scope.ref('payroll.group_payroll_manager'), self.scope.ref('hr_payroll.group_hr_payroll_manager'))
         self.assertTrue(self.scope.user.has_group('payroll.group_payroll_manager'))
         self.assertTrue(self.scope.user.has_group('hr_payroll.group_hr_payroll_manager'))
+        definitions = self.scope['res.groups']._get_group_definitions()
+        for suffix in ('user', 'manager'):
+            original = 'hr_payroll.group_hr_payroll_' + suffix
+            alias = 'payroll.group_payroll_' + suffix
+            self.assertEqual(definitions.get_id(original), self.scope.ref(original).id)
+            self.assertEqual(definitions.get_id(alias), self.scope.ref(alias).id)
+            self.assertEqual(definitions.parse(alias).key, definitions.parse(original).key)
+            self.assertTrue(self.scope.user.has_group(original))
+            self.assertTrue(self.scope.user.has_group(alias))
+        self.assertTrue(self.scope.user.has_groups('payroll.group_payroll_manager,!base.group_system'))
+        self.assertTrue(self.scope.user.has_groups('hr_payroll.group_hr_payroll_manager,!base.group_system'))
+        self.assertFalse(self.configuration_scope.user.has_group('payroll.group_payroll_manager'))
+        self.assertFalse(self.configuration_scope.user.has_groups('payroll.group_payroll_manager,!base.group_system'))
+        partner = self.env['res.partner'].create({'name': 'Private real alias permission record'})
+        view = self.env['ir.ui.view'].create({'name': 'Private real alias permission form', 'model': 'res.partner',
+            'arch': '<form><sheet><group><field name="name" groups="payroll.group_payroll_manager"/></group></sheet></form>'})
+        manager_arch = self.scope['res.partner'].get_view(view_id=view.id, view_type='form')['arch']
+        other_arch = self.configuration_scope['res.partner'].get_view(view_id=view.id, view_type='form')['arch']
+        self.assertTrue(etree.fromstring(manager_arch.encode()).xpath(".//field[@name='name']"))
+        self.assertFalse(etree.fromstring(other_arch.encode()).xpath(".//field[@name='name']"))
+        action = self.env['ir.actions.act_window'].create({'name': 'Private real alias permission action',
+            'res_model': 'res.partner', 'view_mode': 'list,form'})
+        menu = self.env['ir.ui.menu'].create({'name': 'Private real alias permission menu',
+            'action': 'ir.actions.act_window,%s' % action.id,
+            'groups_id': [Command.set(self.scope.ref('payroll.group_payroll_manager').ids)]})
+        self.assertIn(menu.id, self.scope['ir.ui.menu']._visible_menu_ids())
+        self.assertNotIn(menu.id, self.configuration_scope['ir.ui.menu']._visible_menu_ids())
+        with patch.object(self.scope['res.partner']._fields['name'], 'groups', 'payroll.group_payroll_manager'):
+            self.env.registry.clear_cache()
+            try:
+                self.assertEqual(partner.with_env(self.scope).read(['name'])[0]['name'], partner.name)
+                with TestCase.assertRaises(self, AccessError):
+                    partner.with_env(self.configuration_scope).read(['name'])
+            finally:
+                self.env.registry.clear_cache()
         self.assertEqual(verify_original_payroll_role_bindings(self.env.cr, plan,
             expected_database=self.env.cr.dbname), result)
         self.assertEqual(self._snapshot(), before)
@@ -193,6 +229,7 @@ class NativeBenefitReferenceCase(TransactionCase):
     def test_role_alias_collision_and_real_added_common_acl_fail_without_repair_or_grants(self):
         plan = plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
         self._ensure_matching_oca_role_aliases(plan)
+        self.assertTrue(self.scope.user.has_group('payroll.group_payroll_user'))  # Warm the actual core definitions.
         binding = plan.bindings[0]
         data = self.env['ir.model.data']
         alias = data.search([('module', '=', binding[0]), ('name', '=', binding[1])])
@@ -212,6 +249,15 @@ class NativeBenefitReferenceCase(TransactionCase):
                 with TestCase.assertRaisesRegex(self, BenefitCohortError, 'alias-collision-no-update'):
                     plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
                 self.assertEqual(alias.res_id, wrong_group.id)
+                # The original role remains valid; the retargeted alias cannot
+                # grant any other role or bypass field/view checks via caches.
+                self.assertTrue(self.scope.user.has_group('hr_payroll.group_hr_payroll_manager'))
+                with TestCase.assertRaises(self, AccessError):
+                    self.scope.user.has_group(binding[0] + '.' + binding[1])
+                with TestCase.assertRaises(self, AccessError):
+                    self.scope.user.has_groups('!' + binding[0] + '.' + binding[1])
+                with TestCase.assertRaises(self, AccessError):
+                    self.scope['res.groups']._get_group_definitions().parse(binding[0] + '.' + binding[1], False)
                 raise PrivateAliasRollback()
         restored = data.search([('module', '=', binding[0]), ('name', '=', binding[1])])
         self.assertEqual(restored.id, original_alias_id)

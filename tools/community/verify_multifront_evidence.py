@@ -636,7 +636,7 @@ def verify(evidence, *, repo=None, operational_extensions=False, quality_extensi
     verify_executed_tools(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     packet = verify_packets(root, source, operational_extensions=operational_extensions, quality_extension=quality_extension)
     if critical_generation == 'S':
-        require(len(packet) == 512, 'S exact packet file count differs')
+        require(len(packet) == 513, 'S exact packet file count differs')
     # This provider is private AGPL source, not a repository addon. Its entire
     # 52-file replay was validated above before its manifest joins the trusted
     # postflight source map.
