@@ -123,7 +123,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
             with self.assertRaises(verifier.base.EvidenceError): verifier.expected_tests(operational, quality)
         self.assertEqual(verifier.expected_tests(True, True), {'community': 646, 'cerro-reference': 441})
 
-    def test_critical_194_152_methods_require_every_mode_specific_test_once(self):
+    def test_critical_206_163_methods_require_every_mode_specific_test_once(self):
         root = Path(__file__).resolve().parents[2]
         source = {path.relative_to(root).as_posix(): path.read_bytes() for module in verifier.own_modules(True, True)
             for path in (root / module).rglob('*.py')}
@@ -131,7 +131,7 @@ class MultifrontEvidenceCase(unittest.TestCase):
             for cls in ast.parse(body.decode('utf-8-sig')).body if isinstance(cls, ast.ClassDef)
             for method in cls.body if isinstance(method, ast.FunctionDef) and method.name.startswith('test_')}
         log = '\n'.join('Starting ' + key + ' ...' for key in sorted(keys))
-        for mode, expected, selected in (('community', 194, 'QualityOcaOperationCase.'), ('cerro-reference', 152, 'NativeQualityConsumerCase.')):
+        for mode, expected, selected in (('community', 206, 'QualityOcaOperationCase.'), ('cerro-reference', 163, 'NativeQualityConsumerCase.')):
             self.assertEqual(verifier.critical_methods(source, log, mode, operational_extensions=True, quality_extension=True, critical_extension=True), expected)
             key = next(key for key in keys if key.startswith(selected))
             for changed in (log.replace('Starting ' + key + ' ...', ''), log + '\nStarting ' + key + ' ...'):

@@ -172,6 +172,9 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
     if quality_extension:
         selected += [('step_quality_oca/tests/test_inspection.py', 'QualityOcaOperationCase')] if mode == 'community' else [
             ('step_qa_native_reference/tests/test_native_quality.py', 'NativeQualityConsumerCase')]
+    require(type(critical_extension) is bool and (not critical_extension or quality_extension), 'Critical methods require Quality profile')
+    if critical_extension:
+        selected += [('step_batch_payment_grouping/tests/test_application.py', 'BatchInvoiceApplicationCase')]
     if critical_extension and mode == 'community':
         selected += [('step_payroll_oca_api/tests/test_original_nullable.py', 'OriginalNullableCase'),
                      ('step_payroll_oca_api/tests/test_original_rule_projection.py', 'OriginalRuleProjectionCase')]
@@ -188,17 +191,20 @@ def critical_methods(source, log, mode, *, operational_extensions=False, quality
                             'Critical functional MF method did not run exactly once: ' + key)
                     result[key] = name
     if operational_extensions and mode == 'community':
-        key = 'BatchCoreCase.test_form_offers_real_ledger_posting_without_batch_validation'
+        keys = ['BatchCoreCase.test_form_offers_real_ledger_posting_without_batch_validation']
+        if critical_extension:
+            keys.append('BatchCoreCase.test_normal_form_applies_only_saved_complete_document_links')
         name = 'step_batch_payment_core/tests/test_core.py'
-        require(name in source and any(isinstance(cls, ast.ClassDef) and cls.name == 'BatchCoreCase'
-            and any(isinstance(method, ast.FunctionDef) and cls.name + '.' + method.name == key for method in cls.body)
-            for cls in ast.parse(source[name].decode('utf-8-sig')).body), 'Posting form method missing from trusted source')
-        require(key not in result and len(re.findall(r'Starting ' + re.escape(key) + r' \.\.\.', log)) == 1,
-                'Critical posting form did not run exactly once')
-        result[key] = name
+        for key in keys:
+            require(name in source and any(isinstance(cls, ast.ClassDef) and cls.name == 'BatchCoreCase'
+                and any(isinstance(method, ast.FunctionDef) and cls.name + '.' + method.name == key for method in cls.body)
+                for cls in ast.parse(source[name].decode('utf-8-sig')).body), 'Posting form method missing from trusted source')
+            require(key not in result and len(re.findall(r'Starting ' + re.escape(key) + r' \.\.\.', log)) == 1,
+                    'Critical posting form did not run exactly once')
+            result[key] = name
     count = (173 if mode == 'community' else 147) if quality_extension else (164 if mode == 'community' else 143) if operational_extensions else (103 if mode == 'community' else 97)
     if critical_extension:
-        count += 5 + (16 if mode == 'community' else 0)  # PKIX and actual original admission/projection.
+        count += 5 + (28 if mode == 'community' else 11)  # PKIX, HR admission/projection and invoice application.
     require(len(result) == count, 'Critical MF method inventory changed')
     return len(result)
 

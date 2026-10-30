@@ -42,7 +42,7 @@ EXTENSION_TESTS = {'community': 637, 'cerro-reference': 437}
 EXTENSION_OCA_VERSIONS = dict(OCA_VERSIONS, payroll_contract_advantages='18.0.1.0.0')
 QUALITY_MODULES = ('step_quality_contracts', 'step_quality_oca', 'step_qa_native_reference')
 QUALITY_TESTS = {'community': 646, 'cerro-reference': 441}
-CRITICAL_TESTS = {'community': 653, 'cerro-reference': 446}
+CRITICAL_TESTS = {'community': 665, 'cerro-reference': 457}
 QUALITY_PROVIDER = 'quality_control_oca'
 QUALITY_PIN = '2d6084f553490408f7a341f05ba6ddd6e641a879'
 QUALITY_VERSION = '18.0.1.4.0'
