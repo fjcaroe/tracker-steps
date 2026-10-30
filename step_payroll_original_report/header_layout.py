@@ -36,3 +36,22 @@ def block_corporate_header(value):
     if tree.text_content() != before:
         raise ValueError('Corporate header text changed during layout normalization')
     return html.tostring(tree, encoding='unicode', doctype='<!DOCTYPE html>')
+
+
+def unclip_corporate_wrapper(value):
+    raw = value if isinstance(value, bytes) else value.encode('utf-8')
+    tree = html.fromstring(raw, parser=html.HTMLParser(encoding='utf-8'))
+    wrappers = tree.xpath('//*[@id="minimal_layout_report_headers"]')
+    bodies = tree.xpath('/html/body')
+    if tree.tag != 'html' or len(wrappers) != 1 or len(bodies) != 1:
+        raise ValueError('One official minimal corporate wrapper is required')
+    before = tree.text_content()
+    tree.set('style', (tree.get('style') or '') + ';height:auto!important;overflow:visible!important;')
+    body = bodies[0]
+    classes = [token for token in (body.get('class') or '').split() if token != 'overflow-hidden']
+    classes.append('step_original_report_header_visible')
+    body.set('class', ' '.join(classes))
+    body.set('style', (body.get('style') or '') + ';height:auto!important;overflow:visible!important;')
+    if tree.text_content() != before:
+        raise ValueError('Corporate wrapper text changed during layout normalization')
+    return html.tostring(tree, encoding='unicode', doctype='<!DOCTYPE html>')
