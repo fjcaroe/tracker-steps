@@ -43,8 +43,11 @@ EXTENSION_OCA_VERSIONS = dict(OCA_VERSIONS, payroll_contract_advantages='18.0.1.
 QUALITY_MODULES = ('step_quality_contracts', 'step_quality_oca', 'step_qa_native_reference')
 QUALITY_TESTS = {'community': 646, 'cerro-reference': 441}
 CRITICAL_TESTS = {'community': 665, 'cerro-reference': 457}
-CRITICAL_GENERATIONS = {'R3': CRITICAL_TESTS, 'S': {'community': 671, 'cerro-reference': 462}}
+CRITICAL_GENERATIONS = {'R3': CRITICAL_TESTS, 'S': {'community': 671, 'cerro-reference': 462},
+    'T': {'community': 671, 'cerro-reference': 462}}
 S_VERSIONS = {'step_payroll_contracts': '18.0.1.15.0', 'step_payroll_oca_api': '18.0.1.16.0'}
+T_VERSIONS = {'step_payroll_contracts': '18.0.1.16.0', 'step_payroll_oca_api': '18.0.1.16.0'}
+GENERATION_VERSIONS = {'S': S_VERSIONS, 'T': T_VERSIONS}
 QUALITY_PROVIDER = 'quality_control_oca'
 QUALITY_PIN = '2d6084f553490408f7a341f05ba6ddd6e641a879'
 QUALITY_VERSION = '18.0.1.4.0'
@@ -121,7 +124,7 @@ def receipt_profile(passed, mode, operational_extensions=False, quality_extensio
         and passed['mode'] == mode and passed['multifront'] is True
         and passed['focused_development_pass'] is False and passed['expected_test_count'] == expected[mode],
         'Exact full MF profile/count receipt required')
-    if critical_generation == 'S':
+    if critical_generation in GENERATION_VERSIONS:
         require(passed.get('package_files') == 513, 'S requires the exact 513-file normal provider package')
 
 
@@ -173,10 +176,10 @@ def verify(proof, mode, source, passed, *, operational_extensions=False, quality
     expected = plan(source, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
     receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension, critical_generation)
     check_generation(proof, critical_extension, critical_generation)
-    if critical_generation == 'S':
-        for module, version in S_VERSIONS.items():
+    if critical_generation in GENERATION_VERSIONS:
+        for module, version in GENERATION_VERSIONS[critical_generation].items():
             require(ast.literal_eval(_body(source, module + '/__manifest__.py').decode('utf-8-sig'))['version'] == version,
-                'S original-interface source version differs: ' + module)
+                critical_generation + ' original-interface source version differs: ' + module)
     require(proof.get('critical_extension', False) is critical_extension, 'Exact critical postflight flag required')
     require(proof.get('quality_extension', False) is quality_extension
         and proof.get('operational_extensions', False) is operational_extensions and passed['writes_to_source'] is False,
@@ -255,8 +258,8 @@ def audit(sql, mode, source, passed, *, operational_extensions=False, quality_ex
         proof['quality_extension'] = True
     if critical_extension:
         proof['critical_extension'] = True
-    if critical_generation == 'S':
-        proof['critical_generation'] = 'S'
+    if critical_generation in GENERATION_VERSIONS:
+        proof['critical_generation'] = critical_generation
     verify(proof, mode, source, passed, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
     return proof
 
