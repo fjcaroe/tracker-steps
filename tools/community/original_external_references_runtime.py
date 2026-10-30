@@ -136,8 +136,11 @@ def main():
     paths = str(stage / 'addons') + ',' + (str(runtime / 'addons') if pure else config['options']['addons_path'])
     if pure:
         paths = str(stage / 'consumer-addons') + ',' + paths
-    entry = runtime / 'odoo-bin' if pure else source / 'tools/ops/run_agriculture_upgrade.py'
     odoo_runtime = runtime if pure else Path('/opt/odoo18')
+    # This is a read-only registry inspection, not an upgrade. The native
+    # upgrade entry has an unconditional translation-restoration UPDATE in its
+    # finalizer; do not invoke or silence that writer in an inspection.
+    entry = odoo_runtime / 'odoo-bin'
     command = ['sudo', '-u', user, '/usr/bin/python3.10', str(local_bootstrap), str(odoo_runtime), str(entry), database, 'shell', '-c', config_path,
         '-d', database, '--db-filter=^' + database + '$', '--addons-path=' + paths,
         '--db_host=/var/run/postgresql', '--data-dir=' + str(stage / 'data'), '--load=base,web',
@@ -176,6 +179,8 @@ def main():
                 'acceptance_sha256': sha(accepted_path), 'source_files_json_sha256': sha(files_path),
                 'runner_sha256': sha(__file__), 'payload_sha256': sha(helper),
                 'readonly_bootstrap_sha256': sha(bootstrap), 'odoo_pool_readonly_before_connect': True,
+                'entry_kind': 'official_cli_no_upgrade', 'entry_sha256': sha(entry),
+                'upgrade_preservation_finalizer_executed': False,
                 'readonly_sequence_reader': report['readonly_sequence_reader'],
                 'registry_json_sha256': sha(output / 'registry.json'), 'adoption_authorized': False})
     except Exception as error:
