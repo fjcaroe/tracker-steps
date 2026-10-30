@@ -31,6 +31,8 @@ TABLES = ('ir_model_data', 'ir_model', 'ir_model_fields', 'ir_model_fields_selec
           'hr_salary_rule', 'hr_salary_rule_category', 'ir_act_report_xml', 'res_groups_report_rel')
 DATABASE = r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+'
 PRIVATE_ROOT = Path('/opt/steps-validation')
+OWN = ('step_payroll_contracts', 'step_payroll_oca_api', 'step_simpledigital_oca_base',
+       'step_simpledigital_oca_security', 'step_payroll_original_report')
 
 
 def sha(path):
@@ -52,7 +54,7 @@ def parse_arguments(arguments):
     gate.require(re.fullmatch(r'[0-9a-f]{64}', options.identity_before_sha256), 'identity-before-hash-required')
     gate.require(options.receipt.resolve().is_relative_to(PRIVATE_ROOT)
         and options.receipt.parent.is_dir() and not options.receipt.exists(), 'new-private-loader-receipt-required')
-    validate_odoo_arguments(odoo_args, options.database)
+    options.launch_plan = validate_odoo_arguments(odoo_args, options.database)
     return options, odoo_args
 
 
@@ -76,7 +78,7 @@ def validate_odoo_arguments(arguments, database):
     gate.require(arguments and arguments[0].startswith('-') and '--' not in arguments,
                  'only-real-server-install-arguments-admitted')
     critical = ('--database', '--db-filter', '--workers', '--max-cron-threads',
-                '--without-demo', '--stop-after-init', '--no-http', '--init',
+                '--without-demo', '--stop-after-init', '--no-http', '--init', '--update',
                 '--test-enable', '--save', '--db_password', '--db-password')
     for argument in arguments:
         name = argument.split('=', 1)[0]
@@ -88,12 +90,20 @@ def validate_odoo_arguments(arguments, database):
         gate.require(option_values(arguments, names) == [value], 'explicit-single-private-odoo-scope-required')
     gate.require('--stop-after-init' in arguments and '--no-http' in arguments,
                  'one-shot-no-http-installer-required')
-    modules = option_values(arguments, ('-i', '--init'))
-    gate.require(len(modules) == 1 and re.fullmatch(r'[a-z_][a-z0-9_]*(?:,[a-z_][a-z0-9_]*)*', modules[0]),
+    installs = option_values(arguments, ('-i', '--init'))
+    updates = option_values(arguments, ('-u', '--update'))
+    gate.require((len(installs), len(updates)) in ((1, 0), (0, 1)),
+                 'one-explicit-install-or-official-state-update-required')
+    modules = (installs or updates)[0]
+    gate.require(re.fullmatch(r'[a-z_][a-z0-9_]*(?:,[a-z_][a-z0-9_]*)*', modules),
                  'explicit-real-module-install-required')
+    roots = modules.split(',')
+    if updates:
+        gate.require(len(roots) == len(OWN) and set(roots) == set(OWN), 'exact-five-original-bridge-update-roots-required')
     gate.require('--test-enable' not in arguments and '--save' not in arguments
         and not any(argument.startswith(('--db_password', '--db-password', '-w')) for argument in arguments),
         'tests-config-writes-or-password-arguments-forbidden')
+    return {'mode': 'official-state-installation' if updates else 'legacy-explicit-init-diagnostic', 'roots': roots}
 
 
 def validate_runtime(runtime):
@@ -161,12 +171,42 @@ def check_original_report_binding(env):
         and model._abstract is False and model._transient is False
         and any(cls.__module__.startswith('odoo.addons.payroll.models.') for cls in type(model).mro()),
         'real-oca-payslip-model-required')
-    env.cr.execute("SELECT id,model,state FROM ir_model WHERE id=600 OR model='hr.payslip' ORDER BY id")
-    gate.require(env.cr.fetchall() == [(600, 'hr.payslip', 'base')], 'original-payslip-binding-600-not-preserved')
-    env.cr.execute('SELECT id,type,model,report_type,report_name,binding_model_id '
+    check_original_report_database(env.cr)
+
+
+def check_original_report_database(cr):
+    cr.execute("SELECT id,model,state FROM ir_model WHERE id=600 OR model='hr.payslip' ORDER BY id")
+    gate.require(cr.fetchall() == [(600, 'hr.payslip', 'base')], 'original-payslip-binding-600-not-preserved')
+    cr.execute('SELECT id,type,model,report_type,report_name,binding_model_id '
                    'FROM ir_act_report_xml WHERE id=462')
-    gate.require(env.cr.fetchall() == [(462, 'ir.actions.report', 'hr.payslip', 'qweb-pdf',
+    gate.require(cr.fetchall() == [(462, 'ir.actions.report', 'hr.payslip', 'qweb-pdf',
         'hr_payroll.report_payslip_lang', 600)], 'original-report-462-core-identity-not-preserved')
+
+
+def check_official_pending_states(cr):
+    """SELECT-only preflight BEFORE the real CLI/registry load.
+
+    The ordinary bootstrap must have used update_list()/button_install() and
+    committed real to-install states. -u propagates update, not init, to the
+    already installed AGPL provider; new packages initialize by their STATE.
+    """
+    gate.require(getattr(cr, 'readonly', None) is True, 'official-state-preflight-requires-readonly-cursor')
+    cr.execute("SELECT current_setting('transaction_read_only'),pg_is_in_recovery()")
+    gate.require(cr.fetchall() == [('on', False)], 'official-state-preflight-must-be-readonly-primary')
+    expected = {name: 'to install' for name in OWN + ('payroll', 'payroll_account')}
+    expected['l10n_cl_simpledigital_payroll'] = 'installed'
+    cr.execute('SELECT name,state FROM ir_module_module WHERE name=ANY(%s) ORDER BY name', [list(expected)])
+    states = cr.fetchall()
+    gate.require(states == sorted(expected.items()), 'official-state-bootstrap-not-committed-or-scope-differs')
+    cr.execute("SELECT name FROM ir_module_module WHERE state='to remove' OR "
+        "(state IN ('installed','to install','to upgrade') AND (license='OEEL-1' "
+        "OR name IN ('hr_payroll','hr_payroll_account'))) ORDER BY name")
+    gate.require(not cr.fetchall(), 'native-enterprise-or-uninstall-state-before-loader')
+    guards = check_database_guards(cr)
+    check_original_report_database(cr)
+    return {'read_only': True, 'on_primary': True, 'package_states_before_loader': dict(states),
+        'original_agpl_provider_stays_installed': True, 'initialization_by_official_state': True,
+        'guards': guards, 'original_payslip_model_id': 600, 'original_report_id': 462}
 
 
 def install_wrapper(ir_model, options, calls):
@@ -216,6 +256,16 @@ def main(arguments=None):
     import odoo
     gate.require(Path(odoo.__file__).resolve() == options.runtime.resolve() / 'odoo/__init__.py',
                  'imported-odoo-is-not-the-admitted-runtime')
+    pending = None
+    if options.launch_plan['mode'] == 'official-state-installation':
+        # The supported parser/readonly pool is used without a registry, ORM
+        # models, signaling allocation or metadata writes. The original CLI
+        # parses the SAME arguments again and runs its own loader normally.
+        odoo.tools.config.parse_config(odoo_args, setup_logging=False)
+        gate.require(not any(odoo.tools.config['init'].values()), 'no-init-flags-in-official-state-mode')
+        connection = odoo.sql_db.db_connect(options.database, readonly=True)
+        with connection.cursor() as cursor:
+            pending = check_official_pending_states(cursor)
     from odoo.addons.base.models import ir_model
     calls = []
     install_wrapper(ir_model, options, calls)
@@ -229,6 +279,7 @@ def main(arguments=None):
         and row['original_cleanup_cleared_loaded_set'] for row in calls), 'original-cleanup-success-not-observed')
     receipt = {'schema': 1, **proof, 'database': options.database,
         'calls': calls, 'original_cleanup_delegated': True,
+        'launch_plan': options.launch_plan, 'official_pending_state_preflight': pending,
         'exact_two_original_aliases_retained_per_call': True,
         'wrapper_process_only': True, 'installed_sources_modified': False,
         'wrapper_sha256': sha(__file__), 'retention_helper_sha256': sha(retention.__file__),

@@ -176,6 +176,38 @@ class OriginalAnchorLoaderCase(unittest.TestCase):
             cls._process_end(record, ['l10n_cl_simpledigital_payroll'])
         self.assertFalse(calls)
 
+    def test_official_update_roots_are_exact_and_never_mix_with_init_flags(self):
+        args = self.argv()[:-2] + ['-u', ','.join(loader.OWN)]
+        plan = loader.validate_odoo_arguments(args, self.database)
+        self.assertEqual(plan['mode'], 'official-state-installation')
+        self.assertEqual(set(plan['roots']), set(loader.OWN))
+        for wrong in ('base', ','.join(loader.OWN[:-1]), ','.join(loader.OWN + ('l10n_cl_simpledigital_payroll',)),
+                      ','.join(loader.OWN[:-1] + (loader.OWN[0],))):
+            with self.subTest(wrong=wrong), self.assertRaises(ValueError):
+                loader.validate_odoo_arguments(args[:-1] + [wrong], self.database)
+        for extra in (['-i', 'payroll'], ['--updat=' + ','.join(loader.OWN)], ['-uother']):
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                loader.validate_odoo_arguments(args + extra, self.database)
+
+    def test_official_pending_states_are_checked_readonly_before_any_registry(self):
+        expected = sorted([(name, 'to install') for name in loader.OWN + ('payroll', 'payroll_account')]
+            + [('l10n_cl_simpledigital_payroll', 'installed')])
+        for variant in ('correct', 'agpl-to-install', 'one-root-installed', 'native-active', 'readwrite'):
+            states = list(expected)
+            if variant == 'agpl-to-install': states[0] = ('l10n_cl_simpledigital_payroll', 'to install')
+            elif variant == 'one-root-installed': states[-1] = (states[-1][0], 'installed')
+            cr = Cursor([[('on', False)], states, [('hr_payroll',)] if variant == 'native-active' else []])
+            cr.readonly = variant != 'readwrite'
+            with patch.object(loader, 'check_database_guards', return_value=[]), \
+                    patch.object(loader, 'check_original_report_database'):
+                if variant == 'correct':
+                    proof = loader.check_official_pending_states(cr)
+                    self.assertTrue(proof['initialization_by_official_state'])
+                    self.assertTrue(proof['read_only'])
+                else:
+                    with self.subTest(variant=variant), self.assertRaises(ValueError):
+                        loader.check_official_pending_states(cr)
+
 
 if __name__ == '__main__':
     unittest.main()
