@@ -3,6 +3,8 @@ from pathlib import Path
 import unittest
 
 import original_external_references_runtime as runtime
+from original_external_references_readonly_bootstrap import enforce_readonly_pools
+from types import SimpleNamespace
 
 
 class ExternalRegistryRuntimeCase(unittest.TestCase):
@@ -26,6 +28,18 @@ class ExternalRegistryRuntimeCase(unittest.TestCase):
             'PYTHONDONTWRITEBYTECODE=1'])
         self.assertEqual(result[6:], original[3:])
         self.assertEqual(original[3], '/usr/bin/python3.10')
+
+    def test_real_pool_initialization_policy_cannot_be_added_after_a_connection_pool_exists(self):
+        class Pool:
+            def __init__(self, maxconn=64, readonly=False):
+                self.readonly = readonly
+                self._connections = []
+        module = SimpleNamespace(_Pool=None, _Pool_readonly=None, ConnectionPool=Pool)
+        enforce_readonly_pools(module)
+        self.assertTrue(module.ConnectionPool(readonly=False).readonly)
+        module._Pool = object()
+        with self.assertRaises(ValueError):
+            enforce_readonly_pools(module)
 
 
 if __name__ == '__main__':
