@@ -25,3 +25,16 @@ las resta de WORK100 de forma proporcional al importe ya calculado. La línea
 `LEAVECL131` queda informada en los días trabajados con importe 0. Los días
 previsionales para Previred no cambian (el atraso se descuenta en horas, no en
 días). El descuento reduce el sueldo base y por tanto el imponible.
+
+## Protección de históricos (18.0.1.3.0)
+
+Antes de actualizar días se comprueba el lote completo con el actor normal,
+incluidos los indicadores de pago y bloqueo histórico cuando existen. Se exige
+acceso a todos los días, entradas y ausencias pertinentes, incluidos registros
+ocultos por reglas. La corrección y la llamada al motor comparten una transacción
+que se revierte si falla un paso posterior. La política T138 y su dependencia en
+Simple Digital se conservan. `step_hr_contract_days_oca` adapta los importes de la
+misma cadena real al almacenamiento computado del motor Community.
+Una secuencia PostgreSQL estándar puede consumir un número si el proveedor falla
+tarde; no se restaura ni se renumera ese contador. Los rechazos conocidos de
+admisión se producen antes de llamar al motor.
