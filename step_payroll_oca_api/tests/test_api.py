@@ -1,7 +1,7 @@
 from odoo import api, Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
-from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin
+from odoo.addons.step_payroll_contracts.testing import PayrollContractMixin, assert_original_rule_group_constraint
 from odoo.addons.step_payroll_contracts.configuration import configuration_report
 from odoo.tools import mute_logger
 from psycopg2 import IntegrityError
@@ -122,6 +122,7 @@ class OcaApiCase(PayrollContractMixin,TransactionCase):
             self.scope['hr.payslip.input.type'].create({'name':'Private global collision','code':code,'country_id':False})
 
     def test_scope_metadata_keeps_normal_company_default_and_native_nullable_country(self):
+        assert_original_rule_group_constraint(self)
         model=self.scope['hr.payroll.structure']
         self.assertFalse(model._fields['company_id'].required)
         country=model._fields['country_id']
