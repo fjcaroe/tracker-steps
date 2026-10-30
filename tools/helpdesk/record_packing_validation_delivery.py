@@ -24,6 +24,9 @@ def main():
     assert all(m in (root/'isolation.log').read_text() for m in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
     assert 'T137_REPORTED_QUADRATURE_OK' in (root/'qa-cerro-flow.log').read_text(encoding='utf-8-sig')
     pending=expected['pending_product_inventory'];stage=6 if pending else 4
+    if not pending:
+        definition=json.loads((root/'inventory-definition.json').read_text())
+        assert definition['database']=='CERRO_EL_PLOMO' and definition['after'] is True and definition['business_unchanged']
     body=('T137: corregida la validación de cuadratura para tarjas E/N ya validadas de su propia OT, '
         'sin existencias ni historial de movimientos. Se conserva su validación y se impide producir stock por duplicado. '
         'También comprobado el cierre nativo con tarjas previamente validadas. Publicado el mismo paquete en Desarrollo, '
@@ -33,6 +36,12 @@ def main():
         body+=('El caso real pasa el control de tarjas en copia, pero el control nativo de inventario detecta un producto '
             'de exportación configurado sin controlar stock. Su definición se consultó al usuario en este chat; '
             'no se cambió sin confirmación. El ticket permanece En Espera por ese dato. ')
+    else:
+        body+=('El usuario confirmó por este chat que el producto de exportación debe controlar inventario. '
+            'QA-Cerro ya tenía esa opción activada por el usuario; se conservó. Activada también en Cerro '
+            'mediante edición nativa probada en copia, con respaldo y sin generar stock ni modificar contabilidad. '
+            'Desarrollo no contiene ese código y no se copió el catálogo del cliente. La OT reportada pasó '
+            'la validación nativa completa en copia con el control de inventario correcto; ese ensayo fue revertido. ')
     body+='Pruebas aprobadas: '+str(expected['tests'])+'. Commit: '+expected['commit']+'; SHA-256: '+expected['sha256']+'.'
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'));url='https://soporte.stepsapp.cl'
     uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(c['db'],c['username'],c['api_key'],{});assert uid
