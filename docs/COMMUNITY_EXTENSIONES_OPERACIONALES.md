@@ -78,7 +78,7 @@ blobs/árboles del commit OCA. La derivación NUMERIC sigue separada y conserva
 
 Se preservan **921 tablas/proyecciones + 140 contadores = 1.061 contratos**,
 59.079 XML IDs originales/noupdate, modelos, ACL, relaciones e históricos.
-1.060 snapshots son literales. Sólo `stock_package_type.base_weight`, ID1,
+1.060 snapshots son literales. Sólo `stock_package_type.base_weight`, ID 1,
 cambia representación `15.00`→`15`: el testigo SELECT readonly reconstruye sus
 cinco filas/19 columnas desde el respaldo propio D y demuestra igualdad tipada,
 sin Float ni redondeo; no se declara la tabla idéntica en bytes. Los cinco
@@ -90,8 +90,8 @@ Hay dos PDF almacenados de la regresión y un tercer PDF por la ruta de acción
 original: UID normal, fila de acción y FK intactas, cero/negativo/NULL/NET
 almacenados y ninguna reconstrucción de nómina. Se revisaron visualmente las
 dos páginas del tercero y su texto. **Pendiente visual real:** C incluye
-nombre/país corporativos en página1 y D los omite; los logos y los 215 assets
-coinciden y el PNG de página2 es idéntico. No se atribuye la causa sólo al
+nombre/país corporativos en página 1 y D los omite; los logos y los 215 assets
+coinciden y el PNG de página 2 es idéntico. No se atribuye la causa sólo al
 fixture ni se acepta el layout para producción. Hace falta capturar HTML,
 cabecera/pie/formato/argumentos finales de wkhtmltopdf y repetir el caso.
 Los importes y el bloque legal/firma están completos; eso no certifica nómina.
@@ -108,6 +108,11 @@ Fuentes y evidencia privada:
 - Cápsula `accepted-evidence-D.tar.gz`: 743 miembros, 8.249.988 bytes, SHA256
   `c8b789955975fadb56f2b185c83264fda6a1ee7e7c1c5a3fc267cba8dd84f8eb`.
   No exporta dump, filestore, credenciales ni cuerpos OEEL.
+- Sello final `accepted-evidence-D-sealed.tar.gz`: 745 miembros, 8.279.128 bytes,
+  SHA256 `3ade6621f328368543908cb2ed505ce046d9821835c22ee97e3d7c6e169ccf5c`.
+  Incluye manifiesto exhaustivo y resumen canónico SHA256
+  `c589a26ac9107dd2f2d98f2b6cafd75e83c50c3306e5a7a77f219b4e618595c3`;
+  recibo adyacente, permisos 0600 en servidor y replay local con código Git.
 - Testigo propio D SHA256
   `5ceab150a7a8046a81c850f2b5b65643b17ead11f4e7273ec9d63c481a9f400e`.
 - Recibo de cabecera `community/original-report-pdf-header-review.json`, SHA256
