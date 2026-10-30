@@ -20,6 +20,7 @@ import hr_consumer_metadata
 import payroll_configuration_adoption_preflight as preflight
 import payroll_original_security_admission as security
 import audit_payroll_input_storage as input_storage
+import payroll_representation_contract as representation
 
 
 OWN_MODULES = (
@@ -38,7 +39,7 @@ TOOLS = ('build_original_bootstrap.py', 'build_simpledigital_candidate.py', 'sim
     'offline_process.py', 'validate_agriculture_core.py', 'payroll_configuration_adoption_preflight.py',
     'payroll_original_security_admission.py', 'verify_native_payroll_configuration.py',
     'prepare_payroll_configuration_storage.py', 'audit_payroll_input_storage.py', 'audit_payroll_input_storage_test.py',
-    'audit_simpledigital_seed_graph.py')
+    'audit_simpledigital_seed_graph.py', 'payroll_representation_contract.py', 'validate_community_reports.py')
 EXECUTED_TOOLS = ('build_original_bootstrap.py', 'build_simpledigital_candidate.py', 'simpledigital_runtime_source.json',
     'audit_simpledigital_seed_graph.py', 'validate_original_bootstrap.py', 'probe_original_bootstrap.py',
     'validate_payroll_api.py', 'offline_process.py', 'hr_consumer_metadata.py')
@@ -190,7 +191,19 @@ def verify_native(root, source, passed):
         tool_hash(value, name, source)
     require(passed['external_network_disabled'] and passed['loopback_http_only'] and passed['postgres_unix_socket'], 'native isolation evidence missing')
     before = read(root, 'cerro-reference/business-before.json')
-    require(len(before) == 1061 and before == read(root, 'cerro-reference/business-after.json'), 'original business/counters changed')
+    after = read(root, 'cerro-reference/business-after.json')
+    upgraded = read(root, 'cerro-reference/business-after-upgrade.json')
+    require(len(before) == 1061 and before.keys() == upgraded.keys() == after.keys(), 'original business/counter keys changed')
+    differences = {name for name in before if before[name] != upgraded[name] or before[name] != after[name]}
+    representation_audit = None
+    if differences:
+        require(differences == {representation.TABLE}, 'original business/counters changed beyond the five-row representation witness')
+        proof = read(root, 'cerro-reference/business-representation-proof.json')
+        require(proof['database'] == passed['database'], 'representation proof targets another database')
+        tool_hash(proof['snapshot_normalizer_tool_sha256'], 'validate_community_reports.py', source)
+        require(re.fullmatch('[0-9a-f]{64}', proof['source_dump_sha256']), 'representation source backup seal missing')
+        representation_audit = representation.verify(before[representation.TABLE], upgraded[representation.TABLE], after[representation.TABLE], proof)
+        require(proof['comparison'] == representation_audit, 'representation classification differs from exact proof')
     require(read(root, 'cerro-reference/history-before.json') == read(root, 'cerro-reference/history-after.json'), 'original payroll history changed')
     original, current = read(root, 'cerro-reference/identity-before.json'), read(root, 'cerro-reference/identity-after.json')
     require(passed['original_xmlid_noupdate_captured'] and all('noupdate' in row for row in original['original_xmlids']), 'original XML-ID noupdate custody missing')
@@ -206,7 +219,9 @@ def verify_native(root, source, passed):
             require(len(indexed) == len(after) and all(indexed.get(row['id']) == row for row in rows), 'original metadata identity changed: ' + name)
         else:
             require(all(row in after for row in rows), 'original metadata relation changed: ' + name)
-    return {'business_contracts': len(before), 'history_exact': True, 'identity_rows': {name: len(rows) for name, rows in original.items()}}
+    return {'business_contracts': len(before), 'exact_snapshot_contracts': len(before) - len(differences),
+        'exact_numeric_value_contracts': len(before), 'representation_audit': representation_audit,
+        'history_exact': True, 'identity_rows': {name: len(rows) for name, rows in original.items()}}
 
 
 def verify_preflight(root, source, cold, native):
@@ -302,6 +317,13 @@ def verify(evidence, *, repo=None):
     root = Path(evidence).resolve()
     repo = Path(repo).resolve() if repo else Path(__file__).resolve().parents[2]
     source = git_sources(repo)
+    representation_file = safe_path(root, 'cerro-reference/business-representation-proof.json')
+    if representation_file.is_file():
+        relative = 'tools/community/audit_stock_package_representation.py'
+        expected = subprocess.check_output(['git', '-C', str(repo), 'show', 'HEAD:' + relative])
+        proof = read(root, 'cerro-reference/business-representation-proof.json')
+        require(proof['tool_sha256'] in {sha(expected), sha(expected.replace(b'\r\n', b'\n')),
+            sha(expected.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))}, 'representation auditor differs from Git')
     executed = safe_path(root, 'executed-tools')
     require(executed.is_dir() and {path.name for path in executed.iterdir()} == set(EXECUTED_TOOLS), 'executed helper snapshots missing or unexpected')
     for path in executed.iterdir():

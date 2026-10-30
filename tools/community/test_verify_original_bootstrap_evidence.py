@@ -57,7 +57,7 @@ class BootstrapEvidenceCase(unittest.TestCase):
             proof = metadata.verify(original, current)
             proof['source']['sha256'] = verifier.sha(source[proof['source']['path']])
             business = {'synthetic-%s' % index: {'rows': 0, 'hash': 'synthetic'} for index in range(1061)}
-            values = {'business-before': business, 'business-after': business, 'history-before': {}, 'history-after': {},
+            values = {'business-before': business, 'business-after-upgrade': business, 'business-after': business, 'history-before': {}, 'history-after': {},
                 'identity-before': original, 'identity-after': current, 'hr-metadata-proof': proof}
             for name, value in values.items():
                 (native / (name + '.json')).write_text(json.dumps(value))

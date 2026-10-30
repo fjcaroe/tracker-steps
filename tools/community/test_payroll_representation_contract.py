@@ -6,12 +6,18 @@ import payroll_representation_contract as contract
 
 
 def fixture():
-    before = ['{"id": %s, "name": "same", "weight": 15.00, "nullable": null}' % ident for ident in range(1, 6)]
+    stable = ', '.join('"stable_%s": 0' % index for index in range(15))
+    before = ['{"id": %s, "name": "same", "weight": 15.00, "nullable": null, %s}' % (ident, stable) for ident in range(1, 6)]
     after = [row.replace('15.00', '15') for row in before]
     first = {'rows': 5, 'hash': 'same-exact-value-fingerprint', 'representation_hash': contract.raw_hash(before)}
     last = dict(first, representation_hash=contract.raw_hash(after))
     proof = {'schema': 1, 'table': contract.TABLE, 'read_only': True, 'database_writes': False,
         'before_rows_json': before, 'after_rows_json': after}
+    columns = dict(id='integer', name='character varying', weight='numeric', nullable='character varying')
+    columns.update({'stable_%s' % index: 'integer' for index in range(15)})
+    proof.update(schema_columns=columns, current_schema_columns=dict(columns),
+        schema_definition=[[name, kind, name == 'id'] for name, kind in columns.items()],
+        current_schema_definition=[[name, kind, name == 'id'] for name, kind in columns.items()])
     return first, last, last, proof
 
 
@@ -39,6 +45,13 @@ class RepresentationContractCase(unittest.TestCase):
         values = fixture()
         values[3]['table'] = 'account_move'
         with self.assertRaisesRegex(contract.RepresentationError, 'unapproved'):
+            contract.verify(*values)
+        values = fixture()
+        values[3]['schema_columns']['weight'] = 'integer'
+        values[3]['current_schema_columns']['weight'] = 'integer'
+        for rows in (values[3]['schema_definition'], values[3]['current_schema_definition']):
+            next(row for row in rows if row[0] == 'weight')[1] = 'integer'
+        with self.assertRaisesRegex(contract.RepresentationError, 'integer or nonnumeric'):
             contract.verify(*values)
 
     def test_representation_of_nested_numbers_and_during_tests_cannot_be_ignored(self):
