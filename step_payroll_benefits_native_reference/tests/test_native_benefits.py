@@ -9,6 +9,9 @@ from odoo.tests import TransactionCase, tagged
 from odoo.addons.step_payroll_contracts.original_benefit_cohort import (
     BenefitCohortError, admit_source_benefit_cohort, _source_facts, _require_empty_membership,
 )
+from odoo.addons.step_payroll_contracts.original_payroll_roles import (
+    plan_original_payroll_role_bindings, verify_original_payroll_role_bindings,
+)
 
 
 @tagged('post_install', '-at_install')
@@ -156,4 +159,42 @@ class NativeBenefitReferenceCase(TransactionCase):
         self.assertEqual(_require_empty_membership(facts), facts)
         self.assertFalse(facts.transaction_read_only)
         self.assertFalse(facts.metadata()['integral_conversion'])
+        self.assertEqual(self._snapshot(), before)
+
+    def test_two_new_role_aliases_preserve_actual_groups_memberships_and_common_policy(self):
+        plan = plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
+        before = self._snapshot()
+        self.env['ir.model.data'].create([dict(zip(('module', 'name', 'model', 'res_id', 'noupdate'), row))
+            for row in plan.bindings])
+        result = verify_original_payroll_role_bindings(self.env.cr, plan, expected_database=self.env.cr.dbname)
+        self.assertTrue(result['original_common_policy_exact'])
+        self.assertFalse(result['common_model_grants_added'])
+        self.assertFalse(result['functional_role_parity_certified'])
+        self.assertEqual(self.scope.ref('payroll.group_payroll_user'), self.scope.ref('hr_payroll.group_hr_payroll_user'))
+        self.assertEqual(self.scope.ref('payroll.group_payroll_manager'), self.scope.ref('hr_payroll.group_hr_payroll_manager'))
+        self.assertTrue(self.scope.user.has_group('payroll.group_payroll_manager'))
+        self.assertTrue(self.scope.user.has_group('hr_payroll.group_hr_payroll_manager'))
+        self.assertEqual(verify_original_payroll_role_bindings(self.env.cr, plan,
+            expected_database=self.env.cr.dbname), result)
+        self.assertEqual(self._snapshot(), before)
+
+    def test_role_alias_collision_and_real_added_common_acl_fail_without_repair_or_grants(self):
+        plan = plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
+        values = dict(zip(('module', 'name', 'model', 'res_id', 'noupdate'), plan.bindings[0]))
+        wrong_group = self.env.ref('base.group_user')
+        self.assertNotEqual(values['res_id'], wrong_group.id)
+        wrong = self.env['ir.model.data'].create(dict(values, res_id=wrong_group.id))
+        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'alias-collision-no-update'):
+            plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
+        self.assertEqual(wrong.res_id, wrong_group.id)
+        wrong.unlink()  # Only the private fixture alias, never an original row.
+        self.env['ir.model.data'].create([dict(zip(('module', 'name', 'model', 'res_id', 'noupdate'), row))
+            for row in plan.bindings])
+        before = self._snapshot()
+        self.env['ir.model.access'].create({'name': 'Private unexpected original common-model grant',
+            'model_id': self.env['ir.model']._get_id('hr.salary.rule'),
+            'group_id': wrong_group.id, 'perm_read': True, 'perm_write': False,
+            'perm_create': False, 'perm_unlink': False})
+        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'original-group-or-common-model-policy-changed'):
+            verify_original_payroll_role_bindings(self.env.cr, plan, expected_database=self.env.cr.dbname)
         self.assertEqual(self._snapshot(), before)

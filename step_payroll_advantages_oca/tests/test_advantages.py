@@ -10,6 +10,7 @@ from odoo.addons.step_payroll_contracts.original_benefit_cohort import (
     BenefitCohortError, admit_source_benefit_cohort, admit_target_benefit_cohort,
     inspect_oca_benefit_boundary, _family_snapshot,
 )
+from odoo.addons.step_payroll_contracts.original_payroll_roles import admit_empty_oca_models_readonly_manager
 
 
 @tagged('post_install', '-at_install')
@@ -280,3 +281,12 @@ class ContractAdvantageCase(StoredReportFixture, TransactionCase):
         with TestCase.assertRaisesRegex(self, BenefitCohortError, 'explicit-anchored-preserved-mode-required'):
             admit_target_benefit_cohort(self.scope, None, expected_database=self.env.cr.dbname, mode='detached-absent')
         self.assertEqual(self._snapshot(slip), before)
+
+    def test_readonly_manager_oca_profile_refuses_real_nonempty_upstream_configuration(self):
+        register = self.env['hr.contribution.register'].create({'name': 'Private actual nonempty OCA register',
+            'company_id': self.company.id})
+        before = register.read(['name', 'company_id', 'write_date'])
+        with TestCase.assertRaisesRegex(self, BenefitCohortError, 'oca-only-model-must-be-empty'):
+            admit_empty_oca_models_readonly_manager(self.scope,
+                manager_group_id=self.scope.ref('payroll.group_payroll_manager').id)
+        self.assertEqual(register.read(['name', 'company_id', 'write_date']), before)
