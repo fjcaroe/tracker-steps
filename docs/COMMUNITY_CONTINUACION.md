@@ -10,7 +10,7 @@ la visibilidad del usuario original coincide en ambos motores (118 permitidos,
 dos denegados), pero la adopción completa de las 71 reglas sigue en revisión.
 La referencia SyS real fue capturada readonly y reproducida offline; no
 certifica por sí sola las fórmulas de Cerro. R3 y sus límites se conservan.
-Continúan 54 apps con caminos EE, certificación de Nómina, DTE completo,
+Continúan 55 apps con caminos EE, certificación de Nómina, DTE completo,
 Calidad nativa y conversión integral restaurable pendientes. Producción
 conserva 140 EE. El 31 sigue en riesgo alto; no está resuelto.
 El contenido inferior conserva su alcance histórico.

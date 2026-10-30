@@ -28,8 +28,8 @@ hilo y hereda sus ajustes; no es un permiso para publicar en producción.
    el último documento de aceptación (actualmente COMMUNITY_ADOPCION_MAESTROS.md) y esta hoja. Hacer fetch de la canónica
    origin/codex/ambientes-canonicos-reparacion; partir del último estado integrado.
 2. Revisar el inventario completo antes de implementar. La matriz
-   COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 100 apps propias instaladas,
-   54 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
+   COMMUNITY_INVENTARIO_ENTERPRISE_20261030.md distingue 101 apps propias instaladas,
+   55 con clausuras Enterprise pendientes y los módulos propios fuera de Cerro.
    Auditar también fuentes privadas instaladas, imports, vistas/JS/assets,
    modelos y datos efectivos. Cero dependencias declaradas no prueba equivalencia.
 3. Elegir un bloque concreto que desbloquee la siguiente puerta. Registrar una
@@ -68,7 +68,7 @@ maestros. El ensayo separado conserva 600/462 y reproduce la partición original
 118 permitidos/dos denegados sobre los 120 maestros; la adopción completa de
 71 reglas y el almacenamiento histórico permanecen en revisión. SyS aporta
 una cohorte readonly real reproducida offline, sin certificar las fórmulas de
-Cerro. R3/Q4/D/H se conservan. Continúan 54 apps con caminos EE, certificación
+Cerro. R3/Q4/D/H se conservan. Continúan 55 apps con caminos EE, certificación
 Nómina, DTE completo, Calidad nativa y conversión integral restaurable pendientes.
 El 31 sigue en riesgo alto; mantener límites y programación activa.
 

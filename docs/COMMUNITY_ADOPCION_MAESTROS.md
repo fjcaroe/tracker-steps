@@ -146,7 +146,7 @@ idempotente de 71 pares bajo el usuario autorizado, conservando las dos
 denegaciones. Cerrar después almacenamiento/constraints, menús legados y
 referencias opacas, y certificar reglas, Previred/libro con casos equivalentes
 probados. DTE/CAF/folios/firma/respuestas SII, demás productos y copia integral
-restaurable con cero Enterprise continúan en el camino crítico. Quedan 54 apps
+restaurable con cero Enterprise continúan en el camino crítico. Quedan 55 apps
 instaladas con caminos EE en código; producción conserva 140 EE.
 
 El 31 sigue en riesgo. No se ha intervenido producción, QA-Cerro, vencimientos
