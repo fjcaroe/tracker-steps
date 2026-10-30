@@ -1,7 +1,18 @@
 <odoo>
   <template id="operations">
+    <style>
+      .step_receipt_operations, .step_receipt_pallets {border:0 !important; border-collapse:collapse;}
+      .step_receipt_operations th, .step_receipt_operations td,
+      .step_receipt_pallets th, .step_receipt_pallets td {
+        padding:4px 6px !important; border:0 !important; vertical-align:top;
+        white-space:normal !important; word-wrap:break-word;
+      }
+      .step_receipt_operations thead th, .step_receipt_pallets thead th {border-bottom:1px solid #7c8792 !important;}
+      .step_receipt_operations tbody td, .step_receipt_pallets tbody td {border-bottom:1px solid #e4e7eb !important;}
+      .step_receipt_operations tfoot td, .step_receipt_pallets tfoot td {border-top:1px solid #7c8792 !important;}
+    </style>
     <t t-set="totals" t-value="o._step_receipt_totals()"/>
-    <table class="table table-sm step_receipt_operations" style="font-size:10px;table-layout:fixed;width:100%;">
+    <table class="table table-sm table-borderless step_receipt_operations" style="font-size:10px;table-layout:fixed;width:100%;">
       <thead style="display:table-header-group;"><tr>
         <th style="width:24%;">Producto</th><th style="width:12%;">Tipo pallet</th>
         <th class="text-end" style="width:9%;">Cantidad pallets</th><th style="width:15%;">Empaquetado</th>
@@ -32,7 +43,7 @@
       </tfoot>
     </table>
     <h4 style="font-size:13px;margin-top:16px;">Detalle de pallets</h4>
-    <table class="table table-sm step_receipt_pallets" style="font-size:10px;table-layout:fixed;width:100%;">
+    <table class="table table-sm table-borderless step_receipt_pallets" style="font-size:10px;table-layout:fixed;width:100%;">
       <thead style="display:table-header-group;"><tr>
         <th style="width:12%;">Folio pallet</th><th style="width:13%;">Especie</th><th style="width:16%;">Variedad</th>
         <th class="text-end" style="width:9%;">Cajas</th><th class="text-end" style="width:13%;">Kilos bruto</th>
