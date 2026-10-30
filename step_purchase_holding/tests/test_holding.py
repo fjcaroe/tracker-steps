@@ -56,5 +56,5 @@ class HoldingCase(TransactionCase):
 
     def test_unselected_branch_rejected(self):
         scope=self.scope(context=dict(self.scope.context,allowed_company_ids=self.parent.ids))
-        with self.cr.savepoint(),self.assertRaises((ValidationError,UserError)):
+        with self.cr.savepoint(),self.assertRaises(ValidationError):
             scope['purchase.order'].create({'partner_id':self.supplier.id,'picking_type_id':self.wh.in_type_id.id})
