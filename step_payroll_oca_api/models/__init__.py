@@ -15,3 +15,4 @@ from . import saved_inputs
 from . import original_input_storage
 
 from . import original_rule_projection
+from . import original_history_deletion
