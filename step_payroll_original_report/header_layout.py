@@ -87,3 +87,19 @@ def table_corporate_header(value):
     if tree.text_content() != before:
         raise ValueError('Corporate text changed during table layout normalization')
     return html.tostring(tree, encoding='unicode', doctype='<!DOCTYPE html>')
+
+
+def inline_corporate_typography(value):
+    raw = value if isinstance(value, bytes) else value.encode('utf-8')
+    tree = html.fromstring(raw, parser=html.HTMLParser(encoding='utf-8'))
+    addresses = tree.xpath('//*[@id="minimal_layout_report_headers"]//*[@name="company_address"]')
+    if len(addresses) != 1:
+        raise ValueError('One corporate address is required')
+    before = tree.text_content()
+    for node in [addresses[0], *addresses[0].iterdescendants()]:
+        node.set('style', (node.get('style') or '') +
+                 ';font-family:Arial,sans-serif!important;font-size:10pt!important;line-height:1.25!important;'
+                 'color:#000!important;visibility:visible!important;opacity:1!important;')
+    if tree.text_content() != before:
+        raise ValueError('Corporate text changed during typography contrast')
+    return html.tostring(tree, encoding='unicode', doctype='<!DOCTYPE html>')
