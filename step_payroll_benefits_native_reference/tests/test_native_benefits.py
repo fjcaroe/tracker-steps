@@ -176,6 +176,15 @@ class NativeBenefitReferenceCase(TransactionCase):
         data.flush_model(list(keys))
 
     def test_two_new_role_aliases_preserve_actual_groups_memberships_and_common_policy(self):
+        internal = self.env['res.users'].with_context(no_reset_password=True).create({
+            'name': 'Private plain payroll alias reader', 'login': 'private-plain-payroll-alias-reader',
+            'company_id': self.company.id, 'company_ids': [Command.set(self.company.ids)],
+            'groups_id': [Command.set(self.env.ref('base.group_user').ids)]})
+        internal_scope = api.Environment(self.env.cr, internal.id, dict(self.scope.context), su=False)
+        self.assertFalse(internal_scope.su)
+        # Settings can imply native payroll manager in the original policy.
+        # Establish the real bare actor's original rights before checking aliases.
+        self.assertFalse(internal_scope.user.has_group('hr_payroll.group_hr_payroll_manager'))
         plan = plan_original_payroll_role_bindings(self.env.cr, expected_database=self.env.cr.dbname)
         before = self._snapshot()
         self._ensure_matching_oca_role_aliases(plan)
@@ -198,13 +207,13 @@ class NativeBenefitReferenceCase(TransactionCase):
             self.assertTrue(self.scope.user.has_group(alias))
         self.assertTrue(self.scope.user.has_groups('payroll.group_payroll_manager,!base.group_system'))
         self.assertTrue(self.scope.user.has_groups('hr_payroll.group_hr_payroll_manager,!base.group_system'))
-        self.assertFalse(self.configuration_scope.user.has_group('payroll.group_payroll_manager'))
-        self.assertFalse(self.configuration_scope.user.has_groups('payroll.group_payroll_manager,!base.group_system'))
+        self.assertFalse(internal_scope.user.has_group('payroll.group_payroll_manager'))
+        self.assertFalse(internal_scope.user.has_groups('payroll.group_payroll_manager,!base.group_system'))
         partner = self.env['res.partner'].create({'name': 'Private real alias permission record'})
         view = self.env['ir.ui.view'].create({'name': 'Private real alias permission form', 'model': 'res.partner',
             'arch': '<form><sheet><group><field name="name" groups="payroll.group_payroll_manager"/></group></sheet></form>'})
         manager_arch = self.scope['res.partner'].get_view(view_id=view.id, view_type='form')['arch']
-        other_arch = self.configuration_scope['res.partner'].get_view(view_id=view.id, view_type='form')['arch']
+        other_arch = internal_scope['res.partner'].get_view(view_id=view.id, view_type='form')['arch']
         self.assertTrue(etree.fromstring(manager_arch.encode()).xpath(".//field[@name='name']"))
         self.assertFalse(etree.fromstring(other_arch.encode()).xpath(".//field[@name='name']"))
         action = self.env['ir.actions.act_window'].create({'name': 'Private real alias permission action',
@@ -213,13 +222,13 @@ class NativeBenefitReferenceCase(TransactionCase):
             'action': 'ir.actions.act_window,%s' % action.id,
             'groups_id': [Command.set(self.scope.ref('payroll.group_payroll_manager').ids)]})
         self.assertIn(menu.id, self.scope['ir.ui.menu']._visible_menu_ids())
-        self.assertNotIn(menu.id, self.configuration_scope['ir.ui.menu']._visible_menu_ids())
+        self.assertNotIn(menu.id, internal_scope['ir.ui.menu']._visible_menu_ids())
         with patch.object(self.scope['res.partner']._fields['name'], 'groups', 'payroll.group_payroll_manager'):
             self.env.registry.clear_cache()
             try:
                 self.assertEqual(partner.with_env(self.scope).read(['name'])[0]['name'], partner.name)
                 with TestCase.assertRaises(self, AccessError):
-                    partner.with_env(self.configuration_scope).read(['name'])
+                    partner.with_env(internal_scope).read(['name'])
             finally:
                 self.env.registry.clear_cache()
         self.assertEqual(verify_original_payroll_role_bindings(self.env.cr, plan,
