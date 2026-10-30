@@ -31,7 +31,7 @@ class ContractAdvantageCase(StoredReportFixture, TransactionCase):
         self.rule = self.scope['hr.salary.rule'].create({'name': 'Private actual advantage result', 'code': 'PRIVATE_ADV_RESULT',
             'struct_id': self.structure.id, 'company_id': self.company.id, 'category_id': self.categories['others'].id,
             'sequence': 50, 'condition_select': 'none', 'amount_select': 'code', 'quantity': '3.0',
-            'amount_python_compute': 'result = current_contract.advantages.PRIVATE_ADV\nresult_rate = 80.0',
+            'amount_python_compute': 'result = current_contract.advantages.PRIVATE_ADV\nresult_qty = 3.0\nresult_rate = 80.0',
             'account_debit': self.debit.id, 'account_credit': self.credit.id})
         self.env['ir.sequence'].create({'name': 'Private advantage numbering', 'code': 'salary.slip',
             'company_id': self.company.id, 'implementation': 'no_gap', 'prefix': 'PRIVATE/ADV/'})
