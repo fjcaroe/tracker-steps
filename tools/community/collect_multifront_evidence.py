@@ -23,8 +23,8 @@ import quality_vendor_contract as quality_vendor
 
 def collect(root, output, original_provider, oca, inventory_root, *,
             expected_community_installed, expected_native_installed, postflight_tool, representation=None,
-            operational_extensions=False, quality_extension=False, quality_oca=None, critical_extension=False):
-    verifier.expected_tests(operational_extensions, quality_extension, critical_extension)
+            operational_extensions=False, quality_extension=False, quality_oca=None, critical_extension=False, critical_generation='R3'):
+    verifier.expected_tests(operational_extensions, quality_extension, critical_extension, critical_generation)
     assert (quality_oca is not None) is quality_extension, 'Quality checkout and explicit profile must be supplied together'
     root, output = Path(root).resolve(), Path(output)
     source = root / 'addons'
@@ -37,7 +37,7 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     graph = {'source': 'independently_measured_by_coordinator',
              'community': {'installed': expected_community_installed, 'enterprise': 0},
              'cerro-reference': {'installed': expected_native_installed, 'enterprise': 140}}
-    tests = verifier.expected_tests(operational_extensions, quality_extension, critical_extension)
+    tests = verifier.expected_tests(operational_extensions, quality_extension, critical_extension, critical_generation)
     packets = [json.loads((root / mode / 'source-files.json').read_text()) for mode in tests]
     assert packets[0] == packets[1] and {name.split('/')[0] for name in packets[0]} == set(verifier.own_modules(operational_extensions, quality_extension)) | {'l10n_cl_simpledigital_payroll'}
     assert all(hashlib.sha256((source / name).read_bytes()).hexdigest() == value for name, value in packets[0].items())
@@ -47,10 +47,11 @@ def collect(root, output, original_provider, oca, inventory_root, *,
         assert receipt.get('focused_development_pass') is False and receipt.get('operational_extensions', False) is operational_extensions
         assert receipt.get('quality_extension', False) is quality_extension
         assert receipt.get('critical_extension', False) is critical_extension
+        installation.check_generation(receipt, critical_extension, critical_generation)
         assert receipt['counts'] == graph[mode] and receipt['writes_to_source'] is False
         proof = json.loads((root / mode / 'module-installation.json').read_text())
         assert proof['tool_sha256'] == postflight_sha256
-        installation.verify(proof, mode, source, receipt, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
+        installation.verify(proof, mode, source, receipt, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
     # License gate before reading any original provider bodies.
     original_provider = Path(original_provider).resolve()
     assert ast.literal_eval((original_provider / '__manifest__.py').read_text(encoding='utf-8-sig'))['license'] == 'AGPL-3'
@@ -100,6 +101,7 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     if representation:
         representation = Path(representation).resolve()
         proof = json.loads(representation.read_text())
+        installation.check_generation(proof, critical_extension, critical_generation)
         native = json.loads((root / 'cerro-reference/passed.json').read_text())
         assert proof['database'] == native['database'] and proof['read_only'] is True and proof['database_writes'] is False
         assert proof['native_acceptance_sha256'] == hashlib.sha256((root / 'cerro-reference/passed.json').read_bytes()).hexdigest()
@@ -149,6 +151,9 @@ def collect(root, output, original_provider, oca, inventory_root, *,
         manifest['quality_extension'] = True
     if critical_extension:
         manifest['critical_extension'] = True
+    if critical_generation == 'S':
+        assert len(packets[0]) == 513
+        manifest['critical_generation'] = 'S'
     bodies['evidence-files.json'] = json.dumps(manifest, indent=2).encode()
     with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
         with tarfile.open(fileobj=stream, mode='w:gz') as archive:
@@ -166,6 +171,7 @@ def main():
     parser.add_argument('--operational-extensions', action='store_true')
     parser.add_argument('--quality-extension', action='store_true')
     parser.add_argument('--critical-extension', action='store_true')
+    parser.add_argument('--critical-generation', choices=installation.CRITICAL_GENERATIONS, default='R3')
     parser.add_argument('--quality-oca', type=Path)
     parser.add_argument('--expected-community-installed', type=int, required=True)
     parser.add_argument('--expected-native-installed', type=int, required=True)
@@ -174,7 +180,7 @@ def main():
     count = collect(args.root, args.output, args.original_provider, args.oca, args.inventory_root,
         expected_community_installed=args.expected_community_installed, expected_native_installed=args.expected_native_installed,
         postflight_tool=args.postflight_tool, representation=args.representation,
-        operational_extensions=args.operational_extensions, quality_extension=args.quality_extension, quality_oca=args.quality_oca, critical_extension=args.critical_extension)
+        operational_extensions=args.operational_extensions, quality_extension=args.quality_extension, quality_oca=args.quality_oca, critical_extension=args.critical_extension, critical_generation=args.critical_generation)
     print('PRIVATE_MULTIFRONT_EXPORTED', count, 'files; no dump or Enterprise bodies')
 
 

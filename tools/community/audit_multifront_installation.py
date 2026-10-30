@@ -43,6 +43,8 @@ EXTENSION_OCA_VERSIONS = dict(OCA_VERSIONS, payroll_contract_advantages='18.0.1.
 QUALITY_MODULES = ('step_quality_contracts', 'step_quality_oca', 'step_qa_native_reference')
 QUALITY_TESTS = {'community': 646, 'cerro-reference': 441}
 CRITICAL_TESTS = {'community': 665, 'cerro-reference': 457}
+CRITICAL_GENERATIONS = {'R3': CRITICAL_TESTS, 'S': {'community': 671, 'cerro-reference': 462}}
+S_VERSIONS = {'step_payroll_contracts': '18.0.1.15.0', 'step_payroll_oca_api': '18.0.1.16.0'}
 QUALITY_PROVIDER = 'quality_control_oca'
 QUALITY_PIN = '2d6084f553490408f7a341f05ba6ddd6e641a879'
 QUALITY_VERSION = '18.0.1.4.0'
@@ -95,16 +97,32 @@ def mode_excluded(mode, operational_extensions=False, quality_extension=False):
     return value
 
 
-def receipt_profile(passed, mode, operational_extensions=False, quality_extension=False, critical_extension=False):
+def critical_tests(critical_extension=False, critical_generation='R3'):
+    require(type(critical_extension) is bool and critical_generation in CRITICAL_GENERATIONS
+        and (critical_extension or critical_generation == 'R3'),
+        'Explicit supported critical generation required')
+    return CRITICAL_GENERATIONS[critical_generation]
+
+
+def check_generation(receipt, critical_extension=False, critical_generation='R3'):
+    critical_tests(critical_extension, critical_generation)
+    require(receipt.get('critical_generation', 'R3') == critical_generation,
+        'Critical receipt/proof generation differs')
+
+
+def receipt_profile(passed, mode, operational_extensions=False, quality_extension=False, critical_extension=False, critical_generation='R3'):
     owned_modules(operational_extensions, quality_extension)
     require(type(critical_extension) is bool and (not critical_extension or quality_extension), 'Critical requires the exact Quality extension')
-    expected = CRITICAL_TESTS if critical_extension else QUALITY_TESTS if quality_extension else EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    expected = critical_tests(critical_extension, critical_generation) if critical_extension else QUALITY_TESTS if quality_extension else EXTENSION_TESTS if operational_extensions else EXPECTED_TESTS
+    check_generation(passed, critical_extension, critical_generation)
     require(passed.get('critical_extension', False) is critical_extension, 'Exact critical profile flag required')
     require(passed.get('quality_extension', False) is quality_extension
         and passed.get('operational_extensions', False) is operational_extensions
         and passed['mode'] == mode and passed['multifront'] is True
         and passed['focused_development_pass'] is False and passed['expected_test_count'] == expected[mode],
         'Exact full MF profile/count receipt required')
+    if critical_generation == 'S':
+        require(passed.get('package_files') == 513, 'S requires the exact 513-file normal provider package')
 
 
 def plan(source, mode, *, operational_extensions=False, quality_extension=False):
@@ -151,9 +169,14 @@ def plan(source, mode, *, operational_extensions=False, quality_extension=False)
     return result
 
 
-def verify(proof, mode, source, passed, *, operational_extensions=False, quality_extension=False, critical_extension=False):
+def verify(proof, mode, source, passed, *, operational_extensions=False, quality_extension=False, critical_extension=False, critical_generation='R3'):
     expected = plan(source, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
-    receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension)
+    receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension, critical_generation)
+    check_generation(proof, critical_extension, critical_generation)
+    if critical_generation == 'S':
+        for module, version in S_VERSIONS.items():
+            require(ast.literal_eval(_body(source, module + '/__manifest__.py').decode('utf-8-sig'))['version'] == version,
+                'S original-interface source version differs: ' + module)
     require(proof.get('critical_extension', False) is critical_extension, 'Exact critical postflight flag required')
     require(proof.get('quality_extension', False) is quality_extension
         and proof.get('operational_extensions', False) is operational_extensions and passed['writes_to_source'] is False,
@@ -207,11 +230,11 @@ def verify(proof, mode, source, passed, *, operational_extensions=False, quality
     return observed
 
 
-def audit(sql, mode, source, passed, *, operational_extensions=False, quality_extension=False, critical_extension=False):
+def audit(sql, mode, source, passed, *, operational_extensions=False, quality_extension=False, critical_extension=False, critical_generation='R3'):
     # The callback executes exactly this readonly metadata transaction; there
     # are no dynamic business table names or user values in the query.
     expected = plan(source, mode, operational_extensions=operational_extensions, quality_extension=quality_extension)
-    receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension)
+    receipt_profile(passed, mode, operational_extensions, quality_extension, critical_extension, critical_generation)
     prefix = 'COMMUNITY_PAYROLL_API_' if mode == 'community' else 'MANAGEMENT_QA_CERRO_PAYROLL_API_'
     require(re.fullmatch(prefix + r'[A-Za-z0-9_]+', passed['database']), 'Private MF database required')
     metadata = json.loads(sql(passed['database'], QUERY))
@@ -232,7 +255,9 @@ def audit(sql, mode, source, passed, *, operational_extensions=False, quality_ex
         proof['quality_extension'] = True
     if critical_extension:
         proof['critical_extension'] = True
-    verify(proof, mode, source, passed, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension)
+    if critical_generation == 'S':
+        proof['critical_generation'] = 'S'
+    verify(proof, mode, source, passed, operational_extensions=operational_extensions, quality_extension=quality_extension, critical_extension=critical_extension, critical_generation=critical_generation)
     return proof
 
 
@@ -250,10 +275,11 @@ def main():
     parser.add_argument('--operational-extensions', action='store_true')
     parser.add_argument('--quality-extension', action='store_true')
     parser.add_argument('--critical-extension', action='store_true')
+    parser.add_argument('--critical-generation', choices=CRITICAL_GENERATIONS, default='R3')
     for name in ('source', 'passed', 'output'):
         parser.add_argument('--' + name, type=Path, required=True)
     args = parser.parse_args()
-    proof = audit(readonly_sql, args.mode, args.source, json.loads(args.passed.read_text()), operational_extensions=args.operational_extensions, quality_extension=args.quality_extension, critical_extension=args.critical_extension)
+    proof = audit(readonly_sql, args.mode, args.source, json.loads(args.passed.read_text()), operational_extensions=args.operational_extensions, quality_extension=args.quality_extension, critical_extension=args.critical_extension, critical_generation=args.critical_generation)
     with os.fdopen(os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w', encoding='utf-8') as stream:
         json.dump(proof, stream, indent=2)
     print('MULTIFRONT_INSTALLATION_VERIFIED', proof['observed']['required_module_versions_verified'], 'exact module versions; readonly')

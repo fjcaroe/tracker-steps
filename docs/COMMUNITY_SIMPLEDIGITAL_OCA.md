@@ -1,17 +1,18 @@
 # Instalación real Simple Digital sobre OCA — 28-10-2026
 
-Estado vigente y siguiente prompt: [COMMUNITY_PAGOS_CERTIFICADOS.md](COMMUNITY_PAGOS_CERTIFICADOS.md).
-R3 valida 33 addons propios/508 archivos: aplicación contable de pagos nuevos,
-admisión HR normal y cadena/CRL DTE offline, con Q4/D/H conservados. Pasaron
-665 casos Community/457 referencia nativa, cero fallos/errores; 120/397
-instalados y 0/140 EE. Se preservan 921 tablas/proyecciones, 140 contadores y
-59.079 XML IDs, con 1.060 snapshots literales y testigo numérico tipado R3.
-La clausura readonly de Calendar/Activity/Rating reduce guardas 116→113 CE y
-27→24 nativas; no importa los 120 maestros/71 reglas ni reserva 462 ocupado.
-Continúan 54 apps instaladas con caminos EE, coadopción/certificación SyS,
-DTE completo, Calidad nativa y conversión integral cero EE pendientes.
-La impresión técnica pasó seis páginas; aceptación productiva/legal abierta.
-Producción conserva 140 EE. El 31 sigue en riesgo alto. Ver detalle y prompt.
+Estado vigente y siguiente prompt: [COMMUNITY_ADOPCION_MAESTROS.md](COMMUNITY_ADOPCION_MAESTROS.md).
+S7 valida el adaptador real de grupos y la interfaz de tipos de entrada:
+33 addons propios/513 archivos, 671 casos Community y 462 nativos sin fallos
+ni errores; 120/397 instalados y 0/140 EE. Conserva 921 tablas/proyecciones,
+140 contadores y 59.079 XML IDs con un nuevo testigo numérico tipado S7.
+El ensayo separado de maestros mantiene modelo 600/reporte 462 sobre OCA;
+la visibilidad del usuario original coincide en ambos motores (118 permitidos,
+dos denegados), pero la adopción completa de las 71 reglas sigue en revisión.
+La referencia SyS real fue capturada readonly y reproducida offline; no
+certifica por sí sola las fórmulas de Cerro. R3 y sus límites se conservan.
+Continúan 54 apps con caminos EE, certificación de Nómina, DTE completo,
+Calidad nativa y conversión integral restaurable pendientes. Producción
+conserva 140 EE. El 31 sigue en riesgo alto; no está resuelto.
 El contenido inferior conserva su alcance histórico.
 
 ## Contrato del bloque
