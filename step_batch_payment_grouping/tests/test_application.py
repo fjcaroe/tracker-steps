@@ -85,6 +85,7 @@ class BatchInvoiceApplicationCase(AccountTestInvoicingCommon):
         partials = self.env['account.partial.reconcile'].with_user(self.actor).browse(result['partial_reconcile_ids'])
         partials.check_access('read')
         self.assertEqual(len(partials), 2)
+        pending_total = 0
         for payment in payments:
             self.assertEqual(payment.move_id.state, 'posted')
             pending = payment.move_id.line_ids.filtered(lambda line: line.account_id == payment.outstanding_account_id)
@@ -92,6 +93,10 @@ class BatchInvoiceApplicationCase(AccountTestInvoicingCommon):
             self.assertEqual(abs(pending.amount_residual), payment.amount)
             self.assertFalse(pending.matched_debit_ids | pending.matched_credit_ids)
             self.assertFalse(pending.statement_line_id)
+            pending_total += pending.amount_residual
+        self.assertEqual(batch.amount, sum(payments.mapped('amount_signed')))
+        self.assertEqual(batch.amount_residual, pending_total)
+        self.assertEqual(batch.amount_residual_currency, pending_total)
         with self.assertRaises(UserError):
             self.service.post_groups_against_linked_invoices(batch.ids)
 
