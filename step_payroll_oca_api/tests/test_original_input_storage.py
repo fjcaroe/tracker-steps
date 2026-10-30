@@ -72,8 +72,12 @@ class OriginalInputStorageCase(TransactionCase):
                     slip._step_check_saved_input_values()
             else:
                 self.assertTrue(slip._step_check_saved_input_values())
-                self.env.cr.execute("SELECT amount FROM hr_payslip_input WHERE id=%s", (row.id,))
-                self.assertEqual(self.env.cr.fetchone(), (Decimal(literal),))
+                # Odoo registers a NUMERIC-to-float cursor caster globally.
+                # Text keeps SQL's exact decimal representation outside it.
+                self.env.cr.execute("SELECT amount::text FROM hr_payslip_input WHERE id=%s", (row.id,))
+                stored = self.env.cr.fetchone()[0]
+                self.assertEqual(stored, literal)
+                self.assertEqual(Decimal(stored), Decimal(literal))
             self.assertEqual(self._stored(row), before)
 
     def test_real_closed_fixture_and_synthetic_paid_flag_keep_numeric_bytes_under_catalog_rechecks(self):
@@ -151,7 +155,7 @@ class OriginalInputStorageCase(TransactionCase):
             with TestCase.assertRaisesRegex(self, InputStorageError, "missing-on-upgrade"):
                 input_amount_table_admission(state, False)
         for state in (None, "uninstalled", "to remove"):
-            with TestCase.assertRaises(InputStorageError):
+            with TestCase.assertRaises(self, InputStorageError):
                 input_amount_table_admission(state, True)
         self.assertIsNone(inspect_input_amount_storage(self.env.cr, ("pg_temp", "step_numeric_input_missing")))
         self.env.cr.execute("CREATE TEMP TABLE step_numeric_input_no_amount (id integer) ON COMMIT DROP")

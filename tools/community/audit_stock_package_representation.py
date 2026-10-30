@@ -10,13 +10,14 @@ import ast
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import subprocess
 import sys
 
 
 TABLE = 'stock_package_type'
+NATIVE_ROOT_PREFIXES = ('community-original-bootstrap-', 'community-original-contracts-')
 COLUMNS = (
     ('id', 'integer', True), ('sequence', 'integer', False),
     ('company_id', 'integer', False), ('create_uid', 'integer', False),
@@ -43,6 +44,13 @@ NORMALIZER = "(SELECT jsonb_object_agg(key,CASE WHEN jsonb_typeof(value)='number
 def require(value, message):
     if not value:
         raise ValueError(message)
+
+
+def native_root_allowed(root):
+    path = PurePosixPath(str(root))
+    return (path.is_absolute() and '..' not in path.parts
+        and path.is_relative_to(PurePosixPath('/opt/steps-validation'))
+        and path.name.startswith(NATIVE_ROOT_PREFIXES))
 
 
 def sha(path):
@@ -175,7 +183,7 @@ def main():
     args = parser.parse_args()
     require(os.geteuid() == 0, 'Local peer inspection requires root')
     root, output = args.native_root.resolve(), args.output_directory.resolve()
-    require(root.is_relative_to(Path('/opt/steps-validation')) and root.name.startswith('community-original-bootstrap-'), 'Private accepted source root required')
+    require(native_root_allowed(root), 'Private accepted source root required')
     require(output.is_relative_to(Path('/opt/steps-validation')) and not output.is_relative_to(root) and not output.exists(), 'New private output outside accepted root required')
     native = root / 'cerro-reference'
     accepted = json.loads((native / 'passed.json').read_text())
