@@ -388,6 +388,9 @@ def main():
         if args.kind == 'reception-revision':
             required = ('step_packing_operations','step_inventory_packing','step_producer_fruit_reports','step_export_document_revision','step_packing_ot_layout')
             assert int(query(target_db, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in required))) == len(required), 'Packing/report parents must already be installed'
+        if args.kind == 'agriculture-multicompany':
+            required = ('step_fruit_category_unification','step_producer_fruit_reports','step_packing_operations','step_packing_ticket_revision','step_export_shipping_design')
+            assert int(query(target_db, "SELECT count(*) FROM ir_module_module WHERE state='installed' AND name IN (%s)" % ','.join("'%s'" % name for name in required))) == len(required), 'T139/T140 extend installed masters and flows only'
         if args.kind == 'fruit-reports':
             assert query(target_db, "SELECT count(*) FROM ir_module_module WHERE name IN ('step_producer_fruit_flow','step_export_client_revision') AND state='installed'") == '2'
         BUSINESS = tuple(query(target_db, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND (tablename LIKE 'step_%' OR tablename LIKE 'account_%' OR tablename LIKE 'stock_%' OR tablename LIKE 'product_%' OR tablename LIKE 'sale_%' OR tablename LIKE 'hr_%' OR tablename IN ('res_company','res_partner','res_partner_bank','res_bank','l10n_cl_customs_port')) ORDER BY tablename").splitlines())
