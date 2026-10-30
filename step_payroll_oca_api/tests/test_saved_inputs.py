@@ -1,8 +1,10 @@
 """Six saved-row admission cases with the actual OCA input model and actor."""
 import json
+import math
 from unittest.mock import patch
 
 from lxml import etree
+from psycopg2.errors import FeatureNotSupported
 
 from odoo import api, Command, fields
 from odoo.exceptions import AccessError, UserError
@@ -111,7 +113,20 @@ class SavedInputValuesCase(TransactionCase):
         self.assertEqual(self.env.cr.fetchone(), (0.0,))
         self.assertTrue(slip._step_check_saved_input_values())
         for value in (float("nan"), float("inf"), float("-inf")):
-            self.env.cr.execute("UPDATE hr_payslip_input SET amount=%s WHERE id=%s", (value, row.id))
+            attempted_before = self._snapshot(slip)
+            try:
+                # PostgreSQL 12 NUMERIC cannot store Infinity. Later versions
+                # may accept it; then the actual admission must reject it.
+                with self.env.cr.savepoint(flush=False):
+                    self.env.cr.execute("UPDATE hr_payslip_input SET amount=%s WHERE id=%s", (value, row.id))
+            except FeatureNotSupported as error:
+                self.assertEqual(error.pgcode, "0A000")
+                self.assertTrue(math.isinf(value), "NaN storage is supported and must exercise the API guard")
+                self.env.cr.execute("SELECT t.typname FROM pg_attribute a JOIN pg_type t ON t.oid=a.atttypid WHERE a.attrelid='hr_payslip_input'::regclass AND a.attname='amount'")
+                self.assertEqual(self.env.cr.fetchone(), ("numeric",))
+                self.assertEqual(self._snapshot(slip), attempted_before, "Rejected nonfinite storage changed the saved rows")
+                continue
+            row.invalidate_recordset(["amount"])
             before = self._snapshot(slip)
             with self.assertRaisesRegex(UserError, "finite"):
                 slip._step_check_saved_input_values()
