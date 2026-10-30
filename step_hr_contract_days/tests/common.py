@@ -83,7 +83,10 @@ class ContractDaysFixture:
         employee.resource_calendar_id = self.calendar
         employee.resource_id.tz = 'UTC'
         contract = contract.with_env(self.scope)
-        first = date(year, month, entry)
+        # Keep the genuine attendance separate from the cases' leave/late
+        # intervals on days1–2; overlapping work entries are real conflicts,
+        # not attendance that the payroll API may silently consume.
+        first = date(year, month, max(entry, 15))
         while first.weekday() > 4:
             first += timedelta(days=1)
         self._entry(contract, self.work, datetime.combine(first, time(8)), 8)
@@ -98,10 +101,18 @@ class ContractDaysFixture:
             'contract_id': contract.id, 'company_id': self.company.id, 'work_entry_type_id': kind.id,
             'date_start': start, 'date_stop': start + timedelta(hours=hours)})
 
-    def _type(self, code):
+    def _type(self, code, global_type=False):
+        model = self.scope['hr.work.entry.type']
+        country = False if global_type else self.company.country_id.id
+        candidates = model.search([('code', '=', code), ('country_id', '=', country)])
+        if not candidates and not global_type:
+            candidates = model.search([('code', '=', code), ('country_id', '=', False)])
+        self.assertLessEqual(len(candidates), 1)
+        if candidates:
+            return candidates
         values = {'name': 'Private T138 ' + code, 'code': code, 'is_leave': True}
         if 'country_id' in self.scope['hr.work.entry.type']._fields:
-            values['country_id'] = self.company.country_id.id
+            values['country_id'] = country
         return self.scope['hr.work.entry.type'].create(values)
 
     def _leave(self, slip, kind, first, last, unpaid=False):
