@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/OCA/manufacture",
+  "branch": "18.0",
+  "commit": "2d6084f553490408f7a341f05ba6ddd6e641a879",
+  "module": "quality_control_oca",
+  "version": "18.0.1.4.0",
+  "license": "AGPL-3",
+  "reviewed_files_sha256": {
+    "__manifest__.py": "ed23e58bc0d5aa985a000f5566a055e078ce73b4b63cd3dc48898bc8b3fa135b",
+    "data/quality_control_data.xml": "4a2341b98e8c2df71c88cd1d558ead7e9f963c2c3ced27a7db9dbb5b31aaf04c",
+    "models/qc_inspection.py": "d9a5af2f5962ec58550d9b5368017a12f3733469889f28dbdf3493e215f21841",
+    "models/qc_test.py": "44bb6fae0b4839db0c32dd4295c658aaaa1b225e1819a4d4ffdc1809c35aceeb",
+    "models/qc_trigger.py": "96b0aa0576738388ebb0d2fe7539ca22c9ad618c81522435435a9b512f78d20c",
+    "security/ir.model.access.csv": "ed43366b85ed7a6d96cfe8cb720e5e19fd85b47dc515ba93deb8255198981812",
+    "views/qc_inspection_view.xml": "1b6bb007b76a3d30b5b647fe1be5d7a5643ddc96745882c14c33023b0179c8c4",
+    "wizard/qc_test_wizard.py": "ca42cd39cccda5814150051e7c715ca946169506513e7a36abc254818461270b"
+  },
+  "full_vendor_snapshot_exported": false,
+  "native_quality_check_identity_equivalent": false,
+  "existing_consumer_dependencies_changed": false
+}

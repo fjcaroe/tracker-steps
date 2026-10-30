@@ -1,0 +1,18 @@
+<odoo>
+    <record id="inspection_operation_form" model="ir.ui.view">
+        <field name="name">qc.inspection.steps.operation</field>
+        <field name="model">qc.inspection</field>
+        <field name="inherit_id" ref="quality_control_oca.qc_inspection_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_confirm']" position="attributes">
+                <attribute name="confirm">Se comprobarán todas las preguntas, respuestas y unidades originales. Al confirmar un resultado correcto quedará cerrado.</attribute>
+            </xpath>
+            <xpath expr="//field[@name='inspection_lines']" position="attributes">
+                <attribute name="readonly">state in ['success', 'failed']</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="invisible">state not in ['waiting', 'ready']</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
