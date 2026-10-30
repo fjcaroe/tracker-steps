@@ -299,8 +299,11 @@ def compile_paths(catalog, registry, scope):
         for field in binding['fields']:
             name, kind, target = field['name'], field['type'], field['comodel']
             original_owner = model_name in gate.TABLES.values() or model_name == 'ir.actions.report'
+            if original_owner and field['store'] and kind in ('many2one', 'one2many', 'many2many') and target not in models:
+                blockers.append({'code': 'outbound-original-comodel-not-in-loaded-registry', 'model': model_name, 'field': name})
+                continue
             incoming = target in scope and scope[target].get('incoming_scope', True)
-            relevant = incoming or original_owner and target in scope or kind in ('reference', 'many2one_reference')
+            relevant = incoming or original_owner and target in models or kind in ('reference', 'many2one_reference')
             if not field['store'] or not relevant:
                 continue
             if tables[table]['kind'] not in ('r', 'p'):
@@ -311,17 +314,25 @@ def compile_paths(catalog, registry, scope):
                     kind in ('many2one', 'one2many', 'many2many') and meta['relation'] != field['comodel']):
                 blockers.append({'code': 'registry-sql-field-contract-differs', 'model': model_name, 'field': name})
                 continue
+            if original_owner and target in models:
+                actual_target_table = models[target]['table']
+                if actual_target_table not in tables or tables[actual_target_table]['kind'] not in ('r', 'p'):
+                    blockers.append({'code': 'outbound-reference-target-is-not-physical-storage', 'model': model_name, 'field': name})
+                    continue
             if kind == 'many2many':
                 rel, left, right = field['relation_table'], field['column1'], field['column2']
                 owner_target = binding['table']
+                target_table = models[target]['table']
                 actual = lambda col, destination: any(fk['source_table'] == rel and fk['source_columns'] == [col]
                     and fk['target_schema'] == 'public' and fk['target_table'] == destination
                     and fk['target_columns'] == ['id'] and fk['validated'] for fk in catalog['foreign_keys'])
-                if rel not in tables or not actual(left, owner_target) or not actual(right, scope[target]['table']):
+                if rel not in tables or not actual(left, owner_target) or not actual(right, target_table):
                     blockers.append({'code': 'many2many-actual-table-column-fks-not-proven', 'model': model_name, 'field': name})
                     continue
                 add('registry-many2many', rel, right, target, 't.' + ident(right),
-                    't.' + ident(right) + ' IN ' + ids(scope[target]['ids']), owner_model=model_name,
+                    ('t.' + ident(right) + ' IN ' + ids(scope[target]['ids'])) if incoming else
+                        ('t.' + ident(left) + ' IN ' + ids(scope[model_name]['ids'])),
+                    target_table=target_table, owner_model=model_name,
                     owner_field=name, owner_relation_column=left, constraint_enforced=True)
                 continue
             if kind == 'one2many':
@@ -354,12 +365,13 @@ def compile_paths(catalog, registry, scope):
                 integer = "CASE WHEN jsonb_typeof(j.value)='number' AND (j.value#>>'{}') ~ '^[1-9][0-9]{0,9}$' THEN (j.value#>>'{}')::bigint END"
                 company = "CASE WHEN j.key ~ '^[1-9][0-9]{0,9}$' THEN j.key::bigint END"
                 source = "jsonb_each(CASE WHEN jsonb_typeof(" + value + ")='object' THEN " + value + " ELSE '{}'::jsonb END) j"
+                predicate = integer + ' IN ' + ids(scope[target]['ids']) if incoming else integer + ' IS NOT NULL'
                 queries[key] = ('SELECT ' + _owner_sql(owner) + ' AS owner_pk,' + literal(target) + ' AS target_model,'
                     + integer + ' AS target_id,' + company + ' AS company_id FROM public.' + ident(table)
-                    + ' t CROSS JOIN LATERAL ' + source + ' WHERE ' + integer + ' IN ' + ids(scope[target]['ids']) + owner_filter
+                    + ' t CROSS JOIN LATERAL ' + source + ' WHERE ' + predicate + owner_filter
                     + ' ORDER BY owner_pk,company_id,target_id')
                 paths.append({'kind': 'registry-company-json', 'table': table, 'field': name, 'target_model': target,
-                    'target_table': scope[target]['table'], 'owner_key': owner, 'observation': key, 'owner_model': model_name})
+                    'target_table': models[target]['table'], 'owner_key': owner, 'observation': key, 'owner_model': model_name})
                 invalid = 'invalid-json:' + str(len(paths))
                 queries[invalid] = ('SELECT ' + _owner_sql(owner) + ' AS owner_pk FROM public.' + ident(table)
                     + ' t WHERE ((' + value + " IS NOT NULL AND jsonb_typeof(" + value + ")<>'object') OR EXISTS (SELECT 1 FROM "
@@ -380,6 +392,14 @@ def compile_paths(catalog, registry, scope):
                 valid = ("CASE WHEN " + value + " ~ '^[a-z_][a-z0-9_.]+,[1-9][0-9]{0,9}$' THEN split_part("
                     + value + ",',',2)::bigint<=2147483647 AND split_part(" + value + ",',',1) IN ("
                     + ','.join(literal(model) for model in sorted(models)) + ') ELSE FALSE END')
+                if original_owner:
+                    outgoing = 'outbound-polymorphic:' + table + '.' + name
+                    queries[outgoing] = ('SELECT ' + _owner_sql(_owner(table, catalog))
+                        + " AS owner_pk,split_part(" + value + ",',',1) AS target_model,split_part(" + value
+                        + ",',',2)::bigint AS target_id,NULL::integer AS company_id FROM public." + ident(table)
+                        + ' t WHERE t.id IN ' + ids(scope[model_name]['ids']) + ' AND (' + valid + ') ORDER BY owner_pk,target_model,target_id')
+                    paths.append({'kind': 'outbound-original-reference', 'table': table, 'field': name,
+                        'owner_key': _owner(table, catalog), 'observation': outgoing, 'target_model_from_row': True})
                 queries[key] = ('SELECT ' + _owner_sql(_owner(table, catalog))
                     + " AS owner_pk,encode(sha256(convert_to(" + value + "::text,'UTF8')),'hex') AS content_sha256 FROM public."
                     + ident(table) + ' t WHERE ' + value + " IS NOT NULL AND " + value + "<>'' AND NOT (" + valid + ') ORDER BY owner_pk')
@@ -401,11 +421,20 @@ def compile_paths(catalog, registry, scope):
                         't.' + ident(discriminator) + '=' + literal(target) + ' AND ' + value + ' IN ' + ids(selected['ids']),
                         owner_model=model_name, discriminator_column=discriminator)
                 key = 'invalid-polymorphic:' + table + '.' + name
+                known_model = 't.' + ident(discriminator) + ' IN (' + ','.join(literal(model) for model in sorted(models)) + ')'
+                if original_owner:
+                    outgoing = 'outbound-polymorphic:' + table + '.' + name
+                    queries[outgoing] = ('SELECT ' + _owner_sql(_owner(table, catalog)) + ' AS owner_pk,t.' + ident(discriminator)
+                        + ' AS target_model,' + value + ' AS target_id,NULL::integer AS company_id FROM public.' + ident(table)
+                        + ' t WHERE t.id IN ' + ids(scope[model_name]['ids']) + ' AND ' + value
+                        + '>0 AND ' + value + '<=2147483647 AND ' + known_model + ' ORDER BY owner_pk,target_model,target_id')
+                    paths.append({'kind': 'outbound-original-many2one-reference', 'table': table, 'field': name,
+                        'owner_key': _owner(table, catalog), 'observation': outgoing, 'target_model_from_row': True})
                 queries[key] = ('SELECT ' + _owner_sql(_owner(table, catalog))
                     + " AS owner_pk,encode(sha256(convert_to(jsonb_build_array(" + value + ',t.' + ident(discriminator)
                     + ")::text,'UTF8')),'hex') AS content_sha256 FROM public." + ident(table) + ' t WHERE '
-                    + value + '>0 AND (t.' + ident(discriminator) + ' IS NULL OR t.' + ident(discriminator) + ' NOT IN ('
-                    + ','.join(literal(model) for model in sorted(models)) + ')) ORDER BY owner_pk')
+                    + value + ' IS NOT NULL AND ' + value + '<>0 AND (' + value + '<0 OR ' + value
+                    + '>2147483647 OR NOT coalesce(' + known_model + ',FALSE)) ORDER BY owner_pk')
                 paths.append({'kind': 'unregistered-polymorphic-model-discriminator', 'table': table, 'field': name,
                     'owner_key': _owner(table, catalog), 'observation': key, 'semantic_binding_proven': False})
             elif kind == 'many2one':
@@ -413,8 +442,10 @@ def compile_paths(catalog, registry, scope):
                     blockers.append({'code': 'many2one-column-is-not-an-integer', 'model': model_name, 'field': name})
                     continue
                 enforced = any(fk['source_table'] == table and fk['source_columns'] == [name]
-                    and fk['target_table'] == scope[target]['table'] and fk['validated'] for fk in catalog['foreign_keys'])
-                add('registry-many2one', table, name, target, value, value + ' IN ' + ids(scope[target]['ids']) + owner_filter,
+                    and fk['target_table'] == models[target]['table'] and fk['validated'] for fk in catalog['foreign_keys'])
+                predicate = value + ' IN ' + ids(scope[target]['ids']) if incoming else value + ' IS NOT NULL' + owner_filter
+                add('registry-many2one', table, name, target, value, predicate,
+                    target_table=models[target]['table'],
                     owner_model=model_name, constraint_enforced=enforced)
                 if not enforced:
                     blockers.append({'code': 'declared-many2one-without-physical-fk', 'model': model_name, 'field': name})
@@ -447,22 +478,29 @@ def compile_paths(catalog, registry, scope):
 def endpoint_queries(paths, observations, registry):
     """Bind every observed endpoint and every composite owner's FK component."""
     by_table = {}
-    for name, row in registry_models(registry).items():
+    models = registry_models(registry)
+    for name, row in models.items():
         if not row['abstract']:
             by_table.setdefault(row['table'], []).append(name)
     endpoints = {}
     for path in paths:
         for row in observations[path['observation']]:
-            if path.get('target_table') and row.get('target_id') is not None:
+            if path.get('target_model_from_row') and row.get('target_id') is not None:
+                binding = models.get(row.get('target_model'))
+                require(binding and not binding['abstract'] and binding['table'], 'observed-polymorphic-target-registry-binding-not-proven')
+                endpoints.setdefault((binding['table'], row['target_model']), set()).add(row['target_id'])
+            elif path.get('target_table') and row.get('target_id') is not None:
                 endpoints.setdefault((path['target_table'], path.get('target_model')), set()).add(row['target_id'])
             if row.get('company_id') is not None:
-                endpoints.setdefault(('res_company', 'res.company'), set()).add(row['company_id'])
+                company = models.get('res.company')
+                require(company and not company['abstract'], 'company-endpoint-registry-binding-not-proven')
+                endpoints.setdefault((company['table'], 'res.company'), set()).add(row['company_id'])
             for fk in (path.get('owner_key') or {}).get('component_foreign_keys', []):
                 if fk['target_schema'] == 'public' and fk['target_columns'] == ['id'] and len(fk['source_columns']) == 1 and fk['validated']:
                     value = (row.get('owner_pk') or {}).get(fk['source_columns'][0])
                     if value is not None:
-                        models = by_table.get(fk['target_table'], [])
-                        model = models[0] if len(models) == 1 else None
+                        bound_names = by_table.get(fk['target_table'], [])
+                        model = bound_names[0] if len(bound_names) == 1 else None
                         endpoints.setdefault((fk['target_table'], model), set()).add(value)
     queries, contracts = {}, []
     for (table, model), values in sorted(endpoints.items(), key=lambda row: str(row[0])):
@@ -491,7 +529,7 @@ def assess(catalog, first, second, registry, scope, aliases):
             blockers.append({'code': 'malformed-company-property', 'table': path['table'], 'field': path['field']})
         if path.get('semantic_binding_proven') is False and rows:
             blockers.append({'code': path['kind'], 'table': path['table'], 'field': path['field'], 'nonempty_rows': len(rows)})
-        if path.get('target_model') and any(row['owner_pk'] is None for row in rows):
+        if (path.get('target_model') or path.get('target_model_from_row')) and any(row['owner_pk'] is None for row in rows):
             blockers.append({'code': 'nonempty-reference-owner-not-bound', 'table': path['table'], 'field': path['field']})
     existing = {row['id']: row for row in catalog['alias_occupants']}
     by_name = {(row['module'], row['name']): row for row in catalog['alias_occupants']}
@@ -520,7 +558,7 @@ def assess(catalog, first, second, registry, scope, aliases):
         'scope': scope, 'paths': [dict(path, rows=first[path['observation']]) for path in paths],
         'target_identities': occupants, 'action_462_physical_occupants': catalog.get('action_462', []),
         'blockers': blockers, 'alias_identity_plan': alias_plan, 'two_snapshots_exact': True,
-        'physical_reference_paths': sum('target_model' in row for row in paths),
+        'physical_reference_paths': sum('target_model' in row or row.get('target_model_from_row', False) for row in paths),
         'reference_closure_ready': not blockers, 'import_authorized': False, 'id_reservation_authorized': False,
         'selected_relocation_id': None, 'query_sha256': digest(queries),
         'recheck_required_under_writer_lock': True, 'observation_sha256': digest(first)}
@@ -564,7 +602,11 @@ def main():
     installation = json.loads(installation_path.read_text())
     database = registry['database']
     require(re.fullmatch(r'(?:COMMUNITY_PAYROLL_API_|MANAGEMENT_QA_CERRO_PAYROLL_API_)[A-Za-z0-9_]+', database), 'private-reference-database-required')
+    require(type(accepted.get('operational_extensions', False)) is bool, 'ambiguous-acceptance-profile')
     expected_counts = {'community': 637, 'cerro-reference': 437} if accepted.get('operational_extensions') else {'community': 576, 'cerro-reference': 391}
+    require(type(source_receipt.get('operational_extensions', False)) is bool
+        and source_receipt['expected_test_count'] == (437 if source_receipt.get('operational_extensions') else 391),
+        'exact-native-backup-source-profile-required')
     require(accepted['mode'] in expected_counts and accepted['expected_test_count'] == expected_counts[accepted['mode']]
         and accepted['database'] == database and accepted['writes_to_source'] is False
         and accepted['focused_development_pass'] is False and accepted['multifront'] is True,

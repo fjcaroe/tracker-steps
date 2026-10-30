@@ -162,6 +162,63 @@ class OriginalExternalReferencesCase(unittest.TestCase):
         self.assertIn('"actual_calendars"', endpoint_queries[contracts[0]['observation']])
         self.assertNotIn('resource.calendar', scope)
 
+    def test_outbound_original_json_m2m_and_polymorphic_edges_do_not_need_capsule_enumeration(self):
+        catalog, registry, scope, aliases = fixture()
+        for model, table in (('external.master', 'actual_external_storage'), ('res.company', 'actual_company_storage')):
+            registry['models'].append(dict(model=model, table=table, fields=[],
+                abstract=False, auto=True, transient=False, inherits={}))
+            catalog['tables'].append(dict(name=table, schema='public', kind='r'))
+        additions = [field('company_property', 'many2one', 'external.master', company_dependent=True),
+            field('external_ids', 'many2many', 'external.master', relation_table='original_external_rel',
+                column1='original_id', column2='external_id'),
+            field('external_ref', 'reference'), field('external_key', 'many2one_reference', model_field='model_key')]
+        registry['models'][0]['fields'].extend(additions)
+        catalog['fields'].extend(dict(id=100 + index, model=TYPE, name=row['name'], ttype=row['type'],
+            relation=row['comodel'], store=True, company_dependent=row['company_dependent']) for index, row in enumerate(additions))
+        catalog['columns'].extend(dict(table_name='actual_types', name=name, sql_type=kind, not_null=False)
+            for name, kind in (('company_property', 'jsonb'), ('external_ref', 'text'),
+                ('external_key', 'integer'), ('model_key', 'character varying')))
+        catalog['tables'].append(dict(name='original_external_rel', schema='public', kind='r'))
+        catalog['columns'].extend(dict(table_name='original_external_rel', name=name, sql_type='integer', not_null=True)
+            for name in ('original_id', 'external_id'))
+        catalog['keys'].append(dict(table_name='original_external_rel', name='original_external_unique',
+            columns=['original_id', 'external_id'], primary_key=False))
+        catalog['foreign_keys'].extend(dict(name='out_' + name, source_schema='public', source_table='original_external_rel',
+            source_columns=[name], target_schema='public', target_table=table, target_columns=['id'],
+            validated=True, ondelete='r') for name, table in (('original_id', 'actual_types'), ('external_id', 'actual_external_storage')))
+        queries, paths, blockers = audit.compile_paths(catalog, registry, scope)
+        self.assertFalse(blockers)
+        rows = {key: [] for key in queries}
+        kinds = ('registry-many2many', 'registry-company-json', 'outbound-original-reference', 'outbound-original-many2one-reference')
+        selected = [row for row in paths if row['kind'] in kinds and row['table'] in ('actual_types', 'original_external_rel')]
+        self.assertEqual(len(selected), 4)
+        for path in selected:
+            self.assertIn('IN (1,2,3,4)', queries[path['observation']])
+            rows[path['observation']] = [{'owner_pk': {'original_id': 1, 'external_id': 77} if path['kind'] == 'registry-many2many' else {'id': 1},
+                'target_model': 'external.master', 'target_id': 77,
+                'company_id': 9 if path['kind'] == 'registry-company-json' else None}]
+        _, endpoints = audit.endpoint_queries(paths, rows, registry)
+        external = next(row for row in endpoints if row['model'] == 'external.master')
+        company = next(row for row in endpoints if row['model'] == 'res.company')
+        self.assertEqual((external['table'], external['ids']), ('actual_external_storage', [77]))
+        self.assertEqual((company['table'], company['ids']), ('actual_company_storage', [9]))
+        self.assertNotIn('external.master', scope)
+        unknown = deepcopy(rows)
+        dynamic = next(path for path in selected if path.get('target_model_from_row'))
+        unknown[dynamic['observation']][0]['target_model'] = 'unloaded.master'
+        with self.assertRaisesRegex(ValueError, 'polymorphic-target-registry-binding'):
+            audit.endpoint_queries(paths, unknown, registry)
+        missing_company = deepcopy(registry)
+        missing_company['models'] = [row for row in missing_company['models'] if row['model'] != 'res.company']
+        with self.assertRaisesRegex(ValueError, 'company-endpoint-registry-binding'):
+            audit.endpoint_queries(paths, rows, missing_company)
+
+    def test_outbound_original_unloaded_comodel_is_blocked_before_reference_queries(self):
+        catalog, registry, scope, _ = fixture()
+        registry['models'][0]['fields'].append(field('unavailable_id', 'many2one', 'unloaded.master'))
+        _, _, blockers = audit.compile_paths(catalog, registry, scope)
+        self.assertIn('outbound-original-comodel-not-in-loaded-registry', {row['code'] for row in blockers})
+
     def test_connection_guard_is_local_readonly_and_rejects_mutation_before_process(self):
         with patch.object(audit.subprocess, 'run') as run:
             for database, sql in (('CERROELPLOMO', 'SELECT 1'),
