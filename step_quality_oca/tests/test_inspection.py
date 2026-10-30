@@ -39,7 +39,7 @@ class QualityOcaOperationCase(TransactionCase):
         wizard = self.scope['qc.inspection.set.test'].with_context(active_model='qc.inspection', active_id=inspection.id).create({'test': self.test.id})
         self.assertTrue(wizard.action_create_test())
         for line in inspection.inspection_lines:
-            if line.question_type == 'quantitative':
+            if line.question_type == 'quantitative' and measured is not None:
                 line.quantitative_value = measured
             elif accepted is not None:
                 answer = line.possible_ql_values.filtered(lambda row: row.ok == accepted)
@@ -57,9 +57,18 @@ class QualityOcaOperationCase(TransactionCase):
 
     def test_actual_wizard_measurements_success_and_real_form(self):
         self.assertNotIn('quality.check', self.scope.registry)
-        inspection = self._inspection()
+        inspection = self._inspection(measured=None)
         original_ids = inspection.inspection_lines.ids
+        measured = inspection.inspection_lines.filtered(lambda row: row.question_type == 'quantitative')
+        self.env.flush_all()
+        self.env.cr.execute('SELECT quantitative_value FROM qc_inspection_line WHERE id=%s', (measured.id,))
+        self.assertIsNone(self.env.cr.fetchone()[0])
         inspection.action_todo()
+        unmeasured = self._snapshot(inspection)
+        with TestCase.assertRaisesRegex(self, UserError, 'NULL'):
+            inspection.action_confirm()
+        self.assertEqual(self._snapshot(inspection), unmeasured)
+        measured.quantitative_value = 1.0
         inspection.action_confirm()
         self.assertEqual(inspection.state, 'success')
         self.assertTrue(inspection.success)
