@@ -33,8 +33,12 @@ try:
         paid=snapshot("SELECT md5(coalesce(string_agg(to_jsonb(p)::text,'' ORDER BY p.id),'')) FROM hr_payslip p WHERE p.state IN ('done','paid')")
         paid_lines=snapshot("SELECT md5(coalesce(string_agg(to_jsonb(l)::text,'' ORDER BY l.id),'')) FROM hr_payslip_line l JOIN hr_payslip p ON p.id=l.slip_id WHERE p.state IN ('done','paid')")
         unchanged={}
-        for table in ('hr_work_entry','hr_leave','hr_contract','account_move','account_move_line'):
+        for table in ('hr_work_entry','hr_contract','account_move','account_move_line'):
             unchanged[table]=snapshot("SELECT md5(coalesce(string_agg(to_jsonb(t)::text,'' ORDER BY id),'')) FROM "+table+' t')
+        env.cr.execute('SELECT id,to_jsonb(t) FROM hr_leave t');leave_before=dict(env.cr.fetchall())
+        staff=business['hr.payslip'].browse([case['payslip_id'] for case in plan['cases']]).employee_id
+        eligible=business['hr.leave'].search([('employee_id','in',staff.ids),('state','!=','refuse'),
+            ('payslip_state','!=','blocked'),('date_to','<=','2026-10-31 23:59:59.999999')]).ids
         for case in plan['cases']:
             slip=business['hr.payslip'].browse(case['payslip_id']).exists()
             assert slip and slip.company_id==company and slip.state in ('draft','verify') and not slip.move_id
@@ -56,8 +60,19 @@ try:
             assert source_absence.read(['work_entry_type_id','number_of_days','number_of_hours','amount'])==original_absence
         for table,value in unchanged.items():
             assert snapshot("SELECT md5(coalesce(string_agg(to_jsonb(t)::text,'' ORDER BY id),'')) FROM "+table+' t')==value,table
+        env.cr.execute('SELECT id,to_jsonb(t) FROM hr_leave t');leave_after=dict(env.cr.fetchall())
+        assert leave_before.keys()==leave_after.keys()
+        for ident,before in leave_before.items():
+            after=leave_after[ident]
+            if ident in eligible:
+                assert after['payslip_state']=='done'
+                excluded={'payslip_state','write_uid','write_date'}
+                assert {k:v for k,v in before.items() if k not in excluded}=={k:v for k,v in after.items() if k not in excluded}
+            else:assert before==after
         assert snapshot("SELECT md5(coalesce(string_agg(to_jsonb(p)::text,'' ORDER BY p.id),'')) FROM hr_payslip p WHERE p.state IN ('done','paid')")==paid
         assert snapshot("SELECT md5(coalesce(string_agg(to_jsonb(l)::text,'' ORDER BY l.id),'')) FROM hr_payslip_line l JOIN hr_payslip p ON p.id=l.slip_id WHERE p.state IN ('done','paid')")==paid_lines
+        env.cr.rollback()
+        env.cr.execute('SELECT id,to_jsonb(t) FROM hr_leave t');assert dict(env.cr.fetchall())==leave_before
         print('T138_NATIVE_CASES_OK one_absence=29 two_absences=28 paid_history_unchanged=True rollback_required=True')
     print('MANAGEMENT_REGISTRY_OK '+json.dumps({'ticket':138,'versions':EXPECTED,'existing_profile':scoped.uid,
         'company_id':scoped.company.id,'native_payroll_menu_and_form':True,'writes':False}))
