@@ -18,6 +18,8 @@ class TestContractDaysOca(ContractDaysFixture, TransactionCase):
 
     def _values(self, slip):
         self.assertFalse(slip.env.su)
+        self.assertTrue(slip.contract_id.get_work_hours(slip.date_from, slip.date_to),
+            'The real private work entries must be consumable before the T138 provider is invoked.')
         values = slip._get_worked_day_lines_values()
         attendance = [row for row in values if row['work_entry_type_id'] == self.work.id]
         self.assertLessEqual(len(attendance), 1)
@@ -53,7 +55,9 @@ class TestContractDaysOca(ContractDaysFixture, TransactionCase):
     def test_calendar_medical_license_keeps_supplier_divisor_31_and_stored_amount(self):
         for code in ('LIC', 'LEAVECL130'):
             slip = self._slip(self.chile)
-            kind = self._type(code)
+            # A medical alias must have its own explicit global type without
+            # a source unpaid master; do not reuse the real unpaid CL alias.
+            kind = self._type(code, global_type=code == 'LEAVECL130')
             self._leave(slip, kind, date(2026, 10, 1), date(2026, 10, 2), unpaid=False)
             values, work = self._values(slip)
             self.assertEqual(work['number_of_days'], 29)
@@ -102,8 +106,13 @@ class TestContractDaysOca(ContractDaysFixture, TransactionCase):
         slip.sudo().read(['worked_days_line_ids'])
         rule = self.env['ir.rule'].create({'name': 'Private T138 hidden actual entry',
             'model_id': self.env['ir.model']._get_id('hr.work.entry'), 'domain_force': "[('id','!=',%s)]" % entry.id})
-        with TestCase.assertRaises(self, AccessError):
+        # Country configuration can reject this deliberately unadopted Chile
+        # profile earlier in the real MRO. Keep that gate and exercise the
+        # actual source-admission method directly, without bypassing it.
+        with TestCase.assertRaises(self, UserError):
             slip.sudo().compute_sheet()
+        with TestCase.assertRaises(self, AccessError):
+            slip.sudo()._step_contract_days_access(write=True, sources=True)
         self.assertEqual(self._snapshot(slip), before)
         rule.unlink()
         field = self.scope['hr.leave.type']._fields['unpaid']
