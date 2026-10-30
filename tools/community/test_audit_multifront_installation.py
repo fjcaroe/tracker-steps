@@ -73,7 +73,7 @@ class MultifrontInstallationCase(unittest.TestCase):
         self.assertEqual(audit.critical_tests(True, 'S'), {'community': 671, 'cerro-reference': 462})
         for mode in ('community', 'cerro-reference'):
             source, passed, metadata = fixture(mode, True, True)
-            passed.update(critical_extension=True, critical_generation='S', package_files=512,
+            passed.update(critical_extension=True, critical_generation='S', package_files=513,
                 expected_test_count=audit.critical_tests(True, 'S')[mode])
             proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
                 operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='S')

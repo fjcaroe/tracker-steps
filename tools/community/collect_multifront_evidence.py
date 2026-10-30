@@ -152,7 +152,7 @@ def collect(root, output, original_provider, oca, inventory_root, *,
     if critical_extension:
         manifest['critical_extension'] = True
     if critical_generation == 'S':
-        assert len(packets[0]) == 512
+        assert len(packets[0]) == 513
         manifest['critical_generation'] = 'S'
     bodies['evidence-files.json'] = json.dumps(manifest, indent=2).encode()
     with os.fdopen(os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'wb') as stream:
