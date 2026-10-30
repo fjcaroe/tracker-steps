@@ -27,7 +27,7 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256):
     type_ids = [json.loads(row)['id'] for row in capsule['tables']['hr_payroll_structure_type']['rows_json']]
     # This cursor observes the actual fresh native control with its original
     # installed provider. No native ORM, source rules or payslips are evaluated.
-    with sql_db.db_connect(reference).cursor(readonly=True) as control:
+    with sql_db.db_connect(reference, readonly=True).cursor() as control:
         benefits = admit_source_benefit_cohort(control, type_ids, expected_database=reference)
         roles = plan_original_payroll_role_bindings(control, expected_database=reference)
     role_proof = verify_original_payroll_role_bindings(env.cr, roles, expected_database=database)
