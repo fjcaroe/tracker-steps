@@ -77,6 +77,7 @@ class OriginalPayrollReportPdfCase(HttpCase):
         pdf.chmod(0o600)
         proof = {
             'file': filename, 'sha256': hashlib.sha256(response.content).hexdigest(),
+            'bytes': len(response.content),
             'pages': pages, 'actor_id': owner.id, 'normal_actor': True,
             'stored_history_unchanged': True, 'original_action_unchanged': True,
             'existing_structure_fk_unchanged': True, 'missing_assets': missing,

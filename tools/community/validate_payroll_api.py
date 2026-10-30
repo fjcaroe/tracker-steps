@@ -322,6 +322,19 @@ def main():
                 +',/step_l10n_cl_edi_core:TestDTESignatureCore,/step_l10n_cl_edi_core:TestEnvioDTECore,'+report_tags)
         text=execute('tests',['-i' if pure else '-u',modules,'--test-enable','--test-tags='+tags])
         stored_pdf_count=0
+        original_pdf_count=0
+        original_pdf_receipt=None
+        if pure and args.operational_extensions:
+            original_pdf_receipt=data/'original-report-pdf-evidence/proof.json'
+            original_proof=json.loads(original_pdf_receipt.read_text())
+            assert all(original_proof[name] is True for name in ('normal_actor','stored_history_unchanged',
+                'original_action_unchanged','existing_structure_fk_unchanged'))
+            assert original_proof['missing_assets']==[] and original_proof['original_action_numeric_adoption'] is False
+            assert original_proof['pages']>0 and original_proof['bytes']>0 and original_proof['runtime_asset_sha256']
+            assert Path(original_proof['file']).name==original_proof['file']
+            pdf=original_pdf_receipt.parent/original_proof['file']
+            assert pdf.stat().st_size==original_proof['bytes'] and hashlib.sha256(pdf.read_bytes()).hexdigest()==original_proof['sha256']
+            original_pdf_count=1
         if pure and simpledigital and not (args.focused_multifront or args.focused_extensions) and (source/'step_simpledigital_oca_base/tests/test_report_pdf.py').exists():
             pdf_directory=data/'payslip-pdf-evidence'
             proofs=[row for path in pdf_directory.glob('proof-*.json') for row in json.loads(path.read_text())]
@@ -420,6 +433,8 @@ def main():
             'numeric_input_engine':bool(pure and args.numeric_input_engine),
             'numeric_engine_derivation_sha256':hashlib.sha256((root/'oca-input-numeric-derivation.json').read_bytes()).hexdigest() if pure and args.numeric_input_engine else None,
             'stored_payslip_pdf_reports':stored_pdf_count,
+            'original_report_pdf_reports':original_pdf_count,
+            'original_report_pdf_receipt_sha256':hashlib.sha256(original_pdf_receipt.read_bytes()).hexdigest() if original_pdf_receipt else None,
             'identity_snapshot_tool_sha256':hashlib.sha256((source/'tools/community/validate_agriculture_core.py').read_bytes()).hexdigest(),
             'original_xmlid_noupdate_captured':bool(not pure and original.get('original_xmlids') and all('noupdate' in row for row in original['original_xmlids'])),
             'accelerated_tools_sha256':{name:hashlib.sha256((source/'tools/community'/name).read_bytes()).hexdigest() for name in ('accelerated_acceptance.py','hr_consumers_candidate.py','finance_frontier_contract.py','hr_consumer_metadata.py')} if args.accelerated else {},
