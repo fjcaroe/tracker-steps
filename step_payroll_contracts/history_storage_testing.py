@@ -41,6 +41,10 @@ class HistoryStorageCases:
             'slip_id': slip.id, 'salary_rule_id': case.rule.id, 'employee_id': case.employee.id,
             'contract_id': case.contract.id, 'category_id': case.rule.category_id.id,
             'amount': 1, 'quantity': 1, 'rate': 100})
+        # The actual Simple Digital provider sets the rule name on create in
+        # both engines. Save a literal on this new draft through its real ORM;
+        # the witness concerns persistence/reads, not a different create API.
+        line.write({'name': 'Private stored name: acción  doble'})
         self.assertFalse(line.env.su)
         return slip, line
 
