@@ -11,3 +11,4 @@ from . import test_saved_inputs
 from . import test_original_input_storage
 
 from . import test_original_rule_projection
+from . import test_original_input_type_ui
