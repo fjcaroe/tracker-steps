@@ -79,6 +79,9 @@ def compare(stage, database):
         current={(row['table_name'],row[key]):row for row in target_schema[section]}
         schema_differences[section]=[{'before':row,'after':current.get((row['table_name'],row[key]))}
             for row in source_schema[section] if current.get((row['table_name'],row[key]))!=row]
+    original_constraint_keys={(row['table_name'],row['name']) for row in source_schema['constraints']}
+    added_constraints=[row for row in target_schema['constraints'] if
+        (row['table_name'],row['name']) not in original_constraint_keys]
     result={'schema':1,'database':database,'read_only':True,'production_changed':False,
         'original_business_entries':len(before),'literal_business_entries_exact':len(before)-len(changed),
         'business_differences_requiring_review':changed,'original_identity_losses_or_retargets':missing,
@@ -94,6 +97,7 @@ def compare(stage, database):
             for table,names in columns.items() if not set(names)<=set(actual_columns[table])},
         'history_and_expiration_exact':preservation.history_contract(reference)==preservation.history_contract(database),
         'original_physical_schema_differences_requiring_review':schema_differences,
+        'added_constraints_requiring_review':added_constraints,
         'source_dump_sha256':plan['source_dump_sha256']}
     return result
 
