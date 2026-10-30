@@ -4,7 +4,7 @@ Pure HTML transformation: no ORM, document values, assets or company mutation.
 The Qt PDF renderer can omit a nested Bootstrap flex/address flow. Only layout
 attributes inside one unambiguous corporate header may be changed here.
 """
-from lxml import html
+from lxml import etree, html
 
 
 MARKER = 'step_original_report_header_block'
@@ -72,11 +72,11 @@ def table_corporate_header(value):
     before = tree.text_content()
     table = html.Element('table', {'class': 'step_original_report_header_table', 'role': 'presentation',
                                   'style': 'width:100%;border-collapse:collapse;border:0;table-layout:fixed;'})
-    tbody = html.SubElement(table, 'tbody')
+    tbody = etree.SubElement(table, 'tbody')
     for child in list(header):
         header.remove(child)
-        row = html.SubElement(tbody, 'tr')
-        cell = html.SubElement(row, 'td', {'style': 'padding:0;border:0;vertical-align:top;'})
+        row = etree.SubElement(tbody, 'tr')
+        cell = etree.SubElement(row, 'td', {'style': 'padding:0;border:0;vertical-align:top;'})
         cell.append(child)
     for node in table.iterdescendants():
         classes = (node.get('class') or '').split()
