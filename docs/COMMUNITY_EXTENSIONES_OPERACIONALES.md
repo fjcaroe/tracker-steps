@@ -137,7 +137,10 @@ antes de seleccionar ventajas.
 ## Pendientes acumulados y fecha
 
 El inventario inicial readonly cubrió Cerro, Steps y SyS, sus fuentes privadas
-y módulos propios fuera de Cerro. Permanecen 54 apps propias instaladas con
+y módulos propios fuera de Cerro. La matriz actualizada cuenta 130 módulos
+propios en la canónica, 34 fuera del inventario instalado (incluye adaptadores
+y referencias técnicas); Calidad sigue fuera de la canónica. Permanecen
+54 apps propias instaladas con
 caminos Enterprise; producción Cerro conserva 140 EE. Extraer o probar una
 biblioteca no reduce ese inventario sin cerrar sus consumidores y la conversión.
 
