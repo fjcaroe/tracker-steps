@@ -8,7 +8,7 @@ import re
 import subprocess
 
 from offline_process import offline_odoo
-from probe_original_handover import ADMISSION_SCOPES, admission_receipt_name
+from probe_original_handover import ADMISSION_SCOPES, admission_receipt_name, sealed_json
 
 
 def parse_arguments(arguments=None):
@@ -16,7 +16,14 @@ def parse_arguments(arguments=None):
     for name in ('root','tools','source-visibility'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--attempt',required=True)
     parser.add_argument('--admission-scope', choices=ADMISSION_SCOPES, default='full')
-    return parser.parse_args(arguments)
+    parser.add_argument('--source-menu-visibility', type=Path)
+    parser.add_argument('--source-menu-sha256')
+    args = parser.parse_args(arguments)
+    if args.source_menu_visibility is not None or args.source_menu_sha256 is not None:
+        if (args.admission_scope != 'full' or args.source_menu_visibility is None
+                or not re.fullmatch('[a-f0-9]{64}', args.source_menu_sha256 or '')):
+            parser.error('Source menu witness requires full scope, explicit path and SHA256')
+    return args
 
 
 def main():
@@ -31,18 +38,28 @@ def main():
     assert re.fullmatch(r'MANAGEMENT_QA_CERRO_PAYROLL_API_ORIGINAL_HANDOVER_[A-Za-z0-9_]+',database)
     assert reference==database.replace('_HANDOVER_','_REFERENCE_') and json.loads((stage/'install-status.json').read_text())['exit_code']==0
     assert json.loads((stage/'loader-receipt.json').read_text())['original_cleanup_delegated'] is True
+    if args.source_menu_visibility is not None:
+        sealed_json(args.source_menu_visibility, args.source_menu_sha256)
     output=stage/('probe-'+args.attempt);assert not output.exists();output.mkdir(mode=0o750)
     actor=pwd.getpwnam('odoo');os.chown(output,actor.pw_uid,actor.pw_gid)
     visibility=output/'source-visibility.json';raw=args.source_visibility.read_bytes()
     with os.fdopen(os.open(visibility,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as stream:stream.write(raw)
     os.chown(visibility,actor.pw_uid,actor.pw_gid)
+    source_menu = None
+    if args.source_menu_visibility is not None:
+        source_menu = output/'source-menu-visibility.json'; raw = args.source_menu_visibility.read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == args.source_menu_sha256
+        with os.fdopen(os.open(source_menu,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'wb') as stream:stream.write(raw)
+        os.chown(source_menu,actor.pw_uid,actor.pw_gid)
     def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
     receipt=output/admission_receipt_name(args.admission_scope)
     expression=('import sys,json,os;sys.path.insert(0,'+repr(str(tools))+'); from postcheck_original_anchor import run; '
         'result=run(env,'+repr(str(stage))+',database='+repr(database)+',reference='+repr(reference)
         +',capsule_sha256='+repr(sha(stage/'capsule.json'))+',identity_sha256='+repr(sha(stage/'identity-before.json'))
         +',source_visibility_path='+repr(str(visibility))+',source_visibility_sha256='+repr(sha(visibility))
-        +',output_stage='+repr(str(output))+',admission_scope='+repr(args.admission_scope)+');'
+        +',output_stage='+repr(str(output))+',admission_scope='+repr(args.admission_scope)
+        +',source_menu_path='+repr(str(source_menu) if source_menu is not None else None)
+        +',source_menu_sha256='+repr(args.source_menu_sha256)+');'
         +'assert result["data_projection_scope_passed"] is True;'
         +'assert result["admission_scope"]=='+repr(args.admission_scope)+';'
         +'env.cr.commit();result["transaction_committed"]=True;'
@@ -64,6 +81,9 @@ def main():
     assert sealed['data_projection_scope_passed'] is True
     assert (sealed['ui_scope_exercised'],sealed['ui_admission']) == ((True,True)
         if args.admission_scope=='full' else (False,False))
+    if source_menu is not None:
+        assert all(sealed[name] is True for name in ('source_menu_witness_validated',
+            'source_menu_visibility_parity','core_ui_admitted'))
     receipt.chmod(0o600)
     print('ORIGINAL_COHORT_SCOPE_OK',args.admission_scope,str(output),flush=True)
 

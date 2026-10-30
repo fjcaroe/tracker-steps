@@ -15,8 +15,9 @@ from odoo.addons.step_payroll_contracts.original_payroll_roles import (
     OCA_ONLY_MODELS, plan_original_payroll_role_bindings,
     verify_original_payroll_role_bindings, admit_empty_oca_models_readonly_manager)
 from probe_original_handover import (run as probe, sealed_json, admission_scope_contract,
-    admission_receipt_name)
+    admission_receipt_name, menu_witness_arguments)
 import original_handover_visibility_contract as visibility
+import original_handover_menu_contract as menu_contract
 
 
 def verify_reusable_read_acl(existing, manager_id):
@@ -25,8 +26,11 @@ def verify_reusable_read_acl(existing, manager_id):
 
 
 def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
-        source_visibility_path=None, source_visibility_sha256=None, output_stage=None, admission_scope='full'):
+        source_visibility_path=None, source_visibility_sha256=None, output_stage=None, admission_scope='full',
+        source_menu_path=None, source_menu_sha256=None):
     admission_scope_contract(admission_scope, source_visibility_path, source_visibility_sha256)
+    menu_witness_arguments(admission_scope, source_visibility_path, source_visibility_sha256,
+        source_menu_path, source_menu_sha256)
     stage = Path(stage)
     output_stage=Path(output_stage) if output_stage is not None else stage
     assert output_stage.is_relative_to(stage) and output_stage.is_dir()
@@ -46,6 +50,9 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
         # two authorized new-only technical ACLs can be prepared.
         visibility.validate_source(source_proof, capsule, target_database=database,
             original_model_id=model_ids[0], original_report_ids=report_ids)
+    if source_menu_path is not None:
+        menu_contract.validate_source(sealed_json(source_menu_path, source_menu_sha256), source_proof, identity,
+            source_sha256=source_visibility_sha256, identity_sha256=identity_sha256)
     type_ids = [json.loads(row)['id'] for row in capsule['tables']['hr_payroll_structure_type']['rows_json']]
     # This cursor observes the actual fresh native control with its original
     # installed provider. No native ORM, source rules or payslips are evaluated.
@@ -81,11 +88,14 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
     actual = probe(env, str(stage / 'capsule.json'), capsule_sha256,
         str(stage / 'identity-before.json'), identity_sha256, str(output_stage / 'cohort-probe.json'),
         source_visibility_path=source_visibility_path, source_visibility_sha256=source_visibility_sha256,
-        admission_scope=admission_scope)
+        admission_scope=admission_scope, source_menu_path=source_menu_path, source_menu_sha256=source_menu_sha256)
     assert actual['passed'] is True and actual['admission_scope'] == admission_scope
     assert actual['data_projection_scope_passed'] is True
     assert (actual['ui_scope_exercised'], actual['ui_admission']) == ((True, True)
         if admission_scope == 'full' else (False, False))
+    if source_menu_path is not None:
+        assert all(actual[name] is True for name in ('source_menu_witness_validated',
+            'source_menu_visibility_parity', 'core_ui_admitted'))
     # Creation of new-only read ACLs and projection must not change one byte of
     # any original role, member/implied edge or common-model access policy.
     assert verify_original_payroll_role_bindings(env.cr, roles,
@@ -95,6 +105,9 @@ def run(env, stage, *, database, reference, capsule_sha256, identity_sha256,
     result = {'schema': 1, 'database': database, 'native_control_database': reference,
         'admission_scope': admission_scope, 'ui_scope_exercised': actual['ui_scope_exercised'],
         'ui_admission': actual['ui_admission'], 'data_projection_scope_passed': True,
+        'source_menu_witness_validated': actual['source_menu_witness_validated'],
+        'source_menu_visibility_parity': actual['source_menu_visibility_parity'],
+        'core_ui_admitted': actual['core_ui_admitted'],
         'source_benefits': benefits.metadata(), 'benefit_data_admission': benefit_proof,
         'original_role_policy': role_proof, 'empty_upstream_models': empty_models,
         'new_empty_model_readonly_acls': new_acls, 'actual_original_cohort_probe': actual,
