@@ -20,7 +20,7 @@ def encode(value):
     return json.dumps(value, indent=2, sort_keys=True).encode('utf-8')
 
 
-def seal(evidence, output, *, quality_extension=False, critical_extension=False):
+def seal(evidence, output, *, quality_extension=False, critical_extension=False, critical_generation='R3'):
     evidence, output = Path(evidence).resolve(), Path(output).resolve()
     repo = Path(__file__).resolve().parents[2]
     assert not output.is_relative_to(repo) and not output.exists()
@@ -28,6 +28,7 @@ def seal(evidence, output, *, quality_extension=False, critical_extension=False)
     options={'operational_extensions':True}
     if quality_extension:options['quality_extension']=True
     if critical_extension:options['critical_extension']=True
+    if critical_generation != 'R3':options['critical_generation']=critical_generation
     summary = verify(evidence, repo=repo, **options)
     files = {}
     for path in evidence.rglob('*'):
@@ -63,5 +64,6 @@ if __name__ == '__main__':
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--quality-extension',action='store_true')
     parser.add_argument('--critical-extension',action='store_true')
+    parser.add_argument('--critical-generation',choices=('R3','S'),default='R3')
     args=parser.parse_args()
-    print(json.dumps(seal(args.evidence,args.output,quality_extension=args.quality_extension,critical_extension=args.critical_extension),sort_keys=True))
+    print(json.dumps(seal(args.evidence,args.output,quality_extension=args.quality_extension,critical_extension=args.critical_extension,critical_generation=args.critical_generation),sort_keys=True))

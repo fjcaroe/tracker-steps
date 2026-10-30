@@ -68,6 +68,35 @@ class MultifrontInstallationCase(unittest.TestCase):
             with self.assertRaises(ValueError):
                 audit.verify(proof, mode, source, passed, operational_extensions=True, quality_extension=True)
 
+    def test_s_generation_binds_exact_source_versions_count_and_files_without_changing_r3(self):
+        self.assertEqual(audit.critical_tests(True), {'community': 665, 'cerro-reference': 457})
+        self.assertEqual(audit.critical_tests(True, 'S'), {'community': 671, 'cerro-reference': 462})
+        for mode in ('community', 'cerro-reference'):
+            source, passed, metadata = fixture(mode, True, True)
+            passed.update(critical_extension=True, critical_generation='S', package_files=512,
+                expected_test_count=audit.critical_tests(True, 'S')[mode])
+            proof = audit.audit(lambda db, query: json.dumps(metadata), mode, source, passed,
+                operational_extensions=True, quality_extension=True, critical_extension=True, critical_generation='S')
+            self.assertEqual(proof['critical_generation'], 'S')
+            for changes in ({'critical_generation': 'R3'}, {'critical_generation': None},
+                    {'expected_test_count': audit.CRITICAL_TESTS[mode]}, {'package_files': 508}):
+                with self.subTest(mode=mode, changes=changes), self.assertRaises(ValueError):
+                    audit.verify(proof, mode, source, dict(passed, **changes), operational_extensions=True,
+                        quality_extension=True, critical_extension=True, critical_generation='S')
+            with self.assertRaises(ValueError):
+                audit.verify(proof, mode, source, passed, operational_extensions=True,
+                    quality_extension=True, critical_extension=True)
+            for module in audit.S_VERSIONS:
+                altered = dict(source)
+                manifest = __import__('ast').literal_eval(altered[module + '/__manifest__.py'].decode())
+                manifest['version'] = '18.0.1.0.0'
+                altered[module + '/__manifest__.py'] = repr(manifest).encode()
+                with self.subTest(module=module), self.assertRaises(ValueError):
+                    audit.verify(proof, mode, altered, passed, operational_extensions=True,
+                        quality_extension=True, critical_extension=True, critical_generation='S')
+        for flag, generation in ((False, 'S'), (True, 'R4'), (1, 'S')):
+            with self.assertRaises(ValueError): audit.critical_tests(flag, generation)
+
     def test_quality_profile_requires_exact_thirtythree_and_distinct_oca_native_providers(self):
         for mode, total in (('community', 31), ('cerro-reference', 27)):
             source, passed, metadata = fixture(mode, True, True)
