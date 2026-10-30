@@ -13,3 +13,4 @@ from . import test_original_input_storage
 from . import test_original_rule_projection
 from . import test_original_input_type_ui
 from . import test_delete_history
+from . import test_original_history_storage
