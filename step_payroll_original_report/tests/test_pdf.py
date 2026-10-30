@@ -1,12 +1,15 @@
 """Real HTTP/PDF through a private action XMLID, never reserving original IDs."""
 from contextlib import ExitStack
+import hashlib
 import io
 import json
+from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import urlencode
 import uuid
 
 from PyPDF2 import PdfFileReader
+from odoo import tools
 from odoo.tests import HttpCase, tagged
 
 from .common import action_snapshot, prepare_ce_fixture
@@ -41,7 +44,7 @@ class OriginalPayrollReportPdfCase(HttpCase):
         # This existing accepted sidecar only serves actual fetched runtime
         # assets; it fabricates no CSS, images, salary values or PDF bytes.
         from odoo.addons.step_simpledigital_oca_base.tests.test_report_pdf import StoredPayslipPdfCase
-        server, thread, missing, unused_hashes, unused_optional = StoredPayslipPdfCase.asset_sidecar(
+        server, thread, missing, asset_hashes, optional_missing = StoredPayslipPdfCase.asset_sidecar(
             self, [html.content, *bodies, header, footer])
         before, identity = f.stored_snapshot(slip), action_snapshot(self.action)
         self.env['ir.config_parameter'].sudo().set_param('report.url', 'http://127.0.0.1:%s' % server.server_port)
@@ -56,8 +59,35 @@ class OriginalPayrollReportPdfCase(HttpCase):
             self.env['ir.config_parameter'].sudo().set_param('report.url', self.base_url())
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.content.startswith(b'%PDF-'))
-        self.assertGreater(PdfFileReader(io.BytesIO(response.content)).getNumPages(), 0)
+        pages = PdfFileReader(io.BytesIO(response.content)).getNumPages()
+        self.assertGreater(pages, 0)
         self.assertFalse(missing, missing)
         self.assertEqual(action_snapshot(self.action), identity)
         self.assertEqual(f.structure.report_id, self.action)
         self.assertEqual(f.stored_snapshot(slip), before)
+        output = Path(tools.config['data_dir']) / 'original-report-pdf-evidence'
+        if not str(output.resolve()).startswith('/opt/steps-validation/'):
+            self.fail('Original report evidence must remain in a private validation data directory')
+        output.mkdir(mode=0o700, exist_ok=True)
+        output.chmod(0o700)
+        filename = 'original-report-stored-%s.pdf' % slip.id
+        pdf = output / filename
+        with pdf.open('xb') as handle:
+            handle.write(response.content)
+        pdf.chmod(0o600)
+        proof = {
+            'file': filename, 'sha256': hashlib.sha256(response.content).hexdigest(),
+            'pages': pages, 'actor_id': owner.id, 'normal_actor': True,
+            'stored_history_unchanged': True, 'original_action_unchanged': True,
+            'existing_structure_fk_unchanged': True, 'missing_assets': missing,
+            'original_action_numeric_adoption': False,
+            'runtime_asset_sha256': asset_hashes,
+            'unused_css_prefetch_404': sorted(set(optional_missing)),
+            'financial_verified_html_sha256': hashlib.sha256(html.content).hexdigest(),
+            'offline_pdf_text_verification_required': True,
+            'visual_pdf_review_required': True,
+        }
+        receipt = output / 'proof.json'
+        with receipt.open('x', encoding='utf-8') as handle:
+            json.dump(proof, handle, indent=2)
+        receipt.chmod(0o600)
