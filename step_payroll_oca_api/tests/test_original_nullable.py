@@ -227,6 +227,21 @@ class OriginalNullableCase(TransactionCase):
         self.assertFalse(scope.su)
         self.kind.with_env(scope).check_access("read")
         before = self._snapshot(scope)
+        # Isolate the type's country endpoint: the actual company stays CL,
+        # while this deliberately visible type belongs to the private FR
+        # company scope. Hiding FR must not be mistaken for the earlier CL
+        # company-country check, even with the endpoint already in sudo cache.
+        country = self.kind.with_env(scope).country_id
+        self.assertNotEqual(country, self.company.country_id)
+        country.sudo().read(["id"])
+        restriction = self.env["ir.rule"].create({"name": "Private hidden type country endpoint",
+            "model_id": self.env["ir.model"]._get_id("res.country"),
+            "domain_force": "[('id','!=',%d)]" % country.id})
+        self.kind.with_env(scope).check_access("read")
+        with TestCase.assertRaises(self, AccessError):
+            self.structure.with_env(scope).sudo()._step_check_original_required_contract()
+        restriction.unlink()
+        self.assertEqual(self._snapshot(scope), before)
         with self.assertRaisesRegex(UserError, "country scope"):
             self.structure.with_env(scope)._step_check_original_required_contract()
         self.assertEqual(self._snapshot(scope), before)
