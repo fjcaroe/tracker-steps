@@ -80,6 +80,10 @@ class TreasuryCommunityBridgeFlowCase(AccountTestInvoicingCommon):
         self.assertEqual(self.native.read(columns), before)
 
     def test_role_owner_company_and_direct_sudo_render_cannot_bypass_access(self):
+        owner_rule = self.env.ref(MODULE + '.rule_report_owner')
+        self.assertTrue(owner_rule.active)
+        self.assertFalse(owner_rule.groups)
+        self.assertEqual(safe_eval(owner_rule.domain_force, {'user': self.actor}), [('create_uid', '=', self.actor.id)])
         report = self._open('receivable')
         report.action_calculate()
         report.action_export()
