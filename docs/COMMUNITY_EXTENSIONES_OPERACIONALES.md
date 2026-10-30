@@ -1,5 +1,12 @@
 # Ventajas, impresión original, pagos y firmas — 30-10-2026
 
+Estado posterior: [Calidad Q4](COMMUNITY_CLAUSURA_CALIDAD.md) conserva esta
+aceptación D y añade 646/441 casos. El defecto técnico de cabecera descrito
+abajo se corrigió y pasó seis páginas repetidas; no implica adopción original,
+aceptación productiva/legal ni conversión integral. El candidato Calidad quedó
+aceptado en privado e integrado mediante Q4. El resto de esta hoja registra D.
+
+
 Base canónica `289e0bab`, posterior a la aceptación H de
 [COMMUNITY_MULTIFRENTE.md](COMMUNITY_MULTIFRENTE.md). Rama propia
 `codex/community-parallel-implementation-20261030`; productos congelados en

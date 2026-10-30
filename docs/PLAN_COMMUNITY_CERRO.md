@@ -1,18 +1,17 @@
 # Plan de independencia de Enterprise para Cerro El Plomo
 
-Estado vigente y siguiente prompt: [COMMUNITY_EXTENSIONES_OPERACIONALES.md](COMMUNITY_EXTENSIONES_OPERACIONALES.md).
-D valida 30 addons propios: ventajas OCA, pagos contables, ruta original de
-reporte y firmas DTE/EnvioDTE offline, junto a la regresión H conservada.
-637 casos Community/437 referencia nativa, cero fallos/errores; 117/395 módulos
-instalados y 0/140 EE respectivamente. Conserva 921 tablas/proyecciones,
-140 contadores y 59.079 XML IDs/noupdate; 1.060 snapshots literales y testigo
-numérico propio D de cinco filas, sin Float ni redondeo. Misma política H de
-cinco acciones de menú, siete timestamps propios y tres ayudas HR.
-Faltan coadopción original de 120 maestros/71 reglas, beneficios/metadata/ACL,
-certificación SyS, DTE completo y conversión integral cero EE. La cabecera
-corporativa del PDF sigue como límite visual explícito; Calidad 52c1c2f7 está
-publicada, sin pareja ni integración. Hay 54 apps instaladas con caminos EE;
-producción conserva 140 EE. El 31 sigue en riesgo alto. Ver el detalle y prompt.
+Estado vigente y siguiente prompt: [COMMUNITY_CLAUSURA_CALIDAD.md](COMMUNITY_CLAUSURA_CALIDAD.md).
+Q4 valida 33 addons propios: Calidad OCA real y consumidores nativos separados,
+cabecera corporativa repetida y regresión D/H conservada. Pasaron 646 casos
+Community/441 referencia nativa, cero fallos/errores; 120/397 instalados y
+0/140 EE. Conserva 921 tablas/proyecciones, 140 contadores y 59.079 XML IDs;
+1.060 snapshots literales y testigo numérico propio Q4, sin Float ni redondeo.
+La auditoría física readonly de referencias originales conserva 120 maestros/
+71 reglas nativos; no los importa ni reserva la acción 462 ocupada. Continúan
+54 apps instaladas con caminos EE, coadopción/certificación SyS, DTE completo,
+Calidad nativa, demás productos y conversión integral cero EE pendientes.
+El defecto técnico de cabecera pasó seis páginas; aceptación productiva/legal
+sigue abierta. Producción conserva 140 EE. El 31 sigue en riesgo alto.
 El contenido inferior conserva su alcance histórico.
 
 Autorizado por el usuario el 27-10-2026: preparar el plan y comenzar su ejecución,

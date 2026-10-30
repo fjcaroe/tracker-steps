@@ -244,7 +244,7 @@ Los sustitutos agrícolas y HR probados no equivalen a conversión integral del 
 
 ## Alcance de productos fuera del inventario instalado
 
-El repositorio contiene 130 módulos propios con manifiesto; 34 no están instalados en este inventario de Cerro.
+El repositorio contiene 133 módulos propios con manifiesto; 37 no están instalados en este inventario de Cerro.
 Los módulos operativos requieren aceptación Community; separar herramientas de ensayo como step_payroll_enterprise_reference, que solo compara el motor nativo en clones privados. La ausencia de caminos declarados no acredita imports, assets, permisos ni flujos; las fuentes desconocidas quedan pendientes.
 
 | Módulo fuera de Cerro | Caminos Enterprise declarados | Dependencias sin fuente inventariada |
@@ -279,26 +279,29 @@ Los módulos operativos requieren aceptación Community; separar herramientas de
 | `step_payroll_enterprise_reference` | 9 | 0 |
 | `step_payroll_oca_api` | 0 | 1 |
 | `step_payroll_original_report` | 10 | 0 |
+| `step_qa_native_reference` | 13 | 0 |
+| `step_quality_contracts` | 0 | 0 |
+| `step_quality_oca` | 0 | 1 |
 | `step_sawmill` | 0 | 0 |
 | `step_simpledigital_oca_base` | 0 | 1 |
 | `step_simpledigital_oca_security` | 10 | 0 |
 | `step_treasury_community_reports` | 0 | 0 |
 
-## Perfil técnico D y fuentes externas
+## Perfil técnico Q4 y fuentes externas
 
-La matriz usa los manifiestos del inventario productivo para proveedores que
-viven fuera del repo. Por eso las rutas de los nuevos adaptadores opcionales
-pueden alcanzar el Simple Digital nativo; no representan el overlay Community
-normal probado. La pareja D de
-[COMMUNITY_EXTENSIONES_OPERACIONALES.md](COMMUNITY_EXTENSIONES_OPERACIONALES.md)
-verifica por separado el proveedor AGPL normal de 52 archivos y los tres vendors
-OCA LGPL fijados, con 117 instalados/cero EE. El uno de fuentes no inventariadas
-en los adaptadores OCA indica ausencia en el inventario instalado de producción;
-la procedencia libre y los blobs reales quedan probados en esa cápsula.
-`step_payroll_benefits_native_reference` es sólo una referencia en clones nativos,
-no una app Community ni un candidato de retiro. Los tres addons de Calidad
-publicados en su rama propia todavía no se integran ni se cuentan en los 130.
-No cambiar el conteo de 54 consumidores instalados pendientes por añadir estos
+La matriz usa manifiestos productivos de proveedores externos al repo. Por eso
+rutas de adaptadores opcionales pueden alcanzar el Simple Digital nativo; no
+representan el overlay Community normal probado. La pareja Q4 de
+[COMMUNITY_CLAUSURA_CALIDAD.md](COMMUNITY_CLAUSURA_CALIDAD.md) verifica aparte
+el proveedor AGPL normal de 52 archivos, los tres vendors OCA LGPL y Calidad
+AGPL de 114 archivos, con 120 instalados/cero EE. Las fuentes no inventariadas
+en adaptadores OCA se refieren al inventario instalado productivo; su procedencia
+libre y blobs reales quedan probados por separado en la cápsula Q4.
+`step_payroll_benefits_native_reference` y `step_qa_native_reference` son
+referencias de clones nativos, no apps Community ni candidatos de retiro.
+Los tres addons de Calidad se incluyen ahora en los 133 módulos propios/37
+fuera de Cerro; su aceptación no convierte la identidad nativa quality.check.
+No reducir el conteo de 54 consumidores instalados pendientes por añadir estos
 adaptadores o referencias de prueba.
 
 ## Orden de desbloqueo y aceptación
