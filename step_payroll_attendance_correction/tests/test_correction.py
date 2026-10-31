@@ -6,10 +6,14 @@ from .common import ContractDaysFixture
 
 @tagged('post_install', '-at_install')
 class CorrectionCase(ContractDaysFixture, TransactionCase):
-    def case(self):
+    def case(self, kind=None):
         slip = self._slip()
-        entry = self._entry(slip.contract_id, self.work, datetime(2026, 10, 30, 8), 8)
+        entry = self._entry(slip.contract_id, kind or self.work, datetime(2026, 10, 30, 8), 8)
+        self.env.flush_all()
         entry.write({'state': 'validated'})
+        self.env.flush_all()
+        entry.invalidate_recordset()
+        self.assertEqual(entry.state, 'validated')
         return slip, entry
 
     def test_manual_delete_then_change_contract_end(self):
@@ -39,12 +43,14 @@ class CorrectionCase(ContractDaysFixture, TransactionCase):
     def test_without_payroll_keeps_original_protection(self):
         slip, entry = self.case()
         slip.unlink()
+        if entry.state != 'validated':
+            entry.write({'state': 'validated'})
+        self.env.flush_all()
+        self.assertEqual(entry.state, 'validated')
         with self.cr.savepoint(), self.assertRaises(UserError):
             entry.unlink()
 
     def test_leave_entry_stays_protected(self):
-        slip, entry = self.case()
-        entry.work_entry_type_id = self._type('PRIVATE_T143_LEAVE')
-        entry.state = 'validated'
+        slip, entry = self.case(self._type('PRIVATE_T143_LEAVE'))
         with self.cr.savepoint(), self.assertRaises(UserError):
             entry.unlink()
