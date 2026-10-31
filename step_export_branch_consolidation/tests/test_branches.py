@@ -45,7 +45,7 @@ class BranchCase(TransactionCase):
         shipment.write({'tag_ids':[Command.set(tag.ids)],'dispatch_guide_ids':[Command.set(guide.ids)]})
         tag=tag.with_env(self.scope)
         tag.write({'step_export_shipment_ids':[Command.set(shipment.ids)],'step_guide_ids':[Command.set(guide.ids)]})
-        self.scope['ir.sequence'].create({'name':'Private T145 packing','code':'step.export.packing.list','prefix':'PRIVATE-T145/','company_id':self.parent.id})
+        self.env['ir.sequence'].create({'name':'Private T145 packing','code':'step.export.packing.list','prefix':'PRIVATE-T145/','company_id':self.parent.id})
         packing=self.scope['step.export.packing.list'].create({'shipment_id':shipment.id,'guide_id':guide.id,'tag_ids':[Command.set(tag.ids)]})
         self.assertIn(tag,packing.available_tag_ids)
         self.assertIn(guide,packing.available_guide_ids)
