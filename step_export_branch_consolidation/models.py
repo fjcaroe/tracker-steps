@@ -1,10 +1,12 @@
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, AccessError
 from odoo.tools.safe_eval import safe_eval
 
 
 def branch_companies(env, company):
     # Existing user memberships only; current company stays first for defaults.
+    if company not in env.user.company_ids:
+        raise AccessError(_('La compañía actual no está autorizada al usuario.'))
     permitted = env.user.company_ids.filtered(lambda row: row.root_id == company.root_id)
     return company | (permitted - company)
 
