@@ -507,7 +507,8 @@ def main():
         assert args.environment in ('development','cerro')
         PROMOTION_COLUMNS = json.loads(query(database, "SELECT json_object_agg(table_name,cols) FROM (SELECT table_name,json_agg(column_name) cols FROM information_schema.columns WHERE table_schema='public' GROUP BY table_name) s"))
     if args.kind == 'bpa-masters':
-        assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('base_import','step_bpa_irrigation','step_agriculture_core','step_product_bpa_agriculture') AND state='installed'") == '4', 'T146 extends existing native masters only'
+        assert query(database, "SELECT count(*) FROM ir_module_module WHERE name IN ('base_import','step_bpa_irrigation','step_product_bpa_agriculture') AND state='installed'") == '3', 'T146 extends existing native masters only'
+        assert query(database, "SELECT count(*) FROM ir_model_fields WHERE model='product.template' AND name='is_bpa' AND ttype='boolean' AND state='base'") == '1', 'Use the installed native BPA flag without changing master ownership'
     if args.kind == 'holding-purchase':
         BUSINESS = tuple(sorted(set(BUSINESS) | set(query(database, "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'purchase_%'").splitlines())))
     if args.kind == 'email-login':
