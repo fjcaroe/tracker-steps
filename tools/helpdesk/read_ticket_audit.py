@@ -8,6 +8,7 @@ import xmlrpc.client
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--open-only', action='store_true', help='All unresolved Steps tickets, without keyword or recent-ticket limits')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
@@ -21,10 +22,14 @@ def main():
     def call(model, method, args, kwargs=None):
         return rpc.execute_kw(config['db'], uid, config['api_key'], model, method, args, kwargs or {})
 
-    tickets = call('helpdesk.ticket', 'search_read', [[]], {'fields': ['id', 'name', 'description', 'stage_id', 'write_date'], 'order': 'write_date desc', 'limit': 70})
-    relevant = [t for t in tickets if any(w in (t['name'] + ' ' + (t['description'] or '')).lower() for w in ['packing', 'productor', 'export', 'versi', 'maestro', 'tabla', 'studio'])]
+    domain = [('stage_id', 'not in', [4, 5])] if args.open_only else []
+    options = {'fields': ['id', 'name', 'description', 'stage_id', 'write_date'], 'order': 'write_date desc'}
+    if not args.open_only:
+        options['limit'] = 70
+    tickets = call('helpdesk.ticket', 'search_read', [domain], options)
+    relevant = tickets if args.open_only else [t for t in tickets if any(w in (t['name'] + ' ' + (t['description'] or '')).lower() for w in ['packing', 'productor', 'export', 'versi', 'maestro', 'tabla', 'studio'])]
     for ticket in relevant:
-        ticket['messages'] = call('mail.message', 'search_read', [[('model', '=', 'helpdesk.ticket'), ('res_id', '=', ticket['id'])]], {'fields': ['id', 'date', 'body', 'message_type'], 'order': 'date desc', 'limit': 20})
+        ticket['messages'] = call('mail.message', 'search_read', [[('model', '=', 'helpdesk.ticket'), ('res_id', '=', ticket['id'])]], {'fields': ['id', 'date', 'body', 'message_type', 'attachment_ids'], 'order': 'date desc', 'limit': 20})
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(relevant, ensure_ascii=False, indent=2), encoding='utf-8')
     print('TICKET_AUDIT_SAVED count=' + str(len(relevant)) + ' path=' + str(args.output))
