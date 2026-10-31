@@ -1,5 +1,6 @@
 """Exercise I9 on a private PostgreSQL copy, with all fixture changes rolled back."""
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from fastapi import Response, HTTPException
 from sqlalchemy import text
@@ -41,12 +42,12 @@ def main():
         factory=lambda: Session(bind=connection,join_transaction_mode='create_savepoint')
         try:
             with factory() as db:
-                cc=CostCenter(name='Private I9 test');db.add(cc);db.flush()
-                users=[User(username='private-i9-'+uuid.uuid4().hex,full_name='Private I9 user',password_hash='not-a-password',is_admin=(i==0),is_active=True) for i in range(3)]
+                cc=CostCenter(name='Private I9 test',created_at=datetime.now(timezone.utc));db.add(cc);db.flush()
+                users=[User(username='private-i9-'+uuid.uuid4().hex,full_name='Private I9 user',password_hash='not-a-password',is_admin=(i==0),is_active=True,created_at=datetime.now(timezone.utc)) for i in range(3)]
                 db.add_all(users);db.flush()
                 ids=[u.id for u in users]
                 db.add_all([UserCostCenter(user_id=uid,cost_center_id=cc.id) for uid in ids[1:]])
-                machine=Machine(name='Private I9 vehicle',cost_center_id=cc.id,is_active=True,passenger_capacity=3)
+                machine=Machine(name='Private I9 vehicle',cost_center_id=cc.id,is_active=True,passenger_capacity=3,created_at=datetime.now(timezone.utc))
                 db.add(machine);db.flush()
                 route=MobileRoute(name='Private I9 route',machine_id=machine.id,waypoints=[],created_by=ids[0],status='assigned')
                 db.add(route);db.flush();route_id=route.id;db.commit()
