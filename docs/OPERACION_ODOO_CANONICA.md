@@ -353,3 +353,10 @@ propiedad de guías, tarjas, inventario y documentos contables. Las facturas
 conservan frontera exacta por compañía. No crear movimientos reales al publicar,
 no asignar empresas/perfiles y no refrescar datos. Mismo paquete en copias
 frescas, publicación con respaldo, bloqueo y comprobación de paridad.
+
+T146 (mensaje 9916, adjunto 3455) autoriza bpa-masters en Desarrollo, Cerro y
+QA-Cerro: Productos BPA bajo Maestros, Configuraciones con los maestros
+existentes de sustancias activas y aptitudes plaguicidas y plantillas Excel
+para el importador nativo. Conservar IDs, relaciones, maestros y permisos.
+No cargar datos ficticios en destinos reales. Copias frescas y mismo paquete,
+respaldo, bloqueo, paridad y aislamiento sin refrescar datos de capacitación.

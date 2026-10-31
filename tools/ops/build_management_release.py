@@ -19,12 +19,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('output', type=Path)
     parser.add_argument('--commit', default='HEAD')
-    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'reception-report', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
+    parser.add_argument('--kind', choices=('management', 'payroll', 'freight', 'export', 'homepage', 'settings', 'producers', 'fruit-reception', 'packing', 'cerro-stack', 'payroll-attendance', 'payroll-days', 'payroll-review', 'payroll-rounding', 'payroll-fixes', 'previred-fix', 'tarja', 'sale-format', 'client-revision', 'estimate-report', 'contract-report', 'fruit-reports', 'estimate-revision', 'fruit-categories', 'daily-estimate', 'shipment-provision', 'budget-design', 'shipping-design', 'document-design', 'purchase-mode', 'producer-change', 'balance-analytic', 'export-control', 'email-login', 'dispatch-improvements', 'export-dashboard', 'agro-analytics', 'harvest-planning', 'harvest-operations', 'agriculture-records', 'treasury-seasons', 'estimate-cancel-folios', 'supply-comparison', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision', 'packing-tare', 'export-catalog-currency', 'packing-ot-layout', 'dispatch-design', 'sag-prototype', 'sag-lot', 'traceability', 'sag-traceability'), default='management')
     parser.add_argument('--environment', choices=('development', 'demo-sys', 'sys', 'steps', 'cerro', 'qa-cerro'))
     args = parser.parse_args()
     if args.kind == 'invoice-payments':
         assert args.environment in ('development', 'cerro', 'qa-cerro'), 'T123 is authorized only for Development, Cerro and customer QA'
-    assert args.environment != 'qa-cerro' or args.kind in ('payroll-attendance', 'payroll-days', 'reception-report', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicit T117/T118/T119/T120/T121/T114/T122 packages are authorized for customer QA'
+    assert args.environment != 'qa-cerro' or args.kind in ('payroll-attendance', 'payroll-days', 'reception-report', 'bpa-masters', 'export-branches', 'holding-purchase', 'packing-company', 'agriculture-multicompany', 'product-bpa', 'manual-contact', 'company-form', 'species-tariff', 'packaging-master', 'invoice-payments', 'packing-controls', 'packing-stock', 'reception-revision','packing-tare'), 'Only explicit T117/T118/T119/T120/T121/T114/T122 packages are authorized for customer QA'
     root = Path(__file__).resolve().parents[2]
     assert not args.output.resolve().is_relative_to(root)
     commit = subprocess.check_output(['git', 'rev-parse', args.commit + '^{commit}'], cwd=root, text=True).strip()
@@ -55,6 +55,9 @@ def main():
     if args.kind == 'reception-report':
         assert args.environment in ('development','cerro','qa-cerro')
         modules = ('step_packing_reception_report',)
+    if args.kind == 'bpa-masters':
+        assert args.environment in ('development','cerro','qa-cerro')
+        modules = ('step_bpa_master_import',)
     if args.kind == 'export-branches':
         assert args.environment in ('development','cerro','qa-cerro')
         modules = ('step_export_branch_consolidation',)
@@ -190,7 +193,7 @@ def main():
     entries = {}
     with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
         for member in archive.getmembers():
-            if not member.isfile() or Path(member.name).suffix not in SUFFIXES:
+            if not member.isfile() or Path(member.name).suffix not in (SUFFIXES | ({'.xlsx'} if args.kind == 'bpa-masters' else set())):
                 continue
             data = archive.extractfile(member).read()
             if member.name.endswith('.py'):
