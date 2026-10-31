@@ -80,13 +80,13 @@ class ImportCase(TransactionCase):
         self.assertIn('actualizada',item.notes)
 
     def test_products_menu_filters_existing_bpa_flag_and_defaults_create(self):
-        action=self.scope.ref('step_bpa_master_import.action_bpa_products')
-        domain=safe_eval(action.domain)
+        action=self.scope['ir.actions.act_window']._for_xml_id('step_bpa_master_import.action_bpa_products')
+        domain=safe_eval(action['domain'])
         product=self.scope['product.template'].create({'name':'Private T146 BPA','is_bpa':True})
         other=self.scope['product.template'].create({'name':'Private T146 ordinary','is_bpa':False})
         found=self.scope['product.template'].search(domain+[('id','in',(product|other).ids)])
         self.assertEqual(found,product)
-        self.assertTrue(safe_eval(action.context)['default_is_bpa'])
+        self.assertTrue(safe_eval(action['context'])['default_is_bpa'])
 
     def test_native_menus_list_form_and_import_permissions(self):
         visible=self.scope['ir.ui.menu']._visible_menu_ids()
