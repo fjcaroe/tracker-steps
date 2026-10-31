@@ -42,7 +42,7 @@ def main():
             assert hashlib.sha256(source.read_bytes()).hexdigest()==item['sha256']
             shutil.copyfile(source,args.output/(target+'-'+name))
         shutil.copyfile(review_path,args.output/(target+'-visual-review.json'))
-        live = Path('/tmp/t141-deploy-' + code + args.suffix + '.log')
+        live = Path('/tmp/t141-deploy-' + code + suffix + '.log')
         assert 'MANAGEMENT_VERIFY_OK' in live.read_text()
         backup = re.findall(r'MANAGEMENT_DEPLOY_OK backup=(\S+)', live.read_text())
         assert len(backup) == 1
