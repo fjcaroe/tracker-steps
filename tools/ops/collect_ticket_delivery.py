@@ -10,10 +10,10 @@ import subprocess
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('ticket',type=int,choices=(142,143,144));p.add_argument('output',type=Path)
+    p.add_argument('ticket',type=int,choices=(142,143,144,145));p.add_argument('output',type=Path)
     p.add_argument('--target',action='append',required=True,help='environment:run_id:/tmp/live.log')
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True,mode=0o700)
-    module={142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company'}[a.ticket]
+    module={142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company',145:'step_export_branch_consolidation'}[a.ticket]
     required={'development','cerro','qa-cerro'} | ({'sys'} if a.ticket==143 else set())
     seen=set();identities=set();count=0
     for entry in a.target:
@@ -22,7 +22,7 @@ def main():
         seen.add(target);stage=Path('/opt/steps-validation')/('management_'+target+'_'+run_id)
         qa_file=stage/'qa_passed.json';qa=json.loads(qa_file.read_text());test=Path(qa['log'])
         matches=re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database',test.read_text())
-        assert matches and int(matches[-1])>={142:4,143:5,144:3}[a.ticket]
+        assert matches and int(matches[-1])>={142:4,143:5,144:3,145:5}[a.ticket]
         count+=int(matches[-1]);flow=stage/('verify-'+qa['database']+'.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
         if a.ticket==143 and target=='sys':
@@ -52,7 +52,7 @@ def main():
         (a.output/'pair.log').write_text(result.stdout)
     commit,sha=identities.pop()
     (a.output/'delivery.json').write_text(json.dumps({'ticket':a.ticket,'module':module,'commit':commit,'sha256':sha,
-        'tests':count,'environments':sorted(required),'reviewed_messages':{str(a.ticket):{142:9873,143:9877,144:9881}[a.ticket]}}))
+        'tests':count,'environments':sorted(required),'reviewed_messages':{str(a.ticket):{142:9873,143:9877,144:9881,145:9885}[a.ticket]}}))
     print('TICKET_DELIVERY_COLLECTED ticket='+str(a.ticket)+' tests='+str(count))
 
 

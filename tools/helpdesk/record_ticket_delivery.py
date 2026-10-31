@@ -1,4 +1,4 @@
-"""Silently record reviewed T141–T144 delivery after complete functional evidence."""
+"""Silently record reviewed T141–T145 delivery after complete functional evidence."""
 import argparse
 import html
 import hashlib
@@ -13,13 +13,14 @@ DESCRIPTIONS={
  142:'Compras holding: Entregar a permite seleccionar una sucursal de la misma raíz legal entre las compañías activas del comprador. Seleccionar antes de ingresar productos. El pedido, sus líneas y la recepción quedan en esa sucursal y el formulario muestra su dirección. Probado el ingreso de existencias en copia. Sin ampliación de permisos ni compras reales durante la publicación.',
  143:'Implementada la alternativa b solicitada: permite eliminar manualmente asistencias validadas cuando todas las liquidaciones correspondientes están en borrador, sin pago, bloqueo histórico ni asiento publicado. Luego se puede corregir la fecha del contrato y recalcular el borrador. Licencias, ausencias y liquidaciones confirmadas conservan sus bloqueos. El caso reportado ya figura confirmado en SyS: se comprobó su protección en copia y se conservaron su liquidación, contrato y asistencias reales.',
  144:'Las tarjas E/N resultantes conservan la compañía de su OT aun sin existencias, permitiendo filtrar por sucursal. Completadas las compañías vacías de tarjas vinculadas a una OT. Ubicaciones, cantidades, estados e IDs conservados; se rechazan contradicciones con la compañía del stock. No se validaron OT ni se generaron existencias reales.',
+ 145:'Exportaciones consolida referencias de guías y tarjas entre sucursales de la misma raíz legal ya autorizadas al usuario. Instructivos, Packing Lists y Consultar Tarjas incluyen esas sucursales, conservando la compañía de cada registro. La consulta muestra Compañía / sucursal y permite buscar y agrupar por ella. No se amplían membresías, no se trasladan existencias y las facturas mantienen la separación exacta por compañía.',
 }
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('ticket',type=int,choices=tuple(DESCRIPTIONS));p.add_argument('evidence',type=Path);a=p.parse_args()
     root=a.evidence;proof=json.loads((root/'delivery.json').read_text());tid=a.ticket
-    module={141:'step_packing_reception_report',142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company'}[tid]
+    module={141:'step_packing_reception_report',142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company',145:'step_export_branch_consolidation'}[tid]
     environments={'development','cerro','qa-cerro'}|({'sys'} if tid==143 else set())
     for target in environments:
         qa=json.loads((root/(target+'-qa.json')).read_text());deployment=json.loads((root/(target+'-deployment.json')).read_text())
