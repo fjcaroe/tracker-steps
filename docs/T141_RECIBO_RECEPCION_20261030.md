@@ -87,3 +87,10 @@ Evidencia privada: `/opt/steps-validation/t141-20261030/evidence/` y
 `~/.codex/local-artifacts/t141-20261030/evidence/`. Incluye certificados, logs,
 PDFs, revisiones visuales por hash, publicaciones, paridad y aislamiento.
 Vista previa del caso real en `~/.codex/local-artifacts/t141-20261030/qa-cerro-v4/`.
+
+## Seguimiento del folio — 31-10-2026
+
+La respuesta humana 9868 se completó con la versión 18.0.1.0.2. El título
+incorpora el número nativo de recepción. Ver T141_T145_SEGUIMIENTO_20261031.md
+para los 27 ensayos y la entrega actual, incluida la nota interna 9911.
+La entrega 18.0.1.0.1 descrita arriba se conserva como historial.
