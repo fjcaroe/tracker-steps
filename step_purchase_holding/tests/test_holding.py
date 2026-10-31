@@ -1,6 +1,6 @@
 from odoo import Command
 from odoo.tests import TransactionCase, tagged, Form, new_test_user
-from odoo.exceptions import ValidationError, UserError
+from odoo.exceptions import ValidationError, UserError, AccessError
 
 
 @tagged('post_install', '-at_install')
@@ -56,5 +56,5 @@ class HoldingCase(TransactionCase):
 
     def test_unselected_branch_rejected(self):
         scope=self.scope(context=dict(self.scope.context,allowed_company_ids=self.parent.ids))
-        with self.cr.savepoint(),self.assertRaises(ValidationError):
+        with self.cr.savepoint(),self.assertRaises(AccessError):
             scope['purchase.order'].create({'partner_id':self.supplier.id,'picking_type_id':self.wh.in_type_id.id})
