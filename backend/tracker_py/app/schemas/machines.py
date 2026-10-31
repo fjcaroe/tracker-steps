@@ -1,5 +1,5 @@
 from typing import Optional, Literal
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 FuelUnit = Literal["lph", "kmpl"]
@@ -27,6 +27,7 @@ def _validate_unit_consistency(
 
 
 class MachineCreate(BaseModel):
+    passenger_capacity: int | None = Field(None, ge=1, le=250, strict=True)
     external_id: str | None = None
     name: str
     plate: str | None = None
@@ -56,6 +57,7 @@ class MachineCreate(BaseModel):
 
 
 class MachineUpdate(BaseModel):
+    passenger_capacity: int | None = Field(None, ge=1, le=250, strict=True)
     external_id: str | None = None
     name: str | None = None
     plate: str | None = None
@@ -87,6 +89,7 @@ class MachineUpdate(BaseModel):
 
 
 class MachineOut(BaseModel):
+    passenger_capacity: int | None = None
     model_config = ConfigDict(from_attributes=True)
 
     id: int

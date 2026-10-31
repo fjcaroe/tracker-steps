@@ -3,7 +3,7 @@ import { platformFetch } from '../../../platform/http';
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
-export const APP_VERSION = '1.2.2';
+export const APP_VERSION = '1.3.0';
 
 export class ApiError extends Error {
   status: number;
@@ -53,6 +53,12 @@ export type WorkOrderSummary = { id: number; hourmeter_initial: number | null; f
 export type Task = {
   id: number; code: string; work_date: string; machine_id: number | null; activity_id: number; labor_id: number; cost_center_id: number | null;
   field_id: number | null; notes: string | null; scheduled_time: string | null; mobile_status: string | null; progress_pct: number | null; implement_id: number | null;
+};
+export type PassengerService = {
+  id: string; name: string; route_id: string; route_name: string; route_status?: string; machine_id: number;
+  machine_name: string; plate: string | null; driver_user_id: number; driver_name: string; capacity: number;
+  stops: { id: string; name: string; scheduled_at: string; lat: number | null; lon: number | null }[];
+  passengers: { id: string; name: string; document: string; boarding_stop_id: string; alighting_stop_id: string; seat: number | null }[];
 };
 export type IncidentCategory = 'breakdown' | 'accident' | 'damage' | 'theft' | 'sos' | 'other';
 export type IncidentOut = {

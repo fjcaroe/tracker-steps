@@ -5,6 +5,7 @@ const user = { id: 1, username: 'demo', full_name: 'Operador Demo', is_admin: tr
 const json = (res, body, status = 200) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' }); res.end(JSON.stringify(body)); };
 const openSession = { id: 'aaaaaaaa-0000-4000-8000-000000000001', machine_id: 1, machine_name: 'Tractor John Deere', started_at: new Date(Date.now() - 3600e3).toISOString(), ended_at: null, status: 'open', points_count: 12, work_order_id: 77, total_distance_m: 1200, driver_name: null, cost_center_name: 'Fundo Norte' };
 const store = { routes: [], session: openSession };
+const serviceStops = [{ id: 'stop-a', name: 'Plaza de prueba', scheduled_at: '2026-11-02T11:00:00Z', lat: -35.4, lon: -71.6 }, { id: 'stop-b', name: 'Fundo de prueba', scheduled_at: '2026-11-02T12:00:00Z', lat: -35.41, lon: -71.61 }];
 const routes = {
   'POST /auth/login': () => ({ access_token: 'mock', token_type: 'bearer', user, cost_centers: [] }),
   'GET /auth/me': () => user,
@@ -17,6 +18,7 @@ const routes = {
   'GET /sessions/my': () => store.session.status === 'open' ? [store.session] : [],
   'GET /sessions_active': () => [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', machine_id: 1, machine_name: 'Tractor John Deere', driver_name: 'Juan Pérez', cost_center_name: 'Fundo Norte', started_at: new Date(Date.now() - 3600e3).toISOString(), status: 'open', points_count: 12, last_lat: -35.4035, last_lon: -71.597, last_speed_mps: 2.4 }],
   'GET /mobile/routes': () => store.routes.filter((r) => r.status !== 'cancelled'),
+  'GET /mobile/services': () => [{ id: 'private-service', name: 'Servicio de prueba', route_id: 'private-route', route_name: 'Ruta de prueba', machine_id: 2, machine_name: 'Bus de prueba', plate: 'QA0046', driver_user_id: 1, driver_name: user.full_name, capacity: 3, stops: serviceStops, passengers: [1, 2, 3].map((id) => ({ id: `p-${id}`, name: `Pasajero ficticio ${id}`, document: `TEST-${id}`, boarding_stop_id: 'stop-a', alighting_stop_id: 'stop-b', seat: id })) }],
   'POST /mobile/routes': (b) => { const r = { ...b, machine_name: 'Tractor John Deere', status: 'assigned', created_by_name: 'Demo', created_at: new Date().toISOString() }; store.routes.unshift(r); return r; },
   'GET /machines/1/fuel_status': () => ({ last_liters: 120, tank_capacity_liters: 200 }),
   'POST /work_orders': () => ({ id: 77 }),

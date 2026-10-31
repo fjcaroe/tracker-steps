@@ -94,6 +94,7 @@ def create_machine(payload: MachineCreate, db: Session = Depends(get_db)):
         description=data.get("description"),
         cost_center_id=data.get("cost_center_id"),
         tank_capacity_liters=data.get("tank_capacity_liters"),
+        passenger_capacity=data.get("passenger_capacity"),
 
         fuel_consumption_unit=data.get("fuel_consumption_unit") or "lph",
         fuel_consumption_lph=data.get("fuel_consumption_lph"),

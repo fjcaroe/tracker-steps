@@ -5,6 +5,7 @@ import { formatDistance, routeLengthM } from '../lib/nav';
 import { activeStore, formatDuration } from '../lib/queue';
 import { routeStore } from '../lib/route';
 import { beep, loadSettings } from '../lib/settings';
+import MyService from './MyService';
 
 /** Minutos hasta la hora programada de hoy ("HH:MM"); null si no hay hora o ya pasó hace más de 2 h. */
 export function minutesUntil(time: string | null, now = new Date()): number | null {
@@ -91,6 +92,7 @@ export default function Tasks({ onStart, onOpenJourney }: { onStart: (t: Task) =
       <h1>Hoy</h1>
       <TodayJourney onOpen={onOpenJourney} />
       <AssignedRoutes />
+      <MyService />
       <h2>Mis tareas</h2>
       {perm === 'default' && <button onClick={() => void Notification.requestPermission().then(setPerm)}>Activar recordatorios</button>}
       {error && <section className="card"><p className="error" role="alert">No se pudieron cargar tus tareas: {error}</p><button onClick={load}>Reintentar</button></section>}

@@ -123,11 +123,11 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 
 ## Bloque C — Transporte de pasajeros
 
-> Decisión de arquitectura pendiente (confirmar con una persona antes de I9): la app antigua guardaba
-> asientos y abordajes en Redis y está fuera de servicio; **no se reutiliza**. Los pasajeros viven en la API
-> Tracker (PostgreSQL) y se sincronizan a Odoo; contratos de datos en I9.
+> Arquitectura confirmada por el usuario en este chat el 31-10-2026: los servicios y pasajeros viven
+> en Tracker (PostgreSQL) y se sincronizan hacia Odoo. La app antigua Redis está fuera de servicio y
+> **no se reutiliza**. Contrato de datos y alcance de I9 en `docs/T46_I9_SERVICIOS_PASAJEROS.md`.
 
-### I9 · Modelo de servicio y nómina de pasajeros  `[ ]`
+### I9 · Modelo de servicio y nómina de pasajeros  `[~]` 31-10-2026: en certificación/publicación
 - **Qué:** servicios/viajes (ruta, paradas con horario, vehículo, conductor, capacidad real del vehículo) y
   **lista de pasajeros** por servicio (nombre, RUT/ID, parada de subida/bajada, asiento opcional). Diseño del
   esquema aditivo, endpoints y permisos (conductor ve solo sus servicios). Documento de diseño + migración +
@@ -204,10 +204,10 @@ git rev-parse origin/codex/steps-movil
 
 # Servidor odoo-new (stepsconsulting / us-central1-c):
 release=$(mktemp -d /tmp/steps-movil-release-XXXXXXXX)
-git clone --branch codex/steps-movil --no-single-branch --depth 1 \
+git clone --branch codex/steps-movil --single-branch --depth 50 \
   https://github.com/fjcaroe/tracker-steps.git "$release"
 cd "$release"
-bash scripts/deploy-steps-movil.sh SHA_EXACTO_REVISADO
+bash scripts/deploy-steps-movil.sh SHA_EXACTO_REVISADO SHA_BASE_SERVIDOR_REVISADO
 ```
 
 El script compara fuentes con las variantes conocidas antes de tocar producción, compila y prueba
@@ -216,6 +216,8 @@ antes de la app y compara SHA-256 del JS servido. Si falla la verificación de p
 restaura la entrega anterior. Conserva `.env`, `.venv` y archivos de datos del servidor.
 No usa las variables de Google Maps del Web Tracker: Steps Móvil usa Leaflet y una URL pública
 de API. El procedimiento de `/web_tracker/` sigue siendo independiente.
+La base debe ser un ancestro revisado cuyo código coincide con el servidor;
+si queda fuera del clon superficial, profundizar esa rama antes de ejecutar.
 
 Si la iteración cambia la API: `backend/tracker_py` se despliega siguiendo `docs/DEPLOY_WEB_TRACKER.md`
 (respaldo de la base y del código, `rsync` excluyendo `.env` y `.venv`, reinicio de

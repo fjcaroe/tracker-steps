@@ -16,6 +16,8 @@ class Machine(Base):
     created_at = Column(TIMESTAMP(timezone=True))
 
     tank_capacity_liters = Column(Numeric(10, 2))
+    # Physical passenger seats, excluding the driver. NULL means not configured.
+    passenger_capacity = Column(Integer)
 
     # unidad: 'lph' o 'kmpl'
     fuel_consumption_unit = Column(String(8), nullable=False, default="lph")
