@@ -1,6 +1,6 @@
 # I9 — Servicios y nómina de pasajeros
 
-Arquitectura confirmada por Fernando en este chat el 31-10-2026: servicios y
+Arquitectura confirmada por el usuario en este chat el 31-10-2026: servicios y
 pasajeros viven en PostgreSQL de Tracker, con sincronización hacia Odoo.
 Se conserva el origen Tracker y no se reactiva el sistema Redis antiguo.
 
@@ -93,3 +93,28 @@ compartido y del producto, respaldo decodificado y fuente sin concurrencia.
 Prueba el mismo paquete en copia, migra de forma aditiva y publica API antes de
 app. Verifica contrato y hashes de todos los JS/CSS servidos. Ante fallo restaura
 fuentes/frontend; conserva las nuevas estructuras aditivas sin borrar datos.
+
+## Entrega verificada — 31-10-2026
+
+Publicado Tracker 1.3.0 en https://stepsapp.cl/truck/, commit
+`0a0838f90292006c0d1ecb72db4cfe3f82f6f4ac`, integrado en codex/steps-movil.
+68 pruebas backend y 165 de la app aprobadas; compilación del servidor y revisión
+375 px completadas. La copia PostgreSQL conservó todos los datos originales y
+retiró las filas de prueba mediante rollback. La migración se ejecutó dos veces.
+La aceptación de tres pasajeros y el aislamiento del conductor pasaron.
+
+API efectiva comparada por hash con el commit, consulta anónima rechazada,
+versión/consulta verificadas en los archivos públicos. Todos los JS/CSS servidos
+coinciden con el paquete. JS principal `assets/index-BpVsqkbJ.js`, SHA-256
+`d1a63335b27ded530f623c5e08f98dee21adf41e49f00300153b9044f5d549f5`.
+Respaldo decodificado `movil-consolidado-20261031T212041Z` y copia del frontend
+`steps-truck-frontend.pre-movil-20261031T212041Z`. Bloqueos compartido y del
+producto, rechazo de cambios concurrentes y publicación API antes de app.
+Sin filas ficticias en producción ni cambios en Odoo. Nota interna 9922 sin
+correos ni notificaciones. T46 continúa abierto para el resto del plan.
+
+El primer ensayo se detuvo en la copia por timestamps obligatorios de los
+maestros de prueba. Se corrigió la preparación y se repitió desde copia fresca;
+producción no se alteró durante el ensayo fallido. Se conservan respaldos y logs.
+Evidencia privada en ~/.codex/local-artifacts/t46-passenger-services-20261031/
+y /opt/steps-validation/t46-passenger-services-20261031/.

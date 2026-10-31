@@ -127,12 +127,17 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 > en Tracker (PostgreSQL) y se sincronizan hacia Odoo. La app antigua Redis está fuera de servicio y
 > **no se reutiliza**. Contrato de datos y alcance de I9 en `docs/T46_I9_SERVICIOS_PASAJEROS.md`.
 
-### I9 · Modelo de servicio y nómina de pasajeros  `[~]` 31-10-2026: en certificación/publicación
+### I9 · Modelo de servicio y nómina de pasajeros  `[x]` 31-10-2026
 - **Qué:** servicios/viajes (ruta, paradas con horario, vehículo, conductor, capacidad real del vehículo) y
   **lista de pasajeros** por servicio (nombre, RUT/ID, parada de subida/bajada, asiento opcional). Diseño del
   esquema aditivo, endpoints y permisos (conductor ve solo sus servicios). Documento de diseño + migración +
   pruebas de API; sin interfaz aún, salvo pantalla de solo lectura "Mi servicio".
 - **Aceptación:** crear un servicio con paradas y 3 pasajeros por API y verlo en la app del conductor asignado.
+- Publicado en Tracker 1.3.0. API/backend 68 pruebas, app 165, ensayo funcional
+  PostgreSQL en copia, migración repetida y datos antiguos conservados. Mi servicio
+  revisado a 375 px; acceso limitado al conductor asignado. El contrato Odoo está
+  definido; el consumidor automático no se instala en esta iteración. Nota interna
+  9922. Próxima iteración elegible: I10. I3/I16 conservan requisitos externos.
 
 ### I10 · Abordaje y descenso  `[ ]`
 - **Qué:** marcar subida/bajada por pasajero (lista con búsqueda, **lector QR/código** y registro manual),
@@ -234,6 +239,7 @@ publicarse cuando ya haya clientes en ellos.
 
 | Fecha | Iteración | Commit | JS servido | Notas |
 |---|---|---|---|---|
+| 31-10-2026 | I9: servicios y nómina, consulta Mi servicio en Hoy; Tracker 1.3.0 | `0a0838f90292006c0d1ecb72db4cfe3f82f6f4ac` | `index-BpVsqkbJ.js` | 68 pruebas backend, 165 app, flujo de tres pasajeros y aislamiento en copia PostgreSQL; migración idempotente y datos antiguos conservados. Revisión 375 px. SHA-256 `d1a63335b27ded530f623c5e08f98dee21adf41e49f00300153b9044f5d549f5`. Todos los JS/CSS servidos verificados. Respaldo `movil-consolidado-20261031T212041Z`; API antes de app; fuente efectiva coincide con el commit. Nota silenciosa 9922, ticket abierto para el resto del plan. Contrato hacia Odoo definido, consumidor automático pendiente. |
 | 06-10-2026 | I3 parcial: adaptador nativo de GPS en segundo plano, perfiles de precisión y continuidad entre pestañas; Tracker web `1.2.2` | `1421bd4` | `index-CCX85BHo.js` | 161 pruebas y compilación correctas; esquema PostgreSQL ensayado y contrato API comprobado. SHA-256 servido `dfada1fea6f766cfb69883a37f85d8ff371a5d537df4b512126192035aae92b8`. Respaldo `movil-consolidado-20261006T123553Z`. Build específico del Tracker; el piloto unificado no se publicó. No se compiló APK/IPA ni se probó con pantalla bloqueada en un teléfono real. |
 | 02-10-2026 | Base (web/PWA, jornada, GPS con cola, historial) | `f3355be` | `index-CGTxg_cA.js` | Proyectos Android/iOS generados, sin compilar |
 | 02-10-2026 | I1 Jornada que no se pierde (retomar desde servidor, limpiar si ya está cerrada, reenvío al volver a primer plano, último envío visible) | ver rama `ticket/46-movil-i1-jornada-no-se-pierde` | `index-r-XhPasL.js` | Se ofrece *Retomar* en vez de retomar sola, porque `/sessions/my` lista las jornadas de los centros de costo del usuario, no solo las suyas (la sesión no guarda quién la inició). Sin verificar en terreno ni en dispositivo; respaldo del front: `steps-truck-frontend.pre-movil-20261002T012511Z` |
