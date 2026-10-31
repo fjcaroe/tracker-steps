@@ -344,3 +344,12 @@ de agregar productos; pedido, líneas y recepción pertenecen nativamente a la
 sucursal. Mostrar su dirección de entrega. No compartir documentos ni ampliar
 permisos. Prueba de compra/recepción en copia, sin compras o movimientos reales
 al publicar. Mismo paquete, respaldo, bloqueo y paridad Cerro/QA-Cerro.
+
+T145 (mensaje 9885, adjunto 3450) autoriza export-branches en Desarrollo, Cerro
+y QA-Cerro: consolidar guías y tarjas de sucursales de la misma raíz legal en
+instructivos y Packing Lists, y mostrar compañía/sucursal en Consultar Tarjas.
+Usar únicamente membresías de compañía ya autorizadas al usuario; mantener
+propiedad de guías, tarjas, inventario y documentos contables. Las facturas
+conservan frontera exacta por compañía. No crear movimientos reales al publicar,
+no asignar empresas/perfiles y no refrescar datos. Mismo paquete en copias
+frescas, publicación con respaldo, bloqueo y comprobación de paridad.

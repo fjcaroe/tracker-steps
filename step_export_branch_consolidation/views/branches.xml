@@ -1,0 +1,21 @@
+<odoo>
+  <record id="shipment_branch_sources" model="ir.ui.view">
+    <field name="name">step.export.export.branch.sources</field><field name="model">step.export.export</field>
+    <field name="inherit_id" ref="step_export.view_step_export_shipment_form"/>
+    <field name="arch" type="xml">
+      <field name="dispatch_guide_ids" position="before"><field name="step_branch_company_ids" invisible="1"/></field>
+      <field name="dispatch_guide_ids" position="attributes"><attribute name="domain">[('company_id','in',step_branch_company_ids)]</attribute></field>
+      <field name="tag_ids" position="attributes"><attribute name="domain">[('is_fruit_tag','=',True),('company_id','in',step_branch_company_ids + [False])]</attribute></field>
+    </field>
+  </record>
+  <record id="tag_branch_column" model="ir.ui.view">
+    <field name="name">stock.quant.package.export.branch.column</field><field name="model">stock.quant.package</field>
+    <field name="inherit_id" ref="step_export.view_export_fruit_tag_list"/>
+    <field name="arch" type="xml"><field name="company_id" position="attributes"><attribute name="optional">show</attribute><attribute name="string">Compañía / sucursal</attribute></field></field>
+  </record>
+  <record id="tag_branch_search" model="ir.ui.view">
+    <field name="name">stock.quant.package.export.branch.search</field><field name="model">stock.quant.package</field>
+    <field name="inherit_id" ref="step_export.view_export_fruit_tag_search"/>
+    <field name="arch" type="xml"><xpath expr="//search" position="inside"><field name="company_id"/><group><filter name="by_branch" string="Compañía / sucursal" context="{'group_by':'company_id'}"/></group></xpath></field>
+  </record>
+</odoo>
