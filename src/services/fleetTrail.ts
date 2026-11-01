@@ -28,20 +28,27 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   if(d<25&&(p.speed_kmh??0)<5&&(previous.speed_kmh??0)<5)continue;
   segment.push(p);distanceM+=d;
  }
- let confirmedMovement=false;
+ let confirmedMovement=false;const movingIds=new Set<string>();
  for(let i=1;i<points.length;i++){
   const a=points[i-1],b=points[i],dt=(Date.parse(b.recorded_at)-Date.parse(a.recorded_at))/1000,d=meters(a,b);
-  if((a.speed_kmh??0)>=8&&(b.speed_kmh??0)>=8&&dt>0&&dt<=600&&d>=60&&d/dt*3.6<=220){confirmedMovement=true;break;}
+  if((a.speed_kmh??0)>=8&&(b.speed_kmh??0)>=8&&dt>0&&dt<=600&&d>=25&&d/dt*3.6<=220){confirmedMovement=true;movingIds.add(a.id);movingIds.add(b.id);}
  }
  for(let i=2;i<points.length;i++){
   const a=points[i-2],b=points[i-1],c=points[i],dt=(Date.parse(c.recorded_at)-Date.parse(a.recorded_at))/1000;
   const ab=meters(a,b),bc=meters(b,c),net=meters(a,c);
   const fast=[a,b,c].filter(p=>(p.speed_kmh??0)>=8).length>=2;
   const inferred=[a,b,c].every(p=>p.speed_kmh==null)&&dt>0&&net/dt*3.6>=8;
-  if(dt>0&&dt<=1200&&ab<5000&&bc<5000&&net>=60&&net/Math.max(1,ab+bc)>.65&&(fast||inferred)){confirmedMovement=true;break;}
+  if(dt>0&&dt<=1200&&ab<5000&&bc<5000&&net>=60&&net/Math.max(1,ab+bc)>.65&&(fast||inferred)){confirmedMovement=true;movingIds.add(a.id);movingIds.add(b.id);movingIds.add(c.id);}
  }
  const stationary=points.length>1&&!confirmedMovement;
- return {points,segments:stationary?[[points[0]]]:segments,stops,distanceM:stationary?0:distanceM,gapCount,stationary,maxSpeed:Math.max(0,...points.map(p=>p.speed_kmh??0))};
+ const display:TrailPoint[][]=[];
+ for(const segment of segments){
+  let motion:TrailPoint[]=[];
+  for(const p of segment){if(movingIds.has(p.id))motion.push(p);else{if(motion.length)display.push(motion);motion=[];display.push([p]);}}
+  if(motion.length)display.push(motion);
+ }
+ distanceM=display.reduce((sum,s)=>sum+s.slice(1).reduce((d,p,i)=>d+meters(s[i],p),0),0);
+ return {points,segments:stationary?[[points[0]]]:display,stops,distanceM:stationary?0:distanceM,gapCount,stationary,maxSpeed:Math.max(0,...points.map(p=>p.speed_kmh??0))};
 }
 export function routeAnchors(points:TrailPoint[]){
  if(points.length<2)return [];

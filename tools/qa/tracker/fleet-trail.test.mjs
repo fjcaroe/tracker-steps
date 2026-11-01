@@ -32,3 +32,14 @@ test('one speed spike amid low-speed bench wander does not establish a vehicle t
  const rows=Array.from({length:30},(_,i)=>({...point(i,-33+(i%4)*.0007,i===10?19:2),lon:-70+(i%3)*.0004}));
  const r=buildTrail(rows,start,start+1800000);assert.equal(r.stationary,true);assert.equal(r.distanceM,0);
 });
+
+test('parking wander is excluded even when followed by a real drive',()=>{
+ const parked=Array.from({length:12},(_,i)=>point(i,-33+(i%4)*.0002,1));
+ const driving=[point(12,-33,30),point(13,-33.001,30),point(14,-33.002,30)];
+ const r=buildTrail([...parked,...driving],start,start+3600000);
+ assert.equal(r.stationary,false);assert.ok(r.distanceM>200&&r.distanceM<230);
+});
+test('two consistent moving readings can establish a short low-speed trip',()=>{
+ const r=buildTrail([point(0,-33,10),point(1,-33.0003,10)],start,start+60000);
+ assert.equal(r.stationary,false);assert.ok(r.distanceM>30&&r.distanceM<40);
+});
