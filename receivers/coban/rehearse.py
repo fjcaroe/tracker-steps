@@ -54,6 +54,9 @@ def main():
                         if response.status==200:break
                 except OSError:time.sleep(.25)
             else:raise RuntimeError('Private QA API did not start')
+            with urlopen(cfg['api']+'/openapi.json',timeout=5) as response:
+                paths=json.load(response)['paths']
+                assert '/v1/receiver/poll' in paths and '/mobile/services' in paths
             poll_configuration(store,cfg)
             assert json.loads(mapping.read_text())['000000000000001']['mode']=='capture'
             now=datetime.now(timezone.utc)

@@ -53,7 +53,7 @@ def wait_api():
     for _ in range(30):
         try:
             with urlopen('http://127.0.0.1:8000/openapi.json',timeout=3) as response:paths=json.load(response)['paths']
-            assert '/v1/receiver/poll' in paths and any('passenger' in p for p in paths)
+            assert '/v1/receiver/poll' in paths and '/mobile/services' in paths
             return
         except (OSError,AssertionError):time.sleep(1)
     raise RuntimeError('API did not start with commissioning and existing mobile endpoints')
