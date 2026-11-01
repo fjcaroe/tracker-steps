@@ -4,7 +4,6 @@ from odoo import Command
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged, new_test_user, Form
 from odoo.addons.step_packing_stock_flow.tests.test_stock_flow import PackingStockFlowCase
-from odoo.addons.step_agro_analytics.tests.test_analytics import ProducerCase
 
 
 @tagged('post_install', '-at_install')
@@ -304,6 +303,3 @@ class OverweightNativeFlowCase(PackingStockFlowCase):
         self.assertEqual(production.step_packing_output_tag_ids.filtered(lambda tag: tag.step_tag_kind == 'E').step_actual_kg, 80)
 
 
-@tagged('post_install', '-at_install')
-class HoldingProducerNativeFlowCase(ProducerCase):
-    """Keep native receipt, estimate and double-counting regression coverage."""
