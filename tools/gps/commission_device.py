@@ -68,6 +68,7 @@ def main():
    after=call('configuration');row=next(d for d in after['items'] if d['imei']==data['imei'])
    assert row['asset_id']==asset['asset_id']
    if row['commissioning']['mode']=='forward':
+    visible=next(a for a in call('fleet/snapshot?limit=500')['items'] if a['asset_id']==asset['asset_id'])
     deadline=time.monotonic()+args.wait_seconds
     while time.monotonic()<=deadline:
      visible=next(a for a in call('fleet/snapshot?limit=500')['items'] if a['asset_id']==asset['asset_id'])
