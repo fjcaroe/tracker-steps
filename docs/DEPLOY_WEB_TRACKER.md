@@ -484,3 +484,12 @@ con discontinuidades, reproducción, Maps/Routes, fechas vacías, revocación y
 móvil. Los fixtures solo viven en respuestas del navegador; no se almacenan.
 Mismo paquete con deploy_tracker_frontend.py: copia fresca, Desarrollo, Cerro,
 respaldo, bloqueo y hashes. No cambia addons, API, receptor ni la copia QA-Cerro.
+
+Paquete servido y comprobado: ebcf9cee20f2006618531f9b6499b23bd9a96a7f.
+Los recibos de copia fresca, Desarrollo y producción y sus respaldos están en
+/opt/steps-validation/tracker-parity-20261031/<commit>/. Pasan 17 casos de
+métricas/recorridos y el navegador sobre Desarrollo (fixtures) y Cerro (historial
+real, solo lectura), escritorio y móvil. La prueba sintética usa dos recorridos
+sobre calles separados por un corte y una parada: el GPX conserva el corte y el
+filtro de duración no cambia la distancia. Capturas privadas en local-artifacts/
+tracker-route-explorer-20261101. Las sesiones temporales se retiran al terminar.
