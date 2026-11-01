@@ -16,7 +16,7 @@ it('shows hardware positions with no journey and identifies stale/missing positi
  vi.mocked(loadHardwareFleet).mockResolvedValue(fixture());render(<HardwareFleet onBack={()=>{}}/>);
  expect(await screen.findByText('Cerro QA')).toBeTruthy();
  expect(screen.getByText('En movimiento')).toBeTruthy();expect(screen.getByText('Esperando primera posición GPS')).toBeTruthy();
- expect(screen.getByText(/Auto antiguo · Sin patente/).getAttribute('data-kind')).toBe('stale');
+ expect((await screen.findByText(/Auto antiguo · Sin patente/)).getAttribute('data-kind')).toBe('stale');
  expect(screen.getByRole('button',{name:'Ver Auto GPS en el mapa'})).toBeTruthy();
  expect(screen.queryByText(/70.0 km/)).toBeNull();
 });

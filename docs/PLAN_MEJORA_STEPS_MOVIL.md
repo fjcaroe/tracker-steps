@@ -418,3 +418,39 @@ sobre posiciones reales recibidas después de esta limpieza.
 | 02-10-2026 | Mejoras tras prueba en terreno: la jornada abierta ya no parte sola (confirmación), pestaña Hoy con jornada y mapa, mapa real (Leaflet/OSM) en jornada, Hoy y Supervisor, rutas asignadas a máquinas con avance y alerta de desvío, flota en vivo, reportar robo | rama ticket/46-movil-mejoras | `index-BUjfcEpg.js` | API: tabla mobile_routes (migración aditiva 20261002_mobile_routes); respaldos /opt/fernando_odoo18/backups/tracker_steps-mejoras-20261002T114933Z.dump, tracker_py-mejoras-20261002T114917Z y /var/www/steps-truck-frontend.pre-movil-20261002T115008Z |
 | 03-10-2026 | Restauración del build de `ticket/46-movil-mejoras` (I1–I15 parcial) | `e40c0fa` | `index-BUjfcEpg.js` | La corrida de la mañana desplegó por error un build de `codex/steps-movil` (I1 reimplementado, `index-DTpmu0dy.js`) que pisó lo ya publicado. Restaurado el build de la rama `mejoras`; respaldo del estado erróneo: `steps-truck-frontend.pre-movil-20261003T161339Z`. La rama `ticket/46-movil-jornada-persistente` queda obsoleta. Recomendación histórica sustituida el 03-10 por la consolidación en `codex/steps-movil`. |
 | 03-10-2026 | Consolidación de ocho ramas del ticket 46, I1 adaptada sin perder I2–I15 parciales y correcciones de sincronización | `fd1d870` | `index-zbpnCxRX.js` | Canonical: `codex/steps-movil`. Vitest 34/34, pytest 52/52 y ensayo PostgreSQL correctos; JS verificado por SHA-256. Respaldos: `movil-consolidado-20261003T230318Z` y `steps-truck-frontend.pre-movil-20261003T230318Z`. No probado en teléfono físico. |
+
+
+## Monitor Google y telemetría — 01-11-2026
+
+El panel /truck/#gps usaba Leaflet; la web principal ya usa Google Maps.
+Se incorpora Maps JavaScript al panel, con la clave pública de navegador existente,
+mapa satelital, tráfico, ajuste a flota y controles nativos. Diseño adaptable con
+mapa amplio y fichas laterales; velocidad y frescura siguen usando datos reales.
+No cambia el mapa de las jornadas ni el portal completo, Operación o costos.
+Google se carga solo al abrir GPS. Si falla, las fichas siguen disponibles.
+
+Evaluación de esta unidad física:
+- Posición y velocidad: disponibles.
+- ACC: decodificado; validar cableado antes de atribuirlo al encendido del motor.
+- Rumbo: presente en las tramas F; falta ampliar almacenamiento y API hasta UI.
+- Altura: campo vacío en las posiciones reales analizadas; no inferir cero metros.
+- Batería interna: porcentaje confirmado en SMS check, no en las posiciones TCP.
+  El paquete de estado de 22 campos requiere especificación del firmware; no adivinar.
+- Alimentación externa: desconocida salvo alarma explícita. ACC no prueba alimentación.
+
+Próximas mejoras de valor: alimentación y batería con hora de lectura, alertas de
+corte o pérdida de comunicación, recorridos diarios sin jornada y filtrado de deriva
+GPS al estacionar. Separar batería del equipo y del auto; un porcentaje aislado no
+permite calcular autonomía. Ninguna de estas ampliaciones se presenta como instalada.
+
+Herramientas: el decodificador GPS103 de Traccar sirve para contrastar variantes y
+fixtures sin sustituir el receptor. Google Elevation ofrece altura del terreno,
+que debe rotularse estimada y requiere API habilitada y revisión de consumo.
+No se habilitan APIs adicionales ni consultas de elevación por cada actualización.
+Fuentes primarias:
+https://github.com/traccar/traccar/blob/master/src/main/java/org/traccar/protocol/Gps103ProtocolDecoder.java
+https://developers.google.com/maps/documentation/javascript/elevation
+
+El publicador mantiene copia fresca, respaldo, bloqueo y mismo paquete en Desarrollo
+ y Cerro, sin cambios de API, receptor o módulos Odoo. Evidencia privada bajo
+/opt/steps-validation/mobile-hardware-map-20261031/ y ~/.codex/local-artifacts/.
