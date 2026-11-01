@@ -30,6 +30,11 @@ const assert=require('node:assert/strict');
    await page.getByRole('heading',{name:'Registro de operación',exact:true}).waitFor();
    await page.getByRole('button',{name:'Iniciar recorrido',exact:true}).waitFor();
    await page.getByRole('combobox',{name:/^Máquina/}).waitFor();
+   const catalogue=await page.evaluate(async()=>{
+    const response=await fetch('https://stepsapp.cl/tracker-steps/machines',{headers:{Authorization:'Bearer '+localStorage.getItem('tracker_token')}});
+    return {status:response.status,list:Array.isArray(await response.json())};
+   });
+   assert.deepEqual(catalogue,{status:200,list:true});
    await page.screenshot({path:path.join(output,'operation-native.png'),fullPage:true});
    await nav.getByRole('button',{name:'← Flota y GPS',exact:true}).click();
    await page.getByRole('button',{name:'Configuración',exact:true}).click();
