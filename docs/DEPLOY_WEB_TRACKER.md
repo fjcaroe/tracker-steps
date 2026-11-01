@@ -465,3 +465,22 @@ y step_management_costs_tracker (18.0.1.1.1); prueba release-pair.json junto al
 ensayo nativo. QA-Cerro no sirve el frontend Web Tracker en su nginx: conserva
 su capacitación, aplicaciones instaladas y aislamiento, sin habilitar acceso
 a receptores o datos GPS productivos para replicar esta interfaz.
+
+## Explorador de recorridos — 01-11-2026
+
+La vista muestra el recorrido completo sin selector de divisiones técnicas.
+Las paradas son eventos filtrables por duración (3–60 minutos, 10 por defecto),
+con marcadores opcionales y lista de diez eventos ampliable. Hoy y Ayer usan
+el calendario del dispositivo, indicado en pantalla; también hay 2/24 horas,
+7 días y rango con hora hasta 31 días. Filtrar eventos conserva distancia y traza.
+La reproducción puede seguir el punto en el mapa. El GPX exporta exclusivamente
+las líneas GPS filtradas, en segmentos separados ante discontinuidades, sin
+convertir aproximaciones de Google en observaciones. Historial parcial se anuncia.
+La aproximación solicita todas las líneas elegibles del período, hasta 12 por
+acción; para rangos mayores pide acotar fechas. Nunca une cortes de señal.
+Se comprueba el rechazo de desvíos excesivos y se conserva la traza ante errores.
+route-history-native.cjs verifica filtros sin cambio de distancia, exportación
+con discontinuidades, reproducción, Maps/Routes, fechas vacías, revocación y
+móvil. Los fixtures solo viven en respuestas del navegador; no se almacenan.
+Mismo paquete con deploy_tracker_frontend.py: copia fresca, Desarrollo, Cerro,
+respaldo, bloqueo y hashes. No cambia addons, API, receptor ni la copia QA-Cerro.
