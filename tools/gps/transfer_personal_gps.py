@@ -28,14 +28,20 @@ def move(database,plan,apply=False):
     'gps_device_commands':('incident_id=ANY(%s)',(incident_ids,))})
    snapshot={}
    for table,(where,args) in selectors.items():
-    data=rows('SELECT row_to_json(t) FROM '+table+' t WHERE '+where+' ORDER BY 1::text',args)
+    data=rows('SELECT row_to_json(t) FROM '+table+' t WHERE '+where+' ORDER BY row_to_json(t)::text',args)
     snapshot[table]=[r[0] for r in data]
     assert all(r[0]['tenant_id']==a[0][0]['tenant_id'] for r in data),'Mixed asset ownership'
    others=rows('SELECT row_to_json(r),row_to_json(d) FROM gps_device_registrations r JOIN gps_devices d ON d.id=r.device_id WHERE r.tenant_id=%s AND r.device_id<>%s ORDER BY r.id',(source,device));assert len(others)==4
    assert not rows('SELECT id FROM gps_assets WHERE tenant_id=%s AND source_id=%s AND id<>%s',(target,a[0][0]['source_id'],asset))
    result={'source_tenant':source,'target_tenant':target,'device_id':device,'registration_id':reg['id'],'snapshot':snapshot,'other_devices':others,'position_count':len(snapshot['gps_positions'])}
    if not apply or a[0][0]['tenant_id']==target:return result
+   # This composite FK is kept enabled, deferred only inside this transaction.
+   # Validate immediately after both sides move, then restore original semantics.
+   cr.execute('ALTER TABLE gps_assignments ALTER CONSTRAINT gps_assignment_asset_tenant DEFERRABLE INITIALLY DEFERRED')
+   cr.execute('SET CONSTRAINTS gps_assignment_asset_tenant DEFERRED')
    for table,(where,args) in selectors.items():cr.execute('UPDATE '+table+' SET tenant_id=%s WHERE '+where,(target,*args))
+   cr.execute('SET CONSTRAINTS gps_assignment_asset_tenant IMMEDIATE')
+   cr.execute('ALTER TABLE gps_assignments ALTER CONSTRAINT gps_assignment_asset_tenant NOT DEFERRABLE INITIALLY IMMEDIATE')
    cr.execute('UPDATE gps_device_registrations SET version=version+1 WHERE id=%s',(reg['id'],))
    cr.execute('INSERT INTO gps_audit_events(id,tenant_id,asset_id,actor,action,detail,created_at) VALUES(%s,%s,%s,%s,%s,%s,now())',(str(uuid.uuid4()),target,asset,'support:codex','personal_asset_transferred',Json({'previous_issuer':'CERRO_EL_PLOMO','previous_company_id':plan['source_company'],'destination_issuer':'LAB_TAREAS','reason':'Usuario solicitó separar su vehículo personal de la flota productiva; historial conservado.'})))
    assert len(rows('SELECT id FROM gps_device_registrations WHERE tenant_id=%s',(source,)))==4
