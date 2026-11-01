@@ -17,6 +17,6 @@ export function operationsMetrics(input:TrailPoint[],from:number,to:number){
  return {...trail,movingSeconds,maxReportedSpeed:speeds.length?Math.max(...speeds):null,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day)),spanSeconds:trail.points.length>1?(Date.parse(trail.points.at(-1)!.recorded_at)-Date.parse(trail.points[0].recorded_at))/1000:0};
 }
 export function operationsCsv(rows:unknown[][]){
- const safe=(value:unknown)=>{const raw=String(value??'');return '"'+(/^[=+\-@\t\r]/.test(raw)?"'"+raw:raw).replaceAll('"','""')+'"';};
+ const safe=(value:unknown)=>{const raw=typeof value==='number'&&Number.isFinite(value)?value.toLocaleString('es-CL',{useGrouping:false,maximumFractionDigits:6}):String(value??'');return '"'+(/^[=+\-@\t\r]/.test(raw)?"'"+raw:raw).replaceAll('"','""')+'"';};
  return '\uFEFF'+rows.map(row=>row.map(safe).join(';')).join('\r\n');
 }

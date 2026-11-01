@@ -12,3 +12,4 @@ test('empty data and unavailable speed remain unavailable',()=>{const m=operatio
 test('CSV preserves Spanish text and blocks spreadsheet formula injection',()=>{const s=operationsCsv([['Vehículo','=CMD()','+formula','normal','a"b']]);assert.ok(s.includes("'=CMD()"));assert.ok(s.includes("'+formula"));assert.ok(s.includes('a""b'));});
 
 test('physical odometer input never silently interprets grouped numbers as a decimal',()=>{assert.equal(parseOdometerReading('123456,5'),123456.5);assert.equal(parseOdometerReading('123456.5'),123456.5);assert.equal(parseOdometerReading('0'),0);for(const value of ['123.456','1.234,5','','-1','abc'])assert.throws(()=>parseOdometerReading(value));});
+test('CSV numbers use decimal comma without thousands separators for Chilean spreadsheets',()=>{assert.ok(operationsCsv([[1.5,1000.25]]).includes('"1,5";"1000,25"'));});
