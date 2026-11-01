@@ -256,3 +256,60 @@ horizontal a 1440 y 390 px. Bloquea escrituras de negocio durante la revisión.
 Evidencia privada: /opt/steps-validation/tracker-parity-20261031/<commit>/
 (qa.json, development.json, production.json, private/functional.log y respaldos).
 Capturas: ~/.codex/local-artifacts/web-monitor-layout-20261101/.
+
+
+## Historial convertido en explorador de recorridos — 01-11-2026
+
+El historial de la flota abre un mapa Google con inicio/fin, tramos separados,
+paradas probables, reproducción por muestra, control deslizante y perfil de
+velocidad. El usuario elige últimas 24/2 horas o fechas de hasta 31 días. La
+consulta existente se pagina de 500 en 500, hasta 10.000 por carga; si queda cursor,
+se anuncia historial parcial y se permite ampliar. Se ordena cronológicamente,
+se deduplica por ID y se filtra el límite superior en cliente. Las coordenadas
+originales quedan en diagnóstico desplegable, no como contenido principal.
+
+La distancia representa la traza filtrada y no un odómetro. No se unen huecos de
+más de diez minutos, saltos de más de cinco kilómetros o velocidades inferidas
+incompatibles. La geometría exige señales consistentes de movimiento; una lectura
+alta aislada no convierte la deriva de banco en un viaje. También se excluye la
+deriva estacionada cuando el período contiene un viaje real posterior. Velocidades
+no informadas dejan huecos en el perfil. Las paradas son probables, sin inferir
+motor ni alimentación desde ellas. Los puntos recibidos nunca se modifican.
+
+Aproximar por calles utiliza la biblioteca moderna Google Routes, ya habilitada
+en el proyecto, con la clave pública existente y una petición solo al pulsar el
+botón. Se selecciona un tramo continuo, con origen/destino y hasta seis anclas
+intermedias en orden; no se optimiza su orden ni se atraviesan cortes de señal.
+El resultado estimado se distingue en azul discontinuo de la traza verde y se
+puede quitar. Se rechazan detours mayores a tres veces la traza más 500 m. Una
+sugerencia por calles es una hipótesis navegable, no una certificación del camino
+histórico ni un ajuste GPS mediante Roads API. No reemplaza coordenadas ni métricas.
+Se descartan respuestas antiguas al cambiar de tramo/período o cerrar el diálogo.
+
+Referencias primarias:
+https://developers.google.com/maps/documentation/javascript/routes/get-a-route
+https://developers.google.com/maps/documentation/javascript/routes/intermediate-waypoints
+https://developers.google.com/maps/documentation/roads/snap
+Roads es una alternativa de map matching; esta entrega usa Routes existente y
+no habilita nuevos servicios ni cambia credenciales.
+
+Validación: nueve casos de cálculo (orden, duplicados, límites de fechas, deriva
+prolongada, saltos, huecos, anclas acotadas, lecturas escasas y mezcla parada/viaje),
+TypeScript/Vite y ensayo del flujo existente en copia fresca. El navegador de
+Desarrollo usa posiciones sintéticas solo en respuestas interceptadas: paginación,
+parada, corte, reproducción, período vacío, revocación, móvil y petición REAL a
+Google Routes. La referencia sintética toma una ruta pública de Google para situar
+sus muestras sobre calles transitables; no se inserta en bases. También se verificó
+que una aproximación alejada de una traza ficticia se rechaza. En Cerro se comprueba
+el mapa y la reproducción con posiciones físicas existentes, sin crear jornadas,
+sin GPS del teléfono y sin escrituras de negocio.
+
+Paquete final b4e2abdf (hash completo en qa.json, development.json y production.json),
+misma compilación certificada en Desarrollo y Cerro. Publicación con dump, respaldo,
+bloqueo y comparación de archivos servidos. API, receptor, móvil y módulos Odoo
+permanecen intactos. Fuente de compilación local canónica; artefactos fuera del
+checkout y traslado como tar para evitar modificar un dist mientras se transfiere.
+Evidencia privada bajo /opt/steps-validation/tracker-parity-20261031/<commit>/ y
+~/.codex/local-artifacts/tracker-route-history-20261101/.
+Comprobaciones repetibles: tools/qa/tracker/fleet-trail.test.mjs y
+route-history-native.cjs, con sesiones temporales existentes y cierre posterior.
