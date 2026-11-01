@@ -352,6 +352,56 @@ Revisión de navegador: ~/.codex/local-artifacts/mobile-gps-bench-20261101/.
 El verificador nativo exige también la presencia del marcador correspondiente,
 tanto en captura como después de la asociación y activación.
 
+## Retiro de pruebas clásicas antes del piloto real — 01-11-2026
+
+El usuario solicitó retirar los datos de prueba que pudieran interferir en la
+conducción y confirmó que todas las máquinas antiguas consultadas eran pruebas
+propias. El inventario GPS de Cerro ya contenía únicamente el vehículo real;
+el ruido estaba en la operación clásica compartida, sin columna de compañía.
+No se interpretaron los vehículos de los otros tenants como pruebas ni se
+modificaron los maestros de Odoo o los ejercicios de QA-Cerro.
+
+Se retiraron 8 máquinas, 19 jornadas (4 abiertas), sus 65.130 puntos de prueba y
+19 órdenes antiguas. No había rutas, servicios de pasajeros, incidencias,
+gastos, checklists o lotes que eliminar. Se conservaron usuarios, catálogos
+operativos y todo el dominio GPS, incluida la asociación y aprobación del
+equipo real, sus posiciones previas y los puntos nuevos que siguió recibiendo.
+No se creó una máquina clásica paralela para usar el GPS sin jornada.
+
+Herramienta versionada: tools/gps/retire_legacy_test_data.py. El plan contiene
+identificadores explícitos y huellas completas de los registros elegidos; se
+guarda exclusivamente en evidencia privada. Rechaza cambios concurrentes,
+ausencia del vehículo protegido o seguimiento no aprobado. Adquiere el bloqueo
+compartido, bloquea las escrituras clásicas durante la transacción, respalda y
+elimina en orden de relaciones sin desactivar restricciones. Compara las filas
+ajenas antes/después y verifica la conservación de cada posición GPS existente.
+El receptor sigue funcionando durante la operación.
+
+Se restauró el dump en TRACKER_CLEAN_QA_20261101, con acceso público revocado.
+La misma herramienta retiró los registros en esa copia; una API HTTP local con
+el código efectivo de producción validó selector de máquinas, jornadas abiertas
+e históricas, órdenes y rutas sin pruebas, conservando la proyección GPS real.
+tools/qa/tracker/verify_legacy_retirement.py sella ese resultado y permite la
+ejecución del mismo plan en origen, con un segundo respaldo inmediatamente previo.
+No se cambiaron dependencias de la API productiva para estas pruebas.
+
+Verificación real en Cerro: menú GPS y SIM, formulario autorizado, rechazo de
+escritura inválida, app móvil con un vehículo y marcador real, y formulario de
+jornada sin máquinas ni jornadas de prueba para retomar. El recorrido nativo
+tools/qa/tracker/legacy-retirement-native.cjs comprueba también órdenes y rutas
+vacías, sin crear jornadas ni solicitar ubicación al teléfono. Solo permite los
+intercambios de sesión y el heartbeat normal de diagnóstico. API, Coban y
+Teltonika permanecieron activos; no hubo publicación ni cambio de módulos Odoo.
+
+Evidencia privada: /opt/steps-validation/cerro-tracker-cleanup-20261101/
+(plan-v2.json, source-v2.dump, qa.json, qa.http.log, production.json y
+pre-apply.dump). Respaldo inmediatamente previo SHA-256:
+af6d8c3986d2b4e2f1eac783e33f358fe17acaa0cc3f3d99e23211b50230934c.
+Capturas y recibos locales: ~/.codex/local-artifacts/cerro-tracker-cleanup-20261101/.
+Los respaldos conservan datos privados y no deben subirse a Git. Si se necesitara
+recuperar una prueba, extraer sus filas en una copia; no restaurar toda la base
+sobre posiciones reales recibidas después de esta limpieza.
+
 ## Bitácora
 
 | Fecha | Iteración | Commit | JS servido | Notas |
