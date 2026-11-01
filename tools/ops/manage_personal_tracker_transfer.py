@@ -68,7 +68,7 @@ def main():
     # Read access for postgres only during tests; no secret-bearing input is world-readable.
     test_plan=Path('/tmp/personal-test-plan-'+stamp+'.json');test_plan.write_bytes(a.plan.read_bytes());test_plan.chmod(0o600);os.chown(test_plan,pwd.getpwnam('postgres').pw_uid,pwd.getpwnam('postgres').pw_gid);env['PERSONAL_PLAN']=str(test_plan)
     try:
-     with (stage/'api-tests.log').open('wb') as out:run(PY,'-m','pytest','tests/test_fleet.py','tests/test_receiver.py','-q',cwd=source/'backend/tracker_py',env=env,stdout=out,stderr=subprocess.STDOUT)
+     with (stage/'api-tests.log').open('wb') as out:run(PY,'-m','pytest','tests/test_fleet.py','tests/test_receiver.py','-q',cwd=source/'backend/tracker_py',env={**env,'PYTHONPATH':env['PYTHONPATH']+':/opt/steps-validation/personal-transfer-test-deps'},stdout=out,stderr=subprocess.STDOUT)
      print('PERSONAL_API_TESTS_OK',flush=True)
      with (stage/'tcp-copy.log').open('wb') as out:run('sudo','-u','postgres','env',*[k+'='+env[k] for k in ('DATABASE_URL','JWT_SECRET','PYTHONPATH','PERSONAL_PLAN')],PY,source/'tools/qa/tracker/personal-transfer-flow.py',cwd=source,stdout=out,stderr=subprocess.STDOUT)
     finally:test_plan.unlink(missing_ok=True)
