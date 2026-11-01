@@ -1,0 +1,22 @@
+<odoo>
+ <record id="order_branch" model="ir.ui.view">
+  <field name="name">step.packing.order.holding</field><field name="model">step.packing.order</field>
+  <field name="inherit_id" ref="step_packing_operations.view_packing_order_form"/>
+  <field name="arch" type="xml">
+   <field name="company_id" position="attributes"><attribute name="readonly">1</attribute></field>
+   <field name="packing_partner_id" position="before"><field name="holding_company_ids" invisible="1"/><field name="branch_company_id" domain="[('id','in',holding_company_ids)]" readonly="state != 'draft' or line_ids or production_ids" options="{'no_create': True}"/></field>
+  </field>
+ </record>
+ <record id="guide_shipment" model="ir.ui.view">
+  <field name="name">step.dispatch.guide.holding</field><field name="model">step.dispatch.guide</field>
+  <field name="inherit_id" ref="step_export.view_dispatch_guide_form_export"/>
+  <field name="arch" type="xml"><field name="step_export_shipment_id" position="before"><field name="holding_shipment_company_ids" invisible="1"/></field>
+   <field name="step_export_shipment_id" position="attributes"><attribute name="domain">[('company_id','in',holding_shipment_company_ids),('state','in',['validated','dispatched','shipped'])]</attribute></field>
+  </field>
+ </record>
+ <record id="instruction_shipment" model="ir.ui.view">
+  <field name="name">step.export.dispatch.order.holding</field><field name="model">step.export.dispatch.order</field>
+  <field name="inherit_id" ref="step_packing_dispatch.instruction_form"/>
+  <field name="arch" type="xml"><field name="shipment_id" position="before"><field name="holding_shipment_company_ids" invisible="1"/></field></field>
+ </record>
+</odoo>

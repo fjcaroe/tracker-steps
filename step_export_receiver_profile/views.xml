@@ -1,0 +1,15 @@
+<odoo>
+ <record id="partner_profile" model="ir.ui.view">
+  <field name="name">res.partner.export.receiver.profile</field><field name="model">res.partner</field>
+  <field name="inherit_id" ref="step_export.view_step_export_partner_form"/>
+  <field name="arch" type="xml"><xpath expr="//page[@name='step_export_partner']/group" position="inside">
+   <field name="step_export_market_id"/><field name="step_export_generic_receiver"/>
+   <field name="step_export_default_notify_id"/><field name="step_export_default_consignee_id"/>
+  </xpath></field>
+ </record>
+ <record id="shipment_receivers" model="ir.ui.view">
+  <field name="name">step.export.export.receiver.profile</field><field name="model">step.export.export</field>
+  <field name="inherit_id" ref="step_export.view_step_export_shipment_form"/>
+  <field name="arch" type="xml"><field name="receiver_id" position="before"><field name="eligible_receiver_ids" invisible="1"/></field></field>
+ </record>
+</odoo>

@@ -1,0 +1,17 @@
+<templates xml:space="preserve">
+ <t t-inherit="step_agro_analytics.Comparison" t-inherit-mode="extension">
+  <xpath expr="//div[hasclass('o_agro_filters')]" position="before">
+   <fieldset t-if="props.kind === 'producers' and state.data?.companies" class="mb-3" t-att-disabled="state.loading">
+    <legend class="fs-6">Matriz y sucursales</legend>
+    <label t-foreach="state.data.companies" t-as="company" t-key="company.id" class="me-3">
+     <input type="checkbox" class="form-check-input me-1" t-att-checked="state.data.selected_company_ids.includes(company.id)" t-on-change="(event) => this.changeHoldingCompany(company.id, event)"/>
+     <t t-esc="company.name"/>
+    </label>
+    <button type="button" class="btn btn-link" t-on-click="selectAllHolding">Todas</button>
+   </fieldset>
+  </xpath>
+ </t>
+ <t t-inherit="step_producers.Dashboard" t-inherit-mode="extension">
+  <xpath expr="//section[@aria-labelledby='producer-overview-title']//small" position="replace"><small>Compañías y sucursales seleccionadas en el panel Holding</small></xpath>
+ </t>
+</templates>

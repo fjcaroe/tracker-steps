@@ -1,0 +1,21 @@
+<odoo>
+ <record id="production_balance" model="ir.ui.view">
+  <field name="name">step.packing.production.overweight</field><field name="model">step.packing.production</field>
+  <field name="inherit_id" ref="step_packing_operations.view_packing_production_form"/>
+  <field name="arch" type="xml">
+   <xpath expr="//group[group/field[@name='step_packing_input_kg']]" position="replace">
+    <group string="Cuadratura" name="holding_balance">
+     <group><label for="step_packing_input_kg"/><div class="o_row"><field name="step_packing_input_kg"/><field name="step_packing_input_percent"/> %</div>
+      <label for="step_packing_export_kg"/><div class="o_row"><field name="step_packing_export_kg"/><field name="step_packing_export_percent"/> %</div>
+      <label for="step_packing_overweight_kg"/><div class="o_row"><field name="step_packing_overweight_kg" readonly="state != 'created'"/><field name="step_packing_overweight_percent"/> %</div>
+      <label for="step_packing_commercial_kg"/><div class="o_row"><field name="step_packing_commercial_kg"/><field name="step_packing_commercial_percent"/> %</div>
+     </group>
+     <group><label for="step_packing_precaliber_kg"/><div class="o_row"><field name="step_packing_precaliber_kg"/><field name="step_packing_precaliber_percent"/> %</div>
+      <label for="step_packing_waste_kg"/><div class="o_row"><field name="step_packing_waste_kg"/><field name="step_packing_waste_percent"/> %</div>
+      <label for="step_packing_loss_kg"/><div class="o_row"><field name="step_packing_loss_kg"/><field name="step_packing_loss_percent"/> %</div>
+     </group>
+    </group>
+   </xpath>
+  </field>
+ </record>
+</odoo>

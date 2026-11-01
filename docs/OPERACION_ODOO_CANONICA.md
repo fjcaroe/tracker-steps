@@ -1,5 +1,15 @@
 # Operación y publicación de Odoo
 
+T147–T151 autorizan `agriculture-holding` en Desarrollo, Cerro y QA-Cerro:
+OP y OT en la sucursal elegida desde la matriz; panel de Productores con
+selección de compañías autorizadas del holding; guías e instructivos de una
+sucursal vinculados a sus embarques o los de su matriz; mercado, recibidor
+genérico y contactos Notify/Consignatario; sobrepeso total firmado en kilos y
+porcentajes de cuadratura. Reutilizar compañías, mercados, contactos y
+documentos existentes. No asignar permisos, trasladar stock, validar documentos
+reales ni cambiar pesos estándar al publicar. Copias frescas, mismo paquete,
+respaldo, bloqueo, conservación de históricos y paridad Cerro/QA-Cerro.
+
 Este procedimiento aplica a todos los agentes que trabajen en este repositorio.
 Las instrucciones específicas de un producto se conservan, pero no reemplazan
 la identificación y comprobación del ambiente real.
