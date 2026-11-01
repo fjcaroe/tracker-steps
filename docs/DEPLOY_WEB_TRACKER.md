@@ -521,3 +521,21 @@ real confirma el nuevo acceso a gastos y kilómetros en Mapa y Operaciones,
 sin escrituras. Capturas privadas: local-artifacts/tracker-costs-fix-20261101.
 La prueba de Mapa abre la pestaña Costos por texto accesible, independiente de
 si el contenedor declara role=tab o button. Sesiones temporales retiradas.
+
+## Selección de compañía en teléfonos — 01-11-2026
+
+TrackerCompanySelector consulta las compañías permitidas del propio usuario
+mediante res.users.read y res.company.search_read. Permite cambiar la cookie
+nativa cids y recarga por completo para descartar datos y formularios anteriores.
+La elección se conserva en ese navegador. No cambia la compañía predeterminada
+del usuario, membresías ni registros; el BFF mantiene la comprobación de permisos.
+El enlace ?company=<id>#live selecciona únicamente una compañía de esa lista;
+un ID ajeno muestra error y conserva la compañía activa. Se retira asset al
+cambiar de compañía para evitar selección de un vehículo de la empresa anterior.
+El estado vacío identifica la compañía y orienta al selector en vez de pedir
+volver a crear/sincronizar vehículos existentes. Disponible también en Operación.
+company-selection-native.cjs comprueba móvil, compañía vacía, selección explícita,
+recarga persistente, enlace autorizado y rechazo de ID ajeno; modo fixture para
+Desarrollo, modo real de solo lectura en Cerro. Solo cambia contexto de navegador.
+Frontend publicado mediante copia fresca, Desarrollo y Cerro con el mismo dist,
+respaldo y bloqueo. No se modifican addons, API, GPS ni datos de QA-Cerro.
