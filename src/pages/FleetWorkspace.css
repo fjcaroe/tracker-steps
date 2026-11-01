@@ -4,3 +4,10 @@
 .fleet-app{width:100%;min-width:0}body:has(.fleet-app){margin:0;min-width:0}.fleet-app p{margin:10px 0}.fleet-app .fleet-identity{min-width:0;overflow-wrap:anywhere}
 .fleet-app .ops-map-vehicle-button{padding:0;min-height:0;border:0;background:transparent}.fleet-list{max-height:620px;overflow-y:auto}
 @media(min-width:769px){.fleet-header{padding:14px 24px}.fleet-nav{padding:7px 24px}.fleet-app main{padding:18px 24px}.fleet-heading{margin-bottom:12px}.fleet-heading h1{font-size:32px;margin:3px 0}.fleet-filters{padding:10px 12px}.fleet-metrics{margin:12px 0}.fleet-metrics>span{padding:10px 12px}.fleet-toolbar{margin-bottom:12px}.fleet-notice{margin:8px 0;padding:10px 14px}}
+
+.gps-receiver { margin-block: 1rem; }
+.gps-receiver li { margin-block: .65rem; }
+.gps-diagnostic { border-block: 1px solid var(--border, #dce5e8); margin-block: 1rem; padding-block: 1rem; }
+.gps-verification { display: flex !important; align-items: flex-start; gap: .65rem; }
+.gps-verification input { width: auto !important; margin-top: .3rem; }
+.gps-diagnostic a { overflow-wrap: anywhere; }

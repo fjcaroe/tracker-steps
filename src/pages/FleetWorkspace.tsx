@@ -81,16 +81,17 @@ export default function FleetWorkspace() {
   }, [context, demo, demoKey]);
   useEffect(() => {
     if (!context || context.role !== 'manager' || demo) return;
-    let active = true;
-    const load = async () => {
-      setConfigLoading(true);
+    let active = true, pending = false;
+    const load = async (foreground = false) => {
+      if(pending)return;pending=true;
+      if(foreground)setConfigLoading(true);
       try { const r = await fleetRequest<Configuration>('configuration',context); if(active){setConfiguration(r);setConfigError('');} }
       catch(e){if(active)setConfigError((e as Error).message);}
-      finally{if(active)setConfigLoading(false);}
+      finally{pending=false;if(active)setConfigLoading(false);}
     };
-    void load(); const timer=setInterval(() => void load(),60000);
+    void load(true); const timer=setInterval(() => void load(),view === 'settings' ? 5000 : 60000);
     return () => {active=false;clearInterval(timer);};
-  },[context,demo,configTick]);
+  },[context,demo,configTick,view]);
   const onFilter=(filters:Partial<Filters>,next:View='fleet')=>{setPreference(p=>({...p,filters:{...emptyFilters,...filters}}));navigate(next);};
   const savedAsset=(id:string,data:AssetDetails)=>{
     if(demo)setDemoAssets(previous=>previous.some(a=>a.asset_id===id)?previous.map(a=>a.asset_id===id?{...a,...data}:a):[...previous,{...data,asset_id:id,created_at:new Date().toISOString(),position_stale:true,signal_state:'no_signal',motion_state:'unknown',protection_state:'disarmed',last_position:null,device:null,capabilities:{tracking:'not_approved',remote_start_inhibit:'not_approved'}}]);
