@@ -27,3 +27,8 @@ test('empty and one-point periods remain usable',()=>{
  assert.equal(buildTrail([],start,start+1).distanceM,0);
  const r=buildTrail([point(0)],start,start+1);assert.equal(r.segments.length,1);assert.equal(r.distanceM,0);
 });
+
+test('one speed spike amid low-speed bench wander does not establish a vehicle trip',()=>{
+ const rows=Array.from({length:30},(_,i)=>({...point(i,-33+(i%4)*.0007,i===10?19:2),lon:-70+(i%3)*.0004}));
+ const r=buildTrail(rows,start,start+1800000);assert.equal(r.stationary,true);assert.equal(r.distanceM,0);
+});

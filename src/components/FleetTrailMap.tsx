@@ -40,5 +40,5 @@ export default function FleetTrailMap({points,segments,stops,cursor}:{points:Tra
  {points[0]&&<MarkerF position={xy(points[0])} label="A" title="Inicio de los datos del período"/>}{points.length>1&&<MarkerF position={xy(points[points.length-1])} label="B" title="Fin de los datos del período"/>}
  {stops.map((s,i)=><MarkerF key={i} position={xy(s.point)} label="P" title={'Parada probable · '+Math.round(s.minutes)+' min'}/>)}
  {cursor&&<MarkerF position={xy(cursor)} title="Posición en la reproducción" icon={{path:google.maps.SymbolPath.CIRCLE,fillColor:'#d8ff62',fillOpacity:1,strokeColor:'#123c33',strokeWeight:3,scale:9}}/>}
- </GoogleMap>}</div><p className="trail-map-legend"><span>● Traza GPS · desplazamientos medidos</span><span> A Inicio · B Fin · P Parada probable</span>{estimate.length>0&&<strong>Azul: estimación por calles, no recorrido comprobado.</strong>}</p></div>;
+ </GoogleMap>}</div><p className="trail-map-legend"><span>● Traza GPS · unión de muestras filtradas</span><span> A Inicio · B Fin · P Parada probable</span>{estimate.length>0&&<strong>Azul: estimación por calles, no recorrido comprobado.</strong>}</p></div>;
 }

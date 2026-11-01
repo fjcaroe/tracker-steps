@@ -28,7 +28,15 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   if(d<25&&(p.speed_kmh??0)<5&&(previous.speed_kmh??0)<5)continue;
   segment.push(p);distanceM+=d;
  }
- const stationary=points.length>1&&gapCount===0&&points.every(p=>(p.speed_kmh??0)<5&&meters(points[0],p)<120);
+ let confirmedMovement=false;
+ for(let i=2;i<points.length;i++){
+  const a=points[i-2],b=points[i-1],c=points[i],dt=(Date.parse(c.recorded_at)-Date.parse(a.recorded_at))/1000;
+  const ab=meters(a,b),bc=meters(b,c),net=meters(a,c);
+  const fast=[a,b,c].filter(p=>(p.speed_kmh??0)>=8).length>=2;
+  const inferred=[a,b,c].every(p=>p.speed_kmh==null)&&dt>0&&net/dt*3.6>=8;
+  if(dt>0&&dt<=1200&&ab<5000&&bc<5000&&net>=60&&net/Math.max(1,ab+bc)>.65&&(fast||inferred)){confirmedMovement=true;break;}
+ }
+ const stationary=points.length>1&&!confirmedMovement;
  return {points,segments:stationary?[[points[0]]]:segments,stops,distanceM:stationary?0:distanceM,gapCount,stationary,maxSpeed:Math.max(0,...points.map(p=>p.speed_kmh??0))};
 }
 export function routeAnchors(points:TrailPoint[]){
