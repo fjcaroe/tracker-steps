@@ -417,6 +417,12 @@ Su período y base de cálculo se explican por separado de la distancia GPS.
 La navegación conserva el vehículo al volver al mapa y no emite otro token de
 la operación clásica ni exige un segundo inicio de sesión.
 
+Sincronizar Odoo consulta además la correspondencia explícita ya existente:
+actualiza el activo GPS vinculado conservando UUID, asignación e historial.
+Solo importa por source_id nativo los vehículos aún no vinculados y crea su
+correspondencia validada. No invoca la importación antigua que podía duplicar
+un activo Coban dado de alta manualmente y vinculado después con Flota.
+
 Validación: operations-metrics.test.mjs y fleet-trail.test.mjs; navegador con
 respuestas sintéticas locales para todas las pestañas, paginación, vínculo,
 lecturas, incoherencias, duplicados, cambio de compañía, revocación, exportación

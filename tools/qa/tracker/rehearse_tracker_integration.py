@@ -58,6 +58,14 @@ def main():
   for state in ('acknowledged','closed'):
    assert security('security/incidents/'+incident['id'],'PATCH',{'state':state,'reason':'Private copy resolved test'})[0]==200
   assert security('assets/'+asset_id)[1]['protection_state']=='disarmed'
+  # Updating native-linked metadata must preserve the hardware asset and its history.
+  original=security('assets/'+asset_id)[1]
+  code,_=security('assets/'+asset_id,'PATCH',{'name':'Copy native Fleet metadata','plate':'QA-OPS','type':original['type'],'cost_center':original['cost_center'],'responsible':original['responsible']});assert code==200
+  updated=security('assets/'+asset_id)[1];assert updated['asset_id']==asset_id and updated['last_position']['id']==original['last_position']['id']
+  import uuid
+  native={'source_id':'private-operation-copy:'+uuid.uuid4().hex,'name':'Copy imported vehicle','type':'vehicle'}
+  one=security('assets','PUT',native)[1];two=security('assets','PUT',native)[1];assert one['asset_id']==two['asset_id']
+  print('OPERATIONS_COPY_QA_OK hardware_asset_preserved=True gps_history_preserved=True native_import_idempotent=True')
   print('PROTECTION_COPY_QA_OK arm=True stale_rejected=True disarm_with_open_sos=True acknowledge_close=True viewer_denied=True gps_preserved=True')
   print('TRACKER_INTEGRATION_COPY_OK gps_flow=True odoo_identity=True operation_catalogues=True no_external_dispatch=True')
  finally:api.terminate();api.wait(timeout=15)

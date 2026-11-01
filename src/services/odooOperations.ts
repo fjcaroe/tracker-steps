@@ -1,4 +1,4 @@
-import { FleetApiError, portalRequest, type FleetContext } from './fleetApi';
+import { FleetApiError, fleetRequest, portalRequest, type FleetContext, type FleetAsset } from './fleetApi';
 
 export type OdooVehicle={id:number;name:string;license_plate:string|false;odometer:number;odometer_unit:'kilometers'|'miles';driver_id:[number,string]|false};
 export type OdometerReading={id:number;date:string;value:number;unit:'kilometers'|'miles'};
@@ -53,6 +53,28 @@ export async function linkVehicle(context:FleetContext,assetId:string,vehicleId:
  await readVehicle(context,vehicleId);
  if(await readAssetLink(context,assetId))throw new Error('Este equipo ya está vinculado. Actualiza el estado antes de continuar.');
  return odooCall<number|number[]>(context,'step.tracker.asset.link','create',[[{company_id:context.company_id,asset_id:assetId,vehicle_id:vehicleId,note:'Vínculo explícito confirmado desde Operaciones de Tracker.'}]]);
+}
+export async function synchronizeOdooFleet(context:FleetContext){
+ if(context.role!=='manager')throw new Error('Solo un administrador de Tracker puede sincronizar Flota.');
+ await verifyCurrentCompany(context);
+ const vehicles=await odooCall<OdooVehicle[]>(context,'fleet.vehicle','search_read',[],{domain:[['company_id','=',context.company_id],['active','=',true]],fields:['id','name','license_plate','driver_id','odometer','odometer_unit'],limit:501});
+ const links=await odooCall<AssetLink[]>(context,'step.tracker.asset.link','search_read',[],{domain:[['company_id','=',context.company_id],['active','=',true]],fields:['id','asset_id','vehicle_id'],limit:501});
+ if(vehicles.length>500||links.length>500)throw new Error('La flota requiere una sincronización por lotes desde Odoo. No se modificó ningún vehículo.');
+ let updated=0,created=0;
+ for(const vehicle of vehicles){
+  const link=links.find(l=>l.vehicle_id[0]===vehicle.id);
+  if(link){
+   // A manually registered Coban already linked to Fleet keeps its GPS UUID/history.
+   const current=await fleetRequest<FleetAsset>('assets/'+link.asset_id,context);
+   await fleetRequest('assets/'+current.asset_id,context,'PATCH',{name:vehicle.name,plate:vehicle.license_plate||null,type:current.type,cost_center:current.cost_center,responsible:vehicle.driver_id?vehicle.driver_id[1]:current.responsible});
+   updated++;
+  }else{
+   // Only the explicit native source ID is used; never match names or plates.
+   const result=await fleetRequest<{asset_id:string}>('assets',context,'PUT',{source_id:'odoo:fleet.vehicle:'+vehicle.id,name:vehicle.name,plate:vehicle.license_plate||null,type:'vehicle',responsible:vehicle.driver_id?vehicle.driver_id[1]:null});
+   await linkVehicle(context,result.asset_id,vehicle.id);created++;
+  }
+ }
+ return {updated,created};
 }
 export function applicationLinks(menus:Record<string,OdooMenu>){
  const categories=[['fleet.','Flota'],['hr_expense.','Gastos'],['step_cosecha.','Cosecha'],['step_management_costs.','Gestión y Costos'],['step_freight.','Fletes'],['step_movi.','Movilización']];

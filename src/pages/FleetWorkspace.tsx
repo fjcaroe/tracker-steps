@@ -22,6 +22,7 @@ import TrackerIcon from '../components/TrackerIcon';
 import { exportFleet } from '../services/fleetExport';
 import type { Configuration } from '../services/fleetConfiguration';
 import type { FleetFilters as Filters } from '../services/fleetApi';
+import {synchronizeOdooFleet} from '../services/odooOperations';
 
 const FleetOperations = lazy(() => import('./FleetOperations'));
 type View = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
@@ -108,7 +109,7 @@ export default function FleetWorkspace() {
   const importFleet = async () => {
     if (!context) return;
     setSaving(true);
-    try { const result = await portalRequest<{ imported: number }>('/steps_tracker/import-fleet', context, 'POST'); setNotice(`${result.imported} equipos sincronizados desde Flota Odoo. Asocia un GPS para recibir posiciones.`); refresh(); }
+    try { const result = await synchronizeOdooFleet(context); setNotice(`${result.updated} vehículos actualizados y ${result.created} incorporados desde Flota de Odoo. Los GPS ya vinculados conservan su historial.`); refresh(); }
     catch (e) { setNotice((e as Error).message); } finally { setSaving(false); }
   };
   const mapVehicles: DemoVehicle[] = filtered.filter(a => a.last_position).map(a => ({ id: a.asset_id, name: a.name, plate: a.plate || '', driver: a.responsible || '', fieldId: '', regionId: '', status: a.motion_state === 'moving' ? 'working' : 'paused', progress: 0, speedKmh: a.last_position?.speed_kmh || 0, fuelPct: 0, engineHours: 0, distanceKm: 0, coveredHa: 0, position: { lat: a.last_position!.lat, lon: a.last_position!.lon }, bearing: 0 }));
