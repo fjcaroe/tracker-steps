@@ -19,6 +19,8 @@ class WorkOrderCreate(BaseModel):
     fuel_tank_start_liters: float | None = None
     fuel_refill_liters: float | None = None
     fuel_tank_end_liters: float | None = None
+    assigned_user_id: int | None = None
+    scheduled_time: str | None = None
 
 
 class WorkOrderUpdate(BaseModel):
@@ -29,6 +31,10 @@ class WorkOrderUpdate(BaseModel):
     fuel_refill_liters: float | None = None
     fuel_tank_end_liters: float | None = None
     notes: str | None = None
+    assigned_user_id: int | None = None
+    scheduled_time: str | None = None
+    mobile_status: str | None = None
+    progress_pct: int | None = None
 
 
 class WorkOrderOut(BaseModel):
@@ -54,3 +60,7 @@ class WorkOrderOut(BaseModel):
     fuel_tank_start_liters: float | None = None
     fuel_refill_liters: float | None = None
     fuel_tank_end_liters: float | None = None
+    assigned_user_id: int | None = None
+    scheduled_time: str | None = None
+    mobile_status: str | None = None
+    progress_pct: int | None = None

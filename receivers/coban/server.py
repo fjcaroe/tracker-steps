@@ -35,17 +35,23 @@ class Receiver:
         if route is None:
             self.store.count('unknown_identity');raise InvalidFrame('unknown_identity')
         self.store.count('known_'+kind)
+        self.store.observe(imei)
         if kind=='login':return b'LOAD'
         if kind=='heartbeat':return b'ON'
         try:point=decode(frame)
         except InvalidFrame:
+            self.store.observe(imei,error='decode_rejected')
             self.store.capture(imei,frame,'unsupported_or_invalid');self.store.count('decode_rejected');return None
         if point is None:
+            self.store.observe(imei,error='no_valid_gps')
             self.store.count('no_valid_gps');return None
+        self.store.observe(imei,point)
         if route['mode']=='capture':
             self.store.capture(imei,frame,'commissioning');self.store.count('capture_only');return None
         point.update(device_id=route['device_id'],source_id=source_id(frame))
-        self.store.enqueue(imei,point['source_id'],{'issuer':route['issuer'],'company_id':route['company_id'],'device_id':route['device_id']},point)
+        try:self.store.enqueue(imei,point['source_id'],{'issuer':route['issuer'],'company_id':route['company_id'],'device_id':route['device_id']},point)
+        except RuntimeError:
+            self.store.observe(imei,error='queue_full');raise
         self.store.count('durably_received')
         return ('**,imei:'+imei+',E;').encode() if point['sos'] else None
 
@@ -106,11 +112,37 @@ def flush(store,config):
         store.count('api_delivered' if accepted else 'api_retry')
 
 
+def poll_configuration(store,config):
+    """Refresh only successfully polled companies; outages keep the durable cache."""
+    routes=mapping(config['mapping'])
+    key=json.loads(Path(config['key_file']).read_text())
+    if key['issuer']!='CERRO_EL_PLOMO':raise ValueError('wrong_issuer')
+    for company in config.get('companies',[]):
+        try:
+            imeis=[imei for imei,route in routes.items() if route['company_id']==company]
+            request=Request(config['api']+'/v1/receiver/poll',data=json.dumps({'release':'coban-commissioning-2','observations':store.observations(imeis)}).encode(),headers={
+                'Authorization':'Bearer '+token(key['issuer'],company,key['key']),'Content-Type':'application/json'})
+            with urlopen(request,timeout=8) as response:result=json.load(response)
+            replacement={row['imei']:{k:row[k] for k in ('issuer','company_id','device_id','mode')} for row in result['devices']}
+            if any(row['company_id']!=company or row['issuer']!=key['issuer'] for row in replacement.values()):raise ValueError('wrong_tenant')
+            updated={imei:route for imei,route in routes.items() if route['company_id']!=company}
+            if set(updated)&set(replacement):raise ValueError('identity_collision')
+            updated.update(replacement)
+            temporary=Path(config['mapping']+'.new');temporary.write_text(json.dumps(updated));os.chmod(temporary,0o600)
+            mapping(temporary);os.replace(temporary,config['mapping']);routes=updated
+            store.count('configuration_polled')
+        except (OSError,ValueError,KeyError,TypeError):store.count('configuration_retry')
+
+
 async def run(config,store):
     receiver=Receiver(store,config['mapping'])
     async def worker():
+        last_poll=0
         while True:
-            try:await asyncio.to_thread(flush,store,config)
+            try:
+                if config.get('companies') and time.monotonic()-last_poll>=5:
+                    await asyncio.to_thread(poll_configuration,store,config);last_poll=time.monotonic()
+                await asyncio.to_thread(flush,store,config)
             except (OSError,ValueError):store.count('worker_config_error')
             await asyncio.sleep(2)
     server=await asyncio.start_server(receiver.connection,config.get('host','0.0.0.0'),config.get('port',5001),limit=16384)

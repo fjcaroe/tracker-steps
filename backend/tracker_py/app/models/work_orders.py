@@ -28,6 +28,12 @@ class WorkOrder(Base):
     fuel_refill_liters = Column(Numeric(10, 2))
     fuel_tank_end_liters = Column(Numeric(10, 2))
 
+    # Steps Móvil: tarea asignada a un conductor
+    assigned_user_id = Column(Integer, ForeignKey("users.id"))
+    scheduled_time = Column(Text)
+    mobile_status = Column(Text)
+    progress_pct = Column(Integer)
+
     activity = relationship("Activity")
     labor = relationship("Labor")
     cost_center = relationship("CostCenter")

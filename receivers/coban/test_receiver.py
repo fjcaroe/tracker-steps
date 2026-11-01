@@ -8,7 +8,7 @@ import tempfile
 import threading
 import unittest
 from .protocol import Framer,InvalidFrame,decode,identify,source_id
-from .server import Receiver,flush,mapping,token
+from .server import Receiver,flush,mapping,token,poll_configuration
 from .store import Store
 
 IMEI='000000000000001'
@@ -90,6 +90,28 @@ class ReceiverTests(unittest.TestCase):
     def test_capture_mode_never_creates_outbox(self):
         self.route['mode']='capture';self.map.write_text(json.dumps({IMEI:self.route}))
         self.process();self.assertEqual(self.store.status()['queued'],0);self.assertEqual(self.store.status()['private_captures'],1)
+        observations=self.store.observations([IMEI]);self.assertEqual(observations[0]['lat'],-33)
+        self.assertEqual(Store(self.root/'inbox.sqlite').observations([IMEI]),observations)
+
+    def test_configuration_revocation_and_outage_cache(self):
+        replies={'devices':[]};requests=[]
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(inner):
+                requests.append(json.loads(inner.rfile.read(int(inner.headers['Content-Length']))))
+                inner.send_response(200);inner.end_headers();inner.wfile.write(json.dumps(replies).encode())
+            def log_message(self,*args):pass
+        http=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start()
+        cfg={'mapping':str(self.map),'key_file':str(self.key),'api':'http://127.0.0.1:'+str(http.server_port),'companies':[2]}
+        try:
+            self.process();poll_configuration(self.store,cfg);self.assertEqual(mapping(self.map),{})
+            self.assertEqual(requests[0]['observations'][0]['lat'],-33)
+            replies['devices']=[{'imei':IMEI,**self.route}]
+            poll_configuration(self.store,cfg);self.assertEqual(mapping(self.map)[IMEI],self.route)
+            replies['devices'][0]['company_id']=3
+            poll_configuration(self.store,cfg);self.assertEqual(mapping(self.map)[IMEI]['company_id'],2)
+        finally:http.shutdown();http.server_close();thread.join()
+        cfg['api']='http://127.0.0.1:1';poll_configuration(self.store,cfg)
+        self.assertEqual(mapping(self.map)[IMEI]['company_id'],2)
 
     def test_invalid_known_frame_is_private_and_bounded(self):
         for _ in range(205):self.receiver.process(('imei:'+IMEI+',unknown;').encode())

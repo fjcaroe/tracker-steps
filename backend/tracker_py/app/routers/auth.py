@@ -33,6 +33,13 @@ def login(payload: LoginIn, db: Session = Depends(get_db)):
     }
 
 
+@router.post("/refresh", response_model=TokenOut)
+def refresh(db: Session = Depends(get_db), current: User = Depends(get_current_user)):
+    """Renueva el token antes de que venza (la app lo llama al abrir y al volver a primer plano)."""
+    token = create_access_token({"sub": str(current.id), "username": current.username})
+    return {"access_token": token, "token_type": "bearer", "user": current, "cost_centers": get_user_cost_centers(db, current.id)}
+
+
 @router.get("/me", response_model=UserOut)
 def me(current: User = Depends(get_current_user)):
     return current

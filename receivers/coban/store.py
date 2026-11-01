@@ -3,6 +3,7 @@ from contextlib import contextmanager
 import json
 import sqlite3
 import time
+from datetime import datetime, timezone
 
 
 class Store:
@@ -13,6 +14,7 @@ class Store:
             db.execute('CREATE TABLE IF NOT EXISTS inbox(source TEXT PRIMARY KEY, imei TEXT NOT NULL, route TEXT NOT NULL, payload TEXT NOT NULL, queued REAL NOT NULL, delivered REAL, attempts INTEGER NOT NULL DEFAULT 0, retry_at REAL NOT NULL DEFAULT 0)')
             db.execute('CREATE TABLE IF NOT EXISTS capture(id INTEGER PRIMARY KEY, imei TEXT, received REAL, frame BLOB, reason TEXT)')
             db.execute('CREATE TABLE IF NOT EXISTS counters(name TEXT PRIMARY KEY, count INTEGER NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS observations(imei TEXT PRIMARY KEY, payload TEXT NOT NULL)')
             db.execute('CREATE INDEX IF NOT EXISTS inbox_delivery ON inbox(delivered,queued)')
 
     @contextmanager
@@ -26,6 +28,26 @@ class Store:
     def count(self,name):
         with self.connection() as db:
             db.execute('INSERT INTO counters VALUES (?,1) ON CONFLICT(name) DO UPDATE SET count=count+1',(name,))
+
+    def observe(self,imei,point=None,error=None):
+        stamp=datetime.now(timezone.utc).isoformat()
+        with self.connection() as db:
+            previous=db.execute('SELECT payload FROM observations WHERE imei=?',(imei,)).fetchone()
+            value=json.loads(previous[0]) if previous else {'imei':imei}
+            value.update(last_seen_at=stamp,error=error)
+            if point:
+                value.update(fix_at=point['recorded_at'],fix_received_at=stamp,lat=point['lat'],lon=point['lon'],speed_kmh=point.get('speed_kmh'))
+            db.execute('INSERT INTO observations VALUES (?,?) ON CONFLICT(imei) DO UPDATE SET payload=excluded.payload',(imei,json.dumps(value)))
+
+    def observations(self,imeis):
+        with self.connection() as db:
+            values=[]
+            for imei in imeis:
+                row=db.execute('SELECT payload FROM observations WHERE imei=?',(imei,)).fetchone()
+                if row:
+                    value=json.loads(row[0]);value['pending']=db.execute('SELECT count(*) FROM inbox WHERE imei=? AND delivered IS NULL',(imei,)).fetchone()[0]
+                    values.append(value)
+            return values
 
     def capture(self,imei,frame,reason):
         with self.connection() as db:

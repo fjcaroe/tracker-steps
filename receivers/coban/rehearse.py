@@ -26,25 +26,26 @@ def main():
     from app.db.session import SessionLocal,engine
     from app.models.fleet import Tenant,Asset,Device,DeviceRegistration,Assignment,Position
     from .store import Store
-    from .server import Receiver,flush,token
+    from .server import Receiver,flush,token,poll_configuration
     with SessionLocal() as db:
         assert db.execute(__import__('sqlalchemy').text('SELECT current_database()')).scalar().startswith('COBAN_QA_')
         tenant=db.query(Tenant).filter_by(issuer='CERRO_EL_PLOMO',company_id=2).one()
         foreign=db.query(Tenant).filter_by(issuer='CERRO_EL_PLOMO',company_id=3).one()
         tenant_id=tenant.id
         asset=Asset(tenant_id=tenant.id,source_id='private-coban:'+str(uuid.uuid4()),name='Private Coban QA vehicle')
-        device=Device(imei='000000000000001',brand='QA-only',model='synthetic gps103',protocol='gps103')
+        device=Device(imei='000000000000001',brand='QA-only',model='synthetic gps103',protocol='gps103-ascii')
         db.add_all([asset,device]);db.flush()
-        db.add(DeviceRegistration(tenant_id=tenant.id,device_id=device.id))
+        registration=DeviceRegistration(tenant_id=tenant.id,device_id=device.id,receiver_mode='capture')
+        db.add(registration)
         assignment=Assignment(tenant_id=tenant.id,device_id=device.id,asset_id=asset.id,valid_from=datetime.now(timezone.utc)-timedelta(days=1))
-        db.add(assignment);db.commit();device_id=device.id;asset_id=asset.id
+        db.add(assignment);db.commit();device_id=device.id;asset_id=asset.id;registration_id=registration.id
     with tempfile.TemporaryDirectory(prefix='coban-private-qa-') as tmp:
         root=Path(tmp);key=root/'key.json';mapping=root/'devices.json'
         key.write_text(json.dumps({'issuer':'CERRO_EL_PLOMO','key':'test-only-coban-bridge'}))
-        mapping.write_text(json.dumps({'000000000000001':{'issuer':'CERRO_EL_PLOMO','company_id':2,'device_id':device_id,'mode':'forward'}}))
+        mapping.write_text('{}')
         store=Store(root/'queue.sqlite');receiver=Receiver(store,mapping)
         with socket.socket() as sock:sock.bind(('127.0.0.1',0));api_port=sock.getsockname()[1]
-        cfg={'api':'http://127.0.0.1:'+str(api_port),'mapping':str(mapping),'key_file':str(key)}
+        cfg={'api':'http://127.0.0.1:'+str(api_port),'mapping':str(mapping),'key_file':str(key),'companies':[2]}
         api=subprocess.Popen([sys.executable,'-m','uvicorn','app.main:app','--host','127.0.0.1','--port',str(api_port),'--log-level','error'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:
             for _ in range(60):
@@ -53,8 +54,19 @@ def main():
                         if response.status==200:break
                 except OSError:time.sleep(.25)
             else:raise RuntimeError('Private QA API did not start')
+            poll_configuration(store,cfg)
+            assert json.loads(mapping.read_text())['000000000000001']['mode']=='capture'
             now=datetime.now(timezone.utc)
             frame=('imei:000000000000001,tracker,'+now.strftime('%y%m%d%H%M%S')+',,F,'+now.strftime('%H%M%S')+'.000,A,3300.0000,S,07000.0000,W,10.00,0,,1,0,;').encode()
+            receiver.process(frame);assert store.status()['queued']==0
+            poll_configuration(store,cfg)
+            from jose import jwt
+            stamp=int(time.time())
+            manager=jwt.encode({'iss':'CERRO_EL_PLOMO','aud':'steps-tracker-v1','sub':'qa:manager','company_id':2,'role':'manager','iat':stamp,'exp':stamp+60},'test-only-coban-bridge',algorithm='HS256')
+            request=Request(cfg['api']+'/v1/configuration/devices/'+registration_id+'/commissioning',data=json.dumps({'mode':'forward','version':1,'reason':'Private physical flow rehearsal','verified':True}).encode(),headers={'Authorization':'Bearer '+manager,'Content-Type':'application/json'})
+            with urlopen(request,timeout=5) as response:assert json.load(response)['mode']=='forward'
+            poll_configuration(store,cfg)
+            assert json.loads(mapping.read_text())['000000000000001']['mode']=='forward'
             async def tcp_flow():
                 listener=await asyncio.start_server(receiver.connection,'127.0.0.1',0)
                 reader,writer=await asyncio.open_connection('127.0.0.1',listener.sockets[0].getsockname()[1])
@@ -87,7 +99,7 @@ def main():
             try:urlopen(Request(cfg['api']+'/v1/ingest/positions',headers=headers,data=json.dumps(payload).encode()),timeout=5)
             except HTTPError as exc:assert exc.code==403
             else:raise AssertionError('Cross-company ingestion allowed')
-            print('COBAN_COPY_QA_OK tcp=True durable_restart=True duplicate_suppressed=True fleet_visible=True company_isolation=True')
+            print('COBAN_COPY_QA_OK configuration_poll=True capture_diagnosis=True manager_activation=True tcp=True durable_restart=True duplicate_suppressed=True fleet_visible=True company_isolation=True')
         finally:
             api.terminate();api.wait(timeout=15)
 

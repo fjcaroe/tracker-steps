@@ -1,4 +1,5 @@
 export type DeviceRegistration = {
+ commissioning?: {mode:'disabled'|'capture'|'forward';last_seen_at:string|null;fix_at:string|null;fix_received_at:string|null;lat:number|null;lon:number|null;speed_kmh:number|null;last_error:string|null;pending:number};
  id:string;version:number;device_id:string;imei:string;brand:string;model:string;firmware:string|null;
  protocol:string|null;tracking_approved:boolean;asset_id:string|null;asset_name:string|null;
  signal_state:string;last_received_at:string|null;phone:string|null;operator:string|null;
@@ -6,7 +7,8 @@ export type DeviceRegistration = {
  last_recharged_on:string|null;next_recharge_on:string|null;data_expires_on:string|null;line_review_on:string|null;reminder_days:number;notes:string|null;
 };
 export type SimReminder = {id:string;registration_id:string;title:string;device:string;asset_name:string|null;due_on:string;days_remaining:number;responsible:string|null};
-export type Configuration = {items:DeviceRegistration[];reminders:SimReminder[];today:string};
+export type ReceiverStatus = {supported:boolean;online:boolean;last_seen_at:string|null;host:string|null;port:number|null;transport:string;protocol:string};
+export type Configuration = {items:DeviceRegistration[];reminders:SimReminder[];today:string;receiver?:ReceiverStatus};
 export function calendarReminder(device: DeviceRegistration) {
  const escape = (s:string)=>s.replaceAll('\\','\\\\').replaceAll('\n','\\n').replaceAll(',','\\,').replaceAll(';','\\;');
  const events = [['next_recharge_on','Recargar SIM'],['data_expires_on','Renovar datos SIM'],['line_review_on','Revisar vigencia de línea']] as const;

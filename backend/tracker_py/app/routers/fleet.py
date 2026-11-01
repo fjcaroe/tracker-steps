@@ -11,9 +11,11 @@ from jose import jwt, JWTError
 from pydantic import BaseModel, Field, ConfigDict, AwareDatetime
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from app.core.security import oauth2_scheme
+from app.core.security import oauth2_scheme, create_access_token, hash_password, get_user_cost_centers
+from app.models.users import User
+from app.schemas.auth import TokenOut
 from app.db.session import get_db
-from app.models.fleet import Tenant, Asset, Device, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
+from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
 
 router = APIRouter(prefix='/v1', tags=['fleet-protection'])
 
@@ -102,6 +104,23 @@ def snapshot(q: str = '', type: str = '', cost_center: str = '', motion: str = '
     return {'items': page[:limit], 'total': len(rows), 'next_cursor': page[limit-1]['asset_id'] if len(page) > limit else None,
             'counts': {key: sum(r['signal_state'] == key for r in rows) for key in ('received', 'stale', 'no_signal')},
             'tenant': ctx['tenant'], 'tenant_id': ctx['tenant_id'], 'user_id': ctx['user_id'], 'role': ctx['role'], 'generated_at': now()}
+
+
+@router.get('/asset-sources')
+def asset_sources(after: str = '', limit: int = Query(200, ge=1, le=500), ctx=Depends(identity), db: Session = Depends(get_db)):
+    """Correspondencia activo -> origen (p. ej. odoo:fleet.vehicle:<id>) para el puente servidor a servidor.
+
+    Solo rol manager y solo el cliente de la identidad firmada. Fuera del prefijo ``assets/`` a propósito:
+    el proxy del navegador en Odoo nunca llega a esta ruta.
+    """
+    require(ctx, ('manager',))
+    query = db.query(Asset).filter(Asset.tenant_id == ctx['tenant_id'])
+    if after:
+        query = query.filter(Asset.id > after)
+    rows = query.order_by(Asset.id).limit(limit + 1).all()
+    page = rows[:limit]
+    return {'items': [{'asset_id': a.id, 'source_id': a.source_id, 'name': a.name, 'plate': a.plate} for a in page],
+            'next_cursor': page[-1].id if len(rows) > limit else None}
 
 
 @router.get('/assets/{asset_id}')
@@ -415,6 +434,9 @@ def detect(db, ctx, row, policy):
 @router.post('/ingest/positions')
 def ingest(body: PointInput, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('ingestor',))
+    if body.source_id.startswith('gps103:'):
+        registration=db.query(DeviceRegistration).filter_by(tenant_id=ctx['tenant_id'],device_id=body.device_id).one_or_none()
+        if registration is None or registration.receiver_mode!='forward':raise HTTPException(403,'Recepción de seguimiento no habilitada')
     if utc(body.recorded_at) > now()+timedelta(minutes=5):
         raise HTTPException(422, 'Fecha del dispositivo futura')
     assignments = db.query(Assignment).filter_by(device_id=body.device_id, tenant_id=ctx['tenant_id']).filter(
@@ -475,3 +497,32 @@ def sync_changes(cursor: str = '', limit: int = Query(100, ge=1, le=500), ctx=De
         items.append({'event_id': row.id, 'incident': incident_out(db, incident) if incident else None,
                       'asset': {'asset_id': asset.id, 'name': asset.name, 'source_id': asset.source_id} if asset else None})
     return {'items': items, 'cursor': utc(page[-1].created_at).isoformat()+'|'+page[-1].id if page else cursor, 'has_more': len(rows) > limit}
+
+
+class ClassicSessionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    login: str = Field(min_length=1, max_length=120)
+    name: str = Field(default='', max_length=200)
+
+
+@router.post('/classic-session', response_model=TokenOut)
+def classic_session(payload: ClassicSessionIn, ctx=Depends(identity), db: Session = Depends(get_db)):
+    """Sesión de la operación clásica a partir de una identidad Odoo ya autenticada.
+
+    El usuario Tracker se deriva de (tenant, usuario Odoo); solo el rol manager del portal
+    obtiene perfil administrador. Los viewers no reciben sesión clásica.
+    """
+    require(ctx, ('manager', 'operator'))
+    username = 'odoo-%s-%s' % (str(ctx['tenant_id']).replace('-', '')[:8], ctx['user_id'])
+    user = db.query(User).filter_by(username=username).one_or_none()
+    if user is None:
+        user = User(username=username, full_name=payload.name or payload.login, is_active=True,
+                    password_hash=hash_password(uuid4().hex + uuid4().hex))
+        db.add(user)
+    user.full_name = payload.name or payload.login
+    user.is_admin = ctx['role'] == 'manager'
+    db.flush()
+    audit(db, ctx, 'classic_session', {'tracker_user': user.id, 'login': payload.login})
+    token = create_access_token({'sub': str(user.id), 'username': user.username})
+    db.commit()
+    return {'access_token': token, 'token_type': 'bearer', 'user': user, 'cost_centers': get_user_cost_centers(db, user.id)}
