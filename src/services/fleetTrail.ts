@@ -29,6 +29,10 @@ export function buildTrail(input:TrailPoint[],from:number,to:number){
   segment.push(p);distanceM+=d;
  }
  let confirmedMovement=false;
+ for(let i=1;i<points.length;i++){
+  const a=points[i-1],b=points[i],dt=(Date.parse(b.recorded_at)-Date.parse(a.recorded_at))/1000,d=meters(a,b);
+  if((a.speed_kmh??0)>=8&&(b.speed_kmh??0)>=8&&dt>0&&dt<=600&&d>=60&&d/dt*3.6<=220){confirmedMovement=true;break;}
+ }
  for(let i=2;i<points.length;i++){
   const a=points[i-2],b=points[i-1],c=points[i],dt=(Date.parse(c.recorded_at)-Date.parse(a.recorded_at))/1000;
   const ab=meters(a,b),bc=meters(b,c),net=meters(a,c);
