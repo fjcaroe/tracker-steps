@@ -1,0 +1,33 @@
+[Unit]
+Description=Steps Coban GPS103 TCP receiver - Cerro production
+After=network-online.target tracker-steps-api.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=steps-coban
+Group=steps-coban
+WorkingDirectory=/opt/steps-coban/current
+ExecStart=/usr/bin/python3.10 -m receivers.coban.server --config /etc/steps-coban/config.json
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/steps-coban
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryMax=192M
+TasksMax=32
+LimitNOFILE=1024
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
