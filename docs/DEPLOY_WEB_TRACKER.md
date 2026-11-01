@@ -513,3 +513,11 @@ Las bases antiguas de sesiones/horómetro se muestran aparte con su explicación
 costs-native.cjs comprueba distancia y acceso a gastos, sin escrituras de negocio.
 No hay cambios de addons: misma entrega de frontend en Desarrollo y Cerro,
 con copia fresca del API, respaldo y bloqueo; QA-Cerro conserva aislamiento.
+
+Paquete servido: c9932bbc56337ed3932023ffe2067cb187918a23, con copia fresca y
+respaldos en /opt/steps-validation/tracker-parity-20261031/<commit>/.
+Mismo dist verificado en Desarrollo (navegador con fixtures) y Cerro. El navegador
+real confirma el nuevo acceso a gastos y kilómetros en Mapa y Operaciones,
+sin escrituras. Capturas privadas: local-artifacts/tracker-costs-fix-20261101.
+La prueba de Mapa abre la pestaña Costos por texto accesible, independiente de
+si el contenedor declara role=tab o button. Sesiones temporales retiradas.
