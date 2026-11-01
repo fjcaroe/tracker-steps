@@ -24,7 +24,7 @@ def main():
     assert re.fullmatch(r'[0-9a-f-]{36}',facts['asset_id']) and facts['model'].strip() and facts['plate'].strip()
     client=requests.Session();client.cookies.set('session_id',proof['session_id']);client.cookies.set('cids',str(proof['company_id']));client.headers['Host']=proof['host'];base='http://127.0.0.1:8082'
     def rpc(model,method,args=None,**kwargs):
-        payload={'jsonrpc':'2.0','method':'call','id':1,'params':{'model':model,'method':method,'args':args or [],'kwargs':{**kwargs,'context':{'allowed_company_ids':[facts['company_id']]}}}}
+        payload={'jsonrpc':'2.0','method':'call','id':1,'params':{'model':model,'method':method,'args':args or [],'kwargs':{**kwargs,'context':{'allowed_company_ids':[facts['company_id']],'mail_create_nosubscribe':True,'tracking_disable':True,'mail_notify_force_send':False}}}}
         response=client.post(base+'/web/dataset/call_kw/'+model+'/'+method,json=payload,timeout=40);response.raise_for_status();data=response.json()
         assert 'error' not in data,'Odoo rejected the operation; review native records before retrying'
         return data['result']
