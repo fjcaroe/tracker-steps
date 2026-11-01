@@ -28,6 +28,8 @@ const assert=require('node:assert/strict');
    const nav=page.getByRole('navigation',{name:'Navegación principal'});await nav.waitFor();
    await nav.getByRole('button',{name:'Registro',exact:true}).click();
    await page.getByRole('heading',{name:'Registro de operación',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Iniciar recorrido',exact:true}).waitFor();
+   await page.getByRole('combobox',{name:/^Máquina/}).waitFor();
    await page.screenshot({path:path.join(output,'operation-native.png'),fullPage:true});
    await nav.getByRole('button',{name:'← Flota y GPS',exact:true}).click();
    await page.getByRole('button',{name:'Configuración',exact:true}).click();
