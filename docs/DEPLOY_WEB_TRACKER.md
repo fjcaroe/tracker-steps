@@ -539,3 +539,11 @@ recarga persistente, enlace autorizado y rechazo de ID ajeno; modo fixture para
 Desarrollo, modo real de solo lectura en Cerro. Solo cambia contexto de navegador.
 Frontend publicado mediante copia fresca, Desarrollo y Cerro con el mismo dist,
 respaldo y bloqueo. No se modifican addons, API, GPS ni datos de QA-Cerro.
+
+Entrega verificada: b2cbfff219a027d647ec0bad6a8decb1767ecb07. Recibos de copia
+fresca, Desarrollo, producción y respaldos en /opt/steps-validation/
+tracker-parity-20261031/<commit>/. Navegador de Desarrollo con fixtures y
+navegador real de Cerro pasan el cambio de compañía en 390 px, persistencia,
+enlace autorizado y rechazo de compañía ajena. La prueba real espera además
+el mapa Google renderizado. Capturas privadas en local-artifacts/
+tracker-company-fix-20261101; sesiones retiradas tras la revisión.
