@@ -75,3 +75,30 @@ No hay migración ni reinicio de Odoo, API, nginx o Teltonika.
 
 El mapa se relee por mensaje, sin reiniciar el receptor. Ninguna entrada o
 vehículo ficticio se crea en producción para probar este servicio.
+
+## Publicación verificada
+
+Paquete del commit 115d80e719837d11faa20a64028f60e55ec8c0f1, SHA-256
+f44a056f4fc1aecb45d559854d057a36f52fd54e0c8b0c8b716e57280eddf71c.
+22 tests aprobados en Windows y Linux, más flujo TCP -> cola reiniciada -> API
+actual sobre copia PostgreSQL -> consulta de flota. Una entrega cruzada a otra
+compañía recibió 403. Las huellas de datos GPS y fuentes de API de producción
+permanecieron intactas. El primer ensayo se detuvo al intentar cargar .env de
+producción: se aisló una copia exacta del código API sin copiar secretos y se
+repitió con otra copia fresca. No se cambiaron permisos ni credenciales existentes.
+
+Servicio steps-coban activo y habilitado al arranque. Regla GCP dedicada
+steps-coban-cerro-tcp5001, únicamente TCP 5001 y tag de esa VM. IP reservada
+ip-odoo-static, 35.222.25.110. Prueba desde un equipo externo: conexión TCP
+correcta y cierre al presentar un identificador no permitido. Reinicio del
+servicio probado, con contadores persistidos. Teltonika, API y Odoo Cerro activos.
+
+Respaldo /opt/steps-validation/coban-receiver-20261031/backup-20261101T003929Z
+(nombre UTC; publicación el 31/10 en America/Santiago). Evidencia privada
+en el mismo directorio de validación y ~/.codex/local-artifacts/coban-receiver-20261031/.
+Se actualizó el instructivo imprimible con destino TCP confirmado.
+
+Estado de entrega: infraestructura habilitada, inventario permitido vacío a la
+espera de los cuatro IMEI y datos de SIM. No se declara aprobada ninguna unidad
+física ni se registra un vehículo ficticio. A continuación corresponde configurar
+capture, cotejar manual/trama y asociar los GPS a sus vehículos antes de forward.

@@ -11,7 +11,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 PAGES = [
 ('Antes de que se lleven los equipos', [
 ('lead','Cuatro Coban 401C 4G + chips Entel. Destino: Steps Tracker de Cerro El Plomo productivo. Preparación: sábado 31/10; entrega: domingo 01/11; instalación: lunes 02/11/2026.'),
-('alert','PENDIENTE CRÍTICO: el servidor tiene receptor Teltonika activo, pero no se encontró un receptor Coban escuchando. El destino TCP/UDP para estos equipos todavía no está confirmado. No configurar el puerto 5027 de Teltonika ni copiar un puerto de Internet.'),
+('alert','RECEPTOR HABILITADO: 35.222.25.110, puerto 5001, TCP, protocolo GPS103 ASCII. Conexión externa y rechazo de identificadores desconocidos comprobados. Falta autorizar los cuatro IMEI y cotejar su manual/trama real antes de dar los GPS por listos. No usar el puerto 5027 de Teltonika.'),
 ('p','Esta guía permite preparar las SIM y los equipos ahora. La puesta en marcha solo termina cuando cada unidad envía posiciones reales a Steps y se ve en la compañía correcta. Un SMS con ubicación o un punto en la aplicación del vendedor no prueban esa integración.'),
 ('h','Orden de trabajo esta noche'),
 ('list',[
@@ -23,7 +23,7 @@ PAGES = [
 ]),
 ('h','Situación comprobada en Steps'),
 ('p','Consulta por SSH del 31/10/2026: módulo step_tracker_portal instalado en CERRO_EL_PLOMO. Las cuatro sociedades del portal tienen cero activos, cero GPS en inventario y cero asociaciones activas. Registrar los cuatro IMEI será necesario; poseerlos no los incorpora automáticamente a la aplicación.'),
-('p','La revisión fue de lectura. No se habilitó un puerto Coban, no se registraron equipos ni se cambió la configuración de producción. El destino definitivo exige verificar el protocolo de la unidad real.'),
+('p','El receptor dedicado fue publicado el 31/10/2026. Pasaron 22 pruebas y un flujo TCP hacia una copia real de Tracker, con consulta de flota y aislamiento de compañía. No se modificaron API, Odoo ni datos comerciales; no se registraron equipos reales porque aún faltan sus IMEI y asociaciones.'),
 ('h','Responsables antes de despachar'),
 ('p','Preparador de GPS/SIM: ____________________  Instalador: ____________________\nResponsable de receptor/Tracker: ____________________\nTeléfono de soporte y horario del lunes: __________________________________'),
 ]),
@@ -58,14 +58,14 @@ PAGES = [
 ['Hora','time zonePW 0','UTC en el dispositivo; verificar hora recibida.'],
 ['Administrador','adminPW NUMERO_ADMIN','Número en el formato exigido por su manual; probar respuesta.'],
 ['Clave propia','passwordCLAVE_ACTUAL CLAVE_NUEVA','Solo si coincide con su manual. Guardar y probar nueva clave antes de seguir.'],
-['Destino (bloqueado)','dnsPW HOST PUERTO\no adminipPW IP PUERTO','Completar solo con receptor Steps confirmado.'],
-['Transporte','GPRSPW,0,0','TCP en el manual consultado; usar únicamente si el receptor acordado es TCP.'],
+['Destino Steps','adminipPW 35.222.25.110 5001','Autorizar primero el IMEI en el receptor y cotejar sintaxis con el manual recibido.'],
+['Transporte','GPRSPW,0,0','TCP en el manual consultado, transporte requerido por este receptor.'],
 ]),
 ('p','Si el plan requiere usuario/clave de APN, obtenerlos de Entel y aplicar el comando correspondiente del manual. El APN por sí solo no confirma que haya datos activos.'),
 ('h','Frecuencia, reposo y persistencia'),
 ('p','Acordar como objetivo del piloto posiciones cada 30 segundos en movimiento y un reporte de vida en reposo compatible con la batería y el receptor. La sintaxis para repetición ilimitada y reposo debe confirmarse con el manual real. No usar una receta con un número limitado de envíos: podría dejar de reportar antes del lunes.'),
 ('p','Después de configurar, hacer un ciclo normal de alimentación y repetir check y la prueba de recepción. No hacer restauración de fábrica: borraría la configuración. Tampoco actualizar firmware durante esta preparación sin necesidad comprobada.'),
-('alert','HOST/IP/PUERTO, perfil de intervalos y validación de firmware siguen pendientes. Esta página no es una receta completa para enviar al equipo sin completar esos valores.'),
+('alert','Destino TCP confirmado. Siguen pendientes los IMEI autorizados, el perfil de intervalos y la validación de firmware/manual. Cotejar esas condiciones antes de enviar cambios al dispositivo.'),
 ]),
 ('Alta y recepción en Cerro productivo', [
 ('h','Acceso y sociedad correcta'),
@@ -74,16 +74,16 @@ PAGES = [
 ('list',[
 'Crear o seleccionar el vehículo real, con patente y nombre reconocibles. Si ya existe en Odoo, revisar su vínculo para no duplicar el maestro.',
 'Agregar cada GPS por su IMEI exacto en Configuración. Completar marca Coban, modelo 401C, SIM Entel, teléfono, APN, responsable y fechas de recarga/datos.',
-'Confirmar quién habilita la recepción Coban. La validación debe usar una trama real y comprobar identificación, fecha, coordenadas, velocidad y respuesta/acuse del protocolo.',
+'La recepción GPS103 TCP ya está habilitada. Validar la revisión 401C con una trama real y comprobar identificación, fecha, coordenadas, velocidad y respuesta/acuse del protocolo.',
 'Asociar cada GPS al vehículo correcto dentro de la sociedad seleccionada. Registrar la instalación con su hora real. La aprobación de seguimiento exige prueba; no se obtiene solo guardando el IMEI.',
 'Comprobar en la flota posición reciente, hora GPS y hora recibida. El estado sin señal no significa que el auto esté detenido.'
 ]),
 ('h','Datos que deben quedar confirmados por el responsable del receptor'),
 ('table', [['Parámetro','Valor autorizado para estos cuatro equipos'],
-['Protocolo y revisión','________________________________________________'],
-['Destino del equipo (host/IP)','________________________________________________'],
-['Puerto y transporte TCP/UDP','________________________________________________'],
-['Receptor operativo / fecha de prueba','________________________________________________'],
+['Protocolo y revisión','GPS103 ASCII; revisión física 401C pendiente de confirmar.'],
+['Destino del equipo (host/IP)','35.222.25.110 (IP estática de odoo-new)'],
+['Puerto y transporte TCP/UDP','5001 / TCP'],
+['Receptor operativo / fecha de prueba','31/10/2026: servidor y acceso externo probados; prueba de cada unidad pendiente.'],
 ['Intervalo en marcha / reposo','________________________________________________'],
 ['Sociedad dueña / usuario verificador','________________________________________________']]),
 ('alert','El puerto 5027 observado sirve Teltonika. El puerto web de Odoo y la URL de la API tampoco son receptores Coban. No dar por confirmado un puerto porque responda una página web o porque lo recomiende un listado genérico.'),
@@ -126,7 +126,7 @@ PAGES = [
 ['Mapa con otro vehículo','Detener aceptación y conciliar etiquetas, IMEI y asociación; conservar el historial.']]),
 ('h','Referencias y alcance'),
 ('p','[1] Entel, APN oficial: https://ayuda.entel.cl/hc/es-419/articles/4403105402131\n[2] Manual del fabricante, familia 401, copia de consulta: https://manuals.plus/m/6366e7f61c731118fd028d7858cecf12724a9979971073cc80ce0ab1e2c3b853\n[3] Fabricante Coban: https://www.coban.net/products.aspx?nid=3&typeid=50001\n[4] Traccar, identificación de variantes: https://www.traccar.org/clones/'),
-('p','El manual de la unidad recibida prevalece sobre los comandos de referencia. Diagnóstico de servidor: lectura por SSH y código de Steps el 31/10/2026. No se certificó aún compatibilidad ni instalación física de los cuatro equipos. Conservar esta guía junto con sus fichas completadas y respuestas SMS.'),
+('p','El manual de la unidad recibida prevalece sobre los comandos de referencia. Receptor publicado y probado el 31/10/2026 por TCP externo, reinicio y ensayo en copia. No se certificó aún compatibilidad ni instalación física de los cuatro equipos. Conservar esta guía junto con sus fichas completadas y respuestas SMS.'),
 ]),
 ]
 
