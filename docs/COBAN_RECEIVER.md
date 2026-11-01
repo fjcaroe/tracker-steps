@@ -179,3 +179,96 @@ los cuatro IMEI, números SIM, asociación a vehículos y fotos del manual para
 comprobar variante física, comandos SMS y prueba real de cada equipo antes de
 entregarlo para instalación. La preparación de la aplicación no certifica aparatos
 que aún no han transmitido.
+
+
+## Auditoría solicitada de QA, web y móvil — 31/10/2026
+
+El usuario recordó una versión más completa en Demo o Desarrollo. La auditoría de
+fuentes efectivas, módulos instalados, menús, modelos/campos y archivos HTTPS
+confirmó una omisión real en la entrega de configuración GPS: el paquete e4a1cb7b
+partió del frontend canónico que todavía no incorporaba la unificación anterior
+cc919212 ni el panel de costos. Conservó API y móvil, pero dejó fuera la pestaña
+Operación, su acceso con sesión Odoo y los enlaces de costos por vehículo en
+Desarrollo y Cerro. Demo conservaba esa web más completa. La revisión anterior
+no detectó esa pérdida; se corrigió sin trasladar datos de Demo a producción.
+
+Se recuperaron desde la rama móvil consolidada App, ClassicApp, AuthContext,
+AssetCostsPanel, detalle de activo y navegación. FleetWorkspace combina de forma
+explícita Operación/costos con la configuración y diagnóstico Coban; se conserva
+su refresco cada cinco segundos, control de concurrencia y aprobación de recepción.
+Los archivos frontend completos quedaron iguales entre las ramas canónicas Web
+Tracker y Steps Móvil (integración móvil 7de79d02), para evitar nuevas pérdidas al
+cambiar de rama. No se vuelve a desplegar una copia parcial de una de ellas.
+
+Comparación comprobada antes de corregir:
+
+| Parte | Desarrollo | Demo | Cerro productivo |
+| --- | --- | --- | --- |
+| Web unificada / Operación y costos | Omitida por e4a1cb7b | Presente | Omitida por e4a1cb7b |
+| Configuración y diagnóstico Coban nuevos | Paquete con controles limitados a Cerro | Inventario anterior | Habilitada |
+| App de terreno /truck/ | Tracker 1.3.0 | Mismo JS/CSS 1.3.0 | Mismo JS/CSS 1.3.0 |
+| Módulos Tracker Odoo principales | Misma versión y código | Misma versión y código | Misma versión y código |
+| Portal de app unificada /steps_app/v1 | Instalado, health 200 | No instalado, 404 | No instalado, 404 |
+
+Los módulos step_tracker_portal (18.0.1.3.0, hash 78fd01449536...),
+step_tracker_odoo (18.0.1.0.0, d8e088eecefa...) y step_hr (18.0.1.4.0,
+fee46b0d8c20...) coinciden entre esos tres ambientes. Cerro y Desarrollo también
+comparten step_tracker_usage, step_expense_tracker y step_management_costs_tracker.
+No se encontraron modelos/campos Studio ni vistas Coban que hubieran quedado en
+Demo sin pasar a Cerro. step.mobilization.gps.point corresponde al otro flujo de
+movilización y está presente en los tres; no constituye un receptor Coban perdido.
+La documentación de septiembre dejaba pendiente el receptor físico compatible;
+la recepción GPS103 se implementó en la entrega reciente, no en un receptor de QA
+que falte copiar. Esto no certifica una variante física sin su manual y sus tramas.
+
+La app /truck/ de los tres usa index-BpVsqkbJ.js, SHA-256
+d1a63335b27ded530f623c5e08f98dee21adf41e49f00300153b9044f5d549f5,
+y la misma API compartida. Ofrece jornadas, cola offline, checklist, incidentes,
+gastos, rutas y Supervisor, más Mi servicio de I9. No falta una versión de esa app
+en Cerro. El servidor antiguo steps-truck-backend (9000/Redis) está en reinicio,
+pero la app actual apunta a la API Tracker (8000); no se reutiliza ni se interviene
+ese servicio legado como parte de esta corrección.
+
+El portal adicional de Desarrollo (step_mobile_portal y sus módulos de catálogo)
+aporta identidad, invitaciones, accesos y selección de módulos de la app unificada.
+Es un piloto distinto del build tracker publicado en /truck/. No se promueve como
+si fuera un parche Coban. Asimismo, el Supervisor móvil consulta sesiones/jornadas
+y sus últimas posiciones; Coban alimenta gps_positions y la flota /v1 de la web.
+La conexión del mapa móvil a esa flota independiente todavía requiere desarrollo.
+No era una integración funcional de QA perdida en Cerro. Siguen pendientes también
+las conexiones móviles de incidentes/gastos y servicios de pasajeros con sus
+consumidores Odoo señaladas en el plan móvil; Android/iOS requieren validación física.
+
+Corrección publicada: be359b822293a52adb72cb55ca9f4584e68009fe, mismo build en
+Desarrollo y Cerro. JS de entrada index-DnpJrwX9.js, SHA-256
+6409d9d4e42ee771eebb1e55a6e02490eda55a2682a242fe5b52e05fda0c7b4e.
+Se verificaron todos los recursos, no solo el index. Prueba de navegador con
+fixtures: alta GPS/SIM, asociación, captura/activación/deshabilitación, formulario
+de costos, acceso con sesión a Operación, sus diez menús y regreso a Coban.
+El mismo paquete pasó además en una copia fresca de tracker_steps: TCP Coban,
+cola, reinicio, consulta de flota, aislamiento y sesión clásica con todos los
+catálogos que consume Operación. Una sesión real del administrador existente de
+Cerro abrió Registro de operación y regresó a Configuración GPS sin crear GPS,
+vehículos ni jornadas ficticias. Se verificó el formulario nativo y el módulo
+Odoo instalado; la sesión temporal de revisión se elimina al terminar.
+
+El publicador tools/ops/deploy_tracker_frontend.py toma el bloqueo compartido,
+conserva copias de configuración nginx y referencias a los directorios inmutables,
+y compara la API efectiva antes de publicar. No migra bases, no reinicia la API
+ni reemplaza el receptor. La auditoría antes/después confirmó idénticos hashes
+para API, receptor, móvil, Demo y web histórica de Steps. QA-Cerro mantiene sus
+módulos idénticos a Cerro y su aislamiento; sus rutas web_tracker/truck no se
+publican hacia servicios de producción.
+
+Evidencia privada: /opt/steps-validation/tracker-parity-20261031/
+be359b822293a52adb72cb55ca9f4584e68009fe/ (qa.json, development.json,
+production.json, private/functional.log y dump comprobado de la copia).
+Respaldo de configuración Cerro: private/backup-cerro-20261101T020732Z.
+Auditoría reproducible: tools/ops/audit_tracker_parity.py; guarda su salida fuera
+del checkout. Evidencia local antes/después y capturas de navegador en
+~/.codex/local-artifacts/tracker-qa-audit-20261031/.
+
+Para comprobar conjuntamente la versión GPS y la web posterior, el verificador
+admite dos checkouts: verify_gps_commissioning.py <fuente-receptor-e4a1cb7b>
+<fuente-frontend-be359b82>. La separación es deliberada: restaurar el frontend
+no instala de nuevo un receptor ni cambia su caché, claves o datos.

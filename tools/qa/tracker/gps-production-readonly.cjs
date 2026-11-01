@@ -22,7 +22,18 @@ const assert=require('node:assert/strict');
   await page.screenshot({path:path.join(output,'gps-form-desktop.png'),fullPage:true});
   await dialog.getByRole('button',{name:'Cancelar',exact:true}).click();
   for(const width of [1365,390]){await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:path.join(output,'gps-live-'+width+'.png'),fullPage:true});}
-  assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);
-  console.log('GPS_NATIVE_BROWSER_OK host='+proof.host+' authenticated=true form=true receiver_status=true responsive=true business_writes=0');
+  if(process.env.TRACKER_REVIEW_OPERATION==='1'){
+   await page.setViewportSize({width:1365,height:1000});
+   await page.getByRole('button',{name:'Operación',exact:true}).click();
+   const nav=page.getByRole('navigation',{name:'Navegación principal'});await nav.waitFor();
+   await nav.getByRole('button',{name:'Registro',exact:true}).click();
+   await page.getByRole('heading',{name:'Registro de operación',exact:true}).waitFor();
+   await page.screenshot({path:path.join(output,'operation-native.png'),fullPage:true});
+   await nav.getByRole('button',{name:'← Flota y GPS',exact:true}).click();
+   await page.getByRole('button',{name:'Configuración',exact:true}).click();
+   await page.getByRole('heading',{name:'Preparar los equipos Coban'}).waitFor();
+  }
+  assert.deepEqual(writes.filter(url=>!url.endsWith('/steps_tracker/classic-session')),[]);assert.deepEqual(errors,[]);
+  console.log('GPS_NATIVE_BROWSER_OK host='+proof.host+' authenticated=true form=true receiver_status=true responsive=true business_writes=0 operation_review='+String(process.env.TRACKER_REVIEW_OPERATION==='1'));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

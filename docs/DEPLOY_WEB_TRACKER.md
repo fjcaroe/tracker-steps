@@ -3,7 +3,10 @@
 > Actualización 31/10/2026: la configuración Coban de Cerro usa los overlays
 > privados de Desarrollo/Cerro y el publicador probado descrito en
 > [Receptor y configuración GPS](COBAN_RECEIVER.md). No ejecutar una publicación
-> global sobre el portal compartido ni desplegar un backend anterior al paquete
+> global sobre el portal compartido. La restauración be359b82 incorpora también
+> Operación y costos; para cambios solo de frontend usar
+> `tools/ops/deploy_tracker_frontend.py` y conservar esta unificación. No desplegar
+> un backend anterior al paquete
 > e4a1cb7b: la API también sirve Steps Móvil y servicios de pasajeros.
 >
 > Portal autenticado de Desarrollo, Demo y Cerro el Plomo (septiembre 2026):
