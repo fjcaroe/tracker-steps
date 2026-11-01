@@ -10,7 +10,8 @@ from odoo.exceptions import AccessError, ValidationError
 assert env.cr.dbname.startswith('TRACKER_OPS_QA_')
 assert not env['ir.cron'].search_count([('active','=',True)])
 company=env['res.company'].browse(2).exists();assert company
-user=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1),('company_ids','in',company.ids)]).filtered(lambda u:u.has_group('base.group_system'))[:1];assert user
+users=env['res.users'].search([('active','=',True),('share','=',False),('id','!=',1),('company_ids','in',company.ids)],order='id')
+user=users.filtered(lambda u:u.has_group('base.group_system') and env['fleet.vehicle'].with_user(u).check_access_rights('create',raise_exception=False) and env['fleet.vehicle.model.brand'].with_user(u).check_access_rights('read',raise_exception=False))[:1];assert user
 current=env(user=user.id,context={'allowed_company_ids':company.ids,'tracking_disable':True,'mail_create_nosubscribe':True,'no_reset_password':True})
 try:
     brand=current['fleet.vehicle.model.brand'].search([],limit=1);assert brand

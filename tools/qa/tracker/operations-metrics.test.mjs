@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {parseOdometerReading} from '../../../src/services/odometerReading.ts';
 import {operationsMetrics,operationsCsv} from '../../../src/services/operationsMetrics.ts';
 const time=Date.parse('2026-11-01T03:00:00Z');
 const point=(i,extra={})=>({id:String(i),recorded_at:new Date(time+i*60000).toISOString(),received_at:new Date(time+i*60000).toISOString(),lat:-33-i*.001,lon:-70,speed_kmh:20,quality:'gps',acc:null,external_power:null,...extra});
@@ -9,3 +10,5 @@ test('bench drift stays stationary, original observations remain',()=>{const poi
 test('uses Chile calendar days across UTC midnight and omits days without samples',()=>{const a=point(0,{recorded_at:'2026-11-01T01:00:00Z'}),b=point(1,{recorded_at:'2026-11-01T04:00:00Z'});const m=operationsMetrics([a,b],Date.parse('2026-10-31T00:00:00Z'),Date.parse('2026-11-02T00:00:00Z'));assert.deepEqual(m.daily.map(r=>r.day),['2026-10-31','2026-11-01']);});
 test('empty data and unavailable speed remain unavailable',()=>{const m=operationsMetrics([],time,time+86400000);assert.equal(m.maxReportedSpeed,null);assert.deepEqual(m.daily,[]);assert.equal(operationsMetrics([point(0,{speed_kmh:null})],time,time+86400000).maxReportedSpeed,null);});
 test('CSV preserves Spanish text and blocks spreadsheet formula injection',()=>{const s=operationsCsv([['Vehículo','=CMD()','+formula','normal','a"b']]);assert.ok(s.includes("'=CMD()"));assert.ok(s.includes("'+formula"));assert.ok(s.includes('a""b'));});
+
+test('physical odometer input never silently interprets grouped numbers as a decimal',()=>{assert.equal(parseOdometerReading('123456,5'),123456.5);assert.equal(parseOdometerReading('123456.5'),123456.5);assert.equal(parseOdometerReading('0'),0);for(const value of ['123.456','1.234,5','','-1','abc'])assert.throws(()=>parseOdometerReading(value));});
