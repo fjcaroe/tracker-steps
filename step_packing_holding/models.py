@@ -77,6 +77,14 @@ class Order(models.Model):
         changed.filtered('material_need_ids').action_refresh_materials()
         return result
 
+    def action_refresh_materials(self):
+        # The action also activates the parent to read its sales programme.
+        # Availability must still use only the OP's destination branch stock.
+        for order in self:
+            scoped = order.with_context(allowed_company_ids=order.company_id.ids)
+            super(Order, scoped).action_refresh_materials()
+        return True
+
 
 class OrderLine(models.Model):
     _inherit = 'step.packing.order.line'

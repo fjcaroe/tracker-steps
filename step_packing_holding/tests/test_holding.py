@@ -18,7 +18,7 @@ class HoldingCase(TransactionCase):
         cls.sibling = cls.env['res.company'].create({'name': 'Private Holding sibling', 'parent_id': cls.parent.id})
         cls.foreign = cls.env['res.company'].create({'name': 'Private unrelated company'})
         cls.user = new_test_user(cls.env, login='private-holding-147',
-            groups='stock.group_stock_manager,account.group_account_manager', company_id=cls.parent.id,
+            groups='stock.group_stock_manager,account.group_account_manager,mrp.group_mrp_user', company_id=cls.parent.id,
             company_ids=[Command.set((cls.parent | cls.branch | cls.sibling | cls.foreign).ids)])
         cls.scope = cls.env(user=cls.user, su=False,
             context=dict(cls.env.context, allowed_company_ids=(cls.parent | cls.branch | cls.sibling).ids))
@@ -81,6 +81,21 @@ class HoldingCase(TransactionCase):
             'species_id': self.species.id, 'variety_id': self.variety.id, 'boxes': 10, 'kilos': 10})
         order.branch_company_id = self.sibling
         self.assertEqual(order.company_id, self.sibling)
+
+    def test_147_material_availability_uses_only_destination_branch(self):
+        material = self.env['product.product'].create({'name': 'Private branch material', 'is_storable': True})
+        bom = self.env['mrp.bom'].create({'product_tmpl_id': self.product.product_tmpl_id.id, 'product_qty': 1,
+            'bom_line_ids': [Command.create({'product_id': material.id, 'product_qty': 2})]})
+        for company, quantity in [(self.branch, 3), (self.sibling, 50)]:
+            warehouse = self.env['stock.warehouse'].with_company(company).create({'name': 'Private material warehouse',
+                'code': 'M%04d' % (company.id % 10000), 'company_id': company.id})
+            self.env['stock.quant'].with_company(company)._update_available_quantity(material, warehouse.lot_stock_id, quantity)
+        order = self.order()
+        self.scope['step.packing.order.line'].create({'order_id': order.id, 'product_id': self.product.id,
+            'bom_id': bom.id, 'species_id': self.species.id, 'boxes': 10, 'kilos': 10})
+        order.action_refresh_materials()
+        self.assertEqual((order.material_need_ids.required_qty, order.material_need_ids.available_qty,
+                          order.material_need_ids.shortage_qty), (20, 3, 17))
 
     def test_149_guide_and_instruction_link_parent_shipment(self):
         shipment = self.shipment()
