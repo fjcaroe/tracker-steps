@@ -1,5 +1,11 @@
 # Cómo desplegar Web Tracker a producción
 
+> Actualización 31/10/2026: la configuración Coban de Cerro usa los overlays
+> privados de Desarrollo/Cerro y el publicador probado descrito en
+> [Receptor y configuración GPS](COBAN_RECEIVER.md). No ejecutar una publicación
+> global sobre el portal compartido ni desplegar un backend anterior al paquete
+> e4a1cb7b: la API también sirve Steps Móvil y servicios de pasajeros.
+>
 > Portal autenticado de Desarrollo, Demo y Cerro el Plomo (septiembre 2026):
 > utiliza `/var/www/web_tracker_portal/`, `VITE_ODOO_PORTAL=true` y el addon
 > `step_tracker_portal`. Para la entrega de polígonos seguir también
