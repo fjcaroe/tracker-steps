@@ -44,7 +44,7 @@ SQLite WAL/FULL conserva la cola antes del reenvío. SHA-256 del mensaje identif
 duplicados; recibos de la API completan la entrega, con reintentos y backoff.
 La ruta de cada evento queda congelada; cambiar el mapa no mueve eventos a otra
 compañía. La API existente valida nuevamente tenant y asignación para la fecha.
-Retención de recibos siete días, cola pendiente máxima 20.000, capturas 200,
+Retención de recibos hasta siete días / máximo 20.000, cola pendiente máxima 20.000, capturas 200,
 tramas 4 KiB, buffers 16 KiB, 64 conexiones globales y 8 por IP, 120 mensajes/min
 por conexión. Capturas/estado son privados y no se registran payloads en journal.
 

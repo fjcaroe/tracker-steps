@@ -68,13 +68,15 @@ def main():
             try:
                 with dump.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',database,stdin=inp)
                 with (private/'unit.log').open('w') as log:run('/usr/bin/python3.10','-m','unittest','receivers.coban.test_receiver','-v',cwd=source,stdout=log,stderr=subprocess.STDOUT)
-                assert 'Ran 21 tests' in (private/'unit.log').read_text() and '\nOK' in (private/'unit.log').read_text()
+                assert 'Ran 22 tests' in (private/'unit.log').read_text() and '\nOK' in (private/'unit.log').read_text()
+                api_source=stage/'api-source';api_source.mkdir()
+                shutil.copytree(BACKEND/'app',api_source/'app',ignore=shutil.ignore_patterns('__pycache__'))
                 with (private/'flow.log').open('w') as log:
-                    run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+database,'JWT_SECRET=test-only-coban-rehearsal','PYTHONPATH='+str(source)+':'+str(BACKEND),str(BACKEND/'.venv/bin/python'),'-m','receivers.coban.rehearse',cwd=source,stdout=log,stderr=subprocess.STDOUT)
+                    run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+database,'JWT_SECRET=test-only-coban-rehearsal','PYTHONPATH='+str(source)+':'+str(api_source),str(BACKEND/'.venv/bin/python'),'-m','receivers.coban.rehearse',cwd=source,stdout=log,stderr=subprocess.STDOUT)
                 assert 'COBAN_COPY_QA_OK' in (private/'flow.log').read_text()
                 assert before==gps_snapshot() and current_api==api_hash(),'Production changed during QA; investigate and repeat from a fresh copy'
-                (stage/'qa.json').write_text(json.dumps({'commit':a.commit,'sha256':a.sha256,'api_sha256':current_api,'database':database,'tests':21,'copy_flow':True,'production_untouched':True,'dump_sha256':hashlib.sha256(dump.read_bytes()).hexdigest()},indent=2))
-                print('COBAN_QA_OK tests=21 tcp_to_copy_api=True production_untouched=True',flush=True)
+                (stage/'qa.json').write_text(json.dumps({'commit':a.commit,'sha256':a.sha256,'api_sha256':current_api,'database':database,'tests':22,'copy_flow':True,'production_untouched':True,'dump_sha256':hashlib.sha256(dump.read_bytes()).hexdigest()},indent=2))
+                print('COBAN_QA_OK tests=22 tcp_to_copy_api=True production_untouched=True',flush=True)
             finally:run('sudo','-u','postgres','dropdb','--if-exists',database)
             return
         proof=json.loads((stage/'qa.json').read_text());assert proof['commit']==a.commit and proof['sha256']==a.sha256 and proof['api_sha256']==current_api and proof['copy_flow'] is True
@@ -99,18 +101,20 @@ def main():
             path=config/name;path.write_text(json.dumps(value,indent=2));path.chmod(0o640);os.chown(path,0,identity.pw_gid)
         current=Path('/opt/steps-coban/current');assert not current.exists();current.symlink_to(release,target_is_directory=True)
         unit=Path('/etc/systemd/system/steps-coban.service');shutil.copy2(source/'receivers/coban/steps-coban.service',unit)
+        firewall_created=False
         try:
             run('systemctl','daemon-reload');run('systemctl','enable','--now','steps-coban.service')
             run('systemctl','is-active','--quiet','steps-coban.service')
             cloud('compute','instances','add-tags','odoo-new','--zone=us-central1-c','--project=stepsconsulting','--tags=steps-coban-cerro','--quiet')
             cloud('compute','firewall-rules','create','steps-coban-cerro-tcp5001','--project=stepsconsulting','--network=red-vpc-steps','--direction=INGRESS','--allow=tcp:5001','--source-ranges=0.0.0.0/0','--target-tags=steps-coban-cerro','--description=Coban GPS103 TCP receiver - Cerro commissioning allowlist','--quiet')
+            firewall_created=True
             assert before==gps_snapshot() and proof['api_sha256']==api_hash(),'Unrelated production source/data change detected'
             (stage/'deployment.json').write_text(json.dumps({'commit':a.commit,'sha256':a.sha256,'backup':str(backup),'port':5001,'protocol':'gps103-ascii','allowlist_count':0,'api_untouched':True,'production_data_untouched':True},indent=2))
             print('COBAN_DEPLOY_OK port=5001 allowlist=0 backup='+str(backup),flush=True)
         except Exception:
             run('systemctl','disable','--now','steps-coban.service')
             operator=os.environ.get('SUDO_USER')
-            subprocess.run(['sudo','-u',operator,'gcloud','compute','firewall-rules','delete','steps-coban-cerro-tcp5001','--project=stepsconsulting','--quiet'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            if firewall_created:subprocess.run(['sudo','-u',operator,'gcloud','compute','firewall-rules','delete','steps-coban-cerro-tcp5001','--project=stepsconsulting','--quiet'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
             raise
 
 

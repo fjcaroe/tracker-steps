@@ -105,6 +105,14 @@ class ReceiverTests(unittest.TestCase):
         self.store.maximum=0
         with self.assertRaises(RuntimeError):self.process(FRAME.replace(b',tracker,',b',help me,'))
 
+    def test_receipt_retention_is_bounded_without_deleting_pending(self):
+        self.store.receipts=2
+        for n in range(4):
+            self.store.enqueue(IMEI,str(n),{},{});self.store.result(str(n),True,0)
+        self.store.enqueue(IMEI,'pending',{},{});
+        self.assertEqual(self.store.status()['delivered_retained'],2)
+        self.assertEqual(self.store.status()['queued'],1)
+
     def test_no_reroute_on_mapping_change(self):
         self.process();self.route['company_id']=3;self.map.write_text(json.dumps({IMEI:self.route}))
         flush(self.store,{'mapping':str(self.map),'key_file':str(self.key),'api':'http://127.0.0.1:1'})
