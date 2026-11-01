@@ -9,7 +9,7 @@ class Actions(models.Model):
 
     def _get_action_dict(self):
         result = super()._get_action_dict()
-        if self.res_model in ('step.packing.order', 'step.dispatch.guide', 'step.export.dispatch.order'):
+        if self.res_model in ('step.packing.order', 'step.packing.production', 'step.dispatch.guide', 'step.export.dispatch.order'):
             previous = result.get('context') or {}
             context = safe_eval(previous, dict(self.env.context, uid=self.env.uid)) if isinstance(previous, str) else dict(previous)
             companies = branch_companies(self.env, self.env.company)
@@ -23,6 +23,22 @@ class Order(models.Model):
 
     branch_company_id = fields.Many2one('res.company', related='company_id', readonly=False, string='Sucursal')
     holding_company_ids = fields.Many2many('res.company', compute='_compute_holding_companies')
+    holding_program_company_ids = fields.Many2many('res.company', compute='_compute_holding_program_companies')
+    sales_program_id = fields.Many2one(check_company=False, domain="[('company_id','in',holding_program_company_ids)]")
+
+    @api.depends('company_id')
+    @api.depends_context('uid', 'allowed_company_ids')
+    def _compute_holding_program_companies(self):
+        for order in self:
+            order.holding_program_company_ids = (order.company_id | order.company_id.root_id) & self.env.companies
+
+    @api.constrains('company_id', 'sales_program_id')
+    def _check_holding_program(self):
+        for order in self:
+            if order.sales_program_id:
+                order.sales_program_id.check_access('read')
+                if order.sales_program_id.company_id not in ((order.company_id | order.company_id.root_id) & self.env.companies):
+                    raise ValidationError(_('Seleccione un programa de esta sucursal o de su matriz autorizada.'))
 
     @api.depends('company_id')
     @api.depends_context('uid', 'company')
@@ -52,9 +68,14 @@ class Order(models.Model):
         if vals.get('company_id'):
             target = self.env['res.company'].browse(vals['company_id'])
             self._check_branch(target)
-            if any(order.company_id != target and (order.state != 'draft' or order.production_ids or order.line_ids) for order in self):
-                raise UserError(_('Seleccione la sucursal antes de agregar productos o validar la OP.'))
-        return super().write(vals)
+            changed = self.filtered(lambda order: order.company_id != target)
+            if any(order.state != 'draft' or order.production_ids for order in changed):
+                raise UserError(_('La sucursal solo puede cambiar en una OP creada y sin órdenes de trabajo.'))
+        else:
+            changed = self.browse()
+        result = super().write(vals)
+        changed.filtered('material_need_ids').action_refresh_materials()
+        return result
 
 
 class OrderLine(models.Model):

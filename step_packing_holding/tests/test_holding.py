@@ -78,6 +78,8 @@ class HoldingCase(TransactionCase):
 
     def test_147_branch_change_before_lines(self):
         order = self.order()
+        self.scope['step.packing.order.line'].create({'order_id': order.id, 'product_id': self.product.id,
+            'species_id': self.species.id, 'variety_id': self.variety.id, 'boxes': 10, 'kilos': 10})
         order.branch_company_id = self.sibling
         self.assertEqual(order.company_id, self.sibling)
 
@@ -184,6 +186,12 @@ class HoldingCase(TransactionCase):
         order = self.order()
         order.sales_program_id = program
         self.assertEqual(order.sales_program_id.company_id, self.parent)
+        line = self.scope['step.packing.order.line'].create({'order_id': order.id, 'product_id': self.product.id,
+            'species_id': self.species.id, 'variety_id': self.variety.id, 'boxes': 10, 'kilos': 10})
+        order.action_validate()
+        action = line.action_create_production()
+        production = self.scope['step.packing.production'].browse(action['res_id'])
+        self.assertEqual((production.company_id, production.sales_program_id), (self.branch, program))
         with self.cr.savepoint(), self.assertRaises(ValidationError):
             self.shipment(sales_program_id=program.id, receiver_id=self.partner.id)
 

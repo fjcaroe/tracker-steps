@@ -12,6 +12,7 @@
   </xpath>
  </t>
  <t t-inherit="step_producers.Dashboard" t-inherit-mode="extension">
-  <xpath expr="//section[@aria-labelledby='producer-overview-title']//small" position="replace"><small>Compañías y sucursales seleccionadas en el panel Holding</small></xpath>
+  <xpath expr="//section[@aria-labelledby='producer-overview-title']/div[hasclass('o_export_section__heading')]/small" position="replace"><small>Compañías y sucursales seleccionadas en el panel Holding</small></xpath>
+  <xpath expr="//section[@aria-labelledby='producer-overview-title']" position="after"><p t-if="state.holdingError" class="alert alert-warning" role="alert"><t t-esc="state.holdingError"/></p></xpath>
  </t>
 </templates>

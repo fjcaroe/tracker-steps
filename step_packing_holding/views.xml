@@ -4,7 +4,8 @@
   <field name="inherit_id" ref="step_packing_operations.view_packing_order_form"/>
   <field name="arch" type="xml">
    <field name="company_id" position="attributes"><attribute name="readonly">1</attribute></field>
-   <field name="packing_partner_id" position="before"><field name="holding_company_ids" invisible="1"/><field name="branch_company_id" domain="[('id','in',holding_company_ids)]" readonly="state != 'draft' or line_ids or production_ids" options="{'no_create': True}"/></field>
+   <field name="sales_program_id" position="before"><field name="holding_program_company_ids" invisible="1"/></field>
+   <field name="packing_partner_id" position="before"><field name="holding_company_ids" invisible="1"/><field name="branch_company_id" domain="[('id','in',holding_company_ids)]" readonly="state != 'draft' or production_ids" options="{'no_create': True}"/></field>
   </field>
  </record>
  <record id="guide_shipment" model="ir.ui.view">
