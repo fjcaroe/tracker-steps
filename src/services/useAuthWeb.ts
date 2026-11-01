@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { CostCenterOut, UserOut } from "./auth";
+import type { CostCenterOut, TokenOut, UserOut } from "./auth";
 
 export type AuthState = {
   token: string | null;
@@ -7,6 +7,7 @@ export type AuthState = {
   costCenters: CostCenterOut[];
   isReady: boolean;
   login: (username: string, password: string) => Promise<void>;
+  adopt: (data: TokenOut) => void;
   logout: () => void;
 };
 

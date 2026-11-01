@@ -18,6 +18,8 @@ const assert=require('node:assert/strict');
   else if(url.pathname.endsWith('/fleet/snapshot'))result={items:[asset],total:1,next_cursor:null,counts:{}};
   else if(url.pathname.endsWith('/zones'))result=[];
   else if(url.pathname.includes('/view-preferences/'))result=null;
+  else if(url.pathname.startsWith('/steps_tracker/costs/assets/'))result={linked:false,message:'Equipo de prueba sin vínculo contable.'};
+  else if(url.pathname==='/steps_tracker/classic-session')result={access_token:'test-only-classic',token_type:'bearer',user:{id:2,username:'qa',full_name:'Prueba QA'},cost_centers:[]};
   else if(route.request().method()==='POST'){
    const form=new URLSearchParams(route.request().postData());const body=JSON.parse(form.get('payload'));writes.push({url:url.pathname,body});
    if(url.pathname.endsWith('/configuration/devices')){items=[{...body,id:'r1',device_id:'d1',version:1,asset_id:null,asset_name:null,tracking_approved:false,signal_state:'no_signal',commissioning:{mode:'disabled',last_seen_at:null,fix_at:null,fix_received_at:null,lat:null,lon:null,pending:0,last_error:null}}];result={id:'r1'};}
@@ -27,6 +29,7 @@ const assert=require('node:assert/strict');
   }else throw Error('Unexpected request '+url.pathname);
   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
  });
+ for(const pattern of ['**/tracker-steps/**','http://localhost:8000/**'])await page.route(pattern,route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify([])}));
  try{
   await page.goto((process.env.GPS_UI_BASE||'http://127.0.0.1:4173')+'/web_tracker/#settings');
   await page.getByRole('heading',{name:'Preparar los equipos Coban'}).waitFor();
@@ -65,7 +68,19 @@ const assert=require('node:assert/strict');
   await page.getByRole('heading',{name:'Recepción deshabilitada',exact:true}).waitFor();
   assert.equal(writes.filter(w=>w.url.endsWith('/commissioning')).length,3);
   assert.equal(writes.find(w=>w.body.mode==='forward').body.verified,true);
+  await page.getByRole('button',{name:'Flota',exact:true}).click();
+  await page.getByRole('button',{name:/Vehículo de prueba.*QA-0000/}).first().click();
+  await page.getByRole('button',{name:'Ver costos y gastos',exact:true}).click();
+  await page.getByText('Equipo de prueba sin vínculo contable.',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'Operación',exact:true}).click();
+  await page.getByRole('navigation',{name:'Navegación principal'}).waitFor();
+  for(const name of ['Resumen','Registro','Ingreso manual','Cosecha','Monitoreo','Odómetro','Indicadores','Analítica','Maestros','Historial'])await page.getByRole('navigation',{name:'Navegación principal'}).getByRole('button',{name:new RegExp('^'+name)}).waitFor();
+  await page.getByRole('button',{name:'Registro',exact:true}).click();
+  await page.getByRole('heading',{name:'Registro de operación',exact:true}).waitFor();
+  await page.getByRole('button',{name:'← Flota y GPS',exact:true}).click();
+  await page.getByRole('button',{name:'Configuración',exact:true}).click();
+  await page.getByRole('heading',{name:'Preparar los equipos Coban'}).waitFor();
   assert.deepEqual(errors,[]);
-  console.log('GPS_UI_OK register_sim=true associate=true capture=true physical_review=true activation=true revocation=true responsive=true');
+  console.log('GPS_UI_OK register_sim=true associate=true capture=true physical_review=true activation=true revocation=true responsive=true operation_menu=true classic_session=true costs=true gps_preserved=true');
  }catch(e){if(output)await page.screenshot({path:path.join(output,'failure.png'),fullPage:true});throw e;}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

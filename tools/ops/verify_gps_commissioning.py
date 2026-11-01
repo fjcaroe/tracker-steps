@@ -12,6 +12,7 @@ from deploy_gps_commissioning import API,BASE,query,sha,tree
 
 def main():
     source=Path(sys.argv[1]).resolve()
+    frontend=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else source
     commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
     proof=json.loads((BASE/commit/'production.json').read_text())
     assert proof['commit']==commit and proof['api_exact']
@@ -29,8 +30,11 @@ def main():
     for service in ('steps-coban','tracker-steps-api','teltonika-ingest','odoo18-cerroelplomo'):
         subprocess.run(['systemctl','is-active','--quiet',service],check=True)
     subprocess.run(['systemctl','is-enabled','--quiet','steps-coban'],check=True)
+    import hashlib
+    frontend_assets={str(p.relative_to(frontend/'dist')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (frontend/'dist').rglob('*') if p.is_file()}
+    assert frontend_assets
     for host in ('desarrollo.stepsapp.cl','cerroelplomo.stepsapp.cl'):
-        for name,expected_sha in proof['dist'].items():
+        for name,expected_sha in frontend_assets.items():
             with urlopen('https://'+host+'/web_tracker/'+name,timeout=20) as response:
                 import hashlib
                 assert hashlib.sha256(response.read()).hexdigest()==expected_sha
