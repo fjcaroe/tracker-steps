@@ -2,7 +2,7 @@
 Only source GPS asset from private plan is moved; native original is archived.
 No password, outgoing message, source-company permission or other GPS is changed.
 """
-import argparse,configparser,fcntl,hashlib,json,os,pwd,shutil,sqlite3,subprocess,time
+import argparse,configparser,fcntl,hashlib,json,os,pwd,shutil,sqlite3,subprocess,time,sys
 from datetime import datetime,timezone
 from pathlib import Path
 from urllib.request import urlopen
@@ -45,7 +45,7 @@ def wait_api():
   time.sleep(.5)
  raise RuntimeError('API startup requires attention')
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply']);p.add_argument('source',type=Path);p.add_argument('--plan',type=Path,required=True);p.add_argument('--facts',type=Path,required=True);p.add_argument('--root',type=Path,required=True);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply','qa-apply']);p.add_argument('source',type=Path);p.add_argument('--plan',type=Path,required=True);p.add_argument('--facts',type=Path,required=True);p.add_argument('--root',type=Path,required=True);a=p.parse_args()
  assert os.geteuid()==0;os.umask(0o077);source=a.source.resolve();root=a.root.resolve();root.mkdir(parents=True,exist_ok=True);root.chmod(0o700)
  assert not output('git','-C',source,'status','--porcelain','--untracked-files=no')
  commit=output('git','-C',source,'rev-parse','HEAD');plan=json.loads(a.plan.read_text());facts=json.loads(a.facts.read_text())
@@ -54,7 +54,7 @@ def main():
  package=tree(source/'backend/tracker_py/app');current=tree(API/'app');assert {k:v for k,v in current.items() if k!='routers/receiver.py'}=={k:v for k,v in package.items() if k!='routers/receiver.py'},'Unreviewed API drift'
  with open('/run/lock/steps-environments.lock','a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX);stage=root/commit;stage.mkdir(exist_ok=True);proof_file=stage/'qa.json'
-  if a.action=='qa':
+  if a.action in ('qa','qa-apply'):
    assert not proof_file.exists();print('PERSONAL_QA_BACKUPS',flush=True)
    for name in ('CERRO_EL_PLOMO','LAB_TAREAS','tracker_steps'):dump(name,stage/(name+'.dump'))
    (stage/'native-facts.json').write_bytes(a.facts.read_bytes())
@@ -90,11 +90,12 @@ def main():
       base=Path(data_dir).resolve()/'filestore';directory=base/db
       assert directory.parent==base and db.startswith('PERSONAL_')
       if directory.exists():shutil.rmtree(directory)
-   return
+   if a.action=='qa':return
   proof=json.loads(proof_file.read_text());assert proof['commit']==commit and proof['native'] and proof['tcp_flow']
   assert proof['facts_sha256']==digest(a.facts) and proof['plan_sha256']==digest(a.plan) and proof['api_package']==package
   assert proof['api_baseline']==current and proof['receiver_baseline']==tree(Path('/opt/steps-coban/current').resolve()/'receivers'),'Concurrent runtime change'
-  fresh=worker(source,'tracker_steps',plan);assert fresh['snapshot']==proof['gps_before']['snapshot'],'Personal records changed; repeat fresh-copy QA'
+  sys.path.insert(0,str(source/'tools/gps'));from transfer_scope import validate_snapshot
+  fresh=worker(source,'tracker_steps',plan);validate_snapshot(proof['gps_before']['snapshot'],fresh['snapshot'])
   backup=stage/('backup-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'));backup.mkdir(mode=0o700)
   for name in ('CERRO_EL_PLOMO','LAB_TAREAS','tracker_steps'):dump(name,backup/(name+'.dump'))
   shutil.copytree('/etc/steps-coban',backup/'receiver-config');shutil.copytree(API/'app',backup/'api-app',ignore=shutil.ignore_patterns('__pycache__'))
