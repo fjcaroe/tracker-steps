@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import pwd
+import re
 import shutil
 import subprocess
 import time
@@ -64,19 +65,34 @@ def configure_frontend(source,commit,scope,backup):
     site=Path('/etc/nginx/sites-enabled/stepsapp' if scope=='dev' else '/etc/nginx/sites-enabled/cerroelplomo.stepsapp.cl').resolve()
     marker='include /etc/nginx/snippets/steps-tracker-portal.conf;'
     new_marker='include /etc/nginx/snippets/steps-tracker-'+scope+'-gps.conf;'
-    original=site.read_text();assert original.count(marker)==1,'Unexpected nginx portal layout'
+    original=site.read_text();assert original.count(marker)+original.count(new_marker)==1,'Unexpected nginx portal layout'
     if scope=='dev':assert 'server_name desarrollo.stepsapp.cl;' in original
     shutil.copy2(site,backup/('nginx-'+scope+'.conf'))
     snippet=Path('/etc/nginx/snippets/steps-tracker-'+scope+'-gps.conf')
-    assert not snippet.exists(),'Existing overlay needs explicit drift review'
-    snippet.write_text(Path('/etc/nginx/snippets/steps-tracker-portal.conf').read_text().replace('/var/www/web_tracker_portal',str(target)))
+    common=Path('/etc/nginx/snippets/steps-tracker-portal.conf').read_text()
+    previous=snippet.read_text() if snippet.exists() else None
+    if previous is not None:
+        roots=set(re.findall(r'/var/www/steps-tracker-releases/[a-f0-9]{40}',previous))
+        assert len(roots)==1 and previous==common.replace('/var/www/web_tracker_portal',next(iter(roots))),'Unreviewed private frontend drift'
+        (backup/('snippet-'+scope+'.conf')).write_text(previous)
+    snippet.write_text(common.replace('/var/www/web_tracker_portal',str(target)))
     site.write_text(original.replace(marker,new_marker))
-    try:run('nginx','-t');run('systemctl','reload','nginx')
-    except Exception:site.write_text(original);snippet.unlink();run('nginx','-t');raise
     host='desarrollo.stepsapp.cl' if scope=='dev' else 'cerroelplomo.stepsapp.cl'
-    with urlopen('https://'+host+'/web_tracker/',timeout=20) as response:assert response.read()==(source/'dist/index.html').read_bytes()
-    for p in (source/'dist/assets').iterdir():
-        with urlopen('https://'+host+'/web_tracker/assets/'+p.name,timeout=20) as response:assert hashlib.sha256(response.read()).hexdigest()==hashlib.sha256(p.read_bytes()).hexdigest()
+    try:
+        run('nginx','-t');run('systemctl','reload','nginx')
+        # A graceful reload can briefly serve a request through an older worker.
+        for _ in range(20):
+            with urlopen('https://'+host+'/web_tracker/',timeout=20) as response:matched=response.read()==(source/'dist/index.html').read_bytes()
+            if matched:break
+            time.sleep(.5)
+        assert matched,'Served index does not match the tested package'
+        for p in (source/'dist/assets').iterdir():
+            with urlopen('https://'+host+'/web_tracker/assets/'+p.name,timeout=20) as response:assert hashlib.sha256(response.read()).hexdigest()==hashlib.sha256(p.read_bytes()).hexdigest()
+    except Exception:
+        site.write_text(original)
+        if previous is None:snippet.unlink()
+        else:snippet.write_text(previous)
+        run('nginx','-t');run('systemctl','reload','nginx');raise
     print('GPS_FRONTEND_VERIFIED scope='+scope,flush=True)
 
 
