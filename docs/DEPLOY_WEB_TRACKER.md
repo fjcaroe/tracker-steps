@@ -493,3 +493,23 @@ real, solo lectura), escritorio y móvil. La prueba sintética usa dos recorrido
 sobre calles separados por un corte y una parada: el GPX conserva el corte y el
 filtro de duración no cambia la distancia. Capturas privadas en local-artifacts/
 tracker-route-explorer-20261101. Las sesiones temporales se retiran al terminar.
+
+## Costos y consulta de gastos del GPS real — 01-11-2026
+
+AssetCostsPanel deja de navegar a la acción de servidor sin contexto. Consulta
+fleet.vehicle.action_open_step_expenses con el ID del vínculo nativo explícito,
+y lee hr.expense con el dominio devuelto, compañía y período del informe y ACL
+actuales. Muestra hasta 100 gastos; los documentos abren su formulario nativo.
+No se modifica la acción de servidor ni se crean gastos. El enlace antiguo
+copiado fuera del panel conserva su limitación; el panel ofrece el acceso nuevo.
+
+El informe conserva las cifras contables nativas e incorpora distancia del GPS
+Coban filtrada con buildTrail en el mismo período (hora del dispositivo), con
+cursor de 500 y máximo 10.000 muestras. No calcula costo por km si el historial
+es parcial, falla, supera 31 días, no hay desplazamiento o falta costo accesible.
+Sin apuntes atribuibles explica que faltan gastos contabilizados. El cociente
+neto/km es una estimación y no cambia documentos, lecturas ni costos contables.
+Las bases antiguas de sesiones/horómetro se muestran aparte con su explicación.
+costs-native.cjs comprueba distancia y acceso a gastos, sin escrituras de negocio.
+No hay cambios de addons: misma entrega de frontend en Desarrollo y Cerro,
+con copia fresca del API, respaldo y bloqueo; QA-Cerro conserva aislamiento.
