@@ -13,7 +13,7 @@ const {chromium}=require('playwright');const fs=require('node:fs');const path=re
   await page.goto('https://'+proof.host+'/truck/#gps');
   const data=await (await response).json();assert.ok(data.tenant_id&&data.user_id);
   await page.getByRole('heading',{name:'Autos y equipos GPS',exact:true}).waitFor();
-  await page.getByText(data.tenant,{exact:true}).waitFor();await page.getByRole('application',{name:'Mapa',exact:true}).waitFor();
+  await page.getByText(data.tenant,{exact:true}).waitFor();await page.locator('.hardware-google-canvas').waitFor();
   let benchCount=0;
   if(data.role==='manager'){
    const inventory=await (await configuration).json();
