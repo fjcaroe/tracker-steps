@@ -60,3 +60,5 @@ html[data-gloves=on] .tabbar button{min-height:72px}
 .passenger-service ol, .passenger-service__manifest { padding-left: 1.25rem; margin: 0; }
 .passenger-service li { margin-bottom: 0.75rem; }
 .passenger-service h4, .passenger-service > p { margin: 0; }
+
+.mk--stale{background:#697a75}.hardware-fleet h1{font-size:1.6rem}.hardware-fleet .card{overflow-wrap:anywhere}

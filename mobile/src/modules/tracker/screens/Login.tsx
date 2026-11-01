@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { login, type User } from '../lib/api';
 
-export default function Login({ onLogin, onExit }: { onLogin: (u: User) => void; onExit?: () => void }) {
+export default function Login({ onLogin, onExit, onFleet }: { onLogin: (u: User) => void; onExit?: () => void; onFleet?:()=>void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
@@ -26,6 +26,7 @@ export default function Login({ onLogin, onExit }: { onLogin: (u: User) => void;
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <button className="primary" disabled={busy || !username || !password}>{busy ? 'Ingresando…' : 'Ingresar'}</button>
+        {onFleet&&<button type="button" className="btnlink" onClick={onFleet}>Ver flota GPS con Odoo</button>}
         {onExit && <button type="button" className="link center" onClick={onExit}>‹ Volver al inicio de Steps</button>}
       </form>
     </main>

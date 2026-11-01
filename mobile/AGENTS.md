@@ -33,3 +33,19 @@ existente sin cambios de formato), `src/shared`, `src/platform`, `src/sync`. Doc
 Pruebas: `npm test && npm run build` (117 pruebas). Las pruebas de recorrido usan `src/testing/fakeServer.ts`, un servidor
 falso del contrato: no sustituyen las pruebas de Odoo (`step_mobile_portal*/tests`) ni las de dispositivo.
 No cambiar `cl.stepsapp.movil` ni las claves `steps_movil_*` del Tracker sin plan de migración.
+
+## Flota Coban móvil — Cerro, 31-10-2026
+
+La consulta GPS física usa la sesión Odoo y /steps_tracker/api/fleet/snapshot.
+No usar el token clásico, IMEI como autorización ni duplicar posiciones en jornadas.
+El acceso directo /truck/#gps funciona sin login clásico ni GPS del teléfono.
+Mantener el watcher de una jornada ya iniciada cuando el usuario cambia de pestaña.
+
+Para esta entrega, Desarrollo y Cerro usan overlays móviles privados bajo
+/var/www/steps-mobile-releases/<commit>. Publicar con
+python tools/ops/deploy_mobile_hardware_map.py qa|development|production <checkout>
+desde un checkout fresco canónico, tras npm ci, npm test y npm run build:tracker.
+El publicador exige copia fresca del destino y prueba TCP real hacia la proyección
+de flota; compara fuentes API/receptor sin modificarlas. Conserva /web_tracker/,
+Demo y la app compartida de Steps. No usar el rsync global anterior para promover
+esta entrega ni asumir que actualizar el directorio compartido actualiza Cerro.

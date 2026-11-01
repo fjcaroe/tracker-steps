@@ -11,9 +11,11 @@ import History from './screens/History';
 import Profile, { HelpSheet } from './screens/Profile';
 import Supervisor from './screens/Supervisor';
 import OwnerGate from './screens/OwnerGate';
+import HardwareFleet from './screens/HardwareFleet';
 
-type Tab = 'journey' | 'tasks' | 'history' | 'supervisor' | 'profile';
+type Tab = 'journey' | 'tasks' | 'history' | 'supervisor' | 'profile' | 'gps';
 const ALL_TABS: { id: Tab; label: string; icon: string; admin?: boolean }[] = [
+  {id:'gps',label:'GPS',icon:'m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2Zm6-2v16m6-14v16'},
   { id: 'journey', label: 'Jornada', icon: 'M12 3v18M3 12h18' },
   { id: 'tasks', label: 'Hoy', icon: 'M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9' },
   { id: 'history', label: 'Historial', icon: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2' },
@@ -34,7 +36,8 @@ async function renewIfDue() {
 export default function TrackerModule({ onExit }: { onExit: () => void }) {
   const [user, setUser] = useState<User | null>(null);
   const [booting, setBooting] = useState(true);
-  const [tab, setTab] = useState<Tab>('journey');
+  const [tab, setTab] = useState<Tab>(window.location.hash==='#gps'?'gps':'journey');
+  const [legacyEnabled,setLegacyEnabled]=useState(window.location.hash!=='#gps');
   const [online, setOnline] = useState(navigator.onLine);
   const [preset, setPreset] = useState<Task | null>(null);
   const [help, setHelp] = useState(false);
@@ -46,14 +49,15 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
   useEffect(() => {
     setUnauthorizedHandler(logout);
     (async () => {
+      if(!legacyEnabled){setBooting(false);return;}
       if (tokenStore.get()) { try { setUser(await me()); setBooting(false); void renewIfDue(); return; } catch { /* token vencido: se intenta Odoo */ } }
       const odoo = await loginWithOdoo();
       if (odoo) setUser(odoo.user);
       setBooting(false);
     })();
-  }, [logout]);
+  }, [logout,legacyEnabled]);
 
-  useEffect(() => { if (user && !loadSettings().seenHelp) setHelp(true); }, [user]);
+  useEffect(() => { if (user && tab!=='gps' && !loadSettings().seenHelp) setHelp(true); }, [user,tab]);
   // Los datos locales viejos no se atribuyen solos a quien entre: sin dueño conocido se confirma; de otra cuenta, se bloquea el envío.
   useEffect(() => { setOwner(user ? ownerState(user) : { kind: 'ok' }); }, [user]);
   useEffect(() => { setSyncGate(() => owner.kind === 'ok'); return () => setSyncGate(() => true); }, [owner]);
@@ -75,8 +79,9 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
     logout();
   };
 
+  if(tab==='gps'&&(!user||owner.kind!=='ok'))return <div className="shell"><main className="content"><HardwareFleet onBack={()=>{window.location.hash='';if(!legacyEnabled)setBooting(true);setLegacyEnabled(true);setTab('journey');}}/></main></div>;
   if (booting) return <main className="boot" role="status"><span className="spinner" />Abriendo Steps…</main>;
-  if (!user) return <Login onLogin={setUser} onExit={onExit} />;
+  if (!user) return <Login onLogin={setUser} onExit={onExit} onFleet={()=>setTab('gps')} />;
   if (owner.kind !== 'ok') return <OwnerGate state={owner} user={user} onClaim={() => { if (claimLocalData(user)) setOwner({ kind: 'ok' }); }} onLogout={logout} onExit={onExit} />;
   const tabs = ALL_TABS.filter((t) => !t.admin || user.is_admin);
 
@@ -91,6 +96,7 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
       <main className="content">
         {/* Keep the journey watcher alive while viewing tasks/history/profile. */}
         <div hidden={tab !== 'journey'}><Journey online={online} preset={preset} onPresetUsed={() => setPreset(null)} /></div>
+        {tab === 'gps' && <HardwareFleet onBack={()=>setTab('journey')}/>}
         {tab === 'tasks' && <Tasks onStart={startTask} onOpenJourney={() => setTab('journey')} />}
         {tab === 'history' && <History />}
         {tab === 'supervisor' && user.is_admin && <Supervisor />}

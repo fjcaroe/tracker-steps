@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { LatLon, Waypoint } from '../lib/nav';
 
-export type MapMarker = LatLon & { label?: string; kind: 'machine' | 'incident' | 'sos' | 'stop' };
+export type MapMarker = LatLon & { label?: string; kind: 'machine' | 'stale' | 'incident' | 'sos' | 'stop' };
 export type MapField = { name: string; polygon: LatLon[] };
 
 type Props = {
@@ -57,7 +57,7 @@ export default function LiveMap({ me, track = [], route = [], reached = 0, draft
       draft.forEach((w, i) => L.marker(ll(w), { icon: dot('mk--draft', String(i + 1)) }).addTo(g));
     }
     if (track.length > 1) { L.polyline(track.map(ll), { color: '#d2402f', weight: 4 }).addTo(g); track.forEach((p) => bounds.push(ll(p))); }
-    for (const k of markers) { L.marker(ll(k), { icon: dot(`mk--${k.kind}`, k.kind === 'sos' ? '!' : '') }).bindTooltip(k.label ?? '').addTo(g); bounds.push(ll(k)); }
+    for (const k of markers) { const tooltip=document.createElement('span');tooltip.textContent=k.label??'';L.marker(ll(k), { icon: dot(`mk--${k.kind}`, k.kind === 'sos' ? '!' : '') }).bindTooltip(tooltip).addTo(g); bounds.push(ll(k)); }
     if (me) { L.circleMarker(ll(me), { radius: 9, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(g); bounds.push(ll(me)); }
     if (!fitted.current && bounds.length) { m.fitBounds(L.latLngBounds(bounds), { padding: [28, 28], maxZoom: 17 }); fitted.current = true; }
     else if (me && !route.length && !markers.length) m.panTo(ll(me), { animate: true });
