@@ -3,7 +3,7 @@ import {GoogleMap,MarkerF,PolylineF,useJsApiLoader} from '@react-google-maps/api
 import {MAPS_LIBRARIES,MAPS_LOADER_ID} from '../mapsConfig';
 import {meters,routeAnchors,type TrailPoint,type Stop} from '../services/fleetTrail';
 type XY={lat:number;lng:number};
-type RouteAPI={Route:{computeRoutes:(r:{origin:XY;destination:XY;intermediates:XY[];travelMode:string;fields:string[]})=>Promise<{routes?:{path?:XY[]}[]}>}};
+type RouteAPI={Route:{computeRoutes:(r:{origin:XY;destination:XY;intermediates:{location:XY}[];travelMode:string;fields:string[]})=>Promise<{routes?:{path?:XY[]}[]}>}};
 const xy=(p:{lat:number;lon:number}):XY=>({lat:p.lat,lng:p.lon});
 const center={lat:-33.45,lng:-70.65};
 export default function FleetTrailMap({points,segments,stops,cursor}:{points:TrailPoint[];segments:TrailPoint[][];stops:Stop[];cursor:TrailPoint|undefined}){
@@ -22,7 +22,7 @@ export default function FleetTrailMap({points,segments,stops,cursor}:{points:Tra
   const token=++generation.current;setBusy(true);setError('');
   try{
    const {Route}=await google.maps.importLibrary('routes') as unknown as RouteAPI;
-   const result=await Route.computeRoutes({origin:xy(anchors[0]),destination:xy(anchors[anchors.length-1]),intermediates:anchors.slice(1,-1).map(xy),travelMode:'DRIVING',fields:['path']});
+   const result=await Route.computeRoutes({origin:xy(anchors[0]),destination:xy(anchors[anchors.length-1]),intermediates:anchors.slice(1,-1).map(p=>({location:xy(p)})),travelMode:'DRIVING',fields:['path']});
    if(token!==generation.current)return;
    const path=result.routes?.[0]?.path;
    if(!path||path.length<2)throw new Error('No se encontró una aproximación por calles para este tramo.');
@@ -36,7 +36,7 @@ export default function FleetTrailMap({points,segments,stops,cursor}:{points:Tra
  {error&&<p className="trail-map-notice" role="alert">{error}</p>}
  <div className="trail-map-canvas">{loadError?<p role="alert">Google Maps no pudo cargar. Revisa tu conexión.</p>:!isLoaded?<p role="status">Cargando mapa del recorrido…</p>:<GoogleMap mapContainerStyle={{height:'100%',width:'100%'}} center={center} zoom={12} onLoad={setMap} options={{mapTypeId:satellite?'hybrid':'roadmap',mapTypeControl:false,streetViewControl:false,fullscreenControl:true,gestureHandling:'cooperative',clickableIcons:false,maxZoom:18}}>
  {segments.filter(s=>s.length>1).map((s,i)=><PolylineF key={i} path={s.map(xy)} options={{strokeColor:'#17634c',strokeWeight:5,strokeOpacity:.85}}/>)}
- {estimate.length>1&&<PolylineF path={estimate} options={{strokeColor:'#2563eb',strokeWeight:5,strokeOpacity:.8,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'15px'}]}}/>}
+ {estimate.length>1&&<PolylineF path={estimate} options={{strokeColor:'#2563eb',strokeWeight:5,strokeOpacity:0,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'15px'}]}}/>}
  {points[0]&&<MarkerF position={xy(points[0])} label="A" title="Inicio de los datos del período"/>}{points.length>1&&<MarkerF position={xy(points[points.length-1])} label="B" title="Fin de los datos del período"/>}
  {stops.map((s,i)=><MarkerF key={i} position={xy(s.point)} label="P" title={'Parada probable · '+Math.round(s.minutes)+' min'}/>)}
  {cursor&&<MarkerF position={xy(cursor)} title="Posición en la reproducción" icon={{path:google.maps.SymbolPath.CIRCLE,fillColor:'#d8ff62',fillOpacity:1,strokeColor:'#123c33',strokeWeight:3,scale:9}}/>}
