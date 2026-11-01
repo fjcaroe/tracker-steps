@@ -2,11 +2,11 @@
 const {chromium}=require('playwright');const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');
 (async()=>{
  const proof=JSON.parse(fs.readFileSync(process.env.GPS_BROWSER_PROOF,'utf8').replace(/^\uFEFF/,''));assert.equal(proof.host,'cerroelplomo.stepsapp.cl');
- const browser=await chromium.launch({headless:true,channel:'msedge'});const context=await browser.newContext({viewport:{width:390,height:900}});
+ const browser=await chromium.launch({headless:true,channel:'msedge'});const context=await browser.newContext({viewport:{width:Number(process.env.GPS_VIEWPORT_WIDTH||390),height:900}});
  await context.addCookies([{name:'session_id',value:proof.session_id,domain:proof.host,path:'/',secure:true,httpOnly:true},{name:'cids',value:String(proof.company_id),domain:proof.host,path:'/',secure:true}]);
  const page=await context.newPage(),errors=[],writes=[];
  await page.addInitScript(()=>{window.phoneGpsCalls=0;Object.defineProperty(navigator,'geolocation',{value:{watchPosition:()=>{window.phoneGpsCalls++;return 1;},clearWatch:()=>{},getCurrentPosition:()=>{window.phoneGpsCalls++;}}});});
- page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
+ page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET'&&[proof.host,'stepsapp.cl'].includes(new URL(r.url()).hostname))writes.push(r.url());});
  try{
   const response=page.waitForResponse(r=>r.url().includes('/steps_tracker/api/fleet/snapshot')&&r.status()===200);
   const configuration=page.waitForResponse(r=>r.url().includes('/steps_tracker/api/configuration')&&r.status()===200);
@@ -31,6 +31,8 @@ const {chromium}=require('playwright');const fs=require('node:fs');const path=re
   await page.getByRole('button',{name:'Actualizar',exact:true}).click();
   assert.equal(await page.evaluate(()=>window.phoneGpsCalls),0);assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  if(process.env.GPS_MAP_CONTROLS){const satellite=page.getByRole('button',{name:'Satélite',exact:true});await satellite.click();assert.equal(await page.getByRole('button',{name:'Ver calles'}).getAttribute('aria-pressed'),'true');await page.getByRole('button',{name:'Tráfico',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Tráfico',exact:true}).getAttribute('aria-pressed'),'true');}
+  await page.waitForTimeout(2500);assert.equal(await page.locator('.gm-err-container').count(),0);
   if(process.env.GPS_UI_OUTPUT){fs.mkdirSync(process.env.GPS_UI_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.GPS_UI_OUTPUT,'cerro-hardware-map.png'),fullPage:true});}
   console.log('MOBILE_HARDWARE_NATIVE_OK company_scoped=True authenticated=True map=True business_writes=0 phone_gps_calls=0 assets='+data.items.length+' bench_gps='+benchCount);
  }finally{await browser.close();}

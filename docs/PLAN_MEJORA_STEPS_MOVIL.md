@@ -454,3 +454,20 @@ https://developers.google.com/maps/documentation/javascript/elevation
 El publicador mantiene copia fresca, respaldo, bloqueo y mismo paquete en Desarrollo
  y Cerro, sin cambios de API, receptor o módulos Odoo. Evidencia privada bajo
 /opt/steps-validation/mobile-hardware-map-20261031/ y ~/.codex/local-artifacts/.
+
+
+Entrega verificada: Tracker 1.5.0, paquete
+06809e5db35e20cfa353b8961353abd650c2a9f4, mismo build en Desarrollo y Cerro.
+177 pruebas en Windows/Linux, copia fresca TCP a flota sin jornada; navegador de
+Desarrollo con polling, fallo de red, revocación y cambio de compañía. Sesión real
+de Cerro: vehículo existente, marcador Google, móvil 390 px y escritorio 1440 px;
+controles Satélite y Tráfico comprobados, sin escrituras de negocio ni GPS del
+ teléfono. La sesión temporal se retira al terminar. Hashes de todos los archivos
+servidos verificados; API, receptor, web completa y app compartida intactos.
+Evidencia remota en mobile-hardware-map-20261031/<commit>/ con qa.json,
+development.json, production.json y respaldos privados. Capturas locales en
+~/.codex/local-artifacts/tracker-monitor-modern-20261101/.
+
+Auditoría agregada con tools/gps/audit_coban_capabilities.py: 33 posiciones F,
+32 con rumbo, 33 con altura vacía y 33 con ACC; 12 paquetes de otra variante
+requieren especificación. No publica IMEI, coordenadas, contraseñas o tramas.
