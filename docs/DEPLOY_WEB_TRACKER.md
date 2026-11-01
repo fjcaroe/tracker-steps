@@ -349,3 +349,12 @@ Los archivos se guardan fuera del checkout, bajo local-artifacts. No se graban
 sesiones, ubicaciones, números ni identificadores de clientes en el video.
 Referencias: https://www.w3.org/WAI/tutorials/forms/notifications/ y
 https://playwright.dev/docs/videos.
+
+Paquete publicado: bc6d74df9094d2a53a327b76c90cb12437b2b081. El mismo dist
+pasó copia fresca, navegador de Desarrollo y navegador nativo de Cerro en
+1440 y 390 px. Recibos y respaldo en
+/opt/steps-validation/tracker-parity-20261031/<commit>/; el log funcional
+incluye PROTECTION_COPY_QA_OK. La revisión de Cerro mantuvo la protección
+desarmada, sin escrituras de negocio ni órdenes físicas. Sesiones temporales
+retiradas después de verificar el formulario. El MP4 de capacitación contiene
+once capítulos y dura aproximadamente dos minutos.
