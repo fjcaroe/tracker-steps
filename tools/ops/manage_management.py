@@ -669,6 +669,8 @@ def main():
                 test_modules = [name for name in test_modules if name == 'step_agriculture_records'
                     or name in install or tree_hash(staged / name) != baseline['modules'][name]['sha256']]
             tags = ','.join('/' + name for name in test_modules)
+            if args.kind == 'agriculture-holding':
+                tags += ',/step_agro_analytics:ProducerCase,/step_packing_stock_flow:PackingStockFlowCase'
             print('MANAGEMENT_TEST_SCOPE ' + json.dumps(test_modules), flush=True)
             init_options = ['-i', ','.join(install)] if install else []
             update_options = ['-u', ','.join(update)] if update else []
