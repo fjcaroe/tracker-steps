@@ -547,3 +547,44 @@ navegador real de Cerro pasan el cambio de compañía en 390 px, persistencia,
 enlace autorizado y rechazo de compañía ajena. La prueba real espera además
 el mapa Google renderizado. Capturas privadas en local-artifacts/
 tracker-company-fix-20261101; sesiones retiradas tras la revisión.
+
+## Vehículo personal en Desarrollo — 01-11-2026
+
+El usuario pidió separar su vehículo y GPS personales del inventario productivo
+para probar nuevas funciones en Desarrollo. La interfaz vigente ya estaba
+publicada en Desarrollo. Nuevas mejoras se revisan allí antes de su entrega
+explícita a Cerro; no se usa la copia QA-Cerro como origen de promoción.
+
+manage_personal_tracker_transfer.py usa plan y hechos nativos privados, la
+rama Web canónica y el bloqueo compartido. Requiere ensayo exacto sobre copias
+frescas del Tracker, Desarrollo y Cerro, con correo/cron neutralizados. Conserva
+UUID de activo, dispositivo, asociación y posiciones, trasladando su tenant y
+el inventario/SIM/política/auditoría correspondientes. Difiere temporalmente la
+FK compuesta dentro de la transacción, valida ambos lados y restaura su estado
+no diferible antes de confirmar. No desactiva restricciones. El alta nativa
+reutiliza marca/modelo y usuario, conserva lecturas, perfil y grupos funcionales
+mapeables; no altera contraseñas ni las compañías autorizadas de producción.
+La ficha/vínculo originales se archivan después de comprobar el alta destino.
+No traslada documentos financieros; rechaza vehículos con gastos o conductor
+que requieran otra migración. Los datos y ejercicios previos de Desarrollo se
+conservan; no se refresca ninguna base desde otra.
+
+API y receptor siguen compartidos, con datos separados por base/compañía. La
+recepción adicional exige la lista privada /etc/tracker-coban-tenants.json;
+Cerro conserva su soporte existente. El receptor elige la clave por emisor y
+sondea por (emisor, compañía), sin confundir IDs iguales entre bases. No cambia
+la IP/puerto del equipo ni se emiten SMS u órdenes físicas. Se exige outbox
+personal drenado antes del cambio; no se reasignan paquetes antiguos pendientes.
+El hardware productivo restante conserva IDs, SIM, modo y configuración. Las
+unidades aún no asociadas siguen en inventario/captura hasta conocer el vehículo.
+
+La interfaz de Desarrollo puede publicarse separadamente. Una mejora futura de
+la API/receptor compartidos exige ensayo aislado previo y una publicación
+controlada: cambiar el servicio compartido afecta su código efectivo en ambos
+portales, aunque los registros y permisos estén separados.
+
+Herramientas de revisión con el usuario real: personal-native-session.py crea
+una sesión efímera sin escrituras de negocio; GPS_REVIEW_ASSET selecciona el
+activo privado en los ensayos de Operación, recorridos y gastos. Retirar la
+sesión después de la revisión. Los hechos, planes, respaldos, copias y capturas
+se conservan fuera de Git bajo personal-transfer-20261101 y local-artifacts.

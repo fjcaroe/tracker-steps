@@ -55,7 +55,7 @@ let link=null,logs=[{id:1001,date:'2026-10-31',value:1000,unit:'kilometers'}],li
   return route.continue();
  });
  try{
-  await page.goto('https://'+host+'/web_tracker/'+(fixture?'?asset='+first:'')+'#ops');await page.getByRole('heading',{name:'Tu actividad real, en un solo lugar.',exact:true}).waitFor();await page.getByText('Consultando posiciones reales del equipo…',{exact:true}).waitFor({state:'hidden'});
+  await page.goto('https://'+host+'/web_tracker/'+(fixture?'?asset='+first:process.env.GPS_REVIEW_ASSET?'?asset='+encodeURIComponent(process.env.GPS_REVIEW_ASSET):'')+'#ops');await page.getByRole('heading',{name:'Tu actividad real, en un solo lugar.',exact:true}).waitFor();await page.getByText('Consultando posiciones reales del equipo…',{exact:true}).waitFor({state:'hidden'});
   assert.equal(await page.getByText('Laboratorio demo',{exact:true}).count(),0);assert.equal(await page.getByText('Dataset activo',{exact:true}).count(),0);assert.equal(await page.getByLabel('Explorar demo',{exact:true}).count(),0);
   await page.getByRole('button',{name:'Analítica GPS',exact:true}).click();await page.getByRole('heading',{name:'Actividad respaldada por GPS',exact:true}).waitFor();
   if(fixture){assert.equal(await page.locator('.real-ops-kpis article').nth(2).locator('strong').innerText(),'25');const download=page.waitForEvent('download');await page.getByRole('button',{name:'Exportar informe CSV',exact:true}).click();await (await download).saveAs(path.join(output,'report.csv'));}

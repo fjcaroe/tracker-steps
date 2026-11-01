@@ -22,7 +22,7 @@ const {chromium}=require('playwright'),fs=require('node:fs'),path=require('node:
  });
  fs.mkdirSync(output,{recursive:true});
  try{
-  await page.goto('https://'+proof.host+'/web_tracker/#live');await page.locator('.fleet-card').first().click();
+  await page.goto('https://'+proof.host+'/web_tracker/'+(process.env.GPS_REVIEW_ASSET?'?asset='+encodeURIComponent(process.env.GPS_REVIEW_ASSET):'')+'#live');await page.locator(process.env.GPS_REVIEW_ASSET?'.fleet-card.is-selected':'.fleet-card').first().click();
   if(fixture){await page.waitForFunction(()=>window.google?.maps?.importLibrary);const reference=await page.evaluate(async()=>{const {Route}=await google.maps.importLibrary('routes');const {routes}=await Route.computeRoutes({origin:{lat:-33.4295,lng:-70.6184},destination:{lat:-33.4359,lng:-70.61824},travelMode:'DRIVING',fields:['path']});return routes[0].path.map(p=>typeof p.toJSON==='function'?p.toJSON():p);});assert.ok(reference.length>8);samples=samples.map((p,i)=>{const at=reference[Math.round(Math.min(i,8)*(reference.length-1)/8)];const back=reference[Math.round((i-14)*(reference.length-1)/4)];return i<14?{...p,lat:at.lat,lon:at.lng}:{...p,lat:back.lat,lon:back.lng};});}
   await page.getByRole('button',{name:'Ver historial de posiciones',exact:true}).click();
   const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'Reproducir',exact:true}).waitFor({timeout:45000});
