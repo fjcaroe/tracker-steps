@@ -9,15 +9,23 @@ const {chromium}=require('playwright');const fs=require('node:fs');const path=re
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
  try{
   const response=page.waitForResponse(r=>r.url().includes('/steps_tracker/api/fleet/snapshot')&&r.status()===200);
+  const configuration=page.waitForResponse(r=>r.url().includes('/steps_tracker/api/configuration')&&r.status()===200);
   await page.goto('https://'+proof.host+'/truck/#gps');
   const data=await (await response).json();assert.ok(data.tenant_id&&data.user_id);
   await page.getByRole('heading',{name:'Autos y equipos GPS',exact:true}).waitFor();
   await page.getByText(data.tenant,{exact:true}).waitFor();await page.getByRole('application',{name:'Mapa',exact:true}).waitFor();
-  if(!data.items.length)await page.getByText(/Todavía no hay vehículos registrados/).waitFor();
+  let benchCount=0;
+  if(data.role==='manager'){
+   const inventory=await (await configuration).json();
+   const bench=inventory.items.filter(d=>d.commissioning?.mode==='capture'||(!d.asset_id&&d.commissioning?.mode==='disabled'));
+   benchCount=bench.length;
+   if(benchCount){await page.getByRole('heading',{name:'GPS en prueba ('+benchCount+')',exact:true}).waitFor();for(const d of bench)await page.getByRole('heading',{name:'GPS · ••••'+d.imei.slice(-4),exact:true}).waitFor();}
+  }
+  if(!data.items.length&&!benchCount)await page.getByText(/Todavía no hay vehículos registrados/).waitFor();
   await page.getByRole('button',{name:'Actualizar',exact:true}).click();
   assert.equal(await page.evaluate(()=>window.phoneGpsCalls),0);assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   if(process.env.GPS_UI_OUTPUT){fs.mkdirSync(process.env.GPS_UI_OUTPUT,{recursive:true});await page.screenshot({path:path.join(process.env.GPS_UI_OUTPUT,'cerro-hardware-map.png'),fullPage:true});}
-  console.log('MOBILE_HARDWARE_NATIVE_OK company_scoped=True authenticated=True map=True business_writes=0 phone_gps_calls=0 assets='+data.items.length);
+  console.log('MOBILE_HARDWARE_NATIVE_OK company_scoped=True authenticated=True map=True business_writes=0 phone_gps_calls=0 assets='+data.items.length+' bench_gps='+benchCount);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

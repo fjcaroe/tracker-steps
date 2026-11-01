@@ -35,3 +35,14 @@ it('shows an empty company without inventing vehicles or positions',async()=>{
  vi.mocked(loadHardwareFleet).mockResolvedValue({...fixture(),items:[],total:0});render(<HardwareFleet onBack={()=>{}}/>);
  expect(await screen.findByText(/Todavía no hay vehículos registrados/)).toBeTruthy();
 });
+it('shows a real bench position without creating or requiring a vehicle',async()=>{
+ vi.mocked(loadHardwareFleet).mockResolvedValue({...fixture(),items:[],total:0,role:'manager',installations:[{id:'r1',label:'GPS · ••••0001',asset_id:null,asset_name:null,mode:'capture',last_seen_at:current(),fix_at:current(),fix_received_at:current(),lat:-33,lon:-70}]});
+ render(<HardwareFleet onBack={()=>{}}/>);await screen.findByText('GPS · ••••0001');
+ expect(screen.getByText('Posición GPS recibida en prueba')).toBeTruthy();expect(screen.getByText('Sin vehículo asociado')).toBeTruthy();
+ expect(screen.queryByText(/Todavía no hay vehículos registrados/)).toBeNull();expect(screen.getByRole('link',{name:'Asociar vehículo y validar seguimiento'})).toBeTruthy();
+ expect(screen.getByText(/GPS en prueba ·/).getAttribute('data-kind')).toBe('test');
+});
+it('does not map a previous fix when reception is disabled',async()=>{
+ vi.mocked(loadHardwareFleet).mockResolvedValue({...fixture(),items:[],total:0,installations:[{id:'r1',label:'GPS · ••••0001',asset_id:null,asset_name:null,mode:'disabled',last_seen_at:current(),fix_at:current(),fix_received_at:current(),lat:-33,lon:-70}]});
+ render(<HardwareFleet onBack={()=>{}}/>);await screen.findByText('Recepción deshabilitada');expect(screen.getByTestId('map').children.length).toBe(0);
+});

@@ -10,6 +10,7 @@ const fs=require('node:fs');const path=require('node:path');const assert=require
  let status=200,reads=0;
  await page.route('**/steps_tracker/**',async route=>{
   if(route.request().url().includes('/api/fleet/snapshot')){reads++;return route.fulfill({status,contentType:'application/json',body:JSON.stringify(status===200?snapshot:{detail:'QA unavailable'})});}
+  if(route.request().url().includes('/api/configuration'))return route.fulfill({status,contentType:'application/json',body:JSON.stringify({items:(snapshot.installations||[]).map(d=>({id:d.id,imei:'000000000000001',asset_id:d.asset_id,asset_name:d.asset_name,commissioning:d}))})});
   if(route.request().url().endsWith('/context'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({csrf_token:'qa',role:'viewer'})});
   return route.fulfill({status:403,contentType:'application/json',body:'{}'});
  });
@@ -18,19 +19,19 @@ const fs=require('node:fs');const path=require('node:path');const assert=require
  try{
   await page.goto((process.env.GPS_UI_BASE||'http://127.0.0.1:4176')+'/truck/#gps');
   await page.getByRole('heading',{name:'Autos y equipos GPS'}).waitFor();
-  await page.getByRole('heading',{name:snapshot.items[0].name,exact:true}).waitFor();
+  await page.getByRole('heading',{name:snapshot.items[0]?.name||snapshot.installations[0].label,exact:true}).waitFor();
   await page.getByRole('application',{name:'Mapa',exact:true}).waitFor();
-  assert.equal(await page.locator('.mk--machine,.mk--stale').count(),1);
+  assert.equal(await page.locator('.mk--machine,.mk--stale,.mk--test').count(),1);
   assert.equal(await page.evaluate(()=>window.gpsPhoneCalls),0);assert.deepEqual(mutations,[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   if(output)await page.screenshot({path:path.join(output,'hardware-map.png'),fullPage:true});
-  const oldReads=reads;snapshot={...snapshot,items:snapshot.items.map(a=>({...a,last_position:{...a.last_position,lat:-35.555555}}))};
+  const oldReads=reads;snapshot={...snapshot,items:snapshot.items.map(a=>({...a,last_position:{...a.last_position,lat:-35.555555}})),installations:(snapshot.installations||[]).map(d=>({...d,lat:-35.555555}))};
   await page.getByText('-35.555555,', {exact:false}).waitFor({timeout:15000});assert.ok(reads>oldReads,'Automatic polling');
   status=503;await page.getByRole('button',{name:'Actualizar',exact:true}).click();await page.getByRole('alert').waitFor();
   assert.equal(await page.locator('.mk--stale').count(),1);
   status=403;await page.getByRole('button',{name:'Actualizar',exact:true}).click();await page.getByRole('link',{name:'Entrar con Odoo'}).waitFor();
   assert.equal(await page.getByRole('application',{name:'Mapa',exact:true}).count(),0);
-  status=200;snapshot={...snapshot,tenant:'Otra compañía autorizada',tenant_id:'other',items:[],total:0};
+  status=200;snapshot={...snapshot,tenant:'Otra compañía autorizada',tenant_id:'other',role:'viewer',items:[],total:0,installations:[]};
   await page.getByRole('button',{name:'Actualizar',exact:true}).click();await page.getByText(/Todavía no hay vehículos registrados/).waitFor();
   assert.equal(await page.getByRole('heading',{name:'Auto Coban de prueba'}).count(),0);
   assert.deepEqual(mutations,[]);assert.deepEqual(errors,[]);

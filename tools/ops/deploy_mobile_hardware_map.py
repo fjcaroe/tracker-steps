@@ -71,13 +71,15 @@ def main():
    print('MOBILE_HARDWARE_LIVE_OK source_exact=True api_unchanged=True receiver_unchanged=True');return
   if a.action=='production':assert json.loads((stage/'development.json').read_text())['commit']==commit
   snippet=SNIPPETS[a.action];assert digest(snippet)==proof['snippets'][a.action],'Concurrent nginx change'
-  content=snippet.read_text();assert content.count('/var/www/steps-truck-frontend/')==2,'Review a changed mobile alias explicitly'
+  content=snippet.read_text();old_roots=set(re.findall(r'/var/www/(?:steps-truck-frontend|steps-mobile-releases/[a-f0-9]{40})/',content))
+  assert len(old_roots)==1,'Review a changed mobile alias explicitly'
+  old_root=next(iter(old_roots));assert content.count(old_root)==2
   backup=stage/'private'/('backup-'+a.action+'-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'));backup.mkdir(mode=0o700);shutil.copy2(snippet,backup/snippet.name)
   untouched={str(root):files(root) for root in [Path('/var/www/steps-truck-frontend'),Path('/var/www/web_tracker_portal'),Path('/var/www/web_tracker')]}
   target=Path('/var/www/steps-mobile-releases')/commit
   if target.exists():assert files(target)==assets
   else:shutil.copytree(source/'mobile/dist',target)
-  snippet.write_text(content.replace('/var/www/steps-truck-frontend/',str(target)+'/'))
+  snippet.write_text(content.replace(old_root,str(target)+'/'))
   try:
    run('nginx','-t');run('systemctl','reload','nginx');verify(source,HOSTS[a.action])
    assert expected==python_tree(API/'app') and receiver_hash==python_tree(receiver/'receivers')

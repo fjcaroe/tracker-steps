@@ -62,3 +62,5 @@ html[data-gloves=on] .tabbar button{min-height:72px}
 .passenger-service h4, .passenger-service > p { margin: 0; }
 
 .mk--stale{background:#697a75}.hardware-fleet h1{font-size:1.6rem}.hardware-fleet .card{overflow-wrap:anywhere}
+
+.mk--test{background:#c87512}.gps-installation{border-top:2px solid #c87512;padding-top:16px}.gps-installation .card{border-left:4px solid #c87512}

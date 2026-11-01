@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { LatLon, Waypoint } from '../lib/nav';
 
-export type MapMarker = LatLon & { label?: string; kind: 'machine' | 'stale' | 'incident' | 'sos' | 'stop' };
+export type MapMarker = LatLon & { label?: string; kind: 'machine' | 'test' | 'stale' | 'incident' | 'sos' | 'stop' };
 export type MapField = { name: string; polygon: LatLon[] };
 
 type Props = {
