@@ -73,9 +73,9 @@ def configure_frontend(source,commit,scope,backup):
     previous=snippet.read_text() if snippet.exists() else None
     if previous is not None:
         roots=set(re.findall(r'/var/www/steps-tracker-releases/[a-f0-9]{40}',previous))
-        assert len(roots)==1 and previous==common.replace('/var/www/web_tracker_portal',next(iter(roots))),'Unreviewed private frontend drift'
+        assert len(roots)==1 and re.sub(r'/var/www/steps-mobile-releases/[a-f0-9]{40}/','/var/www/steps-truck-frontend/',previous)==common.replace('/var/www/web_tracker_portal',next(iter(roots))),'Unreviewed private frontend drift'
         (backup/('snippet-'+scope+'.conf')).write_text(previous)
-    snippet.write_text(common.replace('/var/www/web_tracker_portal',str(target)))
+    snippet.write_text(previous.replace(next(iter(roots)),str(target)) if previous is not None else common.replace('/var/www/web_tracker_portal',str(target)))
     site.write_text(original.replace(marker,new_marker))
     host='desarrollo.stepsapp.cl' if scope=='dev' else 'cerroelplomo.stepsapp.cl'
     try:

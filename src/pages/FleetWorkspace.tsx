@@ -3,13 +3,14 @@ import OperationsMap from '../components/OperationsMap';
 import FleetFilters from '../components/FleetFilters';
 import FleetList from '../components/FleetList';
 import FleetTable from '../components/FleetTable';
-import FleetAssetDetail from '../components/FleetAssetDetail';
+import FleetAssetDetail from '../components/FleetAssetInspector';
 import ProtectionPage, { type DemoProtection } from './ProtectionPage';
 import { useFleetSnapshot } from '../hooks/useFleetSnapshot';
 import { DEMO_FIELDS, getDemoVehicles, REGIONS, type DemoVehicle } from '../demo/scenario';
 import { columnLabels, defaultColumns, emptyFilters, filterFleet, fleetRequest, portalRequest, type FleetAsset, type FleetContext, type ViewPreference } from '../services/fleetApi';
 import './OperationsWorkspace.css';
 import './FleetWorkspace.css';
+import './FleetMonitor.css';
 import './TrackerHome.css';
 import FleetHome from './FleetHome';
 import FleetZones from './FleetZones';
@@ -115,7 +116,7 @@ export default function FleetWorkspace() {
   const markerLabels = Object.fromEntries(filtered.map(a => [a.asset_id, a.position_stale ? 'Posición antigua · '+(a.last_position ? new Date(a.last_position.recorded_at).toLocaleString('es-CL') : 'Sin dato') : a.motion_state === 'unknown' ? 'Movimiento desconocido' : `${a.last_position?.speed_kmh?.toFixed(1) ?? '—'} km/h`]));
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><span className="fleet-eyebrow">STEPS TRACKER</span><h1>Tu flota, siempre cerca.</h1>{contextError ? <><p role="alert">{contextError}</p><a href="/web/login?redirect=/web_tracker/">Entrar con Odoo →</a></> : <p role="status">Cargando tu compañía y permisos…</p>}</div></main>;
   const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
-  const detail = <FleetAssetDetail asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
+  const detail = <FleetAssetDetail key={current?.asset_id||'empty'} asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
   if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><ClassicApp onExit={() => navigate('home')} exchange={() => portalRequest<TokenOut>('/steps_tracker/classic-session', context, 'POST')}/></Suspense>;
   return <div className="fleet-app">
     <header className="fleet-header"><a className="fleet-brand" href="#home" aria-label="Steps Tracker Inicio"><b><TrackerIcon name="live" size={25}/></b><span>Steps <strong>Tracker</strong></span></a><div className="fleet-identity"><strong>{context.company}</strong><span>{context.user}</span></div><a className="tracker-odoo-link" href="/odoo">Odoo ↗</a></header>
