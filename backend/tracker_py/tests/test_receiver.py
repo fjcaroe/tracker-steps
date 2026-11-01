@@ -92,3 +92,17 @@ def test_reassociation_requires_new_fix_and_physical_check(setup):
     assert configure(client,'forward',5,verified=True).status_code==422
     observe(client)
     assert configure(client,'forward',5,verified=True).status_code==200
+
+
+def test_extra_receiver_tenant_is_explicit_and_scoped(setup,tmp_path,monkeypatch):
+    client,factory=setup
+    policy=tmp_path/'allowed.json';policy.write_text(json.dumps([{'issuer':'LAB_TAREAS','company_id':1}]))
+    monkeypatch.setenv('TRACKER_COBAN_TENANTS_FILE',str(policy))
+    os.environ['TRACKER_BRIDGE_KEYS']=json.dumps({'CERRO_EL_PLOMO':'qa-only-key','LAB_TAREAS':'qa-only-key'})
+    with factory() as db:
+        db.add_all([Tenant(id='dev1',issuer='LAB_TAREAS',company_id=1,name='Development'),Tenant(id='dev2',issuer='LAB_TAREAS',company_id=2,name='Excluded')]);db.commit()
+    assert client.post('/v1/receiver/poll',headers=auth('ingestor',1,'LAB_TAREAS'),json={'release':'qa'}).status_code==200
+    assert client.post('/v1/receiver/poll',headers=auth('ingestor',2,'LAB_TAREAS'),json={'release':'qa'}).status_code==403
+    assert client.post('/v1/receiver/poll',headers=auth('manager',1,'LAB_TAREAS'),json={'release':'qa'}).status_code==403
+    policy.write_text('invalid')
+    assert client.post('/v1/receiver/poll',headers=auth('ingestor',1,'LAB_TAREAS'),json={'release':'qa'}).status_code==403

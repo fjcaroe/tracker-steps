@@ -1,5 +1,8 @@
 """Private receiver polling and tenant-scoped commissioning over the existing API."""
 from datetime import timedelta
+import json
+import os
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import AwareDatetime, Field
 from sqlalchemy.orm import Session
@@ -11,9 +14,17 @@ from app.routers.fleet import Strict, identity, require, utc, audit, owned
 router=APIRouter(prefix='/v1',tags=['receiver-commissioning'])
 
 
+def receiver_supported(tenant):
+    if tenant.issuer=='CERRO_EL_PLOMO':return True
+    try:
+        extra=json.loads(Path(os.environ.get('TRACKER_COBAN_TENANTS_FILE','/etc/tracker-coban-tenants.json')).read_text())
+        return any(row=={'issuer':tenant.issuer,'company_id':tenant.company_id} for row in extra)
+    except (OSError,ValueError,TypeError):return False
+
+
 def receiver_info(db,ctx):
     tenant=db.get(Tenant,ctx['tenant_id'])
-    supported=tenant.issuer=='CERRO_EL_PLOMO'
+    supported=receiver_supported(tenant)
     return {'supported':supported,'online':bool(supported and tenant.receiver_seen_at and utc(tenant.receiver_seen_at)>now()-timedelta(seconds=30)),
             'last_seen_at':tenant.receiver_seen_at if supported else None,'release':tenant.receiver_release if supported else None,
             'host':'35.222.25.110' if supported else None,'port':5001 if supported else None,'transport':'TCP','protocol':'gps103-ascii'}
@@ -46,7 +57,7 @@ class Poll(Strict):
 def poll(body: Poll,ctx=Depends(identity),db: Session=Depends(get_db)):
     require(ctx,('ingestor',))
     tenant=db.get(Tenant,ctx['tenant_id'])
-    if tenant.issuer!='CERRO_EL_PLOMO':raise HTTPException(403,'Receptor no autorizado para este origen')
+    if not receiver_supported(tenant):raise HTTPException(403,'Receptor no autorizado para este origen')
     tenant.receiver_seen_at=now();tenant.receiver_release=body.release
     rows=db.query(DeviceRegistration).filter_by(tenant_id=tenant.id).with_for_update().all()
     by_imei={db.get(Device,r.device_id).imei:r for r in rows}
@@ -91,7 +102,7 @@ def locked_registration(db,registration_id,ctx):
 @router.post('/configuration/devices/{registration_id}/commissioning')
 def commission(registration_id: str,body: Commissioning,ctx=Depends(identity),db: Session=Depends(get_db)):
     require(ctx,('manager',))
-    if db.get(Tenant,ctx['tenant_id']).issuer!='CERRO_EL_PLOMO':raise HTTPException(403,'La recepción Coban está habilitada para Cerro productivo')
+    if not receiver_supported(db.get(Tenant,ctx['tenant_id'])):raise HTTPException(403,'La recepción Coban no está habilitada para esta compañía')
     row=locked_registration(db,registration_id,ctx)
     if row.version!=body.version:raise HTTPException(409,'La ficha cambió. Actualiza antes de configurar recepción.')
     device=db.query(Device).filter_by(id=row.device_id).with_for_update().one()

@@ -120,8 +120,25 @@ class ReceiverTests(unittest.TestCase):
     def test_map_change_hot_reload_and_wrong_issuer(self):
         self.map.write_text('{}')
         with self.assertRaises(InvalidFrame):self.process()
-        self.route['issuer']='LAB_TAREAS';self.map.write_text(json.dumps({IMEI:self.route}))
+        self.route['issuer']='unrecognized';self.map.write_text(json.dumps({IMEI:self.route}))
         with self.assertRaises(ValueError):mapping(self.map)
+
+    def test_multi_issuer_poll_keeps_equal_company_ids_separate(self):
+        other='000000000000002';second={**self.route,'issuer':'LAB_TAREAS','device_id':'00000000-0000-0000-0000-000000000002'}
+        self.map.write_text(json.dumps({IMEI:self.route,other:second}));self.key.write_text(json.dumps({'issuers':{'CERRO_EL_PLOMO':'first-test-key','LAB_TAREAS':'second-test-key'}}))
+        requests=[]
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(inner):
+                claims=json.loads(base64.urlsafe_b64decode(inner.headers['Authorization'].split('.')[1]+'=='));issuer=claims['iss'];requests.append(issuer)
+                inner.rfile.read(int(inner.headers['Content-Length']));row=self.route if issuer=='CERRO_EL_PLOMO' else second
+                inner.send_response(200);inner.end_headers();inner.wfile.write(json.dumps({'devices':[dict(row,imei=IMEI if issuer=='CERRO_EL_PLOMO' else other)]}).encode())
+            def log_message(self,*args):pass
+        http=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=http.serve_forever,daemon=True);thread.start()
+        try:
+            cfg={'mapping':str(self.map),'key_file':str(self.key),'api':'http://127.0.0.1:'+str(http.server_port),'tenants':[{'issuer':i,'company_id':2} for i in ('CERRO_EL_PLOMO','LAB_TAREAS')]}
+            poll_configuration(self.store,cfg)
+            self.assertEqual(mapping(self.map),{IMEI:self.route,other:second});self.assertEqual(requests,['CERRO_EL_PLOMO','LAB_TAREAS'])
+        finally:http.shutdown();http.server_close();thread.join()
 
     def test_queue_limit_has_no_sos_ack(self):
         self.store.maximum=0

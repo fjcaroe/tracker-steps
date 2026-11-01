@@ -19,7 +19,7 @@ def mapping(path):
     if not isinstance(values,dict):raise ValueError('invalid_mapping')
     for imei,value in values.items():
         if not re.fullmatch(r'\d{15}',imei):raise ValueError('invalid_mapping')
-        if value.get('issuer')!='CERRO_EL_PLOMO' or type(value.get('company_id')) is not int:raise ValueError('wrong_tenant')
+        if value.get('issuer') not in ('CERRO_EL_PLOMO','LAB_TAREAS') or type(value.get('company_id')) is not int:raise ValueError('wrong_tenant')
         if value.get('mode') not in ('capture','forward'):raise ValueError('invalid_mode')
         if value['mode']=='forward' and not re.fullmatch(r'[0-9a-f-]{36}',value.get('device_id','')):raise ValueError('missing_device')
     return values
@@ -93,10 +93,16 @@ def token(issuer,company,key):
     return (message+b'.'+b64(hmac.new(key.encode(),message,hashlib.sha256).digest())).decode()
 
 
+def issuer_keys(config):
+    value=json.loads(Path(config['key_file']).read_text())
+    keys=value.get('issuers') if 'issuers' in value else {value['issuer']:value['key']}
+    if not isinstance(keys,dict) or not keys or set(keys)-{'CERRO_EL_PLOMO','LAB_TAREAS'} or not all(isinstance(k,str) and k for k in keys.values()):raise ValueError('wrong_issuer')
+    return keys
+
+
 def flush(store,config):
     routes=mapping(config['mapping'])
-    key=json.loads(Path(config['key_file']).read_text())
-    if key['issuer']!='CERRO_EL_PLOMO':raise ValueError('wrong_issuer')
+    keys=issuer_keys(config)
     for source,imei,stored,payload,attempts in store.pending():
         route=json.loads(stored);current=routes.get(imei)
         # Never reroute an old point under a new device/company mapping.
@@ -104,10 +110,10 @@ def flush(store,config):
             store.result(source,False,attempts);continue
         try:
             request=Request(config['api']+'/v1/ingest/positions',data=payload.encode(),headers={
-                'Authorization':'Bearer '+token(route['issuer'],route['company_id'],key['key']),'Content-Type':'application/json'})
+                'Authorization':'Bearer '+token(route['issuer'],route['company_id'],keys[route['issuer']]),'Content-Type':'application/json'})
             with urlopen(request,timeout=8) as response:receipt=json.load(response)
             accepted=bool(receipt.get('id'))
-        except (OSError,ValueError):accepted=False
+        except (OSError,ValueError,KeyError):accepted=False
         store.result(source,accepted,attempts)
         store.count('api_delivered' if accepted else 'api_retry')
 
@@ -115,17 +121,17 @@ def flush(store,config):
 def poll_configuration(store,config):
     """Refresh only successfully polled companies; outages keep the durable cache."""
     routes=mapping(config['mapping'])
-    key=json.loads(Path(config['key_file']).read_text())
-    if key['issuer']!='CERRO_EL_PLOMO':raise ValueError('wrong_issuer')
-    for company in config.get('companies',[]):
+    keys=issuer_keys(config)
+    for target in config.get('tenants',[{'issuer':'CERRO_EL_PLOMO','company_id':c} for c in config.get('companies',[])]):
         try:
-            imeis=[imei for imei,route in routes.items() if route['company_id']==company]
-            request=Request(config['api']+'/v1/receiver/poll',data=json.dumps({'release':'coban-commissioning-2','observations':store.observations(imeis)}).encode(),headers={
-                'Authorization':'Bearer '+token(key['issuer'],company,key['key']),'Content-Type':'application/json'})
+            issuer,company=target['issuer'],target['company_id']
+            imeis=[imei for imei,route in routes.items() if route['company_id']==company and route['issuer']==issuer]
+            request=Request(config['api']+'/v1/receiver/poll',data=json.dumps({'release':'coban-personal-split-1','observations':store.observations(imeis)}).encode(),headers={
+                'Authorization':'Bearer '+token(issuer,company,keys[issuer]),'Content-Type':'application/json'})
             with urlopen(request,timeout=8) as response:result=json.load(response)
             replacement={row['imei']:{k:row[k] for k in ('issuer','company_id','device_id','mode')} for row in result['devices']}
-            if any(row['company_id']!=company or row['issuer']!=key['issuer'] for row in replacement.values()):raise ValueError('wrong_tenant')
-            updated={imei:route for imei,route in routes.items() if route['company_id']!=company}
+            if any(row['company_id']!=company or row['issuer']!=issuer for row in replacement.values()):raise ValueError('wrong_tenant')
+            updated={imei:route for imei,route in routes.items() if route['company_id']!=company or route['issuer']!=issuer}
             if set(updated)&set(replacement):raise ValueError('identity_collision')
             updated.update(replacement)
             temporary=Path(config['mapping']+'.new');temporary.write_text(json.dumps(updated));os.chmod(temporary,0o600)
@@ -140,7 +146,7 @@ async def run(config,store):
         last_poll=0
         while True:
             try:
-                if config.get('companies') and time.monotonic()-last_poll>=5:
+                if (config.get('companies') or config.get('tenants')) and time.monotonic()-last_poll>=5:
                     await asyncio.to_thread(poll_configuration,store,config);last_poll=time.monotonic()
                 await asyncio.to_thread(flush,store,config)
             except (OSError,ValueError):store.count('worker_config_error')
