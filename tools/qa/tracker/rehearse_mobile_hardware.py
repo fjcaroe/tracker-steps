@@ -8,6 +8,7 @@ import sys
 def main():
  assert os.environ['DATABASE_URL'].rsplit('/',1)[-1].startswith('COBAN_QA_')
  from receivers.coban.rehearse import main as receive
+ from app.main import app  # Register the full production model graph before querying ORM relations.
  from app.db.session import SessionLocal
  from app.models.sessions import TrackingSession
  with SessionLocal() as db:before=db.query(TrackingSession).count()
