@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {operationsMetrics,operationsCsv} from '../../../src/services/operationsMetrics.ts';
+const time=Date.parse('2026-11-01T03:00:00Z');
+const point=(i,extra={})=>({id:String(i),recorded_at:new Date(time+i*60000).toISOString(),received_at:new Date(time+i*60000).toISOString(),lat:-33-i*.001,lon:-70,speed_kmh:20,quality:'gps',acc:null,external_power:null,...extra});
+test('real GPS distance is filtered and daily totals agree without claiming an odometer',()=>{const m=operationsMetrics([point(0),point(1),point(2)],time,time+86400000);assert.ok(m.distanceM>200&&m.distanceM<230);assert.equal(m.movingSeconds,120);assert.ok(Math.abs(m.daily.reduce((s,r)=>s+r.km,0)*1000-m.distanceM)<.001);});
+test('does not interpolate long gaps or count their duration as motion',()=>{const m=operationsMetrics([point(0),point(1),point(30)],time,time+86400000);assert.equal(m.movingSeconds,60);assert.ok(m.gapCount>=1);});
+test('bench drift stays stationary, original observations remain',()=>{const points=Array.from({length:10},(_,i)=>point(i,{lat:-33+i*.000001,speed_kmh:0}));const m=operationsMetrics(points,time,time+86400000);assert.equal(m.distanceM,0);assert.equal(m.movingSeconds,0);assert.equal(m.points.length,10);});
+test('uses Chile calendar days across UTC midnight and omits days without samples',()=>{const a=point(0,{recorded_at:'2026-11-01T01:00:00Z'}),b=point(1,{recorded_at:'2026-11-01T04:00:00Z'});const m=operationsMetrics([a,b],Date.parse('2026-10-31T00:00:00Z'),Date.parse('2026-11-02T00:00:00Z'));assert.deepEqual(m.daily.map(r=>r.day),['2026-10-31','2026-11-01']);});
+test('empty data and unavailable speed remain unavailable',()=>{const m=operationsMetrics([],time,time+86400000);assert.equal(m.maxReportedSpeed,null);assert.deepEqual(m.daily,[]);assert.equal(operationsMetrics([point(0,{speed_kmh:null})],time,time+86400000).maxReportedSpeed,null);});
+test('CSV preserves Spanish text and blocks spreadsheet formula injection',()=>{const s=operationsCsv([['Vehículo','=CMD()','+formula','normal','a"b']]);assert.ok(s.includes("'=CMD()"));assert.ok(s.includes("'+formula"));assert.ok(s.includes('a""b'));});

@@ -19,12 +19,11 @@ import FleetSettings from './FleetSettings';
 import FleetAssetEditor, { type AssetDetails } from '../components/FleetAssetEditor';
 import FleetHistory from '../components/FleetHistory';
 import TrackerIcon from '../components/TrackerIcon';
-import type { TokenOut } from '../services/auth';
 import { exportFleet } from '../services/fleetExport';
 import type { Configuration } from '../services/fleetConfiguration';
 import type { FleetFilters as Filters } from '../services/fleetApi';
 
-const ClassicApp = lazy(() => import('../ClassicApp'));
+const FleetOperations = lazy(() => import('./FleetOperations'));
 type View = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
 const initialPreference: ViewPreference = { schema_version: 1, columns: defaultColumns, filters: emptyFilters, sort: 'name' };
 // Enlace profundo ?asset=<id>: lo usan la ficha del vehículo en Odoo y el regreso desde Odoo para conservar la selección.
@@ -99,7 +98,7 @@ export default function FleetWorkspace() {
     else refresh();
     setSelected(id);setEditor(null);setNotice(demo?'Registro actualizado en la demostración.':'Ficha guardada. Puedes asociar su GPS desde Configuración.');setPreference(p=>({...p,filters:emptyFilters}));navigate('fleet');
   };
-  const navigate = (v: View) => { window.location.hash = v; setView(v); window.scrollTo({top:0}); };
+  const navigate = (v: View) => { if(v==='ops')setDemo(false); window.location.hash = v; setView(v); window.scrollTo({top:0}); };
   const save = async () => {
     if (!context) return;
     setSaving(true);
@@ -117,11 +116,11 @@ export default function FleetWorkspace() {
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><span className="fleet-eyebrow">STEPS TRACKER</span><h1>Tu flota, siempre cerca.</h1>{contextError ? <><p role="alert">{contextError}</p><a href="/web/login?redirect=/web_tracker/">Entrar con Odoo →</a></> : <p role="status">Cargando tu compañía y permisos…</p>}</div></main>;
   const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
   const detail = <FleetAssetDetail key={current?.asset_id||'empty'} asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
-  if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><ClassicApp onExit={() => navigate('home')} exchange={() => portalRequest<TokenOut>('/steps_tracker/classic-session', context, 'POST')}/></Suspense>;
+  if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><FleetOperations key={context.tenant_key} context={context} assets={assets} selected={selected} onSelect={setSelected} onExit={() => navigate('home')} onMap={() => navigate('live')} onConfigure={() => navigate('settings')}/></Suspense>;
   return <div className="fleet-app">
     <header className="fleet-header"><a className="fleet-brand" href="#home" aria-label="Steps Tracker Inicio"><b><TrackerIcon name="live" size={25}/></b><span>Steps <strong>Tracker</strong></span></a><div className="fleet-identity"><strong>{context.company}</strong><span>{context.user}</span></div><a className="tracker-odoo-link" href="/odoo">Odoo ↗</a></header>
     <nav className="fleet-nav" aria-label="Áreas Tracker">{([['home','Inicio'],['live','Mapa'],['fleet','Flota'],['zones','Zonas'],['protection','Protección'],['ops','Operación'],['settings','Configuración']] as const).map(([key,text]) => <button key={key} aria-current={view === key ? 'page' : undefined} onClick={() => navigate(key)}><TrackerIcon name={key} size={19}/><span>{text}</span></button>)}</nav>
-    <main><div className="fleet-heading"><div><span className="fleet-eyebrow">{demo ? 'ESPACIO DE DEMOSTRACIÓN' : 'GPS · MOVILIDAD · PROTECCIÓN'}</span>{view === 'home' ? <p className="tracker-welcome">Hola, {context.user.split(' ')[0]}. Este es el estado de tu flota.</p> : <h1>{title}</h1>}</div><label className="fleet-demo"><input type="checkbox" checked={demo} onChange={e => {setDemo(e.target.checked);setSelected(null);setSelectedZone('');setNotice('');}}/>Explorar demo</label></div>
+    <main><div className="fleet-heading"><div><span className="fleet-eyebrow">{demo ? 'ESPACIO DE DEMOSTRACIÓN' : 'GPS · MOVILIDAD · PROTECCIÓN'}</span>{view === 'home' ? <p className="tracker-welcome">Hola, {context.user.split(' ')[0]}. Este es el estado de tu flota.</p> : <h1>{title}</h1>}</div>{context.tenant_key.startsWith('LAB_TAREAS:')&&<label className="fleet-demo"><input type="checkbox" checked={demo} onChange={e => {setDemo(e.target.checked);setSelected(null);setSelectedZone('');setNotice('');}}/>Explorar demo</label>}</div>
     {demo && <div className="fleet-notice"><strong>Demostración sintética</strong><span>Vehículos y acciones de ejemplo. No modifican tu flota real ni actúan sobre GPS.</span></div>}
     {view === 'live' && zoneStore.error && <p className="fleet-error" role="alert">No se pudieron actualizar las zonas. <button onClick={zoneStore.refresh}>Reintentar</button></p>}
     {notice && <p className="fleet-notice" role="status">{notice}<button aria-label="Cerrar aviso" onClick={() => setNotice('')}>×</button></p>}

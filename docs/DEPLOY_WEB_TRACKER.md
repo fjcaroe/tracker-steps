@@ -377,3 +377,59 @@ Se incluye además una versión GIF animada completa para visores sin soporte MP
 Los resultados y el MP4 quedan en local-artifacts/tracker-video-silent-20261101.
 Solo cambia la herramienta de capacitación; no se publica código de aplicación.
 Referencia de formatos: https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Video_codecs.
+
+## Operaciones productivas con GPS real y registros nativos — 01-11-2026
+
+La entrada #ops del portal utiliza FleetOperations y la misma identidad,
+compañía, selección de vehículo y posiciones Coban que Flota. Ya no abre
+ClassicApp, su laboratorio predeterminado ni sus catálogos/sesiones agrícolas
+separados. La demostración de Flota solo se ofrece en LAB_TAREAS; Cerro no
+ofrece el selector de datasets. Las rutas independientes anteriores se conservan
+para sus consumidores, sin borrar históricos ni convertir maestros por nombre.
+
+Resumen, recorrido, registros, costos y analítica tienen funciones comprobables.
+Las posiciones se consultan con la identidad del portal, desde una fecha,
+con cursor de 500 y límite de 10.000 por carga. Los períodos son 24 horas,
+7 y 30 días; una carga parcial se anuncia y puede ampliarse. Al cambiar de
+activo/período o perder acceso se descartan resultados anteriores. El CSV
+incluye fuente, período y aviso de parcialidad; escapa fórmulas de hojas de cálculo.
+
+Distancia y desplazamiento se calculan con las muestras filtradas del mismo
+explorador de recorridos: no se unen huecos ni saltos ni se suman fluctuaciones
+estacionarias como viajes. Las barras diarias usan el calendario de Chile.
+El tiempo entre muestras con movimiento no se denomina horas de motor, y la
+distancia GPS no se presenta como lectura física del tablero. No se fabrican
+combustible, hectáreas, productividad ni días sin información.
+
+Vehículo y lecturas usa exclusivamente los modelos nativos existentes
+step.tracker.asset.link, fleet.vehicle y fleet.vehicle.odometer mediante la
+sesión Odoo y sus ACL/reglas, con allowed_company_ids explícitos. El vínculo
+se elige y confirma; no se deduce por patente. Guardar una lectura vuelve a
+comprobar compañía/perfil y vínculo, valida coherencia cronológica y duplicados,
+crea el registro nativo y comprueba lo guardado. Conserva la unidad del vehículo.
+Sin lecturas, no presenta el cero predeterminado de la ficha como dato físico.
+No se crea una tabla paralela ni se cambia un módulo Odoo.
+
+Los accesos a aplicaciones proceden de los menús visibles del usuario y permanecen
+en el mismo origen. Costos reutiliza el informe existente de Gestión y Costos /
+Gastos / Contabilidad y su correspondencia explícita, sin elevar privilegios.
+Su período y base de cálculo se explican por separado de la distancia GPS.
+La navegación conserva el vehículo al volver al mapa y no emite otro token de
+la operación clásica ni exige un segundo inicio de sesión.
+
+Validación: operations-metrics.test.mjs y fleet-trail.test.mjs; navegador con
+respuestas sintéticas locales para todas las pestañas, paginación, vínculo,
+lecturas, incoherencias, duplicados, cambio de compañía, revocación, exportación
+y móvil. real-operations-native.cjs en modo real solo consulta datos existentes.
+operations-odoo-copy.py se ejecuta únicamente en TRACKER_OPS_QA_* neutralizada,
+crea y revierte fixtures sobre los modelos nativos y verifica formularios,
+lecturas, ACL y aislamiento. rehearse_tracker_odoo.py conserva dump/proof y
+elimina la copia transitoria. El frontend requiere además el ensayo de API
+en copia fresca de deploy_tracker_frontend.py. Publicar el mismo dist en
+Desarrollo antes de Cerro, con respaldo y bloqueo; receptor, API, móvil y
+addons efectivos permanecen intactos. QA-Cerro conserva aislamiento y datos.
+
+El alta de un vehículo real conocido se realiza solo con datos privados
+confirmados, un maestro nativo de marca inequívoco, respaldo y prueba de copia,
+usando onboard_known_odoo_vehicle.py. Conserva el activo GPS y sus posiciones;
+no inventa conductor, año, odómetro ni documentos financieros.
