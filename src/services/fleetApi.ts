@@ -17,13 +17,18 @@ export type Incident = { id: string; asset_id: string; type: string; severity: s
 export type Policy = { asset_id: string; armed: boolean; version: number; contacts: string[]; allowed_hours_utc: number[]; zone: null | { lat: number; lon: number; radius_m: number } };
 export type Snapshot = { items: FleetAsset[]; total: number; next_cursor: string | null; counts: Record<string, number> };
 
+export class FleetApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) { super(message); this.name = 'FleetApiError'; this.status = status; }
+}
+
 export async function portalRequest<T>(path: string, context?: FleetContext, method = 'GET', payload?: unknown): Promise<T> {
   const body = method === 'GET' ? undefined : new URLSearchParams({ csrf_token: context?.csrf_token || '', method, payload: JSON.stringify(payload ?? {}) });
   const response = await fetch(path, { method: method === 'GET' ? 'GET' : 'POST', body, credentials: 'same-origin', headers: { Accept: 'application/json' } });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
     let detail = '';
-    try { const data = await response.json(); detail = typeof data.detail === 'string' ? data.detail : ''; } catch { /* login HTML / unavailable gateway */ }
-    throw new Error(detail || (response.status === 403 ? 'Tu usuario no tiene permiso para esta acción.' : 'No se pudo cargar Tracker. Comprueba tu sesión Odoo o vuelve a intentar.'));
+    try { const data = await response.json(); detail = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) ? 'Revisa los datos del formulario y completa los campos obligatorios.' : ''; } catch { /* login HTML / unavailable gateway */ }
+    throw new FleetApiError(detail || (response.status === 403 ? 'Tu usuario no tiene permiso para esta acción.' : response.status === 409 ? 'La información cambió. Actualiza el estado antes de confirmar.' : 'No se pudo completar la acción. Comprueba tu sesión Odoo o vuelve a intentar.'), response.status);
   }
   return response.json() as Promise<T>;
 }

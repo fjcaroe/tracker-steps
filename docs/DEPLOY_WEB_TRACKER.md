@@ -313,3 +313,39 @@ Evidencia privada bajo /opt/steps-validation/tracker-parity-20261031/<commit>/ y
 ~/.codex/local-artifacts/tracker-route-history-20261101/.
 Comprobaciones repetibles: tools/qa/tracker/fleet-trail.test.mjs y
 route-history-native.cjs, con sesiones temporales existentes y cierre posterior.
+
+## Protección guiada y video de capacitación — 01-11-2026
+
+El panel muestra selección de vehículo, estado confirmado, motivo obligatorio
+con opciones rápidas y confirmación del cambio. La bandeja y el expediente
+separan reconocer/cerrar un incidente del armado de sus reglas. Los motivos
+de protección, alta de incidente y seguimiento son independientes; abrir un
+expediente ya no borra el motivo de otra acción. Se conservan los contactos,
+horarios y zona al cambiar el estado. El GPS sigue registrando al desarmar.
+
+Las lecturas de políticas e incidentes se resuelven de forma independiente.
+Un fallo de la bandeja no convierte una política en un estado predeterminado;
+un estado de protección no verificado bloquea su cambio. La confirmación
+comprueba la versión antes de escribir, actualiza la versión devuelta al
+guardar y ante 409 recarga sin repetir automáticamente la orden ni borrar
+el motivo. Los errores y su recuperación se anuncian en el formulario.
+Esto endurece el flujo frente a fallos y concurrencia; no establece la causa
+de un error histórico cuyo texto no se haya conservado.
+
+Pruebas: protection-guide-native.cjs cubre motivo vacío y foco, cancelar,
+armado/desarmado, conflicto, conservación del motivo, SOS abierto mientras se
+desarma, reconocimiento/cierre, lectura fallida, permiso denegado y móvil.
+Sus respuestas sintéticas solo viven en el navegador. El ensayo de integración
+en copia fresca añade armado/desarmado real de la API, versión obsoleta,
+SOS independiente, cierre prematuro rechazado, permisos e historial GPS intacto.
+La aceptación nativa de producción solo lee y cancela la confirmación; no arma
+vehículos reales. No cambian API, receptor, móvil ni módulos Odoo. QA-Cerro
+conserva su aislamiento y sus datos; no recibe configuración GPS productiva.
+
+El mismo script con GPS_GUIDE_VIDEO=1 y GPS_PROTECTION_FIXTURE=1 graba el
+recorrido de capacitación con datos ficticios. render_guide_video.py genera
+MP4, narración española local con SAPI y subtítulos, sin servicios de voz externos.
+Los archivos se guardan fuera del checkout, bajo local-artifacts. No se graban
+sesiones, ubicaciones, números ni identificadores de clientes en el video.
+Referencias: https://www.w3.org/WAI/tutorials/forms/notifications/ y
+https://playwright.dev/docs/videos.
