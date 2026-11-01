@@ -1,5 +1,6 @@
 """Silently record reviewed T141–T146 delivery after complete functional evidence."""
 import argparse
+import base64
 import html
 import hashlib
 import json
@@ -58,7 +59,16 @@ def main():
     domain=[('mail_message_id.model','=','helpdesk.ticket'),('mail_message_id.res_id','=',tid)]
     deliveries={m:set(call(m,'search',[domain])) for m in ('mail.notification','mail.mail')}
     body=DESCRIPTIONS[tid]+' Publicado y verificado en '+', '.join(sorted(environments))+'. Mismo paquete, copias frescas, respaldo y bloqueo compartido. Paridad del módulo entre Cerro y QA-Cerro y aislamiento verificados. Pruebas: '+str(proof['tests'])+'. Commit: '+proof['commit']+'; SHA-256: '+proof['sha256']+'.'
-    message=call('mail.message','create',[{'model':'helpdesk.ticket','res_id':tid,'message_type':'comment','subtype_id':subtype,'author_id':author,'partner_ids':[(6,0,[])],'body':'<p>'+html.escape(body)+'</p>'}])
+    attachments=[]
+    if tid >= 147:
+        acta=(root/'summary.txt').read_bytes()
+        assert proof['commit'].encode() in acta and proof['sha256'].encode() in acta, 'Attach the acta for this exact certified package'
+        attachment=call('ir.attachment','create',[{'name':'Acta T147-T151.txt','res_model':'helpdesk.ticket','res_id':tid,
+            'mimetype':'text/plain','datas':base64.b64encode(acta).decode()}])
+        saved=call('ir.attachment','read',[[attachment]],{'fields':['datas','res_model','res_id']})[0]
+        assert base64.b64decode(saved['datas'])==acta and saved['res_model']=='helpdesk.ticket' and saved['res_id']==tid
+        attachments=[(4,attachment)]
+    message=call('mail.message','create',[{'model':'helpdesk.ticket','res_id':tid,'message_type':'comment','subtype_id':subtype,'author_id':author,'partner_ids':[(6,0,[])],'body':'<p>'+html.escape(body)+'</p>','attachment_ids':attachments}])
     call('helpdesk.ticket','write',[[tid],{'stage_id':4}])
     assert call('helpdesk.ticket','read',[[tid]],{'fields':['stage_id']})[0]['stage_id'][0]==4
     for model,ids in deliveries.items():assert set(call(model,'search',[domain]))==ids
