@@ -588,3 +588,30 @@ una sesión efímera sin escrituras de negocio; GPS_REVIEW_ASSET selecciona el
 activo privado en los ensayos de Operación, recorridos y gastos. Retirar la
 sesión después de la revisión. Los hechos, planes, respaldos, copias y capturas
 se conservan fuera de Git bajo personal-transfer-20261101 y local-artifacts.
+
+Entrega aplicada y verificada: 9e6e8753a4421a03a1d813f49f19a0d630f80cec.
+Prueba exacta, copias neutralizadas, respaldo previo y delivery.json en
+/opt/steps-validation/personal-transfer-20261101/<commit>/. Pasan 24 pruebas de
+receptor, 20 de API y 3 del alcance de transferencia. El proceso qa-apply conserva
+el mismo bloqueo desde la copia fresca hasta la publicación. Acepta contactos
+nuevos y registros agregados de forma acumulativa; rechaza cambios de identidad,
+asociación, configuración/protección, pérdida o alteración de muestras previas.
+La API instalada y el receptor corresponden al paquete certificado. Las vistas
+web y móvil de Desarrollo ya tenían el mismo HTML/paquete que Cerro; se verificó
+su correspondencia sin reemplazar la interfaz ni los datos de capacitación.
+
+Se reutilizó la cuenta existente y su contraseña de Desarrollo, con perfil y
+lecturas confirmadas. La ficha fuente se archivó; el receptor productivo conserva
+las cuatro unidades restantes y la recepción personal apunta a Desarrollo, sin
+cambiar SMS ni dirección física. Permanecen los registros de QA que ya existían.
+La identidad del activo real se comprueba por UUID, incluso si una patente se
+repite en datos de prueba previos; no se vincula por coincidencia de patente.
+
+La revisión posterior con ese usuario pasó Operación, lectura nativa, costos y
+gastos, recorridos Google y reproducción y GPS móvil Google sin geolocalización
+del teléfono ni inicio de jornada. Capturas privadas en local-artifacts/
+personal-tracker-transfer-20261101. Se usa una lectura compartida y acotada del
+bloqueo durante el navegador para evitar reinicios por otras publicaciones.
+Las sesiones efímeras se retiraron con su prueba privada exacta; no se altera
+ninguna sesión del usuario. cleanup_personal_sessions.py evita arrancar otro
+registro ORM únicamente para retirar la sesión. Handoff limpio y publicado.

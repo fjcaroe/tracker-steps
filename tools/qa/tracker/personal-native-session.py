@@ -15,6 +15,7 @@ else:
   assert links.vehicle_id.license_plate==facts['plate'] and links.vehicle_id.odometer==max(r['value'] for r in facts['readings'])
  session=http.root.session_store.new();session.update({'db':env.cr.dbname,'login':user.login,'uid':user.id,'context':dict(user.with_user(user).context_get(),allowed_company_ids=company.ids),'session_token':user._compute_session_token(session.sid)});http.root.session_store.save(session)
  host='desarrollo.stepsapp.cl' if target else 'cerroelplomo.stepsapp.cl';port=8075 if target else 8082
+ proof.write_text(json.dumps({'session_id':session.sid,'company_id':company.id,'host':host}));proof.chmod(0o600)
  client=requests.Session();client.cookies.set('session_id',session.sid);client.cookies.set('cids',str(company.id));client.headers['Host']=host
  base='http://127.0.0.1:'+str(port);ctx=client.get(base+'/steps_tracker/context',timeout=30);assert ctx.status_code==200 and ctx.json()['user_id']==user.id
  config=client.get(base+'/steps_tracker/api/configuration',timeout=30);assert config.status_code==200;items=config.json()['items'];assert len(items)==(1 if target else 4)
