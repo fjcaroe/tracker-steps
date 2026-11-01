@@ -4,7 +4,7 @@ import {afterEach,expect,it,vi} from 'vitest';
 import HardwareFleet from './HardwareFleet';
 import {FleetAccessError,loadHardwareFleet,type HardwareFleet as Fleet} from '../lib/fleet';
 vi.mock('../lib/fleet',async()=>({...await vi.importActual('../lib/fleet'),loadHardwareFleet:vi.fn()}));
-vi.mock('../components/MapView',()=>({default:({markers}: {markers:{kind:string;label:string}[]})=><div data-testid="map">{markers.map((m,i)=><span key={i} data-kind={m.kind}>{m.label}</span>)}</div>}));
+vi.mock('../components/HardwareMap',()=>({default:({markers}: {markers:{kind:string;label:string}[]})=><div data-testid="map">{markers.map((m,i)=><span key={i} data-kind={m.kind}>{m.label}</span>)}</div>}));
 afterEach(()=>{cleanup();vi.resetAllMocks();});
 const current=()=>new Date().toISOString();
 function fixture():Fleet {return {tenant:'Cerro QA',tenant_id:'t1',user_id:'2',total:3,next_cursor:null,generated_at:current(),items:[
