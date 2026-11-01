@@ -216,3 +216,43 @@ nombres de archivo llevan un hash que cambia en cada build):
 - La URL real de la API (`VITE_API_BASE_URL`) es
   `https://stepsapp.cl/tracker-steps`, confirmada leyendo
   `/etc/nginx/sites-available/stepsapp` en el servidor.
+
+
+## Monitor web adaptable — 01-11-2026
+
+El inspector del vehículo ahora usa Resumen, Equipo GPS y Costos, conservando
+historial, protección, edición, conectividad y las consultas de costos existentes.
+Mapa, lista y ficha tienen altura coordinada; cada panel desplaza su propio
+contenido. Las acciones de la ficha quedan siempre visibles. En móvil, mapa
+primero, lista acotada, ficha con pestañas y navegación compacta. Cambiar de
+vehículo reinicia la pestaña para no arrastrar el contexto anterior. Se conserva
+la paleta verde/lima y el mapa Google instalado.
+
+Se aplican los patrones de panel de apoyo y divulgación progresiva:
+https://m3.material.io/foundations/layout/canonical-examples/overview
+https://www.carbondesignsystem.com/building-blocks/core/patterns/disclosures
+
+Paquete certificado e2735b0c276fab6a2280c47ff333c6bcc2ae5440. Compilación TypeScript
+ y Vite; copia fresca de tracker_steps con GPS TCP, identidad Odoo y catálogos
+clásicos. No hay cambios en API, módulos Odoo o receptor. Desarrollo recibe el
+mismo paquete antes de Cerro. El publicador conserva los alias móviles privados;
+no reconstruir su snippet desde la plantilla compartida borrando /truck/.
+
+El servidor agotó espacio al instalar dependencias de compilación. Se retiró
+únicamente la instalación incompleta propia y la copia QA transitoria ya certificada
+de la limpieza anterior, manteniendo dumps y recibos. El build se hizo localmente
+con el código canónico y las variables públicas existentes Maps/API/portal. Se
+transfirió el dist a un checkout limpio del mismo código y se ensayó ese paquete
+exacto en copia y Desarrollo antes de publicar. Los archivos estáticos deben tener
+permisos públicos de lectura; nunca extender esos permisos a archivos .env.
+Una copia privada .env no debe quedar junto al código que importa la API en QA:
+python-dotenv intentaría leerla como postgres. No cambiar credenciales o permisos
+para solucionar ese problema; separar los insumos del build del ensayo de API.
+
+Aceptación repetible: tools/qa/tracker/web-monitor-layout.cjs, con sesión temporal
+privada de un administrador existente. Comprueba selección real, pestañas,
+flechas de teclado, costos, historial, igualdad de alturas y ausencia de desborde
+horizontal a 1440 y 390 px. Bloquea escrituras de negocio durante la revisión.
+Evidencia privada: /opt/steps-validation/tracker-parity-20261031/<commit>/
+(qa.json, development.json, production.json, private/functional.log y respaldos).
+Capturas: ~/.codex/local-artifacts/web-monitor-layout-20261101/.
