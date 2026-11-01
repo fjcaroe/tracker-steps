@@ -51,8 +51,15 @@ class Shipment(models.Model):
         if 'receiver_id' in vals:
             receiver = self.env['res.partner'].browse(vals['receiver_id'])
             receiver.check_access('read')
-            vals.setdefault('notify_id', receiver.step_export_default_notify_id.id)
-            vals.setdefault('consignee_id', receiver.step_export_default_consignee_id.id)
+            # Native validation writes the same receiver again. Keep the user's
+            # explicitly selected contacts in that case and in mixed recordsets.
+            for shipment in self:
+                values = dict(vals)
+                if shipment.receiver_id != receiver:
+                    values.setdefault('notify_id', receiver.step_export_default_notify_id.id)
+                    values.setdefault('consignee_id', receiver.step_export_default_consignee_id.id)
+                super(Shipment, shipment).write(values)
+            return True
         return super().write(vals)
 
     @api.onchange('sales_program_id')
@@ -62,6 +69,7 @@ class Shipment(models.Model):
 
     @api.depends('sales_program_id.partner_id', 'sales_program_id.partner_id.step_export_generic_receiver',
                  'sales_program_id.partner_id.step_export_market_id')
+    @api.depends_context('uid', 'allowed_company_ids')
     def _compute_eligible_receivers(self):
         for shipment in self:
             source = shipment.sales_program_id.partner_id
