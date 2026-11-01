@@ -230,15 +230,92 @@ Si la iteración cambia la API: `backend/tracker_py` se despliega siguiendo `doc
 `karo_consultorias`, ensayo en una copia y `-u step_tracker_portal` con el servicio detenido, como en la
 entrega del 02-10-2026.
 
-Los preproductivos (`desarrollo`, `demo`, `cerroelplomo`) sirven el mismo directorio de la app mediante
-`/etc/nginx/snippets/steps-tracker-portal.conf`; **se actualizan solos al desplegar a producción**, por lo
-que una mejora que requiera cambios de API o de módulo en esos ambientes debe probarse allí antes de
+El despliegue compartido histórico de los sitios (`desarrollo`, `demo`, `cerroelplomo`) usaba el mismo directorio mediante
+`/etc/nginx/snippets/steps-tracker-portal.conf`. Desde la entrega GPS 1.4.0, Desarrollo y Cerro usan alias móviles privados y deben publicarse explícitamente; Demo conserva el directorio compartido. Una mejora que requiera cambios de API o de módulo en esos ambientes debe probarse allí antes de
 publicarse cuando ya haya clientes en ellos.
+
+## Flota GPS Coban independiente — 31-10-2026, Tracker 1.4.0
+
+Solicitud explícita del usuario: ver los autos de Cerro el lunes sin que el
+conductor inicie una jornada. Publicado en Desarrollo y Cerro, desde el mismo
+paquete 73a19bf87c32718e0d9c850dfaf32577e10a2b0b de la rama canónica.
+
+Acceso: https://cerroelplomo.stepsapp.cl/truck/#gps, o botón GPS en Tracker.
+Seleccionar en Odoo la compañía donde se registran los vehículos. También se
+puede abrir desde el botón Ver flota GPS con Odoo de la pantalla de acceso.
+El enlace directo funciona con los permisos actuales de consulta de Tracker;
+no necesita una sesión clásica del Tracker, iniciar una jornada, datos locales
+ni permiso de ubicación del teléfono. La entrada normal a las jornadas conserva
+su acceso previo y el registro de una jornada activa sigue al cambiar de pestaña.
+Esta entrega corresponde a la app web móvil; no genera un APK/IPA nuevo.
+
+La vista consume GET /steps_tracker/api/fleet/snapshot mediante la cookie Odoo
+del mismo origen. El puente existente firma la identidad y valida grupo y compañía.
+No usa el token clásico para autorizar GPS, no expone IMEI/SIM y no acepta una
+compañía elegida libremente por el cliente. Se conserva el modelo de activos,
+dispositivos, asociaciones e historial existente. No hay migración ni cambio de
+API, addons, credenciales o receptor. Un usuario con solo credenciales Tracker
+debe iniciar sesión Odoo para leer esta flota; ese login no amplía sus grupos.
+
+Actualiza cada 10 segundos mientras la pantalla está visible, y al recuperar red
+o volver a la app. Muestra compañía, consulta, hora registrada y recibida, patente,
+coordenadas y velocidad cuando el punto es reciente. Señal antigua se distingue
+con marcador gris y no demuestra movimiento actual. Un vehículo sin posición se
+lista sin inventar coordenadas. La red caída conserva el último resultado con
+aviso; un permiso retirado o sesión expirada elimina las ubicaciones y pide Odoo.
+Al ocultar la app se retira la instantánea hasta una consulta nueva. No se guardan
+ubicaciones en almacenamiento local ni caché del service worker. El mapa compartido
+renderiza el texto de sus tooltips mediante un nodo de texto, sin interpretar HTML.
+La primera página admite hasta 500 vehículos y avisa si hay más en la web.
+
+Validación: 172 pruebas móviles en Windows y Linux; TypeScript y build tracker.
+Navegador 390 px: marcador real de Leaflet, actualización automática, error de red,
+revocación, cambio de compañía, ausencia de inicio de jornadas y cero solicitudes
+al GPS del teléfono. Copia fresca de tracker_steps: socket Coban TCP, captura,
+aprobación, cola durable, deduplicación, ingesta, proyección de flota y aislamiento
+por compañía. El número de jornadas de la copia permanece igual antes/después.
+La respuesta sintética de esa copia se usó en la prueba de navegador del paquete
+servido en Desarrollo. Nunca se colocan esas filas ficticias en producción.
+El primer ensayo detectó falta de registro completo de modelos en el harness;
+se corrigió la importación de app.main y se repitió con otra copia fresca.
+
+Publicación: tools/ops/deploy_mobile_hardware_map.py qa|development|production
+<checkout>. Checkout fresco canónico, commit exacto, npm ci, npm test y build:tracker.
+Bloqueo /run/lock/steps-environments.lock, copia de configuración nginx y directorios
+inmutables bajo /var/www/steps-mobile-releases/<commit>. Las inclusiones privadas de
+Desarrollo y Cerro cambian únicamente sus alias /truck; conservan /web_tracker,
+Demo, el sitio compartido Steps, la API, Teltonika y el receptor Coban. Las futuras
+publicaciones web deben conservar también estos alias móviles privados, sin
+reemplazarlos por el directorio compartido anterior.
+
+Verificación real: sesión temporal de un administrador existente de Cerro, compañía
+correcta, snapshot autenticado, mapa visible, actualización y cero escrituras de
+negocio o llamadas a geolocalización. La sesión de revisión se elimina al terminar.
+Todos los archivos servidos coinciden con el build. Fuentes API y receptor
+permanecen idénticas. El verificador anterior de GPS y de la web completa también
+pasó después de publicar la app móvil.
+
+Entrada JS index-DLvUA7rS.js, SHA-256
+75e517539614fbc7bc13bc770dfdd4a98ebb83134aca304728e3b9dd434cc1b8.
+Evidencia privada /opt/steps-validation/mobile-hardware-map-20261031/
+73a19bf87c32718e0d9c850dfaf32577e10a2b0b/ (qa.json, development.json,
+production.json, private/functional.log, dump y qa-data/snapshot.json).
+Respaldo de nginx Cerro: private/backup-production-20261101T023520Z.
+Evidencia local ~/.codex/local-artifacts/mobile-hardware-map-20261031/.
+Verificación repetible: acción verify del mismo publicador; pruebas de navegador
+mobile-hardware-ui.cjs (copia) y mobile-hardware-native.cjs (sesión privada real).
+
+Estado al entregar: aplicación publicada y receptor disponible; inventario real
+de Cerro todavía vacío, sin vehículos ficticios. Faltan los cuatro IMEI, asociación
+a sus vehículos y validación de la trama de cada unidad física antes de activar
+seguimiento. Al transmitir una unidad aprobada, el móvil usa la misma posición de
+la web sin depender de una jornada del conductor.
 
 ## Bitácora
 
 | Fecha | Iteración | Commit | JS servido | Notas |
 |---|---|---|---|---|
+| 31-10-2026 | Flota GPS Coban sin jornada; Tracker 1.4.0, solo Desarrollo y Cerro | `73a19bf87c32718e0d9c850dfaf32577e10a2b0b` | `index-DLvUA7rS.js` | 172 pruebas móviles, copia fresca TCP → flota → mapa y sesión Odoo real. API/receptor/web compartida intactos. Ver sección de flota GPS. |
 | 31-10-2026 | I9: servicios y nómina, consulta Mi servicio en Hoy; Tracker 1.3.0 | `0a0838f90292006c0d1ecb72db4cfe3f82f6f4ac` | `index-BpVsqkbJ.js` | 68 pruebas backend, 165 app, flujo de tres pasajeros y aislamiento en copia PostgreSQL; migración idempotente y datos antiguos conservados. Revisión 375 px. SHA-256 `d1a63335b27ded530f623c5e08f98dee21adf41e49f00300153b9044f5d549f5`. Todos los JS/CSS servidos verificados. Respaldo `movil-consolidado-20261031T212041Z`; API antes de app; fuente efectiva coincide con el commit. Nota silenciosa 9922, ticket abierto para el resto del plan. Contrato hacia Odoo definido, consumidor automático pendiente. |
 | 06-10-2026 | I3 parcial: adaptador nativo de GPS en segundo plano, perfiles de precisión y continuidad entre pestañas; Tracker web `1.2.2` | `1421bd4` | `index-CCX85BHo.js` | 161 pruebas y compilación correctas; esquema PostgreSQL ensayado y contrato API comprobado. SHA-256 servido `dfada1fea6f766cfb69883a37f85d8ff371a5d537df4b512126192035aae92b8`. Respaldo `movil-consolidado-20261006T123553Z`. Build específico del Tracker; el piloto unificado no se publicó. No se compiló APK/IPA ni se probó con pantalla bloqueada en un teléfono real. |
 | 02-10-2026 | Base (web/PWA, jornada, GPS con cola, historial) | `f3355be` | `index-CGTxg_cA.js` | Proyectos Android/iOS generados, sin compilar |
