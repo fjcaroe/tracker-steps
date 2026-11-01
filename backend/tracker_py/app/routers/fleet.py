@@ -15,7 +15,7 @@ from app.core.security import oauth2_scheme, create_access_token, hash_password,
 from app.models.users import User
 from app.schemas.auth import TokenOut
 from app.db.session import get_db
-from app.models.fleet import Tenant, Asset, Device, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
+from app.models.fleet import Tenant, Asset, Device, DeviceRegistration, Assignment, Position, Policy, Incident, Audit, Preference, Command, now
 
 router = APIRouter(prefix='/v1', tags=['fleet-protection'])
 
@@ -434,6 +434,9 @@ def detect(db, ctx, row, policy):
 @router.post('/ingest/positions')
 def ingest(body: PointInput, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('ingestor',))
+    if body.source_id.startswith('gps103:'):
+        registration=db.query(DeviceRegistration).filter_by(tenant_id=ctx['tenant_id'],device_id=body.device_id).one_or_none()
+        if registration is None or registration.receiver_mode!='forward':raise HTTPException(403,'Recepción de seguimiento no habilitada')
     if utc(body.recorded_at) > now()+timedelta(minutes=5):
         raise HTTPException(422, 'Fecha del dispositivo futura')
     assignments = db.query(Assignment).filter_by(device_id=body.device_id, tenant_id=ctx['tenant_id']).filter(

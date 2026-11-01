@@ -9,6 +9,7 @@ from typing import Literal
 from app.db.session import get_db
 from app.models.fleet import Device, DeviceRegistration, Assignment, Asset, Policy, Tenant, now
 from app.routers.fleet import Strict, identity, require, owned, audit, asset_out
+from app.routers.receiver import receiver_info, diagnostic, locked_registration
 
 router = APIRouter(prefix='/v1/configuration', tags=['fleet-configuration'])
 SIM_FIELDS = ('phone', 'operator', 'plan_type', 'apn', 'responsible', 'last_recharged_on',
@@ -57,6 +58,7 @@ def inventory(db, ctx):
                     asset_name=asset.name if asset else None,
                     last_received_at=snapshot['last_position']['received_at'] if snapshot and snapshot['last_position'] else None,
                     signal_state=snapshot['signal_state'] if snapshot else 'no_signal')
+        item['commissioning']=diagnostic(registration)
         items.append(item)
         for field, title in REMINDER_LABELS.items():
             due = getattr(registration, field)
@@ -66,7 +68,7 @@ def inventory(db, ctx):
                                   'asset_name': item['asset_name'], 'due_on': due,
                                   'days_remaining': (due-today).days, 'responsible': registration.responsible})
     reminders.sort(key=lambda r: (r['due_on'], r['id']))
-    return {'items': items, 'reminders': reminders, 'today': today}
+    return {'items': items, 'reminders': reminders, 'today': today,'receiver':receiver_info(db,ctx)}
 
 
 @router.get('')
@@ -101,7 +103,7 @@ def register(body: RegisterDevice, ctx=Depends(identity), db: Session = Depends(
 @router.patch('/devices/{registration_id}')
 def edit(registration_id: str, body: EditDevice, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('manager',))
-    row = owned(db, DeviceRegistration, registration_id, ctx)
+    row = locked_registration(db, registration_id, ctx)
     if row.version != body.version:
         raise HTTPException(409, 'La ficha cambió. Actualiza Configuración antes de editar.')
     if not body.brand.strip() or not body.model.strip():
@@ -113,6 +115,7 @@ def edit(registration_id: str, body: EditDevice, ctx=Depends(identity), db: Sess
     hardware = (body.brand.strip(), body.model.strip(), body.firmware)
     if hardware != (device.brand, device.model, device.firmware):
         device.tracking_approved = False
+        row.receiver_mode = 'disabled'
     device.brand, device.model, device.firmware = hardware
     row.version += 1
     # SIM values remain private; audit records the changed fields, not phone/APN.
@@ -130,7 +133,7 @@ class AssociateDevice(Strict):
 @router.post('/devices/{registration_id}/assignment')
 def associate(registration_id: str, body: AssociateDevice, ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('manager',))
-    registration = owned(db, DeviceRegistration, registration_id, ctx)
+    registration = locked_registration(db, registration_id, ctx)
     if registration.version != body.version:
         raise HTTPException(409, 'La asociación cambió. Actualiza antes de continuar.')
     db.query(Device).filter_by(id=registration.device_id).with_for_update().one()
@@ -152,6 +155,8 @@ def associate(registration_id: str, body: AssociateDevice, ctx=Depends(identity)
         db.flush()
     if asset:
         db.add(Assignment(tenant_id=ctx['tenant_id'], device_id=registration.device_id, asset_id=asset.id, valid_from=boundary))
+    db.get(Device,registration.device_id).tracking_approved=False
+    if registration.receiver_mode=='forward':registration.receiver_mode='capture'
     registration.version += 1
     audit(db, ctx, 'device_assignment_changed', {'registration_id': registration.id,
           'previous_asset_id': current.asset_id if current else None,

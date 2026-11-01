@@ -21,6 +21,8 @@ class Tenant(Base):
     name = Column(String(200), nullable=False)
     timezone = Column(String(80), nullable=False, default='America/Santiago')
     retention_days = Column(Integer, nullable=False, default=365)
+    receiver_seen_at = Column(DateTime(timezone=True))
+    receiver_release = Column(String(80))
     __table_args__ = (UniqueConstraint('issuer', 'company_id'),)
 
 
@@ -92,6 +94,16 @@ class DeviceRegistration(Base):
     reminder_days = Column(Integer, nullable=False, default=7)
     notes = Column(String(1000))
     version = Column(Integer, nullable=False, default=1)
+    receiver_mode = Column(String(16), nullable=False, default='disabled', server_default='disabled')
+    receiver_started_at = Column(DateTime(timezone=True))
+    receiver_seen_at = Column(DateTime(timezone=True))
+    receiver_fix_at = Column(DateTime(timezone=True))
+    receiver_fix_received_at = Column(DateTime(timezone=True))
+    receiver_lat = Column(Float)
+    receiver_lon = Column(Float)
+    receiver_speed = Column(Float)
+    receiver_error = Column(String(40))
+    receiver_pending = Column(Integer, nullable=False, default=0, server_default='0')
     created_at = Column(DateTime(timezone=True), nullable=False, default=now)
 
 
