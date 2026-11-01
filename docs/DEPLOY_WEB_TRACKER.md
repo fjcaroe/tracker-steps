@@ -439,3 +439,29 @@ El alta de un vehículo real conocido se realiza solo con datos privados
 confirmados, un maestro nativo de marca inequívoco, respaldo y prueba de copia,
 usando onboard_known_odoo_vehicle.py. Conserva el activo GPS y sus posiciones;
 no inventa conductor, año, odómetro ni documentos financieros.
+
+Entrega verificada: frontend 9c3aa991dad9cc542cbd5fb746640f1d8a29d9aa, mismo
+dist en Desarrollo y Cerro. Recibos qa.json, development.json, production.json,
+respaldos y ensayo de API en
+/opt/steps-validation/tracker-parity-20261031/<commit>/. El ensayo incluye
+OPERATIONS_COPY_QA_OK: conserva activo e historial e importa idempotentemente.
+Los 17 casos de métricas/recorridos pasan. Navegador sobre Desarrollo comprueba
+formularios, errores, revocación, exportación, sincronización y vista móvil con
+fixtures locales. La revisión de Cerro consulta sin escrituras de negocio las
+cinco pestañas, la ficha nativa ya vinculada y la respuesta financiera nativa;
+capturas desktop/mobile y formularios fuera del checkout. Sesiones retiradas.
+
+La prueba fresca nativa de Odoo conserva prueba y log en
+/opt/steps-validation/tracker-native-operations-20261101/qa.json; comprueba
+lecturas guardadas, formularios, permisos e aislamiento y revierte fixtures.
+El vehículo real del piloto quedó vinculado al activo existente con respaldo,
+sin lectura física inventada. Los costos por km/h del informe financiero aún
+requieren su propia base de sesiones/horómetro y documentos; las métricas GPS
+del nuevo panel no rellenan esa base ni crean asientos.
+
+No se modificaron addons. verify_cerro_release_pair.py comprobó en Cerro y
+QA-Cerro las versiones y hashes efectivos de step_tracker_portal (18.0.1.3.0)
+y step_management_costs_tracker (18.0.1.1.1); prueba release-pair.json junto al
+ensayo nativo. QA-Cerro no sirve el frontend Web Tracker en su nginx: conserva
+su capacitación, aplicaciones instaladas y aislamiento, sin habilitar acceso
+a receptores o datos GPS productivos para replicar esta interfaz.
