@@ -1,0 +1,44 @@
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {GoogleMap,MarkerF,PolylineF,useJsApiLoader} from '@react-google-maps/api';
+import {MAPS_LIBRARIES,MAPS_LOADER_ID} from '../mapsConfig';
+import {meters,routeAnchors,type TrailPoint,type Stop} from '../services/fleetTrail';
+type XY={lat:number;lng:number};
+type RouteAPI={Route:{computeRoutes:(r:{origin:XY;destination:XY;intermediates:XY[];travelMode:string;fields:string[]})=>Promise<{routes?:{path?:XY[]}[]}>}};
+const xy=(p:{lat:number;lon:number}):XY=>({lat:p.lat,lng:p.lon});
+const center={lat:-33.45,lng:-70.65};
+export default function FleetTrailMap({points,segments,stops,cursor}:{points:TrailPoint[];segments:TrailPoint[][];stops:Stop[];cursor:TrailPoint|undefined}){
+ const {isLoaded,loadError}=useJsApiLoader({id:MAPS_LOADER_ID,libraries:MAPS_LIBRARIES,googleMapsApiKey:import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string});
+ const [map,setMap]=useState<google.maps.Map|null>(null),[satellite,setSatellite]=useState(false),[part,setPart]=useState(0),[estimate,setEstimate]=useState<XY[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const generation=useRef(0);
+ const routes=useMemo(()=>segments.filter(s=>s.length>1),[segments]);
+ const fit=useCallback(()=>{if(!map||!points.length)return;const bounds=new google.maps.LatLngBounds();points.forEach(p=>bounds.extend(xy(p)));map.fitBounds(bounds,55);if(points.length===1)map.setZoom(16);},[map,points]);
+ useEffect(()=>{fit();},[fit]);
+ useEffect(()=>{setEstimate([]);setError('');setPart(0);},[points]);
+ useEffect(()=>{setEstimate([]);setError('');setBusy(false);},[part]);
+ // Discard responses from a previous period/segment, even if the provider cannot abort.
+ useEffect(()=>{return()=>{generation.current++;};},[points,part]);
+ const approximate=async()=>{
+  const anchors=routeAnchors(routes[part]||[]);if(anchors.length<2)return;
+  const token=++generation.current;setBusy(true);setError('');
+  try{
+   const {Route}=await google.maps.importLibrary('routes') as unknown as RouteAPI;
+   const result=await Route.computeRoutes({origin:xy(anchors[0]),destination:xy(anchors[anchors.length-1]),intermediates:anchors.slice(1,-1).map(xy),travelMode:'DRIVING',fields:['path']});
+   if(token!==generation.current)return;
+   const path=result.routes?.[0]?.path;
+   if(!path||path.length<2)throw new Error('No se encontró una aproximación por calles para este tramo.');
+   let raw=0,road=0;const original=routes[part];for(let i=1;i<original.length;i++)raw+=meters(original[i-1],original[i]);for(let i=1;i<path.length;i++)road+=meters({lat:path[i-1].lat,lon:path[i-1].lng},{lat:path[i].lat,lon:path[i].lng});
+   if(road>raw*3+500)throw new Error('La ruta sugerida se aleja demasiado de la traza. Se conserva el recorrido GPS.');
+   setEstimate(path);
+  }catch(e){if(token===generation.current)setError((e as Error).message.includes('traza')||(e as Error).message.includes('aproximación')?(e as Error).message:'No fue posible consultar la aproximación de Google. La traza GPS sigue disponible.');}
+  finally{if(token===generation.current)setBusy(false);}
+ };
+ return <div className="trail-map-panel"><div className="trail-map-tools"><button onClick={fit} disabled={!map}>Centrar recorrido</button><button onClick={()=>setSatellite(v=>!v)} aria-pressed={satellite}>{satellite?'Ver calles':'Satélite'}</button>{routes.length>1&&<label>Tramo<select aria-label="Tramo para aproximar" value={part} onChange={e=>setPart(Number(e.target.value))}>{routes.map((_,i)=><option key={i} value={i}>Tramo {i+1}</option>)}</select></label>}<button disabled={!isLoaded||busy||!routes.length} onClick={()=>void approximate()}>{busy?'Calculando…':'Aproximar por calles'}</button>{estimate.length>0&&<button onClick={()=>setEstimate([])}>Quitar aproximación</button>}</div>
+ {error&&<p className="trail-map-notice" role="alert">{error}</p>}
+ <div className="trail-map-canvas">{loadError?<p role="alert">Google Maps no pudo cargar. Revisa tu conexión.</p>:!isLoaded?<p role="status">Cargando mapa del recorrido…</p>:<GoogleMap mapContainerStyle={{height:'100%',width:'100%'}} center={center} zoom={12} onLoad={setMap} options={{mapTypeId:satellite?'hybrid':'roadmap',mapTypeControl:false,streetViewControl:false,fullscreenControl:true,gestureHandling:'cooperative',clickableIcons:false,maxZoom:18}}>
+ {segments.filter(s=>s.length>1).map((s,i)=><PolylineF key={i} path={s.map(xy)} options={{strokeColor:'#17634c',strokeWeight:5,strokeOpacity:.85}}/>)}
+ {estimate.length>1&&<PolylineF path={estimate} options={{strokeColor:'#2563eb',strokeWeight:5,strokeOpacity:.8,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'15px'}]}}/>}
+ {points[0]&&<MarkerF position={xy(points[0])} label="A" title="Inicio de los datos del período"/>}{points.length>1&&<MarkerF position={xy(points[points.length-1])} label="B" title="Fin de los datos del período"/>}
+ {stops.map((s,i)=><MarkerF key={i} position={xy(s.point)} label="P" title={'Parada probable · '+Math.round(s.minutes)+' min'}/>)}
+ {cursor&&<MarkerF position={xy(cursor)} title="Posición en la reproducción" icon={{path:google.maps.SymbolPath.CIRCLE,fillColor:'#d8ff62',fillOpacity:1,strokeColor:'#123c33',strokeWeight:3,scale:9}}/>}
+ </GoogleMap>}</div><p className="trail-map-legend"><span>● Traza GPS · desplazamientos medidos</span><span> A Inicio · B Fin · P Parada probable</span>{estimate.length>0&&<strong>Azul: estimación por calles, no recorrido comprobado.</strong>}</p></div>;
+}
