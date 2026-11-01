@@ -10,10 +10,10 @@ import subprocess
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('ticket',type=int,choices=(142,143,144,145,146));p.add_argument('output',type=Path)
+    p.add_argument('ticket',type=int,choices=(142,143,144,145,146,147,148,149,150,151));p.add_argument('output',type=Path)
     p.add_argument('--target',action='append',required=True,help='environment:run_id:/tmp/live.log')
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True,mode=0o700)
-    module={142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company',145:'step_export_branch_consolidation',146:'step_bpa_master_import'}[a.ticket]
+    module={142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company',145:'step_export_branch_consolidation',146:'step_bpa_master_import',147:'step_packing_holding',148:'step_producer_holding',149:'step_packing_holding',150:'step_export_receiver_profile',151:'step_packing_overweight'}[a.ticket]
     required={'development','cerro','qa-cerro'} | ({'sys'} if a.ticket==143 else set())
     seen=set();identities=set();count=0
     for entry in a.target:
@@ -22,7 +22,7 @@ def main():
         seen.add(target);stage=Path('/opt/steps-validation')/('management_'+target+'_'+run_id)
         qa_file=stage/'qa_passed.json';qa=json.loads(qa_file.read_text());test=Path(qa['log'])
         matches=re.findall(r'0 failed, 0 error\(s\) of ([1-9][0-9]*) tests when loading database',test.read_text())
-        assert matches and int(matches[-1])>={142:4,143:5,144:3,145:5,146:5}[a.ticket]
+        assert matches and int(matches[-1])>=(20 if a.ticket>=147 else {142:4,143:5,144:3,145:5,146:5}[a.ticket])
         count+=int(matches[-1]);flow=stage/('verify-'+qa['database']+'.log')
         assert 'MANAGEMENT_REGISTRY_OK' in flow.read_text()
         if a.ticket==143 and target=='sys':
@@ -46,13 +46,16 @@ def main():
         assert all(marker in isolation for marker in ('CUSTOMER_QA_VERIFY_OK','CUSTOMER_QA_EGRESS_BLOCKED','CUSTOMER_QA_SOURCE_DB_DENIED'))
         assert 'STEPS_PRIVATE_REPORT_' not in subprocess.check_output(['/usr/sbin/iptables','-S','OUTPUT'],text=True)
         (a.output/'isolation.log').write_text(isolation)
-        result=subprocess.run(['/usr/bin/python3.10',str(Path(__file__).with_name('verify_cerro_release_pair.py')),
-            '--module',module,'--output',str(a.output/'pair.json')],capture_output=True,text=True,check=True)
+        modules=('step_packing_holding','step_producer_holding','step_export_receiver_profile','step_packing_overweight') if a.ticket>=147 else (module,)
+        command=['/usr/bin/python3.10',str(Path(__file__).with_name('verify_cerro_release_pair.py'))]
+        for name in modules: command+=['--module',name]
+        result=subprocess.run(command+['--output',str(a.output/'pair.json')],capture_output=True,text=True,check=True)
         assert 'CERRO_RELEASE_PAIR_OK' in result.stdout
         (a.output/'pair.log').write_text(result.stdout)
     commit,sha=identities.pop()
+    reviewed={str(ticket):ident for ticket,ident in {147:9930,148:9934,149:9938,150:9942,151:9946}.items()} if a.ticket>=147 else {str(a.ticket):{142:9873,143:9877,144:9881,145:9885,146:9916}[a.ticket]}
     (a.output/'delivery.json').write_text(json.dumps({'ticket':a.ticket,'module':module,'commit':commit,'sha256':sha,
-        'tests':count,'environments':sorted(required),'reviewed_messages':{str(a.ticket):{142:9873,143:9877,144:9881,145:9885,146:9916}[a.ticket]}}))
+        'tests':count,'environments':sorted(required),'reviewed_messages':reviewed}))
     print('TICKET_DELIVERY_COLLECTED ticket='+str(a.ticket)+' tests='+str(count))
 
 
