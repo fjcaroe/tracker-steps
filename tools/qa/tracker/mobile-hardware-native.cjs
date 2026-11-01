@@ -19,9 +19,15 @@ const {chromium}=require('playwright');const fs=require('node:fs');const path=re
    const inventory=await (await configuration).json();
    const bench=inventory.items.filter(d=>d.commissioning?.mode==='capture'||(!d.asset_id&&d.commissioning?.mode==='disabled'));
    benchCount=bench.length;
-   if(benchCount){await page.getByRole('heading',{name:'GPS en prueba ('+benchCount+')',exact:true}).waitFor();for(const d of bench)await page.getByRole('heading',{name:'GPS · ••••'+d.imei.slice(-4),exact:true}).waitFor();}
+   if(benchCount){
+    await page.getByRole('heading',{name:'GPS en prueba ('+benchCount+')',exact:true}).waitFor();for(const d of bench)await page.getByRole('heading',{name:'GPS · ••••'+d.imei.slice(-4),exact:true}).waitFor();
+    const fixes=bench.filter(d=>d.commissioning.mode==='capture'&&d.commissioning.fix_at&&d.commissioning.lat!=null&&d.commissioning.lon!=null).length;
+    if(fixes)await page.waitForFunction(n=>document.querySelectorAll('.mk--test,.mk--stale').length>=n,fixes);
+    assert.equal(await page.getByText(/Todavía no hay vehículos registrados/).count(),0);
+   }
   }
   if(!data.items.length&&!benchCount)await page.getByText(/Todavía no hay vehículos registrados/).waitFor();
+  if(!benchCount&&data.items.some(a=>a.last_position))await page.waitForFunction(()=>document.querySelectorAll('.mk--machine,.mk--stale').length>0);
   await page.getByRole('button',{name:'Actualizar',exact:true}).click();
   assert.equal(await page.evaluate(()=>window.phoneGpsCalls),0);assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);

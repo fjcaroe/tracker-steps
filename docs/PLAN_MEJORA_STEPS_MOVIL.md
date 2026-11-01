@@ -311,10 +311,52 @@ a sus vehículos y validación de la trama de cada unidad física antes de activ
 seguimiento. Al transmitir una unidad aprobada, el móvil usa la misma posición de
 la web sin depender de una jornada del conductor.
 
+## GPS en prueba visible — 01-11-2026, Tracker 1.4.1
+
+La flota solo mostraba activos: un equipo en captura, aún sin vehículo asociado,
+podía recibir coordenadas válidas y dejar el mapa vacío. La consulta de los
+administradores ahora incluye el diagnóstico autorizado de Configuración y
+muestra los equipos en captura como GPS en prueba, con IMEI enmascarado,
+contacto, posición recibida y marcador naranja. Los equipos deshabilitados sin
+asociación se listan sin representar su posición antigua como seguimiento activo.
+Los lectores y operadores conservan únicamente la flota autorizada. No se crean
+vehículos ficticios ni jornadas para representar un equipo de prueba.
+
+La lectura usa la sesión Odoo y confirma nuevamente usuario, compañía y rol antes
+de incorporar los diagnósticos. Un cambio de ámbito descarta el resultado anterior;
+revocar acceso limpia las ubicaciones. No se exponen teléfonos, notas o SIM en el
+modelo de presentación móvil. La configuración fallida avisa sin inventar equipos.
+
+Paquete publicado sin cambios entre Desarrollo y Cerro:
+61e5193c8a98c180ba0cce30771a0c913e7750c4. Se conservan los alias privados,
+la web, las instalaciones compartidas, API y receptor. Validación: 177 pruebas
+móviles en Windows y Linux, TypeScript y build; copia fresca del destino con
+socket Coban, cola durable, ingesta, aislamiento y proyección sin crear jornadas.
+El navegador contra Desarrollo verificó el diagnóstico de esa copia, marcador,
+actualización automática, pérdida de red, revocación y cambio de compañía.
+
+En Cerro se verificó además el primer equipo físico: captura y marcador de prueba
+con coordenadas reales. Tras confirmar el usuario su vehículo existente, se usó
+el flujo de asociación y aprobación del receptor; una posición nueva posterior
+a la asociación apareció en la flota y en el mapa móvil como vehículo con señal
+reciente. La sesión temporal de revisión se eliminó. Esta comprobación corresponde
+a una unidad; no acredita las restantes ni su instalación eléctrica en terreno.
+Los identificadores, capturas y recibos de esa operación son evidencia privada.
+
+Entrada JS index-CqnuoBVy.js, SHA-256
+90828519d712e2cec0b63a062570b15c5710a52ac797b19776fa6c9959d16e6f.
+Evidencia y respaldo: /opt/steps-validation/mobile-hardware-map-20261031/
+61e5193c8a98c180ba0cce30771a0c913e7750c4/ (qa.json, development.json,
+production.json y private/backup-production-20261101T033722Z).
+Revisión de navegador: ~/.codex/local-artifacts/mobile-gps-bench-20261101/.
+El verificador nativo exige también la presencia del marcador correspondiente,
+tanto en captura como después de la asociación y activación.
+
 ## Bitácora
 
 | Fecha | Iteración | Commit | JS servido | Notas |
 |---|---|---|---|---|
+| 01-11-2026 | Diagnóstico GPS en prueba y primera unidad real asociada; Tracker 1.4.1 | `61e5193c8a98c180ba0cce30771a0c913e7750c4` | `index-CqnuoBVy.js` | 177 pruebas, copia TCP y mapa real autenticado antes y después de asociar el vehículo confirmado. Misma publicación privada en Desarrollo y Cerro. |
 | 31-10-2026 | Flota GPS Coban sin jornada; Tracker 1.4.0, solo Desarrollo y Cerro | `73a19bf87c32718e0d9c850dfaf32577e10a2b0b` | `index-DLvUA7rS.js` | 172 pruebas móviles, copia fresca TCP → flota → mapa y sesión Odoo real. API/receptor/web compartida intactos. Ver sección de flota GPS. |
 | 31-10-2026 | I9: servicios y nómina, consulta Mi servicio en Hoy; Tracker 1.3.0 | `0a0838f90292006c0d1ecb72db4cfe3f82f6f4ac` | `index-BpVsqkbJ.js` | 68 pruebas backend, 165 app, flujo de tres pasajeros y aislamiento en copia PostgreSQL; migración idempotente y datos antiguos conservados. Revisión 375 px. SHA-256 `d1a63335b27ded530f623c5e08f98dee21adf41e49f00300153b9044f5d549f5`. Todos los JS/CSS servidos verificados. Respaldo `movil-consolidado-20261031T212041Z`; API antes de app; fuente efectiva coincide con el commit. Nota silenciosa 9922, ticket abierto para el resto del plan. Contrato hacia Odoo definido, consumidor automático pendiente. |
 | 06-10-2026 | I3 parcial: adaptador nativo de GPS en segundo plano, perfiles de precisión y continuidad entre pestañas; Tracker web `1.2.2` | `1421bd4` | `index-CCX85BHo.js` | 161 pruebas y compilación correctas; esquema PostgreSQL ensayado y contrato API comprobado. SHA-256 servido `dfada1fea6f766cfb69883a37f85d8ff371a5d537df4b512126192035aae92b8`. Respaldo `movil-consolidado-20261006T123553Z`. Build específico del Tracker; el piloto unificado no se publicó. No se compiló APK/IPA ni se probó con pantalla bloqueada en un teléfono real. |
