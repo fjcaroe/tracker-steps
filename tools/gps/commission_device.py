@@ -1,7 +1,8 @@
-"""Register one user-supplied Cerro GPS through the existing API, capture only.
+"""Register one user-supplied Cerro GPS through the existing API.
 
 SSH/root operation. Input and receipts are private JSON outside the checkout.
-No vehicle is invented, no tracking approved and no device command dispatched.
+Default is capture only. Association/approval require explicit reviewed flags.
+No vehicle is invented and no device command is dispatched.
 """
 import argparse
 import base64
@@ -18,7 +19,8 @@ from urllib.request import Request,urlopen
 
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('input',type=Path);p.add_argument('--apply',action='store_true');p.add_argument('--receipts',type=Path,required=True);args=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('input',type=Path);p.add_argument('--apply',action='store_true');p.add_argument('--receipts',type=Path,required=True);p.add_argument('--asset-plate');p.add_argument('--approve-reviewed',action='store_true');p.add_argument('--wait-seconds',type=int,default=30);args=p.parse_args()
+ assert 0<=args.wait_seconds<=60 and (not args.approve_reviewed or args.asset_plate)
  assert os.geteuid()==0;os.umask(0o077)
  data=json.loads(args.input.read_text(encoding='utf-8-sig'));assert re.fullmatch(r'\d{15}',data['imei'])
  assert type(data['company_id']) is int and data['company_id']>0
@@ -47,6 +49,32 @@ def main():
    call('configuration/devices/'+existing['id']+'/commissioning',{'mode':'capture','version':existing['version'],'reason':'Equipo y SIM informados por el usuario; diagnóstico previo a instalación física.'})
   after=call('configuration');row=next(d for d in after['items'] if d['imei']==data['imei'])
   assert row['phone']==data['phone'] and row['commissioning']['mode'] in ('capture','forward')
+  if args.asset_plate:
+   normalize=lambda value:(value or '').replace(' ','').replace('-','').upper()
+   fleet=call('fleet/snapshot?limit=500');matches=[a for a in fleet['items'] if normalize(a.get('plate'))==normalize(args.asset_plate)]
+   assert len(matches)==1,'Vehicle plate must match exactly one existing asset in this company'
+   asset=matches[0];assert row['asset_id'] in (None,asset['asset_id']),'GPS is assigned elsewhere; do not reassign silently'
+   old_fix=row['commissioning'].get('fix_received_at');new_assignment=row['asset_id'] is None
+   if new_assignment:
+    call('configuration/devices/'+row['id']+'/assignment',{'asset_id':asset['asset_id'],'version':row['version'],'reason':'Usuario confirmó que esta unidad corresponde al vehículo existente.'})
+    row=next(d for d in call('configuration')['items'] if d['imei']==data['imei'])
+   if args.approve_reviewed and row['commissioning']['mode']!='forward':
+    deadline=time.monotonic()+args.wait_seconds
+    while time.monotonic()<=deadline:
+     row=next(d for d in call('configuration')['items'] if d['imei']==data['imei']);fix=row['commissioning'].get('fix_at');received=row['commissioning'].get('fix_received_at')
+     if fix and received and (not new_assignment or received!=old_fix) and time.time()-datetime.fromisoformat(fix.replace('Z','+00:00')).timestamp()<300:
+      call('configuration/devices/'+row['id']+'/commissioning',{'mode':'forward','version':row['version'],'verified':True,'reason':'Identidad, SMS y posiciones TCP coincidentes; usuario confirmó el vehículo. Prueba GPS válida y reciente.'});break
+     time.sleep(2)
+   after=call('configuration');row=next(d for d in after['items'] if d['imei']==data['imei'])
+   assert row['asset_id']==asset['asset_id']
+   if row['commissioning']['mode']=='forward':
+    deadline=time.monotonic()+args.wait_seconds
+    while time.monotonic()<=deadline:
+     visible=next(a for a in call('fleet/snapshot?limit=500')['items'] if a['asset_id']==asset['asset_id'])
+     if visible['last_position']:break
+     time.sleep(2)
+    (args.receipts/(stamp+'-fleet.json')).write_text(json.dumps(visible,indent=2))
+    print(json.dumps({'fleet_position_visible':bool(visible['last_position'])}))
   (args.receipts/(stamp+'-after.json')).write_text(json.dumps(after,indent=2))
   print(json.dumps({'registered':True,'receiver_mode':row['commissioning']['mode'],'assigned':bool(row['asset_id']),'tracking_approved':row['tracking_approved']}))
 
