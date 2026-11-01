@@ -358,3 +358,22 @@ incluye PROTECTION_COPY_QA_OK. La revisión de Cerro mantuvo la protección
 desarmada, sin escrituras de negocio ni órdenes físicas. Sesiones temporales
 retiradas después de verificar el formulario. El MP4 de capacitación contiene
 once capítulos y dura aproximadamente dos minutos.
+
+### Video sin narración y comprobación de reproducción
+
+La variante solicitada sin voz se graba con GPS_GUIDE_VIDEO=1,
+GPS_PROTECTION_FIXTURE=1 y GPS_GUIDE_CLEAN_VIDEO=1. Usa un área de aplicación
+de 1280×600; render_guide_video.py <artefactos> --silent añade arriba una banda de
+texto hasta 1280×720, fuera de los controles inferiores del reproductor. El texto se quema en cada fotograma con ASS y permanece
+visible también sobre las escenas con diálogos. No hay pistas de audio ni
+dependencia de subtítulos opcionales del reproductor.
+
+El archivo recorta la espera inicial y utiliza H.264 baseline 3.1, avc1,
+yuv420p, 25 fps constantes, sin B frames y faststart. No basta con extraer
+una imagen usando ffmpeg: verify_guide_playback.cjs reproduce y busca cada
+capítulo del MP4 en Edge, comprueba píxeles reales decodificados para detectar
+pantallas negras y conserva capturas. La grabación no modifica datos reales.
+Se incluye además una versión GIF animada completa para visores sin soporte MP4.
+Los resultados y el MP4 quedan en local-artifacts/tracker-video-silent-20261101.
+Solo cambia la herramienta de capacitación; no se publica código de aplicación.
+Referencia de formatos: https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Formats/Video_codecs.
