@@ -34,6 +34,12 @@ def dump(path):
     with path.open('wb') as out: run('sudo','-u','postgres','pg_dump','-Fc','tracker_steps', stdout=out)
     run('pg_restore','--file=/dev/null',path)
 def public_verify(front):
+    # nginx reload acknowledges before the new worker serves the first request.
+    for _ in range(40):
+        with urlopen('https://desarrollo.stepsapp.cl/truck/',timeout=30) as response:
+            if hashlib.sha256(response.read()).hexdigest()==sha(front/'index.html'): break
+        time.sleep(.5)
+    else: raise AssertionError('Development did not begin serving the tested index')
     for name, expected in assets(front).items():
         with urlopen('https://desarrollo.stepsapp.cl/truck/'+name, timeout=30) as response:
             assert hashlib.sha256(response.read()).hexdigest() == expected, name
