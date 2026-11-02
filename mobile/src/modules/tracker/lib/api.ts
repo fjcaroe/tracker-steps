@@ -3,7 +3,7 @@ import { platformFetch } from '../../../platform/http';
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
-export const APP_VERSION = '1.6.1';
+export const APP_VERSION = '1.6.2';
 
 export class ApiError extends Error {
   status: number;
@@ -37,7 +37,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export type User = { id: number; username: string; full_name: string; is_admin: boolean };
 export type CostCenter = { id: number; name: string };
-export type Machine = { id: number; name: string; plate: string | null; cost_center_id: number | null; tank_capacity_liters: number | null; default_labor_id: number | null };
+export type Machine = { id: number; name: string; plate: string | null; cost_center_id: number | null; tank_capacity_liters: number | null; default_labor_id: number | null; fuel_consumption_unit?: 'lph' | 'kmpl' | null };
 export type Labor = { id: number; activity_id: number; name: string };
 export type Driver = { id: number; name: string; is_active: boolean };
 export type Implement = { id: number; name: string; is_active: boolean };

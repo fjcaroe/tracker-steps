@@ -28,6 +28,11 @@ describe('ruta y resumen', () => {
   it('combustible no se informa si el cálculo es negativo', () => {
     expect(summarize([], 0, 1000, { start: 10, end: 30, refill: null }).fuelUsedL).toBeNull();
   });
+  it('no convierte una lectura de estanque desconocida en consumo cero', () => {
+    for (const [start, end] of [[null, null], [null, 20], [20, null]]) {
+      expect(summarize([], 0, 1000, { start, end, refill: null }).fuelUsedL).toBeNull();
+    }
+  });
   it('proyecta dentro del recuadro', () => {
     const xy = projectRoute([pt(0, -35.4, -71.6), pt(1, -35.39, -71.59), pt(2, -35.38, -71.6)], 320, 220);
     for (const [x, y] of xy) { expect(x).toBeGreaterThanOrEqual(0); expect(x).toBeLessThanOrEqual(320); expect(y).toBeGreaterThanOrEqual(0); expect(y).toBeLessThanOrEqual(220); }

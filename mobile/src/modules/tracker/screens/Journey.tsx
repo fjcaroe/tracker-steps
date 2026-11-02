@@ -133,7 +133,7 @@ function ResumeGate({ active, onContinue }: { active: Active; onContinue: () => 
   );
 }
 
-function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; preset: Task | null }) {
+export function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; preset: Task | null }) {
   const [data, setData] = useState<Catalogs | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -145,6 +145,10 @@ function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; pres
     Promise.all([catalogs.machines(), catalogs.labors(), catalogs.drivers(), catalogs.implements(), catalogs.fields(), catalogs.costCenters()])
       .then(([machines, labors, drivers, implementsList, fields, costCenters]) => {
         const fresh = { machines, labors, drivers: drivers.filter((d) => d.is_active), implementsList: implementsList.filter((i) => i.is_active), fields, costCenters };
+        if (!preset && machines.length === 1) {
+          const only = machines[0];
+          setF((p) => ({ ...p, machine: p.machine || String(only.id), labor: p.labor || (only.default_labor_id ? String(only.default_labor_id) : ''), cc: p.cc || (only.cost_center_id ? String(only.cost_center_id) : ''), driver: p.driver || (fresh.drivers.length === 1 ? String(fresh.drivers[0].id) : '') }));
+        }
         try { localStorage.setItem(CATALOG_CACHE, JSON.stringify(fresh)); } catch { /* sin espacio */ }
         setData(fresh);
       })
@@ -161,6 +165,7 @@ function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; pres
   }, [preset, data]);
 
   const machine = data?.machines.find((m) => String(m.id) === f.machine);
+  const distanceBased = machine?.fuel_consumption_unit === 'kmpl';
   const pickMachine = (id: string) => {
     const m = data?.machines.find((x) => String(x.id) === id);
     setF((p) => ({ ...p, machine: id, labor: m?.default_labor_id ? String(m.default_labor_id) : p.labor, cc: m?.cost_center_id ? String(m.cost_center_id) : p.cc, tank: '' }));
@@ -171,10 +176,10 @@ function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; pres
     e.preventDefault();
     if (!data || !machine) return;
     const labor = data.labors.find((l) => String(l.id) === f.labor);
-    const hm = parseNumber(f.hm), tank = parseNumber(f.tank);
-    const problem = !labor ? 'Selecciona la labor.' : !f.cc ? 'Selecciona el centro de costo.' : hm == null || hm < 0 ? 'Indica el horómetro inicial.'
-      : tank == null || tank < 0 ? 'Indica los litros actuales del estanque.' : machine.tank_capacity_liters != null && tank > machine.tank_capacity_liters ? `El estanque admite hasta ${machine.tank_capacity_liters} L.` : '';
-    if (problem || !labor || hm == null || tank == null) { setError(problem); return; }
+    const hm = distanceBased ? null : parseNumber(f.hm), tank = f.tank.trim() ? parseNumber(f.tank) : null;
+    const problem = !labor ? 'Selecciona la labor.' : !f.cc ? 'Selecciona el centro de costo.' : !distanceBased && (hm == null || hm < 0) ? 'Indica el horómetro inicial.'
+      : (!distanceBased && tank == null) || (f.tank.trim() && tank == null) || (tank != null && tank < 0) ? 'Indica los litros actuales del estanque.' : machine.tank_capacity_liters != null && tank != null && tank > machine.tank_capacity_liters ? `El estanque admite hasta ${machine.tank_capacity_liters} L.` : '';
+    if (problem || !labor) { setError(problem); return; }
     setBusy(true); setError('');
     const now = new Date();
     const day = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -186,7 +191,7 @@ function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; pres
       implement_id: f.implement ? Number(f.implement) : null, hourmeter_initial: hm, fuel_tank_start_liters: tank,
     };
     const startBody = { machine_id: machine.id, driver_id: f.driver ? Number(f.driver) : null, cost_center_id: Number(f.cc) };
-    const base = { sessionId, machineId: machine.id, machineName: machine.name, startedAt: now.getTime(), hourmeterStart: hm, tankStart: tank, tankCapacity: machine.tank_capacity_liters, distanceM: 0 };
+    const base = { sessionId, machineId: machine.id, machineName: machine.name, startedAt: now.getTime(), hourmeterStart: hm, tankStart: tank, tankCapacity: machine.tank_capacity_liters, distanceM: 0, distanceBased };
     let woId: number | null = preset ? preset.id : null;
     try {
       if (woId == null) woId = (await sessions.createWorkOrder(woBody)).id;
@@ -221,9 +226,10 @@ function StartForm({ onStarted, preset }: { onStarted: (a: Active) => void; pres
       <Select label="Implemento" value={f.implement} onChange={set('implement')} options={data.implementsList.map((i) => [String(i.id), i.name])} />
       <Select label="Conductor" value={f.driver} onChange={set('driver')} options={data.drivers.map((d) => [String(d.id), d.name])} />
       <div className="grid2">
-        <label>Horómetro inicial<input inputMode="decimal" value={f.hm} onChange={(e) => set('hm')(e.target.value)} placeholder="0,0" required /></label>
-        <label>Litros en el estanque<input inputMode="decimal" value={f.tank} onChange={(e) => set('tank')(e.target.value)} placeholder={machine?.tank_capacity_liters ? `máx. ${machine.tank_capacity_liters}` : '0'} required /></label>
+        {!distanceBased && <label>Horómetro inicial<input inputMode="decimal" value={f.hm} onChange={(e) => set('hm')(e.target.value)} placeholder="0,0" required /></label>}
+        <label>Litros en el estanque{distanceBased ? ' (opcional)' : ''}<input inputMode="decimal" value={f.tank} onChange={(e) => set('tank')(e.target.value)} placeholder={machine?.tank_capacity_liters ? `máx. ${machine.tank_capacity_liters}` : distanceBased ? 'Sin lectura' : '0'} required={!distanceBased} /></label>
       </div>
+      {distanceBased && <p className="muted">Este vehículo trabaja por distancia. No requiere horómetro; el odómetro del tablero se registra en la ficha del vehículo, separado del recorrido GPS.</p>}
       {error && <p className="error" role="alert">{error}</p>}
       <button className="primary big" disabled={busy || !f.machine}>{busy ? 'Iniciando…' : 'Iniciar jornada'}</button>
     </form>
@@ -393,18 +399,18 @@ function Tracking({ active, online, onChange, onSync, onFinished }: { active: Ac
   );
 }
 
-function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flush: () => Promise<void>; onCancel: () => void; onDone: (f: Finished) => void }) {
-  const [hm, setHm] = useState(String(active.hourmeterStart));
-  const [tank, setTank] = useState(String(active.tankStart));
+export function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flush: () => Promise<void>; onCancel: () => void; onDone: (f: Finished) => void }) {
+  const [hm, setHm] = useState(active.hourmeterStart == null ? '' : String(active.hourmeterStart));
+  const [tank, setTank] = useState(active.tankStart == null ? '' : String(active.tankStart));
   const [refill, setRefill] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const hmEnd = parseNumber(hm), tankEnd = parseNumber(tank), ref = refill ? parseNumber(refill) : null;
-    const problem = hmEnd == null || hmEnd < active.hourmeterStart ? 'El horómetro final debe ser mayor o igual al inicial.'
-      : tankEnd == null || tankEnd < 0 ? 'Indica los litros finales del estanque.' : active.tankCapacity != null && tankEnd > active.tankCapacity ? `El estanque admite hasta ${active.tankCapacity} L.`
+    const hmEnd = active.distanceBased ? null : parseNumber(hm), tankEnd = tank.trim() ? parseNumber(tank) : null, ref = refill ? parseNumber(refill) : null;
+    const problem = !active.distanceBased && (hmEnd == null || (active.hourmeterStart != null && hmEnd < active.hourmeterStart)) ? 'El horómetro final debe ser mayor o igual al inicial.'
+      : (!active.distanceBased && tankEnd == null) || (tank.trim() && tankEnd == null) || (tankEnd != null && tankEnd < 0) ? 'Indica los litros finales del estanque.' : active.tankCapacity != null && tankEnd != null && tankEnd > active.tankCapacity ? `El estanque admite hasta ${active.tankCapacity} L.`
       : refill && (ref == null || ref < 0) ? 'Litros recargados inválidos.' : '';
     if (problem) { setError(problem); return; }
     setBusy(true); setError('');
@@ -412,7 +418,7 @@ function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flus
       const body: FinishBody = { hourmeter_final: hmEnd, fuel_refill_liters: ref, fuel_tank_end_liters: tankEnd, ...(active.fromTask ? { mobile_status: 'done', progress_pct: 100 } : {}) };
       const endedAt = new Date().toISOString();
       const points = routeStore.get(active.sessionId);
-      const finished: Finished = { machine: active.machineName, points, summary: summarize(points, active.startedAt, Date.now(), { start: active.tankStart, end: tankEnd as number, refill: ref }) };
+      const finished: Finished = { machine: active.machineName, points, summary: summarize(points, active.startedAt, Date.now(), { start: active.tankStart, end: tankEnd, refill: ref }) };
       const done = () => { routeStore.clear(active.sessionId); try { localStorage.removeItem(`steps_movil_checked_${active.sessionId}`); } catch { /* nada */ } onDone(finished); };
       finishedStore.add(active.sessionId);
       // Guardar ambas operaciones antes de enviarlas: un fallo después del cierre no pierde el parte final.
@@ -429,8 +435,8 @@ function FinishSheet({ active, flush, onCancel, onDone }: { active: Active; flus
     <div className="sheet" role="dialog" aria-modal="true" aria-label="Finalizar jornada">
       <form className="sheet__panel stack" onSubmit={submit}>
         <h2>Cerrar jornada</h2>
-        <label>Horómetro final<input inputMode="decimal" value={hm} onChange={(e) => setHm(e.target.value)} required /></label>
-        <label>Litros en el estanque al terminar<input inputMode="decimal" value={tank} onChange={(e) => setTank(e.target.value)} required /></label>
+        {!active.distanceBased && <label>Horómetro final<input inputMode="decimal" value={hm} onChange={(e) => setHm(e.target.value)} required /></label>}
+        <label>Litros en el estanque al terminar{active.distanceBased ? ' (opcional)' : ''}<input inputMode="decimal" value={tank} onChange={(e) => setTank(e.target.value)} required={!active.distanceBased} /></label>
         <label>Litros recargados (opcional)<input inputMode="decimal" value={refill} onChange={(e) => setRefill(e.target.value)} placeholder="0" /></label>
         {error && <p className="error" role="alert">{error}</p>}
         <button className="primary big" disabled={busy}>{busy ? 'Cerrando…' : 'Confirmar y cerrar'}</button>

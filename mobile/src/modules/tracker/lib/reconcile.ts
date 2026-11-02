@@ -36,8 +36,9 @@ export function buildActive(s: SessionSummary, wo: WorkOrderSummary | null, mach
     machineId: s.machine_id,
     machineName: s.machine_name ?? machine?.name ?? `Máquina ${s.machine_id}`,
     startedAt: new Date(s.started_at).getTime(),
-    hourmeterStart: wo?.hourmeter_initial ?? 0,
-    tankStart: wo?.fuel_tank_start_liters ?? 0,
+    hourmeterStart: wo.hourmeter_initial,
+    tankStart: wo.fuel_tank_start_liters,
+    distanceBased: machine?.fuel_consumption_unit === 'kmpl',
     tankCapacity: machine?.tank_capacity_liters ?? null,
     distanceM: Number(s.total_distance_m ?? 0),
   };

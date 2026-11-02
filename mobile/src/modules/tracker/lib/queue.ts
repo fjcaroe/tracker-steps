@@ -12,7 +12,7 @@ const FINISHED_MAX = 500;
 
 export type Active = {
   sessionId: string; workOrderId: number; machineId: number; machineName: string; startedAt: number;
-  hourmeterStart: number; tankStart: number; tankCapacity: number | null; distanceM: number; fromTask?: boolean;
+  hourmeterStart: number | null; tankStart: number | null; tankCapacity: number | null; distanceM: number; fromTask?: boolean; distanceBased?: boolean;
 };
 
 function read<T>(key: string, fallback: T): T { try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback; } catch { return fallback; } }

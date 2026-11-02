@@ -54,13 +54,13 @@ export function routeDistanceM(points: RoutePoint[]): number {
 
 export type Summary = { durationMs: number; km: number; stops: number; stoppedMs: number; avgKmh: number; maxKmh: number; fuelUsedL: number | null };
 
-export function summarize(points: RoutePoint[], startedAt: number, endedAt: number, tank: { start: number; end: number; refill: number | null }): Summary {
+export function summarize(points: RoutePoint[], startedAt: number, endedAt: number, tank: { start: number | null; end: number | null; refill: number | null }): Summary {
   const km = routeDistanceM(points) / 1000;
   const stops = detectStops(points);
   const stoppedMs = stops.reduce((n, s) => n + (s.end - s.start), 0);
   const moving = Math.max(1, endedAt - startedAt - stoppedMs) / 3600000;
   const maxKmh = points.reduce((m, p) => Math.max(m, (p.speed_mps ?? 0) * 3.6), 0);
-  const fuel = tank.start - tank.end + (tank.refill ?? 0);
+  const fuel = tank.start == null || tank.end == null ? NaN : tank.start - tank.end + (tank.refill ?? 0);
   return { durationMs: endedAt - startedAt, km, stops: stops.length, stoppedMs, avgKmh: km / moving, maxKmh, fuelUsedL: Number.isFinite(fuel) && fuel >= 0 ? fuel : null };
 }
 
