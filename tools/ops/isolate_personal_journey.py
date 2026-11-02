@@ -26,7 +26,12 @@ def insert(db,table,values):
    cur.execute(sql.SQL('INSERT INTO {} ({}) VALUES ({})').format(sql.Identifier(table),sql.SQL(',').join(map(sql.Identifier,row)),sql.SQL(',').join(sql.Placeholder() for _ in row)),list(row.values()))
 def create_schema(name,role,schema):
  run('sudo','-u','postgres','createdb','-O',role,name)
- with schema.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--role',role,'-d',name,stdin=inp)
+ try:
+  run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d',name,'-c','CREATE EXTENSION IF NOT EXISTS btree_gist; CREATE EXTENSION IF NOT EXISTS pgcrypto; CREATE EXTENSION IF NOT EXISTS "uuid-ossp";',stdout=subprocess.DEVNULL)
+  with schema.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--no-comments','--role',role,'-d',name,stdin=inp)
+ except Exception:
+  if name.startswith('PERSONAL_JOURNEY_QA_SPLIT_'):run('sudo','-u','postgres','dropdb','--if-exists',name)
+  raise
  with connect('postgres') as db:
   with db.cursor() as cur:cur.execute(sql.SQL('REVOKE CONNECT ON DATABASE {} FROM PUBLIC').format(sql.Identifier(name)))
 def wait_api(token):
