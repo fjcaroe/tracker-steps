@@ -13,6 +13,8 @@ from psycopg2.extras import RealDictCursor
 from dotenv import dotenv_values
 from sqlalchemy.engine import make_url
 from jose import jwt
+CONNECTION = {}
+def connect(database): return psycopg2.connect(dbname=database, **CONNECTION)
 API=Path('/opt/fernando_odoo18/apis/backend/tracker_py');UNIT=Path('/etc/systemd/system/steps-tracker-dev-api.service');ENV=Path('/etc/steps-tracker-development.env');TARGET='tracker_steps_development'
 def run(*cmd,**kw):return subprocess.run(list(map(str,cmd)),check=True,**kw)
 def rows(db,table,key,value):
@@ -25,7 +27,7 @@ def insert(db,table,values):
 def create_schema(name,role,schema):
  run('sudo','-u','postgres','createdb','-O',role,name)
  with schema.open('rb') as inp:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','--role',role,'-d',name,stdin=inp)
- with psycopg2.connect(dbname='postgres') as db:
+ with connect('postgres') as db:
   with db.cursor() as cur:cur.execute(sql.SQL('REVOKE CONNECT ON DATABASE {} FROM PUBLIC').format(sql.Identifier(name)))
 def wait_api(token):
  for _ in range(50):
@@ -40,9 +42,10 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply']);p.add_argument('source',type=Path);p.add_argument('plan',type=Path);p.add_argument('ids',type=Path);p.add_argument('root',type=Path);a=p.parse_args();assert os.geteuid()==0
  os.umask(0o077);a.root.mkdir(parents=True,exist_ok=True);plan=json.loads(a.plan.read_text());ids=json.loads(a.ids.read_text())
  values=dotenv_values(API/'.env');url=make_url(values['DATABASE_URL']);role=url.username;assert url.database=='tracker_steps' and role
+ CONNECTION.update(user=url.username,password=url.password,host=url.host or '127.0.0.1',port=url.port or 5432)
  with open('/run/lock/steps-environments.lock','a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX)
-  with psycopg2.connect(dbname='tracker_steps') as source:
+  with connect('tracker_steps') as source:
    source.set_session(readonly=True)
    with source.cursor(cursor_factory=RealDictCursor) as cur:
     cur.execute("SELECT id FROM gps_tenants WHERE issuer='LAB_TAREAS' AND company_id=%s",(plan['company_id'],));tenant=cur.fetchone()['id']
@@ -57,7 +60,7 @@ def main():
   with schema.open('wb') as out:run('sudo','-u','postgres','pg_dump','-Fc','--schema-only','tracker_steps',stdout=out)
   target='PERSONAL_JOURNEY_QA_SPLIT_'+stamp if a.action=='qa' else TARGET
   create_schema(target,role,schema)
-  with psycopg2.connect(dbname=target) as db:
+  with connect(target) as db:
    for table,records in data.items():insert(db,table,records)
    insert(db,'user_cost_centers',[dict(user_id=users[0]['id'],cost_center_id=ids['cost_center_id'])])
    with db.cursor() as cur:
@@ -78,7 +81,7 @@ def main():
   run('pg_restore','--file=/dev/null',stage/'tracker_steps.dump')
   run('systemctl','stop','steps-tracker-dev-api')
   try:
-   with psycopg2.connect(dbname='tracker_steps') as source:
+   with connect('tracker_steps') as source:
     with source.cursor() as cur:
      cur.execute('DELETE FROM machines WHERE id=%s AND external_id=%s',(ids['machine_id'],plan['machine_external_id']));assert cur.rowcount==1
      cur.execute('DELETE FROM labors WHERE id=%s AND code=%s',(ids['labor_id'],'CONDUCCION'));assert cur.rowcount==1
