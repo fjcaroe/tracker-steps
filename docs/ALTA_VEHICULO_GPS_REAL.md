@@ -48,3 +48,18 @@ Paquete probado `4c01f9f72dd06c43d7d9bdefb8edea464d0eab0e`. Evidencia privada:
 `/opt/steps-validation/cerro-first-install-20261102/`,
 `/opt/steps-validation/vehicle-installation-native-20261102/` y
 `~/.codex/local-artifacts/cerro-first-install-20261102/`.
+
+Revisión posterior: al confirmar el cliente que ya vio la unidad, se comprobó
+una posición TCP reciente posterior a la asociación, identidad y ubicación de
+la instalación. Se activó `forward` por la API versionada, con respaldo y
+bloqueo, y se comprobó su propagación al receptor. Las observaciones de captura
+no se convierten retrospectivamente en historial: la primera posición de
+seguimiento requiere una transmisión nueva. El verificador admite
+`REQUIRE_APPROVED=1` para comprobar la aprobación en web/móvil y
+`REQUIRE_LIVE=1` para exigir además esa primera posición real. No confundir
+ambas comprobaciones. Evidencia privada de activación:
+`/opt/steps-validation/cerro-first-live-20261102/`.
+
+`installation-native-session.py` permite la revisión con el usuario y compañía
+existentes, comprueba el enlace nativo y genera una sesión efímera; se retira
+con `cleanup_personal_sessions.py`. No cambia contraseñas ni membresías.
