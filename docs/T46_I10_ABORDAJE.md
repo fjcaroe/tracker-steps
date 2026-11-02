@@ -109,3 +109,11 @@ comprueban cinco eventos de un viaje sin red, ausencia, ocupación, persistencia
 al cambiar de sección, filtros, código, coincidencia final y cero geolocalización
 sin permiso. Después se verifica el menú real con la cuenta existente, sin crear
 servicios o pasajeros ficticios en el destino vivo. T46 permanece abierto.
+
+## Entrega verificada — 02-11-2026
+
+Publicado Tracker 1.6.1 solo en Desarrollo, paquete `2abb2e0678cad981ca15ba90d91ec2c37cbe8275`. Nota interna 9952, T46 en curso y sin notificaciones externas. 183 pruebas app en Windows/Linux, 83 API en Windows/Linux; migración repetida y originales conservados en copia fresca. Navegador sobre la app servida con API PostgreSQL privada: cinco eventos offline, confirmación única, filtros, código, cero geolocalización implícita y Perfil con cinco pendientes antes de reconectar. Cuenta real existente: Hoy, Perfil 1.6.1 y mapa de PKFX47, sin eventos de pasajeros. Cero servicios/eventos sintéticos vivos; las copias, tokens y sesiones temporales se retiraron.
+
+API Development y receptor/productiva conservados por hash; Cerro mantiene cuatro GPS y Desarrollo uno. La API dedicada efectiva se conserva en su primera ruta inmutable porque el código posterior de la API es idéntico al paquete; la última publicación modifica solo el frontend. El publicador únicamente reutiliza una API existente con código y unidad exactamente iguales. Una actualización de ese código requiere revisión explícita del mecanismo de reemplazo y otra certificación; nunca se pisa por una publicación de UI.
+
+Evidencia privada remota: `/opt/steps-validation/mobile-boarding-20261102/2abb2e0678cad981ca15ba90d91ec2c37cbe8275/`. Respaldo: `/opt/steps-validation/mobile-boarding-20261102/2abb2e0678cad981ca15ba90d91ec2c37cbe8275/backup-20261102T124221Z`. Evidencia local: `~/.codex/local-artifacts/t46-boarding-20261102/`. El primer intento restauró Desarrollo al recibir el índice anterior durante la recarga de nginx; el verificador espera ahora a los nuevos workers. También se corrigieron timestamps del harness y selectores de revisión antes de repetir el flujo completo. Ninguno de esos ensayos envió filas ficticias al sistema vivo.

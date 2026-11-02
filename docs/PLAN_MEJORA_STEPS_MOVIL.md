@@ -18,9 +18,7 @@ se toma una, se implementa, se prueba, se despliega y se marca aquí.
 3. Pruebas: `cd mobile && npx tsc -b && npx vitest run`; backend `cd backend/tracker_py && python -m pytest -q`.
    La lógica nueva (cola, validaciones, reglas) lleva prueba. Para la interfaz usar `scripts/mock-api.mjs`
    y verificar en ancho 375 px.
-4. **Despliegue directo a producción** (decisión del 02-10-2026: la app se prueba con datos reales y
-   todavía no la usa ningún cliente). Los ambientes preproductivos (Desarrollo, Demo, Cerro El Plomo)
-   reciben las mejoras *después*, como futuras mejoras. Procedimiento al final de este documento.
+4. **Desarrollo primero** (instrucción vigente del usuario, 01-11-2026): probar las nuevas funcionalidades allí antes de llevarlas a Cerro. La API y las interfaces de producción se conservan. No usar Demo como QA ni el publicador compartido histórico para promover mejoras sin autorización. I10 tiene una API de proceso independiente en Desarrollo; conserva la base y los maestros Tracker existentes. Ver `docs/T46_I10_ABORDAJE.md`.
 5. Cambios de backend o de esquema: primero respaldo (`pg_dump -Fc tracker_steps`), migración aditiva
    (nunca borrar columnas ni tablas), y desplegar la API **antes** que la app.
 6. Marcar la iteración (`[x]`), anotar fecha, commit y hash del JS servido, y dejar la nota
@@ -139,11 +137,12 @@ abierta desde otro teléfono; no hay nada de pasajeros.
   definido; el consumidor automático no se instala en esta iteración. Nota interna
   9922. Próxima iteración elegible: I10. I3/I16 conservan requisitos externos.
 
-### I10 · Abordaje y descenso  `[ ]`
+### I10 · Abordaje y descenso  `[x]` 02-11-2026, solo Desarrollo
 - **Qué:** marcar subida/bajada por pasajero (lista con búsqueda, **lector QR/código** y registro manual),
   contador de ocupados vs. capacidad, avisos de capacidad completa, ausentes/no-show, hora y posición del
   evento. Funciona sin señal (cola idempotente).
 - **Aceptación:** servicio completo sin red → al reconectar el manifiesto final coincide con lo marcado.
+- Entregado Tracker 1.6.1 en Desarrollo: preparar la nómina por 24 horas, registrar subida/bajada/ausencia, ocupación real, búsqueda, filtros y QR/código. Cola transaccional por cuenta, recibos idempotentes y revisión explícita de conflictos. Perfil y salida incluyen los pendientes. Ensayo de cinco eventos en copia PostgreSQL y navegador, revisión 390 px/escritorio y cuenta existente con PKFX47; 183 pruebas app y 83 API. API de Desarrollo separada, base compartida y tabla aditiva; Cerro y Steps compartido no reciben esta UI ni cambian su API/receptor. Nota interna 9952. Contrato Odoo v2 definido; consumidor automático, cámara física, APK/IPA y arranque autenticado completamente sin red no se certifican. Próxima iteración: I11.
 
 ### I11 · Paradas y avance del servicio  `[ ]`
 - **Qué:** ruta del servicio con paradas, estado por parada (llegada/salida), estimación de llegada, desvíos y
@@ -199,7 +198,9 @@ abierta desde otro teléfono; no hay nada de pasajeros.
 (pasajeros; I9 requiere confirmar la arquitectura), `I13` y `I14/I15`, y `I16` en paralelo en cuanto se
 disponga de las cuentas de tienda.
 
-## Procedimiento de despliegue a producción (`/truck/`)
+## Procedimiento histórico de despliegue a producción (`/truck/`)
+
+Desde la instrucción vigente de noviembre, requiere autorización específica de promoción. Para I10 y su revisión en Desarrollo usar `tools/ops/deploy_mobile_boarding.py`; no ejecutar este procedimiento para una revisión periódica ni reemplazar las interfaces productivas.
 
 ```bash
 # Local: pruebas, commit e integración de la entrega en codex/steps-movil.
@@ -471,3 +472,7 @@ development.json, production.json y respaldos privados. Capturas locales en
 Auditoría agregada con tools/gps/audit_coban_capabilities.py: 33 posiciones F,
 32 con rumbo, 33 con altura vacía y 33 con ACC; 12 paquetes de otra variante
 requieren especificación. No publica IMEI, coordenadas, contraseñas o tramas.
+
+## I10 verificada en Desarrollo — 02-11-2026
+
+Tracker 1.6.1, paquete `2abb2e0678cad981ca15ba90d91ec2c37cbe8275`. Evidencia privada: `/opt/steps-validation/mobile-boarding-20261102/2abb2e0678cad981ca15ba90d91ec2c37cbe8275/` (qa.json, development.json, postgres.log y respaldo). UI/cuenta existentes: `~/.codex/local-artifacts/t46-boarding-20261102/`. API dedicada en 8012; su código coincide con el mismo paquete probado, sin sustituir la API 8000 o el receptor. Las pruebas temporales y las sesiones de revisión se retiraron; cero servicios/eventos ficticios en el destino vivo. Cerro conserva cuatro registros GPS y Desarrollo uno. T46 sigue abierto para I11 y pendientes externos. La API actual de Desarrollo solo se reutiliza si su código y unidad coinciden exactamente; una modificación futura de esa API requiere revisar y certificar su actualización por separado.
