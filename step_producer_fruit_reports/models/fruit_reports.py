@@ -43,7 +43,7 @@ class FruitReceptionReport(models.Model):
             SELECT l.id,l.id AS tag_line_id,l.picking_id,p.company_id,p.step_fruit_reception_kind AS reception_kind,
                 COALESCE(p.date_done,p.scheduled_date,p.date) AS reception_date,p.state,
                 p.fruit_season_id AS season_id,f.partner_id AS producer_id,p.fruit_fundo_id AS fundo_id,
-                p.fruit_species_id AS species_id,p.fruit_variety_id AS variety_id,
+                p.fruit_species_id AS species_id,l.variety_id AS variety_id,
                 COALESCE(l.stock_lot_id,CASE WHEN lots.lot_count=1 THEN lots.lot_id END) AS lot_id,
                 p.fruit_lot AS lot_reference,
                 (l.stock_lot_id IS NULL AND lots.lot_count>1) AS ambiguous_lot,

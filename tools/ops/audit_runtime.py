@@ -1,4 +1,5 @@
 """Read safe configuration, addon versions and Studio field metadata on odoo-new."""
+import argparse
 import ast
 import configparser
 import hashlib
@@ -12,6 +13,10 @@ def query(database, sql):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--database", action="append")
+    parser.add_argument("--module", action="append")
+    args = parser.parse_args()
     configs = []
     for path in sorted(Path('/etc').glob('*odoo*.conf')):
         try:
@@ -19,6 +24,8 @@ def main():
             cfg.read(path)
             opts = cfg['options']
         except (configparser.Error, KeyError):
+            continue
+        if args.database and opts.get('db_name') not in args.database:
             continue
         row = {'config': str(path), **{k: opts.get(k) for k in ('db_name', 'dbfilter', 'http_port', 'http_interface', 'proxy_mode', 'addons_path', 'data_dir')}}
         database = row['db_name']
@@ -29,6 +36,8 @@ def main():
                 row['base_url'] = query(database, "SELECT value FROM ir_config_parameter WHERE key='web.base.url'")
                 row['base_url_freeze'] = query(database, "SELECT value FROM ir_config_parameter WHERE key='web.base.url.freeze'")
                 paths = [Path(p.strip()) for p in opts['addons_path'].split(',')]
+                if args.module:
+                    row['modules'] = [module for module in row['modules'] if module['name'] in args.module]
                 for module in row['modules']:
                     for directory in paths:
                         manifest = directory / module['name'] / '__manifest__.py'

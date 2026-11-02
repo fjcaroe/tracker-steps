@@ -8,6 +8,9 @@
             <field name="fruit_fundo_id" position="before">
                 <field name="step_fruit_reception_kind" invisible="picking_type_code != 'incoming'"/>
             </field>
+            <xpath expr="//page[@name='step_packing_fruit']//field[@name='fruit_variety_id']" position="attributes">
+                <attribute name="invisible">step_fruit_reception_kind in ('process','packed')</attribute>
+            </xpath>
             <field name="fruit_weighing_type" position="after">
                 <field name="step_fruit_weighing_method" invisible="not step_fruit_reception_kind"/>
                 <field name="step_scale_profile_id" invisible="not step_fruit_reception_kind or step_fruit_weighing_method != 'scale'"
@@ -74,6 +77,10 @@
                 <field name="step_scale_read_raw" column_invisible="True" readonly="1" force_save="1"/>
                 <field name="box_count"/>
             </field>
+            <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='product_id']" position="after">
+                <field name="variety_id" domain="[('especie_id','=?',parent.fruit_species_id)]"
+                       readonly="parent.state in ('done','cancel')" options="{'no_create': True}"/>
+            </xpath>
         </field>
     </record>
 

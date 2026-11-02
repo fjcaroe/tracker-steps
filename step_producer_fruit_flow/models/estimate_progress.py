@@ -37,7 +37,7 @@ class StepExportEstimateLine(models.Model):
             ("product_id", "=", self.product_id.id),
         ]
         if self.variety_id:
-            domain.append(("picking_id.fruit_variety_id", "=", self.variety_id.id))
+            domain.append(('variety_id', '=', self.variety_id.id))
         return domain
 
     @api.depends("estimate_id.fundo_id", "estimate_id.season_id", "estimate_id.company_id",

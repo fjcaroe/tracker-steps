@@ -14,6 +14,15 @@ class ReceiptReportCase(TransactionCase):
     def render(self, picking=None):
         return self.env['ir.actions.report']._render_qweb_html('stock.action_report_delivery',(picking or self.picking).ids)[0].decode()
 
+    def test_receipt_prints_each_row_variety(self):
+        alternate = self.env['step.variedad'].create({'name': 'QA152 variedad alterna', 'especie_id': self.picking.fruit_species_id.id})
+        self.picking.fruit_tag_line_ids[1].variety_id = alternate
+        tree = html.fromstring(self.render())
+        rows = tree.xpath("//table[contains(@class,'step_receipt_pallets')]/tbody/tr")
+        self.assertIn('QA152 variedad alterna', rows[1].text_content())
+        self.assertNotIn('QA152 variedad alterna', rows[0].text_content())
+        self.assertIn(self.picking.fruit_variety_id.name, rows[0].text_content())
+
     def test_reference_values_and_physical_counts(self):
         totals=self.picking._step_receipt_totals()
         self.assertEqual(totals['pallets'],3)

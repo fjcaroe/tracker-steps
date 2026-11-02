@@ -36,6 +36,48 @@ class TestFruitOperations(TransactionCase):
             })],
         })
 
+    def test_two_packed_varieties_and_legacy_migration(self):
+        species = self.env['step.especie'].create({'name': 'QA152 especie', 'type_especie': 'frutal', 'group_especie': 'baya'})
+        varieties = self.env['step.variedad'].create([
+            {'name': 'QA152 A', 'especie_id': species.id},
+            {'name': 'QA152 B', 'especie_id': species.id}])
+        packages = self._package('QA152-E-A') | self._package('QA152-E-B')
+        picking = self.env['stock.picking'].create({
+            'partner_id': self.producer.id, 'picking_type_id': self.warehouse.in_type_id.id,
+            'location_id': self.warehouse.in_type_id.default_location_src_id.id,
+            'location_dest_id': self.warehouse.lot_stock_id.id,
+            'step_fruit_reception_kind': 'packed', 'fruit_fundo_id': self.fundo.id,
+            'fruit_species_id': species.id, 'fruit_variety_id': varieties[0].id,
+            'step_fruit_gross_kg': 100})
+        for package, variety in zip(packages, varieties):
+            self.env['step.packing.picking.tag.line'].create({
+                'picking_id': picking.id, 'tag_number': package.name, 'package_id': package.id,
+                'product_id': self.product.id, 'quantity': 10, 'kilos': 50,
+                'variety_id': variety.id})
+        # Historical headers are copied once, without changing row IDs/weights/dates.
+        self.env.flush_all()
+        row = picking.fruit_tag_line_ids[0]
+        self.cr.execute('UPDATE step_packing_picking_tag_line SET variety_id=NULL WHERE id=%s', [row.id])
+        self.cr.execute('SELECT id,write_date,kilos,quantity FROM step_packing_picking_tag_line WHERE picking_id=%s ORDER BY id', [picking.id])
+        before = self.cr.fetchall()
+        import importlib.util
+        from pathlib import Path
+        path = Path(__file__).resolve().parents[1] / 'migrations/18.0.1.3.0/post-migrate.py'
+        spec = importlib.util.spec_from_file_location('reception_variety_migration', path)
+        migration = importlib.util.module_from_spec(spec); spec.loader.exec_module(migration)
+        migration.migrate(self.cr, '18.0.1.2.4')
+        migration.migrate(self.cr, '18.0.1.2.4')
+        self.env.invalidate_all()
+        self.assertEqual(picking.fruit_tag_line_ids.variety_id, varieties)
+        self.cr.execute('SELECT id,write_date,kilos,quantity FROM step_packing_picking_tag_line WHERE picking_id=%s ORDER BY id', [picking.id])
+        self.assertEqual(self.cr.fetchall(), before)
+        picking.action_prepare_fruit_stock()
+        picking.button_validate()
+        self.assertEqual(picking.state, 'done')
+        for line in picking.fruit_tag_line_ids:
+            self.assertEqual(line.package_id.variedad_id, line.variety_id)
+            self.assertEqual(sum(line.package_id.quant_ids.mapped('quantity')), 10)
+
     def test_package_state_and_producer_detail(self):
         package = self._package()
         package.action_step_validate_tag()

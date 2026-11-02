@@ -62,6 +62,37 @@ class SimpleReceptionCase(TransactionCase):
             self.assertEqual(package.step_tag_line_ids.boxes, row.quantity)
         self.assertFalse(picking.move_ids.stock_valuation_layer_ids)
 
+    def test_row_varieties_follow_native_process_stock(self):
+        a, b = self.env['step.variedad'].create([
+            {'name': 'QA152 A', 'especie_id': self.species.id},
+            {'name': 'QA152 B', 'especie_id': self.species.id}])
+        picking = self.receipt((160, 240))
+        for row, variety in zip(picking.fruit_tag_line_ids, (a, b)):
+            row.variety_id = variety
+        picking.button_validate()
+        self.assert_received(picking)
+        for row in picking.fruit_tag_line_ids:
+            self.assertEqual(row.package_id.variedad_id, row.variety_id)
+        from odoo.exceptions import UserError
+        with self.assertRaises(UserError):
+            picking.fruit_tag_line_ids[0].variety_id = b
+
+    def test_row_variety_defaults_and_species_validation(self):
+        variety = self.env['step.variedad'].create({'name': 'QA152 legacy', 'especie_id': self.species.id})
+        picking = self.receipt()
+        picking.fruit_variety_id = variety
+        row = picking.fruit_tag_line_ids.copy({'tag_number': 'QA152 COPY'})
+        self.assertEqual(row.variety_id, False)  # explicit copied blank remains blank
+        fresh = self.env['step.packing.picking.tag.line'].create({
+            'picking_id': picking.id, 'tag_number': 'QA152 NEW'})
+        self.assertEqual(fresh.variety_id, variety)
+        fresh.variety_id = False
+        self.assertFalse(fresh._reception_variety())
+        other = self.env['step.especie'].create({'name': 'QA152 otra', 'type_especie': 'frutal', 'group_especie': 'fruta_h'})
+        foreign = self.env['step.variedad'].create({'name': 'QA152 otra', 'especie_id': other.id})
+        with self.assertRaises(ValidationError), self.cr.savepoint():
+            fresh.variety_id = foreign
+
     def test_single_tag_validates_400kg_without_package_master(self):
         picking = self.receipt()
         self.assertFalse(picking.fruit_tag_line_ids.package_id)

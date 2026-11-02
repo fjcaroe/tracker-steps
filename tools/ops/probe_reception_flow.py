@@ -2,7 +2,7 @@
 
 Caller must roll back the entire shell transaction after verification.
 """
-def verify_flow(root, scoped):
+def verify_flow(root, scoped, row_varieties=False):
     assert root.cr.dbname.startswith('MANAGEMENT_QA_')
     assert scoped.uid != 1 and not scoped.su
     setup = root['stock.picking'].with_company(scoped.company).env
@@ -12,6 +12,7 @@ def verify_flow(root, scoped):
     fundo = setup['step.fundo'].create({'name': 'QA T120 flujo privado', 'partner_id': producer.id,
                                        'company_id': company.id})
     species = setup['step.especie'].search([], limit=1)
+    varieties = setup['step.variedad'].create([{'name': 'QA152 A', 'especie_id': species.id}, {'name': 'QA152 B', 'especie_id': species.id}]) if row_varieties else None
     kg = setup.ref('uom.product_uom_kgm')
     product = setup['product.product'].create({'name': 'QA T120 flujo kg', 'is_storable': True,
                                               'uom_id': kg.id, 'uom_po_id': kg.id})
@@ -30,7 +31,8 @@ def verify_flow(root, scoped):
     for index, kilos in enumerate((160, 240)):
         setup['step.packing.picking.tag.line'].create({
             'picking_id': picking.id, 'tag_number': 'QA120-FLOW-%s-%s' % (picking.id, index),
-            'quantity': kilos / 8, 'kilos': kilos, 'packaging_id': packaging.id})
+            'quantity': kilos / 8, 'kilos': kilos, 'packaging_id': packaging.id,
+            **({'variety_id': varieties[index].id} if row_varieties else {})})
     # A physical 50-box count survives a correction of measured kilograms.
     assert move.step_fruit_packaging_qty==50
     move.quantity=401
@@ -45,6 +47,12 @@ def verify_flow(root, scoped):
     assert len(operator.fruit_tag_line_ids.package_id) == 2
     assert all(tag.step_tag_state == 'validated' for tag in operator.fruit_tag_line_ids.package_id)
     assert not operator.move_ids.stock_valuation_layer_ids
+    if row_varieties:
+        assert len(operator.fruit_tag_line_ids.variety_id) == 2
+        assert all(row.variety_id == row.package_id.variedad_id for row in operator.fruit_tag_line_ids)
+        reports = scoped['step.fruit.reception.report'].search([('picking_id', '=', operator.id)])
+        assert len(reports) == 2 and set(reports.variety_id.ids) == set(varieties.ids)
+        print('T152_OPERATOR_VARIETIES_FLOW_OK')
     actual = scoped['stock.picking'].search([('name', '=', 'FRU/IN/00008'),
                                             ('step_fruit_reception_kind', '=', 'process')])
     if actual and actual.state == 'assigned' and actual.fruit_tag_line_ids.tag_number == 'C199':

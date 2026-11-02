@@ -62,6 +62,9 @@
       <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='tag_number']" position="after">
         <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='product_id']" position="move"/>
       </xpath>
+      <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='product_id']" position="after">
+        <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='variety_id']" position="move"/>
+      </xpath>
       <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='packaging_id']" position="after">
         <xpath expr="//field[@name='fruit_tag_line_ids']/list/field[@name='uom_id']" position="move"/>
       </xpath>

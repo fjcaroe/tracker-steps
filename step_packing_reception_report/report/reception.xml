@@ -53,7 +53,7 @@
       <tbody>
         <tr t-foreach="o.fruit_tag_line_ids.sorted(lambda l: (l.sequence,l.id))" t-as="line" style="page-break-inside:avoid;">
           <td style="word-wrap:break-word;"><span t-out="line.tag_number or line.package_id.name or ''"/></td>
-          <td><span t-field="o.fruit_species_id"/></td><td><span t-field="o.fruit_variety_id"/></td>
+          <td><span t-field="o.fruit_species_id"/></td><td><span t-out="line._reception_variety().display_name or ''"/></td>
           <td class="text-end"><span t-field="line.quantity" t-options="{'widget':'float','precision':2}"/></td>
           <td class="text-end"><span t-field="line.gross_kg" t-options="{'widget':'float','precision':2}"/></td>
           <td class="text-end"><span t-field="line.tare_kg" t-options="{'widget':'float','precision':2}"/></td>

@@ -1,5 +1,14 @@
 # Operación y publicación de Odoo
 
+T152 autoriza `reception-variety` en Cerro, Desarrollo y QA-Cerro. La instrucción
+expresa del usuario del 02-11-2026 cambia únicamente el orden de publicación:
+primero Cerro producción y luego homologar Desarrollo y QA-Cerro. Antes de Cerro
+se mantiene certificación en copia privada de Desarrollo y compatibilidad en
+copia fresca de Cerro. Mismo paquete, respaldo y bloqueo compartido; migrar
+Variedad del encabezado a cada línea conservando encabezados, tarjas e históricos.
+Esta excepción no modifica el alcance de otros tickets ni autoriza SAG en producción.
+
+
 T147–T151 autorizan `agriculture-holding` en Desarrollo, Cerro y QA-Cerro:
 OP y OT en la sucursal elegida desde la matriz; panel de Productores con
 selección de compañías autorizadas del holding; guías e instructivos de una

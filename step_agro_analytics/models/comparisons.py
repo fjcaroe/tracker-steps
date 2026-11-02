@@ -65,7 +65,7 @@ class Comparisons(models.Model):
                 seen.add(tag.id)
                 done = fields.Datetime.context_timestamp(self, picking.date_done).date() if picking.date_done else False
                 data.append({'source': 'actual', 'date': done, 'season': picking.fruit_season_id,
-                    'species': picking.fruit_species_id, 'variety': picking.fruit_variety_id, 'value': row.kilos})
+                    'species': picking.fruit_species_id, 'variety': row._reception_variety(), 'value': row.kilos})
 
         seasons, species, periods = {}, {}, set()
         for row in data:

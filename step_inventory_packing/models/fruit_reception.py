@@ -1,7 +1,7 @@
 """Datos de pesaje y tarjas en la recepción nativa de Inventario."""
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import ValidationError, UserError
 from odoo.tools.float_utils import float_compare
 
 
@@ -80,6 +80,7 @@ class StockPicking(models.Model):
                 if float_compare(kilos, picking.step_fruit_net_kg, precision_digits=2):
                     raise ValidationError(_("Los kilos de las tarjas no coinciden con el peso neto de la recepción."))
             for line in picking.fruit_tag_line_ids:
+                line._check_reception_variety()
                 if not line.package_id or line.package_id.name != line.tag_number:
                     raise ValidationError(_("Cada línea debe referir un paquete de stock con el mismo número de tarja."))
                 expected = "C" if picking.step_fruit_reception_kind == "process" else "E"
@@ -87,6 +88,10 @@ class StockPicking(models.Model):
                     raise ValidationError(_("El tipo de tarja no coincide con el tipo de recepción."))
                 if line.package_id not in picking.move_line_ids.mapped("result_package_id"):
                     raise ValidationError(_("Asigne cada tarja al paquete resultante en las operaciones de stock."))
+
+    @api.constrains('fruit_species_id', 'company_id', 'fruit_tag_line_ids')
+    def _check_row_varieties(self):
+        self.fruit_tag_line_ids._check_reception_variety()
 
     def button_validate(self):
         self._check_step_fruit_reception()
@@ -110,7 +115,7 @@ class StockPicking(models.Model):
                         "fundo_id": picking.fruit_fundo_id.id,
                         "step_export_season_id": picking.fruit_season_id.id,
                         "especie_id": picking.fruit_species_id.id,
-                        "variedad_id": picking.fruit_variety_id.id,
+                        "variedad_id": line._reception_variety().id,
                         "received_at": fields.Datetime.now(),
                     })
                 if not package.step_tag_line_ids:
@@ -180,6 +185,49 @@ class StockPicking(models.Model):
 
 class StepPackingPickingTagLine(models.Model):
     _inherit = "step.packing.picking.tag.line"
+
+    variety_id = fields.Many2one('step.variedad', string='Variedad', check_company=True, ondelete='restrict', index=True,
+        help='Variedad de esta tarja. Reutiliza el maestro agrícola y se conserva al recibir el stock.')
+
+    def _reception_variety(self):
+        self.ensure_one()
+        return self.variety_id
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        values = []
+        for vals in vals_list:
+            vals = dict(vals)
+            picking = self.env['stock.picking'].browse(vals.get('picking_id'))
+            if picking.step_fruit_reception_kind and 'variety_id' not in vals:
+                package = self.env['stock.quant.package'].browse(vals.get('package_id'))
+                vals['variety_id'] = (picking.fruit_variety_id or package.variedad_id).id
+            values.append(vals)
+        return super().create(values)
+
+    def write(self, vals):
+        if 'variety_id' in vals and any(row.variety_id.id != (vals['variety_id'] or False)
+                and row.picking_id.step_fruit_reception_kind
+                and (row.picking_id.state in ('done','cancel')
+                     or row.package_id and row.package_id.step_tag_state not in ('created','void')) for row in self):
+            raise UserError(_('La variedad de una tarja recibida o validada se conserva.'))
+        return super().write(vals)
+
+    @api.constrains('variety_id', 'picking_id')
+    def _check_reception_variety(self):
+        for row in self.filtered(lambda r: r.picking_id.step_fruit_reception_kind and r.picking_id.state not in ('done','cancel')):
+            variety = row._reception_variety()
+            package = row.package_id
+            if package and (package.variedad_id and package.variedad_id != variety
+                            or package.step_tag_state not in ('created','void') and package.variedad_id != variety):
+                raise ValidationError(_('La variedad de la línea debe coincidir con la tarja existente; no se cambia su historia.'))
+            if not variety:
+                continue
+            variety.check_access('read')
+            if row.picking_id.fruit_species_id and variety.especie_id != row.picking_id.fruit_species_id:
+                raise ValidationError(_('La variedad de la tarja debe pertenecer a la especie de la recepción.'))
+            if row.variety_id:
+                row._check_company(['variety_id'])
 
     step_scale_profile_id = fields.Many2one(related="picking_id.step_scale_profile_id")
     step_scale_protocol = fields.Selection(related="picking_id.step_scale_protocol")

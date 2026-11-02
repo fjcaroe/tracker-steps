@@ -167,7 +167,7 @@ class Picking(models.Model):
                     row.step_import_stock_quantity, base_quantity, precision_rounding=move.product_id.uom_id.rounding):
                 raise ValidationError(_('La cantidad de stock del Excel no coincide con los kilos o envases de la tarja %s.') % name)
             metadata = {'fundo_id': self.fruit_fundo_id.id, 'especie_id': self.fruit_species_id.id,
-                        'variedad_id': self.fruit_variety_id.id, 'step_export_season_id': self.fruit_season_id.id,
+                        'variedad_id': row._reception_variety().id, 'step_export_season_id': self.fruit_season_id.id,
                         'fruit_type': self.step_fruit_type, 'fruit_category_id': self.fruit_category_id.id,
                         'fruit_class_id': self.step_fruit_origin_class_id.id,
                         'harvest_date': self.fruit_harvest_date, 'step_packaging_id': row.packaging_id.id,

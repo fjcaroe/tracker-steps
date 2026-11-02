@@ -10,6 +10,7 @@ import xmlrpc.client
 
 
 DESCRIPTIONS={
+ 152:'En recepciones de fruta a proceso y embalada, Variedad aparece en cada línea de detalle después de Producto. Se reutiliza el maestro de variedades de la especie y se permite recibir dos variedades del mismo producto. La variedad de cada línea acompaña a su tarja y a los informes y saldos. Migrados los valores históricos del encabezado a las líneas sin modificar pesos, existencias, documentos ni encabezados históricos. Cerro producción se publicó primero por instrucción expresa y luego se homologó Desarrollo y QA-Cerro.',
  147:'Packing permite seleccionar Sucursal antes de Packing en una OP creada, desde la matriz. La OP y las OT generadas quedan en esa sucursal. Solo admite compañías del mismo holding autorizadas al usuario; una OP validada o con OT conserva su sucursal. Si cambia una OP creada, recalcula las necesidades de materiales ya preparadas.',
  148:'El panel de Productores consolida por defecto matriz y sucursales autorizadas del mismo holding. Permite elegir una, varias o todas; la selección se aplica al comparativo y a los indicadores. Estimaciones vigentes y kilos reales proceden de los registros existentes: recepciones embaladas confirmadas y exportación de OT terminadas, sin duplicar tarjas.',
  149:'En la guía de despacho de una sucursal, Embarque muestra sus embarques y los de su matriz autorizada. Los instructivos de despacho admiten esa misma relación. La guía, el instructivo y el inventario conservan su sucursal; no se habilitan embarques de una sucursal hermana ni de otra empresa.',
@@ -27,7 +28,7 @@ DESCRIPTIONS={
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('ticket',type=int,choices=tuple(DESCRIPTIONS));p.add_argument('evidence',type=Path);a=p.parse_args()
     root=a.evidence;proof=json.loads((root/'delivery.json').read_text());tid=a.ticket
-    module={141:'step_packing_reception_report',142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company',145:'step_export_branch_consolidation',146:'step_bpa_master_import',147:'step_packing_holding',148:'step_producer_holding',149:'step_packing_holding',150:'step_export_receiver_profile',151:'step_packing_overweight'}[tid]
+    module={141:'step_packing_reception_report',142:'step_purchase_holding',143:'step_payroll_attendance_correction',144:'step_packing_tag_company',145:'step_export_branch_consolidation',146:'step_bpa_master_import',147:'step_packing_holding',148:'step_producer_holding',149:'step_packing_holding',150:'step_export_receiver_profile',151:'step_packing_overweight',152:'step_inventory_packing'}[tid]
     environments={'development','cerro','qa-cerro'}|({'sys'} if tid==143 else set())
     for target in environments:
         qa=json.loads((root/(target+'-qa.json')).read_text());deployment=json.loads((root/(target+'-deployment.json')).read_text())
@@ -45,6 +46,9 @@ def main():
                 assert hashlib.sha256((root/(target+'-'+name)).read_bytes()).hexdigest()==item['sha256']
             assert 'T141_NATIVE_PDF_OK' in (root/(target+'-flow.log')).read_text(encoding='utf-8-sig')
         assert 'T141_REPORTED_RECEIPT_PDF_OK weights_unchanged=True' in (root/'qa-cerro-flow.log').read_text(encoding='utf-8-sig')
+    if tid==152:
+        assert all(pair['cerro'][name][key]==pair['qa-cerro'][name][key] for name in ('step_inventory_packing','step_packing_reception_revision','step_producer_fruit_flow','step_producer_fruit_reports','step_agro_analytics','step_packing_reception_report') for key in ('version','sha256'))
+        assert all('T152_OPERATOR_VARIETIES_FLOW_OK' in (root/(target+'-flow.log')).read_text() for target in environments)
     c=json.loads((Path.home()/'.odoo/helpdesk_api.json').read_text(encoding='utf-8-sig'));url='https://soporte.stepsapp.cl'
     uid=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/common').authenticate(c['db'],c['username'],c['api_key'],{});assert uid
     rpc=xmlrpc.client.ServerProxy(url+'/xmlrpc/2/object');context={'tracking_disable':True,'mail_notrack':True,'mail_create_nosubscribe':True,'mail_notify_force_send':False,'mail_auto_subscribe_no_notify':True}
@@ -63,7 +67,7 @@ def main():
     if tid >= 147:
         acta=(root/'summary.txt').read_bytes()
         assert proof['commit'].encode() in acta and proof['sha256'].encode() in acta, 'Attach the acta for this exact certified package'
-        attachment=call('ir.attachment','create',[{'name':'Acta T147-T151.txt','res_model':'helpdesk.ticket','res_id':tid,
+        attachment=call('ir.attachment','create',[{'name':'Acta T152.txt' if tid==152 else 'Acta T147-T151.txt','res_model':'helpdesk.ticket','res_id':tid,
             'mimetype':'text/plain','datas':base64.b64encode(acta).decode()}])
         saved=call('ir.attachment','read',[[attachment]],{'fields':['datas','res_model','res_id']})[0]
         assert base64.b64decode(saved['datas'])==acta and saved['res_model']=='helpdesk.ticket' and saved['res_id']==tid
