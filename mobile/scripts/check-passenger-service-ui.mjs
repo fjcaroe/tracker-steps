@@ -18,7 +18,7 @@ try {
   const card = page.locator('.passenger-service');
   await card.scrollIntoViewIfNeeded();
   if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error('Horizontal overflow at 375 px');
-  if (await card.locator('button,input,select').count()) throw new Error('Manifest must remain read-only');
+  for (const button of await card.getByRole('button', { name: 'Registrar subida', exact: true }).all()) if (!(await button.isDisabled())) throw new Error('Boarding requires explicit preparation');
   await card.screenshot({path: output});
   await page.getByText('Asiento 3', {exact: true}).evaluate((element) => element.scrollIntoView({block: 'center'}));
   const seat = await page.getByText('Asiento 3', {exact: true}).boundingBox();
@@ -27,5 +27,5 @@ try {
   await page.screenshot({path: output.replace(/\.png$/, '.bottom.png')});
   const storage = await page.evaluate(() => JSON.stringify({...localStorage}));
   if (storage.includes('TEST-1') || storage.includes('Pasajero ficticio')) throw new Error('Passenger manifest persisted locally');
-  console.log('PASSENGER_UI_375_OK three_passengers=True readonly=True no_local_manifest=True');
+  console.log('PASSENGER_UI_375_OK three_passengers=True explicit_preparation_required=True no_local_manifest=True');
 } finally { await browser.close(); }

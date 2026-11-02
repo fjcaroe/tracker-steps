@@ -19,6 +19,7 @@ const routes = {
   'GET /sessions_active': () => [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', machine_id: 1, machine_name: 'Tractor John Deere', driver_name: 'Juan Pérez', cost_center_name: 'Fundo Norte', started_at: new Date(Date.now() - 3600e3).toISOString(), status: 'open', points_count: 12, last_lat: -35.4035, last_lon: -71.597, last_speed_mps: 2.4 }],
   'GET /mobile/routes': () => store.routes.filter((r) => r.status !== 'cancelled'),
   'GET /mobile/services': () => [{ id: 'private-service', name: 'Servicio de prueba', route_id: 'private-route', route_name: 'Ruta de prueba', machine_id: 2, machine_name: 'Bus de prueba', plate: 'QA0046', driver_user_id: 1, driver_name: user.full_name, capacity: 3, stops: serviceStops, passengers: [1, 2, 3].map((id) => ({ id: `p-${id}`, name: `Pasajero ficticio ${id}`, document: `TEST-${id}`, boarding_stop_id: 'stop-a', alighting_stop_id: 'stop-b', seat: id })) }],
+  'GET /mobile/services/private-service/manifest': () => { const service = routes['GET /mobile/services']()[0]; return { ...service, manifest_version: 0, occupied: 0, events: [], passengers: service.passengers.map(p => ({ ...p, state: 'pending' })) }; },
   'POST /mobile/routes': (b) => { const r = { ...b, machine_name: 'Tractor John Deere', status: 'assigned', created_by_name: 'Demo', created_at: new Date().toISOString() }; store.routes.unshift(r); return r; },
   'GET /machines/1/fuel_status': () => ({ last_liters: 120, tank_capacity_liters: 200 }),
   'POST /work_orders': () => ({ id: 77 }),

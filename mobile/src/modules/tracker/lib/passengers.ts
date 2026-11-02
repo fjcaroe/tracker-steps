@@ -98,7 +98,7 @@ export const passengerStore = {
     }
     if (kind === 'boarded' && manifest.occupied >= manifest.capacity) throw new Error('Capacidad completa. Registra primero los descensos.');
     if (kind === 'boarded' && passenger.seat != null && manifest.passengers.some((p) => p.state === 'boarded' && p.seat === passenger.seat)) throw new Error('El asiento aún está ocupado. Registra primero el descenso.');
-    if (row.queue.length >= 2000) throw new Error('Hay demasiados pendientes. Sincroniza antes de continuar.');
+    if (row.queue.length >= 5000) throw new Error('Hay demasiados pendientes. Sincroniza antes de continuar.');
     row.queue.push({ id: crypto.randomUUID(), passenger_id: passengerId, kind, expected_version: manifest.manifest_version,
       occurred_at: new Date().toISOString(), lat: location?.lat ?? null, lon: location?.lon ?? null, accuracy_m: location?.accuracy_m ?? null });
   }),
