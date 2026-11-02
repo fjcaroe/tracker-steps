@@ -24,7 +24,7 @@ try:
         config['test_enable'] = previous
     for kind, menu_ref, view_ref in (
         ('process', 'step_packing_operations.menu_packing_reception_process', 'step_packing_reception_revision.view_process_reception_form'),
-        ('packed', 'step_inventory_packing.menu_steps_fruit_packed_reception', 'stock.view_picking_form')):
+        ('packed', 'step_packing_operations.menu_packing_reception_packed', 'stock.view_picking_form')):
         menu = scoped.ref(menu_ref)
         assert menu.id in scoped['ir.ui.menu']._visible_menu_ids()
         action = scoped.ref('step_inventory_packing.action_steps_fruit_%s_reception' % kind)

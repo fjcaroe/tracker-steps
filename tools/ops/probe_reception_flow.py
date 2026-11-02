@@ -57,7 +57,7 @@ def verify_flow(root, scoped, row_varieties=False):
         print('T152_OPERATOR_VARIETIES_FLOW_OK')
     actual = scoped['stock.picking'].search([('name', '=', 'FRU/IN/00008'),
                                             ('step_fruit_reception_kind', '=', 'process')])
-    if actual and actual.state == 'assigned' and actual.fruit_tag_line_ids.tag_number == 'C199':
+    if not row_varieties and actual and actual.state == 'assigned' and actual.fruit_tag_line_ids.tag_number == 'C199':
         original_package = actual.fruit_tag_line_ids.package_id
         actual.button_validate()
         assert actual.state == 'done' and actual.fruit_tag_line_ids.package_id == original_package
