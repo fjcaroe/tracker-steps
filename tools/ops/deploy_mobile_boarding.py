@@ -120,7 +120,13 @@ WantedBy=multi-user.target
 '''
         if not existing_api:
             UNIT.write_text(unit); run('systemctl','daemon-reload')
-        else: assert UNIT.read_text()==unit, 'Unexpected Development service configuration'
+        else:
+            isolated_unit=unit.replace('Environment=PYTHONUNBUFFERED=1','Environment=PYTHONUNBUFFERED=1\nEnvironmentFile=/etc/steps-tracker-development.env')
+            assert UNIT.read_text() in (unit,isolated_unit), 'Unexpected Development service configuration'
+            if UNIT.read_text()==isolated_unit:
+                from urllib.parse import urlsplit
+                line=next(x for x in Path('/etc/steps-tracker-development.env').read_text().splitlines() if x.startswith('DATABASE_URL='))
+                assert urlsplit(line.partition('=')[2]).path=='/tracker_steps_development', 'Unexpected Development database'
         content=SNIPPET.read_text(); old=set(re.findall(r'/var/www/steps-mobile-releases/[a-f0-9]{40}/',content)); assert len(old)==1
         release=Path('/var/www/steps-mobile-releases')/commit
         if release.exists(): assert assets(release)==assets(front)
@@ -150,7 +156,7 @@ location ^~ /tracker-dev-api/ {
             assert tree(API/'app')==production and tree(Path('/opt/steps-coban/current').resolve()/'receivers')==receiver
             assert all(sha(Path(p))==value for p,value in untouched.items())
             for service in ('steps-tracker-dev-api','tracker-steps-api','steps-coban','teltonika-ingest','odoo18-dev'): run('systemctl','is-active','--quiet',service)
-            (stage/'development.json').write_text(json.dumps(dict(commit=commit,backup=str(backup),port=8012,api_process_isolated=True,database_shared=True,production_api_unchanged=True,receiver_unchanged=True,cerro_frontend_unchanged=True,assets=assets(front)),indent=2))
+            (stage/'development.json').write_text(json.dumps(dict(commit=commit,backup=str(backup),port=8012,api_process_isolated=True,database_shared=not Path('/etc/steps-tracker-development.env').exists(),production_api_unchanged=True,receiver_unchanged=True,cerro_frontend_unchanged=True,assets=assets(front)),indent=2))
             print('I10_DEVELOPMENT_PUBLISHED api_port=8012 production_api_unchanged=True cerro_frontend_unchanged=True')
         except Exception:
             shutil.copy2(backup/'nginx.conf',SNIPPET); run('nginx','-t'); run('systemctl','reload','nginx')
