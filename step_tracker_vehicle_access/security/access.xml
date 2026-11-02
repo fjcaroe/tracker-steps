@@ -1,0 +1,21 @@
+<odoo>
+ <record id="group_vehicle_operator" model="res.groups">
+  <field name="name">Tracker: operar vehículo asignado</field>
+  <field name="implied_ids" eval="[(4, ref('step_tracker_portal.group_tracker_operator'))]"/>
+ </record>
+ <record id="rule_vehicle_scope" model="ir.rule">
+  <field name="name">Tracker: vehículos asignados al usuario</field>
+  <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+  <field name="domain_force">user._tracker_vehicle_domain()</field>
+ </record>
+ <record id="rule_link_scope" model="ir.rule">
+  <field name="name">Tracker: vínculos de vehículos asignados</field>
+  <field name="model_id" ref="step_management_costs_tracker.model_step_tracker_asset_link"/>
+  <field name="domain_force">user._tracker_vehicle_domain('vehicle_id')</field>
+ </record>
+ <record id="rule_summary_scope" model="ir.rule">
+  <field name="name">Tracker: incidentes de vehículos asignados</field>
+  <field name="model_id" ref="step_tracker_portal.model_step_tracker_protection_summary"/>
+  <field name="domain_force">[('asset_id','in',user._tracker_allowed_asset_ids())] if user._tracker_is_limited() else []</field>
+ </record>
+</odoo>
