@@ -24,7 +24,7 @@ def native(source,db,plan,ids,stage):
  finally:
   for p in paths:p.unlink(missing_ok=True)
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply']);p.add_argument('source',type=Path);p.add_argument('plan',type=Path);p.add_argument('root',type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','apply']);p.add_argument('source',type=Path);p.add_argument('plan',type=Path);p.add_argument('root',type=Path);p.add_argument('--keep-review',action='store_true');a=p.parse_args()
  assert os.geteuid()==0;os.umask(0o077);source=a.source.resolve();root=a.root;root.mkdir(parents=True,exist_ok=True);root.chmod(0o700)
  assert not out('git','-C',source,'status','--porcelain','--untracked-files=no');commit=out('git','-C',source,'rev-parse','HEAD')
  plan=json.loads(a.plan.read_text());assert plan['passenger_capacity']==4 and plan['company_id']==1 and plan['user_id']==6
@@ -48,9 +48,11 @@ def main():
     with (stage/'functional.log').open('wb') as log:
      run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+gps,'JWT_SECRET=private-journey-copy-only','JOURNEY_QA_IDS='+json.dumps(ids),'PYTHONPATH='+str(source/'backend/tracker_py')+':/opt/steps-validation/personal-transfer-test-deps',PY,source/'tools/qa/tracker/rehearse_personal_journey.py',stdout=log,stderr=subprocess.STDOUT)
     assert 'PERSONAL_JOURNEY_API_OK' in (stage/'functional.log').read_text()
-    proof_file.write_text(json.dumps(dict(commit=commit,plan_sha=hashlib.sha256(a.plan.read_bytes()).hexdigest(),ids=ids,native=True,api=True),indent=2));print('PERSONAL_JOURNEY_QA_OK',flush=True)
+    proof_file.write_text(json.dumps(dict(commit=commit,plan_sha=hashlib.sha256(a.plan.read_bytes()).hexdigest(),ids=ids,native=True,api=True,review_db=gps if a.keep_review else None),indent=2));print('PERSONAL_JOURNEY_QA_OK',flush=True)
    finally:
-    for db in reversed(clones):run('sudo','-u','postgres','dropdb','--if-exists',db)
+    for db in reversed(clones):
+     if db==gps and a.keep_review and proof_file.exists():continue
+     run('sudo','-u','postgres','dropdb','--if-exists',db)
    return
   proof=json.loads(proof_file.read_text());assert proof['commit']==commit and proof['plan_sha']==hashlib.sha256(a.plan.read_bytes()).hexdigest() and proof['native'] and proof['api']
   backup=stage/('backup-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'));backup.mkdir(mode=0o700)
