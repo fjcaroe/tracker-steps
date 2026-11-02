@@ -37,11 +37,11 @@ const { chromium }=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
   page.once('dialog',dialog=>dialog.accept());await person(3).getByRole('button',{name:'Marcar ausente'}).click();await person(3).getByText('Ausente',{exact:true}).waitFor();
   for(const n of [1,2]){await person(n).getByRole('button',{name:'Registrar bajada'}).click();await person(n).getByText('Descendió',{exact:true}).waitFor();}
   if(posts!==0)throw Error('Offline actions attempted to write before reconnect');
-  await page.getByLabel('Mostrar',{exact:true}).selectOption('no_show');await person(3).waitFor();if(await person(1).count())throw Error('State filter failed');
-  await page.getByLabel('Mostrar',{exact:true}).selectOption('all');
+  await page.getByLabel('Mostrar',{exact:false}).selectOption('no_show');await person(3).waitFor();if(await person(1).count())throw Error('State filter failed');
+  await page.getByLabel('Mostrar',{exact:false}).selectOption('all');
   await card.screenshot({path:path.join(out,'offline-complete-390.png')});
   // Component remount proves storage survives leaving Hoy, without a new login.
-  await page.getByRole('button',{name:'Perfil',exact:true}).click();await page.getByText('1.6.0',{exact:false}).waitFor();
+  await page.getByRole('button',{name:'Perfil',exact:true}).click();await page.getByText('Versión 1.6.1 · 5 elementos por enviar',{exact:true}).waitFor();
   await page.getByRole('button',{name:'Hoy',exact:true}).click();await person(1).getByText('Descendió',{exact:true}).waitFor();
   network=true;await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>true});window.dispatchEvent(new Event('online'));});
   await person(1).getByText('Confirmado',{exact:false}).waitFor();

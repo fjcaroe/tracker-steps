@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { API_BASE, APP_VERSION, type User } from '../lib/api';
 import { sendDiagnostic } from '../lib/diag';
 import { applySettings, loadSettings, saveSettings, type Settings } from '../lib/settings';
 import { pendingTotal } from '../lib/sync';
 import { Sheet } from './Sheets';
 import RejectedPoints from './RejectedPoints';
+import { passengerStore } from '../lib/passengers';
 
 export function HelpSheet({ onClose }: { onClose: () => void }) {
   return (
@@ -26,11 +27,19 @@ export default function Profile({ user, onLogout }: { user: User; onLogout: () =
   const [help, setHelp] = useState(false);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [passengerPending, setPassengerPending] = useState<number | null>(null);
+  useEffect(() => {
+    let active = true;
+    const update = () => { void passengerStore.read(user.id).then((rows) => { if (active) setPassengerPending(rows.reduce((n, row) => n + row.queue.length, 0)); }, () => { if (active) setPassengerPending(null); }); };
+    update(); const timer = window.setInterval(update, 3000);
+    return () => { active = false; clearInterval(timer); };
+  }, [user.id]);
+  const totalPending = passengerPending == null ? null : pendingTotal() + passengerPending;
   const update = (patch: Partial<Settings>) => { const next = { ...s, ...patch }; setS(next); saveSettings(next); applySettings(next); };
 
   const diagnostic = async () => {
     setBusy(true); setMsg('');
-    try { await sendDiagnostic('Diagnóstico enviado por el usuario', `usuario=${user.username} pendientes=${pendingTotal()} online=${navigator.onLine} ua=${navigator.userAgent}`); setMsg('Diagnóstico enviado. Gracias.'); }
+    try { await sendDiagnostic('Diagnóstico enviado por el usuario', `usuario=${user.username} pendientes=${totalPending ?? 'sin consultar'} online=${navigator.onLine} ua=${navigator.userAgent}`); setMsg('Diagnóstico enviado. Gracias.'); }
     catch (e) { setMsg(`No se pudo enviar: ${(e as Error).message}`); } finally { setBusy(false); }
   };
   const checkUpdate = async () => {
@@ -77,7 +86,7 @@ export default function Profile({ user, onLogout }: { user: User; onLogout: () =
       </article>
       <article className="card stack">
         <h3>Soporte</h3>
-        <small>Versión {APP_VERSION} · {pendingTotal()} elementos por enviar</small>
+        <small>Versión {APP_VERSION} · {totalPending == null ? 'Consultando pendientes' : `${totalPending} elementos por enviar`}</small>
         <small>Servidor: {API_BASE}</small>
         <div className="grid2"><button onClick={() => void diagnostic()} disabled={busy}>Enviar diagnóstico</button><button onClick={() => void checkUpdate()}>Buscar actualización</button></div>
         {msg && <p className="muted" role="status">{msg}</p>}

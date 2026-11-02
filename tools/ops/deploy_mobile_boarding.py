@@ -84,18 +84,25 @@ def main():
         assert proof['snippet']==sha(SNIPPET) and proof['untouched']==untouched, 'Concurrent alias change'
         backup=stage/('backup-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')); backup.mkdir(mode=0o700)
         dump(backup/'tracker_steps.dump'); shutil.copy2(SNIPPET,backup/'nginx.conf')
-        assert not UNIT.exists() and not (DEV/'current').exists(), 'Review existing Development API before replacing it'
-        assert not output('ss','-H','-ltn','sport = :8012'), 'Development port is already occupied'
+        existing_api = UNIT.exists() and (DEV/'current').is_symlink()
+        if existing_api:
+            assert tree(DEV/'current/backend/tracker_py/app')==package, 'Review an API code update separately; this path only reuses identical API code'
+            run('systemctl','is-active','--quiet','steps-tracker-dev-api')
+            shutil.copy2(UNIT,backup/'existing-api.service')
+        else:
+            assert not UNIT.exists() and not (DEV/'current').exists(), 'Unexpected partial Development API'
+            assert not output('ss','-H','-ltn','sport = :8012'), 'Development port is already occupied'
         # Database changes remain additive and backward compatible on rollback.
         with (source/'backend/tracker_py/migrations/20261102_passenger_events.up.sql').open('rb') as inp:
             run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d','tracker_steps',stdin=inp)
         # Reuse the existing native table's grants; never expose credentials.
         grants="""DO $$ DECLARE r record; BEGIN FOR r IN SELECT grantee,privilege_type FROM information_schema.role_table_grants WHERE table_schema='public' AND table_name='mobile_service_passengers' LOOP EXECUTE format('GRANT %s ON TABLE mobile_passenger_events TO %s',r.privilege_type,CASE WHEN r.grantee='PUBLIC' THEN 'PUBLIC' ELSE quote_ident(r.grantee) END); END LOOP; END $$;"""
         run('sudo','-u','postgres','psql','-v','ON_ERROR_STOP=1','-d','tracker_steps','-c',grants)
-        target=DEV/'releases'/commit/'backend/tracker_py'; target.mkdir(parents=True)
-        shutil.copytree(source/'backend/tracker_py/app',target/'app',ignore=shutil.ignore_patterns('__pycache__'))
-        (target/'.env').symlink_to(API/'.env')
-        (DEV/'current').symlink_to(target.parents[1])
+        if not existing_api:
+            target=DEV/'releases'/commit/'backend/tracker_py'; target.mkdir(parents=True)
+            shutil.copytree(source/'backend/tracker_py/app',target/'app',ignore=shutil.ignore_patterns('__pycache__'))
+            (target/'.env').symlink_to(API/'.env')
+            (DEV/'current').symlink_to(target.parents[1])
         unit='''[Unit]
 Description=Steps Tracker Development API (I10)
 After=network.target postgresql.service
@@ -111,7 +118,9 @@ RestartSec=3
 [Install]
 WantedBy=multi-user.target
 '''
-        UNIT.write_text(unit); run('systemctl','daemon-reload')
+        if not existing_api:
+            UNIT.write_text(unit); run('systemctl','daemon-reload')
+        else: assert UNIT.read_text()==unit, 'Unexpected Development service configuration'
         content=SNIPPET.read_text(); old=set(re.findall(r'/var/www/steps-mobile-releases/[a-f0-9]{40}/',content)); assert len(old)==1
         release=Path('/var/www/steps-mobile-releases')/commit
         if release.exists(): assert assets(release)==assets(front)
@@ -126,16 +135,17 @@ location ^~ /tracker-dev-api/ {
     add_header Cache-Control "no-store" always;
 }
 '''
-        assert '/tracker-dev-api/' not in content
+        if existing_api: assert content.count(route)==1, 'Unexpected Development API proxy'
+        else: assert '/tracker-dev-api/' not in content
         try:
-            run('systemctl','enable','--now','steps-tracker-dev-api')
+            if not existing_api: run('systemctl','enable','--now','steps-tracker-dev-api')
             for _ in range(40):
                 try:
                     with urlopen('http://127.0.0.1:8012/health',timeout=2) as response:
                         if response.status==200: break
                 except OSError: time.sleep(.5)
             else: raise RuntimeError('Development API did not start')
-            SNIPPET.write_text(content.replace(next(iter(old)),str(release)+'/')+route)
+            SNIPPET.write_text(content.replace(next(iter(old)),str(release)+'/')+('' if existing_api else route))
             run('nginx','-t'); run('systemctl','reload','nginx'); public_verify(front)
             assert tree(API/'app')==production and tree(Path('/opt/steps-coban/current').resolve()/'receivers')==receiver
             assert all(sha(Path(p))==value for p,value in untouched.items())
@@ -144,7 +154,9 @@ location ^~ /tracker-dev-api/ {
             print('I10_DEVELOPMENT_PUBLISHED api_port=8012 production_api_unchanged=True cerro_frontend_unchanged=True')
         except Exception:
             shutil.copy2(backup/'nginx.conf',SNIPPET); run('nginx','-t'); run('systemctl','reload','nginx')
-            run('systemctl','disable','--now','steps-tracker-dev-api'); UNIT.unlink(); (DEV/'current').unlink(); run('systemctl','daemon-reload'); raise
+            if not existing_api:
+                run('systemctl','disable','--now','steps-tracker-dev-api'); UNIT.unlink(); (DEV/'current').unlink(); run('systemctl','daemon-reload')
+            raise
 
 
 if __name__=='__main__': main()
