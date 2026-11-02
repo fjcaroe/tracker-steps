@@ -27,6 +27,8 @@ app = FastAPI(title="Tracker Steps API")
 
 from app.routers.fleet import router as fleet_router
 app.include_router(fleet_router)
+from app.routers.starter_control import router as starter_control_router
+app.include_router(starter_control_router)
 from app.routers.fleet_configuration import router as fleet_configuration_router
 app.include_router(fleet_configuration_router)
 from app.routers.zones import router as zones_router

@@ -104,6 +104,9 @@ class DeviceRegistration(Base):
     receiver_speed = Column(Float)
     receiver_error = Column(String(40))
     receiver_pending = Column(Integer, nullable=False, default=0, server_default='0')
+    starter_relay_verified = Column(Boolean, nullable=False, default=False, server_default='false')
+    starter_relay_verified_at = Column(DateTime(timezone=True))
+    starter_relay_verified_by = Column(String(200))
     created_at = Column(DateTime(timezone=True), nullable=False, default=now)
 
 
@@ -177,7 +180,12 @@ class Command(Base):
     __tablename__ = 'gps_device_commands'
     id = Column(String(36), primary_key=True, default=uid)
     tenant_id = Column(String(36), ForeignKey('gps_tenants.id'), nullable=False, index=True)
-    incident_id = Column(String(36), ForeignKey('gps_security_incidents.id'), nullable=False)
+    incident_id = Column(String(36), ForeignKey('gps_security_incidents.id'), nullable=True)
+    asset_id = Column(String(36), ForeignKey('gps_assets.id'))
+    device_id = Column(String(36), ForeignKey('gps_devices.id'))
+    assignment_id = Column(String(36), ForeignKey('gps_assignments.id'))
+    confirmed_at = Column(DateTime(timezone=True))
+    declared_result = Column(String(30))
     intention_id = Column(String(100), nullable=False)
     type = Column(String(40), nullable=False)
     requester = Column(String(200), nullable=False)

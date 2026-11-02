@@ -46,7 +46,15 @@ def identity(token=Depends(oauth2_scheme), db: Session = Depends(get_db)):
         tenant = db.query(Tenant).filter_by(issuer=issuer, company_id=int(claims['company_id'])).with_for_update().one_or_none()
         if not tenant or claims.get('role') not in ('viewer', 'operator', 'manager', 'ingestor'):
             raise ValueError('Unmapped identity')
-        return {'tenant_id': tenant.id, 'user_id': claims['sub'], 'role': claims['role'], 'tenant': tenant.name}
+        scope = claims.get('asset_ids')
+        if scope is not None and (not isinstance(scope, list) or len(scope) > 500 or
+                any(not isinstance(v, str) or not 1 <= len(v) <= 64 for v in scope)):
+            raise ValueError('Invalid vehicle scope')
+        return {'tenant_id': tenant.id, 'user_id': claims['sub'], 'role': claims['role'], 'tenant': tenant.name,
+                'asset_ids': scope, 'manage_protection': claims.get('manage_protection') is True,
+                'starter_control': claims.get('starter_control') is True,
+                'control_preview': claims.get('control_preview') is True,
+                'actuator_auth_at': claims.get('actuator_auth_at')}
     except (JWTError, ValueError, KeyError, TypeError):
         raise HTTPException(401, 'Identidad o compañía no autorizada')
 
@@ -60,7 +68,17 @@ def owned(db, model, object_id, ctx):
     obj = db.query(model).filter_by(id=object_id, tenant_id=ctx['tenant_id']).one_or_none()
     if obj is None:
         raise HTTPException(404, 'Registro no encontrado')
+    asset_id = obj.id if model is Asset else getattr(obj, 'asset_id', None)
+    if model is Command and asset_id is None:
+        incident = db.get(Incident, obj.incident_id)
+        asset_id = incident.asset_id if incident else None
+    if asset_id is not None and ctx.get('asset_ids') is not None and asset_id not in ctx['asset_ids']:
+        raise HTTPException(404, 'Registro no encontrado')
     return obj
+
+
+def scoped(query, column, ctx):
+    return query.filter(column.in_(ctx['asset_ids'])) if ctx.get('asset_ids') is not None else query
 
 
 def audit(db, ctx, action, detail, asset_id=None, incident_id=None):
@@ -75,6 +93,7 @@ def position_out(p):
 def asset_out(db, a, at):
     assignment = db.query(Assignment).filter_by(asset_id=a.id, tenant_id=a.tenant_id, valid_to=None).first()
     device = db.get(Device, assignment.device_id) if assignment else None
+    registration = db.query(DeviceRegistration).filter_by(tenant_id=a.tenant_id, device_id=device.id).one_or_none() if device else None
     # The old device's last point stays in history, never becomes a new assignment's current state.
     p = db.query(Position).filter_by(tenant_id=a.tenant_id, asset_id=a.id, assignment_id=assignment.id).order_by(Position.recorded_at.desc(), Position.id.desc()).first() if assignment else None
     fresh = bool(p and (at-utc(p.received_at)).total_seconds() <= device.freshness_seconds)
@@ -88,14 +107,15 @@ def asset_out(db, a, at):
             'position_stale': not recent_fix,
             'protection_state': 'incident_open' if incident else 'armed' if policy and policy.armed else 'disarmed',
             'device': {'model': device.model, 'brand': device.brand, 'firmware': device.firmware, 'protocol': device.protocol} if device else None,
-            'capabilities': {'tracking': 'approved' if device and device.tracking_approved else 'not_approved', 'remote_start_inhibit': 'not_approved'}}
+            'capabilities': {'tracking': 'approved' if device and device.tracking_approved else 'not_approved',
+                'remote_start_inhibit': 'supervised_test' if registration and registration.starter_relay_verified and registration.receiver_mode=='forward' else 'not_approved'}}
 
 
 @router.get('/fleet/snapshot')
 def snapshot(q: str = '', type: str = '', cost_center: str = '', motion: str = '', signal: str = '', protection: str = '', gps: str = '',
              after: str = '', limit: int = Query(200, ge=1, le=500), ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
-    rows = [asset_out(db, a, now()) for a in db.query(Asset).filter_by(tenant_id=ctx['tenant_id']).order_by(Asset.id)]
+    rows = [asset_out(db, a, now()) for a in scoped(db.query(Asset).filter_by(tenant_id=ctx['tenant_id']), Asset.id, ctx).order_by(Asset.id)]
     rows = [r for r in rows if (not q or q.casefold() in (r['name']+' '+(r['plate'] or '')).casefold())
             and (not type or r['type'] == type) and (not cost_center or r['cost_center'] == cost_center)
             and (not motion or r['motion_state'] == motion) and (not signal or r['signal_state'] == signal)
@@ -257,12 +277,13 @@ class PolicyInput(Strict):
 def policies(ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
     return [{'asset_id': r.asset_id, 'armed': r.armed, 'version': r.version, 'contacts': r.contacts,
-             'zone': r.zone, 'allowed_hours_utc': r.allowed_hours_utc} for r in db.query(Policy).filter_by(tenant_id=ctx['tenant_id'])]
+             'zone': r.zone, 'allowed_hours_utc': r.allowed_hours_utc} for r in scoped(db.query(Policy).filter_by(tenant_id=ctx['tenant_id']), Policy.asset_id, ctx)]
 
 
 @router.put('/security/policies')
 def policy_write(body: PolicyInput, ctx=Depends(identity), db: Session = Depends(get_db)):
-    require(ctx, ('manager',))
+    if not (ctx['role'] == 'manager' or ctx['role'] == 'operator' and ctx.get('manage_protection')):
+        raise HTTPException(403, 'Permiso insuficiente')
     # The asset lock serializes first creation and all subsequent policy/incident changes.
     owned(db, Asset, body.asset_id, ctx)
     db.query(Asset).filter_by(id=body.asset_id).with_for_update().one()
@@ -312,7 +333,7 @@ class IncidentInput(Strict):
 @router.get('/security/incidents')
 def incidents(after: str = '', limit: int = Query(100, ge=1, le=500), ctx=Depends(identity), db: Session = Depends(get_db)):
     require(ctx, ('viewer', 'operator', 'manager'))
-    rows = db.query(Incident).filter_by(tenant_id=ctx['tenant_id']).filter(Incident.id > after).order_by(Incident.id).limit(limit + 1).all()
+    rows = scoped(db.query(Incident).filter_by(tenant_id=ctx['tenant_id']), Incident.asset_id, ctx).filter(Incident.id > after).order_by(Incident.id).limit(limit + 1).all()
     return {'items': [incident_out(db, r) for r in rows[:limit]], 'next_cursor': rows[limit-1].id if len(rows) > limit else None}
 
 
@@ -513,6 +534,8 @@ def classic_session(payload: ClassicSessionIn, ctx=Depends(identity), db: Sessio
     obtiene perfil administrador. Los viewers no reciben sesión clásica.
     """
     require(ctx, ('manager', 'operator'))
+    if ctx.get('asset_ids') is not None:
+        raise HTTPException(403, 'Este perfil solo incluye Tracker del vehículo asignado')
     username = 'odoo-%s-%s' % (str(ctx['tenant_id']).replace('-', '')[:8], ctx['user_id'])
     user = db.query(User).filter_by(username=username).one_or_none()
     if user is None:

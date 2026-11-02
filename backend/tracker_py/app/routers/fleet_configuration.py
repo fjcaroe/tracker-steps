@@ -156,6 +156,7 @@ def associate(registration_id: str, body: AssociateDevice, ctx=Depends(identity)
     if asset:
         db.add(Assignment(tenant_id=ctx['tenant_id'], device_id=registration.device_id, asset_id=asset.id, valid_from=boundary))
     db.get(Device,registration.device_id).tracking_approved=False
+    registration.starter_relay_verified=False;registration.starter_relay_verified_at=None;registration.starter_relay_verified_by=None
     if registration.receiver_mode=='forward':registration.receiver_mode='capture'
     registration.version += 1
     audit(db, ctx, 'device_assignment_changed', {'registration_id': registration.id,
