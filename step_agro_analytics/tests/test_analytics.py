@@ -106,6 +106,10 @@ class PackingCase(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # This fixture seeds its own stock source; native configured transfers
+        # have dedicated integration tests. Never inherit a live stock source.
+        if 'step_packing_warehouse_id' in cls.company._fields:
+            cls.company.write({'step_packing_warehouse_id':False, 'step_packing_fruit_location_id':False, 'step_packing_material_location_id':False})
         cls.warehouse = cls.env["stock.warehouse"].search([("company_id", "=", cls.company.id)], limit=1)
         cls.location = cls.warehouse.lot_stock_id
         cls.producer = cls.env["res.partner"].create({"name": "Productor Packing T41"})

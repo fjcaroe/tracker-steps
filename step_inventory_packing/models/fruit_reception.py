@@ -186,7 +186,7 @@ class StockPicking(models.Model):
 class StepPackingPickingTagLine(models.Model):
     _inherit = "step.packing.picking.tag.line"
 
-    variety_id = fields.Many2one('step.variedad', string='Variedad', check_company=True, ondelete='restrict', index=True,
+    variety_id = fields.Many2one('step.variedad', string='Variedad', ondelete='restrict', index=True,
         help='Variedad de esta tarja. Reutiliza el maestro agrícola y se conserva al recibir el stock.')
 
     def _reception_variety(self):
@@ -226,8 +226,9 @@ class StepPackingPickingTagLine(models.Model):
             variety.check_access('read')
             if row.picking_id.fruit_species_id and variety.especie_id != row.picking_id.fruit_species_id:
                 raise ValidationError(_('La variedad de la tarja debe pertenecer a la especie de la recepción.'))
-            if row.variety_id:
-                row._check_company(['variety_id'])
+            company = row.picking_id.company_id or row.picking_id.picking_type_id.company_id
+            if variety.company_ids and company not in variety.company_ids:
+                raise ValidationError(_('La variedad debe estar habilitada para la empresa de la recepción.'))
 
     step_scale_profile_id = fields.Many2one(related="picking_id.step_scale_profile_id")
     step_scale_protocol = fields.Selection(related="picking_id.step_scale_protocol")

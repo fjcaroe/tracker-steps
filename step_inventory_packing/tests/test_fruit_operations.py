@@ -38,9 +38,10 @@ class TestFruitOperations(TransactionCase):
 
     def test_two_packed_varieties_and_legacy_migration(self):
         species = self.env['step.especie'].create({'name': 'QA152 especie', 'type_especie': 'frutal', 'group_especie': 'baya'})
+        group = self.env['step.grupo.variedad'].create({'name': 'QA152 grupo', 'especie_id': species.id})
         varieties = self.env['step.variedad'].create([
-            {'name': 'QA152 A', 'especie_id': species.id},
-            {'name': 'QA152 B', 'especie_id': species.id}])
+            {'name': 'QA152 A', 'especie_id': species.id, 'grupo_variedad_id': group.id},
+            {'name': 'QA152 B', 'especie_id': species.id, 'grupo_variedad_id': group.id}])
         packages = self._package('QA152-E-A') | self._package('QA152-E-B')
         picking = self.env['stock.picking'].create({
             'partner_id': self.producer.id, 'picking_type_id': self.warehouse.in_type_id.id,

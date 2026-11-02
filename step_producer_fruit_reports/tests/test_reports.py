@@ -1,12 +1,13 @@
 from uuid import uuid4
 from datetime import datetime
 from odoo import Command
-from odoo.tests.common import TransactionCase, new_test_user
+from odoo.tests.common import TransactionCase, new_test_user, tagged
 from odoo.exceptions import AccessError
 from odoo.tools import mute_logger
 from psycopg2 import IntegrityError
 
 
+@tagged('post_install', '-at_install')
 class FruitReportsCase(TransactionCase):
     def sample(self, kind='process', done=True):
         env=self.env(context=dict(self.env.context,no_reset_password=True,tracking_disable=True,mail_create_nosubscribe=True))
