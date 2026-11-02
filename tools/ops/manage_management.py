@@ -590,6 +590,8 @@ def main():
     base = ['sudo', '-u', user, '/usr/bin/python3.10', '/opt/odoo18/odoo-bin']
     if args.kind == 'sag-traceability' and args.environment == 'cerro':
         base[-1] = str(HERE / 'run_sag_cerro_upgrade.py')
+    if args.kind == 'reception-variety':
+        base[-1] = str(HERE / 'run_canonical_fruit_upgrade.py')
     options = ['-c', str(conf), '--no-http', '--http-interface=127.0.0.1', '--http-port=0', '--gevent-port=0', '--workers=0', '--max-cron-threads=0', '--without-demo=all']
     qa_db = 'MANAGEMENT_QA_' + args.environment.upper() + '_' + args.run_id
     if args.action == 'certify':
@@ -618,7 +620,7 @@ def main():
                 except OSError:
                     continue
                 for index, arg in enumerate(argv):
-                    if Path(arg).name == 'odoo-bin':
+                    if Path(arg).name in ('odoo-bin','run_sag_cerro_upgrade.py','run_canonical_fruit_upgrade.py'):
                         assert not any(option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init=')) for option in argv[index + 1:]), 'Concurrent Odoo upgrade'
         if args.kind == 'homepage':
             from verify_home_heading_http import capture_before
@@ -752,7 +754,7 @@ def main():
                 except OSError:
                     continue
                 for index, arg in enumerate(argv):
-                    if Path(arg).name in ('odoo-bin','run_sag_cerro_upgrade.py'):
+                    if Path(arg).name in ('odoo-bin','run_sag_cerro_upgrade.py','run_canonical_fruit_upgrade.py'):
                         assert not any(option in ('-u', '-i', '--update', '--init') or option.startswith(('--update=', '--init=')) for option in argv[index + 1:]), 'Concurrent upgrade PID ' + command.parent.name
             assert not release_root.exists(), 'Release already exists'
             release_root.mkdir(parents=True)

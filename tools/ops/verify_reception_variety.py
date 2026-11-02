@@ -11,6 +11,11 @@ try:
         module = env['ir.module.module'].search([('name', '=', name)])
         assert module.state == 'installed' and module.latest_version == version
         assert Path(importlib.import_module('odoo.addons.' + name).__file__).resolve().parent == Path(ROOT) / name
+    from preserve_fruit_constraints import LEGACY, CANONICAL
+    for table, column in LEGACY:
+        env.cr.execute("SELECT target.relname,c.convalidated FROM pg_constraint c JOIN pg_class source ON source.oid=c.conrelid JOIN pg_class target ON target.oid=c.confrelid JOIN pg_attribute a ON a.attrelid=source.oid AND a.attnum=ANY(c.conkey) WHERE c.contype='f' AND source.relname=%s AND a.attname=%s", (table,column))
+        assert env.cr.fetchall() == [(CANONICAL, True)]
+    print('MANAGEMENT_CANONICAL_FRUIT_FKS_OK')
     scoped = scoped_business_environment(env)
     previous = config['test_enable']; config['test_enable'] = True
     try:

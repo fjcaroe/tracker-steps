@@ -4,7 +4,7 @@ The installed unification addon overrides the base fields later in the graph.
 During an inventory upgrade Odoo otherwise briefly requests legacy targets.
 This adapter changes only those pending requests for existing validated FKs;
 it never drops constraints, remaps IDs, copies masters or weakens validation.
-It is installed only in the short-lived Cerro upgrade/verification process.
+It is installed only in the short-lived authorized upgrade/verification process.
 """
 CANONICAL = 'step_management_fruit_category'
 LEGACY = {
