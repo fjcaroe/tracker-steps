@@ -65,8 +65,8 @@ class SimpleReceptionCase(TransactionCase):
     def test_row_varieties_follow_native_process_stock(self):
         group = self.env['step.grupo.variedad'].create({'name': 'QA152 grupo', 'especie_id': self.species.id})
         a, b = self.env['step.variedad'].create([
-            {'name': 'QA152 A', 'especie_id': self.species.id, 'grupo_variedad_id': group.id},
-            {'name': 'QA152 B', 'especie_id': self.species.id, 'grupo_variedad_id': group.id}])
+            {'name': 'QA152 A', 'cod_variedad': 'QA152-A', 'especie_id': self.species.id, 'grupo_variedad_id': group.id},
+            {'name': 'QA152 B', 'cod_variedad': 'QA152-B', 'especie_id': self.species.id, 'grupo_variedad_id': group.id}])
         picking = self.receipt((160, 240))
         for row, variety in zip(picking.fruit_tag_line_ids, (a, b)):
             row.variety_id = variety
@@ -80,7 +80,7 @@ class SimpleReceptionCase(TransactionCase):
 
     def test_row_variety_defaults_and_species_validation(self):
         group = self.env['step.grupo.variedad'].create({'name': 'QA152 grupo', 'especie_id': self.species.id})
-        variety = self.env['step.variedad'].create({'name': 'QA152 legacy', 'especie_id': self.species.id, 'grupo_variedad_id': group.id})
+        variety = self.env['step.variedad'].create({'name': 'QA152 legacy', 'cod_variedad': 'QA152-LEGACY', 'especie_id': self.species.id, 'grupo_variedad_id': group.id})
         picking = self.receipt()
         picking.fruit_variety_id = variety
         row = picking.fruit_tag_line_ids.copy({'tag_number': 'QA152 COPY'})
@@ -92,7 +92,7 @@ class SimpleReceptionCase(TransactionCase):
         self.assertFalse(fresh._reception_variety())
         other = self.env['step.especie'].create({'name': 'QA152 otra', 'type_especie': 'frutal', 'group_especie': 'fruta_h'})
         other_group = self.env['step.grupo.variedad'].create({'name': 'QA152 otro grupo', 'especie_id': other.id})
-        foreign = self.env['step.variedad'].create({'name': 'QA152 otra', 'especie_id': other.id, 'grupo_variedad_id': other_group.id})
+        foreign = self.env['step.variedad'].create({'name': 'QA152 otra', 'cod_variedad': 'QA152-OTHER', 'especie_id': other.id, 'grupo_variedad_id': other_group.id})
         with self.assertRaises(ValidationError), self.cr.savepoint():
             fresh.variety_id = foreign
 

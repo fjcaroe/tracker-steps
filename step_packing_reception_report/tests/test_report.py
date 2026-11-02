@@ -15,7 +15,7 @@ class ReceiptReportCase(TransactionCase):
         return self.env['ir.actions.report']._render_qweb_html('stock.action_report_delivery',(picking or self.picking).ids)[0].decode()
 
     def test_receipt_prints_each_row_variety(self):
-        alternate = self.env['step.variedad'].create({'name': 'QA152 variedad alterna', 'especie_id': self.picking.fruit_species_id.id, 'grupo_variedad_id': self.picking.fruit_variety_id.grupo_variedad_id.id})
+        alternate = self.env['step.variedad'].create({'name': 'QA152 variedad alterna', 'cod_variedad': 'QA152-ALT', 'especie_id': self.picking.fruit_species_id.id, 'grupo_variedad_id': self.picking.fruit_variety_id.grupo_variedad_id.id})
         self.picking.fruit_tag_line_ids[1].variety_id = alternate
         tree = html.fromstring(self.render())
         rows = tree.xpath("//table[contains(@class,'step_receipt_pallets')]/tbody/tr")

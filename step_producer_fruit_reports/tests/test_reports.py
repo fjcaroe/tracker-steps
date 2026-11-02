@@ -32,7 +32,16 @@ class FruitReportsCase(TransactionCase):
             'fruit_tag_line_ids':[Command.create({'tag_number':tag.name,'package_id':tag.id,'product_id':product.id,
                 'packaging_id':packaging.id,'stock_lot_id':lot.id,'uom_id':product.uom_id.id,'quantity':qty,'kilos':qty*5,'box_count':qty}) for tag,qty in zip(tags,(10,20))]})
         if done:
-            picking.action_prepare_fruit_stock();picking.button_validate()
+            if kind == 'process':
+                # Full installed flow: one native operation, split into two tarjas.
+                move = env['stock.move'].create({'name':'QA T152 recepción', 'picking_id':picking.id,
+                    'product_id':product.id, 'product_uom':product.uom_id.id, 'product_uom_qty':30,
+                    'product_packaging_id':packaging.id, 'location_id':picking.location_id.id,
+                    'location_dest_id':picking.location_dest_id.id})
+                move._action_confirm(merge=False); move.quantity=30
+            else:
+                picking.action_prepare_fruit_stock()
+            picking.button_validate()
             assert picking.state=='done'
             picking.date_done=datetime(2026,11,30,15)
         env.flush_all()
