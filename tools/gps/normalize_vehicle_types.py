@@ -12,6 +12,7 @@ def run(*args,**kwargs):return subprocess.run(list(map(str,args)),check=True,**k
 def copied(plan):
  import dotenv
  dotenv.load_dotenv=lambda *a,**k:False
+ from app.main import app  # load the complete shared SQLAlchemy registry
  from app.db.session import SessionLocal
  from app.models.fleet import Tenant,Asset,Position,Assignment
  from app.routers.fleet import edit_asset,AssetDetails
