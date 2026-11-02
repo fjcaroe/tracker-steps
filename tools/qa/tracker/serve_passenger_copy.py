@@ -27,6 +27,6 @@ with SessionLocal() as db:
     passengers=[dict(id=str(uuid.uuid4()),name='Pasajero ficticio '+str(i),document='QA-'+str(i),boarding_stop_id=stops[0]['id'],alighting_stop_id=stops[1]['id'],seat=i) for i in (1,2,3)]
     service=ServiceIn.model_validate(dict(id=str(uuid.uuid4()),name='Servicio de copia',route_id=str(route.id),driver_user_id=user.id,stops=stops,passengers=passengers))
     result=create_service(service,Response(),db,user)
-    proof=Path(os.environ['PASSENGER_UI_PROOF']);proof.write_text(json.dumps(dict(token=create_access_token({'sub':str(user.id)}),user_id=user.id,service=result)));proof.chmod(0o600)
+    proof=Path(os.environ['PASSENGER_UI_PROOF']);proof.write_text(json.dumps(dict(token=create_access_token({'sub':str(user.id)}),user_id=user.id,service=result),default=str));proof.chmod(0o600)
 print('PASSENGER_COPY_SERVER_READY',flush=True)
 uvicorn.run(app,host='127.0.0.1',port=18012,log_level='warning')

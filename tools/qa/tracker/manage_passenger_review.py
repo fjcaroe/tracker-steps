@@ -30,7 +30,8 @@ if args.action=='cleanup':
 else:
     assert not meta.exists()
     assert not subprocess.check_output(['ss','-H','-ltn','sport = :18012']).strip()
-    root.mkdir(mode=0o755,parents=True,exist_ok=True);output=root/'qa';output.mkdir(mode=0o700)
+    root.mkdir(mode=0o755,parents=True,exist_ok=True);output=root/'qa';output.mkdir(mode=0o700,exist_ok=True)
+    assert not (output/'proof.json').exists(), 'Clean the prior private proof before restarting'
     postgres=pwd.getpwnam('postgres');os.chown(output,postgres.pw_uid,postgres.pw_gid)
     db='TRACKER_I10_UI_QA_'+datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')
     dump=root/'source.dump'
