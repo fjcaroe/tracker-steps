@@ -13,6 +13,9 @@ import { getRoadRoute } from "../demo/roadRoutes";
 import type { DemoField, DemoVehicle, GeoPoint } from "../demo/scenario";
 
 type OperationsMapProps = {
+  mapType?: 'roadmap' | 'satellite';
+  singleVehicleZoom?: number;
+  gestureHandling?: 'greedy' | 'cooperative';
   zones?: Zone[];
   onSelectZone?: (id: string) => void;
   fields: DemoField[];
@@ -64,6 +67,9 @@ export default function OperationsMap({
   onUserInteracted,
   markerLabels,
   markerTypes,
+  mapType = 'satellite',
+  singleVehicleZoom,
+  gestureHandling = 'greedy',
 }: OperationsMapProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: MAPS_LOADER_ID,
@@ -84,10 +90,11 @@ export default function OperationsMap({
 
   const fitScenario = useCallback((instance: google.maps.Map) => {
     if (!fieldBounds.length) return;
+    if(fieldBounds.length===1&&singleVehicleZoom){instance.setCenter(fieldBounds[0]);instance.setZoom(singleVehicleZoom);return;}
     const bounds = new google.maps.LatLngBounds();
     fieldBounds.forEach((point) => bounds.extend(point));
     instance.fitBounds(bounds, compact ? 34 : 58);
-  }, [compact, fieldBounds]);
+  }, [compact, fieldBounds, singleVehicleZoom]);
 
   const handleLoad = useCallback((instance: google.maps.Map) => {
     setMap(instance);
@@ -136,11 +143,11 @@ export default function OperationsMap({
       onClick={() => onSelectVehicle(null)}
       onDragStart={onUserInteracted}
       options={{
-        mapTypeId: "satellite",
+        mapTypeId: mapType,
         disableDefaultUI: true,
         zoomControl: true,
-        fullscreenControl: true,
-        gestureHandling: "greedy",
+        fullscreenControl: !singleVehicleZoom,
+        gestureHandling,
         clickableIcons: false,
         tilt: 0,
       }}

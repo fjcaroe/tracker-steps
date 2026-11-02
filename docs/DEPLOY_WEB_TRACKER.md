@@ -1,5 +1,34 @@
 # Cómo desplegar Web Tracker a producción
 
+## Interior de Tracker para teléfonos — 02-11-2026
+
+La entrada `/tracker` ofrece Vehículo, Recorridos y Arranque, con la paleta del
+acceso. También los administradores usan esta entrada y eligen su vehículo;
+Administrar flota abre las herramientas existentes. Se conserva la selección
+por UUID en la consulta, entre pestañas y al recargar. Los usuarios limitados
+conservan exclusivamente su alcance autorizado por el servidor.
+
+La ubicación abre Google en vista de calles y zoom de contexto, con botón para
+centrar/actualizar y gestos que permiten desplazar la página en el teléfono.
+Se muestran fecha, señal, velocidad y los últimos datos de alimentación/ACC;
+una posición antigua conserva su advertencia y no se convierte en velocidad cero.
+Recorridos integra el explorador en la página, inicia en Hoy (calendario local)
+y conserva filtros avanzados, exportación GPX, reproducción y discontinuidades.
+El diálogo de historial de la administración sigue disponible.
+
+Arranque muestra la última comprobación de terreno, distingue órdenes pendientes
+y mantiene los controles físicos separados de las alertas digitales. Alertas
+e incidentes es una sección secundaria desplegable. No cambian API, permisos,
+receptor, firmware ni comprobaciones para emitir una orden. Las pruebas de los
+dos diálogos interceptan toda solicitud; nunca envían órdenes físicas reales.
+
+`mobile-interior.cjs` ensaya móvil/escritorio, permisos de consulta, selección
+de vehículo y recarga, historial integrado, GPX, reproducción, GPS
+desconectado, confirmación obligatoria y disponibilidad de bloqueo/restitución.
+Se conservan los 17 casos de cálculo de recorridos y métricas. Publicar mediante
+`deploy_tracker_frontend.py`: copia fresca, Desarrollo y Cerro con el mismo
+dist, respaldo y bloqueo. No cambia Odoo ni la capacitación de QA-Cerro.
+
 ## Entrada independiente de Tracker — 02-11-2026
 
 `/tracker` sirve el mismo paquete autenticado de Web Tracker, con acceso propio

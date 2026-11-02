@@ -45,7 +45,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
    await page.getByLabel('Correo o usuario',{exact:true}).fill(codes[0]);
    await page.getByLabel('Contraseña',{exact:true}).fill(codes[1]);await page.getByRole('button',{name:'Entrar a mi Tracker',exact:true}).click();try{await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).waitFor();}catch{await page.screenshot({path:path.join(out,'login-failure.png'),fullPage:true});throw Error('Preview access failed; url='+page.url()+' alert='+await page.getByRole('alert').allTextContents());}
    const scoped=await page.evaluate(async()=>{const r=await fetch('/steps_tracker/api/fleet/snapshot');return r.json();});assert.equal(scoped.total,1);
-   await page.screenshot({path:path.join(out,'authenticated-mobile.png'),fullPage:true});await page.getByRole('link',{name:'Cerrar sesión'}).click();await page.getByRole('heading',{name:'Todo bajo control.'}).waitFor();
+   await page.screenshot({path:path.join(out,'authenticated-mobile.png'),fullPage:true});await page.getByLabel('Mi cuenta',{exact:true}).click();await page.getByRole('link',{name:'Cerrar sesión'}).click();await page.getByRole('heading',{name:'Todo bajo control.'}).waitFor();
   }
   fs.writeFileSync(path.join(out,'proof.json'),JSON.stringify({mode,responsive:true,native_csrf:true,invalid_login_inline:true,mfa:mode==='fixture',real_preview_login:!!accessFile,logout:!!accessFile}));console.log('TRACKER_ENTRY_BROWSER_OK mode='+mode);
  }finally{if(mode==='real'&&context)await context.request.get(origin+'/web/session/logout?redirect=/tracker').catch(()=>{});await browser.close();if(server)server.close();}
