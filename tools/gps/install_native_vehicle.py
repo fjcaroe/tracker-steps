@@ -58,4 +58,4 @@ if facts.get('configure_user'):
 if new:assert not env['fleet.vehicle.odometer'].search_count([('vehicle_id','=',vehicle.id)]),'No physical odometer reading was supplied'
 result=dict(vehicle_id=vehicle.id,model_id=model.id,brand_id=brand.id,link_id=link.id,asset_id=link.asset_id,company_id=company.id,native_fields_verified=True,new_vehicle=new,odometer_not_invented=True)
 if driver:result.update(driver_user_id=driver.id,driver_partner_id=driver.partner_id.id,user_scope_verified=bool(facts.get('configure_user')))
-Path(os.environ['INSTALLATION_RESULT']).write_text(json.dumps(result));env.cr.commit();print('INSTALLATION_NATIVE_VEHICLE_OK qa='+str(qa))
+Path(os.environ['INSTALLATION_RESULT']).write_text(json.dumps(result));env.cr.commit();env.registry.signal_changes();print('INSTALLATION_NATIVE_VEHICLE_OK qa='+str(qa))
