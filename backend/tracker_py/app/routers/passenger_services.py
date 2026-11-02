@@ -2,7 +2,8 @@
 import hashlib
 import json
 import uuid
-from datetime import timezone
+from datetime import datetime, timedelta, timezone
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
 from sqlalchemy.exc import IntegrityError
@@ -13,7 +14,7 @@ from app.models.users import User
 from app.models.machines import Machine
 from app.models.cost_centers import CostCenter
 from app.models.mobile import MobileRoute
-from app.models.passenger_services import PassengerService, ServiceStop, ServicePassenger
+from app.models.passenger_services import PassengerService, ServiceStop, ServicePassenger, PassengerEvent
 
 router = APIRouter(prefix='/mobile/services', tags=['passenger-services'])
 
@@ -184,3 +185,100 @@ def list_services(response: Response, mine: bool=True, limit: int=Query(50,ge=1,
 def get_service(service_id: uuid.UUID,response: Response,db: Session=Depends(get_db),current: User=Depends(get_current_user)):
     response.headers['Cache-Control']='no-store'
     return service_out(db,authorized_service(db,current,service_id))
+
+
+class EventIn(Strict):
+    id: uuid.UUID
+    passenger_id: uuid.UUID
+    kind: Literal['boarded', 'alighted', 'no_show']
+    expected_version: int = Field(ge=0, strict=True)
+    occurred_at: AwareDatetime
+    lat: float | None = Field(None, ge=-90, le=90, allow_inf_nan=False)
+    lon: float | None = Field(None, ge=-180, le=180, allow_inf_nan=False)
+    accuracy_m: float | None = Field(None, ge=0, allow_inf_nan=False)
+
+    @model_validator(mode='after')
+    def location(self):
+        if (self.lat is None) != (self.lon is None) or (self.lat is None and self.accuracy_m is not None):
+            raise ValueError('Indique coordenadas juntas o registre sin ubicación.')
+        return self
+
+
+def event_rows(db, service_id):
+    return db.query(PassengerEvent).filter_by(service_id=service_id).order_by(PassengerEvent.sequence).all()
+
+
+def passenger_states(events):
+    return {str(e.passenger_id): e.kind for e in events}
+
+
+def manifest_out(db, row):
+    result = service_out(db, row)
+    events = event_rows(db, row.id)
+    states = passenger_states(events)
+    result['manifest_version'] = len(events)
+    result['occupied'] = sum(state == 'boarded' for state in states.values())
+    for passenger in result['passengers']:
+        passenger['state'] = states.get(passenger['id'], 'pending')
+    result['events'] = [dict(id=str(e.id), passenger_id=str(e.passenger_id), kind=e.kind,
+                             sequence=e.sequence, occurred_at=e.occurred_at, received_at=e.received_at,
+                             lat=e.lat, lon=e.lon, accuracy_m=e.accuracy_m, actor_id=e.actor_id) for e in events]
+    result['sync']['schema_version'] = 2
+    result['sync'].pop('content_hash')
+    result['sync']['content_hash'] = hashlib.sha256(json.dumps(result, sort_keys=True, default=str).encode()).hexdigest()
+    return result
+
+
+@router.get('/{service_id}/manifest')
+def get_manifest(service_id: uuid.UUID, response: Response, db: Session=Depends(get_db), current: User=Depends(get_current_user)):
+    response.headers['Cache-Control'] = 'no-store'
+    return manifest_out(db, authorized_service(db, current, service_id))
+
+
+@router.post('/{service_id}/events')
+def record_event(service_id: uuid.UUID, payload: EventIn, response: Response,
+                 db: Session=Depends(get_db), current: User=Depends(get_current_user)):
+    response.headers['Cache-Control'] = 'no-store'
+    row = authorized_service(db, current, service_id)
+    # Serialize all writers of a manifest, including two phones belonging to the driver.
+    db.query(PassengerService).filter_by(id=row.id).with_for_update().one()
+    db.refresh(row)
+    authorized_service(db, current, service_id)
+    payload_hash = hashlib.sha256(payload.model_dump_json().encode()).hexdigest()
+    existing = db.get(PassengerEvent, payload.id)
+    if existing:
+        if existing.service_id != row.id or existing.actor_id != current.id or existing.payload_hash != payload_hash:
+            raise HTTPException(409, 'El código del evento ya corresponde a otro registro. No se ha aplicado.')
+        return manifest_out(db, row)
+    if db.get(MobileRoute, row.route_id).status == 'cancelled':
+        raise HTTPException(409, 'La ruta fue cancelada. Conserva los pendientes y consulta al supervisor.')
+    now = datetime.now(timezone.utc)
+    if payload.occurred_at > now + timedelta(minutes=5) or payload.occurred_at < now - timedelta(days=7):
+        raise HTTPException(422, 'La hora debe estar dentro de los últimos siete días y no en el futuro.')
+    passengers = db.query(ServicePassenger).filter_by(service_id=row.id).all()
+    passenger = next((p for p in passengers if p.id == payload.passenger_id), None)
+    if passenger is None:
+        raise HTTPException(422, 'El pasajero no pertenece a este servicio.')
+    events = event_rows(db, row.id)
+    if payload.expected_version != len(events):
+        raise HTTPException(409, 'El manifiesto cambió en otro dispositivo. Actualiza y revisa los pendientes antes de continuar.')
+    states = passenger_states(events)
+    state = states.get(str(passenger.id), 'pending')
+    allowed = {'pending': {'boarded', 'no_show'}, 'no_show': {'boarded'}, 'boarded': {'alighted'}, 'alighted': set()}
+    if payload.kind not in allowed[state]:
+        raise HTTPException(409, 'El estado del pasajero cambió. Actualiza y revisa el registro.')
+    if payload.kind == 'boarded':
+        aboard = [p for p in passengers if states.get(str(p.id)) == 'boarded']
+        if len(aboard) >= row.capacity:
+            raise HTTPException(409, 'Capacidad completa. Registra los descensos antes de una nueva subida.')
+        if passenger.seat is not None and any(p.seat == passenger.seat for p in aboard):
+            raise HTTPException(409, 'El asiento aún está ocupado. Registra primero el descenso correspondiente.')
+    db.add(PassengerEvent(id=payload.id, service_id=row.id, passenger_id=passenger.id, sequence=len(events)+1,
+                         kind=payload.kind, occurred_at=payload.occurred_at, lat=payload.lat, lon=payload.lon,
+                         accuracy_m=payload.accuracy_m, actor_id=current.id, payload_hash=payload_hash))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(409, 'El manifiesto recibió otro registro. Actualiza y revisa antes de reintentar.')
+    return manifest_out(db, row)

@@ -19,6 +19,9 @@ key = values.get('VITE_GOOGLE_MAPS_API_KEY')
 assert key and '\n' not in key and key.startswith('AIza'), 'Existing browser Maps key unavailable'
 envfile = source / 'mobile/.env.tracker.local'
 envfile.write_text('VITE_GOOGLE_MAPS_API_KEY=' + key + '\n')
+if len(sys.argv) > 2:
+    assert sys.argv[2] == '/tracker-dev-api', 'Only the explicit Development API override is supported'
+    with envfile.open('a') as stream: stream.write('VITE_API_BASE_URL=/tracker-dev-api\n')
 os.chmod(envfile, 0o600)
 for command in (['npm','ci','--no-audit','--no-fund'], ['npm','test'], ['npm','run','build:tracker']):
     subprocess.run(command, cwd=source/'mobile', check=True)

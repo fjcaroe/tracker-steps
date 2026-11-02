@@ -57,7 +57,7 @@ function AssignedRoutes() {
   );
 }
 
-export default function Tasks({ onStart, onOpenJourney }: { onStart: (t: Task) => void; onOpenJourney: () => void }) {
+export default function Tasks({ onStart, onOpenJourney, userId }: { onStart: (t: Task) => void; onOpenJourney: () => void; userId: number }) {
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [names, setNames] = useState<{ machines: Machine[]; labors: Labor[]; fields: Field[] }>({ machines: [], labors: [], fields: [] });
   const [error, setError] = useState('');
@@ -92,7 +92,7 @@ export default function Tasks({ onStart, onOpenJourney }: { onStart: (t: Task) =
       <h1>Hoy</h1>
       <TodayJourney onOpen={onOpenJourney} />
       <AssignedRoutes />
-      <MyService />
+      <MyService userId={userId} />
       <h2>Mis tareas</h2>
       {perm === 'default' && <button onClick={() => void Notification.requestPermission().then(setPerm)}>Activar recordatorios</button>}
       {error && <section className="card"><p className="error" role="alert">No se pudieron cargar tus tareas: {error}</p><button onClick={load}>Reintentar</button></section>}

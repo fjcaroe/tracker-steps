@@ -9,7 +9,7 @@ from app.models.work_orders import WorkOrder
 from app.models.sessions import TrackingSession, TrackingPoint, TrackingLot
 from app.models.users import User, UserCostCenter
 from app.models.mobile import MobileIncident, MobileChecklist, MobileExpense, MobileDevice, MobileDiagnostic, MobileRoute
-from app.models.passenger_services import PassengerService, ServiceStop, ServicePassenger
+from app.models.passenger_services import PassengerService, ServiceStop, ServicePassenger, PassengerEvent
 
 __all__ = [
     "TrackingStatus",

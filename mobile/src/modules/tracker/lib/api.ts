@@ -3,7 +3,7 @@ import { platformFetch } from '../../../platform/http';
 const TOKEN_KEY = 'steps_movil_token';
 export const API_BASE = ((import.meta.env.VITE_API_BASE_URL as string | undefined) || 'https://stepsapp.cl/tracker-steps').replace(/\/+$/, '');
 
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.6.0';
 
 export class ApiError extends Error {
   status: number;

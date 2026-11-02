@@ -154,10 +154,15 @@ def test_incident_grouping_ack_close_audit_and_negative_commands(fleet):
     assert result['state'] == 'failed'
     assert client.post('/v1/security/commands', headers=headers(), json=command).json()['id'] == result['id']
     assert client.post('/v1/security/commands/'+result['id']+'/approve', headers=headers(user='second')).status_code == 409
+    previous_ids = {entry['id'] for entry in client.get('/v1/security/incidents/'+incident, headers=headers()).json()['timeline']}
     for state in ('acknowledged', 'closed'):
         response = client.patch('/v1/security/incidents/'+incident, headers=headers(), json={'state': state, 'reason': 'Falsa alarma comprobada'})
         assert response.status_code == 200
-        assert response.json()['timeline'][-1]['action'] == state
+        # Windows clocks may give consecutive audits identical timestamps; UUID
+        # tie-breaking does not imply insertion order. Check the actual new audit.
+        added = [entry for entry in response.json()['timeline'] if entry['id'] not in previous_ids]
+        assert len(added) == 1 and added[0]['action'] == state
+        previous_ids.update(entry['id'] for entry in added)
     with factory() as db:
         assert db.query(Command).count() == 1
         assert db.query(Audit).filter_by(action='command_denied').count() == 2

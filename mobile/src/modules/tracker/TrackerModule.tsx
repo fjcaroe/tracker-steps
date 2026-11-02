@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { loginWithOdoo, me, refreshToken, setUnauthorizedHandler, tokenStore, type Task, type User } from './lib/api';
 import { activeStore } from './lib/queue';
 import { applySettings, loadSettings, saveSettings } from './lib/settings';
@@ -12,6 +12,7 @@ import Profile, { HelpSheet } from './screens/Profile';
 import Supervisor from './screens/Supervisor';
 import OwnerGate from './screens/OwnerGate';
 import HardwareFleet from './screens/HardwareFleet';
+import { passengerStore } from './lib/passengers';
 
 type Tab = 'journey' | 'tasks' | 'history' | 'supervisor' | 'profile' | 'gps';
 const ALL_TABS: { id: Tab; label: string; icon: string; admin?: boolean }[] = [
@@ -43,7 +44,9 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
   const [help, setHelp] = useState(false);
   const [owner, setOwner] = useState<OwnerState>({ kind: 'ok' });
 
-  const logout = useCallback(() => { tokenStore.set(null); setUser(null); }, []);
+  const userId = useRef<number | null>(null);
+  userId.current = user?.id ?? null;
+  const logout = useCallback(() => { if (userId.current) void passengerStore.forget(userId.current).catch(() => {}); tokenStore.set(null); setUser(null); }, []);
 
   useEffect(() => { applySettings(loadSettings()); }, []);
   useEffect(() => {
@@ -72,8 +75,9 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
 
   const closeHelp = () => { setHelp(false); saveSettings({ ...loadSettings(), seenHelp: true }); };
   const startTask = (t: Task) => { setPreset(t); setTab('journey'); };
-  const safeLogout = () => {
-    const pending = pendingTotal();
+  const safeLogout = async () => {
+    const passengerPending = user ? (await passengerStore.read(user.id).catch(() => [])).reduce((n, row) => n + row.queue.length, 0) : 0;
+    const pending = pendingTotal() + passengerPending;
     const lines = [activeStore.get() ? 'Tienes una jornada en curso: seguirá abierta hasta que la cierres.' : '', pending ? `Hay ${pending} elementos sin enviar: se enviarán cuando vuelvas a entrar con señal.` : ''].filter(Boolean);
     if (lines.length && !confirm(`${lines.join('\n')}\n¿Salir igual?`)) return;
     logout();
@@ -97,7 +101,7 @@ export default function TrackerModule({ onExit }: { onExit: () => void }) {
         {/* Keep the journey watcher alive while viewing tasks/history/profile. */}
         <div hidden={tab !== 'journey'}><Journey online={online} preset={preset} onPresetUsed={() => setPreset(null)} /></div>
         {tab === 'gps' && <HardwareFleet onBack={()=>setTab('journey')}/>}
-        {tab === 'tasks' && <Tasks onStart={startTask} onOpenJourney={() => setTab('journey')} />}
+        {tab === 'tasks' && <Tasks key={user.id} userId={user.id} onStart={startTask} onOpenJourney={() => setTab('journey')} />}
         {tab === 'history' && <History />}
         {tab === 'supervisor' && user.is_admin && <Supervisor />}
         {tab === 'profile' && <Profile user={user} onLogout={safeLogout} />}
