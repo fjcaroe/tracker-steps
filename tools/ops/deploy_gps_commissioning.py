@@ -108,7 +108,7 @@ def tracker_entry_locations(content,target,scope):
     if start in content:
         assert content.count(start)==content.count(end)==1
         content=re.sub(re.escape(start)+r'.*?'+re.escape(end),'',content,flags=re.S)
-    else:assert not re.search(r'location\s+[^\n{]*\s/tracker(?:[/\s{])',content),'Unknown Tracker route requires review'
+    else:assert not re.search(r'location\s+(?:(?:=|\^~|~\*?)\s+)?/tracker(?:[/\s{])',content),'Unknown Tracker route requires review'
     if scope=='cerro':
         content=content.replace('location = /truck { return 301 /truck/; }','location = /truck { return 302 /tracker$is_args$args; }')
         if 'location = /truck/ {' not in content:content+='\nlocation = /truck/ { return 302 /tracker$is_args$args; }\n'
