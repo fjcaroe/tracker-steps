@@ -11,7 +11,8 @@ def verify_flow(root, scoped, row_varieties=False):
     producer = setup['res.partner'].create({'name': 'QA T120 flujo privado', 'is_productor': True})
     fundo = setup['step.fundo'].create({'name': 'QA T120 flujo privado', 'partner_id': producer.id,
                                        'company_id': company.id})
-    species = setup['step.especie'].search([], limit=1)
+    species = (setup['step.especie'].create({'name':'QA152 especie privada', 'type_especie':'frutal', 'group_especie':'fruta_h'})
+               if row_varieties else setup['step.especie'].search([], limit=1))
     group = setup['step.grupo.variedad'].create({'name':'QA152 grupo', 'especie_id':species.id}) if row_varieties else None
     varieties = setup['step.variedad'].create([{'name': 'QA152 A', 'especie_id': species.id, 'grupo_variedad_id': group.id}, {'name': 'QA152 B', 'especie_id': species.id, 'grupo_variedad_id': group.id}]) if row_varieties else None
     kg = setup.ref('uom.product_uom_kgm')
