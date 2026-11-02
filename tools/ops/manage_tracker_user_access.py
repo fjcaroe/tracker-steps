@@ -1,5 +1,6 @@
 """Exact overlays, destination-copy QA and scoped Tracker access publication."""
-import argparse, ast, configparser, fcntl, hashlib, json, os, pwd, shutil, subprocess, time
+import argparse, ast, configparser, fcntl, hashlib, json, os, pwd, shutil, subprocess, time, sqlite3
+from urllib.request import urlopen
 from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import contextmanager
@@ -18,9 +19,59 @@ API_FILES = ('main.py','models/fleet.py','routers/fleet.py','routers/fleet_confi
 def api_files(root):
  return {f:sha(root/f) if (root/f).exists() else None for f in API_FILES}
 
+def ready_api(port):
+ for _ in range(40):
+  try:
+   with urlopen('http://127.0.0.1:'+str(port)+'/openapi.json',timeout=2) as r:paths=json.load(r)['paths']
+   assert '/mobile/services' in paths and '/v1/assets/{asset_id}/starter-control/commands' in paths
+   return
+  except (OSError,AssertionError):time.sleep(.5)
+ raise RuntimeError('API release did not become ready')
+
 def migration(source, db):
  path=source/'backend/tracker_py/migrations/20261102_starter_relay.up.sql'
  if path.exists():query(db,path.read_text())
+
+def dist_files(source):
+ return {str(p.relative_to(source/'dist')):hashlib.sha256(p.read_bytes()).hexdigest() for p in (source/'dist').rglob('*') if p.is_file()}
+
+def snippet(which):
+ return Path('/etc/nginx/snippets/steps-tracker-'+('dev' if which=='development' else 'cerro')+'-gps.conf')
+
+def frontend(source, which, commit, proof, backup):
+ target=Path('/var/www/steps-tracker-releases')/commit
+ if not target.exists():shutil.copytree(source/'dist',target)
+ for p in [target,*target.rglob('*')]:p.chmod(0o755 if p.is_dir() else 0o644)
+ assert dist_files(source)==proof['dist']
+ conf=snippet(which);assert sha(conf)==proof['snippets'][which],'Concurrent frontend change';old=conf.read_text();roots=set(re.findall(r'/var/www/steps-tracker-releases/[a-f0-9]{40}',old));assert len(roots)==1
+ shutil.copy2(conf,backup/(which+'-frontend.conf'));conf.write_text(old.replace(next(iter(roots)),str(target)));run('nginx','-t');run('systemctl','reload','nginx')
+ host='desarrollo.stepsapp.cl' if which=='development' else 'cerroelplomo.stepsapp.cl'
+ for _ in range(30):
+  with urlopen('https://'+host+'/web_tracker/',timeout=15) as r:matched=r.read()==(source/'dist/index.html').read_bytes()
+  if matched:break
+  time.sleep(.5)
+ assert matched
+ for name,digest in proof['dist'].items():
+  with urlopen('https://'+host+'/web_tracker/'+name,timeout=15) as r:assert hashlib.sha256(r.read()).hexdigest()==digest
+
+def receiver_release(source,commit,proof,backup):
+ current=Path('/opt/steps-coban/current');assert tree(current.resolve()/'receivers')==proof['receiver_before']
+ cfg=Path('/etc/steps-coban/config.json');unit=Path('/etc/systemd/system/steps-coban.service')
+ assert sha(cfg)==proof['receiver_config'] and sha(unit)==proof['receiver_unit']
+ shutil.copy2(cfg,backup/'receiver-config.json');shutil.copy2(unit,backup/'receiver-unit.service');(backup/'receiver-link.txt').write_text(str(current.resolve()))
+ release=Path('/opt/steps-coban/releases')/commit
+ if not release.exists():shutil.copytree(source/'receivers',release/'receivers',ignore=shutil.ignore_patterns('__pycache__'))
+ for p in [release,*release.rglob('*')]:p.chmod(0o755 if p.is_dir() else 0o644)
+ run('systemctl','stop','steps-coban')
+ try:
+  config_data=json.loads(cfg.read_text())
+  with sqlite3.connect('file:'+config_data['database']+'?mode=ro',uri=True) as original,sqlite3.connect(backup/'receiver-inbox.sqlite') as saved:original.backup(saved)
+  api_user=subprocess.check_output(['systemctl','show','tracker-steps-api','-p','User','--value'],text=True).strip()
+  config_data.update(control_socket='/run/steps-coban/control.sock',control_uid=pwd.getpwnam(api_user).pw_uid);cfg.write_text(json.dumps(config_data,indent=2))
+  shutil.copy2(source/'receivers/coban/steps-coban.service',unit);run('systemctl','daemon-reload');current.unlink();current.symlink_to(release,target_is_directory=True)
+ finally:run('systemctl','start','steps-coban')
+ run('systemctl','is-active','--quiet','steps-coban')
+ assert tree(current.resolve()/'receivers')==tree(source/'receivers')
 
 @contextmanager
 def qa_socket(which, database, stage):
@@ -75,7 +126,7 @@ def upgrade(which, db, conf, stage):
  assert query(db,"SELECT count(*) FROM ir_module_module WHERE name IN ('step_tracker_portal','step_tracker_vehicle_access') AND state='installed'")=='2'
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','development','production','configure']);p.add_argument('source',type=Path);p.add_argument('facts',type=Path);a=p.parse_args();assert os.geteuid()==0;os.umask(0o077)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('action',choices=['qa','development','production','configure','configure-development']);p.add_argument('source',type=Path);p.add_argument('facts',type=Path);a=p.parse_args();assert os.geteuid()==0;os.umask(0o077)
  source=a.source.resolve();commit=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip();assert not subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=no'],text=True).strip()
  stage=BASE/commit;stage.mkdir(parents=True,exist_ok=True);stage.chmod(0o700);facts=json.loads(a.facts.read_text());overlay=Path('/opt/steps-tracker-access/releases')/commit/'addons'
  if not overlay.exists():
@@ -87,7 +138,8 @@ def main():
  with open('/run/lock/steps-environments.lock','a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX)
   if a.action=='qa':
-   assert not (stage/'qa.json').exists();proof={'commit':commit,'facts_sha':sha(a.facts),'environments':{},'fleet_before':sha(API/'app/routers/fleet.py'),'fleet_after':sha(source/'backend/tracker_py/app/routers/fleet.py'), 'api_before':api_files(API/'app'), 'api_after':api_files(source/'backend/tracker_py/app')}
+   assert not (stage/'qa.json').exists();proof={'commit':commit,'facts_sha':sha(a.facts),'environments':{},'fleet_before':sha(API/'app/routers/fleet.py'),'fleet_after':sha(source/'backend/tracker_py/app/routers/fleet.py'), 'api_before':api_files(API/'app'), 'api_after':api_files(source/'backend/tracker_py/app'), 'dist':dist_files(source),'snippets':{k:sha(snippet(k)) for k in ('development','cerro')}, 'receiver_before':tree(Path('/opt/steps-coban/current').resolve()/'receivers'),'receiver_config':sha('/etc/steps-coban/config.json'),'receiver_unit':sha('/etc/systemd/system/steps-coban.service')}
+   assert 'index.html' in proof['dist']
    for which,(db,user,conf,service) in ENVS.items():
     print('TRACKER_ACCESS_COPY '+which,flush=True);proof['environments'][which]=baseline(which);backup=stage/(which+'.dump');dump(db,backup);c=config(which);clone='TRACKER_ACCESS_QA_'+which.replace('-','_')+'_'+str(int(time.time()));run('sudo','-u','postgres','createdb','-O',c['options']['db_user'],clone)
     temp=Path('/tmp/tracker-access-qa-'+which+'.conf');fp=Path('/tmp/tracker-access-qa-'+which+'.json')
@@ -116,11 +168,11 @@ def main():
    with (stage/'api-tests.log').open('wb') as log:
     run('env','DATABASE_URL=sqlite://','JWT_SECRET=copy-only','PYTHONPATH='+str(source/'backend/tracker_py')+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python','-m','pytest','tests/test_fleet.py','tests/test_vehicle_scope.py','tests/test_receiver.py','tests/test_starter_control.py','-q',cwd=source/'backend/tracker_py',stdout=log,stderr=subprocess.STDOUT)
    with (stage/'receiver-tests.log').open('wb') as log:
-    run(API/'.venv/bin/python','-m','pytest','receivers/coban/test_receiver.py','receivers/coban/test_starter.py','-q',cwd=source,stdout=log,stderr=subprocess.STDOUT)
+    run('env','PYTHONPATH='+str(source)+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python','-m','pytest','receivers/coban/test_receiver.py','receivers/coban/test_starter.py','-q',cwd=source,stdout=log,stderr=subprocess.STDOUT)
    (stage/'qa.json').write_text(json.dumps(proof,indent=2));print('TRACKER_ACCESS_QA_OK',flush=True);return
   proof=json.loads((stage/'qa.json').read_text());assert proof['commit']==commit and proof['facts_sha']==sha(a.facts)
-  if a.action=='configure':
-   for which in ('development','cerro'):
+  if a.action in ('configure','configure-development'):
+   for which in (('development',) if a.action=='configure-development' else ('development','cerro')):
     assert (stage/('development.json' if which=='development' else 'production.json')).exists()
     dump(ENVS[which][0],stage/(which+'-pre-users-'+str(int(time.time()))+'.dump'))
     fp=Path('/tmp/tracker-access-configure-'+which+'.json');fp.write_text(json.dumps(facts[which]));fp.chmod(0o600)
@@ -139,9 +191,12 @@ def main():
     try:
      migration(source,db)
      for name in API_FILES:
-      if (source/'backend/tracker_py/app'/name).exists():shutil.copyfile(source/'backend/tracker_py/app'/name,target/name)
+      if (source/'backend/tracker_py/app'/name).exists():
+       shutil.copyfile(source/'backend/tracker_py/app'/name,target/name);(target/name).chmod(0o644)
     finally:run('systemctl','start',service)
     run('systemctl','is-active','--quiet',service)
+    ready_api(8000 if service=='tracker-steps-api' else 8012)
+   receiver_release(source,commit,proof,backup)
   assert sha(API/'app/routers/fleet.py')==proof['fleet_after']
   for which in scopes:
    db,user,conf,service=ENVS[which];run('systemctl','stop',service)
@@ -151,5 +206,6 @@ def main():
     upgrade(which,db,conf,stage)
    finally:run('systemctl','start',service)
    run('systemctl','is-active','--quiet',service)
+  frontend(source,'development' if a.action=='development' else 'cerro',commit,proof,backup)
   (stage/(a.action+'.json')).write_text(json.dumps(dict(commit=commit,backup=str(backup),scopes=scopes),indent=2));print('TRACKER_ACCESS_PUBLISHED '+a.action,flush=True)
 if __name__=='__main__':main()

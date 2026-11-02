@@ -2,7 +2,7 @@
 import json, os
 from pathlib import Path
 from odoo import Command
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, AccessDenied
 from lxml import etree
 
 mode = os.environ['TRACKER_ACCESS_MODE']
@@ -90,6 +90,17 @@ elif mode == 'qa':
     assert limited._tracker_portal_access(company)['asset_ids'] == []
     assert not env['fleet.vehicle'].with_user(limited).with_context(**ctx).search([])
     limited.write({'tracker_vehicle_ids': [Command.set(vehicle.ids)]})
+    if 'tracker_starter_control' in limited._fields:
+        limited.write({'tracker_starter_control':True, 'tracker_control_preview':False})
+        assert limited._tracker_portal_access(company)['starter_control']
+        limited.with_user(limited)._check_credentials({'type':'password','password':'qa-copy-only'}, {'interactive':True})
+        try:
+            limited.with_user(limited)._check_credentials({'type':'password','password':'wrong-copy-password'}, {'interactive':True})
+            raise AssertionError('Bad reauthentication succeeded')
+        except AccessDenied:
+            pass
+        limited.write({'tracker_control_preview':True})
+        assert not limited._tracker_portal_access(company)['starter_control']
     arch = env['res.users'].get_view(env.ref('base.view_users_form').id, 'form')['arch']
     assert etree.fromstring(arch.encode()).xpath('//field[@name="tracker_vehicle_ids"]')
     assert env.ref('step_tracker_portal.menu_fleet').action.url.endswith('#live')

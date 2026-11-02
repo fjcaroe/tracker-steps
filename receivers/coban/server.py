@@ -129,7 +129,7 @@ def poll_configuration(store,config):
         try:
             issuer,company=target['issuer'],target['company_id']
             imeis=[imei for imei,route in routes.items() if route['company_id']==company and route['issuer']==issuer]
-            request=Request(config['api']+'/v1/receiver/poll',data=json.dumps({'release':'coban-personal-split-1','observations':store.observations(imeis)}).encode(),headers={
+            request=Request(config['api']+'/v1/receiver/poll',data=json.dumps({'release':'coban-starter-supervised-1','observations':store.observations(imeis)}).encode(),headers={
                 'Authorization':'Bearer '+token(issuer,company,keys[issuer]),'Content-Type':'application/json'})
             with urlopen(request,timeout=8) as response:result=json.load(response)
             replacement={row['imei']:{k:row[k] for k in ('issuer','company_id','device_id','mode')} for row in result['devices']}
