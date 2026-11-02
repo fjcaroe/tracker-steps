@@ -36,6 +36,19 @@ de aplicar el PATCH autorizado y auditado. La sincronización existente de
 Flota conserva la clase explícita; no cambiar la selección nativa car/bike
 del modelo de Odoo para representar una categoría que ese campo no admite.
 
+Entrega comprobada: frontend `92c662e0ecb18b161a63959014679244699f632d`,
+idéntico dist en Desarrollo y Cerro. Recibos de copia fresca, publicación y
+respaldos en `/opt/steps-validation/tracker-parity-20261031/<commit>/`.
+La normalización de clases se ensayó y aplicó con `e17c1b66`, con prueba y
+respaldo privados en `/opt/steps-validation/tracker-entry-20261102/types/`.
+Navegador real: credenciales inválidas permanecen en el formulario; las cuentas
+de previsualización existentes entran y salen en ambos sitios, incluso con
+consulta de compañía y fragmento Protección. Se exige recarga del documento
+tras autenticar: un replace de la misma URL con fragmento no recarga React.
+El administrador conserva sus cuatro GPS, verifica las dos clases corregidas
+y abre el formulario nativo de permisos. Capturas y pruebas privadas en
+`local-artifacts/tracker-entry-20261102`; sesión efímera de revisión retirada.
+
 > Actualización 31/10/2026: la configuración Coban de Cerro usa los overlays
 > privados de Desarrollo/Cerro y el publicador probado descrito en
 > [Receptor y configuración GPS](COBAN_RECEIVER.md). No ejecutar una publicación
