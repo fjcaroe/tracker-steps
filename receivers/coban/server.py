@@ -27,7 +27,7 @@ def mapping(path):
 
 class Receiver:
     def __init__(self,store,mapping_path):
-        self.store=store;self.mapping_path=mapping_path;self.active=0;self.per_ip={}
+        self.store=store;self.mapping_path=mapping_path;self.active=0;self.per_ip={};self.connections={};self.points={}
 
     def process(self,frame):
         imei,kind=identify(frame)
@@ -46,6 +46,7 @@ class Receiver:
             self.store.observe(imei,error='no_valid_gps')
             self.store.count('no_valid_gps');return None
         self.store.observe(imei,point)
+        self.points[imei]=(point,time.time())
         if route['mode']=='capture':
             self.store.capture(imei,frame,'commissioning');self.store.count('capture_only');return None
         point.update(device_id=route['device_id'],source_id=source_id(frame))
@@ -74,10 +75,12 @@ class Receiver:
                     if bound is not None and imei!=bound:raise InvalidFrame('identity_changed')
                     bound=imei
                     response=self.process(frame)
+                    self.connections[imei]=writer
                     if response:writer.write(response);await writer.drain()
         except (TimeoutError,asyncio.TimeoutError,ConnectionError,InvalidFrame,UnicodeError,ValueError,OSError,RuntimeError):
             self.store.count('connection_rejected')
         finally:
+            if bound and self.connections.get(bound) is writer:self.connections.pop(bound,None)
             self.active-=1;self.per_ip[ip]-=1
             if not self.per_ip[ip]:del self.per_ip[ip]
             writer.close()
@@ -153,7 +156,15 @@ async def run(config,store):
             await asyncio.sleep(2)
     server=await asyncio.start_server(receiver.connection,config.get('host','0.0.0.0'),config.get('port',5001),limit=16384)
     print('COBAN_LISTENING port='+str(config.get('port',5001)),flush=True)
-    async with server:await asyncio.gather(server.serve_forever(),worker())
+    if config.get('control_socket'):
+        from .starter import Control
+        control_path=Path(config['control_socket']);assert control_path==Path('/run/steps-coban/control.sock')
+        control_path.unlink(missing_ok=True)
+        private=await asyncio.start_unix_server(Control(receiver,config['control_uid']).connection,str(control_path),limit=4096)
+        os.chmod(control_path,0o666) # SO_PEERCRED, not filesystem membership, authorizes the caller.
+        async with server,private:await asyncio.gather(server.serve_forever(),private.serve_forever(),worker())
+    else:
+        async with server:await asyncio.gather(server.serve_forever(),worker())
 
 
 def main():

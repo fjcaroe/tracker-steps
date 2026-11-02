@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import TrackerIcon from '../components/TrackerIcon';
 import { allPages, dateLabel, FleetApiError, fleetRequest, label, type FleetAsset, type FleetContext, type Incident, type Policy } from '../services/fleetApi';
 import './ProtectionPage.css';
+import StarterControl from '../components/StarterControl';
 
 export type DemoProtection = { incidents: Incident[]; policies: Policy[] };
 type Confirmation = Policy & { reason: string };
@@ -110,6 +111,7 @@ export default function ProtectionPage({ context, assets, selected, demo, refres
     {message && <div role="status" className="protection-feedback is-success">{message}</div>}
     {error && <div role="alert" className="protection-feedback is-error">{error}</div>}
     <div className="protection-top-grid">
+      {asset&&!demo&&<StarterControl key={asset.asset_id} asset={asset} context={context}/>}
       <section className="protection-control fleet-panel" aria-labelledby="protection-control-title">
         <div className="protection-section-heading"><div><span className="protection-kicker">01 · Elige el vehículo</span><h2 id="protection-control-title">Armar o desarmar</h2></div><button onClick={() => void load(true)} disabled={busy || demo}>Actualizar estado</button></div>
         <label>Vehículo<select value={assetId} disabled={busy} onChange={e => { setAssetId(e.target.value); setContacts(null); setReason(''); setDetail(null); setError(''); setMessage(''); }}>{assets.map(a => <option value={a.asset_id} key={a.asset_id}>{a.plate ? `${a.plate} · ` : ''}{a.name}</option>)}</select></label>

@@ -65,6 +65,8 @@ class TrackerPortal(http.Controller):
             'tenant_key': '%s:%s' % (request.db, current_company.id), 'role': current_role,
             'vehicle_limited': access.get('asset_ids') is not None if access else False,
             'can_manage_protection': access.get('manage_protection', current_role == 'manager'),
+            'can_control_starter': access.get('starter_control', False),
+            'control_preview': access.get('control_preview', False),
             'csrf_token': request.csrf_token()}, headers={'Cache-Control': 'no-store'})
 
     @http.route('/steps_tracker/api/<path:path>', type='http', auth='user', methods=['GET', 'POST'], csrf=True)

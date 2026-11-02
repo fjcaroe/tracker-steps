@@ -8,6 +8,8 @@
     <page string="Acceso Tracker" groups="base.group_system,step_tracker_portal.group_tracker_manager">
      <group>
       <field name="tracker_restricted"/>
+      <field name="tracker_starter_control"/>
+      <field name="tracker_control_preview"/>
       <field name="tracker_vehicle_ids" widget="many2many_tags" options="{'no_create': True}" domain="[('company_id','in',company_ids)]"/>
      </group>
      <p>Los administradores conservan la flota completa salvo que se limite expresamente su perfil. Los demás usuarios de Tracker acceden únicamente a sus vehículos asignados. El grupo «Tracker: operar vehículo asignado» permite armar y desarmar su vigilancia digital.</p>

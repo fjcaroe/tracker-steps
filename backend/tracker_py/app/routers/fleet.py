@@ -51,7 +51,10 @@ def identity(token=Depends(oauth2_scheme), db: Session = Depends(get_db)):
                 any(not isinstance(v, str) or not 1 <= len(v) <= 64 for v in scope)):
             raise ValueError('Invalid vehicle scope')
         return {'tenant_id': tenant.id, 'user_id': claims['sub'], 'role': claims['role'], 'tenant': tenant.name,
-                'asset_ids': scope, 'manage_protection': claims.get('manage_protection') is True}
+                'asset_ids': scope, 'manage_protection': claims.get('manage_protection') is True,
+                'starter_control': claims.get('starter_control') is True,
+                'control_preview': claims.get('control_preview') is True,
+                'actuator_auth_at': claims.get('actuator_auth_at')}
     except (JWTError, ValueError, KeyError, TypeError):
         raise HTTPException(401, 'Identidad o compañía no autorizada')
 
@@ -66,7 +69,7 @@ def owned(db, model, object_id, ctx):
     if obj is None:
         raise HTTPException(404, 'Registro no encontrado')
     asset_id = obj.id if model is Asset else getattr(obj, 'asset_id', None)
-    if model is Command:
+    if model is Command and asset_id is None:
         incident = db.get(Incident, obj.incident_id)
         asset_id = incident.asset_id if incident else None
     if asset_id is not None and ctx.get('asset_ids') is not None and asset_id not in ctx['asset_ids']:
@@ -90,6 +93,7 @@ def position_out(p):
 def asset_out(db, a, at):
     assignment = db.query(Assignment).filter_by(asset_id=a.id, tenant_id=a.tenant_id, valid_to=None).first()
     device = db.get(Device, assignment.device_id) if assignment else None
+    registration = db.query(DeviceRegistration).filter_by(tenant_id=a.tenant_id, device_id=device.id).one_or_none() if device else None
     # The old device's last point stays in history, never becomes a new assignment's current state.
     p = db.query(Position).filter_by(tenant_id=a.tenant_id, asset_id=a.id, assignment_id=assignment.id).order_by(Position.recorded_at.desc(), Position.id.desc()).first() if assignment else None
     fresh = bool(p and (at-utc(p.received_at)).total_seconds() <= device.freshness_seconds)
@@ -103,7 +107,8 @@ def asset_out(db, a, at):
             'position_stale': not recent_fix,
             'protection_state': 'incident_open' if incident else 'armed' if policy and policy.armed else 'disarmed',
             'device': {'model': device.model, 'brand': device.brand, 'firmware': device.firmware, 'protocol': device.protocol} if device else None,
-            'capabilities': {'tracking': 'approved' if device and device.tracking_approved else 'not_approved', 'remote_start_inhibit': 'not_approved'}}
+            'capabilities': {'tracking': 'approved' if device and device.tracking_approved else 'not_approved',
+                'remote_start_inhibit': 'supervised_test' if registration and registration.starter_relay_verified and registration.receiver_mode=='forward' else 'not_approved'}}
 
 
 @router.get('/fleet/snapshot')

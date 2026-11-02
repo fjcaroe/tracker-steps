@@ -31,7 +31,10 @@ def configure(login, name, password=None, existing=False):
     if existing:
         assert user and user.active and not user.share
         assert company in user.company_ids
-    values = dict(tracker_restricted=True, tracker_vehicle_ids=[Command.set(vehicle.ids)])
+    values = dict(tracker_restricted=True, tracker_vehicle_ids=[Command.set(vehicle.ids)],
+                  action_id=env.ref('step_tracker_portal.action_fleet').id)
+    if 'tracker_starter_control' in users._fields:
+        values.update(tracker_starter_control=existing, tracker_control_preview=not existing)
     if not user:
         assert password
         user = users.create(dict(name=name, login=login, password=password, company_id=company.id,
@@ -52,7 +55,8 @@ if mode == 'configure':
     access = preview._tracker_portal_access(company)
     assert access['asset_ids'] == [facts['asset_id']] and access['role'] == 'operator' and access['manage_protection']
     if actual:
-        assert actual._tracker_portal_access(company) == access
+        actual_access=actual._tracker_portal_access(company)
+        assert all(actual_access[k]==access[k] for k in ('asset_ids','role','manage_protection'))
     Path(os.environ['TRACKER_ACCESS_RESULT']).write_text(json.dumps(dict(
         preview_user_id=preview.id, actual_user_id=actual.id if actual else None,
         company_id=company.id, asset_ids=access['asset_ids'])))

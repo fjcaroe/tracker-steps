@@ -15,6 +15,7 @@ class Store:
             db.execute('CREATE TABLE IF NOT EXISTS capture(id INTEGER PRIMARY KEY, imei TEXT, received REAL, frame BLOB, reason TEXT)')
             db.execute('CREATE TABLE IF NOT EXISTS counters(name TEXT PRIMARY KEY, count INTEGER NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS observations(imei TEXT PRIMARY KEY, payload TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS relay_attempts(id TEXT PRIMARY KEY, attempted REAL NOT NULL)')
             db.execute('CREATE INDEX IF NOT EXISTS inbox_delivery ON inbox(delivered,queued)')
 
     @contextmanager
@@ -28,6 +29,12 @@ class Store:
     def count(self,name):
         with self.connection() as db:
             db.execute('INSERT INTO counters VALUES (?,1) ON CONFLICT(name) DO UPDATE SET count=count+1',(name,))
+
+    def claim_relay(self, command_id):
+        with self.connection() as db:
+            db.execute('DELETE FROM relay_attempts WHERE attempted<?',(time.time()-7*86400,))
+            if db.execute('SELECT count(*) FROM relay_attempts').fetchone()[0]>=20000:return False
+            return db.execute('INSERT OR IGNORE INTO relay_attempts VALUES (?,?)',(command_id,time.time())).rowcount==1
 
     def observe(self,imei,point=None,error=None):
         stamp=datetime.now(timezone.utc).isoformat()

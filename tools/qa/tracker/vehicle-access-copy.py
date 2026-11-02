@@ -1,5 +1,9 @@
 """Exercise scoped GPS requests on a fresh private PostgreSQL destination copy."""
 import json, os, uuid
+import dotenv
+# Frontend build files may contain private configuration. Copy QA supplies every
+# backend setting explicitly and must not discover or read those files.
+dotenv.load_dotenv=lambda *args, **kwargs: False
 from pathlib import Path
 from fastapi.testclient import TestClient
 from jose import jwt

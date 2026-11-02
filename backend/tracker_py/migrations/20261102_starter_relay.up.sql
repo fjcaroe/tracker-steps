@@ -1,0 +1,11 @@
+BEGIN;
+ALTER TABLE gps_device_registrations ADD COLUMN IF NOT EXISTS starter_relay_verified BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE gps_device_registrations ADD COLUMN IF NOT EXISTS starter_relay_verified_at TIMESTAMPTZ;
+ALTER TABLE gps_device_registrations ADD COLUMN IF NOT EXISTS starter_relay_verified_by VARCHAR(200);
+ALTER TABLE gps_device_commands ALTER COLUMN incident_id DROP NOT NULL;
+ALTER TABLE gps_device_commands ADD COLUMN IF NOT EXISTS asset_id VARCHAR(36) REFERENCES gps_assets(id);
+ALTER TABLE gps_device_commands ADD COLUMN IF NOT EXISTS device_id VARCHAR(36) REFERENCES gps_devices(id);
+ALTER TABLE gps_device_commands ADD COLUMN IF NOT EXISTS assignment_id VARCHAR(36) REFERENCES gps_assignments(id);
+ALTER TABLE gps_device_commands ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ;
+ALTER TABLE gps_device_commands ADD COLUMN IF NOT EXISTS declared_result VARCHAR(30);
+COMMIT;

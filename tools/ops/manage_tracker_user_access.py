@@ -13,6 +13,14 @@ ENVS = {
 API = Path('/opt/fernando_odoo18/apis/backend/tracker_py')
 BASE = Path('/opt/steps-validation/tracker-user-access-20261102')
 MODULES = ('step_tracker_portal','step_tracker_vehicle_access')
+API_FILES = ('main.py','models/fleet.py','routers/fleet.py','routers/fleet_configuration.py','routers/starter_control.py')
+
+def api_files(root):
+ return {f:sha(root/f) if (root/f).exists() else None for f in API_FILES}
+
+def migration(source, db):
+ path=source/'backend/tracker_py/migrations/20261102_starter_relay.up.sql'
+ if path.exists():query(db,path.read_text())
 
 @contextmanager
 def qa_socket(which, database, stage):
@@ -79,7 +87,7 @@ def main():
  with open('/run/lock/steps-environments.lock','a') as lock:
   fcntl.flock(lock,fcntl.LOCK_EX)
   if a.action=='qa':
-   assert not (stage/'qa.json').exists();proof={'commit':commit,'facts_sha':sha(a.facts),'environments':{},'fleet_before':sha(API/'app/routers/fleet.py'),'fleet_after':sha(source/'backend/tracker_py/app/routers/fleet.py')}
+   assert not (stage/'qa.json').exists();proof={'commit':commit,'facts_sha':sha(a.facts),'environments':{},'fleet_before':sha(API/'app/routers/fleet.py'),'fleet_after':sha(source/'backend/tracker_py/app/routers/fleet.py'), 'api_before':api_files(API/'app'), 'api_after':api_files(source/'backend/tracker_py/app')}
    for which,(db,user,conf,service) in ENVS.items():
     print('TRACKER_ACCESS_COPY '+which,flush=True);proof['environments'][which]=baseline(which);backup=stage/(which+'.dump');dump(db,backup);c=config(which);clone='TRACKER_ACCESS_QA_'+which.replace('-','_')+'_'+str(int(time.time()));run('sudo','-u','postgres','createdb','-O',c['options']['db_user'],clone)
     temp=Path('/tmp/tracker-access-qa-'+which+'.conf');fp=Path('/tmp/tracker-access-qa-'+which+'.json')
@@ -99,12 +107,16 @@ def main():
    fp=Path('/tmp/tracker-access-gps-copy.json');fp.write_text(json.dumps(facts['cerro']));fp.chmod(0o600);os.chown(fp,pwd.getpwnam('postgres').pw_uid,pwd.getpwnam('postgres').pw_gid)
    try:
     with backup.open('rb') as f:run('sudo','-u','postgres','pg_restore','--no-owner','--no-acl','-d',gps,stdin=f)
+    from deploy_gps_commissioning import columns,snapshot
+    cols=columns(gps);before=snapshot(gps,cols);migration(source,gps);migration(source,gps);assert snapshot(gps,cols)==before
     with (stage/'gps-copy.log').open('wb') as log:
      run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+gps,'JWT_SECRET=copy-only','TRACKER_ACCESS_FACTS='+str(fp),'PYTHONPATH='+str(source/'backend/tracker_py')+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python',source/'tools/qa/tracker/vehicle-access-copy.py',stdout=log,stderr=subprocess.STDOUT)
    finally:fp.unlink(missing_ok=True);run('sudo','-u','postgres','dropdb','--if-exists',gps)
    # API tests use fixtures only, never issue actuator commands or write active databases.
    with (stage/'api-tests.log').open('wb') as log:
-    run('env','DATABASE_URL=sqlite://','JWT_SECRET=copy-only','PYTHONPATH='+str(source/'backend/tracker_py')+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python','-m','pytest','tests/test_fleet.py','tests/test_vehicle_scope.py','tests/test_receiver.py','-q',cwd=source/'backend/tracker_py',stdout=log,stderr=subprocess.STDOUT)
+    run('env','DATABASE_URL=sqlite://','JWT_SECRET=copy-only','PYTHONPATH='+str(source/'backend/tracker_py')+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python','-m','pytest','tests/test_fleet.py','tests/test_vehicle_scope.py','tests/test_receiver.py','tests/test_starter_control.py','-q',cwd=source/'backend/tracker_py',stdout=log,stderr=subprocess.STDOUT)
+   with (stage/'receiver-tests.log').open('wb') as log:
+    run(API/'.venv/bin/python','-m','pytest','receivers/coban/test_receiver.py','receivers/coban/test_starter.py','-q',cwd=source,stdout=log,stderr=subprocess.STDOUT)
    (stage/'qa.json').write_text(json.dumps(proof,indent=2));print('TRACKER_ACCESS_QA_OK',flush=True);return
   proof=json.loads((stage/'qa.json').read_text());assert proof['commit']==commit and proof['facts_sha']==sha(a.facts)
   if a.action=='configure':
@@ -122,8 +134,14 @@ def main():
    assert baseline(which)==proof['environments'][which],'Concurrent Odoo configuration/source change'
    dump(ENVS[which][0],backup/(which+'.dump'));shutil.copy2(ENVS[which][2],backup/(which+'.conf'))
   if a.action=='development':
-   for target,service in ((API/'app/routers/fleet.py','tracker-steps-api'),(Path('/opt/steps-tracker-development/current/backend/tracker_py/app/routers/fleet.py'),'steps-tracker-dev-api')):
-    assert sha(target)==proof['fleet_before'],'Unexpected API baseline';shutil.copy2(target,backup/(service+'-fleet.py'));shutil.copyfile(source/'backend/tracker_py/app/routers/fleet.py',target);run('systemctl','restart',service);run('systemctl','is-active','--quiet',service)
+   for target,service,db in ((API/'app','tracker-steps-api','tracker_steps'),(Path('/opt/steps-tracker-development/current/backend/tracker_py/app'),'steps-tracker-dev-api','tracker_steps_development')):
+    assert api_files(target)==proof['api_before'],'Unexpected API baseline';dump(db,backup/(db+'.dump'));shutil.copytree(target,backup/(service+'-app'),ignore=shutil.ignore_patterns('__pycache__'));run('systemctl','stop',service)
+    try:
+     migration(source,db)
+     for name in API_FILES:
+      if (source/'backend/tracker_py/app'/name).exists():shutil.copyfile(source/'backend/tracker_py/app'/name,target/name)
+    finally:run('systemctl','start',service)
+    run('systemctl','is-active','--quiet',service)
   assert sha(API/'app/routers/fleet.py')==proof['fleet_after']
   for which in scopes:
    db,user,conf,service=ENVS[which];run('systemctl','stop',service)

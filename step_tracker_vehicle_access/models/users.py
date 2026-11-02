@@ -7,6 +7,10 @@ class Users(models.Model):
 
     tracker_restricted = fields.Boolean(string='Limitar Tracker a vehículos asignados',
         groups='base.group_system,step_tracker_portal.group_tracker_manager')
+    tracker_starter_control = fields.Boolean(string='Permitir control del motor de arranque',
+        groups='base.group_system,step_tracker_portal.group_tracker_manager')
+    tracker_control_preview = fields.Boolean(string='Vista de prueba: sin órdenes físicas',
+        groups='base.group_system,step_tracker_portal.group_tracker_manager')
     tracker_vehicle_ids = fields.Many2many('fleet.vehicle', 'step_tracker_user_vehicle_rel',
         'user_id', 'vehicle_id', string='Vehículos autorizados en Tracker',
         groups='base.group_system,step_tracker_portal.group_tracker_manager')
@@ -45,7 +49,9 @@ class Users(models.Model):
         limited = self._tracker_is_limited()
         return {'role': 'manager' if manager and not limited else 'operator' if operator else 'viewer',
             'asset_ids': self._tracker_allowed_asset_ids(company) if limited else None,
-            'manage_protection': manager and not limited or user.has_group('step_tracker_vehicle_access.group_vehicle_operator')}
+            'manage_protection': manager and not limited or user.has_group('step_tracker_vehicle_access.group_vehicle_operator'),
+            'starter_control': bool(user.tracker_starter_control or manager and not limited) and not user.tracker_control_preview,
+            'control_preview': bool(user.tracker_control_preview)}
 
     def _tracker_check_asset(self, company, asset_id):
         if self._tracker_is_limited() and asset_id not in self._tracker_allowed_asset_ids(company):
@@ -58,7 +64,7 @@ class Users(models.Model):
                 raise ValidationError(_('Los vehículos deben pertenecer a compañías autorizadas del usuario.'))
 
     def write(self, values):
-        if {'tracker_restricted', 'tracker_vehicle_ids'} & values.keys():
+        if {'tracker_restricted', 'tracker_vehicle_ids', 'tracker_starter_control', 'tracker_control_preview'} & values.keys():
             if not (self.env.user.has_group('base.group_system') or self.env.user.has_group('step_tracker_portal.group_tracker_manager')):
                 raise AccessError(_('Solo un administrador de Tracker puede asignar vehículos.'))
         result = super().write(values)
