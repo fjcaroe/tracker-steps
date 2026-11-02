@@ -73,6 +73,7 @@ def main():
      cur.execute(sql.SQL("SELECT setval(pg_get_serial_sequence(%s,'id'),(SELECT max(id) FROM {}),true)").format(sql.Identifier(table)),(table,))
     for table in ('gps_assets','gps_devices','gps_positions'):
      cur.execute('SELECT count(*) FROM '+table);assert cur.fetchone()[0]==0,'Production hardware data must not enter the Development classic database'
+  db.close()
   if a.action=='qa':
    try:
     with (stage/'functional.log').open('wb') as log:run('sudo','-u','postgres','env','DATABASE_URL=postgresql+psycopg2:///'+target,'JWT_SECRET=private-journey-copy-only','JOURNEY_QA_IDS='+json.dumps(ids),'PYTHONPATH='+str(a.source/'backend/tracker_py')+':/opt/steps-validation/personal-transfer-test-deps',API/'.venv/bin/python',a.source/'tools/qa/tracker/rehearse_personal_journey.py',stdout=log,stderr=subprocess.STDOUT)
