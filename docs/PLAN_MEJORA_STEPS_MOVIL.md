@@ -476,3 +476,7 @@ requieren especificación. No publica IMEI, coordenadas, contraseñas o tramas.
 ## I10 verificada en Desarrollo — 02-11-2026
 
 Tracker 1.6.1, paquete `2abb2e0678cad981ca15ba90d91ec2c37cbe8275`. Evidencia privada: `/opt/steps-validation/mobile-boarding-20261102/2abb2e0678cad981ca15ba90d91ec2c37cbe8275/` (qa.json, development.json, postgres.log y respaldo). UI/cuenta existentes: `~/.codex/local-artifacts/t46-boarding-20261102/`. API dedicada en 8012; su código coincide con el mismo paquete probado, sin sustituir la API 8000 o el receptor. Las pruebas temporales y las sesiones de revisión se retiraron; cero servicios/eventos ficticios en el destino vivo. Cerro conserva cuatro registros GPS y Desarrollo uno. T46 sigue abierto para I11 y pendientes externos. La API actual de Desarrollo solo se reutiliza si su código y unidad coinciden exactamente; una modificación futura de esa API requiere revisar y certificar su actualización por separado.
+
+## Preparación personal de jornadas — 02-11-2026
+
+Por solicitud del usuario se retiraron las máquinas antiguas de prueba y se preparó únicamente el vehículo personal en Desarrollo, con cuatro plazas de pasajeros y un servicio ficticio autorizado. Tracker 1.6.2 elimina la exigencia de horómetro y permite combustible desconocido en vehículos por distancia. Las jornadas y adjuntos de Desarrollo usan ahora base/almacenamiento propios; el receptor GPS y el puente Odoo conservan sus datos. Ver `PREPARACION_JORNADA_PERSONAL_DESARROLLO.md`. No supone completar I11 ni ampliar producción.

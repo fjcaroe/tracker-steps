@@ -3,7 +3,7 @@
 No production GPS data is copied. JWT/native login identity keeps the existing
 Tracker user ID. The hardware fleet continues through the existing Odoo bridge.
 """
-import argparse,fcntl,json,os,subprocess,time
+import argparse,fcntl,json,os,pwd,subprocess,time
 from datetime import datetime,timezone
 from pathlib import Path
 from urllib.request import urlopen,Request
@@ -93,7 +93,8 @@ def main():
      cur.execute('DELETE FROM labors WHERE id=%s AND code=%s',(ids['labor_id'],'CONDUCCION'));assert cur.rowcount==1
      cur.execute('DELETE FROM cost_centers WHERE id=%s AND external_id=%s',(ids['cost_center_id'],plan['cc_external_id']));assert cur.rowcount==1
     dburl=url.set(database=TARGET).render_as_string(hide_password=False);assert '\n' not in dburl
-    ENV.write_text('DATABASE_URL='+dburl+'\n');ENV.chmod(0o600)
+    media=Path('/opt/steps-tracker-development/media');media.mkdir(mode=0o750,exist_ok=True);owner=pwd.getpwnam('fernandocaro1198_gmail_com');os.chown(media,owner.pw_uid,owner.pw_gid)
+    ENV.write_text('DATABASE_URL='+dburl+'\nMOBILE_MEDIA_DIR='+str(media)+'\n');ENV.chmod(0o600)
     UNIT.write_text(oldunit.replace('Environment=PYTHONUNBUFFERED=1','Environment=PYTHONUNBUFFERED=1\nEnvironmentFile=/etc/steps-tracker-development.env'))
     run('systemctl','daemon-reload');run('systemctl','start','steps-tracker-dev-api')
     token=jwt.encode({'sub':str(users[0]['id']),'exp':int(time.time())+300},values['JWT_SECRET'],algorithm='HS256');wait_api(token)

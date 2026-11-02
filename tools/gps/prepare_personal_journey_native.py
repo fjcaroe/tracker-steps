@@ -12,7 +12,11 @@ before={v.id:(v.odometer,[(r.id,r.value,str(r.date)) for r in env['fleet.vehicle
 old.write({'active':False})
 employee=env['hr.employee'].browse(plan['employee_id']);assert employee.user_id.id==plan['user_id'] and employee.company_id==vehicle.company_id
 account=env['account.analytic.account'].browse(plan['analytic_id']);assert account.company_id==vehicle.company_id
-vehicle.write({'driver_id':employee.work_contact_id.id,'seats':plan['passenger_capacity']+1})
+values={'driver_id':employee.work_contact_id.id,'seats':plan['passenger_capacity']+1}
+for field in ('cost_id','analytic_id'):
+ if field in vehicle._fields:values[field]=account.id
+if 'step_max_pass' in vehicle._fields:values['step_max_pass']=plan['passenger_capacity']
+vehicle.write(values)
 def upsert(model,tracker_id,values):
  Model=env[model].with_context(**ctx,active_test=False);row=Model.search([('tracker_id','=',tracker_id),('company_id','=',plan['company_id'])]);assert len(row)<=1
  values=dict(values,tracker_id=tracker_id,company_id=plan['company_id'])

@@ -12,9 +12,13 @@ const fs=require('fs');const path=require('path');const {chromium}=require(proce
   if(await machine.inputValue()===''||await page.getByLabel('Labor',{exact:false}).inputValue()===''||await page.getByLabel('Centro de costo',{exact:false}).inputValue()===''||await page.getByLabel('Conductor',{exact:false}).inputValue()==='')throw Error('Real defaults not ready');
   if(!(await page.getByRole('button',{name:'Iniciar jornada',exact:true}).isEnabled()))throw Error('Journey is not ready to start');
   await page.screenshot({path:path.join(out,'native-start-390.png'),fullPage:true});
+  await page.getByRole('button',{name:'Hoy',exact:true}).click();
+  await page.getByRole('heading',{name:'PRUEBA · C3 · 4 pasajeros ficticios',exact:true}).waitFor();
+  for(const n of [1,2,3,4])await page.getByText('Pasajero ficticio '+n,{exact:true}).waitFor();
+  await page.screenshot({path:path.join(out,'native-passengers-390.png'),fullPage:true});
   const snapshot=await page.evaluate(async()=>{const r=await fetch('/steps_tracker/api/fleet/snapshot?limit=500');return r.ok?r.json():null;});if(!snapshot||snapshot.total!==1||snapshot.items[0].asset_id!==plan.asset_id)throw Error('Expected only protected real GPS in Development');
   await page.getByRole('button',{name:'GPS',exact:true}).click();await page.locator('.hardware-sidebar').getByText(plan.plate,{exact:true}).waitFor();await page.locator('.hardware-car-pin').waitFor();await page.screenshot({path:path.join(out,'native-gps-390.png'),fullPage:true});
   await page.goto('https://'+proof.host+'/odoo/fleet.vehicle/'+plan.vehicle_id);const plate=page.locator('[name="license_plate"] input').first();await plate.waitFor();if(await plate.inputValue()!==plan.plate)throw Error('Wrong native vehicle');await page.screenshot({path:path.join(out,'native-vehicle.png'),fullPage:true});
-  if(writes)throw Error('Read-only native proof started a real session');console.log('PERSONAL_JOURNEY_NATIVE_OK real_account=True one_machine=True one_gps=True native_form=True defaults_ready=True live_journeys_started=0');
+  if(writes)throw Error('Read-only native proof started a real session');console.log('PERSONAL_JOURNEY_NATIVE_OK real_account=True one_machine=True one_gps=True native_form=True defaults_ready=True four_authorized_demo_passengers=True live_journeys_started=0');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error.message);process.exitCode=1;});
