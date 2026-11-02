@@ -19,6 +19,16 @@ API_FILES = ('main.py','models/fleet.py','routers/fleet.py','routers/fleet_confi
 def api_files(root):
  return {f:sha(root/f) if (root/f).exists() else None for f in API_FILES}
 
+def isolated_overlay(common, which, commit):
+ assert which in ENVS and re.fullmatch('[0-9a-f]{40}',commit)
+ target=Path('/opt/steps-tracker-access/releases')/which/commit/'addons'
+ if not target.exists():
+  target.mkdir(parents=True)
+  for module in MODULES:shutil.copytree(common/module,target/module,ignore=shutil.ignore_patterns('__pycache__'))
+ for path in (target.parent.parent,target.parent,target,*target.rglob('*')):path.chmod(0o755 if path.is_dir() else 0o644)
+ assert all(tree(common/m)==tree(target/m) for m in MODULES)
+ return target
+
 def ready_api(port):
  for _ in range(40):
   try:
@@ -201,7 +211,7 @@ def main():
   for which in scopes:
    db,user,conf,service=ENVS[which];run('systemctl','stop',service)
    try:
-    c=config(which);c['options']['addons_path']=str(overlay)+','+c['options']['addons_path']
+    c=config(which);c['options']['addons_path']=str(isolated_overlay(overlay,which,commit))+','+c['options']['addons_path']
     with Path(conf).open('w') as f:c.write(f)
     upgrade(which,db,conf,stage)
    finally:run('systemctl','start',service)
