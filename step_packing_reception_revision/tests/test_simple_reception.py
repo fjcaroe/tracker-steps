@@ -84,7 +84,7 @@ class SimpleReceptionCase(TransactionCase):
         picking = self.receipt()
         picking.fruit_variety_id = variety
         row = picking.fruit_tag_line_ids.copy({'tag_number': 'QA152 COPY'})
-        self.assertEqual(row.variety_id, False)  # explicit copied blank remains blank
+        self.assertFalse(row.variety_id)  # explicit copied blank remains blank
         fresh = self.env['step.packing.picking.tag.line'].create({
             'picking_id': picking.id, 'tag_number': 'QA152 NEW'})
         self.assertEqual(fresh.variety_id, variety)

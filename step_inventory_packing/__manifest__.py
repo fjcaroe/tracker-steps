@@ -5,7 +5,7 @@
     "category": "Inventory/Inventory",
     "author": "Steps Consulting",
     "license": "LGPL-3",
-    "depends": ["step_packing", "step_inventory_fruit_tag", "step_producers", "step_export"],
+    "depends": ["step_packing", "step_agriculture_catalogs", "step_inventory_fruit_tag", "step_producers", "step_export"],
     "data": [
         "security/ir.model.access.csv",
         "security/container_rules.xml",
