@@ -6,6 +6,7 @@ import './TrackerLogin.css';
 export default function TrackerLogin({accessError=''}:{accessError?:string}) {
  const [login,setLogin]=useState(''),[password,setPassword]=useState(''),[visible,setVisible]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const destination='/tracker'+window.location.search+window.location.hash;
+ const enter=()=>{setPassword('');window.history.replaceState(window.history.state,'',destination);window.location.reload();};
  const submit=async(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();if(busy)return;setBusy(true);setError('');
   try{
@@ -23,8 +24,8 @@ export default function TrackerLogin({accessError=''}:{accessError?:string}) {
    if(url.pathname.startsWith('/web/login/')){setPassword('');window.location.assign(url.href);return;}
    if(url.pathname==='/tracker')document.cookie='cids=; Max-Age=0; Path=/; Secure; SameSite=Lax';
    const context=await fetch('/steps_tracker/context',{credentials:'same-origin',redirect:'manual',cache:'no-store',headers:{Accept:'application/json'}});
-   if(context.ok&&context.headers.get('content-type')?.includes('application/json')){setPassword('');window.location.replace(destination);return;}
-   if(context.status===403){setPassword('');window.location.replace(destination);return;}
+   if(context.ok&&context.headers.get('content-type')?.includes('application/json')){enter();return;}
+   if(context.status===403){enter();return;}
    if(!result.ok&&result.status!==400)throw Error('El acceso no está disponible. Inténtalo nuevamente en unos momentos.');
    setError('El correo o la contraseña no coinciden. Revisa los datos e inténtalo otra vez.');
   }catch(e){setError((e as Error).message);}

@@ -3,9 +3,9 @@ const fs=require('fs'),path=require('path'),assert=require('assert');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
 (async()=>{
  const [mode,requestedOrigin,dist,out,accessFile]=process.argv.slice(2);fs.mkdirSync(out,{recursive:true});let origin=requestedOrigin,server;
- const browser=await chromium.launch({channel:'chrome',headless:true});
+ const browser=await chromium.launch({channel:'chrome',headless:true});let context;
  try{
-  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'}),page=await context.newPage();
+  context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});const page=await context.newPage();
   let state='anonymous',scenario='wrong',posts=0;
   if(mode==='fixture'){
    // A real local HTTP server exercises native redirect chains (route mocks
@@ -19,6 +19,7 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
      const form=new URLSearchParams(posted);assert.equal(form.get('csrf_token'),'native-csrf');assert.equal(form.get('login'),'qa@example.invalid');assert.equal(form.get('password'),'fixture-only');assert.equal(form.get('redirect'),'/tracker?company=2#protection');posts++;
      if(scenario==='offline')return route.fulfill({status:503,body:'Unavailable'});
      if(scenario==='mfa')return route.fulfill({status:303,headers:{location:'/web/login/totp?redirect=%2Ftracker'}});
+     if(scenario==='accepted'){state='authorized';return route.fulfill({status:303,headers:{location:'/tracker?company=2#protection'}});}
      return route.fulfill({contentType:'text/html',body:'<form class="oe_login_form"><p class="alert-danger">Wrong login/password</p></form>'});
     }
     if(url.pathname.startsWith('/web/login/totp'))return route.fulfill({contentType:'text/html',body:'<h1>Native MFA</h1>'});
@@ -37,14 +38,15 @@ const {chromium}=require(process.env.PLAYWRIGHT_MODULE||'playwright');
   if(mode==='fixture'){
    scenario='offline';await page.getByRole('button',{name:'Entrar a mi Tracker',exact:true}).click();await page.getByRole('alert').filter({hasText:'no está disponible'}).waitFor();
    scenario='mfa';await page.getByRole('button',{name:'Entrar a mi Tracker',exact:true}).click();await page.getByRole('heading',{name:'Native MFA'}).waitFor();assert.equal(posts,3);
+   scenario='accepted';await page.goto(origin+'/tracker?company=2#protection');await page.getByLabel('Correo o usuario',{exact:true}).fill('qa@example.invalid');await page.getByLabel('Contraseña',{exact:true}).fill('fixture-only');await page.getByRole('button',{name:'Entrar a mi Tracker',exact:true}).click();await page.getByRole('link',{name:'Entrar con otra cuenta'}).waitFor();assert.equal(posts,4);
   }else if(accessFile){
    // Existing private preview account; never print/store the password or a trace.
    const codes=[...fs.readFileSync(accessFile,'utf8').matchAll(/<code>(.*?)<\/code>/g)].map(m=>m[1]);assert(codes.length===2);
    await page.getByLabel('Correo o usuario',{exact:true}).fill(codes[0]);
-   await page.getByLabel('Contraseña',{exact:true}).fill(codes[1]);await page.getByRole('button',{name:'Entrar a mi Tracker',exact:true}).click();await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).waitFor();
+   await page.getByLabel('Contraseña',{exact:true}).fill(codes[1]);await page.getByRole('button',{name:'Entrar a mi Tracker',exact:true}).click();try{await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).waitFor();}catch{await page.screenshot({path:path.join(out,'login-failure.png'),fullPage:true});throw Error('Preview access failed; url='+page.url()+' alert='+await page.getByRole('alert').allTextContents());}
    const scoped=await page.evaluate(async()=>{const r=await fetch('/steps_tracker/api/fleet/snapshot');return r.json();});assert.equal(scoped.total,1);
    await page.screenshot({path:path.join(out,'authenticated-mobile.png'),fullPage:true});await page.getByRole('link',{name:'Cerrar sesión'}).click();await page.getByRole('heading',{name:'Todo bajo control.'}).waitFor();
   }
   fs.writeFileSync(path.join(out,'proof.json'),JSON.stringify({mode,responsive:true,native_csrf:true,invalid_login_inline:true,mfa:mode==='fixture',real_preview_login:!!accessFile,logout:!!accessFile}));console.log('TRACKER_ENTRY_BROWSER_OK mode='+mode);
- }finally{await browser.close();if(server)server.close();}
+ }finally{if(mode==='real'&&context)await context.request.get(origin+'/web/session/logout?redirect=/tracker').catch(()=>{});await browser.close();if(server)server.close();}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

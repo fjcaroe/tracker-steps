@@ -87,11 +87,13 @@ def configure_frontend(source,commit,scope,backup):
         run('nginx','-t');run('systemctl','reload','nginx')
         # A graceful reload can briefly serve a request through an older worker.
         for _ in range(20):
-            with urlopen('https://'+host+'/web_tracker/',timeout=20) as response:matched=response.read()==(source/'dist/index.html').read_bytes()
+            try:
+                with urlopen('https://'+host+'/web_tracker/',timeout=20) as response:matched=response.read()==(source/'dist/index.html').read_bytes()
+                with urlopen('https://'+host+'/tracker',timeout=20) as response:matched=matched and response.read()==(source/'dist/index.html').read_bytes()
+            except OSError:matched=False
             if matched:break
             time.sleep(.5)
-        assert matched,'Served index does not match the tested package'
-        with urlopen('https://'+host+'/tracker',timeout=20) as response:assert response.read()==(source/'dist/index.html').read_bytes(),'Tracker entry does not serve the tested package'
+        assert matched,'Served Tracker entries do not match the tested package'
         for p in (source/'dist/assets').iterdir():
             with urlopen('https://'+host+'/web_tracker/assets/'+p.name,timeout=20) as response:assert hashlib.sha256(response.read()).hexdigest()==hashlib.sha256(p.read_bytes()).hexdigest()
     except Exception:
