@@ -4,6 +4,7 @@ import FleetHistory from '../components/FleetHistory';
 import TrackerIcon from '../components/TrackerIcon';
 import ProtectionPage from './ProtectionPage';
 import AssetCostsPanel from '../components/AssetCostsPanel';
+import TrackerCompanySelector from '../components/TrackerCompanySelector';
 import {dateLabel,label,type FleetAsset,type FleetContext} from '../services/fleetApi';
 import type {DemoVehicle} from '../demo/scenario';
 import './MyVehicle.css';
@@ -18,6 +19,7 @@ export default function MyVehicle({context,assets,loading,error,refresh}:{contex
  const vehicle:DemoVehicle|null=asset&&p?{id:asset.asset_id,name:asset.name,plate:asset.plate||'',driver:asset.responsible||'',fieldId:'',regionId:'',status:asset.motion_state==='moving'?'working':'paused',progress:0,speedKmh:p.speed_kmh||0,fuelPct:0,engineHours:0,distanceKm:0,coveredHa:0,position:{lat:p.lat,lon:p.lon},bearing:0}:null;
  return <div className="fleet-app my-vehicle">
   <header className="my-vehicle-header"><a className="fleet-brand" href="#live"><b><TrackerIcon name="live" size={24}/></b><span>Steps <strong>Tracker</strong></span></a><div><strong>{context.user}</strong><small>{context.company}</small></div><a href="/web/session/logout?redirect=/web/login" aria-label="Cerrar sesión">Salir</a></header>
+  <div hidden={Boolean(asset)}><TrackerCompanySelector context={context}/></div>
   <main>
    {error&&<p role="alert" className="fleet-error">{error}<button onClick={refresh}>Reintentar</button></p>}
    {loading&&!asset?<p role="status">Cargando tu vehículo…</p>:!asset?<section className="my-vehicle-empty"><TrackerIcon name="fleet" size={40}/><h1>Tu acceso está preparado</h1><p>Un administrador debe asignarte un vehículo en Acceso Tracker.</p><button onClick={refresh}>Actualizar</button></section>:<>

@@ -6,8 +6,14 @@ const fs=require('fs'),path=require('path');const {chromium}=require(process.env
  const browser=await chromium.launch({headless:true,channel:'chrome'});
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},timezoneId:'America/Santiago',isMobile:true,hasTouch:true,serviceWorkers:'block'});const page=await context.newPage();
-  await page.goto('https://'+host+'/web/login?redirect=%2Fweb_tracker%2F');
-  await page.locator('input[name="login"]').fill(facts.preview_login);await page.locator('input[name="password"]').fill(facts.preview_password);await page.locator('button[type="submit"]').click();
+  if(process.env.SESSION_PROOF){
+   const proof=JSON.parse(fs.readFileSync(process.env.SESSION_PROOF,'utf8'));if(proof.host!==host||proof.company_id!==facts.company_id)throw Error('Wrong native session');
+   await context.addCookies([{name:'session_id',value:proof.session_id,domain:host,path:'/',httpOnly:true,secure:true},{name:'cids',value:String(facts.company_id),domain:host,path:'/',secure:true}]);
+   await page.goto('https://'+host+'/web_tracker/?company='+facts.company_id+'#live');
+  }else{
+   await page.goto('https://'+host+'/web/login?redirect=%2Fweb_tracker%2F');
+   await page.locator('input[name="login"]').fill(facts.preview_login);await page.locator('input[name="password"]').fill(facts.preview_password);await page.locator('form:has(input[name="password"]) button[type="submit"]').click();
+  }
   await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).waitFor({timeout:60000});
   const current=await page.evaluate(async()=>{
    const context=await (await fetch('/steps_tracker/context')).json();const fleet=await (await fetch('/steps_tracker/api/fleet/snapshot')).json();
@@ -23,10 +29,18 @@ const fs=require('fs'),path=require('path');const {chromium}=require(process.env
   await page.getByRole('dialog').getByRole('button',{name:'Cerrar',exact:true}).last().click();
   await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).getByRole('button',{name:'Protección',exact:true}).click();
   await page.locator('#protection-reason').waitFor();await page.locator('#protection-reason').fill('Revisión de permisos');
+  await page.getByRole('heading',{name:'Bloqueo de arranque',exact:true}).waitFor();
+  if(current.context.control_preview){
+   await page.getByRole('button',{name:'Bloquear arranque',exact:true}).click();
+   await page.getByText(/Simulación: bloqueo de arranque/).waitFor();
+   const denied=await page.evaluate(async({id,csrf})=>(await fetch('/steps_tracker/starter/'+id+'/command',{method:'POST',body:new URLSearchParams({csrf_token:csrf,payload:'{}'})})).status,{id:facts.asset_id,csrf:current.context.csrf_token});
+   if(denied!==403)throw Error('Preview reached physical control');
+  }
   await page.screenshot({path:path.join(out,'protection.png'),fullPage:true});
   await page.goto('https://'+host+'/web_tracker/#ops');await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).waitFor();
   if(await page.locator('body').evaluate(el=>el.scrollWidth>window.innerWidth+2))throw Error('Mobile overflow');
   console.log('TRACKER_VEHICLE_MOBILE_OK login=True assigned_only=True configuration_denied=True classic_denied=True history=True protection=True navigation=True');
-  await page.goto('https://'+host+'/web/session/logout?redirect=/web/login');
+  fs.writeFileSync(path.join(out,'proof.json'),JSON.stringify({commit:process.env.REVIEW_COMMIT,scope,limited:true,preview:current.context.control_preview===true,starter_control:current.context.can_control_starter===true,asset_count:current.fleet.total}));
+  if(!process.env.SESSION_PROOF)await page.goto('https://'+host+'/web/session/logout?redirect=/web/login');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});
