@@ -73,9 +73,14 @@ def configure_frontend(source,commit,scope,backup):
     previous=snippet.read_text() if snippet.exists() else None
     if previous is not None:
         roots=set(re.findall(r'/var/www/steps-tracker-releases/[a-f0-9]{40}',previous))
-        assert len(roots)==1 and re.sub(r'/var/www/steps-mobile-releases/[a-f0-9]{40}/','/var/www/steps-truck-frontend/',previous)==common.replace('/var/www/web_tracker_portal',next(iter(roots))),'Unreviewed private frontend drift'
+        assert len(roots)==1,'Unexpected frontend release roots'
+        # Only own the Web Tracker locations. Keep mobile releases and the
+        # dedicated Development API exactly as installed in the private overlay.
+        assert previous.split('location = /truck')[0]==common.replace('/var/www/web_tracker_portal',next(iter(roots))).split('location = /truck')[0],'Unreviewed Web Tracker location drift'
         (backup/('snippet-'+scope+'.conf')).write_text(previous)
-    snippet.write_text(previous.replace(next(iter(roots)),str(target)) if previous is not None else common.replace('/var/www/web_tracker_portal',str(target)))
+    updated=previous.replace(next(iter(roots)),str(target)) if previous is not None else common.replace('/var/www/web_tracker_portal',str(target))
+    updated=tracker_entry_locations(updated,target,scope)
+    snippet.write_text(updated)
     site.write_text(original.replace(marker,new_marker))
     host='desarrollo.stepsapp.cl' if scope=='dev' else 'cerroelplomo.stepsapp.cl'
     try:
@@ -86,6 +91,7 @@ def configure_frontend(source,commit,scope,backup):
             if matched:break
             time.sleep(.5)
         assert matched,'Served index does not match the tested package'
+        with urlopen('https://'+host+'/tracker',timeout=20) as response:assert response.read()==(source/'dist/index.html').read_bytes(),'Tracker entry does not serve the tested package'
         for p in (source/'dist/assets').iterdir():
             with urlopen('https://'+host+'/web_tracker/assets/'+p.name,timeout=20) as response:assert hashlib.sha256(response.read()).hexdigest()==hashlib.sha256(p.read_bytes()).hexdigest()
     except Exception:
@@ -94,6 +100,27 @@ def configure_frontend(source,commit,scope,backup):
         else:snippet.write_text(previous)
         run('nginx','-t');run('systemctl','reload','nginx');raise
     print('GPS_FRONTEND_VERIFIED scope='+scope,flush=True)
+
+
+def tracker_entry_locations(content,target,scope):
+    """Public login shell; business data remains behind the existing Odoo BFF."""
+    start='# BEGIN STEPS TRACKER ENTRY\n';end='# END STEPS TRACKER ENTRY\n'
+    if start in content:
+        assert content.count(start)==content.count(end)==1
+        content=re.sub(re.escape(start)+r'.*?'+re.escape(end),'',content,flags=re.S)
+    else:assert not re.search(r'location\s+[^\n{]*\s/tracker(?:[/\s{])',content),'Unknown Tracker route requires review'
+    if scope=='cerro':
+        content=content.replace('location = /truck { return 301 /truck/; }','location = /truck { return 302 /tracker$is_args$args; }')
+        if 'location = /truck/ {' not in content:content+='\nlocation = /truck/ { return 302 /tracker$is_args$args; }\n'
+    return content+start+'''location = /tracker {
+    alias '''+str(target)+'''/index.html;
+    default_type text/html;
+    add_header Cache-Control "no-store" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+}
+location = /tracker/ { return 302 /tracker$is_args$args; }
+'''+end
 
 
 def main():

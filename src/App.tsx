@@ -11,6 +11,7 @@ type Mode = "probing" | "portal" | "classic";
  * sitio de producción compartido) se muestra la operación clásica con su login propio.
  */
 async function detectMode(): Promise<Mode> {
+  if (window.location.pathname.replace(/\/$/, '') === '/tracker') return 'portal';
   if (import.meta.env.VITE_ODOO_PORTAL === "true") return "portal";
   try {
     const r = await fetch("/steps_tracker/context", { credentials: "same-origin", redirect: "manual", headers: { Accept: "application/json" } });

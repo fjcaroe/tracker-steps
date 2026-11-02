@@ -1,5 +1,41 @@
 # Cómo desplegar Web Tracker a producción
 
+## Entrada independiente de Tracker — 02-11-2026
+
+`/tracker` sirve el mismo paquete autenticado de Web Tracker, con acceso propio
+adaptado a teléfonos y la identidad, contraseña y permisos actuales de Odoo.
+El formulario prepara el CSRF nativo y envía las credenciales únicamente al
+POST `/web/login` del mismo sitio; no guarda contraseñas ni crea otro sistema
+de usuarios. Conserva la continuación de doble factor nativa y los enlaces
+de compañía, vehículo y vista. Una sesión válida entra directamente a su
+flota; una cuenta sin permisos muestra orientación sin exponer vehículos.
+Salir vuelve a `/tracker`. El selector de compañía del navegador se limpia
+después de autenticar otra cuenta, sin alterar sus membresías.
+
+`configure_frontend` mantiene los alias privados móviles y la API exclusiva
+de Desarrollo. Añade únicamente la entrada `/tracker` y su variante con barra.
+En Cerro, las entradas `/truck` y `/truck/` redirigen a `/tracker`, conservando
+la consulta; Desarrollo mantiene su aplicación móvil de pruebas. Los recursos
+estáticos del portal conservan `/web_tracker/`, para compatibilidad de enlaces
+existentes. No reemplazar la configuración privada con el snippet común.
+
+Pruebas: `tracker-entry.cjs fixture` usa un servidor HTTP local sin datos
+productivos para errores, CSRF, doble factor y diseño móvil/escritorio.
+`tracker-entry.cjs real` verifica el formulario nativo real, credenciales
+inválidas y, con el archivo privado opcional, acceso y salida de la cuenta de
+previsualización existente. No emitir órdenes físicas durante la revisión.
+`test_tracker_entry_routing.py` comprueba conservación de los otros servicios.
+Publicar el mismo dist primero en Desarrollo y después en Cerro mediante
+`deploy_tracker_frontend.py`, con copia fresca, respaldos y bloqueo compartido.
+No cambian addons Odoo, sus versiones ni los datos de QA-Cerro.
+
+Para corregir únicamente clases GPS confirmadas por el usuario, usar
+`tools/gps/normalize_vehicle_types.py` con plan privado por UUID y patente.
+Exige copia fresca, conservación de posiciones/asociaciones y respaldo antes
+de aplicar el PATCH autorizado y auditado. La sincronización existente de
+Flota conserva la clase explícita; no cambiar la selección nativa car/bike
+del modelo de Odoo para representar una categoría que ese campo no admite.
+
 > Actualización 31/10/2026: la configuración Coban de Cerro usa los overlays
 > privados de Desarrollo/Cerro y el publicador probado descrito en
 > [Receptor y configuración GPS](COBAN_RECEIVER.md). No ejecutar una publicación
