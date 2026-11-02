@@ -29,6 +29,18 @@ Se conservan los 17 casos de cálculo de recorridos y métricas. Publicar median
 `deploy_tracker_frontend.py`: copia fresca, Desarrollo y Cerro con el mismo
 dist, respaldo y bloqueo. No cambia Odoo ni la capacitación de QA-Cerro.
 
+Paquete publicado: `eeceb1fd67e46cc97d155ab10397ae3c60a0fe2a`, idéntico en
+Desarrollo y Cerro, con copia fresca y recibos/respaldos en
+`/opt/steps-validation/tracker-parity-20261031/<commit>/`. Pasan TypeScript,
+Vite, los 17 casos de métricas y recorridos y `mobile-interior.cjs`, incluidas
+dos órdenes simuladas únicamente dentro del navegador. La revisión real con
+las cuentas de previsualización existentes pasó en ambos sitios: vehículo
+asignado, historial integrado, Arranque, alertas plegadas y salida. La revisión
+del administrador verificó sus cuatro GPS, el formulario nativo de permisos,
+el cambio entre los dos vehículos desde teléfono y las pantallas de Recorridos
+y Arranque, sin emitir órdenes. Pruebas y capturas privadas en
+`local-artifacts/tracker-mobile-interior-20261102`; sesión efímera retirada.
+
 ## Entrada independiente de Tracker — 02-11-2026
 
 `/tracker` sirve el mismo paquete autenticado de Web Tracker, con acceso propio
