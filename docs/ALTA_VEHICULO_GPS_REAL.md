@@ -63,3 +63,35 @@ ambas comprobaciones. Evidencia privada de activación:
 `installation-native-session.py` permite la revisión con el usuario y compañía
 existentes, comprueba el enlace nativo y genera una sesión efímera; se retira
 con `cleanup_personal_sessions.py`. No cambia contraseñas ni membresías.
+
+Cuando se identifica al conductor, `driver_login` y `driver_user_id` deben
+coincidir con una cuenta interna activa de la compañía. Se reutiliza su contacto
+en `fleet.vehicle.driver_id`: las reglas nativas pueden impedir leer una ficha
+sin ese conductor, aunque Tracker ya tenga el UUID autorizado. Se completa el
+dato real, sin ampliar la regla para eludirlo. Un conductor existente diferente
+detiene el registro para evitar reemplazar otra asignación silenciosamente.
+
+`configure_user` asigna el vehículo real y el grupo de operación individual,
+habilita el control de arranque para ese usuario y conserva sus grupos anteriores.
+Comprueba que los perfiles de los otros usuarios no cambien. Sin esa opción,
+completar el conductor no cambia permisos. La repetición sobre copia fresca
+verifica la idempotencia; el commit emite la señal nativa de invalidación de
+caché para los procesos web. No se modifica ninguna contraseña.
+
+`vehicle-owner-review.cjs` revisa la cuenta real en formato de teléfono, la ficha
+nativa, datos técnicos y conductor, protección y relé, y el rechazo de otro
+vehículo de la misma compañía (posiciones, control físico y costos incluidos).
+Las sesiones son efímeras y no se emiten órdenes físicas. Matrícula, motor,
+chasis, SIM y cuentas se conservan exclusivamente en hechos privados.
+
+Segunda instalación del 02-11-2026: se reutilizó el activo que había vinculado el
+usuario y se registró su vehículo y conductor con acceso individual. Se ensayó
+dos veces en una copia fresca y se publicó el mismo paquete con respaldo y
+bloqueo. La revisión cruzada detectó el conductor ausente de la primera ficha;
+se completó tras otro ensayo en copia, sin cambiar sus permisos. Ambas cuentas
+acceden únicamente a su vehículo y rechazan el otro. Los relés quedan registrados
+para la prueba supervisada; no se afirma un resultado físico sin comprobarlo.
+No hay cambios de módulos, frontend o API ni copia de datos a QA-Cerro.
+Paquete operativo: `354614a4e75fec5c592b8b74d860de2405854b8d`.
+Evidencia privada: `/opt/steps-validation/cerro-second-vehicle-20261102/` y
+`~/.codex/local-artifacts/cerro-second-vehicle-20261102/`.
