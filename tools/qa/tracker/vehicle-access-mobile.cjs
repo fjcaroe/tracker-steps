@@ -30,6 +30,11 @@ const fs=require('fs'),path=require('path');const {chromium}=require(process.env
   await page.getByRole('navigation',{name:'Mi Tracker',exact:true}).getByRole('button',{name:'Protección',exact:true}).click();
   await page.locator('#protection-reason').waitFor();await page.locator('#protection-reason').fill('Revisión de permisos');
   await page.getByRole('heading',{name:'Bloqueo de arranque',exact:true}).waitFor();
+  await page.waitForFunction(()=>{const b=document.querySelector('.protection-control button.fleet-primary');return b&&!b.disabled;});
+  const relay=await page.evaluate(async id=>{const r=await fetch('/steps_tracker/api/assets/'+id+'/starter-control');return {status:r.status,value:await r.json()};},facts.asset_id);
+  if(relay.status!==200||relay.value.can_operate!==current.context.can_control_starter)throw Error('Starter access response differs');
+  if(scope==='cerro'&&!relay.value.wiring_verified)throw Error('Confirmed starter wiring missing');
+  if(!current.context.control_preview&&relay.value.wiring_verified)await page.getByText('Circuito de arranque verificado',{exact:true}).waitFor();
   if(current.context.control_preview){
    await page.getByRole('button',{name:'Bloquear arranque',exact:true}).click();
    await page.getByText(/Simulación: bloqueo de arranque/).waitFor();

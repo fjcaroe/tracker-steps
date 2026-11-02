@@ -85,7 +85,29 @@ Las pruebas de teléfono usan la cuenta nueva y una sesión efímera de la cuent
 existente, sin cambiar su contraseña ni enviar comandos físicos. Las sesiones
 de revisión se retiran al terminar.
 
-Paquete preparado: `c7ce428f0f8369ed11b4226266bdd253366c7cc4`.
+API, receptor y addons publicados: `c7ce428f0f8369ed11b4226266bdd253366c7cc4`.
+Frontend final publicado en Desarrollo y Cerro:
+`eec339e03aecb1c5eef795ce65fe17f2d974dec6`, con su propia copia GPS y el mismo
+dist servido en ambos. La aclaración de alertas/relé y la recuperación de la
+compañía no cambian los addons ni el receptor. Sus fuentes nativas son copias
+independientes por ambiente del mismo paquete certificado. Paridad comprobada:
+`step_tracker_portal` 18.0.1.5.0 y `step_tracker_vehicle_access` 18.0.1.1.0.
+
+Pasaron 28 pruebas de API y 28 de receptor, reglas/formularios/contraseña en las
+tres copias nativas y conservación de datos al repetir la migración. El backend
+compartido quedó preservado también en la rama canónica móvil, sin cambiar su
+frontend ni pasajeros: 91 pruebas de API aprobadas. La fuente de addons quedó
+integrada en la rama canónica de Gestión. No hay una implementación alternativa
+sin integrar que pueda retirar el alcance individual en otra publicación.
+
+La revisión real de móvil pasa con la cuenta limitada y con la cuenta de prueba;
+el administrador conserva cuatro GPS y el formulario nativo Acceso Tracker.
+Se comprueban además ambos diálogos físicos con respuestas interceptadas solo
+en Desarrollo, sin emitir órdenes a equipos. La cuenta real mantiene su clave
+y permisos de otras aplicaciones; la cuenta de prueba tiene simulación física.
+
 Recibos y respaldos privados: `/opt/steps-validation/tracker-user-access-20261102/`.
+Frontend: `/opt/steps-validation/tracker-access-ui-20261102/`.
+Capturas y acceso privado: `~/.codex/local-artifacts/tracker-user-access-20261102/`.
 La certificación de software no afirma el resultado físico de la instalación;
 este se registra durante la prueba de terreno con alimentación y señal reales.
