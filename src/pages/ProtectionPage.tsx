@@ -28,7 +28,7 @@ export default function ProtectionPage({ context, assets, selected, demo, refres
   const dialog = useRef<HTMLDialogElement>(null);
   const reasonInput = useRef<HTMLTextAreaElement>(null);
   const serial = useRef(0), inFlight = useRef(false);
-  const operator = context.role !== 'viewer', manager = context.role === 'manager';
+  const operator = context.role !== 'viewer', manager = context.role === 'manager' || context.can_manage_protection === true;
   const policy = policies.find(p => p.asset_id === assetId);
   const asset = assets.find(a => a.asset_id === assetId);
   const visibleIncidents = incidents.filter(i => showAll || i.asset_id === assetId).sort((a,b) => b.created_at.localeCompare(a.created_at));

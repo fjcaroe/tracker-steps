@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+vehicle_operator_read,Tracker vehículo asignado,fleet.model_fleet_vehicle,group_vehicle_operator,1,0,0,0

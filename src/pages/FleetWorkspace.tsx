@@ -24,6 +24,7 @@ import { exportFleet } from '../services/fleetExport';
 import type { Configuration } from '../services/fleetConfiguration';
 import type { FleetFilters as Filters } from '../services/fleetApi';
 import {synchronizeOdooFleet} from '../services/odooOperations';
+import MyVehicle from './MyVehicle';
 
 const FleetOperations = lazy(() => import('./FleetOperations'));
 type View = 'home' | 'live' | 'fleet' | 'protection' | 'settings' | 'zones' | 'ops';
@@ -116,6 +117,7 @@ export default function FleetWorkspace() {
   const mapVehicles: DemoVehicle[] = filtered.filter(a => a.last_position).map(a => ({ id: a.asset_id, name: a.name, plate: a.plate || '', driver: a.responsible || '', fieldId: '', regionId: '', status: a.motion_state === 'moving' ? 'working' : 'paused', progress: 0, speedKmh: a.last_position?.speed_kmh || 0, fuelPct: 0, engineHours: 0, distanceKm: 0, coveredHa: 0, position: { lat: a.last_position!.lat, lon: a.last_position!.lon }, bearing: 0 }));
   const markerLabels = Object.fromEntries(filtered.map(a => [a.asset_id, a.position_stale ? 'Posición antigua · '+(a.last_position ? new Date(a.last_position.recorded_at).toLocaleString('es-CL') : 'Sin dato') : a.motion_state === 'unknown' ? 'Movimiento desconocido' : `${a.last_position?.speed_kmh?.toFixed(1) ?? '—'} km/h`]));
   if (!context) return <main className="fleet-app tracker-login"><div className="tracker-home-card"><span className="fleet-eyebrow">STEPS TRACKER</span><h1>Tu flota, siempre cerca.</h1>{contextError ? <><p role="alert">{contextError}</p><a href="/web/login?redirect=/web_tracker/">Entrar con Odoo →</a></> : <p role="status">Cargando tu compañía y permisos…</p>}</div></main>;
+  if (context.vehicle_limited) return <MyVehicle context={context} assets={assets} loading={loading} error={error} refresh={refresh}/>;
   const title = {home:'Tu centro de movilidad',live:'Tu flota en el mapa',fleet:'Vehículos y equipos',protection:'Steps Protección',settings:'Configuración y ayuda',zones:'Zonas y actividad',ops:'Operación'}[view];
   const detail = <FleetAssetDetail key={current?.asset_id||'empty'} asset={current} onProtect={() => navigate('protection')} onEdit={context.role === 'manager' ? () => current && setEditor(current) : undefined} onHistory={() => current && setHistory(current)} onConfigure={() => navigate('settings')} costs={!demo}/>;
   if (view === 'ops') return <Suspense fallback={<p role="status">Cargando operación…</p>}><FleetOperations key={context.tenant_key} context={context} assets={assets} selected={selected} onSelect={setSelected} onExit={() => navigate('home')} onMap={() => navigate('live')} onConfigure={() => navigate('settings')}/></Suspense>;

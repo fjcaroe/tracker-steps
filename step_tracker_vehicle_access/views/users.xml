@@ -1,0 +1,18 @@
+<odoo>
+ <record id="user_tracker_access" model="ir.ui.view">
+  <field name="name">res.users.tracker.vehicle.access</field>
+  <field name="model">res.users</field>
+  <field name="inherit_id" ref="base.view_users_form"/>
+  <field name="arch" type="xml">
+   <xpath expr="//notebook" position="inside">
+    <page string="Acceso Tracker" groups="base.group_system,step_tracker_portal.group_tracker_manager">
+     <group>
+      <field name="tracker_restricted"/>
+      <field name="tracker_vehicle_ids" widget="many2many_tags" options="{'no_create': True}" domain="[('company_id','in',company_ids)]"/>
+     </group>
+     <p>Los administradores conservan la flota completa salvo que se limite expresamente su perfil. Los demás usuarios de Tracker acceden únicamente a sus vehículos asignados. El grupo «Tracker: operar vehículo asignado» permite armar y desarmar su vigilancia digital.</p>
+    </page>
+   </xpath>
+  </field>
+ </record>
+</odoo>

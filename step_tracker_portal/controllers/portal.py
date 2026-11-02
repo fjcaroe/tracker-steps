@@ -9,6 +9,8 @@ from ..signing import sign_identity
 
 def role():
     user = request.env.user
+    if hasattr(user, '_tracker_portal_access'):
+        return user._tracker_portal_access(company())['role']
     if user.has_group('base.group_system') or user.has_group('step_tracker_portal.group_tracker_manager'):
         return 'manager'
     if user.has_group('step_tracker_portal.group_tracker_operator'):
@@ -34,7 +36,8 @@ def signed_token(current_role):
     key = request.env['ir.config_parameter'].sudo().get_param('step_tracker_portal.bridge_key')
     if not key:
         raise ServiceUnavailable('Tracker pendiente de configurar')
-    return sign_identity(request.db, company().id, request.env.uid, current_role, key)
+    access = request.env.user._tracker_portal_access(company()) if hasattr(request.env.user, '_tracker_portal_access') else None
+    return sign_identity(request.db, company().id, request.env.uid, current_role, key, access=access)
 
 
 def call_api(path, method='GET', body=None, params=None):
@@ -56,9 +59,12 @@ class TrackerPortal(http.Controller):
     def context(self):
         current_role = role()
         current_company = company()
+        access = request.env.user._tracker_portal_access(current_company) if hasattr(request.env.user, '_tracker_portal_access') else {}
         return request.make_json_response({'user_id': request.env.uid, 'user': request.env.user.name,
             'company_id': current_company.id, 'company': current_company.name,
             'tenant_key': '%s:%s' % (request.db, current_company.id), 'role': current_role,
+            'vehicle_limited': access.get('asset_ids') is not None if access else False,
+            'can_manage_protection': access.get('manage_protection', current_role == 'manager'),
             'csrf_token': request.csrf_token()}, headers={'Cache-Control': 'no-store'})
 
     @http.route('/steps_tracker/api/<path:path>', type='http', auth='user', methods=['GET', 'POST'], csrf=True)
@@ -77,7 +83,22 @@ class TrackerPortal(http.Controller):
         return request.make_response(result.content, status=result.status_code,
             headers=[('Content-Type', 'application/json'), ('Cache-Control', 'no-store')])
 
-    @http.route('/steps_tracker/import-fleet', type='http', auth='user', methods=['POST'], csrf=True)
+    @http.route('/steps_tracker/classic-session', type='http', auth='user', methods=['POST'], csrf=True)
+    def classic_session(self, **kwargs):
+        """Cambia la sesión Odoo ya validada por un token de la operación clásica (sin segundo login)."""
+        current_role = role()
+        if current_role == 'viewer' or (hasattr(request.env.user, '_tracker_is_limited') and request.env.user._tracker_is_limited()):
+            raise Forbidden('Tu perfil no incluye la operación clásica.')
+        try:
+            result = requests.post('http://127.0.0.1:8000/v1/classic-session',
+                headers={'Authorization': 'Bearer '+signed_token(current_role)},
+                json={'login': request.env.user.login or '', 'name': request.env.user.name or ''}, timeout=20)
+        except requests.RequestException:
+            raise ServiceUnavailable('La API Tracker no está disponible; vuelve a intentar')
+        return request.make_response(result.content, status=result.status_code,
+            headers=[('Content-Type', 'application/json'), ('Cache-Control', 'no-store')])
+
+    @http.route('/steps_tracker/import-fleet',type='http', auth='user', methods=['POST'], csrf=True)
     def import_fleet(self, **kwargs):
         if role() != 'manager':
             raise Forbidden()

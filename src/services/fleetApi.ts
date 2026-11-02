@@ -7,7 +7,7 @@ export type FleetAsset = {
   device: null | { model: string; brand: string; firmware: string | null; protocol: string | null };
   capabilities: { tracking: string; remote_start_inhibit: string };
 };
-export type FleetContext = { user_id: number; user: string; company_id: number; company: string; tenant_key: string; role: 'viewer' | 'operator' | 'manager'; csrf_token: string };
+export type FleetContext = { user_id: number; user: string; company_id: number; company: string; tenant_key: string; role: 'viewer' | 'operator' | 'manager'; csrf_token: string; vehicle_limited?: boolean; can_manage_protection?: boolean };
 export type FleetFilters = { q: string; type: string; cost_center: string; motion: string; signal: string; protection: string; gps: string };
 export const emptyFilters: FleetFilters = { q: '', type: '', cost_center: '', motion: '', signal: '', protection: '', gps: '' };
 export const columnLabels: Record<string, string> = { name: 'Equipo', motion_state: 'Estado', signal_state: 'Última señal', protection_state: 'Protección', type: 'Tipo', created_at: 'Fecha de alta', device: 'GPS instalado', cost_center: 'Centro de costo', responsible: 'Responsable', acc: 'Contacto ACC' };
