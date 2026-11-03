@@ -44,7 +44,8 @@ try:
     clone_flow = env.cr.dbname.startswith('MANAGEMENT_QA_')
     if clone_flow:
         from probe_reception_flow import verify_flow
-        verify_flow(env, scoped, row_varieties=True)
+        verify_flow(env, scoped, row_varieties=True,
+                    summary_form=Form if EXPECTED.get('step_packing_reception_revision') == '18.0.1.3.2' else None)
         if reported and reported.state in ('assigned', 'done'):
             receipt = reported.with_env(scoped)
             original = {line.id: (line.variety_id, line.kilos, line.quantity)

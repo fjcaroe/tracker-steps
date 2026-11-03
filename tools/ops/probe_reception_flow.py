@@ -2,7 +2,7 @@
 
 Caller must roll back the entire shell transaction after verification.
 """
-def verify_flow(root, scoped, row_varieties=False):
+def verify_flow(root, scoped, row_varieties=False, summary_form=None):
     assert root.cr.dbname.startswith('MANAGEMENT_QA_')
     assert scoped.uid != 1 and not scoped.su
     setup = root['stock.picking'].with_company(scoped.company).env
@@ -30,18 +30,46 @@ def verify_flow(root, scoped, row_varieties=False):
         'product_uom': kg.id, 'product_uom_qty': 400, 'product_packaging_id': packaging.id,
         'location_id': picking.location_id.id, 'location_dest_id': picking.location_dest_id.id})
     move._action_confirm(merge=False); move.quantity = 400
-    for index, kilos in enumerate((160, 240)):
-        setup['step.packing.picking.tag.line'].create({
-            'picking_id': picking.id, 'tag_number': 'QA120-FLOW-%s-%s' % (picking.id, index),
-            'quantity': kilos / 8, 'kilos': kilos, 'packaging_id': packaging.id,
-            **({'variety_id': varieties[index].id} if row_varieties else {})})
+    operator = picking.with_env(scoped)
+    if summary_form:
+        # Exercise both tabs in one unsaved form, as in manual receipt entry.
+        pallet = setup['stock.package.type'].create({'name': 'QA153 pallet'})
+        with summary_form(operator, view='step_packing_reception_revision.view_process_reception_form') as form:
+            with form.move_ids_without_package.edit(0) as operation:
+                operation.step_fruit_pallet_type_id = pallet.with_env(scoped)
+                operation.step_fruit_pallet_qty = 2
+                operation.step_fruit_packaging_qty = 50
+                operation.product_uom_qty = 401
+                assert operation.product_packaging_id.id == packaging.id
+                operation.product_uom_qty = 400
+            for index, boxes, kilos in ((0, 20, 160), (1, 30, 240)):
+                with form.fruit_tag_line_ids.new() as tag:
+                    tag.tag_number = 'QA153-FLOW-%s-%s' % (picking.id, index)
+                    tag.product_id = product.with_env(scoped)
+                    tag.variety_id = varieties[index].with_env(scoped)
+                    tag.packaging_id = packaging.with_env(scoped)
+                    tag.quantity = boxes
+                    tag.kilos = kilos
+                with form.move_ids_without_package.edit(0) as operation:
+                    assert operation.step_fruit_packaging_qty == 50
+                    assert operation.step_fruit_pallet_qty == 2
+                    assert operation.product_packaging_id.id == packaging.id
+                    assert operation.quantity == 400
+        assert move.step_fruit_packaging_qty == 50 and move.step_fruit_pallet_qty == 2
+        assert move.product_packaging_id == packaging and move.quantity == 400
+        print('T153_MANUAL_SUMMARY_FORM_OK')
+    else:
+        for index, kilos in enumerate((160, 240)):
+            setup['step.packing.picking.tag.line'].create({
+                'picking_id': picking.id, 'tag_number': 'QA120-FLOW-%s-%s' % (picking.id, index),
+                'quantity': kilos / 8, 'kilos': kilos, 'packaging_id': packaging.id,
+                **({'variety_id': varieties[index].id} if row_varieties else {})})
     # A physical 50-box count survives a correction of measured kilograms.
     assert move.step_fruit_packaging_qty==50
     move.quantity=401
     assert move.step_fruit_packaging_qty==50
     move.quantity=400
     print('T132_WEIGHT_CORRECTION_PRESERVES_CONTAINERS_OK')
-    operator = picking.with_env(scoped)
     operator.button_validate()
     assert operator.state == 'done'
     assert sum(operator.move_line_ids.mapped('quantity')) == 400
