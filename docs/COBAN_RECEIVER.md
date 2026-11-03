@@ -39,6 +39,22 @@ del propio hardware; el manual de la revisión 401 inspeccionada no documenta
 una garantía de almacenamiento/recuperación de recorridos. No inferir esa
 capacidad de otros modelos Coban ni reconstruir calles como datos observados.
 
+Entrega verificada: receptor `1420b9faff9af9b4409f522473f6311799c728d8`.
+El mismo paquete pasó 33 pruebas Linux y el flujo TCP/API en copia fresca del
+destino antes de publicarse con respaldo y bloqueo. El receptor volvió a iniciar
+el 03-11-2026 a las 01:07:32 UTC, en una ventana sin clientes TCP observados.
+Se preservaron API, configuración privada, permisos e historial existente; no
+se emitieron órdenes físicas. Recibos en `/opt/steps-validation/
+coban-continuity-20261102/<commit>/`.
+
+La observación pasiva posterior (01:08:34–01:12:04 UTC) comprobó la conexión del
+equipo real en las 43 consultas, incluyendo su siguiente heartbeat y contactos
+posteriores. El contador de heartbeats aumentó en dos sin nuevos rechazos ni
+mensajes de configuración por reconexión. La evidencia privada de diagnóstico
+incluye `heartbeat-after-framer-fix.json`. Esto verifica el defecto
+corregido; no demuestra la causa completa de un intervalo histórico sin muestras.
+Elevar solamente el timeout no había eliminado las reconexiones observadas.
+
 Solicitud explícita del usuario: preparar y habilitar hoy el receptor para
 Cerro El Plomo productivo; los cuatro IMEI, números SIM y manual llegarán aparte.
 

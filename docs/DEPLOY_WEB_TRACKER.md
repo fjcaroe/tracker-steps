@@ -17,6 +17,20 @@ La revisión de datos reales conserva fuera de Git la copia consistente de la
 cola, muestras y conclusiones. Un mensaje de estado no contiene una ubicación;
 su presencia no demuestra que el vehículo haya estado estacionado o circulando.
 
+Entrega publicada: frontend `8ab68f0f706c3fbe09de59d19aece0e3312ee8a3`, mismo
+dist en Desarrollo y Cerro. Ambos portales sirven el HTML con SHA-256
+`64a78610e379152584b5525552ea5b60cfbba8b60c8e541cb5c6f05574adb724`.
+Recibos de copia fresca, respaldo y publicación en
+`/opt/steps-validation/tracker-parity-20261031/<commit>/`.
+La revisión real en teléfono y diálogo de escritorio comprobó el corte de
+9.020 segundos, pausa automática y continuación explícita, conservando las
+muestras de ambos extremos, con cero escrituras de negocio u órdenes físicas.
+`gps-gap-real.cjs` reproduce esa revisión con hechos/sesión privados.
+Capturas y prueba en `local-artifacts/tracker-gap-review-20261102/real-gap/`;
+las sesiones temporales de revisión se retiraron. Los addons Odoo y los datos
+de capacitación de QA-Cerro no cambiaron. El receptor se certifica por separado
+en `COBAN_RECEIVER.md`; su corrección no requiere reemplazar este frontend.
+
 ## Interior de Tracker para teléfonos — 02-11-2026
 
 La entrada `/tracker` ofrece Vehículo, Recorridos y Arranque, con la paleta del
